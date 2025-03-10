@@ -55,38 +55,20 @@ public partial class DDAPage
         var rowCount = ParentPanel.RowDefinitions.Count; // 获取当前行数
         ParentPanel.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });  // 增加新的一行
 
-        var cardExpander = new CardExpander
-        {
-            Margin = new Thickness(20, 5, 0, 0),
-            ContentPadding = new Thickness(6),
-        };
-        var icon = new FontIcon
-        {
-            FontSize = 24,
-            FontFamily = (FontFamily)Application.Current.Resources["SegoeFluentIcons"],
-            Glyph = GetIconPath(classType, friendlyName) // 获取图标Unicode
-        };
+        var cardExpander = Utils.CardExpander1();
+        cardExpander.Icon = Utils.FontIcon1(classType, friendlyName);
 
-        cardExpander.Icon = icon;
         var headerGrid = new Grid(); // 创建 header 的 Grid 布局，包含两列，第一列占满剩余空间，第二列根据内容自适应宽度
         headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
-        var headerText = new TextBlock{
-            Text = friendlyName,
-            FontSize = 16,
-            Margin = new System.Windows.Thickness(0, 6, 0, 0),
-            VerticalAlignment = VerticalAlignment.Center
-        };
-        headerGrid.Children.Add(headerText);
-        Grid.SetColumn(headerText, 0); // 添加文本控件到第一列
+        var drivername = Utils.TextBlock1(friendlyName); //设备名
+        Grid.SetColumn(drivername, 0); // 添加到第一列
+        headerGrid.Children.Add(drivername);
 
-        //选项
-        var Menu = new DropDownButton
-        {
-            Content = status,
-            Margin = new Thickness(10, 0, 5, 0),
-        };
+        var Menu = Utils.DropDownButton1(status); //右侧按钮
+        Grid.SetColumn(Menu, 1); // 添加按钮到第二列
+
         var contextMenu = new ContextMenu();
         contextMenu.Items.Add(CreateMenuItem("主机")); //单独添加一个主机选项，和后面的虚拟机列表融合
         foreach (var vmName in vmNames)
@@ -98,7 +80,7 @@ public partial class DDAPage
             var item = new MenuItem { Header = header };
             item.Click += (s, e) =>
             {
-                if (Menu.Content != header) // 菜单目前的选项不等于用户选择的选项时
+                if (Menu.Content != header) // 当用户选项不等于目前的选项时
                 {  
                     Switchvm(Menu, (string)Menu.Content, header, instanceId, path);
                 }
@@ -107,13 +89,13 @@ public partial class DDAPage
         }
         Menu.Flyout = contextMenu;
         headerGrid.Children.Add(Menu);
-        Grid.SetColumn(Menu, 1); // 添加按钮到第二列
         cardExpander.Header = headerGrid;
 
 
         // 详细数据
         var contentPanel = new StackPanel { Margin = new Thickness(50, 10, 0, 0) };
         var grid = new Grid();
+
         // 定义 Grid 的列和行
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(125) });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });

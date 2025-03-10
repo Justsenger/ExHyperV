@@ -184,7 +184,7 @@ Windows Registry Editor Version 5.00
 @=dword:00000001
 
 [HKEY_LOCAL_MACHINE\OfflineSystem\ControlSet001\Services\nvlddmkm\Global\Startup\AcePersistenceOnDriverLoad]
-@=dword:00000000
+@=dword:00000001
 
 [HKEY_LOCAL_MACHINE\OfflineSystem\ControlSet001\Services\nvlddmkm\Global\Startup\AcePersistenceOnInstall]
 @=dword:00000001

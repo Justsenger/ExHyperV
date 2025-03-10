@@ -1,12 +1,71 @@
 {
   "Version": 1,
   "WorkspaceRootPath": "C:\\Github\\ExHyperV\\src\\",
-  "Documents": [],
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{48822215-1DDF-444C-9F26-45937316ADCC}|ExHyperV.csproj|c:\\github\\exhyperv\\src\\views\\pages\\ddapage.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{48822215-1DDF-444C-9F26-45937316ADCC}|ExHyperV.csproj|solutionrelative:views\\pages\\ddapage.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{48822215-1DDF-444C-9F26-45937316ADCC}|ExHyperV.csproj|c:\\github\\exhyperv\\src\\utils.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{48822215-1DDF-444C-9F26-45937316ADCC}|ExHyperV.csproj|solutionrelative:utils.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{48822215-1DDF-444C-9F26-45937316ADCC}|ExHyperV.csproj|c:\\github\\exhyperv\\src\\choosegpuwindow.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{48822215-1DDF-444C-9F26-45937316ADCC}|ExHyperV.csproj|solutionrelative:choosegpuwindow.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
   "DocumentGroupContainers": [
     {
       "Orientation": 0,
       "VerticalTabListWidth": 256,
-      "DocumentGroups": []
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 1,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "ChooseGPUWindow.xaml.cs",
+              "DocumentMoniker": "C:\\Github\\ExHyperV\\src\\ChooseGPUWindow.xaml.cs",
+              "RelativeDocumentMoniker": "ChooseGPUWindow.xaml.cs",
+              "ToolTip": "C:\\Github\\ExHyperV\\src\\ChooseGPUWindow.xaml.cs",
+              "RelativeToolTip": "ChooseGPUWindow.xaml.cs",
+              "ViewState": "AgIAAHgAAAAAAAAAAAAAAOwAAAAgAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-03-10T15:50:45.812Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "DDAPage.xaml.cs",
+              "DocumentMoniker": "C:\\Github\\ExHyperV\\src\\Views\\Pages\\DDAPage.xaml.cs",
+              "RelativeDocumentMoniker": "Views\\Pages\\DDAPage.xaml.cs",
+              "ToolTip": "C:\\Github\\ExHyperV\\src\\Views\\Pages\\DDAPage.xaml.cs",
+              "RelativeToolTip": "Views\\Pages\\DDAPage.xaml.cs",
+              "ViewState": "AgIAAD8AAAAAAAAAAAAmwFwAAAApAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-03-10T15:42:36.595Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "Utils.cs",
+              "DocumentMoniker": "C:\\Github\\ExHyperV\\src\\Utils.cs",
+              "RelativeDocumentMoniker": "Utils.cs",
+              "ToolTip": "C:\\Github\\ExHyperV\\src\\Utils.cs",
+              "RelativeToolTip": "Utils.cs",
+              "ViewState": "AgIAAEUAAAAAAAAAAAAAAAoAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-03-10T15:37:51.126Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
     }
   ]
 }
