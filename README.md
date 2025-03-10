@@ -5,7 +5,7 @@
 
 
 # 下载&构建
-* 下载：等待添加发布链接。
+* 下载：[最新构建](https://github.com/Justsenger/ExHyperV/releases/latest)
 
 
 * 构建：安装 Visual Studio 2022，添加C#和WPF，然后点击/src/ExHyperV.sln即可开始构建。
