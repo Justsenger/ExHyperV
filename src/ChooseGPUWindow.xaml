@@ -1,0 +1,73 @@
+﻿<ui:FluentWindow x:Class="ExHyperV.ChooseGPUWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:ExHyperV"
+        xmlns:pages="clr-namespace:ExHyperV.Views.Pages"
+        mc:Ignorable="d"
+        Title="ExHyperV" Height="550" Width="500"
+        xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
+    <Grid>
+
+        <!-- 布局规划 -->
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        
+        <!-- 标题栏 -->
+        <ui:TitleBar
+            Title="GPU选择" Grid.ColumnSpan="2" VerticalAlignment="Center">
+            <ui:TitleBar.Icon>
+                <ui:ImageIcon>
+                    <ui:ImageIcon.Source>
+                        <BitmapImage UriSource="pack://application:,,,/Assets/app.png" />
+                    </ui:ImageIcon.Source>
+                </ui:ImageIcon>
+            </ui:TitleBar.Icon>
+        </ui:TitleBar>
+
+        <ProgressBar x:Name="progress" Grid.Row="1" IsIndeterminate="False"/>
+
+        <Grid Grid.Row="2" Margin="7">
+            <ui:ListView x:Name="GpuListView" ItemsSource="{Binding Items}"  SelectionChanged="ListView_SelectionChanged">
+                <ui:ListView.ItemTemplate>
+                    <DataTemplate>
+                        <Grid Margin="15,15,0,15">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+
+                            <ui:Image Source="{Binding Iconpath}" Height="64" Width="64" VerticalAlignment="Top" Grid.RowSpan="2"/>
+                            <TextBlock Text="{Binding GPUname}" VerticalAlignment="Center"  Margin="10,5,0,0" Grid.Row="0" Grid.Column="1"/>
+                            <TextBlock Text="{Binding Id}" VerticalAlignment="Center"  Margin="10,5,0,0" Grid.Row="1" Grid.Column="1"/>
+                        </Grid>
+                    </DataTemplate>
+                </ui:ListView.ItemTemplate>
+            </ui:ListView>
+
+        </Grid>
+
+
+        <Grid Grid.Row="3" Margin="10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <ui:Button Content="取消" Width="200" Margin="20,0,40,0" Click="CancelButton_Click"/>
+            <ui:Button x:Name="ConfirmButton" Appearance="Primary" Content="确定" Width="200" Click="ConfirmButton_Click" Grid.Column="1" IsEnabled="False"/>
+        </Grid>
+
+
+    </Grid>
+</ui:FluentWindow>
+    

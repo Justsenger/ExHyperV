@@ -1,0 +1,41 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd">
+  <metadata>
+    <id>ExHyperV</id>
+    <version>1.0.0</version>
+    <authors>ExHyperV</authors>
+    <description>Package Description</description>
+    <repository type="git" />
+    <dependencies>
+      <group targetFramework="net8.0-windows7.0">
+        <dependency id="Microsoft.PowerShell.SDK" version="7.4.0" exclude="Build,Analyzers" />
+        <dependency id="System.Management.Automation" version="7.4.0" exclude="Build,Analyzers" />
+        <dependency id="WPF-UI" version="4.0.0" exclude="Build,Analyzers" />
+        <dependency id="WPF-UI.Tray" version="4.0.0" exclude="Build,Analyzers" />
+      </group>
+    </dependencies>
+    <frameworkReferences>
+      <group targetFramework="net8.0-windows7.0">
+        <frameworkReference name="Microsoft.WindowsDesktop.App.WPF" />
+      </group>
+    </frameworkReferences>
+    <contentFiles>
+      <files include="any/net8.0-windows7.0/applicationIcon.ico" buildAction="Content" />
+      <files include="any/net8.0-windows7.0/Assets/app.png" buildAction="Content" />
+      <files include="any/net8.0-windows7.0/Assets/bar.png" buildAction="Content" />
+      <files include="any/net8.0-windows7.0/Fonts/SegoeIcons.ttf" buildAction="Content" />
+    </contentFiles>
+  </metadata>
+  <files>
+    <file src="C:\Users\Administrator\Desktop\V1.0.1\DDA测试通过\ExHyperV\bin\Release\net8.0-windows\ExHyperV.runtimeconfig.json" target="lib\net8.0-windows7.0\ExHyperV.runtimeconfig.json" />
+    <file src="C:\Users\Administrator\Desktop\V1.0.1\DDA测试通过\ExHyperV\bin\Release\net8.0-windows\ExHyperV.dll" target="lib\net8.0-windows7.0\ExHyperV.dll" />
+    <file src="C:\Users\Administrator\Desktop\V1.0.1\DDA测试通过\ExHyperV\applicationIcon.ico" target="content\applicationIcon.ico" />
+    <file src="C:\Users\Administrator\Desktop\V1.0.1\DDA测试通过\ExHyperV\applicationIcon.ico" target="contentFiles\any\net8.0-windows7.0\applicationIcon.ico" />
+    <file src="C:\Users\Administrator\Desktop\V1.0.1\DDA测试通过\ExHyperV\Assets\app.png" target="content\Assets\app.png" />
+    <file src="C:\Users\Administrator\Desktop\V1.0.1\DDA测试通过\ExHyperV\Assets\app.png" target="contentFiles\any\net8.0-windows7.0\Assets\app.png" />
+    <file src="C:\Users\Administrator\Desktop\V1.0.1\DDA测试通过\ExHyperV\Assets\bar.png" target="content\Assets\bar.png" />
+    <file src="C:\Users\Administrator\Desktop\V1.0.1\DDA测试通过\ExHyperV\Assets\bar.png" target="contentFiles\any\net8.0-windows7.0\Assets\bar.png" />
+    <file src="C:\Users\Administrator\Desktop\V1.0.1\DDA测试通过\ExHyperV\Fonts\SegoeIcons.ttf" target="content\Fonts\SegoeIcons.ttf" />
+    <file src="C:\Users\Administrator\Desktop\V1.0.1\DDA测试通过\ExHyperV\Fonts\SegoeIcons.ttf" target="contentFiles\any\net8.0-windows7.0\Fonts\SegoeIcons.ttf" />
+  </files>
+</package>

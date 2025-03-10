@@ -1,0 +1,83 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+	<ApplicationIcon>applicationIcon.ico</ApplicationIcon>
+    <UseWPF>true</UseWPF>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="Assets\app.png" />
+    <None Remove="Assets\bar.png" />
+    <None Remove="Assets\Gpuicons\AMD.png" />
+    <None Remove="Assets\Gpuicons\Default.png" />
+    <None Remove="Assets\Gpuicons\DisplayLink.png" />
+    <None Remove="Assets\Gpuicons\Intel.png" />
+    <None Remove="Assets\Gpuicons\Iris.png" />
+    <None Remove="Assets\Gpuicons\Microsoft.jpg" />
+    <None Remove="Assets\Gpuicons\Microsoft.png" />
+    <None Remove="Assets\Gpuicons\Moore.png" />
+    <None Remove="Assets\Gpuicons\NVIDIA.jpg" />
+    <None Remove="Assets\Gpuicons\NVIDIA.png" />
+    <None Remove="Assets\Gpuicons\Qualcomm.png" />
+    <None Remove="Assets\Gpuicons\RTX.png" />
+    <None Remove="Assets\Gpuicons\Silicon.png" />
+  </ItemGroup>
+
+
+	<ItemGroup>
+		<Content Include="applicationIcon.ico">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</Content>
+		<Content Include="Assets\app.png">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</Content>
+		<Content Include="Assets\bar.png">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</Content>
+		<Content Include="Assets\Gpuicons\AMD.png">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</Content>
+		<Content Include="Assets\Gpuicons\DisplayLink.png">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</Content>
+		<Content Include="Assets\Gpuicons\Intel.png">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</Content>
+		<Content Include="Assets\Gpuicons\Microsoft.png">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</Content>
+		<Content Include="Assets\Gpuicons\NVIDIA.png">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</Content>
+	</ItemGroup>
+	
+  <ItemGroup>
+    <Content Include="Fonts\SegoeIcons.ttf">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.PowerShell.SDK" Version="7.4.0" />
+    <PackageReference Include="System.Management.Automation" Version="7.4.0" />
+    <PackageReference Include="WPF-UI" Version="4.0.0" />
+    <PackageReference Include="WPF-UI.Tray" Version="4.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Assets\Gpuicons\Moore.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Assets\Gpuicons\Qualcomm.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Assets\Gpuicons\Silicon.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+</Project>

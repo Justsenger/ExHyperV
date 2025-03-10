@@ -1,0 +1,115 @@
+<Page
+    x:Class="ExHyperV.Views.Pages.StatusPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="clr-namespace:ExHyperV.Views.Pages"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    Title="StatusPage"
+    d:DesignHeight="700"
+    d:DesignWidth="1000"
+    mc:Ignorable="d">
+
+
+
+    <Grid Margin="20" VerticalAlignment="Top">
+
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+
+        <StackPanel Margin="0,0,0,8">
+            <ui:TextBlock
+                            Margin="0,0,0,8"
+                            Text="兼容性检测"
+                            FontSize="36"
+                            Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"></ui:TextBlock>
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="56"/>
+                    <RowDefinition Height="56"/>
+                    <RowDefinition Height="56"/>
+                    <RowDefinition Height="56"/>
+                </Grid.RowDefinitions>
+
+                <ui:Card Grid.Row="0" >
+                    <Grid x:Name="status1">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <ui:ProgressRing x:Name="progressRing1"  IsIndeterminate="True" Width="16" Height="16"/>
+                        <TextBlock Grid.Column="1" x:Name="win" Margin="10,0,0,0" Text="检测系统版本..." FontSize="16"/>
+                    </Grid>
+                </ui:Card>
+
+                <ui:Card Grid.Row="1" >
+                    <Grid x:Name="status2">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <ui:ProgressRing x:Name="progressRing2"  IsIndeterminate="True" Width="16" Height="16"/>
+                        <TextBlock Grid.Column="1" x:Name="cpu" Margin="10,0,0,0" Text="检测CPU是否开启虚拟化..." FontSize="16"/>
+                    </Grid>
+                </ui:Card>
+
+                <ui:Card Grid.Row="2">
+                    <Grid x:Name="status3">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <ui:ProgressRing x:Name="progressRing3"  IsIndeterminate="True" Width="16" Height="16"/>
+                        <TextBlock Grid.Column="1" x:Name="hyperv" Margin="10,0,0,0" Text="检测HyperV是否安装..." FontSize="16"/>
+                    </Grid>
+                </ui:Card>
+
+                <ui:Card Grid.Row="3">
+                    <Grid x:Name="status4">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <ui:ProgressRing x:Name="progressRing4"  IsIndeterminate="True" Width="16" Height="16"/>
+                        <TextBlock Grid.Column="1" x:Name="admin" Margin="10,0,0,0" Text="检测是否以管理员权限启动..." FontSize="16"/>
+                    </Grid>
+                </ui:Card>
+            </Grid>
+        </StackPanel>
+
+
+        <StackPanel Margin="0,0,0,8" Grid.Row="1">
+
+            <ui:TextBlock Text="设定" FontSize="36" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"></ui:TextBlock>
+
+            <ui:CardControl Grid.Row="1" Margin="0,10,0,0">
+                <ui:CardControl.Icon>
+                    <ui:FontIcon FontSize="24" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xF211;"/>
+                </ui:CardControl.Icon>
+                <ui:CardControl.Header>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="禁用安全策略" FontSize="16" VerticalAlignment="Center"/>
+                        <ui:ToggleSwitch
+                    x:Name="gpustrategy"
+                    Grid.Column="1"
+                    Margin="0,0,0,1"
+                    Checked="addgs"
+                    Unchecked="deletegs" VerticalAlignment="Bottom"
+                    />
+                    </Grid>
+                </ui:CardControl.Header>
+            </ui:CardControl>
+
+        </StackPanel>
+    </Grid>
+
+
+</Page>
