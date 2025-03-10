@@ -62,6 +62,12 @@
 
 * 目前没有找到任何方法可以限制虚拟机GPU的资源使用，Set-VMGpuPartitionAdapter的设定参数并不会起到任何[实质性作用](https://github.com/jamesstringerparsec/Easy-GPU-PV/issues/298)。因此，在找到有效的方法前，不会开放资源分配功能。Nvidia的Grid驱动可以分割资源，但是它需要不菲的授权费。
 
+
+* 下图描述了 WDDM 半虚拟化设计中涉及的各种组件。
+
+
+![WDDM](https://github.com/Justsenger/ExHyperV/blob/main/img/WDDM.png)
+
 ### Windows版本
 
 宿主：Server 2022、Server 2025以及任何版本Win11。需要高于虚拟机系统版本。
