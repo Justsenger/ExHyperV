@@ -1,8 +1,11 @@
 using System.Collections.ObjectModel;
+using System.Data.Common;
 using System.Management.Automation;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Media;
 using Wpf.Ui.Controls;
+using TextBlock = Wpf.Ui.Controls.TextBlock;
 
 namespace ExHyperV.Views.Pages;
 
@@ -82,6 +85,15 @@ public partial class Utils
         return Menu;
     }
 
+
+    public static TextBlock TextBlock2(string text,int row,int column)
+    {
+        var textBlock = new TextBlock { Text = text, FontSize = 16, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 10, 10) };
+        Grid.SetRow(textBlock, row);
+        Grid.SetColumn(textBlock, column);
+
+        return textBlock;
+    }
 
 
 

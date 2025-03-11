@@ -6,6 +6,9 @@ using System.Management.Automation;
 using System.Windows;
 using Wpf.Ui.Controls;
 using System.Windows.Media;
+using System.Security.AccessControl;
+using System.Xml.Linq;
+
 public partial class DDAPage
 {
     public bool refreshlock = false;
@@ -38,148 +41,109 @@ public partial class DDAPage
     private async void Initialinfo(){
         List<DeviceInfo> deviceList = new List<DeviceInfo>();
         await GetInfo(deviceList); //获取数据
-        //更新UI
-        Dispatcher.Invoke(() =>
+
+        Dispatcher.Invoke(() => //更新UI
         {
             ParentPanel.Children.Clear();
             progressRing.Visibility = Visibility.Collapsed; //隐藏加载条
             foreach (var device in deviceList) //更新UI
             {
-                AddCardExpander(device.FriendlyName, device.Status, device.ClassType, device.InstanceId, device.Path, device.VmNames);
+                var cardExpander = Utils.CardExpander1();
+                cardExpander.Icon = Utils.FontIcon1(device.ClassType, device.FriendlyName);
+                Grid.SetRow(cardExpander, ParentPanel.RowDefinitions.Count);
+                ParentPanel.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });  // 增加新的一行
+
+                var headerGrid = new Grid(); // 创建 header 的 Grid 布局，包含两列，第一列占满剩余空间，第二列根据内容自适应宽度
+                headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+                var drivername = Utils.TextBlock1(device.FriendlyName); //设备名
+                Grid.SetColumn(drivername, 0); // 添加到第一列
+                headerGrid.Children.Add(drivername);
+
+                var Menu = Utils.DropDownButton1(device.Status); //右侧按钮
+                Grid.SetColumn(Menu, 1); // 添加按钮到第二列
+
+                var contextMenu = new ContextMenu();
+                contextMenu.Items.Add(CreateMenuItem("主机")); //单独添加一个主机选项，和后面的虚拟机列表融合
+                foreach (var vmName in device.VmNames)
+                {
+                    contextMenu.Items.Add(CreateMenuItem(vmName));
+                }
+                MenuItem CreateMenuItem(string header)
+                {
+                    var item = new MenuItem { Header = header };
+                    item.Click += async (s, e) =>
+                    {
+                        if ((String)Menu.Content != header) // 当用户选项不等于目前的选项时
+                        {
+                            TextBlock contentTextBlock = new TextBlock
+                            {
+                                Text = "修改虚拟机的关机动作为强制断电...",
+                                HorizontalAlignment = HorizontalAlignment.Center, // 水平居中
+                                VerticalAlignment = VerticalAlignment.Center,     // 垂直居中
+                                TextWrapping = TextWrapping.Wrap                  // 允许文本换行
+                            };
+
+                            ContentDialog Dialog = new()
+                            {
+                                Title = "设定修改中",
+                                Content = contentTextBlock,
+                                CloseButtonText = "操作不可中断，请等待",
+                            };
+
+                            Dialog.Closing += (sender, args) => { args.Cancel = true; };// 禁止用户点击按钮触发关闭事件
+                            Dialog.DialogHost = ((MainWindow)Application.Current.MainWindow).ContentPresenterForDialogs;
+
+                            await Dialog.ShowAsync(CancellationToken.None); //显示提示框
+
+                            await PerformBackgroundOperationAsync(Menu, Dialog, contentTextBlock, header, device.InstanceId, device.Path, (String)Menu.Content); //执行命令行
+                        }
+                    };
+                    return item;
+                }
+                Menu.Flyout = contextMenu;
+                headerGrid.Children.Add(Menu);
+                cardExpander.Header = headerGrid;
+
+                // 详细数据
+                var contentPanel = new StackPanel { Margin = new Thickness(50, 10, 0, 0) };
+
+                var grid = new Grid();
+                // 定义 Grid 的列和行
+                grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(125) });
+                grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(32) });
+                grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(32) });
+                grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(32) });
+
+                var textData = new (string text, int row, int column)[]
+                {
+                    ("类型", 0, 0),
+                    ("实例ID", 0, 1),
+                    ("路径", 0, 2),
+                    (device.ClassType, 1, 0),
+                    (device.InstanceId, 1, 1),
+                    (device.Path, 1, 2),
+                };
+
+                foreach (var (text, row, column) in textData)
+                {
+                    var textBlock = Utils.TextBlock2(text, row, column);
+                    grid.Children.Add(textBlock);
+                }
+
+                contentPanel.Children.Add(grid);
+                cardExpander.Content = contentPanel;
+                ParentPanel.Children.Add(cardExpander);
             }
             refreshlock = false;
         });
     }
-    public void AddCardExpander(string friendlyName, string status, string classType, string instanceId, string path, List<string> vmNames)
-    {
-        var rowCount = ParentPanel.RowDefinitions.Count; // 获取当前行数
-        ParentPanel.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });  // 增加新的一行
 
-        var cardExpander = Utils.CardExpander1();
-        cardExpander.Icon = Utils.FontIcon1(classType, friendlyName);
-
-        var headerGrid = new Grid(); // 创建 header 的 Grid 布局，包含两列，第一列占满剩余空间，第二列根据内容自适应宽度
-        headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-
-        var drivername = Utils.TextBlock1(friendlyName); //设备名
-        Grid.SetColumn(drivername, 0); // 添加到第一列
-        headerGrid.Children.Add(drivername);
-
-        var Menu = Utils.DropDownButton1(status); //右侧按钮
-        Grid.SetColumn(Menu, 1); // 添加按钮到第二列
-
-        var contextMenu = new ContextMenu();
-        contextMenu.Items.Add(CreateMenuItem("主机")); //单独添加一个主机选项，和后面的虚拟机列表融合
-        foreach (var vmName in vmNames)
-        {
-            contextMenu.Items.Add(CreateMenuItem(vmName));
-        }
-        MenuItem CreateMenuItem(string header)
-        {
-            var item = new MenuItem { Header = header };
-            item.Click += (s, e) =>
-            {
-                if (Menu.Content != header) // 当用户选项不等于目前的选项时
-                {  
-                    Switchvm(Menu, (string)Menu.Content, header, instanceId, path);
-                }
-            };
-            return item;
-        }
-        Menu.Flyout = contextMenu;
-        headerGrid.Children.Add(Menu);
-        cardExpander.Header = headerGrid;
-
-
-        // 详细数据
-        var contentPanel = new StackPanel { Margin = new Thickness(50, 10, 0, 0) };
-        var grid = new Grid();
-
-        // 定义 Grid 的列和行
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(125) });
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        for (int i = 0; i < 3; i++)
-        {
-            grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(32) });
-        }
-        var textBlocks = new TextBlock[]
-        {
-        new TextBlock { Text = "类型", FontSize = 16, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 10, 10) },
-        new TextBlock { Text = "实例ID", FontSize = 16, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 10, 10) },
-        new TextBlock { Text = "路径", FontSize = 16, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 10, 10) },
-        };
-        var dataTextBlocks = new TextBlock[]
-        {
-        new TextBlock { Text = classType, FontSize = 16, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 10, 10) },
-        new TextBlock { Text = instanceId, FontSize = 16, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 10, 10) },
-        new TextBlock { Text = path, FontSize = 16, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 10, 10) },
-        };
-        for (int i = 0; i < 3; i++)
-        {
-            Grid.SetRow(textBlocks[i], i);
-            Grid.SetColumn(textBlocks[i], 0); // 第一列
-            grid.Children.Add(textBlocks[i]);
-
-            Grid.SetRow(dataTextBlocks[i], i);
-            Grid.SetColumn(dataTextBlocks[i], 1); // 第二列
-            grid.Children.Add(dataTextBlocks[i]);
-        }
-        contentPanel.Children.Add(grid);
-        cardExpander.Content = contentPanel;
-        Grid.SetRow(cardExpander, rowCount);
-        ParentPanel.Children.Add(cardExpander);
-    }
-
-    public string GetIconPath(string deviceType, string friendlyName)
-    {
-        switch (deviceType)
-        {
-            case "Display":
-                return "\xF211";  // 显卡图标 
-            case "Net":
-                return "\xE839";  // 网络图标
-            case "USB":
-                return friendlyName.Contains("USB4")
-                    ? "\xE945"    // 雷电接口图标
-                    : "\xECF0";   // 普通USB图标
-            case "HIDClass":
-                return "\xE928";  // HID设备图标
-            case "SCSIAdapter":
-            case "HDC":
-                return "\xEDA2";  // 存储控制器图标
-            default:
-                return friendlyName.Contains("Audio")
-                    ? "\xE995"     // 音频设备图标
-                    : "\xE950";    // 默认图标
-        }
-    }
-
-    private async Task Switchvm(DropDownButton menu, string Nowname, string Vmname, string instanceId, string path)
-    {
-        TextBlock contentTextBlock = new TextBlock
-        {
-            Text = "修改虚拟机的关机动作为强制断电...",
-            HorizontalAlignment = HorizontalAlignment.Center, // 水平居中
-            VerticalAlignment = VerticalAlignment.Center,     // 垂直居中
-            TextWrapping = TextWrapping.Wrap                  // 允许文本换行
-        };
-
-        ContentDialog myDialog = new()
-        {
-            Title = "设定修改中",
-            Content = contentTextBlock,
-            CloseButtonText = "操作不可中断，请等待",
-        };
-        myDialog.Closing += (sender, args) => { args.Cancel = true; };// 禁止用户点击按钮触发关闭事件
-        var ms = Application.Current.MainWindow as MainWindow; //设置父节点
-        myDialog.DialogHost = ms.ContentPresenterForDialogs;
-        var backgroundTask = Task.Run(() => PerformBackgroundOperationAsync(menu, myDialog, contentTextBlock, Vmname, instanceId, path, Nowname));
-        await myDialog.ShowAsync(CancellationToken.None);
-    }
     private async Task PerformBackgroundOperationAsync(DropDownButton menu,ContentDialog dialog,TextBlock contentTextBlock,string Vmname,string instanceId,string path,string Nowname)
     {
-        var (psCommands, messages) = GetCommandsAndMessages(Vmname,instanceId,path,Nowname); //四元组获取对应的命令和消息提示
+        var (psCommands, messages) = DDACommands(Vmname,instanceId,path,Nowname); //四元组获取对应的命令和消息提示
         for (int i = 0; i < messages.Length; i++)
         {
             Application.Current.Dispatcher.Invoke(() =>{contentTextBlock.Text = messages[i];}); //更新提示
@@ -192,7 +156,7 @@ public partial class DDAPage
                     contentTextBlock.Text += "\n"+ string.Join(Environment.NewLine, logOutput); // 附加一条中断信息
                     dialog.CloseButtonText = "OK"; // 更新按钮文本
                     dialog.Closing += (sender, args) => { args.Cancel = false; }; //允许用户点击关闭
-                    ddarefresh(null, null);
+                    DDArefresh(null, null);
                 });
                 return;// 退出循环
 
@@ -204,7 +168,7 @@ public partial class DDAPage
             contentTextBlock.Text = "操作完成！";
             dialog.CloseButtonText = "OK"; // 更新按钮文本
             dialog.Closing += (sender, args) => { args.Cancel = false; };// 允许用户关闭
-            ddarefresh(null, null);
+            DDArefresh(null, null);
         });
     }
 
@@ -356,7 +320,7 @@ public partial class DDAPage
     }
 
     // 根据场景返回命令和消息的数组
-    public (string[] commands, string[] messages) GetCommandsAndMessages(string Vmname, string instanceId, string path, string Nowname)
+    private static (string[] commands, string[] messages) DDACommands(string Vmname, string instanceId, string path, string Nowname)
     {
         // 定义命令和消息的默认数组
         string[] commands;
@@ -451,10 +415,8 @@ public partial class DDAPage
 
     }
     
-    //分配设备之前，自动添加注册表信息。
 
-
-    private void ddarefresh(object sender, RoutedEventArgs e) {
+    public void DDArefresh(object sender, RoutedEventArgs e) {
 
         if (!refreshlock)
         {
@@ -465,13 +427,6 @@ public partial class DDAPage
 
         
     }
-
-
-
-    //根据DDA工具显示，其获取高低MIMO空间是通过“Get-VM | Select-Object Name, HighMemoryMappedIoSpace, LowMemoryMappedIoSpace”
-    //直接得到的，并没有进行额外分析。
-    //根据互联网信息，对于直通方案并不需要修改，保持128-512即可。
-    //但是对于分区（GPU-P/GPU-PV)方案，由于需要直接访问内存区域，需要修改高位内存！
 
 
 }

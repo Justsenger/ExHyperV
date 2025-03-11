@@ -46,7 +46,7 @@
                         
                         <ui:FontIcon FontSize="24" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xE964;"/>
                         <TextBlock Grid.Column="1" Text="  可分配设备" FontSize="16" VerticalAlignment="Center"/>
-                        <ui:Button Grid.Column="2" Content="刷新" Margin="0,0,10,0" Click="ddarefresh"></ui:Button>
+                        <ui:Button Grid.Column="2" Content="刷新" Margin="0,0,10,0" Click="DDArefresh"></ui:Button>
                     </Grid>
                     
                 </Grid>

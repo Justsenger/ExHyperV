@@ -8,13 +8,13 @@ C:\Github\ExHyperV\src\obj\Debug\net8.0-windows\
 ExHyperV
 none
 false
-TRACE;DEBUG;NET;NET8_0;NETCOREAPP;WINDOWS;WINDOWS7_0;NET5_0_OR_GREATER;NET6_0_OR_GREATER;NET7_0_OR_GREATER;NET8_0_OR_GREATER;NETCOREAPP3_0_OR_GREATER;NETCOREAPP3_1_OR_GREATER;WINDOWS7_0_OR_GREATER
+TRACE;DEBUG;NET;NET8_0;NETCOREAPP
 C:\Github\ExHyperV\src\App.xaml
 7-834770401
 12113069660
 13403690884
-249-371655091
+249147562847
 ChooseGPUWindow.xaml;MainWindow.xaml;Views\Pages\DDAPage.xaml;Views\Pages\GPUPage.xaml;Views\Pages\MainPage.xaml;Views\Pages\Setting.xaml;Views\Pages\StatusPage.xaml;
 
-False
+True
 
