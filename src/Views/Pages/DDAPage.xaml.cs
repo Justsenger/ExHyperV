@@ -97,7 +97,7 @@ public partial class DDAPage
 
                             await Dialog.ShowAsync(CancellationToken.None); //显示提示框
 
-                            await PerformBackgroundOperationAsync(Menu, Dialog, contentTextBlock, header, device.InstanceId, device.Path, (String)Menu.Content); //执行命令行
+                            await DDAps(Menu, Dialog, contentTextBlock, header, device.InstanceId, device.Path, (String)Menu.Content); //执行命令行
                         }
                     };
                     return item;
@@ -141,14 +141,14 @@ public partial class DDAPage
         });
     }
 
-    private async Task PerformBackgroundOperationAsync(DropDownButton menu,ContentDialog dialog,TextBlock contentTextBlock,string Vmname,string instanceId,string path,string Nowname)
+    private async Task DDAps(DropDownButton menu,ContentDialog dialog,TextBlock contentTextBlock,string Vmname,string instanceId,string path,string Nowname)
     {
-        var (psCommands, messages) = DDACommands(Vmname,instanceId,path,Nowname); //四元组获取对应的命令和消息提示
+        var (psCommands, messages) = DDACommands(Vmname,instanceId,path,Nowname); //通过四元组获取对应的命令和消息提示
         for (int i = 0; i < messages.Length; i++)
         {
             Application.Current.Dispatcher.Invoke(() =>{contentTextBlock.Text = messages[i];}); //更新提示
             Thread.Sleep(200); //引入一定的延时，显示步骤
-            var logOutput = await ExecutePowerShellCommand(psCommands[i]); //执行命令，并获取日志
+            var logOutput = await DDAps(psCommands[i]); //执行命令，并获取日志
             if (logOutput.Any(log => log.Contains("错误")))
             {
                 Application.Current.Dispatcher.Invoke(() =>
@@ -162,6 +162,7 @@ public partial class DDAPage
 
             }
         }
+        
         Application.Current.Dispatcher.Invoke(() =>
         {
             menu.Content = Vmname;
@@ -172,7 +173,7 @@ public partial class DDAPage
         });
     }
 
-    private async Task<List<string>> ExecutePowerShellCommand(string psCommand)
+    private async Task<List<string>> DDAps(string psCommand)
     {
         List<string> logOutput = new List<string>();
         try{
@@ -203,24 +204,20 @@ public partial class DDAPage
                 //1.获取虚拟机相关信息，将已经分配了的设备存入字典以便后续读取。
 
                 //检查是否安装hyperv
-                PowerShellInstance.AddScript("Get-Module -ListAvailable -Name Hyper-V");
-                var hypervstatus = PowerShellInstance.Invoke();
+                var hypervstatus =Utils.Run("Get-Module -ListAvailable -Name Hyper-V");
+
                 if (hypervstatus.Count != 0) //已安装
                 {
-                    PowerShellInstance.AddScript(@"
-                    $vm = Get-VM | Select-Object Name, HighMemoryMappedIoSpace, LowMemoryMappedIoSpace
-                    return @($vm)");//获取虚拟机信息
-                    var vmdata = PowerShellInstance.Invoke();
+                    //获取虚拟机信息
+                    var vmdata = Utils.Run(@"Get-VM | Select-Object Name");
                     foreach (var vm in vmdata)
                     {
                         var Name = vm.Members["Name"]?.Value?.ToString();
-                        var Highmap = vm.Members["HighMemoryMappedIoSpace"]?.Value?.ToString();
-                        var Lowmap = vm.Members["LowMemoryMappedIoSpace"]?.Value?.ToString();
-                        if (!string.IsNullOrEmpty(Name)){vmNameList.Add(Name);}//名字不为空则添加该虚拟机
-                        var script = $@"Get-VMAssignableDevice -VMName '{Name}' | Select-Object InstanceID";
 
-                        PowerShellInstance.AddScript(script); //获取虚拟机下的设备列表
-                        var deviceData = PowerShellInstance.Invoke();//获取设备列表
+                        if (!string.IsNullOrEmpty(Name)){vmNameList.Add(Name);}//名字不为空则添加该虚拟机
+
+                        var deviceData = Utils.Run($@"Get-VMAssignableDevice -VMName '{Name}' | Select-Object InstanceID");//获取虚拟机的设备列表
+
                         if (deviceData != null && deviceData.Count > 0)
                         {
                             foreach (var device in deviceData)
@@ -234,15 +231,10 @@ public partial class DDAPage
                         }
                     }
                 }
-                else {}//如果没有安装HyperV模块，则无法获取VM信息，但不影响正常的硬件读取。
+                else {} //如果没有安装HyperV模块，则无法获取VM信息，但不影响正常的硬件读取。
 
                 //获取 PCIP 设备信息
-                string scripts1 = @"
-                $pciDevices = Get-PnpDevice | Where-Object { $_.InstanceId -like 'PCIP\*' }
-                $instanceIds = $pciDevices.InstanceId
-                $pciDevices | Select-Object Class, InstanceId, FriendlyName, Status |ForEach-Object {$_}";
-                PowerShellInstance.AddScript(scripts1);
-                var PCIPData = PowerShellInstance.Invoke();
+                var PCIPData = Utils.Run("Get-PnpDevice | Where-Object { $_.InstanceId -like 'PCIP\\*' } | Select-Object Class, InstanceId, FriendlyName, Status");
                 if (PCIPData != null && PCIPData.Count > 0)
                 {
                     foreach (var PCIP in PCIPData)
