@@ -57,10 +57,10 @@
 * GPU-PV全称为GPU paravirtualization，中文名叫做GPU半虚拟化。此功能自从WDDM 2.4开始提供，这同时意味着，虚拟机和宿主的系统版本一定不能低于17134，否则没有任何实现的可能。
 
 
-* 本软件中，要求宿主机系统版本不得低于22000（可以使用Server 2022、Server 2025以及任何版本Win11），这是因为低于22000版本的Hyper-V命令组件中，Add-VMGpuPartitionAdapter缺少参数：InstancePath，这会导致无法指定需要虚拟化的特定显卡，会引入更多的混乱。因此，为了更加方便，请升级您的宿主系统。
+* 本工具中，要求宿主机系统版本不得低于22000（可以使用Server 2022、Server 2025以及非家庭版的Win11），这是因为低于22000版本的Hyper-V组件中，Add-VMGpuPartitionAdapter缺少参数InstancePath，这会导致无法指定需要虚拟化的特定显卡，会引入更多的混乱。因此，为了更加方便，请升级您的宿主系统。
 
 
-* 目前没有找到任何方法可以限制虚拟机GPU的资源使用，Set-VMGpuPartitionAdapter的设定参数并不会起到任何[实质性作用](https://github.com/jamesstringerparsec/Easy-GPU-PV/issues/298)。因此，在找到有效的方法前，不会开放资源分配功能。Nvidia的Grid驱动可以分割资源，但是它需要不菲的授权费。
+* 目前没有找到任何方法可以限制虚拟机GPU的资源使用，Set-VMGpuPartitionAdapter的设定参数并不会起到任何[实质性作用](https://github.com/jamesstringerparsec/Easy-GPU-PV/issues/298)。因此，在找到有效的方法前，不会提供资源分配功能。Nvidia的Grid驱动可以分割资源，但是它需要不菲的授权费。
 
 
 * 通过GPU-PV创建的逻辑适配器，仅仅是从系统层面模拟物理适配器，但对于物理适配器独特的注册表参数、硬件特征、驱动特征并没有很好地继承。因此，如果您尝试打开的软件依赖于这些特殊的标志，很可能出现错误，需要针对性的修复，这也是本项目的意义之一。
