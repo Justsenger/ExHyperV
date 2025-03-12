@@ -8,13 +8,60 @@ using Wpf.Ui.Controls;
 using System.Windows.Media;
 using System.Security.AccessControl;
 using System.Xml.Linq;
+using System.Runtime.InteropServices;
 
 public partial class DDAPage
 {
     public bool refreshlock = false;
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct D3DKMT_ISFEATUREENABLED
+    {
+        public uint Feature;     // 功能标识符
+        public bool Enabled;     // 指示功能是否启用
+    }
+
+    // 枚举类型：D3DKMT_FEATURE_*，用于查询具体的功能
+    public enum D3DKMT_FEATURE : uint
+    {
+        D3DKMT_FEATURE_TILED_RESOURCE = 0, // 示例功能：Tiled Resource
+        // 其他功能可按需要添加
+    }
+
+    // 定义 D3DKMTIsFeatureEnabled 函数的 P/Invoke 签名
+    [DllImport("gdi32.dll", SetLastError = true)]
+    public static extern int D3DKMTIsFeatureEnabled(ref D3DKMT_ISFEATUREENABLED featureQuery);
+
+
     public DDAPage()
     {
         InitializeComponent();
+
+        D3DKMT_ISFEATUREENABLED featureQuery = new D3DKMT_ISFEATUREENABLED
+        {
+            Feature = (uint)D3DKMT_FEATURE.D3DKMT_FEATURE_TILED_RESOURCE  // 查询 Tiled Resource 功能
+        };
+
+        // 调用 D3DKMTIsFeatureEnabled 函数
+        int status = D3DKMTIsFeatureEnabled(ref featureQuery);
+
+        // 检查返回值
+        if (status == 0)  // 0 表示成功，STATUS_SUCCESS
+        {
+            if (featureQuery.Enabled)
+            {
+                System.Windows.MessageBox.Show("Tiled Resource feature is enabled.");
+            }
+            else
+            {
+                System.Windows.MessageBox.Show("Tiled Resource feature is not enabled.");
+            }
+        }
+        else
+        {
+            System.Windows.MessageBox.Show("Failed to query the feature. Error code: " + status);
+        }
+
         Task.Run(() => Initialinfo()); //获取设备信息
     }
     public class DeviceInfo
