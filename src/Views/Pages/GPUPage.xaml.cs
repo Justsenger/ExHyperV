@@ -224,52 +224,6 @@ public partial class GPUPage
 
         return stackPanel;
     }
-    public string GetGpuImagePath(string gpuName)
-    {
-        string imageName;
-
-        // 根据 gpuName 设置不同的图片文件名
-        if (gpuName.Contains("NVIDIA")) // 如果是 NVIDIA 显卡，使用 NVIDIA 的图片
-        {
-            imageName = "NVIDIA.png";
-        }
-        else if (gpuName.Contains("Advanced")) //"Advanced Micro Devices, Inc."
-        {
-            imageName = "AMD.png";
-        }
-        else if (gpuName.Contains("Microsoft")) //"Microsoft"
-        {
-            imageName = "Microsoft.png";
-        }
-        else if (gpuName.Contains("Intel")) // "Intel Corporation"
-        {
-            imageName = "Intel.png";
-        }
-        else if (gpuName.Contains("Moore")) // "Moore Threads"
-        {
-            imageName = "Moore.png";
-        }
-        else if (gpuName.Contains("Qualcomm")) // "Qualcomm Incorporated"
-        {
-            imageName = "Qualcomm.png";
-        }
-        else if (gpuName.Contains("DisplayLink")) //"DisplayLink"
-        {
-            imageName = "DisplayLink.png";
-        }
-        else if (gpuName.Contains("Silicon")) //"SiliconMotion"
-        {
-            imageName = "Silicon.png";
-        }
-        else
-        {
-            imageName = "Qualcomm.png";  // 其他情况，可能是Adreno的魔改驱动，什么Xiaomi之类的名字
-        }
-
-        return $"pack://application:,,,/Assets/Gpuicons/{imageName}";
-    }
-
-
 
     private void GpuUI(List<GPUInfo> gpuList,bool hyperv)
     {
@@ -310,7 +264,7 @@ public partial class GPUPage
                 //图标
                 var image = new Wpf.Ui.Controls.Image
                 {
-                    Source = new BitmapImage(new Uri(GetGpuImagePath(name)))
+                    Source = new BitmapImage(new Uri(Utils.GetGpuImagePath(manu)))
                     {
                         CreateOptions = BitmapCreateOptions.PreservePixelFormat | BitmapCreateOptions.IgnoreColorProfile,
                         CacheOption = BitmapCacheOption.OnLoad
@@ -490,7 +444,7 @@ public partial class GPUPage
                     //显卡图标
                     var image0 = new Wpf.Ui.Controls.Image
                     {
-                        Source = new BitmapImage(new Uri(GetGpuImagePath(name)))
+                        Source = new BitmapImage(new Uri(Utils.GetGpuImagePath(thegpu.Manu)))
                         {
                             CreateOptions = BitmapCreateOptions.PreservePixelFormat | BitmapCreateOptions.IgnoreColorProfile,
                             CacheOption = BitmapCacheOption.OnLoad

@@ -96,6 +96,50 @@ public partial class Utils
         return textBlock;
     }
 
+    public static string GetGpuImagePath(string Manu)
+    {
+        string imageName;
+
+        // 根据 Manu 设置不同的图片文件名
+        if (Manu.Contains("NVIDIA")) // 如果是 NVIDIA 显卡，使用 NVIDIA 的图片
+        {
+            imageName = "NVIDIA.png";
+        }
+        else if (Manu.Contains("Advanced")) //"Advanced Micro Devices, Inc."
+        {
+            imageName = "AMD.png";
+        }
+        else if (Manu.Contains("Microsoft")) //"Microsoft"
+        {
+            imageName = "Microsoft.png";
+        }
+        else if (Manu.Contains("Intel")) // "Intel Corporation"
+        {
+            imageName = "Intel.png";
+        }
+        else if (Manu.Contains("Moore")) // "Moore Threads"
+        {
+            imageName = "Moore.png";
+        }
+        else if (Manu.Contains("Qualcomm")) // "Qualcomm Incorporated"
+        {
+            imageName = "Qualcomm.png";
+        }
+        else if (Manu.Contains("DisplayLink")) //"DisplayLink"
+        {
+            imageName = "DisplayLink.png";
+        }
+        else if (Manu.Contains("Silicon")) //"SiliconMotion"
+        {
+            imageName = "Silicon.png";
+        }
+        else
+        {
+            imageName = "Qualcomm.png";  // 其他情况，可能是Adreno的魔改驱动，什么Xiaomi之类的名字
+        }
+
+        return $"pack://application:,,,/Assets/Gpuicons/{imageName}";
+    }
 
 
 

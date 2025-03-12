@@ -232,7 +232,7 @@ public partial class DDAPage
                         }
                     }
                 }
-                else {} //如果没有安装HyperV模块，则无法获取VM信息，但不影响正常的硬件读取。
+                //如果没有安装HyperV模块，则无法获取VM信息，但不影响正常的硬件读取。
 
                 //获取 PCIP 设备信息
                 var PCIPData = Utils.Run("Get-PnpDevice | Where-Object { $_.InstanceId -like 'PCIP\\*' } | Select-Object Class, InstanceId, FriendlyName, Status");
@@ -241,7 +241,7 @@ public partial class DDAPage
                     foreach (var PCIP in PCIPData)
                     {
                         var instanceId = PCIP.Members["InstanceId"]?.Value?.ToString().Substring(4); //获取PCIP后面的编号
-                        //如果满足条件：该设备未分配给虚拟机，但PCIP状态等于ok，说明也未分配给主机，处于卸除态。
+                        //如果满足条件：该设备未分配给虚拟机+PCIP状态等于OK，则说明并未分配给主机，处于卸除态。
                         if (!vmdevice.ContainsKey(instanceId)&& PCIP.Members["Status"]?.Value?.ToString()=="OK"&&!string.IsNullOrEmpty(instanceId)) //状态为OK，非空
                         {vmdevice[instanceId] = "#已卸除"; }
                     }

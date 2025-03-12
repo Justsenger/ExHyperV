@@ -29,8 +29,9 @@ namespace ExHyperV
 
             foreach (var gpu in Hostgpulist)
             {
+               
                 if (gpu.Pname == null) { continue; }
-                Items.Add(new GPU { GPUname = gpu.Name, Path = gpu.Pname ,Id = gpu.InstanceId,Iconpath = GetGpuImagePath(gpu.Name)});
+                Items.Add(new GPU { GPUname = gpu.Name, Path = gpu.Pname ,Id = gpu.InstanceId,Iconpath = Utils.GetGpuImagePath(gpu.Manu)});
             }
             this.DataContext = this;
         }
@@ -41,36 +42,6 @@ namespace ExHyperV
             public required string Iconpath { get; set; }
 
             public required string Id { get; set; }
-        }
-
-        public string GetGpuImagePath(string gpuName)
-        {
-            string imageName;
-
-            // 根据 gpuName 设置不同的图片文件名
-            if (gpuName.Contains("NVIDIA"))
-            {
-                imageName = "NVIDIA.png";  // 如果是 NVIDIA 显卡，使用 NVIDIA 的图片
-            }
-            else if (gpuName.Contains("AMD"))
-            {
-                imageName = "AMD.png";  // 如果是 AMD 显卡，使用 AMD 的图片
-            }
-            else if (gpuName.Contains("Microsoft"))
-            {
-                imageName = "Microsoft.png";  // 如果是 AMD 显卡，使用 AMD 的图片
-            }
-            else if (gpuName.Contains("Intel"))
-            {
-                imageName = "Intel.png";  // 如果是 AMD 显卡，使用 AMD 的图片
-            }
-            else
-            {
-                imageName = "Default.png";  // 其他情况下，使用默认图片
-            }
-
-            // 返回图片的路径
-            return $"pack://application:,,,/Assets/Gpuicons/{imageName}";
         }
 
         private void CancelButton_Click(object sender, RoutedEventArgs e)

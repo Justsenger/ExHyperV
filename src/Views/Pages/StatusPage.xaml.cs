@@ -166,8 +166,6 @@ public partial class StatusPage
             };
             if (Isadmin) //如果没有管理员权限，关闭虚拟化功能
             {
-
-
                 admin.Text = "已获得管理员权限。";
                 status4.Children.Add(icons);
             }
@@ -175,7 +173,6 @@ public partial class StatusPage
             {
                 var ms = Application.Current.MainWindow as MainWindow; //获取主窗口
                 ms.gpupv.IsEnabled = false;
-
                 admin.Text = "未获得管理员权限。";
                 icons.Glyph = "\xEA39";
                 icons.Foreground = new SolidColorBrush(Colors.Red);
