@@ -19,6 +19,7 @@ namespace ExHyperV
         public event EventHandler<(string, string)> GPUSelected;
 
         public string Machinename = null;
+        public string GPUManu = null;
         public ObservableCollection<GPU> Items { get; set; }
         public ChooseGPUWindow(string vmname, List<GPUInfo> Hostgpulist)
         {
@@ -31,7 +32,7 @@ namespace ExHyperV
             {
                
                 if (gpu.Pname == null) { continue; }
-                Items.Add(new GPU { GPUname = gpu.Name, Path = gpu.Pname ,Id = gpu.InstanceId,Iconpath = Utils.GetGpuImagePath(gpu.Manu)});
+                Items.Add(new GPU { GPUname = gpu.Name, Path = gpu.Pname ,Id = gpu.InstanceId,Iconpath = Utils.GetGpuImagePath(gpu.Manu),Manu = gpu.Manu});
             }
             this.DataContext = this;
         }
@@ -42,6 +43,8 @@ namespace ExHyperV
             public required string Iconpath { get; set; }
 
             public required string Id { get; set; }
+
+            public required string Manu { get; set; }
         }
 
         private void CancelButton_Click(object sender, RoutedEventArgs e)
@@ -57,7 +60,7 @@ namespace ExHyperV
             {
                 progress.IsIndeterminate = true; //等待条
 
-                var result = await Task.Run(() => GPUMount(Machinename, selectedGpu.Path));
+                var result = await Task.Run(() => GPUMount(Machinename, selectedGpu.Path,selectedGpu.Manu));
                 //接下来，将执行真正的GPU分配。
                 if (result == "running")
                 {
@@ -88,7 +91,7 @@ namespace ExHyperV
             }
         }
 
-        public string GPUMount(string vmname,string gpupath) {
+        public string GPUMount(string vmname,string gpupath,string manu) {
 
 
             PowerShell ps = PowerShell.Create();
@@ -157,7 +160,10 @@ namespace ExHyperV
              
             SetFolderReadOnly(destinationFolder); // 设置目标文件夹及其所有文件为只读属性，防止nvlddmkm文件丢失
 
-            NvidiaReg(letter+":"); //对于N卡，还需要修补注册表信息：nvlddmkm
+            //对于N卡，需要修补注册表信息：nvlddmkm
+            if (manu.Contains("NVIDIA")) { 
+                NvidiaReg(letter + ":"); 
+            }
 
             ps.AddScript($"Dismount-VHD -Path '{harddiskpath}'");//卸载磁盘
             ps.Invoke();
