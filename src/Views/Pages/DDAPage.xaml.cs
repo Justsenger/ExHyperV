@@ -120,11 +120,11 @@ public partial class DDAPage
                 var textData = new (string text, int row, int column)[]
                 {
                     ("类型", 0, 0),
-                    ("实例ID", 0, 1),
-                    ("路径", 0, 2),
-                    (device.ClassType, 1, 0),
+                    ("实例ID", 1, 0),
+                    ("路径", 2, 0),
+                    (device.ClassType, 0, 1),
                     (device.InstanceId, 1, 1),
-                    (device.Path, 1, 2),
+                    (device.Path, 2, 1),
                 };
 
                 foreach (var (text, row, column) in textData)
