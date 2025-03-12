@@ -2,10 +2,14 @@ using System.Collections.ObjectModel;
 using System.Data.Common;
 using System.Dynamic;
 using System.Management.Automation;
+using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using System.Xml.Linq;
 using Wpf.Ui.Controls;
+using Image = Wpf.Ui.Controls.Image;
 using TextBlock = Wpf.Ui.Controls.TextBlock;
 
 namespace ExHyperV.Views.Pages;
@@ -13,7 +17,6 @@ namespace ExHyperV.Views.Pages;
 
 public partial class Utils
 {
-
 
     public static Collection<PSObject> Run(string script)
     {
@@ -27,6 +30,17 @@ public partial class Utils
         var cardExpander = new CardExpander
         {
             Margin = new Thickness(20, 5, 0, 0),
+            ContentPadding = new Thickness(6),
+        };
+
+        return cardExpander;
+    }
+
+    public static CardExpander CardExpander2()
+    {
+        var cardExpander = new CardExpander
+        {
+            Margin = new Thickness(30, 5, 10, 0),
             ContentPadding = new Thickness(6),
         };
 
@@ -96,6 +110,27 @@ public partial class Utils
         return textBlock;
     }
 
+    public static StackPanel CreateStackPanel(string text)
+    {
+        var stackPanel = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            HorizontalAlignment = HorizontalAlignment.Left,
+            VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(10, 0, 0, 0),
+        };
+
+        stackPanel.Children.Add(new TextBlock
+        {
+            Text = text,
+            FontSize = 16,
+            VerticalAlignment = VerticalAlignment.Center
+        });
+
+        return stackPanel;
+    }
+
+
     public static string GetGpuImagePath(string Manu)
     {
         string imageName;
@@ -141,6 +176,50 @@ public partial class Utils
         return $"pack://application:,,,/Assets/Gpuicons/{imageName}";
     }
 
+    public static Image CreateGpuImage(string key,int size)
+    {
+        var image = new Image
+        {
+            Source = new BitmapImage(new Uri(GetGpuImagePath(key)))
+            {
+                CreateOptions = BitmapCreateOptions.PreservePixelFormat | BitmapCreateOptions.IgnoreColorProfile,
+                CacheOption = BitmapCacheOption.OnLoad
+            },
+            Height = size,
+            Width = size,
+            HorizontalAlignment = HorizontalAlignment.Right,
+            VerticalAlignment = VerticalAlignment.Top
+        };
+
+        // 设置抗锯齿参数
+        image.SetValue(RenderOptions.BitmapScalingModeProperty, BitmapScalingMode.HighQuality);
+        image.SetValue(RenderOptions.EdgeModeProperty, EdgeMode.Aliased);
+
+        return image;
+    }
+
+    public static FontIcon FontIcon(int Size,string Glyph)
+    {
+        var icon = new FontIcon
+        {
+            FontSize = Size,
+            FontFamily = (FontFamily)Application.Current.Resources["SegoeFluentIcons"],
+            Glyph = Glyph // 获取图标Unicode
+        };
+        return icon;
+
+    }
+
+    public static DateTime GetLinkerTime()
+    {
+        string filePath = Assembly.GetExecutingAssembly().Location;
+        var fileInfo = new System.IO.FileInfo(filePath);
+        DateTime linkerTime = fileInfo.LastWriteTime;
+        return linkerTime;
+    }
+
+    public static string Version => "V1.0.2";
+    public static string Author => "砂菱叶";
 
 
 

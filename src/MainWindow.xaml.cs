@@ -2,7 +2,6 @@
 using ExHyperV.Views.Pages;
 using Wpf.Ui.Appearance;
 using System.Windows;
-using System.Security.Principal;
 
 namespace ExHyperV
 {

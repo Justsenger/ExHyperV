@@ -5,9 +5,6 @@ using System.Collections.Generic;
 using System.Management.Automation;
 using System.Windows;
 using Wpf.Ui.Controls;
-using System.Windows.Media;
-using System.Security.AccessControl;
-using System.Xml.Linq;
 
 public partial class DDAPage
 {
@@ -141,7 +138,6 @@ public partial class DDAPage
             refreshlock = false;
         });
     }
-
     private async Task DDAps(DropDownButton menu,ContentDialog dialog,TextBlock contentTextBlock,string Vmname,string instanceId,string path,string Nowname)
     {
         var (psCommands, messages) = DDACommands(Vmname,instanceId,path,Nowname); //通过四元组获取对应的命令和消息提示
@@ -173,7 +169,6 @@ public partial class DDAPage
             DDArefresh(null, null);
         });
     }
-
     private async Task<List<string>> DDAps(string psCommand)
     {
         List<string> logOutput = new List<string>();
@@ -190,14 +185,13 @@ public partial class DDAPage
         catch (Exception ex){logOutput.Add($"错误: {ex.Message}");}//意料之外的错误
         return logOutput; // 返回日志输出
     }
-
     private async Task GetInfo(List<DeviceInfo> deviceList)
     {
         try
         {
             using (PowerShell PowerShellInstance = PowerShell.Create())
             {
-                Dictionary<string, string> vmdevice = new Dictionary<string, string>(); //存储虚拟机挂载的PCIP设备
+                Dictionary<string, string> vmdevice = new Dictionary<string, string>(); //存储虚拟机挂载的PCIP设备列表
                 List<string> vmNameList = new List<string>() ;// 存储虚拟机列表
                 PowerShellInstance.AddScript("Set-ExecutionPolicy RemoteSigned -Scope Process -Force"); //设置策略
                 PowerShellInstance.AddScript("Import-Module PnpDevice");
@@ -247,7 +241,7 @@ public partial class DDAPage
                     }
                 }
 
-                // 获取 PCI 设备信息。连续查询三遍才能收到所有设备的完整信息。特性！（发现问题，有时三遍都查询不完）
+                // 获取 PCI 设备信息。连续查询3遍才能获取所有设备的完整信息。属于Windows的问题。
                 string scripts = @"
                 $pciDevices = Get-PnpDevice | Where-Object { $_.InstanceId -like 'PCI\*' }
                 $instanceIds = $pciDevices.InstanceId
@@ -269,9 +263,8 @@ public partial class DDAPage
                         $_ | Add-Member -NotePropertyName 'Path' -NotePropertyValue $pathMap[$_.InstanceId]
                         $_
                     }";
-                PowerShellInstance.AddScript(scripts);
 
-                var Pcidata = PowerShellInstance.Invoke();
+                var Pcidata = Utils.Run(scripts);
                 var sortedResults = Pcidata
                 .Where(result => result!= null)  // 过滤掉为空的元素
                 .OrderBy(result => result.Members["Service"]?.Value?.ToString()[0])  // 按按类型排序，即Class 字段首字母
@@ -288,20 +281,18 @@ public partial class DDAPage
                         continue; //排除此类设备
                     }
                     
-
-                    // 针对unknown设备进行检查，有三种情况：1.已物理移除。2.分配给了虚拟机。3.卸除态。
-
-                    // 看是否分配给虚拟机还是已移除
+                    // 状态为Unknown的设备，有三种情况：1.物理移除。2.已分配给虚拟机。3.卸除态。
+                    // 看是否分配给虚拟机
                     if (status == "Unknown" && !string.IsNullOrEmpty(instanceId) && instanceId.Length > 3)
                     {
                         if (vmdevice.ContainsKey(instanceId.Substring(3))) // 检查去掉前三位后的PCI的InstanceId是否在存储的vm已分配设备的列表里
                         {
                             status = vmdevice[instanceId.Substring(3)];
                         } 
-                        else { continue; } //不在虚拟机列表内，也不属于卸除态，排除。
+                        else { continue; } //不在虚拟机列表内，也不属于卸除态，说明已经物理移除。
                     }
                     else {
-                        status = "主机"; //正常设备的情况。
+                        status = "主机"; //挂载在主机上的情况。
                     }
                     deviceList.Add(new DeviceInfo(friendlyName, status, classType, instanceId,vmNameList,path)); //添加到设备列表
                 }
@@ -311,8 +302,6 @@ public partial class DDAPage
             System.Windows.MessageBox.Show(ex.ToString());
         }
     }
-
-    // 根据场景返回命令和消息的数组
     private static (string[] commands, string[] messages) DDACommands(string Vmname, string instanceId, string path, string Nowname)
     {
         // 定义命令和消息的默认数组
@@ -407,19 +396,12 @@ public partial class DDAPage
         return (commands, messages);
 
     }
-    
-
     public void DDArefresh(object sender, RoutedEventArgs e) {
-
         if (!refreshlock)
         {
             refreshlock = true;
             progressRing.Visibility = Visibility.Visible; //显示加载条
             Task.Run(() => Initialinfo()); //获取设备信息
-        }
-
-        
+        } 
     }
-
-
 }

@@ -1,14 +1,10 @@
 namespace ExHyperV.Views.Pages;
 
-using System.Diagnostics;
 using System.Management.Automation;
 using System.Security.Principal;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
-using System.Windows.Media.Animation;
-using System.Windows.Media.Media3D;
-using Wpf.Ui.Appearance;
 using Wpf.Ui.Controls;
 
 
@@ -23,41 +19,30 @@ public partial class StatusPage
         Task.Run(() => HyperVInfo());
         Task.Run(() => CheckReg());
         Task.Run(() => Admininfo());
-
-
-        //还需要检测WSL子系统。以避免冲突：Microsoft-Windows-Subsystem-Linux
-
-
     }
 
     private async void HyperVInfo()
     {
-        PowerShell ps = PowerShell.Create();
-        ps.AddScript("Get-Module -ListAvailable -Name Hyper-V");
-        var hypervstatus = ps.Invoke();
-            Dispatcher.Invoke(() =>
+        var hypervstatus = Utils.Run("Get-Module -ListAvailable -Name Hyper-V");
+        Dispatcher.Invoke(() =>
+        {
+            status3.Children.Remove(progressRing3);
+            FontIcon icons = new FontIcon
             {
-                status3.Children.Remove(progressRing3);
-                FontIcon icons = new FontIcon
-                {
-                    FontSize = 20,
-                    FontFamily = (FontFamily)Application.Current.Resources["SegoeFluentIcons"],
-                    Glyph = "\xE930",
-                    Foreground = new SolidColorBrush(Colors.Green),
-                };
-                if (hypervstatus.Count != 0)
-                { hyperv.Text = "HyperV功能已安装。"; }
-                else
-                {
-                    hyperv.Text = "HyperV功能未安装。";
-                    icons.Glyph = "\xEA39";
-                    icons.Foreground = new SolidColorBrush(Colors.Red);
-                }
-                status3.Children.Add(icons);
-            });
-
-
-
+                FontSize = 20,
+                FontFamily = (FontFamily)Application.Current.Resources["SegoeFluentIcons"],
+                Glyph = "\xE930",
+                Foreground = new SolidColorBrush(Colors.Green),
+            };
+            if (hypervstatus.Count != 0) { hyperv.Text = "HyperV功能已安装。"; }
+            else
+            {
+                hyperv.Text = "HyperV功能未安装。";
+                icons.Glyph = "\xEA39";
+                icons.Foreground = new SolidColorBrush(Colors.Red);
+            }
+            status3.Children.Add(icons);
+        });
     }
 
     private async void SysInfo()
@@ -74,7 +59,7 @@ public partial class StatusPage
                 Foreground = new SolidColorBrush(Colors.DodgerBlue),
             };
             status1.Children.Add(icons);
-            if (buildVersion >= 22000)
+            if (buildVersion >= 22000) //不允许宿主使用过低的系统版本，WDDM版本低，以及PS存在命令问题。
             {
                 icons.Glyph = "\xE930";
                 icons.Foreground = new SolidColorBrush(Colors.Green);
@@ -82,18 +67,18 @@ public partial class StatusPage
             }
             else
             {
-                win.Text = "宿主Windows版本为" + buildVersion.ToString() + "，GPU虚拟化无法选择GPU，功能已禁用。";
+                win.Text = "宿主Windows版本为" + buildVersion.ToString() + "，已禁用GPU虚拟化功能。";
                 icons.Glyph = "\xEA39";
                 icons.Foreground = new SolidColorBrush(Colors.Red);
             }
-            //(Get-Command Add-VMGpuPartitionAdapter).Parameters 使用该命令可以查看是否存在InstancePath命令
         });
     }
     private async void CpuInfo()
     {
-        PowerShell ps = PowerShell.Create();
-        ps.AddScript("(Get-WmiObject -Class Win32_Processor).VirtualizationFirmwareEnabled");
-        var cpuvt = ps.Invoke();
+
+        var cpuvt1 = Utils.Run("(Get-WmiObject -Class Win32_Processor).VirtualizationFirmwareEnabled");
+        var cpuvt2 = Utils.Run("(gcim Win32_ComputerSystem).HypervisorPresent");
+
 
         Dispatcher.Invoke(() =>
         {
@@ -105,7 +90,7 @@ public partial class StatusPage
                 Glyph = "\xE930",
                 Foreground = new SolidColorBrush(Colors.Green),
             }; 
-            if (cpuvt[0].ToString() == "True")
+            if (cpuvt1[0].ToString() == "True"|| cpuvt2[0].ToString() == "True")
             {cpu.Text = "CPU虚拟化已启用。";}
             else
             {
@@ -121,18 +106,12 @@ public partial class StatusPage
 
     private async void CheckReg() //检查是否添加了注册表，已添加则关闭弹窗
     {
-        
-        // PowerShell 脚本，检查注册表键是否存在
         string script = $@"[bool]((Test-Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\HyperV') -and 
         (($k = Get-Item 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\HyperV' -EA 0) -ne $null) -and 
         ('RequireSecureDeviceAssignment', 'RequireSupportedDeviceAssignment' | ForEach-Object {{
             ($k.GetValue($_, $null) -ne $null) -and ($k.GetValueKind($_) -eq 'DWord')
         }}) -notcontains $false)";
-
-        PowerShell ps = PowerShell.Create();
-        ps.AddScript(script);
-        var result = ps.Invoke();
-
+        var result = Utils.Run(script);
 
         Dispatcher.Invoke(() =>
         {
@@ -144,15 +123,12 @@ public partial class StatusPage
 
     }
 
-
     private async void Admininfo() 
     {
 
         WindowsIdentity identity = WindowsIdentity.GetCurrent();
         WindowsPrincipal principal = new WindowsPrincipal(identity);
         bool Isadmin = principal.IsInRole(WindowsBuiltInRole.Administrator);
-
-
         Dispatcher.Invoke(() =>
         {
 
@@ -164,16 +140,16 @@ public partial class StatusPage
                 Glyph = "\xE930",
                 Foreground = new SolidColorBrush(Colors.Green),
             };
-            if (Isadmin) //如果没有管理员权限，关闭虚拟化功能
+            if (Isadmin) 
             {
-                admin.Text = "已获得管理员权限。";
+                admin.Text = "管理员权限已取得。";
                 status4.Children.Add(icons);
             }
-            else
+            else //如果没有管理员权限，关闭GPU虚拟化功能
             {
                 var ms = Application.Current.MainWindow as MainWindow; //获取主窗口
                 ms.gpupv.IsEnabled = false;
-                admin.Text = "未获得管理员权限。";
+                admin.Text = "管理员权限未取得。";
                 icons.Glyph = "\xEA39";
                 icons.Foreground = new SolidColorBrush(Colors.Red);
                 status4.Children.Add(icons);
@@ -206,21 +182,7 @@ public partial class StatusPage
         if (-not (Test-Path '{registryPath}\\{key2}')) {{
             Set-ItemProperty -Path '{registryPath}' -Name '{key2}' -Value 0 -Type DWord
         }}";
-        try
-        {
-            // 创建 PowerShell 实例
-            using (PowerShell powerShell = PowerShell.Create())
-            {
-                // 添加脚本
-                powerShell.AddScript(script);
-                // 执行脚本
-                powerShell.Invoke();
-            }
-        }
-        catch (Exception ex)
-        {
-            System.Windows.MessageBox.Show($"发生错误: {ex.Message}");
-        }
+        Utils.Run(script);
     }
 
     public void RemoveReg()
@@ -236,20 +198,8 @@ public partial class StatusPage
         Remove-ItemProperty -Path '{registryPath}' -Name '{key2}'
         Remove-Item -Path '{registryPath}' -Force";
 
-        try
-        {
-            using (PowerShell powerShell = PowerShell.Create())
-            {
-                powerShell.AddScript(script);
-                powerShell.Invoke();
-            }
-        }
-        catch (Exception ex)
-        {
-            System.Windows.MessageBox.Show($"发生错误: {ex.Message}");
-        }
+        Utils.Run(script);
     }
-
 
     private void addgs(object sender, RoutedEventArgs e)
     {
@@ -257,12 +207,9 @@ public partial class StatusPage
         Addreg();
         CheckReg();
     }
-
     private void deletegs(object sender, RoutedEventArgs e)
     {
         RemoveReg();
         CheckReg();
     }
-
-
 }
