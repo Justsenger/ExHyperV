@@ -43,6 +43,34 @@
             </ComboBox>
         </ui:CardControl>
 
+        <ui:CardControl Margin="0,0,0,12" Icon="{ui:SymbolIcon Color24}">
+            <ui:CardControl.Header>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <ui:TextBlock
+                        Grid.Row="0"
+                        FontTypography="Body"
+                        Text="语言" />
+                    <ui:TextBlock
+                        Grid.Row="1"
+                        Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"
+                        Text="切换应用程序显示语言" />
+                </Grid>
+            </ui:CardControl.Header>
+            <ComboBox
+                x:Name="LanguageComboBox"
+                Grid.Column="1"
+                MinWidth="200"
+                SelectionChanged="OnLanguageSelectionChanged">
+                <ComboBoxItem Content="中文" />
+                <ComboBoxItem Content="English" />
+            </ComboBox>
+        </ui:CardControl>
+
+        
         <ui:TextBlock
             Margin="0,24,0,8"
             FontTypography="BodyStrong"

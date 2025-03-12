@@ -25,6 +25,38 @@ public partial class Utils
         return ps.Invoke();
     }
 
+    public static Collection<PSObject> Run2(string script)
+    {
+        PowerShell ps = PowerShell.Create();
+        ps.AddScript(script);
+
+        Collection<PSObject> output = null;
+
+        try
+        {
+            // 执行脚本
+            output = ps.Invoke();
+
+            // 如果存在错误，将错误信息打印出来
+            if (ps.HadErrors)
+            {
+                System.Windows.MessageBox.Show("错误:");
+                foreach (var error in ps.Streams.Error)
+                {
+                    System.Windows.MessageBox.Show($"错误消息: {error.Exception.Message}");
+                    System.Windows.MessageBox.Show($"错误详细信息: {error.Exception.StackTrace}");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Windows.MessageBox.Show($"执行 PowerShell 脚本时发生异常: {ex.Message}");
+            System.Windows.MessageBox.Show($"堆栈信息: {ex.StackTrace}");
+        }
+
+        return output;
+
+    }
     public static CardExpander CardExpander1()
     {
         var cardExpander = new CardExpander

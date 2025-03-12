@@ -77,7 +77,7 @@ public partial class StatusPage
     {
 
         var cpuvt1 = Utils.Run("(Get-WmiObject -Class Win32_Processor).VirtualizationFirmwareEnabled");
-        var cpuvt2 = Utils.Run("(gcim Win32_ComputerSystem).HypervisorPresent");
+        var cpuvt2 = Utils.Run("(Get-WmiObject -Class Win32_ComputerSystem).HypervisorPresent");
 
 
         Dispatcher.Invoke(() =>
@@ -89,7 +89,8 @@ public partial class StatusPage
                 FontFamily = (FontFamily)Application.Current.Resources["SegoeFluentIcons"],
                 Glyph = "\xE930",
                 Foreground = new SolidColorBrush(Colors.Green),
-            }; 
+            };
+
             if (cpuvt1[0].ToString() == "True"|| cpuvt2[0].ToString() == "True")
             {cpu.Text = "CPU–Èƒ‚ªØ“—∆Ù”√°£";}
             else

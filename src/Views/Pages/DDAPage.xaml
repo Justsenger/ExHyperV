@@ -6,6 +6,7 @@
     xmlns:local="clr-namespace:ExHyperV.Views.Pages"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    xmlns:properties="clr-namespace:ExHyperV.Properties"
     Title="MainPage"
     d:DesignHeight="700"
     d:DesignWidth="1000"
@@ -22,8 +23,8 @@
         <ProgressBar Grid.Row="0" x:Name="progressRing" IsIndeterminate="True"/>
 
         <ui:InfoBar Grid.Row="1" Margin="0,5,0,0"
-            Title="注意" 
-            Message="随意分配设备可能导致系统不稳定，请谨慎操作！" 
+            Title="{x:Static properties:Resources.attention}"
+            Message="{x:Static properties:Resources.attentionwords}" 
             IsOpen="True"
             Severity="Warning"/>
         <Grid Grid.Row="2" Margin="0,5,0,0">
@@ -45,8 +46,8 @@
                         </Grid.ColumnDefinitions>
                         
                         <ui:FontIcon FontSize="24" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xE964;"/>
-                        <TextBlock Grid.Column="1" Text="  可分配设备" FontSize="16" VerticalAlignment="Center"/>
-                        <ui:Button Grid.Column="2" Content="刷新" Margin="0,0,10,0" Click="DDArefresh"></ui:Button>
+                        <TextBlock Grid.Column="1" Text="{x:Static properties:Resources.Assignabledevices}"  FontSize="16" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                        <ui:Button Grid.Column="2" Content="{x:Static properties:Resources.refresh}" Margin="0,0,10,0" Click="DDArefresh"></ui:Button>
                     </Grid>
                     
                 </Grid>
