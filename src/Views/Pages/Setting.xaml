@@ -6,6 +6,7 @@
     xmlns:local="clr-namespace:ExHyperV.Views.Pages"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    xmlns:properties="clr-namespace:ExHyperV.Properties"
     Title="Setting"
     d:DesignHeight="700"
     d:DesignWidth="1000"
@@ -15,7 +16,7 @@
         <ui:TextBlock
             Margin="0,0,0,8"
             FontTypography="BodyStrong"
-            Text="设置" />
+            Text="{x:Static properties:Resources.Settings}" />
         <ui:CardControl Margin="0,0,0,12" Icon="{ui:SymbolIcon Color24}">
             <ui:CardControl.Header>
                 <Grid>
@@ -26,11 +27,11 @@
                     <ui:TextBlock
                         Grid.Row="0"
                         FontTypography="Body"
-                        Text="应用主题" />
+                        Text="{x:Static properties:Resources.theme}" />
                     <ui:TextBlock
                         Grid.Row="1"
                         Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"
-                        Text="切换浅色/深色模式" />
+                        Text="{x:Static properties:Resources.switchtheme}" />
                 </Grid>
             </ui:CardControl.Header>
             <ComboBox
@@ -38,12 +39,12 @@
                 Grid.Column="1"
                 MinWidth="200"
                 SelectionChanged="OnThemeSelectionChanged">
-                <ComboBoxItem Content="明亮" />
-                <ComboBoxItem Content="黑暗" />
+                <ComboBoxItem Content="{x:Static properties:Resources.light}" />
+                <ComboBoxItem Content="{x:Static properties:Resources.dark}" />
             </ComboBox>
         </ui:CardControl>
 
-        <ui:CardControl Margin="0,0,0,12" Icon="{ui:SymbolIcon Color24}">
+        <ui:CardControl Margin="0,0,0,12" Icon="{ui:SymbolIcon Globe24}">
             <ui:CardControl.Header>
                 <Grid>
                     <Grid.RowDefinitions>
@@ -53,11 +54,11 @@
                     <ui:TextBlock
                         Grid.Row="0"
                         FontTypography="Body"
-                        Text="语言" />
+                        Text="{x:Static properties:Resources.language}" />
                     <ui:TextBlock
                         Grid.Row="1"
                         Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"
-                        Text="切换应用程序显示语言" />
+                        Text="{x:Static properties:Resources.reboot}" />
                 </Grid>
             </ui:CardControl.Header>
             <ComboBox
@@ -74,7 +75,7 @@
         <ui:TextBlock
             Margin="0,24,0,8"
             FontTypography="BodyStrong"
-            Text="关于" />
+            Text="{x:Static properties:Resources.about}" />
         <ui:CardExpander ContentPadding="0" Icon="{ui:SymbolIcon Layer24}">
             <ui:CardExpander.Header>
                 <Grid>
@@ -113,7 +114,7 @@
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Text="报告错误或提交意见" />
+                        <TextBlock Grid.Column="0" Text="{x:Static properties:Resources.report}" />
                         <ui:SymbolIcon Grid.Column="1" Symbol="Link24" />
                     </Grid>
                 </ui:Anchor>
@@ -131,7 +132,7 @@
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Text="查看仓库" />
+                        <TextBlock Grid.Column="0" Text="{x:Static properties:Resources.github}" />
                         <ui:SymbolIcon Grid.Column="1" Symbol="Link24" />
                     </Grid>
                 </ui:Anchor>

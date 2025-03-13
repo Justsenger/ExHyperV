@@ -174,18 +174,18 @@ public partial class GPUPage
 
         foreach (var gpu in gpuList)
         {
-            string name = string.IsNullOrEmpty(gpu.Name) ? "无" : gpu.Name;
-            string valid = string.IsNullOrEmpty(gpu.Valid) ? "无" : gpu.Valid;
-            string manu = string.IsNullOrEmpty(gpu.Manu) ? "无" : gpu.Manu;
-            string instanceId = string.IsNullOrEmpty(gpu.InstanceId) ? "无" : gpu.InstanceId;
-            string pname = string.IsNullOrEmpty(gpu.Pname) ? "无" : gpu.Pname; //GPU分区路径
+            string name = string.IsNullOrEmpty(gpu.Name) ? Properties.Resources.none : gpu.Name;
+            string valid = string.IsNullOrEmpty(gpu.Valid) ? Properties.Resources.none : gpu.Valid;
+            string manu = string.IsNullOrEmpty(gpu.Manu) ? Properties.Resources.none : gpu.Manu;
+            string instanceId = string.IsNullOrEmpty(gpu.InstanceId) ? Properties.Resources.none : gpu.InstanceId;
+            string pname = string.IsNullOrEmpty(gpu.Pname) ? Properties.Resources.none : gpu.Pname; //GPU分区路径
             string ram = (string.IsNullOrEmpty(gpu.Ram) ? 0 : long.Parse(gpu.Ram)) / (1024 * 1024) + " MB";
-            string driverversion = string.IsNullOrEmpty(gpu.DriverVersion) ? "无" : gpu.DriverVersion;
-            string gpup = "不支持"; //是否支持GPU分区
+            string driverversion = string.IsNullOrEmpty(gpu.DriverVersion) ? Properties.Resources.none : gpu.DriverVersion;
+            string gpup = ExHyperV.Properties.Resources.notsupport; //是否支持GPU分区
 
             if (valid != "True") { continue; } //剔除未连接的显卡
-            if (hyperv == false) {gpup = "需要先安装HyperV";} 
-            if (pname != "无") {gpup = "支持";}
+            if (hyperv == false) {gpup = ExHyperV.Properties.Resources.needhyperv;} 
+            if (pname != Properties.Resources.none) {gpup = ExHyperV.Properties.Resources.support;}
             
             Dispatcher.Invoke(() =>
             {
@@ -193,12 +193,12 @@ public partial class GPUPage
                 main.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
                 var cardExpander = Utils.CardExpander2();
                 Grid.SetRow(cardExpander, rowCount);
+                cardExpander.Padding = new Thickness(8); //调整间距
 
                 var grid = new Grid();
                 grid.HorizontalAlignment = HorizontalAlignment.Stretch;
                 grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(64) });
                 grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-
                 //创建图标
                 var image = Utils.CreateGpuImage(manu,64);
                 Grid.SetColumn(image, 0);
@@ -225,12 +225,12 @@ public partial class GPUPage
 
                 var textData = new (string text, int row, int column)[]
                 {
-                    ("制造商", 0, 0),(manu, 0, 1),
-                    ("专用显存", 1, 0),(ram, 1, 1),
-                    ("实例ID", 2, 0),(instanceId, 2, 1),
-                    ("GPU分区功能", 3, 0),(gpup, 3, 1),
-                    ("GPU分区路径", 4, 0),(pname, 4, 1),
-                    ("驱动程序版本", 5, 0),(driverversion, 5, 1),
+                    (ExHyperV.Properties.Resources.manu, 0, 0),(manu, 0, 1),
+                    (ExHyperV.Properties.Resources.ram, 1, 0),(ram, 1, 1),
+                    (ExHyperV.Properties.Resources.Instanceid, 2, 0),(instanceId, 2, 1),
+                    (ExHyperV.Properties.Resources.gpupv, 3, 0),(gpup, 3, 1),
+                    (ExHyperV.Properties.Resources.gpupvpath, 4, 0),(pname, 4, 1),
+                    (ExHyperV.Properties.Resources.driverversion, 5, 0),(driverversion, 5, 1),
                 };
 
                 foreach (var (text, row1, column) in textData)
@@ -269,8 +269,9 @@ public partial class GPUPage
 
                 var cardExpander = Utils.CardExpander2();
                 Grid.SetRow(cardExpander, rowCount); //设定VM节点的行数
+                cardExpander.Padding = new Thickness(10,8,10,8); //调整间距
 
-                cardExpander.Icon = Utils.FontIcon(20, "\xE7F4"); //虚拟机图标
+                cardExpander.Icon = Utils.FontIcon(24, "\xE7F4"); //虚拟机图标
 
                 //VM右侧内容，分为名称和按钮。
                 var grid1 = new Grid(); //虚拟机右侧部分，容纳文字和按钮
@@ -279,13 +280,13 @@ public partial class GPUPage
                 grid1.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
                 // VM的名称
-                var vmname = Utils.CreateStackPanel(name);
+                var vmname = Utils.TextBlock1(name);
                 grid1.Children.Add(vmname);
 
                 //添加按钮
                 var addbutton = new Wpf.Ui.Controls.Button
                 {
-                    Content = "添加GPU",
+                    Content = ExHyperV.Properties.Resources.addgpu,
                     Margin = new Thickness(0, 0, 5, 0),
                 };
                 addbutton.Click += (sender, e) => Gpu_mount(sender, e, name, Hostgpulist); //按钮点击事件
@@ -311,6 +312,7 @@ public partial class GPUPage
                         ContentPadding = new Thickness(6),
                     };
                     Grid.SetRow(gpuExpander, GPUcontent.RowDefinitions.Count); //获取并设置GPU列表节点当前行数
+                    gpuExpander.Padding = new Thickness(10, 8, 10, 8); //调整间距
 
                     var grid0 = new Grid(); //GPU的头部，用Grid来容纳自定义icon
                     grid0.HorizontalAlignment = HorizontalAlignment.Stretch;
@@ -332,7 +334,7 @@ public partial class GPUPage
 
                     //删除按钮
                     var button = new Wpf.Ui.Controls.Button {
-                        Content = "卸载",
+                        Content = ExHyperV.Properties.Resources.uninstall,
                         Margin = new Thickness(0,0,5,0),
                     };
                     button.Click += (sender, e) => Gpu_dismount(sender, e, gpuid, vm.Name, gpuExpander); //按钮点击事件
@@ -352,8 +354,8 @@ public partial class GPUPage
 
                     var textData = new (string text, int row, int column)[]
                     {
-                        ("GPU分区ID", 0, 0),(gpuid, 0, 1),
-                        ("GPU分区路径", 1, 0),(gpupath, 1, 1),
+                        (ExHyperV.Properties.Resources.gpupvid, 0, 0),(gpuid, 0, 1),
+                        (ExHyperV.Properties.Resources.gpupvpath, 1, 0),(gpupath, 1, 1),
                      };
 
                     foreach (var (text, row1, column) in textData)
@@ -385,7 +387,7 @@ public partial class GPUPage
         {
             foreach (var error in ps.Streams.Error)
             {
-                System.Windows.MessageBox.Show($"执行出错: {error.ToString()}");
+                System.Windows.MessageBox.Show($"Error: {error.ToString()}");
             }
         }
         else
@@ -421,7 +423,7 @@ public partial class GPUPage
         var ms = Application.Current.MainWindow as MainWindow; //获取主窗口
 
         SnackbarService.SetSnackbarPresenter(ms.SnackbarPresenter);
-        SnackbarService.Show("成功",GPUname+"已分配到"+ VMname,ControlAppearance.Success,new SymbolIcon(SymbolRegular.CheckboxChecked24,32), TimeSpan.FromSeconds(2));
+        SnackbarService.Show(ExHyperV.Properties.Resources.success,GPUname+ExHyperV.Properties.Resources.already+ VMname,ControlAppearance.Success,new SymbolIcon(SymbolRegular.CheckboxChecked24,32), TimeSpan.FromSeconds(2));
         vmrefresh(null, null);
 
     }

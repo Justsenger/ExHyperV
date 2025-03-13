@@ -6,6 +6,7 @@
     xmlns:local="clr-namespace:ExHyperV.Views.Pages"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    xmlns:properties="clr-namespace:ExHyperV.Properties"
     Title="GPUPage"
     d:DesignHeight="700"
     d:DesignWidth="1000"
@@ -28,7 +29,7 @@
             <ui:Card VerticalAlignment="Top" Padding="10" Margin="10,10,10,0">
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Top" Grid.Column="0">
                     <ui:FontIcon FontSize="24" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xF211;"/>
-                    <TextBlock Text="  已安装显卡" FontSize="16"/>
+                    <TextBlock Text="{x:Static properties:Resources.installedcard}" Margin="10,0,0,0" FontSize="16"/>
                 </StackPanel>
             </ui:Card>
             <Grid x:Name="main" Grid.Row="1"></Grid>
@@ -46,9 +47,9 @@
                         <ColumnDefinition Width="*"></ColumnDefinition>
                         <ColumnDefinition Width="Auto"></ColumnDefinition>
                     </Grid.ColumnDefinitions>
-                    <ui:FontIcon FontSize="24" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xF168;"/>
-                    <TextBlock Grid.Column="1" VerticalAlignment="Center" Text="  虚拟机列表" FontSize="16"/>
-                    <ui:Button Grid.Column="2" Content="刷新" Margin="0,0,30,0" Click="vmrefresh"></ui:Button>
+                    <ui:FontIcon FontSize="24" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xEA37;"/>
+                    <TextBlock Grid.Column="1" VerticalAlignment="Center" Text="{x:Static properties:Resources.vmlist}" Margin="10,0,0,0" FontSize="16"/>
+                    <ui:Button Grid.Column="2" Content="{x:Static properties:Resources.refresh}" Margin="0,0,30,0" Click="vmrefresh"></ui:Button>
 
                 </Grid>
             </ui:Card>

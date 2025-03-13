@@ -9,6 +9,11 @@
     </ApplicationDefinition>
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Update="Properties\Resources.en-US.resx">
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
     <Page Update="MainWindow.xaml">
       <SubType>Designer</SubType>
     </Page>

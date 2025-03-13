@@ -124,7 +124,7 @@
     <value>注意</value>
   </data>
   <data name="attentionwords" xml:space="preserve">
-    <value>随意分配设备可能导致系统不稳定，请谨慎操作！</value>
+    <value>不恰当分配设备可能导致系统不稳定，请谨慎操作！</value>
   </data>
   <data name="refresh" xml:space="preserve">
     <value>刷新</value>
@@ -151,6 +151,204 @@
     <value>显卡型号</value>
   </data>
   <data name="soft" xml:space="preserve">
-    <value>软件信息</value>
+    <value>应用信息</value>
+  </data>
+  <data name="String1" xml:space="preserve">
+    <value>HyperV功能已安装。</value>
+  </data>
+  <data name="String2" xml:space="preserve">
+    <value>HyperV功能未安装。</value>
+  </data>
+  <data name="String3" xml:space="preserve">
+    <value>宿主Windows版本为 </value>
+  </data>
+  <data name="v19041" xml:space="preserve">
+    <value>，建议虚拟机版本不小于19041。</value>
+  </data>
+  <data name="disablegpu" xml:space="preserve">
+    <value>，已禁用GPU虚拟化功能。</value>
+  </data>
+  <data name="GPU1" xml:space="preserve">
+    <value>CPU虚拟化已启用。</value>
+  </data>
+  <data name="GPU2" xml:space="preserve">
+    <value>CPU虚拟化未启用。</value>
+  </data>
+  <data name="Admin1" xml:space="preserve">
+    <value>管理员权限已取得。</value>
+  </data>
+  <data name="Admin2" xml:space="preserve">
+    <value>管理员权限未取得。已禁用GPU半虚拟化功能。</value>
+  </data>
+  <data name="complicate" xml:space="preserve">
+    <value>兼容性</value>
+  </data>
+  <data name="checksys" xml:space="preserve">
+    <value>检测系统版本...</value>
+  </data>
+  <data name="checkcpuct" xml:space="preserve">
+    <value>检测CPU是否开启虚拟化...</value>
+  </data>
+  <data name="checkhyperv" xml:space="preserve">
+    <value>检测HyperV是否安装...</value>
+  </data>
+  <data name="checkadmin" xml:space="preserve">
+    <value>检测是否以管理员权限启动...</value>
+  </data>
+  <data name="checksetting" xml:space="preserve">
+    <value>设定</value>
+  </data>
+  <data name="disablereg" xml:space="preserve">
+    <value>禁用安全策略</value>
+  </data>
+  <data name="Host" xml:space="preserve">
+    <value>主机</value>
+  </data>
+  <data name="string5" xml:space="preserve">
+    <value>修改虚拟机的关机动作为强制断电...</value>
+  </data>
+  <data name="setting" xml:space="preserve">
+    <value>设定修改中</value>
+  </data>
+  <data name="wait" xml:space="preserve">
+    <value>操作不可中断，请等待</value>
+  </data>
+  <data name="kind" xml:space="preserve">
+    <value>类型</value>
+  </data>
+  <data name="Instanceid" xml:space="preserve">
+    <value>实例ID</value>
+  </data>
+  <data name="path" xml:space="preserve">
+    <value>路径</value>
+  </data>
+  <data name="operated" xml:space="preserve">
+    <value>操作完成！</value>
+  </data>
+  <data name="OK" xml:space="preserve">
+    <value>OK</value>
+  </data>
+  <data name="removed" xml:space="preserve">
+    <value>#已卸除</value>
+  </data>
+  <data name="mounting" xml:space="preserve">
+    <value>挂载设备中...</value>
+  </data>
+  <data name="cpucache" xml:space="preserve">
+    <value>让虚拟机可管理CPU缓存...</value>
+  </data>
+  <data name="getpath" xml:space="preserve">
+    <value>获取设备的路径...</value>
+  </data>
+  <data name="Disabledevice" xml:space="preserve">
+    <value>禁用设备中...</value>
+  </data>
+  <data name="Dismountdevice" xml:space="preserve">
+    <value>卸载设备中...</value>
+  </data>
+  <data name="installedcard" xml:space="preserve">
+    <value>已安装显卡</value>
+  </data>
+  <data name="vmlist" xml:space="preserve">
+    <value>虚拟机列表</value>
+  </data>
+  <data name="none" xml:space="preserve">
+    <value>无</value>
+  </data>
+  <data name="notsupport" xml:space="preserve">
+    <value>不支持</value>
+  </data>
+  <data name="needhyperv" xml:space="preserve">
+    <value>需要先安装HyperV</value>
+  </data>
+  <data name="support" xml:space="preserve">
+    <value>支持</value>
+  </data>
+  <data name="manu" xml:space="preserve">
+    <value>制造商</value>
+  </data>
+  <data name="ram" xml:space="preserve">
+    <value>专用显存</value>
+  </data>
+  <data name="gpupv" xml:space="preserve">
+    <value>GPU分区功能</value>
+  </data>
+  <data name="gpupvpath" xml:space="preserve">
+    <value>GPU分区路径</value>
+  </data>
+  <data name="driverversion" xml:space="preserve">
+    <value>驱动程序版本</value>
+  </data>
+  <data name="addgpu" xml:space="preserve">
+    <value>添加GPU</value>
+  </data>
+  <data name="uninstall" xml:space="preserve">
+    <value>卸载</value>
+  </data>
+  <data name="gpupvid" xml:space="preserve">
+    <value>GPU分区ID</value>
+  </data>
+  <data name="runerror" xml:space="preserve">
+    <value>执行出错:</value>
+  </data>
+  <data name="success" xml:space="preserve">
+    <value>成功</value>
+  </data>
+  <data name="already" xml:space="preserve">
+    <value>已分配到</value>
+  </data>
+  <data name="GPUselect" xml:space="preserve">
+    <value>GPU选择</value>
+  </data>
+  <data name="cancel" xml:space="preserve">
+    <value>取消</value>
+  </data>
+  <data name="sure" xml:space="preserve">
+    <value>确定</value>
+  </data>
+  <data name="Settings" xml:space="preserve">
+    <value>设置</value>
+  </data>
+  <data name="theme" xml:space="preserve">
+    <value>应用主题</value>
+  </data>
+  <data name="switchtheme" xml:space="preserve">
+    <value>切换浅色/深色模式</value>
+  </data>
+  <data name="light" xml:space="preserve">
+    <value>明亮</value>
+  </data>
+  <data name="dark" xml:space="preserve">
+    <value>黑暗</value>
+  </data>
+  <data name="language" xml:space="preserve">
+    <value>语言</value>
+  </data>
+  <data name="reboot" xml:space="preserve">
+    <value>更改语言会重启应用程序</value>
+  </data>
+  <data name="about" xml:space="preserve">
+    <value>关于</value>
+  </data>
+  <data name="report" xml:space="preserve">
+    <value>报告错误或提交意见</value>
+  </data>
+  <data name="github" xml:space="preserve">
+    <value>查看仓库</value>
+  </data>
+  <data name="Main" xml:space="preserve">
+    <value>首页</value>
+  </data>
+  <data name="complisetting" xml:space="preserve">
+    <value>兼容性和设定</value>
+  </data>
+  <data name="gpupvv" xml:space="preserve">
+    <value>GPU半虚拟化</value>
+  </data>
+  <data name="DDA" xml:space="preserve">
+    <value>DDA直通</value>
+  </data>
+  <data name="Colsefirst" xml:space="preserve">
+    <value>请先关闭虚拟机！</value>
   </data>
 </root>

@@ -118,7 +118,7 @@ public partial class Utils
         {
             Text = friendlyName,
             FontSize = 16,
-            Margin = new System.Windows.Thickness(0, 6, 0, 0),
+            Margin = new System.Windows.Thickness(0,-2, 0, 0),
             VerticalAlignment = VerticalAlignment.Center
         };
         return headerText;
@@ -130,6 +130,19 @@ public partial class Utils
             Margin = new Thickness(10, 0, 5, 0),
         };
         return Menu;
+    }
+
+    public static TextBlock TextBlock3(string friendlyName)
+    {
+        var headerText = new TextBlock
+        {
+            Text = friendlyName,
+            FontSize = 16,
+            Margin = new System.Windows.Thickness(0, -2, 0, 0),
+            VerticalAlignment = VerticalAlignment.Center,
+            HorizontalAlignment = HorizontalAlignment.Center
+        };
+        return headerText;
     }
 
 
@@ -250,7 +263,7 @@ public partial class Utils
         return linkerTime;
     }
 
-    public static string Version => "V1.0.2";
+    public static string Version => "V1.0.3";
     public static string Author => "ЩАСтвЖ";
 
 

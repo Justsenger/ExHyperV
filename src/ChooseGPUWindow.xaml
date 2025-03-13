@@ -6,6 +6,7 @@
         xmlns:local="clr-namespace:ExHyperV"
         xmlns:pages="clr-namespace:ExHyperV.Views.Pages"
         mc:Ignorable="d"
+        xmlns:properties="clr-namespace:ExHyperV.Properties"
         Title="ExHyperV" Height="550" Width="500"
         xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
     <Grid>
@@ -20,7 +21,7 @@
         
         <!-- 标题栏 -->
         <ui:TitleBar
-            Title="GPU选择" Grid.ColumnSpan="2" VerticalAlignment="Center">
+            Title="{x:Static properties:Resources.GPUselect}" Grid.ColumnSpan="2" VerticalAlignment="Center">
             <ui:TitleBar.Icon>
                 <ui:ImageIcon>
                     <ui:ImageIcon.Source>
@@ -63,10 +64,11 @@
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
 
-            <ui:Button Content="取消" Width="200" Margin="20,0,40,0" Click="CancelButton_Click"/>
-            <ui:Button x:Name="ConfirmButton" Appearance="Primary" Content="确定" Width="200" Click="ConfirmButton_Click" Grid.Column="1" IsEnabled="False"/>
+            <ui:Button Content="{x:Static properties:Resources.cancel}" Width="200" Margin="20,0,40,0" Click="CancelButton_Click"/>
+            <ui:Button x:Name="ConfirmButton" Appearance="Primary" Content="{x:Static properties:Resources.sure}" Width="200" Click="ConfirmButton_Click" Grid.Column="1" IsEnabled="False"/>
         </Grid>
 
+        <ContentPresenter Grid.Row="1" Grid.RowSpan="2" Grid.ColumnSpan="2" x:Name="ContentPresenterForDialogs"/>
 
     </Grid>
 </ui:FluentWindow>

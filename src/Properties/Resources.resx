@@ -153,4 +153,202 @@
   <data name="soft" xml:space="preserve">
     <value>null</value>
   </data>
+  <data name="String1" xml:space="preserve">
+    <value>null</value>
+  </data>
+  <data name="String2" xml:space="preserve">
+    <value>null</value>
+  </data>
+  <data name="String3" xml:space="preserve">
+    <value>null</value>
+  </data>
+  <data name="v19041" xml:space="preserve">
+    <value>null</value>
+  </data>
+  <data name="disablegpu" xml:space="preserve">
+    <value>null</value>
+  </data>
+  <data name="GPU1" xml:space="preserve">
+    <value>null</value>
+  </data>
+  <data name="GPU2" xml:space="preserve">
+    <value>null</value>
+  </data>
+  <data name="Admin1" xml:space="preserve">
+    <value>null</value>
+  </data>
+  <data name="Admin2" xml:space="preserve">
+    <value>null</value>
+  </data>
+  <data name="complicate" xml:space="preserve">
+    <value>null</value>
+  </data>
+  <data name="checksys" xml:space="preserve">
+    <value>null</value>
+  </data>
+  <data name="checkcpuct" xml:space="preserve">
+    <value>null</value>
+  </data>
+  <data name="checkhyperv" xml:space="preserve">
+    <value>null</value>
+  </data>
+  <data name="checkadmin" xml:space="preserve">
+    <value>null</value>
+  </data>
+  <data name="checksetting" xml:space="preserve">
+    <value>null</value>
+  </data>
+  <data name="disablereg" xml:space="preserve">
+    <value>null</value>
+  </data>
+  <data name="Host" xml:space="preserve">
+    <value>null</value>
+  </data>
+  <data name="string5" xml:space="preserve">
+    <value>null</value>
+  </data>
+  <data name="setting" xml:space="preserve">
+    <value>null</value>
+  </data>
+  <data name="wait" xml:space="preserve">
+    <value>null</value>
+  </data>
+  <data name="kind" xml:space="preserve">
+    <value>null</value>
+  </data>
+  <data name="Instanceid" xml:space="preserve">
+    <value>null</value>
+  </data>
+  <data name="path" xml:space="preserve">
+    <value>null</value>
+  </data>
+  <data name="operated" xml:space="preserve">
+    <value>null</value>
+  </data>
+  <data name="OK" xml:space="preserve">
+    <value>null</value>
+  </data>
+  <data name="removed" xml:space="preserve">
+    <value>null</value>
+  </data>
+  <data name="mounting" xml:space="preserve">
+    <value>null</value>
+  </data>
+  <data name="cpucache" xml:space="preserve">
+    <value>null</value>
+  </data>
+  <data name="getpath" xml:space="preserve">
+    <value>null</value>
+  </data>
+  <data name="Disabledevice" xml:space="preserve">
+    <value>null</value>
+  </data>
+  <data name="Dismountdevice" xml:space="preserve">
+    <value>null</value>
+  </data>
+  <data name="installedcard" xml:space="preserve">
+    <value>null</value>
+  </data>
+  <data name="vmlist" xml:space="preserve">
+    <value>null</value>
+  </data>
+  <data name="none" xml:space="preserve">
+    <value>null</value>
+  </data>
+  <data name="notsupport" xml:space="preserve">
+    <value>null</value>
+  </data>
+  <data name="needhyperv" xml:space="preserve">
+    <value>null</value>
+  </data>
+  <data name="support" xml:space="preserve">
+    <value>null</value>
+  </data>
+  <data name="manu" xml:space="preserve">
+    <value>null</value>
+  </data>
+  <data name="ram" xml:space="preserve">
+    <value>null</value>
+  </data>
+  <data name="gpupv" xml:space="preserve">
+    <value>null</value>
+  </data>
+  <data name="gpupvpath" xml:space="preserve">
+    <value>null</value>
+  </data>
+  <data name="driverversion" xml:space="preserve">
+    <value>null</value>
+  </data>
+  <data name="addgpu" xml:space="preserve">
+    <value>null</value>
+  </data>
+  <data name="uninstall" xml:space="preserve">
+    <value>null</value>
+  </data>
+  <data name="gpupvid" xml:space="preserve">
+    <value>null</value>
+  </data>
+  <data name="runerror" xml:space="preserve">
+    <value>null</value>
+  </data>
+  <data name="success" xml:space="preserve">
+    <value>null</value>
+  </data>
+  <data name="already" xml:space="preserve">
+    <value>null</value>
+  </data>
+  <data name="GPUselect" xml:space="preserve">
+    <value>null</value>
+  </data>
+  <data name="cancel" xml:space="preserve">
+    <value>null</value>
+  </data>
+  <data name="sure" xml:space="preserve">
+    <value>null</value>
+  </data>
+  <data name="Settings" xml:space="preserve">
+    <value>null</value>
+  </data>
+  <data name="theme" xml:space="preserve">
+    <value>null</value>
+  </data>
+  <data name="switchtheme" xml:space="preserve">
+    <value>null</value>
+  </data>
+  <data name="light" xml:space="preserve">
+    <value>null</value>
+  </data>
+  <data name="dark" xml:space="preserve">
+    <value>null</value>
+  </data>
+  <data name="language" xml:space="preserve">
+    <value>null</value>
+  </data>
+  <data name="reboot" xml:space="preserve">
+    <value>null</value>
+  </data>
+  <data name="about" xml:space="preserve">
+    <value>null</value>
+  </data>
+  <data name="report" xml:space="preserve">
+    <value>null</value>
+  </data>
+  <data name="github" xml:space="preserve">
+    <value>null</value>
+  </data>
+  <data name="Main" xml:space="preserve">
+    <value>null</value>
+  </data>
+  <data name="complisetting" xml:space="preserve">
+    <value>null</value>
+  </data>
+  <data name="gpupvv" xml:space="preserve">
+    <value>null</value>
+  </data>
+  <data name="DDA" xml:space="preserve">
+    <value>null</value>
+  </data>
+  <data name="Colsefirst" xml:space="preserve">
+    <value>null</value>
+  </data>
 </root>

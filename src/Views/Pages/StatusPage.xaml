@@ -6,6 +6,7 @@
     xmlns:local="clr-namespace:ExHyperV.Views.Pages"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    xmlns:properties="clr-namespace:ExHyperV.Properties"
     Title="StatusPage"
     d:DesignHeight="700"
     d:DesignWidth="1000"
@@ -24,7 +25,7 @@
         <StackPanel Margin="0,0,0,8">
             <ui:TextBlock
                             Margin="0,0,0,8"
-                            Text="兼容性检测"
+                            Text="{x:Static properties:Resources.complicate}"
                             FontSize="36"
                             Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"></ui:TextBlock>
             <Grid>
@@ -42,7 +43,7 @@
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
                         <ui:ProgressRing x:Name="progressRing1"  IsIndeterminate="True" Width="16" Height="16"/>
-                        <TextBlock Grid.Column="1" x:Name="win" Margin="10,0,0,0" Text="检测系统版本..." FontSize="16"/>
+                        <TextBlock Grid.Column="1" x:Name="win" Margin="10,0,0,0" Text="{x:Static properties:Resources.checksys}" FontSize="16"/>
                     </Grid>
                 </ui:Card>
 
@@ -53,7 +54,7 @@
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
                         <ui:ProgressRing x:Name="progressRing2"  IsIndeterminate="True" Width="16" Height="16"/>
-                        <TextBlock Grid.Column="1" x:Name="cpu" Margin="10,0,0,0" Text="检测CPU是否开启虚拟化..." FontSize="16"/>
+                        <TextBlock Grid.Column="1" x:Name="cpu" Margin="10,0,0,0" Text="{x:Static properties:Resources.checkcpuct}" FontSize="16"/>
                     </Grid>
                 </ui:Card>
 
@@ -64,7 +65,7 @@
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
                         <ui:ProgressRing x:Name="progressRing3"  IsIndeterminate="True" Width="16" Height="16"/>
-                        <TextBlock Grid.Column="1" x:Name="hyperv" Margin="10,0,0,0" Text="检测HyperV是否安装..." FontSize="16"/>
+                        <TextBlock Grid.Column="1" x:Name="hyperv" Margin="10,0,0,0" Text="{x:Static properties:Resources.checkhyperv}" FontSize="16"/>
                     </Grid>
                 </ui:Card>
 
@@ -75,7 +76,7 @@
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
                         <ui:ProgressRing x:Name="progressRing4"  IsIndeterminate="True" Width="16" Height="16"/>
-                        <TextBlock Grid.Column="1" x:Name="admin" Margin="10,0,0,0" Text="检测是否以管理员权限启动..." FontSize="16"/>
+                        <TextBlock Grid.Column="1" x:Name="admin" Margin="10,0,0,0" Text="{x:Static properties:Resources.checkadmin}" FontSize="16"/>
                     </Grid>
                 </ui:Card>
             </Grid>
@@ -84,11 +85,11 @@
 
         <StackPanel Margin="0,0,0,8" Grid.Row="1">
 
-            <ui:TextBlock Text="设定" FontSize="36" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"></ui:TextBlock>
+            <ui:TextBlock Text="{x:Static properties:Resources.checksetting}" FontSize="36" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"></ui:TextBlock>
 
             <ui:CardControl Grid.Row="1" Margin="0,10,0,0">
                 <ui:CardControl.Icon>
-                    <ui:FontIcon FontSize="24" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xF211;"/>
+                    <ui:FontIcon FontSize="24" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xE932;"/>
                 </ui:CardControl.Icon>
                 <ui:CardControl.Header>
                     <Grid>
@@ -96,7 +97,7 @@
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="auto"/>
                         </Grid.ColumnDefinitions>
-                        <TextBlock Text="禁用安全策略" FontSize="16" VerticalAlignment="Center"/>
+                        <TextBlock Text="{x:Static properties:Resources.disablereg}" FontSize="16" VerticalAlignment="Center"/>
                         <ui:ToggleSwitch
                     x:Name="gpustrategy"
                     Grid.Column="1"

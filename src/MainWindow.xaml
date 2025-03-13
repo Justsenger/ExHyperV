@@ -5,6 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:ExHyperV"
         xmlns:pages="clr-namespace:ExHyperV.Views.Pages"
+        xmlns:properties="clr-namespace:ExHyperV.Properties"
         mc:Ignorable="d"
         Title="ExHyperV" Height="700" Width="1000"
         xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
@@ -24,9 +25,9 @@
         <!-- 标题栏 -->
         <ui:TitleBar Title="ExHyperV" VerticalAlignment="Center" Grid.ColumnSpan="2">
             <ui:TitleBar.Icon>
-            <ui:ImageIcon>
+            <ui:ImageIcon Margin="-3,-16,0,-16" Width="20" Height="20">
                 <ui:ImageIcon.Source>
-                    <BitmapImage UriSource="pack://application:,,,/Assets/app.png" />
+                    <BitmapImage UriSource="pack://application:,,,/Assets/app.png"/>
                 </ui:ImageIcon.Source>
             </ui:ImageIcon>
         </ui:TitleBar.Icon>
@@ -36,7 +37,7 @@
         <ui:NavigationView x:Name="RootNavigation" Grid.Row="1" OpenPaneLength="250" IsPaneOpen="False" IsBackButtonVisible="Collapsed" Grid.RowSpan="2" Grid.ColumnSpan="2">
             <ui:NavigationView.MenuItems>
                 <ui:NavigationViewItem
-                    Content="首页"
+                    Content="{x:Static properties:Resources.Main}"
                     NavigationCacheMode="Enabled"
                     TargetPageType="{x:Type pages:MainPage}">
                     <ui:NavigationViewItem.Icon>
@@ -45,7 +46,7 @@
                 </ui:NavigationViewItem>
 
                 <ui:NavigationViewItem
-                    Content="兼容性&amp;设定"
+                    Content="{x:Static properties:Resources.complisetting}"
                     NavigationCacheMode="Enabled"
                     TargetPageType="{x:Type pages:StatusPage}">
                     <ui:NavigationViewItem.Icon>
@@ -54,7 +55,7 @@
                 </ui:NavigationViewItem>
 
                 <ui:NavigationViewItem
-                    Content="DDA直通"
+                    Content="{x:Static properties:Resources.DDA}"
                     NavigationCacheMode="Enabled"
                     TargetPageType="{x:Type pages:DDAPage}">
                     <ui:NavigationViewItem.Icon>
@@ -64,7 +65,7 @@
 
                 <ui:NavigationViewItem
                     x:Name="gpupv"
-                    Content="GPU半虚拟化"
+                    Content="{x:Static properties:Resources.gpupvv}"
                     NavigationCacheMode="Enabled"
                     Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"
                     TargetPageType="{x:Type pages:GPUPage}">
@@ -77,7 +78,7 @@
 
             <ui:NavigationView.FooterMenuItems>
                 <ui:NavigationViewItem
-                    Content="设置"
+                    Content="{x:Static properties:Resources.setting}"
                     NavigationCacheMode="Disabled"
                     TargetPageType="{x:Type pages:Setting}">
                     <ui:NavigationViewItem.Icon>

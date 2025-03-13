@@ -124,7 +124,7 @@
     <value>Attention</value>
   </data>
   <data name="attentionwords" xml:space="preserve">
-    <value>Randomly allocating devices may cause system instability, please operate with caution!</value>
+    <value>Improper allocating devices may cause system instability, please operate with caution!</value>
   </data>
   <data name="refresh" xml:space="preserve">
     <value>Refresh</value>
@@ -151,6 +151,204 @@
     <value>Graphics</value>
   </data>
   <data name="soft" xml:space="preserve">
-    <value>Software</value>
+    <value>App</value>
+  </data>
+  <data name="String1" xml:space="preserve">
+    <value>The HyperV feature has been installed.</value>
+  </data>
+  <data name="String2" xml:space="preserve">
+    <value>Hyper-V feature is not installed.</value>
+  </data>
+  <data name="String3" xml:space="preserve">
+    <value>The host Windows version is </value>
+  </data>
+  <data name="v19041" xml:space="preserve">
+    <value>, recommend the virtual machine version not be less than 19041.</value>
+  </data>
+  <data name="disablegpu" xml:space="preserve">
+    <value>, GPU virtualization feature has been disabled.</value>
+  </data>
+  <data name="GPU1" xml:space="preserve">
+    <value>CPU virtualization has been enabled.</value>
+  </data>
+  <data name="GPU2" xml:space="preserve">
+    <value>CPU virtualization is not enabled.</value>
+  </data>
+  <data name="Admin1" xml:space="preserve">
+    <value>Administrator privileges have been obtained.</value>
+  </data>
+  <data name="Admin2" xml:space="preserve">
+    <value>No Administrator privileges. GPU Paravirtualization disabled.</value>
+  </data>
+  <data name="complicate" xml:space="preserve">
+    <value>Compatibility</value>
+  </data>
+  <data name="checksys" xml:space="preserve">
+    <value>Check system version...</value>
+  </data>
+  <data name="checkcpuct" xml:space="preserve">
+    <value>Check if CPU virtualization is enabled...</value>
+  </data>
+  <data name="checkhyperv" xml:space="preserve">
+    <value>Check if HyperV is installed...</value>
+  </data>
+  <data name="checkadmin" xml:space="preserve">
+    <value>Check if launched with admin privileges...</value>
+  </data>
+  <data name="checksetting" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="disablereg" xml:space="preserve">
+    <value>Disable security policy</value>
+  </data>
+  <data name="Host" xml:space="preserve">
+    <value>Host</value>
+  </data>
+  <data name="string5" xml:space="preserve">
+    <value>Modify the shutdown action of the virtual machine to force power off...</value>
+  </data>
+  <data name="setting" xml:space="preserve">
+    <value>Settings are being modified</value>
+  </data>
+  <data name="wait" xml:space="preserve">
+    <value>The operation cannot be interrupted, please wait</value>
+  </data>
+  <data name="kind" xml:space="preserve">
+    <value>Class</value>
+  </data>
+  <data name="Instanceid" xml:space="preserve">
+    <value>InstanceId</value>
+  </data>
+  <data name="path" xml:space="preserve">
+    <value>Path</value>
+  </data>
+  <data name="operated" xml:space="preserve">
+    <value>Operation completed!</value>
+  </data>
+  <data name="OK" xml:space="preserve">
+    <value>OK</value>
+  </data>
+  <data name="removed" xml:space="preserve">
+    <value>#Disassembled</value>
+  </data>
+  <data name="mounting" xml:space="preserve">
+    <value>Mounting device...</value>
+  </data>
+  <data name="cpucache" xml:space="preserve">
+    <value>Enable virtual machines to manage CPU cache...</value>
+  </data>
+  <data name="getpath" xml:space="preserve">
+    <value>Get the path of the device...</value>
+  </data>
+  <data name="Disabledevice" xml:space="preserve">
+    <value>Disabling device...</value>
+  </data>
+  <data name="Dismountdevice" xml:space="preserve">
+    <value>Dismounting devices...</value>
+  </data>
+  <data name="installedcard" xml:space="preserve">
+    <value>Graphics Card</value>
+  </data>
+  <data name="vmlist" xml:space="preserve">
+    <value>Virtual machine list</value>
+  </data>
+  <data name="none" xml:space="preserve">
+    <value>None</value>
+  </data>
+  <data name="notsupport" xml:space="preserve">
+    <value>Not supported</value>
+  </data>
+  <data name="needhyperv" xml:space="preserve">
+    <value>HyperV feature required</value>
+  </data>
+  <data name="support" xml:space="preserve">
+    <value>Supported</value>
+  </data>
+  <data name="manu" xml:space="preserve">
+    <value>Manufacturer</value>
+  </data>
+  <data name="ram" xml:space="preserve">
+    <value>Video Memory</value>
+  </data>
+  <data name="gpupv" xml:space="preserve">
+    <value>GPU Partition</value>
+  </data>
+  <data name="gpupvpath" xml:space="preserve">
+    <value>Partition Path</value>
+  </data>
+  <data name="driverversion" xml:space="preserve">
+    <value>Driver Version</value>
+  </data>
+  <data name="addgpu" xml:space="preserve">
+    <value>Add GPU</value>
+  </data>
+  <data name="uninstall" xml:space="preserve">
+    <value>Uninstall</value>
+  </data>
+  <data name="gpupvid" xml:space="preserve">
+    <value>GPU partition ID</value>
+  </data>
+  <data name="runerror" xml:space="preserve">
+    <value>Error executing:  </value>
+  </data>
+  <data name="success" xml:space="preserve">
+    <value>Success</value>
+  </data>
+  <data name="already" xml:space="preserve">
+    <value> has assigned to </value>
+  </data>
+  <data name="GPUselect" xml:space="preserve">
+    <value>GPU Select</value>
+  </data>
+  <data name="cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="sure" xml:space="preserve">
+    <value>Confirm</value>
+  </data>
+  <data name="Settings" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="theme" xml:space="preserve">
+    <value>Application Theme</value>
+  </data>
+  <data name="switchtheme" xml:space="preserve">
+    <value>Switch between light/dark mode</value>
+  </data>
+  <data name="light" xml:space="preserve">
+    <value>Light</value>
+  </data>
+  <data name="dark" xml:space="preserve">
+    <value>Dark</value>
+  </data>
+  <data name="language" xml:space="preserve">
+    <value>Language</value>
+  </data>
+  <data name="about" xml:space="preserve">
+    <value>About</value>
+  </data>
+  <data name="report" xml:space="preserve">
+    <value>Report or feedback</value>
+  </data>
+  <data name="github" xml:space="preserve">
+    <value>View Code</value>
+  </data>
+  <data name="Main" xml:space="preserve">
+    <value>Home</value>
+  </data>
+  <data name="complisetting" xml:space="preserve">
+    <value>Compatibility and Settings</value>
+  </data>
+  <data name="gpupvv" xml:space="preserve">
+    <value>GPU Paravirtualization</value>
+  </data>
+  <data name="DDA" xml:space="preserve">
+    <value>Discrete Device Assignment</value>
+  </data>
+  <data name="Colsefirst" xml:space="preserve">
+    <value>Please shut down the virtual machine first!</value>
+  </data>
+  <data name="reboot" xml:space="preserve">
+    <value>Changing the language will restart the application</value>
   </data>
 </root>

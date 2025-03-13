@@ -63,6 +63,51 @@ namespace ExHyperV.Properties {
         /// <summary>
         ///   查找类似 null 的本地化字符串。
         /// </summary>
+        public static string about {
+            get {
+                return ResourceManager.GetString("about", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 null 的本地化字符串。
+        /// </summary>
+        public static string addgpu {
+            get {
+                return ResourceManager.GetString("addgpu", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 null 的本地化字符串。
+        /// </summary>
+        public static string Admin1 {
+            get {
+                return ResourceManager.GetString("Admin1", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 null 的本地化字符串。
+        /// </summary>
+        public static string Admin2 {
+            get {
+                return ResourceManager.GetString("Admin2", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 null 的本地化字符串。
+        /// </summary>
+        public static string already {
+            get {
+                return ResourceManager.GetString("already", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 null 的本地化字符串。
+        /// </summary>
         public static string arch {
             get {
                 return ResourceManager.GetString("arch", resourceCulture);
@@ -99,6 +144,159 @@ namespace ExHyperV.Properties {
         /// <summary>
         ///   查找类似 null 的本地化字符串。
         /// </summary>
+        public static string cancel {
+            get {
+                return ResourceManager.GetString("cancel", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 null 的本地化字符串。
+        /// </summary>
+        public static string checkadmin {
+            get {
+                return ResourceManager.GetString("checkadmin", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 null 的本地化字符串。
+        /// </summary>
+        public static string checkcpuct {
+            get {
+                return ResourceManager.GetString("checkcpuct", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 null 的本地化字符串。
+        /// </summary>
+        public static string checkhyperv {
+            get {
+                return ResourceManager.GetString("checkhyperv", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 null 的本地化字符串。
+        /// </summary>
+        public static string checksetting {
+            get {
+                return ResourceManager.GetString("checksetting", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 null 的本地化字符串。
+        /// </summary>
+        public static string checksys {
+            get {
+                return ResourceManager.GetString("checksys", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 null 的本地化字符串。
+        /// </summary>
+        public static string Colsefirst {
+            get {
+                return ResourceManager.GetString("Colsefirst", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 null 的本地化字符串。
+        /// </summary>
+        public static string complicate {
+            get {
+                return ResourceManager.GetString("complicate", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 null 的本地化字符串。
+        /// </summary>
+        public static string complisetting {
+            get {
+                return ResourceManager.GetString("complisetting", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 null 的本地化字符串。
+        /// </summary>
+        public static string cpucache {
+            get {
+                return ResourceManager.GetString("cpucache", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 null 的本地化字符串。
+        /// </summary>
+        public static string dark {
+            get {
+                return ResourceManager.GetString("dark", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 null 的本地化字符串。
+        /// </summary>
+        public static string DDA {
+            get {
+                return ResourceManager.GetString("DDA", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 null 的本地化字符串。
+        /// </summary>
+        public static string Disabledevice {
+            get {
+                return ResourceManager.GetString("Disabledevice", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 null 的本地化字符串。
+        /// </summary>
+        public static string disablegpu {
+            get {
+                return ResourceManager.GetString("disablegpu", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 null 的本地化字符串。
+        /// </summary>
+        public static string disablereg {
+            get {
+                return ResourceManager.GetString("disablereg", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 null 的本地化字符串。
+        /// </summary>
+        public static string Dismountdevice {
+            get {
+                return ResourceManager.GetString("Dismountdevice", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 null 的本地化字符串。
+        /// </summary>
+        public static string driverversion {
+            get {
+                return ResourceManager.GetString("driverversion", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 null 的本地化字符串。
+        /// </summary>
         public static string exhyperv {
             get {
                 return ResourceManager.GetString("exhyperv", resourceCulture);
@@ -108,9 +306,162 @@ namespace ExHyperV.Properties {
         /// <summary>
         ///   查找类似 null 的本地化字符串。
         /// </summary>
+        public static string getpath {
+            get {
+                return ResourceManager.GetString("getpath", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 null 的本地化字符串。
+        /// </summary>
+        public static string github {
+            get {
+                return ResourceManager.GetString("github", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 null 的本地化字符串。
+        /// </summary>
+        public static string GPU1 {
+            get {
+                return ResourceManager.GetString("GPU1", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 null 的本地化字符串。
+        /// </summary>
+        public static string GPU2 {
+            get {
+                return ResourceManager.GetString("GPU2", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 null 的本地化字符串。
+        /// </summary>
+        public static string gpupv {
+            get {
+                return ResourceManager.GetString("gpupv", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 null 的本地化字符串。
+        /// </summary>
+        public static string gpupvid {
+            get {
+                return ResourceManager.GetString("gpupvid", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 null 的本地化字符串。
+        /// </summary>
+        public static string gpupvpath {
+            get {
+                return ResourceManager.GetString("gpupvpath", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 null 的本地化字符串。
+        /// </summary>
+        public static string gpupvv {
+            get {
+                return ResourceManager.GetString("gpupvv", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 null 的本地化字符串。
+        /// </summary>
+        public static string GPUselect {
+            get {
+                return ResourceManager.GetString("GPUselect", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 null 的本地化字符串。
+        /// </summary>
         public static string Graphicsmodel {
             get {
                 return ResourceManager.GetString("Graphicsmodel", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 null 的本地化字符串。
+        /// </summary>
+        public static string Host {
+            get {
+                return ResourceManager.GetString("Host", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 null 的本地化字符串。
+        /// </summary>
+        public static string installedcard {
+            get {
+                return ResourceManager.GetString("installedcard", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 null 的本地化字符串。
+        /// </summary>
+        public static string Instanceid {
+            get {
+                return ResourceManager.GetString("Instanceid", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 null 的本地化字符串。
+        /// </summary>
+        public static string kind {
+            get {
+                return ResourceManager.GetString("kind", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 null 的本地化字符串。
+        /// </summary>
+        public static string language {
+            get {
+                return ResourceManager.GetString("language", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 null 的本地化字符串。
+        /// </summary>
+        public static string light {
+            get {
+                return ResourceManager.GetString("light", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 null 的本地化字符串。
+        /// </summary>
+        public static string Main {
+            get {
+                return ResourceManager.GetString("Main", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 null 的本地化字符串。
+        /// </summary>
+        public static string manu {
+            get {
+                return ResourceManager.GetString("manu", resourceCulture);
             }
         }
         
@@ -135,9 +486,135 @@ namespace ExHyperV.Properties {
         /// <summary>
         ///   查找类似 null 的本地化字符串。
         /// </summary>
+        public static string mounting {
+            get {
+                return ResourceManager.GetString("mounting", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 null 的本地化字符串。
+        /// </summary>
+        public static string needhyperv {
+            get {
+                return ResourceManager.GetString("needhyperv", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 null 的本地化字符串。
+        /// </summary>
+        public static string none {
+            get {
+                return ResourceManager.GetString("none", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 null 的本地化字符串。
+        /// </summary>
+        public static string notsupport {
+            get {
+                return ResourceManager.GetString("notsupport", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 null 的本地化字符串。
+        /// </summary>
+        public static string OK {
+            get {
+                return ResourceManager.GetString("OK", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 null 的本地化字符串。
+        /// </summary>
+        public static string operated {
+            get {
+                return ResourceManager.GetString("operated", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 null 的本地化字符串。
+        /// </summary>
+        public static string path {
+            get {
+                return ResourceManager.GetString("path", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 null 的本地化字符串。
+        /// </summary>
+        public static string ram {
+            get {
+                return ResourceManager.GetString("ram", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 null 的本地化字符串。
+        /// </summary>
+        public static string reboot {
+            get {
+                return ResourceManager.GetString("reboot", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 null 的本地化字符串。
+        /// </summary>
         public static string refresh {
             get {
                 return ResourceManager.GetString("refresh", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 null 的本地化字符串。
+        /// </summary>
+        public static string removed {
+            get {
+                return ResourceManager.GetString("removed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 null 的本地化字符串。
+        /// </summary>
+        public static string report {
+            get {
+                return ResourceManager.GetString("report", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 null 的本地化字符串。
+        /// </summary>
+        public static string runerror {
+            get {
+                return ResourceManager.GetString("runerror", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 null 的本地化字符串。
+        /// </summary>
+        public static string setting {
+            get {
+                return ResourceManager.GetString("setting", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 null 的本地化字符串。
+        /// </summary>
+        public static string Settings {
+            get {
+                return ResourceManager.GetString("Settings", resourceCulture);
             }
         }
         
@@ -153,9 +630,108 @@ namespace ExHyperV.Properties {
         /// <summary>
         ///   查找类似 null 的本地化字符串。
         /// </summary>
+        public static string String1 {
+            get {
+                return ResourceManager.GetString("String1", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 null 的本地化字符串。
+        /// </summary>
+        public static string String2 {
+            get {
+                return ResourceManager.GetString("String2", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 null 的本地化字符串。
+        /// </summary>
+        public static string String3 {
+            get {
+                return ResourceManager.GetString("String3", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 null 的本地化字符串。
+        /// </summary>
+        public static string string5 {
+            get {
+                return ResourceManager.GetString("string5", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 null 的本地化字符串。
+        /// </summary>
+        public static string success {
+            get {
+                return ResourceManager.GetString("success", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 null 的本地化字符串。
+        /// </summary>
+        public static string support {
+            get {
+                return ResourceManager.GetString("support", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 null 的本地化字符串。
+        /// </summary>
+        public static string sure {
+            get {
+                return ResourceManager.GetString("sure", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 null 的本地化字符串。
+        /// </summary>
+        public static string switchtheme {
+            get {
+                return ResourceManager.GetString("switchtheme", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 null 的本地化字符串。
+        /// </summary>
         public static string systeminfo {
             get {
                 return ResourceManager.GetString("systeminfo", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 null 的本地化字符串。
+        /// </summary>
+        public static string theme {
+            get {
+                return ResourceManager.GetString("theme", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 null 的本地化字符串。
+        /// </summary>
+        public static string uninstall {
+            get {
+                return ResourceManager.GetString("uninstall", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 null 的本地化字符串。
+        /// </summary>
+        public static string v19041 {
+            get {
+                return ResourceManager.GetString("v19041", resourceCulture);
             }
         }
         
@@ -165,6 +741,24 @@ namespace ExHyperV.Properties {
         public static string version {
             get {
                 return ResourceManager.GetString("version", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 null 的本地化字符串。
+        /// </summary>
+        public static string vmlist {
+            get {
+                return ResourceManager.GetString("vmlist", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 null 的本地化字符串。
+        /// </summary>
+        public static string wait {
+            get {
+                return ResourceManager.GetString("wait", resourceCulture);
             }
         }
     }

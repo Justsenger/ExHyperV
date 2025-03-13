@@ -7,7 +7,6 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using Wpf.Ui.Controls;
 
-
 public partial class StatusPage
 {
 
@@ -23,6 +22,9 @@ public partial class StatusPage
 
     private async void HyperVInfo()
     {
+
+        string message = Properties.Resources.exhyperv;
+
         var hypervstatus = Utils.Run("Get-Module -ListAvailable -Name Hyper-V");
         Dispatcher.Invoke(() =>
         {
@@ -34,10 +36,10 @@ public partial class StatusPage
                 Glyph = "\xE930",
                 Foreground = new SolidColorBrush(Colors.Green),
             };
-            if (hypervstatus.Count != 0) { hyperv.Text = "HyperV功能已安装。"; }
+            if (hypervstatus.Count != 0) { hyperv.Text = Properties.Resources.String1; }
             else
             {
-                hyperv.Text = "HyperV功能未安装。";
+                hyperv.Text = ExHyperV.Properties.Resources.String2;
                 icons.Glyph = "\xEA39";
                 icons.Foreground = new SolidColorBrush(Colors.Red);
             }
@@ -63,11 +65,11 @@ public partial class StatusPage
             {
                 icons.Glyph = "\xE930";
                 icons.Foreground = new SolidColorBrush(Colors.Green);
-                win.Text = "宿主Windows版本为" + buildVersion.ToString() + "，建议虚拟机版本不小于19041。";
+                win.Text = ExHyperV.Properties.Resources.String3 + buildVersion.ToString() + ExHyperV.Properties.Resources.v19041;
             }
             else
             {
-                win.Text = "宿主Windows版本为" + buildVersion.ToString() + "，已禁用GPU虚拟化功能。";
+                win.Text = ExHyperV.Properties.Resources.String3 + buildVersion.ToString() + ExHyperV.Properties.Resources.disablegpu;
                 icons.Glyph = "\xEA39";
                 icons.Foreground = new SolidColorBrush(Colors.Red);
             }
@@ -92,10 +94,10 @@ public partial class StatusPage
             };
 
             if (cpuvt1[0].ToString() == "True"|| cpuvt2[0].ToString() == "True")
-            {cpu.Text = "CPU虚拟化已启用。";}
+            {cpu.Text = ExHyperV.Properties.Resources.GPU1;}
             else
             {
-                cpu.Text = "CPU虚拟化未启用。";
+                cpu.Text = ExHyperV.Properties.Resources.GPU2;
                 icons.Glyph = "\xEA39";
                 icons.Foreground = new SolidColorBrush(Colors.Red);
             }
@@ -143,14 +145,14 @@ public partial class StatusPage
             };
             if (Isadmin) 
             {
-                admin.Text = "管理员权限已取得。";
+                admin.Text = ExHyperV.Properties.Resources.Admin1;
                 status4.Children.Add(icons);
             }
             else //如果没有管理员权限，关闭GPU虚拟化功能
             {
                 var ms = Application.Current.MainWindow as MainWindow; //获取主窗口
                 ms.gpupv.IsEnabled = false;
-                admin.Text = "管理员权限未取得。";
+                admin.Text = ExHyperV.Properties.Resources.Admin2;
                 icons.Glyph = "\xEA39";
                 icons.Foreground = new SolidColorBrush(Colors.Red);
                 status4.Children.Add(icons);

@@ -64,7 +64,16 @@ namespace ExHyperV
                 //接下来，将执行真正的GPU分配。
                 if (result == "running")
                 {
-                    System.Windows.MessageBox.Show("请先关闭虚拟机！");
+                    ContentDialog Dialog = new()
+                    {
+                        Title = ExHyperV.Properties.Resources.Settings,
+                        Content = Utils.TextBlock3(ExHyperV.Properties.Resources.Colsefirst),
+                        CloseButtonText = ExHyperV.Properties.Resources.OK,
+                    };
+                    Dialog.DialogHost = ContentPresenterForDialogs;
+
+                    await Dialog.ShowAsync(CancellationToken.None); //显示提示框
+
                 }
                 else if (result == "OK") {
                     progress.IsIndeterminate = false; //等待条结束

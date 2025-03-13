@@ -63,7 +63,7 @@ public partial class DDAPage
                 Grid.SetColumn(Menu, 1); // 添加按钮到第二列
 
                 var contextMenu = new ContextMenu();
-                contextMenu.Items.Add(CreateMenuItem("主机")); //单独添加一个主机选项，和后面的虚拟机列表融合
+                contextMenu.Items.Add(CreateMenuItem(ExHyperV.Properties.Resources.Host)); //单独添加一个主机选项，和后面的虚拟机列表融合
                 foreach (var vmName in device.VmNames)
                 {
                     contextMenu.Items.Add(CreateMenuItem(vmName));
@@ -77,7 +77,7 @@ public partial class DDAPage
                         {
                             TextBlock contentTextBlock = new TextBlock
                             {
-                                Text = "修改虚拟机的关机动作为强制断电...",
+                                Text = ExHyperV.Properties.Resources.string5,
                                 HorizontalAlignment = HorizontalAlignment.Center, // 水平居中
                                 VerticalAlignment = VerticalAlignment.Center,     // 垂直居中
                                 TextWrapping = TextWrapping.Wrap                  // 允许文本换行
@@ -85,9 +85,9 @@ public partial class DDAPage
 
                             ContentDialog Dialog = new()
                             {
-                                Title = "设定修改中",
+                                Title = ExHyperV.Properties.Resources.setting,
                                 Content = contentTextBlock,
-                                CloseButtonText = "操作不可中断，请等待",
+                                CloseButtonText = ExHyperV.Properties.Resources.wait,
                             };
 
                             Dialog.Closing += (sender, args) => { args.Cancel = true; };// 禁止用户点击按钮触发关闭事件
@@ -117,9 +117,9 @@ public partial class DDAPage
 
                 var textData = new (string text, int row, int column)[]
                 {
-                    ("类型", 0, 0),
-                    ("实例ID", 1, 0),
-                    ("路径", 2, 0),
+                    (ExHyperV.Properties.Resources.kind, 0, 0),
+                    (ExHyperV.Properties.Resources.Instanceid, 1, 0),
+                    (ExHyperV.Properties.Resources.path, 2, 0),
                     (device.ClassType, 0, 1),
                     (device.InstanceId, 1, 1),
                     (device.Path, 2, 1),
@@ -146,7 +146,7 @@ public partial class DDAPage
             Application.Current.Dispatcher.Invoke(() =>{contentTextBlock.Text = messages[i];}); //更新提示
             Thread.Sleep(200); //引入一定的延时，显示步骤
             var logOutput = await DDAps(psCommands[i]); //执行命令，并获取日志
-            if (logOutput.Any(log => log.Contains("错误")))
+            if (logOutput.Any(log => log.Contains("Error")))
             {
                 Application.Current.Dispatcher.Invoke(() =>
                 {
@@ -163,8 +163,8 @@ public partial class DDAPage
         Application.Current.Dispatcher.Invoke(() =>
         {
             menu.Content = Vmname;
-            contentTextBlock.Text = "操作完成！";
-            dialog.CloseButtonText = "OK"; // 更新按钮文本
+            contentTextBlock.Text = ExHyperV.Properties.Resources.operated;
+            dialog.CloseButtonText = ExHyperV.Properties.Resources.OK; // 更新按钮文本
             dialog.Closing += (sender, args) => { args.Cancel = false; };// 允许用户关闭
             DDArefresh(null, null);
         });
@@ -180,9 +180,9 @@ public partial class DDAPage
             { logOutput.Add(item.ToString());}// 将每个输出项添加到日志列表中
             var errorStream = powerShell.Streams.Error.ReadAll(); // 检查标准错误输出流，看是否捕捉到错误
             if (errorStream.Count > 0)
-            {foreach (var error in errorStream){logOutput.Add($"错误: {error.ToString()}");}}// 将错误信息添加到日志
+            {foreach (var error in errorStream){logOutput.Add($"Error: {error.ToString()}");}}// 将错误信息添加到日志
         }
-        catch (Exception ex){logOutput.Add($"错误: {ex.Message}");}//意料之外的错误
+        catch (Exception ex){logOutput.Add($"Error: {ex.Message}");}//意料之外的错误
         return logOutput; // 返回日志输出
     }
     private async Task GetInfo(List<DeviceInfo> deviceList)
@@ -237,7 +237,7 @@ public partial class DDAPage
                         var instanceId = PCIP.Members["InstanceId"]?.Value?.ToString().Substring(4); //获取PCIP后面的编号
                         //如果满足条件：该设备未分配给虚拟机+PCIP状态等于OK，则说明并未分配给主机，处于卸除态。
                         if (!vmdevice.ContainsKey(instanceId)&& PCIP.Members["Status"]?.Value?.ToString()=="OK"&&!string.IsNullOrEmpty(instanceId)) //状态为OK，非空
-                        {vmdevice[instanceId] = "#已卸除"; }
+                        {vmdevice[instanceId] = ExHyperV.Properties.Resources.removed; }
                     }
                 }
 
@@ -292,7 +292,7 @@ public partial class DDAPage
                         else { continue; } //不在虚拟机列表内，也不属于卸除态，说明已经物理移除。
                     }
                     else {
-                        status = "主机"; //挂载在主机上的情况。
+                        status = Properties.Resources.Host; //挂载在主机上的情况。
                     }
                     deviceList.Add(new DeviceInfo(friendlyName, status, classType, instanceId,vmNameList,path)); //添加到设备列表
                 }
@@ -308,7 +308,7 @@ public partial class DDAPage
         string[] commands;
         string[] messages;
 
-        if (Nowname == "#已卸除" && Vmname == "主机")
+        if (Nowname == Properties.Resources.removed && Vmname == Properties.Resources.Host)
         {  //将设备折返主机
             commands = new string[]
             {
@@ -316,10 +316,10 @@ public partial class DDAPage
             };
             messages = new string[]
             {
-            "挂载设备中...",
+                ExHyperV.Properties.Resources.mounting,
             };
         }
-        else if(Nowname == "#已卸除" && Vmname != "主机")
+        else if(Nowname == Properties.Resources.removed && Vmname != Properties.Resources.Host)
         { //已卸除设备继续分配给虚拟机
             commands = new string[]
             {   
@@ -327,11 +327,11 @@ public partial class DDAPage
             };
             messages = new string[]
             {
-            "挂载设备中...",
+                ExHyperV.Properties.Resources.mounting,
             };
         }
         // 根据条件判断返回不同的命令和消息
-        else if (Nowname == "主机")  // 主机切换到虚拟机
+        else if (Nowname == Properties.Resources.Host)  // 主机切换到虚拟机
         {
             commands = new string[]
             {
@@ -344,15 +344,15 @@ public partial class DDAPage
             };
             messages = new string[]
             {
-            "修改虚拟机的关机动作为强制断电...",
-            "让虚拟机可管理CPU缓存...",
-            "获取设备的路径...",
-            "禁用设备中...",
-            "卸载设备中...",
-            "挂载设备中...",
+            Properties.Resources.string5,
+            ExHyperV.Properties.Resources.cpucache,
+            ExHyperV.Properties.Resources.getpath,
+            ExHyperV.Properties.Resources.Disabledevice,
+            ExHyperV.Properties.Resources.Dismountdevice,
+            ExHyperV.Properties.Resources.mounting,
             };
         }
-        else if (Vmname != "主机"&& Nowname != "主机")  // 虚拟机切换到虚拟机
+        else if (Vmname != Properties.Resources.Host&& Nowname != Properties.Resources.Host)  // 虚拟机切换到虚拟机
         {
             commands = new string[]
             {
@@ -365,14 +365,14 @@ public partial class DDAPage
 
             messages = new string[]
             {
-            "修改虚拟机的关机动作为强制断电...",
-            "让虚拟机可管理CPU缓存...",
-            "获取设备的路径...",
-            "卸载设备中...",
-            "挂载设备中...",
+            Properties.Resources.string5,
+            Properties.Resources.cpucache,
+            Properties.Resources.getpath,
+            Properties.Resources.Dismountdevice,
+            Properties.Resources.mounting,
             };
         }
-        else if (Vmname == "主机" && Nowname != "主机")  // 虚拟机切换回主机
+        else if (Vmname == Properties.Resources.Host && Nowname != Properties.Resources.Host)  // 虚拟机切换回主机
         {
             commands = new string[]
             {
@@ -383,9 +383,9 @@ public partial class DDAPage
 
             messages = new string[]
             {
-                "获取设备的路径...",
-                "卸载设备中...",
-                "挂载设备中...",
+                Properties.Resources.getpath,
+                Properties.Resources.Dismountdevice,
+                Properties.Resources.mounting,
             };
         }
         else
