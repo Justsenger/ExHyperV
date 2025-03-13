@@ -84,7 +84,7 @@ Host: Server 2022, Server 2025, and Windows 11 with Hyper-V enabled.
 
 VM:
 
-* Versions 17134 and below do not support GPU functionality.
+* Versions Below 17134 do not support GPU functionality.
 
 * Versions 17134 to 19040 (WDDM 2.4-2.6) can access GPUs but cannot properly display the GPU model.
 
