@@ -78,7 +78,7 @@
 
             <ui:NavigationView.FooterMenuItems>
                 <ui:NavigationViewItem
-                    Content="{x:Static properties:Resources.setting}"
+                    Content="{x:Static properties:Resources.Settings}"
                     NavigationCacheMode="Disabled"
                     TargetPageType="{x:Type pages:Setting}">
                     <ui:NavigationViewItem.Icon>
