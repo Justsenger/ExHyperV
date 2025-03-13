@@ -108,6 +108,15 @@ namespace ExHyperV.Properties {
         /// <summary>
         ///   查找类似 null 的本地化字符串。
         /// </summary>
+        public static string appversion {
+            get {
+                return ResourceManager.GetString("appversion", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 null 的本地化字符串。
+        /// </summary>
         public static string arch {
             get {
                 return ResourceManager.GetString("arch", resourceCulture);
@@ -138,6 +147,24 @@ namespace ExHyperV.Properties {
         public static string attentionwords {
             get {
                 return ResourceManager.GetString("attentionwords", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 null 的本地化字符串。
+        /// </summary>
+        public static string author {
+            get {
+                return ResourceManager.GetString("author", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 null 的本地化字符串。
+        /// </summary>
+        public static string buildtime {
+            get {
+                return ResourceManager.GetString("buildtime", resourceCulture);
             }
         }
         

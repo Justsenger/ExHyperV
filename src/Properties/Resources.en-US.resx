@@ -351,4 +351,13 @@
   <data name="reboot" xml:space="preserve">
     <value>Changing the language will restart the application</value>
   </data>
+  <data name="appversion" xml:space="preserve">
+    <value>Version</value>
+  </data>
+  <data name="author" xml:space="preserve">
+    <value>Author</value>
+  </data>
+  <data name="buildtime" xml:space="preserve">
+    <value>Compile time</value>
+  </data>
 </root>

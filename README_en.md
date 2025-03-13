@@ -1,6 +1,6 @@
 [中文文档](https://github.com/Justsenger/ExHyperV) 
 
-[English](https://github.com/Justsenger/ExHyperV/README_en.md)
+[English](https://github.com/Justsenger/ExHyperV/blob/main/README_en.md)
 
 # ExHyperV
 A software that provides features like DDA and GPU paravirtualization (GPU partitioning), making it easy for anyone to use advanced Hyper-V features.

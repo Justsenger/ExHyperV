@@ -351,4 +351,13 @@
   <data name="Colsefirst" xml:space="preserve">
     <value>请先关闭虚拟机！</value>
   </data>
+  <data name="appversion" xml:space="preserve">
+    <value>版本</value>
+  </data>
+  <data name="author" xml:space="preserve">
+    <value>作者</value>
+  </data>
+  <data name="buildtime" xml:space="preserve">
+    <value>编译时间</value>
+  </data>
 </root>

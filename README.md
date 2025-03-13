@@ -1,6 +1,6 @@
-[中文文档](https://github.com/Justsenger/ExHyperV) 
+[中文](https://github.com/Justsenger/ExHyperV) 
 
-[English](https://github.com/Justsenger/ExHyperV/README_en.md)
+[English](https://github.com/Justsenger/ExHyperV/blob/main/README_en.md)
 # ExHyperV
 一款提供DDA和GPU半虚拟化（GPU分区）等功能的软件，让凡人也能轻松玩转Hyper-V高级功能。
 

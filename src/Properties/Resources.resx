@@ -351,4 +351,13 @@
   <data name="Colsefirst" xml:space="preserve">
     <value>null</value>
   </data>
+  <data name="appversion" xml:space="preserve">
+    <value>null</value>
+  </data>
+  <data name="author" xml:space="preserve">
+    <value>null</value>
+  </data>
+  <data name="buildtime" xml:space="preserve">
+    <value>null</value>
+  </data>
 </root>
