@@ -122,7 +122,8 @@ DDA全称Discrete Device Assignment，即离散设备分配，可以将独立的
 To do
 
 # 杂项
-###事实
+
+### 事实
 
 * 无论是一代虚拟机还是二代虚拟机，都不会影响GPU-PV和DDA。
 
