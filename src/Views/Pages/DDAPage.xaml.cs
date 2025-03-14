@@ -93,7 +93,7 @@ public partial class DDAPage
                             Dialog.Closing += (sender, args) => { args.Cancel = true; };// 禁止用户点击按钮触发关闭事件
                             Dialog.DialogHost = ((MainWindow)Application.Current.MainWindow).ContentPresenterForDialogs;
 
-                            await Dialog.ShowAsync(CancellationToken.None); //显示提示框
+                            Dialog.ShowAsync(CancellationToken.None); //显示提示框 不能写为await
 
                             await DDAps(Menu, Dialog, contentTextBlock, header, device.InstanceId, device.Path, (String)Menu.Content); //执行命令行
                         }
@@ -145,7 +145,11 @@ public partial class DDAPage
         {
             Application.Current.Dispatcher.Invoke(() =>{contentTextBlock.Text = messages[i];}); //更新提示
             Thread.Sleep(200); //引入一定的延时，显示步骤
+            //System.Windows.MessageBox.Show("执行的命令："+psCommands[i]);
+
             var logOutput = await DDAps(psCommands[i]); //执行命令，并获取日志
+
+            //System.Windows.MessageBox.Show("已经获取到日志");
             if (logOutput.Any(log => log.Contains("Error")))
             {
                 Application.Current.Dispatcher.Invoke(() =>
