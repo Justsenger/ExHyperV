@@ -111,16 +111,15 @@ DDA全称Discrete Device Assignment，即离散设备分配，可以将独立的
 
 >微软远程显示适配器
 
-这是默认选项，同时也是兼容性最好的选项，但问题在于，我现在没有吃饭，吃了饭再写。
+这是默认选项，同时也是兼容性最好的选项，todo
 
 >间接显示驱动程序
 
-这里的实现也很多，但是我要先吃饭。
+todo
 
 > USB 显卡（需要DDA直通USB控制器x1） 
 
-To do
-
+比较常见的芯片是[DL-6950](https://www.synaptics.com/cn/products/displaylink-graphics/integrated-chipsets/dl-6000)和[SM768](https://www.siliconmotion.com/product/cht/Graphics-Display-SoCs.html)。todo
 # 杂项
 
 ### 事实
