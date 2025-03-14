@@ -179,9 +179,13 @@ public partial class GPUPage
             string manu = string.IsNullOrEmpty(gpu.Manu) ? Properties.Resources.none : gpu.Manu;
             string instanceId = string.IsNullOrEmpty(gpu.InstanceId) ? Properties.Resources.none : gpu.InstanceId;
             string pname = string.IsNullOrEmpty(gpu.Pname) ? Properties.Resources.none : gpu.Pname; //GPU分区路径
-            string ram = (string.IsNullOrEmpty(gpu.Ram) ? 0 : long.Parse(gpu.Ram)) / (1024 * 1024) + " MB";
             string driverversion = string.IsNullOrEmpty(gpu.DriverVersion) ? Properties.Resources.none : gpu.DriverVersion;
             string gpup = ExHyperV.Properties.Resources.notsupport; //是否支持GPU分区
+
+            string ram = (string.IsNullOrEmpty(gpu.Ram) ? 0 : long.Parse(gpu.Ram)) / (1024 * 1024) + " MB";
+            if (manu.Contains("Moore")) {
+                ram = (string.IsNullOrEmpty(gpu.Ram) ? 0 : long.Parse(gpu.Ram)) / 1024 + " MB";
+            }//摩尔线程的显存记录在HardwareInformation.MemorySize，但是单位是KB
 
             if (valid != "True") { continue; } //剔除未连接的显卡
             if (hyperv == false) {gpup = ExHyperV.Properties.Resources.needhyperv;} 

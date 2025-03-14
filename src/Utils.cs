@@ -215,7 +215,7 @@ public partial class Utils
         }
         else
         {
-            imageName = "Qualcomm.png";  // 其他情况，可能是Adreno的魔改驱动，什么Xiaomi之类的名字
+            imageName = "GPU.png";  // 其他情况
         }
 
         return $"pack://application:,,,/Assets/Gpuicons/{imageName}";

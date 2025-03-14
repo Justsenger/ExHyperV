@@ -15,6 +15,7 @@
     <None Remove="Assets\Gpuicons\AMD.png" />
     <None Remove="Assets\Gpuicons\Default.png" />
     <None Remove="Assets\Gpuicons\DisplayLink.png" />
+    <None Remove="Assets\Gpuicons\GPU.png" />
     <None Remove="Assets\Gpuicons\Intel.png" />
     <None Remove="Assets\Gpuicons\Iris.png" />
     <None Remove="Assets\Gpuicons\Microsoft.jpg" />
@@ -42,6 +43,9 @@
 		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</Content>
 		<Content Include="Assets\Gpuicons\DisplayLink.png">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</Content>
+		<Content Include="Assets\Gpuicons\GPU.png">
 		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</Content>
 		<Content Include="Assets\Gpuicons\Intel.png">
