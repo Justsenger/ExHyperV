@@ -71,7 +71,7 @@
 * 下图描述了 WDDM 半虚拟化设计中涉及的各种组件。
 
 
-![WDDM](https://github.com/Justsenger/ExHyperV/blob/main/img/WDDM.png)
+![WDDM](https://github.com/Justsenger/ExHyperV/blob/main/img/WDDM_cn.png)
 
 | Windows版本 | WDDM版本 | 虚拟化相关功能更新 |
 | -------- | -------- | ------------------------ |
