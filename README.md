@@ -1,6 +1,6 @@
-[中文](https://github.com/Justsenger/ExHyperV) 
+[中文](https://github.com/Justsenger/ExHyperV) | [English](https://github.com/Justsenger/ExHyperV/blob/main/README_en.md)
 
-[English](https://github.com/Justsenger/ExHyperV/blob/main/README_en.md)
+
 # ExHyperV
 一款提供DDA和GPU半虚拟化（GPU分区）等功能的软件，让凡人也能轻松玩转Hyper-V高级功能。
 
@@ -26,12 +26,14 @@
 ![功能](https://github.com/Justsenger/ExHyperV/blob/main/img/05.png)
 
 # DDA
-### DDA显卡兼容性（更新中）
-以下兼容性通常需要安装到虚拟机才会体现。如果您有更多的测试案例，请在问题中告诉我！完善下表可以给各位选择显卡提供更好的指导。
+###简介
+DDA全称Discrete Device Assignment，即离散设备分配，可以将独立的设备分配到虚拟机中。它是以PCIE总线为单位进行分配的，例如显卡、网卡、USB控制器（CPU直连、主板芯片组、独立USB芯片），如果您的设备不在列表中，则说明不可以单独直通，需要直通更上一级的控制器。
+### DDA显卡兼容性（需要更多反馈）
+以下兼容性通常需要安装到虚拟机才会体现。如果您有更多的测试案例，请在问题中告诉我！完善下表可为选择显卡提供更好的指导。
 
-1.识别：显卡分配到虚拟机后可能无法正常使用。部分魔改卡此项可能存在问题。
+1.识别：显卡分配到虚拟机后可能无法正常使用。部分笔记本魔改卡、矿卡此项可能存在问题。
 
-2.功能层复位（FLR）：若不具备此功能，分配此显卡的虚拟机重启将导致宿主机重启。N卡通常完备，AMD和Intel未经广泛测试，可能存在硬件缺陷。
+2.功能层复位（FLR）：若不具备此功能，分配此显卡的虚拟机重启将导致宿主机重启。N卡通常完备，AMD和Intel未经广泛测试，可能存在[硬件缺陷](https://www.reddit.com/r/Amd/comments/jehkey/will_big_navi_support_function_level_reset_flr/)。
 
 3.物理显示输出：虚拟机是否能通过显卡输出物理信号。
 
@@ -44,7 +46,7 @@
 | Intel   |  Intel DG1 |✔️ | ✖️ | 特定驱动✔️|
 
 ### DDA设备状态
-设备共有三种状态：主机态、卸除态、虚拟态。尽管微软文档没有提及此事，但实际上掌控三种状态非常重要，否则会陷入混乱。
+设备共有3种状态：主机态、卸除态、虚拟态。尽管微软文档没有提及此事，但实际上掌控3种状态非常重要，否则会陷入混乱。
 
 1.处于主机态时，设备挂载到宿主系统。
 
@@ -101,8 +103,39 @@
 * 从19041版本（WDDM 2.7）开始，可以正常使用所有GPU功能。
 
 
+### 从虚拟机引出显示信号
 
-### 额外的魔法
+在GPU半虚拟化模型中，虚拟机从宿主机获取到的GPU是作为渲染适配器存在的，通常会与Microsoft Remote Display Adapter（作为显示适配器）[配对](https://learn.microsoft.com/zh-cn/windows-hardware/drivers/display/gpu-paravirtualization#gpuvirtualizationflags)进行画面输出。总共有以下方案可以实现显示信号输出:
+
+>微软远程显示适配器
+
+这是默认选项，同时也是兼容性最好的选项，但问题在于，我现在没有吃饭，吃了饭再写。
+
+>间接显示驱动程序
+
+这里的实现也很多，但是我要先吃饭。
+
+> USB 显卡（需要DDA直通USB控制器x1） 
+
+To do
+
+# 杂项
+###事实
+
+* 无论是一代虚拟机还是二代虚拟机，都不会影响GPU-PV和DDA。
+
+
+* 一张显卡同一时间只能DDA或者GPU-PV。
+
+
+* 一个虚拟机可以同时使用DDA和GPU-PV。
+
+
+* 一个虚拟机可以从同一张显卡获得多个逻辑适配器分区，但是性能仍然不变。（有意义吗？考虑做一个识别禁止此行为）
+
+
+
+### 魔法
 
 * 导入宿主驱动时，虚拟机中的HostDriverStore下所有文件将设定为只读属性，以防止任何驱动包括nvlddmkm.sys文件丢失。
 
