@@ -263,7 +263,7 @@ public partial class Utils
         return linkerTime;
     }
 
-    public static string Version => "V1.0.3";
+    public static string Version => "V1.0.4";
     public static string Author => "ЩАСтвЖ";
 
 
