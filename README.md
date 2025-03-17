@@ -29,7 +29,7 @@
 
 ### 简介
 
-DDA全称Discrete Device Assignment，即离散设备分配，可以将独立的设备分配到虚拟机中。它是以PCIE总线为单位进行分配的，例如显卡、网卡、USB控制器（CPU直连、主板芯片组、独立USB芯片），如果您的设备不在列表中，则说明不可以单独直通，需要直通更上一级的控制器。
+DDA全称Discrete Device Assignment，即离散设备分配，可以将独立的设备分配到虚拟机中。它是以PCIE总线为单位进行分配的，例如显卡、网卡、USB控制器（CPU直连、主板芯片组、独立USB芯片），如果您的设备不在工具显示的列表中，则说明不可以单独直通它，需要直通更上一级的控制器。
 ### DDA显卡兼容性（需要更多反馈）
 以下兼容性通常需要安装到虚拟机才会体现。如果您有更多的测试案例，请在问题中告诉我！完善下表可为选择显卡提供更好的指导。
 
@@ -69,7 +69,7 @@ DDA全称Discrete Device Assignment，即离散设备分配，可以将独立的
 * 目前没有找到任何方法可以限制虚拟机GPU的资源使用，Set-VMGpuPartitionAdapter的设定参数并不会起到任何[实质性作用](https://github.com/jamesstringerparsec/Easy-GPU-PV/issues/298)。因此，在找到有效的方法前，不会提供资源分配功能。Nvidia的Grid驱动可以分割资源，但是它需要不菲的授权费。
 
 
-* 通过GPU-PV创建的逻辑适配器，仅仅是从系统层面模拟物理适配器，但对于物理适配器独特的注册表参数、硬件特征、驱动特征并没有很好地继承。因此，如果您尝试打开的软件/游戏依赖于这些特殊的标志，很可能出现错误，需要针对性的修复，这也是本项目的意义之一。
+* 通过GPU-PV创建的逻辑适配器，仅仅是从系统层面模拟物理适配器，但对于物理适配器独特的注册表参数、硬件特征、驱动特征并没有很好地继承。因此，如果您尝试打开的软件/游戏依赖于这些特殊的标志，很可能出现错误，需要针对性的修复。
 
 
 * 下图描述了 WDDM 半虚拟化设计中涉及的各种组件。
@@ -82,7 +82,7 @@ DDA全称Discrete Device Assignment，即离散设备分配，可以将独立的
 | 17134  | 2.4      | 引入了基于 IOMMU 的 GPU 隔离。 |
 | 17763  | 2.5      | 增强了虚拟化的支持，使得宿主和来宾之间的资源句柄管理和事件信号化，用户模式驱动（UMD）和内核模式驱动（KMD）能够更好地协同工作。 |
 | 18362  | 2.6      | 提升了显存管理。虚拟机显存优先分配在GPU连续的物理显存，能收到内存的驻留状态。 |
-| 19041  | 2.7      | 虚拟机可以正确识别到物理显卡的型号，并替代掉 Microsoft Virtual Renderer Driver。 |
+| 19041  | 2.7      | 虚拟机设备管理器可以正确识别Microsoft Virtual Renderer Driver所对应的物理显卡型号。 |
 | 20348  | 2.9      | 增加了支持跨适配器资源扫描输出（CASO）功能，渲染适配器的画面可以直接输出到显示适配器，而无需进行两次复制，降低了延迟和带宽需求。 |
 | 22000  | 3.0      | 通过DMA重映射突破GPU地址限制，允许GPU访问超过硬件限制的更多内存。提高了用户模式驱动（UMD）和内核模式驱动（KMD）的事件信号机制，提升调试能力。 |
 | 22621  | 3.1      | 用户模式驱动（UMD）和内核模式驱动（KMD）共享相同的内存区域，减少内存的复制和传输，优化内存的利用效率，提高数据访问速度。 |
@@ -96,10 +96,10 @@ DDA全称Discrete Device Assignment，即离散设备分配，可以将独立的
 
 虚拟机：
 
-* 17134及以下版本不支持GPU功能。
+* 17134以下版本不支持GPU半虚拟化。
 
 
-* 17134到19040之间的版本（WDDM 2.4-2.6）可以调用GPU，但无法正确显示显卡型号。
+* 17134到18362之间的版本（WDDM 2.4-2.6）可以调用GPU，但无法正确显示显卡型号。
 
 
 * 从19041版本（WDDM 2.7）开始，可以正常使用所有GPU功能。
@@ -107,7 +107,7 @@ DDA全称Discrete Device Assignment，即离散设备分配，可以将独立的
 
 ### 从虚拟机引出显示信号
 
-在GPU半虚拟化模型中，虚拟机从宿主机获取到的GPU是作为渲染适配器存在的，通常会与Microsoft Remote Display Adapter（作为显示适配器）[配对](https://learn.microsoft.com/zh-cn/windows-hardware/drivers/display/gpu-paravirtualization#gpuvirtualizationflags)进行画面输出。总共有以下方案可以实现显示信号输出:
+在GPU半虚拟化模型中，虚拟机从宿主机获取到的GPU是作为渲染适配器存在的，通常会与作为显示适配器的 Microsoft Remote Display Adapter[配对](https://learn.microsoft.com/zh-cn/windows-hardware/drivers/display/gpu-paravirtualization#gpuvirtualizationflags)进行画面输出。总共有以下方案可以实现显示信号输出:
 
 >微软远程显示适配器
 
@@ -115,11 +115,11 @@ DDA全称Discrete Device Assignment，即离散设备分配，可以将独立的
 
 >间接显示驱动程序
 
-Todo
+这是各种串流方案。Todo
 
 > USB 显卡（需要DDA直通USB控制器x1） 
 
-比较常见的芯片是[DL-6950](https://www.synaptics.com/cn/products/displaylink-graphics/integrated-chipsets/dl-6000)和[SM768](https://www.siliconmotion.com/product/cht/Graphics-Display-SoCs.html)，以下一组图片描述了渲染适配器（GTX 1050）和显示适配器（DL 6950）良好工作的场景。
+比较常见的芯片是[DL-6950](https://www.synaptics.com/cn/products/displaylink-graphics/integrated-chipsets/dl-6000)和[SM768](https://www.siliconmotion.com/product/cht/Graphics-Display-SoCs.html)，以下一组图片描述了渲染适配器（GTX 1050）和显示适配器（DL 6950）联合工作的场景，在144Hz下fortnite几乎无延迟。
 
 ![DL](https://github.com/Justsenger/ExHyperV/blob/main/img/d1.png)
 
@@ -133,7 +133,10 @@ Todo
 
 ### 事实
 
-* 无论是一代虚拟机还是二代虚拟机，都不会影响GPU-PV和DDA。
+* 可以使用一代虚拟机或者二代虚拟机，任意选择。
+
+
+* 不需要禁用检查点功能。
 
 
 * 一张显卡同一时间只能DDA或者GPU-PV。
@@ -148,7 +151,7 @@ Todo
 
 ### 魔法
 
-* 导入宿主驱动时，虚拟机中的HostDriverStore下所有文件将设定为只读属性，以防止任何驱动包括nvlddmkm.sys文件丢失。
+* 虚拟机会导入宿主驱动。同时，HostDriverStore下所有文件将设定为只读属性，以防止任何驱动文件丢失。
 
 
 * 对于Nvidia，会自动导入宿主系统的nvlddmkm.reg，并修改其中的DriverStore为HostDriverStore。

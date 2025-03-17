@@ -134,9 +134,13 @@ namespace ExHyperV
             ps.AddScript($"(Get-VMHardDiskDrive -vmname '{vmname}')[0].Path");
             var harddiskpath = ps.Invoke()[0].ToString();
 
+
             //挂载硬盘并寻找第一个系统分区的盘符
             ps.AddScript(@$"
-            $volumes =  Mount-VHD -Path '{harddiskpath}' -PassThru | Get-Disk | Get-Partition | Get-Volume
+            $VHD = Mount-VHD -Path '{harddiskpath}' -PassThru
+            $VHD | Get-Disk | Get-Partition | Where-Object {{ -not $_.DriveLetter }} | Add-PartitionAccessPath -AssignDriveLetter
+            $volumes = $VHD | Get-Disk | Get-Partition | Get-Volume
+
             foreach ($volume in $volumes) {{
                 if ($volume.DriveLetter -and (Test-Path ""$($volume.DriveLetter):\Windows\System32"")) {{
                     Write-Output $volume.DriveLetter
@@ -146,6 +150,7 @@ namespace ExHyperV
             ");
 
             var letter = ps.Invoke()[0].ToString(); //仅仅是一个字母
+
 
             string sourceFolder = @"C:\Windows\System32\DriverStore\FileRepository";
             string destinationFolder = letter + @":\Windows\System32\HostDriverStore\FileRepository";
@@ -166,8 +171,9 @@ namespace ExHyperV
             process.Start();
             process.BeginOutputReadLine();
             process.WaitForExit();
-             
+
             SetFolderReadOnly(destinationFolder); // 设置目标文件夹及其所有文件为只读属性，防止nvlddmkm文件丢失
+
 
             //对于N卡，需要修补注册表信息：nvlddmkm
             if (manu.Contains("NVIDIA")) { 
