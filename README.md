@@ -115,11 +115,11 @@ DDA全称Discrete Device Assignment，即离散设备分配，可以将独立的
 
 >间接显示驱动程序
 
-todo
+Todo
 
 > USB 显卡（需要DDA直通USB控制器x1） 
 
-比较常见的芯片是[DL-6950](https://www.synaptics.com/cn/products/displaylink-graphics/integrated-chipsets/dl-6000)和[SM768](https://www.siliconmotion.com/product/cht/Graphics-Display-SoCs.html)，以下一组图标描述了渲染适配器（GTX 1050）和显示适配器(DL 6950)良好工作的场景。
+比较常见的芯片是[DL-6950](https://www.synaptics.com/cn/products/displaylink-graphics/integrated-chipsets/dl-6000)和[SM768](https://www.siliconmotion.com/product/cht/Graphics-Display-SoCs.html)，以下一组图片描述了渲染适配器（GTX 1050）和显示适配器（DL 6950）良好工作的场景。
 
 ![DL](https://github.com/Justsenger/ExHyperV/blob/main/img/d1.png)
 
@@ -142,7 +142,7 @@ todo
 * 一个虚拟机可以同时使用DDA和GPU-PV。
 
 
-* 一个虚拟机可以从同一张显卡获得多个逻辑适配器分区，但是性能仍然不变。（有意义吗？考虑做一个识别禁止此行为）
+* 一个虚拟机可以从同一张显卡获得多个逻辑适配器分区，但是总性能不变。
 
 
 
