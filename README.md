@@ -119,7 +119,16 @@ todo
 
 > USB 显卡（需要DDA直通USB控制器x1） 
 
-比较常见的芯片是[DL-6950](https://www.synaptics.com/cn/products/displaylink-graphics/integrated-chipsets/dl-6000)和[SM768](https://www.siliconmotion.com/product/cht/Graphics-Display-SoCs.html)。todo
+比较常见的芯片是[DL-6950](https://www.synaptics.com/cn/products/displaylink-graphics/integrated-chipsets/dl-6000)和[SM768](https://www.siliconmotion.com/product/cht/Graphics-Display-SoCs.html)，以下一组图标描述了渲染适配器（1050）和显示适配器良好工作的场景。
+
+![DL](https://github.com/Justsenger/ExHyperV/blob/main/img/d1.png)
+
+![DL](https://github.com/Justsenger/ExHyperV/blob/main/img/d2.png)
+
+![DL](https://github.com/Justsenger/ExHyperV/blob/main/img/d3.png)
+
+![DL](https://github.com/Justsenger/ExHyperV/blob/main/img/d4.png)
+
 # 杂项
 
 ### 事实
