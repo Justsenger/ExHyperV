@@ -85,7 +85,7 @@ public partial class GPUPage
             //获取N卡和I卡显存
 
             string script = $@"Get-ItemProperty -Path ""HKLM:\SYSTEM\ControlSet001\Control\Class\{{4d36e968-e325-11ce-bfc1-08002be10318}}\0*"" -ErrorAction SilentlyContinue |
-            Select-Object DriverDesc,MatchingDeviceId,
+            Select-Object MatchingDeviceId,
                   @{{Name=""MemorySize""; Expression={{
                       if ($_.""HardwareInformation.qwMemorySize"") {{
                           $_.""HardwareInformation.qwMemorySize""
@@ -101,19 +101,22 @@ public partial class GPUPage
             var gpuram = Utils.Run(script);
             if (gpuram.Count > 0)
             {
-                foreach (var gpu in gpuram)
+                // 遍历所有联机显卡
+                foreach (var existingGpu in gpuList)
                 {
-                    string driverDesc = gpu.Members["DriverDesc"]?.Value.ToString();
-                    string memorySize = gpu.Members["MemorySize"]?.Value.ToString();
-                    string id = gpu.Members["MatchingDeviceId"]?.Value.ToString().ToUpper();
-
-                    var existingGpu = gpuList.FirstOrDefault(g => g.InstanceId.Contains(id)); //找出联机显卡列表和显存列表匹配的显卡id
-                    if (existingGpu != null) //只有联机显卡才更新
+                    // 在显存信息中寻找匹配项
+                    var matchedGpu = gpuram.FirstOrDefault(g =>
                     {
-                        existingGpu.Ram = memorySize;
-                    }
+                        string id = g.Members["MatchingDeviceId"]?.Value?.ToString().ToUpper();
+                        return !string.IsNullOrEmpty(id) && existingGpu.InstanceId.Contains(id);
+                    });
+
+                    // 更新显存信息或设置默认值
+                    existingGpu.Ram = matchedGpu?.Members["MemorySize"]?.Value?.ToString() ?? "0";
                 }
             }
+
+
 
             //获取可分区GPU属性
             var result3 = Utils.Run("Get-VMHostPartitionableGpu | select name");
