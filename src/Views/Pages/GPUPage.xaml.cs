@@ -85,7 +85,7 @@ public partial class GPUPage
             //获取N卡和I卡显存
 
             string script = $@"Get-ItemProperty -Path ""HKLM:\SYSTEM\ControlSet001\Control\Class\{{4d36e968-e325-11ce-bfc1-08002be10318}}\0*"" -ErrorAction SilentlyContinue |
-    Select-Object DriverDesc,MatchingDeviceId,
+            Select-Object DriverDesc,MatchingDeviceId,
                   @{{Name=""MemorySize""; Expression={{
                       if ($_.""HardwareInformation.qwMemorySize"") {{
                           $_.""HardwareInformation.qwMemorySize""
@@ -97,7 +97,7 @@ public partial class GPUPage
                           $_.""HardwareInformation.MemorySize""
                       }}
                   }}}} |
-    Where-Object {{ $_.MemorySize -ne $null }}";
+            Where-Object {{ $_.MemorySize -ne $null }}";
             var gpuram = Utils.Run(script);
             if (gpuram.Count > 0)
             {
@@ -105,7 +105,7 @@ public partial class GPUPage
                 {
                     string driverDesc = gpu.Members["DriverDesc"]?.Value.ToString();
                     string memorySize = gpu.Members["MemorySize"]?.Value.ToString();
-                    string id = gpu.Members["MatchingDeviceId"]?.Value.ToString();
+                    string id = gpu.Members["MatchingDeviceId"]?.Value.ToString().ToUpper();
 
                     var existingGpu = gpuList.FirstOrDefault(g => g.InstanceId.Contains(id)); //找出联机显卡列表和显存列表匹配的显卡id
                     if (existingGpu != null) //只有联机显卡才更新
