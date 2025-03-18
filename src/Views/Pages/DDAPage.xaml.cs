@@ -383,6 +383,7 @@ public partial class DDAPage
                 $"(Get-PnpDeviceProperty -InstanceId '{instanceId}' DEVPKEY_Device_LocationPaths).Data[0]",
                 $"Remove-VMAssignableDevice -LocationPath '{path}' -VMName '{Nowname}'",
                 $"Mount-VMHostAssignableDevice -LocationPath '{path}'",
+                $"Enable-PnpDevice -InstanceId '{instanceId}' -Confirm:$false",
             };
 
             messages = new string[]
@@ -390,6 +391,7 @@ public partial class DDAPage
                 Properties.Resources.getpath,
                 Properties.Resources.Dismountdevice,
                 Properties.Resources.mounting,
+                ExHyperV.Properties.Resources.enabling,
             };
         }
         else

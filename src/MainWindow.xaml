@@ -55,6 +55,7 @@
                 </ui:NavigationViewItem>
 
                 <ui:NavigationViewItem
+                    x:Name="dda"
                     Content="{x:Static properties:Resources.DDA}"
                     NavigationCacheMode="Enabled"
                     TargetPageType="{x:Type pages:DDAPage}">

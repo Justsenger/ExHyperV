@@ -34,6 +34,7 @@
                     <RowDefinition Height="56"/>
                     <RowDefinition Height="56"/>
                     <RowDefinition Height="56"/>
+                    <RowDefinition Height="56"/>
                 </Grid.RowDefinitions>
 
                 <ui:Card Grid.Row="0" >
@@ -79,6 +80,18 @@
                         <TextBlock Grid.Column="1" x:Name="admin" Margin="10,0,0,0" Text="{x:Static properties:Resources.checkadmin}" FontSize="16"/>
                     </Grid>
                 </ui:Card>
+
+                <ui:Card Grid.Row="4">
+                    <Grid x:Name="status5">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <ui:ProgressRing x:Name="progressRing5"  IsIndeterminate="True" Width="16" Height="16"/>
+                        <TextBlock Grid.Column="1" x:Name="version" Margin="10,0,0,0" Text="{x:Static properties:Resources.checkversion}" FontSize="16"/>
+                    </Grid>
+                </ui:Card>
+                
             </Grid>
         </StackPanel>
 

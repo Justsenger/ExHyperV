@@ -360,4 +360,16 @@
   <data name="buildtime" xml:space="preserve">
     <value>Compile time</value>
   </data>
+  <data name="checkversion" xml:space="preserve">
+    <value>Check if it is a server version...</value>
+  </data>
+  <data name="ddaa" xml:space="preserve">
+    <value>The host system is not a server version, so Discrete Device Assignment cannot be used!</value>
+  </data>
+  <data name="Isserver" xml:space="preserve">
+    <value>The host system belongs to the server version.</value>
+  </data>
+  <data name="enabling" xml:space="preserve">
+    <value>Enabling device...</value>
+  </data>
 </root>

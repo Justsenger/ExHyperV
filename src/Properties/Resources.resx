@@ -360,4 +360,16 @@
   <data name="buildtime" xml:space="preserve">
     <value>null</value>
   </data>
+  <data name="checkversion" xml:space="preserve">
+    <value>null</value>
+  </data>
+  <data name="ddaa" xml:space="preserve">
+    <value>null</value>
+  </data>
+  <data name="Isserver" xml:space="preserve">
+    <value>null</value>
+  </data>
+  <data name="enabling" xml:space="preserve">
+    <value>null</value>
+  </data>
 </root>

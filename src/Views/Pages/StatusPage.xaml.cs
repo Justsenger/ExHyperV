@@ -18,6 +18,7 @@ public partial class StatusPage
         Task.Run(() => HyperVInfo());
         Task.Run(() => CheckReg());
         Task.Run(() => Admininfo());
+        Task.Run(() => ServerInfo());
     }
 
     private async void HyperVInfo()
@@ -159,6 +160,34 @@ public partial class StatusPage
             }
         });
 
+    }
+
+    private async void ServerInfo()
+    {
+
+        var result = Utils.Run("(Get-WmiObject -Class Win32_OperatingSystem).ProductType");
+        Dispatcher.Invoke(() =>
+        {
+            status5.Children.Remove(progressRing5);
+            FontIcon icons = new FontIcon
+            {
+                FontSize = 20,
+                FontFamily = (FontFamily)Application.Current.Resources["SegoeFluentIcons"],
+                Glyph = "\xE930",
+                Foreground = new SolidColorBrush(Colors.Green),
+            };
+            if (result[0].ToString()=="3") { version.Text = ExHyperV.Properties.Resources.Isserver; }
+            else
+            {
+                var ms = Application.Current.MainWindow as MainWindow; //获取主窗口
+                ms.dda.IsEnabled = false;
+
+                version.Text = ExHyperV.Properties.Resources.ddaa;
+                icons.Glyph = "\xEA39";
+                icons.Foreground = new SolidColorBrush(Colors.Red);
+            }
+            status5.Children.Add(icons);
+        });
     }
 
 

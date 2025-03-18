@@ -360,4 +360,16 @@
   <data name="buildtime" xml:space="preserve">
     <value>编译时间</value>
   </data>
+  <data name="checkversion" xml:space="preserve">
+    <value>检测是否属于服务器版本...</value>
+  </data>
+  <data name="ddaa" xml:space="preserve">
+    <value>宿主系统非服务器版本，无法使用DDA直通！</value>
+  </data>
+  <data name="Isserver" xml:space="preserve">
+    <value>宿主系统属于服务器版本。</value>
+  </data>
+  <data name="enabling" xml:space="preserve">
+    <value>启用设备中...</value>
+  </data>
 </root>

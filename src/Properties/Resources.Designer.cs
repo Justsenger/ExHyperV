@@ -225,6 +225,15 @@ namespace ExHyperV.Properties {
         /// <summary>
         ///   查找类似 null 的本地化字符串。
         /// </summary>
+        public static string checkversion {
+            get {
+                return ResourceManager.GetString("checkversion", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 null 的本地化字符串。
+        /// </summary>
         public static string Colsefirst {
             get {
                 return ResourceManager.GetString("Colsefirst", resourceCulture);
@@ -279,6 +288,15 @@ namespace ExHyperV.Properties {
         /// <summary>
         ///   查找类似 null 的本地化字符串。
         /// </summary>
+        public static string ddaa {
+            get {
+                return ResourceManager.GetString("ddaa", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 null 的本地化字符串。
+        /// </summary>
         public static string Disabledevice {
             get {
                 return ResourceManager.GetString("Disabledevice", resourceCulture);
@@ -318,6 +336,15 @@ namespace ExHyperV.Properties {
         public static string driverversion {
             get {
                 return ResourceManager.GetString("driverversion", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 null 的本地化字符串。
+        /// </summary>
+        public static string enabling {
+            get {
+                return ResourceManager.GetString("enabling", resourceCulture);
             }
         }
         
@@ -444,6 +471,15 @@ namespace ExHyperV.Properties {
         public static string Instanceid {
             get {
                 return ResourceManager.GetString("Instanceid", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 null 的本地化字符串。
+        /// </summary>
+        public static string Isserver {
+            get {
+                return ResourceManager.GetString("Isserver", resourceCulture);
             }
         }
         
