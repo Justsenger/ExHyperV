@@ -77,7 +77,7 @@ Devices can be in one of three states: host, dismounted, or virtualized. Althoug
 
 ### WDDM Paravirtualization Design Overview
 
-![WDDM](https://github.com/Justsenger/ExHyperV/blob/main/img/WDDM_cn.png)
+![WDDM](https://github.com/Justsenger/ExHyperV/blob/main/img/WDDM.png)
 
 The following is the correspondence between Windows versions and WDDM versions. The higher the WDDM version, the more complete the GPU-PV functionality.
 
