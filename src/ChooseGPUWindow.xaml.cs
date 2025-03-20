@@ -134,7 +134,6 @@ namespace ExHyperV
             ps.AddScript($"(Get-VMHardDiskDrive -vmname '{vmname}')[0].Path");
             var harddiskpath = ps.Invoke()[0].ToString();
 
-
             //挂载硬盘并寻找第一个系统分区的盘符
             ps.AddScript(@$"
             $VHD = Mount-VHD -Path '{harddiskpath}' -PassThru
