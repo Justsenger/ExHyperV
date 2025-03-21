@@ -108,7 +108,7 @@ namespace ExHyperV
             //1.先检测VM是否关闭，没有关机则停止操作。
             ps.AddScript($@"(Get-VM -Name '{vmname}').State");
             if (ps.Invoke()[0].ToString() != "Off") {
-                return "running"; //没关机
+               return "running"; //没关机
             }
             //2.设定缓存接管和低位内存=128和高位内存=32G。（关机已通过）
             ps.AddScript($"Set-VM -GuestControlledCacheTypes $true -VMName '{vmname}'");
