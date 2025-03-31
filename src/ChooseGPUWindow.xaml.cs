@@ -32,7 +32,7 @@ namespace ExHyperV
             {
                
                 if (gpu.Pname == null) { continue; }
-                Items.Add(new GPU { GPUname = gpu.Name, Path = gpu.Pname ,Id = gpu.InstanceId,Iconpath = Utils.GetGpuImagePath(gpu.Manu),Manu = gpu.Manu});
+                Items.Add(new GPU { GPUname = gpu.Name, Path = gpu.Pname ,Id = gpu.InstanceId,Iconpath = Utils.GetGpuImagePath(gpu.Manu,gpu.Name),Manu = gpu.Manu});
             }
             this.DataContext = this;
         }

@@ -13,10 +13,13 @@
     <None Remove="Assets\app.png" />
     <None Remove="Assets\bar.png" />
     <None Remove="Assets\Gpuicons\AMD.png" />
+    <None Remove="Assets\Gpuicons\ARC.png" />
+    <None Remove="Assets\Gpuicons\data-center-gpu-flex-badge-centered-transparent-rwd_1920-1080.png" />
     <None Remove="Assets\Gpuicons\Default.png" />
     <None Remove="Assets\Gpuicons\DisplayLink.png" />
     <None Remove="Assets\Gpuicons\GPU.png" />
     <None Remove="Assets\Gpuicons\Intel.png" />
+    <None Remove="Assets\Gpuicons\Intel_Iris_Xe_Graphics.png" />
     <None Remove="Assets\Gpuicons\Iris.png" />
     <None Remove="Assets\Gpuicons\Microsoft.jpg" />
     <None Remove="Assets\Gpuicons\Microsoft.png" />
@@ -42,6 +45,12 @@
 		<Content Include="Assets\Gpuicons\AMD.png">
 		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</Content>
+		<Content Include="Assets\Gpuicons\ARC.png">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</Content>
+		<Content Include="Assets\Gpuicons\data-center-gpu-flex-badge-centered-transparent-rwd_1920-1080.png">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</Content>
 		<Content Include="Assets\Gpuicons\DisplayLink.png">
 		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</Content>
@@ -49,6 +58,9 @@
 		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</Content>
 		<Content Include="Assets\Gpuicons\Intel.png">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</Content>
+		<Content Include="Assets\Gpuicons\Intel_Iris_Xe_Graphics.png">
 		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</Content>
 		<Content Include="Assets\Gpuicons\Microsoft.png">

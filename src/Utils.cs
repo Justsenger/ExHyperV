@@ -176,7 +176,7 @@ public partial class Utils
     }
 
 
-    public static string GetGpuImagePath(string Manu)
+    public static string GetGpuImagePath(string Manu,string name)
     {
         string imageName;
 
@@ -196,6 +196,19 @@ public partial class Utils
         else if (Manu.Contains("Intel")) // "Intel Corporation"
         {
             imageName = "Intel.png";
+            if (name.ToLower().Contains("iris")) {
+                imageName = "Intel_Iris_Xe_Graphics.png";
+            }
+            if (name.ToLower().Contains("arc"))
+            {
+                imageName = "ARC.png";
+            }
+            if (name.ToLower().Contains("data"))
+            {
+                imageName = "data-center-gpu-flex-badge-centered-transparent-rwd_1920-1080.png";
+            }
+
+
         }
         else if (Manu.Contains("Moore")) // "Moore Threads"
         {
@@ -221,11 +234,11 @@ public partial class Utils
         return $"pack://application:,,,/Assets/Gpuicons/{imageName}";
     }
 
-    public static Image CreateGpuImage(string key,int size)
+    public static Image CreateGpuImage(string key, string name,int size)
     {
         var image = new Image
         {
-            Source = new BitmapImage(new Uri(GetGpuImagePath(key)))
+            Source = new BitmapImage(new Uri(GetGpuImagePath(key,name)))
             {
                 CreateOptions = BitmapCreateOptions.PreservePixelFormat | BitmapCreateOptions.IgnoreColorProfile,
                 CacheOption = BitmapCacheOption.OnLoad

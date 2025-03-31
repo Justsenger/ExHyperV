@@ -1,4 +1,4 @@
-namespace ExHyperV.Views.Pages;
+ï»¿namespace ExHyperV.Views.Pages;
 using System;
 using System.Management.Automation;
 using System.Windows;
@@ -21,15 +21,15 @@ public partial class GPUPage
     }
     public class GPUInfo
     {
-        public string Name { get; set; } //ÏÔ¿¨Ãû³Æ
-        public string Valid { get; set; } //ÊÇ·ñÁª»ú
-        public string Manu { get; set; } //³§ÉÌ
-        public string InstanceId { get; set; } //ÏÔ¿¨ÊµÀıid
-        public string Pname { get; set; } //¿É·ÖÇøµÄÏÔ¿¨Â·¾¶
-        public string Ram { get; set; } //ÏÔ´æ´óĞ¡
-        public string DriverVersion { get; set; } //Çı¶¯°æ±¾
+        public string Name { get; set; } //æ˜¾å¡åç§°
+        public string Valid { get; set; } //æ˜¯å¦è”æœº
+        public string Manu { get; set; } //å‚å•†
+        public string InstanceId { get; set; } //æ˜¾å¡å®ä¾‹id
+        public string Pname { get; set; } //å¯åˆ†åŒºçš„æ˜¾å¡è·¯å¾„
+        public string Ram { get; set; } //æ˜¾å­˜å¤§å°
+        public string DriverVersion { get; set; } //é©±åŠ¨ç‰ˆæœ¬
 
-        // ¹¹Ôìº¯Êı
+        // æ„é€ å‡½æ•°
         public GPUInfo(string name, string valid, string manu, string instanceId, string pname, string ram, string driverversion)
         {
             Name = name;
@@ -43,15 +43,15 @@ public partial class GPUPage
     }
     public class VMInfo
     {
-        public string Name { get; set; } //ĞéÄâ»úÃû³Æ
-        public string LowMMIO { get; set; } //µÍÎ»ÄÚ´æ¿Õ¼ä´óĞ¡
-        public string HighMMIO { get; set; } //¸ßÎ»ÄÚ´æ¿Õ¼ä´óĞ¡
-        public string GuestControlled { get; set; } //¿ØÖÆ»º´æ
-        public Dictionary<string, string> GPUs { get; set; } //´æ´¢ÏÔ¿¨ÊÊÅäÆ÷ÁĞ±í
+        public string Name { get; set; } //è™šæ‹Ÿæœºåç§°
+        public string LowMMIO { get; set; } //ä½ä½å†…å­˜ç©ºé—´å¤§å°
+        public string HighMMIO { get; set; } //é«˜ä½å†…å­˜ç©ºé—´å¤§å°
+        public string GuestControlled { get; set; } //æ§åˆ¶ç¼“å­˜
+        public Dictionary<string, string> GPUs { get; set; } //å­˜å‚¨æ˜¾å¡é€‚é…å™¨åˆ—è¡¨
 
 
 
-        // ¹¹Ôìº¯Êı
+        // æ„é€ å‡½æ•°
         public VMInfo(string name, string low, string high, string guest, Dictionary<string, string> gpus)
         {
             Name = name;
@@ -66,7 +66,7 @@ public partial class GPUPage
     {
         await Task.Run(() => {
             List<GPUInfo> gpuList = [];
-            //»ñÈ¡Ä¿Ç°Áª»úµÄÏÔ¿¨
+            //è·å–ç›®å‰è”æœºçš„æ˜¾å¡
             var gpulinked = Utils.Run("Get-WmiObject -Class Win32_VideoController | select PNPDeviceID,name,AdapterCompatibility,DriverVersion");
             if (gpulinked.Count > 0)
             {
@@ -79,10 +79,10 @@ public partial class GPUPage
                     gpuList.Add(new GPUInfo(name, "True", Manu, instanceId, null, null, DriverVersion));
                 }
             }
-            //»ñÈ¡HyperVÖ§³Ö×´Ì¬
+            //è·å–HyperVæ”¯æŒçŠ¶æ€
             bool hyperv = Utils.Run("Get-Module -ListAvailable -Name Hyper-V").Count > 0;
 
-            //»ñÈ¡N¿¨ºÍI¿¨ÏÔ´æ
+            //è·å–Nå¡å’ŒIå¡æ˜¾å­˜
 
             string script = $@"Get-ItemProperty -Path ""HKLM:\SYSTEM\ControlSet001\Control\Class\{{4d36e968-e325-11ce-bfc1-08002be10318}}\0*"" -ErrorAction SilentlyContinue |
             Select-Object MatchingDeviceId,
@@ -101,31 +101,31 @@ public partial class GPUPage
             var gpuram = Utils.Run(script);
             if (gpuram.Count > 0)
             {
-                // ±éÀúËùÓĞÁª»úÏÔ¿¨
+                // éå†æ‰€æœ‰è”æœºæ˜¾å¡
                 foreach (var existingGpu in gpuList)
                 {
-                    // ÔÚÏÔ´æĞÅÏ¢ÖĞÑ°ÕÒÆ¥ÅäÏî
+                    // åœ¨æ˜¾å­˜ä¿¡æ¯ä¸­å¯»æ‰¾åŒ¹é…é¡¹
                     var matchedGpu = gpuram.FirstOrDefault(g =>
                     {
                         string id = g.Members["MatchingDeviceId"]?.Value?.ToString().ToUpper();
                         return !string.IsNullOrEmpty(id) && existingGpu.InstanceId.Contains(id);
                     });
 
-                    // ¸üĞÂÏÔ´æĞÅÏ¢»òÉèÖÃÄ¬ÈÏÖµ
+                    // æ›´æ–°æ˜¾å­˜ä¿¡æ¯æˆ–è®¾ç½®é»˜è®¤å€¼
                     existingGpu.Ram = matchedGpu?.Members["MemorySize"]?.Value?.ToString() ?? "0";
                 }
             }
 
 
 
-            //»ñÈ¡¿É·ÖÇøGPUÊôĞÔ
+            //è·å–å¯åˆ†åŒºGPUå±æ€§
             var result3 = Utils.Run("Get-VMHostPartitionableGpu | select name");
             if (result3.Count > 0)
             {
                 foreach (var gpu in result3)
                 {
                     string pname = gpu.Members["Name"]?.Value.ToString();
-                    var existingGpu = gpuList.FirstOrDefault(g => pname.ToUpper().Contains(g.InstanceId.Replace("\\", "#")));  // ÕÒµ½ pname ¶ÔÓ¦µÄÏÔ¿¨
+                    var existingGpu = gpuList.FirstOrDefault(g => pname.ToUpper().Contains(g.InstanceId.Replace("\\", "#")));  // æ‰¾åˆ° pname å¯¹åº”çš„æ˜¾å¡
                     if (existingGpu != null)
                     {
                         existingGpu.Pname = pname;
@@ -143,19 +143,19 @@ public partial class GPUPage
     {
         await Task.Run(() => {
             List<VMInfo> vmList = [];
-            //»ñÈ¡VMĞÅÏ¢
+            //è·å–VMä¿¡æ¯
             var vms = Utils.Run("Get-VM | Select vmname,LowMemoryMappedIoSpace,GuestControlledCacheTypes,HighMemoryMappedIoSpace");
             
             if (vms.Count > 0)
             {
                 foreach (var vm in vms)
                 {
-                    Dictionary<string, string> gpulist = new(); //´æ´¢ĞéÄâ»ú¹ÒÔØµÄGPU·ÖÇø
+                    Dictionary<string, string> gpulist = new(); //å­˜å‚¨è™šæ‹ŸæœºæŒ‚è½½çš„GPUåˆ†åŒº
                     string vmname = vm.Members["VMName"]?.Value.ToString();
                     string highmmio = vm.Members["HighMemoryMappedIoSpace"]?.Value.ToString();
                     string guest = vm.Members["GuestControlledCacheTypes"]?.Value.ToString();
 
-                    //ÂíÉÏ²éÑ¯ĞéÄâ»úGPUĞéÄâ»¯ĞÅÏ¢
+                    //é©¬ä¸ŠæŸ¥è¯¢è™šæ‹ŸæœºGPUè™šæ‹ŸåŒ–ä¿¡æ¯
                     var vmgpus = Utils.Run($@"Get-VMGpuPartitionAdapter -VMName '{vmname}' | Select InstancePath,Id");
                     if (vmgpus.Count > 0)
                     {
@@ -163,7 +163,7 @@ public partial class GPUPage
                         {
                             string gpupath = gpu.Members["InstancePath"]?.Value.ToString();
                             string gpuid = gpu.Members["Id"]?.Value.ToString();
-                            gpulist[gpuid] = gpupath; //´æÈë×Öµä£¬idÊÇ²»Í¬µÄ£¬µ«ÊÇpathÈç¹ûÀ´×ÔÍ¬Ò»¸öGPUÔò¿ÉÄÜÏàÍ¬
+                            gpulist[gpuid] = gpupath; //å­˜å…¥å­—å…¸ï¼Œidæ˜¯ä¸åŒçš„ï¼Œä½†æ˜¯pathå¦‚æœæ¥è‡ªåŒä¸€ä¸ªGPUåˆ™å¯èƒ½ç›¸åŒ
                         }
                     }
                     vmList.Add(new VMInfo(vmname,null,highmmio,guest,gpulist));
@@ -177,52 +177,60 @@ public partial class GPUPage
     {
         Dispatcher.Invoke(() => { main.Children.Clear(); });
 
+        //gpuList.Add(new GPUInfo("Microsoft Hyper-V Video", "True", "Microsoft", "test", null, null, "V114514"));
+        //gpuList.Add(new GPUInfo("Moore Threads MTT S80", "True", "Moore", "test", null, null, "V114514"));
+        //gpuList.Add(new GPUInfo("NVIDIA RTX 4090", "True", "NVIDIA", "test", null, null, "V114514"));
+        //gpuList.Add(new GPUInfo("Radeon RX 9070 XT", "True", "Advanced", "test", null, null, "V114514"));
+        //gpuList.Add(new GPUInfo("QualcommÂ® Adrenoâ„¢ GPU X1E-80-100", "True", "Qualcomm", "test", null, null, "V114514"));
+        //gpuList.Add(new GPUInfo("DisplayLink DL-6950", "True", "DisplayLink", "test", null, null, "V114514"));
+        //gpuList.Add(new GPUInfo("Silicon SM768", "True", "Silicon", "test", null, null, "V114514"));
+
         foreach (var gpu in gpuList)
         {
             string name = string.IsNullOrEmpty(gpu.Name) ? Properties.Resources.none : gpu.Name;
             string valid = string.IsNullOrEmpty(gpu.Valid) ? Properties.Resources.none : gpu.Valid;
             string manu = string.IsNullOrEmpty(gpu.Manu) ? Properties.Resources.none : gpu.Manu;
             string instanceId = string.IsNullOrEmpty(gpu.InstanceId) ? Properties.Resources.none : gpu.InstanceId;
-            string pname = string.IsNullOrEmpty(gpu.Pname) ? Properties.Resources.none : gpu.Pname; //GPU·ÖÇøÂ·¾¶
+            string pname = string.IsNullOrEmpty(gpu.Pname) ? Properties.Resources.none : gpu.Pname; //GPUåˆ†åŒºè·¯å¾„
             string driverversion = string.IsNullOrEmpty(gpu.DriverVersion) ? Properties.Resources.none : gpu.DriverVersion;
-            string gpup = ExHyperV.Properties.Resources.notsupport; //ÊÇ·ñÖ§³ÖGPU·ÖÇø
+            string gpup = ExHyperV.Properties.Resources.notsupport; //æ˜¯å¦æ”¯æŒGPUåˆ†åŒº
 
             string ram = (string.IsNullOrEmpty(gpu.Ram) ? 0 : long.Parse(gpu.Ram)) / (1024 * 1024) + " MB";
             if (manu.Contains("Moore")) {
                 ram = (string.IsNullOrEmpty(gpu.Ram) ? 0 : long.Parse(gpu.Ram)) / 1024 + " MB";
-            }//Ä¦¶ûÏß³ÌµÄÏÔ´æ¼ÇÂ¼ÔÚHardwareInformation.MemorySize£¬µ«ÊÇµ¥Î»ÊÇKB
+            }//æ‘©å°”çº¿ç¨‹çš„æ˜¾å­˜è®°å½•åœ¨HardwareInformation.MemorySizeï¼Œä½†æ˜¯å•ä½æ˜¯KB
 
-            if (valid != "True") { continue; } //ÌŞ³ıÎ´Á¬½ÓµÄÏÔ¿¨
+            if (valid != "True") { continue; } //å‰”é™¤æœªè¿æ¥çš„æ˜¾å¡
             if (hyperv == false) {gpup = ExHyperV.Properties.Resources.needhyperv;} 
             if (pname != Properties.Resources.none) {gpup = ExHyperV.Properties.Resources.support;}
             
             Dispatcher.Invoke(() =>
             {
-                var rowCount = main.RowDefinitions.Count; // »ñÈ¡µ±Ç°ĞĞÊı
+                var rowCount = main.RowDefinitions.Count; // è·å–å½“å‰è¡Œæ•°
                 main.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
                 var cardExpander = Utils.CardExpander2();
                 Grid.SetRow(cardExpander, rowCount);
-                cardExpander.Padding = new Thickness(8); //µ÷Õû¼ä¾à
+                cardExpander.Padding = new Thickness(8); //è°ƒæ•´é—´è·
 
                 var grid = new Grid();
                 grid.HorizontalAlignment = HorizontalAlignment.Stretch;
                 grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(64) });
                 grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-                //´´½¨Í¼±ê
-                var image = Utils.CreateGpuImage(manu,64);
+                //åˆ›å»ºå›¾æ ‡
+                var image = Utils.CreateGpuImage(manu,name,64);
                 Grid.SetColumn(image, 0);
                 grid.Children.Add(image);
 
-                // ÏÔ¿¨ĞÍºÅ
+                // æ˜¾å¡å‹å·
                 var gpuname = Utils.CreateStackPanel(name);
                 Grid.SetColumn(gpuname, 1);
                 grid.Children.Add(gpuname);
                 cardExpander.Header = grid;
                 
-                //ÏêÏ¸Êı¾İ
+                //è¯¦ç»†æ•°æ®
                 var contentPanel = new StackPanel { Margin = new Thickness(50, 10, 0, 0) };
                 var grid2 = new Grid();
-                // ¶¨Òå Grid µÄÁĞºÍĞĞ
+                // å®šä¹‰ Grid çš„åˆ—å’Œè¡Œ
                 grid2.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(125) });
                 grid2.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
                 grid2.RowDefinitions.Add(new RowDefinition { Height = new GridLength(32) });
@@ -267,48 +275,48 @@ public partial class GPUPage
             string guest = vm.GuestControlled;
             Dictionary<string, string> GPUs = vm.GPUs;
 
-            //UI¸üĞÂ
+            //UIæ›´æ–°
             Dispatcher.Invoke(() =>
             {
-                //vms×÷ÎªËùÓĞVMµÄ¸¸½Úµã
-                //cardExpander×÷ÎªVM½Úµã
+                //vmsä½œä¸ºæ‰€æœ‰VMçš„çˆ¶èŠ‚ç‚¹
+                //cardExpanderä½œä¸ºVMèŠ‚ç‚¹
 
-                var rowCount = vms.RowDefinitions.Count; // »ñÈ¡µ±Ç°ĞĞÊı
+                var rowCount = vms.RowDefinitions.Count; // è·å–å½“å‰è¡Œæ•°
                 vms.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
                 var cardExpander = Utils.CardExpander2();
-                Grid.SetRow(cardExpander, rowCount); //Éè¶¨VM½ÚµãµÄĞĞÊı
-                cardExpander.Padding = new Thickness(10,8,10,8); //µ÷Õû¼ä¾à
+                Grid.SetRow(cardExpander, rowCount); //è®¾å®šVMèŠ‚ç‚¹çš„è¡Œæ•°
+                cardExpander.Padding = new Thickness(10,8,10,8); //è°ƒæ•´é—´è·
 
-                cardExpander.Icon = Utils.FontIcon(24, "\xE7F4"); //ĞéÄâ»úÍ¼±ê
+                cardExpander.Icon = Utils.FontIcon(24, "\xE7F4"); //è™šæ‹Ÿæœºå›¾æ ‡
 
-                //VMÓÒ²àÄÚÈİ£¬·ÖÎªÃû³ÆºÍ°´Å¥¡£
-                var grid1 = new Grid(); //ĞéÄâ»úÓÒ²à²¿·Ö£¬ÈİÄÉÎÄ×ÖºÍ°´Å¥
+                //VMå³ä¾§å†…å®¹ï¼Œåˆ†ä¸ºåç§°å’ŒæŒ‰é’®ã€‚
+                var grid1 = new Grid(); //è™šæ‹Ÿæœºå³ä¾§éƒ¨åˆ†ï¼Œå®¹çº³æ–‡å­—å’ŒæŒ‰é’®
                 grid1.HorizontalAlignment = HorizontalAlignment.Stretch;
                 grid1.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
                 grid1.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
-                // VMµÄÃû³Æ
+                // VMçš„åç§°
                 var vmname = Utils.TextBlock1(name);
                 grid1.Children.Add(vmname);
 
-                //Ìí¼Ó°´Å¥
+                //æ·»åŠ æŒ‰é’®
                 var addbutton = new Wpf.Ui.Controls.Button
                 {
                     Content = ExHyperV.Properties.Resources.addgpu,
                     Margin = new Thickness(0, 0, 5, 0),
                 };
-                addbutton.Click += (sender, e) => Gpu_mount(sender, e, name, Hostgpulist); //°´Å¥µã»÷ÊÂ¼ş
+                addbutton.Click += (sender, e) => Gpu_mount(sender, e, name, Hostgpulist); //æŒ‰é’®ç‚¹å‡»äº‹ä»¶
 
                 Grid.SetColumn(addbutton, 1);
                 grid1.Children.Add(addbutton);
 
                 cardExpander.Header = grid1;
-                cardExpander.IsExpanded = true; //Ä¬ÈÏÕ¹¿ªĞéÄâ»úÏêÇé
+                cardExpander.IsExpanded = true; //é»˜è®¤å±•å¼€è™šæ‹Ÿæœºè¯¦æƒ…
 
-                //ÒÔÏÂÊÇVMµÄÏÂÀ­ÄÚÈİ²¿·Ö£¬Ò²¾ÍÊÇGPUÁĞ±í
+                //ä»¥ä¸‹æ˜¯VMçš„ä¸‹æ‹‰å†…å®¹éƒ¨åˆ†ï¼Œä¹Ÿå°±æ˜¯GPUåˆ—è¡¨
 
-                var GPUcontent = new Grid(); //GPUÁĞ±í½Úµã
+                var GPUcontent = new Grid(); //GPUåˆ—è¡¨èŠ‚ç‚¹
                 foreach (var gpu in GPUs)
                 {
                     var gpupath = gpu.Value;
@@ -320,42 +328,42 @@ public partial class GPUPage
                     {
                         ContentPadding = new Thickness(6),
                     };
-                    Grid.SetRow(gpuExpander, GPUcontent.RowDefinitions.Count); //»ñÈ¡²¢ÉèÖÃGPUÁĞ±í½Úµãµ±Ç°ĞĞÊı
-                    gpuExpander.Padding = new Thickness(10, 8, 10, 8); //µ÷Õû¼ä¾à
+                    Grid.SetRow(gpuExpander, GPUcontent.RowDefinitions.Count); //è·å–å¹¶è®¾ç½®GPUåˆ—è¡¨èŠ‚ç‚¹å½“å‰è¡Œæ•°
+                    gpuExpander.Padding = new Thickness(10, 8, 10, 8); //è°ƒæ•´é—´è·
 
-                    var grid0 = new Grid(); //GPUµÄÍ·²¿£¬ÓÃGridÀ´ÈİÄÉ×Ô¶¨Òåicon
+                    var grid0 = new Grid(); //GPUçš„å¤´éƒ¨ï¼Œç”¨Gridæ¥å®¹çº³è‡ªå®šä¹‰icon
                     grid0.HorizontalAlignment = HorizontalAlignment.Stretch;
                     grid0.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(32) });
                     grid0.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
                     grid0.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
-                    //ÏÔ¿¨Ãû³Æ
-                    var thegpu = Hostgpulist.FirstOrDefault(g => g.Pname == gpupath); //Ñ¡ÖĞÁª»úÏÔ¿¨ÖĞµÄÕâÕÅÏÔ¿¨
+                    //æ˜¾å¡åç§°
+                    var thegpu = Hostgpulist.FirstOrDefault(g => g.Pname == gpupath); //é€‰ä¸­è”æœºæ˜¾å¡ä¸­çš„è¿™å¼ æ˜¾å¡
                     string name = thegpu.Name;
                     var gpuname = Utils.CreateStackPanel(name);
                     Grid.SetColumn(gpuname, 1);
                     grid0.Children.Add(gpuname);
 
-                    //ÏÔ¿¨Í¼±ê
-                    var gpuimage = Utils.CreateGpuImage(thegpu.Manu,32);
+                    //æ˜¾å¡å›¾æ ‡
+                    var gpuimage = Utils.CreateGpuImage(thegpu.Manu,thegpu.Name,32);
                     Grid.SetColumn(gpuimage, 0);
                     grid0.Children.Add(gpuimage);
 
-                    //É¾³ı°´Å¥
+                    //åˆ é™¤æŒ‰é’®
                     var button = new Wpf.Ui.Controls.Button {
                         Content = ExHyperV.Properties.Resources.uninstall,
                         Margin = new Thickness(0,0,5,0),
                     };
-                    button.Click += (sender, e) => Gpu_dismount(sender, e, gpuid, vm.Name, gpuExpander); //°´Å¥µã»÷ÊÂ¼ş
+                    button.Click += (sender, e) => Gpu_dismount(sender, e, gpuid, vm.Name, gpuExpander); //æŒ‰é’®ç‚¹å‡»äº‹ä»¶
 
                     Grid.SetColumn(button, 2);
                     grid0.Children.Add(button);
                     gpuExpander.Header = grid0;
                     
-                    //GPUÊÊÅäÆ÷ÏêÏ¸Êı¾İ£¬Ò»¸öPanelÀ´´æ·ÅÎÄ×ÖĞÅÏ¢
+                    //GPUé€‚é…å™¨è¯¦ç»†æ•°æ®ï¼Œä¸€ä¸ªPanelæ¥å­˜æ”¾æ–‡å­—ä¿¡æ¯
                     var contentPanel = new StackPanel { Margin = new Thickness(50, 10, 0, 0) };
                     var grid2 = new Grid();
-                    // ¶¨Òå Grid µÄÁĞºÍĞĞ
+                    // å®šä¹‰ Grid çš„åˆ—å’Œè¡Œ
                     grid2.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(125) });
                     grid2.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
                     grid2.RowDefinitions.Add(new RowDefinition { Height = new GridLength(32) });
@@ -382,16 +390,16 @@ public partial class GPUPage
 
         }
         refreshlock = false;
-        Dispatcher.Invoke(() => {progressbar.Visibility = Visibility.Collapsed; });//Òş²Ø¼ÓÔØÌõ
+        Dispatcher.Invoke(() => {progressbar.Visibility = Visibility.Collapsed; });//éšè—åŠ è½½æ¡
     }
 
     private void Gpu_dismount(object sender, RoutedEventArgs e,string id ,string vmname, CardExpander gpuExpander)
     {
         PowerShell ps = PowerShell.Create();
-        //É¾³ıÖ¸¶¨µÄGPUÊÊÅäÆ÷
+        //åˆ é™¤æŒ‡å®šçš„GPUé€‚é…å™¨
         ps.AddScript($@"Remove-VMGpuPartitionAdapter -VMName '{vmname}' -AdapterId '{id}'");
         var result = ps.Invoke();
-        // ¼ì²éÊÇ·ñÓĞ´íÎó
+        // æ£€æŸ¥æ˜¯å¦æœ‰é”™è¯¯
         if (ps.Streams.Error.Count > 0)
         {
             foreach (var error in ps.Streams.Error)
@@ -402,7 +410,7 @@ public partial class GPUPage
         else
         {
             var parentGrid = (Grid)gpuExpander.Parent;
-            parentGrid.Children.Remove(gpuExpander); //ĞèÒªÔÚ³É¹¦Ö´ĞĞºó½øĞĞ¡£
+            parentGrid.Children.Remove(gpuExpander); //éœ€è¦åœ¨æˆåŠŸæ‰§è¡Œåè¿›è¡Œã€‚
         }
     }
 
@@ -410,14 +418,14 @@ public partial class GPUPage
     {
         ChooseGPUWindow selectItemWindow = new ChooseGPUWindow(vmname,Hostgpulist);
         selectItemWindow.GPUSelected += SelectItemWindow_GPUSelected;
-        selectItemWindow.ShowDialog(); //ÏÔÊ¾GPUÊÊÅäÆ÷Ñ¡Ôñ´°¿Ú
+        selectItemWindow.ShowDialog(); //æ˜¾ç¤ºGPUé€‚é…å™¨é€‰æ‹©çª—å£
         
     }
 
     private void vmrefresh(object sender, RoutedEventArgs e)
     {
         if (!refreshlock) {
-            progressbar.Visibility = Visibility.Visible; //ÏÔÊ¾¼ÓÔØÌõ
+            progressbar.Visibility = Visibility.Visible; //æ˜¾ç¤ºåŠ è½½æ¡
             refreshlock = true;
             GetGpu();
         }
@@ -429,7 +437,7 @@ public partial class GPUPage
         string VMname = args.Item2;
 
         SnackbarService = new SnackbarService();
-        var ms = Application.Current.MainWindow as MainWindow; //»ñÈ¡Ö÷´°¿Ú
+        var ms = Application.Current.MainWindow as MainWindow; //è·å–ä¸»çª—å£
 
         SnackbarService.SetSnackbarPresenter(ms.SnackbarPresenter);
         SnackbarService.Show(ExHyperV.Properties.Resources.success,GPUname+ExHyperV.Properties.Resources.already+ VMname,ControlAppearance.Success,new SymbolIcon(SymbolRegular.CheckboxChecked24,32), TimeSpan.FromSeconds(2));
