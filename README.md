@@ -47,7 +47,7 @@
 
 * Windows Server 2025
 
-对于GPU-PV，本工具要求宿主机系统版本不得低于22000（所有版本的Win10），这是因为低于22000版本的Hyper-V组件中，Add-VMGpuPartitionAdapter缺少参数InstancePath，这会导致无法指定需要虚拟化的特定显卡，会引入更多的混乱。因此，为了更加简单，请升级您的宿主系统。
+对于GPU-PV，本工具要求宿主机系统版本不得低于22000，这是因为低于22000版本的Hyper-V组件中，Add-VMGpuPartitionAdapter缺少参数InstancePath，这会导致无法指定需要虚拟化的特定显卡，会引发不必要的混乱。因此，为了更加轻松，请升级您的宿主系统。
 
 # DDA
 
@@ -55,25 +55,9 @@
 
 DDA全称Discrete Device Assignment，即离散设备分配，可以将独立的设备分配到虚拟机中。它是以PCIE总线为单位进行分配的，例如显卡、网卡、USB控制器（CPU直连、主板芯片组、独立USB芯片），如果您的设备不在工具显示的列表中，则说明不可以单独直通它，需要直通更上一级的控制器。
 
-### DDA显卡兼容性（需要更多反馈）
-以下兼容性需要安装到虚拟机才能发现。如果您有更多的测试案例，请在问题中告诉我！完善下表可为选择显卡提供更好的指导。
-
-1.识别：显卡分配到虚拟机后可能无法正常使用。部分笔记本魔改卡、矿卡此项可能存在问题。
-
-2.功能层复位（FLR）：若不具备此功能，分配此显卡的虚拟机重启将导致宿主机重启。N卡通常完备，AMD和Intel未经广泛测试，可能存在[硬件缺陷](https://www.reddit.com/r/Amd/comments/jehkey/will_big_navi_support_function_level_reset_flr/)。
-
-3.物理显示输出：虚拟机是否能通过显卡输出物理信号。
-
-| 品牌 | 型号 | 识别 | 功能层复位| 物理显示输出 |
-| -------- | -------- | -------- | -------- | -------- |
-| Nvidia   | RTX 4070 |✔️ |✔️ | ✔️|
-| Nvidia   | GT 1050 |✔️ |✔️ | ✔️|
-| Nvidia   | GT 1030 |✔️ |✔️ | ✔️|
-| Nvidia   | GT 210 |✔️ | ✔️ | ✖️|
-| Intel   |  Intel DG1 |✔️ | ✖️ | 特定驱动✔️|
 
 ### DDA设备状态
-设备共有3种状态：主机态、卸除态、虚拟态。尽管微软文档没有提及此事，但实际上掌控这三种状态非常重要，否则会陷入混乱。
+设备共有3种状态：主机态、卸除态、虚拟态。尽管微软文档没有提及此事，但实际上了解这三种状态非常重要，否则会陷入混乱。
 
 1.处于主机态时，设备挂载到宿主系统。
 
@@ -81,16 +65,34 @@ DDA全称Discrete Device Assignment，即离散设备分配，可以将独立的
 
 3.处于虚拟态时，设备挂载到虚拟机系统。
 
+### DDA显卡兼容性（需要更多反馈）
+以下兼容性需要安装到虚拟机才能发现。如果您有更多的测试案例，请在问题中告诉我！完善下表可为选择显卡提供更好的指导。
+
+| 品牌 | 型号 | 识别 | 功能层复位| 物理显示输出 |
+| -------- | -------- | -------- | -------- | -------- |
+| Nvidia   | RTX 5090 |✔️ |✔️ | ✔️|
+| Nvidia   | RTX 4090 |✔️ |✔️ | ✔️|
+| Nvidia   | RTX 4070 |✔️ |✔️ | ✔️|
+| Nvidia   | GT 1050 |✔️ |✔️ | ✔️|
+| Nvidia   | GT 1030 |✔️ |✔️ | ✔️|
+| Nvidia   | GT 210 |✔️ | ✔️ | ✖️|
+| Intel   |  Intel DG1 |✔️ | ✖️ | 特定驱动✔️|
+
+1.识别：显卡分配到虚拟机后可能无法正常使用。部分笔记本魔改卡、矿卡此项可能存在问题。
+
+2.功能层复位（FLR）：若不具备此功能，分配此显卡的虚拟机重启将导致宿主机重启。Nvidia表现良好，而AMD和Intel未经广泛测试，可能存在[硬件缺陷](https://www.reddit.com/r/Amd/comments/jehkey/will_big_navi_support_function_level_reset_flr/)。
+
+3.物理显示输出：虚拟机是否能通过显卡输出物理信号。
+
 # GPU-PV
 
 ### 简介
 
-* GPU-PV全称为GPU paravirtualization，中文名叫做GPU半虚拟化。此功能自从WDDM 2.4开始提供，这同时意味着，虚拟机和宿主的系统版本一定不能低于17134，否则没有任何实现的可能。
+* GPU-PV全称为GPU paravirtualization，即GPU半虚拟化。此功能自从WDDM 2.4开始提供，这同时意味着，虚拟机和宿主的系统版本一定不能低于17134，否则没有任何实现的可能。
 
-* 目前没有找到办法可以限制虚拟机GPU的资源使用，Set-VMGpuPartitionAdapter的设定参数并不会起到任何[实质性作用](https://github.com/jamesstringerparsec/Easy-GPU-PV/issues/298)。因此，在找到有效的方法前，不会提供资源分配功能。Nvidia的Grid驱动可以分割资源，但是它需要不菲的授权费。
+* 目前没有办法可以限制虚拟机GPU的资源使用，Set-VMGpuPartitionAdapter的设定参数并不会起到任何[实质性作用](https://github.com/jamesstringerparsec/Easy-GPU-PV/issues/298)。因此，在找到有效的方法前，不会开发资源分配功能。Nvidia的Grid驱动可以分割资源，但是它需要不菲的授权费。
 
-
-* 通过GPU-PV创建的逻辑适配器，仅仅是从系统层面模拟物理适配器，但对于物理适配器独特的注册表参数、硬件特征、驱动特征并没有很好地继承。因此，如果您尝试打开的软件/游戏依赖于这些特殊的标志，很可能出现错误，需要针对性的魔法修复。
+* 通过GPU-PV创建的逻辑适配器，仅仅是从系统层面模拟物理适配器，但对于物理适配器独特的注册表参数、硬件特征、驱动特征并没有很好地继承。因此，如果您尝试打开的软件/游戏依赖于这些特殊的标志，很可能出现错误，需要针对性的修复。
 
 
 * 接下来介绍 WDDM 半虚拟化设计中涉及的各种组件。
@@ -112,11 +114,7 @@ DDA全称Discrete Device Assignment，即离散设备分配，可以将独立的
 | 26100  | 3.2      | 增加了GPU实时迁移功能。增强了图形驱动的超时检测和恢复分析。引入了WDDM功能查询机制。 |
 
 
-### Windows版本
-
-宿主：Win11、Server 2022、Server 2025。
-
-虚拟机：
+### 虚拟机Windows版本
 
 * 17134以下版本不支持GPU半虚拟化。
 
@@ -135,15 +133,17 @@ DDA全称Discrete Device Assignment，即离散设备分配，可以将独立的
 
 >Microsoft Hyper-V 视频
 
-这是默认选项，兼容性没有什么问题。资料整理中。
+这是默认选项，兼容性良好，但是据说分辨率最高1920*1080，刷新率62Hz，资料整理中。
 
 >间接显示驱动程序
 
-这是各种串流方案。资料整理中。
+可以尝试[这个](https://github.com/VirtualDrivers/Virtual-Display-Driver)，然后搭配串流软件使用。资料整理中。
 
 > USB 显卡（需要DDA直通USB控制器x1） 
 
-比较常见的芯片是[DL-6950](https://www.synaptics.com/cn/products/displaylink-graphics/integrated-chipsets/dl-6000)和[SM768](https://www.siliconmotion.com/product/cht/Graphics-Display-SoCs.html)，以下一组图片描述了渲染适配器（GTX 1050）和显示适配器（DL 6950）联合工作的场景，在144Hz下fortnite几乎无延迟。
+可以直通一个USB控制器，然后搭配USB显卡使用。目前，对于显存大于4G的显卡似乎和DDA搭配使用存在问题，资料整理中。
+
+比较常见的芯片是[DL-6950](https://www.synaptics.com/cn/products/displaylink-graphics/integrated-chipsets/dl-6000)和[SM768](https://www.siliconmotion.com/product/cht/Graphics-Display-SoCs.html)，以下一组图片描述了渲染适配器（GTX 1050）和显示适配器（DL 6950）联合工作的场景，可以在144Hz下几乎无延迟地正常工作。
 
 ![DL](https://github.com/Justsenger/ExHyperV/blob/main/img/d1.png)
 
