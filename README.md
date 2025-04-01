@@ -27,6 +27,7 @@ By effectively interpreting Microsoft Hyper-V documentation and conducting in-de
 ![Features](https://github.com/Justsenger/ExHyperV/blob/main/img/5.png)
 
 Yes, it even supports up to 8 graphics card recognitions! But the function may not be activated...
+
 ![Function](https://github.com/Justsenger/ExHyperV/blob/main/img/various.png)
 
 # Supported Windows Versions
