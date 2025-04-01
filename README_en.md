@@ -85,7 +85,7 @@ DDA stands for Discrete Device Assignment, which allows independent devices to b
 
 * Below is an introduction to various components involved in the WDDM paravirtualization design.
 
-![WDDM](https://github.com/Justsenger/ExHyperV/blob/main/img/WDDM_cn.png)
+![WDDM](https://github.com/Justsenger/ExHyperV/blob/main/img/WDDM.png)
 
 * Below is the correspondence between Windows versions and WDDM versions. The higher the WDDM version, the better the GPU-PV functionality.
 
