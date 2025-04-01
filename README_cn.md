@@ -27,7 +27,7 @@
 
 ![功能](https://github.com/Justsenger/ExHyperV/blob/main/img/05.png)
 
-是的，甚至支持高达8种显卡识别！但是不一定可以激活功能...
+是的，甚至支持高达8种类别的显卡识别！但是不一定可以激活功能...
 
 ![功能](https://github.com/Justsenger/ExHyperV/blob/main/img/various.png)
 
