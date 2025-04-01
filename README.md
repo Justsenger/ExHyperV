@@ -58,7 +58,6 @@ Wiki: [English]() |  [中文](https://github.com/Justsenger/ExHyperV/wiki/GPUPV)
 
 # 笔记
 
-### 事实
 
 * 可以任意选择一代虚拟机或者二代虚拟机。
 
@@ -72,18 +71,6 @@ Wiki: [English]() |  [中文](https://github.com/Justsenger/ExHyperV/wiki/GPUPV)
 * 一个虚拟机可以同时使用DDA和GPU-PV。(对于显存大于4G的显卡，目前MIMO存在问题)
 
 
-* 一个虚拟机可以从同一张显卡获得多个逻辑适配器分区，但是总性能不变。
-
-
-* 一个虚拟机可以从多张显卡获得多个逻辑适配器分区。
-
-
-### 魔法
-
-* 工具会将宿主驱动导入到虚拟机。同时，HostDriverStore下所有文件将设定为只读属性，以防止任何驱动文件丢失。
-
-
-* 对于Nvidia，会自动导入宿主系统的nvlddmkm.reg，并修改其中的DriverStore为HostDriverStore。
 
 
 
