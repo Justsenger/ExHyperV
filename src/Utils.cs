@@ -140,7 +140,8 @@ public partial class Utils
             FontSize = 16,
             Margin = new System.Windows.Thickness(0, -2, 0, 0),
             VerticalAlignment = VerticalAlignment.Center,
-            HorizontalAlignment = HorizontalAlignment.Center
+            HorizontalAlignment = HorizontalAlignment.Center,
+            TextWrapping = TextWrapping.Wrap // 允许文本换行
         };
         return headerText;
     }
@@ -276,7 +277,7 @@ public partial class Utils
         return linkerTime;
     }
 
-    public static string Version => "V1.0.5";
+    public static string Version => "V1.0.7";
     public static string Author => "砂菱叶";
 
 

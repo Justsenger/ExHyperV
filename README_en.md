@@ -140,6 +140,7 @@ Common chips are [DL-6950](https://www.synaptics.com/cn/products/displaylink-gra
 
 ### Facts
 
+* It is best for the virtual machine to have a fixed allocation of running memory.
 * All features can be used with either generation 1 or generation 2 virtual machines.
 * No need to disable checkpoint functionality for any feature.
 * A single graphics card can only be used as either DDA or GPU-PV at a time.

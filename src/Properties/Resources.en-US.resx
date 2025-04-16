@@ -324,6 +324,9 @@
   <data name="language" xml:space="preserve">
     <value>Language</value>
   </data>
+  <data name="reboot" xml:space="preserve">
+    <value>Changing the language will restart the application</value>
+  </data>
   <data name="about" xml:space="preserve">
     <value>About</value>
   </data>
@@ -348,9 +351,6 @@
   <data name="Colsefirst" xml:space="preserve">
     <value>Please shut down the virtual machine first!</value>
   </data>
-  <data name="reboot" xml:space="preserve">
-    <value>Changing the language will restart the application</value>
-  </data>
   <data name="appversion" xml:space="preserve">
     <value>Version</value>
   </data>
@@ -371,5 +371,8 @@
   </data>
   <data name="enabling" xml:space="preserve">
     <value>Enabling device...</value>
+  </data>
+  <data name="drivererror" xml:space="preserve">
+    <value>An error occurred during driver injection! Check if BitLocker is enabled on the system disk, or if there is no Windows directory?</value>
   </data>
 </root>

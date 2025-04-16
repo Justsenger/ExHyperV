@@ -333,6 +333,15 @@ namespace ExHyperV.Properties {
         /// <summary>
         ///   查找类似 null 的本地化字符串。
         /// </summary>
+        public static string drivererror {
+            get {
+                return ResourceManager.GetString("drivererror", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 null 的本地化字符串。
+        /// </summary>
         public static string driverversion {
             get {
                 return ResourceManager.GetString("driverversion", resourceCulture);

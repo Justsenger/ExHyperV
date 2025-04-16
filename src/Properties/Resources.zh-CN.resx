@@ -372,4 +372,7 @@
   <data name="enabling" xml:space="preserve">
     <value>启用设备中...</value>
   </data>
+  <data name="drivererror" xml:space="preserve">
+    <value>驱动注入出现错误！检查系统盘是否开启了BitLocker，或不存在Windows目录？</value>
+  </data>
 </root>
