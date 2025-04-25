@@ -1,4 +1,4 @@
-# Group
+# Discussion Group
 
 [Telegram](https://t.me/ExHyperV)
 
