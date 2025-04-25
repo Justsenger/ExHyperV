@@ -1,3 +1,7 @@
+# Group
+
+[Telegram](https://t.me/ExHyperV)
+
 # 文档/Document
 
 [中文](https://github.com/Justsenger/ExHyperV/blob/main/README_cn.md) | [English](https://github.com/Justsenger/ExHyperV)
