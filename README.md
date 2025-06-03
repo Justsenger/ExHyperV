@@ -128,7 +128,9 @@ This is the default option and is well compatible. However, it reportedly suppor
 
 > Indirect Display Drivers
 
-You can try [this](https://github.com/VirtualDrivers/Virtual-Display-Driver) and use it with streaming software. Further information is being compiled.
+You can try [this](https://github.com/VirtualDrivers/Virtual-Display-Driver) and use it with streaming software such as Sunshine.
+
+![Sunshine+PV](https://github.com/user-attachments/assets/e25fce26-6158-4052-9759-6d5d1ebf1c5d)
 
 > USB Graphics Card (Requires DDA passthrough of USB controller x1)
 
