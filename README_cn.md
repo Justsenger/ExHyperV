@@ -1,3 +1,6 @@
+# 讨论群
+[Telegram](https://t.me/ExHyperV)
+
 # 文档/Document
 
 [中文](https://github.com/Justsenger/ExHyperV/blob/main/README_cn.md) | [English](https://github.com/Justsenger/ExHyperV)
@@ -141,7 +144,9 @@ DDA全称Discrete Device Assignment，即离散设备分配，可以将独立的
 
 >间接显示驱动程序
 
-可以尝试[这个](https://github.com/VirtualDrivers/Virtual-Display-Driver)，然后搭配串流软件使用。资料整理中。
+可以尝试[这个](https://github.com/VirtualDrivers/Virtual-Display-Driver)，然后搭配Sunshine等串流软件使用。
+
+![Sunshine+PV](https://github.com/user-attachments/assets/e25fce26-6158-4052-9759-6d5d1ebf1c5d)
 
 > USB 显卡（需要DDA直通USB控制器x1） 
 
