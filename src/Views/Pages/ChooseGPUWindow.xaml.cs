@@ -143,6 +143,8 @@ namespace ExHyperV
 
                 //4.驱动复制，直接把整个"C:\Windows\System32\DriverStore\FileRepository"拿进虚拟机。
 
+                //todo分支，如果未找到路径，不报错，而是转为linux注入模式，要求输入用户名和密码等待ssh链接。
+
                 //获取虚拟机系统盘路径，一般默认为第一块。
                 ps.AddScript($"(Get-VMHardDiskDrive -vmname '{vmname}')[0].Path");
                 var harddiskpath = ps.Invoke()[0].ToString();

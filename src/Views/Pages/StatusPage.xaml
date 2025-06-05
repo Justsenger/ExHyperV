@@ -30,25 +30,26 @@
                             Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"></ui:TextBlock>
             <Grid>
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="56"/>
-                    <RowDefinition Height="56"/>
-                    <RowDefinition Height="56"/>
-                    <RowDefinition Height="56"/>
-                    <RowDefinition Height="56"/>
+                    <RowDefinition Height="52"/>
+                    <RowDefinition Height="52"/>
+                    <RowDefinition Height="52"/>
+                    <RowDefinition Height="52"/>
+                    <RowDefinition Height="52"/>
                 </Grid.RowDefinitions>
 
-                <ui:Card Grid.Row="0" >
+                <ui:Card Grid.Row="0" Padding="12">
                     <Grid x:Name="status1">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="auto"/>
-                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="278*"/>
+                            <ColumnDefinition Width="637*"/>
                         </Grid.ColumnDefinitions>
-                        <ui:ProgressRing x:Name="progressRing1"  IsIndeterminate="True" Width="16" Height="16"/>
-                        <TextBlock Grid.Column="1" x:Name="win" Margin="10,0,0,0" Text="{x:Static properties:Resources.checksys}" FontSize="16"/>
+                        <ui:ProgressRing x:Name="progressRing1"  IsIndeterminate="True" Width="16" Height="16" Margin="0,2,0,3"/>
+                        <TextBlock Grid.Column="1" x:Name="win" Margin="10,0,0,0" Text="{x:Static properties:Resources.checksys}" FontSize="16" Grid.ColumnSpan="2"/>
                     </Grid>
                 </ui:Card>
 
-                <ui:Card Grid.Row="1" >
+                <ui:Card Grid.Row="1" Padding="12">
                     <Grid x:Name="status2">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="auto"/>
@@ -59,7 +60,7 @@
                     </Grid>
                 </ui:Card>
 
-                <ui:Card Grid.Row="2">
+                <ui:Card Grid.Row="2" Padding="12">
                     <Grid x:Name="status3">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="auto"/>
@@ -70,7 +71,7 @@
                     </Grid>
                 </ui:Card>
 
-                <ui:Card Grid.Row="3">
+                <ui:Card Grid.Row="3" Padding="12">
                     <Grid x:Name="status4">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="auto"/>
@@ -81,7 +82,7 @@
                     </Grid>
                 </ui:Card>
 
-                <ui:Card Grid.Row="4">
+                <ui:Card Grid.Row="4" Padding="12">
                     <Grid x:Name="status5">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="auto"/>
@@ -91,7 +92,7 @@
                         <TextBlock Grid.Column="1" x:Name="version" Margin="10,0,0,0" Text="{x:Static properties:Resources.checkversion}" FontSize="16"/>
                     </Grid>
                 </ui:Card>
-                
+
             </Grid>
         </StackPanel>
 
@@ -100,7 +101,7 @@
 
             <ui:TextBlock Text="{x:Static properties:Resources.checksetting}" FontSize="36" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"></ui:TextBlock>
 
-            <ui:CardControl Grid.Row="1" Margin="0,10,0,0">
+            <ui:CardControl Grid.Row="1" Margin="0,10,0,0" Padding="12">
                 <ui:CardControl.Icon>
                     <ui:FontIcon FontSize="24" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xE932;"/>
                 </ui:CardControl.Icon>

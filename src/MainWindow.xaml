@@ -71,10 +71,9 @@
                     Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"
                     TargetPageType="{x:Type pages:GPUPage}">
                     <ui:NavigationViewItem.Icon>
-                        <ui:SymbolIcon Symbol="TableSettings24" />
+                        <ui:SymbolIcon Symbol="Grid28" />
                     </ui:NavigationViewItem.Icon>
                 </ui:NavigationViewItem>
-
             </ui:NavigationView.MenuItems>
 
             <ui:NavigationView.FooterMenuItems>

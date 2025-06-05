@@ -26,7 +26,7 @@
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
-            <ui:Card VerticalAlignment="Top" Padding="10" Margin="10,10,10,0">
+            <ui:Card VerticalAlignment="Top" Padding="12" Margin="10,10,10,0">
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Top" Grid.Column="0">
                     <ui:FontIcon FontSize="24" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xF211;"/>
                     <TextBlock Text="{x:Static properties:Resources.installedcard}" Margin="10,0,0,0" FontSize="16"/>
@@ -40,7 +40,7 @@
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
-            <ui:Card VerticalAlignment="Top" Padding="10" Grid.Column="0" Margin="10,10,10,0">
+            <ui:Card VerticalAlignment="Top" Padding="10" Grid.Column="0" Margin="10,10,10,0" Grid.ColumnSpan="2">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"></ColumnDefinition>
@@ -54,11 +54,11 @@
                 </Grid>
             </ui:Card>
 
-            <Grid x:Name="vms" Grid.Row="1"></Grid>
-            
+            <Grid x:Name="vms" Grid.ColumnSpan="2" Margin="0,63,0,0"/>
+
         </Grid>
 
-        
+
     </Grid>
 
 

@@ -34,14 +34,14 @@ public partial class StatusPage
             {
                 FontSize = 20,
                 FontFamily = (FontFamily)Application.Current.Resources["SegoeFluentIcons"],
-                Glyph = "\xE930",
-                Foreground = new SolidColorBrush(Colors.Green),
+                Glyph = "\xEC61",
+                Foreground = new SolidColorBrush(Color.FromArgb(255, 0, 138, 23)),
             };
             if (hypervstatus.Count != 0) { hyperv.Text = Properties.Resources.String1; }
             else
             {
                 hyperv.Text = ExHyperV.Properties.Resources.String2;
-                icons.Glyph = "\xEA39";
+                icons.Glyph = "\xEB90";
                 icons.Foreground = new SolidColorBrush(Colors.Red);
             }
             status3.Children.Add(icons);
@@ -64,14 +64,14 @@ public partial class StatusPage
             status1.Children.Add(icons);
             if (buildVersion >= 22000) //不允许宿主使用过低的系统版本，WDDM版本低，以及PS存在命令问题。
             {
-                icons.Glyph = "\xE930";
-                icons.Foreground = new SolidColorBrush(Colors.Green);
+                icons.Glyph = "\xEC61";
+                icons.Foreground = new SolidColorBrush(Color.FromArgb(255, 0, 138, 23));
                 win.Text = ExHyperV.Properties.Resources.String3 + buildVersion.ToString() + ExHyperV.Properties.Resources.v19041;
             }
             else
             {
                 win.Text = ExHyperV.Properties.Resources.String3 + buildVersion.ToString() + ExHyperV.Properties.Resources.disablegpu;
-                icons.Glyph = "\xEA39";
+                icons.Glyph = "\xEB90";
                 icons.Foreground = new SolidColorBrush(Colors.Red);
             }
         });
@@ -90,8 +90,9 @@ public partial class StatusPage
             {
                 FontSize = 20,
                 FontFamily = (FontFamily)Application.Current.Resources["SegoeFluentIcons"],
-                Glyph = "\xE930",
-                Foreground = new SolidColorBrush(Colors.Green),
+                Glyph = "\xEC61",
+                Foreground = new SolidColorBrush(Color.FromArgb(255, 0, 138, 23)),
+         
             };
 
             if (cpuvt1[0].ToString() == "True"|| cpuvt2[0].ToString() == "True")
@@ -99,7 +100,7 @@ public partial class StatusPage
             else
             {
                 cpu.Text = ExHyperV.Properties.Resources.GPU2;
-                icons.Glyph = "\xEA39";
+                icons.Glyph = "\xEB90";
                 icons.Foreground = new SolidColorBrush(Colors.Red);
             }
             status2.Children.Add(icons);
@@ -141,8 +142,8 @@ public partial class StatusPage
             {
                 FontSize = 20,
                 FontFamily = (FontFamily)Application.Current.Resources["SegoeFluentIcons"],
-                Glyph = "\xE930",
-                Foreground = new SolidColorBrush(Colors.Green),
+                Glyph = "\xEC61",
+                Foreground = new SolidColorBrush(Color.FromArgb(255, 0, 138, 23)),
             };
             if (Isadmin) 
             {
@@ -154,7 +155,7 @@ public partial class StatusPage
                 var ms = Application.Current.MainWindow as MainWindow; //获取主窗口
                 ms.gpupv.IsEnabled = false;
                 admin.Text = ExHyperV.Properties.Resources.Admin2;
-                icons.Glyph = "\xEA39";
+                icons.Glyph = "\xEB90";
                 icons.Foreground = new SolidColorBrush(Colors.Red);
                 status4.Children.Add(icons);
             }
@@ -173,8 +174,8 @@ public partial class StatusPage
             {
                 FontSize = 20,
                 FontFamily = (FontFamily)Application.Current.Resources["SegoeFluentIcons"],
-                Glyph = "\xE930",
-                Foreground = new SolidColorBrush(Colors.Green),
+                Glyph = "\xEC61",
+                Foreground = new SolidColorBrush(Color.FromArgb(255, 0, 138, 23)),
             };
             if (result[0].ToString()=="3") { version.Text = ExHyperV.Properties.Resources.Isserver; }
             else
@@ -183,7 +184,7 @@ public partial class StatusPage
                 ms.dda.IsEnabled = false;
 
                 version.Text = ExHyperV.Properties.Resources.ddaa;
-                icons.Glyph = "\xEA39";
+                icons.Glyph = "\xEB90";
                 icons.Foreground = new SolidColorBrush(Colors.Red);
             }
             status5.Children.Add(icons);

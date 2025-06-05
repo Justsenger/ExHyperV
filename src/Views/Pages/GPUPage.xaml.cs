@@ -1,12 +1,13 @@
 ﻿namespace ExHyperV.Views.Pages;
 using System;
+using System.Collections.Generic;
 using System.Management.Automation;
 using System.Windows;
 using System.Windows.Controls;
-using Wpf.Ui.Controls;
 using Microsoft.CodeAnalysis;
-using System.Collections.Generic;
 using Wpf.Ui;
+using Wpf.Ui.Controls;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 
 public partial class GPUPage
@@ -295,6 +296,7 @@ public partial class GPUPage
                 grid1.HorizontalAlignment = HorizontalAlignment.Stretch;
                 grid1.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
                 grid1.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+                grid1.Height = 30;
 
                 // VM的名称
                 var vmname = Utils.TextBlock1(name);
@@ -312,10 +314,11 @@ public partial class GPUPage
                 grid1.Children.Add(addbutton);
 
                 cardExpander.Header = grid1;
-                cardExpander.IsExpanded = true; //默认展开虚拟机详情
+                if (GPUs!= null && GPUs.Count != 0) { 
+                    cardExpander.IsExpanded = true; //显卡列表不为空时展开虚拟机详情
+                }
 
                 //以下是VM的下拉内容部分，也就是GPU列表
-
                 var GPUcontent = new Grid(); //GPU列表节点
                 foreach (var gpu in GPUs)
                 {

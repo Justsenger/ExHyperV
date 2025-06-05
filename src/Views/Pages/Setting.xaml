@@ -71,12 +71,39 @@
             </ComboBox>
         </ui:CardControl>
 
-        
+        <ui:CardControl Margin="0,0,0,12" Icon="{ui:SymbolIcon BookStar24}">
+            <ui:CardControl.Header>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <ui:TextBlock
+                        Grid.Row="0"
+                        FontTypography="Body"
+                        Text="SP皮肤" />
+                    <ui:TextBlock
+                        Grid.Row="1"
+                        Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"
+                        Text="赋予华丽的界面效果" />
+                </Grid>
+            </ui:CardControl.Header>
+            <ComboBox
+                x:Name="SPskin"
+                Grid.Column="1"
+                MinWidth="200"
+                SelectionChanged="OnSPskinSelectionChanged">
+                <ComboBoxItem Content="还没做" />
+                <ComboBoxItem Content="还没做" />
+            </ComboBox>
+        </ui:CardControl>
+
+
         <ui:TextBlock
             Margin="0,24,0,8"
             FontTypography="BodyStrong"
             Text="{x:Static properties:Resources.about}" />
-        <ui:CardExpander ContentPadding="0" Icon="{ui:SymbolIcon Layer24}">
+        <ui:CardExpander ContentPadding="0" Icon="{ui:SymbolIcon Layer24}" IsExpanded="True">
             <ui:CardExpander.Header>
                 <Grid>
                     <Grid.RowDefinitions>

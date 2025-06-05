@@ -199,7 +199,7 @@
     <value>设定</value>
   </data>
   <data name="disablereg" xml:space="preserve">
-    <value>禁用安全策略</value>
+    <value>禁用安全策略（RequireSecureDeviceAssignment、RequireSupportedDeviceAssignment）</value>
   </data>
   <data name="Host" xml:space="preserve">
     <value>主机</value>
