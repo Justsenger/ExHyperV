@@ -375,4 +375,10 @@
   <data name="drivererror" xml:space="preserve">
     <value>An error occurred during driver injection! Check if BitLocker is enabled on the system disk, or if there is no Windows directory?</value>
   </data>
+  <data name="error" xml:space="preserve">
+    <value>Error</value>
+  </data>
+  <data name="servererror" xml:space="preserve">
+    <value>The host system is not a server version, and the virtual machine with the DDA device added will not be able to start!</value>
+  </data>
 </root>

@@ -181,7 +181,7 @@ public partial class StatusPage
             else
             {
                 var ms = Application.Current.MainWindow as MainWindow; //获取主窗口
-                ms.dda.IsEnabled = false;
+                //ms.dda.IsEnabled = false;
 
                 version.Text = ExHyperV.Properties.Resources.ddaa;
                 icons.Glyph = "\xEB90";

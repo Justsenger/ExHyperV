@@ -175,10 +175,10 @@
     <value>CPU虚拟化未启用。</value>
   </data>
   <data name="Admin1" xml:space="preserve">
-    <value>管理员权限已取得。</value>
+    <value>管理员权限已获得。</value>
   </data>
   <data name="Admin2" xml:space="preserve">
-    <value>管理员权限未取得。已禁用GPU半虚拟化功能。</value>
+    <value>管理员权限未获得。已禁用GPU半虚拟化功能。</value>
   </data>
   <data name="complicate" xml:space="preserve">
     <value>兼容性</value>
@@ -374,5 +374,11 @@
   </data>
   <data name="drivererror" xml:space="preserve">
     <value>驱动注入出现错误！检查系统盘是否开启了BitLocker，或不存在Windows目录？</value>
+  </data>
+  <data name="servererror" xml:space="preserve">
+    <value>宿主系统非服务器版本，添加了DDA设备的虚拟机将无法启动！</value>
+  </data>
+  <data name="error" xml:space="preserve">
+    <value>错误</value>
   </data>
 </root>

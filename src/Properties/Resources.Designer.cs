@@ -360,6 +360,15 @@ namespace ExHyperV.Properties {
         /// <summary>
         ///   查找类似 null 的本地化字符串。
         /// </summary>
+        public static string error {
+            get {
+                return ResourceManager.GetString("error", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 null 的本地化字符串。
+        /// </summary>
         public static string exhyperv {
             get {
                 return ResourceManager.GetString("exhyperv", resourceCulture);
@@ -669,6 +678,15 @@ namespace ExHyperV.Properties {
         public static string runerror {
             get {
                 return ResourceManager.GetString("runerror", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 null 的本地化字符串。
+        /// </summary>
+        public static string servererror {
+            get {
+                return ResourceManager.GetString("servererror", resourceCulture);
             }
         }
         

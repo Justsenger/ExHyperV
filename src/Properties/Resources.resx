@@ -375,4 +375,10 @@
   <data name="drivererror" xml:space="preserve">
     <value>null</value>
   </data>
+  <data name="error" xml:space="preserve">
+    <value>null</value>
+  </data>
+  <data name="servererror" xml:space="preserve">
+    <value>null</value>
+  </data>
 </root>

@@ -34,7 +34,7 @@
         </ui:TitleBar>
 
         <!-- 左侧菜单 -->
-        <ui:NavigationView x:Name="RootNavigation" Grid.Row="1" OpenPaneLength="250" IsPaneOpen="False" IsBackButtonVisible="Collapsed" Grid.RowSpan="2" Grid.ColumnSpan="2">
+        <ui:NavigationView x:Name="RootNavigation" Grid.Row="1" OpenPaneLength="200" IsPaneOpen="False" IsBackButtonVisible="Collapsed" Grid.RowSpan="2" Grid.ColumnSpan="2">
             <ui:NavigationView.MenuItems>
                 <ui:NavigationViewItem
                     Content="{x:Static properties:Resources.Main}"

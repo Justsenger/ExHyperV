@@ -18,6 +18,7 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
         <ProgressBar Grid.Row="0" x:Name="progressRing" IsIndeterminate="True"/>
@@ -27,7 +28,13 @@
             Message="{x:Static properties:Resources.attentionwords}" 
             IsOpen="True"
             Severity="Warning"/>
-        <Grid Grid.Row="2" Margin="0,5,0,0">
+        <ui:InfoBar Grid.Row="2" Margin="0,5,0,0" x:Name="Isserver"
+            Title="{x:Static properties:Resources.error}"
+            Message="{x:Static properties:Resources.servererror}" 
+            IsOpen="True"
+            IsClosable="False"
+            Severity="Error"/>
+        <Grid Grid.Row="3" Margin="0,5,0,0">
             <ui:Card BorderThickness="1" Padding="10">
                 <Grid>
                     <Grid.ColumnDefinitions>
@@ -55,7 +62,7 @@
 
         </Grid>
 
-        <Grid x:Name="ParentPanel"  Grid.Row="3"></Grid>
+        <Grid x:Name="ParentPanel"  Grid.Row="4"></Grid>
 
     </Grid>
 
