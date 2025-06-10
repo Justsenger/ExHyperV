@@ -1,40 +1,37 @@
-﻿using Wpf.Ui.Controls;
-using ExHyperV.Views.Pages;
-using Wpf.Ui.Appearance;
+﻿using System.ComponentModel;
 using System.Windows;
+using ExHyperV.Services;
+using ExHyperV.Views.Pages;
 
-namespace ExHyperV
+namespace ExHyperV;
+
+public partial class MainWindow
 {
-    public partial class MainWindow : FluentWindow
+    public MainWindow()
     {
-        public MainWindow()
-        {
-            InitializeComponent();
-            Loaded += PagePreload;
+        InitializeComponent();
+        Loaded += PagePreload;
+        Closing += OnClosing;
 
-            if (SystemThemeManager.GetCachedSystemTheme() == SystemTheme.Dark) { //根据系统主题自动切换
-                ApplicationThemeManager.Apply(ApplicationTheme.Dark);
-            }
-            else {ApplicationThemeManager.Apply(ApplicationTheme.Light);}
+        // Theme is already applied in App.xaml.cs OnStartup
+        // No need to apply it again here
+    }
 
-            Loaded += (sender, args) =>  //监听系统切换主题事件
-            {
-                SystemThemeWatcher.Watch(this,WindowBackdropType.Mica,true);
-            };
-        }
+    private void PagePreload(object sender, RoutedEventArgs e)
+    {
+        // Preload all sub-pages, multithreaded
+        RootNavigation.Navigate(typeof(DdaPage));
+        RootNavigation.Navigate(typeof(GpuPage));
+        RootNavigation.Navigate(typeof(StatusPage));
+        RootNavigation.Navigate(typeof(MainPage));
 
-        private void PagePreload(object sender, RoutedEventArgs e)
-        {
-            //预加载所有子界面，多线程。
-            RootNavigation.Navigate(typeof(DDAPage));
-            RootNavigation.Navigate(typeof(GPUPage));
-            RootNavigation.Navigate(typeof(StatusPage));
-            RootNavigation.Navigate(typeof(MainPage));
+        // Start watching for system theme changes
+        SystemThemeHandler.StartWatching(this);
+    }
 
-        }
-
-
-
-
+    private static void OnClosing(object? sender, CancelEventArgs e)
+    {
+        // Stop watching for system theme changes when closing
+        SystemThemeHandler.StopWatching();
     }
 }

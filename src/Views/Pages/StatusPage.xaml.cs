@@ -1,250 +1,335 @@
-namespace ExHyperV.Views.Pages;
-
-using System.Management.Automation;
+using System.Diagnostics;
 using System.Security.Principal;
 using System.Windows;
-using System.Windows.Controls;
 using System.Windows.Media;
 using Wpf.Ui.Controls;
 
+namespace ExHyperV.Views.Pages;
+
 public partial class StatusPage
 {
+    // Constants for working with Hyper-V registry
+    private const string RegistryPath = @"HKLM:\SOFTWARE\Policies\Microsoft\Windows\HyperV";
+    private const string RequireSecureDeviceAssignmentKey = "RequireSecureDeviceAssignment";
+    private const string RequireSupportedDeviceAssignmentKey = "RequireSupportedDeviceAssignment";
 
-    public StatusPage() {
+    // Flag to prevent circular event triggering when updating toggle programmatically
+    private bool _isUpdatingToggle;
+
+    public StatusPage()
+    {
         InitializeComponent();
 
-        Task.Run(() => CpuInfo());
-        Task.Run(() => SysInfo());
-        Task.Run(() => HyperVInfo());
-        Task.Run(() => CheckReg());
-        Task.Run(() => Admininfo());
-        Task.Run(() => ServerInfo());
+        _ = Task.Run(CpuInfo);
+        _ = Task.Run(SysInfo);
+        _ = Task.Run(HyperVInfo);
+        _ = Task.Run(CheckReg);
+        _ = Task.Run(AdminInfo);
+        _ = Task.Run(ServerInfo);
     }
 
-    private async void HyperVInfo()
+    // PowerShell script for adding registry entries
+    private static string AddRegistryScript => $$"""
+                                                 # Ensure registry path exists, create if it doesn't
+                                                 if (-not (Test-Path '{{RegistryPath}}')) {
+                                                     New-Item -Path '{{RegistryPath}}' -Force
+                                                 }
+
+                                                 # Check and create registry values
+                                                 if (-not (Test-Path "{{RegistryPath}}\{{RequireSecureDeviceAssignmentKey}}")) {
+                                                     Set-ItemProperty -Path '{{RegistryPath}}' -Name '{{RequireSecureDeviceAssignmentKey}}' -Value 0 -Type DWord
+                                                 }
+
+                                                 if (-not (Test-Path "{{RegistryPath}}\{{RequireSupportedDeviceAssignmentKey}}")) {
+                                                     Set-ItemProperty -Path '{{RegistryPath}}' -Name '{{RequireSupportedDeviceAssignmentKey}}' -Value 0 -Type DWord
+                                                 }
+                                                 """;
+
+    // PowerShell script for removing registry entries
+    private static string RemoveRegistryScript => $"""
+                                                   Remove-ItemProperty -Path '{RegistryPath}' -Name '{RequireSecureDeviceAssignmentKey}'
+                                                   Remove-ItemProperty -Path '{RegistryPath}' -Name '{RequireSupportedDeviceAssignmentKey}'
+                                                   Remove-Item -Path '{RegistryPath}' -Force
+                                                   """;
+
+    /// <summary>
+    ///     Safe wrapper for async operations to prevent application crashes
+    /// </summary>
+    private async Task SafeAsyncTask(Func<Task> asyncAction)
     {
-
-        string message = Properties.Resources.exhyperv;
-
-        var hypervstatus = Utils.Run("Get-Module -ListAvailable -Name Hyper-V");
-        Dispatcher.Invoke(() =>
+        try
         {
-            status3.Children.Remove(progressRing3);
-            FontIcon icons = new FontIcon
+            await asyncAction();
+        }
+        catch (Exception ex)
+        {
+            // Critical error handling - prevent application crash
+            try
+            {
+                // Log the exception for diagnostics
+                Debug.WriteLine($"Critical error in async void handler: {ex}");
+
+                // Reset toggle to safe state
+                _isUpdatingToggle = true;
+                Gpustrategy.IsChecked = false;
+                _isUpdatingToggle = false;
+            }
+            catch (Exception recoveryEx)
+            {
+                // Log recovery failure as well
+                Debug.WriteLine($"Error during error recovery in async void handler: {recoveryEx}");
+                // The application should remain stable
+            }
+        }
+    }
+
+    private static void AddReg()
+    {
+        Utils.Run(AddRegistryScript);
+    }
+
+    private static void RemoveReg()
+    {
+        Utils.Run(RemoveRegistryScript);
+    }
+
+    private async Task HyperVInfo()
+    {
+        var hypervstatus = await Task.Run(() => Utils.Run("Get-Module -ListAvailable -Name Hyper-V"));
+        await Dispatcher.InvokeAsync(() =>
+        {
+            Status3.Children.Remove(ProgressRing3);
+            var icons = new FontIcon
             {
                 FontSize = 20,
-                FontFamily = (FontFamily)Application.Current.Resources["SegoeFluentIcons"],
+                FontFamily = Application.Current.Resources["SegoeFluentIcons"] as FontFamily ??
+                             new FontFamily("Segoe Fluent Icons"),
                 Glyph = "\xEC61",
-                Foreground = new SolidColorBrush(Color.FromArgb(255, 0, 138, 23)),
+                Foreground = new SolidColorBrush(Color.FromArgb(255, 0, 138, 23))
             };
-            if (hypervstatus.Count != 0) { hyperv.Text = Properties.Resources.String1; }
-            else
+            if (hypervstatus.Count == 0)
             {
-                hyperv.Text = ExHyperV.Properties.Resources.String2;
+                Hyperv.Text = Properties.Resources.String2;
                 icons.Glyph = "\xEB90";
                 icons.Foreground = new SolidColorBrush(Colors.Red);
             }
-            status3.Children.Add(icons);
+            else
+            {
+                Hyperv.Text = Properties.Resources.String1;
+            }
+
+            Status3.Children.Add(icons);
         });
     }
 
-    private async void SysInfo()
+    private async Task SysInfo()
     {
-        int buildVersion = Environment.OSVersion.Version.Build;
-        Dispatcher.Invoke(() =>
+        var buildVersion = Environment.OSVersion.Version.Build;
+        await Dispatcher.InvokeAsync(() =>
         {
-            status1.Children.Remove(progressRing1);
-            FontIcon icons = new FontIcon
+            Status1.Children.Remove(ProgressRing1);
+            var icons = new FontIcon
             {
                 FontSize = 20,
-                FontFamily = (FontFamily)Application.Current.Resources["SegoeFluentIcons"],
+                FontFamily = Application.Current.Resources["SegoeFluentIcons"] as FontFamily ??
+                             new FontFamily("Segoe Fluent Icons"),
                 Glyph = "\xF167",
-                Foreground = new SolidColorBrush(Colors.DodgerBlue),
+                Foreground = new SolidColorBrush(Colors.DodgerBlue)
             };
-            status1.Children.Add(icons);
-            if (buildVersion >= 22000) //不允许宿主使用过低的系统版本，WDDM版本低，以及PS命令存在问题。
+            Status1.Children.Add(icons);
+            if (buildVersion >= 22000) //锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷使锟矫癸拷锟酵碉拷系统锟芥本锟斤拷WDDM锟芥本锟酵ｏ拷锟皆硷拷PS锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟解。
             {
                 icons.Glyph = "\xEC61";
                 icons.Foreground = new SolidColorBrush(Color.FromArgb(255, 0, 138, 23));
-                win.Text = ExHyperV.Properties.Resources.String3 + buildVersion.ToString() + ExHyperV.Properties.Resources.v19041;
+                Win.Text = Properties.Resources.String3 + buildVersion + Properties.Resources.v19041;
             }
             else
             {
-                var ms = Application.Current.MainWindow as MainWindow; //获取主窗口
-                ms.gpupv.IsEnabled = false;
-                win.Text = ExHyperV.Properties.Resources.String3 + buildVersion.ToString() + ExHyperV.Properties.Resources.disablegpu;
+                Win.Text = Properties.Resources.String3 + buildVersion + Properties.Resources.disablegpu;
                 icons.Glyph = "\xEB90";
                 icons.Foreground = new SolidColorBrush(Colors.Red);
             }
         });
     }
-    private async void CpuInfo()
+
+    private async Task CpuInfo()
     {
+        var cpuvt1 = await Task.Run(() =>
+            Utils.Run("(Get-WmiObject -Class Win32_Processor).VirtualizationFirmwareEnabled"));
+        var cpuvt2 = await Task.Run(() => Utils.Run("(Get-WmiObject -Class Win32_ComputerSystem).HypervisorPresent"));
 
-        var cpuvt1 = Utils.Run("(Get-WmiObject -Class Win32_Processor).VirtualizationFirmwareEnabled");
-        var cpuvt2 = Utils.Run("(Get-WmiObject -Class Win32_ComputerSystem).HypervisorPresent");
-
-
-        Dispatcher.Invoke(() =>
+        await Dispatcher.InvokeAsync(() =>
         {
-            status2.Children.Remove(progressRing2);
-            FontIcon icons = new FontIcon
+            Status2.Children.Remove(ProgressRing2);
+            var icons = new FontIcon
             {
                 FontSize = 20,
-                FontFamily = (FontFamily)Application.Current.Resources["SegoeFluentIcons"],
+                FontFamily = Application.Current.Resources["SegoeFluentIcons"] as FontFamily ??
+                             new FontFamily("Segoe Fluent Icons"),
                 Glyph = "\xEC61",
-                Foreground = new SolidColorBrush(Color.FromArgb(255, 0, 138, 23)),
-         
+                Foreground = new SolidColorBrush(Color.FromArgb(255, 0, 138, 23))
             };
 
-            if (cpuvt1[0].ToString() == "True"|| cpuvt2[0].ToString() == "True")
-            {cpu.Text = ExHyperV.Properties.Resources.GPU1;}
+            if ((cpuvt1.Count > 0 && cpuvt1[0].ToString() == "True") ||
+                (cpuvt2.Count > 0 && cpuvt2[0].ToString() == "True"))
+            {
+                Cpu.Text = Properties.Resources.GPU1;
+            }
             else
             {
-                cpu.Text = ExHyperV.Properties.Resources.GPU2;
+                Cpu.Text = Properties.Resources.GPU2;
                 icons.Glyph = "\xEB90";
                 icons.Foreground = new SolidColorBrush(Colors.Red);
             }
-            status2.Children.Add(icons);
+
+            Status2.Children.Add(icons);
         });
-
-
     }
 
-    private async void CheckReg() //检查是否添加了注册表，已添加则关闭弹窗
+    private async Task CheckReg() // Check if registry keys are set to disable security policies
     {
-        string script = $@"[bool]((Test-Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\HyperV') -and 
-        (($k = Get-Item 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\HyperV' -EA 0) -ne $null) -and 
-        ('RequireSecureDeviceAssignment', 'RequireSupportedDeviceAssignment' | ForEach-Object {{
-            ($k.GetValue($_, $null) -ne $null) -and ($k.GetValueKind($_) -eq 'DWord')
-        }}) -notcontains $false)";
-        var result = Utils.Run(script);
-
-        Dispatcher.Invoke(() =>
+        try
         {
-            if (result[0].ToString().ToLower() == "true")
-            { 
-                gpustrategy.IsChecked = true;
-            }
-        });
+            const string script = $$"""
+                                    [bool]((Test-Path '{{RegistryPath}}') -and
+                                            (($k = Get-Item '{{RegistryPath}}' -EA 0) -ne $null) -and
+                                            ('{{RequireSecureDeviceAssignmentKey}}', '{{RequireSupportedDeviceAssignmentKey}}' | ForEach-Object {
+                                                ($k.GetValue($_, $null) -ne $null) -and ($k.GetValueKind($_) -eq 'DWord')
+                                            }) -notcontains $false)
+                                    """;
+            var result = await Task.Run(() => Utils.Run(script));
 
+            await Dispatcher.InvokeAsync(() =>
+            {
+                _isUpdatingToggle = true; // Prevent circular event triggering
+                try
+                {
+                    var registryExists = result.Count > 0 &&
+                                         string.Equals(result[0].ToString(), "true",
+                                             StringComparison.OrdinalIgnoreCase);
+
+                    // Always set the correct state based on actual registry status
+                    Gpustrategy.IsChecked = registryExists;
+                }
+                finally
+                {
+                    _isUpdatingToggle = false; // Re-enable event handling
+                }
+            });
+        }
+        catch (Exception)
+        {
+            // Log error and set safe state when registry check fails
+            await Dispatcher.InvokeAsync(() =>
+            {
+                _isUpdatingToggle = true;
+                try
+                {
+                    // Set to false as safe default when we can't determine registry state
+                    Gpustrategy.IsChecked = false;
+                }
+                finally
+                {
+                    _isUpdatingToggle = false;
+                }
+            });
+
+            // In a production app, you might want to log this exception
+            // For now, we silently handle it to maintain UI stability
+        }
     }
 
-    private async void Admininfo() 
+    private async Task AdminInfo()
     {
-
-        WindowsIdentity identity = WindowsIdentity.GetCurrent();
-        WindowsPrincipal principal = new WindowsPrincipal(identity);
-        bool Isadmin = principal.IsInRole(WindowsBuiltInRole.Administrator);
-        Dispatcher.Invoke(() =>
+        var identity = WindowsIdentity.GetCurrent();
+        var principal = new WindowsPrincipal(identity);
+        var isadmin = principal.IsInRole(WindowsBuiltInRole.Administrator);
+        await Dispatcher.InvokeAsync(() =>
         {
-
-            status4.Children.Remove(progressRing4);
-            FontIcon icons = new FontIcon
+            Status4.Children.Remove(ProgressRing4);
+            var icons = new FontIcon
             {
                 FontSize = 20,
-                FontFamily = (FontFamily)Application.Current.Resources["SegoeFluentIcons"],
+                FontFamily = Application.Current.Resources["SegoeFluentIcons"] as FontFamily ??
+                             new FontFamily("Segoe Fluent Icons"),
                 Glyph = "\xEC61",
-                Foreground = new SolidColorBrush(Color.FromArgb(255, 0, 138, 23)),
+                Foreground = new SolidColorBrush(Color.FromArgb(255, 0, 138, 23))
             };
-            if (Isadmin) 
+            if (isadmin)
             {
-                admin.Text = ExHyperV.Properties.Resources.Admin1;
-                status4.Children.Add(icons);
+                Admin.Text = Properties.Resources.Admin1;
             }
-            else //如果没有管理员权限，关闭GPU虚拟化功能
+            else // If no admin privileges, disable GPU paravirtualization feature
             {
-                var ms = Application.Current.MainWindow as MainWindow; //获取主窗口
-                ms.gpupv.IsEnabled = false;
-                admin.Text = ExHyperV.Properties.Resources.Admin2;
+                if (Application.Current.MainWindow is MainWindow mainWindow) // Get main window
+                    mainWindow.Gpupv.IsEnabled = false;
+                Admin.Text = Properties.Resources.Admin2;
                 icons.Glyph = "\xEB90";
                 icons.Foreground = new SolidColorBrush(Colors.Red);
-                status4.Children.Add(icons);
             }
-        });
 
+            Status4.Children.Add(icons);
+        });
     }
 
-    private async void ServerInfo()
+    private async Task ServerInfo()
     {
-
-        var result = Utils.Run("(Get-WmiObject -Class Win32_OperatingSystem).ProductType");
-        Dispatcher.Invoke(() =>
+        var result = await Task.Run(() => Utils.Run("(Get-WmiObject -Class Win32_OperatingSystem).ProductType"));
+        await Dispatcher.InvokeAsync(() =>
         {
-            status5.Children.Remove(progressRing5);
-            FontIcon icons = new FontIcon
+            Status5.Children.Remove(ProgressRing5);
+            var icons = new FontIcon
             {
                 FontSize = 20,
-                FontFamily = (FontFamily)Application.Current.Resources["SegoeFluentIcons"],
+                FontFamily = Application.Current.Resources["SegoeFluentIcons"] as FontFamily ??
+                             new FontFamily("Segoe Fluent Icons"),
                 Glyph = "\xEC61",
-                Foreground = new SolidColorBrush(Color.FromArgb(255, 0, 138, 23)),
+                Foreground = new SolidColorBrush(Color.FromArgb(255, 0, 138, 23))
             };
-            if (result[0].ToString()=="3") { version.Text = ExHyperV.Properties.Resources.Isserver; }
+            if (result.Count > 0 && result[0].ToString() == "3")
+            {
+                Version.Text = Properties.Resources.Isserver;
+            }
             else
             {
-                var ms = Application.Current.MainWindow as MainWindow; //获取主窗口
-                //ms.dda.IsEnabled = false;
-
-                version.Text = ExHyperV.Properties.Resources.ddaa;
+                Version.Text = Properties.Resources.ddaa;
                 icons.Glyph = "\xEB90";
                 icons.Foreground = new SolidColorBrush(Colors.Red);
+
+                // Disable DDA navigation for non-server Windows versions
+                if (Application.Current.MainWindow is MainWindow mainWindow)
+                    mainWindow.Dda.IsEnabled = false;
             }
-            status5.Children.Add(icons);
+
+            Status5.Children.Add(icons);
         });
     }
 
-
-
-    public void Addreg()
+    private void Addgs(object sender, RoutedEventArgs e)
     {
-        // 注册表路径和键名
-        string registryPath = @"HKLM:\SOFTWARE\Policies\Microsoft\Windows\HyperV";
-        string key1 = "RequireSecureDeviceAssignment";
-        string key2 = "RequireSupportedDeviceAssignment";
+        _ = SafeAsyncTask(async () =>
+        {
+            // Ignore programmatic changes to prevent circular event triggering
+            if (_isUpdatingToggle) return;
 
-        // PowerShell 脚本
-        string script = $@"
-        # 确保注册表路径存在，如果不存在，则创建它
-        if (-not (Test-Path '{registryPath}')) {{
-            New-Item -Path '{registryPath}' -Force
-        }}
-
-        # 检查并设置注册表键值
-        if (-not (Test-Path '{registryPath}\\{key1}')) {{
-            Set-ItemProperty -Path '{registryPath}' -Name '{key1}' -Value 0 -Type DWord
-        }}
-
-        if (-not (Test-Path '{registryPath}\\{key2}')) {{
-            Set-ItemProperty -Path '{registryPath}' -Name '{key2}' -Value 0 -Type DWord
-        }}";
-        Utils.Run(script);
+            AddReg();
+            // Small delay to ensure registry operation completes before checking
+            await Task.Delay(100);
+            await CheckReg();
+        });
     }
 
-    public void RemoveReg()
+    private void Deletegs(object sender, RoutedEventArgs e)
     {
-        // 注册表路径和键名
-        string registryPath = @"HKLM:\SOFTWARE\Policies\Microsoft\Windows\HyperV";
-        string key1 = "RequireSecureDeviceAssignment";
-        string key2 = "RequireSupportedDeviceAssignment";
+        _ = SafeAsyncTask(async () =>
+        {
+            // Ignore programmatic changes to prevent circular event triggering
+            if (_isUpdatingToggle) return;
 
-        // PowerShell 脚本
-        string script = $@"
-        Remove-ItemProperty -Path '{registryPath}' -Name '{key1}'
-        Remove-ItemProperty -Path '{registryPath}' -Name '{key2}'
-        Remove-Item -Path '{registryPath}' -Force";
-
-        Utils.Run(script);
-    }
-
-    private void addgs(object sender, RoutedEventArgs e)
-    {
-
-        Addreg();
-        CheckReg();
-    }
-    private void deletegs(object sender, RoutedEventArgs e)
-    {
-        RemoveReg();
-        CheckReg();
+            RemoveReg();
+            // Small delay to ensure registry operation completes before checking
+            await Task.Delay(100);
+            await CheckReg();
+        });
     }
 }

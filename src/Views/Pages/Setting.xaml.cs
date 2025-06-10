@@ -1,131 +1,101 @@
-﻿namespace ExHyperV.Views.Pages;
+﻿using System.Windows.Controls;
+using ExHyperV.Services;
 
-using System.Globalization;
-using System.IO;
-using System.Windows;
-using System.Windows.Controls;
-using System.Xml.Linq;
-using Wpf.Ui.Appearance;
-
+namespace ExHyperV.Views.Pages;
 
 public partial class Setting
 {
-    private const string ConfigFilePath = "config.xml";
-    private bool isInitializing = true; // 标志变量，用于避免死循环
-    public string sp = "none"; //炫彩开关
+    // Private fields
+    private bool _isInitializing = true; // 标志变量，用于避免死循环
+
     public Setting()
     {
         InitializeComponent();
-        if (ApplicationThemeManager.GetAppTheme() == ApplicationTheme.Dark)
-        { 
-            ThemeComboBox.SelectedItem = ThemeComboBox.Items.Cast<ComboBoxItem>().FirstOrDefault(item => item.Content.ToString() == Properties.Resources.dark);
-        }
-        else
-        {
-            ThemeComboBox.SelectedItem = ThemeComboBox.Items.Cast<ComboBoxItem>().FirstOrDefault(item => item.Content.ToString() == Properties.Resources.light);
-        }
 
-        XDocument configDoc = XDocument.Load(ConfigFilePath);
-        string lang = configDoc.Root?.Element("Language")?.Value ?? "en-US"; //获取语言
-
-        switch (lang)
+        // Set theme ComboBox based on current preference
+        var currentTheme = ThemeService.ThemePreference();
+        var targetResource = currentTheme switch
         {
-            case "en-US": 
-                Setcombo("English");
-                break;
-            case "zh-CN": 
-                Setcombo("中文");
-                break;
-            default:
-                Setcombo("English");
-                break;
-        }
+            "Auto" => Properties.Resources.auto,
+            "Light" => Properties.Resources.light,
+            "Dark" => Properties.Resources.dark,
+            _ => Properties.Resources.auto
+        };
+
+        ThemeComboBox.SelectedItem = ThemeComboBox.Items.Cast<ComboBoxItem>()
+            .FirstOrDefault(x => x.Content.ToString() == targetResource);
+
+        // Set language ComboBox based on current language
+        var currentLanguage = LocalizationService.ReadLanguageFromConfig();
+        SetLanguageCombo(currentLanguage);
+
+        // Special skin functionality is not implemented - controls are disabled
     }
-
 
     private void OnThemeSelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        var selectedItem = ThemeComboBox.SelectedItem as ComboBoxItem;
-        if (selectedItem != null)
-        {
-            string theme = selectedItem.Content.ToString();
+        if (ThemeComboBox.SelectedItem is not ComboBoxItem selectedItem) return;
+        var selectedText = selectedItem.Content.ToString();
 
-            if (theme == Properties.Resources.dark)
-            {
-                ApplicationThemeManager.Apply(ApplicationTheme.Dark);
-            }
-            else
-            {
-                ApplicationThemeManager.Apply(ApplicationTheme.Light);
-            }
-        }
+        var themePreference = selectedText switch
+        {
+            _ when selectedText == Properties.Resources.auto => "Auto",
+            _ when selectedText == Properties.Resources.light => "Light",
+            _ when selectedText == Properties.Resources.dark => "Dark",
+            _ => "Auto"
+        };
+
+        // Save preference and apply theme
+        ThemeService.SaveThemePreference(themePreference);
+        ThemeService.ApplyTheme(themePreference);
     }
 
     private void OnLanguageSelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        var selectedItem = LanguageComboBox.SelectedItem as ComboBoxItem;
-        if (selectedItem != null)
+        if (_isInitializing)
         {
-            string theme = selectedItem.Content.ToString();
-
-            if (theme == "中文")
-            {
-                SetLanguage("zh-CN");  // 设置为中文（简体）
-            }
-            else if (theme == "English")
-            {
-                SetLanguage("en-US");  // 设置为英文
-            }
-
-        }
-    }
-
-    
-
-    private void SetLanguage(string languageCode)
-    {
-        if (isInitializing)
-        {
-            isInitializing = false;
+            _isInitializing = false;
             return;
         }
 
-        string configFilePath = "config.xml"; // 或者使用绝对路径
-        if (File.Exists(configFilePath))
+        if (LanguageComboBox.SelectedItem is not ComboBoxItem) return;
+
+        // Map ComboBox index to language code
+        var languageCode = LanguageComboBox.SelectedIndex switch
         {
-            XDocument configDoc = XDocument.Load(configFilePath);
-            var languageElement = configDoc.Root.Element("Language");
+            0 => "zh-CN", // Chinese
+            1 => "en-US", // English
+            _ => "en-US"
+        };
 
-            if (languageElement != null)
-            {
-                languageElement.Value = languageCode;  // 设置新的语言代码
-            }
-            else
-            {
-                configDoc.Root.Add(new XElement("Language", languageCode)); // 如果没有则新增
-            }
-            configDoc.Save(configFilePath);
-        }
-        else
-        {
-            XDocument newConfig = new XDocument(
-                new XElement("Config", new XElement("Language", languageCode))
-            );
-            newConfig.Save(configFilePath);
-        }
-
-        string exePath = System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName;
-
-        // 启动新的应用程序实例
-        System.Diagnostics.Process.Start(exePath);
-
-        // 退出当前应用程序
-        Application.Current.Shutdown();
-
+        ChangeLanguageDynamic(languageCode);
     }
 
-    private void Setcombo(string lang) {
-        LanguageComboBox.SelectedItem = LanguageComboBox.Items.Cast<ComboBoxItem>().FirstOrDefault(item => item.Content.ToString() == lang);
+    private void OnSPskinSelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        // Special skins are not implemented yet - control is disabled
     }
 
+    /// <summary>
+    ///     Changes language dynamically without application restart
+    /// </summary>
+    /// <param name="languageCode">Language code to change to</param>
+    private static void ChangeLanguageDynamic(string languageCode)
+    {
+        // Change language dynamically - UI will update automatically
+        LocalizationService.ChangeLanguage(languageCode);
+    }
+
+    private void SetLanguageCombo(string languageCode)
+    {
+        // Map language code to ComboBox index
+        var index = languageCode switch
+        {
+            "zh-CN" => 0,
+            "en-US" => 1,
+            _ => 1 // Default to English
+        };
+
+        LanguageComboBox.SelectedIndex = index;
+    }
 }

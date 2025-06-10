@@ -3,20 +3,20 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-    xmlns:local="clr-namespace:ExHyperV.Views.Pages"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
-    xmlns:properties="clr-namespace:ExHyperV.Properties"
+
+    xmlns:markup="clr-namespace:ExHyperV.Markup"
     Title="Setting"
     d:DesignHeight="700"
     d:DesignWidth="1000"
     mc:Ignorable="d">
-    
+
     <StackPanel Margin="15,15,15,24">
         <ui:TextBlock
             Margin="0,0,0,8"
             FontTypography="BodyStrong"
-            Text="{x:Static properties:Resources.Settings}" />
+            Text="{markup:Localized Settings}" />
         <ui:CardControl Margin="0,0,0,12" Icon="{ui:SymbolIcon Color24}">
             <ui:CardControl.Header>
                 <Grid>
@@ -27,20 +27,20 @@
                     <ui:TextBlock
                         Grid.Row="0"
                         FontTypography="Body"
-                        Text="{x:Static properties:Resources.theme}" />
+                        Text="{markup:Localized theme}" />
                     <ui:TextBlock
                         Grid.Row="1"
                         Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"
-                        Text="{x:Static properties:Resources.switchtheme}" />
+                        Text="{markup:Localized switchtheme}" />
                 </Grid>
             </ui:CardControl.Header>
             <ComboBox
                 x:Name="ThemeComboBox"
-                Grid.Column="1"
                 MinWidth="200"
                 SelectionChanged="OnThemeSelectionChanged">
-                <ComboBoxItem Content="{x:Static properties:Resources.light}" />
-                <ComboBoxItem Content="{x:Static properties:Resources.dark}" />
+                <ComboBoxItem Content="{markup:Localized auto}" />
+                <ComboBoxItem Content="{markup:Localized light}" />
+                <ComboBoxItem Content="{markup:Localized dark}" />
             </ComboBox>
         </ui:CardControl>
 
@@ -54,20 +54,46 @@
                     <ui:TextBlock
                         Grid.Row="0"
                         FontTypography="Body"
-                        Text="{x:Static properties:Resources.language}" />
+                        Text="{markup:Localized language}" />
                     <ui:TextBlock
                         Grid.Row="1"
                         Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"
-                        Text="{x:Static properties:Resources.reboot}" />
+                        Text="{markup:Localized LanguageChangeImmediate}" />
                 </Grid>
             </ui:CardControl.Header>
             <ComboBox
                 x:Name="LanguageComboBox"
-                Grid.Column="1"
                 MinWidth="200"
                 SelectionChanged="OnLanguageSelectionChanged">
-                <ComboBoxItem Content="中文" />
-                <ComboBoxItem Content="English" />
+                <ComboBoxItem Content="{markup:Localized ChineseLanguageName}" />
+                <ComboBoxItem Content="{markup:Localized EnglishLanguageName}" />
+            </ComboBox>
+        </ui:CardControl>
+
+        <ui:CardControl Margin="0,0,0,12" Icon="{ui:SymbolIcon BookStar24}" IsEnabled="False">
+            <ui:CardControl.Header>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <ui:TextBlock
+                        Grid.Row="0"
+                        FontTypography="Body"
+                        Text="{markup:Localized SpecialSkin}" />
+                    <ui:TextBlock
+                        Grid.Row="1"
+                        Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"
+                        Text="{markup:Localized SpecialSkinDescription}" />
+                </Grid>
+            </ui:CardControl.Header>
+            <ComboBox
+                MinWidth="200"
+                IsEnabled="False"
+                ToolTip="SP皮肤功能正在开发中"
+                SelectionChanged="OnSPskinSelectionChanged">
+                <ComboBoxItem Content="{markup:Localized ClassicTheme}" IsEnabled="False" />
+                <ComboBoxItem Content="{markup:Localized ColorfulTheme}" IsEnabled="False" />
             </ComboBox>
         </ui:CardControl>
 
@@ -75,7 +101,7 @@
         <ui:TextBlock
             Margin="0,24,0,8"
             FontTypography="BodyStrong"
-            Text="{x:Static properties:Resources.about}" />
+            Text="{markup:Localized about}" />
         <ui:CardExpander ContentPadding="0" Icon="{ui:SymbolIcon Layer24}" IsExpanded="True">
             <ui:CardExpander.Header>
                 <Grid>
@@ -96,7 +122,7 @@
                         Grid.Row="1"
                         Grid.Column="0"
                         Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"
-                        Text="© 2025 | Saniye" />
+                        Text="{markup:Localized Copyright}" />
                 </Grid>
             </ui:CardExpander.Header>
             <StackPanel>
@@ -114,7 +140,7 @@
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Text="{x:Static properties:Resources.report}" />
+                        <TextBlock Grid.Column="0" Text="{markup:Localized report}" />
                         <ui:SymbolIcon Grid.Column="1" Symbol="Link24" />
                     </Grid>
                 </ui:Anchor>
@@ -132,7 +158,7 @@
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Text="{x:Static properties:Resources.github}" />
+                        <TextBlock Grid.Column="0" Text="{markup:Localized github}" />
                         <ui:SymbolIcon Grid.Column="1" Symbol="Link24" />
                     </Grid>
                 </ui:Anchor>

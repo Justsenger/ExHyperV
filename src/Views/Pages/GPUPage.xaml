@@ -1,12 +1,11 @@
 <Page
-    x:Class="ExHyperV.Views.Pages.GPUPage"
+    x:Class="ExHyperV.Views.Pages.GpuPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-    xmlns:local="clr-namespace:ExHyperV.Views.Pages"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
-    xmlns:properties="clr-namespace:ExHyperV.Properties"
+    xmlns:markup="clr-namespace:ExHyperV.Markup"
     Title="GPUPage"
     d:DesignHeight="700"
     d:DesignWidth="1000"
@@ -14,54 +13,58 @@
 
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="2"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="2" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
-        <ProgressBar Grid.Row="0" x:Name="progressbar" IsIndeterminate="True"/>
+        <ProgressBar Grid.Row="0" x:Name="Progressbar" IsIndeterminate="True" />
 
         <Grid Grid.Row="1">
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
             <ui:Card VerticalAlignment="Top" Padding="12" Margin="10,10,10,0">
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Top" Grid.Column="0">
-                    <ui:FontIcon FontSize="24" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xF211;"/>
-                    <TextBlock Text="{x:Static properties:Resources.installedcard}" Margin="10,0,0,0" FontSize="16"/>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Top">
+                    <ui:FontIcon FontSize="24" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xF211;" />
+                    <TextBlock Text="{markup:Localized installedcard}" Margin="10,0,0,0" FontSize="16" />
                 </StackPanel>
             </ui:Card>
-            <Grid x:Name="main" Grid.Row="1"></Grid>
+            <Grid x:Name="Main" Grid.Row="1" />
 
         </Grid>
         <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition />
+                <ColumnDefinition />
+            </Grid.ColumnDefinitions>
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
             <ui:Card VerticalAlignment="Top" Padding="10" Grid.Column="0" Margin="10,10,10,0" Grid.ColumnSpan="2">
                 <Grid>
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"></ColumnDefinition>
-                        <ColumnDefinition Width="*"></ColumnDefinition>
-                        <ColumnDefinition Width="Auto"></ColumnDefinition>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
-                    <ui:FontIcon FontSize="24" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xE7C4;"/>
-                    <TextBlock Grid.Column="1" VerticalAlignment="Center" Text="{x:Static properties:Resources.vmlist}" Margin="10,0,0,0" FontSize="16"/>
-                    <ui:Button Grid.Column="2" Content="{x:Static properties:Resources.refresh}" Margin="0,0,30,0" Click="vmrefresh"></ui:Button>
+                    <ui:FontIcon FontSize="24" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xE7C4;" />
+                    <TextBlock Grid.Column="1" VerticalAlignment="Center" Text="{markup:Localized vmlist}"
+                               Margin="10,0,0,0" FontSize="16" />
+                    <ui:Button Grid.Column="2" Content="{markup:Localized refresh}" Margin="0,0,30,0"
+                               Click="VmRefresh" />
 
                 </Grid>
             </ui:Card>
 
-            <Grid x:Name="vms" Grid.ColumnSpan="2" Margin="0,63,0,0"/>
+            <Grid x:Name="Vms" Grid.Row="0" Grid.ColumnSpan="2" Grid.Column="0" Margin="0,63,0,0" />
 
         </Grid>
 
 
     </Grid>
-
-
 
 
 </Page>

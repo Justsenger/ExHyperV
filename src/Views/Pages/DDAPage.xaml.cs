@@ -1,445 +1,489 @@
-using System.Windows.Controls;
-namespace ExHyperV.Views.Pages;
-using System;
-using System.Collections.Generic;
-using System.Management.Automation;
 using System.Windows;
+using System.Windows.Controls;
+using ExHyperV.Models;
 using Wpf.Ui.Controls;
+using MenuItem = Wpf.Ui.Controls.MenuItem;
+using MessageBox = System.Windows.MessageBox;
+using TextBlock = Wpf.Ui.Controls.TextBlock;
 
-public partial class DDAPage
+namespace ExHyperV.Views.Pages;
+
+public partial class DdaPage
 {
-    public bool refreshlock = false;
+    private bool _refreshlock;
 
-    public DDAPage()
+    public DdaPage()
     {
         InitializeComponent();
-        Task.Run(() => IsServer());
-        Task.Run(() => Initialinfo()); //»ñÈ¡Éè±¸ÐÅÏ¢
-                }
-                public class DeviceInfo
+        Task.Run(IsServerAsync);
+        Task.Run(InitialInfoAsync); // Get device information
+    }
+
+    private void DdArefresh(object? sender, RoutedEventArgs? e)
+    {
+        RefreshDevices();
+    }
+
+    private void RefreshDevices()
+    {
+        if (_refreshlock) return;
+        _refreshlock = true;
+        ProgressRing.Visibility = Visibility.Visible; //ï¿½ï¿½Ê¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        Task.Run(InitialInfoAsync); //ï¿½ï¿½È¡ï¿½è±¸ï¿½ï¿½Ï¢
+    }
+
+    private async Task IsServerAsync()
+    {
+        var result = Utils.Run("(Get-WmiObject -Class Win32_OperatingSystem).ProductType");
+        await Dispatcher.InvokeAsync(() =>
+        {
+            if (result.Count > 0 && result[0].ToString() == "3") Isserver.IsOpen = false; //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½æ±¾ï¿½ï¿½ï¿½Ø±ï¿½ï¿½ï¿½Ê¾
+        });
+    }
+
+    private async Task InitialInfoAsync()
+    {
+        var deviceList = new List<DeviceInfo>();
+        await DeviceInfoAsync(deviceList); //ï¿½ï¿½È¡ï¿½ï¿½ï¿½ï¿½
+
+        await Dispatcher.InvokeAsync(() => //ï¿½ï¿½ï¿½ï¿½UI
+        {
+            ParentPanel.Children.Clear();
+            ProgressRing.Visibility = Visibility.Collapsed; //ï¿½ï¿½ï¿½Ø¼ï¿½ï¿½ï¿½ï¿½ï¿½
+            foreach (var device in deviceList) //ï¿½ï¿½ï¿½ï¿½UI
+            {
+                var cardExpander = Utils.CardExpander1();
+                cardExpander.Icon = Utils.FontIcon1(device.ClassType, device.FriendlyName);
+                Grid.SetRow(cardExpander, ParentPanel.RowDefinitions.Count);
+                ParentPanel.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // Add a new row
+
+                var headerGrid =
+                    new Grid(); // Create header Grid layout with two columns: first column takes remaining space, second column for buttons
+                headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+                var drivername = Utils.CreateHeaderTextBlock(device.FriendlyName);
+                Grid.SetColumn(drivername, 0);
+                headerGrid.Children.Add(drivername);
+
+                var menu = Utils.DropDownButton1(device.Status); //ï¿½Ò²à°´Å¥
+                Grid.SetColumn(menu, 1); // ï¿½ï¿½ï¿½Ó°ï¿½Å¥ï¿½ï¿½ï¿½Ú¶ï¿½ï¿½ï¿½
+
+                var contextMenu = new ContextMenu();
+                contextMenu.Items.Add(CreateMenuItem(Properties.Resources.Host, menu, device));
+                foreach (var vmName in device.VmNames)
+                    contextMenu.Items.Add(CreateMenuItem(vmName, menu, device));
+
+                menu.Flyout = contextMenu;
+                headerGrid.Children.Add(menu);
+                cardExpander.Header = headerGrid;
+
+
+                var contentPanel = new StackPanel { Margin = new Thickness(50, 10, 0, 0) };
+
+                var grid = new Grid();
+
+                grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(125) });
+                grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(32) });
+                grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(32) });
+                grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(32) });
+
+                var textData = new TextData[]
                 {
-                    public string FriendlyName { get; set; }
-                    public string Status { get; set; }
-                    public string ClassType { get; set; }
-                    public string InstanceId { get; set; }
-                    public string Path { get; set; }
-                    public List<string> VmNames { get; set; }  // ´æ´¢ÐéÄâ»úÃû³ÆÁÐ±í
+                    new(Properties.Resources.kind, 0, 0),
+                    new(Properties.Resources.Instanceid, 1, 0),
+                    new(Properties.Resources.path, 2, 0),
+                    new(device.ClassType, 0, 1),
+                    new(device.InstanceId, 1, 1),
+                    new(device.Path, 2, 1)
+                };
 
-                    // ¹¹Ôìº¯Êý
-                    public DeviceInfo(string friendlyName, string status, string classType, string instanceId,List<string> vmNames,string path)
-                    {
-                        FriendlyName = friendlyName;
-                        Status = status;
-                        ClassType = classType;
-                        InstanceId = instanceId;
-                        VmNames = vmNames; 
-                        Path = path;
-                    }
-                }
-                
-
-                private async void IsServer()
+                foreach (var textItem in textData)
                 {
-
-                    var result = Utils.Run("(Get-WmiObject -Class Win32_OperatingSystem).ProductType");
-                    Dispatcher.Invoke(() =>
-                    {
-                        if (result[0].ToString()=="3") { Isserver.IsOpen = false; } //·þÎñÆ÷°æ±¾£¬¹Ø±ÕÌáÊ¾
-                    });
+                    var textBlock = Utils.CreateGridTextBlock(textItem.Text, textItem.Row, textItem.Column);
+                    grid.Children.Add(textBlock);
                 }
 
-                private async void Initialinfo(){
-                    List<DeviceInfo> deviceList = new List<DeviceInfo>();
-                    await GetInfo(deviceList); //»ñÈ¡Êý¾Ý
+                contentPanel.Children.Add(grid);
+                cardExpander.Content = contentPanel;
+                ParentPanel.Children.Add(cardExpander);
+            }
 
-                    Dispatcher.Invoke(() => //¸üÐÂUI
+            _refreshlock = false;
+        });
+    }
+
+    private async Task DdAps(DropDownButton menu, ContentDialog dialog, TextBlock contentTextBlock, string vmname,
+        string instanceId, string path, string nowname)
+    {
+        var commandData = DdaCommands(vmname, instanceId, path, nowname); //Í¨ï¿½ï¿½ï¿½ï¿½Ôªï¿½ï¿½ï¿½È¡ï¿½ï¿½Ó¦ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢ï¿½ï¿½Ê¾
+        for (var i = 0; i < commandData.Messages.Length; i++)
+        {
+            await Application.Current.Dispatcher.InvokeAsync(() =>
+                contentTextBlock.Text = commandData.Messages[i]); //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¾
+            await Task.Delay(200); //ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½Ê¾ï¿½ï¿½ï¿½ï¿½
+
+            var logOutput = await Utils.RunAsyncAsStrings(commandData.Commands[i]); //Ö´ï¿½ï¿½ï¿½ï¿½ï¿½î£¬ï¿½ï¿½ï¿½ï¿½È¡ï¿½ï¿½Ö¾
+
+            if (await ProcessCommandResult(logOutput, contentTextBlock, dialog))
+                return; // ï¿½Ë³ï¿½Ñ­ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        }
+
+        await ShowSuccessResult(menu, contentTextBlock, dialog, vmname);
+    }
+
+
+    private static Task DeviceInfoAsync(List<DeviceInfo> deviceList)
+    {
+        return Task.Run(() =>
+        {
+            try
+            {
+                var vmdevice = new Dictionary<string, string>(); // Store VM-related PCIP device list
+                var vmNameList = new List<string>(); // Store VM list
+                Utils.Run("Set-ExecutionPolicy RemoteSigned -Scope Process -Force"); // Set policy
+                Utils.Run("Import-Module PnpDevice");
+
+                // 1. Get VM information and devices that have been assigned, store their names for later retrieval
+
+                //ï¿½ï¿½ï¿½ï¿½Ç·ï¿½×°hyperv
+                var hypervstatus = Utils.Run("Get-Module -ListAvailable -Name Hyper-V");
+
+                if (hypervstatus.Count != 0) //ï¿½Ñ°ï¿½×°
+                {
+                    //ï¿½ï¿½È¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢
+                    var vmdata = Utils.Run("Get-VM | Select-Object Name");
+                    foreach (var vm in vmdata)
                     {
-                        ParentPanel.Children.Clear();
-                        progressRing.Visibility = Visibility.Collapsed; //Òþ²Ø¼ÓÔØÌõ
-                        foreach (var device in deviceList) //¸üÐÂUI
+                        var name = vm.Members["Name"]?.Value?.ToString();
+
+                        if (!string.IsNullOrEmpty(name))
+                            vmNameList.Add(name); // Add to list if name is not empty
+
+                        var deviceData =
+                            Utils.Run(
+                                $"Get-VMAssignableDevice -VMName '{name}' | Select-Object InstanceID"); // Get VM device list
+
+                        if (deviceData.Count == 0) continue;
+
+                        foreach (var device in deviceData)
                         {
-                            var cardExpander = Utils.CardExpander1();
-                            cardExpander.Icon = Utils.FontIcon1(device.ClassType, device.FriendlyName);
-                            Grid.SetRow(cardExpander, ParentPanel.RowDefinitions.Count);
-                            ParentPanel.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });  // Ôö¼ÓÐÂµÄÒ»ÐÐ
-
-                            var headerGrid = new Grid(); // ´´½¨ header µÄ Grid ²¼¾Ö£¬°üº¬Á½ÁÐ£¬µÚÒ»ÁÐÕ¼ÂúÊ£Óà¿Õ¼ä£¬µÚ¶þÁÐ¸ù¾ÝÄÚÈÝ×ÔÊÊÓ¦¿í¶È
-                            headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-                            headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-
-                            var drivername = Utils.TextBlock1(device.FriendlyName); //Éè±¸Ãû
-                            Grid.SetColumn(drivername, 0); // Ìí¼Óµ½µÚÒ»ÁÐ
-                            headerGrid.Children.Add(drivername);
-
-                            var Menu = Utils.DropDownButton1(device.Status); //ÓÒ²à°´Å¥
-                            Grid.SetColumn(Menu, 1); // Ìí¼Ó°´Å¥µ½µÚ¶þÁÐ
-
-                            var contextMenu = new ContextMenu();
-                            contextMenu.Items.Add(CreateMenuItem(ExHyperV.Properties.Resources.Host)); //µ¥¶ÀÌí¼ÓÒ»¸öÖ÷»úÑ¡Ïî£¬ºÍºóÃæµÄÐéÄâ»úÁÐ±íÈÚºÏ
-                            foreach (var vmName in device.VmNames)
-                            {
-                                contextMenu.Items.Add(CreateMenuItem(vmName));
-                            }
-                            MenuItem CreateMenuItem(string header)
-                            {
-                                var item = new MenuItem { Header = header };
-                                item.Click += async (s, e) =>
-                                {
-                                    if ((String)Menu.Content != header) // µ±ÓÃ»§Ñ¡Ïî²»µÈÓÚÄ¿Ç°µÄÑ¡ÏîÊ±
-                                    {
-                                        TextBlock contentTextBlock = new TextBlock
-                                        {
-                                            Text = ExHyperV.Properties.Resources.string5,
-                                            HorizontalAlignment = HorizontalAlignment.Center, // Ë®Æ½¾ÓÖÐ
-                                            VerticalAlignment = VerticalAlignment.Center,     // ´¹Ö±¾ÓÖÐ
-                                            TextWrapping = TextWrapping.Wrap                  // ÔÊÐíÎÄ±¾»»ÐÐ
-                                        };
-
-                                        ContentDialog Dialog = new()
-                                        {
-                                            Title = ExHyperV.Properties.Resources.setting,
-                                            Content = contentTextBlock,
-                                            CloseButtonText = ExHyperV.Properties.Resources.wait,
-                                        };
-
-                                        Dialog.Closing += (sender, args) => { args.Cancel = true; };// ½ûÖ¹ÓÃ»§µã»÷°´Å¥´¥·¢¹Ø±ÕÊÂ¼þ
-                                        Dialog.DialogHost = ((MainWindow)Application.Current.MainWindow).ContentPresenterForDialogs;
-
-                                        Dialog.ShowAsync(CancellationToken.None); //ÏÔÊ¾ÌáÊ¾¿ò ²»ÄÜÐ´Îªawait
-
-                                        await DDAps(Menu, Dialog, contentTextBlock, header, device.InstanceId, device.Path, (String)Menu.Content); //Ö´ÐÐÃüÁîÐÐ
-                                    }
-                                };
-                                return item;
-                            }
-                            Menu.Flyout = contextMenu;
-                            headerGrid.Children.Add(Menu);
-                            cardExpander.Header = headerGrid;
-
-                            // ÏêÏ¸Êý¾Ý
-                            var contentPanel = new StackPanel { Margin = new Thickness(50, 10, 0, 0) };
-
-                            var grid = new Grid();
-                            // ¶¨Òå Grid µÄÁÐºÍÐÐ
-                            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(125) });
-                            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-                            grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(32) });
-                            grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(32) });
-                            grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(32) });
-
-                            var textData = new (string text, int row, int column)[]
-                            {
-                                (ExHyperV.Properties.Resources.kind, 0, 0),
-                                (ExHyperV.Properties.Resources.Instanceid, 1, 0),
-                                (ExHyperV.Properties.Resources.path, 2, 0),
-                                (device.ClassType, 0, 1),
-                                (device.InstanceId, 1, 1),
-                                (device.Path, 2, 1),
-                            };
-
-                            foreach (var (text, row, column) in textData)
-                            {
-                                var textBlock = Utils.TextBlock2(text, row, column);
-                                grid.Children.Add(textBlock);
-                            }
-
-                            contentPanel.Children.Add(grid);
-                            cardExpander.Content = contentPanel;
-                            ParentPanel.Children.Add(cardExpander);
+                            var instanceIdValue = device.Members["InstanceID"]?.Value?.ToString();
+                            if (string.IsNullOrEmpty(instanceIdValue) || instanceIdValue.Length <= 4) continue;
+                            var instanceId = instanceIdValue[4..];
+                            if (!string.IsNullOrEmpty(instanceId) && !string.IsNullOrEmpty(name))
+                                vmdevice[instanceId] = name; // Store InstanceID and VMName as key-value pair
                         }
-                        refreshlock = false;
-                    });
+                    }
                 }
-                private async Task DDAps(DropDownButton menu,ContentDialog dialog,TextBlock contentTextBlock,string Vmname,string instanceId,string path,string Nowname)
+                // If HyperV module is not installed, VM information cannot be retrieved, but this doesn't affect hardware retrieval
+
+                // Get PCIP device information
+                var pcipData =
+                    Utils.Run(
+                        "Get-PnpDevice | Where-Object { $_.InstanceId -like 'PCIP\\*' } | Select-Object Class, InstanceId, FriendlyName, Status");
+                if (pcipData is { Count: > 0 })
                 {
-                    var (psCommands, messages) = DDACommands(Vmname,instanceId,path,Nowname); //Í¨¹ýËÄÔª×é»ñÈ¡¶ÔÓ¦µÄÃüÁîºÍÏûÏ¢ÌáÊ¾
-                    for (int i = 0; i < messages.Length; i++)
-                    {
-                        Application.Current.Dispatcher.Invoke(() =>{contentTextBlock.Text = messages[i];}); //¸üÐÂÌáÊ¾
-                        Thread.Sleep(200); //ÒýÈëÒ»¶¨µÄÑÓÊ±£¬ÏÔÊ¾²½Öè
-                        //System.Windows.MessageBox.Show("Ö´ÐÐµÄÃüÁî£º"+psCommands[i]);
-
-                        var logOutput = await DDAps(psCommands[i]); //Ö´ÐÐÃüÁî£¬²¢»ñÈ¡ÈÕÖ¾
-
-                        //System.Windows.MessageBox.Show("ÒÑ¾­»ñÈ¡µ½ÈÕÖ¾");
-                        if (logOutput.Any(log => log.Contains("Error")))
+                    var pcipInstances = pcipData
+                        .Where(x => x.Members is not null)
+                        .Select(pcip => new
                         {
-                            Application.Current.Dispatcher.Invoke(() =>
-                            {
-                                contentTextBlock.Text += "\n"+ string.Join(Environment.NewLine, logOutput); // ¸½¼ÓÒ»ÌõÖÐ¶ÏÐÅÏ¢
-                                dialog.CloseButtonText = "OK"; // ¸üÐÂ°´Å¥ÎÄ±¾
-                                dialog.Closing += (sender, args) => { args.Cancel = false; }; //ÔÊÐíÓÃ»§µã»÷¹Ø±Õ
-                                DDArefresh(null, null);
-                            });
-                            return;// ÍË³öÑ­»·
-
-                        }
-                    }
-                    
-                    Application.Current.Dispatcher.Invoke(() =>
-                    {
-                        menu.Content = Vmname;
-                        contentTextBlock.Text = ExHyperV.Properties.Resources.operated;
-                        dialog.CloseButtonText = ExHyperV.Properties.Resources.OK; // ¸üÐÂ°´Å¥ÎÄ±¾
-                        dialog.Closing += (sender, args) => { args.Cancel = false; };// ÔÊÐíÓÃ»§¹Ø±Õ
-                        DDArefresh(null, null);
-                    });
-                }
-                private async Task<List<string>> DDAps(string psCommand)
-                {
-                    List<string> logOutput = new List<string>();
-                    try{
-                        var powerShell = PowerShell.Create(); // ´´½¨ PowerShell »á»°²¢Ö´ÐÐÃüÁî
-                        powerShell.AddScript(psCommand); // Ìí¼Ó PowerShell ½Å±¾
-                        var result = await Task.Run(() => powerShell.Invoke());// Òì²½Ö´ÐÐÃüÁî
-                        foreach (var item in result)// ½«Êä³öÌí¼Óµ½ logOutput ÁÐ±í
-                        { logOutput.Add(item.ToString());}// ½«Ã¿¸öÊä³öÏîÌí¼Óµ½ÈÕÖ¾ÁÐ±íÖÐ
-                        var errorStream = powerShell.Streams.Error.ReadAll(); // ¼ì²é±ê×¼´íÎóÊä³öÁ÷£¬¿´ÊÇ·ñ²¶×½µ½´íÎó
-                        if (errorStream.Count > 0)
-                        {foreach (var error in errorStream){logOutput.Add($"Error: {error.ToString()}");}}// ½«´íÎóÐÅÏ¢Ìí¼Óµ½ÈÕÖ¾
-                    }
-                    catch (Exception ex){logOutput.Add($"Error: {ex.Message}");}//ÒâÁÏÖ®ÍâµÄ´íÎó
-                    return logOutput; // ·µ»ØÈÕÖ¾Êä³ö
-                }
-                private async Task GetInfo(List<DeviceInfo> deviceList)
-                {
-                    try
-                    {
-                        using (PowerShell PowerShellInstance = PowerShell.Create())
+                            Pcip = pcip,
+                            InstanceIdValue = pcip.Members["InstanceId"]?.Value?.ToString()
+                        })
+                        .Where(x => !string.IsNullOrEmpty(x.InstanceIdValue) && x.InstanceIdValue.Length > 4)
+                        .Select(x => new
                         {
-                            Dictionary<string, string> vmdevice = new Dictionary<string, string>(); //´æ´¢ÐéÄâ»ú¹ÒÔØµÄPCIPÉè±¸ÁÐ±í
-                            List<string> vmNameList = new List<string>() ;// ´æ´¢ÐéÄâ»úÁÐ±í
-                            PowerShellInstance.AddScript("Set-ExecutionPolicy RemoteSigned -Scope Process -Force"); //ÉèÖÃ²ßÂÔ
-                            PowerShellInstance.AddScript("Import-Module PnpDevice");
+                            x.Pcip,
+                            InstanceId = x.InstanceIdValue![4..]
+                        })
+                        .Where(x => !string.IsNullOrEmpty(x.InstanceId)
+                                    && !vmdevice.ContainsKey(x.InstanceId)
+                                    && x.Pcip.Members["Status"]?.Value?.ToString() == "OK");
 
-                            //1.»ñÈ¡ÐéÄâ»úÏà¹ØÐÅÏ¢£¬½«ÒÑ¾­·ÖÅäÁËµÄÉè±¸´æÈë×ÖµäÒÔ±ãºóÐø¶ÁÈ¡¡£
+                    foreach (var instanceId in pcipInstances.Select(item => item.InstanceId)
+                                 .Where(id => !string.IsNullOrEmpty(id)))
+                        vmdevice[instanceId] = Properties.Resources.removed;
+                }
 
-                            //¼ì²éÊÇ·ñ°²×°hyperv
-                            var hypervstatus =Utils.Run("Get-Module -ListAvailable -Name Hyper-V");
+                // ï¿½ï¿½È¡ PCI ï¿½è±¸ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½Òªï¿½ï¿½ï¿½Ñ¯ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ü»ï¿½È¡ï¿½ï¿½ï¿½ï¿½ï¿½è±¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢ï¿½ï¿½
+                const string scripts = """
 
-                            if (hypervstatus.Count != 0) //ÒÑ°²×°
-                            {
-                                //»ñÈ¡ÐéÄâ»úÐÅÏ¢
-                                var vmdata = Utils.Run(@"Get-VM | Select-Object Name");
-                                foreach (var vm in vmdata)
-                                {
-                                    var Name = vm.Members["Name"]?.Value?.ToString();
+                                                                   $maxRetries = 10
+                                                                   $retryIntervalSeconds = 1
 
-                                    if (!string.IsNullOrEmpty(Name)){vmNameList.Add(Name);}//Ãû×Ö²»Îª¿ÕÔòÌí¼Ó¸ÃÐéÄâ»ú
+                                                                   $pciDevices = Get-PnpDevice | Where-Object { $_.InstanceId -like 'PCI\*' }
+                                                                   $allInstanceIds = $pciDevices.InstanceId
+                                                                   $pathMap = @{}
 
-                                    var deviceData = Utils.Run($@"Get-VMAssignableDevice -VMName '{Name}' | Select-Object InstanceID");//»ñÈ¡ÐéÄâ»úµÄÉè±¸ÁÐ±í
+                                                                   Get-PnpDeviceProperty -InstanceId $allInstanceIds -KeyName DEVPKEY_Device_LocationPaths -ErrorAction SilentlyContinue |
+                                                                       ForEach-Object {
+                                                                           if ($_.Data -and $_.Data.Count -gt 0) {
+                                                                               $pathMap[$_.InstanceId] = $_.Data[0]
+                                                                           }
+                                                                       }
 
-                                    if (deviceData != null && deviceData.Count > 0)
-                                    {
-                                        foreach (var device in deviceData)
-                                        {
-                                            var instanceId = device.Members["InstanceID"]?.Value?.ToString().Substring(4);
-                                            if (!string.IsNullOrEmpty(instanceId) && !string.IsNullOrEmpty(Name))
-                                            {
-                                                vmdevice[instanceId] = Name; // ½« InstanceID ºÍ VMName ´æÈë×Öµä
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                            //Èç¹ûÃ»ÓÐ°²×°HyperVÄ£¿é£¬ÔòÎÞ·¨»ñÈ¡VMÐÅÏ¢£¬µ«²»Ó°ÏìÕý³£µÄÓ²¼þ¶ÁÈ¡¡£
+                                                                   $idsNeedingPath = $allInstanceIds | Where-Object { -not $pathMap.ContainsKey($_) }
+                                                                   $attemptCount = 0
 
-                            //»ñÈ¡ PCIP Éè±¸ÐÅÏ¢
-                            var PCIPData = Utils.Run("Get-PnpDevice | Where-Object { $_.InstanceId -like 'PCIP\\*' } | Select-Object Class, InstanceId, FriendlyName, Status");
-                            if (PCIPData != null && PCIPData.Count > 0)
-                            {
-                                foreach (var PCIP in PCIPData)
-                                {
-                                    var instanceId = PCIP.Members["InstanceId"]?.Value?.ToString().Substring(4); //»ñÈ¡PCIPºóÃæµÄ±àºÅ
-                                    //Èç¹ûÂú×ãÌõ¼þ£º¸ÃÉè±¸Î´·ÖÅä¸øÐéÄâ»ú+PCIP×´Ì¬µÈÓÚOK£¬ÔòËµÃ÷²¢Î´·ÖÅä¸øÖ÷»ú£¬´¦ÓÚÐ¶³ýÌ¬¡£
-                                    if (!vmdevice.ContainsKey(instanceId)&& PCIP.Members["Status"]?.Value?.ToString()=="OK"&&!string.IsNullOrEmpty(instanceId)) //×´Ì¬ÎªOK£¬·Ç¿Õ
-                                    {vmdevice[instanceId] = ExHyperV.Properties.Resources.removed; }
-                                }
-                            }
+                                                                   while (($idsNeedingPath.Count -gt 0) -and ($attemptCount -lt $maxRetries)) {
+                                                                       $attemptCount++
+                                                                       
+                                                                       Get-PnpDeviceProperty -InstanceId $idsNeedingPath -KeyName DEVPKEY_Device_LocationPaths -ErrorAction SilentlyContinue |
+                                                                           ForEach-Object {
+                                                                               if ($_.Data -and $_.Data.Count -gt 0) {
+                                                                                   $pathMap[$_.InstanceId] = $_.Data[0]
+                                                                               }
+                                                                           }
+                                                                       
+                                                                       $idsNeedingPath = $allInstanceIds | Where-Object { -not $pathMap.ContainsKey($_) }
 
-                            // »ñÈ¡ PCI Éè±¸ÐÅÏ¢¡£ÐèÒª¶à²éÑ¯¼¸±é²ÅÄÜ»ñÈ¡ËùÓÐÉè±¸µÄÍêÕûÐÅÏ¢¡£
-                            string scripts = @"
-                            $maxRetries = 10
-                            $retryIntervalSeconds = 1
+                                                                       if (($idsNeedingPath.Count -gt 0) -and ($attemptCount -lt $maxRetries)) {
+                                                                           Start-Sleep -Seconds $retryIntervalSeconds
+                                                                       }
+                                                                   }
 
-                            $pciDevices = Get-PnpDevice | Where-Object { $_.InstanceId -like 'PCI\*' }
-                            $allInstanceIds = $pciDevices.InstanceId
-                            $pathMap = @{}
+                                                                   $pciDevices | 
+                                                                       Select-Object Class, InstanceId, FriendlyName, Status, Service |
+                                                                       ForEach-Object {
+                                                                           $_ | Add-Member -NotePropertyName 'Path' -NotePropertyValue $pathMap[$_.InstanceId] -Force
+                                                                           $_ 
+                                                                       }
+                                       """;
 
-                            Get-PnpDeviceProperty -InstanceId $allInstanceIds -KeyName DEVPKEY_Device_LocationPaths -ErrorAction SilentlyContinue |
-                                ForEach-Object {
-                                    if ($_.Data -and $_.Data.Count -gt 0) {
-                                        $pathMap[$_.InstanceId] = $_.Data[0]
-                                    }
-                                }
+                var pcidata = Utils.Run(scripts);
+                var deviceResults = pcidata
+                    .Where(x => x.Members is not null) // ï¿½ï¿½ï¿½Ëµï¿½Îªï¿½Õµï¿½Ôªï¿½ï¿½
+                    .OrderBy(x => x.Members["Service"]?.Value?.ToString()?[0]) // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ò£¬¼ï¿½Class ï¿½Ö¶ï¿½ï¿½ï¿½ï¿½ï¿½Ä¸
+                    .Select(result => new
+                    {
+                        FriendlyName = result.Members["FriendlyName"]?.Value?.ToString(),
+                        Status = result.Members["Status"]?.Value?.ToString(),
+                        ClassType = result.Members["Class"]?.Value?.ToString(),
+                        InstanceId = result.Members["InstanceId"]?.Value?.ToString(),
+                        Path = result.Members["Path"]?.Value?.ToString(),
+                        Service = result.Members["Service"]?.Value?.ToString()
+                    })
+                    .Where(x => x.Service is not ("pci" or null)); // ï¿½Å³ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½è±¸
 
-                            $idsNeedingPath = $allInstanceIds | Where-Object { -not $pathMap.ContainsKey($_) }
-                            $attemptCount = 0
-
-                            while (($idsNeedingPath.Count -gt 0) -and ($attemptCount -lt $maxRetries)) {
-                                $attemptCount++
-                                
-                                Get-PnpDeviceProperty -InstanceId $idsNeedingPath -KeyName DEVPKEY_Device_LocationPaths -ErrorAction SilentlyContinue |
-                                    ForEach-Object {
-                                        if ($_.Data -and $_.Data.Count -gt 0) {
-                                            $pathMap[$_.InstanceId] = $_.Data[0]
-                                        }
-                                    }
-                                
-                                $idsNeedingPath = $allInstanceIds | Where-Object { -not $pathMap.ContainsKey($_) }
-
-                                if (($idsNeedingPath.Count -gt 0) -and ($attemptCount -lt $maxRetries)) {
-                                    Start-Sleep -Seconds $retryIntervalSeconds
-                                }
-                            }
-
-                            $pciDevices | 
-                                Select-Object Class, InstanceId, FriendlyName, Status, Service |
-                                ForEach-Object {
-                                    $_ | Add-Member -NotePropertyName 'Path' -NotePropertyValue $pathMap[$_.InstanceId] -Force
-                                    $_ 
-                                }";
-
-                var Pcidata = Utils.Run(scripts);
-                var sortedResults = Pcidata
-                .Where(result => result!= null)  // ¹ýÂËµôÎª¿ÕµÄÔªËØ
-                .OrderBy(result => result.Members["Service"]?.Value?.ToString()[0])  // °´°´ÀàÐÍÅÅÐò£¬¼´Class ×Ö¶ÎÊ××ÖÄ¸
-                .ToList();
-                foreach (var result in sortedResults)
+                foreach (var result in deviceResults)
                 {
-                    var friendlyName = result.Members["FriendlyName"]?.Value?.ToString();
-                    var status = result.Members["Status"]?.Value?.ToString();
-                    var classType = result.Members["Class"]?.Value?.ToString();
-                    var instanceId = result.Members["InstanceId"]?.Value?.ToString();
-                    var path = result.Members["Path"]?.Value?.ToString();
-                    var service = result.Members["Service"]?.Value?.ToString();
-                    if (service == "pci" || service == null) {
-                        continue; //ÅÅ³ý´ËÀàÉè±¸
-                    }
-                    
-                    // ×´Ì¬ÎªUnknownµÄÉè±¸£¬ÓÐÈýÖÖÇé¿ö£º1.ÎïÀíÒÆ³ý¡£2.ÒÑ·ÖÅä¸øÐéÄâ»ú¡£3.Ð¶³ýÌ¬¡£
-                    // ¿´ÊÇ·ñ·ÖÅä¸øÐéÄâ»ú
+                    var status = result.Status;
+                    var instanceId = result.InstanceId;
+
+                    // Devices with Unknown status may be in several states: 1. Removed 2. Assigned to VM 3. Dismounted
+                    // Check if assigned to VM
                     if (status == "Unknown" && !string.IsNullOrEmpty(instanceId) && instanceId.Length > 3)
                     {
-                        if (vmdevice.ContainsKey(instanceId.Substring(3))) // ¼ì²éÈ¥µôÇ°ÈýÎ»ºóµÄPCIµÄInstanceIdÊÇ·ñÔÚ´æ´¢µÄvmÒÑ·ÖÅäÉè±¸µÄÁÐ±íÀï
-                        {
-                            status = vmdevice[instanceId.Substring(3)];
-                        } 
-                        else { continue; } //²»ÔÚÐéÄâ»úÁÐ±íÄÚ£¬Ò²²»ÊôÓÚÐ¶³ýÌ¬£¬ËµÃ÷ÒÑ¾­ÎïÀíÒÆ³ý¡£
+                        if (!vmdevice.ContainsKey(instanceId[3..]))
+                            continue; // If not in VM list, and also dismounted, it means it has been removed
+
+                        status = vmdevice[
+                            instanceId[
+                                3..]]; // Remove first 3 characters, check if PCI InstanceId exists in stored VM assigned device list
                     }
-                    else {
-                        status = Properties.Resources.Host; //¹ÒÔØÔÚÖ÷»úÉÏµÄÇé¿ö¡£
+                    else
+                    {
+                        status = Properties.Resources.Host; // Otherwise it's on the host system
                     }
-                    deviceList.Add(new DeviceInfo(friendlyName, status, classType, instanceId,vmNameList,path)); //Ìí¼Óµ½Éè±¸ÁÐ±í
+
+                    deviceList.Add(new DeviceInfo(
+                        result.FriendlyName ?? string.Empty,
+                        status,
+                        result.ClassType ?? string.Empty,
+                        result.InstanceId ?? string.Empty,
+                        vmNameList,
+                        result.Path ?? string.Empty)); // Add to device list
                 }
             }
-        }
-        catch(Exception ex){
-            System.Windows.MessageBox.Show(ex.ToString());
-        }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString());
+            }
+        });
     }
-    private static (string[] commands, string[] messages) DDACommands(string Vmname, string instanceId, string path, string Nowname)
+
+    private static CommandData DdaCommands(string vmname, string instanceId, string path,
+        string nowname)
     {
-        // ¶¨ÒåÃüÁîºÍÏûÏ¢µÄÄ¬ÈÏÊý×é
+        // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢ï¿½ï¿½Ä¬ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
         string[] commands;
         string[] messages;
 
-        if (Nowname == Properties.Resources.removed && Vmname == Properties.Resources.Host)
-        {  //½«Éè±¸ÕÛ·µÖ÷»ú
-            commands = new string[]
-            {
+        if (nowname == Properties.Resources.removed && vmname == Properties.Resources.Host)
+        {
+            //ï¿½ï¿½ï¿½è±¸ï¿½Û·ï¿½ï¿½ï¿½ï¿½ï¿½
+            commands =
+            [
                 $"Mount-VMHostAssignableDevice -LocationPath '{path}'"
-            };
-            messages = new string[]
-            {
-                ExHyperV.Properties.Resources.mounting,
-            };
+            ];
+            messages =
+            [
+                Properties.Resources.mounting
+            ];
         }
-        else if(Nowname == Properties.Resources.removed && Vmname != Properties.Resources.Host)
-        { //ÒÑÐ¶³ýÉè±¸¼ÌÐø·ÖÅä¸øÐéÄâ»ú
-            commands = new string[]
-            {   
-                $"Add-VMAssignableDevice -LocationPath '{path}' -VMName '{Vmname}'",
-            };
-            messages = new string[]
-            {
-                ExHyperV.Properties.Resources.mounting,
-            };
-        }
-        // ¸ù¾ÝÌõ¼þÅÐ¶Ï·µ»Ø²»Í¬µÄÃüÁîºÍÏûÏ¢
-        else if (Nowname == Properties.Resources.Host)  // Ö÷»úÇÐ»»µ½ÐéÄâ»ú
+        else if (nowname == Properties.Resources.removed && vmname != Properties.Resources.Host)
         {
-            commands = new string[]
-            {
-            $"Set-VM -Name '{Vmname}' -AutomaticStopAction TurnOff",  // ¸ÄÎªÇ¿ÖÆ¶Ïµç
-            $"Set-VM -GuestControlledCacheTypes $true -VMName '{Vmname}'",
-            $"(Get-PnpDeviceProperty -InstanceId '{instanceId}' DEVPKEY_Device_LocationPaths).Data[0]",
-            $"Disable-PnpDevice -InstanceId '{instanceId}' -Confirm:$false",
-            $"Dismount-VMHostAssignableDevice -Force -LocationPath '{path}'",
-            $"Add-VMAssignableDevice -LocationPath '{path}' -VMName '{Vmname}'",
-            };
-            messages = new string[]
-            {
-            Properties.Resources.string5,
-            ExHyperV.Properties.Resources.cpucache,
-            ExHyperV.Properties.Resources.getpath,
-            ExHyperV.Properties.Resources.Disabledevice,
-            ExHyperV.Properties.Resources.Dismountdevice,
-            ExHyperV.Properties.Resources.mounting,
-            };
+            // Dismount device and assign to VM
+            commands =
+            [
+                $"Add-VMAssignableDevice -LocationPath '{path}' -VMName '{vmname}'"
+            ];
+            messages =
+            [
+                Properties.Resources.mounting
+            ];
         }
-        else if (Vmname != Properties.Resources.Host&& Nowname != Properties.Resources.Host)  // ÐéÄâ»úÇÐ»»µ½ÐéÄâ»ú
+        // Based on different conditions, return different command information
+        else if (nowname == Properties.Resources.Host) // Switch from host to VM
         {
-            commands = new string[]
-            {
-            $"Set-VM -Name '{Vmname}' -AutomaticStopAction TurnOff",  // ¸ÄÎªÇ¿ÖÆ¶Ïµç
-            $"Set-VM -GuestControlledCacheTypes $true -VMName '{Vmname}'",
-            $"(Get-PnpDeviceProperty -InstanceId '{instanceId}' DEVPKEY_Device_LocationPaths).Data[0]",
-            $"Remove-VMAssignableDevice -LocationPath '{path}' -VMName '{Nowname}'",
-            $"Add-VMAssignableDevice -LocationPath '{path}' -VMName '{Vmname}'",
-            };
-
-            messages = new string[]
-            {
-            Properties.Resources.string5,
-            Properties.Resources.cpucache,
-            Properties.Resources.getpath,
-            Properties.Resources.Dismountdevice,
-            Properties.Resources.mounting,
-            };
-        }
-        else if (Vmname == Properties.Resources.Host && Nowname != Properties.Resources.Host)  // ÐéÄâ»úÇÐ»»»ØÖ÷»ú
-        {
-            commands = new string[]
-            {
+            commands =
+            [
+                $"Set-VM -Name '{vmname}' -AutomaticStopAction TurnOff", // Set to force shutdown
+                $"Set-VM -GuestControlledCacheTypes $true -VMName '{vmname}'",
                 $"(Get-PnpDeviceProperty -InstanceId '{instanceId}' DEVPKEY_Device_LocationPaths).Data[0]",
-                $"Remove-VMAssignableDevice -LocationPath '{path}' -VMName '{Nowname}'",
-                $"Mount-VMHostAssignableDevice -LocationPath '{path}'",
-                $"Enable-PnpDevice -InstanceId '{instanceId}' -Confirm:$false",
-            };
+                $"Disable-PnpDevice -InstanceId '{instanceId}' -Confirm:$false",
+                $"Dismount-VMHostAssignableDevice -Force -LocationPath '{path}'",
+                $"Add-VMAssignableDevice -LocationPath '{path}' -VMName '{vmname}'"
+            ];
+            messages =
+            [
+                Properties.Resources.string5,
+                Properties.Resources.cpucache,
+                Properties.Resources.getpath,
+                Properties.Resources.Disabledevice,
+                Properties.Resources.Dismountdevice,
+                Properties.Resources.mounting
+            ];
+        }
+        else if (vmname != Properties.Resources.Host && nowname != Properties.Resources.Host) // Switch between VMs
+        {
+            commands =
+            [
+                $"Set-VM -Name '{vmname}' -AutomaticStopAction TurnOff", // Set to force shutdown
+                $"Set-VM -GuestControlledCacheTypes $true -VMName '{vmname}'",
+                $"(Get-PnpDeviceProperty -InstanceId '{instanceId}' DEVPKEY_Device_LocationPaths).Data[0]",
+                $"Remove-VMAssignableDevice -LocationPath '{path}' -VMName '{nowname}'",
+                $"Add-VMAssignableDevice -LocationPath '{path}' -VMName '{vmname}'"
+            ];
 
-            messages = new string[]
-            {
+            messages =
+            [
+                Properties.Resources.string5,
+                Properties.Resources.cpucache,
+                Properties.Resources.getpath,
+                Properties.Resources.Dismountdevice,
+                Properties.Resources.mounting
+            ];
+        }
+        else if (vmname == Properties.Resources.Host && nowname != Properties.Resources.Host) // Switch from VM to host
+        {
+            commands =
+            [
+                $"(Get-PnpDeviceProperty -InstanceId '{instanceId}' DEVPKEY_Device_LocationPaths).Data[0]",
+                $"Remove-VMAssignableDevice -LocationPath '{path}' -VMName '{nowname}'",
+                $"Mount-VMHostAssignableDevice -LocationPath '{path}'",
+                $"Enable-PnpDevice -InstanceId '{instanceId}' -Confirm:$false"
+            ];
+
+            messages =
+            [
                 Properties.Resources.getpath,
                 Properties.Resources.Dismountdevice,
                 Properties.Resources.mounting,
-                ExHyperV.Properties.Resources.enabling,
-            };
+                Properties.Resources.enabling
+            ];
         }
         else
         {
-            commands = new string[0];
-            messages = new string[0];
+            commands = [];
+            messages = [];
         }
-        return (commands, messages);
 
+        return new CommandData(commands, messages);
     }
-    public void DDArefresh(object sender, RoutedEventArgs e) {
-        if (!refreshlock)
+
+    private async Task<bool> ProcessCommandResult(List<string> logOutput, TextBlock textBlock, ContentDialog dlg)
+    {
+        if (!logOutput.Any(x => x.Contains("Error")))
+            return false; // Continue execution
+
+        await Application.Current.Dispatcher.InvokeAsync(() =>
         {
-            refreshlock = true;
-            progressRing.Visibility = Visibility.Visible; //ÏÔÊ¾¼ÓÔØÌõ
-            Task.Run(() => Initialinfo()); //»ñÈ¡Éè±¸ÐÅÏ¢
-        } 
+            textBlock.Text += "\n" + string.Join(Environment.NewLine, logOutput);
+            dlg.CloseButtonText = "OK";
+            dlg.Closing += (_, args) => args.Cancel = false;
+            RefreshDevices();
+        });
+        return true; // Stop execution
+    }
+
+    private async Task ShowSuccessResult(DropDownButton menuButton, TextBlock textBlock, ContentDialog dlg,
+        string vmName)
+    {
+        await Application.Current.Dispatcher.InvokeAsync(() =>
+        {
+            menuButton.Content = vmName;
+            textBlock.Text = Properties.Resources.operated;
+            dlg.CloseButtonText = Properties.Resources.OK;
+            dlg.Closing += (_, args) => args.Cancel = false;
+            RefreshDevices();
+        });
+    }
+
+    private MenuItem CreateMenuItem(string header, DropDownButton menu, DeviceInfo device)
+    {
+        var item = new MenuItem { Header = header };
+        item.Click += async (_, _) =>
+        {
+            if ((string)menu.Content == header) return;
+
+            var contentTextBlock = new TextBlock
+            {
+                Text = Properties.Resources.string5,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                TextWrapping = TextWrapping.Wrap
+            };
+
+            var dialog = new ContentDialog
+            {
+                Title = Properties.Resources.setting,
+                Content = contentTextBlock,
+                CloseButtonText = Properties.Resources.wait
+            };
+
+            dialog.Closing += (_, args) => args.Cancel = true;
+            dialog.DialogHost = Application.Current.MainWindow is MainWindow mainWindow
+                ? mainWindow.ContentPresenterForDialogs
+                : null;
+
+            _ = dialog.ShowAsync(CancellationToken.None);
+
+            await DdAps(
+                menu,
+                dialog,
+                contentTextBlock,
+                header,
+                device.InstanceId,
+                device.Path,
+                (string)menu.Content);
+        };
+        return item;
+    }
+
+
+    private readonly struct TextData(string text, int row, int column)
+    {
+        public string Text { get; } = text;
+        public int Row { get; } = row;
+        public int Column { get; } = column;
+    }
+
+    private readonly struct CommandData(string[] commands, string[] messages)
+    {
+        public string[] Commands { get; } = commands;
+        public string[] Messages { get; } = messages;
     }
 }
