@@ -1,6 +1,9 @@
 namespace ExHyperV.Views.Pages;
 using System;
 using System.Management.Automation;
+using System.Collections.Generic;
+using System.Linq;
+using System.Globalization;
 
 public partial class MainPage
 {
@@ -13,13 +16,13 @@ public partial class MainPage
     {
         Version.Text = Utils.Version;
         Author.Text = Utils.Author;
-        Date.Text = Utils.GetLinkerTime().ToString("yyyy/MM/dd HH:mm");
+        Date.Text = Utils.GetLinkerTime().ToString("yyyy/MM/dd HH:mm", CultureInfo.InvariantCulture);
         Utils.Run("Set-ExecutionPolicy RemoteSigned -Scope Process -Force");
         var script = @"
-            $os = Get-WmiObject Win32_OperatingSystem | Select-Object Caption, OSArchitecture, version
-            $cpu = Get-WmiObject Win32_Processor | Select-Object Name, MaxClockSpeed
-            $memory = (Get-WmiObject Win32_PhysicalMemory | Measure-Object -Property Capacity -Sum).Sum / 1GB
-            return @($os, $cpu, $memory)";
+            $os = Get-CimInstance Win32_OperatingSystem | Select-Object Caption, OSArchitecture, Version
+            $cpu = Get-CimInstance Win32_Processor | Select-Object Name, MaxClockSpeed
+            $memory = (Get-CimInstance Win32_PhysicalMemory | Measure-Object -Property Capacity -Sum).Sum / 1GB
+            return @($os, $cpu, [double]$memory)";
         var results = Utils.Run(script);
 
         string osCaption = "N/A";
@@ -31,9 +34,9 @@ public partial class MainPage
         if (results != null && results.Count > 0 && results[0]?.Properties["Caption"]?.Value != null)
         {
             osCaption = results[0].Properties["Caption"].Value.ToString().Replace("Microsoft ", "");
-            if (results[0].Properties["version"]?.Value != null)
+            if (results[0].Properties["Version"]?.Value != null)
             {
-                osVersion = results[0].Properties["version"].Value.ToString();
+                osVersion = results[0].Properties["Version"].Value.ToString();
                 if (osVersion.Length >= 5)
                 {
                     osVersion = osVersion.Substring(osVersion.Length - 5);
@@ -61,7 +64,7 @@ public partial class MainPage
             {
                 cpus.Add(singleCpuPso);
             }
-            else if (results[1].Properties["Name"]?.Value != null) 
+            else if (results[1].Properties["Name"]?.Value != null)
             {
                 cpus.Add(results[1]);
             }
@@ -74,24 +77,36 @@ public partial class MainPage
                 double cpuSpeedGHz = 0;
                 if (firstCpu.Properties["MaxClockSpeed"]?.Value != null)
                 {
-                    cpuSpeedGHz = Math.Round(Convert.ToDouble(firstCpu.Properties["MaxClockSpeed"].Value) / 1000, 2);
+                    if (double.TryParse(firstCpu.Properties["MaxClockSpeed"].Value.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out double mcsRaw))
+                    {
+                        cpuSpeedGHz = Math.Round(mcsRaw / 1000, 2);
+                    }
+                }
+
+                string speedSuffix = "";
+                if (cpuName.IndexOf("GHz", StringComparison.OrdinalIgnoreCase) == -1 && cpuSpeedGHz > 0)
+                {
+                    speedSuffix = $" @ {cpuSpeedGHz.ToString(CultureInfo.InvariantCulture)} GHz";
                 }
 
                 if (cpus.Count > 1)
                 {
-                    cpuInfo = $"{cpuName} @ {cpuSpeedGHz} GHz x{cpus.Count}"; //¶à´¦ÀíÆ÷ÊÊÅä
+                    cpuInfo = $"{cpuName}{speedSuffix} x{cpus.Count}";
                 }
                 else
                 {
-                    cpuInfo = $"{cpuName} @ {cpuSpeedGHz} GHz";
+                    cpuInfo = $"{cpuName}{speedSuffix}";
                 }
             }
         }
 
         if (results != null && results.Count > 2 && results[2]?.BaseObject != null)
         {
-            double totalMemory = Math.Round(Convert.ToDouble(results[2].BaseObject), 2);
-            memoryInfo = $"{totalMemory} GB";
+            if (double.TryParse(results[2].BaseObject.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out double totalMemoryRaw))
+            {
+                double totalMemory = Math.Round(totalMemoryRaw, 2);
+                memoryInfo = $"{totalMemory.ToString(CultureInfo.InvariantCulture)} GB";
+            }
         }
 
         Caption.Text = string.IsNullOrEmpty(osVersion) ? osCaption : $"{osCaption} Build.{osVersion}";
@@ -99,5 +114,4 @@ public partial class MainPage
         CPUmodel.Text = cpuInfo;
         MemCap.Text = memoryInfo;
     }
-
 }

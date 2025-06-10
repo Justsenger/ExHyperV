@@ -79,8 +79,8 @@ public partial class StatusPage
     private async void CpuInfo()
     {
 
-        var cpuvt1 = Utils.Run("(Get-WmiObject -Class Win32_Processor).VirtualizationFirmwareEnabled");
-        var cpuvt2 = Utils.Run("(Get-WmiObject -Class Win32_ComputerSystem).HypervisorPresent");
+        var cpuvt1 = Utils.Run("(Get-CimInstance -Class Win32_Processor).VirtualizationFirmwareEnabled");
+        var cpuvt2 = Utils.Run("(Get-CimInstance -Class Win32_ComputerSystem).HypervisorPresent");
 
 
         Dispatcher.Invoke(() =>
@@ -166,7 +166,7 @@ public partial class StatusPage
     private async void ServerInfo()
     {
 
-        var result = Utils.Run("(Get-WmiObject -Class Win32_OperatingSystem).ProductType");
+        var result = Utils.Run("(Get-CimInstance -Class Win32_OperatingSystem).ProductType");
         Dispatcher.Invoke(() =>
         {
             status5.Children.Remove(progressRing5);

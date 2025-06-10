@@ -41,7 +41,7 @@ public partial class DDAPage
                 private async void IsServer()
                 {
 
-                    var result = Utils.Run("(Get-WmiObject -Class Win32_OperatingSystem).ProductType");
+                    var result = Utils.Run("(Get-CimInstance -Class Win32_OperatingSystem).ProductType");
                     Dispatcher.Invoke(() =>
                     {
                         if (result[0].ToString()=="3") { Isserver.IsOpen = false; } //服务器版本，关闭提示
