@@ -19,9 +19,9 @@ public partial class MainPage
         Date.Text = Utils.GetLinkerTime().ToString("yyyy/MM/dd HH:mm", CultureInfo.InvariantCulture);
         Utils.Run("Set-ExecutionPolicy RemoteSigned -Scope Process -Force");
         var script = @"
-            $os = Get-CimInstance Win32_OperatingSystem | Select-Object Caption, OSArchitecture, Version
-            $cpu = Get-CimInstance Win32_Processor | Select-Object Name, MaxClockSpeed
-            $memory = (Get-CimInstance Win32_PhysicalMemory | Measure-Object -Property Capacity -Sum).Sum / 1GB
+            $os = Get-WmiObject Win32_OperatingSystem | Select-Object Caption, OSArchitecture, Version
+            $cpu = Get-WmiObject Win32_Processor | Select-Object Name, MaxClockSpeed
+            $memory = (Get-WmiObject Win32_PhysicalMemory | Measure-Object -Property Capacity -Sum).Sum / 1GB
             return @($os, $cpu, [double]$memory)";
         var results = Utils.Run(script);
 

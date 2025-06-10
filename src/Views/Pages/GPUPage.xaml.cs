@@ -68,7 +68,7 @@ public partial class GPUPage
         await Task.Run(() => {
             List<GPUInfo> gpuList = [];
             //获取目前联机的显卡
-            var gpulinked = Utils.Run("Get-CimInstance -Class Win32_VideoController | select PNPDeviceID,name,AdapterCompatibility,DriverVersion");
+            var gpulinked = Utils.Run("Get-WmiObject -Class Win32_VideoController | select PNPDeviceID,name,AdapterCompatibility,DriverVersion");
             if (gpulinked.Count > 0)
             {
                 foreach (var gpu in gpulinked)
