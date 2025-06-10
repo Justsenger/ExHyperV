@@ -62,7 +62,7 @@ public partial class StatusPage
                 Foreground = new SolidColorBrush(Colors.DodgerBlue),
             };
             status1.Children.Add(icons);
-            if (buildVersion >= 22000) //不允许宿主使用过低的系统版本，WDDM版本低，以及PS存在命令问题。
+            if (buildVersion >= 22000) //不允许宿主使用过低的系统版本，WDDM版本低，以及PS命令存在问题。
             {
                 icons.Glyph = "\xEC61";
                 icons.Foreground = new SolidColorBrush(Color.FromArgb(255, 0, 138, 23));
@@ -70,6 +70,8 @@ public partial class StatusPage
             }
             else
             {
+                var ms = Application.Current.MainWindow as MainWindow; //获取主窗口
+                ms.gpupv.IsEnabled = false;
                 win.Text = ExHyperV.Properties.Resources.String3 + buildVersion.ToString() + ExHyperV.Properties.Resources.disablegpu;
                 icons.Glyph = "\xEB90";
                 icons.Foreground = new SolidColorBrush(Colors.Red);

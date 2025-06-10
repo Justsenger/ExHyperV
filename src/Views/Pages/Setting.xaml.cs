@@ -80,28 +80,6 @@ public partial class Setting
         }
     }
 
-
-    private void OnSPskinSelectionChanged(object sender, SelectionChangedEventArgs e)
-    {
-        var selectedItem = SPskin.SelectedItem as ComboBoxItem; //获取选中的SP主题
-        if (selectedItem != null)
-        {
-            string theme = selectedItem.Content.ToString();
-
-            if (theme == "炫彩")
-            {
-                sp = "炫彩";
-                ApplicationThemeManager.Apply(ApplicationTheme.Dark);
-            }
-            else
-            {
-                sp = "none";
-                ApplicationThemeManager.Apply(ApplicationTheme.Light);
-            }
-        }
-    }
-
-
     
 
     private void SetLanguage(string languageCode)
