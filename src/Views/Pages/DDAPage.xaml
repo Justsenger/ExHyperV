@@ -6,7 +6,7 @@
     xmlns:local="clr-namespace:ExHyperV.Views.Pages"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
-    xmlns:properties="clr-namespace:ExHyperV.Properties"
+    xmlns:lex="http://wpflocalizeextension.codeplex.com"
     Title="MainPage"
     d:DesignHeight="700"
     d:DesignWidth="1000"
@@ -24,13 +24,13 @@
         <ProgressBar Grid.Row="0" x:Name="progressRing" IsIndeterminate="True"/>
 
         <ui:InfoBar Grid.Row="1" Margin="0,5,0,0"
-            Title="{x:Static properties:Resources.attention}"
-            Message="{x:Static properties:Resources.attentionwords}" 
+            Title="{lex:Loc attention}"
+            Message="{lex:Loc attentionwords}"
             IsOpen="True"
             Severity="Warning"/>
         <ui:InfoBar Grid.Row="2" Margin="0,5,0,0" x:Name="Isserver"
-            Title="{x:Static properties:Resources.error}"
-            Message="{x:Static properties:Resources.servererror}" 
+            Title="{lex:Loc error}"
+            Message="{lex:Loc servererror}"
             IsOpen="True"
             IsClosable="False"
             Severity="Error"/>
@@ -53,8 +53,8 @@
                         </Grid.ColumnDefinitions>
                         
                         <ui:FontIcon FontSize="24" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xE964;"/>
-                        <TextBlock Grid.Column="1" Text="{x:Static properties:Resources.Assignabledevices}"  FontSize="16" VerticalAlignment="Center" Margin="10,0,0,0"/>
-                        <ui:Button Grid.Column="2" Content="{x:Static properties:Resources.refresh}" Margin="0,0,10,0" Click="DDArefresh"></ui:Button>
+                        <TextBlock Grid.Column="1" Text="{lex:Loc Assignabledevices}"  FontSize="16" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                        <ui:Button Grid.Column="2" Content="{lex:Loc refresh}" Margin="0,0,10,0" Click="DDArefresh"></ui:Button>
                     </Grid>
                     
                 </Grid>

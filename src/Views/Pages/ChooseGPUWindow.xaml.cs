@@ -66,9 +66,9 @@ namespace ExHyperV
                 {
                     ContentDialog Dialog = new()
                     {
-                        Title = ExHyperV.Properties.Resources.Settings,
-                        Content = Utils.TextBlock3(ExHyperV.Properties.Resources.Colsefirst),
-                        CloseButtonText = ExHyperV.Properties.Resources.OK,
+                        Title = Utils.GetLocalizedString("Settings"),
+                        Content = Utils.TextBlock3(Utils.GetLocalizedString("Colsefirst")),
+                        CloseButtonText = Utils.GetLocalizedString("OK"),
                     };
                     Dialog.DialogHost = ContentPresenterForDialogs;
 
@@ -79,9 +79,9 @@ namespace ExHyperV
                 {
                     ContentDialog Dialog = new()
                     {
-                        Title = ExHyperV.Properties.Resources.Settings,
-                        Content = Utils.TextBlock3(ExHyperV.Properties.Resources.drivererror),
-                        CloseButtonText = ExHyperV.Properties.Resources.OK,
+                        Title = Utils.GetLocalizedString("Settings"),
+                        Content = Utils.TextBlock3(Utils.GetLocalizedString("drivererror")),
+                        CloseButtonText = Utils.GetLocalizedString("OK"),
                     };
                     Dialog.DialogHost = ContentPresenterForDialogs;
 

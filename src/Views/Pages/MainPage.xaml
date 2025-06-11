@@ -6,7 +6,7 @@
     xmlns:local="clr-namespace:ExHyperV.Views.Pages"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
-    xmlns:properties="clr-namespace:ExHyperV.Properties"
+    xmlns:lex="http://wpflocalizeextension.codeplex.com"
     Title="MainPage"
     d:DesignHeight="700"
     d:DesignWidth="1000"
@@ -29,8 +29,8 @@
 
         <StackPanel Grid.Row="0" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="30">
             <TextBlock Text="ExHyperV" Margin="0,15,0,0" FontSize="42" Foreground="White"/>
-            <TextBlock Text="{x:Static properties:Resources.exhyperv}"  Margin="50,5,0,0" FontSize="18" Foreground="White"/>
-            
+            <TextBlock Text="{lex:Loc exhyperv}"  Margin="50,5,0,0" FontSize="18" Foreground="White"/>
+
         </StackPanel>
 
         
@@ -41,7 +41,7 @@
             </ui:CardExpander.Icon>
                 <ui:CardExpander.Header>
                 <Grid>
-                    <TextBlock Text="{x:Static properties:Resources.systeminfo}" FontSize="16" VerticalAlignment="Center"/>
+                    <TextBlock Text="{lex:Loc systeminfo}" FontSize="16" VerticalAlignment="Center"/>
                 </Grid>
             </ui:CardExpander.Header>
             <StackPanel Margin="50,10,0,0">
@@ -58,10 +58,10 @@
                     </Grid.RowDefinitions>
 
                     <!-- 第一列内容 -->
-                    <TextBlock Text="{x:Static properties:Resources.version}" FontSize="16" VerticalAlignment="Center" Margin="0,0,10,10" Grid.Row="0"/>
-                    <TextBlock Text="{x:Static properties:Resources.arch}" FontSize="16" VerticalAlignment="Center" Margin="0,0,10,10" Grid.Row="1"/>
-                    <TextBlock Text="{x:Static properties:Resources.model}" FontSize="16" VerticalAlignment="Center" Margin="0,0,10,10" Grid.Row="2"/>
-                    <TextBlock Text="{x:Static properties:Resources.Memorycapacity}" FontSize="16" VerticalAlignment="Center" Margin="0,0,10,10" Grid.Row="3"/>
+                    <TextBlock Text="{lex:Loc version}" FontSize="16" VerticalAlignment="Center" Margin="0,0,10,10" Grid.Row="0"/>
+                    <TextBlock Text="{lex:Loc arch}" FontSize="16" VerticalAlignment="Center" Margin="0,0,10,10" Grid.Row="1"/>
+                    <TextBlock Text="{lex:Loc model}" FontSize="16" VerticalAlignment="Center" Margin="0,0,10,10" Grid.Row="2"/>
+                    <TextBlock Text="{lex:Loc Memorycapacity}" FontSize="16" VerticalAlignment="Center" Margin="0,0,10,10" Grid.Row="3"/>
 
                     <!-- 第二列内容 -->
                     <TextBlock x:Name="Caption" FontSize="16" Grid.Column="1" VerticalAlignment="Center" Margin="0,0,10,10" Grid.Row="0"/>
@@ -80,7 +80,7 @@
 
             <ui:CardExpander.Header>
                 <Grid>
-                    <TextBlock Text="{x:Static properties:Resources.soft}" FontSize="16" VerticalAlignment="Center"/>
+                    <TextBlock Text="{lex:Loc soft}" FontSize="16" VerticalAlignment="Center"/>
                 </Grid>
             </ui:CardExpander.Header>
             <StackPanel Margin="50,10,0,0">
@@ -96,9 +96,9 @@
                     </Grid.RowDefinitions>
 
                     <!-- 第一列内容 -->
-                    <TextBlock Text="{x:Static properties:Resources.appversion}" FontSize="16" VerticalAlignment="Center" Margin="0,0,10,10" Grid.Row="0"/>
-                    <TextBlock Text="{x:Static properties:Resources.author}" FontSize="16" VerticalAlignment="Center" Margin="0,0,10,10" Grid.Row="1"/>
-                    <TextBlock Text="{x:Static properties:Resources.buildtime}" FontSize="16" VerticalAlignment="Center" Margin="0,0,10,10" Grid.Row="2"/>
+                    <TextBlock Text="{lex:Loc appversion}" FontSize="16" VerticalAlignment="Center" Margin="0,0,10,10" Grid.Row="0"/>
+                    <TextBlock Text="{lex:Loc author}" FontSize="16" VerticalAlignment="Center" Margin="0,0,10,10" Grid.Row="1"/>
+                    <TextBlock Text="{lex:Loc buildtime}" FontSize="16" VerticalAlignment="Center" Margin="0,0,10,10" Grid.Row="2"/>
 
                     <!-- 第二列内容 -->
                     <TextBlock x:Name="Version" FontSize="16" Grid.Column="1" VerticalAlignment="Center" Margin="0,0,10,10" Grid.Row="0"/>

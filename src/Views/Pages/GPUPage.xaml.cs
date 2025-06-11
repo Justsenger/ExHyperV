@@ -188,13 +188,13 @@ public partial class GPUPage
 
         foreach (var gpu in gpuList)
         {
-            string name = string.IsNullOrEmpty(gpu.Name) ? Properties.Resources.none : gpu.Name;
-            string valid = string.IsNullOrEmpty(gpu.Valid) ? Properties.Resources.none : gpu.Valid;
-            string manu = string.IsNullOrEmpty(gpu.Manu) ? Properties.Resources.none : gpu.Manu;
-            string instanceId = string.IsNullOrEmpty(gpu.InstanceId) ? Properties.Resources.none : gpu.InstanceId;
-            string pname = string.IsNullOrEmpty(gpu.Pname) ? Properties.Resources.none : gpu.Pname; //GPU分区路径
-            string driverversion = string.IsNullOrEmpty(gpu.DriverVersion) ? Properties.Resources.none : gpu.DriverVersion;
-            string gpup = ExHyperV.Properties.Resources.notsupport; //是否支持GPU分区
+            string name = string.IsNullOrEmpty(gpu.Name) ? Utils.GetLocalizedString("none") : gpu.Name;
+            string valid = string.IsNullOrEmpty(gpu.Valid) ? Utils.GetLocalizedString("none") : gpu.Valid;
+            string manu = string.IsNullOrEmpty(gpu.Manu) ? Utils.GetLocalizedString("none") : gpu.Manu;
+            string instanceId = string.IsNullOrEmpty(gpu.InstanceId) ? Utils.GetLocalizedString("none") : gpu.InstanceId;
+            string pname = string.IsNullOrEmpty(gpu.Pname) ? Utils.GetLocalizedString("none") : gpu.Pname; //GPU分区路径
+            string driverversion = string.IsNullOrEmpty(gpu.DriverVersion) ? Utils.GetLocalizedString("none") : gpu.DriverVersion;
+            string gpup = Utils.GetLocalizedString("notsupport"); //是否支持GPU分区
 
             string ram = (string.IsNullOrEmpty(gpu.Ram) ? 0 : long.Parse(gpu.Ram)) / (1024 * 1024) + " MB";
             if (manu.Contains("Moore")) {
@@ -202,8 +202,8 @@ public partial class GPUPage
             }//摩尔线程的显存记录在HardwareInformation.MemorySize，但是单位是KB
 
             if (valid != "True") { continue; } //剔除未连接的显卡
-            if (hyperv == false) {gpup = ExHyperV.Properties.Resources.needhyperv;} 
-            if (pname != Properties.Resources.none) {gpup = ExHyperV.Properties.Resources.support;}
+            if (hyperv == false) {gpup = Utils.GetLocalizedString("needhyperv");}
+            if (pname != Utils.GetLocalizedString("none")) {gpup = Utils.GetLocalizedString("support");}
             
             Dispatcher.Invoke(() =>
             {
@@ -243,12 +243,12 @@ public partial class GPUPage
 
                 var textData = new (string text, int row, int column)[]
                 {
-                    (ExHyperV.Properties.Resources.manu, 0, 0),(manu, 0, 1),
-                    (ExHyperV.Properties.Resources.ram, 1, 0),(ram, 1, 1),
-                    (ExHyperV.Properties.Resources.Instanceid, 2, 0),(instanceId, 2, 1),
-                    (ExHyperV.Properties.Resources.gpupv, 3, 0),(gpup, 3, 1),
-                    (ExHyperV.Properties.Resources.gpupvpath, 4, 0),(pname, 4, 1),
-                    (ExHyperV.Properties.Resources.driverversion, 5, 0),(driverversion, 5, 1),
+                    (Utils.GetLocalizedString("manu"), 0, 0),(manu, 0, 1),
+                    (Utils.GetLocalizedString("ram"), 1, 0),(ram, 1, 1),
+                    (Utils.GetLocalizedString("Instanceid"), 2, 0),(instanceId, 2, 1),
+                    (Utils.GetLocalizedString("gpupv"), 3, 0),(gpup, 3, 1),
+                    (Utils.GetLocalizedString("gpupvpath"), 4, 0),(pname, 4, 1),
+                    (Utils.GetLocalizedString("driverversion"), 5, 0),(driverversion, 5, 1),
                 };
 
                 foreach (var (text, row1, column) in textData)
@@ -305,7 +305,7 @@ public partial class GPUPage
                 //添加按钮
                 var addbutton = new Wpf.Ui.Controls.Button
                 {
-                    Content = ExHyperV.Properties.Resources.addgpu,
+                    Content = Utils.GetLocalizedString("addgpu"),
                     Margin = new Thickness(0, 0, 5, 0),
                 };
                 addbutton.Click += (sender, e) => Gpu_mount(sender, e, name, Hostgpulist); //按钮点击事件
@@ -354,7 +354,7 @@ public partial class GPUPage
 
                     //删除按钮
                     var button = new Wpf.Ui.Controls.Button {
-                        Content = ExHyperV.Properties.Resources.uninstall,
+                        Content = Utils.GetLocalizedString("uninstall"),
                         Margin = new Thickness(0,0,5,0),
                     };
                     button.Click += (sender, e) => Gpu_dismount(sender, e, gpuid, vm.Name, gpuExpander); //按钮点击事件
@@ -374,8 +374,8 @@ public partial class GPUPage
 
                     var textData = new (string text, int row, int column)[]
                     {
-                        (ExHyperV.Properties.Resources.gpupvid, 0, 0),(gpuid, 0, 1),
-                        (ExHyperV.Properties.Resources.gpupvpath, 1, 0),(gpupath, 1, 1),
+                        (Utils.GetLocalizedString("gpupvid"), 0, 0),(gpuid, 0, 1),
+                        (Utils.GetLocalizedString("gpupvpath"), 1, 0),(gpupath, 1, 1),
                      };
 
                     foreach (var (text, row1, column) in textData)
@@ -407,7 +407,7 @@ public partial class GPUPage
         {
             foreach (var error in ps.Streams.Error)
             {
-                System.Windows.MessageBox.Show($"Error: {error.ToString()}");
+                System.Windows.MessageBox.Show($"{Utils.GetLocalizedString("error")}: {error.ToString()}");
             }
         }
         else
@@ -443,7 +443,7 @@ public partial class GPUPage
         var ms = Application.Current.MainWindow as MainWindow; //获取主窗口
 
         SnackbarService.SetSnackbarPresenter(ms.SnackbarPresenter);
-        SnackbarService.Show(ExHyperV.Properties.Resources.success,GPUname+ExHyperV.Properties.Resources.already+ VMname,ControlAppearance.Success,new SymbolIcon(SymbolRegular.CheckboxChecked24,32), TimeSpan.FromSeconds(2));
+        SnackbarService.Show(Utils.GetLocalizedString("success"),GPUname+Utils.GetLocalizedString("already")+ VMname,ControlAppearance.Success,new SymbolIcon(SymbolRegular.CheckboxChecked24,32), TimeSpan.FromSeconds(2));
         vmrefresh(null, null);
 
     }

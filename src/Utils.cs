@@ -9,6 +9,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Xml.Linq;
 using Wpf.Ui.Controls;
+using WPFLocalizeExtension.Engine;
 using Image = Wpf.Ui.Controls.Image;
 using TextBlock = Wpf.Ui.Controls.TextBlock;
 
@@ -40,18 +41,18 @@ public partial class Utils
             // 如果存在错误，将错误信息打印出来
             if (ps.HadErrors)
             {
-                System.Windows.MessageBox.Show("错误:");
+                System.Windows.MessageBox.Show(GetLocalizedString("ErrorColon"));
                 foreach (var error in ps.Streams.Error)
                 {
-                    System.Windows.MessageBox.Show($"错误消息: {error.Exception.Message}");
-                    System.Windows.MessageBox.Show($"错误详细信息: {error.Exception.StackTrace}");
+                    System.Windows.MessageBox.Show($"{GetLocalizedString("ErrorMessage")}: {error.Exception.Message}");
+                    System.Windows.MessageBox.Show($"{GetLocalizedString("ErrorDetails")}: {error.Exception.StackTrace}");
                 }
             }
         }
         catch (Exception ex)
         {
-            System.Windows.MessageBox.Show($"执行 PowerShell 脚本时发生异常: {ex.Message}");
-            System.Windows.MessageBox.Show($"堆栈信息: {ex.StackTrace}");
+            System.Windows.MessageBox.Show($"{GetLocalizedString("PowerShellException")}: {ex.Message}");
+            System.Windows.MessageBox.Show($"{GetLocalizedString("StackTrace")}: {ex.StackTrace}");
         }
 
         return output;
@@ -277,16 +278,24 @@ public partial class Utils
         return linkerTime;
     }
 
-    public static string Version => "V1.0.8";
-    public static string Author => "砂菱叶";
+    public static string Version => GetLocalizedString("AppVersionValue");
+    public static string Author => GetLocalizedString("AppAuthor");
 
-
-
-
-
-
-
-
-
-
+    /// <summary>
+    /// Get localized string by key
+    /// </summary>
+    /// <param name="key">Resource key</param>
+    /// <returns>Localized string</returns>
+    public static string GetLocalizedString(string key)
+    {
+        try
+        {
+            var result = LocalizeDictionary.Instance.GetLocalizedObject("ExHyperV", "Resources", key, LocalizeDictionary.Instance.Culture);
+            return result?.ToString() ?? key;
+        }
+        catch
+        {
+            return key; // Return key as fallback
+        }
+    }
 }

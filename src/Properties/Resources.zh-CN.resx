@@ -288,9 +288,6 @@
   <data name="gpupvid" xml:space="preserve">
     <value>GPU分区ID</value>
   </data>
-  <data name="runerror" xml:space="preserve">
-    <value>执行出错:</value>
-  </data>
   <data name="success" xml:space="preserve">
     <value>成功</value>
   </data>
@@ -325,7 +322,7 @@
     <value>语言</value>
   </data>
   <data name="reboot" xml:space="preserve">
-    <value>更改语言会重启应用程序</value>
+    <value>语言将立即更改</value>
   </data>
   <data name="about" xml:space="preserve">
     <value>关于</value>
@@ -380,5 +377,26 @@
   </data>
   <data name="error" xml:space="preserve">
     <value>错误</value>
+  </data>
+  <data name="ErrorColon" xml:space="preserve">
+    <value>错误:</value>
+  </data>
+  <data name="ErrorMessage" xml:space="preserve">
+    <value>错误消息</value>
+  </data>
+  <data name="ErrorDetails" xml:space="preserve">
+    <value>错误详细信息</value>
+  </data>
+  <data name="PowerShellException" xml:space="preserve">
+    <value>执行 PowerShell 脚本时发生异常</value>
+  </data>
+  <data name="StackTrace" xml:space="preserve">
+    <value>堆栈信息</value>
+  </data>
+  <data name="AppVersionValue" xml:space="preserve">
+    <value>V1.0.8</value>
+  </data>
+  <data name="AppAuthor" xml:space="preserve">
+    <value>砂菱叶</value>
   </data>
 </root>

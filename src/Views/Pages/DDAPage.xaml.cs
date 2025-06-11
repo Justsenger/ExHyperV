@@ -75,7 +75,7 @@ public partial class DDAPage
                             Grid.SetColumn(Menu, 1); // 添加按钮到第二列
 
                             var contextMenu = new ContextMenu();
-                            contextMenu.Items.Add(CreateMenuItem(ExHyperV.Properties.Resources.Host)); //单独添加一个主机选项，和后面的虚拟机列表融合
+                            contextMenu.Items.Add(CreateMenuItem(Utils.GetLocalizedString("Host"))); //单独添加一个主机选项，和后面的虚拟机列表融合
                             foreach (var vmName in device.VmNames)
                             {
                                 contextMenu.Items.Add(CreateMenuItem(vmName));
@@ -89,7 +89,7 @@ public partial class DDAPage
                                     {
                                         TextBlock contentTextBlock = new TextBlock
                                         {
-                                            Text = ExHyperV.Properties.Resources.string5,
+                                            Text = Utils.GetLocalizedString("string5"),
                                             HorizontalAlignment = HorizontalAlignment.Center, // 水平居中
                                             VerticalAlignment = VerticalAlignment.Center,     // 垂直居中
                                             TextWrapping = TextWrapping.Wrap                  // 允许文本换行
@@ -97,9 +97,9 @@ public partial class DDAPage
 
                                         ContentDialog Dialog = new()
                                         {
-                                            Title = ExHyperV.Properties.Resources.setting,
+                                            Title = Utils.GetLocalizedString("setting"),
                                             Content = contentTextBlock,
-                                            CloseButtonText = ExHyperV.Properties.Resources.wait,
+                                            CloseButtonText = Utils.GetLocalizedString("wait"),
                                         };
 
                                         Dialog.Closing += (sender, args) => { args.Cancel = true; };// 禁止用户点击按钮触发关闭事件
@@ -129,9 +129,9 @@ public partial class DDAPage
 
                             var textData = new (string text, int row, int column)[]
                             {
-                                (ExHyperV.Properties.Resources.kind, 0, 0),
-                                (ExHyperV.Properties.Resources.Instanceid, 1, 0),
-                                (ExHyperV.Properties.Resources.path, 2, 0),
+                                (Utils.GetLocalizedString("kind"), 0, 0),
+                                (Utils.GetLocalizedString("Instanceid"), 1, 0),
+                                (Utils.GetLocalizedString("path"), 2, 0),
                                 (device.ClassType, 0, 1),
                                 (device.InstanceId, 1, 1),
                                 (device.Path, 2, 1),
@@ -156,18 +156,15 @@ public partial class DDAPage
                     for (int i = 0; i < messages.Length; i++)
                     {
                         Application.Current.Dispatcher.Invoke(() =>{contentTextBlock.Text = messages[i];}); //更新提示
-                        Thread.Sleep(200); //引入一定的延时，显示步骤
-                        //System.Windows.MessageBox.Show("执行的命令："+psCommands[i]);
+                        await Task.Delay(200); //引入一定的延时，显示步骤
 
                         var logOutput = await DDAps(psCommands[i]); //执行命令，并获取日志
-
-                        //System.Windows.MessageBox.Show("已经获取到日志");
                         if (logOutput.Any(log => log.Contains("Error")))
                         {
                             Application.Current.Dispatcher.Invoke(() =>
                             {
                                 contentTextBlock.Text += "\n"+ string.Join(Environment.NewLine, logOutput); // 附加一条中断信息
-                                dialog.CloseButtonText = "OK"; // 更新按钮文本
+                                dialog.CloseButtonText = Utils.GetLocalizedString("OK"); // 更新按钮文本
                                 dialog.Closing += (sender, args) => { args.Cancel = false; }; //允许用户点击关闭
                                 DDArefresh(null, null);
                             });
@@ -179,8 +176,8 @@ public partial class DDAPage
                     Application.Current.Dispatcher.Invoke(() =>
                     {
                         menu.Content = Vmname;
-                        contentTextBlock.Text = ExHyperV.Properties.Resources.operated;
-                        dialog.CloseButtonText = ExHyperV.Properties.Resources.OK; // 更新按钮文本
+                        contentTextBlock.Text = Utils.GetLocalizedString("operated");
+                        dialog.CloseButtonText = Utils.GetLocalizedString("OK"); // 更新按钮文本
                         dialog.Closing += (sender, args) => { args.Cancel = false; };// 允许用户关闭
                         DDArefresh(null, null);
                     });
@@ -253,7 +250,7 @@ public partial class DDAPage
                                     var instanceId = PCIP.Members["InstanceId"]?.Value?.ToString().Substring(4); //获取PCIP后面的编号
                                     //如果满足条件：该设备未分配给虚拟机+PCIP状态等于OK，则说明并未分配给主机，处于卸除态。
                                     if (!vmdevice.ContainsKey(instanceId)&& PCIP.Members["Status"]?.Value?.ToString()=="OK"&&!string.IsNullOrEmpty(instanceId)) //状态为OK，非空
-                                    {vmdevice[instanceId] = ExHyperV.Properties.Resources.removed; }
+                                    {vmdevice[instanceId] = Utils.GetLocalizedString("removed"); }
                                 }
                             }
 
@@ -328,14 +325,14 @@ public partial class DDAPage
                         else { continue; } //不在虚拟机列表内，也不属于卸除态，说明已经物理移除。
                     }
                     else {
-                        status = Properties.Resources.Host; //挂载在主机上的情况。
+                        status = Utils.GetLocalizedString("Host"); //挂载在主机上的情况。
                     }
                     deviceList.Add(new DeviceInfo(friendlyName, status, classType, instanceId,vmNameList,path)); //添加到设备列表
                 }
             }
         }
         catch(Exception ex){
-            System.Windows.MessageBox.Show(ex.ToString());
+            System.Windows.MessageBox.Show($"{Utils.GetLocalizedString("error")}: {ex.ToString()}");
         }
     }
     private static (string[] commands, string[] messages) DDACommands(string Vmname, string instanceId, string path, string Nowname)
@@ -344,7 +341,7 @@ public partial class DDAPage
         string[] commands;
         string[] messages;
 
-        if (Nowname == Properties.Resources.removed && Vmname == Properties.Resources.Host)
+        if (Nowname == Utils.GetLocalizedString("removed") && Vmname == Utils.GetLocalizedString("Host"))
         {  //将设备折返主机
             commands = new string[]
             {
@@ -352,22 +349,22 @@ public partial class DDAPage
             };
             messages = new string[]
             {
-                ExHyperV.Properties.Resources.mounting,
+                Utils.GetLocalizedString("mounting"),
             };
         }
-        else if(Nowname == Properties.Resources.removed && Vmname != Properties.Resources.Host)
+        else if(Nowname == Utils.GetLocalizedString("removed") && Vmname != Utils.GetLocalizedString("Host"))
         { //已卸除设备继续分配给虚拟机
             commands = new string[]
-            {   
+            {
                 $"Add-VMAssignableDevice -LocationPath '{path}' -VMName '{Vmname}'",
             };
             messages = new string[]
             {
-                ExHyperV.Properties.Resources.mounting,
+                Utils.GetLocalizedString("mounting"),
             };
         }
         // 根据条件判断返回不同的命令和消息
-        else if (Nowname == Properties.Resources.Host)  // 主机切换到虚拟机
+        else if (Nowname == Utils.GetLocalizedString("Host"))  // 主机切换到虚拟机
         {
             commands = new string[]
             {
@@ -380,15 +377,15 @@ public partial class DDAPage
             };
             messages = new string[]
             {
-            Properties.Resources.string5,
-            ExHyperV.Properties.Resources.cpucache,
-            ExHyperV.Properties.Resources.getpath,
-            ExHyperV.Properties.Resources.Disabledevice,
-            ExHyperV.Properties.Resources.Dismountdevice,
-            ExHyperV.Properties.Resources.mounting,
+            Utils.GetLocalizedString("string5"),
+            Utils.GetLocalizedString("cpucache"),
+            Utils.GetLocalizedString("getpath"),
+            Utils.GetLocalizedString("Disabledevice"),
+            Utils.GetLocalizedString("Dismountdevice"),
+            Utils.GetLocalizedString("mounting"),
             };
         }
-        else if (Vmname != Properties.Resources.Host&& Nowname != Properties.Resources.Host)  // 虚拟机切换到虚拟机
+        else if (Vmname != Utils.GetLocalizedString("Host")&& Nowname != Utils.GetLocalizedString("Host"))  // 虚拟机切换到虚拟机
         {
             commands = new string[]
             {
@@ -401,14 +398,14 @@ public partial class DDAPage
 
             messages = new string[]
             {
-            Properties.Resources.string5,
-            Properties.Resources.cpucache,
-            Properties.Resources.getpath,
-            Properties.Resources.Dismountdevice,
-            Properties.Resources.mounting,
+            Utils.GetLocalizedString("string5"),
+            Utils.GetLocalizedString("cpucache"),
+            Utils.GetLocalizedString("getpath"),
+            Utils.GetLocalizedString("Dismountdevice"),
+            Utils.GetLocalizedString("mounting"),
             };
         }
-        else if (Vmname == Properties.Resources.Host && Nowname != Properties.Resources.Host)  // 虚拟机切换回主机
+        else if (Vmname == Utils.GetLocalizedString("Host") && Nowname != Utils.GetLocalizedString("Host"))  // 虚拟机切换回主机
         {
             commands = new string[]
             {
@@ -420,10 +417,10 @@ public partial class DDAPage
 
             messages = new string[]
             {
-                Properties.Resources.getpath,
-                Properties.Resources.Dismountdevice,
-                Properties.Resources.mounting,
-                ExHyperV.Properties.Resources.enabling,
+                Utils.GetLocalizedString("getpath"),
+                Utils.GetLocalizedString("Dismountdevice"),
+                Utils.GetLocalizedString("mounting"),
+                Utils.GetLocalizedString("enabling"),
             };
         }
         else

@@ -6,7 +6,7 @@
     xmlns:local="clr-namespace:ExHyperV.Views.Pages"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
-    xmlns:properties="clr-namespace:ExHyperV.Properties"
+    xmlns:lex="http://wpflocalizeextension.codeplex.com"
     Title="Setting"
     d:DesignHeight="700"
     d:DesignWidth="1000"
@@ -16,7 +16,7 @@
         <ui:TextBlock
             Margin="0,0,0,8"
             FontTypography="BodyStrong"
-            Text="{x:Static properties:Resources.Settings}" />
+            Text="{lex:Loc Settings}" />
         <ui:CardControl Margin="0,0,0,12" Icon="{ui:SymbolIcon Color24}">
             <ui:CardControl.Header>
                 <Grid>
@@ -27,11 +27,11 @@
                     <ui:TextBlock
                         Grid.Row="0"
                         FontTypography="Body"
-                        Text="{x:Static properties:Resources.theme}" />
+                        Text="{lex:Loc theme}" />
                     <ui:TextBlock
                         Grid.Row="1"
                         Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"
-                        Text="{x:Static properties:Resources.switchtheme}" />
+                        Text="{lex:Loc switchtheme}" />
                 </Grid>
             </ui:CardControl.Header>
             <ComboBox
@@ -39,8 +39,8 @@
                 Grid.Column="1"
                 MinWidth="200"
                 SelectionChanged="OnThemeSelectionChanged">
-                <ComboBoxItem Content="{x:Static properties:Resources.light}" />
-                <ComboBoxItem Content="{x:Static properties:Resources.dark}" />
+                <ComboBoxItem Content="{lex:Loc light}" />
+                <ComboBoxItem Content="{lex:Loc dark}" />
             </ComboBox>
         </ui:CardControl>
 
@@ -54,11 +54,11 @@
                     <ui:TextBlock
                         Grid.Row="0"
                         FontTypography="Body"
-                        Text="{x:Static properties:Resources.language}" />
+                        Text="{lex:Loc language}" />
                     <ui:TextBlock
                         Grid.Row="1"
                         Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"
-                        Text="{x:Static properties:Resources.reboot}" />
+                        Text="{lex:Loc reboot}" />
                 </Grid>
             </ui:CardControl.Header>
             <ComboBox
@@ -75,7 +75,7 @@
         <ui:TextBlock
             Margin="0,24,0,8"
             FontTypography="BodyStrong"
-            Text="{x:Static properties:Resources.about}" />
+            Text="{lex:Loc about}" />
         <ui:CardExpander ContentPadding="0" Icon="{ui:SymbolIcon Layer24}" IsExpanded="True">
             <ui:CardExpander.Header>
                 <Grid>
@@ -114,7 +114,7 @@
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Text="{x:Static properties:Resources.report}" />
+                        <TextBlock Grid.Column="0" Text="{lex:Loc report}" />
                         <ui:SymbolIcon Grid.Column="1" Symbol="Link24" />
                     </Grid>
                 </ui:Anchor>
@@ -132,7 +132,7 @@
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Text="{x:Static properties:Resources.github}" />
+                        <TextBlock Grid.Column="0" Text="{lex:Loc github}" />
                         <ui:SymbolIcon Grid.Column="1" Symbol="Link24" />
                     </Grid>
                 </ui:Anchor>

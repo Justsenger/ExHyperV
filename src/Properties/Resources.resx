@@ -288,9 +288,6 @@
   <data name="gpupvid" xml:space="preserve">
     <value>GPU partition ID</value>
   </data>
-  <data name="runerror" xml:space="preserve">
-    <value>Error executing:  </value>
-  </data>
   <data name="success" xml:space="preserve">
     <value>Success</value>
   </data>
@@ -325,7 +322,7 @@
     <value>Language</value>
   </data>
   <data name="reboot" xml:space="preserve">
-    <value>Changing the language will restart the application</value>
+    <value>Language will change immediately</value>
   </data>
   <data name="about" xml:space="preserve">
     <value>About</value>
@@ -380,5 +377,26 @@
   </data>
   <data name="servererror" xml:space="preserve">
     <value>The host system is not a server version, and the virtual machine with the DDA device added will not be able to start!</value>
+  </data>
+  <data name="ErrorColon" xml:space="preserve">
+    <value>Error:</value>
+  </data>
+  <data name="ErrorMessage" xml:space="preserve">
+    <value>Error message</value>
+  </data>
+  <data name="ErrorDetails" xml:space="preserve">
+    <value>Error details</value>
+  </data>
+  <data name="PowerShellException" xml:space="preserve">
+    <value>Exception occurred while executing PowerShell script</value>
+  </data>
+  <data name="StackTrace" xml:space="preserve">
+    <value>Stack trace</value>
+  </data>
+  <data name="AppVersionValue" xml:space="preserve">
+    <value>V1.0.8</value>
+  </data>
+  <data name="AppAuthor" xml:space="preserve">
+    <value>砂菱叶</value>
   </data>
 </root>
