@@ -1,4 +1,4 @@
-namespace ExHyperV.Views.Pages;
+﻿namespace ExHyperV.Views.Pages;
 using System;
 using System.Management.Automation;
 using System.Collections.Generic;

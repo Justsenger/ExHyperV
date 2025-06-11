@@ -1,4 +1,4 @@
-using System.Windows.Controls;
+ï»¿using System.Windows.Controls;
 namespace ExHyperV.Views.Pages;
 using System;
 using System.Collections.Generic;
@@ -14,7 +14,7 @@ public partial class DDAPage
     {
         InitializeComponent();
         Task.Run(() => IsServer());
-        Task.Run(() => Initialinfo()); //»ñÈ¡Éè±¸ĞÅÏ¢
+        Task.Run(() => Initialinfo()); //è·å–è®¾å¤‡ä¿¡æ¯
                 }
                 public class DeviceInfo
                 {
@@ -23,9 +23,9 @@ public partial class DDAPage
                     public string ClassType { get; set; }
                     public string InstanceId { get; set; }
                     public string Path { get; set; }
-                    public List<string> VmNames { get; set; }  // ´æ´¢ĞéÄâ»úÃû³ÆÁĞ±í
+                    public List<string> VmNames { get; set; }  // å­˜å‚¨è™šæ‹Ÿæœºåç§°åˆ—è¡¨
 
-                    // ¹¹Ôìº¯Êı
+                    // æ„é€ å‡½æ•°
                     public DeviceInfo(string friendlyName, string status, string classType, string instanceId,List<string> vmNames,string path)
                     {
                         FriendlyName = friendlyName;
@@ -44,38 +44,38 @@ public partial class DDAPage
                     var result = Utils.Run("(Get-WmiObject -Class Win32_OperatingSystem).ProductType");
                     Dispatcher.Invoke(() =>
                     {
-                        if (result[0].ToString()=="3") { Isserver.IsOpen = false; } //·şÎñÆ÷°æ±¾£¬¹Ø±ÕÌáÊ¾
+                        if (result[0].ToString()=="3") { Isserver.IsOpen = false; } //æœåŠ¡å™¨ç‰ˆæœ¬ï¼Œå…³é—­æç¤º
                     });
                 }
 
                 private async void Initialinfo(){
                     List<DeviceInfo> deviceList = new List<DeviceInfo>();
-                    await GetInfo(deviceList); //»ñÈ¡Êı¾İ
+                    await GetInfo(deviceList); //è·å–æ•°æ®
 
-                    Dispatcher.Invoke(() => //¸üĞÂUI
+                    Dispatcher.Invoke(() => //æ›´æ–°UI
                     {
                         ParentPanel.Children.Clear();
-                        progressRing.Visibility = Visibility.Collapsed; //Òş²Ø¼ÓÔØÌõ
-                        foreach (var device in deviceList) //¸üĞÂUI
+                        progressRing.Visibility = Visibility.Collapsed; //éšè—åŠ è½½æ¡
+                        foreach (var device in deviceList) //æ›´æ–°UI
                         {
                             var cardExpander = Utils.CardExpander1();
                             cardExpander.Icon = Utils.FontIcon1(device.ClassType, device.FriendlyName);
                             Grid.SetRow(cardExpander, ParentPanel.RowDefinitions.Count);
-                            ParentPanel.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });  // Ôö¼ÓĞÂµÄÒ»ĞĞ
+                            ParentPanel.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });  // å¢åŠ æ–°çš„ä¸€è¡Œ
 
-                            var headerGrid = new Grid(); // ´´½¨ header µÄ Grid ²¼¾Ö£¬°üº¬Á½ÁĞ£¬µÚÒ»ÁĞÕ¼ÂúÊ£Óà¿Õ¼ä£¬µÚ¶şÁĞ¸ù¾İÄÚÈİ×ÔÊÊÓ¦¿í¶È
+                            var headerGrid = new Grid(); // åˆ›å»º header çš„ Grid å¸ƒå±€ï¼ŒåŒ…å«ä¸¤åˆ—ï¼Œç¬¬ä¸€åˆ—å æ»¡å‰©ä½™ç©ºé—´ï¼Œç¬¬äºŒåˆ—æ ¹æ®å†…å®¹è‡ªé€‚åº”å®½åº¦
                             headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
                             headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
-                            var drivername = Utils.TextBlock1(device.FriendlyName); //Éè±¸Ãû
-                            Grid.SetColumn(drivername, 0); // Ìí¼Óµ½µÚÒ»ÁĞ
+                            var drivername = Utils.TextBlock1(device.FriendlyName); //è®¾å¤‡å
+                            Grid.SetColumn(drivername, 0); // æ·»åŠ åˆ°ç¬¬ä¸€åˆ—
                             headerGrid.Children.Add(drivername);
 
-                            var Menu = Utils.DropDownButton1(device.Status); //ÓÒ²à°´Å¥
-                            Grid.SetColumn(Menu, 1); // Ìí¼Ó°´Å¥µ½µÚ¶şÁĞ
+                            var Menu = Utils.DropDownButton1(device.Status); //å³ä¾§æŒ‰é’®
+                            Grid.SetColumn(Menu, 1); // æ·»åŠ æŒ‰é’®åˆ°ç¬¬äºŒåˆ—
 
                             var contextMenu = new ContextMenu();
-                            contextMenu.Items.Add(CreateMenuItem(ExHyperV.Properties.Resources.Host)); //µ¥¶ÀÌí¼ÓÒ»¸öÖ÷»úÑ¡Ïî£¬ºÍºóÃæµÄĞéÄâ»úÁĞ±íÈÚºÏ
+                            contextMenu.Items.Add(CreateMenuItem(ExHyperV.Properties.Resources.Host)); //å•ç‹¬æ·»åŠ ä¸€ä¸ªä¸»æœºé€‰é¡¹ï¼Œå’Œåé¢çš„è™šæ‹Ÿæœºåˆ—è¡¨èåˆ
                             foreach (var vmName in device.VmNames)
                             {
                                 contextMenu.Items.Add(CreateMenuItem(vmName));
@@ -85,14 +85,14 @@ public partial class DDAPage
                                 var item = new MenuItem { Header = header };
                                 item.Click += async (s, e) =>
                                 {
-                                    if ((String)Menu.Content != header) // µ±ÓÃ»§Ñ¡Ïî²»µÈÓÚÄ¿Ç°µÄÑ¡ÏîÊ±
+                                    if ((String)Menu.Content != header) // å½“ç”¨æˆ·é€‰é¡¹ä¸ç­‰äºç›®å‰çš„é€‰é¡¹æ—¶
                                     {
                                         TextBlock contentTextBlock = new TextBlock
                                         {
                                             Text = ExHyperV.Properties.Resources.string5,
-                                            HorizontalAlignment = HorizontalAlignment.Center, // Ë®Æ½¾ÓÖĞ
-                                            VerticalAlignment = VerticalAlignment.Center,     // ´¹Ö±¾ÓÖĞ
-                                            TextWrapping = TextWrapping.Wrap                  // ÔÊĞíÎÄ±¾»»ĞĞ
+                                            HorizontalAlignment = HorizontalAlignment.Center, // æ°´å¹³å±…ä¸­
+                                            VerticalAlignment = VerticalAlignment.Center,     // å‚ç›´å±…ä¸­
+                                            TextWrapping = TextWrapping.Wrap                  // å…è®¸æ–‡æœ¬æ¢è¡Œ
                                         };
 
                                         ContentDialog Dialog = new()
@@ -102,12 +102,12 @@ public partial class DDAPage
                                             CloseButtonText = ExHyperV.Properties.Resources.wait,
                                         };
 
-                                        Dialog.Closing += (sender, args) => { args.Cancel = true; };// ½ûÖ¹ÓÃ»§µã»÷°´Å¥´¥·¢¹Ø±ÕÊÂ¼ş
+                                        Dialog.Closing += (sender, args) => { args.Cancel = true; };// ç¦æ­¢ç”¨æˆ·ç‚¹å‡»æŒ‰é’®è§¦å‘å…³é—­äº‹ä»¶
                                         Dialog.DialogHost = ((MainWindow)Application.Current.MainWindow).ContentPresenterForDialogs;
 
-                                        Dialog.ShowAsync(CancellationToken.None); //ÏÔÊ¾ÌáÊ¾¿ò ²»ÄÜĞ´Îªawait
+                                        Dialog.ShowAsync(CancellationToken.None); //æ˜¾ç¤ºæç¤ºæ¡† ä¸èƒ½å†™ä¸ºawait
 
-                                        await DDAps(Menu, Dialog, contentTextBlock, header, device.InstanceId, device.Path, (String)Menu.Content); //Ö´ĞĞÃüÁîĞĞ
+                                        await DDAps(Menu, Dialog, contentTextBlock, header, device.InstanceId, device.Path, (String)Menu.Content); //æ‰§è¡Œå‘½ä»¤è¡Œ
                                     }
                                 };
                                 return item;
@@ -116,11 +116,11 @@ public partial class DDAPage
                             headerGrid.Children.Add(Menu);
                             cardExpander.Header = headerGrid;
 
-                            // ÏêÏ¸Êı¾İ
+                            // è¯¦ç»†æ•°æ®
                             var contentPanel = new StackPanel { Margin = new Thickness(50, 10, 0, 0) };
 
                             var grid = new Grid();
-                            // ¶¨Òå Grid µÄÁĞºÍĞĞ
+                            // å®šä¹‰ Grid çš„åˆ—å’Œè¡Œ
                             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(125) });
                             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
                             grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(32) });
@@ -152,26 +152,26 @@ public partial class DDAPage
                 }
                 private async Task DDAps(DropDownButton menu,ContentDialog dialog,TextBlock contentTextBlock,string Vmname,string instanceId,string path,string Nowname)
                 {
-                    var (psCommands, messages) = DDACommands(Vmname,instanceId,path,Nowname); //Í¨¹ıËÄÔª×é»ñÈ¡¶ÔÓ¦µÄÃüÁîºÍÏûÏ¢ÌáÊ¾
+                    var (psCommands, messages) = DDACommands(Vmname,instanceId,path,Nowname); //é€šè¿‡å››å…ƒç»„è·å–å¯¹åº”çš„å‘½ä»¤å’Œæ¶ˆæ¯æç¤º
                     for (int i = 0; i < messages.Length; i++)
                     {
-                        Application.Current.Dispatcher.Invoke(() =>{contentTextBlock.Text = messages[i];}); //¸üĞÂÌáÊ¾
-                        Thread.Sleep(200); //ÒıÈëÒ»¶¨µÄÑÓÊ±£¬ÏÔÊ¾²½Öè
-                        //System.Windows.MessageBox.Show("Ö´ĞĞµÄÃüÁî£º"+psCommands[i]);
+                        Application.Current.Dispatcher.Invoke(() =>{contentTextBlock.Text = messages[i];}); //æ›´æ–°æç¤º
+                        Thread.Sleep(200); //å¼•å…¥ä¸€å®šçš„å»¶æ—¶ï¼Œæ˜¾ç¤ºæ­¥éª¤
+                        //System.Windows.MessageBox.Show("æ‰§è¡Œçš„å‘½ä»¤ï¼š"+psCommands[i]);
 
-                        var logOutput = await DDAps(psCommands[i]); //Ö´ĞĞÃüÁî£¬²¢»ñÈ¡ÈÕÖ¾
+                        var logOutput = await DDAps(psCommands[i]); //æ‰§è¡Œå‘½ä»¤ï¼Œå¹¶è·å–æ—¥å¿—
 
-                        //System.Windows.MessageBox.Show("ÒÑ¾­»ñÈ¡µ½ÈÕÖ¾");
+                        //System.Windows.MessageBox.Show("å·²ç»è·å–åˆ°æ—¥å¿—");
                         if (logOutput.Any(log => log.Contains("Error")))
                         {
                             Application.Current.Dispatcher.Invoke(() =>
                             {
-                                contentTextBlock.Text += "\n"+ string.Join(Environment.NewLine, logOutput); // ¸½¼ÓÒ»ÌõÖĞ¶ÏĞÅÏ¢
-                                dialog.CloseButtonText = "OK"; // ¸üĞÂ°´Å¥ÎÄ±¾
-                                dialog.Closing += (sender, args) => { args.Cancel = false; }; //ÔÊĞíÓÃ»§µã»÷¹Ø±Õ
+                                contentTextBlock.Text += "\n"+ string.Join(Environment.NewLine, logOutput); // é™„åŠ ä¸€æ¡ä¸­æ–­ä¿¡æ¯
+                                dialog.CloseButtonText = "OK"; // æ›´æ–°æŒ‰é’®æ–‡æœ¬
+                                dialog.Closing += (sender, args) => { args.Cancel = false; }; //å…è®¸ç”¨æˆ·ç‚¹å‡»å…³é—­
                                 DDArefresh(null, null);
                             });
-                            return;// ÍË³öÑ­»·
+                            return;// é€€å‡ºå¾ªç¯
 
                         }
                     }
@@ -180,8 +180,8 @@ public partial class DDAPage
                     {
                         menu.Content = Vmname;
                         contentTextBlock.Text = ExHyperV.Properties.Resources.operated;
-                        dialog.CloseButtonText = ExHyperV.Properties.Resources.OK; // ¸üĞÂ°´Å¥ÎÄ±¾
-                        dialog.Closing += (sender, args) => { args.Cancel = false; };// ÔÊĞíÓÃ»§¹Ø±Õ
+                        dialog.CloseButtonText = ExHyperV.Properties.Resources.OK; // æ›´æ–°æŒ‰é’®æ–‡æœ¬
+                        dialog.Closing += (sender, args) => { args.Cancel = false; };// å…è®¸ç”¨æˆ·å…³é—­
                         DDArefresh(null, null);
                     });
                 }
@@ -189,17 +189,17 @@ public partial class DDAPage
                 {
                     List<string> logOutput = new List<string>();
                     try{
-                        var powerShell = PowerShell.Create(); // ´´½¨ PowerShell »á»°²¢Ö´ĞĞÃüÁî
-                        powerShell.AddScript(psCommand); // Ìí¼Ó PowerShell ½Å±¾
-                        var result = await Task.Run(() => powerShell.Invoke());// Òì²½Ö´ĞĞÃüÁî
-                        foreach (var item in result)// ½«Êä³öÌí¼Óµ½ logOutput ÁĞ±í
-                        { logOutput.Add(item.ToString());}// ½«Ã¿¸öÊä³öÏîÌí¼Óµ½ÈÕÖ¾ÁĞ±íÖĞ
-                        var errorStream = powerShell.Streams.Error.ReadAll(); // ¼ì²é±ê×¼´íÎóÊä³öÁ÷£¬¿´ÊÇ·ñ²¶×½µ½´íÎó
+                        var powerShell = PowerShell.Create(); // åˆ›å»º PowerShell ä¼šè¯å¹¶æ‰§è¡Œå‘½ä»¤
+                        powerShell.AddScript(psCommand); // æ·»åŠ  PowerShell è„šæœ¬
+                        var result = await Task.Run(() => powerShell.Invoke());// å¼‚æ­¥æ‰§è¡Œå‘½ä»¤
+                        foreach (var item in result)// å°†è¾“å‡ºæ·»åŠ åˆ° logOutput åˆ—è¡¨
+                        { logOutput.Add(item.ToString());}// å°†æ¯ä¸ªè¾“å‡ºé¡¹æ·»åŠ åˆ°æ—¥å¿—åˆ—è¡¨ä¸­
+                        var errorStream = powerShell.Streams.Error.ReadAll(); // æ£€æŸ¥æ ‡å‡†é”™è¯¯è¾“å‡ºæµï¼Œçœ‹æ˜¯å¦æ•æ‰åˆ°é”™è¯¯
                         if (errorStream.Count > 0)
-                        {foreach (var error in errorStream){logOutput.Add($"Error: {error.ToString()}");}}// ½«´íÎóĞÅÏ¢Ìí¼Óµ½ÈÕÖ¾
+                        {foreach (var error in errorStream){logOutput.Add($"Error: {error.ToString()}");}}// å°†é”™è¯¯ä¿¡æ¯æ·»åŠ åˆ°æ—¥å¿—
                     }
-                    catch (Exception ex){logOutput.Add($"Error: {ex.Message}");}//ÒâÁÏÖ®ÍâµÄ´íÎó
-                    return logOutput; // ·µ»ØÈÕÖ¾Êä³ö
+                    catch (Exception ex){logOutput.Add($"Error: {ex.Message}");}//æ„æ–™ä¹‹å¤–çš„é”™è¯¯
+                    return logOutput; // è¿”å›æ—¥å¿—è¾“å‡º
                 }
                 private async Task GetInfo(List<DeviceInfo> deviceList)
                 {
@@ -207,27 +207,27 @@ public partial class DDAPage
                     {
                         using (PowerShell PowerShellInstance = PowerShell.Create())
                         {
-                            Dictionary<string, string> vmdevice = new Dictionary<string, string>(); //´æ´¢ĞéÄâ»ú¹ÒÔØµÄPCIPÉè±¸ÁĞ±í
-                            List<string> vmNameList = new List<string>() ;// ´æ´¢ĞéÄâ»úÁĞ±í
-                            PowerShellInstance.AddScript("Set-ExecutionPolicy RemoteSigned -Scope Process -Force"); //ÉèÖÃ²ßÂÔ
+                            Dictionary<string, string> vmdevice = new Dictionary<string, string>(); //å­˜å‚¨è™šæ‹ŸæœºæŒ‚è½½çš„PCIPè®¾å¤‡åˆ—è¡¨
+                            List<string> vmNameList = new List<string>() ;// å­˜å‚¨è™šæ‹Ÿæœºåˆ—è¡¨
+                            PowerShellInstance.AddScript("Set-ExecutionPolicy RemoteSigned -Scope Process -Force"); //è®¾ç½®ç­–ç•¥
                             PowerShellInstance.AddScript("Import-Module PnpDevice");
 
-                            //1.»ñÈ¡ĞéÄâ»úÏà¹ØĞÅÏ¢£¬½«ÒÑ¾­·ÖÅäÁËµÄÉè±¸´æÈë×ÖµäÒÔ±ãºóĞø¶ÁÈ¡¡£
+                            //1.è·å–è™šæ‹Ÿæœºç›¸å…³ä¿¡æ¯ï¼Œå°†å·²ç»åˆ†é…äº†çš„è®¾å¤‡å­˜å…¥å­—å…¸ä»¥ä¾¿åç»­è¯»å–ã€‚
 
-                            //¼ì²éÊÇ·ñ°²×°hyperv
+                            //æ£€æŸ¥æ˜¯å¦å®‰è£…hyperv
                             var hypervstatus =Utils.Run("Get-Module -ListAvailable -Name Hyper-V");
 
-                            if (hypervstatus.Count != 0) //ÒÑ°²×°
+                            if (hypervstatus.Count != 0) //å·²å®‰è£…
                             {
-                                //»ñÈ¡ĞéÄâ»úĞÅÏ¢
+                                //è·å–è™šæ‹Ÿæœºä¿¡æ¯
                                 var vmdata = Utils.Run(@"Get-VM | Select-Object Name");
                                 foreach (var vm in vmdata)
                                 {
                                     var Name = vm.Members["Name"]?.Value?.ToString();
 
-                                    if (!string.IsNullOrEmpty(Name)){vmNameList.Add(Name);}//Ãû×Ö²»Îª¿ÕÔòÌí¼Ó¸ÃĞéÄâ»ú
+                                    if (!string.IsNullOrEmpty(Name)){vmNameList.Add(Name);}//åå­—ä¸ä¸ºç©ºåˆ™æ·»åŠ è¯¥è™šæ‹Ÿæœº
 
-                                    var deviceData = Utils.Run($@"Get-VMAssignableDevice -VMName '{Name}' | Select-Object InstanceID");//»ñÈ¡ĞéÄâ»úµÄÉè±¸ÁĞ±í
+                                    var deviceData = Utils.Run($@"Get-VMAssignableDevice -VMName '{Name}' | Select-Object InstanceID");//è·å–è™šæ‹Ÿæœºçš„è®¾å¤‡åˆ—è¡¨
 
                                     if (deviceData != null && deviceData.Count > 0)
                                     {
@@ -236,28 +236,28 @@ public partial class DDAPage
                                             var instanceId = device.Members["InstanceID"]?.Value?.ToString().Substring(4);
                                             if (!string.IsNullOrEmpty(instanceId) && !string.IsNullOrEmpty(Name))
                                             {
-                                                vmdevice[instanceId] = Name; // ½« InstanceID ºÍ VMName ´æÈë×Öµä
+                                                vmdevice[instanceId] = Name; // å°† InstanceID å’Œ VMName å­˜å…¥å­—å…¸
                                             }
                                         }
                                     }
                                 }
                             }
-                            //Èç¹ûÃ»ÓĞ°²×°HyperVÄ£¿é£¬ÔòÎŞ·¨»ñÈ¡VMĞÅÏ¢£¬µ«²»Ó°ÏìÕı³£µÄÓ²¼ş¶ÁÈ¡¡£
+                            //å¦‚æœæ²¡æœ‰å®‰è£…HyperVæ¨¡å—ï¼Œåˆ™æ— æ³•è·å–VMä¿¡æ¯ï¼Œä½†ä¸å½±å“æ­£å¸¸çš„ç¡¬ä»¶è¯»å–ã€‚
 
-                            //»ñÈ¡ PCIP Éè±¸ĞÅÏ¢
+                            //è·å– PCIP è®¾å¤‡ä¿¡æ¯
                             var PCIPData = Utils.Run("Get-PnpDevice | Where-Object { $_.InstanceId -like 'PCIP\\*' } | Select-Object Class, InstanceId, FriendlyName, Status");
                             if (PCIPData != null && PCIPData.Count > 0)
                             {
                                 foreach (var PCIP in PCIPData)
                                 {
-                                    var instanceId = PCIP.Members["InstanceId"]?.Value?.ToString().Substring(4); //»ñÈ¡PCIPºóÃæµÄ±àºÅ
-                                    //Èç¹ûÂú×ãÌõ¼ş£º¸ÃÉè±¸Î´·ÖÅä¸øĞéÄâ»ú+PCIP×´Ì¬µÈÓÚOK£¬ÔòËµÃ÷²¢Î´·ÖÅä¸øÖ÷»ú£¬´¦ÓÚĞ¶³ıÌ¬¡£
-                                    if (!vmdevice.ContainsKey(instanceId)&& PCIP.Members["Status"]?.Value?.ToString()=="OK"&&!string.IsNullOrEmpty(instanceId)) //×´Ì¬ÎªOK£¬·Ç¿Õ
+                                    var instanceId = PCIP.Members["InstanceId"]?.Value?.ToString().Substring(4); //è·å–PCIPåé¢çš„ç¼–å·
+                                    //å¦‚æœæ»¡è¶³æ¡ä»¶ï¼šè¯¥è®¾å¤‡æœªåˆ†é…ç»™è™šæ‹Ÿæœº+PCIPçŠ¶æ€ç­‰äºOKï¼Œåˆ™è¯´æ˜å¹¶æœªåˆ†é…ç»™ä¸»æœºï¼Œå¤„äºå¸é™¤æ€ã€‚
+                                    if (!vmdevice.ContainsKey(instanceId)&& PCIP.Members["Status"]?.Value?.ToString()=="OK"&&!string.IsNullOrEmpty(instanceId)) //çŠ¶æ€ä¸ºOKï¼Œéç©º
                                     {vmdevice[instanceId] = ExHyperV.Properties.Resources.removed; }
                                 }
                             }
 
-                            // »ñÈ¡ PCI Éè±¸ĞÅÏ¢¡£ĞèÒª¶à²éÑ¯¼¸±é²ÅÄÜ»ñÈ¡ËùÓĞÉè±¸µÄÍêÕûĞÅÏ¢¡£
+                            // è·å– PCI è®¾å¤‡ä¿¡æ¯ã€‚éœ€è¦å¤šæŸ¥è¯¢å‡ éæ‰èƒ½è·å–æ‰€æœ‰è®¾å¤‡çš„å®Œæ•´ä¿¡æ¯ã€‚
                             string scripts = @"
                             $maxRetries = 10
                             $retryIntervalSeconds = 1
@@ -302,8 +302,8 @@ public partial class DDAPage
 
                 var Pcidata = Utils.Run(scripts);
                 var sortedResults = Pcidata
-                .Where(result => result!= null)  // ¹ıÂËµôÎª¿ÕµÄÔªËØ
-                .OrderBy(result => result.Members["Service"]?.Value?.ToString()[0])  // °´°´ÀàĞÍÅÅĞò£¬¼´Class ×Ö¶ÎÊ××ÖÄ¸
+                .Where(result => result!= null)  // è¿‡æ»¤æ‰ä¸ºç©ºçš„å…ƒç´ 
+                .OrderBy(result => result.Members["Service"]?.Value?.ToString()[0])  // æŒ‰æŒ‰ç±»å‹æ’åºï¼Œå³Class å­—æ®µé¦–å­—æ¯
                 .ToList();
                 foreach (var result in sortedResults)
                 {
@@ -314,23 +314,23 @@ public partial class DDAPage
                     var path = result.Members["Path"]?.Value?.ToString();
                     var service = result.Members["Service"]?.Value?.ToString();
                     if (service == "pci" || service == null) {
-                        continue; //ÅÅ³ı´ËÀàÉè±¸
+                        continue; //æ’é™¤æ­¤ç±»è®¾å¤‡
                     }
                     
-                    // ×´Ì¬ÎªUnknownµÄÉè±¸£¬ÓĞÈıÖÖÇé¿ö£º1.ÎïÀíÒÆ³ı¡£2.ÒÑ·ÖÅä¸øĞéÄâ»ú¡£3.Ğ¶³ıÌ¬¡£
-                    // ¿´ÊÇ·ñ·ÖÅä¸øĞéÄâ»ú
+                    // çŠ¶æ€ä¸ºUnknownçš„è®¾å¤‡ï¼Œæœ‰ä¸‰ç§æƒ…å†µï¼š1.ç‰©ç†ç§»é™¤ã€‚2.å·²åˆ†é…ç»™è™šæ‹Ÿæœºã€‚3.å¸é™¤æ€ã€‚
+                    // çœ‹æ˜¯å¦åˆ†é…ç»™è™šæ‹Ÿæœº
                     if (status == "Unknown" && !string.IsNullOrEmpty(instanceId) && instanceId.Length > 3)
                     {
-                        if (vmdevice.ContainsKey(instanceId.Substring(3))) // ¼ì²éÈ¥µôÇ°ÈıÎ»ºóµÄPCIµÄInstanceIdÊÇ·ñÔÚ´æ´¢µÄvmÒÑ·ÖÅäÉè±¸µÄÁĞ±íÀï
+                        if (vmdevice.ContainsKey(instanceId.Substring(3))) // æ£€æŸ¥å»æ‰å‰ä¸‰ä½åçš„PCIçš„InstanceIdæ˜¯å¦åœ¨å­˜å‚¨çš„vmå·²åˆ†é…è®¾å¤‡çš„åˆ—è¡¨é‡Œ
                         {
                             status = vmdevice[instanceId.Substring(3)];
                         } 
-                        else { continue; } //²»ÔÚĞéÄâ»úÁĞ±íÄÚ£¬Ò²²»ÊôÓÚĞ¶³ıÌ¬£¬ËµÃ÷ÒÑ¾­ÎïÀíÒÆ³ı¡£
+                        else { continue; } //ä¸åœ¨è™šæ‹Ÿæœºåˆ—è¡¨å†…ï¼Œä¹Ÿä¸å±äºå¸é™¤æ€ï¼Œè¯´æ˜å·²ç»ç‰©ç†ç§»é™¤ã€‚
                     }
                     else {
-                        status = Properties.Resources.Host; //¹ÒÔØÔÚÖ÷»úÉÏµÄÇé¿ö¡£
+                        status = Properties.Resources.Host; //æŒ‚è½½åœ¨ä¸»æœºä¸Šçš„æƒ…å†µã€‚
                     }
-                    deviceList.Add(new DeviceInfo(friendlyName, status, classType, instanceId,vmNameList,path)); //Ìí¼Óµ½Éè±¸ÁĞ±í
+                    deviceList.Add(new DeviceInfo(friendlyName, status, classType, instanceId,vmNameList,path)); //æ·»åŠ åˆ°è®¾å¤‡åˆ—è¡¨
                 }
             }
         }
@@ -340,12 +340,12 @@ public partial class DDAPage
     }
     private static (string[] commands, string[] messages) DDACommands(string Vmname, string instanceId, string path, string Nowname)
     {
-        // ¶¨ÒåÃüÁîºÍÏûÏ¢µÄÄ¬ÈÏÊı×é
+        // å®šä¹‰å‘½ä»¤å’Œæ¶ˆæ¯çš„é»˜è®¤æ•°ç»„
         string[] commands;
         string[] messages;
 
         if (Nowname == Properties.Resources.removed && Vmname == Properties.Resources.Host)
-        {  //½«Éè±¸ÕÛ·µÖ÷»ú
+        {  //å°†è®¾å¤‡æŠ˜è¿”ä¸»æœº
             commands = new string[]
             {
                 $"Mount-VMHostAssignableDevice -LocationPath '{path}'"
@@ -356,7 +356,7 @@ public partial class DDAPage
             };
         }
         else if(Nowname == Properties.Resources.removed && Vmname != Properties.Resources.Host)
-        { //ÒÑĞ¶³ıÉè±¸¼ÌĞø·ÖÅä¸øĞéÄâ»ú
+        { //å·²å¸é™¤è®¾å¤‡ç»§ç»­åˆ†é…ç»™è™šæ‹Ÿæœº
             commands = new string[]
             {   
                 $"Add-VMAssignableDevice -LocationPath '{path}' -VMName '{Vmname}'",
@@ -366,12 +366,12 @@ public partial class DDAPage
                 ExHyperV.Properties.Resources.mounting,
             };
         }
-        // ¸ù¾İÌõ¼şÅĞ¶Ï·µ»Ø²»Í¬µÄÃüÁîºÍÏûÏ¢
-        else if (Nowname == Properties.Resources.Host)  // Ö÷»úÇĞ»»µ½ĞéÄâ»ú
+        // æ ¹æ®æ¡ä»¶åˆ¤æ–­è¿”å›ä¸åŒçš„å‘½ä»¤å’Œæ¶ˆæ¯
+        else if (Nowname == Properties.Resources.Host)  // ä¸»æœºåˆ‡æ¢åˆ°è™šæ‹Ÿæœº
         {
             commands = new string[]
             {
-            $"Set-VM -Name '{Vmname}' -AutomaticStopAction TurnOff",  // ¸ÄÎªÇ¿ÖÆ¶Ïµç
+            $"Set-VM -Name '{Vmname}' -AutomaticStopAction TurnOff",  // æ”¹ä¸ºå¼ºåˆ¶æ–­ç”µ
             $"Set-VM -GuestControlledCacheTypes $true -VMName '{Vmname}'",
             $"(Get-PnpDeviceProperty -InstanceId '{instanceId}' DEVPKEY_Device_LocationPaths).Data[0]",
             $"Disable-PnpDevice -InstanceId '{instanceId}' -Confirm:$false",
@@ -388,11 +388,11 @@ public partial class DDAPage
             ExHyperV.Properties.Resources.mounting,
             };
         }
-        else if (Vmname != Properties.Resources.Host&& Nowname != Properties.Resources.Host)  // ĞéÄâ»úÇĞ»»µ½ĞéÄâ»ú
+        else if (Vmname != Properties.Resources.Host&& Nowname != Properties.Resources.Host)  // è™šæ‹Ÿæœºåˆ‡æ¢åˆ°è™šæ‹Ÿæœº
         {
             commands = new string[]
             {
-            $"Set-VM -Name '{Vmname}' -AutomaticStopAction TurnOff",  // ¸ÄÎªÇ¿ÖÆ¶Ïµç
+            $"Set-VM -Name '{Vmname}' -AutomaticStopAction TurnOff",  // æ”¹ä¸ºå¼ºåˆ¶æ–­ç”µ
             $"Set-VM -GuestControlledCacheTypes $true -VMName '{Vmname}'",
             $"(Get-PnpDeviceProperty -InstanceId '{instanceId}' DEVPKEY_Device_LocationPaths).Data[0]",
             $"Remove-VMAssignableDevice -LocationPath '{path}' -VMName '{Nowname}'",
@@ -408,7 +408,7 @@ public partial class DDAPage
             Properties.Resources.mounting,
             };
         }
-        else if (Vmname == Properties.Resources.Host && Nowname != Properties.Resources.Host)  // ĞéÄâ»úÇĞ»»»ØÖ÷»ú
+        else if (Vmname == Properties.Resources.Host && Nowname != Properties.Resources.Host)  // è™šæ‹Ÿæœºåˆ‡æ¢å›ä¸»æœº
         {
             commands = new string[]
             {
@@ -438,8 +438,8 @@ public partial class DDAPage
         if (!refreshlock)
         {
             refreshlock = true;
-            progressRing.Visibility = Visibility.Visible; //ÏÔÊ¾¼ÓÔØÌõ
-            Task.Run(() => Initialinfo()); //»ñÈ¡Éè±¸ĞÅÏ¢
+            progressRing.Visibility = Visibility.Visible; //æ˜¾ç¤ºåŠ è½½æ¡
+            Task.Run(() => Initialinfo()); //è·å–è®¾å¤‡ä¿¡æ¯
         } 
     }
 }

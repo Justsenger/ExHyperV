@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.Data.Common;
 using System.Dynamic;
 using System.Management.Automation;
@@ -34,24 +34,24 @@ public partial class Utils
 
         try
         {
-            // ִ�нű�
+            // 执行脚本
             output = ps.Invoke();
 
-            // ������ڴ��󣬽�������Ϣ��ӡ����
+            // 如果存在错误，将错误信息打印出来
             if (ps.HadErrors)
             {
-                System.Windows.MessageBox.Show("����:");
+                System.Windows.MessageBox.Show("错误:");
                 foreach (var error in ps.Streams.Error)
                 {
-                    System.Windows.MessageBox.Show($"������Ϣ: {error.Exception.Message}");
-                    System.Windows.MessageBox.Show($"������ϸ��Ϣ: {error.Exception.StackTrace}");
+                    System.Windows.MessageBox.Show($"错误消息: {error.Exception.Message}");
+                    System.Windows.MessageBox.Show($"错误详细信息: {error.Exception.StackTrace}");
                 }
             }
         }
         catch (Exception ex)
         {
-            System.Windows.MessageBox.Show($"ִ�� PowerShell �ű�ʱ�����쳣: {ex.Message}");
-            System.Windows.MessageBox.Show($"��ջ��Ϣ: {ex.StackTrace}");
+            System.Windows.MessageBox.Show($"执行 PowerShell 脚本时发生异常: {ex.Message}");
+            System.Windows.MessageBox.Show($"堆栈信息: {ex.StackTrace}");
         }
 
         return output;
@@ -84,22 +84,22 @@ public partial class Utils
         switch (deviceType)
         {
             case "Display":
-                return "\xF211";  // �Կ�ͼ�� 
+                return "\xF211";  // 显卡图标 
             case "Net":
-                return "\xE839";  // ����ͼ��
+                return "\xE839";  // 网络图标
             case "USB":
                 return friendlyName.Contains("USB4")
-                    ? "\xE945"    // �׵�ӿ�ͼ��
-                    : "\xECF0";   // ��ͨUSBͼ��
+                    ? "\xE945"    // 雷电接口图标
+                    : "\xECF0";   // 普通USB图标
             case "HIDClass":
-                return "\xE928";  // HID�豸ͼ��
+                return "\xE928";  // HID设备图标
             case "SCSIAdapter":
             case "HDC":
-                return "\xEDA2";  // �洢������ͼ��
+                return "\xEDA2";  // 存储控制器图标
             default:
                 return friendlyName.Contains("Audio")
-                    ? "\xE995"     // ��Ƶ�豸ͼ��
-                    : "\xE950";    // Ĭ��ͼ��
+                    ? "\xE995"     // 音频设备图标
+                    : "\xE950";    // 默认图标
         }
     }
 
@@ -109,7 +109,7 @@ public partial class Utils
         {
             FontSize = 24,
             FontFamily = (FontFamily)Application.Current.Resources["SegoeFluentIcons"],
-            Glyph = GetIconPath(classType, friendlyName) // ��ȡͼ��Unicode
+            Glyph = GetIconPath(classType, friendlyName) // 获取图标Unicode
         };
         return icon;
     }
@@ -141,7 +141,7 @@ public partial class Utils
             Margin = new System.Windows.Thickness(0, -2, 0, 0),
             VerticalAlignment = VerticalAlignment.Center,
             HorizontalAlignment = HorizontalAlignment.Center,
-            TextWrapping = TextWrapping.Wrap // �����ı�����
+            TextWrapping = TextWrapping.Wrap // 允许文本换行
         };
         return headerText;
     }
@@ -181,8 +181,8 @@ public partial class Utils
     {
         string imageName;
 
-        // ���� Manu ���ò�ͬ��ͼƬ�ļ���
-        if (Manu.Contains("NVIDIA")) // ����� NVIDIA �Կ���ʹ�� NVIDIA ��ͼƬ
+        // 根据 Manu 设置不同的图片文件名
+        if (Manu.Contains("NVIDIA")) // 如果是 NVIDIA 显卡，使用 NVIDIA 的图片
         {
             imageName = "NVIDIA.png";
         }
@@ -229,7 +229,7 @@ public partial class Utils
         }
         else
         {
-            imageName = "GPU.png";  // �������
+            imageName = "GPU.png";  // 其他情况
         }
 
         return $"pack://application:,,,/Assets/Gpuicons/{imageName}";
@@ -250,7 +250,7 @@ public partial class Utils
             VerticalAlignment = VerticalAlignment.Top
         };
 
-        // ���ÿ���ݲ���
+        // 设置抗锯齿参数
         image.SetValue(RenderOptions.BitmapScalingModeProperty, BitmapScalingMode.HighQuality);
         image.SetValue(RenderOptions.EdgeModeProperty, EdgeMode.Aliased);
 
@@ -263,7 +263,7 @@ public partial class Utils
         {
             FontSize = Size,
             FontFamily = (FontFamily)Application.Current.Resources["SegoeFluentIcons"],
-            Glyph = Glyph // ��ȡͼ��Unicode
+            Glyph = Glyph // 获取图标Unicode
         };
         return icon;
 
@@ -278,7 +278,7 @@ public partial class Utils
     }
 
     public static string Version => "V1.0.8";
-    public static string Author => "ɰ��Ҷ";
+    public static string Author => "砂菱叶";
 
 
 
