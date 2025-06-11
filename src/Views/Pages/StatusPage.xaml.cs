@@ -1,4 +1,4 @@
-namespace ExHyperV.Views.Pages;
+ï»¿namespace ExHyperV.Views.Pages;
 
 using System.Management.Automation;
 using System.Security.Principal;
@@ -62,7 +62,7 @@ public partial class StatusPage
                 Foreground = new SolidColorBrush(Colors.DodgerBlue),
             };
             status1.Children.Add(icons);
-            if (buildVersion >= 22000) //²»ÔÊĞíËŞÖ÷Ê¹ÓÃ¹ıµÍµÄÏµÍ³°æ±¾£¬WDDM°æ±¾µÍ£¬ÒÔ¼°PSÃüÁî´æÔÚÎÊÌâ¡£
+            if (buildVersion >= 22000) //ä¸å…è®¸å®¿ä¸»ä½¿ç”¨è¿‡ä½çš„ç³»ç»Ÿç‰ˆæœ¬ï¼ŒWDDMç‰ˆæœ¬ä½ï¼Œä»¥åŠPSå‘½ä»¤å­˜åœ¨é—®é¢˜ã€‚
             {
                 icons.Glyph = "\xEC61";
                 icons.Foreground = new SolidColorBrush(Color.FromArgb(255, 0, 138, 23));
@@ -70,7 +70,7 @@ public partial class StatusPage
             }
             else
             {
-                var ms = Application.Current.MainWindow as MainWindow; //»ñÈ¡Ö÷´°¿Ú
+                var ms = Application.Current.MainWindow as MainWindow; //è·å–ä¸»çª—å£
                 ms.gpupv.IsEnabled = false;
                 win.Text = ExHyperV.Properties.Resources.String3 + buildVersion.ToString() + ExHyperV.Properties.Resources.disablegpu;
                 icons.Glyph = "\xEB90";
@@ -111,7 +111,7 @@ public partial class StatusPage
 
     }
 
-    private async void CheckReg() //¼ì²éÊÇ·ñÌí¼ÓÁË×¢²á±í£¬ÒÑÌí¼ÓÔò¹Ø±Õµ¯´°
+    private async void CheckReg() //æ£€æŸ¥æ˜¯å¦æ·»åŠ äº†æ³¨å†Œè¡¨ï¼Œå·²æ·»åŠ åˆ™å…³é—­å¼¹çª—
     {
         string script = $@"[bool]((Test-Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\HyperV') -and 
         (($k = Get-Item 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\HyperV' -EA 0) -ne $null) -and 
@@ -152,9 +152,9 @@ public partial class StatusPage
                 admin.Text = ExHyperV.Properties.Resources.Admin1;
                 status4.Children.Add(icons);
             }
-            else //Èç¹ûÃ»ÓĞ¹ÜÀíÔ±È¨ÏŞ£¬¹Ø±ÕGPUĞéÄâ»¯¹¦ÄÜ
+            else //å¦‚æœæ²¡æœ‰ç®¡ç†å‘˜æƒé™ï¼Œå…³é—­GPUè™šæ‹ŸåŒ–åŠŸèƒ½
             {
-                var ms = Application.Current.MainWindow as MainWindow; //»ñÈ¡Ö÷´°¿Ú
+                var ms = Application.Current.MainWindow as MainWindow; //è·å–ä¸»çª—å£
                 ms.gpupv.IsEnabled = false;
                 admin.Text = ExHyperV.Properties.Resources.Admin2;
                 icons.Glyph = "\xEB90";
@@ -182,7 +182,7 @@ public partial class StatusPage
             if (result[0].ToString()=="3") { version.Text = ExHyperV.Properties.Resources.Isserver; }
             else
             {
-                var ms = Application.Current.MainWindow as MainWindow; //»ñÈ¡Ö÷´°¿Ú
+                var ms = Application.Current.MainWindow as MainWindow; //è·å–ä¸»çª—å£
                 //ms.dda.IsEnabled = false;
 
                 version.Text = ExHyperV.Properties.Resources.ddaa;
@@ -197,19 +197,19 @@ public partial class StatusPage
 
     public void Addreg()
     {
-        // ×¢²á±íÂ·¾¶ºÍ¼üÃû
+        // æ³¨å†Œè¡¨è·¯å¾„å’Œé”®å
         string registryPath = @"HKLM:\SOFTWARE\Policies\Microsoft\Windows\HyperV";
         string key1 = "RequireSecureDeviceAssignment";
         string key2 = "RequireSupportedDeviceAssignment";
 
-        // PowerShell ½Å±¾
+        // PowerShell è„šæœ¬
         string script = $@"
-        # È·±£×¢²á±íÂ·¾¶´æÔÚ£¬Èç¹û²»´æÔÚ£¬Ôò´´½¨Ëü
+        # ç¡®ä¿æ³¨å†Œè¡¨è·¯å¾„å­˜åœ¨ï¼Œå¦‚æœä¸å­˜åœ¨ï¼Œåˆ™åˆ›å»ºå®ƒ
         if (-not (Test-Path '{registryPath}')) {{
             New-Item -Path '{registryPath}' -Force
         }}
 
-        # ¼ì²é²¢ÉèÖÃ×¢²á±í¼üÖµ
+        # æ£€æŸ¥å¹¶è®¾ç½®æ³¨å†Œè¡¨é”®å€¼
         if (-not (Test-Path '{registryPath}\\{key1}')) {{
             Set-ItemProperty -Path '{registryPath}' -Name '{key1}' -Value 0 -Type DWord
         }}
@@ -222,12 +222,12 @@ public partial class StatusPage
 
     public void RemoveReg()
     {
-        // ×¢²á±íÂ·¾¶ºÍ¼üÃû
+        // æ³¨å†Œè¡¨è·¯å¾„å’Œé”®å
         string registryPath = @"HKLM:\SOFTWARE\Policies\Microsoft\Windows\HyperV";
         string key1 = "RequireSecureDeviceAssignment";
         string key2 = "RequireSupportedDeviceAssignment";
 
-        // PowerShell ½Å±¾
+        // PowerShell è„šæœ¬
         string script = $@"
         Remove-ItemProperty -Path '{registryPath}' -Name '{key1}'
         Remove-ItemProperty -Path '{registryPath}' -Name '{key2}'
