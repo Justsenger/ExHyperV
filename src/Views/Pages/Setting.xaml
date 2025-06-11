@@ -3,7 +3,6 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-    xmlns:local="clr-namespace:ExHyperV.Views.Pages"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
     xmlns:lex="http://wpflocalizeextension.codeplex.com"
@@ -11,7 +10,7 @@
     d:DesignHeight="700"
     d:DesignWidth="1000"
     mc:Ignorable="d">
-    
+
     <StackPanel Margin="15,15,15,24">
         <ui:TextBlock
             Margin="0,0,0,8"
@@ -36,7 +35,6 @@
             </ui:CardControl.Header>
             <ComboBox
                 x:Name="ThemeComboBox"
-                Grid.Column="1"
                 MinWidth="200"
                 SelectionChanged="OnThemeSelectionChanged">
                 <ComboBoxItem Content="{lex:Loc light}" />
@@ -63,7 +61,6 @@
             </ui:CardControl.Header>
             <ComboBox
                 x:Name="LanguageComboBox"
-                Grid.Column="1"
                 MinWidth="200"
                 SelectionChanged="OnLanguageSelectionChanged">
                 <ComboBoxItem Content="中文" />

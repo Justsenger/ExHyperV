@@ -1,180 +1,133 @@
-﻿namespace ExHyperV.Views.Pages;
-using System;
-using System.Collections.Generic;
-using System.Management.Automation;
+﻿using System.Management.Automation;
 using System.Windows;
 using System.Windows.Controls;
-using Microsoft.CodeAnalysis;
 using Wpf.Ui;
 using Wpf.Ui.Controls;
-using static System.Runtime.InteropServices.JavaScript.JSType;
+using Button = Wpf.Ui.Controls.Button;
+using MessageBox = System.Windows.MessageBox;
 
+namespace ExHyperV.Views.Pages;
 
 public partial class GPUPage
 {
+    public bool refreshlock;
 
-    public bool refreshlock = false;
-    public ISnackbarService SnackbarService { get; set; }
     public GPUPage()
     {
         InitializeComponent();
         GetGpu();
     }
-    public class GPUInfo
-    {
-        public string Name { get; set; } //显卡名称
-        public string Valid { get; set; } //是否联机
-        public string Manu { get; set; } //厂商
-        public string InstanceId { get; set; } //显卡实例id
-        public string Pname { get; set; } //可分区的显卡路径
-        public string Ram { get; set; } //显存大小
-        public string DriverVersion { get; set; } //驱动版本
 
-        // 构造函数
-        public GPUInfo(string name, string valid, string manu, string instanceId, string pname, string ram, string driverversion)
-        {
-            Name = name;
-            Valid = valid;
-            Manu = manu;
-            InstanceId = instanceId;
-            Pname = pname;
-            Ram = ram;
-            DriverVersion = driverversion;
-        }
-    }
-    public class VMInfo
-    {
-        public string Name { get; set; } //虚拟机名称
-        public string LowMMIO { get; set; } //低位内存空间大小
-        public string HighMMIO { get; set; } //高位内存空间大小
-        public string GuestControlled { get; set; } //控制缓存
-        public Dictionary<string, string> GPUs { get; set; } //存储显卡适配器列表
+    public ISnackbarService SnackbarService { get; set; }
 
-
-
-        // 构造函数
-        public VMInfo(string name, string low, string high, string guest, Dictionary<string, string> gpus)
-        {
-            Name = name;
-            LowMMIO = low;
-            HighMMIO = high;
-            GuestControlled = guest;
-            GPUs = gpus;
-        }
-
-    }
     public async void GetGpu()
     {
-        await Task.Run(() => {
+        await Task.Run(() =>
+        {
             List<GPUInfo> gpuList = [];
             //获取目前联机的显卡
-            var gpulinked = Utils.Run("Get-WmiObject -Class Win32_VideoController | select PNPDeviceID,name,AdapterCompatibility,DriverVersion");
+            var gpulinked =
+                Utils.Run(
+                    "Get-WmiObject -Class Win32_VideoController | select PNPDeviceID,name,AdapterCompatibility,DriverVersion");
             if (gpulinked.Count > 0)
-            {
                 foreach (var gpu in gpulinked)
                 {
-                    string name = gpu.Members["name"]?.Value.ToString();
-                    string instanceId = gpu.Members["PNPDeviceID"]?.Value.ToString();
-                    string Manu = gpu.Members["AdapterCompatibility"]?.Value.ToString();
-                    string DriverVersion = gpu.Members["DriverVersion"]?.Value.ToString();
+                    var name = gpu.Members["name"]?.Value.ToString();
+                    var instanceId = gpu.Members["PNPDeviceID"]?.Value.ToString();
+                    var Manu = gpu.Members["AdapterCompatibility"]?.Value.ToString();
+                    var DriverVersion = gpu.Members["DriverVersion"]?.Value.ToString();
                     gpuList.Add(new GPUInfo(name, "True", Manu, instanceId, null, null, DriverVersion));
                 }
-            }
+
             //获取HyperV支持状态
-            bool hyperv = Utils.Run("Get-Module -ListAvailable -Name Hyper-V").Count > 0;
+            var hyperv = Utils.Run("Get-Module -ListAvailable -Name Hyper-V").Count > 0;
 
             //获取N卡和I卡显存
 
-            string script = $@"Get-ItemProperty -Path ""HKLM:\SYSTEM\ControlSet001\Control\Class\{{4d36e968-e325-11ce-bfc1-08002be10318}}\0*"" -ErrorAction SilentlyContinue |
+            var script =
+                @"Get-ItemProperty -Path ""HKLM:\SYSTEM\ControlSet001\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}\0*"" -ErrorAction SilentlyContinue |
             Select-Object MatchingDeviceId,
-                  @{{Name=""MemorySize""; Expression={{
-                      if ($_.""HardwareInformation.qwMemorySize"") {{
+                  @{Name=""MemorySize""; Expression={
+                      if ($_.""HardwareInformation.qwMemorySize"") {
                           $_.""HardwareInformation.qwMemorySize""
-                      }} elseif ($_.""HardwareInformation.MemorySize"" -is [byte[]]) {{
+                      } elseif ($_.""HardwareInformation.MemorySize"" -is [byte[]]) {
                           $hexString = [BitConverter]::ToString($_.""HardwareInformation.MemorySize"").Replace(""-"", """")
                           $memoryValue = [Convert]::ToInt64($hexString, 16)
                           $memoryValue * 16 * 1024 * 1024
-                      }} else {{
+                      } else {
                           $_.""HardwareInformation.MemorySize""
-                      }}
-                  }}}} |
-            Where-Object {{ $_.MemorySize -ne $null }}";
+                      }
+                  }} |
+            Where-Object { $_.MemorySize -ne $null }";
             var gpuram = Utils.Run(script);
             if (gpuram.Count > 0)
-            {
                 // 遍历所有联机显卡
                 foreach (var existingGpu in gpuList)
                 {
                     // 在显存信息中寻找匹配项
                     var matchedGpu = gpuram.FirstOrDefault(g =>
                     {
-                        string id = g.Members["MatchingDeviceId"]?.Value?.ToString().ToUpper();
+                        var id = g.Members["MatchingDeviceId"]?.Value?.ToString().ToUpper();
                         return !string.IsNullOrEmpty(id) && existingGpu.InstanceId.Contains(id);
                     });
 
                     // 更新显存信息或设置默认值
                     existingGpu.Ram = matchedGpu?.Members["MemorySize"]?.Value?.ToString() ?? "0";
                 }
-            }
-
 
 
             //获取可分区GPU属性
             var result3 = Utils.Run("Get-VMHostPartitionableGpu | select name");
             if (result3.Count > 0)
-            {
                 foreach (var gpu in result3)
                 {
-                    string pname = gpu.Members["Name"]?.Value.ToString();
-                    var existingGpu = gpuList.FirstOrDefault(g => pname.ToUpper().Contains(g.InstanceId.Replace("\\", "#")));  // 找到 pname 对应的显卡
-                    if (existingGpu != null)
-                    {
-                        existingGpu.Pname = pname;
-                    }
+                    var pname = gpu.Members["Name"]?.Value.ToString();
+                    var existingGpu =
+                        gpuList.FirstOrDefault(g =>
+                            pname.ToUpper().Contains(g.InstanceId.Replace("\\", "#"))); // 找到 pname 对应的显卡
+                    if (existingGpu != null) existingGpu.Pname = pname;
                 }
-            }
+
             GpuUI(gpuList, hyperv);
             GetVM(gpuList);
         });
-    
-    
-    
     }
+
     public async void GetVM(List<GPUInfo> HostgpuList)
     {
-        await Task.Run(() => {
+        await Task.Run(() =>
+        {
             List<VMInfo> vmList = [];
             //获取VM信息
-            var vms = Utils.Run("Get-VM | Select vmname,LowMemoryMappedIoSpace,GuestControlledCacheTypes,HighMemoryMappedIoSpace");
-            
+            var vms = Utils.Run(
+                "Get-VM | Select vmname,LowMemoryMappedIoSpace,GuestControlledCacheTypes,HighMemoryMappedIoSpace");
+
             if (vms.Count > 0)
-            {
                 foreach (var vm in vms)
                 {
                     Dictionary<string, string> gpulist = new(); //存储虚拟机挂载的GPU分区
-                    string vmname = vm.Members["VMName"]?.Value.ToString();
-                    string highmmio = vm.Members["HighMemoryMappedIoSpace"]?.Value.ToString();
-                    string guest = vm.Members["GuestControlledCacheTypes"]?.Value.ToString();
+                    var vmname = vm.Members["VMName"]?.Value.ToString();
+                    var highmmio = vm.Members["HighMemoryMappedIoSpace"]?.Value.ToString();
+                    var guest = vm.Members["GuestControlledCacheTypes"]?.Value.ToString();
 
                     //马上查询虚拟机GPU虚拟化信息
                     var vmgpus = Utils.Run($@"Get-VMGpuPartitionAdapter -VMName '{vmname}' | Select InstancePath,Id");
                     if (vmgpus.Count > 0)
-                    {
                         foreach (var gpu in vmgpus)
                         {
-                            string gpupath = gpu.Members["InstancePath"]?.Value.ToString();
-                            string gpuid = gpu.Members["Id"]?.Value.ToString();
+                            var gpupath = gpu.Members["InstancePath"]?.Value.ToString();
+                            var gpuid = gpu.Members["Id"]?.Value.ToString();
                             gpulist[gpuid] = gpupath; //存入字典，id是不同的，但是path如果来自同一个GPU则可能相同
                         }
-                    }
-                    vmList.Add(new VMInfo(vmname,null,highmmio,guest,gpulist));
+
+                    vmList.Add(new VMInfo(vmname, null, highmmio, guest, gpulist));
                 }
-            }
-            VMUI(vmList,HostgpuList);
+
+            VMUI(vmList, HostgpuList);
         });
     }
 
-    private void GpuUI(List<GPUInfo> gpuList,bool hyperv)
+    private void GpuUI(List<GPUInfo> gpuList, bool hyperv)
     {
         Dispatcher.Invoke(() => { main.Children.Clear(); });
 
@@ -188,23 +141,26 @@ public partial class GPUPage
 
         foreach (var gpu in gpuList)
         {
-            string name = string.IsNullOrEmpty(gpu.Name) ? Utils.GetLocalizedString("none") : gpu.Name;
-            string valid = string.IsNullOrEmpty(gpu.Valid) ? Utils.GetLocalizedString("none") : gpu.Valid;
-            string manu = string.IsNullOrEmpty(gpu.Manu) ? Utils.GetLocalizedString("none") : gpu.Manu;
-            string instanceId = string.IsNullOrEmpty(gpu.InstanceId) ? Utils.GetLocalizedString("none") : gpu.InstanceId;
-            string pname = string.IsNullOrEmpty(gpu.Pname) ? Utils.GetLocalizedString("none") : gpu.Pname; //GPU分区路径
-            string driverversion = string.IsNullOrEmpty(gpu.DriverVersion) ? Utils.GetLocalizedString("none") : gpu.DriverVersion;
-            string gpup = Utils.GetLocalizedString("notsupport"); //是否支持GPU分区
+            var name = string.IsNullOrEmpty(gpu.Name) ? Utils.GetLocalizedString("none") : gpu.Name;
+            var valid = string.IsNullOrEmpty(gpu.Valid) ? Utils.GetLocalizedString("none") : gpu.Valid;
+            var manu = string.IsNullOrEmpty(gpu.Manu) ? Utils.GetLocalizedString("none") : gpu.Manu;
+            var instanceId = string.IsNullOrEmpty(gpu.InstanceId) ? Utils.GetLocalizedString("none") : gpu.InstanceId;
+            var pname = string.IsNullOrEmpty(gpu.Pname) ? Utils.GetLocalizedString("none") : gpu.Pname; //GPU分区路径
+            var driverversion = string.IsNullOrEmpty(gpu.DriverVersion)
+                ? Utils.GetLocalizedString("none")
+                : gpu.DriverVersion;
+            var gpup = Utils.GetLocalizedString("notsupport"); //是否支持GPU分区
 
-            string ram = (string.IsNullOrEmpty(gpu.Ram) ? 0 : long.Parse(gpu.Ram)) / (1024 * 1024) + " MB";
-            if (manu.Contains("Moore")) {
-                ram = (string.IsNullOrEmpty(gpu.Ram) ? 0 : long.Parse(gpu.Ram)) / 1024 + " MB";
-            }//摩尔线程的显存记录在HardwareInformation.MemorySize，但是单位是KB
+            var ram = (string.IsNullOrEmpty(gpu.Ram) ? 0 : long.Parse(gpu.Ram)) / (1024 * 1024) + " MB";
+            if (manu.Contains("Moore"))
+                ram = (string.IsNullOrEmpty(gpu.Ram) ? 0 : long.Parse(gpu.Ram)) / 1024 +
+                      " MB"; //摩尔线程的显存记录在HardwareInformation.MemorySize，但是单位是KB
 
-            if (valid != "True") { continue; } //剔除未连接的显卡
-            if (hyperv == false) {gpup = Utils.GetLocalizedString("needhyperv");}
-            if (pname != Utils.GetLocalizedString("none")) {gpup = Utils.GetLocalizedString("support");}
-            
+            if (valid != "True") continue; //剔除未连接的显卡
+
+            if (hyperv == false) gpup = Utils.GetLocalizedString("needhyperv");
+            if (pname != Utils.GetLocalizedString("none")) gpup = Utils.GetLocalizedString("support");
+
             Dispatcher.Invoke(() =>
             {
                 var rowCount = main.RowDefinitions.Count; // 获取当前行数
@@ -218,7 +174,7 @@ public partial class GPUPage
                 grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(64) });
                 grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
                 //创建图标
-                var image = Utils.CreateGpuImage(manu,name,64);
+                var image = Utils.CreateGpuImage(manu, name, 64);
                 Grid.SetColumn(image, 0);
                 grid.Children.Add(image);
 
@@ -227,7 +183,7 @@ public partial class GPUPage
                 Grid.SetColumn(gpuname, 1);
                 grid.Children.Add(gpuname);
                 cardExpander.Header = grid;
-                
+
                 //详细数据
                 var contentPanel = new StackPanel { Margin = new Thickness(50, 10, 0, 0) };
                 var grid2 = new Grid();
@@ -243,38 +199,38 @@ public partial class GPUPage
 
                 var textData = new (string text, int row, int column)[]
                 {
-                    (Utils.GetLocalizedString("manu"), 0, 0),(manu, 0, 1),
-                    (Utils.GetLocalizedString("ram"), 1, 0),(ram, 1, 1),
-                    (Utils.GetLocalizedString("Instanceid"), 2, 0),(instanceId, 2, 1),
-                    (Utils.GetLocalizedString("gpupv"), 3, 0),(gpup, 3, 1),
-                    (Utils.GetLocalizedString("gpupvpath"), 4, 0),(pname, 4, 1),
-                    (Utils.GetLocalizedString("driverversion"), 5, 0),(driverversion, 5, 1),
+                    (Utils.GetLocalizedString("manu"), 0, 0), (manu, 0, 1),
+                    (Utils.GetLocalizedString("ram"), 1, 0), (ram, 1, 1),
+                    (Utils.GetLocalizedString("Instanceid"), 2, 0), (instanceId, 2, 1),
+                    (Utils.GetLocalizedString("gpupv"), 3, 0), (gpup, 3, 1),
+                    (Utils.GetLocalizedString("gpupvpath"), 4, 0), (pname, 4, 1),
+                    (Utils.GetLocalizedString("driverversion"), 5, 0), (driverversion, 5, 1)
                 };
 
                 foreach (var (text, row1, column) in textData)
                 {
-                    var textBlock = Utils.TextBlock2(text, row1, column);   
+                    var textBlock = Utils.TextBlock2(text, row1, column);
                     grid2.Children.Add(textBlock);
                 }
+
                 contentPanel.Children.Add(grid2);
                 cardExpander.Content = contentPanel;
                 main.Children.Add(cardExpander);
             });
-
         }
-            
     }
+
     private void VMUI(List<VMInfo> vmList, List<GPUInfo> Hostgpulist)
     {
         Dispatcher.Invoke(() => { vms.Children.Clear(); });
 
         foreach (var vm in vmList)
         {
-            string name = vm.Name;
-            string low = vm.LowMMIO;
-            string high = vm.HighMMIO;
-            string guest = vm.GuestControlled;
-            Dictionary<string, string> GPUs = vm.GPUs;
+            var name = vm.Name;
+            var low = vm.LowMMIO;
+            var high = vm.HighMMIO;
+            var guest = vm.GuestControlled;
+            var GPUs = vm.GPUs;
 
             //UI更新
             Dispatcher.Invoke(() =>
@@ -287,7 +243,7 @@ public partial class GPUPage
 
                 var cardExpander = Utils.CardExpander2();
                 Grid.SetRow(cardExpander, rowCount); //设定VM节点的行数
-                cardExpander.Padding = new Thickness(10,8,10,8); //调整间距
+                cardExpander.Padding = new Thickness(10, 8, 10, 8); //调整间距
 
                 cardExpander.Icon = Utils.FontIcon(24, "\xE7F4"); //虚拟机图标
 
@@ -303,10 +259,10 @@ public partial class GPUPage
                 grid1.Children.Add(vmname);
 
                 //添加按钮
-                var addbutton = new Wpf.Ui.Controls.Button
+                var addbutton = new Button
                 {
                     Content = Utils.GetLocalizedString("addgpu"),
-                    Margin = new Thickness(0, 0, 5, 0),
+                    Margin = new Thickness(0, 0, 5, 0)
                 };
                 addbutton.Click += (sender, e) => Gpu_mount(sender, e, name, Hostgpulist); //按钮点击事件
 
@@ -314,9 +270,7 @@ public partial class GPUPage
                 grid1.Children.Add(addbutton);
 
                 cardExpander.Header = grid1;
-                if (GPUs!= null && GPUs.Count != 0) { 
-                    cardExpander.IsExpanded = true; //显卡列表不为空时展开虚拟机详情
-                }
+                if (GPUs != null && GPUs.Count != 0) cardExpander.IsExpanded = true; //显卡列表不为空时展开虚拟机详情
 
                 //以下是VM的下拉内容部分，也就是GPU列表
                 var GPUcontent = new Grid(); //GPU列表节点
@@ -329,7 +283,7 @@ public partial class GPUPage
 
                     var gpuExpander = new CardExpander
                     {
-                        ContentPadding = new Thickness(6),
+                        ContentPadding = new Thickness(6)
                     };
                     Grid.SetRow(gpuExpander, GPUcontent.RowDefinitions.Count); //获取并设置GPU列表节点当前行数
                     gpuExpander.Padding = new Thickness(10, 8, 10, 8); //调整间距
@@ -342,27 +296,28 @@ public partial class GPUPage
 
                     //显卡名称
                     var thegpu = Hostgpulist.FirstOrDefault(g => g.Pname == gpupath); //选中联机显卡中的这张显卡
-                    string name = thegpu.Name;
+                    var name = thegpu.Name;
                     var gpuname = Utils.CreateStackPanel(name);
                     Grid.SetColumn(gpuname, 1);
                     grid0.Children.Add(gpuname);
 
                     //显卡图标
-                    var gpuimage = Utils.CreateGpuImage(thegpu.Manu,thegpu.Name,32);
+                    var gpuimage = Utils.CreateGpuImage(thegpu.Manu, thegpu.Name, 32);
                     Grid.SetColumn(gpuimage, 0);
                     grid0.Children.Add(gpuimage);
 
                     //删除按钮
-                    var button = new Wpf.Ui.Controls.Button {
+                    var button = new Button
+                    {
                         Content = Utils.GetLocalizedString("uninstall"),
-                        Margin = new Thickness(0,0,5,0),
+                        Margin = new Thickness(0, 0, 5, 0)
                     };
                     button.Click += (sender, e) => Gpu_dismount(sender, e, gpuid, vm.Name, gpuExpander); //按钮点击事件
 
                     Grid.SetColumn(button, 2);
                     grid0.Children.Add(button);
                     gpuExpander.Header = grid0;
-                    
+
                     //GPU适配器详细数据，一个Panel来存放文字信息
                     var contentPanel = new StackPanel { Margin = new Thickness(50, 10, 0, 0) };
                     var grid2 = new Grid();
@@ -374,41 +329,40 @@ public partial class GPUPage
 
                     var textData = new (string text, int row, int column)[]
                     {
-                        (Utils.GetLocalizedString("gpupvid"), 0, 0),(gpuid, 0, 1),
-                        (Utils.GetLocalizedString("gpupvpath"), 1, 0),(gpupath, 1, 1),
-                     };
+                        (Utils.GetLocalizedString("gpupvid"), 0, 0), (gpuid, 0, 1),
+                        (Utils.GetLocalizedString("gpupvpath"), 1, 0), (gpupath, 1, 1)
+                    };
 
                     foreach (var (text, row1, column) in textData)
                     {
                         var textBlock = Utils.TextBlock2(text, row1, column);
                         grid2.Children.Add(textBlock);
                     }
+
                     contentPanel.Children.Add(grid2);
                     gpuExpander.Content = contentPanel;
                     GPUcontent.Children.Add(gpuExpander);
                 }
+
                 cardExpander.Content = GPUcontent;
                 vms.Children.Add(cardExpander);
             });
-
         }
+
         refreshlock = false;
-        Dispatcher.Invoke(() => {progressbar.Visibility = Visibility.Collapsed; });//隐藏加载条
+        Dispatcher.Invoke(() => { progressbar.Visibility = Visibility.Collapsed; }); //隐藏加载条
     }
 
-    private void Gpu_dismount(object sender, RoutedEventArgs e,string id ,string vmname, CardExpander gpuExpander)
+    private void Gpu_dismount(object sender, RoutedEventArgs e, string id, string vmname, CardExpander gpuExpander)
     {
-        PowerShell ps = PowerShell.Create();
+        var ps = PowerShell.Create();
         //删除指定的GPU适配器
         ps.AddScript($@"Remove-VMGpuPartitionAdapter -VMName '{vmname}' -AdapterId '{id}'");
         var result = ps.Invoke();
         // 检查是否有错误
         if (ps.Streams.Error.Count > 0)
         {
-            foreach (var error in ps.Streams.Error)
-            {
-                System.Windows.MessageBox.Show($"{Utils.GetLocalizedString("error")}: {error.ToString()}");
-            }
+            foreach (var error in ps.Streams.Error) MessageBox.Show($"{Utils.GetLocalizedString("error")}: {error}");
         }
         else
         {
@@ -419,15 +373,15 @@ public partial class GPUPage
 
     private void Gpu_mount(object sender, RoutedEventArgs e, string vmname, List<GPUInfo> Hostgpulist)
     {
-        ChooseGPUWindow selectItemWindow = new ChooseGPUWindow(vmname,Hostgpulist);
+        var selectItemWindow = new ChooseGPUWindow(vmname, Hostgpulist);
         selectItemWindow.GPUSelected += SelectItemWindow_GPUSelected;
         selectItemWindow.ShowDialog(); //显示GPU适配器选择窗口
-        
     }
 
     private void vmrefresh(object sender, RoutedEventArgs e)
     {
-        if (!refreshlock) {
+        if (!refreshlock)
+        {
             progressbar.Visibility = Visibility.Visible; //显示加载条
             refreshlock = true;
             GetGpu();
@@ -436,20 +390,59 @@ public partial class GPUPage
 
     private async void SelectItemWindow_GPUSelected(object sender, (string, string) args)
     {
-        string GPUname = args.Item1;
-        string VMname = args.Item2;
+        var GPUname = args.Item1;
+        var VMname = args.Item2;
 
         SnackbarService = new SnackbarService();
         var ms = Application.Current.MainWindow as MainWindow; //获取主窗口
 
         SnackbarService.SetSnackbarPresenter(ms.SnackbarPresenter);
-        SnackbarService.Show(Utils.GetLocalizedString("success"),GPUname+Utils.GetLocalizedString("already")+ VMname,ControlAppearance.Success,new SymbolIcon(SymbolRegular.CheckboxChecked24,32), TimeSpan.FromSeconds(2));
+        SnackbarService.Show(Utils.GetLocalizedString("success"),
+            GPUname + Utils.GetLocalizedString("already") + VMname, ControlAppearance.Success,
+            new SymbolIcon(SymbolRegular.CheckboxChecked24, 32), TimeSpan.FromSeconds(2));
         vmrefresh(null, null);
-
     }
 
+    public class GPUInfo
+    {
+        // 构造函数
+        public GPUInfo(string name, string valid, string manu, string instanceId, string pname, string ram,
+            string driverversion)
+        {
+            Name = name;
+            Valid = valid;
+            Manu = manu;
+            InstanceId = instanceId;
+            Pname = pname;
+            Ram = ram;
+            DriverVersion = driverversion;
+        }
+
+        public string Name { get; set; } //显卡名称
+        public string Valid { get; set; } //是否联机
+        public string Manu { get; set; } //厂商
+        public string InstanceId { get; set; } //显卡实例id
+        public string Pname { get; set; } //可分区的显卡路径
+        public string Ram { get; set; } //显存大小
+        public string DriverVersion { get; set; } //驱动版本
+    }
+
+    public class VMInfo
+    {
+        // 构造函数
+        public VMInfo(string name, string low, string high, string guest, Dictionary<string, string> gpus)
+        {
+            Name = name;
+            LowMMIO = low;
+            HighMMIO = high;
+            GuestControlled = guest;
+            GPUs = gpus;
+        }
+
+        public string Name { get; set; } //虚拟机名称
+        public string LowMMIO { get; set; } //低位内存空间大小
+        public string HighMMIO { get; set; } //高位内存空间大小
+        public string GuestControlled { get; set; } //控制缓存
+        public Dictionary<string, string> GPUs { get; set; } //存储显卡适配器列表
+    }
 }
-
-
-
-

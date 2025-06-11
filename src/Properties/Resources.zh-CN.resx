@@ -1,402 +1,408 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
-  <!-- 
-    Microsoft ResX Schema 
-    
-    Version 2.0
-    
-    The primary goals of this format is to allow a simple XML format 
-    that is mostly human readable. The generation and parsing of the 
-    various data types are done through the TypeConverter classes 
-    associated with the data types.
-    
-    Example:
-    
-    ... ado.net/XML headers & schema ...
-    <resheader name="resmimetype">text/microsoft-resx</resheader>
-    <resheader name="version">2.0</resheader>
-    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
-    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
-    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
-    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
-    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
-        <value>[base64 mime encoded serialized .NET Framework object]</value>
-    </data>
-    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
-        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
-        <comment>This is a comment</comment>
-    </data>
-                
-    There are any number of "resheader" rows that contain simple 
-    name/value pairs.
-    
-    Each data row contains a name, and value. The row also contains a 
-    type or mimetype. Type corresponds to a .NET class that support 
-    text/value conversion through the TypeConverter architecture. 
-    Classes that don't support this are serialized and stored with the 
-    mimetype set.
-    
-    The mimetype is used for serialized objects, and tells the 
-    ResXResourceReader how to depersist the object. This is currently not 
-    extensible. For a given mimetype the value must be set accordingly:
-    
-    Note - application/x-microsoft.net.object.binary.base64 is the format 
-    that the ResXResourceWriter will generate, however the reader can 
-    read any of the formats listed below.
-    
-    mimetype: application/x-microsoft.net.object.binary.base64
-    value   : The object must be serialized with 
-            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
-            : and then encoded with base64 encoding.
-    
-    mimetype: application/x-microsoft.net.object.soap.base64
-    value   : The object must be serialized with 
-            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
-            : and then encoded with base64 encoding.
-
-    mimetype: application/x-microsoft.net.object.bytearray.base64
-    value   : The object must be serialized into a byte array 
-            : using a System.ComponentModel.TypeConverter
-            : and then encoded with base64 encoding.
-    -->
-  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
-    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
-    <xsd:element name="root" msdata:IsDataSet="true">
-      <xsd:complexType>
-        <xsd:choice maxOccurs="unbounded">
-          <xsd:element name="metadata">
+    <!-- 
+      Microsoft ResX Schema 
+      
+      Version 2.0
+      
+      The primary goals of this format is to allow a simple XML format 
+      that is mostly human readable. The generation and parsing of the 
+      various data types are done through the TypeConverter classes 
+      associated with the data types.
+      
+      Example:
+      
+      ... ado.net/XML headers & schema ...
+      <resheader name="resmimetype">text/microsoft-resx</resheader>
+      <resheader name="version">2.0</resheader>
+      <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+      <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+      <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+      <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+      <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+          <value>[base64 mime encoded serialized .NET Framework object]</value>
+      </data>
+      <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+          <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+          <comment>This is a comment</comment>
+      </data>
+                  
+      There are any number of "resheader" rows that contain simple 
+      name/value pairs.
+      
+      Each data row contains a name, and value. The row also contains a 
+      type or mimetype. Type corresponds to a .NET class that support 
+      text/value conversion through the TypeConverter architecture. 
+      Classes that don't support this are serialized and stored with the 
+      mimetype set.
+      
+      The mimetype is used for serialized objects, and tells the 
+      ResXResourceReader how to depersist the object. This is currently not 
+      extensible. For a given mimetype the value must be set accordingly:
+      
+      Note - application/x-microsoft.net.object.binary.base64 is the format 
+      that the ResXResourceWriter will generate, however the reader can 
+      read any of the formats listed below.
+      
+      mimetype: application/x-microsoft.net.object.binary.base64
+      value   : The object must be serialized with 
+              : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+              : and then encoded with base64 encoding.
+      
+      mimetype: application/x-microsoft.net.object.soap.base64
+      value   : The object must be serialized with 
+              : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+              : and then encoded with base64 encoding.
+  
+      mimetype: application/x-microsoft.net.object.bytearray.base64
+      value   : The object must be serialized into a byte array 
+              : using a System.ComponentModel.TypeConverter
+              : and then encoded with base64 encoding.
+      -->
+    <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata"
+                id="root"
+                xmlns="">
+        <xsd:import namespace="http://www.w3.org/XML/1998/namespace"/>
+        <xsd:element name="root" msdata:IsDataSet="true">
             <xsd:complexType>
-              <xsd:sequence>
-                <xsd:element name="value" type="xsd:string" minOccurs="0" />
-              </xsd:sequence>
-              <xsd:attribute name="name" use="required" type="xsd:string" />
-              <xsd:attribute name="type" type="xsd:string" />
-              <xsd:attribute name="mimetype" type="xsd:string" />
-              <xsd:attribute ref="xml:space" />
+                <xsd:choice maxOccurs="unbounded">
+                    <xsd:element name="metadata">
+                        <xsd:complexType>
+                            <xsd:sequence>
+                                <xsd:element name="value" type="xsd:string" minOccurs="0"/>
+                            </xsd:sequence>
+                            <xsd:attribute name="name" use="required" type="xsd:string"/>
+                            <xsd:attribute name="type" type="xsd:string"/>
+                            <xsd:attribute name="mimetype" type="xsd:string"/>
+                            <xsd:attribute ref="xml:space"/>
+                        </xsd:complexType>
+                    </xsd:element>
+                    <xsd:element name="assembly">
+                        <xsd:complexType>
+                            <xsd:attribute name="alias" type="xsd:string"/>
+                            <xsd:attribute name="name" type="xsd:string"/>
+                        </xsd:complexType>
+                    </xsd:element>
+                    <xsd:element name="data">
+                        <xsd:complexType>
+                            <xsd:sequence>
+                                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1"/>
+                                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2"/>
+                            </xsd:sequence>
+                            <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1"/>
+                            <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3"/>
+                            <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4"/>
+                            <xsd:attribute ref="xml:space"/>
+                        </xsd:complexType>
+                    </xsd:element>
+                    <xsd:element name="resheader">
+                        <xsd:complexType>
+                            <xsd:sequence>
+                                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1"/>
+                            </xsd:sequence>
+                            <xsd:attribute name="name" type="xsd:string" use="required"/>
+                        </xsd:complexType>
+                    </xsd:element>
+                </xsd:choice>
             </xsd:complexType>
-          </xsd:element>
-          <xsd:element name="assembly">
-            <xsd:complexType>
-              <xsd:attribute name="alias" type="xsd:string" />
-              <xsd:attribute name="name" type="xsd:string" />
-            </xsd:complexType>
-          </xsd:element>
-          <xsd:element name="data">
-            <xsd:complexType>
-              <xsd:sequence>
-                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
-                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
-              </xsd:sequence>
-              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
-              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
-              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
-              <xsd:attribute ref="xml:space" />
-            </xsd:complexType>
-          </xsd:element>
-          <xsd:element name="resheader">
-            <xsd:complexType>
-              <xsd:sequence>
-                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
-              </xsd:sequence>
-              <xsd:attribute name="name" type="xsd:string" use="required" />
-            </xsd:complexType>
-          </xsd:element>
-        </xsd:choice>
-      </xsd:complexType>
-    </xsd:element>
-  </xsd:schema>
-  <resheader name="resmimetype">
-    <value>text/microsoft-resx</value>
-  </resheader>
-  <resheader name="version">
-    <value>2.0</value>
-  </resheader>
-  <resheader name="reader">
-    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </resheader>
-  <resheader name="writer">
-    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </resheader>
-  <data name="Assignabledevices" xml:space="preserve">
+        </xsd:element>
+    </xsd:schema>
+    <resheader name="resmimetype">
+        <value>text/microsoft-resx</value>
+    </resheader>
+    <resheader name="version">
+        <value>2.0</value>
+    </resheader>
+    <resheader name="reader">
+        <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral,
+            PublicKeyToken=b77a5c561934e089
+        </value>
+    </resheader>
+    <resheader name="writer">
+        <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral,
+            PublicKeyToken=b77a5c561934e089
+        </value>
+    </resheader>
+    <data name="Assignabledevices" xml:space="preserve">
     <value>可分配设备</value>
   </data>
-  <data name="attention" xml:space="preserve">
+    <data name="attention" xml:space="preserve">
     <value>注意</value>
   </data>
-  <data name="attentionwords" xml:space="preserve">
+    <data name="attentionwords" xml:space="preserve">
     <value>不恰当分配设备可能导致系统不稳定，请谨慎操作！</value>
   </data>
-  <data name="refresh" xml:space="preserve">
+    <data name="refresh" xml:space="preserve">
     <value>刷新</value>
   </data>
-  <data name="exhyperv" xml:space="preserve">
+    <data name="exhyperv" xml:space="preserve">
     <value>轻松玩转Hyper-V高级功能</value>
   </data>
-  <data name="systeminfo" xml:space="preserve">
+    <data name="systeminfo" xml:space="preserve">
     <value>系统信息</value>
   </data>
-  <data name="version" xml:space="preserve">
+    <data name="version" xml:space="preserve">
     <value>版本</value>
   </data>
-  <data name="arch" xml:space="preserve">
+    <data name="arch" xml:space="preserve">
     <value>架构</value>
   </data>
-  <data name="model" xml:space="preserve">
+    <data name="model" xml:space="preserve">
     <value>CPU 型号</value>
   </data>
-  <data name="Memorycapacity" xml:space="preserve">
+    <data name="Memorycapacity" xml:space="preserve">
     <value>内存容量</value>
   </data>
-  <data name="Graphicsmodel" xml:space="preserve">
+    <data name="Graphicsmodel" xml:space="preserve">
     <value>显卡型号</value>
   </data>
-  <data name="soft" xml:space="preserve">
+    <data name="soft" xml:space="preserve">
     <value>应用信息</value>
   </data>
-  <data name="String1" xml:space="preserve">
+    <data name="String1" xml:space="preserve">
     <value>HyperV功能已安装。</value>
   </data>
-  <data name="String2" xml:space="preserve">
+    <data name="String2" xml:space="preserve">
     <value>HyperV功能未安装。</value>
   </data>
-  <data name="String3" xml:space="preserve">
+    <data name="String3" xml:space="preserve">
     <value>宿主Windows版本为 </value>
   </data>
-  <data name="v19041" xml:space="preserve">
+    <data name="v19041" xml:space="preserve">
     <value>，建议虚拟机版本不小于19041。</value>
   </data>
-  <data name="disablegpu" xml:space="preserve">
+    <data name="disablegpu" xml:space="preserve">
     <value>，已禁用GPU虚拟化功能。</value>
   </data>
-  <data name="GPU1" xml:space="preserve">
+    <data name="GPU1" xml:space="preserve">
     <value>CPU虚拟化已启用。</value>
   </data>
-  <data name="GPU2" xml:space="preserve">
+    <data name="GPU2" xml:space="preserve">
     <value>CPU虚拟化未启用。</value>
   </data>
-  <data name="Admin1" xml:space="preserve">
+    <data name="Admin1" xml:space="preserve">
     <value>管理员权限已获得。</value>
   </data>
-  <data name="Admin2" xml:space="preserve">
+    <data name="Admin2" xml:space="preserve">
     <value>管理员权限未获得。已禁用GPU半虚拟化功能。</value>
   </data>
-  <data name="complicate" xml:space="preserve">
+    <data name="complicate" xml:space="preserve">
     <value>兼容性</value>
   </data>
-  <data name="checksys" xml:space="preserve">
+    <data name="checksys" xml:space="preserve">
     <value>检测系统版本...</value>
   </data>
-  <data name="checkcpuct" xml:space="preserve">
+    <data name="checkcpuct" xml:space="preserve">
     <value>检测CPU是否开启虚拟化...</value>
   </data>
-  <data name="checkhyperv" xml:space="preserve">
+    <data name="checkhyperv" xml:space="preserve">
     <value>检测HyperV是否安装...</value>
   </data>
-  <data name="checkadmin" xml:space="preserve">
+    <data name="checkadmin" xml:space="preserve">
     <value>检测是否以管理员权限启动...</value>
   </data>
-  <data name="checksetting" xml:space="preserve">
+    <data name="checksetting" xml:space="preserve">
     <value>设定</value>
   </data>
-  <data name="disablereg" xml:space="preserve">
+    <data name="disablereg" xml:space="preserve">
     <value>禁用安全策略（RequireSecureDeviceAssignment、RequireSupportedDeviceAssignment）</value>
   </data>
-  <data name="Host" xml:space="preserve">
+    <data name="Host" xml:space="preserve">
     <value>主机</value>
   </data>
-  <data name="string5" xml:space="preserve">
+    <data name="string5" xml:space="preserve">
     <value>修改虚拟机的关机动作为强制断电...</value>
   </data>
-  <data name="setting" xml:space="preserve">
+    <data name="setting" xml:space="preserve">
     <value>设定修改中</value>
   </data>
-  <data name="wait" xml:space="preserve">
+    <data name="wait" xml:space="preserve">
     <value>操作不可中断，请等待</value>
   </data>
-  <data name="kind" xml:space="preserve">
+    <data name="kind" xml:space="preserve">
     <value>类型</value>
   </data>
-  <data name="Instanceid" xml:space="preserve">
+    <data name="Instanceid" xml:space="preserve">
     <value>实例ID</value>
   </data>
-  <data name="path" xml:space="preserve">
+    <data name="path" xml:space="preserve">
     <value>路径</value>
   </data>
-  <data name="operated" xml:space="preserve">
+    <data name="operated" xml:space="preserve">
     <value>操作完成！</value>
   </data>
-  <data name="OK" xml:space="preserve">
+    <data name="OK" xml:space="preserve">
     <value>OK</value>
   </data>
-  <data name="removed" xml:space="preserve">
+    <data name="removed" xml:space="preserve">
     <value>#已卸除</value>
   </data>
-  <data name="mounting" xml:space="preserve">
+    <data name="mounting" xml:space="preserve">
     <value>挂载设备中...</value>
   </data>
-  <data name="cpucache" xml:space="preserve">
+    <data name="cpucache" xml:space="preserve">
     <value>让虚拟机可管理CPU缓存...</value>
   </data>
-  <data name="getpath" xml:space="preserve">
+    <data name="getpath" xml:space="preserve">
     <value>获取设备的路径...</value>
   </data>
-  <data name="Disabledevice" xml:space="preserve">
+    <data name="Disabledevice" xml:space="preserve">
     <value>禁用设备中...</value>
   </data>
-  <data name="Dismountdevice" xml:space="preserve">
+    <data name="Dismountdevice" xml:space="preserve">
     <value>卸载设备中...</value>
   </data>
-  <data name="installedcard" xml:space="preserve">
+    <data name="installedcard" xml:space="preserve">
     <value>已安装显卡</value>
   </data>
-  <data name="vmlist" xml:space="preserve">
+    <data name="vmlist" xml:space="preserve">
     <value>虚拟机列表</value>
   </data>
-  <data name="none" xml:space="preserve">
+    <data name="none" xml:space="preserve">
     <value>无</value>
   </data>
-  <data name="notsupport" xml:space="preserve">
+    <data name="notsupport" xml:space="preserve">
     <value>不支持</value>
   </data>
-  <data name="needhyperv" xml:space="preserve">
+    <data name="needhyperv" xml:space="preserve">
     <value>需要先安装HyperV</value>
   </data>
-  <data name="support" xml:space="preserve">
+    <data name="support" xml:space="preserve">
     <value>支持</value>
   </data>
-  <data name="manu" xml:space="preserve">
+    <data name="manu" xml:space="preserve">
     <value>制造商</value>
   </data>
-  <data name="ram" xml:space="preserve">
+    <data name="ram" xml:space="preserve">
     <value>专用显存</value>
   </data>
-  <data name="gpupv" xml:space="preserve">
+    <data name="gpupv" xml:space="preserve">
     <value>GPU分区功能</value>
   </data>
-  <data name="gpupvpath" xml:space="preserve">
+    <data name="gpupvpath" xml:space="preserve">
     <value>GPU分区路径</value>
   </data>
-  <data name="driverversion" xml:space="preserve">
+    <data name="driverversion" xml:space="preserve">
     <value>驱动程序版本</value>
   </data>
-  <data name="addgpu" xml:space="preserve">
+    <data name="addgpu" xml:space="preserve">
     <value>添加GPU</value>
   </data>
-  <data name="uninstall" xml:space="preserve">
+    <data name="uninstall" xml:space="preserve">
     <value>卸载</value>
   </data>
-  <data name="gpupvid" xml:space="preserve">
+    <data name="gpupvid" xml:space="preserve">
     <value>GPU分区ID</value>
   </data>
-  <data name="success" xml:space="preserve">
+    <data name="success" xml:space="preserve">
     <value>成功</value>
   </data>
-  <data name="already" xml:space="preserve">
+    <data name="already" xml:space="preserve">
     <value>已分配到</value>
   </data>
-  <data name="GPUselect" xml:space="preserve">
+    <data name="GPUselect" xml:space="preserve">
     <value>GPU选择</value>
   </data>
-  <data name="cancel" xml:space="preserve">
+    <data name="cancel" xml:space="preserve">
     <value>取消</value>
   </data>
-  <data name="sure" xml:space="preserve">
+    <data name="sure" xml:space="preserve">
     <value>确定</value>
   </data>
-  <data name="Settings" xml:space="preserve">
+    <data name="Settings" xml:space="preserve">
     <value>设置</value>
   </data>
-  <data name="theme" xml:space="preserve">
+    <data name="theme" xml:space="preserve">
     <value>应用主题</value>
   </data>
-  <data name="switchtheme" xml:space="preserve">
+    <data name="switchtheme" xml:space="preserve">
     <value>切换浅色/深色模式</value>
   </data>
-  <data name="light" xml:space="preserve">
+    <data name="light" xml:space="preserve">
     <value>明亮</value>
   </data>
-  <data name="dark" xml:space="preserve">
+    <data name="dark" xml:space="preserve">
     <value>黑暗</value>
   </data>
-  <data name="language" xml:space="preserve">
+    <data name="language" xml:space="preserve">
     <value>语言</value>
   </data>
-  <data name="reboot" xml:space="preserve">
+    <data name="reboot" xml:space="preserve">
     <value>语言将立即更改</value>
   </data>
-  <data name="about" xml:space="preserve">
+    <data name="about" xml:space="preserve">
     <value>关于</value>
   </data>
-  <data name="report" xml:space="preserve">
+    <data name="report" xml:space="preserve">
     <value>报告错误或提交意见</value>
   </data>
-  <data name="github" xml:space="preserve">
+    <data name="github" xml:space="preserve">
     <value>查看仓库</value>
   </data>
-  <data name="Main" xml:space="preserve">
+    <data name="Main" xml:space="preserve">
     <value>首页</value>
   </data>
-  <data name="complisetting" xml:space="preserve">
+    <data name="complisetting" xml:space="preserve">
     <value>兼容性和设定</value>
   </data>
-  <data name="gpupvv" xml:space="preserve">
+    <data name="gpupvv" xml:space="preserve">
     <value>GPU半虚拟化</value>
   </data>
-  <data name="DDA" xml:space="preserve">
+    <data name="DDA" xml:space="preserve">
     <value>DDA直通</value>
   </data>
-  <data name="Colsefirst" xml:space="preserve">
+    <data name="Colsefirst" xml:space="preserve">
     <value>请先关闭虚拟机！</value>
   </data>
-  <data name="appversion" xml:space="preserve">
+    <data name="appversion" xml:space="preserve">
     <value>版本</value>
   </data>
-  <data name="author" xml:space="preserve">
+    <data name="author" xml:space="preserve">
     <value>作者</value>
   </data>
-  <data name="buildtime" xml:space="preserve">
+    <data name="buildtime" xml:space="preserve">
     <value>编译时间</value>
   </data>
-  <data name="checkversion" xml:space="preserve">
+    <data name="checkversion" xml:space="preserve">
     <value>检测是否属于服务器版本...</value>
   </data>
-  <data name="ddaa" xml:space="preserve">
+    <data name="ddaa" xml:space="preserve">
     <value>宿主系统非服务器版本，无法使用DDA直通！</value>
   </data>
-  <data name="Isserver" xml:space="preserve">
+    <data name="Isserver" xml:space="preserve">
     <value>宿主系统属于服务器版本。</value>
   </data>
-  <data name="enabling" xml:space="preserve">
+    <data name="enabling" xml:space="preserve">
     <value>启用设备中...</value>
   </data>
-  <data name="drivererror" xml:space="preserve">
+    <data name="drivererror" xml:space="preserve">
     <value>驱动注入出现错误！检查系统盘是否开启了BitLocker，或不存在Windows目录？</value>
   </data>
-  <data name="servererror" xml:space="preserve">
+    <data name="servererror" xml:space="preserve">
     <value>宿主系统非服务器版本，添加了DDA设备的虚拟机将无法启动！</value>
   </data>
-  <data name="error" xml:space="preserve">
+    <data name="error" xml:space="preserve">
     <value>错误</value>
   </data>
-  <data name="ErrorColon" xml:space="preserve">
+    <data name="ErrorColon" xml:space="preserve">
     <value>错误:</value>
   </data>
-  <data name="ErrorMessage" xml:space="preserve">
+    <data name="ErrorMessage" xml:space="preserve">
     <value>错误消息</value>
   </data>
-  <data name="ErrorDetails" xml:space="preserve">
+    <data name="ErrorDetails" xml:space="preserve">
     <value>错误详细信息</value>
   </data>
-  <data name="PowerShellException" xml:space="preserve">
+    <data name="PowerShellException" xml:space="preserve">
     <value>执行 PowerShell 脚本时发生异常</value>
   </data>
-  <data name="StackTrace" xml:space="preserve">
+    <data name="StackTrace" xml:space="preserve">
     <value>堆栈信息</value>
   </data>
-  <data name="AppVersionValue" xml:space="preserve">
+    <data name="AppVersionValue" xml:space="preserve">
     <value>V1.0.8</value>
   </data>
-  <data name="AppAuthor" xml:space="preserve">
+    <data name="AppAuthor" xml:space="preserve">
     <value>砂菱叶</value>
   </data>
 </root>

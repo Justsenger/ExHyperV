@@ -1,17 +1,14 @@
-﻿namespace ExHyperV.Views.Pages;
-
-using System;
-using System.Globalization;
-using System.Linq;
+﻿using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using Wpf.Ui.Appearance;
 using WPFLocalizeExtension.Engine;
 
+namespace ExHyperV.Views.Pages;
 
 public partial class Setting
 {
-    private bool isInitializing = true; // 标志变量，用于避免死循环
+    private readonly bool isInitializing = true; // 标志变量，用于避免死循环
     public string sp = "none"; //炫彩开关
 
     public Setting()
@@ -20,13 +17,9 @@ public partial class Setting
 
         // Theme initialization
         if (ApplicationThemeManager.GetAppTheme() == ApplicationTheme.Dark)
-        {
             ThemeComboBox.SelectedIndex = 1; // Dark
-        }
         else
-        {
             ThemeComboBox.SelectedIndex = 0; // Light
-        }
 
         // Language initialization based on current WPFLocalizeExtension culture
         var currentCulture = LocalizeDictionary.Instance.Culture?.Name ?? "en-US";
@@ -52,13 +45,9 @@ public partial class Setting
         if (isInitializing) return;
 
         if (ThemeComboBox.SelectedIndex == 1) // Dark
-        {
             ApplicationThemeManager.Apply(ApplicationTheme.Dark);
-        }
         else // Light
-        {
             ApplicationThemeManager.Apply(ApplicationTheme.Light);
-        }
     }
 
     private void OnLanguageSelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -68,16 +57,11 @@ public partial class Setting
         var selectedItem = LanguageComboBox.SelectedItem as ComboBoxItem;
         if (selectedItem != null)
         {
-            string selectedLanguage = selectedItem.Content.ToString();
+            var selectedLanguage = selectedItem.Content.ToString();
 
             if (selectedLanguage == "中文")
-            {
-                SetLanguage("zh-CN");  // 设置为中文（简体）
-            }
-            else if (selectedLanguage == "English")
-            {
-                SetLanguage("en-US");  // 设置为英文
-            }
+                SetLanguage("zh-CN"); // 设置为中文（简体）
+            else if (selectedLanguage == "English") SetLanguage("en-US"); // 设置为英文
         }
     }
 
@@ -112,8 +96,9 @@ public partial class Setting
         }
     }
 
-    private void Setcombo(string lang) {
-        LanguageComboBox.SelectedItem = LanguageComboBox.Items.Cast<ComboBoxItem>().FirstOrDefault(item => item.Content.ToString() == lang);
+    private void Setcombo(string lang)
+    {
+        LanguageComboBox.SelectedItem = LanguageComboBox.Items.Cast<ComboBoxItem>()
+            .FirstOrDefault(item => item.Content.ToString() == lang);
     }
-
 }

@@ -1,9 +1,8 @@
-﻿namespace ExHyperV.Views.Pages;
-using System;
-using System.Management.Automation;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Collections;
 using System.Globalization;
+using System.Management.Automation;
+
+namespace ExHyperV.Views.Pages;
 
 public partial class MainPage
 {
@@ -12,6 +11,7 @@ public partial class MainPage
         InitializeComponent();
         SystemInfo();
     }
+
     private void SystemInfo()
     {
         Version.Text = Utils.Version;
@@ -25,11 +25,11 @@ public partial class MainPage
             return @($os, $cpu, [double]$memory)";
         var results = Utils.Run(script);
 
-        string osCaption = "N/A";
-        string osVersion = "";
-        string osArch = "N/A";
-        string cpuInfo = "N/A";
-        string memoryInfo = "N/A GB";
+        var osCaption = "N/A";
+        var osVersion = "";
+        var osArch = "N/A";
+        var cpuInfo = "N/A";
+        var memoryInfo = "N/A GB";
 
         if (results != null && results.Count > 0 && results[0]?.Properties["Caption"]?.Value != null)
         {
@@ -37,28 +37,22 @@ public partial class MainPage
             if (results[0].Properties["Version"]?.Value != null)
             {
                 osVersion = results[0].Properties["Version"].Value.ToString();
-                if (osVersion.Length >= 5)
-                {
-                    osVersion = osVersion.Substring(osVersion.Length - 5);
-                }
+                if (osVersion.Length >= 5) osVersion = osVersion.Substring(osVersion.Length - 5);
             }
+
             osArch = results[0].Properties["OSArchitecture"]?.Value?.ToString() ?? "N/A";
         }
 
         if (results != null && results.Count > 1 && results[1] != null)
         {
-            object cpuData = results[1].BaseObject;
-            List<PSObject> cpus = new List<PSObject>();
+            var cpuData = results[1].BaseObject;
+            var cpus = new List<PSObject>();
 
-            if (cpuData is System.Collections.IEnumerable enumerableData && !(cpuData is string))
+            if (cpuData is IEnumerable enumerableData && !(cpuData is string))
             {
                 foreach (var item in enumerableData)
-                {
                     if (item is PSObject pso)
-                    {
                         cpus.Add(pso);
-                    }
-                }
             }
             else if (cpuData is PSObject singleCpuPso)
             {
@@ -72,42 +66,32 @@ public partial class MainPage
 
             if (cpus.Any())
             {
-                PSObject firstCpu = cpus.First();
-                string cpuName = firstCpu.Properties["Name"]?.Value?.ToString()?.Trim() ?? "Unknown CPU";
+                var firstCpu = cpus.First();
+                var cpuName = firstCpu.Properties["Name"]?.Value?.ToString()?.Trim() ?? "Unknown CPU";
                 double cpuSpeedGHz = 0;
                 if (firstCpu.Properties["MaxClockSpeed"]?.Value != null)
-                {
-                    if (double.TryParse(firstCpu.Properties["MaxClockSpeed"].Value.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out double mcsRaw))
-                    {
+                    if (double.TryParse(firstCpu.Properties["MaxClockSpeed"].Value.ToString(), NumberStyles.Any,
+                            CultureInfo.InvariantCulture, out var mcsRaw))
                         cpuSpeedGHz = Math.Round(mcsRaw / 1000, 2);
-                    }
-                }
 
-                string speedSuffix = "";
+                var speedSuffix = "";
                 if (cpuName.IndexOf("GHz", StringComparison.OrdinalIgnoreCase) == -1 && cpuSpeedGHz > 0)
-                {
                     speedSuffix = $" @ {cpuSpeedGHz.ToString(CultureInfo.InvariantCulture)} GHz";
-                }
 
                 if (cpus.Count > 1)
-                {
                     cpuInfo = $"{cpuName}{speedSuffix} x{cpus.Count}";
-                }
                 else
-                {
                     cpuInfo = $"{cpuName}{speedSuffix}";
-                }
             }
         }
 
         if (results != null && results.Count > 2 && results[2]?.BaseObject != null)
-        {
-            if (double.TryParse(results[2].BaseObject.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out double totalMemoryRaw))
+            if (double.TryParse(results[2].BaseObject.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture,
+                    out var totalMemoryRaw))
             {
-                double totalMemory = Math.Round(totalMemoryRaw, 2);
+                var totalMemory = Math.Round(totalMemoryRaw, 2);
                 memoryInfo = $"{totalMemory.ToString(CultureInfo.InvariantCulture)} GB";
             }
-        }
 
         Caption.Text = string.IsNullOrEmpty(osVersion) ? osCaption : $"{osCaption} Build.{osVersion}";
         OSArchitecture.Text = osArch;

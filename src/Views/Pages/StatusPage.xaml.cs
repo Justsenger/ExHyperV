@@ -1,16 +1,14 @@
-﻿namespace ExHyperV.Views.Pages;
-
-using System.Management.Automation;
-using System.Security.Principal;
+﻿using System.Security.Principal;
 using System.Windows;
-using System.Windows.Controls;
 using System.Windows.Media;
 using Wpf.Ui.Controls;
 
+namespace ExHyperV.Views.Pages;
+
 public partial class StatusPage
 {
-
-    public StatusPage() {
+    public StatusPage()
+    {
         InitializeComponent();
 
         Task.Run(() => CpuInfo());
@@ -23,64 +21,67 @@ public partial class StatusPage
 
     private async void HyperVInfo()
     {
-
-        string message = Utils.GetLocalizedString("exhyperv");
+        var message = Utils.GetLocalizedString("exhyperv");
 
         var hypervstatus = Utils.Run("Get-Module -ListAvailable -Name Hyper-V");
         Dispatcher.Invoke(() =>
         {
             status3.Children.Remove(progressRing3);
-            FontIcon icons = new FontIcon
+            var icons = new FontIcon
             {
                 FontSize = 20,
                 FontFamily = (FontFamily)Application.Current.Resources["SegoeFluentIcons"],
                 Glyph = "\xEC61",
-                Foreground = new SolidColorBrush(Color.FromArgb(255, 0, 138, 23)),
+                Foreground = new SolidColorBrush(Color.FromArgb(255, 0, 138, 23))
             };
-            if (hypervstatus.Count != 0) { hyperv.Text = Utils.GetLocalizedString("String1"); }
+            if (hypervstatus.Count != 0)
+            {
+                hyperv.Text = Utils.GetLocalizedString("String1");
+            }
             else
             {
                 hyperv.Text = Utils.GetLocalizedString("String2");
                 icons.Glyph = "\xEB90";
                 icons.Foreground = new SolidColorBrush(Colors.Red);
             }
+
             status3.Children.Add(icons);
         });
     }
 
     private async void SysInfo()
     {
-        int buildVersion = Environment.OSVersion.Version.Build;
+        var buildVersion = Environment.OSVersion.Version.Build;
         Dispatcher.Invoke(() =>
         {
             status1.Children.Remove(progressRing1);
-            FontIcon icons = new FontIcon
+            var icons = new FontIcon
             {
                 FontSize = 20,
                 FontFamily = (FontFamily)Application.Current.Resources["SegoeFluentIcons"],
                 Glyph = "\xF167",
-                Foreground = new SolidColorBrush(Colors.DodgerBlue),
+                Foreground = new SolidColorBrush(Colors.DodgerBlue)
             };
             status1.Children.Add(icons);
             if (buildVersion >= 22000) //不允许宿主使用过低的系统版本，WDDM版本低，以及PS命令存在问题。
             {
                 icons.Glyph = "\xEC61";
                 icons.Foreground = new SolidColorBrush(Color.FromArgb(255, 0, 138, 23));
-                win.Text = Utils.GetLocalizedString("String3") + buildVersion.ToString() + Utils.GetLocalizedString("v19041");
+                win.Text = Utils.GetLocalizedString("String3") + buildVersion + Utils.GetLocalizedString("v19041");
             }
             else
             {
                 var ms = Application.Current.MainWindow as MainWindow; //获取主窗口
                 ms.gpupv.IsEnabled = false;
-                win.Text = Utils.GetLocalizedString("String3") + buildVersion.ToString() + Utils.GetLocalizedString("disablegpu");
+                win.Text = Utils.GetLocalizedString("String3") + buildVersion + Utils.GetLocalizedString("disablegpu");
                 icons.Glyph = "\xEB90";
                 icons.Foreground = new SolidColorBrush(Colors.Red);
             }
         });
     }
+
     private async void CpuInfo()
     {
-
         var cpuvt1 = Utils.Run("(Get-WmiObject -Class Win32_Processor).VirtualizationFirmwareEnabled");
         var cpuvt2 = Utils.Run("(Get-WmiObject -Class Win32_ComputerSystem).HypervisorPresent");
 
@@ -88,64 +89,58 @@ public partial class StatusPage
         Dispatcher.Invoke(() =>
         {
             status2.Children.Remove(progressRing2);
-            FontIcon icons = new FontIcon
+            var icons = new FontIcon
             {
                 FontSize = 20,
                 FontFamily = (FontFamily)Application.Current.Resources["SegoeFluentIcons"],
                 Glyph = "\xEC61",
-                Foreground = new SolidColorBrush(Color.FromArgb(255, 0, 138, 23)),
-         
+                Foreground = new SolidColorBrush(Color.FromArgb(255, 0, 138, 23))
             };
 
-            if (cpuvt1[0].ToString() == "True"|| cpuvt2[0].ToString() == "True")
-            {cpu.Text = Utils.GetLocalizedString("GPU1");}
+            if (cpuvt1[0].ToString() == "True" || cpuvt2[0].ToString() == "True")
+            {
+                cpu.Text = Utils.GetLocalizedString("GPU1");
+            }
             else
             {
                 cpu.Text = Utils.GetLocalizedString("GPU2");
                 icons.Glyph = "\xEB90";
                 icons.Foreground = new SolidColorBrush(Colors.Red);
             }
+
             status2.Children.Add(icons);
         });
-
-
     }
 
     private async void CheckReg() //检查是否添加了注册表，已添加则关闭弹窗
     {
-        string script = $@"[bool]((Test-Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\HyperV') -and 
+        var script = @"[bool]((Test-Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\HyperV') -and 
         (($k = Get-Item 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\HyperV' -EA 0) -ne $null) -and 
-        ('RequireSecureDeviceAssignment', 'RequireSupportedDeviceAssignment' | ForEach-Object {{
+        ('RequireSecureDeviceAssignment', 'RequireSupportedDeviceAssignment' | ForEach-Object {
             ($k.GetValue($_, $null) -ne $null) -and ($k.GetValueKind($_) -eq 'DWord')
-        }}) -notcontains $false)";
+        }) -notcontains $false)";
         var result = Utils.Run(script);
 
         Dispatcher.Invoke(() =>
         {
-            if (result[0].ToString().ToLower() == "true")
-            { 
-                gpustrategy.IsChecked = true;
-            }
+            if (result[0].ToString().ToLower() == "true") gpustrategy.IsChecked = true;
         });
-
     }
 
-    private async void Admininfo() 
+    private async void Admininfo()
     {
-
-        WindowsIdentity identity = WindowsIdentity.GetCurrent();
-        WindowsPrincipal principal = new WindowsPrincipal(identity);
-        bool Isadmin = principal.IsInRole(WindowsBuiltInRole.Administrator);
+        var identity = WindowsIdentity.GetCurrent();
+        var principal = new WindowsPrincipal(identity);
+        var Isadmin = principal.IsInRole(WindowsBuiltInRole.Administrator);
         Dispatcher.Invoke(() =>
         {
-
             status4.Children.Remove(progressRing4);
-            FontIcon icons = new FontIcon
+            var icons = new FontIcon
             {
                 FontSize = 20,
                 FontFamily = (FontFamily)Application.Current.Resources["SegoeFluentIcons"],
                 Glyph = "\xEC61",
-                Foreground = new SolidColorBrush(Color.FromArgb(255, 0, 138, 23)),
+                Foreground = new SolidColorBrush(Color.FromArgb(255, 0, 138, 23))
             };
             if (Isadmin)
             {
@@ -162,24 +157,25 @@ public partial class StatusPage
                 status4.Children.Add(icons);
             }
         });
-
     }
 
     private async void ServerInfo()
     {
-
         var result = Utils.Run("(Get-WmiObject -Class Win32_OperatingSystem).ProductType");
         Dispatcher.Invoke(() =>
         {
             status5.Children.Remove(progressRing5);
-            FontIcon icons = new FontIcon
+            var icons = new FontIcon
             {
                 FontSize = 20,
                 FontFamily = (FontFamily)Application.Current.Resources["SegoeFluentIcons"],
                 Glyph = "\xEC61",
-                Foreground = new SolidColorBrush(Color.FromArgb(255, 0, 138, 23)),
+                Foreground = new SolidColorBrush(Color.FromArgb(255, 0, 138, 23))
             };
-            if (result[0].ToString()=="3") { version.Text = Utils.GetLocalizedString("Isserver"); }
+            if (result[0].ToString() == "3")
+            {
+                version.Text = Utils.GetLocalizedString("Isserver");
+            }
             else
             {
                 var ms = Application.Current.MainWindow as MainWindow; //获取主窗口
@@ -189,21 +185,21 @@ public partial class StatusPage
                 icons.Glyph = "\xEB90";
                 icons.Foreground = new SolidColorBrush(Colors.Red);
             }
+
             status5.Children.Add(icons);
         });
     }
 
 
-
     public void Addreg()
     {
         // 注册表路径和键名
-        string registryPath = @"HKLM:\SOFTWARE\Policies\Microsoft\Windows\HyperV";
-        string key1 = "RequireSecureDeviceAssignment";
-        string key2 = "RequireSupportedDeviceAssignment";
+        var registryPath = @"HKLM:\SOFTWARE\Policies\Microsoft\Windows\HyperV";
+        var key1 = "RequireSecureDeviceAssignment";
+        var key2 = "RequireSupportedDeviceAssignment";
 
         // PowerShell 脚本
-        string script = $@"
+        var script = $@"
         # 确保注册表路径存在，如果不存在，则创建它
         if (-not (Test-Path '{registryPath}')) {{
             New-Item -Path '{registryPath}' -Force
@@ -223,12 +219,12 @@ public partial class StatusPage
     public void RemoveReg()
     {
         // 注册表路径和键名
-        string registryPath = @"HKLM:\SOFTWARE\Policies\Microsoft\Windows\HyperV";
-        string key1 = "RequireSecureDeviceAssignment";
-        string key2 = "RequireSupportedDeviceAssignment";
+        var registryPath = @"HKLM:\SOFTWARE\Policies\Microsoft\Windows\HyperV";
+        var key1 = "RequireSecureDeviceAssignment";
+        var key2 = "RequireSupportedDeviceAssignment";
 
         // PowerShell 脚本
-        string script = $@"
+        var script = $@"
         Remove-ItemProperty -Path '{registryPath}' -Name '{key1}'
         Remove-ItemProperty -Path '{registryPath}' -Name '{key2}'
         Remove-Item -Path '{registryPath}' -Force";
@@ -238,10 +234,10 @@ public partial class StatusPage
 
     private void addgs(object sender, RoutedEventArgs e)
     {
-
         Addreg();
         CheckReg();
     }
+
     private void deletegs(object sender, RoutedEventArgs e)
     {
         RemoveReg();
