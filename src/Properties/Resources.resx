@@ -118,267 +118,267 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="Assignabledevices" xml:space="preserve">
-    <value>null</value>
+    <value>Assignable devices</value>
   </data>
   <data name="attention" xml:space="preserve">
-    <value>null</value>
+    <value>Attention</value>
   </data>
   <data name="attentionwords" xml:space="preserve">
-    <value>null</value>
+    <value>Improper allocating devices may cause system instability, please operate with caution!</value>
   </data>
   <data name="refresh" xml:space="preserve">
-    <value>null</value>
+    <value>Refresh</value>
   </data>
   <data name="exhyperv" xml:space="preserve">
-    <value>null</value>
+    <value>Easily use Hyper-V advanced features</value>
   </data>
   <data name="systeminfo" xml:space="preserve">
-    <value>null</value>
+    <value>System</value>
   </data>
   <data name="version" xml:space="preserve">
-    <value>nul</value>
+    <value>Version</value>
   </data>
   <data name="arch" xml:space="preserve">
-    <value>null</value>
+    <value>Architecture</value>
   </data>
   <data name="model" xml:space="preserve">
-    <value>null</value>
+    <value>CPU</value>
   </data>
   <data name="Memorycapacity" xml:space="preserve">
-    <value>null</value>
+    <value>Memory</value>
   </data>
   <data name="Graphicsmodel" xml:space="preserve">
-    <value>null</value>
+    <value>Graphics</value>
   </data>
   <data name="soft" xml:space="preserve">
-    <value>null</value>
+    <value>App</value>
   </data>
   <data name="String1" xml:space="preserve">
-    <value>null</value>
+    <value>The HyperV feature has been installed.</value>
   </data>
   <data name="String2" xml:space="preserve">
-    <value>null</value>
+    <value>Hyper-V feature is not installed.</value>
   </data>
   <data name="String3" xml:space="preserve">
-    <value>null</value>
+    <value>The host Windows version is </value>
   </data>
   <data name="v19041" xml:space="preserve">
-    <value>null</value>
+    <value>, recommend the virtual machine version not be less than 19041.</value>
   </data>
   <data name="disablegpu" xml:space="preserve">
-    <value>null</value>
+    <value>, GPU virtualization feature has been disabled.</value>
   </data>
   <data name="GPU1" xml:space="preserve">
-    <value>null</value>
+    <value>CPU virtualization has been enabled.</value>
   </data>
   <data name="GPU2" xml:space="preserve">
-    <value>null</value>
+    <value>CPU virtualization is not enabled.</value>
   </data>
   <data name="Admin1" xml:space="preserve">
-    <value>null</value>
+    <value>Administrator privileges have been obtained.</value>
   </data>
   <data name="Admin2" xml:space="preserve">
-    <value>null</value>
+    <value>No Administrator privileges. GPU Paravirtualization disabled.</value>
   </data>
   <data name="complicate" xml:space="preserve">
-    <value>null</value>
+    <value>Compatibility</value>
   </data>
   <data name="checksys" xml:space="preserve">
-    <value>null</value>
+    <value>Check system version...</value>
   </data>
   <data name="checkcpuct" xml:space="preserve">
-    <value>null</value>
+    <value>Check if CPU virtualization is enabled...</value>
   </data>
   <data name="checkhyperv" xml:space="preserve">
-    <value>null</value>
+    <value>Check if HyperV is installed...</value>
   </data>
   <data name="checkadmin" xml:space="preserve">
-    <value>null</value>
+    <value>Check if launched with admin privileges...</value>
   </data>
   <data name="checksetting" xml:space="preserve">
-    <value>null</value>
+    <value>Settings</value>
   </data>
   <data name="disablereg" xml:space="preserve">
-    <value>null</value>
+    <value>Disable security policy (RequireSecureDeviceAssignment、RequireSupportedDeviceAssignment)</value>
   </data>
   <data name="Host" xml:space="preserve">
-    <value>null</value>
+    <value>Host</value>
   </data>
   <data name="string5" xml:space="preserve">
-    <value>null</value>
+    <value>Modify the shutdown action of the virtual machine to force power off...</value>
   </data>
   <data name="setting" xml:space="preserve">
-    <value>null</value>
+    <value>Settings are being modified</value>
   </data>
   <data name="wait" xml:space="preserve">
-    <value>null</value>
+    <value>The operation cannot be interrupted, please wait</value>
   </data>
   <data name="kind" xml:space="preserve">
-    <value>null</value>
+    <value>Class</value>
   </data>
   <data name="Instanceid" xml:space="preserve">
-    <value>null</value>
+    <value>InstanceId</value>
   </data>
   <data name="path" xml:space="preserve">
-    <value>null</value>
+    <value>Path</value>
   </data>
   <data name="operated" xml:space="preserve">
-    <value>null</value>
+    <value>Operation completed!</value>
   </data>
   <data name="OK" xml:space="preserve">
-    <value>null</value>
+    <value>OK</value>
   </data>
   <data name="removed" xml:space="preserve">
-    <value>null</value>
+    <value>#Disassembled</value>
   </data>
   <data name="mounting" xml:space="preserve">
-    <value>null</value>
+    <value>Mounting device...</value>
   </data>
   <data name="cpucache" xml:space="preserve">
-    <value>null</value>
+    <value>Enable virtual machines to manage CPU cache...</value>
   </data>
   <data name="getpath" xml:space="preserve">
-    <value>null</value>
+    <value>Get the path of the device...</value>
   </data>
   <data name="Disabledevice" xml:space="preserve">
-    <value>null</value>
+    <value>Disabling device...</value>
   </data>
   <data name="Dismountdevice" xml:space="preserve">
-    <value>null</value>
+    <value>Dismounting devices...</value>
   </data>
   <data name="installedcard" xml:space="preserve">
-    <value>null</value>
+    <value>Graphics Card</value>
   </data>
   <data name="vmlist" xml:space="preserve">
-    <value>null</value>
+    <value>Virtual Machine List</value>
   </data>
   <data name="none" xml:space="preserve">
-    <value>null</value>
+    <value>None</value>
   </data>
   <data name="notsupport" xml:space="preserve">
-    <value>null</value>
+    <value>Not supported</value>
   </data>
   <data name="needhyperv" xml:space="preserve">
-    <value>null</value>
+    <value>HyperV feature required</value>
   </data>
   <data name="support" xml:space="preserve">
-    <value>null</value>
+    <value>Supported</value>
   </data>
   <data name="manu" xml:space="preserve">
-    <value>null</value>
+    <value>Manufacturer</value>
   </data>
   <data name="ram" xml:space="preserve">
-    <value>null</value>
+    <value>Video Memory</value>
   </data>
   <data name="gpupv" xml:space="preserve">
-    <value>null</value>
+    <value>GPU Partition</value>
   </data>
   <data name="gpupvpath" xml:space="preserve">
-    <value>null</value>
+    <value>Partition Path</value>
   </data>
   <data name="driverversion" xml:space="preserve">
-    <value>null</value>
+    <value>Driver Version</value>
   </data>
   <data name="addgpu" xml:space="preserve">
-    <value>null</value>
+    <value>Add GPU</value>
   </data>
   <data name="uninstall" xml:space="preserve">
-    <value>null</value>
+    <value>Uninstall</value>
   </data>
   <data name="gpupvid" xml:space="preserve">
-    <value>null</value>
+    <value>GPU partition ID</value>
   </data>
   <data name="runerror" xml:space="preserve">
-    <value>null</value>
+    <value>Error executing:  </value>
   </data>
   <data name="success" xml:space="preserve">
-    <value>null</value>
+    <value>Success</value>
   </data>
   <data name="already" xml:space="preserve">
-    <value>null</value>
+    <value> has assigned to </value>
   </data>
   <data name="GPUselect" xml:space="preserve">
-    <value>null</value>
+    <value>GPU Select</value>
   </data>
   <data name="cancel" xml:space="preserve">
-    <value>null</value>
+    <value>Cancel</value>
   </data>
   <data name="sure" xml:space="preserve">
-    <value>null</value>
+    <value>Confirm</value>
   </data>
   <data name="Settings" xml:space="preserve">
-    <value>null</value>
+    <value>Settings</value>
   </data>
   <data name="theme" xml:space="preserve">
-    <value>null</value>
+    <value>Application Theme</value>
   </data>
   <data name="switchtheme" xml:space="preserve">
-    <value>null</value>
+    <value>Switch between light/dark mode</value>
   </data>
   <data name="light" xml:space="preserve">
-    <value>null</value>
+    <value>Light</value>
   </data>
   <data name="dark" xml:space="preserve">
-    <value>null</value>
+    <value>Dark</value>
   </data>
   <data name="language" xml:space="preserve">
-    <value>null</value>
+    <value>Language</value>
   </data>
   <data name="reboot" xml:space="preserve">
-    <value>null</value>
+    <value>Changing the language will restart the application</value>
   </data>
   <data name="about" xml:space="preserve">
-    <value>null</value>
+    <value>About</value>
   </data>
   <data name="report" xml:space="preserve">
-    <value>null</value>
+    <value>Report or feedback</value>
   </data>
   <data name="github" xml:space="preserve">
-    <value>null</value>
+    <value>View Code</value>
   </data>
   <data name="Main" xml:space="preserve">
-    <value>null</value>
+    <value>Home</value>
   </data>
   <data name="complisetting" xml:space="preserve">
-    <value>null</value>
+    <value>Compatibility and Settings</value>
   </data>
   <data name="gpupvv" xml:space="preserve">
-    <value>null</value>
+    <value>GPU Paravirtualization</value>
   </data>
   <data name="DDA" xml:space="preserve">
-    <value>null</value>
+    <value>Discrete Device Assignment</value>
   </data>
   <data name="Colsefirst" xml:space="preserve">
-    <value>null</value>
+    <value>Please shut down the virtual machine first!</value>
   </data>
   <data name="appversion" xml:space="preserve">
-    <value>null</value>
+    <value>Version</value>
   </data>
   <data name="author" xml:space="preserve">
-    <value>null</value>
+    <value>Author</value>
   </data>
   <data name="buildtime" xml:space="preserve">
-    <value>null</value>
+    <value>Compile time</value>
   </data>
   <data name="checkversion" xml:space="preserve">
-    <value>null</value>
+    <value>Check if it is a server version...</value>
   </data>
   <data name="ddaa" xml:space="preserve">
-    <value>null</value>
+    <value>The host system is not a server version, so Discrete Device Assignment cannot be used!</value>
   </data>
   <data name="Isserver" xml:space="preserve">
-    <value>null</value>
+    <value>The host system belongs to the server version.</value>
   </data>
   <data name="enabling" xml:space="preserve">
-    <value>null</value>
+    <value>Enabling device...</value>
   </data>
   <data name="drivererror" xml:space="preserve">
-    <value>null</value>
+    <value>An error occurred during driver injection! Check if BitLocker is enabled on the system disk, or if there is no Windows directory?</value>
   </data>
   <data name="error" xml:space="preserve">
-    <value>null</value>
+    <value>Error</value>
   </data>
   <data name="servererror" xml:space="preserve">
-    <value>null</value>
+    <value>The host system is not a server version, and the virtual machine with the DDA device added will not be able to start!</value>
   </data>
 </root>

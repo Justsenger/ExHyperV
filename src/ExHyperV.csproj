@@ -1,131 +1,33 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <OutputType>WinExe</OutputType>
-    <TargetFramework>net8.0-windows</TargetFramework>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-	<ApplicationIcon>applicationIcon.ico</ApplicationIcon>
-    <UseWPF>true</UseWPF>
-  </PropertyGroup>
+    <PropertyGroup>
+        <OutputType>WinExe</OutputType>
+        <TargetFramework>net8.0-windows</TargetFramework>
+        <UseWPF>true</UseWPF>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <ApplicationIcon>applicationIcon.ico</ApplicationIcon>
+        <Version>1.0.8</Version>
+    </PropertyGroup>
 
-  <ItemGroup>
-    <None Remove="Assets\app.png" />
-    <None Remove="Assets\bar.png" />
-    <None Remove="Assets\Gpuicons\AMD.png" />
-    <None Remove="Assets\Gpuicons\ARC.png" />
-    <None Remove="Assets\Gpuicons\data-center-gpu-flex-badge-centered-transparent-rwd_1920-1080.png" />
-    <None Remove="Assets\Gpuicons\Default.png" />
-    <None Remove="Assets\Gpuicons\DisplayLink.png" />
-    <None Remove="Assets\Gpuicons\GPU.png" />
-    <None Remove="Assets\Gpuicons\Intel.png" />
-    <None Remove="Assets\Gpuicons\Intel_Iris_Xe_Graphics.png" />
-    <None Remove="Assets\Gpuicons\Iris.png" />
-    <None Remove="Assets\Gpuicons\Microsoft.jpg" />
-    <None Remove="Assets\Gpuicons\Microsoft.png" />
-    <None Remove="Assets\Gpuicons\Moore.png" />
-    <None Remove="Assets\Gpuicons\NVIDIA.jpg" />
-    <None Remove="Assets\Gpuicons\NVIDIA.png" />
-    <None Remove="Assets\Gpuicons\Qualcomm.png" />
-    <None Remove="Assets\Gpuicons\RTX.png" />
-    <None Remove="Assets\Gpuicons\Silicon.png" />
-  </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="Microsoft.PowerShell.SDK" Version="7.4.0"/>
+        <PackageReference Include="System.Management.Automation" Version="7.4.0"/>
+        <PackageReference Include="WPF-UI" Version="4.0.0"/>
+        <PackageReference Include="WPF-UI.Tray" Version="4.0.0"/>
+    </ItemGroup>
 
+    <ItemGroup>
+        <Resource Include="Assets\**\*.*"/>
+        <Resource Include="Fonts\**\*.*"/>
+    </ItemGroup>
 
-	<ItemGroup>
-		<Content Include="applicationIcon.ico">
-			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
-		</Content>
-		<Content Include="Assets\app.png">
-		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-		</Content>
-		<Content Include="Assets\bar.png">
-		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-		</Content>
-		<Content Include="Assets\Gpuicons\AMD.png">
-		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-		</Content>
-		<Content Include="Assets\Gpuicons\ARC.png">
-		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-		</Content>
-		<Content Include="Assets\Gpuicons\data-center-gpu-flex-badge-centered-transparent-rwd_1920-1080.png">
-		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-		</Content>
-		<Content Include="Assets\Gpuicons\DisplayLink.png">
-		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-		</Content>
-		<Content Include="Assets\Gpuicons\GPU.png">
-		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-		</Content>
-		<Content Include="Assets\Gpuicons\Intel.png">
-		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-		</Content>
-		<Content Include="Assets\Gpuicons\Intel_Iris_Xe_Graphics.png">
-		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-		</Content>
-		<Content Include="Assets\Gpuicons\Microsoft.png">
-		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-		</Content>
-		<Content Include="Assets\Gpuicons\NVIDIA.png">
-		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-		</Content>
-	</ItemGroup>
-	
-  <ItemGroup>
-    <Content Include="Fonts\SegoeIcons.ttf">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Microsoft.PowerShell.SDK" Version="7.4.0" />
-    <PackageReference Include="System.Management.Automation" Version="7.4.0" />
-    <PackageReference Include="WPF-UI" Version="4.0.0" />
-    <PackageReference Include="WPF-UI.Tray" Version="4.0.0" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Content Include="Assets\Gpuicons\Moore.png">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="Assets\Gpuicons\Qualcomm.png">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="Assets\Gpuicons\Silicon.png">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
-
-  <ItemGroup>
-    <Compile Update="Properties\PublishProfiles\Resources.Designer.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>Resources.resx</DependentUpon>
-    </Compile>
-    <Compile Update="Properties\Resources.Designer.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>Resources.resx</DependentUpon>
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Compile>
-  </ItemGroup>
-
-  <ItemGroup>
-    <EmbeddedResource Update="Properties\PublishProfiles\Resources.resx">
-      <Generator>ResXFileCodeGenerator</Generator>
-      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
-    </EmbeddedResource>
-    <EmbeddedResource Update="Properties\Resources.en-US.resx">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <EmbeddedResource Update="Properties\Resources.resx">
-      <Generator>PublicResXFileCodeGenerator</Generator>
-      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <EmbeddedResource Update="Properties\Resources.zh-CN.resx">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-  </ItemGroup>
+    <ItemGroup>
+        <Compile Update="Properties\Resources.Designer.cs">
+            <DesignTime>True</DesignTime>
+            <AutoGen>True</AutoGen>
+            <DependentUpon>Resources.resx</DependentUpon>
+        </Compile>
+    </ItemGroup>
 
 </Project>
