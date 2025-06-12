@@ -14,8 +14,6 @@ public partial class MainPage
 
     private void SystemInfo()
     {
-        Version.Text = Utils.Version;
-        Author.Text = Utils.Author;
         Date.Text = Utils.GetLinkerTime().ToString("yyyy/MM/dd HH:mm", CultureInfo.InvariantCulture);
         Utils.Run("Set-ExecutionPolicy RemoteSigned -Scope Process -Force");
         var script = @"

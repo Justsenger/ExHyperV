@@ -21,7 +21,7 @@ public partial class StatusPage
 
     private async void HyperVInfo()
     {
-        var message = Utils.GetLocalizedString("exhyperv");
+        var message = LocalizationHelper.GetString("exhyperv");
 
         var hypervstatus = Utils.Run("Get-Module -ListAvailable -Name Hyper-V");
         Dispatcher.Invoke(() =>
@@ -36,11 +36,11 @@ public partial class StatusPage
             };
             if (hypervstatus.Count != 0)
             {
-                hyperv.Text = Utils.GetLocalizedString("String1");
+                hyperv.Text = LocalizationHelper.GetString("String1");
             }
             else
             {
-                hyperv.Text = Utils.GetLocalizedString("String2");
+                hyperv.Text = LocalizationHelper.GetString("String2");
                 icons.Glyph = "\xEB90";
                 icons.Foreground = new SolidColorBrush(Colors.Red);
             }
@@ -67,13 +67,17 @@ public partial class StatusPage
             {
                 icons.Glyph = "\xEC61";
                 icons.Foreground = new SolidColorBrush(Color.FromArgb(255, 0, 138, 23));
-                win.Text = Utils.GetLocalizedString("String3") + buildVersion + Utils.GetLocalizedString("v19041");
+                var string3 = LocalizationHelper.GetString("String3");
+                var v19041 = LocalizationHelper.GetString("v19041");
+                win.Text = string3 + buildVersion + v19041;
             }
             else
             {
                 var ms = Application.Current.MainWindow as MainWindow; //获取主窗口
                 ms.gpupv.IsEnabled = false;
-                win.Text = Utils.GetLocalizedString("String3") + buildVersion + Utils.GetLocalizedString("disablegpu");
+                var string3 = LocalizationHelper.GetString("String3");
+                var disablegpu = LocalizationHelper.GetString("disablegpu");
+                win.Text = string3 + buildVersion + disablegpu;
                 icons.Glyph = "\xEB90";
                 icons.Foreground = new SolidColorBrush(Colors.Red);
             }
@@ -99,11 +103,11 @@ public partial class StatusPage
 
             if (cpuvt1[0].ToString() == "True" || cpuvt2[0].ToString() == "True")
             {
-                cpu.Text = Utils.GetLocalizedString("GPU1");
+                cpu.Text = LocalizationHelper.GetString("GPU1");
             }
             else
             {
-                cpu.Text = Utils.GetLocalizedString("GPU2");
+                cpu.Text = LocalizationHelper.GetString("GPU2");
                 icons.Glyph = "\xEB90";
                 icons.Foreground = new SolidColorBrush(Colors.Red);
             }
@@ -144,14 +148,14 @@ public partial class StatusPage
             };
             if (Isadmin)
             {
-                admin.Text = Utils.GetLocalizedString("Admin1");
+                admin.Text = LocalizationHelper.GetString("Admin1");
                 status4.Children.Add(icons);
             }
             else //如果没有管理员权限，关闭GPU虚拟化功能
             {
                 var ms = Application.Current.MainWindow as MainWindow; //获取主窗口
                 ms.gpupv.IsEnabled = false;
-                admin.Text = Utils.GetLocalizedString("Admin2");
+                admin.Text = LocalizationHelper.GetString("Admin2");
                 icons.Glyph = "\xEB90";
                 icons.Foreground = new SolidColorBrush(Colors.Red);
                 status4.Children.Add(icons);
@@ -174,14 +178,14 @@ public partial class StatusPage
             };
             if (result[0].ToString() == "3")
             {
-                version.Text = Utils.GetLocalizedString("Isserver");
+                version.Text = LocalizationHelper.GetString("Isserver");
             }
             else
             {
                 var ms = Application.Current.MainWindow as MainWindow; //获取主窗口
                 //ms.dda.IsEnabled = false;
 
-                version.Text = Utils.GetLocalizedString("ddaa");
+                version.Text = LocalizationHelper.GetString("ddaa");
                 icons.Glyph = "\xEB90";
                 icons.Foreground = new SolidColorBrush(Colors.Red);
             }

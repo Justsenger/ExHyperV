@@ -29,6 +29,15 @@
             <AutoGen>True</AutoGen>
             <DependentUpon>Resources.resx</DependentUpon>
         </Compile>
+
+        <EmbeddedResource Update="Properties\Resources.resx">
+            <Generator>PublicResXFileCodeGenerator</Generator>
+            <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+        </EmbeddedResource>
+
+        <EmbeddedResource Update="Properties\Resources.zh-CN.resx">
+            <DependentUpon>Resources.resx</DependentUpon>
+        </EmbeddedResource>
     </ItemGroup>
 
 </Project>

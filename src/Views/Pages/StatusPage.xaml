@@ -5,7 +5,7 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
-    xmlns:lex="http://wpflocalizeextension.codeplex.com"
+    xmlns:extensions="https://github.com/XAMLMarkupExtensions/WPFLocalizationExtension"
     Title="StatusPage"
     d:DesignHeight="700"
     d:DesignWidth="1000"
@@ -23,7 +23,7 @@
         <StackPanel Margin="0,0,0,8">
             <ui:TextBlock
                 Margin="0,0,0,8"
-                Text="{lex:Loc complicate}"
+                Text="{extensions:Loc complicate}"
                 FontSize="36"
                 Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" />
             <Grid>
@@ -44,7 +44,7 @@
                         </Grid.ColumnDefinitions>
                         <ui:ProgressRing x:Name="progressRing1" IsIndeterminate="True" Width="16" Height="16"
                                          Margin="0,2,0,3" />
-                        <TextBlock Grid.Column="1" x:Name="win" Margin="10,0,0,0" Text="{lex:Loc checksys}"
+                        <TextBlock Grid.Column="1" x:Name="win" Margin="10,0,0,0" Text="{extensions:Loc checksys}"
                                    FontSize="16" Grid.ColumnSpan="2" />
                     </Grid>
                 </ui:Card>
@@ -56,7 +56,7 @@
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
                         <ui:ProgressRing x:Name="progressRing2" IsIndeterminate="True" Width="16" Height="16" />
-                        <TextBlock Grid.Column="1" x:Name="cpu" Margin="10,0,0,0" Text="{lex:Loc checkcpuct}"
+                        <TextBlock Grid.Column="1" x:Name="cpu" Margin="10,0,0,0" Text="{extensions:Loc checkcpuct}"
                                    FontSize="16" />
                     </Grid>
                 </ui:Card>
@@ -68,7 +68,8 @@
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
                         <ui:ProgressRing x:Name="progressRing3" IsIndeterminate="True" Width="16" Height="16" />
-                        <TextBlock Grid.Column="1" x:Name="hyperv" Margin="10,0,0,0" Text="{lex:Loc checkhyperv}"
+                        <TextBlock Grid.Column="1" x:Name="hyperv" Margin="10,0,0,0"
+                                   Text="{extensions:Loc checkhyperv}"
                                    FontSize="16" />
                     </Grid>
                 </ui:Card>
@@ -80,7 +81,7 @@
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
                         <ui:ProgressRing x:Name="progressRing4" IsIndeterminate="True" Width="16" Height="16" />
-                        <TextBlock Grid.Column="1" x:Name="admin" Margin="10,0,0,0" Text="{lex:Loc checkadmin}"
+                        <TextBlock Grid.Column="1" x:Name="admin" Margin="10,0,0,0" Text="{extensions:Loc checkadmin}"
                                    FontSize="16" />
                     </Grid>
                 </ui:Card>
@@ -92,7 +93,8 @@
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
                         <ui:ProgressRing x:Name="progressRing5" IsIndeterminate="True" Width="16" Height="16" />
-                        <TextBlock Grid.Column="1" x:Name="version" Margin="10,0,0,0" Text="{lex:Loc checkversion}"
+                        <TextBlock Grid.Column="1" x:Name="version" Margin="10,0,0,0"
+                                   Text="{extensions:Loc checkversion}"
                                    FontSize="16" />
                     </Grid>
                 </ui:Card>
@@ -103,7 +105,7 @@
 
         <StackPanel Margin="0,0,0,8" Grid.Row="1">
 
-            <ui:TextBlock Text="{lex:Loc checksetting}" FontSize="36"
+            <ui:TextBlock Text="{extensions:Loc checksetting}" FontSize="36"
                           Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" />
 
             <ui:CardControl Margin="0,10,0,0" Padding="12">
@@ -116,7 +118,7 @@
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="auto" />
                         </Grid.ColumnDefinitions>
-                        <TextBlock Text="{lex:Loc disablereg}" FontSize="16" VerticalAlignment="Center" />
+                        <TextBlock Text="{extensions:Loc disablereg}" FontSize="16" VerticalAlignment="Center" />
                         <ui:ToggleSwitch
                             x:Name="gpustrategy"
                             Grid.Column="1"

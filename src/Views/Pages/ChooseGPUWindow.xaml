@@ -4,9 +4,9 @@
                  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
                  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
                  mc:Ignorable="d"
-                 xmlns:lex="http://wpflocalizeextension.codeplex.com"
                  Title="ExHyperV" Height="550" Width="500"
-                 xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
+                 xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+                 xmlns:extensions="https://github.com/XAMLMarkupExtensions/WPFLocalizationExtension">
     <Grid>
 
         <!-- 布局规划 -->
@@ -19,7 +19,7 @@
 
         <!-- 标题栏 -->
         <ui:TitleBar
-            Title="{lex:Loc GPUselect}" Grid.ColumnSpan="2" VerticalAlignment="Center">
+            Title="{extensions:Loc GPUselect}" Grid.ColumnSpan="2" VerticalAlignment="Center">
             <ui:TitleBar.Icon>
                 <ui:ImageIcon>
                     <ui:ImageIcon.Source>
@@ -66,8 +66,8 @@
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
 
-            <ui:Button Content="{lex:Loc cancel}" Width="200" Margin="20,0,40,0" Click="CancelButton_Click" />
-            <ui:Button x:Name="ConfirmButton" Appearance="Primary" Content="{lex:Loc sure}" Width="200"
+            <ui:Button Content="{extensions:Loc cancel}" Width="200" Margin="20,0,40,0" Click="CancelButton_Click" />
+            <ui:Button x:Name="ConfirmButton" Appearance="Primary" Content="{extensions:Loc sure}" Width="200"
                        Click="ConfirmButton_Click" Grid.Column="1" IsEnabled="False" />
         </Grid>
 

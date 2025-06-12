@@ -141,15 +141,14 @@ public partial class GPUPage
 
         foreach (var gpu in gpuList)
         {
-            var name = string.IsNullOrEmpty(gpu.Name) ? Utils.GetLocalizedString("none") : gpu.Name;
-            var valid = string.IsNullOrEmpty(gpu.Valid) ? Utils.GetLocalizedString("none") : gpu.Valid;
-            var manu = string.IsNullOrEmpty(gpu.Manu) ? Utils.GetLocalizedString("none") : gpu.Manu;
-            var instanceId = string.IsNullOrEmpty(gpu.InstanceId) ? Utils.GetLocalizedString("none") : gpu.InstanceId;
-            var pname = string.IsNullOrEmpty(gpu.Pname) ? Utils.GetLocalizedString("none") : gpu.Pname; //GPU分区路径
-            var driverversion = string.IsNullOrEmpty(gpu.DriverVersion)
-                ? Utils.GetLocalizedString("none")
-                : gpu.DriverVersion;
-            var gpup = Utils.GetLocalizedString("notsupport"); //是否支持GPU分区
+            var noneText = LocalizationHelper.GetString("none");
+            var name = string.IsNullOrEmpty(gpu.Name) ? noneText : gpu.Name;
+            var valid = string.IsNullOrEmpty(gpu.Valid) ? noneText : gpu.Valid;
+            var manu = string.IsNullOrEmpty(gpu.Manu) ? noneText : gpu.Manu;
+            var instanceId = string.IsNullOrEmpty(gpu.InstanceId) ? noneText : gpu.InstanceId;
+            var pname = string.IsNullOrEmpty(gpu.Pname) ? noneText : gpu.Pname; //GPU分区路径
+            var driverversion = string.IsNullOrEmpty(gpu.DriverVersion) ? noneText : gpu.DriverVersion;
+            var gpup = LocalizationHelper.GetString("notsupport"); //是否支持GPU分区
 
             var ram = (string.IsNullOrEmpty(gpu.Ram) ? 0 : long.Parse(gpu.Ram)) / (1024 * 1024) + " MB";
             if (manu.Contains("Moore"))
@@ -158,8 +157,10 @@ public partial class GPUPage
 
             if (valid != "True") continue; //剔除未连接的显卡
 
-            if (hyperv == false) gpup = Utils.GetLocalizedString("needhyperv");
-            if (pname != Utils.GetLocalizedString("none")) gpup = Utils.GetLocalizedString("support");
+            if (hyperv == false)
+                gpup = LocalizationHelper.GetString("needhyperv");
+            if (pname != noneText)
+                gpup = LocalizationHelper.GetString("support");
 
             Dispatcher.Invoke(() =>
             {
@@ -199,12 +200,18 @@ public partial class GPUPage
 
                 var textData = new (string text, int row, int column)[]
                 {
-                    (Utils.GetLocalizedString("manu"), 0, 0), (manu, 0, 1),
-                    (Utils.GetLocalizedString("ram"), 1, 0), (ram, 1, 1),
-                    (Utils.GetLocalizedString("Instanceid"), 2, 0), (instanceId, 2, 1),
-                    (Utils.GetLocalizedString("gpupv"), 3, 0), (gpup, 3, 1),
-                    (Utils.GetLocalizedString("gpupvpath"), 4, 0), (pname, 4, 1),
-                    (Utils.GetLocalizedString("driverversion"), 5, 0), (driverversion, 5, 1)
+                    (LocalizationHelper.GetString("manu"), 0, 0),
+                    (manu, 0, 1),
+                    (LocalizationHelper.GetString("ram"), 1, 0),
+                    (ram, 1, 1),
+                    (LocalizationHelper.GetString("Instanceid"), 2, 0),
+                    (instanceId, 2, 1),
+                    (LocalizationHelper.GetString("gpupv"), 3, 0),
+                    (gpup, 3, 1),
+                    (LocalizationHelper.GetString("gpupvpath"), 4, 0),
+                    (pname, 4, 1),
+                    (LocalizationHelper.GetString("driverversion"), 5, 0),
+                    (driverversion, 5, 1)
                 };
 
                 foreach (var (text, row1, column) in textData)
@@ -261,7 +268,7 @@ public partial class GPUPage
                 //添加按钮
                 var addbutton = new Button
                 {
-                    Content = Utils.GetLocalizedString("addgpu"),
+                    Content = LocalizationHelper.GetString("addgpu"),
                     Margin = new Thickness(0, 0, 5, 0)
                 };
                 addbutton.Click += (sender, e) => Gpu_mount(sender, e, name, Hostgpulist); //按钮点击事件
@@ -296,8 +303,8 @@ public partial class GPUPage
 
                     //显卡名称
                     var thegpu = Hostgpulist.FirstOrDefault(g => g.Pname == gpupath); //选中联机显卡中的这张显卡
-                    var name = thegpu.Name;
-                    var gpuname = Utils.CreateStackPanel(name);
+                    var gpuName = thegpu.Name;
+                    var gpuname = Utils.CreateStackPanel(gpuName);
                     Grid.SetColumn(gpuname, 1);
                     grid0.Children.Add(gpuname);
 
@@ -309,7 +316,7 @@ public partial class GPUPage
                     //删除按钮
                     var button = new Button
                     {
-                        Content = Utils.GetLocalizedString("uninstall"),
+                        Content = LocalizationHelper.GetString("uninstall"),
                         Margin = new Thickness(0, 0, 5, 0)
                     };
                     button.Click += (sender, e) => Gpu_dismount(sender, e, gpuid, vm.Name, gpuExpander); //按钮点击事件
@@ -329,8 +336,10 @@ public partial class GPUPage
 
                     var textData = new (string text, int row, int column)[]
                     {
-                        (Utils.GetLocalizedString("gpupvid"), 0, 0), (gpuid, 0, 1),
-                        (Utils.GetLocalizedString("gpupvpath"), 1, 0), (gpupath, 1, 1)
+                        (LocalizationHelper.GetString("gpupvid"), 0, 0),
+                        (gpuid, 0, 1),
+                        (LocalizationHelper.GetString("gpupvpath"), 1, 0),
+                        (gpupath, 1, 1)
                     };
 
                     foreach (var (text, row1, column) in textData)
@@ -362,7 +371,11 @@ public partial class GPUPage
         // 检查是否有错误
         if (ps.Streams.Error.Count > 0)
         {
-            foreach (var error in ps.Streams.Error) MessageBox.Show($"{Utils.GetLocalizedString("error")}: {error}");
+            foreach (var error in ps.Streams.Error)
+            {
+                var errorText = LocalizationHelper.GetString("error");
+                MessageBox.Show($"{errorText}: {error}");
+            }
         }
         else
         {
@@ -397,8 +410,12 @@ public partial class GPUPage
         var ms = Application.Current.MainWindow as MainWindow; //获取主窗口
 
         SnackbarService.SetSnackbarPresenter(ms.SnackbarPresenter);
-        SnackbarService.Show(Utils.GetLocalizedString("success"),
-            GPUname + Utils.GetLocalizedString("already") + VMname, ControlAppearance.Success,
+        var successText = LocalizationHelper.GetString("success");
+        var alreadyText = LocalizationHelper.GetString("already");
+
+        SnackbarService.Show(
+            successText,
+            GPUname + alreadyText + VMname, ControlAppearance.Success,
             new SymbolIcon(SymbolRegular.CheckboxChecked24, 32), TimeSpan.FromSeconds(2));
         vmrefresh(null, null);
     }

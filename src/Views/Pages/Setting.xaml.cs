@@ -1,5 +1,4 @@
 ﻿using System.Globalization;
-using System.Windows;
 using System.Windows.Controls;
 using Wpf.Ui.Appearance;
 using WPFLocalizeExtension.Engine;
@@ -67,33 +66,9 @@ public partial class Setting
 
     private void SetLanguage(string languageCode)
     {
-        try
-        {
-            // Dynamic language switching without application restart
-            LocalizeDictionary.Instance.Culture = new CultureInfo(languageCode);
+        if (isInitializing) return;
 
-            // Force UI update
-            Application.Current.Dispatcher.BeginInvoke(new Action(() =>
-            {
-                // Update all windows
-                foreach (Window window in Application.Current.Windows)
-                {
-                    window.UpdateLayout();
-                    window.InvalidateVisual();
-
-                    // Force update all elements
-                    if (window.Content is FrameworkElement content)
-                    {
-                        content.UpdateLayout();
-                        content.InvalidateVisual();
-                    }
-                }
-            }));
-        }
-        catch
-        {
-            // Ignore language switching errors
-        }
+        LocalizeDictionary.Instance.Culture = new CultureInfo(languageCode);
     }
 
     private void Setcombo(string lang)

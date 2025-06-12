@@ -5,12 +5,13 @@
                  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
                  xmlns:pages="clr-namespace:ExHyperV.Views.Pages"
 
-                 xmlns:lex="http://wpflocalizeextension.codeplex.com"
-                 lex:ResxLocalizationProvider.DefaultAssembly="ExHyperV"
-                 lex:ResxLocalizationProvider.DefaultDictionary="Resources"
+                 providers:ResxLocalizationProvider.DefaultAssembly="ExHyperV"
+                 providers:ResxLocalizationProvider.DefaultDictionary="Properties.Resources"
+                 providers:LocalizeDictionary.DesignCulture="en-US"
                  mc:Ignorable="d"
                  Title="ExHyperV" Height="700" Width="1000"
-                 xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
+                 xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+                 xmlns:providers="https://github.com/XAMLMarkupExtensions/WPFLocalizationExtension">
     <Grid>
         <!-- 布局规划 -->
         <Grid.RowDefinitions>
@@ -40,7 +41,7 @@
                            IsBackButtonVisible="Collapsed" Grid.RowSpan="2" Grid.ColumnSpan="2">
             <ui:NavigationView.MenuItems>
                 <ui:NavigationViewItem
-                    Content="{lex:Loc Main}"
+                    Content="{providers:Loc Main}"
                     NavigationCacheMode="Enabled"
                     TargetPageType="{x:Type pages:MainPage}">
                     <ui:NavigationViewItem.Icon>
@@ -49,7 +50,7 @@
                 </ui:NavigationViewItem>
 
                 <ui:NavigationViewItem
-                    Content="{lex:Loc complisetting}"
+                    Content="{providers:Loc complisetting}"
                     NavigationCacheMode="Enabled"
                     TargetPageType="{x:Type pages:StatusPage}">
                     <ui:NavigationViewItem.Icon>
@@ -59,7 +60,7 @@
 
                 <ui:NavigationViewItem
                     x:Name="dda"
-                    Content="{lex:Loc DDA}"
+                    Content="{providers:Loc DDA}"
                     NavigationCacheMode="Enabled"
                     TargetPageType="{x:Type pages:DDAPage}">
                     <ui:NavigationViewItem.Icon>
@@ -69,7 +70,7 @@
 
                 <ui:NavigationViewItem
                     x:Name="gpupv"
-                    Content="{lex:Loc gpupvv}"
+                    Content="{providers:Loc gpupvv}"
                     NavigationCacheMode="Enabled"
                     Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"
                     TargetPageType="{x:Type pages:GPUPage}">
@@ -81,7 +82,7 @@
 
             <ui:NavigationView.FooterMenuItems>
                 <ui:NavigationViewItem
-                    Content="{lex:Loc Settings}"
+                    Content="{providers:Loc Settings}"
                     NavigationCacheMode="Disabled"
                     TargetPageType="{x:Type pages:Setting}">
                     <ui:NavigationViewItem.Icon>

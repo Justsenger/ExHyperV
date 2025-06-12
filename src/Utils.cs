@@ -7,18 +7,53 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Wpf.Ui.Controls;
-using WPFLocalizeExtension.Engine;
 using Image = Wpf.Ui.Controls.Image;
 using MessageBox = System.Windows.MessageBox;
 using TextBlock = Wpf.Ui.Controls.TextBlock;
 
 namespace ExHyperV.Views.Pages;
 
+/// <summary>
+///     Represents an error that occurred during PowerShell execution.
+/// </summary>
+public class PowerShellError
+{
+    public string Message { get; set; } = string.Empty;
+    public string Details { get; set; } = string.Empty;
+    public Exception? Exception { get; set; }
+}
+
+/// <summary>
+///     Represents the result of PowerShell execution with proper error handling.
+/// </summary>
+public class PowerShellResult
+{
+    public Collection<PSObject> Output { get; set; } = new();
+    public List<PowerShellError> Errors { get; set; } = new();
+    public bool HasErrors { get; set; }
+
+    /// <summary>
+    ///     Shows errors to user via MessageBox. Separated from execution logic for better architecture.
+    /// </summary>
+    public void ShowErrorsToUser()
+    {
+        if (!HasErrors) return;
+
+        MessageBox.Show(LocalizationHelper.GetString("ErrorColon", "Error:"));
+
+        foreach (var error in Errors)
+        {
+            var errorMessage = LocalizationHelper.GetString("ErrorMessage", "Error message");
+            var errorDetails = LocalizationHelper.GetString("ErrorDetails", "Error details");
+
+            MessageBox.Show($"{errorMessage}: {error.Message}");
+            if (!string.IsNullOrEmpty(error.Details)) MessageBox.Show($"{errorDetails}: {error.Details}");
+        }
+    }
+}
+
 public class Utils
 {
-    public static string Version => GetLocalizedString("AppVersionValue");
-    public static string Author => GetLocalizedString("AppAuthor");
-
     public static Collection<PSObject> Run(string script)
     {
         var ps = PowerShell.Create();
@@ -26,36 +61,63 @@ public class Utils
         return ps.Invoke();
     }
 
-    public static Collection<PSObject> Run2(string script)
+    /// <summary>
+    ///     Executes PowerShell script and returns results with error information.
+    ///     UI logic has been separated - use PowerShellResult.ShowErrorsToUser() to display errors.
+    /// </summary>
+    public static PowerShellResult RunWithErrorHandling(string script)
     {
         var ps = PowerShell.Create();
         ps.AddScript(script);
 
         Collection<PSObject> output = null;
+        var errors = new List<PowerShellError>();
 
         try
         {
             // 执行脚本
             output = ps.Invoke();
 
-            // 如果存在错误，将错误信息打印出来
+            // 收集错误信息但不显示UI
             if (ps.HadErrors)
-            {
-                MessageBox.Show(GetLocalizedString("ErrorColon"));
                 foreach (var error in ps.Streams.Error)
-                {
-                    MessageBox.Show($"{GetLocalizedString("ErrorMessage")}: {error.Exception.Message}");
-                    MessageBox.Show($"{GetLocalizedString("ErrorDetails")}: {error.Exception.StackTrace}");
-                }
-            }
+                    errors.Add(new PowerShellError
+                    {
+                        Message = error.Exception.Message,
+                        Details = error.Exception.StackTrace
+                    });
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"{GetLocalizedString("PowerShellException")}: {ex.Message}");
-            MessageBox.Show($"{GetLocalizedString("StackTrace")}: {ex.StackTrace}");
+            errors.Add(new PowerShellError
+            {
+                Message = LocalizationHelper.GetString("PowerShellException",
+                    "Exception occurred while executing PowerShell script"),
+                Details = ex.StackTrace ?? string.Empty,
+                Exception = ex
+            });
         }
 
-        return output;
+        return new PowerShellResult
+        {
+            Output = output ?? new Collection<PSObject>(),
+            Errors = errors,
+            HasErrors = errors.Count > 0
+        };
+    }
+
+    /// <summary>
+    ///     Legacy method for backward compatibility. Consider using RunWithErrorHandling instead.
+    /// </summary>
+    [Obsolete("Use RunWithErrorHandling for better error handling without UI coupling")]
+    public static Collection<PSObject> Run2(string script)
+    {
+        var result = RunWithErrorHandling(script);
+
+        // Show errors to maintain backward compatibility
+        if (result.HasErrors) result.ShowErrorsToUser();
+
+        return result.Output;
     }
 
     public static CardExpander CardExpander1()
@@ -275,24 +337,5 @@ public class Utils
         var fileInfo = new FileInfo(filePath);
         var linkerTime = fileInfo.LastWriteTime;
         return linkerTime;
-    }
-
-    /// <summary>
-    ///     Get localized string by key
-    /// </summary>
-    /// <param name="key">Resource key</param>
-    /// <returns>Localized string</returns>
-    public static string GetLocalizedString(string key)
-    {
-        try
-        {
-            var result = LocalizeDictionary.Instance.GetLocalizedObject("ExHyperV", "Resources", key,
-                LocalizeDictionary.Instance.Culture);
-            return result?.ToString() ?? key;
-        }
-        catch
-        {
-            return key; // Return key as fallback
-        }
     }
 }

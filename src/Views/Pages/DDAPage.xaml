@@ -5,11 +5,17 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
-    xmlns:lex="http://wpflocalizeextension.codeplex.com"
+    xmlns:engine="https://github.com/XAMLMarkupExtensions/WPFLocalizationExtension"
+    engine:LocalizeDictionary.DesignCulture="en-US"
     Title="MainPage"
     d:DesignHeight="700"
     d:DesignWidth="1000"
     mc:Ignorable="d">
+
+    <Page.Resources>
+
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+    </Page.Resources>
 
     <Grid Margin="10" VerticalAlignment="Top">
         <Grid.RowDefinitions>
@@ -20,16 +26,17 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <ProgressBar Grid.Row="0" x:Name="progressRing" IsIndeterminate="True" />
+        <ProgressBar Grid.Row="0" x:Name="progressRing" IsIndeterminate="{Binding IsLoading}"
+                     Visibility="{Binding IsLoading, Converter={StaticResource BooleanToVisibilityConverter}}" />
 
         <ui:InfoBar Grid.Row="1" Margin="0,5,0,0"
-                    Title="{lex:Loc attention}"
-                    Message="{lex:Loc attentionwords}"
+                    Title="{engine:Loc attention}"
+                    Message="{engine:Loc attentionwords}"
                     IsOpen="True"
                     Severity="Warning" />
         <ui:InfoBar Grid.Row="2" Margin="0,5,0,0" x:Name="Isserver"
-                    Title="{lex:Loc error}"
-                    Message="{lex:Loc servererror}"
+                    Title="{engine:Loc error}"
+                    Message="{engine:Loc servererror}"
                     IsOpen="True"
                     IsClosable="False"
                     Severity="Error" />
@@ -52,9 +59,10 @@
                         </Grid.ColumnDefinitions>
 
                         <ui:FontIcon FontSize="24" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xE964;" />
-                        <TextBlock Grid.Column="1" Text="{lex:Loc Assignabledevices}" FontSize="16"
+                        <TextBlock Grid.Column="1" Text="{engine:Loc Assignabledevices}" FontSize="16"
                                    VerticalAlignment="Center" Margin="10,0,0,0" />
-                        <ui:Button Grid.Column="2" Content="{lex:Loc refresh}" Margin="0,0,10,0" Click="DDArefresh" />
+                        <ui:Button Grid.Column="2" Content="{engine:Loc refresh}" Margin="0,0,10,0"
+                                   Command="{Binding RefreshCommand}" />
                     </Grid>
 
                 </Grid>
@@ -62,7 +70,71 @@
 
         </Grid>
 
-        <Grid x:Name="ParentPanel" Grid.Row="4" />
+
+        <ScrollViewer Grid.Row="4" VerticalScrollBarVisibility="Auto">
+            <ItemsControl ItemsSource="{Binding Devices}" Margin="0,5,0,0">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <ui:CardExpander Margin="20,5,0,0" IsExpanded="True">
+                            <ui:CardExpander.Icon>
+                                <ui:FontIcon FontSize="24" FontFamily="{DynamicResource SegoeFluentIcons}"
+                                             Glyph="&#xE964;" />
+                            </ui:CardExpander.Icon>
+                            <ui:CardExpander.Header>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <TextBlock Grid.Column="0" Text="{Binding FriendlyName}"
+                                               FontSize="16" VerticalAlignment="Center" />
+
+                                    <ui:Button Grid.Column="1"
+                                               Content="{Binding Status}"
+                                               Margin="10,0,0,0"
+                                               Click="AssignButton_Click"
+                                               Tag="{Binding}" />
+                                </Grid>
+                            </ui:CardExpander.Header>
+
+                            <!-- Device details -->
+                            <StackPanel>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+
+                                    <!-- Kind -->
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="{engine:Loc kind}"
+                                               FontWeight="SemiBold" Margin="0,5,10,5" />
+                                    <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding ClassType}"
+                                               Margin="0,5,0,5" />
+
+                                    <!-- Instance ID -->
+                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="{engine:Loc Instanceid}"
+                                               FontWeight="SemiBold" Margin="0,5,10,5" />
+                                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding InstanceId}"
+                                               Margin="0,5,0,5" />
+
+                                    <!-- Path -->
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="{engine:Loc path}"
+                                               FontWeight="SemiBold" Margin="0,5,10,5" />
+                                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Path}"
+                                               Margin="0,5,0,5" TextWrapping="Wrap" />
+                                </Grid>
+                            </StackPanel>
+                        </ui:CardExpander>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
 
     </Grid>
 
