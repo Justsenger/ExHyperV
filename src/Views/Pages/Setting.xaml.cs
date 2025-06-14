@@ -1,131 +1,78 @@
-﻿namespace ExHyperV.Views.Pages;
-
-using System.Globalization;
-using System.IO;
-using System.Windows;
+﻿using System.Globalization;
 using System.Windows.Controls;
-using System.Xml.Linq;
+using ExHyperV.Models;
 using Wpf.Ui.Appearance;
+using WPFLocalizeExtension.Engine;
 
+namespace ExHyperV.Views.Pages;
 
 public partial class Setting
 {
-    private const string ConfigFilePath = "config.xml";
-    private bool isInitializing = true; // 标志变量，用于避免死循环
+    private readonly bool isInitializing = true; // 标志变量，用于避免死循环
     public string sp = "none"; //炫彩开关
+
     public Setting()
     {
         InitializeComponent();
-        if (ApplicationThemeManager.GetAppTheme() == ApplicationTheme.Dark)
-        { 
-            ThemeComboBox.SelectedItem = ThemeComboBox.Items.Cast<ComboBoxItem>().FirstOrDefault(item => item.Content.ToString() == Properties.Resources.dark);
-        }
-        else
-        {
-            ThemeComboBox.SelectedItem = ThemeComboBox.Items.Cast<ComboBoxItem>().FirstOrDefault(item => item.Content.ToString() == Properties.Resources.light);
-        }
 
-        XDocument configDoc = XDocument.Load(ConfigFilePath);
-        string lang = configDoc.Root?.Element("Language")?.Value ?? "en-US"; //获取语言
+        // Theme initialization
+        var currentTheme = ApplicationThemeManager.GetAppTheme();
+        var targetThemeType = currentTheme == ApplicationTheme.Dark ? ThemeType.Dark : ThemeType.Light;
 
-        switch (lang)
-        {
-            case "en-US": 
-                Setcombo("English");
+        // Find and select the ComboBoxItem with the matching Tag
+        foreach (ComboBoxItem item in ThemeComboBox.Items)
+            if (item.Tag is ThemeType themeType && themeType == targetThemeType)
+            {
+                ThemeComboBox.SelectedItem = item;
                 break;
-            case "zh-CN": 
-                Setcombo("中文");
+            }
+
+        // Force refresh theme to ensure proper color inheritance
+        ApplicationThemeManager.Apply(currentTheme);
+
+        // Language initialization based on current WPFLocalizeExtension culture
+        var currentCulture = LocalizeDictionary.Instance.Culture?.Name ?? "en-US";
+
+        // Find and select the ComboBoxItem with the matching Tag
+        foreach (ComboBoxItem item in LanguageComboBox.Items)
+            if (item.Tag?.ToString() == currentCulture)
+            {
+                LanguageComboBox.SelectedItem = item;
                 break;
-            default:
-                Setcombo("English");
-                break;
-        }
+            }
+
+        isInitializing = false;
     }
 
 
     private void OnThemeSelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        var selectedItem = ThemeComboBox.SelectedItem as ComboBoxItem;
-        if (selectedItem != null)
-        {
-            string theme = selectedItem.Content.ToString();
+        if (isInitializing) return;
 
-            if (theme == Properties.Resources.dark)
-            {
-                ApplicationThemeManager.Apply(ApplicationTheme.Dark);
-            }
-            else
-            {
-                ApplicationThemeManager.Apply(ApplicationTheme.Light);
-            }
+        var selectedItem = ThemeComboBox.SelectedItem as ComboBoxItem;
+        if (selectedItem?.Tag is ThemeType themeType)
+        {
+            var applicationTheme = themeType == ThemeType.Dark ? ApplicationTheme.Dark : ApplicationTheme.Light;
+            ApplicationThemeManager.Apply(applicationTheme);
         }
     }
 
     private void OnLanguageSelectionChanged(object sender, SelectionChangedEventArgs e)
     {
+        if (isInitializing) return;
+
         var selectedItem = LanguageComboBox.SelectedItem as ComboBoxItem;
-        if (selectedItem != null)
+        if (selectedItem?.Tag != null)
         {
-            string theme = selectedItem.Content.ToString();
-
-            if (theme == "中文")
-            {
-                SetLanguage("zh-CN");  // 设置为中文（简体）
-            }
-            else if (theme == "English")
-            {
-                SetLanguage("en-US");  // 设置为英文
-            }
-
+            var languageCode = selectedItem.Tag.ToString();
+            SetLanguage(languageCode);
         }
     }
-
-    
 
     private void SetLanguage(string languageCode)
     {
-        if (isInitializing)
-        {
-            isInitializing = false;
-            return;
-        }
+        if (isInitializing) return;
 
-        string configFilePath = "config.xml"; // 或者使用绝对路径
-        if (File.Exists(configFilePath))
-        {
-            XDocument configDoc = XDocument.Load(configFilePath);
-            var languageElement = configDoc.Root.Element("Language");
-
-            if (languageElement != null)
-            {
-                languageElement.Value = languageCode;  // 设置新的语言代码
-            }
-            else
-            {
-                configDoc.Root.Add(new XElement("Language", languageCode)); // 如果没有则新增
-            }
-            configDoc.Save(configFilePath);
-        }
-        else
-        {
-            XDocument newConfig = new XDocument(
-                new XElement("Config", new XElement("Language", languageCode))
-            );
-            newConfig.Save(configFilePath);
-        }
-
-        string exePath = System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName;
-
-        // 启动新的应用程序实例
-        System.Diagnostics.Process.Start(exePath);
-
-        // 退出当前应用程序
-        Application.Current.Shutdown();
-
+        LocalizeDictionary.Instance.Culture = new CultureInfo(languageCode);
     }
-
-    private void Setcombo(string lang) {
-        LanguageComboBox.SelectedItem = LanguageComboBox.Items.Cast<ComboBoxItem>().FirstOrDefault(item => item.Content.ToString() == lang);
-    }
-
 }

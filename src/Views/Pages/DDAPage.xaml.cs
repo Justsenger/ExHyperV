@@ -1,445 +1,543 @@
-﻿using System.Windows.Controls;
-namespace ExHyperV.Views.Pages;
-using System;
-using System.Collections.Generic;
+﻿using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Management.Automation;
+using System.Runtime.CompilerServices;
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Input;
 using Wpf.Ui.Controls;
+using WPFLocalizeExtension.Engine;
+using Button = Wpf.Ui.Controls.Button;
+using MenuItem = Wpf.Ui.Controls.MenuItem;
+using MessageBox = System.Windows.MessageBox;
+using TextBlock = Wpf.Ui.Controls.TextBlock;
+
+namespace ExHyperV.Views.Pages;
 
 public partial class DDAPage
 {
-    public bool refreshlock = false;
-
     public DDAPage()
     {
+        ViewModel = new DDAPageViewModel();
+        DataContext = ViewModel;
         InitializeComponent();
+
+        Loaded += DDAPage_Loaded;
+        Unloaded += DDAPage_Unloaded;
+
         Task.Run(() => IsServer());
-        Task.Run(() => Initialinfo()); //获取设备信息
-                }
-                public class DeviceInfo
-                {
-                    public string FriendlyName { get; set; }
-                    public string Status { get; set; }
-                    public string ClassType { get; set; }
-                    public string InstanceId { get; set; }
-                    public string Path { get; set; }
-                    public List<string> VmNames { get; set; }  // 存储虚拟机名称列表
+    }
 
-                    // 构造函数
-                    public DeviceInfo(string friendlyName, string status, string classType, string instanceId,List<string> vmNames,string path)
+    public DDAPageViewModel ViewModel { get; }
+
+    private void DDAPage_Loaded(object sender, RoutedEventArgs e)
+    {
+        LocalizeDictionary.Instance.PropertyChanged += Instance_PropertyChanged;
+        Task.Run(() => ViewModel.LoadDevicesAsync());
+    }
+
+    private void DDAPage_Unloaded(object sender, RoutedEventArgs e)
+    {
+        LocalizeDictionary.Instance.PropertyChanged -= Instance_PropertyChanged;
+    }
+
+    private void Instance_PropertyChanged(object sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == "Culture") Task.Run(() => ViewModel.LoadDevicesAsync());
+    }
+
+    private async void IsServer()
+    {
+        var osResult = Utils.RunWithErrorHandling("(Get-WmiObject -Class Win32_OperatingSystem).ProductType");
+        if (osResult.HasErrors)
+        {
+            osResult.ShowErrorsToUser();
+            return;
+        }
+
+        var result = osResult.Output;
+        Dispatcher.Invoke(() =>
+        {
+            if (result.Count > 0 && result[0].ToString() == "3")
+                Isserver.IsOpen = false;
+            else
+                Isserver.IsOpen = true;
+        });
+    }
+
+    private void AssignButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button button && button.Tag is DeviceInfo device)
+        {
+            var contextMenu = new ContextMenu();
+
+            var hostMenuItem = new MenuItem
+            {
+                Header = LocalizationHelper.GetString("Host")
+            };
+            hostMenuItem.Click += (s, args) =>
+            {
+                var parameter = new DeviceAssignmentParameter { Device = device, Target = "Host" };
+                ViewModel.AssignDeviceCommand.Execute(parameter);
+            };
+            contextMenu.Items.Add(hostMenuItem);
+
+            foreach (var vmName in device.VmNames)
+            {
+                var vmMenuItem = new MenuItem { Header = vmName };
+                var vmNameCopy = vmName;
+                vmMenuItem.Click += (s, args) =>
+                {
+                    var parameter = new DeviceAssignmentParameter { Device = device, Target = vmNameCopy };
+                    ViewModel.AssignDeviceCommand.Execute(parameter);
+                };
+                contextMenu.Items.Add(vmMenuItem);
+            }
+
+            button.ContextMenu = contextMenu;
+            contextMenu.PlacementTarget = button;
+            contextMenu.IsOpen = true;
+        }
+    }
+
+    public class DDAPageViewModel : INotifyPropertyChanged
+    {
+        private ObservableCollection<DeviceInfo> _devices;
+        private bool _isLoading;
+
+        public DDAPageViewModel()
+        {
+            Devices = new ObservableCollection<DeviceInfo>();
+            RefreshCommand = new RelayCommand(async () => await LoadDevicesAsync(), () => !IsLoading);
+            AssignDeviceCommand =
+                new RelayCommand<DeviceAssignmentParameter>(async param => await AssignDeviceAsync(param));
+        }
+
+        public ObservableCollection<DeviceInfo> Devices
+        {
+            get => _devices;
+            set => SetProperty(ref _devices, value);
+        }
+
+        public bool IsLoading
+        {
+            get => _isLoading;
+            set
+            {
+                if (SetProperty(ref _isLoading, value))
+                    Application.Current.Dispatcher.Invoke(() => RefreshCommand.RaiseCanExecuteChanged());
+            }
+        }
+
+        public RelayCommand RefreshCommand { get; }
+        public RelayCommand<DeviceAssignmentParameter> AssignDeviceCommand { get; }
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+
+        public async Task LoadDevicesAsync()
+        {
+            IsLoading = true;
+            try
+            {
+                var deviceList = await Task.Run(() => GetInfo());
+
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    Devices.Clear();
+                    foreach (var device in deviceList) Devices.Add(device);
+                });
+            }
+            finally
+            {
+                IsLoading = false;
+            }
+        }
+
+        private List<DeviceInfo> GetInfo()
+        {
+            var deviceList = new List<DeviceInfo>();
+            try
+            {
+                using (var PowerShellInstance = PowerShell.Create())
+                {
+                    var vmdevice = new Dictionary<string, string>();
+                    var vmNameList = new List<string>();
+                    PowerShellInstance.AddScript("Set-ExecutionPolicy RemoteSigned -Scope Process -Force");
+                    PowerShellInstance.AddScript("Import-Module PnpDevice");
+
+                    var hypervResult = Utils.RunWithErrorHandling("Get-Module -ListAvailable -Name Hyper-V");
+                    if (hypervResult.HasErrors)
                     {
-                        FriendlyName = friendlyName;
-                        Status = status;
-                        ClassType = classType;
-                        InstanceId = instanceId;
-                        VmNames = vmNames; 
-                        Path = path;
+                        hypervResult.ShowErrorsToUser();
+                        return deviceList;
                     }
-                }
-                
 
-                private async void IsServer()
-                {
+                    var hypervstatus = hypervResult.Output;
 
-                    var result = Utils.Run("(Get-WmiObject -Class Win32_OperatingSystem).ProductType");
-                    Dispatcher.Invoke(() =>
+                    if (hypervstatus.Count != 0)
                     {
-                        if (result[0].ToString()=="3") { Isserver.IsOpen = false; } //服务器版本，关闭提示
-                    });
-                }
-
-                private async void Initialinfo(){
-                    List<DeviceInfo> deviceList = new List<DeviceInfo>();
-                    await GetInfo(deviceList); //获取数据
-
-                    Dispatcher.Invoke(() => //更新UI
-                    {
-                        ParentPanel.Children.Clear();
-                        progressRing.Visibility = Visibility.Collapsed; //隐藏加载条
-                        foreach (var device in deviceList) //更新UI
+                        var vmDataResult = Utils.RunWithErrorHandling(@"Get-VM | Select-Object Name");
+                        if (vmDataResult.HasErrors)
                         {
-                            var cardExpander = Utils.CardExpander1();
-                            cardExpander.Icon = Utils.FontIcon1(device.ClassType, device.FriendlyName);
-                            Grid.SetRow(cardExpander, ParentPanel.RowDefinitions.Count);
-                            ParentPanel.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });  // 增加新的一行
-
-                            var headerGrid = new Grid(); // 创建 header 的 Grid 布局，包含两列，第一列占满剩余空间，第二列根据内容自适应宽度
-                            headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-                            headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-
-                            var drivername = Utils.TextBlock1(device.FriendlyName); //设备名
-                            Grid.SetColumn(drivername, 0); // 添加到第一列
-                            headerGrid.Children.Add(drivername);
-
-                            var Menu = Utils.DropDownButton1(device.Status); //右侧按钮
-                            Grid.SetColumn(Menu, 1); // 添加按钮到第二列
-
-                            var contextMenu = new ContextMenu();
-                            contextMenu.Items.Add(CreateMenuItem(ExHyperV.Properties.Resources.Host)); //单独添加一个主机选项，和后面的虚拟机列表融合
-                            foreach (var vmName in device.VmNames)
-                            {
-                                contextMenu.Items.Add(CreateMenuItem(vmName));
-                            }
-                            MenuItem CreateMenuItem(string header)
-                            {
-                                var item = new MenuItem { Header = header };
-                                item.Click += async (s, e) =>
-                                {
-                                    if ((String)Menu.Content != header) // 当用户选项不等于目前的选项时
-                                    {
-                                        TextBlock contentTextBlock = new TextBlock
-                                        {
-                                            Text = ExHyperV.Properties.Resources.string5,
-                                            HorizontalAlignment = HorizontalAlignment.Center, // 水平居中
-                                            VerticalAlignment = VerticalAlignment.Center,     // 垂直居中
-                                            TextWrapping = TextWrapping.Wrap                  // 允许文本换行
-                                        };
-
-                                        ContentDialog Dialog = new()
-                                        {
-                                            Title = ExHyperV.Properties.Resources.setting,
-                                            Content = contentTextBlock,
-                                            CloseButtonText = ExHyperV.Properties.Resources.wait,
-                                        };
-
-                                        Dialog.Closing += (sender, args) => { args.Cancel = true; };// 禁止用户点击按钮触发关闭事件
-                                        Dialog.DialogHost = ((MainWindow)Application.Current.MainWindow).ContentPresenterForDialogs;
-
-                                        Dialog.ShowAsync(CancellationToken.None); //显示提示框 不能写为await
-
-                                        await DDAps(Menu, Dialog, contentTextBlock, header, device.InstanceId, device.Path, (String)Menu.Content); //执行命令行
-                                    }
-                                };
-                                return item;
-                            }
-                            Menu.Flyout = contextMenu;
-                            headerGrid.Children.Add(Menu);
-                            cardExpander.Header = headerGrid;
-
-                            // 详细数据
-                            var contentPanel = new StackPanel { Margin = new Thickness(50, 10, 0, 0) };
-
-                            var grid = new Grid();
-                            // 定义 Grid 的列和行
-                            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(125) });
-                            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-                            grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(32) });
-                            grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(32) });
-                            grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(32) });
-
-                            var textData = new (string text, int row, int column)[]
-                            {
-                                (ExHyperV.Properties.Resources.kind, 0, 0),
-                                (ExHyperV.Properties.Resources.Instanceid, 1, 0),
-                                (ExHyperV.Properties.Resources.path, 2, 0),
-                                (device.ClassType, 0, 1),
-                                (device.InstanceId, 1, 1),
-                                (device.Path, 2, 1),
-                            };
-
-                            foreach (var (text, row, column) in textData)
-                            {
-                                var textBlock = Utils.TextBlock2(text, row, column);
-                                grid.Children.Add(textBlock);
-                            }
-
-                            contentPanel.Children.Add(grid);
-                            cardExpander.Content = contentPanel;
-                            ParentPanel.Children.Add(cardExpander);
+                            vmDataResult.ShowErrorsToUser();
+                            return deviceList;
                         }
-                        refreshlock = false;
-                    });
-                }
-                private async Task DDAps(DropDownButton menu,ContentDialog dialog,TextBlock contentTextBlock,string Vmname,string instanceId,string path,string Nowname)
-                {
-                    var (psCommands, messages) = DDACommands(Vmname,instanceId,path,Nowname); //通过四元组获取对应的命令和消息提示
-                    for (int i = 0; i < messages.Length; i++)
-                    {
-                        Application.Current.Dispatcher.Invoke(() =>{contentTextBlock.Text = messages[i];}); //更新提示
-                        Thread.Sleep(200); //引入一定的延时，显示步骤
-                        //System.Windows.MessageBox.Show("执行的命令："+psCommands[i]);
 
-                        var logOutput = await DDAps(psCommands[i]); //执行命令，并获取日志
-
-                        //System.Windows.MessageBox.Show("已经获取到日志");
-                        if (logOutput.Any(log => log.Contains("Error")))
+                        var vmdata = vmDataResult.Output;
+                        foreach (var vm in vmdata)
                         {
-                            Application.Current.Dispatcher.Invoke(() =>
-                            {
-                                contentTextBlock.Text += "\n"+ string.Join(Environment.NewLine, logOutput); // 附加一条中断信息
-                                dialog.CloseButtonText = "OK"; // 更新按钮文本
-                                dialog.Closing += (sender, args) => { args.Cancel = false; }; //允许用户点击关闭
-                                DDArefresh(null, null);
-                            });
-                            return;// 退出循环
+                            var Name = vm.Members["Name"]?.Value?.ToString();
 
+                            if (!string.IsNullOrEmpty(Name)) vmNameList.Add(Name);
+
+                            var deviceDataResult = Utils.RunWithErrorHandling(
+                                $@"Get-VMAssignableDevice -VMName '{Name}' | Select-Object InstanceID");
+                            if (deviceDataResult.HasErrors)
+                            {
+                                deviceDataResult.ShowErrorsToUser();
+                                continue;
+                            }
+
+                            var deviceData = deviceDataResult.Output;
+
+                            if (deviceData != null && deviceData.Count > 0)
+                                foreach (var device in deviceData)
+                                {
+                                    var instanceId = device.Members["InstanceID"]?.Value?.ToString().Substring(4);
+                                    if (!string.IsNullOrEmpty(instanceId) && !string.IsNullOrEmpty(Name))
+                                        vmdevice[instanceId] = Name;
+                                }
                         }
                     }
-                    
-                    Application.Current.Dispatcher.Invoke(() =>
+
+                    var pcipDataResult = Utils.RunWithErrorHandling(
+                        "Get-PnpDevice | Where-Object { $_.InstanceId -like 'PCIP\\*' } | Select-Object Class, InstanceId, FriendlyName, Status");
+                    if (pcipDataResult.HasErrors)
                     {
-                        menu.Content = Vmname;
-                        contentTextBlock.Text = ExHyperV.Properties.Resources.operated;
-                        dialog.CloseButtonText = ExHyperV.Properties.Resources.OK; // 更新按钮文本
-                        dialog.Closing += (sender, args) => { args.Cancel = false; };// 允许用户关闭
-                        DDArefresh(null, null);
-                    });
-                }
-                private async Task<List<string>> DDAps(string psCommand)
-                {
-                    List<string> logOutput = new List<string>();
-                    try{
-                        var powerShell = PowerShell.Create(); // 创建 PowerShell 会话并执行命令
-                        powerShell.AddScript(psCommand); // 添加 PowerShell 脚本
-                        var result = await Task.Run(() => powerShell.Invoke());// 异步执行命令
-                        foreach (var item in result)// 将输出添加到 logOutput 列表
-                        { logOutput.Add(item.ToString());}// 将每个输出项添加到日志列表中
-                        var errorStream = powerShell.Streams.Error.ReadAll(); // 检查标准错误输出流，看是否捕捉到错误
-                        if (errorStream.Count > 0)
-                        {foreach (var error in errorStream){logOutput.Add($"Error: {error.ToString()}");}}// 将错误信息添加到日志
+                        pcipDataResult.ShowErrorsToUser();
+                        return deviceList;
                     }
-                    catch (Exception ex){logOutput.Add($"Error: {ex.Message}");}//意料之外的错误
-                    return logOutput; // 返回日志输出
-                }
-                private async Task GetInfo(List<DeviceInfo> deviceList)
-                {
-                    try
-                    {
-                        using (PowerShell PowerShellInstance = PowerShell.Create())
+
+                    var PCIPData = pcipDataResult.Output;
+                    if (PCIPData != null && PCIPData.Count > 0)
+                        foreach (var PCIP in PCIPData)
                         {
-                            Dictionary<string, string> vmdevice = new Dictionary<string, string>(); //存储虚拟机挂载的PCIP设备列表
-                            List<string> vmNameList = new List<string>() ;// 存储虚拟机列表
-                            PowerShellInstance.AddScript("Set-ExecutionPolicy RemoteSigned -Scope Process -Force"); //设置策略
-                            PowerShellInstance.AddScript("Import-Module PnpDevice");
+                            var instanceId = PCIP.Members["InstanceId"]?.Value?.ToString().Substring(4);
 
-                            //1.获取虚拟机相关信息，将已经分配了的设备存入字典以便后续读取。
+                            if (!string.IsNullOrEmpty(instanceId) && !vmdevice.ContainsKey(instanceId) &&
+                                PCIP.Members["Status"]?.Value?.ToString() == "OK")
 
-                            //检查是否安装hyperv
-                            var hypervstatus =Utils.Run("Get-Module -ListAvailable -Name Hyper-V");
+                                vmdevice[instanceId] = LocalizationHelper.GetString("removed");
+                        }
 
-                            if (hypervstatus.Count != 0) //已安装
-                            {
-                                //获取虚拟机信息
-                                var vmdata = Utils.Run(@"Get-VM | Select-Object Name");
-                                foreach (var vm in vmdata)
-                                {
-                                    var Name = vm.Members["Name"]?.Value?.ToString();
+                    var scripts = @"
+                                $maxRetries = 10
+                                $retryIntervalSeconds = 1
 
-                                    if (!string.IsNullOrEmpty(Name)){vmNameList.Add(Name);}//名字不为空则添加该虚拟机
+                                $pciDevices = Get-PnpDevice | Where-Object { $_.InstanceId -like 'PCI\*' }
+                                $allInstanceIds = $pciDevices.InstanceId
+                                $pathMap = @{}
 
-                                    var deviceData = Utils.Run($@"Get-VMAssignableDevice -VMName '{Name}' | Select-Object InstanceID");//获取虚拟机的设备列表
-
-                                    if (deviceData != null && deviceData.Count > 0)
-                                    {
-                                        foreach (var device in deviceData)
-                                        {
-                                            var instanceId = device.Members["InstanceID"]?.Value?.ToString().Substring(4);
-                                            if (!string.IsNullOrEmpty(instanceId) && !string.IsNullOrEmpty(Name))
-                                            {
-                                                vmdevice[instanceId] = Name; // 将 InstanceID 和 VMName 存入字典
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                            //如果没有安装HyperV模块，则无法获取VM信息，但不影响正常的硬件读取。
-
-                            //获取 PCIP 设备信息
-                            var PCIPData = Utils.Run("Get-PnpDevice | Where-Object { $_.InstanceId -like 'PCIP\\*' } | Select-Object Class, InstanceId, FriendlyName, Status");
-                            if (PCIPData != null && PCIPData.Count > 0)
-                            {
-                                foreach (var PCIP in PCIPData)
-                                {
-                                    var instanceId = PCIP.Members["InstanceId"]?.Value?.ToString().Substring(4); //获取PCIP后面的编号
-                                    //如果满足条件：该设备未分配给虚拟机+PCIP状态等于OK，则说明并未分配给主机，处于卸除态。
-                                    if (!vmdevice.ContainsKey(instanceId)&& PCIP.Members["Status"]?.Value?.ToString()=="OK"&&!string.IsNullOrEmpty(instanceId)) //状态为OK，非空
-                                    {vmdevice[instanceId] = ExHyperV.Properties.Resources.removed; }
-                                }
-                            }
-
-                            // 获取 PCI 设备信息。需要多查询几遍才能获取所有设备的完整信息。
-                            string scripts = @"
-                            $maxRetries = 10
-                            $retryIntervalSeconds = 1
-
-                            $pciDevices = Get-PnpDevice | Where-Object { $_.InstanceId -like 'PCI\*' }
-                            $allInstanceIds = $pciDevices.InstanceId
-                            $pathMap = @{}
-
-                            Get-PnpDeviceProperty -InstanceId $allInstanceIds -KeyName DEVPKEY_Device_LocationPaths -ErrorAction SilentlyContinue |
-                                ForEach-Object {
-                                    if ($_.Data -and $_.Data.Count -gt 0) {
-                                        $pathMap[$_.InstanceId] = $_.Data[0]
-                                    }
-                                }
-
-                            $idsNeedingPath = $allInstanceIds | Where-Object { -not $pathMap.ContainsKey($_) }
-                            $attemptCount = 0
-
-                            while (($idsNeedingPath.Count -gt 0) -and ($attemptCount -lt $maxRetries)) {
-                                $attemptCount++
-                                
-                                Get-PnpDeviceProperty -InstanceId $idsNeedingPath -KeyName DEVPKEY_Device_LocationPaths -ErrorAction SilentlyContinue |
+                                Get-PnpDeviceProperty -InstanceId $allInstanceIds -KeyName DEVPKEY_Device_LocationPaths -ErrorAction SilentlyContinue |
                                     ForEach-Object {
                                         if ($_.Data -and $_.Data.Count -gt 0) {
                                             $pathMap[$_.InstanceId] = $_.Data[0]
                                         }
                                     }
-                                
+
                                 $idsNeedingPath = $allInstanceIds | Where-Object { -not $pathMap.ContainsKey($_) }
+                                $attemptCount = 0
 
-                                if (($idsNeedingPath.Count -gt 0) -and ($attemptCount -lt $maxRetries)) {
-                                    Start-Sleep -Seconds $retryIntervalSeconds
+                                while (($idsNeedingPath.Count -gt 0) -and ($attemptCount -lt $maxRetries)) {
+                                    $attemptCount++
+
+                                    Get-PnpDeviceProperty -InstanceId $idsNeedingPath -KeyName DEVPKEY_Device_LocationPaths -ErrorAction SilentlyContinue |
+                                        ForEach-Object {
+                                            if ($_.Data -and $_.Data.Count -gt 0) {
+                                                $pathMap[$_.InstanceId] = $_.Data[0]
+                                            }
+                                        }
+
+                                    $idsNeedingPath = $allInstanceIds | Where-Object { -not $pathMap.ContainsKey($_) }
+
+                                    if (($idsNeedingPath.Count -gt 0) -and ($attemptCount -lt $maxRetries)) {
+                                        Start-Sleep -Seconds $retryIntervalSeconds
+                                    }
                                 }
-                            }
 
-                            $pciDevices | 
-                                Select-Object Class, InstanceId, FriendlyName, Status, Service |
-                                ForEach-Object {
-                                    $_ | Add-Member -NotePropertyName 'Path' -NotePropertyValue $pathMap[$_.InstanceId] -Force
-                                    $_ 
-                                }";
+                                $pciDevices |
+                                    Select-Object Class, InstanceId, FriendlyName, Status, Service |
+                                    ForEach-Object {
+                                        $_ | Add-Member -NotePropertyName 'Path' -NotePropertyValue $pathMap[$_.InstanceId] -Force
+                                        $_
+                                    }";
 
-                var Pcidata = Utils.Run(scripts);
-                var sortedResults = Pcidata
-                .Where(result => result!= null)  // 过滤掉为空的元素
-                .OrderBy(result => result.Members["Service"]?.Value?.ToString()[0])  // 按按类型排序，即Class 字段首字母
-                .ToList();
-                foreach (var result in sortedResults)
-                {
-                    var friendlyName = result.Members["FriendlyName"]?.Value?.ToString();
-                    var status = result.Members["Status"]?.Value?.ToString();
-                    var classType = result.Members["Class"]?.Value?.ToString();
-                    var instanceId = result.Members["InstanceId"]?.Value?.ToString();
-                    var path = result.Members["Path"]?.Value?.ToString();
-                    var service = result.Members["Service"]?.Value?.ToString();
-                    if (service == "pci" || service == null) {
-                        continue; //排除此类设备
-                    }
-                    
-                    // 状态为Unknown的设备，有三种情况：1.物理移除。2.已分配给虚拟机。3.卸除态。
-                    // 看是否分配给虚拟机
-                    if (status == "Unknown" && !string.IsNullOrEmpty(instanceId) && instanceId.Length > 3)
+                    var pcidataResult = Utils.RunWithErrorHandling(scripts);
+                    if (pcidataResult.HasErrors)
                     {
-                        if (vmdevice.ContainsKey(instanceId.Substring(3))) // 检查去掉前三位后的PCI的InstanceId是否在存储的vm已分配设备的列表里
+                        pcidataResult.ShowErrorsToUser();
+                        return deviceList;
+                    }
+
+                    var Pcidata = pcidataResult.Output;
+                    var sortedResults = Pcidata
+                        .Where(result => result != null)
+                        .OrderBy(result => result.Members["Service"]?.Value?.ToString())
+                        .ToList();
+                    foreach (var result in sortedResults)
+                    {
+                        var friendlyName = result.Members["FriendlyName"]?.Value?.ToString();
+                        var status = result.Members["Status"]?.Value?.ToString();
+                        var classType = result.Members["Class"]?.Value?.ToString();
+                        var instanceId = result.Members["InstanceId"]?.Value?.ToString();
+                        var path = result.Members["Path"]?.Value?.ToString();
+                        var service = result.Members["Service"]?.Value?.ToString();
+                        if (service == "pci" || string.IsNullOrEmpty(service) || string.IsNullOrEmpty(path)) continue;
+
+                        if (status == "Unknown" && !string.IsNullOrEmpty(instanceId) && instanceId.Length > 3)
                         {
-                            status = vmdevice[instanceId.Substring(3)];
-                        } 
-                        else { continue; } //不在虚拟机列表内，也不属于卸除态，说明已经物理移除。
+                            if (vmdevice.ContainsKey(instanceId
+                                    .Substring(3)))
+                                status = vmdevice[instanceId.Substring(3)];
+                            else
+                                continue;
+                        }
+                        else
+                        {
+                            status = LocalizationHelper.GetString("Host");
+                        }
+
+                        deviceList.Add(new DeviceInfo(friendlyName, status, classType, instanceId, vmNameList,
+                            path));
                     }
-                    else {
-                        status = Properties.Resources.Host; //挂载在主机上的情况。
-                    }
-                    deviceList.Add(new DeviceInfo(friendlyName, status, classType, instanceId,vmNameList,path)); //添加到设备列表
                 }
             }
+            catch (Exception ex)
+            {
+                var errorText = LocalizationHelper.GetString("error");
+                Application.Current.Dispatcher.Invoke(() => { MessageBox.Show($"{errorText}: {ex.Message}"); });
+            }
+
+            return deviceList;
         }
-        catch(Exception ex){
-            System.Windows.MessageBox.Show(ex.ToString());
+
+        private async Task AssignDeviceAsync(DeviceAssignmentParameter parameter)
+        {
+            if (parameter?.Device == null || parameter.Target == null) return;
+
+            var device = parameter.Device;
+            var targetVm = parameter.Target;
+            var currentStatus = device.Status;
+
+            if (targetVm == currentStatus) return;
+
+            var progressDialog = new ContentDialog
+            {
+                Title = LocalizationHelper.GetString("setting"),
+                CloseButtonText = LocalizationHelper.GetString("wait")
+            };
+
+            var progressTextBlock = new TextBlock
+            {
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                TextWrapping = TextWrapping.Wrap
+            };
+
+            progressDialog.Content = progressTextBlock;
+            progressDialog.Closing += (sender, args) => { args.Cancel = true; };
+
+            await Application.Current.Dispatcher.InvokeAsync(async () =>
+            {
+                progressDialog.DialogHost = ((MainWindow)Application.Current.MainWindow).ContentPresenterForDialogs;
+                await progressDialog.ShowAsync();
+            }).Task;
+
+            try
+            {
+                var (commands, messages) = GetDDACommands(targetVm, device.InstanceId, device.Path, currentStatus);
+
+                for (var i = 0; i < messages.Length; i++)
+                {
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        progressTextBlock.Text = LocalizationHelper.GetString(messages[i], messages[i]);
+                    });
+                    await Task.Delay(200);
+
+                    if (i < commands.Length && !string.IsNullOrEmpty(commands[i]))
+                    {
+                        var result = Utils.RunWithErrorHandling(commands[i]);
+                        if (result.HasErrors)
+                        {
+                            var errorMessages = result.Errors.Select(e => e.Message).ToList();
+                            throw new Exception(string.Join("\n", errorMessages));
+                        }
+                    }
+                }
+
+                await LoadDevicesAsync();
+
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    progressTextBlock.Text = LocalizationHelper.GetString("operated");
+                    progressDialog.CloseButtonText = LocalizationHelper.GetString("OK");
+                    progressDialog.Closing += (sender, args) => { args.Cancel = false; };
+                });
+            }
+            catch (Exception ex)
+            {
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    progressTextBlock.Text = $"{LocalizationHelper.GetString("error")}: {ex.Message}";
+                    progressDialog.CloseButtonText = LocalizationHelper.GetString("OK");
+                    progressDialog.Closing += (sender, args) => { args.Cancel = false; };
+                });
+                await LoadDevicesAsync();
+            }
+        }
+
+        private static (string[] commands, string[] messages) GetDDACommands(string vmName, string instanceId,
+            string path, string currentStatus)
+        {
+            string[] commands;
+            string[] messages;
+
+            var removedText = LocalizationHelper.GetString("removed");
+            var hostText = LocalizationHelper.GetString("Host");
+
+            if (currentStatus == removedText && vmName == hostText)
+            {
+                commands = new[] { $"Mount-VMHostAssignableDevice -LocationPath '{path}' -Force" };
+                messages = new[] { "mounting" };
+            }
+            else if (currentStatus == removedText && vmName != hostText)
+            {
+                commands = new[] { $"Add-VMAssignableDevice -LocationPath '{path}' -VMName '{vmName}'" };
+                messages = new[] { "mounting" };
+            }
+            else if (currentStatus == hostText)
+            {
+                commands = new[]
+                {
+                    $"Set-VM -Name '{vmName}' -AutomaticStopAction TurnOff",
+                    $"Set-VM -GuestControlledCacheTypes $true -VMName '{vmName}'",
+                    $"Disable-PnpDevice -InstanceId '{instanceId}' -Confirm:$false",
+                    $"Dismount-VMHostAssignableDevice -Force -LocationPath '{path}'",
+                    $"Add-VMAssignableDevice -LocationPath '{path}' -VMName '{vmName}'"
+                };
+                messages = new[] { "string5", "cpucache", "Disabledevice", "Dismountdevice", "mounting" };
+            }
+            else if (vmName != hostText && currentStatus != hostText)
+            {
+                commands = new[]
+                {
+                    $"Set-VM -Name '{vmName}' -AutomaticStopAction TurnOff",
+                    $"Set-VM -GuestControlledCacheTypes $true -VMName '{vmName}'",
+                    $"Remove-VMAssignableDevice -LocationPath '{path}' -VMName '{currentStatus}'",
+                    $"Add-VMAssignableDevice -LocationPath '{path}' -VMName '{vmName}'"
+                };
+                messages = new[] { "string5", "cpucache", "Dismountdevice", "mounting" };
+            }
+            else if (vmName == hostText && currentStatus != hostText)
+            {
+                commands = new[]
+                {
+                    $"Remove-VMAssignableDevice -LocationPath '{path}' -VMName '{currentStatus}'",
+                    $"Mount-VMHostAssignableDevice -LocationPath '{path}' -Force",
+                    $"Enable-PnpDevice -InstanceId '{instanceId}' -Confirm:$false"
+                };
+                messages = new[] { "Dismountdevice", "mounting", "enabling" };
+            }
+            else
+            {
+                commands = Array.Empty<string>();
+                messages = Array.Empty<string>();
+            }
+
+            return (commands, messages);
+        }
+
+        protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
+        protected bool SetProperty<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
+        {
+            if (EqualityComparer<T>.Default.Equals(field, value)) return false;
+            field = value;
+            OnPropertyChanged(propertyName);
+            return true;
         }
     }
-    private static (string[] commands, string[] messages) DDACommands(string Vmname, string instanceId, string path, string Nowname)
+
+    public class RelayCommand : ICommand
     {
-        // 定义命令和消息的默认数组
-        string[] commands;
-        string[] messages;
+        private readonly Func<bool>? _canExecute;
+        private readonly Func<Task> _executeAsync;
 
-        if (Nowname == Properties.Resources.removed && Vmname == Properties.Resources.Host)
-        {  //将设备折返主机
-            commands = new string[]
-            {
-                $"Mount-VMHostAssignableDevice -LocationPath '{path}'"
-            };
-            messages = new string[]
-            {
-                ExHyperV.Properties.Resources.mounting,
-            };
-        }
-        else if(Nowname == Properties.Resources.removed && Vmname != Properties.Resources.Host)
-        { //已卸除设备继续分配给虚拟机
-            commands = new string[]
-            {   
-                $"Add-VMAssignableDevice -LocationPath '{path}' -VMName '{Vmname}'",
-            };
-            messages = new string[]
-            {
-                ExHyperV.Properties.Resources.mounting,
-            };
-        }
-        // 根据条件判断返回不同的命令和消息
-        else if (Nowname == Properties.Resources.Host)  // 主机切换到虚拟机
+        public RelayCommand(Func<Task> executeAsync, Func<bool>? canExecute = null)
         {
-            commands = new string[]
-            {
-            $"Set-VM -Name '{Vmname}' -AutomaticStopAction TurnOff",  // 改为强制断电
-            $"Set-VM -GuestControlledCacheTypes $true -VMName '{Vmname}'",
-            $"(Get-PnpDeviceProperty -InstanceId '{instanceId}' DEVPKEY_Device_LocationPaths).Data[0]",
-            $"Disable-PnpDevice -InstanceId '{instanceId}' -Confirm:$false",
-            $"Dismount-VMHostAssignableDevice -Force -LocationPath '{path}'",
-            $"Add-VMAssignableDevice -LocationPath '{path}' -VMName '{Vmname}'",
-            };
-            messages = new string[]
-            {
-            Properties.Resources.string5,
-            ExHyperV.Properties.Resources.cpucache,
-            ExHyperV.Properties.Resources.getpath,
-            ExHyperV.Properties.Resources.Disabledevice,
-            ExHyperV.Properties.Resources.Dismountdevice,
-            ExHyperV.Properties.Resources.mounting,
-            };
+            _executeAsync = executeAsync ?? throw new ArgumentNullException(nameof(executeAsync));
+            _canExecute = canExecute;
         }
-        else if (Vmname != Properties.Resources.Host&& Nowname != Properties.Resources.Host)  // 虚拟机切换到虚拟机
-        {
-            commands = new string[]
-            {
-            $"Set-VM -Name '{Vmname}' -AutomaticStopAction TurnOff",  // 改为强制断电
-            $"Set-VM -GuestControlledCacheTypes $true -VMName '{Vmname}'",
-            $"(Get-PnpDeviceProperty -InstanceId '{instanceId}' DEVPKEY_Device_LocationPaths).Data[0]",
-            $"Remove-VMAssignableDevice -LocationPath '{path}' -VMName '{Nowname}'",
-            $"Add-VMAssignableDevice -LocationPath '{path}' -VMName '{Vmname}'",
-            };
 
-            messages = new string[]
-            {
-            Properties.Resources.string5,
-            Properties.Resources.cpucache,
-            Properties.Resources.getpath,
-            Properties.Resources.Dismountdevice,
-            Properties.Resources.mounting,
-            };
-        }
-        else if (Vmname == Properties.Resources.Host && Nowname != Properties.Resources.Host)  // 虚拟机切换回主机
+        public event EventHandler? CanExecuteChanged
         {
-            commands = new string[]
-            {
-                $"(Get-PnpDeviceProperty -InstanceId '{instanceId}' DEVPKEY_Device_LocationPaths).Data[0]",
-                $"Remove-VMAssignableDevice -LocationPath '{path}' -VMName '{Nowname}'",
-                $"Mount-VMHostAssignableDevice -LocationPath '{path}'",
-                $"Enable-PnpDevice -InstanceId '{instanceId}' -Confirm:$false",
-            };
-
-            messages = new string[]
-            {
-                Properties.Resources.getpath,
-                Properties.Resources.Dismountdevice,
-                Properties.Resources.mounting,
-                ExHyperV.Properties.Resources.enabling,
-            };
+            add => CommandManager.RequerySuggested += value;
+            remove => CommandManager.RequerySuggested -= value;
         }
-        else
+
+        public bool CanExecute(object? parameter)
         {
-            commands = new string[0];
-            messages = new string[0];
+            return _canExecute?.Invoke() ?? true;
         }
-        return (commands, messages);
 
+        public async void Execute(object? parameter)
+        {
+            if (CanExecute(parameter)) await _executeAsync();
+        }
+
+        public void RaiseCanExecuteChanged()
+        {
+            CommandManager.InvalidateRequerySuggested();
+        }
     }
-    public void DDArefresh(object sender, RoutedEventArgs e) {
-        if (!refreshlock)
+
+    public class RelayCommand<T> : ICommand
+    {
+        private readonly Func<T, bool>? _canExecute;
+        private readonly Func<T, Task> _executeAsync;
+
+        public RelayCommand(Func<T, Task> executeAsync, Func<T, bool>? canExecute = null)
         {
-            refreshlock = true;
-            progressRing.Visibility = Visibility.Visible; //显示加载条
-            Task.Run(() => Initialinfo()); //获取设备信息
-        } 
+            _executeAsync = executeAsync ?? throw new ArgumentNullException(nameof(executeAsync));
+            _canExecute = canExecute;
+        }
+
+        public event EventHandler? CanExecuteChanged
+        {
+            add => CommandManager.RequerySuggested += value;
+            remove => CommandManager.RequerySuggested -= value;
+        }
+
+        public bool CanExecute(object? parameter)
+        {
+            if (parameter is T typedParameter)
+                return _canExecute?.Invoke(typedParameter) ?? true;
+            return parameter == null && !typeof(T).IsValueType;
+        }
+
+        public async void Execute(object? parameter)
+        {
+            if (CanExecute(parameter) && (parameter is T typedParameter || parameter == null))
+                await _executeAsync((T)parameter);
+        }
+
+        public void RaiseCanExecuteChanged()
+        {
+            CommandManager.InvalidateRequerySuggested();
+        }
     }
 }

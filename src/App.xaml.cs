@@ -1,105 +1,74 @@
-﻿using System.Globalization;
+﻿using System.Diagnostics;
+using System.Globalization;
 using System.IO;
-using System.Runtime.InteropServices;
-using System.Text;
 using System.Windows;
-using System.Xml.Linq;
+using Wpf.Ui.Appearance;
+using WPFLocalizeExtension.Engine;
+using WPFLocalizeExtension.Providers;
 
 namespace ExHyperV;
 
-public partial class App
+public partial class App : Application
 {
-    private const string DefaultLanguage = "en-US";
-    private const string ConfigFilePath = "config.xml";
-
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
 
-        string targetLanguage;
+        // Apply the application theme based on the system theme.
+        // This is done here at the earliest point to prevent UI flickering.
+        var systemTheme = SystemThemeManager.GetCachedSystemTheme();
 
-        if (File.Exists(ConfigFilePath))
-        {
-            var configLanguage = ReadLanguageFromConfig();
-            if (IsLanguageSupported(configLanguage))
-            {
-                targetLanguage = configLanguage;
-            }
-            else
-            {
-                targetLanguage = GetValidSystemLanguage();
-                WriteLanguageToConfig(targetLanguage);
-            }
-        }
+        // Correctly convert from SystemTheme to ApplicationTheme before applying.
+        var applicationTheme = systemTheme == SystemTheme.Dark ? ApplicationTheme.Dark : ApplicationTheme.Light;
+        ApplicationThemeManager.Apply(applicationTheme);
+
+        // Initialize the localization provider.
+        LocalizeDictionary.Instance.DefaultProvider = ResxLocalizationProvider.Instance;
+        LocalizeDictionary.Instance.SetCurrentThreadCulture = false;
+
+        // Set the initial culture based on the system's UI culture.
+        var systemCulture = CultureInfo.CurrentUICulture;
+        if (systemCulture.Name.Equals("zh-CN", StringComparison.OrdinalIgnoreCase))
+            LocalizeDictionary.Instance.Culture = new CultureInfo("zh-CN");
         else
-        {
-            targetLanguage = GetValidSystemLanguage();
-            WriteLanguageToConfig(targetLanguage);
-        }
+            // Default to English for all other system languages.
+            LocalizeDictionary.Instance.Culture = new CultureInfo("en-US");
 
-        SetLanguage(targetLanguage);
+        // Attach handlers for debugging localization issues.
+        ResxLocalizationProvider.Instance.ProviderError += OnLocalizationProviderError;
+        LocalizeDictionary.Instance.MissingKeyEvent += OnMissingKeyEvent;
     }
 
-    private string GetValidSystemLanguage()
+    private static void OnMissingKeyEvent(object sender, MissingKeyEventArgs e)
     {
-        var systemLang = GetSystemLanguageViaAPI();
-        return IsLanguageSupported(systemLang) ? systemLang : DefaultLanguage;
+        var errorMessage = $"Localization Missing Key: '{e.Key}'.";
+        Debug.WriteLine(errorMessage);
     }
 
-
-    private bool IsLanguageSupported(string languageCode)
+    private static void OnLocalizationProviderError(object sender, ProviderErrorEventArgs e)
     {
-        return languageCode == "en-US" || languageCode == "zh-CN";
+        var errorMessage =
+            $"Localization Error: Key '{e.Key}' not found in assembly '{e.Object?.ToString() ?? "null"}'.";
+
+        Debug.WriteLine(errorMessage);
+        LogLocalizationError(errorMessage);
     }
 
-    private string GetSystemLanguageViaAPI()
-    {
-        var localeName = new StringBuilder(85);
-        var result = GetUserDefaultLocaleName(localeName, localeName.Capacity);
-        return result > 0 ? localeName.ToString().Substring(0, result - 1) : DefaultLanguage;
-    }
-
-    private void SetLanguage(string cultureCode)
-    {
-        var culture = new CultureInfo(cultureCode);
-        Thread.CurrentThread.CurrentCulture = culture;
-        Thread.CurrentThread.CurrentUICulture = culture;
-    }
-
-    private string ReadLanguageFromConfig()
+    private static void LogLocalizationError(string errorMessage)
     {
         try
         {
-            var configDoc = XDocument.Load(ConfigFilePath);
-            return configDoc.Root?.Element("Language")?.Value ?? DefaultLanguage;
+            var logPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "ExHyperV", "localization_errors.log");
+
+            Directory.CreateDirectory(Path.GetDirectoryName(logPath)!);
+
+            var logEntry = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {errorMessage}{Environment.NewLine}";
+            File.AppendAllText(logPath, logEntry);
         }
         catch
         {
-            return DefaultLanguage;
+            // Ignore logging errors to prevent application crashes.
         }
     }
-
-    private void WriteLanguageToConfig(string cultureCode)
-    {
-        var configDoc = File.Exists(ConfigFilePath)
-            ? XDocument.Load(ConfigFilePath)
-            : new XDocument(new XElement("Config"));
-
-        var root = configDoc.Root;
-        var langElement = root?.Element("Language");
-
-        if (langElement == null)
-            root?.Add(new XElement("Language", cultureCode));
-        else
-            langElement.Value = cultureCode;
-
-        configDoc.Save(ConfigFilePath);
-    }
-
-    // Windows API 声明
-    [DllImport("kernel32.dll", CharSet = CharSet.Auto)]
-    private static extern int GetUserDefaultLocaleName(
-        [Out] StringBuilder lpLocaleName,
-        int cchLocaleName
-    );
 }

@@ -15,6 +15,7 @@
         <PackageReference Include="System.Management.Automation" Version="7.4.0"/>
         <PackageReference Include="WPF-UI" Version="4.0.0"/>
         <PackageReference Include="WPF-UI.Tray" Version="4.0.0"/>
+        <PackageReference Include="WPFLocalizeExtension" Version="3.10.0"/>
     </ItemGroup>
 
     <ItemGroup>
@@ -28,6 +29,15 @@
             <AutoGen>True</AutoGen>
             <DependentUpon>Resources.resx</DependentUpon>
         </Compile>
+
+        <EmbeddedResource Update="Properties\Resources.resx">
+            <Generator>PublicResXFileCodeGenerator</Generator>
+            <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+        </EmbeddedResource>
+
+        <EmbeddedResource Update="Properties\Resources.zh-CN.resx">
+            <DependentUpon>Resources.resx</DependentUpon>
+        </EmbeddedResource>
     </ItemGroup>
 
 </Project>
