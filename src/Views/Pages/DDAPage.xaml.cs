@@ -48,7 +48,14 @@ public partial class DDAPage
 
     private async void IsServer()
     {
-        var result = Utils.Run("(Get-WmiObject -Class Win32_OperatingSystem).ProductType");
+        var osResult = Utils.RunWithErrorHandling("(Get-WmiObject -Class Win32_OperatingSystem).ProductType");
+        if (osResult.HasErrors)
+        {
+            osResult.ShowErrorsToUser();
+            return;
+        }
+
+        var result = osResult.Output;
         Dispatcher.Invoke(() =>
         {
             if (result.Count > 0 && result[0].ToString() == "3")
@@ -158,20 +165,40 @@ public partial class DDAPage
                     PowerShellInstance.AddScript("Set-ExecutionPolicy RemoteSigned -Scope Process -Force");
                     PowerShellInstance.AddScript("Import-Module PnpDevice");
 
-                    var hypervstatus = Utils.Run("Get-Module -ListAvailable -Name Hyper-V");
+                    var hypervResult = Utils.RunWithErrorHandling("Get-Module -ListAvailable -Name Hyper-V");
+                    if (hypervResult.HasErrors)
+                    {
+                        hypervResult.ShowErrorsToUser();
+                        return deviceList;
+                    }
+
+                    var hypervstatus = hypervResult.Output;
 
                     if (hypervstatus.Count != 0)
                     {
-                        var vmdata = Utils.Run(@"Get-VM | Select-Object Name");
+                        var vmDataResult = Utils.RunWithErrorHandling(@"Get-VM | Select-Object Name");
+                        if (vmDataResult.HasErrors)
+                        {
+                            vmDataResult.ShowErrorsToUser();
+                            return deviceList;
+                        }
+
+                        var vmdata = vmDataResult.Output;
                         foreach (var vm in vmdata)
                         {
                             var Name = vm.Members["Name"]?.Value?.ToString();
 
                             if (!string.IsNullOrEmpty(Name)) vmNameList.Add(Name);
 
-                            var deviceData =
-                                Utils.Run(
-                                    $@"Get-VMAssignableDevice -VMName '{Name}' | Select-Object InstanceID");
+                            var deviceDataResult = Utils.RunWithErrorHandling(
+                                $@"Get-VMAssignableDevice -VMName '{Name}' | Select-Object InstanceID");
+                            if (deviceDataResult.HasErrors)
+                            {
+                                deviceDataResult.ShowErrorsToUser();
+                                continue;
+                            }
+
+                            var deviceData = deviceDataResult.Output;
 
                             if (deviceData != null && deviceData.Count > 0)
                                 foreach (var device in deviceData)
@@ -183,9 +210,15 @@ public partial class DDAPage
                         }
                     }
 
-                    var PCIPData =
-                        Utils.Run(
-                            "Get-PnpDevice | Where-Object { $_.InstanceId -like 'PCIP\\*' } | Select-Object Class, InstanceId, FriendlyName, Status");
+                    var pcipDataResult = Utils.RunWithErrorHandling(
+                        "Get-PnpDevice | Where-Object { $_.InstanceId -like 'PCIP\\*' } | Select-Object Class, InstanceId, FriendlyName, Status");
+                    if (pcipDataResult.HasErrors)
+                    {
+                        pcipDataResult.ShowErrorsToUser();
+                        return deviceList;
+                    }
+
+                    var PCIPData = pcipDataResult.Output;
                     if (PCIPData != null && PCIPData.Count > 0)
                         foreach (var PCIP in PCIPData)
                         {
@@ -239,7 +272,14 @@ public partial class DDAPage
                                         $_
                                     }";
 
-                    var Pcidata = Utils.Run(scripts);
+                    var pcidataResult = Utils.RunWithErrorHandling(scripts);
+                    if (pcidataResult.HasErrors)
+                    {
+                        pcidataResult.ShowErrorsToUser();
+                        return deviceList;
+                    }
+
+                    var Pcidata = pcidataResult.Output;
                     var sortedResults = Pcidata
                         .Where(result => result != null)
                         .OrderBy(result => result.Members["Service"]?.Value?.ToString())

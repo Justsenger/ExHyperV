@@ -26,9 +26,15 @@ public partial class GPUPage
         {
             List<GPUInfo> gpuList = [];
             //获取目前联机的显卡
-            var gpulinked =
-                Utils.Run(
-                    "Get-WmiObject -Class Win32_VideoController | select PNPDeviceID,name,AdapterCompatibility,DriverVersion");
+            var gpuLinkedResult = Utils.RunWithErrorHandling(
+                "Get-WmiObject -Class Win32_VideoController | select PNPDeviceID,name,AdapterCompatibility,DriverVersion");
+            if (gpuLinkedResult.HasErrors)
+            {
+                gpuLinkedResult.ShowErrorsToUser();
+                return;
+            }
+
+            var gpulinked = gpuLinkedResult.Output;
             if (gpulinked.Count > 0)
                 foreach (var gpu in gpulinked)
                 {
@@ -40,7 +46,14 @@ public partial class GPUPage
                 }
 
             //获取HyperV支持状态
-            var hyperv = Utils.Run("Get-Module -ListAvailable -Name Hyper-V").Count > 0;
+            var hypervResult = Utils.RunWithErrorHandling("Get-Module -ListAvailable -Name Hyper-V");
+            if (hypervResult.HasErrors)
+            {
+                hypervResult.ShowErrorsToUser();
+                return;
+            }
+
+            var hyperv = hypervResult.Output.Count > 0;
 
             //获取N卡和I卡显存
 
@@ -59,7 +72,14 @@ public partial class GPUPage
                       }
                   }} |
             Where-Object { $_.MemorySize -ne $null }";
-            var gpuram = Utils.Run(script);
+            var gpuRamResult = Utils.RunWithErrorHandling(script);
+            if (gpuRamResult.HasErrors)
+            {
+                gpuRamResult.ShowErrorsToUser();
+                return;
+            }
+
+            var gpuram = gpuRamResult.Output;
             if (gpuram.Count > 0)
                 // 遍历所有联机显卡
                 foreach (var existingGpu in gpuList)
@@ -77,7 +97,14 @@ public partial class GPUPage
 
 
             //获取可分区GPU属性
-            var result3 = Utils.Run("Get-VMHostPartitionableGpu | select name");
+            var partitionableGpuResult = Utils.RunWithErrorHandling("Get-VMHostPartitionableGpu | select name");
+            if (partitionableGpuResult.HasErrors)
+            {
+                partitionableGpuResult.ShowErrorsToUser();
+                return;
+            }
+
+            var result3 = partitionableGpuResult.Output;
             if (result3.Count > 0)
                 foreach (var gpu in result3)
                 {
@@ -99,8 +126,15 @@ public partial class GPUPage
         {
             List<VMInfo> vmList = [];
             //获取VM信息
-            var vms = Utils.Run(
+            var vmsResult = Utils.RunWithErrorHandling(
                 "Get-VM | Select vmname,LowMemoryMappedIoSpace,GuestControlledCacheTypes,HighMemoryMappedIoSpace");
+            if (vmsResult.HasErrors)
+            {
+                vmsResult.ShowErrorsToUser();
+                return;
+            }
+
+            var vms = vmsResult.Output;
 
             if (vms.Count > 0)
                 foreach (var vm in vms)
@@ -111,7 +145,16 @@ public partial class GPUPage
                     var guest = vm.Members["GuestControlledCacheTypes"]?.Value.ToString();
 
                     //马上查询虚拟机GPU虚拟化信息
-                    var vmgpus = Utils.Run($@"Get-VMGpuPartitionAdapter -VMName '{vmname}' | Select InstancePath,Id");
+                    var vmGpusResult =
+                        Utils.RunWithErrorHandling(
+                            $@"Get-VMGpuPartitionAdapter -VMName '{vmname}' | Select InstancePath,Id");
+                    if (vmGpusResult.HasErrors)
+                    {
+                        vmGpusResult.ShowErrorsToUser();
+                        continue;
+                    }
+
+                    var vmgpus = vmGpusResult.Output;
                     if (vmgpus.Count > 0)
                         foreach (var gpu in vmgpus)
                         {

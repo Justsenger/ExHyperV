@@ -85,7 +85,15 @@ public partial class StatusPage
 
     private async void HyperVInfo()
     {
-        var hypervstatus = Utils.Run("Get-Module -ListAvailable -Name Hyper-V");
+        var hypervResult = Utils.RunWithErrorHandling("Get-Module -ListAvailable -Name Hyper-V");
+        if (hypervResult.HasErrors)
+        {
+            hypervResult.ShowErrorsToUser();
+            return;
+        }
+
+        var hypervstatus = hypervResult.Output;
+
         Dispatcher.Invoke((Action)(() =>
         {
             progressRing3.Visibility = Visibility.Collapsed;
@@ -154,8 +162,24 @@ public partial class StatusPage
 
     private async void CpuInfo()
     {
-        var cpuvt1 = Utils.Run("(Get-WmiObject -Class Win32_Processor).VirtualizationFirmwareEnabled");
-        var cpuvt2 = Utils.Run("(Get-WmiObject -Class Win32_ComputerSystem).HypervisorPresent");
+        var cpuvt1Result =
+            Utils.RunWithErrorHandling("(Get-WmiObject -Class Win32_Processor).VirtualizationFirmwareEnabled");
+        if (cpuvt1Result.HasErrors)
+        {
+            cpuvt1Result.ShowErrorsToUser();
+            return;
+        }
+
+        var cpuvt1 = cpuvt1Result.Output;
+
+        var cpuvt2Result = Utils.RunWithErrorHandling("(Get-WmiObject -Class Win32_ComputerSystem).HypervisorPresent");
+        if (cpuvt2Result.HasErrors)
+        {
+            cpuvt2Result.ShowErrorsToUser();
+            return;
+        }
+
+        var cpuvt2 = cpuvt2Result.Output;
 
         Dispatcher.Invoke((Action)(() =>
         {
@@ -188,12 +212,19 @@ public partial class StatusPage
 
     private async void CheckReg() //检查是否添加了注册表，已添加则关闭弹窗
     {
-        var script = @"[bool]((Test-Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\HyperV') -and 
-        (($k = Get-Item 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\HyperV' -EA 0) -ne $null) -and 
+        var script = @"[bool]((Test-Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\HyperV') -and
+        (($k = Get-Item 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\HyperV' -EA 0) -ne $null) -and
         ('RequireSecureDeviceAssignment', 'RequireSupportedDeviceAssignment' | ForEach-Object {
             ($k.GetValue($_, $null) -ne $null) -and ($k.GetValueKind($_) -eq 'DWord')
         }) -notcontains $false)";
-        var result = Utils.Run(script);
+        var regResult = Utils.RunWithErrorHandling(script);
+        if (regResult.HasErrors)
+        {
+            regResult.ShowErrorsToUser();
+            return;
+        }
+
+        var result = regResult.Output;
 
         Dispatcher.Invoke((Action)(() =>
         {
@@ -240,7 +271,15 @@ public partial class StatusPage
 
     private async void ServerInfo()
     {
-        var result = Utils.Run("(Get-WmiObject -Class Win32_OperatingSystem).ProductType");
+        var serverResult = Utils.RunWithErrorHandling("(Get-WmiObject -Class Win32_OperatingSystem).ProductType");
+        if (serverResult.HasErrors)
+        {
+            serverResult.ShowErrorsToUser();
+            return;
+        }
+
+        var result = serverResult.Output;
+
         Dispatcher.Invoke((Action)(() =>
         {
             progressRing5.Visibility = Visibility.Collapsed;
@@ -289,7 +328,13 @@ public partial class StatusPage
         Set-ItemProperty -Path '{registryPath}' -Name '{key1}' -Value 0 -Type DWord -Force
         Set-ItemProperty -Path '{registryPath}' -Name '{key2}' -Value 0 -Type DWord -Force
         ";
-        Utils.Run(script);
+        var addRegResult = Utils.RunWithErrorHandling(script);
+        if (addRegResult.HasErrors)
+        {
+            addRegResult.ShowErrorsToUser();
+            return;
+        }
+
         CheckReg();
     }
 
@@ -310,7 +355,12 @@ public partial class StatusPage
             }}
         }}";
 
-        Utils.Run(script);
+        var removeRegResult = Utils.RunWithErrorHandling(script);
+        if (removeRegResult.HasErrors)
+        {
+            removeRegResult.ShowErrorsToUser();
+            return;
+        }
     }
 
     private void addgs(object sender, RoutedEventArgs e)

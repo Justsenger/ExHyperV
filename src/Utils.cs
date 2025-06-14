@@ -54,13 +54,6 @@ public class PowerShellResult
 
 public class Utils
 {
-    public static Collection<PSObject> Run(string script)
-    {
-        var ps = PowerShell.Create();
-        ps.AddScript(script);
-        return ps.Invoke();
-    }
-
     /// <summary>
     ///     Executes PowerShell script and returns results with error information.
     ///     UI logic has been separated - use PowerShellResult.ShowErrorsToUser() to display errors.
@@ -106,19 +99,6 @@ public class Utils
         };
     }
 
-    /// <summary>
-    ///     Legacy method for backward compatibility. Consider using RunWithErrorHandling instead.
-    /// </summary>
-    [Obsolete("Use RunWithErrorHandling for better error handling without UI coupling")]
-    public static Collection<PSObject> Run2(string script)
-    {
-        var result = RunWithErrorHandling(script);
-
-        // Show errors to maintain backward compatibility
-        if (result.HasErrors) result.ShowErrorsToUser();
-
-        return result.Output;
-    }
 
     public static CardExpander CardExpander1()
     {

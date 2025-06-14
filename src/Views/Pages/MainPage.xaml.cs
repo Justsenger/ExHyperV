@@ -15,13 +15,28 @@ public partial class MainPage
     private void SystemInfo()
     {
         Date.Text = Utils.GetLinkerTime().ToString("yyyy/MM/dd HH:mm", CultureInfo.InvariantCulture);
-        Utils.Run("Set-ExecutionPolicy RemoteSigned -Scope Process -Force");
+
+        // Set execution policy
+        var policyResult = Utils.RunWithErrorHandling("Set-ExecutionPolicy RemoteSigned -Scope Process -Force");
+        if (policyResult.HasErrors)
+        {
+            policyResult.ShowErrorsToUser();
+            return;
+        }
+
         var script = @"
             $os = Get-WmiObject Win32_OperatingSystem | Select-Object Caption, OSArchitecture, Version
             $cpu = Get-WmiObject Win32_Processor | Select-Object Name, MaxClockSpeed
             $memory = (Get-WmiObject Win32_PhysicalMemory | Measure-Object -Property Capacity -Sum).Sum / 1GB
             return @($os, $cpu, [double]$memory)";
-        var results = Utils.Run(script);
+        var systemInfoResult = Utils.RunWithErrorHandling(script);
+        if (systemInfoResult.HasErrors)
+        {
+            systemInfoResult.ShowErrorsToUser();
+            return;
+        }
+
+        var results = systemInfoResult.Output;
 
         var osCaption = "N/A";
         var osVersion = "";
