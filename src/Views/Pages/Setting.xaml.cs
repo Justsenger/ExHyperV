@@ -15,10 +15,19 @@ public partial class Setting
         InitializeComponent();
 
         // Theme initialization
-        if (ApplicationThemeManager.GetAppTheme() == ApplicationTheme.Dark)
+        var currentTheme = ApplicationThemeManager.GetAppTheme();
+        if (currentTheme == ApplicationTheme.Dark)
+        {
             ThemeComboBox.SelectedIndex = 1; // Dark
+            // Force refresh theme to ensure proper color inheritance
+            ApplicationThemeManager.Apply(ApplicationTheme.Dark);
+        }
         else
+        {
             ThemeComboBox.SelectedIndex = 0; // Light
+            // Force refresh theme to ensure proper color inheritance
+            ApplicationThemeManager.Apply(ApplicationTheme.Light);
+        }
 
         // Language initialization based on current WPFLocalizeExtension culture
         var currentCulture = LocalizeDictionary.Instance.Culture?.Name ?? "en-US";

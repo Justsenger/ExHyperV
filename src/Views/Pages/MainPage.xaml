@@ -26,8 +26,8 @@
 
 
         <StackPanel Grid.Row="0" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="30">
-            <TextBlock Text="ExHyperV" Margin="0,15,0,0" FontSize="42" Foreground="White" />
-            <TextBlock Text="{extensions:Loc exhyperv}" Margin="50,5,0,0" FontSize="18" Foreground="White" />
+            <ui:TextBlock Text="ExHyperV" Margin="0,15,0,0" FontSize="42" Foreground="White" />
+            <ui:TextBlock Text="{extensions:Loc exhyperv}" Margin="50,5,0,0" FontSize="18" Foreground="White" />
 
         </StackPanel>
 
@@ -38,7 +38,7 @@
             </ui:CardExpander.Icon>
             <ui:CardExpander.Header>
                 <Grid>
-                    <TextBlock Text="{extensions:Loc systeminfo}" FontSize="16" VerticalAlignment="Center" />
+                    <ui:TextBlock Text="{extensions:Loc systeminfo}" FontSize="16" VerticalAlignment="Center" />
                 </Grid>
             </ui:CardExpander.Header>
             <StackPanel Margin="50,10,0,0">
@@ -55,25 +55,25 @@
                     </Grid.RowDefinitions>
 
                     <!-- 第一列内容 -->
-                    <TextBlock Text="{extensions:Loc version}" FontSize="16" VerticalAlignment="Center"
+                    <ui:TextBlock Text="{extensions:Loc version}" FontSize="16" VerticalAlignment="Center"
                                Margin="0,0,10,10"
                                Grid.Row="0" />
-                    <TextBlock Text="{extensions:Loc arch}" FontSize="16" VerticalAlignment="Center" Margin="0,0,10,10"
+                    <ui:TextBlock Text="{extensions:Loc arch}" FontSize="16" VerticalAlignment="Center" Margin="0,0,10,10"
                                Grid.Row="1" />
-                    <TextBlock Text="{extensions:Loc model}" FontSize="16" VerticalAlignment="Center"
+                    <ui:TextBlock Text="{extensions:Loc model}" FontSize="16" VerticalAlignment="Center"
                                Margin="0,0,10,10"
                                Grid.Row="2" />
-                    <TextBlock Text="{extensions:Loc Memorycapacity}" FontSize="16" VerticalAlignment="Center"
+                    <ui:TextBlock Text="{extensions:Loc Memorycapacity}" FontSize="16" VerticalAlignment="Center"
                                Margin="0,0,10,10" Grid.Row="3" />
 
                     <!-- 第二列内容 -->
-                    <TextBlock x:Name="Caption" FontSize="16" Grid.Column="1" VerticalAlignment="Center"
+                    <ui:TextBlock x:Name="Caption" FontSize="16" Grid.Column="1" VerticalAlignment="Center"
                                Margin="0,0,10,10" Grid.Row="0" />
-                    <TextBlock x:Name="OSArchitecture" FontSize="16" Grid.Column="1" VerticalAlignment="Center"
+                    <ui:TextBlock x:Name="OSArchitecture" FontSize="16" Grid.Column="1" VerticalAlignment="Center"
                                Margin="0,0,10,10" Grid.Row="1" />
-                    <TextBlock x:Name="CPUmodel" FontSize="16" Grid.Column="1" VerticalAlignment="Center"
+                    <ui:TextBlock x:Name="CPUmodel" FontSize="16" Grid.Column="1" VerticalAlignment="Center"
                                Margin="0,0,10,10" Grid.Row="2" />
-                    <TextBlock x:Name="MemCap" FontSize="16" Grid.Column="1" VerticalAlignment="Center"
+                    <ui:TextBlock x:Name="MemCap" FontSize="16" Grid.Column="1" VerticalAlignment="Center"
                                Margin="0,0,10,10" Grid.Row="3" />
                 </Grid>
             </StackPanel>
@@ -87,7 +87,7 @@
 
             <ui:CardExpander.Header>
                 <Grid>
-                    <TextBlock Text="{extensions:Loc soft}" FontSize="16" VerticalAlignment="Center" />
+                    <ui:TextBlock Text="{extensions:Loc soft}" FontSize="16" VerticalAlignment="Center" />
                 </Grid>
             </ui:CardExpander.Header>
             <StackPanel Margin="50,10,0,0">
@@ -103,24 +103,24 @@
                     </Grid.RowDefinitions>
 
                     <!-- 第一列内容 -->
-                    <TextBlock Text="{extensions:Loc appversion}" FontSize="16" VerticalAlignment="Center"
+                    <ui:TextBlock Text="{extensions:Loc appversion}" FontSize="16" VerticalAlignment="Center"
                                Margin="0,0,10,10"
                                Grid.Row="0" />
-                    <TextBlock Text="{extensions:Loc author}" FontSize="16" VerticalAlignment="Center"
+                    <ui:TextBlock Text="{extensions:Loc author}" FontSize="16" VerticalAlignment="Center"
                                Margin="0,0,10,10"
                                Grid.Row="1" />
-                    <TextBlock Text="{extensions:Loc buildtime}" FontSize="16" VerticalAlignment="Center"
+                    <ui:TextBlock Text="{extensions:Loc buildtime}" FontSize="16" VerticalAlignment="Center"
                                Margin="0,0,10,10"
                                Grid.Row="2" />
 
                     <!-- 第二列内容 -->
-                    <TextBlock FontSize="16" Grid.Column="1" VerticalAlignment="Center"
+                    <ui:TextBlock FontSize="16" Grid.Column="1" VerticalAlignment="Center"
                                Margin="0,0,10,10" Grid.Row="0"
                                Text="{extensions:Loc AppVersionValue}" />
-                    <TextBlock FontSize="16" Grid.Column="1" VerticalAlignment="Center"
+                    <ui:TextBlock FontSize="16" Grid.Column="1" VerticalAlignment="Center"
                                Margin="0,0,10,10" Grid.Row="1"
                                Text="{extensions:Loc AppAuthor}" />
-                    <TextBlock x:Name="Date" FontSize="16" Grid.Column="1" VerticalAlignment="Center"
+                    <ui:TextBlock x:Name="Date" FontSize="16" Grid.Column="1" VerticalAlignment="Center"
                                Margin="0,0,10,10" Grid.Row="2" />
                 </Grid>
             </StackPanel>

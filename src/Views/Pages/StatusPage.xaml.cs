@@ -1,6 +1,7 @@
 ﻿using System.Security.Principal;
 using System.Windows;
 using System.Windows.Media;
+using Wpf.Ui.Appearance;
 using Wpf.Ui.Controls;
 
 namespace ExHyperV.Views.Pages;
@@ -19,6 +20,30 @@ public partial class StatusPage
         Task.Run(() => ServerInfo());
     }
 
+    private SolidColorBrush GetSuccessColor()
+    {
+        // Use theme-aware success color
+        return ApplicationThemeManager.GetAppTheme() == ApplicationTheme.Dark
+            ? new SolidColorBrush(Color.FromArgb(255, 107, 203, 119)) // Light green for dark theme
+            : new SolidColorBrush(Color.FromArgb(255, 16, 124, 16)); // Dark green for light theme
+    }
+
+    private SolidColorBrush GetErrorColor()
+    {
+        // Use theme-aware error color
+        return ApplicationThemeManager.GetAppTheme() == ApplicationTheme.Dark
+            ? new SolidColorBrush(Color.FromArgb(255, 255, 153, 164)) // Light red for dark theme
+            : new SolidColorBrush(Color.FromArgb(255, 196, 43, 28)); // Dark red for light theme
+    }
+
+    private SolidColorBrush GetInfoColor()
+    {
+        // Use theme-aware info color
+        return ApplicationThemeManager.GetAppTheme() == ApplicationTheme.Dark
+            ? new SolidColorBrush(Color.FromArgb(255, 156, 220, 254)) // Light blue for dark theme
+            : new SolidColorBrush(Color.FromArgb(255, 0, 120, 212)); // Dark blue for light theme
+    }
+
     private async void HyperVInfo()
     {
         var message = LocalizationHelper.GetString("exhyperv");
@@ -32,7 +57,7 @@ public partial class StatusPage
                 FontSize = 20,
                 FontFamily = (FontFamily)Application.Current.Resources["SegoeFluentIcons"],
                 Glyph = "\xEC61",
-                Foreground = new SolidColorBrush(Color.FromArgb(255, 0, 138, 23))
+                Foreground = GetSuccessColor()
             };
             if (hypervstatus.Count != 0)
             {
@@ -42,7 +67,7 @@ public partial class StatusPage
             {
                 hyperv.Text = LocalizationHelper.GetString("String2");
                 icons.Glyph = "\xEB90";
-                icons.Foreground = new SolidColorBrush(Colors.Red);
+                icons.Foreground = GetErrorColor();
             }
 
             status3.Children.Add(icons);
@@ -60,13 +85,13 @@ public partial class StatusPage
                 FontSize = 20,
                 FontFamily = (FontFamily)Application.Current.Resources["SegoeFluentIcons"],
                 Glyph = "\xF167",
-                Foreground = new SolidColorBrush(Colors.DodgerBlue)
+                Foreground = GetInfoColor()
             };
             status1.Children.Add(icons);
             if (buildVersion >= 22000) //不允许宿主使用过低的系统版本，WDDM版本低，以及PS命令存在问题。
             {
                 icons.Glyph = "\xEC61";
-                icons.Foreground = new SolidColorBrush(Color.FromArgb(255, 0, 138, 23));
+                icons.Foreground = GetSuccessColor();
                 var string3 = LocalizationHelper.GetString("String3");
                 var v19041 = LocalizationHelper.GetString("v19041");
                 win.Text = string3 + buildVersion + v19041;
@@ -79,7 +104,7 @@ public partial class StatusPage
                 var disablegpu = LocalizationHelper.GetString("disablegpu");
                 win.Text = string3 + buildVersion + disablegpu;
                 icons.Glyph = "\xEB90";
-                icons.Foreground = new SolidColorBrush(Colors.Red);
+                icons.Foreground = GetErrorColor();
             }
         });
     }
@@ -98,7 +123,7 @@ public partial class StatusPage
                 FontSize = 20,
                 FontFamily = (FontFamily)Application.Current.Resources["SegoeFluentIcons"],
                 Glyph = "\xEC61",
-                Foreground = new SolidColorBrush(Color.FromArgb(255, 0, 138, 23))
+                Foreground = GetSuccessColor()
             };
 
             if (cpuvt1[0].ToString() == "True" || cpuvt2[0].ToString() == "True")
@@ -109,7 +134,7 @@ public partial class StatusPage
             {
                 cpu.Text = LocalizationHelper.GetString("GPU2");
                 icons.Glyph = "\xEB90";
-                icons.Foreground = new SolidColorBrush(Colors.Red);
+                icons.Foreground = GetErrorColor();
             }
 
             status2.Children.Add(icons);
@@ -144,7 +169,7 @@ public partial class StatusPage
                 FontSize = 20,
                 FontFamily = (FontFamily)Application.Current.Resources["SegoeFluentIcons"],
                 Glyph = "\xEC61",
-                Foreground = new SolidColorBrush(Color.FromArgb(255, 0, 138, 23))
+                Foreground = GetSuccessColor()
             };
             if (Isadmin)
             {
@@ -157,7 +182,7 @@ public partial class StatusPage
                 ms.gpupv.IsEnabled = false;
                 admin.Text = LocalizationHelper.GetString("Admin2");
                 icons.Glyph = "\xEB90";
-                icons.Foreground = new SolidColorBrush(Colors.Red);
+                icons.Foreground = GetErrorColor();
                 status4.Children.Add(icons);
             }
         });
@@ -174,7 +199,7 @@ public partial class StatusPage
                 FontSize = 20,
                 FontFamily = (FontFamily)Application.Current.Resources["SegoeFluentIcons"],
                 Glyph = "\xEC61",
-                Foreground = new SolidColorBrush(Color.FromArgb(255, 0, 138, 23))
+                Foreground = GetSuccessColor()
             };
             if (result[0].ToString() == "3")
             {
@@ -187,7 +212,7 @@ public partial class StatusPage
 
                 version.Text = LocalizationHelper.GetString("ddaa");
                 icons.Glyph = "\xEB90";
-                icons.Foreground = new SolidColorBrush(Colors.Red);
+                icons.Foreground = GetErrorColor();
             }
 
             status5.Children.Add(icons);

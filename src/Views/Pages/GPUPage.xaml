@@ -28,7 +28,7 @@
             <ui:Card VerticalAlignment="Top" Padding="12" Margin="10,10,10,0">
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Top">
                     <ui:FontIcon FontSize="24" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xF211;" />
-                    <TextBlock Text="{extensions:Loc installedcard}" Margin="10,0,0,0" FontSize="16" />
+                    <ui:TextBlock Text="{extensions:Loc installedcard}" Margin="10,0,0,0" FontSize="16" />
                 </StackPanel>
             </ui:Card>
             <Grid x:Name="main" Grid.Row="1" />
@@ -47,7 +47,7 @@
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
                     <ui:FontIcon FontSize="24" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xE7C4;" />
-                    <TextBlock Grid.Column="1" VerticalAlignment="Center" Text="{extensions:Loc vmlist}"
+                    <ui:TextBlock Grid.Column="1" VerticalAlignment="Center" Text="{extensions:Loc vmlist}"
                                Margin="10,0,0,0"
                                FontSize="16" />
                     <ui:Button Grid.Column="2" Content="{extensions:Loc refresh}" Margin="0,0,30,0" Click="vmrefresh" />

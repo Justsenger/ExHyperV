@@ -59,7 +59,7 @@
                         </Grid.ColumnDefinitions>
 
                         <ui:FontIcon FontSize="24" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xE964;" />
-                        <TextBlock Grid.Column="1" Text="{engine:Loc Assignabledevices}" FontSize="16"
+                        <ui:TextBlock Grid.Column="1" Text="{engine:Loc Assignabledevices}" FontSize="16"
                                    VerticalAlignment="Center" Margin="10,0,0,0" />
                         <ui:Button Grid.Column="2" Content="{engine:Loc refresh}" Margin="0,0,10,0"
                                    Command="{Binding RefreshCommand}" />
@@ -87,7 +87,7 @@
                                         <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
 
-                                    <TextBlock Grid.Column="0" Text="{Binding FriendlyName}"
+                                    <ui:TextBlock Grid.Column="0" Text="{Binding FriendlyName}"
                                                FontSize="16" VerticalAlignment="Center" />
 
                                     <ui:Button Grid.Column="1"
@@ -112,21 +112,21 @@
                                     </Grid.RowDefinitions>
 
                                     <!-- Kind -->
-                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="{engine:Loc kind}"
+                                    <ui:TextBlock Grid.Row="0" Grid.Column="0" Text="{engine:Loc kind}"
                                                FontWeight="SemiBold" Margin="0,5,10,5" />
-                                    <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding ClassType}"
+                                    <ui:TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding ClassType}"
                                                Margin="0,5,0,5" />
 
                                     <!-- Instance ID -->
-                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="{engine:Loc Instanceid}"
+                                    <ui:TextBlock Grid.Row="1" Grid.Column="0" Text="{engine:Loc Instanceid}"
                                                FontWeight="SemiBold" Margin="0,5,10,5" />
-                                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding InstanceId}"
+                                    <ui:TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding InstanceId}"
                                                Margin="0,5,0,5" />
 
                                     <!-- Path -->
-                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="{engine:Loc path}"
+                                    <ui:TextBlock Grid.Row="2" Grid.Column="0" Text="{engine:Loc path}"
                                                FontWeight="SemiBold" Margin="0,5,10,5" />
-                                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Path}"
+                                    <ui:TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Path}"
                                                Margin="0,5,0,5" TextWrapping="Wrap" />
                                 </Grid>
                             </StackPanel>
