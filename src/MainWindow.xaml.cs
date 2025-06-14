@@ -12,20 +12,14 @@ public partial class MainWindow : FluentWindow
         InitializeComponent();
         Loaded += PagePreload;
 
-        if (SystemThemeManager.GetCachedSystemTheme() == SystemTheme.Dark) //根据系统主题自动切换
-            ApplicationThemeManager.Apply(ApplicationTheme.Dark);
-        else
-            ApplicationThemeManager.Apply(ApplicationTheme.Light);
-
-        Loaded += (sender, args) => //监听系统切换主题事件
-        {
-            SystemThemeWatcher.Watch(this);
-        };
+        // This watcher listens for theme changes while the application is running.
+        // The initial theme is now set in App.xaml.cs.
+        Loaded += (sender, args) => { SystemThemeWatcher.Watch(this); };
     }
 
     private void PagePreload(object sender, RoutedEventArgs e)
     {
-        //预加载所有子界面，多线程。
+        // Preload all pages to avoid navigation lag on first access.
         RootNavigation.Navigate(typeof(DDAPage));
         RootNavigation.Navigate(typeof(GPUPage));
         RootNavigation.Navigate(typeof(StatusPage));

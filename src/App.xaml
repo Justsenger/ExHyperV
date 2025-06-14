@@ -2,14 +2,12 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
-
              StartupUri="MainWindow.xaml">
     <Application.Resources>
         <ResourceDictionary>
             <FontFamily x:Key="SegoeFluentIcons">pack://application:,,,/Fonts/#Segoe Fluent Icons, Segoe MDL2 Assets</FontFamily>
-
             <ResourceDictionary.MergedDictionaries>
-                <ui:ThemesDictionary Theme="Dark" />
+                <ui:ThemesDictionary Theme="Light" />
                 <ui:ControlsDictionary />
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>

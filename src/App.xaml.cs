@@ -2,6 +2,7 @@
 using System.Globalization;
 using System.IO;
 using System.Windows;
+using Wpf.Ui.Appearance;
 using WPFLocalizeExtension.Engine;
 using WPFLocalizeExtension.Providers;
 
@@ -13,12 +14,27 @@ public partial class App : Application
     {
         base.OnStartup(e);
 
-        LocalizeDictionary.Instance.DefaultProvider = ResxLocalizationProvider.Instance;
+        // Apply the application theme based on the system theme.
+        // This is done here at the earliest point to prevent UI flickering.
+        var systemTheme = SystemThemeManager.GetCachedSystemTheme();
 
+        // Correctly convert from SystemTheme to ApplicationTheme before applying.
+        var applicationTheme = systemTheme == SystemTheme.Dark ? ApplicationTheme.Dark : ApplicationTheme.Light;
+        ApplicationThemeManager.Apply(applicationTheme);
+
+        // Initialize the localization provider.
+        LocalizeDictionary.Instance.DefaultProvider = ResxLocalizationProvider.Instance;
         LocalizeDictionary.Instance.SetCurrentThreadCulture = false;
 
-        LocalizeDictionary.Instance.Culture = CultureInfo.CurrentUICulture;
+        // Set the initial culture based on the system's UI culture.
+        var systemCulture = CultureInfo.CurrentUICulture;
+        if (systemCulture.Name.Equals("zh-CN", StringComparison.OrdinalIgnoreCase))
+            LocalizeDictionary.Instance.Culture = new CultureInfo("zh-CN");
+        else
+            // Default to English for all other system languages.
+            LocalizeDictionary.Instance.Culture = new CultureInfo("en-US");
 
+        // Attach handlers for debugging localization issues.
         ResxLocalizationProvider.Instance.ProviderError += OnLocalizationProviderError;
         LocalizeDictionary.Instance.MissingKeyEvent += OnMissingKeyEvent;
     }
@@ -52,7 +68,7 @@ public partial class App : Application
         }
         catch
         {
-            // Ignore logging errors to prevent application crashes
+            // Ignore logging errors to prevent application crashes.
         }
     }
 }
