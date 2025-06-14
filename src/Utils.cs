@@ -55,6 +55,16 @@ public class PowerShellResult
 public class Utils
 {
     /// <summary>
+    ///     This property dynamically gets the app version from the assembly.
+    /// </summary>
+    public static string AppVersion => Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "0.0.0";
+
+    /// <summary>
+    ///     Author name is static data, not a localizable resource.
+    /// </summary>
+    public static string AppAuthor => "砂菱叶";
+
+    /// <summary>
     ///     Executes PowerShell script and returns results with error information.
     ///     UI logic has been separated - use PowerShellResult.ShowErrorsToUser() to display errors.
     /// </summary>

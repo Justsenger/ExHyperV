@@ -356,11 +356,7 @@ public partial class StatusPage
         }}";
 
         var removeRegResult = Utils.RunWithErrorHandling(script);
-        if (removeRegResult.HasErrors)
-        {
-            removeRegResult.ShowErrorsToUser();
-            return;
-        }
+        if (removeRegResult.HasErrors) removeRegResult.ShowErrorsToUser();
     }
 
     private void addgs(object sender, RoutedEventArgs e)

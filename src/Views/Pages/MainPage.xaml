@@ -6,6 +6,7 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
     xmlns:extensions="https://github.com/XAMLMarkupExtensions/WPFLocalizationExtension"
+    xmlns:utils="clr-namespace:ExHyperV.Views.Pages"
     Title="MainPage"
     d:DesignHeight="700"
     d:DesignWidth="1000"
@@ -117,10 +118,10 @@
                     <!-- 第二列内容 -->
                     <ui:TextBlock FontSize="16" Grid.Column="1" VerticalAlignment="Center"
                                   Margin="0,0,10,10" Grid.Row="0"
-                                  Text="{extensions:Loc AppVersionValue}" />
+                                  Text="{Binding Source={x:Static utils:Utils.AppVersion}, StringFormat='V{0}'}" />
                     <ui:TextBlock FontSize="16" Grid.Column="1" VerticalAlignment="Center"
                                   Margin="0,0,10,10" Grid.Row="1"
-                                  Text="{extensions:Loc AppAuthor}" />
+                                  Text="{x:Static utils:Utils.AppAuthor}" />
                     <ui:TextBlock x:Name="Date" FontSize="16" Grid.Column="1" VerticalAlignment="Center"
                                   Margin="0,0,10,10" Grid.Row="2" />
                 </Grid>

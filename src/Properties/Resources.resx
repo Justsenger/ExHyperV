@@ -399,10 +399,5 @@
     <data name="StackTrace" xml:space="preserve">
     <value>Stack trace</value>
   </data>
-    <data name="AppVersionValue" xml:space="preserve">
-    <value>V1.0.8</value>
-  </data>
-    <data name="AppAuthor" xml:space="preserve">
-    <value>砂菱叶</value>
-  </data>
+
 </root>
