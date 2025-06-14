@@ -49,9 +49,9 @@
                             <ui:Image Source="{Binding Iconpath}" Height="64" Width="64" VerticalAlignment="Top"
                                       Grid.RowSpan="2" />
                             <ui:TextBlock Text="{Binding GPUname}" VerticalAlignment="Center" Margin="10,5,0,0"
-                                       Grid.Row="0" Grid.Column="1" />
+                                          Grid.Row="0" Grid.Column="1" />
                             <ui:TextBlock Text="{Binding Id}" VerticalAlignment="Center" Margin="10,5,0,0" Grid.Row="1"
-                                       Grid.Column="1" />
+                                          Grid.Column="1" />
                         </Grid>
                     </DataTemplate>
                 </ui:ListView.ItemTemplate>

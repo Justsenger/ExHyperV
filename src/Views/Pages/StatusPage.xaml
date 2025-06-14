@@ -45,7 +45,7 @@
                         <ui:ProgressRing x:Name="progressRing1" IsIndeterminate="True" Width="16" Height="16"
                                          Margin="0,2,0,3" />
                         <ui:TextBlock Grid.Column="1" x:Name="win" Margin="10,0,0,0" Text="{extensions:Loc checksys}"
-                                   FontSize="16" Grid.ColumnSpan="2" />
+                                      FontSize="16" Grid.ColumnSpan="2" />
                     </Grid>
                 </ui:Card>
 
@@ -57,7 +57,7 @@
                         </Grid.ColumnDefinitions>
                         <ui:ProgressRing x:Name="progressRing2" IsIndeterminate="True" Width="16" Height="16" />
                         <ui:TextBlock Grid.Column="1" x:Name="cpu" Margin="10,0,0,0" Text="{extensions:Loc checkcpuct}"
-                                   FontSize="16" />
+                                      FontSize="16" />
                     </Grid>
                 </ui:Card>
 
@@ -69,8 +69,8 @@
                         </Grid.ColumnDefinitions>
                         <ui:ProgressRing x:Name="progressRing3" IsIndeterminate="True" Width="16" Height="16" />
                         <ui:TextBlock Grid.Column="1" x:Name="hyperv" Margin="10,0,0,0"
-                                   Text="{extensions:Loc checkhyperv}"
-                                   FontSize="16" />
+                                      Text="{extensions:Loc checkhyperv}"
+                                      FontSize="16" />
                     </Grid>
                 </ui:Card>
 
@@ -81,8 +81,9 @@
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
                         <ui:ProgressRing x:Name="progressRing4" IsIndeterminate="True" Width="16" Height="16" />
-                        <ui:TextBlock Grid.Column="1" x:Name="admin" Margin="10,0,0,0" Text="{extensions:Loc checkadmin}"
-                                   FontSize="16" />
+                        <ui:TextBlock Grid.Column="1" x:Name="admin" Margin="10,0,0,0"
+                                      Text="{extensions:Loc checkadmin}"
+                                      FontSize="16" />
                     </Grid>
                 </ui:Card>
 
@@ -94,8 +95,8 @@
                         </Grid.ColumnDefinitions>
                         <ui:ProgressRing x:Name="progressRing5" IsIndeterminate="True" Width="16" Height="16" />
                         <ui:TextBlock Grid.Column="1" x:Name="version" Margin="10,0,0,0"
-                                   Text="{extensions:Loc checkversion}"
-                                   FontSize="16" />
+                                      Text="{extensions:Loc checkversion}"
+                                      FontSize="16" />
                     </Grid>
                 </ui:Card>
 

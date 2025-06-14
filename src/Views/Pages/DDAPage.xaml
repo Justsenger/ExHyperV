@@ -60,7 +60,7 @@
 
                         <ui:FontIcon FontSize="24" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xE964;" />
                         <ui:TextBlock Grid.Column="1" Text="{engine:Loc Assignabledevices}" FontSize="16"
-                                   VerticalAlignment="Center" Margin="10,0,0,0" />
+                                      VerticalAlignment="Center" Margin="10,0,0,0" />
                         <ui:Button Grid.Column="2" Content="{engine:Loc refresh}" Margin="0,0,10,0"
                                    Command="{Binding RefreshCommand}" />
                     </Grid>
@@ -88,7 +88,7 @@
                                     </Grid.ColumnDefinitions>
 
                                     <ui:TextBlock Grid.Column="0" Text="{Binding FriendlyName}"
-                                               FontSize="16" VerticalAlignment="Center" />
+                                                  FontSize="16" VerticalAlignment="Center" />
 
                                     <ui:Button Grid.Column="1"
                                                Content="{Binding Status}"
@@ -113,21 +113,21 @@
 
                                     <!-- Kind -->
                                     <ui:TextBlock Grid.Row="0" Grid.Column="0" Text="{engine:Loc kind}"
-                                               FontWeight="SemiBold" Margin="0,5,10,5" />
+                                                  FontWeight="SemiBold" Margin="0,5,10,5" />
                                     <ui:TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding ClassType}"
-                                               Margin="0,5,0,5" />
+                                                  Margin="0,5,0,5" />
 
                                     <!-- Instance ID -->
                                     <ui:TextBlock Grid.Row="1" Grid.Column="0" Text="{engine:Loc Instanceid}"
-                                               FontWeight="SemiBold" Margin="0,5,10,5" />
+                                                  FontWeight="SemiBold" Margin="0,5,10,5" />
                                     <ui:TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding InstanceId}"
-                                               Margin="0,5,0,5" />
+                                                  Margin="0,5,0,5" />
 
                                     <!-- Path -->
                                     <ui:TextBlock Grid.Row="2" Grid.Column="0" Text="{engine:Loc path}"
-                                               FontWeight="SemiBold" Margin="0,5,10,5" />
+                                                  FontWeight="SemiBold" Margin="0,5,10,5" />
                                     <ui:TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Path}"
-                                               Margin="0,5,0,5" TextWrapping="Wrap" />
+                                                  Margin="0,5,0,5" TextWrapping="Wrap" />
                                 </Grid>
                             </StackPanel>
                         </ui:CardExpander>

@@ -48,8 +48,8 @@
                     </Grid.ColumnDefinitions>
                     <ui:FontIcon FontSize="24" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xE7C4;" />
                     <ui:TextBlock Grid.Column="1" VerticalAlignment="Center" Text="{extensions:Loc vmlist}"
-                               Margin="10,0,0,0"
-                               FontSize="16" />
+                                  Margin="10,0,0,0"
+                                  FontSize="16" />
                     <ui:Button Grid.Column="2" Content="{extensions:Loc refresh}" Margin="0,0,30,0" Click="vmrefresh" />
 
                 </Grid>

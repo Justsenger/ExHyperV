@@ -6,6 +6,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using Wpf.Ui.Controls;
+using WPFLocalizeExtension.Engine;
 using Button = Wpf.Ui.Controls.Button;
 using MenuItem = Wpf.Ui.Controls.MenuItem;
 using MessageBox = System.Windows.MessageBox;
@@ -15,29 +16,47 @@ namespace ExHyperV.Views.Pages;
 
 public partial class DDAPage
 {
-    public bool refreshlock;
-
     public DDAPage()
     {
         ViewModel = new DDAPageViewModel();
         DataContext = ViewModel;
         InitializeComponent();
+
+        Loaded += DDAPage_Loaded;
+        Unloaded += DDAPage_Unloaded;
+
         Task.Run(() => IsServer());
-        Task.Run(() => ViewModel.LoadDevicesAsync());
     }
 
     public DDAPageViewModel ViewModel { get; }
 
+    private void DDAPage_Loaded(object sender, RoutedEventArgs e)
+    {
+        LocalizeDictionary.Instance.PropertyChanged += Instance_PropertyChanged;
+        Task.Run(() => ViewModel.LoadDevicesAsync());
+    }
+
+    private void DDAPage_Unloaded(object sender, RoutedEventArgs e)
+    {
+        LocalizeDictionary.Instance.PropertyChanged -= Instance_PropertyChanged;
+    }
+
+    private void Instance_PropertyChanged(object sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == "Culture") Task.Run(() => ViewModel.LoadDevicesAsync());
+    }
 
     private async void IsServer()
     {
         var result = Utils.Run("(Get-WmiObject -Class Win32_OperatingSystem).ProductType");
         Dispatcher.Invoke(() =>
         {
-            if (result[0].ToString() == "3") Isserver.IsOpen = false;
+            if (result.Count > 0 && result[0].ToString() == "3")
+                Isserver.IsOpen = false;
+            else
+                Isserver.IsOpen = true;
         });
     }
-
 
     private void AssignButton_Click(object sender, RoutedEventArgs e)
     {
@@ -69,6 +88,7 @@ public partial class DDAPage
             }
 
             button.ContextMenu = contextMenu;
+            contextMenu.PlacementTarget = button;
             contextMenu.IsOpen = true;
         }
     }
@@ -97,7 +117,8 @@ public partial class DDAPage
             get => _isLoading;
             set
             {
-                if (SetProperty(ref _isLoading, value)) RefreshCommand.RaiseCanExecuteChanged();
+                if (SetProperty(ref _isLoading, value))
+                    Application.Current.Dispatcher.Invoke(() => RefreshCommand.RaiseCanExecuteChanged());
             }
         }
 
@@ -111,8 +132,7 @@ public partial class DDAPage
             IsLoading = true;
             try
             {
-                var deviceList = new List<DeviceInfo>();
-                await GetInfo(deviceList);
+                var deviceList = await Task.Run(() => GetInfo());
 
                 Application.Current.Dispatcher.Invoke(() =>
                 {
@@ -126,8 +146,9 @@ public partial class DDAPage
             }
         }
 
-        private async Task GetInfo(List<DeviceInfo> deviceList)
+        private List<DeviceInfo> GetInfo()
         {
+            var deviceList = new List<DeviceInfo>();
             try
             {
                 using (var PowerShellInstance = PowerShell.Create())
@@ -170,13 +191,11 @@ public partial class DDAPage
                         {
                             var instanceId = PCIP.Members["InstanceId"]?.Value?.ToString().Substring(4);
 
-                            if (!vmdevice.ContainsKey(instanceId) &&
-                                PCIP.Members["Status"]?.Value?.ToString() == "OK" &&
-                                !string.IsNullOrEmpty(instanceId))
+                            if (!string.IsNullOrEmpty(instanceId) && !vmdevice.ContainsKey(instanceId) &&
+                                PCIP.Members["Status"]?.Value?.ToString() == "OK")
 
                                 vmdevice[instanceId] = LocalizationHelper.GetString("removed");
                         }
-
 
                     var scripts = @"
                                 $maxRetries = 10
@@ -223,7 +242,7 @@ public partial class DDAPage
                     var Pcidata = Utils.Run(scripts);
                     var sortedResults = Pcidata
                         .Where(result => result != null)
-                        .OrderBy(result => result.Members["Service"]?.Value?.ToString()[0])
+                        .OrderBy(result => result.Members["Service"]?.Value?.ToString())
                         .ToList();
                     foreach (var result in sortedResults)
                     {
@@ -233,7 +252,7 @@ public partial class DDAPage
                         var instanceId = result.Members["InstanceId"]?.Value?.ToString();
                         var path = result.Members["Path"]?.Value?.ToString();
                         var service = result.Members["Service"]?.Value?.ToString();
-                        if (service == "pci" || service == null) continue;
+                        if (service == "pci" || string.IsNullOrEmpty(service) || string.IsNullOrEmpty(path)) continue;
 
                         if (status == "Unknown" && !string.IsNullOrEmpty(instanceId) && instanceId.Length > 3)
                         {
@@ -258,14 +277,19 @@ public partial class DDAPage
                 var errorText = LocalizationHelper.GetString("error");
                 Application.Current.Dispatcher.Invoke(() => { MessageBox.Show($"{errorText}: {ex.Message}"); });
             }
+
+            return deviceList;
         }
 
         private async Task AssignDeviceAsync(DeviceAssignmentParameter parameter)
         {
-            if (parameter?.Device == null) return;
+            if (parameter?.Device == null || parameter.Target == null) return;
 
             var device = parameter.Device;
             var targetVm = parameter.Target;
+            var currentStatus = device.Status;
+
+            if (targetVm == currentStatus) return;
 
             var progressDialog = new ContentDialog
             {
@@ -283,31 +307,36 @@ public partial class DDAPage
             progressDialog.Content = progressTextBlock;
             progressDialog.Closing += (sender, args) => { args.Cancel = true; };
 
-            Application.Current.Dispatcher.Invoke(() =>
+            await Application.Current.Dispatcher.InvokeAsync(async () =>
             {
                 progressDialog.DialogHost = ((MainWindow)Application.Current.MainWindow).ContentPresenterForDialogs;
-                _ = progressDialog.ShowAsync();
-            });
+                await progressDialog.ShowAsync();
+            }).Task;
 
             try
             {
-                var (commands, messages) = GetDDACommands(targetVm, device.InstanceId, device.Path, device.Status);
+                var (commands, messages) = GetDDACommands(targetVm, device.InstanceId, device.Path, currentStatus);
 
                 for (var i = 0; i < messages.Length; i++)
                 {
                     Application.Current.Dispatcher.Invoke(() =>
                     {
-                        progressTextBlock.Text = LocalizationHelper.GetString(messages[i]);
+                        progressTextBlock.Text = LocalizationHelper.GetString(messages[i], messages[i]);
                     });
                     await Task.Delay(200);
 
-                    if (i < commands.Length)
+                    if (i < commands.Length && !string.IsNullOrEmpty(commands[i]))
                     {
-                        var result = Utils.Run(commands[i]);
+                        var result = Utils.RunWithErrorHandling(commands[i]);
+                        if (result.HasErrors)
+                        {
+                            var errorMessages = result.Errors.Select(e => e.Message).ToList();
+                            throw new Exception(string.Join("\n", errorMessages));
+                        }
                     }
                 }
 
-                device.Status = targetVm;
+                await LoadDevicesAsync();
 
                 Application.Current.Dispatcher.Invoke(() =>
                 {
@@ -324,6 +353,7 @@ public partial class DDAPage
                     progressDialog.CloseButtonText = LocalizationHelper.GetString("OK");
                     progressDialog.Closing += (sender, args) => { args.Cancel = false; };
                 });
+                await LoadDevicesAsync();
             }
         }
 
@@ -338,7 +368,7 @@ public partial class DDAPage
 
             if (currentStatus == removedText && vmName == hostText)
             {
-                commands = new[] { $"Mount-VMHostAssignableDevice -LocationPath '{path}'" };
+                commands = new[] { $"Mount-VMHostAssignableDevice -LocationPath '{path}' -Force" };
                 messages = new[] { "mounting" };
             }
             else if (currentStatus == removedText && vmName != hostText)
@@ -352,12 +382,11 @@ public partial class DDAPage
                 {
                     $"Set-VM -Name '{vmName}' -AutomaticStopAction TurnOff",
                     $"Set-VM -GuestControlledCacheTypes $true -VMName '{vmName}'",
-                    $"(Get-PnpDeviceProperty -InstanceId '{instanceId}' DEVPKEY_Device_LocationPaths).Data[0]",
                     $"Disable-PnpDevice -InstanceId '{instanceId}' -Confirm:$false",
                     $"Dismount-VMHostAssignableDevice -Force -LocationPath '{path}'",
                     $"Add-VMAssignableDevice -LocationPath '{path}' -VMName '{vmName}'"
                 };
-                messages = new[] { "string5", "cpucache", "getpath", "Disabledevice", "Dismountdevice", "mounting" };
+                messages = new[] { "string5", "cpucache", "Disabledevice", "Dismountdevice", "mounting" };
             }
             else if (vmName != hostText && currentStatus != hostText)
             {
@@ -365,22 +394,20 @@ public partial class DDAPage
                 {
                     $"Set-VM -Name '{vmName}' -AutomaticStopAction TurnOff",
                     $"Set-VM -GuestControlledCacheTypes $true -VMName '{vmName}'",
-                    $"(Get-PnpDeviceProperty -InstanceId '{instanceId}' DEVPKEY_Device_LocationPaths).Data[0]",
                     $"Remove-VMAssignableDevice -LocationPath '{path}' -VMName '{currentStatus}'",
                     $"Add-VMAssignableDevice -LocationPath '{path}' -VMName '{vmName}'"
                 };
-                messages = new[] { "string5", "cpucache", "getpath", "Dismountdevice", "mounting" };
+                messages = new[] { "string5", "cpucache", "Dismountdevice", "mounting" };
             }
             else if (vmName == hostText && currentStatus != hostText)
             {
                 commands = new[]
                 {
-                    $"(Get-PnpDeviceProperty -InstanceId '{instanceId}' DEVPKEY_Device_LocationPaths).Data[0]",
                     $"Remove-VMAssignableDevice -LocationPath '{path}' -VMName '{currentStatus}'",
-                    $"Mount-VMHostAssignableDevice -LocationPath '{path}'",
+                    $"Mount-VMHostAssignableDevice -LocationPath '{path}' -Force",
                     $"Enable-PnpDevice -InstanceId '{instanceId}' -Confirm:$false"
                 };
-                messages = new[] { "getpath", "Dismountdevice", "mounting", "enabling" };
+                messages = new[] { "Dismountdevice", "mounting", "enabling" };
             }
             else
             {
@@ -416,7 +443,11 @@ public partial class DDAPage
             _canExecute = canExecute;
         }
 
-        public event EventHandler? CanExecuteChanged;
+        public event EventHandler? CanExecuteChanged
+        {
+            add => CommandManager.RequerySuggested += value;
+            remove => CommandManager.RequerySuggested -= value;
+        }
 
         public bool CanExecute(object? parameter)
         {
@@ -430,7 +461,7 @@ public partial class DDAPage
 
         public void RaiseCanExecuteChanged()
         {
-            CanExecuteChanged?.Invoke(this, EventArgs.Empty);
+            CommandManager.InvalidateRequerySuggested();
         }
     }
 
@@ -445,23 +476,28 @@ public partial class DDAPage
             _canExecute = canExecute;
         }
 
-        public event EventHandler? CanExecuteChanged;
+        public event EventHandler? CanExecuteChanged
+        {
+            add => CommandManager.RequerySuggested += value;
+            remove => CommandManager.RequerySuggested -= value;
+        }
 
         public bool CanExecute(object? parameter)
         {
             if (parameter is T typedParameter)
                 return _canExecute?.Invoke(typedParameter) ?? true;
-            return parameter == null && typeof(T).IsClass;
+            return parameter == null && !typeof(T).IsValueType;
         }
 
         public async void Execute(object? parameter)
         {
-            if (CanExecute(parameter) && parameter is T typedParameter) await _executeAsync(typedParameter);
+            if (CanExecute(parameter) && (parameter is T typedParameter || parameter == null))
+                await _executeAsync((T)parameter);
         }
 
         public void RaiseCanExecuteChanged()
         {
-            CanExecuteChanged?.Invoke(this, EventArgs.Empty);
+            CommandManager.InvalidateRequerySuggested();
         }
     }
 }

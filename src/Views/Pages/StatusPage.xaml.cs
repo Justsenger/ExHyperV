@@ -1,8 +1,11 @@
-﻿using System.Security.Principal;
+﻿using System.ComponentModel;
+using System.Security.Principal;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Media;
 using Wpf.Ui.Appearance;
 using Wpf.Ui.Controls;
+using WPFLocalizeExtension.Engine;
 
 namespace ExHyperV.Views.Pages;
 
@@ -11,6 +14,36 @@ public partial class StatusPage
     public StatusPage()
     {
         InitializeComponent();
+        Loaded += StatusPage_Loaded;
+        Unloaded += StatusPage_Unloaded;
+    }
+
+    private void StatusPage_Loaded(object sender, RoutedEventArgs e)
+    {
+        LocalizeDictionary.Instance.PropertyChanged += Instance_PropertyChanged;
+        UpdateAllStatusInfo();
+    }
+
+    private void StatusPage_Unloaded(object sender, RoutedEventArgs e)
+    {
+        LocalizeDictionary.Instance.PropertyChanged -= Instance_PropertyChanged;
+    }
+
+    private void Instance_PropertyChanged(object sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == "Culture") UpdateAllStatusInfo();
+    }
+
+    private void UpdateAllStatusInfo()
+    {
+        Dispatcher.Invoke((Action)(() =>
+        {
+            progressRing1.Visibility = Visibility.Visible;
+            progressRing2.Visibility = Visibility.Visible;
+            progressRing3.Visibility = Visibility.Visible;
+            progressRing4.Visibility = Visibility.Visible;
+            progressRing5.Visibility = Visibility.Visible;
+        }));
 
         Task.Run(() => CpuInfo());
         Task.Run(() => SysInfo());
@@ -44,14 +77,20 @@ public partial class StatusPage
             : new SolidColorBrush(Color.FromArgb(255, 0, 120, 212)); // Dark blue for light theme
     }
 
+    private void RemoveExistingIcon(Grid grid)
+    {
+        var existingIcon = grid.Children.OfType<FontIcon>().FirstOrDefault();
+        if (existingIcon != null) grid.Children.Remove(existingIcon);
+    }
+
     private async void HyperVInfo()
     {
-        var message = LocalizationHelper.GetString("exhyperv");
-
         var hypervstatus = Utils.Run("Get-Module -ListAvailable -Name Hyper-V");
-        Dispatcher.Invoke(() =>
+        Dispatcher.Invoke((Action)(() =>
         {
-            status3.Children.Remove(progressRing3);
+            progressRing3.Visibility = Visibility.Collapsed;
+            RemoveExistingIcon(status3);
+
             var icons = new FontIcon
             {
                 FontSize = 20,
@@ -71,15 +110,17 @@ public partial class StatusPage
             }
 
             status3.Children.Add(icons);
-        });
+        }));
     }
 
     private async void SysInfo()
     {
         var buildVersion = Environment.OSVersion.Version.Build;
-        Dispatcher.Invoke(() =>
+        Dispatcher.Invoke((Action)(() =>
         {
-            status1.Children.Remove(progressRing1);
+            progressRing1.Visibility = Visibility.Collapsed;
+            RemoveExistingIcon(status1);
+
             var icons = new FontIcon
             {
                 FontSize = 20,
@@ -87,7 +128,7 @@ public partial class StatusPage
                 Glyph = "\xF167",
                 Foreground = GetInfoColor()
             };
-            status1.Children.Add(icons);
+
             if (buildVersion >= 22000) //不允许宿主使用过低的系统版本，WDDM版本低，以及PS命令存在问题。
             {
                 icons.Glyph = "\xEC61";
@@ -99,14 +140,16 @@ public partial class StatusPage
             else
             {
                 var ms = Application.Current.MainWindow as MainWindow; //获取主窗口
-                ms.gpupv.IsEnabled = false;
+                if (ms != null) ms.gpupv.IsEnabled = false;
                 var string3 = LocalizationHelper.GetString("String3");
                 var disablegpu = LocalizationHelper.GetString("disablegpu");
                 win.Text = string3 + buildVersion + disablegpu;
                 icons.Glyph = "\xEB90";
                 icons.Foreground = GetErrorColor();
             }
-        });
+
+            status1.Children.Add(icons);
+        }));
     }
 
     private async void CpuInfo()
@@ -114,10 +157,11 @@ public partial class StatusPage
         var cpuvt1 = Utils.Run("(Get-WmiObject -Class Win32_Processor).VirtualizationFirmwareEnabled");
         var cpuvt2 = Utils.Run("(Get-WmiObject -Class Win32_ComputerSystem).HypervisorPresent");
 
-
-        Dispatcher.Invoke(() =>
+        Dispatcher.Invoke((Action)(() =>
         {
-            status2.Children.Remove(progressRing2);
+            progressRing2.Visibility = Visibility.Collapsed;
+            RemoveExistingIcon(status2);
+
             var icons = new FontIcon
             {
                 FontSize = 20,
@@ -126,7 +170,8 @@ public partial class StatusPage
                 Foreground = GetSuccessColor()
             };
 
-            if (cpuvt1[0].ToString() == "True" || cpuvt2[0].ToString() == "True")
+            if (cpuvt1.Count > 0 &&
+                (cpuvt1[0].ToString() == "True" || (cpuvt2.Count > 0 && cpuvt2[0].ToString() == "True")))
             {
                 cpu.Text = LocalizationHelper.GetString("GPU1");
             }
@@ -138,7 +183,7 @@ public partial class StatusPage
             }
 
             status2.Children.Add(icons);
-        });
+        }));
     }
 
     private async void CheckReg() //检查是否添加了注册表，已添加则关闭弹窗
@@ -150,10 +195,13 @@ public partial class StatusPage
         }) -notcontains $false)";
         var result = Utils.Run(script);
 
-        Dispatcher.Invoke(() =>
+        Dispatcher.Invoke((Action)(() =>
         {
-            if (result[0].ToString().ToLower() == "true") gpustrategy.IsChecked = true;
-        });
+            if (result.Count > 0 && result[0].ToString().ToLower() == "true")
+                gpustrategy.IsChecked = true;
+            else
+                gpustrategy.IsChecked = false;
+        }));
     }
 
     private async void Admininfo()
@@ -161,9 +209,11 @@ public partial class StatusPage
         var identity = WindowsIdentity.GetCurrent();
         var principal = new WindowsPrincipal(identity);
         var Isadmin = principal.IsInRole(WindowsBuiltInRole.Administrator);
-        Dispatcher.Invoke(() =>
+        Dispatcher.Invoke((Action)(() =>
         {
-            status4.Children.Remove(progressRing4);
+            progressRing4.Visibility = Visibility.Collapsed;
+            RemoveExistingIcon(status4);
+
             var icons = new FontIcon
             {
                 FontSize = 20,
@@ -174,26 +224,28 @@ public partial class StatusPage
             if (Isadmin)
             {
                 admin.Text = LocalizationHelper.GetString("Admin1");
-                status4.Children.Add(icons);
             }
             else //如果没有管理员权限，关闭GPU虚拟化功能
             {
                 var ms = Application.Current.MainWindow as MainWindow; //获取主窗口
-                ms.gpupv.IsEnabled = false;
+                if (ms != null) ms.gpupv.IsEnabled = false;
                 admin.Text = LocalizationHelper.GetString("Admin2");
                 icons.Glyph = "\xEB90";
                 icons.Foreground = GetErrorColor();
-                status4.Children.Add(icons);
             }
-        });
+
+            status4.Children.Add(icons);
+        }));
     }
 
     private async void ServerInfo()
     {
         var result = Utils.Run("(Get-WmiObject -Class Win32_OperatingSystem).ProductType");
-        Dispatcher.Invoke(() =>
+        Dispatcher.Invoke((Action)(() =>
         {
-            status5.Children.Remove(progressRing5);
+            progressRing5.Visibility = Visibility.Collapsed;
+            RemoveExistingIcon(status5);
+
             var icons = new FontIcon
             {
                 FontSize = 20,
@@ -201,7 +253,7 @@ public partial class StatusPage
                 Glyph = "\xEC61",
                 Foreground = GetSuccessColor()
             };
-            if (result[0].ToString() == "3")
+            if (result.Count > 0 && result[0].ToString() == "3")
             {
                 version.Text = LocalizationHelper.GetString("Isserver");
             }
@@ -216,9 +268,8 @@ public partial class StatusPage
             }
 
             status5.Children.Add(icons);
-        });
+        }));
     }
-
 
     public void Addreg()
     {
@@ -235,14 +286,11 @@ public partial class StatusPage
         }}
 
         # 检查并设置注册表键值
-        if (-not (Test-Path '{registryPath}\\{key1}')) {{
-            Set-ItemProperty -Path '{registryPath}' -Name '{key1}' -Value 0 -Type DWord
-        }}
-
-        if (-not (Test-Path '{registryPath}\\{key2}')) {{
-            Set-ItemProperty -Path '{registryPath}' -Name '{key2}' -Value 0 -Type DWord
-        }}";
+        Set-ItemProperty -Path '{registryPath}' -Name '{key1}' -Value 0 -Type DWord -Force
+        Set-ItemProperty -Path '{registryPath}' -Name '{key2}' -Value 0 -Type DWord -Force
+        ";
         Utils.Run(script);
+        CheckReg();
     }
 
     public void RemoveReg()
@@ -254,9 +302,13 @@ public partial class StatusPage
 
         // PowerShell 脚本
         var script = $@"
-        Remove-ItemProperty -Path '{registryPath}' -Name '{key1}'
-        Remove-ItemProperty -Path '{registryPath}' -Name '{key2}'
-        Remove-Item -Path '{registryPath}' -Force";
+        if (Test-Path '{registryPath}') {{
+            Remove-ItemProperty -Path '{registryPath}' -Name '{key1}' -ErrorAction SilentlyContinue
+            Remove-ItemProperty -Path '{registryPath}' -Name '{key2}' -ErrorAction SilentlyContinue
+            if ((Get-ChildItem -Path '{registryPath}' -ErrorAction SilentlyContinue).Count -eq 0) {{
+                Remove-Item -Path '{registryPath}' -Force -ErrorAction SilentlyContinue
+            }}
+        }}";
 
         Utils.Run(script);
     }
