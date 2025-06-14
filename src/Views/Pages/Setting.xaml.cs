@@ -1,5 +1,6 @@
 ﻿using System.Globalization;
 using System.Windows.Controls;
+using ExHyperV.Models;
 using Wpf.Ui.Appearance;
 using WPFLocalizeExtension.Engine;
 
@@ -16,33 +17,29 @@ public partial class Setting
 
         // Theme initialization
         var currentTheme = ApplicationThemeManager.GetAppTheme();
-        if (currentTheme == ApplicationTheme.Dark)
-        {
-            ThemeComboBox.SelectedIndex = 1; // Dark
-            // Force refresh theme to ensure proper color inheritance
-            ApplicationThemeManager.Apply(ApplicationTheme.Dark);
-        }
-        else
-        {
-            ThemeComboBox.SelectedIndex = 0; // Light
-            // Force refresh theme to ensure proper color inheritance
-            ApplicationThemeManager.Apply(ApplicationTheme.Light);
-        }
+        var targetThemeType = currentTheme == ApplicationTheme.Dark ? ThemeType.Dark : ThemeType.Light;
+
+        // Find and select the ComboBoxItem with the matching Tag
+        foreach (ComboBoxItem item in ThemeComboBox.Items)
+            if (item.Tag is ThemeType themeType && themeType == targetThemeType)
+            {
+                ThemeComboBox.SelectedItem = item;
+                break;
+            }
+
+        // Force refresh theme to ensure proper color inheritance
+        ApplicationThemeManager.Apply(currentTheme);
 
         // Language initialization based on current WPFLocalizeExtension culture
         var currentCulture = LocalizeDictionary.Instance.Culture?.Name ?? "en-US";
-        switch (currentCulture)
-        {
-            case "en-US":
-                Setcombo("English");
+
+        // Find and select the ComboBoxItem with the matching Tag
+        foreach (ComboBoxItem item in LanguageComboBox.Items)
+            if (item.Tag?.ToString() == currentCulture)
+            {
+                LanguageComboBox.SelectedItem = item;
                 break;
-            case "zh-CN":
-                Setcombo("中文");
-                break;
-            default:
-                Setcombo("English");
-                break;
-        }
+            }
 
         isInitializing = false;
     }
@@ -52,10 +49,12 @@ public partial class Setting
     {
         if (isInitializing) return;
 
-        if (ThemeComboBox.SelectedIndex == 1) // Dark
-            ApplicationThemeManager.Apply(ApplicationTheme.Dark);
-        else // Light
-            ApplicationThemeManager.Apply(ApplicationTheme.Light);
+        var selectedItem = ThemeComboBox.SelectedItem as ComboBoxItem;
+        if (selectedItem?.Tag is ThemeType themeType)
+        {
+            var applicationTheme = themeType == ThemeType.Dark ? ApplicationTheme.Dark : ApplicationTheme.Light;
+            ApplicationThemeManager.Apply(applicationTheme);
+        }
     }
 
     private void OnLanguageSelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -63,13 +62,10 @@ public partial class Setting
         if (isInitializing) return;
 
         var selectedItem = LanguageComboBox.SelectedItem as ComboBoxItem;
-        if (selectedItem != null)
+        if (selectedItem?.Tag != null)
         {
-            var selectedLanguage = selectedItem.Content.ToString();
-
-            if (selectedLanguage == "中文")
-                SetLanguage("zh-CN"); // 设置为中文（简体）
-            else if (selectedLanguage == "English") SetLanguage("en-US"); // 设置为英文
+            var languageCode = selectedItem.Tag.ToString();
+            SetLanguage(languageCode);
         }
     }
 
@@ -78,11 +74,5 @@ public partial class Setting
         if (isInitializing) return;
 
         LocalizeDictionary.Instance.Culture = new CultureInfo(languageCode);
-    }
-
-    private void Setcombo(string lang)
-    {
-        LanguageComboBox.SelectedItem = LanguageComboBox.Items.Cast<ComboBoxItem>()
-            .FirstOrDefault(item => item.Content.ToString() == lang);
     }
 }

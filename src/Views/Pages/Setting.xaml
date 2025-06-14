@@ -6,6 +6,7 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
     xmlns:extensions="https://github.com/XAMLMarkupExtensions/WPFLocalizationExtension"
+    xmlns:models="clr-namespace:ExHyperV.Models"
     Title="Setting"
     d:DesignHeight="700"
     d:DesignWidth="1000"
@@ -37,8 +38,8 @@
                 x:Name="ThemeComboBox"
                 MinWidth="200"
                 SelectionChanged="OnThemeSelectionChanged">
-                <ComboBoxItem Content="{extensions:Loc light}" />
-                <ComboBoxItem Content="{extensions:Loc dark}" />
+                <ComboBoxItem Content="{extensions:Loc light}" Tag="{x:Static models:ThemeType.Light}" />
+                <ComboBoxItem Content="{extensions:Loc dark}" Tag="{x:Static models:ThemeType.Dark}" />
             </ComboBox>
         </ui:CardControl>
 
@@ -63,8 +64,8 @@
                 x:Name="LanguageComboBox"
                 MinWidth="200"
                 SelectionChanged="OnLanguageSelectionChanged">
-                <ComboBoxItem Content="中文" />
-                <ComboBoxItem Content="English" />
+                <ComboBoxItem Content="中文" Tag="zh-CN" />
+                <ComboBoxItem Content="English" Tag="en-US" />
             </ComboBox>
         </ui:CardControl>
 
