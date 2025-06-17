@@ -199,7 +199,7 @@
     <value>Settings</value>
   </data>
   <data name="disablereg" xml:space="preserve">
-    <value>Disable security policy (RequireSecureDeviceAssignment、RequireSupportedDeviceAssignment)</value>
+    <value>Disable security policy</value>
   </data>
   <data name="Host" xml:space="preserve">
     <value>Host</value>

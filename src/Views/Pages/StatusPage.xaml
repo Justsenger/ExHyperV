@@ -111,7 +111,15 @@
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="auto"/>
                         </Grid.ColumnDefinitions>
-                        <TextBlock Text="{x:Static properties:Resources.disablereg}" FontSize="16" VerticalAlignment="Center"/>
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <TextBlock Text="{x:Static properties:Resources.disablereg}" VerticalAlignment="Center"/>
+                            <ui:TextBlock Grid.Row="1" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" Text="RequireSecureDeviceAssignment=0 RequireSupportedDeviceAssignment=0" />
+                        </Grid>
+                        
                         <ui:ToggleSwitch
                     x:Name="gpustrategy"
                     Grid.Column="1"
