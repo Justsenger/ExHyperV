@@ -277,7 +277,7 @@ public partial class Utils
         return linkerTime;
     }
 
-    public static string Version => "V1.0.8";
+    public static string Version => "V1.0.9";
     public static string Author => "砂菱叶";
 
 

@@ -259,46 +259,57 @@ public partial class DDAPage
 
                             // 获取 PCI 设备信息。需要多查询几遍才能获取所有设备的完整信息。
                             string scripts = @"
-                            $maxRetries = 10
-                            $retryIntervalSeconds = 1
-
-                            $pciDevices = Get-PnpDevice | Where-Object { $_.InstanceId -like 'PCI\*' }
-                            $allInstanceIds = $pciDevices.InstanceId
-                            $pathMap = @{}
-
-                            Get-PnpDeviceProperty -InstanceId $allInstanceIds -KeyName DEVPKEY_Device_LocationPaths -ErrorAction SilentlyContinue |
-                                ForEach-Object {
-                                    if ($_.Data -and $_.Data.Count -gt 0) {
-                                        $pathMap[$_.InstanceId] = $_.Data[0]
-                                    }
-                                }
-
-                            $idsNeedingPath = $allInstanceIds | Where-Object { -not $pathMap.ContainsKey($_) }
-                            $attemptCount = 0
-
-                            while (($idsNeedingPath.Count -gt 0) -and ($attemptCount -lt $maxRetries)) {
-                                $attemptCount++
-                                
-                                Get-PnpDeviceProperty -InstanceId $idsNeedingPath -KeyName DEVPKEY_Device_LocationPaths -ErrorAction SilentlyContinue |
-                                    ForEach-Object {
-                                        if ($_.Data -and $_.Data.Count -gt 0) {
-                                            $pathMap[$_.InstanceId] = $_.Data[0]
-                                        }
-                                    }
-                                
-                                $idsNeedingPath = $allInstanceIds | Where-Object { -not $pathMap.ContainsKey($_) }
-
-                                if (($idsNeedingPath.Count -gt 0) -and ($attemptCount -lt $maxRetries)) {
-                                    Start-Sleep -Seconds $retryIntervalSeconds
+                            function Invoke-GetPathBatch {
+                                param($Ids, $Map, $Key)
+                                if ($Ids.Count -eq 0) { return }
+                                Get-PnpDeviceProperty -InstanceId $Ids -KeyName $Key -ErrorAction SilentlyContinue | ForEach-Object {
+                                    if ($_.Data -and $_.Data.Count -gt 0) { $Map[$_.InstanceId] = $_.Data[0] }
                                 }
                             }
 
-                            $pciDevices | 
-                                Select-Object Class, InstanceId, FriendlyName, Status, Service |
-                                ForEach-Object {
-                                    $_ | Add-Member -NotePropertyName 'Path' -NotePropertyValue $pathMap[$_.InstanceId] -Force
-                                    $_ 
-                                }";
+                            $maxRetries = 3; $retryIntervalSeconds = 1; 
+                            $KeyName = 'DEVPKEY_Device_LocationPaths'
+
+                            $pciDevices = Get-PnpDevice | Where-Object { $_.InstanceId -like 'PCI\*' }
+                            if (-not $pciDevices) { exit }
+                            $pciDeviceCount = $pciDevices.Count
+                            if ($pciDeviceCount -gt 200) {
+                                $batchSize = 100
+                            } else {
+                                $batchSize = $pciDeviceCount
+                                if ($batchSize -lt 1) { $batchSize = 1 }
+                            }
+                            $allInstanceIds = $pciDevices.InstanceId; $pathMap = @{}
+                            if ($allInstanceIds.Count -gt 0) { 
+                                $numBatches = [Math]::Ceiling($allInstanceIds.Count / $batchSize)
+                                for ($i = 0; $i -lt $numBatches; $i++) {
+                                    $batch = $allInstanceIds[($i * $batchSize) .. ([Math]::Min((($i + 1) * $batchSize - 1), ($allInstanceIds.Count - 1)))]
+                                    if ($batch.Count -gt 0) {
+                                        Invoke-GetPathBatch -Ids $batch -Map $pathMap -Key $KeyName
+                                    }
+                                }
+                            }
+                            $idsNeedingPath = $allInstanceIds | Where-Object { -not $pathMap.ContainsKey($_) }
+                            $attemptCount = 0
+                            while (($idsNeedingPath.Count -gt 0) -and ($attemptCount -lt $maxRetries)) {
+                                $attemptCount++
+                                if ($idsNeedingPath.Count -gt 0) { 
+                                    $numRetryBatches = [Math]::Ceiling($idsNeedingPath.Count / $batchSize)
+                                    for ($j = 0; $j -lt $numRetryBatches; $j++) {
+                                        $batch = $idsNeedingPath[($j * $batchSize) .. ([Math]::Min((($j + 1) * $batchSize - 1), ($idsNeedingPath.Count - 1)))]
+                                        if ($batch.Count -gt 0) {
+                                            Invoke-GetPathBatch -Ids $batch -Map $pathMap -Key $KeyName
+                                        }
+                                    }
+                                }
+                                $idsNeedingPath = $allInstanceIds | Where-Object { -not $pathMap.ContainsKey($_) }
+                                if (($idsNeedingPath.Count -gt 0) -and ($attemptCount -lt $maxRetries)) { Start-Sleep -Seconds $retryIntervalSeconds }
+                            }
+
+                            $pciDevices | Select-Object Class, InstanceId, FriendlyName, Status, Service | ForEach-Object {
+                                $val = $null; if ($pathMap.ContainsKey($_.InstanceId)) { $val = $pathMap[$_.InstanceId] }
+                                $_ | Add-Member -NotePropertyName 'Path' -NotePropertyValue $val -Force; $_
+                            }";
 
                 var Pcidata = Utils.Run(scripts);
                 var sortedResults = Pcidata
