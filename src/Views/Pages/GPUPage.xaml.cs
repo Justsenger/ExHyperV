@@ -113,7 +113,8 @@ public partial class GPUPage
                     });
 
                     // 更新显存信息或设置默认值
-                    existingGpu.Ram = matchedGpu?.Members["MemorySize"]?.Value?.ToString() ?? "0";
+                    string preram = matchedGpu?.Members["MemorySize"]?.Value?.ToString() ?? "0";
+                    existingGpu.Ram = long.TryParse(preram, out long _) ? preram : "0";
                 }
             }
 
