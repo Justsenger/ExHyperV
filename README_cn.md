@@ -154,15 +154,8 @@ DDA全称Discrete Device Assignment，即离散设备分配，可以将独立的
 
 可以直通一个USB控制器，然后搭配USB显卡使用。目前，不建议使用此方案。作者正在解决大显存显卡DDA和GPU-PV同时使用时的冲突问题，且不一定能成功。
 
-比较常见的芯片是[DL-6950](https://www.synaptics.com/cn/products/displaylink-graphics/integrated-chipsets/dl-6000)和[SM768](https://www.siliconmotion.com/product/cht/Graphics-Display-SoCs.html)，以下一组图片描述了渲染适配器（GTX 1050）和显示适配器（DL 6950）联合工作的场景，可以在144Hz下几乎无延迟地正常工作。
+比较常见的芯片是[DL-6950](https://www.synaptics.com/cn/products/displaylink-graphics/integrated-chipsets/dl-6000)和[SM768](https://www.siliconmotion.com/product/cht/Graphics-Display-SoCs.html)，实测GTX 1050显卡作为渲染适配器（GTX 1050）可以和显示适配器（DL 6950）正常工作，在144Hz下几乎无延迟。
 
-![DL](https://github.com/Justsenger/ExHyperV/blob/main/img/d1.png)
-
-![DL](https://github.com/Justsenger/ExHyperV/blob/main/img/d2.png)
-
-![DL](https://github.com/Justsenger/ExHyperV/blob/main/img/d3.png)
-
-![DL](https://github.com/Justsenger/ExHyperV/blob/main/img/d4.png)
 
 # 笔记
 
