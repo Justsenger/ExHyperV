@@ -11,6 +11,7 @@ using System.Xml.Linq;
 using Wpf.Ui.Controls;
 using Image = Wpf.Ui.Controls.Image;
 using TextBlock = Wpf.Ui.Controls.TextBlock;
+using WriteText = Wpf.Ui.Controls.TextBox;
 
 namespace ExHyperV.Views.Pages;
 
@@ -83,6 +84,8 @@ public partial class Utils
     {
         switch (deviceType)
         {
+            case "Switch":
+                return "\xE990";  // 交换机图标 
             case "Display":
                 return "\xF211";  // 显卡图标 
             case "Net":
@@ -123,6 +126,21 @@ public partial class Utils
         };
         return headerText;
     }
+
+    public static WriteText WriteTextBlock(string friendlyName)
+    {
+        var headerText = new WriteText
+        {
+            Text = friendlyName,
+            FontSize = 16,
+            Margin = new System.Windows.Thickness(0, -2, 0, 0),
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        return headerText;
+    }
+
+
+
     public static DropDownButton DropDownButton1(string status) {
         var Menu = new DropDownButton
         {
@@ -155,6 +173,16 @@ public partial class Utils
 
         return textBlock;
     }
+
+    public static WriteText WriteTextBlock2(string text, int row, int column)
+    {
+        var textBlock = new WriteText { Text = text, FontSize = 16, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 10, 10) };
+        Grid.SetRow(textBlock, row);
+        Grid.SetColumn(textBlock, column);
+
+        return textBlock;
+    }
+
 
     public static StackPanel CreateStackPanel(string text)
     {

@@ -149,7 +149,8 @@ public partial class DDAPage
                         }
                         refreshlock = false;
                     });
-                }
+                
+    }
                 private async Task DDAps(DropDownButton menu,ContentDialog dialog,TextBlock contentTextBlock,string Vmname,string instanceId,string path,string Nowname)
                 {
                     var (psCommands, messages) = DDACommands(Vmname,instanceId,path,Nowname); //通过四元组获取对应的命令和消息提示

@@ -34,7 +34,7 @@
         </ui:TitleBar>
 
         <!-- 左侧菜单 -->
-        <ui:NavigationView x:Name="RootNavigation" Grid.Row="1" OpenPaneLength="200" IsPaneOpen="False" IsBackButtonVisible="Collapsed" Grid.RowSpan="2" Grid.ColumnSpan="2">
+        <ui:NavigationView x:Name="RootNavigation" Grid.Row="1" OpenPaneLength="250" IsPaneOpen="False" IsBackButtonVisible="Collapsed" Grid.RowSpan="2" Grid.ColumnSpan="2">
             <ui:NavigationView.MenuItems>
                 <ui:NavigationViewItem
                     Content="{x:Static properties:Resources.Main}"
@@ -74,6 +74,18 @@
                         <ui:SymbolIcon Symbol="Grid28" />
                     </ui:NavigationViewItem.Icon>
                 </ui:NavigationViewItem>
+
+                <ui:NavigationViewItem
+                    x:Name="VMnet"
+                    Content="虚拟交换机"
+                    NavigationCacheMode="Enabled"
+                    Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"
+                    TargetPageType="{x:Type pages:VMNetPage}">
+                    <ui:NavigationViewItem.Icon>
+                        <ui:SymbolIcon Symbol="Globe32" />
+                    </ui:NavigationViewItem.Icon>
+                </ui:NavigationViewItem>
+                
             </ui:NavigationView.MenuItems>
 
             <ui:NavigationView.FooterMenuItems>
