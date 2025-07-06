@@ -86,6 +86,8 @@ public partial class Utils
         {
             case "Switch":
                 return "\xE990";  // 交换机图标 
+            case "Upstream":     
+                return "\uE774";  // 地球/上游网络图标
             case "Display":
                 return "\xF211";  // 显卡图标 
             case "Net":
@@ -124,6 +126,19 @@ public partial class Utils
             Margin = new System.Windows.Thickness(0,-2, 0, 0),
             VerticalAlignment = VerticalAlignment.Center
         };
+        return headerText;
+    }
+
+    public static TextBlock TextBlock12(string friendlyName)
+    {
+        var headerText = new TextBlock
+        {
+            Text = friendlyName,
+            FontSize = 12,
+            Margin = new System.Windows.Thickness(0, 2, 0, 0),
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+        headerText.SetResourceReference(TextBlock.ForegroundProperty, "TextFillColorSecondaryBrush");
         return headerText;
     }
 
@@ -303,6 +318,44 @@ public partial class Utils
         var fileInfo = new System.IO.FileInfo(filePath);
         DateTime linkerTime = fileInfo.LastWriteTime;
         return linkerTime;
+    }
+
+
+    public static async Task UpdateSwitchConfigurationAsync(string switchName, string mode, string? physicalAdapterName, bool allowManagementOS)
+    {
+        // 使用 switch 语句处理不同的模式字符串
+        switch (mode)
+        {
+            case "Bridge":
+                // 执行桥接模式的PowerShell命令
+
+                // 创建一个 MessageBox 实例
+                
+                //1.将交换机转换为外部交换机。2.将指定的物理网卡传递为外部交换机参数。3.返回执行结果。
+                string allowManagementParam = allowManagementOS ? "$true" : "$false";
+                string script = $"Set-VMSwitch -Name '{switchName}' -NetAdapterInterfaceDescription '{physicalAdapterName}' -AllowManagementOS {allowManagementParam}";
+                await new Wpf.Ui.Controls.MessageBox { Content = script, }.ShowDialogAsync();
+                //Run(script);
+
+                break;
+
+            case "NAT":
+                // 执行NAT模式的PowerShell命令
+                string script2 = $"Set-VMSwitch -Name '{switchName}' -SwitchType Internal -AllowManagementOS $true";
+
+                //启动NAT服务，将物理网卡的网络共享给交换机。
+
+                break;
+
+            case "Isolated":
+                // 执行无上游（Internal/Private）模式的PowerShell命令
+                string script3 = $"Set-VMSwitch -Name '{switchName}' -SwitchType Internal -AllowManagementOS $false";
+                break;
+
+            default:
+                // 可以选择处理未知的模式字符串
+                throw new ArgumentException($"未知的网络模式: {mode}", nameof(mode));
+        }
     }
 
     public static string Version => "V1.0.9";

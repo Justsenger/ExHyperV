@@ -15,7 +15,7 @@ public partial class DDAPage
         InitializeComponent();
         Task.Run(() => IsServer());
         Task.Run(() => Initialinfo()); //获取设备信息
-                }
+    }
                 public class DeviceInfo
                 {
                     public string FriendlyName { get; set; }
@@ -23,19 +23,21 @@ public partial class DDAPage
                     public string ClassType { get; set; }
                     public string InstanceId { get; set; }
                     public string Path { get; set; }
+                    public string Vendor { get; set; }
                     public List<string> VmNames { get; set; }  // 存储虚拟机名称列表
 
                     // 构造函数
-                    public DeviceInfo(string friendlyName, string status, string classType, string instanceId,List<string> vmNames,string path)
-                    {
-                        FriendlyName = friendlyName;
-                        Status = status;
-                        ClassType = classType;
-                        InstanceId = instanceId;
-                        VmNames = vmNames; 
-                        Path = path;
-                    }
-                }
+        public DeviceInfo(string friendlyName, string status, string classType, string instanceId, List<string> vmNames, string path, string vendor)
+        {
+            FriendlyName = friendlyName;
+            Status = status;
+            ClassType = classType;
+            InstanceId = instanceId;
+            VmNames = vmNames;
+            Path = path;
+            Vendor = vendor;
+        }
+    }
                 
 
                 private async void IsServer()
@@ -126,15 +128,18 @@ public partial class DDAPage
                             grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(32) });
                             grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(32) });
                             grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(32) });
+                            grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(32) });
 
                             var textData = new (string text, int row, int column)[]
                             {
                                 (ExHyperV.Properties.Resources.kind, 0, 0),
                                 (ExHyperV.Properties.Resources.Instanceid, 1, 0),
                                 (ExHyperV.Properties.Resources.path, 2, 0),
+                                ("制造商", 3, 0),
                                 (device.ClassType, 0, 1),
                                 (device.InstanceId, 1, 1),
                                 (device.Path, 2, 1),
+                                (device.Vendor, 3, 1),
                             };
 
                             foreach (var (text, row, column) in textData)
@@ -204,6 +209,10 @@ public partial class DDAPage
                 }
                 private async Task GetInfo(List<DeviceInfo> deviceList)
                 {
+
+                    var pciInfoProvider = new PciInfoProvider();
+                    await pciInfoProvider.EnsureInitializedAsync();
+
                     try
                     {
                         using (PowerShell PowerShellInstance = PowerShell.Create())
@@ -342,7 +351,8 @@ public partial class DDAPage
                     else {
                         status = Properties.Resources.Host; //挂载在主机上的情况。
                     }
-                    deviceList.Add(new DeviceInfo(friendlyName, status, classType, instanceId,vmNameList,path)); //添加到设备列表
+                    string vendor = pciInfoProvider.GetVendorFromInstanceId(instanceId);
+                    deviceList.Add(new DeviceInfo(friendlyName, status, classType, instanceId,vmNameList,path,vendor)); //添加到设备列表
                 }
             }
         }

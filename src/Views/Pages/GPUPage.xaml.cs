@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Management.Automation;
+using System.Numerics;
 using System.Windows;
 using System.Windows.Controls;
 using Microsoft.CodeAnalysis;
@@ -29,9 +30,10 @@ public partial class GPUPage
         public string Pname { get; set; } //可分区的显卡路径
         public string Ram { get; set; } //显存大小
         public string DriverVersion { get; set; } //驱动版本
+        public string Vendor { get; set; }
 
         // 构造函数
-        public GPUInfo(string name, string valid, string manu, string instanceId, string pname, string ram, string driverversion)
+        public GPUInfo(string name, string valid, string manu, string instanceId, string pname, string ram, string driverversion, string vendor)
         {
             Name = name;
             Valid = valid;
@@ -40,6 +42,7 @@ public partial class GPUPage
             Pname = pname;
             Ram = ram;
             DriverVersion = driverversion;
+            Vendor = vendor;
         }
     }
     public class VMInfo
@@ -52,6 +55,7 @@ public partial class GPUPage
 
 
 
+
         // 构造函数
         public VMInfo(string name, string low, string high, string guest, Dictionary<string, string> gpus)
         {
@@ -60,11 +64,15 @@ public partial class GPUPage
             HighMMIO = high;
             GuestControlled = guest;
             GPUs = gpus;
+
         }
 
     }
     public async void GetGpu()
     {
+
+        var pciInfoProvider = new PciInfoProvider();
+        await pciInfoProvider.EnsureInitializedAsync();
         await Task.Run(() => {
             List<GPUInfo> gpuList = [];
             //获取目前联机的显卡
@@ -77,7 +85,8 @@ public partial class GPUPage
                     string instanceId = gpu.Members["PNPDeviceID"]?.Value.ToString();
                     string Manu = gpu.Members["AdapterCompatibility"]?.Value.ToString();
                     string DriverVersion = gpu.Members["DriverVersion"]?.Value.ToString();
-                    gpuList.Add(new GPUInfo(name, "True", Manu, instanceId, null, null, DriverVersion));
+                    string vendor = pciInfoProvider.GetVendorFromInstanceId(instanceId);
+                    gpuList.Add(new GPUInfo(name, "True", Manu, instanceId, null, null, DriverVersion,vendor));
                 }
             }
             //获取HyperV支持状态
@@ -196,6 +205,7 @@ public partial class GPUPage
             string pname = string.IsNullOrEmpty(gpu.Pname) ? Properties.Resources.none : gpu.Pname; //GPU分区路径
             string driverversion = string.IsNullOrEmpty(gpu.DriverVersion) ? Properties.Resources.none : gpu.DriverVersion;
             string gpup = ExHyperV.Properties.Resources.notsupport; //是否支持GPU分区
+            string vendor = string.IsNullOrEmpty(gpu.Vendor) ? Properties.Resources.none : gpu.Vendor;
 
             string ram = (string.IsNullOrEmpty(gpu.Ram) ? 0 : long.Parse(gpu.Ram)) / (1024 * 1024) + " MB";
             if (manu.Contains("Moore")) {
@@ -241,15 +251,17 @@ public partial class GPUPage
                 grid2.RowDefinitions.Add(new RowDefinition { Height = new GridLength(32) });
                 grid2.RowDefinitions.Add(new RowDefinition { Height = new GridLength(32) });
                 grid2.RowDefinitions.Add(new RowDefinition { Height = new GridLength(32) });
+                grid2.RowDefinitions.Add(new RowDefinition { Height = new GridLength(32) });
 
                 var textData = new (string text, int row, int column)[]
                 {
-                    (ExHyperV.Properties.Resources.manu, 0, 0),(manu, 0, 1),
+                    ("设计商", 0, 0),(manu, 0, 1),
                     (ExHyperV.Properties.Resources.ram, 1, 0),(ram, 1, 1),
                     (ExHyperV.Properties.Resources.Instanceid, 2, 0),(instanceId, 2, 1),
                     (ExHyperV.Properties.Resources.gpupv, 3, 0),(gpup, 3, 1),
                     (ExHyperV.Properties.Resources.gpupvpath, 4, 0),(pname, 4, 1),
                     (ExHyperV.Properties.Resources.driverversion, 5, 0),(driverversion, 5, 1),
+                    (ExHyperV.Properties.Resources.manu, 6, 0),(vendor, 6, 1),
                 };
 
                 foreach (var (text, row1, column) in textData)
