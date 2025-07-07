@@ -3,6 +3,7 @@ using System.Data.Common;
 using System.Dynamic;
 using System.Management.Automation;
 using System.Reflection;
+using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -19,13 +20,34 @@ namespace ExHyperV.Views.Pages;
 public partial class Utils
 {
 
-    public static Collection<PSObject> Run(string script)
+    public static Collection<PSObject>? Run(string script)
     {
-        PowerShell ps = PowerShell.Create();
-        ps.AddScript(script);
-        return ps.Invoke();
+        using (PowerShell ps = PowerShell.Create())
+        {
+            ps.AddScript(script);
+            try
+            {
+                var results = ps.Invoke();
+                if (ps.HadErrors)
+                {
+                    var errorBuilder = new StringBuilder();
+                    errorBuilder.AppendLine("PowerShell 执行时遇到错误：\n");
+                    foreach (var error in ps.Streams.Error)
+                    {
+                        errorBuilder.AppendLine($"- {error.Exception.Message}");
+                    }
+                    Show(errorBuilder.ToString());
+                    return null;
+                }
+                return results;
+            }
+            catch (Exception ex)
+            {
+                Show($"执行 PowerShell 时发生严重系统异常：\n\n{ex.Message}");
+                return null;
+            }
+        }
     }
-
     public static Collection<PSObject> Run2(string script)
     {
         PowerShell ps = PowerShell.Create();
@@ -321,41 +343,70 @@ public partial class Utils
     }
 
 
-    public static async Task UpdateSwitchConfigurationAsync(string switchName, string mode, string? physicalAdapterName, bool allowManagementOS)
+    public static async Task UpdateSwitchConfigurationAsync(string switchName, string mode, string? physicalAdapterName, bool allowManagementOS, bool enabledhcp)
     {
-        // 使用 switch 语句处理不同的模式字符串
+        string allowManagementParam = allowManagementOS ? "$true" : "$false";
+        string script = string.Empty;
+
         switch (mode)
         {
             case "Bridge":
-                // 执行桥接模式的PowerShell命令
-
-                // 创建一个 MessageBox 实例
-                
-                //1.将交换机转换为外部交换机。2.将指定的物理网卡传递为外部交换机参数。3.返回执行结果。
-                string allowManagementParam = allowManagementOS ? "$true" : "$false";
-                string script = $"Set-VMSwitch -Name '{switchName}' -NetAdapterInterfaceDescription '{physicalAdapterName}' -AllowManagementOS {allowManagementParam}";
-                await new Wpf.Ui.Controls.MessageBox { Content = script, }.ShowDialogAsync();
-                //Run(script);
-
+                //先删除可能存在的适配器。
+                script = $"Get-VMNetworkAdapter -ManagementOS -SwitchName '{switchName}' -ErrorAction SilentlyContinue | Remove-VMNetworkAdapter -Confirm:$false";
+                script += $"\nSet-VMSwitch -Name '{switchName}' -NetAdapterInterfaceDescription '{physicalAdapterName}' -AllowManagementOS {allowManagementParam}";
                 break;
 
             case "NAT":
-                // 执行NAT模式的PowerShell命令
-                string script2 = $"Set-VMSwitch -Name '{switchName}' -SwitchType Internal -AllowManagementOS $true";
-
-                //启动NAT服务，将物理网卡的网络共享给交换机。
-
-                break;
+                script = $"Set-VMSwitch -Name '{switchName}' -SwitchType Internal";
+                if (allowManagementOS)
+                {
+                    script += $"\nif (-not (Get-VMNetworkAdapter -ManagementOS -SwitchName '{switchName}' -ErrorAction SilentlyContinue)) {{ Add-VMNetworkAdapter -ManagementOS -SwitchName '{switchName}' }}";
+                }
+                else 
+                {
+                    script += $"\nGet-VMNetworkAdapter -ManagementOS -SwitchName '{switchName}' -ErrorAction SilentlyContinue | Remove-VMNetworkAdapter -Confirm:$false";
+                }
+               
+                    break;
 
             case "Isolated":
-                // 执行无上游（Internal/Private）模式的PowerShell命令
-                string script3 = $"Set-VMSwitch -Name '{switchName}' -SwitchType Internal -AllowManagementOS $false";
+                script = $"Set-VMSwitch -Name '{switchName}' -SwitchType Internal";
+                if (allowManagementOS)
+                {
+                    script += $"\nif (-not (Get-VMNetworkAdapter -ManagementOS -SwitchName '{switchName}' -ErrorAction SilentlyContinue)) {{ Add-VMNetworkAdapter -ManagementOS -SwitchName '{switchName}' }}";
+                }
+                else
+                {
+                    script += $"\nGet-VMNetworkAdapter -ManagementOS -SwitchName '{switchName}' -ErrorAction SilentlyContinue | Remove-VMNetworkAdapter -Confirm:$false";
+                }
+
                 break;
 
             default:
-                // 可以选择处理未知的模式字符串
-                throw new ArgumentException($"未知的网络模式: {mode}", nameof(mode));
+                Show($"错误：未知的网络模式 '{mode}'");
+                return; 
         }
+
+        Run(script);
+
+
+        // 这里可以添加对 enabledhcp 参数的处理逻辑，如果需要的话
+        if (enabledhcp)
+        {
+            // ... 添加启用DHCP的脚本和逻辑 ...
+            // Show("启用DHCP的逻辑...");
+        }
+    }
+    public static void Show(string message)
+    {
+        var messageBox = new Wpf.Ui.Controls.MessageBox
+        {
+            Title = "提示",
+            Content = message,
+            CloseButtonText = "OK"
+        };
+
+        messageBox.ShowDialogAsync();
     }
 
     public static string Version => "V1.0.9";

@@ -187,7 +187,7 @@ public partial class VMNetPage
                     else { upstreamDropDown.Content = !string.IsNullOrEmpty(Switch1.NetAdapterInterfaceDescription) ? Switch1.NetAdapterInterfaceDescription : "请选择网卡..."; }
                 }
 
-                // *** 核心: 全新的、更精确的UI状态更新函数 ***
+                // *** 核心: 全新的、更精确的UI状态更新函数 *** (无变化)
                 void UpdateUIState()
                 {
                     if (_isUpdatingUiFromCode) return;
@@ -195,39 +195,33 @@ public partial class VMNetPage
 
                     if (rbBridge.IsChecked == true)
                     {
-                        // 桥接模式
                         hostConnectionSwitch.IsEnabled = true;
-                        dhcpSwitch.IsEnabled = false; // DHCP由外部网络提供
+                        dhcpSwitch.IsEnabled = false;
                         UpdateUpstreamState(true);
                     }
                     else if (rbNat.IsChecked == true)
                     {
-                        // NAT 模式
-                        hostConnectionSwitch.IsChecked = true;  // 强制开启
-                        hostConnectionSwitch.IsEnabled = false; // 且禁用
+                        hostConnectionSwitch.IsChecked = true;
+                        hostConnectionSwitch.IsEnabled = false;
                         dhcpSwitch.IsEnabled = true;
-                        UpdateUpstreamState(true); // 允许选择上游网卡
+                        UpdateUpstreamState(true);
                     }
                     else // 无上游模式
                     {
-                        // 基础状态：宿主连接和DHCP都可用
                         hostConnectionSwitch.IsEnabled = true;
                         dhcpSwitch.IsEnabled = true;
                         UpdateUpstreamState(false);
                     }
 
-                    // 联动逻辑：主要影响“无上游模式”
                     if (hostConnectionSwitch.IsEnabled)
                     {
                         if (hostConnectionSwitch.IsChecked == false)
                         {
-                            // 如果宿主连接被用户手动关闭
-                            dhcpSwitch.IsChecked = false; // 强制关闭DHCP
-                            dhcpSwitch.IsEnabled = false; // 并禁用它
+                            dhcpSwitch.IsChecked = false;
+                            dhcpSwitch.IsEnabled = false;
                         }
                         else
                         {
-                            // 如果宿主连接是开启的 (且不是NAT或桥接模式)，则DHCP应该可用
                             if (rbNat.IsChecked != true && rbBridge.IsChecked != true)
                             {
                                 dhcpSwitch.IsEnabled = true;
@@ -239,7 +233,7 @@ public partial class VMNetPage
                     _isUpdatingUiFromCode = false;
                 }
 
-                // *** 核心: 重构后的统一事件处理器 ***
+                // *** 核心: 重构后的统一事件处理器 *** (无变化)
                 async void OnSettingsChanged(object sender, RoutedEventArgs e)
                 {
                     UpdateUIState();
@@ -260,11 +254,10 @@ public partial class VMNetPage
                         if ((selectedMode == "Bridge" || selectedMode == "NAT") &&
                             (string.IsNullOrEmpty(selectedAdapter) || selectedAdapter.Contains("请选择") || selectedAdapter.Contains("不可用")))
                         {
-                            return; // 有上游的模式，如果网卡无效，则不执行后台更新
+                            return;
                         }
 
-                        // 假设后台函数已更新，以接受 enableDhcp 参数
-                        // await Utils.UpdateSwitchConfigurationAsync(Switch1.SwitchName, selectedMode, selectedAdapter, allowManagementOS, enableDhcp);
+                         await Utils.UpdateSwitchConfigurationAsync(Switch1.SwitchName, selectedMode, selectedAdapter, allowManagementOS, enableDhcp);
                     }
                     catch (Exception ex)
                     {
@@ -272,21 +265,31 @@ public partial class VMNetPage
                     }
                 }
 
-                // CreateNetworkCardMenuItem 函数 (无变化)
+                // =========================================================================
+                //         <<<<<<<<<<<<<<<<<<   此处为核心修正区域   >>>>>>>>>>>>>>>>>>
+                // =========================================================================
+                // CreateNetworkCardMenuItem 函数 (已修正，解决网卡选择后UI不更新的问题)
                 MenuItem CreateNetworkCardMenuItem(string cardName)
                 {
                     var item = new MenuItem { Header = cardName };
-                    item.Click += (s, e) => {
-                        upstreamDropDown.Content = item.Header;
-                        UpdateUIState();
-                        // 手动触发一次后台更新，因为网卡选择是重要配置变更
+                    item.Click += (s, e) =>
+                    {
+                        // 1. 核心修正: 首先更新数据模型(Switch1对象)
+                        //    这确保了后续的UI刷新函数使用的是最新的数据，而不是旧的。
+                        Switch1.NetAdapterInterfaceDescription = cardName;
+
+                        // 2. 立即更新UI显示，提供快速反馈
+                        upstreamDropDown.Content = cardName;
+
+                        // 3. 触发统一的事件处理器来刷新所有相关UI状态并执行后台更新。
+                        //    (不再需要单独调用 UpdateUIState()，因为 OnSettingsChanged 会做)
                         OnSettingsChanged(upstreamDropDown, new RoutedEventArgs());
                     };
                     return item;
                 }
 
                 // =========================================================================
-                // 阶段3 - 组装UI树并绑定事件
+                // 阶段3 - 组装UI树并绑定事件 (无变化)
                 // =========================================================================
                 var contentPanel = new StackPanel { Margin = new Thickness(50, 10, 0, 10) };
                 var settingsGrid = new Grid();
@@ -356,7 +359,7 @@ public partial class VMNetPage
                 contentPanel.Children.Add(topologySectionPanel);
 
                 // =========================================================================
-                // 阶段4 - 设置初始状态
+                // 阶段4 - 设置初始状态 (无变化)
                 // =========================================================================
                 switch (Switch1.SwitchType)
                 {
