@@ -12,6 +12,9 @@ public partial class VMNetPage
     public bool refreshlock = false;
     private bool _isUpdatingUiFromCode = false;
 
+    WaitPage selectItemWindow = new WaitPage();
+    selectItemWindow.ShowDialog(); //显示GPU适配器选择窗口
+
     public VMNetPage()
     {
         InitializeComponent();
@@ -29,14 +32,13 @@ public partial class VMNetPage
             public List<AdapterInfo> Adapters { get; set; }  // 网络适配器列表
 
             // 构造函数
-            public SwitchInfo(string switchName, string switchType, string host, string id, string phydesc,List<AdapterInfo> adapters)
+            public SwitchInfo(string switchName, string switchType, string host, string id, string phydesc)
             {
                 SwitchName = switchName;
                 SwitchType = switchType;
                 AllowManagementOS = host;
                 Id = id;
                 NetAdapterInterfaceDescription = phydesc;
-                Adapters = adapters;
         }
         }
 
@@ -133,52 +135,165 @@ public partial class VMNetPage
                 {
                     try
                     {
+                        // ------------------- 阶段1: 初始化画布和布局参数 (无变化) -------------------
                         topologyCanvas.Children.Clear();
-                        double iconSize = 28; double radius = iconSize / 2; double verticalSpacing = 70;
-                        double horizontalVmSpacing = 130; double lineThickness = 1.5; double generalLineCorrection = lineThickness / 2;
-                        double switchIconVerticalCorrection = 4.0; double upstreamY = 20; double switchY = upstreamY + verticalSpacing;
-                        double vmBusY = switchY + verticalSpacing; double vmY = vmBusY + 35;
-                        (FontIcon icon, TextBlock text) CreateNode(string deviceType, string name, double x, double y, bool allowWrapping = false)
+                        double iconSize = 28;
+                        double radius = iconSize / 2;
+                        double verticalSpacing = 70;
+                        double horizontalVmSpacing = 140;
+                        double lineThickness = 1.5;
+                        double upstreamY = 20;
+                        double switchY = upstreamY + verticalSpacing;
+                        double vmBusY = switchY + verticalSpacing;
+                        double vmY = vmBusY + 35;
+
+                        // ------------------- 阶段2: 定义核心辅助函数 -------------------
+
+                        // 辅助函数1: [全新重构] 使用 StackPanel 来自动布局文本，确保无重叠
+                        void CreateNode(string deviceType, string name, string ipAddress, string macAddress, double x, double y, bool allowWrapping = false)
                         {
-                            var nodeIcon = Utils.FontIcon1(deviceType, ""); nodeIcon.FontSize = iconSize; Canvas.SetLeft(nodeIcon, x - iconSize / 2); Canvas.SetTop(nodeIcon, y - iconSize / 2);
-                            topologyCanvas.Children.Add(nodeIcon); var nodeText = new TextBlock { Text = name, FontSize = 12, TextAlignment = TextAlignment.Center };
+                            // 绘制图标 (与之前相同)
+                            var nodeIcon = Utils.FontIcon1(deviceType, "");
+                            nodeIcon.FontSize = iconSize;
+                            Canvas.SetLeft(nodeIcon, x - iconSize / 2);
+                            Canvas.SetTop(nodeIcon, y - iconSize / 2);
+                            topologyCanvas.Children.Add(nodeIcon);
+
+                            // 创建一个垂直堆叠面板来容纳所有文本
+                            var textPanel = new StackPanel
+                            {
+                                HorizontalAlignment = HorizontalAlignment.Center,
+                                Orientation = Orientation.Vertical,
+                            };
+
+                            // 1. 添加设备名称
+                            var nodeText = new TextBlock
+                            {
+                                Text = name,
+                                FontSize = 12,
+                                TextAlignment = TextAlignment.Center,
+                                Margin = new Thickness(0, 0, 0, 2) // 在名称和MAC之间添加一点小间距
+                            };
                             if (allowWrapping) { nodeText.MaxWidth = horizontalVmSpacing - 10; nodeText.TextWrapping = TextWrapping.Wrap; }
                             nodeText.SetResourceReference(TextBlock.ForegroundProperty, "TextFillColorSecondaryBrush");
-                            nodeText.Loaded += (s, e) => { Canvas.SetLeft(nodeText, x - nodeText.ActualWidth / 2); Canvas.SetTop(nodeText, y + iconSize / 2 + 5); };
-                            topologyCanvas.Children.Add(nodeText); return (nodeIcon, nodeText);
+                            textPanel.Children.Add(nodeText);
+
+                            // 2. 添加MAC地址 (如果存在)
+                            if (!string.IsNullOrEmpty(macAddress))
+                            {
+                                var macText = new TextBlock
+                                {
+                                    Text = macAddress,
+                                    FontSize = 10,
+                                    TextAlignment = TextAlignment.Center
+                                };
+                                macText.SetResourceReference(TextBlock.ForegroundProperty, "TextFillColorTertiaryBrush");
+                                macText.Opacity = 0.8;
+                                textPanel.Children.Add(macText);
+                            }
+
+                            // 3. 添加IP地址 (如果存在)
+                            if (!string.IsNullOrEmpty(ipAddress))
+                            {
+                                var ipText = new TextBlock
+                                {
+                                    Text = ipAddress,
+                                    FontSize = 11,
+                                    TextAlignment = TextAlignment.Center
+                                };
+                                ipText.SetResourceReference(TextBlock.ForegroundProperty, "TextFillColorTertiaryBrush");
+                                textPanel.Children.Add(ipText);
+                            }
+
+                            // 将整个文本面板添加到画布上
+                            // 使用 Loaded 事件来确保面板尺寸计算完毕后，再进行居中定位
+                            textPanel.Loaded += (s, e) => {
+                                var panel = s as StackPanel;
+                                Canvas.SetLeft(panel, x - panel.ActualWidth / 2);
+                                Canvas.SetTop(panel, y + iconSize / 2 + 5); // 放置在图标下方
+                            };
+                            topologyCanvas.Children.Add(textPanel);
                         }
+
+                        // 辅助函数2: 绘制连接线 (无变化)
                         void DrawLine(double x1, double y1, double x2, double y2)
                         {
                             var line = new Line { X1 = x1, Y1 = y1, X2 = x2, Y2 = y2, StrokeThickness = lineThickness };
-                            line.SetResourceReference(Shape.StrokeProperty, "TextFillColorSecondaryBrush"); topologyCanvas.Children.Add(line);
+                            line.SetResourceReference(Shape.StrokeProperty, "TextFillColorSecondaryBrush");
+                            topologyCanvas.Children.Add(line);
                         }
-                        var clientNames = new List<string>(); if (hostConnectionSwitch.IsChecked == true) { clientNames.Add("主机"); }
-                        foreach (var vmAdapter in Switch1.Adapters) { clientNames.Add(vmAdapter.VMName); }
+
+                        // 辅助函数3: 从原始字符串中解析出第一个有效的IPv4地址 (无变化)
+                        string ParseIPv4(string ipAddressesString)
+                        {
+                            if (string.IsNullOrEmpty(ipAddressesString)) return "";
+                            ipAddressesString = ipAddressesString.Trim('{', '}');
+                            var ips = ipAddressesString.Split(new[] { ',', ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                            foreach (var ip in ips)
+                            {
+                                if (System.Net.IPAddress.TryParse(ip, out var parsedIp) &&
+                                    parsedIp.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+                                {
+                                    return parsedIp.ToString();
+                                }
+                            }
+                            return "";
+                        }
+
+                        // ------------------- 阶段3: 准备数据 (无变化) -------------------
+                        var clients = new List<(string Name, string IpAddress, string MacAddress)>();
+                        List<AdapterInfo> adapters = GetFullSwitchNetworkState(Switch1.SwitchName);
+
+                        foreach (var adapter in adapters)
+                        {
+                            string vmIp = ParseIPv4(adapter.IPAddresses);
+                            clients.Add((adapter.VMName, vmIp, adapter.MacAddress));
+                        }
+
+                        // ------------------- 阶段4: 绘制拓扑图 (调用方式无变化) -------------------
                         bool hasUpstream = rbBridge.IsChecked == true || rbNat.IsChecked == true;
-                        double totalWidth = Math.Max(200, (clientNames.Count > 0 ? clientNames.Count : 1) * horizontalVmSpacing);
-                        double centerX = totalWidth / 2; CreateNode("Switch", Switch1.SwitchName, centerX, switchY);
+                        double totalWidth = Math.Max(200, (clients.Count > 0 ? clients.Count : 1) * horizontalVmSpacing);
+                        double centerX = totalWidth / 2;
+
+                        CreateNode("Switch", Switch1.SwitchName, "", "", centerX, switchY);
+
                         if (hasUpstream)
                         {
-                            string upstreamName = upstreamDropDown.Content as string ?? "上游网络"; CreateNode("Upstream", upstreamName, centerX, upstreamY);
-                            DrawLine(centerX, upstreamY + radius - generalLineCorrection, centerX, switchY - radius + switchIconVerticalCorrection);
+                            string upstreamName = upstreamDropDown.Content as string ?? "上游网络";
+                            CreateNode("Upstream", upstreamName, "", "", centerX, upstreamY);
+                            DrawLine(centerX, upstreamY + radius, centerX, switchY - radius);
                         }
-                        if (clientNames.Any())
+
+                        if (clients.Any())
                         {
-                            double startX = centerX - ((clientNames.Count - 1) * horizontalVmSpacing) / 2;
-                            DrawLine(centerX, switchY + radius - switchIconVerticalCorrection, centerX, vmBusY);
-                            if (clientNames.Count > 1) { DrawLine(startX, vmBusY, startX + (clientNames.Count - 1) * horizontalVmSpacing, vmBusY); }
-                            for (int i = 0; i < clientNames.Count; i++)
+                            double startX = centerX - ((clients.Count - 1) * horizontalVmSpacing) / 2;
+                            DrawLine(centerX, switchY + radius, centerX, vmBusY);
+
+                            if (clients.Count > 1)
                             {
-                                var clientName = clientNames[i]; double currentClientX = startX + i * horizontalVmSpacing;
-                                CreateNode("Net", clientName, currentClientX, vmY, allowWrapping: true);
-                                DrawLine(currentClientX, vmBusY, currentClientX, vmY - radius + generalLineCorrection);
+                                DrawLine(startX, vmBusY, startX + (clients.Count - 1) * horizontalVmSpacing, vmBusY);
+                            }
+
+                            for (int i = 0; i < clients.Count; i++)
+                            {
+                                var client = clients[i];
+                                double currentClientX = startX + i * horizontalVmSpacing;
+                                // 调用 CreateNode，顺序是 (Name, IP, MAC)
+                                CreateNode("Net", client.Name, client.IpAddress, client.MacAddress, currentClientX, vmY, allowWrapping: true);
+                                DrawLine(currentClientX, vmBusY, currentClientX, vmY - radius);
                             }
                         }
-                        topologyCanvas.Width = totalWidth + 40; topologyCanvas.Height = vmY + 40;
-                    }
-                    catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Error building topology: {ex.Message}"); }
-                }
 
+                        // ------------------- 阶段5: 设置画布最终尺寸 -------------------
+                        // Canvas会自动扩展，但为了ScrollViewer能正确工作，最好还是设置一个足够大的高度
+                        topologyCanvas.Width = totalWidth + 40;
+                        topologyCanvas.Height = vmY + 40 + 20 + 20; // 保持足够的高度
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Error building topology: {ex.Message}");
+                    }
+                }
                 // UpdateUpstreamState 函数 (无变化)
                 void UpdateUpstreamState(bool isEnabled)
                 {
@@ -193,43 +308,55 @@ public partial class VMNetPage
                     if (_isUpdatingUiFromCode) return;
                     _isUpdatingUiFromCode = true;
 
-                    if (rbBridge.IsChecked == true)
+                    // 1. 首先确定当前选择的模式
+                    var isBridgeMode = rbBridge.IsChecked == true;
+                    var isNatMode = rbNat.IsChecked == true;
+                    // 如果都不是，则为“无上游模式”
+
+                    // 2. 根据模式计算出各个UI控件的目标状态
+                    bool hostConnectionEnabled;
+                    bool dhcpEnabled; // 暂时保留这个变量，但它的值会被覆盖
+
+                    if (isBridgeMode)
                     {
-                        hostConnectionSwitch.IsEnabled = true;
-                        dhcpSwitch.IsEnabled = false;
+                        // 桥接模式：用户可以自己决定主机是否连接
+                        hostConnectionEnabled = true;
+                        dhcpEnabled = false;
                         UpdateUpstreamState(true);
                     }
-                    else if (rbNat.IsChecked == true)
+                    else if (isNatMode)
                     {
-                        hostConnectionSwitch.IsChecked = true;
-                        hostConnectionSwitch.IsEnabled = false;
-                        dhcpSwitch.IsEnabled = true;
+                        // NAT模式：主机必须连接作为网关
+                        hostConnectionEnabled = false; // 不允许用户修改
+                        hostConnectionSwitch.IsChecked = true; // 强制开启
+                        dhcpEnabled = true; // 这里的计算结果会被忽略
                         UpdateUpstreamState(true);
                     }
                     else // 无上游模式
                     {
-                        hostConnectionSwitch.IsEnabled = true;
-                        dhcpSwitch.IsEnabled = true;
+                        // 无上游模式：用户可决定主机连接
+                        hostConnectionEnabled = true;
+                        dhcpEnabled = false;
                         UpdateUpstreamState(false);
                     }
 
-                    if (hostConnectionSwitch.IsEnabled)
+                    // <<< 关键修改：在这里强制禁用所有模式的DHCP功能
+                    // 以后要恢复时，只需注释或删除下面这行即可
+                    dhcpEnabled = false;
+
+                    // 3. 将计算好的状态一次性应用到UI控件
+                    hostConnectionSwitch.IsEnabled = hostConnectionEnabled;
+                    dhcpSwitch.IsEnabled = dhcpEnabled;
+
+                    // 最佳实践：当一个开关被禁用时，总是将其状态重置为“关闭”
+                    if (!dhcpSwitch.IsEnabled)
                     {
-                        if (hostConnectionSwitch.IsChecked == false)
-                        {
-                            dhcpSwitch.IsChecked = false;
-                            dhcpSwitch.IsEnabled = false;
-                        }
-                        else
-                        {
-                            if (rbNat.IsChecked != true && rbBridge.IsChecked != true)
-                            {
-                                dhcpSwitch.IsEnabled = true;
-                            }
-                        }
+                        dhcpSwitch.IsChecked = false;
                     }
 
+                    // 4. 更新其他依赖项
                     BuildVerticalTopology();
+
                     _isUpdatingUiFromCode = false;
                 }
 
@@ -258,6 +385,7 @@ public partial class VMNetPage
                         }
 
                          await Utils.UpdateSwitchConfigurationAsync(Switch1.SwitchName, selectedMode, selectedAdapter, allowManagementOS, enableDhcp);
+                         BuildVerticalTopology();
                     }
                     catch (Exception ex)
                     {
@@ -420,23 +548,7 @@ public partial class VMNetPage
                         var Host = result.Properties["AllowManagementOS"]?.Value?.ToString();
                         var Id = result.Properties["Id"]?.Value?.ToString();
                         var Phydesc = result.Properties["NetAdapterInterfaceDescription"]?.Value?.ToString();
-                        
-                        List<AdapterInfo> adapters = new List<AdapterInfo>(); 
-
-                        var AdapterData = Utils.Run($@"Get-VMNetworkAdapter -VMName * | Where-Object {{$_.SwitchName -eq '{SwitchName}'}} | select VMName,MacAddress,Status,IPAddresses");//获取连接此交换机的适配器
-
-                        if (AdapterData != null && AdapterData.Count > 0)
-                        {
-                            foreach (var Adapter in AdapterData)
-                            {
-                                var VMName = Adapter.Members["VMName"]?.Value?.ToString();
-                                var MacAddress = Adapter.Members["MacAddress"]?.Value?.ToString();
-                                var Status = Adapter.Members["Status"]?.Value?.ToString();
-                                var IPAddresses = Adapter.Members["IPAddresses"]?.Value?.ToString();
-                                adapters.Add(new AdapterInfo(VMName, MacAddress, Status, IPAddresses)); //每个适配器都添加
-                            }
-                        }
-                        SwitchList.Add(new SwitchInfo(SwitchName, SwitchType, Host, Id, Phydesc, adapters));
+                        SwitchList.Add(new SwitchInfo(SwitchName, SwitchType, Host, Id, Phydesc));
                     }
                     
         }
@@ -446,5 +558,74 @@ public partial class VMNetPage
     }
 
 
+    // 保持 C# 方法结构不变
+    private List<AdapterInfo> GetFullSwitchNetworkState(string switchName)
+    {
+        // *** MODIFIED: 虚拟机脚本 ***
+        // 使用 calculated property (@{...}) 来格式化无分隔符的MAC地址
+        string vmAdaptersScript =
+            $"Get-VMNetworkAdapter -VMName * | Where-Object {{ $_.SwitchName -eq '{switchName}' }} | " +
+            "Select-Object VMName, " +
+            "@{Name='MacAddress'; Expression={($_.MacAddress).Insert(2, ':').Insert(5, ':').Insert(8, ':').Insert(11, ':').Insert(14, ':')}}, " +
+            "Status, @{Name='IPAddresses'; Expression={($_.IPAddresses -join ',')}}";
 
+        // *** MODIFIED: 宿主机脚本 ***
+        // 使用 -replace 操作符将 '-' 替换为 ':'
+        string hostAdapterScript =
+            $"$vmAdapter = Get-VMNetworkAdapter -ManagementOS -SwitchName '{switchName}';" +
+            "if ($vmAdapter) {" +
+            "    $netAdapter = Get-NetAdapter | Where-Object { ($_.MacAddress -replace '-') -eq ($vmAdapter.MacAddress -replace '-') };" +
+            "    if ($netAdapter) {" +
+            "        $ipAddresses = (Get-NetIPAddress -InterfaceIndex $netAdapter.InterfaceIndex).IPAddress -join ',';" +
+            "        [PSCustomObject]@{" +
+            "            VMName      = '主机'; " +
+            "            MacAddress  = ($netAdapter.MacAddress -replace '-', ':');" + // <-- 核心修改点
+            "            Status      = $netAdapter.Status.ToString();" +
+            "            IPAddresses = $ipAddresses;" +
+            "        };" +
+            "    }" +
+            "}";
+
+        try
+        {
+            // 1. 分别执行 PowerShell 命令 (逻辑不变)
+            var vmResults = Utils.Run(vmAdaptersScript);
+            var hostResults = Utils.Run(hostAdapterScript);
+
+            // 2. 解析和合并结果 (逻辑不变)
+            var allAdapters = new List<AdapterInfo>();
+
+            if (vmResults != null)
+            {
+                foreach (var pso in vmResults)
+                {
+                    allAdapters.Add(new AdapterInfo(
+                        pso.Properties["VMName"]?.Value?.ToString() ?? "",
+                        pso.Properties["MacAddress"]?.Value?.ToString() ?? "",
+                        pso.Properties["Status"]?.Value?.ToString() ?? "",
+                        pso.Properties["IPAddresses"]?.Value?.ToString() ?? ""
+                    ));
+                }
+            }
+            if (hostResults != null)
+            {
+                foreach (var pso in hostResults)
+                {
+                    allAdapters.Add(new AdapterInfo(
+                        pso.Properties["VMName"]?.Value?.ToString() ?? "",
+                        pso.Properties["MacAddress"]?.Value?.ToString() ?? "",
+                        pso.Properties["Status"]?.Value?.ToString() ?? "",
+                        pso.Properties["IPAddresses"]?.Value?.ToString() ?? ""
+                    ));
+                }
+            }
+
+            return allAdapters;
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error getting full network state for switch '{switchName}': {ex.Message}");
+            return new List<AdapterInfo>();
+        }
+    }
 }

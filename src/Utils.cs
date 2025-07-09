@@ -351,25 +351,43 @@ public partial class Utils
         switch (mode)
         {
             case "Bridge":
-                //先删除可能存在的适配器。
+                //1.先删除可能存在的宿主适配器。 2.设置交换机为外部交换机。
                 script = $"Get-VMNetworkAdapter -ManagementOS -SwitchName '{switchName}' -ErrorAction SilentlyContinue | Remove-VMNetworkAdapter -Confirm:$false";
                 script += $"\nSet-VMSwitch -Name '{switchName}' -NetAdapterInterfaceDescription '{physicalAdapterName}' -AllowManagementOS {allowManagementParam}";
                 break;
 
             case "NAT":
+                string natName = $"NAT-for-{switchName}";
+                string gatewayIP = "192.168.100.1";
+                string subnetPrefix = "24";
+                string natSubnet = "192.168.100.0/24";
+
                 script = $"Set-VMSwitch -Name '{switchName}' -SwitchType Internal";
-                if (allowManagementOS)
-                {
-                    script += $"\nif (-not (Get-VMNetworkAdapter -ManagementOS -SwitchName '{switchName}' -ErrorAction SilentlyContinue)) {{ Add-VMNetworkAdapter -ManagementOS -SwitchName '{switchName}' }}";
-                }
-                else 
-                {
-                    script += $"\nGet-VMNetworkAdapter -ManagementOS -SwitchName '{switchName}' -ErrorAction SilentlyContinue | Remove-VMNetworkAdapter -Confirm:$false";
-                }
-               
-                    break;
+                script += $"\nif (-not (Get-VMNetworkAdapter -ManagementOS -SwitchName '{switchName}' -ErrorAction SilentlyContinue)) {{ Add-VMNetworkAdapter -ManagementOS -SwitchName '{switchName}' }}";
+
+                script += $"\n$vmAdapter = Get-VMNetworkAdapter -ManagementOS -SwitchName '{switchName}'";
+                script += $"\nif ($vmAdapter) {{";
+                script += $"\n    $netAdapter = Get-NetAdapter | Where-Object {{ ($_.MacAddress -replace '-') -eq ($vmAdapter.MacAddress -replace '-') }}";
+                script += $"\n    if ($netAdapter) {{";
+                script += $"\n        $interfaceAlias = $netAdapter.Name";
+                script += $"\n        Get-NetIPAddress -InterfaceAlias $interfaceAlias -ErrorAction SilentlyContinue | Remove-NetIPAddress -Confirm:$false";
+                script += $"\n        New-NetIPAddress -InterfaceAlias $interfaceAlias -IPAddress '{gatewayIP}' -PrefixLength {subnetPrefix} -ErrorAction Stop";
+                script += $"\n    }}";
+                script += $"\n}}";
+
+                // ==================== 关键修复代码 ====================
+                // 移除任何占用目标子网的现有NAT规则
+                script += $"\n$conflictingNat = Get-NetNat | Where-Object {{ $_.InternalIPInterfaceAddressPrefix -eq '{natSubnet}' }}";
+                script += $"\nif ($conflictingNat) {{ Remove-NetNat -Name $conflictingNat.Name -Confirm:$false }}";
+                // ========================================================
+
+                // 现在安全地创建我们自己的规则
+                script += $"\nNew-NetNat -Name '{natName}' -InternalIPInterfaceAddressPrefix '{natSubnet}' -ErrorAction Stop";
+
+                break;
 
             case "Isolated":
+                //1.设置为内部交换机。2.如果有宿主连接，添加。3.如果不要宿主连接，删掉宿主适配器。
                 script = $"Set-VMSwitch -Name '{switchName}' -SwitchType Internal";
                 if (allowManagementOS)
                 {
