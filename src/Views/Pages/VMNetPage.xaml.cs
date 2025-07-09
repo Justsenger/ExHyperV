@@ -90,8 +90,6 @@ public partial class VMNetPage
 
         foreach (var Switch1 in SwitchList)
         {
-            List<AdapterInfo> adapters = GetFullSwitchNetworkState(Switch1.SwitchName);
-
             Dispatcher.Invoke(() => //更新UI
             {
                 // *** 标志位: 用于控制初始化流程和防止UI更新事件重入 ***
@@ -139,10 +137,11 @@ public partial class VMNetPage
                 // 阶段2 - 局部函数定义
                 // =========================================================================
 
-                void BuildVerticalTopology()
+                async void BuildVerticalTopology()
                 {
                     try
                     {
+                        List<AdapterInfo> adapters = await GetFullSwitchNetworkStateAsync(Switch1.SwitchName);
                         topologyCanvas.Children.Clear();
                         double iconSize = 28;
                         double radius = iconSize / 2;
@@ -663,6 +662,12 @@ public partial class VMNetPage
             System.Diagnostics.Debug.WriteLine($"Error getting full network state for switch '{switchName}': {ex.Message}");
             return new List<AdapterInfo>();
         }
+    }
+
+    private async Task<List<AdapterInfo>> GetFullSwitchNetworkStateAsync(string switchName)
+    {
+        // 将同步的、阻塞的 PowerShell 调用包装在 Task.Run 中，以在后台线程上执行
+        return await Task.Run(() => GetFullSwitchNetworkState(switchName));
     }
 
 }
