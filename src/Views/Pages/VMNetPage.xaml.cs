@@ -77,7 +77,12 @@ public partial class VMNetPage
     }
 
 
-    private async void Initialinfo(){
+    private async void refresh(object sender, RoutedEventArgs e)
+    {
+        await Initialinfo();
+    }
+
+    private async Task Initialinfo(){
         List<SwitchInfo> SwitchList = new List<SwitchInfo>(); //存储交换机数据
         List<PhysicalAdapterInfo> physicalAdapterList = new List<PhysicalAdapterInfo>(); //存储物理网卡数据
         await GetInfo(SwitchList, physicalAdapterList); //获取数据
