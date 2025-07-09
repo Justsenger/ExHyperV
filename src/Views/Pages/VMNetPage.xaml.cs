@@ -267,7 +267,7 @@ public partial class VMNetPage
                             break;
                         case "NAT":
                             upstreamDropDown.IsEnabled = false;
-                            upstreamDropDown.Content = "自动适应";
+                            upstreamDropDown.Content = "NAT网络";
                             break;
                         case "None":
                         default:
@@ -309,7 +309,7 @@ public partial class VMNetPage
 
                         headerIsConnected = true;
                         // 在此硬编码NAT模式的描述文本
-                        headerStatusText = "已连接到：通过主机共享网络";
+                        headerStatusText = "已连接到：NAT网络";
                     }
                     else // 无上游模式
                     {
