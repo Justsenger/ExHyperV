@@ -139,8 +139,10 @@ public partial class VMNetPage
 
                 async void BuildVerticalTopology()
                 {
+                    var waitPage = new WaitPage();
                     try
                     {
+                        waitPage.Show(); // 启动显示任务
                         List<AdapterInfo> adapters = await GetFullSwitchNetworkStateAsync(Switch1.SwitchName);
                         topologyCanvas.Children.Clear();
                         double iconSize = 28;
@@ -178,7 +180,8 @@ public partial class VMNetPage
                                 ipText.SetResourceReference(TextBlock.ForegroundProperty, "TextFillColorTertiaryBrush");
                                 textPanel.Children.Add(ipText);
                             }
-                            textPanel.Loaded += (s, e) => {
+                            textPanel.Loaded += (s, e) =>
+                            {
                                 var panel = s as StackPanel;
                                 Canvas.SetLeft(panel, x - panel.ActualWidth / 2);
                                 Canvas.SetTop(panel, y + iconSize / 2 + 5);
@@ -251,6 +254,9 @@ public partial class VMNetPage
                     catch (Exception ex)
                     {
                         System.Diagnostics.Debug.WriteLine($"Error building topology: {ex.Message}");
+                    }
+                    finally {
+                        waitPage.Close();
                     }
                 }
 
