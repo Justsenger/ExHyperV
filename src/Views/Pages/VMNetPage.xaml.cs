@@ -94,430 +94,389 @@ public partial class VMNetPage
 
             Dispatcher.Invoke(() => //更新UI
             {
+                ParentPanel.Children.Clear();
+                progressRing.Visibility = Visibility.Collapsed; //隐藏加载条
 
-                // *** 标志位: 用于控制初始化流程和防止UI更新事件重入 ***
-                bool _isInitializing = true;
-                bool _isUpdatingUiFromCode = false;
-
-                // =========================================================================
-                // Header 部分 (无变化)
-                // =========================================================================
-                var cardExpander = Utils.CardExpander1();
-                cardExpander.Icon = Utils.FontIcon1("Switch", Switch1.SwitchName);
-                Grid.SetRow(cardExpander, ParentPanel.RowDefinitions.Count);
-                ParentPanel.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-                var headerGrid = new Grid();
-                headerGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-                headerGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-                var drivername = Utils.TextBlock1(Switch1.SwitchName);
-                var statusPanel = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
-                var statusCircle = new Ellipse { Width = 8, Height = 8, Margin = new Thickness(0, 0, 6, 0) };
-                bool isConnected = !string.IsNullOrEmpty(Switch1.NetAdapterInterfaceDescription);
-                string statusText = isConnected ? "已连接到：" + Switch1.NetAdapterInterfaceDescription : "未连接上游网络";
-                statusCircle.Fill = new SolidColorBrush(isConnected ? Colors.Green : Colors.Red);
-                var statusTextBlock = Utils.TextBlock12(statusText);
-                statusTextBlock.Margin = new Thickness(0);
-                statusPanel.Children.Add(statusCircle);
-                statusPanel.Children.Add(statusTextBlock);
-                Grid.SetRow(drivername, 0);
-                Grid.SetRow(statusPanel, 1);
-                headerGrid.Children.Add(drivername);
-                headerGrid.Children.Add(statusPanel);
-                cardExpander.Header = headerGrid;
-
-                // =========================================================================
-                // 阶段1 - 控件声明 (无变化)
-                // =========================================================================
-                var buttonPadding = new Thickness(8, 6, 8, 4);
-                var rbBridge = new RadioButton { Content = "桥接模式", GroupName = Switch1.Id, Padding = buttonPadding };
-                var rbNat = new RadioButton { Content = "NAT模式", GroupName = Switch1.Id, Padding = buttonPadding };
-                var rbNone = new RadioButton { Content = "无上游", GroupName = Switch1.Id, Padding = buttonPadding };
-                var upstreamDropDown = Utils.DropDownButton1("请选择网卡...");
-                var hostConnectionSwitch = new ToggleSwitch { IsChecked = (Switch1.AllowManagementOS?.ToLower() == "true"), HorizontalAlignment = HorizontalAlignment.Left };
-                // DHCP的初始状态应从您的数据源获取，这里先默认为false，后续由UpdateUIState修正
-                var dhcpSwitch = new ToggleSwitch { IsChecked = false, HorizontalAlignment = HorizontalAlignment.Left };
-                var topologyCanvas = new Canvas();
-
-                // =========================================================================
-                // 阶段2 - 局部函数定义
-                // =========================================================================
-
-                // BuildVerticalTopology 函数 (无变化)
-                void BuildVerticalTopology()
+                foreach (var Switch1 in SwitchList)
                 {
-                    try
+                    // *** 标志位: 用于控制初始化流程和防止UI更新事件重入 ***
+                    bool _isInitializing = true;
+                    bool _isUpdatingUiFromCode = false;
+
+                    // =========================================================================
+                    // Header 部分
+                    // =========================================================================
+                    var cardExpander = Utils.CardExpander1();
+                    cardExpander.Icon = Utils.FontIcon1("Switch", Switch1.SwitchName);
+                    Grid.SetRow(cardExpander, ParentPanel.RowDefinitions.Count);
+                    ParentPanel.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                    var headerGrid = new Grid();
+                    headerGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                    headerGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                    var drivername = Utils.TextBlock1(Switch1.SwitchName);
+                    var statusPanel = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
+                    var statusCircle = new Ellipse { Width = 8, Height = 8, Margin = new Thickness(0, 0, 6, 0) };
+
+                    // Header文本和状态的最终更新将在UpdateUIState中进行，这里只做基础初始化
+                    var statusTextBlock = Utils.TextBlock12("正在确定状态...");
+                    statusTextBlock.Margin = new Thickness(0);
+                    statusPanel.Children.Add(statusCircle);
+                    statusPanel.Children.Add(statusTextBlock);
+                    Grid.SetRow(drivername, 0);
+                    Grid.SetRow(statusPanel, 1);
+                    headerGrid.Children.Add(drivername);
+                    headerGrid.Children.Add(statusPanel);
+                    cardExpander.Header = headerGrid;
+
+                    // =========================================================================
+                    // 阶段1 - 控件声明
+                    // =========================================================================
+                    var buttonPadding = new Thickness(8, 6, 8, 4);
+                    var rbBridge = new RadioButton { Content = "桥接模式", GroupName = Switch1.Id, Padding = buttonPadding };
+                    var rbNat = new RadioButton { Content = "NAT模式", GroupName = Switch1.Id, Padding = buttonPadding };
+                    var rbNone = new RadioButton { Content = "无上游", GroupName = Switch1.Id, Padding = buttonPadding };
+                    var upstreamDropDown = Utils.DropDownButton1("请选择网卡...");
+                    var hostConnectionSwitch = new ToggleSwitch { IsChecked = (Switch1.AllowManagementOS?.ToLower() == "true"), HorizontalAlignment = HorizontalAlignment.Left };
+                    var dhcpSwitch = new ToggleSwitch { IsChecked = false, HorizontalAlignment = HorizontalAlignment.Left };
+                    var topologyCanvas = new Canvas();
+
+                    // =========================================================================
+                    // 阶段2 - 局部函数定义
+                    // =========================================================================
+
+                    void BuildVerticalTopology()
                     {
-                        // ------------------- 阶段1: 初始化画布和布局参数 (无变化) -------------------
-                        topologyCanvas.Children.Clear();
-                        double iconSize = 28;
-                        double radius = iconSize / 2;
-                        double verticalSpacing = 70;
-                        double horizontalVmSpacing = 140;
-                        double lineThickness = 1.5;
-                        double upstreamY = 20;
-                        double switchY = upstreamY + verticalSpacing;
-                        double vmBusY = switchY + verticalSpacing;
-                        double vmY = vmBusY + 35;
-
-                        // ------------------- 阶段2: 定义核心辅助函数 -------------------
-
-                        // 辅助函数1: [全新重构] 使用 StackPanel 来自动布局文本，确保无重叠
-                        void CreateNode(string deviceType, string name, string ipAddress, string macAddress, double x, double y, bool allowWrapping = false)
+                        try
                         {
-                            // 绘制图标 (与之前相同)
-                            var nodeIcon = Utils.FontIcon1(deviceType, "");
-                            nodeIcon.FontSize = iconSize;
-                            Canvas.SetLeft(nodeIcon, x - iconSize / 2);
-                            Canvas.SetTop(nodeIcon, y - iconSize / 2);
-                            topologyCanvas.Children.Add(nodeIcon);
+                            topologyCanvas.Children.Clear();
+                            double iconSize = 28;
+                            double radius = iconSize / 2;
+                            double verticalSpacing = 70;
+                            double horizontalVmSpacing = 140;
+                            double lineThickness = 1.5;
+                            double upstreamY = 20;
+                            double switchY = upstreamY + verticalSpacing;
+                            double vmBusY = switchY + verticalSpacing;
+                            double vmY = vmBusY + 35;
 
-                            // 创建一个垂直堆叠面板来容纳所有文本
-                            var textPanel = new StackPanel
+                            void CreateNode(string deviceType, string name, string ipAddress, string macAddress, double x, double y, bool allowWrapping = false)
                             {
-                                HorizontalAlignment = HorizontalAlignment.Center,
-                                Orientation = Orientation.Vertical,
-                            };
-
-                            // 1. 添加设备名称
-                            var nodeText = new TextBlock
-                            {
-                                Text = name,
-                                FontSize = 12,
-                                TextAlignment = TextAlignment.Center,
-                                Margin = new Thickness(0, 0, 0, 2) // 在名称和MAC之间添加一点小间距
-                            };
-                            if (allowWrapping) { nodeText.MaxWidth = horizontalVmSpacing - 10; nodeText.TextWrapping = TextWrapping.Wrap; }
-                            nodeText.SetResourceReference(TextBlock.ForegroundProperty, "TextFillColorSecondaryBrush");
-                            textPanel.Children.Add(nodeText);
-
-                            // 2. 添加MAC地址 (如果存在)
-                            if (!string.IsNullOrEmpty(macAddress))
-                            {
-                                var macText = new TextBlock
+                                var nodeIcon = Utils.FontIcon1(deviceType, "");
+                                nodeIcon.FontSize = iconSize;
+                                Canvas.SetLeft(nodeIcon, x - iconSize / 2);
+                                Canvas.SetTop(nodeIcon, y - iconSize / 2);
+                                topologyCanvas.Children.Add(nodeIcon);
+                                var textPanel = new StackPanel { HorizontalAlignment = HorizontalAlignment.Center, Orientation = Orientation.Vertical };
+                                var nodeText = new TextBlock { Text = name, FontSize = 12, TextAlignment = TextAlignment.Center, Margin = new Thickness(0, 0, 0, 2) };
+                                if (allowWrapping) { nodeText.MaxWidth = horizontalVmSpacing - 10; nodeText.TextWrapping = TextWrapping.Wrap; }
+                                nodeText.SetResourceReference(TextBlock.ForegroundProperty, "TextFillColorSecondaryBrush");
+                                textPanel.Children.Add(nodeText);
+                                if (!string.IsNullOrEmpty(macAddress))
                                 {
-                                    Text = macAddress,
-                                    FontSize = 10,
-                                    TextAlignment = TextAlignment.Center
+                                    var macText = new TextBlock { Text = macAddress, FontSize = 10, TextAlignment = TextAlignment.Center };
+                                    macText.SetResourceReference(TextBlock.ForegroundProperty, "TextFillColorTertiaryBrush");
+                                    macText.Opacity = 0.8;
+                                    textPanel.Children.Add(macText);
+                                }
+                                if (!string.IsNullOrEmpty(ipAddress))
+                                {
+                                    var ipText = new TextBlock { Text = ipAddress, FontSize = 11, TextAlignment = TextAlignment.Center };
+                                    ipText.SetResourceReference(TextBlock.ForegroundProperty, "TextFillColorTertiaryBrush");
+                                    textPanel.Children.Add(ipText);
+                                }
+                                textPanel.Loaded += (s, e) => {
+                                    var panel = s as StackPanel;
+                                    Canvas.SetLeft(panel, x - panel.ActualWidth / 2);
+                                    Canvas.SetTop(panel, y + iconSize / 2 + 5);
                                 };
-                                macText.SetResourceReference(TextBlock.ForegroundProperty, "TextFillColorTertiaryBrush");
-                                macText.Opacity = 0.8;
-                                textPanel.Children.Add(macText);
+                                topologyCanvas.Children.Add(textPanel);
                             }
 
-                            // 3. 添加IP地址 (如果存在)
-                            if (!string.IsNullOrEmpty(ipAddress))
+                            void DrawLine(double x1, double y1, double x2, double y2)
                             {
-                                var ipText = new TextBlock
-                                {
-                                    Text = ipAddress,
-                                    FontSize = 11,
-                                    TextAlignment = TextAlignment.Center
-                                };
-                                ipText.SetResourceReference(TextBlock.ForegroundProperty, "TextFillColorTertiaryBrush");
-                                textPanel.Children.Add(ipText);
+                                var line = new Line { X1 = x1, Y1 = y1, X2 = x2, Y2 = y2, StrokeThickness = lineThickness };
+                                line.SetResourceReference(Shape.StrokeProperty, "TextFillColorSecondaryBrush");
+                                topologyCanvas.Children.Add(line);
                             }
 
-                            // 将整个文本面板添加到画布上
-                            // 使用 Loaded 事件来确保面板尺寸计算完毕后，再进行居中定位
-                            textPanel.Loaded += (s, e) => {
-                                var panel = s as StackPanel;
-                                Canvas.SetLeft(panel, x - panel.ActualWidth / 2);
-                                Canvas.SetTop(panel, y + iconSize / 2 + 5); // 放置在图标下方
-                            };
-                            topologyCanvas.Children.Add(textPanel);
-                        }
-
-                        // 辅助函数2: 绘制连接线 (无变化)
-                        void DrawLine(double x1, double y1, double x2, double y2)
-                        {
-                            var line = new Line { X1 = x1, Y1 = y1, X2 = x2, Y2 = y2, StrokeThickness = lineThickness };
-                            line.SetResourceReference(Shape.StrokeProperty, "TextFillColorSecondaryBrush");
-                            topologyCanvas.Children.Add(line);
-                        }
-
-                        // 辅助函数3: 从原始字符串中解析出第一个有效的IPv4地址 (无变化)
-                        string ParseIPv4(string ipAddressesString)
-                        {
-                            if (string.IsNullOrEmpty(ipAddressesString)) return "";
-                            ipAddressesString = ipAddressesString.Trim('{', '}');
-                            var ips = ipAddressesString.Split(new[] { ',', ' ' }, StringSplitOptions.RemoveEmptyEntries);
-                            foreach (var ip in ips)
+                            string ParseIPv4(string ipAddressesString)
                             {
-                                if (System.Net.IPAddress.TryParse(ip, out var parsedIp) &&
-                                    parsedIp.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+                                if (string.IsNullOrEmpty(ipAddressesString)) return "";
+                                ipAddressesString = ipAddressesString.Trim('{', '}');
+                                var ips = ipAddressesString.Split(new[] { ',', ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                                foreach (var ip in ips)
                                 {
-                                    return parsedIp.ToString();
+                                    if (System.Net.IPAddress.TryParse(ip, out var parsedIp) && parsedIp.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+                                    {
+                                        return parsedIp.ToString();
+                                    }
+                                }
+                                return "";
+                            }
+
+                            var clients = new List<(string Name, string IpAddress, string MacAddress)>();
+                            List<AdapterInfo> adapters = GetFullSwitchNetworkState(Switch1.SwitchName);
+                            foreach (var adapter in adapters)
+                            {
+                                string vmIp = ParseIPv4(adapter.IPAddresses);
+                                clients.Add((adapter.VMName, vmIp, adapter.MacAddress));
+                            }
+
+                            bool hasUpstream = rbBridge.IsChecked == true || rbNat.IsChecked == true;
+                            double totalWidth = Math.Max(200, (clients.Count > 0 ? clients.Count : 1) * horizontalVmSpacing);
+                            double centerX = totalWidth / 2;
+
+                            CreateNode("Switch", Switch1.SwitchName, "", "", centerX, switchY);
+
+                            if (hasUpstream)
+                            {
+                                string upstreamName = upstreamDropDown.Content as string ?? "上游网络";
+                                CreateNode("Upstream", upstreamName, "", "", centerX, upstreamY);
+                                DrawLine(centerX, upstreamY + radius, centerX, switchY - radius);
+                            }
+
+                            if (clients.Any())
+                            {
+                                double startX = centerX - ((clients.Count - 1) * horizontalVmSpacing) / 2;
+                                DrawLine(centerX, switchY + radius, centerX, vmBusY);
+                                if (clients.Count > 1)
+                                {
+                                    DrawLine(startX, vmBusY, startX + (clients.Count - 1) * horizontalVmSpacing, vmBusY);
+                                }
+                                for (int i = 0; i < clients.Count; i++)
+                                {
+                                    var client = clients[i];
+                                    double currentClientX = startX + i * horizontalVmSpacing;
+                                    CreateNode("Net", client.Name, client.IpAddress, client.MacAddress, currentClientX, vmY, allowWrapping: true);
+                                    DrawLine(currentClientX, vmBusY, currentClientX, vmY - radius);
                                 }
                             }
-                            return "";
+
+                            topologyCanvas.Width = totalWidth + 40;
+                            topologyCanvas.Height = vmY + 40 + 20 + 20;
+                        }
+                        catch (Exception ex)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"Error building topology: {ex.Message}");
+                        }
+                    }
+
+                    void UpdateUpstreamState(string mode)
+                    {
+                        switch (mode)
+                        {
+                            case "Bridge":
+                                upstreamDropDown.IsEnabled = true;
+                                upstreamDropDown.Content = !string.IsNullOrEmpty(Switch1.NetAdapterInterfaceDescription)
+                                    ? Switch1.NetAdapterInterfaceDescription
+                                    : "请选择网卡...";
+                                break;
+                            case "NAT":
+                                upstreamDropDown.IsEnabled = false;
+                                upstreamDropDown.Content = "自动适应";
+                                break;
+                            case "None":
+                            default:
+                                upstreamDropDown.IsEnabled = false;
+                                upstreamDropDown.Content = "不可用";
+                                break;
+                        }
+                    }
+
+                    void UpdateUIState()
+                    {
+                        if (_isUpdatingUiFromCode) return;
+                        _isUpdatingUiFromCode = true;
+
+                        var isBridgeMode = rbBridge.IsChecked == true;
+                        var isNatMode = rbNat.IsChecked == true;
+
+                        bool hostConnectionEnabled;
+                        bool dhcpEnabled;
+                        string currentMode;
+                        string headerStatusText;
+                        bool headerIsConnected;
+
+                        if (isBridgeMode)
+                        {
+                            currentMode = "Bridge";
+                            hostConnectionEnabled = true;
+                            dhcpEnabled = false;
+
+                            headerIsConnected = !string.IsNullOrEmpty(Switch1.NetAdapterInterfaceDescription);
+                            headerStatusText = headerIsConnected ? "已连接到：" + Switch1.NetAdapterInterfaceDescription : "未连接上游网络";
+                        }
+                        else if (isNatMode)
+                        {
+                            currentMode = "NAT";
+                            hostConnectionEnabled = false;
+                            hostConnectionSwitch.IsChecked = true;
+                            dhcpEnabled = false;
+
+                            headerIsConnected = true;
+                            // 在此硬编码NAT模式的描述文本
+                            headerStatusText = "已连接到：通过主机共享网络";
+                        }
+                        else // 无上游模式
+                        {
+                            currentMode = "None";
+                            hostConnectionEnabled = true;
+                            dhcpEnabled = false;
+
+                            headerIsConnected = false;
+                            headerStatusText = "未连接上游网络";
                         }
 
-                        // ------------------- 阶段3: 准备数据 (无变化) -------------------
-                        var clients = new List<(string Name, string IpAddress, string MacAddress)>();
-                        
+                        hostConnectionSwitch.IsEnabled = hostConnectionEnabled;
+                        dhcpSwitch.IsEnabled = dhcpEnabled;
+                        if (!dhcpSwitch.IsEnabled) { dhcpSwitch.IsChecked = false; }
 
-                        foreach (var adapter in adapters)
+                        UpdateUpstreamState(currentMode);
+
+                        statusTextBlock.Text = headerStatusText;
+                        statusCircle.Fill = new SolidColorBrush(headerIsConnected ? Colors.Green : Colors.Red);
+
+                        BuildVerticalTopology();
+
+                        _isUpdatingUiFromCode = false;
+                    }
+
+                    async void OnSettingsChanged(object sender, RoutedEventArgs e)
+                    {
+                        UpdateUIState();
+
+                        if (_isInitializing) return;
+                        if (sender is RadioButton rb && rb.IsChecked != true) return;
+
+                        try
                         {
-                            string vmIp = ParseIPv4(adapter.IPAddresses);
-                            clients.Add((adapter.VMName, vmIp, adapter.MacAddress));
-                        }
+                            string selectedMode = "Isolated";
+                            if (rbBridge.IsChecked == true) selectedMode = "Bridge";
+                            else if (rbNat.IsChecked == true) selectedMode = "NAT";
 
-                        // ------------------- 阶段4: 绘制拓扑图 (调用方式无变化) -------------------
-                        bool hasUpstream = rbBridge.IsChecked == true || rbNat.IsChecked == true;
-                        double totalWidth = Math.Max(200, (clients.Count > 0 ? clients.Count : 1) * horizontalVmSpacing);
-                        double centerX = totalWidth / 2;
-
-                        CreateNode("Switch", Switch1.SwitchName, "", "", centerX, switchY);
-
-                        if (hasUpstream)
-                        {
-                            string upstreamName = upstreamDropDown.Content as string ?? "上游网络";
-                            CreateNode("Upstream", upstreamName, "", "", centerX, upstreamY);
-                            DrawLine(centerX, upstreamY + radius, centerX, switchY - radius);
-                        }
-
-                        if (clients.Any())
-                        {
-                            double startX = centerX - ((clients.Count - 1) * horizontalVmSpacing) / 2;
-                            DrawLine(centerX, switchY + radius, centerX, vmBusY);
-
-                            if (clients.Count > 1)
+                            string? selectedAdapter = null;
+                            if (selectedMode == "Bridge")
                             {
-                                DrawLine(startX, vmBusY, startX + (clients.Count - 1) * horizontalVmSpacing, vmBusY);
+                                var content = upstreamDropDown.Content as string;
+                                if (string.IsNullOrEmpty(content) || content.Contains("请选择") || content.Contains("不可用"))
+                                {
+                                    return;
+                                }
+                                selectedAdapter = content;
                             }
 
-                            for (int i = 0; i < clients.Count; i++)
-                            {
-                                var client = clients[i];
-                                double currentClientX = startX + i * horizontalVmSpacing;
-                                // 调用 CreateNode，顺序是 (Name, IP, MAC)
-                                CreateNode("Net", client.Name, client.IpAddress, client.MacAddress, currentClientX, vmY, allowWrapping: true);
-                                DrawLine(currentClientX, vmBusY, currentClientX, vmY - radius);
-                            }
+                            bool allowManagementOS = hostConnectionSwitch.IsChecked ?? false;
+                            bool enableDhcp = dhcpSwitch.IsChecked ?? false;
+
+                            await Utils.UpdateSwitchConfigurationAsync(Switch1.SwitchName, selectedMode, selectedAdapter, allowManagementOS, enableDhcp);
+                            BuildVerticalTopology();
                         }
-
-                        // ------------------- 阶段5: 设置画布最终尺寸 -------------------
-                        // Canvas会自动扩展，但为了ScrollViewer能正确工作，最好还是设置一个足够大的高度
-                        topologyCanvas.Width = totalWidth + 40;
-                        topologyCanvas.Height = vmY + 40 + 20 + 20; // 保持足够的高度
+                        catch (Exception ex)
+                        {
+                            System.Windows.MessageBox.Show($"更新交换机配置失败: {ex.Message}");
+                        }
                     }
-                    catch (Exception ex)
+
+                    MenuItem CreateNetworkCardMenuItem(string cardName)
                     {
-                        System.Diagnostics.Debug.WriteLine($"Error building topology: {ex.Message}");
+                        var item = new MenuItem { Header = cardName };
+                        item.Click += (s, e) =>
+                        {
+                            Switch1.NetAdapterInterfaceDescription = cardName;
+                            upstreamDropDown.Content = cardName;
+                            OnSettingsChanged(upstreamDropDown, new RoutedEventArgs());
+                        };
+                        return item;
                     }
-                }
-                // UpdateUpstreamState 函数 (无变化)
-                void UpdateUpstreamState(bool isEnabled)
-                {
-                    upstreamDropDown.IsEnabled = isEnabled;
-                    if (!isEnabled) { upstreamDropDown.Content = "不可用"; }
-                    else { upstreamDropDown.Content = !string.IsNullOrEmpty(Switch1.NetAdapterInterfaceDescription) ? Switch1.NetAdapterInterfaceDescription : "请选择网卡..."; }
-                }
 
-                // *** 核心: 全新的、更精确的UI状态更新函数 *** (无变化)
-                void UpdateUIState()
-                {
-                    if (_isUpdatingUiFromCode) return;
-                    _isUpdatingUiFromCode = true;
+                    // =========================================================================
+                    // 阶段3 - 组装UI树并绑定事件
+                    // =========================================================================
+                    var contentPanel = new StackPanel { Margin = new Thickness(50, 10, 0, 10) };
+                    var settingsGrid = new Grid();
+                    settingsGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(125) });
+                    settingsGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                    settingsGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                    settingsGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                    settingsGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                    settingsGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                    contentPanel.Children.Add(settingsGrid);
+                    var rowMargin = new Thickness(0, 0, 0, 4);
+                    var rowMargin2 = new Thickness(0, 0, 0, 12);
 
-                    // 1. 首先确定当前选择的模式
-                    var isBridgeMode = rbBridge.IsChecked == true;
-                    var isNatMode = rbNat.IsChecked == true;
-                    // 如果都不是，则为“无上游模式”
+                    var modeLabel = Utils.TextBlock2("网络模式", 0, 0);
+                    modeLabel.VerticalAlignment = VerticalAlignment.Center; modeLabel.Margin = rowMargin;
+                    settingsGrid.Children.Add(modeLabel);
+                    var radioPanel = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
+                    radioPanel.Children.Add(rbBridge); radioPanel.Children.Add(rbNat); radioPanel.Children.Add(rbNone);
+                    radioPanel.Margin = rowMargin;
+                    Grid.SetRow(radioPanel, 0); Grid.SetColumn(radioPanel, 1);
+                    settingsGrid.Children.Add(radioPanel);
 
-                    // 2. 根据模式计算出各个UI控件的目标状态
-                    bool hostConnectionEnabled;
-                    bool dhcpEnabled; // 暂时保留这个变量，但它的值会被覆盖
-
-                    if (isBridgeMode)
+                    var upstreamLabel = Utils.TextBlock2("上游网络", 1, 0);
+                    upstreamLabel.VerticalAlignment = VerticalAlignment.Center; upstreamLabel.Margin = rowMargin2;
+                    settingsGrid.Children.Add(upstreamLabel);
+                    upstreamDropDown.Margin = rowMargin2;
+                    var upstreamContextMenu = new ContextMenu();
+                    var physicalAdapterDescriptions = physicalAdapterList.Select(p => p.InterfaceDescription).ToList();
+                    string currentConnectedAdapter = Switch1.NetAdapterInterfaceDescription;
+                    if (!string.IsNullOrEmpty(currentConnectedAdapter) && !physicalAdapterDescriptions.Contains(currentConnectedAdapter))
                     {
-                        // 桥接模式：用户可以自己决定主机是否连接
-                        hostConnectionEnabled = true;
-                        dhcpEnabled = false;
-                        UpdateUpstreamState(true);
+                        physicalAdapterDescriptions.Add(currentConnectedAdapter);
                     }
-                    else if (isNatMode)
+                    foreach (var adapterName in physicalAdapterDescriptions)
                     {
-                        // NAT模式：主机必须连接作为网关
-                        hostConnectionEnabled = false; // 不允许用户修改
-                        hostConnectionSwitch.IsChecked = true; // 强制开启
-                        dhcpEnabled = true; // 这里的计算结果会被忽略
-                        UpdateUpstreamState(true);
+                        upstreamContextMenu.Items.Add(CreateNetworkCardMenuItem(adapterName));
                     }
-                    else // 无上游模式
+                    upstreamDropDown.Flyout = upstreamContextMenu;
+                    Grid.SetRow(upstreamDropDown, 1); Grid.SetColumn(upstreamDropDown, 1);
+                    settingsGrid.Children.Add(upstreamDropDown);
+
+                    var hostConnectionLabel = Utils.TextBlock2("宿主连接", 2, 0);
+                    hostConnectionLabel.VerticalAlignment = VerticalAlignment.Center; hostConnectionLabel.Margin = rowMargin2;
+                    settingsGrid.Children.Add(hostConnectionLabel);
+                    hostConnectionSwitch.Margin = rowMargin2;
+                    Grid.SetRow(hostConnectionSwitch, 2); Grid.SetColumn(hostConnectionSwitch, 1);
+                    settingsGrid.Children.Add(hostConnectionSwitch);
+
+                    var dhcpLabel = Utils.TextBlock2("简易DHCP", 3, 0);
+                    dhcpLabel.VerticalAlignment = VerticalAlignment.Center; dhcpLabel.Margin = new Thickness(0, 0, 0, 10);
+                    settingsGrid.Children.Add(dhcpLabel);
+                    dhcpSwitch.Margin = new Thickness(0, 0, 0, 10);
+                    Grid.SetRow(dhcpSwitch, 3); Grid.SetColumn(dhcpSwitch, 1);
+                    settingsGrid.Children.Add(dhcpSwitch);
+
+                    rbBridge.Checked += OnSettingsChanged;
+                    rbNat.Checked += OnSettingsChanged;
+                    rbNone.Checked += OnSettingsChanged;
+                    hostConnectionSwitch.Click += OnSettingsChanged;
+                    dhcpSwitch.Click += OnSettingsChanged;
+
+                    var topologySectionPanel = new StackPanel { Margin = new Thickness(0, 10, 0, 0) };
+                    var topologyTitle = new TextBlock { Text = "网络拓扑", FontSize = 16, Margin = new Thickness(0, 0, 0, 10) };
+                    topologySectionPanel.Children.Add(topologyTitle);
+                    topologySectionPanel.Children.Add(topologyCanvas);
+                    contentPanel.Children.Add(topologySectionPanel);
+
+                    // =========================================================================
+                    // 阶段4 - 设置初始状态
+                    // =========================================================================
+                    switch (Switch1.SwitchType)
                     {
-                        // 无上游模式：用户可决定主机连接
-                        hostConnectionEnabled = true;
-                        dhcpEnabled = false;
-                        UpdateUpstreamState(false);
+                        case "External": rbBridge.IsChecked = true; break;
+                        case "NAT": rbNat.IsChecked = true; break;
+                        case "Internal": case "Private": default: rbNone.IsChecked = true; break;
                     }
 
-                    // <<< 关键修改：在这里强制禁用所有模式的DHCP功能
-                    // 以后要恢复时，只需注释或删除下面这行即可
-                    dhcpEnabled = false;
-
-                    // 3. 将计算好的状态一次性应用到UI控件
-                    hostConnectionSwitch.IsEnabled = hostConnectionEnabled;
-                    dhcpSwitch.IsEnabled = dhcpEnabled;
-
-                    // 最佳实践：当一个开关被禁用时，总是将其状态重置为“关闭”
-                    if (!dhcpSwitch.IsEnabled)
-                    {
-                        dhcpSwitch.IsChecked = false;
-                    }
-
-                    // 4. 更新其他依赖项
-                    BuildVerticalTopology();
-
-                    _isUpdatingUiFromCode = false;
-                }
-
-                // *** 核心: 重构后的统一事件处理器 *** (无变化)
-                async void OnSettingsChanged(object sender, RoutedEventArgs e)
-                {
                     UpdateUIState();
 
-                    if (_isInitializing) return;
-                    if (sender is RadioButton rb && rb.IsChecked != true) return;
+                    cardExpander.Content = contentPanel;
+                    ParentPanel.Children.Add(cardExpander);
 
-                    try
-                    {
-                        string selectedMode = "Isolated";
-                        if (rbBridge.IsChecked == true) selectedMode = "Bridge";
-                        else if (rbNat.IsChecked == true) selectedMode = "NAT";
-
-                        string? selectedAdapter = (upstreamDropDown.IsEnabled) ? upstreamDropDown.Content as string : null;
-                        bool allowManagementOS = hostConnectionSwitch.IsChecked ?? false;
-                        bool enableDhcp = dhcpSwitch.IsChecked ?? false;
-
-                        if ((selectedMode == "Bridge" || selectedMode == "NAT") &&
-                            (string.IsNullOrEmpty(selectedAdapter) || selectedAdapter.Contains("请选择") || selectedAdapter.Contains("不可用")))
-                        {
-                            return;
-                        }
-
-                         await Utils.UpdateSwitchConfigurationAsync(Switch1.SwitchName, selectedMode, selectedAdapter, allowManagementOS, enableDhcp);
-                         BuildVerticalTopology();
-                    }
-                    catch (Exception ex)
-                    {
-                        System.Windows.MessageBox.Show($"更新交换机配置失败: {ex.Message}");
-                    }
+                    _isInitializing = false;
                 }
-
-                // =========================================================================
-                //         <<<<<<<<<<<<<<<<<<   此处为核心修正区域   >>>>>>>>>>>>>>>>>>
-                // =========================================================================
-                // CreateNetworkCardMenuItem 函数 (已修正，解决网卡选择后UI不更新的问题)
-                MenuItem CreateNetworkCardMenuItem(string cardName)
-                {
-                    var item = new MenuItem { Header = cardName };
-                    item.Click += (s, e) =>
-                    {
-                        // 1. 核心修正: 首先更新数据模型(Switch1对象)
-                        //    这确保了后续的UI刷新函数使用的是最新的数据，而不是旧的。
-                        Switch1.NetAdapterInterfaceDescription = cardName;
-
-                        // 2. 立即更新UI显示，提供快速反馈
-                        upstreamDropDown.Content = cardName;
-
-                        // 3. 触发统一的事件处理器来刷新所有相关UI状态并执行后台更新。
-                        //    (不再需要单独调用 UpdateUIState()，因为 OnSettingsChanged 会做)
-                        OnSettingsChanged(upstreamDropDown, new RoutedEventArgs());
-                    };
-                    return item;
-                }
-
-                // =========================================================================
-                // 阶段3 - 组装UI树并绑定事件 (无变化)
-                // =========================================================================
-                var contentPanel = new StackPanel { Margin = new Thickness(50, 10, 0, 10) };
-                var settingsGrid = new Grid();
-                settingsGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(125) });
-                settingsGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-                settingsGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-                settingsGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-                settingsGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-                settingsGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-                contentPanel.Children.Add(settingsGrid);
-                var rowMargin = new Thickness(0, 0, 0, 4);
-                var rowMargin2 = new Thickness(0, 0, 0, 12);
-
-                var modeLabel = Utils.TextBlock2("网络模式", 0, 0);
-                modeLabel.VerticalAlignment = VerticalAlignment.Center; modeLabel.Margin = rowMargin;
-                settingsGrid.Children.Add(modeLabel);
-                var radioPanel = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
-                radioPanel.Children.Add(rbBridge); radioPanel.Children.Add(rbNat); radioPanel.Children.Add(rbNone);
-                radioPanel.Margin = rowMargin;
-                Grid.SetRow(radioPanel, 0); Grid.SetColumn(radioPanel, 1);
-                settingsGrid.Children.Add(radioPanel);
-
-                var upstreamLabel = Utils.TextBlock2("上游网络", 1, 0);
-                upstreamLabel.VerticalAlignment = VerticalAlignment.Center; upstreamLabel.Margin = rowMargin2;
-                settingsGrid.Children.Add(upstreamLabel);
-                upstreamDropDown.Margin = rowMargin2;
-                var upstreamContextMenu = new ContextMenu();
-                var physicalAdapterDescriptions = physicalAdapterList.Select(p => p.InterfaceDescription).ToList();
-                string currentConnectedAdapter = Switch1.NetAdapterInterfaceDescription;
-                if (!string.IsNullOrEmpty(currentConnectedAdapter) && !physicalAdapterDescriptions.Contains(currentConnectedAdapter))
-                {
-                    physicalAdapterDescriptions.Add(currentConnectedAdapter);
-                }
-                foreach (var adapterName in physicalAdapterDescriptions)
-                {
-                    upstreamContextMenu.Items.Add(CreateNetworkCardMenuItem(adapterName));
-                }
-                upstreamDropDown.Flyout = upstreamContextMenu;
-                Grid.SetRow(upstreamDropDown, 1); Grid.SetColumn(upstreamDropDown, 1);
-                settingsGrid.Children.Add(upstreamDropDown);
-
-                var hostConnectionLabel = Utils.TextBlock2("宿主连接", 2, 0);
-                hostConnectionLabel.VerticalAlignment = VerticalAlignment.Center; hostConnectionLabel.Margin = rowMargin2;
-                settingsGrid.Children.Add(hostConnectionLabel);
-                hostConnectionSwitch.Margin = rowMargin2;
-                Grid.SetRow(hostConnectionSwitch, 2); Grid.SetColumn(hostConnectionSwitch, 1);
-                settingsGrid.Children.Add(hostConnectionSwitch);
-
-                var dhcpLabel = Utils.TextBlock2("简易DHCP", 3, 0);
-                dhcpLabel.VerticalAlignment = VerticalAlignment.Center; dhcpLabel.Margin = new Thickness(0, 0, 0, 10);
-                settingsGrid.Children.Add(dhcpLabel);
-                dhcpSwitch.Margin = new Thickness(0, 0, 0, 10);
-                Grid.SetRow(dhcpSwitch, 3); Grid.SetColumn(dhcpSwitch, 1);
-                settingsGrid.Children.Add(dhcpSwitch);
-
-                // 统一绑定所有会影响状态的控件的事件
-                rbBridge.Checked += OnSettingsChanged;
-                rbNat.Checked += OnSettingsChanged;
-                rbNone.Checked += OnSettingsChanged;
-                hostConnectionSwitch.Click += OnSettingsChanged;
-                dhcpSwitch.Click += OnSettingsChanged;
-
-                var topologySectionPanel = new StackPanel { Margin = new Thickness(0, 10, 0, 0) };
-                var topologyTitle = new TextBlock { Text = "网络拓扑", FontSize = 16, Margin = new Thickness(0, 0, 0, 10) };
-                topologySectionPanel.Children.Add(topologyTitle);
-                topologySectionPanel.Children.Add(topologyCanvas);
-                contentPanel.Children.Add(topologySectionPanel);
-
-                // =========================================================================
-                // 阶段4 - 设置初始状态 (无变化)
-                // =========================================================================
-                switch (Switch1.SwitchType)
-                {
-                    case "External": rbBridge.IsChecked = true; break;
-                    case "NAT": rbNat.IsChecked = true; break;
-                    case "Internal": case "Private": default: rbNone.IsChecked = true; break;
-                }
-
-                // 调用一次以应用所有联动规则，确保UI在加载时就处于正确状态
-                UpdateUIState();
-
-                cardExpander.Content = contentPanel;
-                ParentPanel.Children.Add(cardExpander);
-
-                // 所有初始化完成，允许事件处理器执行后台任务
-                _isInitializing = false;
             });
-        
+
         }
 
         Dispatcher.Invoke(() => //隐藏加载条
