@@ -387,8 +387,17 @@ public partial class Utils
                 break;
 
             case "Isolated":
-                //1.设置为内部交换机。2.如果有宿主连接，添加。3.如果不要宿主连接，删掉宿主适配器。
-                script = $"Set-VMSwitch -Name '{switchName}' -SwitchType Internal";
+                // ==================== 关键修正 ====================
+                // 定义可能存在的 NAT 规则的名称，以便我们知道要删除什么
+                string natNameToClean = $"NAT-for-{switchName}";
+
+                // 1. [新增] 首先，尝试查找并删除与此交换机关联的 NAT 规则。
+                script = $"Get-NetNat -Name '{natNameToClean}' -ErrorAction SilentlyContinue | Remove-NetNat -Confirm:$false";
+
+                // 2. 然后，设置为内部交换机。
+                script += $"\nSet-VMSwitch -Name '{switchName}' -SwitchType Internal";
+
+                // 3. 最后，根据需要处理宿主连接。
                 if (allowManagementOS)
                 {
                     script += $"\nif (-not (Get-VMNetworkAdapter -ManagementOS -SwitchName '{switchName}' -ErrorAction SilentlyContinue)) {{ Add-VMNetworkAdapter -ManagementOS -SwitchName '{switchName}' }}";
