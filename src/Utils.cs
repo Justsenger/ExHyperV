@@ -360,9 +360,6 @@ public partial class Utils
                 string natToCleanInBridge = $"NAT-for-{switchName}";
                 script = $"Get-NetNat -Name '{natToCleanInBridge}' -ErrorAction SilentlyContinue | Remove-NetNat -Confirm:$false;";
 
-                // 显式删除旧的宿主适配器
-                script += $"\nGet-VMNetworkAdapter -ManagementOS -SwitchName '{switchName}' -ErrorAction SilentlyContinue | Remove-VMNetworkAdapter -Confirm:$false;";
-
                 // 使用修正后的 allowManagementParam
                 script += $"\nSet-VMSwitch -Name '{switchName}' -NetAdapterInterfaceDescription '{physicalAdapterName}' {allowManagementParam};";
                 break;
