@@ -301,7 +301,7 @@ public partial class VMNetPage
                 settingsGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
                 contentPanel.Children.Add(settingsGrid);
                 var rowMargin = new Thickness(0, 0, 0, 4);
-                var rowMargin2 = new Thickness(0, 0, 0, 10);
+                var rowMargin2 = new Thickness(0, 0, 0, 12);
 
                 var modeLabel = Utils.TextBlock2("网络模式", 0, 0);
                 modeLabel.VerticalAlignment = VerticalAlignment.Center; modeLabel.Margin = rowMargin;
@@ -338,7 +338,7 @@ public partial class VMNetPage
                 Grid.SetRow(hostConnectionSwitch, 2); Grid.SetColumn(hostConnectionSwitch, 1);
                 settingsGrid.Children.Add(hostConnectionSwitch);
 
-                var dhcpLabel = Utils.TextBlock2("DHCP", 3, 0);
+                var dhcpLabel = Utils.TextBlock2("简易DHCP", 3, 0);
                 dhcpLabel.VerticalAlignment = VerticalAlignment.Center; dhcpLabel.Margin = new Thickness(0, 0, 0, 10);
                 settingsGrid.Children.Add(dhcpLabel);
                 dhcpSwitch.Margin = new Thickness(0, 0, 0, 10);
