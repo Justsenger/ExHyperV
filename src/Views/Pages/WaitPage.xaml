@@ -30,7 +30,7 @@
                  />
             <!-- v4 使用 Style 资源 -->
 
-            <TextBlock Text="正在获取虚拟交换机信息..." 
+            <TextBlock Text="正在更新网络拓扑图..." 
                        HorizontalAlignment="Center" 
                        Margin="0,12,0,0"
                        />
