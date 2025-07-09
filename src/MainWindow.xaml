@@ -8,7 +8,8 @@
         xmlns:properties="clr-namespace:ExHyperV.Properties"
         mc:Ignorable="d"
         Title="ExHyperV" Height="700" Width="1000"
-        xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
+        xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+        WindowStartupLocation="CenterScreen">
     <Grid>
         <!-- 布局规划 -->
         <Grid.RowDefinitions>
