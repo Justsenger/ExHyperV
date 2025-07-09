@@ -410,9 +410,9 @@ public partial class Utils
         }
         // =======================================================================
 
-        // ==================== 关键修正 3: 确保异步执行不阻塞UI ====================
-        // 使用 Task.Run 来在后台线程上执行同步的 Run 方法
-        await Task.Run(() => Run(script));
+        // ==================== 关键修正 ====================
+        // 调用我们新的辅助方法，在专门的 STA 线程上执行脚本
+        await RunScriptInStaThreadAsync(script);
         // =======================================================================
 
 
@@ -422,6 +422,32 @@ public partial class Utils
             // ... 添加启用DHCP的脚本和逻辑 ...
         }
     }
+
+    private static Task RunScriptInStaThreadAsync(string script)
+    {
+        var tcs = new TaskCompletionSource<object?>();
+
+        var staThread = new Thread(() =>
+        {
+            try
+            {
+                // 在这个新的 STA 线程上执行同步的 Run 方法
+                Run(script);
+                tcs.SetResult(null); // 表示成功完成
+            }
+            catch (Exception ex)
+            {
+                tcs.SetException(ex); // 将异常传递给 Task
+            }
+        });
+
+        // 最关键的一步：设置线程模型为 STA
+        staThread.SetApartmentState(ApartmentState.STA);
+        staThread.Start();
+
+        return tcs.Task;
+    }
+
     public static void Show(string message)
     {
         var messageBox = new Wpf.Ui.Controls.MessageBox
