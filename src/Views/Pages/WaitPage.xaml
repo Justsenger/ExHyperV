@@ -3,49 +3,37 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:ExHyperV"
-        xmlns:pages="clr-namespace:ExHyperV.Views.Pages"
         mc:Ignorable="d"
-        xmlns:properties="clr-namespace:ExHyperV.Properties"
-        Title="ExHyperV" Height="200" Width="500"
-        xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
-    <Grid>
+        xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+        Title="WaitPage"
+        Width="350"
+        Height="150"
+        MinHeight="150"
+        WindowStartupLocation="CenterScreen"
+        ExtendsContentIntoTitleBar="True">
 
-        <!-- 布局规划 -->
+    <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
+            <!-- For TitleBar -->
             <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
+            <!-- For Content -->
         </Grid.RowDefinitions>
-        
-        <!-- 标题栏 -->
-        <ui:TitleBar
-            Title="请等待.." Grid.ColumnSpan="2" VerticalAlignment="Center">
-        </ui:TitleBar>
 
-        <ProgressBar x:Name="progress" Grid.Row="1" IsIndeterminate="False"/>
+        <StackPanel Grid.Row="1" Margin="24">
+            <!-- ======================================================= -->
+            <!--     3. 适用于 v4.0.3 的 "小点点" ProgressRing         -->
+            <!-- ======================================================= -->
+            <ui:ProgressRing
+                IsIndeterminate="True"
+                HorizontalAlignment="Center"
+                 />
+            <!-- v4 使用 Style 资源 -->
 
-        <Grid Grid.Row="2" Margin="7">
-            <ui:ProgressRing IsIndeterminate="True">
-                
-            </ui:ProgressRing>
-
-        </Grid>
-
-
-        <Grid Grid.Row="3" Margin="10">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="Auto"/>
-            </Grid.ColumnDefinitions>
-
-            <ui:Button Content="{x:Static properties:Resources.cancel}" Width="200" Margin="20,0,40,0"/>
-            <ui:Button x:Name="ConfirmButton" Appearance="Primary" Width="200" Grid.Column="1" IsEnabled="False"/>
-        </Grid>
-
-        <ContentPresenter Grid.Row="1" Grid.RowSpan="2" Grid.ColumnSpan="2" x:Name="ContentPresenterForDialogs"/>
-
+            <TextBlock Text="正在获取虚拟交换机信息..." 
+                       HorizontalAlignment="Center" 
+                       Margin="0,12,0,0"
+                       />
+        </StackPanel>
     </Grid>
 </ui:FluentWindow>
-    

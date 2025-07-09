@@ -7,22 +7,26 @@ using System.Windows.Media;
 using System.Windows.Shapes;
 using Wpf.Ui.Controls;
 
+
+
 public partial class VMNetPage
 {
     public bool refreshlock = false;
     private bool _isUpdatingUiFromCode = false;
-
-    WaitPage selectItemWindow = new WaitPage();
-    selectItemWindow.ShowDialog(); //显示GPU适配器选择窗口
-
     public VMNetPage()
     {
         InitializeComponent();
         Task.Run(() => Initialinfo()); //获取宿主虚拟交换机信息
     }
+    private void VMNetPage_Loaded(object sender, RoutedEventArgs e)
+    {
+        WaitPage waitwindows = new();
+        waitwindows.ShowDialog();
+    }
 
-        //虚拟交换机的数据结构
-        public class SwitchInfo
+
+    //虚拟交换机的数据结构
+    public class SwitchInfo
         {
             public string SwitchName { get; set; }
             public string SwitchType { get; set; }
