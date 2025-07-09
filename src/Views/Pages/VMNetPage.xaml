@@ -11,7 +11,7 @@
     d:DesignHeight="700"
     d:DesignWidth="1000"
     mc:Ignorable="d"
-    Loaded="VMNetPage_Loaded">
+    >
 
     <Grid Margin="10" VerticalAlignment="Top">
         <Grid.RowDefinitions>

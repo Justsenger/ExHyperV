@@ -2,6 +2,7 @@
 namespace ExHyperV.Views.Pages;
 using System;
 using System.Collections.Generic;
+using System.Linq.Expressions;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Shapes;
@@ -80,13 +81,20 @@ public partial class VMNetPage
         List<SwitchInfo> SwitchList = new List<SwitchInfo>(); //存储交换机数据
         List<PhysicalAdapterInfo> physicalAdapterList = new List<PhysicalAdapterInfo>(); //存储物理网卡数据
         await GetInfo(SwitchList, physicalAdapterList); //获取数据
-        Dispatcher.Invoke(() => //更新UI
+
+        Dispatcher.Invoke(() => //清空交换机列表
         {
             ParentPanel.Children.Clear();
-            progressRing.Visibility = Visibility.Collapsed; //隐藏加载条
+            
+        });
 
-            foreach (var Switch1 in SwitchList)
+        foreach (var Switch1 in SwitchList)
+        {
+            List<AdapterInfo> adapters = GetFullSwitchNetworkState(Switch1.SwitchName);
+
+            Dispatcher.Invoke(() => //更新UI
             {
+
                 // *** 标志位: 用于控制初始化流程和防止UI更新事件重入 ***
                 bool _isInitializing = true;
                 bool _isUpdatingUiFromCode = false;
@@ -246,7 +254,7 @@ public partial class VMNetPage
 
                         // ------------------- 阶段3: 准备数据 (无变化) -------------------
                         var clients = new List<(string Name, string IpAddress, string MacAddress)>();
-                        List<AdapterInfo> adapters = GetFullSwitchNetworkState(Switch1.SwitchName);
+                        
 
                         foreach (var adapter in adapters)
                         {
@@ -508,11 +516,18 @@ public partial class VMNetPage
 
                 // 所有初始化完成，允许事件处理器执行后台任务
                 _isInitializing = false;
-            }
+            });
+        
+        }
+
+        Dispatcher.Invoke(() => //隐藏加载条
+        {
+            progressRing.Visibility = Visibility.Collapsed;
+
         });
     }
 
-    private async Task GetInfo(List<SwitchInfo> SwitchList, List<PhysicalAdapterInfo> physicalAdapterList)
+    private static async Task GetInfo(List<SwitchInfo> SwitchList, List<PhysicalAdapterInfo> physicalAdapterList)
         {
             try
             { 
@@ -552,6 +567,11 @@ public partial class VMNetPage
                         var Host = result.Properties["AllowManagementOS"]?.Value?.ToString();
                         var Id = result.Properties["Id"]?.Value?.ToString();
                         var Phydesc = result.Properties["NetAdapterInterfaceDescription"]?.Value?.ToString();
+
+                        bool isConfiguredAsNat = IsSwitchNatConfigured(SwitchName);
+
+                        SwitchType = isConfiguredAsNat ? "NAT" : SwitchType;
+
                         SwitchList.Add(new SwitchInfo(SwitchName, SwitchType, Host, Id, Phydesc));
                     }
                     
@@ -561,6 +581,60 @@ public partial class VMNetPage
         }
     }
 
+
+    private static bool IsSwitchNatConfigured(string switchName)
+    {
+        // 使用 C# 的 verbatim string (@"...") 和 string interpolation ($"...") 来构建脚本
+        // 这使得我们可以轻松地将 switchName 变量插入到脚本中。
+        string script = $@"
+        try {{
+            $ipString = (Get-NetIPAddress -InterfaceAlias (Get-NetAdapter | Where-Object {{ ($_.MacAddress -replace '[-:]') -eq ((Get-VMNetworkAdapter -ManagementOS -SwitchName '{switchName}' -ErrorAction Stop).MacAddress -replace '[-:]') }}).Name -AddressFamily IPv4 -ErrorAction Stop)[0].IPAddress
+            $adapterIP = [System.Net.IPAddress]::Parse($ipString)
+
+            $matchingRule = Get-NetNat -ErrorAction SilentlyContinue | Where-Object {{
+                $natSubnetParts = $_.InternalIPInterfaceAddressPrefix.Split('/')
+                $natNetworkAddress = [System.Net.IPAddress]::Parse($natSubnetParts[0])
+                $prefixLength = [int]$natSubnetParts[1]
+
+                $subnetMaskInt = [uint32]::MaxValue -shl (32 - $prefixLength)
+                $subnetMaskBytes = [System.BitConverter]::GetBytes($subnetMaskInt)
+                [array]::Reverse($subnetMaskBytes)
+
+                $adapterIPBytes = $adapterIP.GetAddressBytes()
+
+                $resultBytes = for ($i = 0; $i -lt 4; $i++) {{ $adapterIPBytes[$i] -band $subnetMaskBytes[$i] }}
+                $resultIP = [System.Net.IPAddress]::new($resultBytes)
+
+                $resultIP.Equals($natNetworkAddress)
+            }} | Select-Object -First 1
+
+            [bool]$matchingRule
+        }}
+        catch {{
+            $false
+        }}
+    ";
+
+        try
+        {
+            // 运行脚本并解析返回的结果
+            var results = Utils.Run(script);
+
+            // PowerShell 的 $true/$false 会被作为布尔类型的对象返回
+            if (results != null && results.Count > 0 && results[0]?.BaseObject is bool boolResult)
+            {
+                return boolResult;
+            }
+        }
+        catch
+        {
+            // 如果执行脚本时发生任何异常（例如权限问题），都安全地返回 false
+            return false;
+        }
+
+        // 如果没有返回任何结果，也视为 false
+        return false;
+    }
 
     // 保持 C# 方法结构不变
     private List<AdapterInfo> GetFullSwitchNetworkState(string switchName)
@@ -578,12 +652,17 @@ public partial class VMNetPage
         string hostAdapterScript =
             $"$vmAdapter = Get-VMNetworkAdapter -ManagementOS -SwitchName '{switchName}';" +
             "if ($vmAdapter) {" +
-            "    $netAdapter = Get-NetAdapter | Where-Object { ($_.MacAddress -replace '-') -eq ($vmAdapter.MacAddress -replace '-') };" +
+            "    $netAdapter = Get-NetAdapter | Where-Object { (($_.MacAddress -replace '-') -eq ($vmAdapter.MacAddress -replace '-')) -and ($_.Virtual -eq $true) };" +
             "    if ($netAdapter) {" +
-            "        $ipAddresses = (Get-NetIPAddress -InterfaceIndex $netAdapter.InterfaceIndex).IPAddress -join ',';" +
+            "        $ipAddressObjects = Get-NetIPAddress -InterfaceIndex $netAdapter.InterfaceIndex -ErrorAction SilentlyContinue;" +
+            "        if ($ipAddressObjects) {" +
+            "            $ipAddresses = ($ipAddressObjects.IPAddress) -join ',';" +
+            "        } else {" +
+            "            $ipAddresses = '';" +
+            "        }" +
             "        [PSCustomObject]@{" +
-            "            VMName      = '主机'; " +
-            "            MacAddress  = ($netAdapter.MacAddress -replace '-', ':');" + // <-- 核心修改点
+            "            VMName      = '主机';" +
+            "            MacAddress  = ($netAdapter.MacAddress -replace '-', ':');" +
             "            Status      = $netAdapter.Status.ToString();" +
             "            IPAddresses = $ipAddresses;" +
             "        };" +
@@ -632,4 +711,5 @@ public partial class VMNetPage
             return new List<AdapterInfo>();
         }
     }
+
 }
