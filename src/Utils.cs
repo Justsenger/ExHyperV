@@ -345,15 +345,26 @@ public partial class Utils
 
     public static async Task UpdateSwitchConfigurationAsync(string switchName, string mode, string? physicalAdapterName, bool allowManagementOS, bool enabledhcp)
     {
-        string allowManagementParam = allowManagementOS ? "$true" : "$false";
+        // ==================== 关键修正 1: 正确构造开关参数 ====================
+        // 如果 allowManagementOS 为 true, 则参数为 "-AllowManagementOS"; 否则为空字符串。
+        string allowManagementParam = allowManagementOS ? "-AllowManagementOS" : "";
+        // =======================================================================
+
         string script = string.Empty;
 
+        // ==================== 关键修正 2: 在每行命令末尾添加分号 (;) ====================
         switch (mode)
         {
             case "Bridge":
-                //1.先删除可能存在的宿主适配器。 2.设置交换机为外部交换机。
-                script = $"Get-VMNetworkAdapter -ManagementOS -SwitchName '{switchName}' -ErrorAction SilentlyContinue | Remove-VMNetworkAdapter -Confirm:$false";
-                script += $"\nSet-VMSwitch -Name '{switchName}' -NetAdapterInterfaceDescription '{physicalAdapterName}' -AllowManagementOS {allowManagementParam}";
+                // 在切换到桥接模式时，也应该清理掉可能存在的NAT规则，以确保干净。
+                string natToCleanInBridge = $"NAT-for-{switchName}";
+                script = $"Get-NetNat -Name '{natToCleanInBridge}' -ErrorAction SilentlyContinue | Remove-NetNat -Confirm:$false;";
+
+                // 显式删除旧的宿主适配器
+                script += $"\nGet-VMNetworkAdapter -ManagementOS -SwitchName '{switchName}' -ErrorAction SilentlyContinue | Remove-VMNetworkAdapter -Confirm:$false;";
+
+                // 使用修正后的 allowManagementParam
+                script += $"\nSet-VMSwitch -Name '{switchName}' -NetAdapterInterfaceDescription '{physicalAdapterName}' {allowManagementParam};";
                 break;
 
             case "NAT":
@@ -362,66 +373,53 @@ public partial class Utils
                 string subnetPrefix = "24";
                 string natSubnet = "192.168.100.0/24";
 
-                script = $"Set-VMSwitch -Name '{switchName}' -SwitchType Internal";
-                script += $"\nif (-not (Get-VMNetworkAdapter -ManagementOS -SwitchName '{switchName}' -ErrorAction SilentlyContinue)) {{ Add-VMNetworkAdapter -ManagementOS -SwitchName '{switchName}' }}";
-
-                script += $"\n$vmAdapter = Get-VMNetworkAdapter -ManagementOS -SwitchName '{switchName}'";
+                script = $"Set-VMSwitch -Name '{switchName}' -SwitchType Internal;";
+                script += $"\nif (-not (Get-VMNetworkAdapter -ManagementOS -SwitchName '{switchName}' -ErrorAction SilentlyContinue)) {{ Add-VMNetworkAdapter -ManagementOS -SwitchName '{switchName}' }};";
+                script += $"\n$vmAdapter = Get-VMNetworkAdapter -ManagementOS -SwitchName '{switchName}';";
                 script += $"\nif ($vmAdapter) {{";
-                script += $"\n    $netAdapter = Get-NetAdapter | Where-Object {{ ($_.MacAddress -replace '-') -eq ($vmAdapter.MacAddress -replace '-') }}";
+                script += $"\n    $netAdapter = Get-NetAdapter | Where-Object {{ ($_.MacAddress -replace '-') -eq ($vmAdapter.MacAddress -replace '-') }};";
                 script += $"\n    if ($netAdapter) {{";
-                script += $"\n        $interfaceAlias = $netAdapter.Name";
-                script += $"\n        Get-NetIPAddress -InterfaceAlias $interfaceAlias -ErrorAction SilentlyContinue | Remove-NetIPAddress -Confirm:$false";
-                script += $"\n        New-NetIPAddress -InterfaceAlias $interfaceAlias -IPAddress '{gatewayIP}' -PrefixLength {subnetPrefix} -ErrorAction Stop";
+                script += $"\n        $interfaceAlias = $netAdapter.Name;";
+                script += $"\n        Get-NetIPAddress -InterfaceAlias $interfaceAlias -ErrorAction SilentlyContinue | Remove-NetIPAddress -Confirm:$false;";
+                script += $"\n        New-NetIPAddress -InterfaceAlias $interfaceAlias -IPAddress '{gatewayIP}' -PrefixLength {subnetPrefix} -ErrorAction Stop;";
                 script += $"\n    }}";
                 script += $"\n}}";
-
-                // ==================== 关键修复代码 ====================
-                // 移除任何占用目标子网的现有NAT规则
-                script += $"\n$conflictingNat = Get-NetNat | Where-Object {{ $_.InternalIPInterfaceAddressPrefix -eq '{natSubnet}' }}";
-                script += $"\nif ($conflictingNat) {{ Remove-NetNat -Name $conflictingNat.Name -Confirm:$false }}";
-                // ========================================================
-
-                // 现在安全地创建我们自己的规则
-                script += $"\nNew-NetNat -Name '{natName}' -InternalIPInterfaceAddressPrefix '{natSubnet}' -ErrorAction Stop";
-
+                script += $"\n$conflictingNat = Get-NetNat | Where-Object {{ $_.InternalIPInterfaceAddressPrefix -eq '{natSubnet}' }};";
+                script += $"\nif ($conflictingNat) {{ Remove-NetNat -Name $conflictingNat.Name -Confirm:$false }};";
+                script += $"\nNew-NetNat -Name '{natName}' -InternalIPInterfaceAddressPrefix '{natSubnet}' -ErrorAction Stop;";
                 break;
 
             case "Isolated":
-                // ==================== 关键修正 ====================
-                // 定义可能存在的 NAT 规则的名称，以便我们知道要删除什么
                 string natNameToClean = $"NAT-for-{switchName}";
-
-                // 1. [新增] 首先，尝试查找并删除与此交换机关联的 NAT 规则。
-                script = $"Get-NetNat -Name '{natNameToClean}' -ErrorAction SilentlyContinue | Remove-NetNat -Confirm:$false";
-
-                // 2. 然后，设置为内部交换机。
-                script += $"\nSet-VMSwitch -Name '{switchName}' -SwitchType Internal";
-
-                // 3. 最后，根据需要处理宿主连接。
+                script = $"Get-NetNat -Name '{natNameToClean}' -ErrorAction SilentlyContinue | Remove-NetNat -Confirm:$false;";
+                script += $"\nSet-VMSwitch -Name '{switchName}' -SwitchType Internal;";
                 if (allowManagementOS)
                 {
-                    script += $"\nif (-not (Get-VMNetworkAdapter -ManagementOS -SwitchName '{switchName}' -ErrorAction SilentlyContinue)) {{ Add-VMNetworkAdapter -ManagementOS -SwitchName '{switchName}' }}";
+                    script += $"\nif (-not (Get-VMNetworkAdapter -ManagementOS -SwitchName '{switchName}' -ErrorAction SilentlyContinue)) {{ Add-VMNetworkAdapter -ManagementOS -SwitchName '{switchName}' }};";
                 }
                 else
                 {
-                    script += $"\nGet-VMNetworkAdapter -ManagementOS -SwitchName '{switchName}' -ErrorAction SilentlyContinue | Remove-VMNetworkAdapter -Confirm:$false";
+                    script += $"\nGet-VMNetworkAdapter -ManagementOS -SwitchName '{switchName}' -ErrorAction SilentlyContinue | Remove-VMNetworkAdapter -Confirm:$false;";
                 }
-
                 break;
 
             default:
-                Show($"错误：未知的网络模式 '{mode}'");
-                return; 
+                // 考虑一个更健壮的错误处理，例如抛出异常
+                // Show($"错误：未知的网络模式 '{mode}'");
+                throw new ArgumentException($"错误：未知的网络模式 '{mode}'");
         }
+        // =======================================================================
 
-        Run(script);
+        // ==================== 关键修正 3: 确保异步执行不阻塞UI ====================
+        // 使用 Task.Run 来在后台线程上执行同步的 Run 方法
+        await Task.Run(() => Run(script));
+        // =======================================================================
 
 
         // 这里可以添加对 enabledhcp 参数的处理逻辑，如果需要的话
         if (enabledhcp)
         {
             // ... 添加启用DHCP的脚本和逻辑 ...
-            // Show("启用DHCP的逻辑...");
         }
     }
     public static void Show(string message)
