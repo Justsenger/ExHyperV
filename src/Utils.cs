@@ -351,7 +351,7 @@ public partial class Utils
         };
         messageBox.ShowDialogAsync();
     }
-    public static string Version => "V1.0.9";
+    public static string Version => "V1.1.0-dev";
     public static string Author => "砂菱叶";
 
 
