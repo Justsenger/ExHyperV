@@ -4,6 +4,7 @@ using System.Management.Automation;
 using System.Collections.Generic;
 using System.Linq;
 using System.Globalization;
+using ExHyperV;
 
 public partial class MainPage
 {

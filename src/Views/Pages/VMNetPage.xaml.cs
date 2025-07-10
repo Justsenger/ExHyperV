@@ -2,10 +2,10 @@
 namespace ExHyperV.Views.Pages;
 using System;
 using System.Collections.Generic;
-using System.Linq.Expressions;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Shapes;
+using ExHyperV;
 using Wpf.Ui.Controls;
 
 
@@ -13,39 +13,20 @@ using Wpf.Ui.Controls;
 public partial class VMNetPage
 {
     public bool refreshlock = false;
-    private bool _isUpdatingUiFromCode = false;
     public VMNetPage()
     {
         InitializeComponent();
         Task.Run(() => Initialinfo()); //获取宿主虚拟交换机信息
     }
-    private void VMNetPage_Loaded(object sender, RoutedEventArgs e)
-    {
-        WaitPage waitwindows = new();
-        waitwindows.ShowDialog();
-    }
-
-
     //虚拟交换机的数据结构
-    public class SwitchInfo
-        {
-            public string SwitchName { get; set; }
-            public string SwitchType { get; set; }
-            public string AllowManagementOS { get; set; }
-            public string Id { get; set; }
-            public string NetAdapterInterfaceDescription { get; set; }
-            public List<AdapterInfo> Adapters { get; set; }  // 网络适配器列表
-
-            // 构造函数
-            public SwitchInfo(string switchName, string switchType, string host, string id, string phydesc)
-            {
-                SwitchName = switchName;
-                SwitchType = switchType;
-                AllowManagementOS = host;
-                Id = id;
-                NetAdapterInterfaceDescription = phydesc;
-        }
-        }
+    public class SwitchInfo(string switchName, string switchType, string host, string id, string phydesc)
+    {
+        public string SwitchName { get; set; } = switchName;
+        public string SwitchType { get; set; } = switchType;
+        public string AllowManagementOS { get; set; } = host;
+        public string Id { get; set; } = id;
+        public string NetAdapterInterfaceDescription { get; set; } = phydesc;
+    }
 
     //网络适配器的数据结构
     public class AdapterInfo
@@ -76,28 +57,24 @@ public partial class VMNetPage
         }
     }
 
-
     private async void refresh(object sender, RoutedEventArgs e)
     {
         await Initialinfo();
     }
 
     private async Task Initialinfo(){
-        List<SwitchInfo> SwitchList = new List<SwitchInfo>(); //存储交换机数据
-        List<PhysicalAdapterInfo> physicalAdapterList = new List<PhysicalAdapterInfo>(); //存储物理网卡数据
-        await GetInfo(SwitchList, physicalAdapterList); //获取数据
-
-        Dispatcher.Invoke(() => //清空交换机列表
+        List<SwitchInfo> SwitchList = []; //存储交换机数据
+        List<PhysicalAdapterInfo> physicalAdapterList = []; //存储物理网卡数据
+        await GetInfo(SwitchList, physicalAdapterList); 
+        Dispatcher.Invoke(() => 
         {
-            ParentPanel.Children.Clear();
-            
+            ParentPanel.Children.Clear(); 
         });
 
         foreach (var Switch1 in SwitchList)
         {
             Dispatcher.Invoke(() => //更新UI
             {
-                // *** 标志位: 用于控制初始化流程和防止UI更新事件重入 ***
                 bool _isInitializing = true;
                 bool _isUpdatingUiFromCode = false;
 
@@ -115,7 +92,7 @@ public partial class VMNetPage
                 var statusPanel = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
                 var statusCircle = new Ellipse { Width = 8, Height = 8, Margin = new Thickness(0, 0, 6, 0) };
 
-                // Header文本和状态的最终更新将在UpdateUIState中进行，这里只做基础初始化
+                // Header文本和状态的更新将在UpdateUIState中进行，这里只做基础初始化
                 var statusTextBlock = Utils.TextBlock12("正在确定状态...");
                 statusTextBlock.Margin = new Thickness(0);
                 statusPanel.Children.Add(statusCircle);
@@ -141,13 +118,90 @@ public partial class VMNetPage
                 // =========================================================================
                 // 阶段2 - 局部函数定义
                 // =========================================================================
-
-                async void BuildVerticalTopology()
+                async Task UpdateUIState()//更新界面UI
                 {
-                    var waitPage = new WaitPage();
+                    if (_isUpdatingUiFromCode) return;
+                    _isUpdatingUiFromCode = true;
+
+                    var isBridgeMode = rbBridge.IsChecked == true;
+                    var isNatMode = rbNat.IsChecked == true;
+
+                    bool hostConnectionEnabled;
+                    bool dhcpEnabled;
+                    string currentMode;
+                    string headerStatusText;
+                    bool headerIsConnected;
+
+                    if (isBridgeMode)
+                    {
+                        currentMode = "Bridge";
+                        hostConnectionEnabled = true;
+                        dhcpEnabled = false;
+
+                        headerIsConnected = !string.IsNullOrEmpty(Switch1.NetAdapterInterfaceDescription);
+                        headerStatusText = headerIsConnected ? "已连接到：" + Switch1.NetAdapterInterfaceDescription : "未连接上游网络";
+                    }
+                    else if (isNatMode)
+                    {
+                        currentMode = "NAT";
+                        hostConnectionEnabled = false;
+                        hostConnectionSwitch.IsChecked = true;
+                        dhcpEnabled = false;
+
+                        headerIsConnected = true;
+                        // 在此硬编码NAT模式的描述文本
+                        headerStatusText = "已连接到：NAT网络";
+                    }
+                    else // 无上游模式
+                    {
+                        currentMode = "None";
+                        hostConnectionEnabled = true;
+                        dhcpEnabled = false;
+
+                        headerIsConnected = false;
+                        headerStatusText = "未连接上游网络";
+                    }
+
+                    hostConnectionSwitch.IsEnabled = hostConnectionEnabled;
+                    dhcpSwitch.IsEnabled = dhcpEnabled;
+                    if (!dhcpSwitch.IsEnabled) { dhcpSwitch.IsChecked = false; }
+
+                    switch (currentMode)
+                    {
+                        case "Bridge":
+                            upstreamDropDown.IsEnabled = true;
+                            upstreamDropDown.Content = !string.IsNullOrEmpty(Switch1.NetAdapterInterfaceDescription)
+                                ? Switch1.NetAdapterInterfaceDescription
+                                : "请选择网卡...";
+                            break;
+                        case "NAT":
+                            upstreamDropDown.IsEnabled = false;
+                            upstreamDropDown.Content = "NAT网络";
+                            break;
+                        case "None":
+                        default:
+                            upstreamDropDown.IsEnabled = false;
+                            upstreamDropDown.Content = "不可用";
+                            break;
+                    }
+
+                    statusTextBlock.Text = headerStatusText;
+                    statusCircle.Fill = new SolidColorBrush(headerIsConnected ? Colors.Green : Colors.Red);
+
+                    var content = upstreamDropDown.Content as string;
+                    if (!string.IsNullOrEmpty(content) && !content.Contains("请选择")) { //不为空，且不为待选择状态
+                        await BuildVerticalTopology(); //绘制拓扑图
+                    }
+
+                    _isUpdatingUiFromCode = false;
+
+                }
+
+                async Task BuildVerticalTopology()
+                {
+
                     try
                     {
-                        waitPage.Show(); // 启动显示任务
                         List<AdapterInfo> adapters = await GetFullSwitchNetworkStateAsync(Switch1.SwitchName);
                         topologyCanvas.Children.Clear();
                         double iconSize = 28;
@@ -260,97 +314,14 @@ public partial class VMNetPage
                     {
                         System.Diagnostics.Debug.WriteLine($"Error building topology: {ex.Message}");
                     }
-                    finally {
-                        waitPage.Close();
-                    }
                 }
-
-                void UpdateUpstreamState(string mode)
-                {
-                    switch (mode)
-                    {
-                        case "Bridge":
-                            upstreamDropDown.IsEnabled = true;
-                            upstreamDropDown.Content = !string.IsNullOrEmpty(Switch1.NetAdapterInterfaceDescription)
-                                ? Switch1.NetAdapterInterfaceDescription
-                                : "请选择网卡...";
-                            break;
-                        case "NAT":
-                            upstreamDropDown.IsEnabled = false;
-                            upstreamDropDown.Content = "NAT网络";
-                            break;
-                        case "None":
-                        default:
-                            upstreamDropDown.IsEnabled = false;
-                            upstreamDropDown.Content = "不可用";
-                            break;
-                    }
-                }
-
-                void UpdateUIState()
-                {
-                    if (_isUpdatingUiFromCode) return;
-                    _isUpdatingUiFromCode = true;
-
-                    var isBridgeMode = rbBridge.IsChecked == true;
-                    var isNatMode = rbNat.IsChecked == true;
-
-                    bool hostConnectionEnabled;
-                    bool dhcpEnabled;
-                    string currentMode;
-                    string headerStatusText;
-                    bool headerIsConnected;
-
-                    if (isBridgeMode)
-                    {
-                        currentMode = "Bridge";
-                        hostConnectionEnabled = true;
-                        dhcpEnabled = false;
-
-                        headerIsConnected = !string.IsNullOrEmpty(Switch1.NetAdapterInterfaceDescription);
-                        headerStatusText = headerIsConnected ? "已连接到：" + Switch1.NetAdapterInterfaceDescription : "未连接上游网络";
-                    }
-                    else if (isNatMode)
-                    {
-                        currentMode = "NAT";
-                        hostConnectionEnabled = false;
-                        hostConnectionSwitch.IsChecked = true;
-                        dhcpEnabled = false;
-
-                        headerIsConnected = true;
-                        // 在此硬编码NAT模式的描述文本
-                        headerStatusText = "已连接到：NAT网络";
-                    }
-                    else // 无上游模式
-                    {
-                        currentMode = "None";
-                        hostConnectionEnabled = true;
-                        dhcpEnabled = false;
-
-                        headerIsConnected = false;
-                        headerStatusText = "未连接上游网络";
-                    }
-
-                    hostConnectionSwitch.IsEnabled = hostConnectionEnabled;
-                    dhcpSwitch.IsEnabled = dhcpEnabled;
-                    if (!dhcpSwitch.IsEnabled) { dhcpSwitch.IsChecked = false; }
-
-                    UpdateUpstreamState(currentMode);
-
-                    statusTextBlock.Text = headerStatusText;
-                    statusCircle.Fill = new SolidColorBrush(headerIsConnected ? Colors.Green : Colors.Red);
-
-                    BuildVerticalTopology();
-
-                    _isUpdatingUiFromCode = false;
-                }
-
                 async void OnSettingsChanged(object sender, RoutedEventArgs e)
                 {
-                    UpdateUIState();
-
                     if (_isInitializing) return;
                     if (sender is RadioButton rb && rb.IsChecked != true) return;
+
+                    var waitPage = new WaitPage();
+                    waitPage.Show(); // 启动显示任务
 
                     try
                     {
@@ -373,12 +344,14 @@ public partial class VMNetPage
                         bool enableDhcp = dhcpSwitch.IsChecked ?? false;
 
                         await Utils.UpdateSwitchConfigurationAsync(Switch1.SwitchName, selectedMode, selectedAdapter, allowManagementOS, enableDhcp);
-                        BuildVerticalTopology();
+                        await UpdateUIState();
+                        await BuildVerticalTopology();
                     }
                     catch (Exception ex)
                     {
                         System.Windows.MessageBox.Show($"更新交换机配置失败: {ex.Message}");
                     }
+                    waitPage.Close();
                 }
 
                 MenuItem CreateNetworkCardMenuItem(string cardName)
@@ -472,12 +445,10 @@ public partial class VMNetPage
                     case "Internal": case "Private": default: rbNone.IsChecked = true; break;
                 }
 
-                UpdateUIState();
+                var _ = UpdateUIState();
 
                 cardExpander.Content = contentPanel;
                 ParentPanel.Children.Add(cardExpander);
-
-                // 所有初始化完成，允许事件处理器执行后台任务
                 _isInitializing = false;
             });
 
@@ -598,20 +569,13 @@ public partial class VMNetPage
         // 如果没有返回任何结果，也视为 false
         return false;
     }
-
-    // 保持 C# 方法结构不变
     private List<AdapterInfo> GetFullSwitchNetworkState(string switchName)
     {
-        // *** MODIFIED: 虚拟机脚本 ***
-        // 使用 calculated property (@{...}) 来格式化无分隔符的MAC地址
         string vmAdaptersScript =
             $"Get-VMNetworkAdapter -VMName * | Where-Object {{ $_.SwitchName -eq '{switchName}' }} | " +
             "Select-Object VMName, " +
             "@{Name='MacAddress'; Expression={($_.MacAddress).Insert(2, ':').Insert(5, ':').Insert(8, ':').Insert(11, ':').Insert(14, ':')}}, " +
             "Status, @{Name='IPAddresses'; Expression={($_.IPAddresses -join ',')}}";
-
-        // *** MODIFIED: 宿主机脚本 ***
-        // 使用 -replace 操作符将 '-' 替换为 ':'
         string hostAdapterScript =
             $"$vmAdapter = Get-VMNetworkAdapter -ManagementOS -SwitchName '{switchName}';" +
             "if ($vmAdapter) {" +
@@ -634,11 +598,8 @@ public partial class VMNetPage
 
         try
         {
-            // 1. 分别执行 PowerShell 命令 (逻辑不变)
             var vmResults = Utils.Run(vmAdaptersScript);
             var hostResults = Utils.Run(hostAdapterScript);
-
-            // 2. 解析和合并结果 (逻辑不变)
             var allAdapters = new List<AdapterInfo>();
 
             if (vmResults != null)
@@ -674,10 +635,8 @@ public partial class VMNetPage
             return new List<AdapterInfo>();
         }
     }
-
     private async Task<List<AdapterInfo>> GetFullSwitchNetworkStateAsync(string switchName)
     {
-        // 将同步的、阻塞的 PowerShell 调用包装在 Task.Run 中，以在后台线程上执行
         return await Task.Run(() => GetFullSwitchNetworkState(switchName));
     }
 

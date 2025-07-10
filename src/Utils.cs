@@ -1,6 +1,4 @@
 ﻿using System.Collections.ObjectModel;
-using System.Data.Common;
-using System.Dynamic;
 using System.Management.Automation;
 using System.Reflection;
 using System.Text;
@@ -8,13 +6,12 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using System.Xml.Linq;
 using Wpf.Ui.Controls;
 using Image = Wpf.Ui.Controls.Image;
 using TextBlock = Wpf.Ui.Controls.TextBlock;
 using WriteText = Wpf.Ui.Controls.TextBox;
 
-namespace ExHyperV.Views.Pages;
+namespace ExHyperV;
 
 
 public partial class Utils
@@ -22,84 +19,46 @@ public partial class Utils
 
     public static Collection<PSObject>? Run(string script)
     {
-        using (PowerShell ps = PowerShell.Create())
-        {
-            ps.AddScript(script);
-            try
-            {
-                var results = ps.Invoke();
-                if (ps.HadErrors)
-                {
-                    var errorBuilder = new StringBuilder();
-                    errorBuilder.AppendLine("PowerShell 执行时遇到错误：\n");
-                    foreach (var error in ps.Streams.Error)
-                    {
-                        errorBuilder.AppendLine($"- {error.Exception.Message}");
-                    }
-                    Show(errorBuilder.ToString());
-                    return null;
-                }
-                return results;
-            }
-            catch (Exception ex)
-            {
-                Show($"执行 PowerShell 时发生严重系统异常：\n\n{ex.Message}");
-                return null;
-            }
-        }
-    }
-    public static Collection<PSObject> Run2(string script)
-    {
-        PowerShell ps = PowerShell.Create();
+        using PowerShell ps = PowerShell.Create();
         ps.AddScript(script);
-
-        Collection<PSObject> output = null;
-
         try
         {
-            // 执行脚本
-            output = ps.Invoke();
-
-            // 如果存在错误，将错误信息打印出来
+            var results = ps.Invoke();
             if (ps.HadErrors)
             {
-                System.Windows.MessageBox.Show("错误:");
+                var errorBuilder = new StringBuilder();
+                errorBuilder.AppendLine("PowerShell 执行时遇到错误：\n");
                 foreach (var error in ps.Streams.Error)
                 {
-                    System.Windows.MessageBox.Show($"错误消息: {error.Exception.Message}");
-                    System.Windows.MessageBox.Show($"错误详细信息: {error.Exception.StackTrace}");
+                    errorBuilder.AppendLine($"- {error.Exception.Message}");
                 }
+                Show(errorBuilder.ToString());
+                return null;
             }
+            return results;
         }
         catch (Exception ex)
         {
-            System.Windows.MessageBox.Show($"执行 PowerShell 脚本时发生异常: {ex.Message}");
-            System.Windows.MessageBox.Show($"堆栈信息: {ex.StackTrace}");
+            Show($"执行 PowerShell 时发生严重系统异常：\n\n{ex.Message}");
+            return null;
         }
-
-        return output;
-
     }
     public static CardExpander CardExpander1()
     {
-        var cardExpander = new CardExpander
+        return new CardExpander
         {
             Margin = new Thickness(20, 5, 0, 0),
             ContentPadding = new Thickness(6),
         };
-
-        return cardExpander;
     }
 
     public static CardExpander CardExpander2()
     {
-        var cardExpander = new CardExpander
+        return new CardExpander
         {
             Margin = new Thickness(30, 5, 10, 0),
             ContentPadding = new Thickness(6),
         };
-
-        return cardExpander;
     }
 
     public static string GetIconPath(string deviceType, string friendlyName)
@@ -132,95 +91,60 @@ public partial class Utils
 
 
     public static FontIcon FontIcon1(string classType, string friendlyName) {
-        var icon = new FontIcon
+        return new FontIcon
         {
             FontSize = 24,
             FontFamily = (FontFamily)Application.Current.Resources["SegoeFluentIcons"],
             Glyph = GetIconPath(classType, friendlyName) // 获取图标Unicode
         };
-        return icon;
     }
     public static TextBlock TextBlock1(string friendlyName) {
-        var headerText = new TextBlock
+        return new TextBlock
         {
             Text = friendlyName,
             FontSize = 16,
-            Margin = new System.Windows.Thickness(0,-2, 0, 0),
+            Margin = new Thickness(0, -2, 0, 0),
             VerticalAlignment = VerticalAlignment.Center
         };
-        return headerText;
     }
-
     public static TextBlock TextBlock12(string friendlyName)
     {
         var headerText = new TextBlock
         {
             Text = friendlyName,
             FontSize = 12,
-            Margin = new System.Windows.Thickness(0, 2, 0, 0),
+            Margin = new Thickness(0, 2, 0, 0),
             VerticalAlignment = VerticalAlignment.Center,
         };
-        headerText.SetResourceReference(TextBlock.ForegroundProperty, "TextFillColorSecondaryBrush");
+        headerText.SetResourceReference(System.Windows.Controls.TextBlock.ForegroundProperty, "TextFillColorSecondaryBrush");
         return headerText;
     }
-
-    public static WriteText WriteTextBlock(string friendlyName)
-    {
-        var headerText = new WriteText
-        {
-            Text = friendlyName,
-            FontSize = 16,
-            Margin = new System.Windows.Thickness(0, -2, 0, 0),
-            VerticalAlignment = VerticalAlignment.Center
-        };
-        return headerText;
-    }
-
-
-
     public static DropDownButton DropDownButton1(string status) {
-        var Menu = new DropDownButton
+        return new DropDownButton
         {
             Content = status,
             Margin = new Thickness(10, 0, 5, 0),
         };
-        return Menu;
     }
-
     public static TextBlock TextBlock3(string friendlyName)
     {
-        var headerText = new TextBlock
+        return new TextBlock
         {
             Text = friendlyName,
             FontSize = 16,
-            Margin = new System.Windows.Thickness(0, -2, 0, 0),
+            Margin = new Thickness(0, -2, 0, 0),
             VerticalAlignment = VerticalAlignment.Center,
             HorizontalAlignment = HorizontalAlignment.Center,
             TextWrapping = TextWrapping.Wrap // 允许文本换行
         };
-        return headerText;
     }
-
-
     public static TextBlock TextBlock2(string text,int row,int column)
     {
         var textBlock = new TextBlock { Text = text, FontSize = 16, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 10, 10) };
         Grid.SetRow(textBlock, row);
         Grid.SetColumn(textBlock, column);
-
         return textBlock;
     }
-
-    public static WriteText WriteTextBlock2(string text, int row, int column)
-    {
-        var textBlock = new WriteText { Text = text, FontSize = 16, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 10, 10) };
-        Grid.SetRow(textBlock, row);
-        Grid.SetColumn(textBlock, column);
-
-        return textBlock;
-    }
-
-
     public static StackPanel CreateStackPanel(string text)
     {
         var stackPanel = new StackPanel
@@ -240,8 +164,6 @@ public partial class Utils
 
         return stackPanel;
     }
-
-
     public static string GetGpuImagePath(string Manu,string name)
     {
         string imageName;
@@ -299,7 +221,6 @@ public partial class Utils
 
         return $"pack://application:,,,/Assets/Gpuicons/{imageName}";
     }
-
     public static Image CreateGpuImage(string key, string name,int size)
     {
         var image = new Image
@@ -321,7 +242,6 @@ public partial class Utils
 
         return image;
     }
-
     public static FontIcon FontIcon(int Size,string Glyph)
     {
         var icon = new FontIcon
@@ -331,11 +251,10 @@ public partial class Utils
             Glyph = Glyph // 获取图标Unicode
         };
         return icon;
-
     }
-
     public static DateTime GetLinkerTime()
     {
+        //获取编译时间
         string filePath = Assembly.GetExecutingAssembly().Location;
         var fileInfo = new System.IO.FileInfo(filePath);
         DateTime linkerTime = fileInfo.LastWriteTime;
@@ -345,26 +264,21 @@ public partial class Utils
 
     public static async Task UpdateSwitchConfigurationAsync(string switchName, string mode, string? physicalAdapterName, bool allowManagementOS, bool enabledhcp)
     {
-        // ==================== 关键修正 1: 正确构造开关参数 ====================
-        // 如果 allowManagementOS 为 true, 则参数为 "-AllowManagementOS"; 否则为空字符串。
-        string allowManagementParam = allowManagementOS ? "-AllowManagementOS" : "";
-        // =======================================================================
-
-        string script = string.Empty;
-
-        // ==================== 关键修正 2: 在每行命令末尾添加分号 (;) ====================
+        string script;
         switch (mode)
         {
             case "Bridge":
-                // 在切换到桥接模式时，也应该清理掉可能存在的NAT规则，以确保干净。
-                string natToCleanInBridge = $"NAT-for-{switchName}";
-                script = $"Get-NetNat -Name '{natToCleanInBridge}' -ErrorAction SilentlyContinue | Remove-NetNat -Confirm:$false;";
+                // 切换到桥接模式，1.清除可能存在的NAT规则。2.清除多余的宿主适配器。3.设置交换机为外部交换机，指定上游网卡。
+                script = $"Get-NetNat -Name 'NAT-for-{switchName}' -ErrorAction SilentlyContinue | Remove-NetNat -Confirm:$false;";
+                script += $"\nGet-VMNetworkAdapter -ManagementOS -SwitchName '{switchName}' -ErrorAction SilentlyContinue | Remove-VMNetworkAdapter -Confirm:$false;";
+                script += $"\nSet-VMSwitch -Name '{switchName}' -NetAdapterInterfaceDescription '{physicalAdapterName}'";
+                
 
-                // 使用修正后的 allowManagementParam
-                script += $"\nSet-VMSwitch -Name '{switchName}' -NetAdapterInterfaceDescription '{physicalAdapterName}' {allowManagementParam};";
                 break;
 
             case "NAT":
+                //切换到NAT模式，1.指定NAT参数。2.设置交换机为内部交换机。3.检测宿主适配器，没有就添加。4.获取宿主适配器的MAC和IP。5.根据宿主适配器和NAT参数，设定宿主适配器的IP和网关。
+                //6.检测是否有冲突的NAT规则，有则清除。7.添加NAT规则。
                 string natName = $"NAT-for-{switchName}";
                 string gatewayIP = "192.168.100.1";
                 string subnetPrefix = "24";
@@ -387,8 +301,7 @@ public partial class Utils
                 break;
 
             case "Isolated":
-                string natNameToClean = $"NAT-for-{switchName}";
-                script = $"Get-NetNat -Name '{natNameToClean}' -ErrorAction SilentlyContinue | Remove-NetNat -Confirm:$false;";
+                script = $"Get-NetNat -Name 'NAT-for-{switchName}' -ErrorAction SilentlyContinue | Remove-NetNat -Confirm:$false;";
                 script += $"\nSet-VMSwitch -Name '{switchName}' -SwitchType Internal;";
                 if (allowManagementOS)
                 {
@@ -401,26 +314,13 @@ public partial class Utils
                 break;
 
             default:
-                // 考虑一个更健壮的错误处理，例如抛出异常
-                // Show($"错误：未知的网络模式 '{mode}'");
                 throw new ArgumentException($"错误：未知的网络模式 '{mode}'");
         }
-        // =======================================================================
-
-        // ==================== 关键修正 ====================
-        // 调用我们新的辅助方法，在专门的 STA 线程上执行脚本
-        await RunScriptInStaThreadAsync(script);
-        // =======================================================================
-
-
-        // 这里可以添加对 enabledhcp 参数的处理逻辑，如果需要的话
-        if (enabledhcp)
-        {
-            // ... 添加启用DHCP的脚本和逻辑 ...
-        }
+        await RunScriptSTA(script);
+        if (enabledhcp){}
     }
 
-    private static Task RunScriptInStaThreadAsync(string script)
+    public static Task RunScriptSTA(string script)
     {
         var tcs = new TaskCompletionSource<object?>();
 
@@ -428,7 +328,6 @@ public partial class Utils
         {
             try
             {
-                // 在这个新的 STA 线程上执行同步的 Run 方法
                 Run(script);
                 tcs.SetResult(null); // 表示成功完成
             }
@@ -437,14 +336,11 @@ public partial class Utils
                 tcs.SetException(ex); // 将异常传递给 Task
             }
         });
-
-        // 最关键的一步：设置线程模型为 STA
         staThread.SetApartmentState(ApartmentState.STA);
         staThread.Start();
 
         return tcs.Task;
     }
-
     public static void Show(string message)
     {
         var messageBox = new Wpf.Ui.Controls.MessageBox
@@ -453,10 +349,8 @@ public partial class Utils
             Content = message,
             CloseButtonText = "OK"
         };
-
         messageBox.ShowDialogAsync();
     }
-
     public static string Version => "V1.0.9";
     public static string Author => "砂菱叶";
 

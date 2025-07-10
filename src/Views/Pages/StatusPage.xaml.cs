@@ -5,6 +5,7 @@ using System.Security.Principal;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using ExHyperV;
 using Wpf.Ui.Controls;
 
 public partial class StatusPage

@@ -10,7 +10,6 @@ using System;
 using System.IO;
 
 using Wpf.Ui;
-using ExHyperV.Views.Pages;
 
 namespace ExHyperV
 {

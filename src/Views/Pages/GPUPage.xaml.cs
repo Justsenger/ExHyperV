@@ -5,6 +5,7 @@ using System.Management.Automation;
 using System.Numerics;
 using System.Windows;
 using System.Windows.Controls;
+using ExHyperV;
 using Microsoft.CodeAnalysis;
 using Wpf.Ui;
 using Wpf.Ui.Controls;

@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Management.Automation;
 using System.Windows;
+using ExHyperV;
 using Wpf.Ui.Controls;
 
 public partial class DDAPage
