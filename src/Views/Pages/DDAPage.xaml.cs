@@ -17,7 +17,7 @@ public partial class DDAPage
         Task.Run(() => IsServer());
         Task.Run(() => Initialinfo()); //获取设备信息
     }
-                public class DeviceInfo
+    public class DeviceInfo
                 {
                     public string FriendlyName { get; set; }
                     public string Status { get; set; }
@@ -159,6 +159,9 @@ public partial class DDAPage
     }
                 private async Task DDAps(DropDownButton menu,ContentDialog dialog,TextBlock contentTextBlock,string Vmname,string instanceId,string path,string Nowname)
                 {
+                    //增加对虚拟机MMIO空间的检测，如果低于128GB则提示用户是否需要扩大空间。
+                    bool canProceed = await CheckAndConfirmMmioUpdateAsync(Vmname); //直接触发调整即可，不影响后面的分配流程。
+
                     var (psCommands, messages) = DDACommands(Vmname,instanceId,path,Nowname); //通过四元组获取对应的命令和消息提示
                     for (int i = 0; i < messages.Length; i++)
                     {
@@ -464,5 +467,77 @@ public partial class DDAPage
             progressRing.Visibility = Visibility.Visible; //显示加载条
             Task.Run(() => Initialinfo()); //获取设备信息
         } 
+    }
+
+
+
+    private async Task<bool> CheckAndConfirmMmioUpdateAsync(string vmName)
+    {
+        const ulong requiredMmioBytes = 64UL * 1024 * 1024 * 1024; // 64 GiB
+
+        try
+        {
+            // 1. 获取当前MMIO空间
+            string script = $"Get-VM -Name \"{vmName}\" | Select-Object HighMemoryMappedIoSpace";
+            var results = Utils.Run(script);
+
+            // 检查PowerShell执行是否成功
+            if (results == null || results.Count == 0)
+            {
+                // Utils.Run内部已弹窗报错，这里只需返回false表示中止
+                return false;
+            }
+
+            var mmioProperty = results[0].Properties["HighMemoryMappedIoSpace"];
+            if (mmioProperty == null || mmioProperty.Value == null)
+            {
+                throw new InvalidOperationException("无法从Get-VM的返回结果中找到HighMemoryMappedIoSpace属性。");
+            }
+
+            ulong currentMmioBytes = Convert.ToUInt64(mmioProperty.Value);
+
+            // 2. 如果MMIO空间不足，则创建并显示一个新对话框
+            if (currentMmioBytes < requiredMmioBytes)
+            {
+                long currentMmioGB = (long)(currentMmioBytes / (1024 * 1024 * 1024));
+
+                // --- 在函数内部创建 ContentDialog ---
+                var dialog = new ContentDialog
+                {
+                    Title = "MMIO空间过小",
+                    Content = $"虚拟机 '{vmName}' 的内存映射I/O空间当前为 {currentMmioGB}GB，低于推荐的 64GB。\n\n这可能导致显卡无法获得足够的内存空间，尤其是在主板开启了Resizable BAR的情况下。\n\n是否要关闭虚拟机，并将其MMIO空间扩展到 64GB？",
+                    PrimaryButtonText = "是",
+                    CloseButtonText = "否"
+
+                };
+                dialog.DialogHost = ((MainWindow)Application.Current.MainWindow).ContentPresenterForDialogs;
+
+                var result = await dialog.ShowAsync();
+
+                if (result == ContentDialogResult.Primary)
+                {
+                    // 用户同意，执行更新操作
+                    string updateScript =
+                        $"if ((Get-VM -Name '{vmName}').State -eq 'Running') {{ Stop-VM -Name '{vmName}' -Force; }};" +
+                        $"\nSet-VM -VMName '{vmName}' -HighMemoryMappedIoSpace {requiredMmioBytes};";
+
+                    var updateResult = Utils.Run(updateScript);
+                    return updateResult != null;
+                }
+                else
+                {
+                    // 用户取消
+                    return false;
+                }
+            }
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            // 捕获任何C#端的处理异常，并创建自己的错误对话框
+            Utils.Show(ex.Message);
+            return false; // 发生错误，中止流程
+        }
     }
 }

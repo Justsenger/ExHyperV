@@ -31,8 +31,6 @@ namespace ExHyperV
             RootNavigation.Navigate(typeof(StatusPage));
             RootNavigation.Navigate(typeof(VMNetPage));
             RootNavigation.Navigate(typeof(MainPage));
-
-
         }
 
 
