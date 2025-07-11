@@ -5,12 +5,13 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
         xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
-        Title="WaitPage"
+        Title="更新配置中..."
         Width="350"
         Height="150"
         MinHeight="150"
         WindowStartupLocation="CenterScreen"
-        ExtendsContentIntoTitleBar="True">
+        ExtendsContentIntoTitleBar="True"
+        ResizeMode="NoResize">
 
     <Grid>
         <Grid.RowDefinitions>

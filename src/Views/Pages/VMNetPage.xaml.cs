@@ -2,6 +2,7 @@
 namespace ExHyperV.Views.Pages;
 using System;
 using System.Collections.Generic;
+using System.Reflection.Metadata;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Shapes;
@@ -135,7 +136,8 @@ public partial class VMNetPage
                     if (isBridgeMode)
                     {
                         currentMode = "Bridge";
-                        hostConnectionEnabled = true;
+                        hostConnectionEnabled = false;
+                        hostConnectionSwitch.IsChecked = true;
                         dhcpEnabled = false;
 
                         headerIsConnected = !string.IsNullOrEmpty(Switch1.NetAdapterInterfaceDescription);
@@ -176,7 +178,7 @@ public partial class VMNetPage
                             break;
                         case "NAT":
                             upstreamDropDown.IsEnabled = false;
-                            upstreamDropDown.Content = "NAT网络";
+                            upstreamDropDown.Content = "自动适应";
                             break;
                         case "None":
                         default:
@@ -319,30 +321,27 @@ public partial class VMNetPage
                 {
                     if (_isInitializing) return;
                     if (sender is RadioButton rb && rb.IsChecked != true) return;
-
                     var waitPage = new WaitPage();
-                    waitPage.Show(); // 启动显示任务
+                    var mainWindow = Application.Current.MainWindow;
+
 
                     try
                     {
                         string selectedMode = "Isolated";
                         if (rbBridge.IsChecked == true) selectedMode = "Bridge";
                         else if (rbNat.IsChecked == true) selectedMode = "NAT";
-
                         string? selectedAdapter = null;
                         if (selectedMode == "Bridge")
                         {
                             var content = upstreamDropDown.Content as string;
-                            if (string.IsNullOrEmpty(content) || content.Contains("请选择") || content.Contains("不可用"))
-                            {
-                                return;
-                            }
-                            selectedAdapter = content;
+                            selectedAdapter = content; //可以获取到物理网卡信息
                         }
 
                         bool allowManagementOS = hostConnectionSwitch.IsChecked ?? false;
                         bool enableDhcp = dhcpSwitch.IsChecked ?? false;
-
+                        waitPage.Show(); // 启动显示任务
+                        mainWindow.IsEnabled = false;
+                        waitPage.Owner = mainWindow;
                         await Utils.UpdateSwitchConfigurationAsync(Switch1.SwitchName, selectedMode, selectedAdapter, allowManagementOS, enableDhcp);
                         await UpdateUIState();
                         await BuildVerticalTopology();
@@ -352,6 +351,7 @@ public partial class VMNetPage
                         System.Windows.MessageBox.Show($"更新交换机配置失败: {ex.Message}");
                     }
                     waitPage.Close();
+                    mainWindow.IsEnabled = true;
                 }
 
                 MenuItem CreateNetworkCardMenuItem(string cardName)
@@ -579,7 +579,7 @@ public partial class VMNetPage
         string hostAdapterScript =
             $"$vmAdapter = Get-VMNetworkAdapter -ManagementOS -SwitchName '{switchName}';" +
             "if ($vmAdapter) {" +
-            "    $netAdapter = Get-NetAdapter | Where-Object { (($_.MacAddress -replace '-') -eq ($vmAdapter.MacAddress -replace '-')) -and ($_.Virtual -eq $true) };" +
+            "    $netAdapter = Get-NetAdapter | Where-Object { ($_.MacAddress -replace '-') -eq ($vmAdapter.MacAddress -replace '-') -and ($_.InterfaceDescription -like '*Hyper-V*') };" +
             "    if ($netAdapter) {" +
             "        $ipAddressObjects = Get-NetIPAddress -InterfaceIndex $netAdapter.InterfaceIndex -ErrorAction SilentlyContinue;" +
             "        if ($ipAddressObjects) {" +

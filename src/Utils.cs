@@ -268,11 +268,20 @@ public partial class Utils
         switch (mode)
         {
             case "Bridge":
+
+
+                if (string.IsNullOrEmpty(physicalAdapterName) ||
+                    physicalAdapterName.Contains("不可用") ||
+                    physicalAdapterName.Contains("自动适应") ||
+                    physicalAdapterName.Contains("请选择"))
+                {
+                    return;
+                }
+
                 // 切换到桥接模式，1.清除可能存在的NAT规则。2.清除多余的宿主适配器。3.设置交换机为外部交换机，指定上游网卡。
                 script = $"Get-NetNat -Name 'NAT-for-{switchName}' -ErrorAction SilentlyContinue | Remove-NetNat -Confirm:$false;";
                 script += $"\nGet-VMNetworkAdapter -ManagementOS -SwitchName '{switchName}' -ErrorAction SilentlyContinue | Remove-VMNetworkAdapter -Confirm:$false;";
                 script += $"\nSet-VMSwitch -Name '{switchName}' -NetAdapterInterfaceDescription '{physicalAdapterName}'";
-                
 
                 break;
 
