@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Management.Automation;
 using System.Windows;
+using System.Xml.Linq;
 using ExHyperV;
 using Wpf.Ui.Controls;
 
@@ -90,6 +91,13 @@ public partial class DDAPage
                                 {
                                     if ((String)Menu.Content != header) // 当用户选项不等于目前的选项时
                                     {
+
+                                        //增加对虚拟机MMIO空间的检测，如果低于128GB则提示用户是否需要扩大空间。
+                                        if (header != Properties.Resources.Host)
+                                        {
+                                            bool canProceed = await CheckAndConfirmMmioUpdateAsync(header);
+                                        }
+
                                         TextBlock contentTextBlock = new TextBlock
                                         {
                                             Text = ExHyperV.Properties.Resources.string5,
@@ -109,6 +117,7 @@ public partial class DDAPage
                                         Dialog.DialogHost = ((MainWindow)Application.Current.MainWindow).ContentPresenterForDialogs;
 
                                         Dialog.ShowAsync(CancellationToken.None); //显示提示框 不能写为await
+
 
                                         await DDAps(Menu, Dialog, contentTextBlock, header, device.InstanceId, device.Path, (String)Menu.Content); //执行命令行
                                     }
@@ -159,8 +168,6 @@ public partial class DDAPage
     }
                 private async Task DDAps(DropDownButton menu,ContentDialog dialog,TextBlock contentTextBlock,string Vmname,string instanceId,string path,string Nowname)
                 {
-                    //增加对虚拟机MMIO空间的检测，如果低于128GB则提示用户是否需要扩大空间。
-                    bool canProceed = await CheckAndConfirmMmioUpdateAsync(Vmname); //直接触发调整即可，不影响后面的分配流程。
 
                     var (psCommands, messages) = DDACommands(Vmname,instanceId,path,Nowname); //通过四元组获取对应的命令和消息提示
                     for (int i = 0; i < messages.Length; i++)
