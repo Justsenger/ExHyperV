@@ -2,6 +2,7 @@
 namespace ExHyperV.Views.Pages;
 using System;
 using System.Collections.Generic;
+using System.Linq.Expressions;
 using System.Reflection.Metadata;
 using System.Windows;
 using System.Windows.Media;
@@ -170,15 +171,11 @@ public partial class VMNetPage
 
                     switch (currentMode)
                     {
-                        case "Bridge":
+                        case "Bridge" or "NAT":
                             upstreamDropDown.IsEnabled = true;
                             upstreamDropDown.Content = !string.IsNullOrEmpty(Switch1.NetAdapterInterfaceDescription)
                                 ? Switch1.NetAdapterInterfaceDescription
                                 : "请选择网卡...";
-                            break;
-                        case "NAT":
-                            upstreamDropDown.IsEnabled = false;
-                            upstreamDropDown.Content = "自动适应";
                             break;
                         case "None":
                         default:
@@ -331,10 +328,14 @@ public partial class VMNetPage
                         if (rbBridge.IsChecked == true) selectedMode = "Bridge";
                         else if (rbNat.IsChecked == true) selectedMode = "NAT";
                         string? selectedAdapter = null;
-                        if (selectedMode == "Bridge")
+                        if (selectedMode != "Isolated")
                         {
                             var content = upstreamDropDown.Content as string;
                             selectedAdapter = content; //可以获取到物理网卡信息
+                            if (selectedAdapter == "不可用") { //如果是无上游模式转换来的，更新界面后就可以滚了。
+                                await UpdateUIState();
+                                return;
+                            }
                         }
 
                         bool allowManagementOS = hostConnectionSwitch.IsChecked ?? false;
@@ -416,13 +417,6 @@ public partial class VMNetPage
                 Grid.SetRow(hostConnectionSwitch, 2); Grid.SetColumn(hostConnectionSwitch, 1);
                 settingsGrid.Children.Add(hostConnectionSwitch);
 
-                var dhcpLabel = Utils.TextBlock2("简易DHCP", 3, 0);
-                dhcpLabel.VerticalAlignment = VerticalAlignment.Center; dhcpLabel.Margin = new Thickness(0, 0, 0, 10);
-                settingsGrid.Children.Add(dhcpLabel);
-                dhcpSwitch.Margin = new Thickness(0, 0, 0, 10);
-                Grid.SetRow(dhcpSwitch, 3); Grid.SetColumn(dhcpSwitch, 1);
-                settingsGrid.Children.Add(dhcpSwitch);
-
                 rbBridge.Checked += OnSettingsChanged;
                 rbNat.Checked += OnSettingsChanged;
                 rbNone.Checked += OnSettingsChanged;
@@ -502,9 +496,10 @@ public partial class VMNetPage
                         var Id = result.Properties["Id"]?.Value?.ToString();
                         var Phydesc = result.Properties["NetAdapterInterfaceDescription"]?.Value?.ToString();
 
-                        bool isConfiguredAsNat = IsSwitchNatConfigured(SwitchName);
+                        string? sourceAdapter = GetIcsSourceAdapterName(SwitchName);
 
-                        SwitchType = isConfiguredAsNat ? "NAT" : SwitchType;
+
+                        SwitchType = (sourceAdapter != null) ? "NAT" : SwitchType;
 
                         SwitchList.Add(new SwitchInfo(SwitchName, SwitchType, Host, Id, Phydesc));
                     }
@@ -516,58 +511,92 @@ public partial class VMNetPage
     }
 
 
-    private static bool IsSwitchNatConfigured(string switchName)
+    private static string? GetIcsSourceAdapterName(string switchName)
     {
-        // 使用 C# 的 verbatim string (@"...") 和 string interpolation ($"...") 来构建脚本
-        // 这使得我们可以轻松地将 switchName 变量插入到脚本中。
-        string script = $@"
-        try {{
-            $ipString = (Get-NetIPAddress -InterfaceAlias (Get-NetAdapter | Where-Object {{ ($_.MacAddress -replace '[-:]') -eq ((Get-VMNetworkAdapter -ManagementOS -SwitchName '{switchName}' -ErrorAction Stop).MacAddress -replace '[-:]') }}).Name -AddressFamily IPv4 -ErrorAction Stop)[0].IPAddress
-            $adapterIP = [System.Net.IPAddress]::Parse($ipString)
+        // 这个脚本的核心逻辑是：
+        // 1. 根据交换机名称，确定其在宿主机上的虚拟网卡名称 (vEthernet (switchName))。
+        // 2. 使用 HNetCfg.HNetShare COM 对象遍历所有网络连接。
+        // 3. 找出哪个连接被设置为“公共”(Public)，即共享源。
+        // 4. 同时确认我们目标交换机的虚拟网卡确实被设置为了“私有”(Private)，即共享接收端。
+        // 5. 只有当两者同时满足时，才返回“公共”连接的名称。
+        string script = @"
+param([string]$switchName)
 
-            $matchingRule = Get-NetNat -ErrorAction SilentlyContinue | Where-Object {{
-                $natSubnetParts = $_.InternalIPInterfaceAddressPrefix.Split('/')
-                $natNetworkAddress = [System.Net.IPAddress]::Parse($natSubnetParts[0])
-                $prefixLength = [int]$natSubnetParts[1]
+try {
+    $PrivateAdapterNameToFind = ""vEthernet ({0})"" -f $switchName
 
-                $subnetMaskInt = [uint32]::MaxValue -shl (32 - $prefixLength)
-                $subnetMaskBytes = [System.BitConverter]::GetBytes($subnetMaskInt)
-                [array]::Reverse($subnetMaskBytes)
+    $netShareManager = New-Object -ComObject HNetCfg.HNetShare
 
-                $adapterIPBytes = $adapterIP.GetAddressBytes()
+    $publicAdapterName = $null
+    $privateAdapterIsPartOfShare = $false
 
-                $resultBytes = for ($i = 0; $i -lt 4; $i++) {{ $adapterIPBytes[$i] -band $subnetMaskBytes[$i] }}
-                $resultIP = [System.Net.IPAddress]::new($resultBytes)
-
-                $resultIP.Equals($natNetworkAddress)
-            }} | Select-Object -First 1
-
-            [bool]$matchingRule
-        }}
-        catch {{
-            $false
-        }}
-    ";
-
-        try
-        {
-            // 运行脚本并解析返回的结果
-            var results = Utils.Run(script);
-
-            // PowerShell 的 $true/$false 会被作为布尔类型的对象返回
-            if (results != null && results.Count > 0 && results[0]?.BaseObject is bool boolResult)
-            {
-                return boolResult;
+    foreach ($connection in $netShareManager.EnumEveryConnection) {
+        $config = $netShareManager.INetSharingConfigurationForINetConnection.Invoke($connection)
+        
+        if ($config.SharingEnabled) {
+            $props = $netShareManager.NetConnectionProps.Invoke($connection)
+            
+            # ICSSHARINGTYPE_PUBLIC = 1
+            if ($config.SharingConnectionType -eq 1) {
+                $publicAdapterName = $props.Name
+            }
+            # ICSSHARINGTYPE_PRIVATE = 0
+            elseif (($config.SharingConnectionType -eq 0) -and ($props.Name -eq $PrivateAdapterNameToFind)) {
+                $privateAdapterIsPartOfShare = $true
             }
         }
-        catch
+    }
+
+    # 必须同时找到公共共享源，并且我们自己的私有适配器确实是共享目标
+    if (($null -ne $publicAdapterName) -and ($privateAdapterIsPartOfShare)) {
+        return $publicAdapterName
+    }
+
+    return $null
+}
+catch {
+    return $null
+}
+";
+
+        // 注意：这里的脚本需要一个参数。我们不能用 Utils.Run，需要使用更强大的 PowerShell 调用方式。
+        // 如果您的 Utils.Run 支持传递参数，可以使用它。否则，请使用下面的标准方法。
+        try
         {
-            // 如果执行脚本时发生任何异常（例如权限问题），都安全地返回 false
-            return false;
+            // 使用 System.Management.Automation 来创建和调用 PowerShell 实例
+            using (var ps = System.Management.Automation.PowerShell.Create())
+            {
+                // 将我们的脚本和参数添加到管道中
+                ps.AddScript(string.Format(script, switchName));
+
+                // 执行脚本
+                var results = ps.Invoke();
+
+                // 检查是否有错误流
+                if (ps.Streams.Error.Count > 0)
+                {
+                    // 可以选择记录错误
+                    // var error = ps.Streams.Error[0].ToString();
+                    return null;
+                }
+
+                // 获取返回结果
+                if (results != null && results.Count > 0 && results[0] != null)
+                {
+                    // PowerShell返回的可能是 $null，或者一个字符串。
+                    // 我们将其转换为字符串并返回。
+                    return results[0].BaseObject?.ToString();
+                }
+            }
+        }
+        catch (Exception)
+        {
+            // 任何异常（例如 PowerShell 引擎加载失败）都应安全地处理
+            return null;
         }
 
-        // 如果没有返回任何结果，也视为 false
-        return false;
+        // 如果没有返回任何结果，也视为未找到
+        return null;
     }
     private List<AdapterInfo> GetFullSwitchNetworkState(string switchName)
     {

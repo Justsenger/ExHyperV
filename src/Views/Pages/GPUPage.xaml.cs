@@ -252,17 +252,15 @@ public partial class GPUPage
                 grid2.RowDefinitions.Add(new RowDefinition { Height = new GridLength(32) });
                 grid2.RowDefinitions.Add(new RowDefinition { Height = new GridLength(32) });
                 grid2.RowDefinitions.Add(new RowDefinition { Height = new GridLength(32) });
-                grid2.RowDefinitions.Add(new RowDefinition { Height = new GridLength(32) });
 
                 var textData = new (string text, int row, int column)[]
                 {
-                    ("设计商", 0, 0),(manu, 0, 1),
+                    (ExHyperV.Properties.Resources.manu, 0, 0),(vendor, 0, 1),
                     (ExHyperV.Properties.Resources.ram, 1, 0),(ram, 1, 1),
                     (ExHyperV.Properties.Resources.Instanceid, 2, 0),(instanceId, 2, 1),
                     (ExHyperV.Properties.Resources.gpupv, 3, 0),(gpup, 3, 1),
                     (ExHyperV.Properties.Resources.gpupvpath, 4, 0),(pname, 4, 1),
                     (ExHyperV.Properties.Resources.driverversion, 5, 0),(driverversion, 5, 1),
-                    (ExHyperV.Properties.Resources.manu, 6, 0),(vendor, 6, 1),
                 };
 
                 foreach (var (text, row1, column) in textData)

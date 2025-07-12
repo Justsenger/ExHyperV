@@ -270,48 +270,69 @@ public partial class Utils
             case "Bridge":
 
 
-                if (string.IsNullOrEmpty(physicalAdapterName) ||
-                    physicalAdapterName.Contains("不可用") ||
-                    physicalAdapterName.Contains("自动适应") ||
-                    physicalAdapterName.Contains("请选择"))
-                {
-                    return;
-                }
+                //1.清除ICS设置。2.清除多余的宿主适配器。3.设置交换机为外部交换机，指定上游网卡。
 
-                // 切换到桥接模式，1.清除可能存在的NAT规则。2.清除多余的宿主适配器。3.设置交换机为外部交换机，指定上游网卡。
-                script = $"Get-NetNat -Name 'NAT-for-{switchName}' -ErrorAction SilentlyContinue | Remove-NetNat -Confirm:$false;";
-                script += $"\nGet-VMNetworkAdapter -ManagementOS -SwitchName '{switchName}' -ErrorAction SilentlyContinue | Remove-VMNetworkAdapter -Confirm:$false;";
+                script = $@"$netShareManager = New-Object -ComObject HNetCfg.HNetShare;
+                foreach ($connection in $netShareManager.EnumEveryConnection) {{
+                    $props = $netShareManager.NetConnectionProps.Invoke($connection);
+                    $config = $netShareManager.INetSharingConfigurationForINetConnection.Invoke($connection);
+                    if ($config.SharingEnabled) {{
+                        $config.DisableSharing();
+                    }}
+                }}";
+                script += $"Get-VMNetworkAdapter -ManagementOS -SwitchName '{switchName}' -ErrorAction SilentlyContinue | Remove-VMNetworkAdapter -Confirm:$false;";
                 script += $"\nSet-VMSwitch -Name '{switchName}' -NetAdapterInterfaceDescription '{physicalAdapterName}'";
 
                 break;
 
             case "NAT":
-                //切换到NAT模式，1.指定NAT参数。2.设置交换机为内部交换机。3.检测宿主适配器，没有就添加。4.获取宿主适配器的MAC和IP。5.根据宿主适配器和NAT参数，设定宿主适配器的IP和网关。
-                //6.检测是否有冲突的NAT规则，有则清除。7.添加NAT规则。
-                string natName = $"NAT-for-{switchName}";
-                string gatewayIP = "192.168.100.1";
-                string subnetPrefix = "24";
-                string natSubnet = "192.168.100.0/24";
+                //1.设置为内部交换机。2.开启ICS.
 
                 script = $"Set-VMSwitch -Name '{switchName}' -SwitchType Internal;";
-                script += $"\nif (-not (Get-VMNetworkAdapter -ManagementOS -SwitchName '{switchName}' -ErrorAction SilentlyContinue)) {{ Add-VMNetworkAdapter -ManagementOS -SwitchName '{switchName}' }};";
-                script += $"\n$vmAdapter = Get-VMNetworkAdapter -ManagementOS -SwitchName '{switchName}';";
-                script += $"\nif ($vmAdapter) {{";
-                script += $"\n    $netAdapter = Get-NetAdapter | Where-Object {{ ($_.MacAddress -replace '-') -eq ($vmAdapter.MacAddress -replace '-') }};";
-                script += $"\n    if ($netAdapter) {{";
-                script += $"\n        $interfaceAlias = $netAdapter.Name;";
-                script += $"\n        Get-NetIPAddress -InterfaceAlias $interfaceAlias -ErrorAction SilentlyContinue | Remove-NetIPAddress -Confirm:$false;";
-                script += $"\n        New-NetIPAddress -InterfaceAlias $interfaceAlias -IPAddress '{gatewayIP}' -PrefixLength {subnetPrefix} -ErrorAction Stop;";
-                script += $"\n    }}";
-                script += $"\n}}";
-                script += $"\n$conflictingNat = Get-NetNat | Where-Object {{ $_.InternalIPInterfaceAddressPrefix -eq '{natSubnet}' }};";
-                script += $"\nif ($conflictingNat) {{ Remove-NetNat -Name $conflictingNat.Name -Confirm:$false }};";
-                script += $"\nNew-NetNat -Name '{natName}' -InternalIPInterfaceAddressPrefix '{natSubnet}' -ErrorAction Stop;";
+                script += $@"$PublicAdapterDescription = '{physicalAdapterName}';
+                $SwitchName = '{switchName}';
+                $publicNic = Get-NetAdapter -InterfaceDescription $PublicAdapterDescription -ErrorAction SilentlyContinue;
+                $PublicAdapterActualName = $publicNic.Name;
+                $vmAdapter = Get-VMNetworkAdapter -ManagementOS -SwitchName $SwitchName -ErrorAction SilentlyContinue;
+                $privateAdapter = Get-NetAdapter | Where-Object {{ ($_.MacAddress -replace '[-:]') -eq ($vmAdapter.MacAddress -replace '[-:]') }};
+                $PrivateAdapterName = $privateAdapter.Name;
+
+                $netShareManager = New-Object -ComObject HNetCfg.HNetShare;
+                $publicConfig = $null;
+                $privateConfig = $null;
+
+                foreach ($connection in $netShareManager.EnumEveryConnection) {{
+                    $props = $netShareManager.NetConnectionProps.Invoke($connection);
+                    $config = $netShareManager.INetSharingConfigurationForINetConnection.Invoke($connection);
+                    if ($config.SharingEnabled) {{
+                        $config.DisableSharing();
+                    }}
+                    if ($props.Name -eq $PublicAdapterActualName) {{
+                        $publicConfig = $config;
+                    }}
+                    elseif ($props.Name -eq $PrivateAdapterName) {{
+                        $privateConfig = $config;
+                    }}
+                }}
+
+                if ($publicConfig -and $privateConfig) {{
+                    $publicConfig.EnableSharing(0);
+                    $privateConfig.EnableSharing(1);
+
+                }}
+                ";
                 break;
 
             case "Isolated":
-                script = $"Get-NetNat -Name 'NAT-for-{switchName}' -ErrorAction SilentlyContinue | Remove-NetNat -Confirm:$false;";
-                script += $"\nSet-VMSwitch -Name '{switchName}' -SwitchType Internal;";
+                script = $"\nSet-VMSwitch -Name '{switchName}' -SwitchType Internal;";
+                script += $@"$netShareManager = New-Object -ComObject HNetCfg.HNetShare;
+                foreach ($connection in $netShareManager.EnumEveryConnection) {{
+                    $props = $netShareManager.NetConnectionProps.Invoke($connection);
+                    $config = $netShareManager.INetSharingConfigurationForINetConnection.Invoke($connection);
+                    if ($config.SharingEnabled) {{
+                        $config.DisableSharing();
+                    }}
+                }}";
                 if (allowManagementOS)
                 {
                     script += $"\nif (-not (Get-VMNetworkAdapter -ManagementOS -SwitchName '{switchName}' -ErrorAction SilentlyContinue)) {{ Add-VMNetworkAdapter -ManagementOS -SwitchName '{switchName}' }};";
@@ -360,6 +381,12 @@ public partial class Utils
         };
         messageBox.ShowDialogAsync();
     }
+
+    public static void Show2(string message)
+    {
+        System.Windows.MessageBox.Show(message);
+    }
+
     public static string Version => "V1.1.0-dev";
     public static string Author => "砂菱叶";
 
