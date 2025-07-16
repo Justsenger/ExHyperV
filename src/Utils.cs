@@ -31,14 +31,14 @@ public partial class Utils
                 {
                     errorBuilder.AppendLine($"- {error.Exception.Message}");
                 }
-                Show(errorBuilder.ToString());
+                Show2(errorBuilder.ToString()); 
                 return null;
             }
             return results;
         }
         catch (Exception ex)
         {
-            Show($"执行 PowerShell 时发生严重系统异常：\n\n{ex.Message}");
+            Show2($"执行 PowerShell 时发生严重系统异常：\n\n{ex.Message}");
             return null;
         }
     }

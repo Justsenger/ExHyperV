@@ -2,14 +2,12 @@
 using System;
 using System.Collections.Generic;
 using System.Management.Automation;
-using System.Numerics;
 using System.Windows;
 using System.Windows.Controls;
 using ExHyperV;
 using Microsoft.CodeAnalysis;
 using Wpf.Ui;
 using Wpf.Ui.Controls;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 
 public partial class GPUPage
@@ -20,7 +18,11 @@ public partial class GPUPage
     public GPUPage()
     {
         InitializeComponent();
-        GetGpu();
+        LoadData();
+    }
+    private async void LoadData()
+    {
+        await GetGpu();
     }
     public class GPUInfo
     {
@@ -69,14 +71,14 @@ public partial class GPUPage
         }
 
     }
-    public async void GetGpu()
+    public async Task GetGpu()
     {
 
         var pciInfoProvider = new PciInfoProvider();
         await pciInfoProvider.EnsureInitializedAsync();
         await Task.Run(() => {
-            List<GPUInfo> gpuList = [];
-            //获取目前联机的显卡
+            List<GPUInfo> gpuList = []; //获取目前联机的显卡
+            
             var gpulinked = Utils.Run("Get-WmiObject -Class Win32_VideoController | select PNPDeviceID,name,AdapterCompatibility,DriverVersion");
             if (gpulinked.Count > 0)
             {
@@ -147,6 +149,7 @@ Get-ItemProperty -Path ""HKLM:\SYSTEM\ControlSet001\Control\Class\{{4d36e968-e32
                     }
                 }
             }
+            
             GpuUI(gpuList, hyperv);
             GetVM(gpuList);
         });
@@ -441,16 +444,16 @@ Get-ItemProperty -Path ""HKLM:\SYSTEM\ControlSet001\Control\Class\{{4d36e968-e32
         
     }
 
-    private void vmrefresh(object sender, RoutedEventArgs e)
+    private async void Vmrefresh(object sender, RoutedEventArgs e)
     {
         if (!refreshlock) {
             progressbar.Visibility = Visibility.Visible; //显示加载条
             refreshlock = true;
-            GetGpu();
+            await GetGpu();
         }
     }
 
-    private async void SelectItemWindow_GPUSelected(object sender, (string, string) args)
+    private async void SelectItemWindow_GPUSelected(object? sender, (string, string) args)
     {
         string GPUname = args.Item1;
         string VMname = args.Item2;
@@ -460,7 +463,7 @@ Get-ItemProperty -Path ""HKLM:\SYSTEM\ControlSet001\Control\Class\{{4d36e968-e32
 
         SnackbarService.SetSnackbarPresenter(ms.SnackbarPresenter);
         SnackbarService.Show(ExHyperV.Properties.Resources.success,GPUname+ExHyperV.Properties.Resources.already+ VMname,ControlAppearance.Success,new SymbolIcon(SymbolRegular.CheckboxChecked24,32), TimeSpan.FromSeconds(2));
-        vmrefresh(null, null);
+        Vmrefresh(null, null);
 
     }
 
