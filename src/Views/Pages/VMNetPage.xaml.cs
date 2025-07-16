@@ -15,6 +15,7 @@ using Wpf.Ui.Controls;
 public partial class VMNetPage
 {
     public bool refreshlock = false;
+    List<SwitchInfo> _switchList = []; //存储交换机数据
     public VMNetPage()
     {
         InitializeComponent();
@@ -65,15 +66,15 @@ public partial class VMNetPage
     }
 
     private async Task Initialinfo(){
-        List<SwitchInfo> SwitchList = []; //存储交换机数据
+        _switchList.Clear();
         List<PhysicalAdapterInfo> physicalAdapterList = []; //存储物理网卡数据
-        await GetInfo(SwitchList, physicalAdapterList); 
+        await GetInfo(_switchList, physicalAdapterList); 
         Dispatcher.Invoke(() => 
         {
             ParentPanel.Children.Clear(); 
         });
 
-        foreach (var Switch1 in SwitchList)
+        foreach (var Switch1 in _switchList)
         {
             Dispatcher.Invoke(() => //更新UI
             {
@@ -150,10 +151,8 @@ public partial class VMNetPage
                         hostConnectionEnabled = false;
                         hostConnectionSwitch.IsChecked = true;
                         dhcpEnabled = false;
-
                         headerIsConnected = true;
-                        // 在此硬编码NAT模式的描述文本
-                        headerStatusText = "已连接到：NAT网络";
+                        headerStatusText = headerIsConnected ? "已连接到：" + Switch1.NetAdapterInterfaceDescription : "未连接上游网络"; ;
                     }
                     else // 无上游模式
                     {
@@ -318,6 +317,62 @@ public partial class VMNetPage
                 {
                     if (_isInitializing) return;
                     if (sender is RadioButton rb && rb.IsChecked != true) return;
+
+                    var contentBeforeUpdate = upstreamDropDown.Content as string;
+                    bool isSwitchingToUpstreamMode = rbBridge.IsChecked == true || rbNat.IsChecked == true;
+
+                    if (isSwitchingToUpstreamMode && contentBeforeUpdate == "不可用")
+                    {
+                        // 通过清空此属性，后续的 UpdateUIState() 将正确地将下拉菜单内容设置为“请选择网卡...”
+                        Switch1.NetAdapterInterfaceDescription = null;
+                    }
+
+                    string selectedMode = "Isolated";
+                    if (rbBridge.IsChecked == true) selectedMode = "Bridge";
+                    else if (rbNat.IsChecked == true) selectedMode = "NAT";
+
+                    // 验证1: 检查NAT模式是否已在其他交换机上存在
+                    if (selectedMode == "NAT")
+                    {
+                        var existingNatSwitch = _switchList.FirstOrDefault(s => s.SwitchType == "NAT" && s.Id != Switch1.Id);
+                        if (existingNatSwitch != null)
+                        {
+                            Utils.Show(
+                                $"操作被阻止：系统只允许存在一个NAT网络。\n\n已有的NAT交换机是: '{existingNatSwitch.SwitchName}'");
+                            // 恢复到之前的状态
+                            var _ = UpdateUIState();
+                            return;
+                        }
+                    }
+
+                    // 验证2: 检查桥接模式选择的网卡是否已被其他交换机占用
+                    if (selectedMode == "Bridge")
+                    {
+                        var content = upstreamDropDown.Content as string;
+                        // 仅当选择了具体的网卡时才进行检查
+                        if (!string.IsNullOrEmpty(content) && content != "请选择网卡..." && content != "不可用")
+                        {
+                            var conflictingSwitch = _switchList.FirstOrDefault(s =>
+                               s.SwitchType == "External" &&
+                               s.NetAdapterInterfaceDescription == content &&
+                               s.Id != Switch1.Id);
+
+                            if (conflictingSwitch != null)
+                            {
+                                System.Windows.MessageBox.Show(
+                                    $"操作被阻止：物理网卡 '{content}' 已经被交换机 '{conflictingSwitch.SwitchName}' 使用。\n\n一张物理网卡只能绑定到一个外部交换机。",
+                                    "配置错误",
+                                    MessageBoxButton.OK,
+                                    MessageBoxImage.Error);
+                                // 恢复到之前的状态
+                                var _ = UpdateUIState();
+                                return;
+                            }
+                        }
+                    }
+
+
+
                     var waitPage = new WaitPage();
                     var mainWindow = Application.Current.MainWindow;
 
@@ -332,6 +387,10 @@ public partial class VMNetPage
                         {
                             var content = upstreamDropDown.Content as string;
                             selectedAdapter = content; //可以获取到物理网卡信息
+                            if (selectedAdapter == "不可用") { //如果是无上游模式转换来的，更新界面后就可以滚了。
+                                await UpdateUIState();
+                                return;
+                            }
                         }
 
                         bool allowManagementOS = hostConnectionSwitch.IsChecked ?? false;
