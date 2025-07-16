@@ -332,10 +332,6 @@ public partial class VMNetPage
                         {
                             var content = upstreamDropDown.Content as string;
                             selectedAdapter = content; //可以获取到物理网卡信息
-                            if (selectedAdapter == "不可用") { //如果是无上游模式转换来的，更新界面后就可以滚了。
-                                await UpdateUIState();
-                                return;
-                            }
                         }
 
                         bool allowManagementOS = hostConnectionSwitch.IsChecked ?? false;
@@ -496,10 +492,10 @@ public partial class VMNetPage
                         var Id = result.Properties["Id"]?.Value?.ToString();
                         var Phydesc = result.Properties["NetAdapterInterfaceDescription"]?.Value?.ToString();
 
-                        string? sourceAdapter = GetIcsSourceAdapterName(SwitchName);
+                        string? ICSAdapter = GetIcsSourceAdapterName(SwitchName);
 
-
-                        SwitchType = (sourceAdapter != null) ? "NAT" : SwitchType;
+                        SwitchType = (ICSAdapter != null) ? "NAT" : SwitchType;
+                        Phydesc = (ICSAdapter != null) ? ICSAdapter : Phydesc;
 
                         SwitchList.Add(new SwitchInfo(SwitchName, SwitchType, Host, Id, Phydesc));
                     }
@@ -513,43 +509,50 @@ public partial class VMNetPage
 
     private static string? GetIcsSourceAdapterName(string switchName)
     {
-        // 这个脚本的核心逻辑是：
-        // 1. 根据交换机名称，确定其在宿主机上的虚拟网卡名称 (vEthernet (switchName))。
-        // 2. 使用 HNetCfg.HNetShare COM 对象遍历所有网络连接。
-        // 3. 找出哪个连接被设置为“公共”(Public)，即共享源。
-        // 4. 同时确认我们目标交换机的虚拟网卡确实被设置为了“私有”(Private)，即共享接收端。
-        // 5. 只有当两者同时满足时，才返回“公共”连接的名称。
+        // 最终版脚本:
+        // 1. 使用 HNetCfg.HNetShare COM 对象找到 ICS 源连接的“名称” (例如 "WLAN")。
+        // 2. 使用 Get-NetAdapter cmdlet，根据这个名称查找对应的网络适配器。
+        // 3. 从找到的适配器对象中，返回其 .InterfaceDescription 属性，这就是物理描述符。
         string script = @"
 param([string]$switchName)
 
 try {
-    $PrivateAdapterNameToFind = ""vEthernet ({0})"" -f $switchName
+    $PublicAdapterNameToFind = ""vEthernet ({0})"" -f $switchName
 
     $netShareManager = New-Object -ComObject HNetCfg.HNetShare
 
-    $publicAdapterName = $null
-    $privateAdapterIsPartOfShare = $false
+    $icsSourceAdapterName = $null
+    $icsGatewayIsCorrect = $false
 
+    # 步骤1: 遍历连接，找到 ICS 源的连接名称
     foreach ($connection in $netShareManager.EnumEveryConnection) {
         $config = $netShareManager.INetSharingConfigurationForINetConnection.Invoke($connection)
         
         if ($config.SharingEnabled) {
             $props = $netShareManager.NetConnectionProps.Invoke($connection)
             
-            # ICSSHARINGTYPE_PUBLIC = 1
-            if ($config.SharingConnectionType -eq 1) {
-                $publicAdapterName = $props.Name
+            if (($config.SharingConnectionType -eq 1) -and ($props.Name -eq $PublicAdapterNameToFind)) {
+                $icsGatewayIsCorrect = $true
             }
-            # ICSSHARINGTYPE_PRIVATE = 0
-            elseif (($config.SharingConnectionType -eq 0) -and ($props.Name -eq $PrivateAdapterNameToFind)) {
-                $privateAdapterIsPartOfShare = $true
+            elseif ($config.SharingConnectionType -eq 0) {
+                $icsSourceAdapterName = $props.Name
             }
         }
     }
 
-    # 必须同时找到公共共享源，并且我们自己的私有适配器确实是共享目标
-    if (($null -ne $publicAdapterName) -and ($privateAdapterIsPartOfShare)) {
-        return $publicAdapterName
+    # 步骤2: 如果找到了源连接名称，就用它来获取物理描述符
+    if (($icsGatewayIsCorrect) -and ($null -ne $icsSourceAdapterName)) {
+        try {
+            # 使用 Get-NetAdapter 获取适配器的详细信息
+            $adapterDetails = Get-NetAdapter -Name $icsSourceAdapterName -ErrorAction Stop
+            
+            # 返回 InterfaceDescription 属性，这是我们真正想要的物理描述符
+            return $adapterDetails.InterfaceDescription
+        }
+        catch {
+            # 如果 Get-NetAdapter 失败，作为一个安全的备用方案，返回连接名称
+            return $icsSourceAdapterName
+        }
     }
 
     return $null
@@ -559,43 +562,32 @@ catch {
 }
 ";
 
-        // 注意：这里的脚本需要一个参数。我们不能用 Utils.Run，需要使用更强大的 PowerShell 调用方式。
-        // 如果您的 Utils.Run 支持传递参数，可以使用它。否则，请使用下面的标准方法。
+        // C# 调用部分保持不变，它已经是正确的了
         try
         {
-            // 使用 System.Management.Automation 来创建和调用 PowerShell 实例
             using (var ps = System.Management.Automation.PowerShell.Create())
             {
-                // 将我们的脚本和参数添加到管道中
-                ps.AddScript(string.Format(script, switchName));
+                ps.AddScript(script);
+                ps.AddParameter("switchName", switchName);
 
-                // 执行脚本
                 var results = ps.Invoke();
 
-                // 检查是否有错误流
                 if (ps.Streams.Error.Count > 0)
                 {
-                    // 可以选择记录错误
-                    // var error = ps.Streams.Error[0].ToString();
                     return null;
                 }
 
-                // 获取返回结果
-                if (results != null && results.Count > 0 && results[0] != null)
+                if (results.Count > 0 && results[0] != null)
                 {
-                    // PowerShell返回的可能是 $null，或者一个字符串。
-                    // 我们将其转换为字符串并返回。
                     return results[0].BaseObject?.ToString();
                 }
             }
         }
         catch (Exception)
         {
-            // 任何异常（例如 PowerShell 引擎加载失败）都应安全地处理
             return null;
         }
 
-        // 如果没有返回任何结果，也视为未找到
         return null;
     }
     private List<AdapterInfo> GetFullSwitchNetworkState(string switchName)

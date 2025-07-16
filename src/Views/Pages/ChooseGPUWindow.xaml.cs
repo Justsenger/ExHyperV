@@ -151,6 +151,7 @@ namespace ExHyperV
                 if (-not (Test-Path $regPath)) {{ New-Item -Path $regPath -Force | Out-Null }};
                 Set-ItemProperty -Path $regPath -Name $regKey -Value 255 -Type DWord -Force;
                 $VHD = Mount-VHD -Path '{harddiskpath}' -PassThru -ErrorAction Stop;
+                Start-Sleep -Seconds 1;
                 $VHD | Get-Disk | Get-Partition | Where-Object {{ -not $_.DriveLetter }} | Add-PartitionAccessPath -AssignDriveLetter | Out-Null;
                 $volumes = $VHD | Get-Disk | Get-Partition | Get-Volume;
                 foreach ($volume in $volumes) {{
