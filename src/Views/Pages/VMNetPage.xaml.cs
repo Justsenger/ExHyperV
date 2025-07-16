@@ -323,93 +323,90 @@ public partial class VMNetPage
 
                     if (isSwitchingToUpstreamMode && contentBeforeUpdate == "不可用")
                     {
-                        // 通过清空此属性，后续的 UpdateUIState() 将正确地将下拉菜单内容设置为“请选择网卡...”
                         Switch1.NetAdapterInterfaceDescription = null;
                     }
 
+                    // 1. 确定用户意图的模式
                     string selectedMode = "Isolated";
                     if (rbBridge.IsChecked == true) selectedMode = "Bridge";
                     else if (rbNat.IsChecked == true) selectedMode = "NAT";
 
-                    // 验证1: 检查NAT模式是否已在其他交换机上存在
+                    var selectedAdapterContent = upstreamDropDown.Content as string;
+
+                    // 2. 执行配置更改前的验证
+                    // 验证NAT模式唯一性
                     if (selectedMode == "NAT")
                     {
                         var existingNatSwitch = _switchList.FirstOrDefault(s => s.SwitchType == "NAT" && s.Id != Switch1.Id);
                         if (existingNatSwitch != null)
                         {
                             Utils.Show(
-                                $"操作被阻止：系统只允许存在一个NAT网络。\n\n已有的NAT交换机是: '{existingNatSwitch.SwitchName}'");
-                            // 恢复到之前的状态
-                            var _ = UpdateUIState();
+                                $"操作失败：系统只允许存在一个NAT网络。\n\n使用了NAT模式交换机是: '{existingNatSwitch.SwitchName}'");
+                            await UpdateUIState(); // 恢复UI到操作前状态
                             return;
                         }
                     }
 
-                    // 验证2: 检查桥接模式选择的网卡是否已被其他交换机占用
+                    // 验证桥接网卡唯一性
                     if (selectedMode == "Bridge")
                     {
-                        var content = upstreamDropDown.Content as string;
-                        // 仅当选择了具体的网卡时才进行检查
-                        if (!string.IsNullOrEmpty(content) && content != "请选择网卡..." && content != "不可用")
+                        if (!string.IsNullOrEmpty(selectedAdapterContent) && selectedAdapterContent != "请选择网卡..." && selectedAdapterContent != "不可用")
                         {
                             var conflictingSwitch = _switchList.FirstOrDefault(s =>
                                s.SwitchType == "External" &&
-                               s.NetAdapterInterfaceDescription == content &&
+                               s.NetAdapterInterfaceDescription == selectedAdapterContent &&
                                s.Id != Switch1.Id);
 
                             if (conflictingSwitch != null)
                             {
-                                System.Windows.MessageBox.Show(
-                                    $"操作被阻止：物理网卡 '{content}' 已经被交换机 '{conflictingSwitch.SwitchName}' 使用。\n\n一张物理网卡只能绑定到一个外部交换机。",
-                                    "配置错误",
-                                    MessageBoxButton.OK,
-                                    MessageBoxImage.Error);
-                                // 恢复到之前的状态
-                                var _ = UpdateUIState();
+                                Utils.Show(
+                                    $"操作失败：物理网卡 '{selectedAdapterContent}' 已经分配给交换机 '{conflictingSwitch.SwitchName}' 。");
+                                await UpdateUIState(); // 恢复UI到操作前状态
                                 return;
                             }
                         }
                     }
 
+                    // 如果需要上游网络但未选择，则仅更新UI并返回
+                    if ((selectedMode == "Bridge" || selectedMode == "NAT") && (selectedAdapterContent == "不可用" || selectedAdapterContent == "请选择网卡..."))
+                    {
+                        await UpdateUIState();
+                        return;
+                    }
 
-
+                    // 3. 执行配置更改
                     var waitPage = new WaitPage();
                     var mainWindow = Application.Current.MainWindow;
 
-
                     try
                     {
-                        string selectedMode = "Isolated";
-                        if (rbBridge.IsChecked == true) selectedMode = "Bridge";
-                        else if (rbNat.IsChecked == true) selectedMode = "NAT";
-                        string? selectedAdapter = null;
-                        if (selectedMode != "Isolated")
-                        {
-                            var content = upstreamDropDown.Content as string;
-                            selectedAdapter = content; //可以获取到物理网卡信息
-                            if (selectedAdapter == "不可用") { //如果是无上游模式转换来的，更新界面后就可以滚了。
-                                await UpdateUIState();
-                                return;
-                            }
-                        }
-
                         bool allowManagementOS = hostConnectionSwitch.IsChecked ?? false;
-                        bool enableDhcp = dhcpSwitch.IsChecked ?? false;
-                        waitPage.Show(); // 启动显示任务
+                        bool enableDhcp = dhcpSwitch.IsChecked ?? false; // 虽然当前未启用，但保留逻辑
+
+                        // 显示等待页面，执行耗时操作
+                        waitPage.Show();
                         mainWindow.IsEnabled = false;
                         waitPage.Owner = mainWindow;
-                        await Utils.UpdateSwitchConfigurationAsync(Switch1.SwitchName, selectedMode, selectedAdapter, allowManagementOS, enableDhcp);
-                        await UpdateUIState();
-                        await BuildVerticalTopology();
+
+                        await Utils.UpdateSwitchConfigurationAsync(Switch1.SwitchName, selectedMode, selectedAdapterContent, allowManagementOS, enableDhcp);
+
+                        // 操作成功，关闭等待页面
+                        waitPage.Close();
+                        mainWindow.IsEnabled = true;
+
+                        // 4. 使用最新数据完全刷新整个页面
+                        await Initialinfo();
                     }
                     catch (Exception ex)
                     {
                         System.Windows.MessageBox.Show($"更新交换机配置失败: {ex.Message}");
+                        // 确保即使失败也关闭等待页面并恢复主窗口
+                        if (waitPage.IsVisible) waitPage.Close();
+                        if (!mainWindow.IsEnabled) mainWindow.IsEnabled = true;
+                        // 失败后也刷新一下，以恢复到正确的原始状态
+                        await Initialinfo();
                     }
-                    waitPage.Close();
-                    mainWindow.IsEnabled = true;
                 }
-
                 MenuItem CreateNetworkCardMenuItem(string cardName)
                 {
                     var item = new MenuItem { Header = cardName };
