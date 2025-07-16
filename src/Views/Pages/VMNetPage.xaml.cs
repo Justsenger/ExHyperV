@@ -361,7 +361,7 @@ public partial class VMNetPage
                             {
                                 Utils.Show(
                                     $"操作失败：物理网卡 '{selectedAdapterContent}' 已经分配给交换机 '{conflictingSwitch.SwitchName}' 。");
-                                await Initialinfo(); // 恢复UI到操作前状态
+                                await UpdateUIState(); // 恢复UI到操作前状态
                                 return;
                             }
                         }
