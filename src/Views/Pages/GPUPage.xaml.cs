@@ -87,6 +87,7 @@ public partial class GPUPage
                     string Manu = gpu.Members["AdapterCompatibility"]?.Value.ToString();
                     string DriverVersion = gpu.Members["DriverVersion"]?.Value.ToString();
                     string vendor = pciInfoProvider.GetVendorFromInstanceId(instanceId);
+                    if (vendor == "Unknown") { continue; } //查不到制造商，就没有必要显示了
                     gpuList.Add(new GPUInfo(name, "True", Manu, instanceId, null, null, DriverVersion,vendor));
                 }
             }
@@ -95,20 +96,22 @@ public partial class GPUPage
 
             //获取N卡和I卡显存
 
-            string script = $@"Get-ItemProperty -Path ""HKLM:\SYSTEM\ControlSet001\Control\Class\{{4d36e968-e325-11ce-bfc1-08002be10318}}\0*"" -ErrorAction SilentlyContinue |
-            Select-Object MatchingDeviceId,
-                  @{{Name=""MemorySize""; Expression={{
-                      if ($_.""HardwareInformation.qwMemorySize"") {{
-                          $_.""HardwareInformation.qwMemorySize""
-                      }} elseif ($_.""HardwareInformation.MemorySize"" -is [byte[]]) {{
-                          $hexString = [BitConverter]::ToString($_.""HardwareInformation.MemorySize"").Replace(""-"", """")
-                          $memoryValue = [Convert]::ToInt64($hexString, 16)
-                          $memoryValue * 16 * 1024 * 1024
-                      }} else {{
-                          $_.""HardwareInformation.MemorySize""
-                      }}
-                  }}}} |
-            Where-Object {{ $_.MemorySize -ne $null }}";
+            string script = $@"
+Get-ItemProperty -Path ""HKLM:\SYSTEM\ControlSet001\Control\Class\{{4d36e968-e325-11ce-bfc1-08002be10318}}\0*"" -ErrorAction SilentlyContinue |
+    Select-Object MatchingDeviceId,
+          @{{Name='MemorySize'; Expression={{
+              if ($_. ""HardwareInformation.qwMemorySize"") {{
+                  $_.""HardwareInformation.qwMemorySize""
+              }} 
+              elseif ($_. ""HardwareInformation.MemorySize"" -and $_.""HardwareInformation.MemorySize"" -isnot [byte[]]) {{
+                  $_.""HardwareInformation.MemorySize""
+              }}
+              else {{
+                  $null
+              }}
+          }}}} |
+    Where-Object {{ $_.MemorySize -ne $null -and $_.MemorySize -gt 0 }}
+";
             var gpuram = Utils.Run(script);
             if (gpuram.Count > 0)
             {
@@ -212,6 +215,7 @@ public partial class GPUPage
             if (manu.Contains("Moore")) {
                 ram = (string.IsNullOrEmpty(gpu.Ram) ? 0 : long.Parse(gpu.Ram)) / 1024 + " MB";
             }//摩尔线程的显存记录在HardwareInformation.MemorySize，但是单位是KB
+            
 
             if (valid != "True") { continue; } //剔除未连接的显卡
             if (hyperv == false) {gpup = ExHyperV.Properties.Resources.needhyperv;} 

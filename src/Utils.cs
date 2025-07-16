@@ -9,7 +9,6 @@ using System.Windows.Media.Imaging;
 using Wpf.Ui.Controls;
 using Image = Wpf.Ui.Controls.Image;
 using TextBlock = Wpf.Ui.Controls.TextBlock;
-using WriteText = Wpf.Ui.Controls.TextBox;
 
 namespace ExHyperV;
 
@@ -389,14 +388,5 @@ public partial class Utils
 
     public static string Version => "V1.1.0-dev";
     public static string Author => "砂菱叶";
-
-
-
-
-
-
-
-
-
 
 }

@@ -74,12 +74,12 @@ namespace ExHyperV
                     await Dialog.ShowAsync(CancellationToken.None); //显示提示框
 
                 }
-                else if (result == "error")
+                else if (result != "OK")
                 {
                     ContentDialog Dialog = new()
                     {
                         Title = ExHyperV.Properties.Resources.Settings,
-                        Content = Utils.TextBlock3(ExHyperV.Properties.Resources.drivererror),
+                        Content = Utils.TextBlock3(result),
                         CloseButtonText = ExHyperV.Properties.Resources.OK,
                     };
                     Dialog.DialogHost = ContentPresenterForDialogs;
@@ -111,64 +111,69 @@ namespace ExHyperV
             }
         }
 
-        public string GPUMount(string vmname,string gpupath,string manu) {
-            try {
+        public string GPUMount(string vmname, string gpupath, string manu)
+        {
+            string harddiskpath = null;
 
-                PowerShell ps = PowerShell.Create();
-
-                //1.先检测VM是否关闭，没有关机则停止操作。
-                ps.AddScript($@"(Get-VM -Name '{vmname}').State");
-                if (ps.Invoke()[0].ToString() != "Off")
+            try
+            {
+                var vmStateResult = Utils.Run($"(Get-VM -Name '{vmname}').State");
+                if (vmStateResult == null || vmStateResult.Count == 0) return "error";
+                if (vmStateResult[0].ToString() != "Off")
                 {
-                    return "running"; //没关机
+                    return $"错误: 虚拟机 '{vmname}' 正在运行中，请先将其关闭。";
                 }
-                //2.设定缓存接管和低位内存=128和高位内存=32G。（关机已通过）
-                ps.AddScript($"Set-VM -GuestControlledCacheTypes $true -VMName '{vmname}'");
-                ps.Invoke();
-                ps.AddScript($"Set-VM -HighMemoryMappedIoSpace 32GB –VMName '{vmname}'"); //设定32G已经很大了，据说准确的设定是基于显存向上取整的最大二进制数，比如33G就要设定为64G了
-                ps.Invoke();
-                ps.AddScript($"Set-VM -LowMemoryMappedIoSpace 128MB -VMName '{vmname}'"); //设定为128MB，祖传别动，否则USB直通受影响
-                ps.Invoke();
-                ps.AddScript($"Get-VM -VMName '{vmname}' | select *"); //还得全部查找刷新一下
-                ps.Invoke();
 
-                //3.添加GPU分区，使用默认参数。这是因为消费级硬件，或者非Grid驱动的显卡，无法限制虚拟机资源使用，只能竞争。
-                ps.AddScript($"Add-VMGpuPartitionAdapter -VMName '{vmname}' -InstancePath '{gpupath}'");
-                ps.Invoke();
-                ps.Commands.Clear();
-                ps.AddScript($"Set-VMGpuPartitionAdapter -VMName '{vmname}' -MinPartitionVRAM 80000000 -MaxPartitionVRAM 100000000 -OptimalPartitionVRAM 100000000 -MinPartitionEncode 80000000 -MaxPartitionEncode 100000000 -OptimalPartitionEncode 100000000 -MinPartitionDecode 80000000 -MaxPartitionDecode 100000000 -OptimalPartitionDecode 100000000 -MinPartitionCompute 80000000 -MaxPartitionCompute 100000000 -OptimalPartitionCompute 100000000");
-                ps.Invoke();
+                string vmConfigScript = $@"
+            Set-VM -GuestControlledCacheTypes $true -VMName '{vmname}'
+            Set-VM -HighMemoryMappedIoSpace 64GB –VMName '{vmname}'
+            Set-VM -LowMemoryMappedIoSpace 128MB -VMName '{vmname}'
+            Add-VMGpuPartitionAdapter -VMName '{vmname}' -InstancePath '{gpupath}'
+            Set-VMGpuPartitionAdapter -VMName '{vmname}' -MinPartitionVRAM 80000000 -MaxPartitionVRAM 100000000 -OptimalPartitionVRAM 100000000 -MinPartitionEncode 80000000 -MaxPartitionEncode 100000000 -OptimalPartitionEncode 100000000 -MinPartitionDecode 80000000 -MaxPartitionDecode 100000000 -OptimalPartitionDecode 100000000 -MinPartitionCompute 80000000 -MaxPartitionCompute 100000000 -OptimalPartitionCompute 100000000
+        ";
+                if (Utils.Run(vmConfigScript) == null)
+                {
+                    return "错误：GPU分区参数设定失败。";
+                }
 
+                var harddiskPathResult = Utils.Run($"(Get-VMHardDiskDrive -vmname '{vmname}')[0].Path");
+                if (harddiskPathResult == null || harddiskPathResult.Count == 0)
+                {
+                    return $"错误: 无法获取虚拟机 '{vmname}' 的硬盘路径。";
+                }
+                harddiskpath = harddiskPathResult[0].ToString();
 
-                //4.驱动复制，直接把整个"C:\Windows\System32\DriverStore\FileRepository"拿进虚拟机。
-
-                //todo分支，如果未找到路径，不报错，而是转为linux注入模式，要求输入用户名和密码等待ssh链接。
-
-                //获取虚拟机系统盘路径，一般默认为第一块。
-                ps.AddScript($"(Get-VMHardDiskDrive -vmname '{vmname}')[0].Path");
-                var harddiskpath = ps.Invoke()[0].ToString();
-
-                //挂载硬盘并寻找第一个系统分区的盘符
-                ps.AddScript(@$"
-            $VHD = Mount-VHD -Path '{harddiskpath}' -PassThru
-            $VHD | Get-Disk | Get-Partition | Where-Object {{ -not $_.DriveLetter }} | Add-PartitionAccessPath -AssignDriveLetter
-            $volumes = $VHD | Get-Disk | Get-Partition | Get-Volume
-
-            foreach ($volume in $volumes) {{
-                if ($volume.DriveLetter -and (Test-Path ""$($volume.DriveLetter):\Windows\System32"")) {{
-                    Write-Output $volume.DriveLetter
-                    break 
+                // 挂载VHD并获取盘符
+                var mountScript = @$"
+            $regPath = ""HKCU:\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer""; $regKey = ""NoDriveTypeAutoRun"";
+            $originalValue = Get-ItemProperty -Path $regPath -Name $regKey -ErrorAction SilentlyContinue;
+            try {{
+                if (-not (Test-Path $regPath)) {{ New-Item -Path $regPath -Force | Out-Null }};
+                Set-ItemProperty -Path $regPath -Name $regKey -Value 255 -Type DWord -Force;
+                $VHD = Mount-VHD -Path '{harddiskpath}' -PassThru -ErrorAction Stop;
+                $VHD | Get-Disk | Get-Partition | Where-Object {{ -not $_.DriveLetter }} | Add-PartitionAccessPath -AssignDriveLetter | Out-Null;
+                $volumes = $VHD | Get-Disk | Get-Partition | Get-Volume;
+                foreach ($volume in $volumes) {{
+                    if ($volume.DriveLetter -and (Test-Path ""$($volume.DriveLetter):\Windows\System32\config\SYSTEM"")) {{
+                        Write-Output $volume.DriveLetter;
+                        break;
+                    }}
                 }}
-            }}
-            ");
+            }} finally {{
+                if ($originalValue) {{ Set-ItemProperty -Path $regPath -Name $regKey -Value $originalValue.$regKey -Force; }}
+                else {{ Remove-ItemProperty -Path $regPath -Name $regKey -Force -ErrorAction SilentlyContinue; }}
+            }}";
+                var letterResult = Utils.Run(mountScript);
+                if (letterResult == null || letterResult.Count == 0)
+                {
+                    return $"错误: 挂载硬盘 '{harddiskpath}' 或查找其中的系统分区失败。";
+                }
+                string letter = letterResult[0].ToString();
 
-                var letter = ps.Invoke()[0].ToString(); //仅仅是一个字母
-
-
+                // 设置只读
                 string sourceFolder = @"C:\Windows\System32\DriverStore\FileRepository";
                 string destinationFolder = letter + @":\Windows\System32\HostDriverStore\FileRepository";
 
-                // 创建目标文件夹（如果不存在）
                 if (!Directory.Exists(destinationFolder)) { Directory.CreateDirectory(destinationFolder); }
 
                 var process = new Process
@@ -179,39 +184,32 @@ namespace ExHyperV
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
                 CreateNoWindow = true
-                }
+            }
                 };
                 process.Start();
-                process.BeginOutputReadLine();
                 process.WaitForExit();
 
-                SetFolderReadOnly(destinationFolder); // 设置目标文件夹及其所有文件为只读属性，防止nvlddmkm文件丢失
+                SetFolderReadOnly(destinationFolder);
 
-
-                //对于N卡，需要修补注册表信息：nvlddmkm
                 if (manu.Contains("NVIDIA"))
                 {
                     NvidiaReg(letter + ":");
                 }
 
-                ps.AddScript($"Dismount-VHD -Path '{harddiskpath}'");//卸载磁盘
-                ps.Invoke();
-
                 return "OK";
-
-
             }
-
-            catch
+            catch (Exception ex)
             {
-                return "error";
-
+                return $"错误: 发生意外的系统异常 - {ex.Message}";
             }
-
-
-
+            finally
+            {
+                if (!string.IsNullOrEmpty(harddiskpath))
+                {
+                    Utils.Run($"Dismount-VHD -Path '{harddiskpath}' -ErrorAction SilentlyContinue");
+                }
+            }
         }
-
         static void SetFolderReadOnly(string folderPath)
         {
 
@@ -235,30 +233,20 @@ namespace ExHyperV
         {
             string localKeyPath = @"HKLM\SYSTEM\CurrentControlSet\Services\nvlddmkm";
             string tempRegFile = AppDomain.CurrentDomain.BaseDirectory+@"nvlddmkm.reg";
-            RunPsScript($@"reg export ""{localKeyPath}"" ""{tempRegFile}"" /y"); //导出本机注册表信息
+            Utils.Run($@"reg export ""{localKeyPath}"" ""{tempRegFile}"" /y"); //导出本机注册表信息
             string systemHiveFile = $@"{letter}\Windows\System32\Config\SYSTEM";
-            RunPsScript($@"reg load HKLM\OfflineSystem ""{systemHiveFile}"""); //离线注册表挂载到本机注册表
+            Utils.Run($@"reg load HKLM\OfflineSystem ""{systemHiveFile}"""); //离线注册表挂载到本机注册表
             string originalText = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\nvlddmkm";
             string targetText = @"HKEY_LOCAL_MACHINE\OfflineSystem\ControlSet001\Services\nvlddmkm";
             string regContent = File.ReadAllText(tempRegFile);
             regContent = regContent.Replace(originalText, targetText);
             regContent = regContent.Replace("DriverStore", "HostDriverStore");
             File.WriteAllText(tempRegFile, regContent); 
-            RunPsScript($@"reg import ""{tempRegFile}"""); // 导入
-            RunPsScript("reg unload HKLM\\OfflineSystem"); // 卸载
+            Utils.Run($@"reg import ""{tempRegFile}"""); // 导入
+            Utils.Run("reg unload HKLM\\OfflineSystem"); // 卸载
 
             //注册表应该是要修复，否则nvlddmkm.sys会莫名丢失。
 
-        }
-
-        private void RunPsScript(string script)
-        {
-            using (PowerShell ps = PowerShell.Create())
-            {
-                ps.AddScript(script);
-                var results = ps.Invoke();
-
-            }
         }
     }
 }
