@@ -16,7 +16,14 @@ namespace ExHyperV;
 public partial class Utils
 {
 
-    public static Collection<PSObject>? Run(string script)
+
+    public static Collection<PSObject> Run(string script)
+    {
+        PowerShell ps = PowerShell.Create();
+        ps.AddScript(script);
+        return ps.Invoke();
+    }
+    public static Collection<PSObject>? Run2(string script)
     {
         using PowerShell ps = PowerShell.Create();
         ps.AddScript(script);
@@ -386,7 +393,7 @@ public partial class Utils
         System.Windows.MessageBox.Show(message);
     }
 
-    public static string Version => "V1.1.0-dev";
+    public static string Version => "V1.1.0-Beta";
     public static string Author => "砂菱叶";
 
 }

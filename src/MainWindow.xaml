@@ -78,7 +78,7 @@
 
                 <ui:NavigationViewItem
                     x:Name="VMnet"
-                    Content="虚拟交换机"
+                    Content="虚拟交换机（Beta）"
                     NavigationCacheMode="Enabled"
                     Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"
                     TargetPageType="{x:Type pages:VMNetPage}">

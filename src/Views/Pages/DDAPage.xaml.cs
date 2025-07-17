@@ -145,7 +145,7 @@ public partial class DDAPage
                                 (ExHyperV.Properties.Resources.kind, 0, 0),
                                 (ExHyperV.Properties.Resources.Instanceid, 1, 0),
                                 (ExHyperV.Properties.Resources.path, 2, 0),
-                                ("制造商", 3, 0),
+                                (ExHyperV.Properties.Resources.manu, 3, 0),
                                 (device.ClassType, 0, 1),
                                 (device.InstanceId, 1, 1),
                                 (device.Path, 2, 1),

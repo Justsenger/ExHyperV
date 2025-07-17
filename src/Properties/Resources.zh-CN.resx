@@ -178,7 +178,7 @@
     <value>管理员权限已获得。</value>
   </data>
   <data name="Admin2" xml:space="preserve">
-    <value>管理员权限未获得。已禁用GPU半虚拟化功能。</value>
+    <value>管理员权限未获得。已禁用所有功能。</value>
   </data>
   <data name="complicate" xml:space="preserve">
     <value>兼容性</value>

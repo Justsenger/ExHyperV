@@ -17,7 +17,7 @@ public partial class StatusPage
         Task.Run(() => CpuInfo());
         Task.Run(() => SysInfo());
         Task.Run(() => HyperVInfo());
-        Task.Run(() => CheckReg());
+
         Task.Run(() => Admininfo());
         Task.Run(() => ServerInfo());
     }
@@ -152,15 +152,20 @@ public partial class StatusPage
             {
                 admin.Text = ExHyperV.Properties.Resources.Admin1;
                 status4.Children.Add(icons);
+                Task.Run(() => CheckReg());
             }
-            else //如果没有管理员权限，关闭GPU虚拟化功能
+            else //如果没有管理员权限，关闭所有功能
             {
                 var ms = Application.Current.MainWindow as MainWindow; //获取主窗口
                 ms.gpupv.IsEnabled = false;
+                //ms.dda.IsEnabled = false;
+                ms.VMnet.IsEnabled = false;
                 admin.Text = ExHyperV.Properties.Resources.Admin2;
                 icons.Glyph = "\xEB90";
                 icons.Foreground = new SolidColorBrush(Colors.Red);
                 status4.Children.Add(icons);
+                gpustrategy.IsEnabled = false;
+
             }
         });
 

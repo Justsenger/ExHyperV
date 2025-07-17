@@ -178,7 +178,7 @@
     <value>Administrator privileges have been obtained.</value>
   </data>
   <data name="Admin2" xml:space="preserve">
-    <value>No Administrator privileges. GPU Paravirtualization disabled.</value>
+    <value>Administrator privileges not obtained. All functions disabled.</value>
   </data>
   <data name="complicate" xml:space="preserve">
     <value>Compatibility</value>
