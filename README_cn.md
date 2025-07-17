@@ -84,6 +84,7 @@ DDA全称Discrete Device Assignment，即离散设备分配，可以将独立的
 | Nvidia   | GT 1030 |✔️ |✔️ | ✔️|
 | Nvidia   | GT 210 |✔️ | ✔️ | ✖️|
 | Intel   |  Intel DG1 |✔️ | ✖️ | 特定驱动✔️|
+| Intel   | A380 |Code 43✖️ | ✖️ |✖️ |
 
 1.启动：显卡分配到虚拟机后可能无法正常安装驱动。部分笔记本魔改卡、矿卡或者AMD/Intel显卡可能存在问题。
 
