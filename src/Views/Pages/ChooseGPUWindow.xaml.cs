@@ -145,44 +145,26 @@ namespace ExHyperV
 
                 // 挂载VHD并获取盘符
                 var mountScript = @$"
-$regPath = ""HKCU:\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer""; $regKey = ""NoDriveTypeAutoRun"";
-$originalValue = Get-ItemProperty -Path $regPath -Name $regKey -ErrorAction SilentlyContinue;
-try {{
-    if (-not (Test-Path $regPath)) {{ New-Item -Path $regPath -Force | Out-Null }};
-    Set-ItemProperty -Path $regPath -Name $regKey -Value 255 -Type DWord -Force;
+            $regPath = ""HKCU:\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer""; $regKey = ""NoDriveTypeAutoRun"";
+            $originalValue = Get-ItemProperty -Path $regPath -Name $regKey -ErrorAction SilentlyContinue;
+            try {{
+                if (-not (Test-Path $regPath)) {{ New-Item -Path $regPath -Force | Out-Null }};
+                Set-ItemProperty -Path $regPath -Name $regKey -Value 255 -Type DWord -Force;
+                $VHD = Mount-VHD -Path '{harddiskpath}' -PassThru -ErrorAction Stop;
+                Start-Sleep -Seconds 1;
+                $VHD | Get-Disk | Get-Partition | Where-Object {{ -not $_.DriveLetter }} | Add-PartitionAccessPath -AssignDriveLetter | Out-Null;
+                $volumes = $VHD | Get-Disk | Get-Partition | Get-Volume;
+                foreach ($volume in $volumes) {{
+                    if ($volume.DriveLetter -and (Test-Path ""$($volume.DriveLetter):\Windows\System32\config\SYSTEM"")) {{
+                        Write-Output $volume.DriveLetter;
+                        break;
+                    }}
+                }}
+            }} finally {{
+                if ($originalValue) {{ Set-ItemProperty -Path $regPath -Name $regKey -Value $originalValue.$regKey -Force; }}
+                else {{ Remove-ItemProperty -Path $regPath -Name $regKey -Force -ErrorAction SilentlyContinue; }}
+            }}";
 
-    $VHD = Mount-VHD -Path '{harddiskpath}' -PassThru -ErrorAction Stop;
-    Start-Sleep -Seconds 1;
-
-    $osPartition = $VHD | Get-Disk | Get-Partition | Where-Object {{ $_.Type -eq 'Basic' -and $_.FileSystemType -eq 'NTFS' }} | Sort-Object -Property Size -Descending | Select-Object -First 1;
-
-    if (-not $osPartition) {{
-        Dismount-VHD -Path '{harddiskpath}' -ErrorAction SilentlyContinue;
-        return;
-    }}
-
-    $driveLetter = $null;
-    if ($osPartition.DriveLetter) {{
-        $driveLetter = $osPartition.DriveLetter;
-    }} else {{
-        $assignedPath = $osPartition | Add-PartitionAccessPath -AssignDriveLetter;
-        $driveLetter = ($assignedPath.AccessPaths | Where-Object {{ $_ -match '^[A-Z]:\\$' }} | ForEach-Object {{ $_.Substring(0, 1) }});
-        Start-Sleep -Seconds 1;
-    }}
-
-    if ($driveLetter -and (Test-Path ""$($driveLetter):\Windows\System32\config\SYSTEM"")) {{
-        Write-Output $driveLetter;
-    }} else {{
-        Dismount-VHD -Path '{harddiskpath}' -ErrorAction SilentlyContinue;
-    }}
-}}
-catch {{
-    Dismount-VHD -Path '{harddiskpath}' -ErrorAction SilentlyContinue;
-}}
-finally {{
-    if ($originalValue) {{ Set-ItemProperty -Path $regPath -Name $regKey -Value $originalValue.$regKey -Force; }}
-    else {{ Remove-ItemProperty -Path $regPath -Name $regKey -Force -ErrorAction SilentlyContinue; }}
-}}";
                 var letterResult = Utils.Run(mountScript);
                 if (letterResult == null || letterResult.Count == 0)
                 {
