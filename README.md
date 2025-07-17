@@ -76,6 +76,7 @@ DDA stands for Discrete Device Assignment, which allows independent devices to b
 | Nvidia  | GT 1030 |✔️ |✔️ | ✔️ |
 | Nvidia  | GT 210 |✔️ | ✔️ | ✖️ |
 | Intel   | Intel DG1 |✔️ | ✖️ | Specific driver✔️ |
+| Intel   | A380 |Code 43✖️ | ✖️ |✖️ |
 
 1. Recognition: After assigning the graphics card to the virtual machine, it may not function properly. Some modified laptop cards or mining cards may encounter issues.
 2. Function-Level Reset (FLR): If the card does not support this function, restarting the virtual machine that has this GPU assigned will cause a reboot of the host. Nvidia cards work well, but AMD and Intel cards are not widely tested and may have [hardware issues](https://www.reddit.com/r/Amd/comments/jehkey/will_big_navi_support_function_level_reset_flr/).
