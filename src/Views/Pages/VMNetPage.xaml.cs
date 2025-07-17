@@ -2,8 +2,6 @@
 namespace ExHyperV.Views.Pages;
 using System;
 using System.Collections.Generic;
-using System.Linq.Expressions;
-using System.Reflection.Metadata;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Shapes;
@@ -60,10 +58,6 @@ public partial class VMNetPage
         }
     }
 
-    private async void refresh(object sender, RoutedEventArgs e)
-    {
-        await Initialinfo();
-    }
 
     private async Task Initialinfo(){
         _switchList.Clear();
@@ -81,9 +75,6 @@ public partial class VMNetPage
                 bool _isInitializing = true;
                 bool _isUpdatingUiFromCode = false;
 
-                // =========================================================================
-                // Header 部分
-                // =========================================================================
                 var cardExpander = Utils.CardExpander1();
                 cardExpander.Icon = Utils.FontIcon1("Switch", Switch1.SwitchName);
                 Grid.SetRow(cardExpander, ParentPanel.RowDefinitions.Count);
@@ -95,7 +86,6 @@ public partial class VMNetPage
                 var statusPanel = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
                 var statusCircle = new Ellipse { Width = 8, Height = 8, Margin = new Thickness(0, 0, 6, 0) };
 
-                // Header文本和状态的更新将在UpdateUIState中进行，这里只做基础初始化
                 var statusTextBlock = Utils.TextBlock12("正在确定状态...");
                 statusTextBlock.Margin = new Thickness(0);
                 statusPanel.Children.Add(statusCircle);
@@ -106,9 +96,6 @@ public partial class VMNetPage
                 headerGrid.Children.Add(statusPanel);
                 cardExpander.Header = headerGrid;
 
-                // =========================================================================
-                // 阶段1 - 控件声明
-                // =========================================================================
                 var buttonPadding = new Thickness(8, 6, 8, 4);
                 var rbBridge = new RadioButton { Content = "桥接模式", GroupName = Switch1.Id, Padding = buttonPadding };
                 var rbNat = new RadioButton { Content = "NAT模式", GroupName = Switch1.Id, Padding = buttonPadding };
@@ -118,81 +105,96 @@ public partial class VMNetPage
                 var dhcpSwitch = new ToggleSwitch { IsChecked = false, HorizontalAlignment = HorizontalAlignment.Left };
                 var topologyCanvas = new Canvas();
 
-                // =========================================================================
-                // 阶段2 - 局部函数定义
-                // =========================================================================
-                async Task UpdateUIState()//更新界面UI
+                async Task UpdateUIState(string? forceMode = null)//更新界面UI
                 {
                     if (_isUpdatingUiFromCode) return;
                     _isUpdatingUiFromCode = true;
 
-                    var isBridgeMode = rbBridge.IsChecked == true;
-                    var isNatMode = rbNat.IsChecked == true;
-
-                    bool hostConnectionEnabled;
-                    bool dhcpEnabled;
-                    string currentMode;
-                    string headerStatusText;
-                    bool headerIsConnected;
-
-                    if (isBridgeMode)
+                    try
                     {
-                        currentMode = "Bridge";
-                        hostConnectionEnabled = false;
-                        hostConnectionSwitch.IsChecked = true;
-                        dhcpEnabled = false;
+                        if (forceMode != null)
+                        {
+                            switch (forceMode)
+                            {
+                                case "External": rbBridge.IsChecked = true; break;
+                                case "NAT": rbNat.IsChecked = true; break;
+                                case "Internal":
+                                case "Private":
+                                default: rbNone.IsChecked = true; break;
+                            }
+                            return;
+                        }
 
-                        headerIsConnected = !string.IsNullOrEmpty(Switch1.NetAdapterInterfaceDescription);
-                        headerStatusText = headerIsConnected ? "已连接到：" + Switch1.NetAdapterInterfaceDescription : "未连接上游网络";
+                        var isBridgeMode = rbBridge.IsChecked == true;
+                        var isNatMode = rbNat.IsChecked == true;
+
+                        bool hostConnectionEnabled;
+                        bool dhcpEnabled;
+                        string currentMode;
+                        string headerStatusText;
+                        bool headerIsConnected;
+
+                        if (isBridgeMode)
+                        {
+                            currentMode = "Bridge";
+                            hostConnectionEnabled = false;
+                            hostConnectionSwitch.IsChecked = true;
+                            dhcpEnabled = false;
+
+                            headerIsConnected = !string.IsNullOrEmpty(Switch1.NetAdapterInterfaceDescription);
+                            headerStatusText = headerIsConnected ? "已连接到：" + Switch1.NetAdapterInterfaceDescription : "未连接上游网络";
+                        }
+                        else if (isNatMode)
+                        {
+                            currentMode = "NAT";
+                            hostConnectionEnabled = false;
+                            hostConnectionSwitch.IsChecked = true;
+                            dhcpEnabled = false;
+                            headerIsConnected = true;
+                            headerStatusText = headerIsConnected ? "已连接到：" + Switch1.NetAdapterInterfaceDescription : "未连接上游网络"; ;
+                        }
+                        else // 无上游模式
+                        {
+                            currentMode = "None";
+                            hostConnectionEnabled = true;
+                            dhcpEnabled = false;
+
+                            headerIsConnected = false;
+                            headerStatusText = "未连接上游网络";
+                        }
+
+                        hostConnectionSwitch.IsEnabled = hostConnectionEnabled;
+                        dhcpSwitch.IsEnabled = dhcpEnabled;
+                        if (!dhcpSwitch.IsEnabled) { dhcpSwitch.IsChecked = false; }
+
+                        switch (currentMode)
+                        {
+                            case "Bridge" or "NAT":
+                                upstreamDropDown.IsEnabled = true;
+                                upstreamDropDown.Content = !string.IsNullOrEmpty(Switch1.NetAdapterInterfaceDescription)
+                                    ? Switch1.NetAdapterInterfaceDescription
+                                    : "请选择网卡...";
+                                break;
+                            case "None":
+                            default:
+                                upstreamDropDown.IsEnabled = false;
+                                upstreamDropDown.Content = "不可用";
+                                break;
+                        }
+
+                        statusTextBlock.Text = headerStatusText;
+                        statusCircle.Fill = new SolidColorBrush(headerIsConnected ? Colors.Green : Colors.Red);
+
+                        var content = upstreamDropDown.Content as string;
+                        if (!string.IsNullOrEmpty(content) && !content.Contains("请选择"))
+                        { //不为空，且不为待选择状态
+                            await BuildVerticalTopology(); //绘制拓扑图
+                        }
                     }
-                    else if (isNatMode)
+                    finally
                     {
-                        currentMode = "NAT";
-                        hostConnectionEnabled = false;
-                        hostConnectionSwitch.IsChecked = true;
-                        dhcpEnabled = false;
-                        headerIsConnected = true;
-                        headerStatusText = headerIsConnected ? "已连接到：" + Switch1.NetAdapterInterfaceDescription : "未连接上游网络"; ;
+                        _isUpdatingUiFromCode = false;
                     }
-                    else // 无上游模式
-                    {
-                        currentMode = "None";
-                        hostConnectionEnabled = true;
-                        dhcpEnabled = false;
-
-                        headerIsConnected = false;
-                        headerStatusText = "未连接上游网络";
-                    }
-
-                    hostConnectionSwitch.IsEnabled = hostConnectionEnabled;
-                    dhcpSwitch.IsEnabled = dhcpEnabled;
-                    if (!dhcpSwitch.IsEnabled) { dhcpSwitch.IsChecked = false; }
-
-                    switch (currentMode)
-                    {
-                        case "Bridge" or "NAT":
-                            upstreamDropDown.IsEnabled = true;
-                            upstreamDropDown.Content = !string.IsNullOrEmpty(Switch1.NetAdapterInterfaceDescription)
-                                ? Switch1.NetAdapterInterfaceDescription
-                                : "请选择网卡...";
-                            break;
-                        case "None":
-                        default:
-                            upstreamDropDown.IsEnabled = false;
-                            upstreamDropDown.Content = "不可用";
-                            break;
-                    }
-
-                    statusTextBlock.Text = headerStatusText;
-                    statusCircle.Fill = new SolidColorBrush(headerIsConnected ? Colors.Green : Colors.Red);
-
-                    var content = upstreamDropDown.Content as string;
-                    if (!string.IsNullOrEmpty(content) && !content.Contains("请选择")) { //不为空，且不为待选择状态
-                        await BuildVerticalTopology(); //绘制拓扑图
-                    }
-
-                    _isUpdatingUiFromCode = false;
-
                 }
 
                 async Task BuildVerticalTopology()
@@ -315,95 +317,121 @@ public partial class VMNetPage
                 }
                 async void OnSettingsChanged(object sender, RoutedEventArgs e)
                 {
-                    if (_isInitializing) return;
-                    if (sender is RadioButton rb && rb.IsChecked != true) return;
+                    if (_isInitializing || _isUpdatingUiFromCode) return;
 
-                    var contentBeforeUpdate = upstreamDropDown.Content as string;
-                    bool isSwitchingToUpstreamMode = rbBridge.IsChecked == true || rbNat.IsChecked == true;
-
-                    if (isSwitchingToUpstreamMode && contentBeforeUpdate == "不可用")
+                    string GetModeFromSwitchType(string switchType)
                     {
-                        Switch1.NetAdapterInterfaceDescription = null;
+                        switch (switchType)
+                        {
+                            case "External": return "Bridge";
+                            case "NAT": return "NAT";
+                            default: return "Isolated";
+                        }
                     }
+                    string beforeMode = GetModeFromSwitchType(Switch1.SwitchType);
+                    string originalAdapter = Switch1.NetAdapterInterfaceDescription; // 保存原始网卡信息
 
-                    // 1. 确定用户意图的模式
-                    string selectedMode = "Isolated";
-                    if (rbBridge.IsChecked == true) selectedMode = "Bridge";
-                    else if (rbNat.IsChecked == true) selectedMode = "NAT";
+                    string afterMode;
+                    if (rbBridge.IsChecked == true) afterMode = "Bridge";
+                    else if (rbNat.IsChecked == true) afterMode = "NAT";
+                    else if (rbNone.IsChecked == true) afterMode = "Isolated";
+                    else afterMode = beforeMode;
 
                     var selectedAdapterContent = upstreamDropDown.Content as string;
+                    bool hasSelectedValidAdapter = !string.IsNullOrEmpty(selectedAdapterContent) && selectedAdapterContent != "请选择网卡..." && selectedAdapterContent != "不可用";
 
-                    // 2. 执行配置更改前的验证
-                    // 验证NAT模式唯一性
-                    if (selectedMode == "NAT")
+                    if (beforeMode == afterMode && originalAdapter == selectedAdapterContent)
+                    {
+                        if (sender == upstreamDropDown)
+                        {
+                            return;
+                        }
+                    }
+
+                    if (sender is RadioButton && beforeMode == afterMode)
+                    {
+                        return;
+                    }
+
+                    if ((afterMode == "Bridge" || afterMode == "NAT") && beforeMode == "Isolated")
+                    {
+                        var usedAdapters = _switchList
+                            .Where(s => s.Id != Switch1.Id && (s.SwitchType == "External" || s.SwitchType == "NAT") && !string.IsNullOrEmpty(s.NetAdapterInterfaceDescription))
+                            .Select(s => s.NetAdapterInterfaceDescription)
+                            .ToList();
+
+                        var availableAdapters = physicalAdapterList
+                            .Select(p => p.InterfaceDescription)
+                            .Except(usedAdapters)
+                            .ToList();
+
+                        if (!availableAdapters.Any())
+                        {
+                            Utils.Show("操作失败：没有可用的物理网卡，或所有网卡都已被其他虚拟交换机使用。");
+                            await UpdateUIState(Switch1.SwitchType);
+                            return;
+                        }
+                    }
+
+                    if (afterMode == "NAT")
                     {
                         var existingNatSwitch = _switchList.FirstOrDefault(s => s.SwitchType == "NAT" && s.Id != Switch1.Id);
                         if (existingNatSwitch != null)
                         {
                             Utils.Show(
-                                $"操作失败：系统只允许存在一个NAT网络。\n\n使用了NAT模式交换机是: '{existingNatSwitch.SwitchName}'");
-                            await UpdateUIState(); // 恢复UI到操作前状态
+                                $"操作失败：系统只允许存在一个NAT网络。\n\n已有的NAT交换机是: '{existingNatSwitch.SwitchName}'");
+                            await UpdateUIState(Switch1.SwitchType);
                             return;
                         }
                     }
 
-                    // 验证桥接网卡唯一性
-                    if (selectedMode == "Bridge")
+                    if (hasSelectedValidAdapter && (afterMode == "Bridge" || afterMode == "NAT"))
                     {
-                        if (!string.IsNullOrEmpty(selectedAdapterContent) && selectedAdapterContent != "请选择网卡..." && selectedAdapterContent != "不可用")
-                        {
-                            var conflictingSwitch = _switchList.FirstOrDefault(s =>
-                               s.SwitchType == "External" &&
-                               s.NetAdapterInterfaceDescription == selectedAdapterContent &&
-                               s.Id != Switch1.Id);
+                        var conflictingSwitch = _switchList.FirstOrDefault(s =>
+                           (s.SwitchType == "External" || s.SwitchType == "NAT") &&
+                           s.NetAdapterInterfaceDescription == selectedAdapterContent &&
+                           s.Id != Switch1.Id);
 
-                            if (conflictingSwitch != null)
-                            {
-                                Utils.Show(
-                                    $"操作失败：物理网卡 '{selectedAdapterContent}' 已经分配给交换机 '{conflictingSwitch.SwitchName}' 。");
-                                await UpdateUIState(); // 恢复UI到操作前状态
-                                return;
-                            }
+                        if (conflictingSwitch != null)
+                        {
+                            string modeInUse = conflictingSwitch.SwitchType == "External" ? "桥接模式" : "NAT模式";
+                            Utils.Show(
+                                $"操作失败：物理网卡 '{selectedAdapterContent}' 已被交换机 '{conflictingSwitch.SwitchName}' 用于 {modeInUse}。");
+                            await UpdateUIState(Switch1.SwitchType);
+                            return;
                         }
                     }
 
-                    // 如果需要上游网络但未选择，则仅更新UI并返回
-                    if ((selectedMode == "Bridge" || selectedMode == "NAT") && (selectedAdapterContent == "不可用" || selectedAdapterContent == "请选择网卡..."))
+                    if ((afterMode == "Bridge" || afterMode == "NAT") && !hasSelectedValidAdapter)
                     {
                         await UpdateUIState();
                         return;
                     }
 
-                    // 3. 执行配置更改
                     var waitPage = new WaitPage();
                     var mainWindow = Application.Current.MainWindow;
 
                     try
                     {
                         bool allowManagementOS = hostConnectionSwitch.IsChecked ?? false;
-                        bool enableDhcp = dhcpSwitch.IsChecked ?? false; // 虽然当前未启用，但保留逻辑
+                        bool enableDhcp = dhcpSwitch.IsChecked ?? false;
 
-                        // 显示等待页面，执行耗时操作
                         waitPage.Show();
                         mainWindow.IsEnabled = false;
                         waitPage.Owner = mainWindow;
 
-                        await Utils.UpdateSwitchConfigurationAsync(Switch1.SwitchName, selectedMode, selectedAdapterContent, allowManagementOS, enableDhcp);
+                        await Utils.UpdateSwitchConfigurationAsync(Switch1.SwitchName, afterMode, selectedAdapterContent, allowManagementOS, enableDhcp);
 
-                        // 操作成功，关闭等待页面
                         waitPage.Close();
                         mainWindow.IsEnabled = true;
 
-                        // 4. 使用最新数据完全刷新整个页面
                         await Initialinfo();
                     }
                     catch (Exception ex)
                     {
                         System.Windows.MessageBox.Show($"更新交换机配置失败: {ex.Message}");
-                        // 确保即使失败也关闭等待页面并恢复主窗口
                         if (waitPage.IsVisible) waitPage.Close();
                         if (!mainWindow.IsEnabled) mainWindow.IsEnabled = true;
-                        // 失败后也刷新一下，以恢复到正确的原始状态
                         await Initialinfo();
                     }
                 }
@@ -419,9 +447,6 @@ public partial class VMNetPage
                     return item;
                 }
 
-                // =========================================================================
-                // 阶段3 - 组装UI树并绑定事件
-                // =========================================================================
                 var contentPanel = new StackPanel { Margin = new Thickness(50, 10, 0, 10) };
                 var settingsGrid = new Grid();
                 settingsGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(125) });
@@ -481,9 +506,7 @@ public partial class VMNetPage
                 topologySectionPanel.Children.Add(topologyCanvas);
                 contentPanel.Children.Add(topologySectionPanel);
 
-                // =========================================================================
-                // 阶段4 - 设置初始状态
-                // =========================================================================
+
                 switch (Switch1.SwitchType)
                 {
                     case "External": rbBridge.IsChecked = true; break;
@@ -493,16 +516,34 @@ public partial class VMNetPage
 
                 var _ = UpdateUIState();
 
+
+                if (Switch1.SwitchName == "Default Switch")
+                {
+                    // 禁用所有配置控件
+                    rbBridge.IsEnabled = false;
+                    rbNat.IsEnabled = false;
+                    rbNat.IsChecked = true;
+                    rbNone.IsEnabled = false;
+                    hostConnectionSwitch.IsEnabled = false;
+                    upstreamDropDown.IsEnabled = false;
+
+                    statusTextBlock.Text = "系统默认交换机，不可修改";
+                    upstreamDropDown.Content = "自动适应";
+                    statusTextBlock.SetResourceReference(TextBlock.ForegroundProperty, "TextFillColorTertiaryBrush");
+                    statusCircle.Fill = new SolidColorBrush(Colors.Orange); // 使用一个中性/警告色
+                }
+
+
                 cardExpander.Content = contentPanel;
                 ParentPanel.Children.Add(cardExpander);
                 _isInitializing = false;
             });
 
         }
-
+        refreshlock = false;
         Dispatcher.Invoke(() => //隐藏加载条
         {
-            progressRing.Visibility = Visibility.Collapsed;
+            progressbar.Visibility = Visibility.Collapsed;
 
         });
     }
@@ -565,10 +606,6 @@ public partial class VMNetPage
 
     private static string? GetIcsSourceAdapterName(string switchName)
     {
-        // 最终版脚本:
-        // 1. 使用 HNetCfg.HNetShare COM 对象找到 ICS 源连接的“名称” (例如 "WLAN")。
-        // 2. 使用 Get-NetAdapter cmdlet，根据这个名称查找对应的网络适配器。
-        // 3. 从找到的适配器对象中，返回其 .InterfaceDescription 属性，这就是物理描述符。
         string script = @"
 param([string]$switchName)
 
@@ -579,8 +616,6 @@ try {
 
     $icsSourceAdapterName = $null
     $icsGatewayIsCorrect = $false
-
-    # 步骤1: 遍历连接，找到 ICS 源的连接名称
     foreach ($connection in $netShareManager.EnumEveryConnection) {
         $config = $netShareManager.INetSharingConfigurationForINetConnection.Invoke($connection)
         
@@ -595,22 +630,15 @@ try {
             }
         }
     }
-
-    # 步骤2: 如果找到了源连接名称，就用它来获取物理描述符
     if (($icsGatewayIsCorrect) -and ($null -ne $icsSourceAdapterName)) {
         try {
-            # 使用 Get-NetAdapter 获取适配器的详细信息
             $adapterDetails = Get-NetAdapter -Name $icsSourceAdapterName -ErrorAction Stop
-            
-            # 返回 InterfaceDescription 属性，这是我们真正想要的物理描述符
             return $adapterDetails.InterfaceDescription
         }
         catch {
-            # 如果 Get-NetAdapter 失败，作为一个安全的备用方案，返回连接名称
             return $icsSourceAdapterName
         }
     }
-
     return $null
 }
 catch {
@@ -618,7 +646,6 @@ catch {
 }
 ";
 
-        // C# 调用部分保持不变，它已经是正确的了
         try
         {
             using (var ps = System.Management.Automation.PowerShell.Create())
@@ -716,5 +743,16 @@ catch {
     {
         return await Task.Run(() => GetFullSwitchNetworkState(switchName));
     }
+
+    private async void refresh(object sender, RoutedEventArgs e)
+    {
+        if (!refreshlock)
+        {
+            progressbar.Visibility = Visibility.Visible; //显示加载条
+            refreshlock = true;
+            await Initialinfo();
+        }
+    }
+
 
 }

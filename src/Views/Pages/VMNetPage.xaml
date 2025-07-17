@@ -20,7 +20,7 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <ProgressBar Grid.Row="0" x:Name="progressRing" IsIndeterminate="True"/>
+        <ProgressBar Grid.Row="0" x:Name="progressbar" IsIndeterminate="True"/>
         <Grid Grid.Row="1" Margin="0,5,0,0">
             <ui:Card BorderThickness="1" Padding="10">
                 <Grid>
