@@ -25,6 +25,7 @@
 #	device  device_name				<-- single tab
 #		subvendor subdevice  subsystem_name	<-- two tabs
 
+
 0001  SafeNet (wrong ID)
 0010  Allied Telesis, Inc (Wrong ID)
 # This is a relabelled RTL-8139
@@ -40272,3 +40273,986 @@ C 12  Processing accelerators
 C 13  Non-Essential Instrumentation
 C 40  Coprocessor
 C ff  Unassigned class
+
+0014  Loongson Technology Corporation Limited
+00b0  Blue Origin, LLC
+00bb  Bloombase
+0123  General Dynamics Mission Systems, Inc.
+012e  OLZETEK
+01de  Oxide Computer Company
+025e  Solidigm - SK hynix
+0303  DAQ System
+04db  CLEVER INFORMATION INC.
+0526  Unicompute Technology Co., Ltd.
+060e  Lightelligence, Inc.
+0720  Theo End (Shenzhen) Computing Technology Co., Ltd
+0815  Panmnesia, Inc.
+0823  Guangdong Hongjun Microelectronics Co., Ltd.
+0a7c  Aurora Innovation Opco, Inc.
+0bae  Bachmann electronic GmbH
+0ccd  Preferred Networks, Inc.
+1013  Cirrus Logic, Inc.
+1014  IBM
+1018  Unisys Corporation
+1019  Elitegroup Computer Systems Inc.
+101e  AMI US Holdings, Inc.
+1021  Oki Electric Industry Co., Ltd.
+1022  Advanced Micro Devices, Inc.
+1028  Dell Computer Corporation
+102b  Matrox Graphics Inc.
+103c  HP Inc.
+1043  Asustek Computer Inc.
+104a  STMicroelectronics International NV
+104c  Texas Instruments
+104d  Sony Group Corporation
+1050  Nuvoton Technology Israel
+1054  Hitachi Vantara, Ltd.
+1054  Hitachi, Ltd.
+1059  Kontron
+105a  Promise Technology, Inc.
+105b  Foxconn (Hon Hai)
+106b  Apple Computer
+1071  MiTAC International Corporation
+1073  Yamaha Corporation
+107d  Leadtek Research Inc.
+108e  Oracle Corporation
+1093  National Instruments Corporation
+10a0  Meidensha Corporation
+10ac  Honeywell Inc.
+10b0  Gainward Technology Int'l Limited
+10b2  Raytheon Company
+10ba  Mitsubishi Electric Corporation
+10c5  Xerox Corporation
+10cb  Omron Corporation
+10cf  Fujitsu Limited
+10d2  Molex LLC
+10d3  Jabil Circuit Inc.
+10db  Rohm Co., Ltd.
+10dc  CERN
+10de  NVidia Corporation
+10ec  Realtek Semiconductor Corporation
+10fc  I-O Data Device, Inc.
+1102  Creative Technology Ltd
+1103  HighPoint Technologies, Inc.
+1106  VIA Technologies, Inc.
+110a  Siemens AG
+1113  Accton Technology Corporation
+112b  Heidelberger Druckmaschinen AG
+1131  NXP Semiconductors
+1135  FUJIFILM Business Innovation Corp.
+1137  Cisco Systems, Inc.
+1147  Interface Corporation
+1154  Buffalo Inc.
+115c  Photron Limited
+1165  Foresight Imaging LLC
+1166  Broadcom Limited
+1168  Thine Electronics, Inc
+1169  Centre for Development of Advanced Computing
+116e  Fiery LLC
+1170  Inventec Corporation
+1179  Toshiba Corporation
+1180  Ricoh Company, Ltd.
+1183  Fujikura Ltd.
+1189  Panasonic Holdings Corporation
+1192  Densan Co., Ltd.
+1195  Ratoc Systems Inc.
+1197  DynamicSignals, LLC
+119d  DMG MORI Digital Co., LTD.
+119f  BULL SAS
+11a1  Hamamatsu Photonics K.K.
+11ac  Canon, Inc.
+11bf  ASTRODESIGN, Inc.
+11c6  SCREEN GRAPHIC SOLUTIONS CO., LTD.
+11c8  Dolphin Interconnect Solutions AS
+11ca  IBEX Technology, Co. Ltd.
+11d4  Analog Devices International
+11db  SEGA CORPORATION
+11df  Nexus Technology, Inc.
+11ec  Teledyne Dalsa
+11f8  Microchip Technology
+1204  Lattice Semiconductor Corporation
+1217  BayHub Technology Inc
+1227  EIZO Rugged Solutions
+123c  CENTURY SYSTEMS Co.,Ltd.
+123d  Engineering Design Team, Inc.
+1244  AVM Audiovisuelles Marketing und Computersysteme GmbH
+1250  Hitachi Solutions Technology, Ltd.
+1253  Guzik Technical Enterprises
+1259  Allied Telesis Inc.
+125b  ASIX Electronics Corp.
+1268  Tektronix
+1269  Thales
+126f  Silicon Motion Inc.
+1270  Olympus Corporation
+1275  NetApp, Inc.
+1281  Yokogawa Electric Corporation
+1283  ITE Tech. Inc.
+12a0  Rockwell Automation Inc. (Allen-Bradley)
+12a4  NTT Innovative Devices Corporation
+12af  TDK Corporation
+12b7  Cognex Corporation
+12c4  Connect Tech Inc.
+12d8  Diodes Incorporated
+12db  Annapolis Micro Systems, Inc.
+12e1  Nintendo Co., Ltd.
+12fe  esd electronics gmbh
+1304  Juniper Networks
+130f  Advanet, Inc.
+1313  YASKAWA Electric Corporation
+1316  Teradyne, Inc.
+131f  SIIG Inc.
+1322  MIS Corporation
+1344  Micron Technology, Inc.
+1349  Sumitomo Electric Industries, Ltd.
+135e  Sealevel Systems, Inc.
+1360  Meinberg Funkuhren GmbH & Co. KG
+1363  Phoenix Technologies
+1363  Phoenix Technologies, Inc.
+1367  Kanadevia Corporation
+136c  CPI Technologies, Inc.
+1374  Silicom, Ltd.
+137a  Mark of the Unicorn, Inc.
+1380  Sanritz Automation Co., Ltd.
+138b  TOKYO KEIKI INC.
+13a1  Kawasaki Heavy Industries, Ltd.
+13b5  ARM Ltd.
+13b8  Nokia Solutions and Networks Oy
+13c3  Janz Tec AG
+13cc  Barco, Inc.
+13de  ABB AB
+13e5  Telesoft Technologies Ltd.
+13e6  ARGOSY RESEARCH INC.
+13fe  Advantech Co., Ltd.
+140e  GOEPEL electronic GmbH
+1414  Microsoft
+1425  Chelsio Communications
+1428  EDEC Linsey System Co., Ltd.
+142e  VITEC
+1433  Westermo Eltec GmbH
+1435  RTD Embedded Technologies, Inc.
+1442  Phoenix Contact Electronics GmbH
+1442  Phoenix Contact GmbH & Co. KG
+1447  AIM GmbH
+144a  ADLINK Technology
+144b  Verint
+144d  Samsung Electronics Co., Ltd.
+1458  Giga-Byte Technology Co., Ltd.
+1461  AVerMedia Technologies, Inc.
+1462  Micro-Star International Co., Ltd.
+148a  OPTO 22
+148c  Tul Corporation
+1498  TEWS Technologies GmbH
+14a0  Softing AG
+14a9  Hivertec, Inc.
+14c0  Compal Electronics, Inc.
+14c3  MediaTek Incorporation
+14cd  Universal Global Scientific Industrial Co., Ltd
+14eb  Seiko Epson Corporation
+14ff  Twinhead International Corporation
+1513  TE Connectivity
+152d  Quanta Computer Inc.
+152e  Melec Inc.
+1543  Skyworks Solutions, Inc.
+1546  IOI Technology Corporation
+1547  Mitutoyo Corporation
+1558  Clevo Co.
+1565  BIOSTAR MICROTECH INTERNATIONAL CORP.
+1569  Palit Microsystems Ltd.
+156c  VMagic Electronics GmbH
+1570  Teledyne LeCroy
+1590  Hewlett Packard Enterprise
+159c  Penguin Solutions
+15a5  Toyota Technical Development Corporation
+15b7  Sandisk Technologies, Inc.
+15b8  ADDI-DATA Gmbh
+15bb  Portwell, Inc.
+15bc  Keysight Technologies
+15bd  DFI Inc.
+15cf  Hilscher Gesellschaft fuer Systemautomation mbH
+15d1  Infineon Technologies AG
+15d7  Collins Aerospace
+15d9  Super Micro Computer Inc.
+15e7  GET Engineering Corporation
+160c  OMS Motion, Inc.
+160d  AAEON Technology Inc.
+162f  ROHDE & SCHWARZ GmbH & Co. KG
+163f  Renishaw plc.
+165a  EPIX, INC.
+165c  Gidel Ltd.
+1679  Tokyo Electron Device Ltd.
+1683  StepTechnica Co., Ltd.
+169a  Otari, Inc.
+16c3  Synopsys, Inc.
+16c8  Octasic Inc.
+16ce  Roland Corporation
+16e2  Marvin Test Solutions, Inc.
+16ea  Fuji Electric Co., Ltd.
+16f2  Robert Bosch GmbH
+172f  Sparkle Computer Co., Ltd.
+1738  L3Harris Technologies, Inc.
+1739  Interface Concept
+174a  Spirent Communications
+174b  PC Partner Limited
+174f  SAXA, Inc.
+175c  AudioScience, Inc.
+1761  Pickering Interfaces Ltd.
+1771  InnoVision Multimedia, Ltd.
+1775  GE Aviation
+1778  For-A Company Limited
+177c  EBRAINS, INC.
+1784  Lockheed Martin
+1792  Artiza Networks, Inc.
+17a0  Genesys Logic, Inc.
+17aa  Lenovo
+17c0  Wistron Corporation
+17c3  Protogate, Inc.
+17cb  Qualcomm Incorporated
+17cd  Cadence Design Systems
+17ce  BCM Advanced Research
+17d2  SigBitz LLC
+17d3  Areca Technology Corporation
+17f3  RDC Semiconductor Co., Ltd.
+17f9  GemTek Technology Co., Ltd.
+1805  Euresys SA
+1808  nVent, Schroff GmbH
+180c  IEI Integration Corp.
+1817  JAE
+181d  eInfochips, Inc.
+1830  Cohu, Inc.
+184b  SYSTEC Corporation
+184c  Hirose Electric USA Inc.
+1850  Advantest Corporation
+1852  Anritsu Corporation
+1854  LG Electronics
+1872  A & D Company, Ltd.
+1880  LOTES Co., Ltd
+188b  Faraday Technology Corporation
+1893  Kyocera Corporation
+1895  Flextronics International
+189e  TSMC
+18b2  K.K. Rocky
+18b4  Yamaichi Electronics
+18d4  Celestica
+18d7  Semtech Corp
+18e4  Acer Inc.
+18e6  MPL AG
+18f1  Spectrum Instrumentation GmbH
+18f2  I-PEX (Dai-ichi Seiko)
+18f4  Napatech AS
+18f8  Amphenol Corp.
+18fd  Digital Media Professionals, Inc.
+18fe  Opex Corporation
+190e  Fidus Systems Inc.
+1912  Renesas Electronics Corporation
+1916  Macnica, Inc.
+1923  Sangoma Technologies Corporation
+1933  Nexcom International
+193d  New H3C Technologies Co., Ltd.
+194a  Dap Holding B.V.
+194f  Allion Labs, Inc.
+1954  One Stop Systems, Inc.
+1960  REJ Co., Ltd.
+1962  U.S. Patent & Trademark Office
+1977  Etion Create (Pty) Ltd.
+197b  JMicron Technology Corporation
+197d  Cap Co., Ltd.
+1987  Phison Electronics Corporation
+1992  Pleora Technologies Inc.
+19a4  Owl Cyber Defense Solutions LLC
+19aa  Rambus Inc.
+19bf  Unicom Engineering Inc
+19d4  Nexteq Plc
+19d5  Protech Systems
+19e2  Vector Informatik GmbH
+19e5  Huawei Technologies Co., Ltd.
+19eb  DAIHEN Corporation
+19ee  Netronome
+1a00  Universal Audio, Inc.
+1a03  ASPEED Technology Inc.
+1a05  Delta Electronics, Inc.
+1a07  Kvaser AB
+1a0e  DekTec Digital Video B.V.
+1a11  BitifEye Digital Test Solutions GmbH
+1a15  Axell Corporation
+1a25  Ericsson AS
+1a29  Fortinet, Inc.
+1a2f  congatec GmbH
+1a3b  AzureWave Technologies, Inc.
+1a3d  Tritek Co., Ltd.
+1a3f  KEL Corporation
+1a43  Chuo Electronics Co., Ltd.
+1a4c  Amulet Hotkey Ltd.
+1a61  Astron Connectivity Co., Ltd.
+1a6e  International Game Technology
+1a82  Samtec
+1a8a  Star Bridge, Inc.
+1a9d  QSC LLC
+1aa1  Aristocrat Technologies Australia Pty Ltd.
+1aa2  Media Links Co., LTD.
+1aa9  Schweitzer Engineering Labs, Inc.
+1aaa  Furukawa Electric Co., Ltd.
+1aaa  Furukawa ElectricCo., Ltd.
+1aac  IBASE Technology Inc.
+1ab5  The Boeing Company
+1ab8  Parallels International GmbH
+1ac2  Avalue Technology Inc.
+1acd  Hensoldt Sensors GmbH
+1ae0  Google, Inc.
+1ae8  Basler AG
+1af8  Parade Technologies, Inc.
+1afd  Moog Inc.
+1b00  Montage Technology Co., Ltd.
+1b05  Benchmark Electronics, Inc.
+1b07  NEXTCHIP Co,Ltd
+1b08  Tria Technologies GmbH
+1b0a  Pegatron Corporation
+1b0c  Northrop Grumman Corp., Electronic Systems
+1b12  Analogix Semiconductor
+1b2a  Keyence Corporation
+1b2e  Riverbed Technology, Inc.
+1b37  Teledyne SP Devices
+1b42  Ceremorphic, Inc
+1b45  StarTech.com Ltd.
+1b49  ALLDIS Computersystem GmbH
+1b4c  Galaxy Microsystems Ltd.
+1b53  iD corporation
+1b59  Achronix Semiconductor
+1b5e  STAR-Dundee Ltd.
+1b61  Byd Precision Manufacture Co.,Ltd
+1b66  Deltatec
+1b6f  Etron Technology, Inc.
+1b76  AIC Inc.
+1b80  Deutsche Telekom Security GmbH
+1b83  Viasat Inc.
+1b86  Saab AB
+1b95  Green Hills Software
+1b98  E.E.P.D. GmbH
+1b9f  BAE Systems
+1baa  QNAP Systems, Inc.
+1bad  REFLEX CES
+1bb1  Seagate Technology LLC
+1bb2  Nikon Corporation
+1bba  KLA-Tencor
+1bc0  InnoDisk Corporation
+1bc1  EXFO Inc.
+1bc9  Sonifex Ltd
+1bcd  Apacer Technology Inc.
+1bce  Silex Technology, Inc.
+1bcf  NEC
+1bd0  Astronics Corporation
+1bd4  IEIT SYSTEMS Co., Ltd.
+1bd5  The FreeBSD Foundation
+1bd7  Granite River Labs Inc.
+1bd9  Open Text Corporation
+1bdd  Atrust Computer Corp.
+1bdf  LUXSHARE-ICT, Inc.
+1be9  The MathWorks, Inc.
+1beb  SignalCore, Inc.
+1bec  SECO S.P.A.
+1bee  HMS Technology Center GmbH
+1bf5  Greenliant
+1bfa  Daiichi Jitsugyo Viswill Co., Ltd
+1bfb  Analog Bits
+1bfc  duagon AG
+1c00  Nanjing Qinheng Microelectronics Co., Ltd.
+1c05  Blackberry QNX
+1c07  HCL Technologies Ltd
+1c0b  Alazar Technologies, Inc.
+1c1b  Netlist, Inc.
+1c2e  Schneider Electric Japan Holdings Ltd.
+1c2f  Beckhoff Automation GmbH & Co. KG
+1c33  Daktronics, Inc.
+1c37  Shikino High-Tech Co., Ltd
+1c4e  Techway
+1c4f  Bruker Corporation
+1c55  Hexagon Metrology S.P.A.
+1c5b  XJTAG Ltd.
+1c5d  Telit Communications SPA
+1c5e  GopherTec Inc.
+1c5f  Beijing Memblaze Technology Co. Ltd.
+1c64  TRS-RenTelco
+1c65  Jump Operations, LLC
+1c65  Jump Trading Group
+1c67  PreSonus Audio Electronics Inc.
+1c69  Comtel Electronics GmbH
+1c71  Shimadzu Corporation
+1c72  ProDesign Electronic GmbH
+1c75  Bellwether Electronic Corp.
+1c7a  Other World Computing
+1c7e  TTTech Computertechnik AG
+1c7f  Elektrobit Austria GmbH
+1c85  ABLIC Inc.
+1c8c  Mobiveil, Inc.
+1c94  Aces Electronics Co., Ltd.
+1c96  Carina System Co., Ltd.
+1c9d  Illumina
+1ca9  Advanced-Connectek USA Inc.
+1cab  Lynx Software Technologies, Inc.
+1cad  EXTOLL GmbH
+1cb4  SerialTek
+1cb5  Focusrite Audio Engineering Ltd
+1cbd  Novachips Co., Ltd
+1cbf  Ross Video
+1cc1  ADATA Technology Co., Ltd.
+1cc2  Unigen Corp
+1cc3  Sanmina
+1cc4  Shenzhen Unionmemory Information System Limited
+1cce  Wilder Technologies
+1cd7  Nanjing Magewell Electronics Co., Ltd.
+1cdd  Secunet Security Networks AG
+1cdf  SmartDV North America, LLC
+1ceb  Taiwan Pulse Motion Co., Ltd.
+1cee  Chant Sincere Co., Ltd.
+1cf2  ZTE Corporation
+1cf6  Aetina Corporation
+1cf8  Fibocom Wireless Inc.
+1cfa  Corsair Memory, Inc
+1cfb  Innotech Corporation
+1d00  Pure Storage, Inc.
+1d05  AIstone Global Limited
+1d08  Shenzhen Deren Electronic Co.,Ltd.
+1d0f  Amazon
+1d12  JESS-LINK PRODUCTS CO., LTD.
+1d12  JPC connectivity Inc.
+1d13  Prodigy Technovations Private Limited
+1d14  Lintes Technology Co., Ltd.
+1d17  Shanghai Zhaoxin Semiconductor Co., Ltd.
+1d18  RME GmbH
+1d19  VAIO Corporation
+1d26  KALRAY
+1d27  M31 Technology Corporation
+1d28  Aava Mobile Oy
+1d29  Hagiwara Solutions Co., Ltd.
+1d2d  Good Way Technology Co., Ltd.
+1d32  Genesis Co.,Ltd
+1d38  Colorado Engineering Inc.
+1d39  Baikal Electronics, JSC (*Suspended)
+1d45  Top Victory Investments Limited
+1d47  Ciena Corporation
+1d4c  Diamanti, Inc.
+1d4d  Integrated Design Tools, Inc.
+1d50  Aurotek Corporation
+1d61  Technobox, Inc.
+1d67  Alltop Technology Co., Ltd
+1d71  Ezurio, LLC
+1d72  Xiaomi Communications Co., Ltd.
+1d78  Dera co., Ltd.
+1d79  Transcend
+1d7c  Aerotech Inc
+1d7d  VIAVI Solutions
+1d7f  Plugable
+1d82  NETINT Technologies Inc.
+1d84  b-plus technologies GmbH
+1d85  Neosem Holdings Inc
+1d86  Evertz Microsystems Ltd.
+1d87  Rockchip Electronics Co., Ltd.
+1d88  Telechips Inc.
+1d89  YEESTOR Microelectronics Co., Ltd
+1d8c  Fastwel Electronics India Private Limited
+1d8e  MACOM Inc.
+1d8f  EXEGY
+1d92  Abaco Systems Inc.
+1d93  YADRO
+1d94  Chengdu Higon Integrated Circuit Design Co., Ltd.
+1d95  Graphcore Ltd
+1d97  Shenzhen Longsys Electronics Co., Ltd.
+1d9b  Facebook
+1da0  3M Company
+1da1  JMA Servizi e Industria S.r.l. a socio unico
+1da2  Sapphire Technology Limited
+1da4  Orient Semiconductor Electronics, Ltd.
+1da8  Corigine Inc.
+1dac  SparkLAN Communications, Inc.
+1dae  Vectology,Inc.
+1daf  MIT Lincoln Laboratory
+1db2  ATP Electronics, Inc.
+1db3  Unisoc (Shanghai) Technologies Co., Ltd.
+1db4  Arteris Inc.
+1dbd  Logic Fruit Technologies Pvt Ltd
+1dbe  Innogrit Corporation
+1dc5  FADU Inc.
+1dc9  UniTest
+1dca  Marvell Semiconductor, Inc.
+1dcd  Liqid Inc
+1dcf  Zhuhai Sinead Technology Co., Ltd.
+1dd0  McDowell Signal Processing, LLC
+1dd1  Truechip Solutions Pvt. Ltd.
+1dd2  GE-Creative co., Ltd.  ( I-Cube Technology Division )
+1dd4  Swissbit AG
+1dd5  Manli Technology Group Limited
+1dd6  ECRIN SYSTEMS
+1dd7  AVAL DATA Corporation
+1de0  Groq, Inc.
+1de2  Action Star Technology Co., Ltd.
+1de4  Raspberry Pi (Trading) Limited
+1de5  Eidetic Communications Inc
+1de6  Communication Automation Corporation
+1de8  Acqiris SA
+1ded  Alibaba (China) Co., Ltd.
+1dee  Biwin Storage Technology Co., Ltd.
+1def  Ampere Computing, LLC
+1df5  ShenZhen KIMTIGO Semiconductor Co., Ltd.
+1df8  V&G Information System Co.,Ltd
+1df9  Simula Technology Inc.
+1dfa  Astera Labs, Inc.
+1dfb  Huizhou Gaoshengda Technology Co.,LTD
+1dfd  CDSG
+1e01  Synaptics, Inc.
+1e03  OnLogic, Inc.
+1e05  Exicon Co., Ltd.
+1e09  Novatek Microelectronics Corporation
+1e0b  Shenzhen Decenta Technology Co.,LTD
+1e0c  Axiomtek Co., Ltd.
+1e0f  Kioxia Corporation
+1e12  Introspect Technology
+1e14  Silicon Creations, LLC
+1e15  Wieson Technologies Co., LTD.
+1e17  Arnold & Richter Cine Technik GmbH & Co. Betriebs KG
+1e1a  DataDirect Networks, Inc.
+1e1b  Firm INFORMTEST Ltd.(*Suspended)
+1e21  ZF Friedrichshafen AG
+1e23  Credo Semiconductor, Inc.
+1e27  Suzhou Denglin Technologies Co., Ltd
+1e29  LIBERTRON Co., Ltd.
+1e2e  Mercedes-Benz R&D North America, Inc.
+1e31  SORD Corporation
+1e32  Tuxera Inc.
+1e33  Delkin Devices
+1e34  Qrypt, Inc.
+1e36  Shanghai Enflame Technology Co. Ltd
+1e38  Blaize
+1e39  MEDION AG
+1e3a  Cactus Technologies, Limited
+1e3b  DapuStor Corporation
+1e3e  Shanghai Iluvatar CoreX Semiconductor Co., Ltd.
+1e3f  Linaro Limited
+1e43  MaxLinear Inc
+1e44  Valve Software
+1e45  ESSENCORE Limited
+1e46  Varjo Technologies Oy
+1e49  Yangtze Memory Technologies Co.,Ltd
+1e4b  Maxio Technology(Hangzhou)Co.,Ltd.
+1e4c  GSI Technology
+1e52  Tenstorrent Inc
+1e53  Mythic Inc.
+1e55  Electronic Theatre Controls, Inc.
+1e58  Kinara Inc.
+1e59  Oxford Nanopore Technologies plc
+1e5c  Alphawave IP
+1e5d  ASR Microelectronics Co., Ltd.
+1e5e  Emergent Vision Technologies Inc
+1e60  HAILO Technologies LTD.
+1e65  Magic Leap, Inc
+1e67  Untether AI Corporation
+1e68  Chengdu Xinsheng Integrated Circuit Co., Ltd
+1e6a  IRISO Electronics Co., Ltd
+1e6b  Axiado Corporation
+1e6c  Xsight Labs Ltd
+1e6f  Kandou Bus S.A.
+1e72  Zoox Inc
+1e73  NeuroBlade
+1e75  Wind River Systems, Inc.
+1e76  Zhejiang Zhaolong Interconnect Technology Co., Ltd
+1e7c  Brainchip, Inc.
+1e7d  Daichu Technologies Co.,Ltd.
+1e7e  PLIOPS LTD.
+1e81  Ramaxel Technology (Shenzhen) Limited
+1e82  Dongguan Yizhao Electronic Co.,Ltd.
+1e83  Huaqin Technology Co.Ltd
+1e85  Heitec AG
+1e86  Wintec Industries, Inc.
+1e87  Shenzhen Shinning Electronic Co.,Ltd.
+1e8a  Cornami, Inc.
+1e92  Raymax Technology Ltd.
+1e93  Douyin Vision Co., Ltd.
+1e97  Caswell Inc.
+1e99  INTEGRATED SERVICE TECHNOLOGY Inc.
+1e9a  Neoconix
+1e9b  CoMira Solutions Inc
+1e9d  VersaLogic Corporation
+1e9f  Lynxi Technologies Ltd., Co.
+1ea0  Tencent Technology (Shenzhen) Company Limited
+1ea1  Sichuan Huafeng Technology Co., Ltd.
+1ea4  Newtech Co., Ltd.
+1ea5  Chief Land Electronic Co., Ltd.
+1ea8  Winintec
+1eac  Quectel Wireless Solutions Co., Ltd.
+1eae  XFX Limited
+1eb1  VeriSilicon Inc.
+1eb3  Shenzhen Goodtimes Technology Co.,Ltd
+1eb6  Wuxi Stars Microsystem Technology Co., Ltd
+1eb9  Senscomm Semiconductor Co., Ltd.
+1ebb  nCipher Security Ltd
+1ebc  Nexark, Inc DBA Sabrent
+1ebc  Sabrent
+1ebf  Volex Interconnect Systems (Suzhou) Co., Ltd.
+1ec1  Wiwynn Corporation
+1ec2  eTopus Technology Inc.
+1ec4  RANsemi Limited
+1ec6  Vastai Technologies (Shanghai) Inc
+1ec8  Beijing Fantasy Technology Co., Ltd
+1eca  Lightmatter
+1ed0  Hosin Global Electronics Co., LTD.
+1ed2  FuriosaAI, Inc.
+1ed4  Shandong Exponent Semiconductor Co.,Ltd
+1ed5  Moore Threads Technology Co.,Ltd
+1eda  infodas GmbH
+1edb  SHANGHAI ANLOGIC INFOTECH CO., LTD.
+1ede  DreamBig Semiconductor Inc
+1ee4  PetaIO Inc.
+1ee6  Clientron Corp.
+1ee7  Honor Device Co., Ltd.
+1eee  Tracewell Systems, Inc.
+1ef0  Ayar Labs
+1ef1  Black Sesame Technologies Co., Ltd.
+1ef7  Shenzhen Gunnir Technology Development Co., Ltd
+1ef8  APTIV
+1efb  Flexxon Pte Ltd
+1efd  Rivos Inc
+1efe  Peng Yu Trigold Limited
+1eff  Rebellions Inc.
+1f03  Shenzhen Shichuangyi Electronics Co., Ltd
+1f04  iPasslabs Technology Co. Ltd.
+1f05  WLCO(ShenZhen) Co.,Ltd.
+1f06  SiMa.ai
+1f08  Akrostar Technology Co., Ltd.
+1f0a  Motorcomm Electronic Technology Co.,Ltd
+1f0b  Nubis Communications, Inc.
+1f0d  DeGirum Corporation
+1f15  Wolley Inc.
+1f16  Xconn Technologies Holdings, Inc.
+1f17  Zettastone Technology (wuhan) Co.,Ltd
+1f18  c-payne GmbH
+1f19  Wuxi High Information Security Technology Co. ,Ltd.
+1f1c  SOPHGO Technologies Ltd.
+1f1d  Initio (HK) Corporation Limited
+1f1e  CARIAD SE
+1f20  Channel Well Technology Co., Ltd.
+1f22  M SQUARE Ltd. Shanghai
+1f24  xFusion Digital Technologies Co., Limited
+1f26  SEMIFIVE, INC.
+1f2e  AzurEngine Technologies
+1f31  Nextorage Corporation
+1f32  Wuhan YuXin Semiconductor Co., Ltd.
+1f33  Purplelec Inc.Co.,Ltd
+1f35  Amlogic (CA) Co., Inc.
+1f38  Wisewave Technology Co., Ltd
+1f39  Silicon Innovation Technologies Co., Ltd.
+1f3c  Avant Technology
+1f40  Netac Technology Co.,Ltd
+1f41  AIO Core Co., Ltd.
+1f42  EGK ELECTRONICS TECHNOLOGY LIMITED
+1f43  Ethernovia Inc.
+1f47  YUSUR Technology Co., Ltd.
+1f48  WNC Corporation
+1f49  NeuReality LTD
+1f4a  Shenzhen Corerain Technologies. Co. Ltd.
+1f50  LeRain Technology Co., Ltd
+1f51  CloudNine Information Technologies Co. Ltd
+1f52  MangoBoost Inc.
+1f53  Shenzhen Jaguar Microsystems Co.,Ltd.
+1f55  MADIGI electronic technology Co.,LTD.
+1f55  Shenzhen MADIGI Electronic Technology Co.,Ltd
+1f5b  Roscoe Software LLC
+1f5d  Shanghai UniVista Industrial Software Group Co., Ltd.
+1f60  ACCELECOM LTD.
+1f62  Rosenberger Hochfrequenztechnik GmbH & Co.KG
+1f66  Shenzhen Huahong Intelligence Co,.Ltd.
+1f67  Shanghai Yunsilicon Technology Co,. Ltd.
+1f6a  Ford Motor Company
+1f6b  Beijing Houmo Technology Co., Ltd.
+1f6c  CIX Technology (Shanghai) Co., Ltd
+1f6c  CIX Technology Group Co., Ltd
+1f70  Qualitas Semiconductor Co., Ltd.
+1f72  Jane Street Group, LLC
+1f73  Shenzhen Quanxing Tech Co., Ltd
+1f74  Leica Camera AG
+1f79  Fraunhofer Institute for Industrial Mathematics (ITWM)
+1f7a  Efinix, Inc.
+1f7b  CELESTIAL AI INC
+1f80  Shenzhen Tong Tai Yi information Technology Co.,Ltd
+1f81  CONNPRO ind.
+1f82  d-Matrix Corporation
+1f83  Clounix (Shanghai) Technology Limited
+1f84  45Drives Ltd.
+1f86  NEXTY Electronics Corporation
+1f88  GL Communications Inc.
+1f8a  J-Squared Technologies Inc.
+1f8c  Exascend, Inc.
+1f8f  Signature Ip Corporation
+1f90  QUSIDE TECHNOLOGIES S.L.
+1f98  Akeana, Inc.
+1f99  Shenzhen Techwinsemi Technology Company Limited
+1f9d  Axelera AI B.V.
+1f9f  Virtium
+1fa1  Neubla Korea
+1fa4  Shandong SinoChip Semiconductors Co., Ltd.
+1fa7  Arcanum Advanced Inc.
+1fa9  Knowledge Development for Rugged Optical Communications (KDROC)
+1fab  UniFabriX Ltd.
+1fad  Tongxin Microelectronics Co., Ltd.
+1fb0  Shenzhen ICube Corporation Limited
+1fb1  Semight Instrument Co.,Ltd.
+1fb5  Shenzhen Huahao Electromechanical Co.,Ltd
+1fb7  Critical Frequency Design, LLC
+1fb8  GE HealthCare Technologies Inc
+1fba  Shenglan Technology Co., Ltd.
+1fbb  Meritech Co., Ltd.
+1fbc  ICR, Inc.
+1fbd  Enrigin Technology (Xiamen) Co., Ltd.
+1fbe  ScioTeq bv
+1fcb  Varex Imaging Deutschland AG
+1fcd  Hitachi High-Tech Corporation
+1fd4  Sunix Co., Ltd.
+1fd9  Neuchips Inc.
+1fdc  EdgeCortix Corporation
+1fde  Kratos Defense & Security Solutions, Inc.
+1fe1  BEIJING ESWIN COMPUTING TECHNOLOGY CO., LTD.
+1fe2  Wuxi Silicon Field Microelectronics Co.,Ltd.
+1fe4  Shenzhen HippStor Technology Co., Ltd
+1fe5  Colossus Computing
+1fe8  SINGATRON TECHNOLOGY (HONG KONG) CO., LTD
+1fe9  MemryX Corp
+1fea  Openedges technology, Inc.
+1fec  Clourney Semiconductor
+1fed  Analog Inference
+1ff0  Toradex AG
+1ff2  LinkData Technology (Tianjin) Co., LTD
+1ff3  ForwardEdge ASIC, LLC.
+1ff4  DEEPX Co., Ltd.
+1ff6  Chunghwa Precision Test Tech. Co., Ltd.
+1ff9  Inagile  Electronic Technology Co., LTD
+1ffa  SHINKO ELECTRIC INDUSTRIES CO., LTD.
+1ffc  Fabric of Truth, Inc
+1fff  DENSO Corporation
+2007  United Micro Technology (Shenzhen) Co. Ltd.
+2008  GoPro
+200b  Cyan Semiconductor Co.Ltd.
+200c  Beijing Tsing Micro Intelligent Technology Co., Ltd
+200d  K-tronics(Suzhou) Technology Co., LTD
+200e  HYVE Solutions
+2011  SHENZHENBMORN TECHNOLOGY CO.,LTD
+2012  EverPro Technology Company Limited
+2017  Mujin, Inc.
+2018  Zebra Technologies Corporation
+201b  Zhuhai LINKE Technology Co., Ltd.
+201e  E-Semi Electronics CO., LTD.
+2020  KEYSTONE MICROTECH CORPORATION
+2021  Intelligent Memory Limited
+2022  Monster Computer Technology Inc.
+2023  Tsavorite Scalable Intelligence, Inc
+2024  SkyeChip
+2026  BlueRock Security, Inc.
+2027  EnCharge AI, Inc.
+2028  VA Linux Systems Japan K.K.
+2029  Innolight Technology USA Inc.
+2029  TERAHOP PTE. LTD.
+2030  Inspur Academy of Science and Technology
+2031  Lauterbach GmbH
+2032  Inova Semiconductors GmbH
+2032  lnova Semiconductors GmbH
+2033  FLC Technology Group Inc.
+2033  Hosiden Corporation
+2035  InfoKey Vault Technology Co., Ltd.
+2036  Shenzhen Netforward Microelectronics Co., Ltd
+2038  Jiangsu FuHao Electronic Science and technology CO.,LTD.
+203a  MPI CORPORATION
+203b  XTX Markets Technologies Limited
+203f  Henan KunLun Technologies Co., Ltd.
+2040  LINX Corporation
+2041  Dexerials Corporation
+2042  Xi'an UniIC Semiconductors Co.,Ltd.
+2044  Shenzhen Jiahua Zhongli Technology Co., LTD
+204a  TeraSignal
+204b  Alignment Engine Inc.
+204f  Taalas Inc
+2051  TARNG YU ENTERPRISE CO., LTD
+2052  Frontgrade Gaisler AB
+2054  Eoptolink Technology Inc.Ltd.
+2056  Prodapt ASIC Services
+2058  Lime Microsystems Ltd
+2059  Simtek Technology Co., Ltd.
+205d  Shanghai Zijing Xinjie Intelligent Technology Co., Ltd.
+205e  Beijing Sudo Information Technology Co., Ltd
+205f  SIPEARL
+2060  MEMKOR Inc
+2062  Avaneidi SpA
+2063  Hubei Yangtze Mason Semiconductor Technology Co., Ltd.
+2064  Suzhou Centec Communications
+2067  Hitachi-LG Data Storage, Inc.
+2068  EmBestor Technology Inc.
+206b  Jingdong Technology Information Technology Co., Ltd.
+206c  OPTALYSYS LIMITED
+206d  GigaIO Networks, Inc.
+2071  EXPERT INTERNATIONAL MERCANTILE CORPORATION
+2072  Grandtrans Communication (Zhejiang) Co., Ltd.
+2073  Jacobs Special Products Division
+2074  Leidos Inc.
+2075  Semidynamics Technology Services, S.L.
+2076  EA Semi (Shanghai) Tech Limited
+2077  OpenAI OpCo LLC
+2078  Zhejiang Speed Memory Co., Ltd.
+2079  Elka International Ltd.
+207b  Cheng Uei Precision Industry Co., Ltd
+207c  Korea Electric Terminal Co., Ltd.
+207d  Chengdu Hurray Data Technology Co., Ltd.
+207e  ONIX TECHNOLOGY PTE. LTD
+207f  Lontium Semiconductor Corporation
+2080  Chongqing Shuang Yi Precision Electronic Co., Ltd
+2081  Holoplot GmbH
+2082  P-TWO INDUSTRIES INC.
+2083  Holt Integrated Circuits, Inc.
+2084  ARTEC EUROPE Sarl
+2085  MatX
+2086  EVAS Intelligence Co., Ltd.
+2087  X2E GmbH
+2088  UJU ELECTRONICS
+2089  CTC Trading Group, LLC
+208a  MICIUS Laboratory
+208b  Element Labs Ltd
+208c  Win Win Precision Industrial Co., Ltd.
+208d  Suzhou Semi-mile T&C Co., Ltd.
+208e  Cascade X, Ltd.
+208f  Nebius
+2090  Rivian Automotive, LLC
+2091  LightSpeed Photonics Pte Ltd
+2092  Guizhou Huaxin Information Technology Co., Ltd
+2093  Zentest Co., Ltd.
+2094  Shenzhen Wodposit Electronics Co.,Ltd.
+2095  H3 Platform Inc.
+2096  Kaitian Information Technology Co., Ltd
+2097  Astemo, Ltd.
+2098  NanJing AxisChip Technology Co., Ltd
+2099  Rolling Wireless S.a r.l.
+209a  JCL Microwave Corporation
+209b  Beijing Bitintelligence Information Technology Co.Ltd.
+209c  GuangDong MingJi Hi-Tech Electronics Co.,Ltd
+209d  Thotech Limited
+209e  Linkwing(Dongguan) Intelligent Electronics Co., Ltd
+209f  MOBILINT, INC.
+20a0  CNH
+20a1  ETCHED.AI, INC.
+20a2  Genetron Corp
+20a3  Mars Semiconductor Corp.
+20a4  Nexthop Systems Inc.
+20a5  Honda Motor Co., Ltd.
+20a6  XCENA
+20a7  EEVengers Inc.
+20a8  Rayson HI-TECH(SZ) Co., Ltd.
+20a9  LDA Technologies Ltd.
+20aa  Bolt Graphics Inc.
+20ab  Primemas Inc.
+20ac  Shure Incorporated
+20ad  Ramschip, Inc.
+20af  ACCELINK
+20b0  TIER IV, Inc.
+20b1  Jemar Industries, LLC
+20b2  Deico
+20b6  Suzhou Yizhu Intelligent Technology Co., Ltd
+20b7  Western Digital Technologies, Inc.
+20b8  Panasonic Automotive Systems Co., Ltd.
+20b9  York Space Systems
+20ba  Hangzhou Hikstorage Technology Co., Ltd.
+20bb  Quantum Technologies LLC
+20bc  Xinsheng Technology Co., Ltd.
+20bd  Starcloud
+20be  Serial Cables
+20bf  Arm Technology (China) Co., Ltd
+20c1  Suzhou Yige Technology Co., Ltd.
+20c2  Whalechip Co., Ltd.
+20c3  Hefei Yunlan Electronics Technology Co.,Ltd.
+20c6  Sichuan Huakun Zhenyu Intelligent Technology Co., Ltd.
+20c7  CIG Photonics Japan, Ltd.
+20c8  Technology Innovation Institute - Sole Proprietorship L.L.C.
+20c9  Anhui Sensenext Electronic Technology Co., Ltd.
+20ca  Hangzhou Hualan Microelectronique Co., Ltd.
+20cb  LX Semicon Co, Ltd
+20cc  Parpro System Corporation
+20cd  Shenzhen Ruiyuanchuangxin Technology Co., Ltd.
+20cf  Modern Server Solutions LLP
+20d0  Telin Semiconductor (Wuhan) Co., Ltd.
+20d1  Kiwimoore (Shanghai) Semiconductor Co.,Ltd
+20d2  Awide Labs LTD.
+20d3  Suzhou Podar Electronics Technology Co., Ltd.
+20d5  Fuji Soft Incorporated
+20d6  IntervalZero
+20d7  Chengdu QLING Technology Co., Ltd.
+20d8  EHTech (Beijing) Co. Ltd.
+20d9  Wavematrix Pte. Limited
+20da  Xi'an Aijie Zhixin Technology Co., Ltd.
+22a2  RIGOL TECHNOLOGIES CO., LTD.
+22c2  Gowin Semiconductor Corporation
+22db  Missing Link Electronics, Inc.
+2337  Macronix International Co., Ltd.
+2646  Kingston Technology Company
+270f  CHAINTECH Technology Corp.
+27d1  Angelbird Technologies GmbH
+301f  WOLF Advanced Technology
+3100  Dynabook Inc.
+3442  Bihl + Wiedemann GmbH
+3475  Arista Networks, Inc.
+4144  Alpha Data Parallel Systems Ltd.
+4149  AIMOTIVE Kft.
+4153  Active Silicon, Ltd.
+434e  Cornelis Networks, Inc.
+4453  dSPACE GmbH
+4556  Evident Corporation
+4c4d  Liquid-Markets GmbH
+4c54  Lisuan Technology Co., Ltd.
+4d54  Microtechnica Co., Ltd.
+4d56  Balluff MV GmbH
+4e58  Nutanix, Inc.
+50c1  Socionext Inc.
+5353  iodyne
+5554  Applied Research Laboratories, The University of Texas at Austin
+5845  Extreme Engineering Solutions
+5853  Cloud Software Group
+5ab7  IXI Technology
+6688  GUANGZHOU MAXSUN INFORMATION TECHNOLOGY CO., LTD.
+6766  Glenfly Tech Co., Ltd.
+6899  ZT Systems
+6d5e  Guntermann & Drunck GmbH
+7053  Synology Inc.
+7248  BizLink Technology, Inc.
+7377  Shenzhen Colorful Yugong Technology and Development Co., Ltd.
+78c0  Herrick Technology Laboratories (HTL), Inc.
+8009  Shengli Technologies Co., Ltd
+8024  Audient Limited
+8086  Intel Corporation
+8088  Beijing Wangxun Technology Co., Ltd.
+8189  Telecommunications Technology Association
+8510  Sietium Semiconductor Technology (Shandong) Co., Ltd
+8686  SAP SE
+8848  Wuxi Micro Innovation Integrated Circuit Design Co.,Ltd
+9000  C-Core Technology Co., Ltd.
+9753  PEZY Computing K.K.
+9999  MetaX Integrated Circuits (Shanghai) Co., Ltd.
+9d32  Beijing Starblaze Technology Co., LTD
+9d68  Brite Semiconductor (Shanghai) Corporation, Ltd.
+abcd  Vadatech Inc.
+ad00  Alta Data Technologies
+ad10  New Wave Design and Verification, LLC
+ad5a  Adtran Networks SE
+bdbd  Blackmagic Design Pty Ltd
+c5ec  Citadel Securities LLC
+cabc  Cambricon Technologies Corporation Limited
+cc53  ScaleFlux Inc.
+ccde  Code Construct Pty Ltd
+ccec  Curtiss-Wright Defense Solutions
+cdfa  NextSilicon Ltd
+ceba  KEBA Industrial Automation GmbH
+d405  LeapIO Tech Inc.
+da7a  Speedata Inc.
+dc76  Dream Chip Technologies GmbH
+deda  XIMEA
+e4bf  EKF Elektronik GmbH
+ea50  Emerson Automation Solutions
+eace  Endace Technology Ltd.
+ecab  GM Cruise LLC
+efab  Enfabrica Corporation
+f111  Framework Computer Inc.
+f117  Cerio
+f15e  SiFive, Inc.
+f1d0  AJA Video
+f5f5  F5 Networks, Inc.
+fe19  TenaFe Inc.
