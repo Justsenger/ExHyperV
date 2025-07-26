@@ -6,6 +6,7 @@ using System.Windows;
 using System.Windows.Media;
 using System.Windows.Shapes;
 using ExHyperV;
+using ExHyperV.Tools;
 using Wpf.Ui.Controls;
 
 

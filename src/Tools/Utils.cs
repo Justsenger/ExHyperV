@@ -10,13 +10,11 @@ using Wpf.Ui.Controls;
 using Image = Wpf.Ui.Controls.Image;
 using TextBlock = Wpf.Ui.Controls.TextBlock;
 
-namespace ExHyperV;
+namespace ExHyperV.Tools;
 
 
-public partial class Utils
+public class Utils
 {
-
-
     public static Collection<PSObject> Run(string script)
     {
         PowerShell ps = PowerShell.Create();
@@ -225,7 +223,7 @@ public partial class Utils
             imageName = "GPU.png";  // 其他情况
         }
 
-        return $"pack://application:,,,/Assets/Gpuicons/{imageName}";
+        return $"pack://application:,,,/Assets/{imageName}";
     }
     public static Image CreateGpuImage(string key, string name,int size)
     {

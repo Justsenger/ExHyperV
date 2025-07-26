@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 public class PciInfoProvider
 {
-    private const string DefaultPciFilePath = "pci.ids";
+    private const string DefaultPciFilePath = "Assets/pci.ids";
     private readonly string _pciFilePath;
     private class PciVendor
     {

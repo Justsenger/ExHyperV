@@ -1,0 +1,126 @@
+﻿<Page
+    x:Class="ExHyperV.Views.Pages.DDAPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    xmlns:vm="clr-namespace:ExHyperV.ViewModels"
+    xmlns:properties="clr-namespace:ExHyperV.Properties"
+    xmlns:converters="clr-namespace:ExHyperV.Converters"
+    Title="DDAPage"
+    d:DataContext="{d:DesignInstance vm:DDAPageViewModel, IsDesignTimeCreatable=True}"
+    mc:Ignorable="d">
+
+    <Page.DataContext>
+        <vm:DDAPageViewModel/>
+    </Page.DataContext>
+
+    <Page.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+        <converters:CommandParameterConverter x:Key="CommandParameterConverter"/>
+    </Page.Resources>
+
+    <Grid Margin="10,0,10,10">
+        <StackPanel>
+            <ui:InfoBar Margin="0,5,0,0"
+                Title="{x:Static properties:Resources.attention}"
+                Message="{x:Static properties:Resources.attentionwords}" 
+                IsOpen="True"
+                Severity="Warning"/>
+
+            <ui:InfoBar Margin="0,5,0,0"
+                Title="{x:Static properties:Resources.error}"
+                Message="{x:Static properties:Resources.servererror}" 
+                IsOpen="{Binding ShowServerError}"
+                IsClosable="False"
+                Severity="Error"/>
+
+            <Grid Margin="0,5,0,0">
+                <ui:Card BorderThickness="1" Padding="10">
+                    <Grid>
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <ui:FontIcon Glyph="" FontSize="24" FontFamily="{DynamicResource SegoeFluentIcons}"/>
+                            <TextBlock Text="{x:Static properties:Resources.Assignabledevices}" FontSize="16" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                        </StackPanel>
+                        <ui:Button HorizontalAlignment="Right"
+                                   Content="{x:Static properties:Resources.refresh}" 
+                                   Command="{Binding LoadDataCommand}"
+                                   Icon="{ui:SymbolIcon ArrowSync24}"
+                                   IsEnabled="{Binding IsUiEnabled}"/>
+                    </Grid>
+                </ui:Card>
+            </Grid>
+
+            <ItemsControl ItemsSource="{Binding Devices}" Margin="0,5,0,0">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <ui:CardExpander IsExpanded="False" Margin="20,5,0,0" ContentPadding="6">
+                            <ui:CardExpander.Icon>
+                                <ui:FontIcon Glyph="{Binding IconGlyph}" FontSize="24" FontFamily="{DynamicResource SegoeFluentIcons}"/>
+                            </ui:CardExpander.Icon>
+                            <ui:CardExpander.Header>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="{Binding FriendlyName}" FontSize="16" Margin="0,-2,0,0" VerticalAlignment="Center"/>
+                                    <ui:DropDownButton Grid.Column="1" 
+                                                       Content="{Binding Status}" 
+                                                       Margin="10,0,5,0"
+                                                       IsEnabled="{Binding DataContext.IsUiEnabled, RelativeSource={RelativeSource AncestorType=Page}}">
+                                        <ui:DropDownButton.Flyout>
+                                            <ContextMenu ItemsSource="{Binding AssignmentOptions}">
+                                                <ContextMenu.ItemContainerStyle>
+                                                    <Style TargetType="MenuItem">
+                                                        <Setter Property="Header" Value="{Binding}"/>
+                                                        <Setter Property="Command" Value="{Binding DataContext.ChangeAssignmentCommand, RelativeSource={RelativeSource AncestorType=Page}}"/>
+                                                        <Setter Property="CommandParameter">
+                                                            <Setter.Value>
+                                                                <MultiBinding Converter="{StaticResource CommandParameterConverter}">
+                                                                    <Binding Path="DataContext" RelativeSource="{RelativeSource AncestorType=ui:CardExpander}"/>
+                                                                    <Binding/>
+                                                                </MultiBinding>
+                                                            </Setter.Value>
+                                                        </Setter>
+                                                    </Style>
+                                                </ContextMenu.ItemContainerStyle>
+                                            </ContextMenu>
+                                        </ui:DropDownButton.Flyout>
+                                    </ui:DropDownButton>
+                                </Grid>
+                            </ui:CardExpander.Header>
+                            <StackPanel Margin="42, 10, 0, 0">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="125"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="32"/>
+                                        <RowDefinition Height="32"/>
+                                        <RowDefinition Height="32"/>
+                                        <RowDefinition Height="32"/>
+                                    </Grid.RowDefinitions>
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="{x:Static properties:Resources.kind}" FontSize="16" VerticalAlignment="Center" Margin="0,0,10,10"/>
+                                    <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding ClassType}" FontSize="16" VerticalAlignment="Center" Margin="0,0,10,10" TextWrapping="Wrap"/>
+                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="{x:Static properties:Resources.Instanceid}" FontSize="16" VerticalAlignment="Center" Margin="0,0,10,10"/>
+                                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding InstanceId}" FontSize="16" VerticalAlignment="Center" Margin="0,0,10,10" TextWrapping="Wrap"/>
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="{x:Static properties:Resources.path}" FontSize="16" VerticalAlignment="Center" Margin="0,0,10,10"/>
+                                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Path}" FontSize="16" VerticalAlignment="Center" Margin="0,0,10,10" TextWrapping="Wrap"/>
+                                    <TextBlock Grid.Row="3" Grid.Column="0" Text="{x:Static properties:Resources.manu}" FontSize="16" VerticalAlignment="Center" Margin="0,0,10,10"/>
+                                    <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding Vendor}" FontSize="16" VerticalAlignment="Center" Margin="0,0,10,10" TextWrapping="Wrap"/>
+                                </Grid>
+                            </StackPanel>
+                        </ui:CardExpander>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
+
+        <ProgressBar Panel.ZIndex="1" VerticalAlignment="Top" Height="4"
+                     IsIndeterminate="True"
+                     Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}"/>
+    </Grid>
+</Page>
