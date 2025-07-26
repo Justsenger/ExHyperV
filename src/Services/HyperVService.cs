@@ -141,7 +141,9 @@ namespace ExHyperV.Services
                         foreach (var result in sortedResults)
                         {
                             var service = result.Members["Service"]?.Value?.ToString();
+                            var classType = result.Members["Class"]?.Value?.ToString();
                             if (service == "pci" || string.IsNullOrEmpty(service)) continue;
+                            if (classType == "System") continue;
 
                             var instanceId = result.Members["InstanceId"]?.Value?.ToString();
                             var status = result.Members["Status"]?.Value?.ToString();
@@ -157,7 +159,6 @@ namespace ExHyperV.Services
                             }
 
                             var friendlyName = result.Members["FriendlyName"]?.Value?.ToString();
-                            var classType = result.Members["Class"]?.Value?.ToString();
                             var path = result.Members["Path"]?.Value?.ToString();
                             string vendor = pciInfoProvider.GetVendorFromInstanceId(instanceId);
 
