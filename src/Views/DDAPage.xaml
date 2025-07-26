@@ -21,8 +21,8 @@
         <converters:CommandParameterConverter x:Key="CommandParameterConverter"/>
     </Page.Resources>
 
-    <Grid Margin="10,0,10,10">
-        <StackPanel>
+    <Grid>
+        <StackPanel Margin="10,0,10,10">
             <ui:InfoBar Margin="0,5,0,0"
                 Title="{x:Static properties:Resources.attention}"
                 Message="{x:Static properties:Resources.attentionwords}" 
@@ -46,7 +46,7 @@
                         <ui:Button HorizontalAlignment="Right"
                                    Content="{x:Static properties:Resources.refresh}" 
                                    Command="{Binding LoadDataCommand}"
-                                   Icon="{ui:SymbolIcon ArrowSync24}"
+                                   Icon="{ui:SymbolIcon ArrowRepeatAll16}"
                                    IsEnabled="{Binding IsUiEnabled}"/>
                     </Grid>
                 </ui:Card>
@@ -65,7 +65,13 @@
                                         <ColumnDefinition Width="*" />
                                         <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" Text="{Binding FriendlyName}" FontSize="16" Margin="0,-2,0,0" VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="0" 
+                                               Text="{Binding FriendlyName}" 
+                                               FontSize="16" 
+                                               Margin="0,-2,0,0" 
+                                               VerticalAlignment="Center"
+                                               TextWrapping="NoWrap"
+                                               TextTrimming="CharacterEllipsis"/>
                                     <ui:DropDownButton Grid.Column="1" 
                                                        Content="{Binding Status}" 
                                                        Margin="10,0,5,0"
@@ -104,13 +110,13 @@
                                         <RowDefinition Height="32"/>
                                     </Grid.RowDefinitions>
                                     <TextBlock Grid.Row="0" Grid.Column="0" Text="{x:Static properties:Resources.kind}" FontSize="16" VerticalAlignment="Center" Margin="0,0,10,10"/>
-                                    <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding ClassType}" FontSize="16" VerticalAlignment="Center" Margin="0,0,10,10" TextWrapping="Wrap"/>
+                                    <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding ClassType}" FontSize="16" VerticalAlignment="Center" Margin="0,0,10,10" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>
                                     <TextBlock Grid.Row="1" Grid.Column="0" Text="{x:Static properties:Resources.Instanceid}" FontSize="16" VerticalAlignment="Center" Margin="0,0,10,10"/>
-                                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding InstanceId}" FontSize="16" VerticalAlignment="Center" Margin="0,0,10,10" TextWrapping="Wrap"/>
+                                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding InstanceId}" FontSize="16" VerticalAlignment="Center" Margin="0,0,10,10" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>
                                     <TextBlock Grid.Row="2" Grid.Column="0" Text="{x:Static properties:Resources.path}" FontSize="16" VerticalAlignment="Center" Margin="0,0,10,10"/>
-                                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Path}" FontSize="16" VerticalAlignment="Center" Margin="0,0,10,10" TextWrapping="Wrap"/>
+                                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Path}" FontSize="16" VerticalAlignment="Center" Margin="0,0,10,10" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>
                                     <TextBlock Grid.Row="3" Grid.Column="0" Text="{x:Static properties:Resources.manu}" FontSize="16" VerticalAlignment="Center" Margin="0,0,10,10"/>
-                                    <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding Vendor}" FontSize="16" VerticalAlignment="Center" Margin="0,0,10,10" TextWrapping="Wrap"/>
+                                    <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding Vendor}" FontSize="16" VerticalAlignment="Center" Margin="0,0,10,10" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>
                                 </Grid>
                             </StackPanel>
                         </ui:CardExpander>
