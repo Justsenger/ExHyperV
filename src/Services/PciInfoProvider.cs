@@ -90,7 +90,7 @@ public class PciInfoProvider
             {
                 return vendor.Name;
             }
-            return $"Unknown (SVID: {svid.ToUpper()})";
+            return $"Unknown";
         }
 
         return "Unknown";
