@@ -130,6 +130,7 @@ DDA全称Discrete Device Assignment，即离散设备分配，可以将独立的
 | 品牌 | 型号 | 架构 | DirectX 12 | OpenGL | Vulkan | Codec | CUDA | OpenCL | 备注 |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | **Nvidia** | GT 1050 | Pascal | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ |  |
+| **AMD** | Radeon 890M | RDNA 3.5 | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | 无法启动，会导致宿主崩溃 |
 
 ### 虚拟机Windows版本
 
