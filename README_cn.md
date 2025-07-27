@@ -1,6 +1,7 @@
 # 讨论群
 [Telegram](https://t.me/ExHyperV)
 
+
 # 文档/Document
 
 [中文](https://github.com/Justsenger/ExHyperV/blob/main/README_cn.md) | [English](https://github.com/Justsenger/ExHyperV)
@@ -77,14 +78,17 @@ DDA全称Discrete Device Assignment，即离散设备分配，可以将独立的
 ### DDA显卡兼容性（需要更多反馈）
 > 以下各项兼容性需要实际安装到虚拟机才能发现。如果您有更多的测试结果，请在问题中告诉我！完善此表可为选择显卡提供更好的指导。通常，同架构的显卡表现类似。
 
-| 品牌 | 型号 | 启动 | 功能层复位| 物理显示输出 |
-| -------- | -------- | -------- | -------- | -------- |
-| Nvidia   | RTX 4070 |✔️ |✔️ | ✔️|
-| Nvidia   | GT 1050 |✔️ |✔️ | ✔️|
-| Nvidia   | GT 1030 |✔️ |✔️ | ✔️|
-| Nvidia   | GT 210 |✔️ | ✔️ | ✖️|
-| Intel   |  Intel DG1 |✔️ | ✖️ | 特定驱动✔️|
-| Intel   | A380 |Code 43✖️ | ✖️ |✖️ |
+| 品牌 | 型号 | 架构 | 启动 | 功能层复位 | 物理显示输出 |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Nvidia** | RTX 5090 | Blackwell 2.0 | ✅ | ✅ | ✅ |
+| **Nvidia** | RTX 4090 | Ada Lovelace | ✅ | ✅ | ✅ |
+| **Nvidia** | RTX 4080 Super | Ada Lovelace | ✅ | ✅ | ✅ |
+| **Nvidia** | RTX 4070 | Ada Lovelace | ✅ | ✅ | ✅ |
+| **Nvidia** | GT 1050 | Pascal | ✅ | ✅ | ✅ |
+| **Nvidia** | GT 1030 | Pascal | ✅ | ✅ | ✅ |
+| **Nvidia** | GT 210 | Tesla | ✅ | ✅ | ❌ |
+| **Intel** | DG1 | Xe-LP | ✅ | ❌ | 特定驱动✅ |
+| **Intel** | A380 | Xe-HPG | Code 43❌ | ❌ | ❌ |
 
 1.启动：显卡分配到虚拟机后可能无法正常安装驱动。部分笔记本魔改卡、矿卡或者AMD/Intel显卡可能存在问题。
 
