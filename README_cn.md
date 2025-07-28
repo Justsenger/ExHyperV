@@ -9,7 +9,7 @@
 <p align="center">
   <a href="https://github.com/Justsenger/ExHyperV/releases/latest"><img src="https://img.shields.io/github/v/release/Justsenger/ExHyperV.svg?style=flat-square" alt="最新版本"></a>
   <a href="https://github.com/Justsenger/ExHyperV/releases"><img src="https://img.shields.io/github/downloads/Justsenger/ExHyperV/total.svg?style=flat-square" alt="下载量"></a>
-  <a href="https://t.me/ExHyperV"><img src="https://img.shields.io/badge/讨论群-Telegram-blue.svg?style=flat-square" alt="Telegram"></a>
+  <a href="https://t.me/ExHyperV"><img src="https://img.shields.io/badge/discussion-Telegram-blue.svg?style=flat-square" alt="Telegram"></a>
   <a href="https://github.com/Justsenger/ExHyperV/blob/main/LICENSE"><img src="https://img.shields.io/github/license/Justsenger/ExHyperV.svg?style=flat-square" alt="许可证"></a>
 </p>
 
