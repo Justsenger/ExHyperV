@@ -103,7 +103,8 @@ DDA (Discrete Device Assignment) 允许你将一个完整的 PCIe 设备（如�
 | **Nvidia** | GT 1030 | Pascal | ✅ | ✅ | ✅ |
 | **Nvidia** | GT 210 | Tesla | ✅ | ✅ | ❌ |
 | **Intel** | DG1 | Xe-LP | ✅ | ❌ | [特定驱动](https://www.shengqipc.cn/d21.html) ✅ |
-| **Intel** | A380 | Xe-HPG | Code 43 ❌ | ❌ | ❌ |
+| **Intel** | A380 | Xe-HPG | Code 43 ❌ | ✅ | ❌ |
+| **AMD** | Radeon Vega 3 | GCN 5.0 | ✅ | ❌ | ❌ |
 
 - **驱动正常**: 分配到虚拟机后能否成功安装驱动并被识别。
 - **功能层复位 (FLR)**: 若不支持，重启虚拟机会导致宿主机也重启。
