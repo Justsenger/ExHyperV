@@ -97,7 +97,7 @@ public partial class GPUPage
             //获取HyperV支持状态
             bool hyperv = Utils.Run("Get-Module -ListAvailable -Name Hyper-V").Count > 0;
 
-            //获取N卡和I卡显存
+            //获取N卡和A卡显存
 
             string script = $@"
 Get-ItemProperty -Path ""HKLM:\SYSTEM\ControlSet001\Control\Class\{{4d36e968-e325-11ce-bfc1-08002be10318}}\0*"" -ErrorAction SilentlyContinue |
@@ -124,7 +124,7 @@ Get-ItemProperty -Path ""HKLM:\SYSTEM\ControlSet001\Control\Class\{{4d36e968-e32
                     // 在显存信息中寻找匹配项
                     var matchedGpu = gpuram.FirstOrDefault(g =>
                     {
-                        string id = g.Members["MatchingDeviceId"]?.Value?.ToString().ToUpper();
+                        string id = g.Members["MatchingDeviceId"]?.Value?.ToString().ToUpper().Substring(0, 21);
                         return !string.IsNullOrEmpty(id) && existingGpu.InstanceId.Contains(id);
                     });
 

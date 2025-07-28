@@ -391,7 +391,7 @@ public class Utils
         System.Windows.MessageBox.Show(message);
     }
 
-    public static string Version => "V1.1.0-Beta";
+    public static string Version => "V2.0.1";
     public static string Author => "砂菱叶";
 
 }
