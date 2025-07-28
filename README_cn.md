@@ -137,12 +137,12 @@ GPU-P (或称 GPU-PV) 是一种半虚拟化技术，它允许多个虚拟机共�
 
 #### GPU-P 显卡兼容性列表 (持续更新中)
 
-| 品牌 | 型号 | 架构 | DirectX 12 | OpenGL | Vulkan | Codec | CUDA/OpenCL | 备注 |
+| 品牌 | 型号 | 架构 | 识别 | DirectX 12 | OpenGL | Vulkan | Codec | CUDA/OpenCL | 备注 |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Nvidia** | GT 1050 | Pascal | ✅ | ✅ | ✅ | ✅ | ✅ | |
-| **Intel**| Iris Xe Graphics| Xe-LP | ✅ | ✅ | ✅ | ✅ | ❌ | | 
-| **AMD** | Radeon Vega 3 | GCN 5.0 | ✅ | ✅ | ✅ | ✅ | ✅ | |
-| **AMD** | Radeon 890M | RDNA 3.5 | ❓ | ❓ | ❓ | ❓ | ❓ | 无法启动，会导致宿主崩溃 |
+| **Nvidia** | GT 1050 | Pascal | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | |
+| **Intel**| Iris Xe Graphics| Xe-LP | ⚠️ | ✅ | ✅ | ✅ | ✅ | ❌ | 可用，硬件识别不完整，无法使用通用计算| 
+| **AMD** | Radeon Vega 3 | GCN 5.0 | ⚠️ | ✅ | ✅ | ✅ | ✅ | ✅ | 可用，硬件识别不完整|
+| **AMD** | Radeon 890M | RDNA 3.5 | ❌ | ❓ | ❓ | ❓ | ❓ | ❓ | 无法启动，会导致宿主崩溃 |
 
 #### 如何从虚拟机输出画面？
 
