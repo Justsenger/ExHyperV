@@ -1,84 +1,99 @@
-# 讨论群
-[Telegram](https://t.me/ExHyperV)
-
-
-# 文档/Document
-
-[中文](https://github.com/Justsenger/ExHyperV/blob/main/README_cn.md) | [English](https://github.com/Justsenger/ExHyperV)
-
-
 # ExHyperV
-一款提供DDA和GPU半虚拟化（GPU分区）等功能的软件，让凡人也能轻松玩转Hyper-V高级功能。
 
-通过对微软Hyper-V文档有效解读，以及对James的Easy-GPU-PV项目深入研究，完善修复了很多问题。但由于时间和精力有限，还有更多的测试未进行，所以如果你遇到了任何软件/游戏无法使用，请提出问题！
+<div align="center">
 
+**一款能让凡人也能轻松玩转 Hyper-V 高级功能（包括 DDA、GPU-P）的辅助工具。**
 
-# 下载&构建
-* 下载：[最新版](https://github.com/Justsenger/ExHyperV/releases/latest)
+</div>
 
-* 构建：安装 Visual Studio 2022，添加C#和WPF，点击/src/ExHyperV.sln即可开始构建您的版本。
+<p align="center">
+  <a href="https://github.com/Justsenger/ExHyperV/releases/latest"><img src="https://img.shields.io/github/v/release/Justsenger/ExHyperV.svg?style=flat-square" alt="最新版本"></a>
+  <a href="https://github.com/Justsenger/ExHyperV/releases"><img src="https://img.shields.io/github/downloads/Justsenger/ExHyperV/total.svg?style=flat-square" alt="下载量"></a>
+  <a href="https://t.me/ExHyperV"><img src="https://img.shields.io/badge/讨论群-Telegram-blue.svg?style=flat-square" alt="Telegram"></a>
+  <a href="https://github.com/Justsenger/ExHyperV/blob/main/LICENSE"><img src="https://img.shields.io/github/license/Justsenger/ExHyperV.svg?style=flat-square" alt="许可证"></a>
+</p>
 
+[English](https://github.com/Justsenger/ExHyperV) | **中文**
 
-# 界面一览
+---
+
+ExHyperV 深入研究了微软官方文档和 [Easy-GPU-PV](https://github.com/jamesstringerparsec/Easy-GPU-PV) 项目，旨在修复和完善现有方案，为用户提供一个图形化的、易于使用的 Hyper-V 高级功能配置工具。
+
+由于个人时间和精力有限，项目可能存在未经测试的场景。如果您在使用中遇到任何软件/游戏兼容性问题，欢迎通过 [Issues](https://github.com/Justsenger/ExHyperV/issues) 提出！
+
+## ✨ 功能概览
 
 ![主界面](https://github.com/Justsenger/ExHyperV/blob/main/img/01.png)
+<details>
+<summary>点击查看更多界面截图</summary>
 
 ![功能](https://github.com/Justsenger/ExHyperV/blob/main/img/02.png)
-
 ![功能](https://github.com/Justsenger/ExHyperV/blob/main/img/03.png)
-
 ![功能](https://github.com/Justsenger/ExHyperV/blob/main/img/04.png)
-
 ![功能](https://github.com/Justsenger/ExHyperV/blob/main/img/05.png)
-
-是的，甚至支持高达8种类别的显卡识别！但是不一定可以激活功能...
-
 ![功能](https://github.com/Justsenger/ExHyperV/blob/main/img/various.png)
+*<p align="center">工具扩展了显卡识别能力，但具体功能启用情况取决于硬件本身。</p>*
 
-# 可用的Windows版本
+</details>
 
-### DDA
+## 🚀 快速开始
 
-* Windows Server 2019
+### 1. 系统要求
 
-* Windows Server 2022
+#### DDA (离散设备分配)
+- Windows Server 2019 / 2022 / 2025
 
-* Windows Server 2025
+#### GPU-P (GPU 分区/半虚拟化)
+- Windows 11
+- Windows Server 2022
+- Windows Server 2025
 
-### GPU-PV
+> **注意**: 本工具要求宿主机系统版本不低于 **Build 22000**。因为旧版系统中的 `Add-VMGpuPartitionAdapter` 命令缺少 `InstancePath` 参数，无法精确指定显卡，可能导致混乱。为了简化操作，请确保您的宿主系统已更新。
 
-* Windows 11
+### 2. 下载与运行
+- **下载**: 前往 [Releases 页面](https://github.com/Justsenger/ExHyperV/releases/latest)下载最新版本。
+- **运行**: 解压后直接运行 `ExHyperV.exe` 即可。
 
-* Windows Server 2022
+### 3. 构建 (可选)
+1. 安装 [Visual Studio 2022](https://visualstudio.microsoft.com/vs/)，并确保已安装 .NET桌面开发（C# 和 WPF）工作负载。
+2. 克隆本仓库。
+3. 使用 Visual Studio 打开 `/src/ExHyperV.sln` 文件，即可编译。
 
-* Windows Server 2025
+## 📌 重要提示与限制
 
-对于GPU-PV，本工具要求宿主机系统版本不得低于22000，这是因为低于22000版本的Hyper-V组件中，Add-VMGpuPartitionAdapter缺少参数InstancePath，这会导致无法指定需要虚拟化的特定显卡，会引发不必要的混乱。因此，为了更加轻松，请升级您的宿主系统。
+- 建议为虚拟机分配**固定大小**的运行内存。
+- 本工具支持**第一代**和**第二代**虚拟机。
+- **无需禁用**虚拟机的检查点功能。
+- 一张物理显卡在同一时间**只能用于 DDA 或 GPU-P**，不能两者共用。
+- 一个虚拟机可以**同时使用 DDA 和 GPU-P** (例如，DDA 直通一个设备，同时使用另一张卡的 GPU-P 功能)。
+- 一张物理显卡可以为**单个虚拟机**划分出多个 GPU-P 分区，但总性能不变。
+- 一个虚拟机可以同时使用来自**多张不同物理显卡**的 GPU-P 分区。
 
-# DDA
+---
 
-### 简介
+## 核心功能详解
 
-DDA全称Discrete Device Assignment，即离散设备分配，可以将独立的设备分配到虚拟机中。它是以PCIE总线为单位进行分配的，例如显卡、网卡、USB控制器（CPU直连、主板芯片组、独立USB芯片），如果您的设备不在工具显示的列表中，则说明不可以单独直通它，需要直通更上一级的控制器。
+### Ⅰ. DDA (离散设备分配)
 
-使用Nvidia通常没有任何问题；AMD未经测试，据说不支持[FLR](https://www.reddit.com/r/Amd/comments/jehkey/will_big_navi_support_function_level_reset_flr/)；Intel未经测试。欢迎反馈。
+DDA (Discrete Device Assignment) 允许你将一个完整的 PCIe 设备（如显卡、网卡、USB 控制器）直接分配给虚拟机。
 
-虚拟机系统通常使用Windows，版本没有特别的限制；Linux未经测试。
+- **设备兼容性**: 如果设备未显示在列表中，意味着它无法被独立分配，您需要尝试分配其更上一级的 PCIe 控制器。
+- **显卡支持**:
+    - **Nvidia**: 通常工作良好。
+    - **AMD/Intel**: 未经充分测试。AMD 消费级显卡可能因不支持 [Function-Level Reset (FLR)](https://www.reddit.com/r/Amd/comments/jehkey/will_big_navi_support_function_level_reset_flr/) 而存在问题。欢迎提供测试反馈！
+- **虚拟机系统**: 推荐使用 Windows，版本无特殊限制。Linux 未经测试。
 
+#### DDA 设备状态解析
+> 理解设备的三种状态对于排查问题至关重要。
 
-### DDA设备状态
-> 设备共有3种状态：主机态、卸除态、虚拟态。尽管微软文档没有提及，但实际上了解这三种状态非常重要。
+1.  **主机态 (Host)**: 设备正常挂载于宿主系统，可被宿主使用。
+2.  **卸除态 (Dismounted)**: 设备已从宿主卸载 (`Dismount-VMHostAssignableDevice`)，但未成功分配给虚拟机。此时设备在宿主设备管理器中不可用，可通过本工具重新挂载到宿主或分配给虚拟机。
+3.  **虚拟态 (Guest)**: 设备已成功挂载于虚拟机。
 
-1.处于主机态时，设备挂载到宿主系统。
+#### DDA 显卡兼容性列表 (持续更新中)
+> 兼容性表现需要实际在虚拟机中安装驱动后才能确认。欢迎通过 [Issues](https://github.com/Justsenger/ExHyperV/issues) 分享您的测试结果！
 
-2.处于卸除态时，是因为执行了"Dismount-VMHostAssignableDevice"，同时，由于各种原因没有成功分配到虚拟机，这个设备将处于这样的中间态。这个状态下设备无法被宿主的设备管理器正常识别，可以在本软件中选择挂载到宿主或者再次尝试挂载到虚拟机。
-
-3.处于虚拟态时，设备挂载到虚拟机系统。
-
-### DDA显卡兼容性（需要更多反馈）
-> 以下各项兼容性需要实际安装到虚拟机才能发现。如果您有更多的测试结果，请在问题中告诉我！完善此表可为选择显卡提供更好的指导。通常，同架构的显卡表现类似。
-
-| 品牌 | 型号 | 架构 | 启动 | 功能层复位 | 物理显示输出 |
+| 品牌 | 型号 | 架构 | 驱动正常 | 功能层复位 (FLR) | 物理显示输出 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **Nvidia** | RTX 5090 | Blackwell 2.0 | ✅ | ✅ | ✅ |
 | **Nvidia** | RTX 4090 | Ada Lovelace | ✅ | ✅ | ✅ |
@@ -88,121 +103,75 @@ DDA全称Discrete Device Assignment，即离散设备分配，可以将独立的
 | **Nvidia** | GT 1030 | Pascal | ✅ | ✅ | ✅ |
 | **Nvidia** | GT 210 | Tesla | ✅ | ✅ | ❌ |
 | **Intel** | DG1 | Xe-LP | ✅ | ❌ | [特定驱动](https://www.shengqipc.cn/d21.html) ✅ |
-| **Intel** | A380 | Xe-HPG | Code 43❌ | ❌ | ❌ |
+| **Intel** | A380 | Xe-HPG | Code 43 ❌ | ❌ | ❌ |
 
-1.启动：显卡分配到虚拟机后可能无法正常安装驱动。部分笔记本魔改卡、矿卡或者AMD/Intel显卡可能存在问题。
+- **驱动正常**: 分配到虚拟机后能否成功安装驱动并被识别。
+- **功能层复位 (FLR)**: 若不支持，重启虚拟机会导致宿主机也重启。
+- **物理显示输出**: 虚拟机能否通过显卡的物理接口（HDMI/DP）输出画面。
 
-2.功能层复位（FLR）：若不具备此功能，分配此显卡的虚拟机重启将导致宿主机重启。Nvidia通常支持，而AMD/Intel未经广泛测试，可能存在[硬件缺陷](https://www.reddit.com/r/Amd/comments/jehkey/will_big_navi_support_function_level_reset_flr/)。
+---
 
-3.物理显示输出：虚拟机是否能通过显卡输出物理信号。
+### Ⅱ. GPU-P (GPU Paravirtualization / GPU 分区)
 
-# GPU-PV
+GPU-P (或称 GPU-PV) 是一种半虚拟化技术，它允许多个虚拟机共享使用物理 GPU 的计算能力，而无需完整直通。
 
-### 简介
+- **资源限制**: 目前 Hyper-V 原生无法有效限制每个虚拟机使用的 GPU 资源。`Set-VMGpuPartitionAdapter` 中的参数并不生效 ([相关讨论](https://github.com/jamesstringerparsec/Easy-GPU-PV/issues/298))。因此，本工具暂不提供资源分配功能。
+- **驱动与兼容性**: GPU-P 创建的虚拟设备虽然能调用物理 GPU，但并未完整继承其硬件特征和驱动细节。某些依赖特定硬件ID或驱动签名的软件/游戏可能无法运行。
 
-* GPU-PV全称为GPU paravirtualization，即GPU半虚拟化。此功能自从WDDM 2.4开始提供，所以虚拟机和宿主的系统版本一定不能低于17134，否则没有任何实现的可能。但是，由于低于22000版本的Windows（尤其是Windows10），powershell命令不能选中指定显卡，因此，本软件为了规范流程一致性，要求宿主的版本不能低于22000。
+#### WDDM 版本与 GPU-P 功能演进
+> WDDM (Windows Display Driver Model) 版本越高，GPU-P 功能越完善。建议宿主和虚拟机都使用最新的 Windows 版本。
 
-* 目前无法限制虚拟机GPU的资源使用，Set-VMGpuPartitionAdapter设定的参数并不会起到任何[实质性作用](https://github.com/jamesstringerparsec/Easy-GPU-PV/issues/298)。因此，在找到任何有效的方法前，不会开发资源分配功能。Nvidia的Grid驱动可以分割资源，但是它需要昂贵的专业卡和不菲的授权费。
+| Windows 版本 (Build) | WDDM 版本 | 主要虚拟化功能更新 |
+| :--- | :--- | :--- |
+| 17134 | 2.4 | 首次引入基于 IOMMU 的 GPU 隔离。 |
+| 17763 | 2.5 | 优化宿主与虚拟机间的资源管理与通信。 |
+| 18362 | 2.6 | 提升显存管理效率，优先分配连续物理显存。 |
+| 19041 | 2.7 | 虚拟机设备管理器可正确识别物理显卡型号。 |
+| 20348 | 2.9 | 支持跨适配器资源扫描输出 (CASO)，降低延迟。 |
+| 22000 | 3.0 | 支持 DMA 重映射，突破 GPU 内存地址限制。 |
+| 22621 | 3.1 | UMD/KMD 内存共享，减少数据复制，提升效率。 |
+| 26100 | 3.2 | 引入 GPU 实时迁移、WDDM 功能查询等新特性。 |
 
-* GPU-PV创建的显示适配器仅仅是从系统层面模拟，但对于真实显卡独特的注册表参数、硬件特征、驱动特征并没有很好地继承。因此，如果您尝试打开的软件/游戏依赖于这些特殊的标志，很可能出现错误，需要针对性的修复。目前并没有专门的测试组，如果有兴趣和精力，可以参与到项目中来。
+![WDDM 架构](https://github.com/Justsenger/ExHyperV/blob/main/img/WDDM_cn.png)
 
+#### GPU-P 显卡兼容性列表 (持续更新中)
 
-* 下图是 WDDM 半虚拟化设计中涉及的各种组件。
+| 品牌 | 型号 | 架构 | DirectX 12 | OpenGL | Vulkan | Codec | CUDA/OpenCL | 备注 |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **Nvidia** | GT 1050 | Pascal | ❌ | ✅ | ✅ | ✅ | ✅ | |
+| **AMD** | Radeon 890M | RDNA 3.5 | ❌ | ❌ | ❌ | ❌ | ❌ | 无法启动，会导致宿主崩溃 |
 
+#### 如何从虚拟机输出画面？
 
-![WDDM](https://github.com/Justsenger/ExHyperV/blob/main/img/WDDM_cn.png)
+GPU-P 模式下，物理 GPU 作为“渲染设备”，需要搭配一个“显示设备”来输出画面。有以下三种方案：
 
-* 以下是Windows版本和WDDM版本的对应关系，WDDM版本越高，GPU-PV的功能就越完善，因此，建议宿主和虚拟机都选择最新的Windows版本。
+1.  **Microsoft Hyper-V 视频 (默认)**
+    - **优点**: 兼容性好，开箱即用。
+    - **缺点**: 分辨率最高 1080p，刷新率低 (约 62Hz)。
 
-| Windows版本 | WDDM版本 | 虚拟化相关功能主要更新 |
-| -------- | -------- | ------------------------ |
-| 17134  | 2.4      | 第一次引入了基于 IOMMU 的 GPU 隔离。 |
-| 17763  | 2.5      | 增强了虚拟化的支持，使得宿主和来宾之间的资源句柄管理和事件信号化，用户模式驱动（UMD）和内核模式驱动（KMD）能够更好地协同工作。 |
-| 18362  | 2.6      | 提升了显存管理。虚拟机显存优先分配在GPU连续的物理显存，能收到内存的驻留状态。 |
-| 19041  | 2.7      | 虚拟机设备管理器可以正确识别Microsoft Virtual Renderer Driver所对应的物理显卡型号。 |
-| 20348  | 2.9      | 增加了支持跨适配器资源扫描输出（CASO）功能，渲染适配器的画面可以直接输出到显示适配器，而无需进行两次复制，降低了延迟和带宽需求。 |
-| 22000  | 3.0      | 通过DMA重映射突破GPU地址限制，允许GPU访问超过硬件限制的更多内存。提高了用户模式驱动（UMD）和内核模式驱动（KMD）的事件信号机制，提升调试能力。 |
-| 22621  | 3.1      | 用户模式驱动（UMD）和内核模式驱动（KMD）共享相同的内存区域，减少内存的复制和传输，优化内存的利用效率，提高数据访问速度。 |
-| 26100  | 3.2      | 增加了GPU实时迁移功能。增强了图形驱动的超时检测和恢复分析。引入了WDDM功能查询机制。 |
+2.  **间接显示驱动 + 串流 (推荐)**
+    - 安装 [虚拟显示驱动](https://github.com/VirtualDrivers/Virtual-Display-Driver) 创建一个高性能的虚拟显示器。
+    - 使用 Parsec, Sunshine, 或 Moonlight 等串流软件，获得高分辨率、高刷新率的流畅体验。
+    - ![Sunshine+PV 示例](https://github.com/user-attachments/assets/e25fce26-6158-4052-9759-6d5d1ebf1c5d)
 
-### GPU-PV显卡兼容性列表
+3.  **USB 显卡 + DDA (实验性)**
+    - **思路**: 通过 DDA 直通一个 USB 控制器给虚拟机，再连接一个 USB 显卡（如基于 [DisplayLink DL-6950](https://www.synaptics.com/cn/products/displaylink-graphics/integrated-chipsets/dl-6000) 或 [Silicon Motion SM768](https://www.siliconmotion.com/product/cht/Graphics-Display-SoCs.html) 芯片的产品）作为显示设备。
+    - **状态**: 作者正在研究此方案与大显存显卡共存时的冲突问题，目前不推荐普通用户尝试。
 
-| 品牌 | 型号 | 架构 | DirectX 12 | OpenGL | Vulkan | Codec | CUDA | OpenCL | 备注 |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Nvidia** | GT 1050 | Pascal | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ |  |
-| **AMD** | Radeon 890M | RDNA 3.5 | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | 无法启动，会导致宿主崩溃 |
+## ⚙️ 工作原理
 
-### 虚拟机Windows版本
+为了简化配置，本工具会自动执行以下操作：
+- **驱动注入**: 自动将宿主机中的 GPU 驱动 (`HostDriverStore`) 导入到虚拟机中。
+- **驱动保护**: 将导入的驱动文件设置为“只读”，防止被意外修改或删除。
+- **Nvidia 注册表修复**: 自动修改虚拟机中 Nvidia 相关的注册表项，将驱动路径指向 `HostDriverStore`，确保驱动被正确加载。
 
-* 17134以下版本不支持GPU半虚拟化。
+## 🤝 贡献
+欢迎任何形式的贡献！
+- **测试与反馈**: 帮助我们完善兼容性列表。
+- **报告 Bug**: 通过 [Issues](https://github.com/Justsenger/ExHyperV/issues) 提交您遇到的问题。
+- **代码贡献**: Fork 项目并提交 Pull Request。
 
+## ❤️ 支持项目
+如果你觉得这个项目对你有帮助，欢迎考虑赞助我，这能激励我持续进行维护和开发！
 
-* 17134到19040之间的版本（WDDM 2.4-2.6）可以调用GPU，但不会显示正确的显卡型号。
-
-
-* 从19041版本（WDDM 2.7）开始，可以正常使用GPU功能。
-
-
-### 从虚拟机引出显示信号
-
-在GPU半虚拟化模型中，虚拟机从宿主机获取到的GPU是作为“渲染适配器”存在的，通常会与作为“显示适配器”的 Microsoft Hyper-V 视频[配对](https://learn.microsoft.com/zh-cn/windows-hardware/drivers/display/gpu-paravirtualization#gpuvirtualizationflags)进行画面输出。然而，Microsoft Hyper-V 视频仅支持到1080p，刷新率也受到严重限制，因此我们需要一个更好的“显示适配器”。
-
-总共有3种方案可以实现显示信号输出:
-
->Microsoft Hyper-V 视频
-
-这是微软的默认适配器，兼容性良好，但是分辨率最高1920*1080，刷新率62Hz。
-
->间接显示驱动程序
-
-可以尝试[间接适配器](https://github.com/VirtualDrivers/Virtual-Display-Driver)，搭配Sunshine、Parsec等串流软件使用。
-
-![Sunshine+PV](https://github.com/user-attachments/assets/e25fce26-6158-4052-9759-6d5d1ebf1c5d)
-
-> USB 显卡（需要DDA直通USB控制器x1） 
-
-
-
-可以直通一个USB控制器，然后搭配USB显卡使用。目前，不建议使用此方案。作者正在解决大显存显卡DDA和GPU-PV同时使用时的冲突问题，且不一定能成功。
-
-比较常见的芯片是[DL-6950](https://www.synaptics.com/cn/products/displaylink-graphics/integrated-chipsets/dl-6000)和[SM768](https://www.siliconmotion.com/product/cht/Graphics-Display-SoCs.html)，实测GTX 1050显卡作为渲染适配器（GTX 1050）可以和显示适配器（DL 6950）正常工作，在144Hz下几乎无延迟。
-
-
-# 笔记
-
-### 事实
-
-* 虚拟机最好将运行内存固定分配。
-
-
-* 所有功能均可以使用一代虚拟机或者二代虚拟机，任意选择。
-
-
-* 所有功能不需要禁用检查点功能。
-
-
-* 一张显卡同一时间只能作为DDA或者GPU-PV。
-
-
-* 一个虚拟机可以同时使用DDA和GPU-PV。
-
-
-* 一个虚拟机可以从同一张显卡获得多个逻辑适配器分区，但是总性能不变。
-
-
-* 一个虚拟机可以从多张显卡获得多个逻辑适配器分区。
-
-
-### 魔法
-
-* 工具会将宿主驱动导入到虚拟机。同时，HostDriverStore下所有文件将设定为只读属性，以防止任何驱动文件丢失。
-
-
-* 对于Nvidia，会自动导入宿主系统的nvlddmkm.reg，并修改其中的DriverStore为HostDriverStore。
-
-
-
-
-
-
-
+[![Sponsor](https://img.shields.io/static/v1?label=Sponsor&message=%E2%9D%A4&logo=GitHub&color=%23fe8e86)](https://afdian.com/a/saniye)
