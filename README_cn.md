@@ -138,7 +138,8 @@ GPU-P (或称 GPU-PV) 是一种半虚拟化技术，它允许多个虚拟机共�
 
 | 品牌 | 型号 | 架构 | DirectX 12 | OpenGL | Vulkan | Codec | CUDA/OpenCL | 备注 |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Nvidia** | GT 1050 | Pascal | ❌ | ✅ | ✅ | ✅ | ✅ | |
+| **Nvidia** | GT 1050 | Pascal | ✅ | ✅ | ✅ | ✅ | ✅ | |
+| **Intel**| Iris Xe Graphics| Xe-LP | ✅ | ✅ | ✅ | ✅ | ❌ | | 
 | **AMD** | Radeon 890M | RDNA 3.5 | ❌ | ❌ | ❌ | ❌ | ❌ | 无法启动，会导致宿主崩溃 |
 
 #### 如何从虚拟机输出画面？
