@@ -93,7 +93,7 @@ DDA (Discrete Device Assignment) 允许你将一个完整的 PCIe 设备（如�
 #### DDA 显卡兼容性列表 (持续更新中)
 > 兼容性表现需要实际在虚拟机中安装驱动后才能确认。欢迎通过 [Issues](https://github.com/Justsenger/ExHyperV/issues) 分享您的测试结果！
 
-| 品牌 | 型号 | 架构 | 驱动正常 | 功能层复位 (FLR) | 物理显示输出 |
+| 品牌 | 型号 | 架构 | 启动 | 功能层复位 (FLR) | 物理显示输出 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **Nvidia** | RTX 5090 | Blackwell 2.0 | ✅ | ✅ | ✅ |
 | **Nvidia** | RTX 4090 | Ada Lovelace | ✅ | ✅ | ✅ |
@@ -141,7 +141,8 @@ GPU-P (或称 GPU-PV) 是一种半虚拟化技术，它允许多个虚拟机共�
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | **Nvidia** | GT 1050 | Pascal | ✅ | ✅ | ✅ | ✅ | ✅ | |
 | **Intel**| Iris Xe Graphics| Xe-LP | ✅ | ✅ | ✅ | ✅ | ❌ | | 
-| **AMD** | Radeon 890M | RDNA 3.5 | ❌ | ❌ | ❌ | ❌ | ❌ | 无法启动，会导致宿主崩溃 |
+| **AMD** | Radeon Vega 3 | GCN 5.0 | ✅ | ✅ | ✅ | ✅ | ✅ | |
+| **AMD** | Radeon 890M | RDNA 3.5 | ❓ | ❓ | ❓ | ❓ | ❓ | 无法启动，会导致宿主崩溃 |
 
 #### 如何从虚拟机输出画面？
 
