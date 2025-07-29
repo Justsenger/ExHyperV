@@ -135,7 +135,7 @@ GPU-P (或称 GPU-PV) 是一种半虚拟化技术，它允许多个虚拟机共�
 
 ![WDDM 架构](https://github.com/Justsenger/ExHyperV/blob/main/img/WDDM_cn.png)
 
-#### GPU-P 显卡兼容性列表 (持续更新中)
+#### GPU-P 显卡兼容性列表 (使用Gpu Caps Viewer+DXVA Checker测试，持续更新中)
 
 | 品牌 | 型号 | 架构 | 识别 | DirectX 12 | OpenGL | Vulkan | Codec | CUDA/OpenCL | 备注 |
 | :--- | :--- | :--- | :--- |:--- | :--- | :--- | :--- | :--- | :--- |
