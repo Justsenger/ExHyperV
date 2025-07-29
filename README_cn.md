@@ -143,6 +143,7 @@ GPU-P (或称 GPU-PV) 是一种半虚拟化技术，它允许多个虚拟机共�
 | **Intel**| Iris Xe Graphics| Xe-LP | ⚠️ | ✅ | ✅ | ✅ | ✅ | ❌ | 硬件识别残缺| 
 | **AMD** | Radeon Vega 3 | GCN 5.0 | ⚠️ | ✅ | ✅ | ✅ | ✅ | ✅ | 硬件识别残缺|
 | **AMD** | Radeon 890M | RDNA 3.5 | ❌ | ❓ | ❓ | ❓ | ❓ | ❓ | 启动会导致宿主崩溃 |
+| **Moore Threads** | MTT S80 | MUSA | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | 不支持GPU-PV |
 
 #### 如何从虚拟机输出画面？
 
