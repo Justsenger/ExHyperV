@@ -149,7 +149,7 @@ GPU-P (或称 GPU-PV) 是一种半虚拟化技术，它允许多个虚拟机共�
 | **Intel**| UHD Graphics 620 Mobile | Generation 9.5 | ⚠️ | ✅ | ✅ | ✅ | ✅ | ❌ | 硬件识别残缺|
 | **Intel**| HD Graphics 530 | Generation 9.0 | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | 不支持 |
 | **AMD** | Radeon Vega 3 | GCN 5.0 | ⚠️ | ✅ | ✅ | ✅ | ✅ | ✅ | 硬件识别残缺|
-| **AMD** | Radeon 890M | RDNA 3.5 | ❌ | ❓ | ❓ | ❓ | ❓ | ❓ | 启动会导致宿主崩溃 |
+| **AMD** | Radeon 890M | RDNA 3.5 | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | 启动会导致宿主崩溃 |
 | **Moore Threads** | MTT S80 | MUSA | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | 不支持 |
 
 #### 如何从虚拟机输出画面？
