@@ -99,6 +99,7 @@ DDA (Discrete Device Assignment) 允许你将一个完整的 PCIe 设备（如�
 | **Nvidia** | RTX 4090 | Ada Lovelace | ✅ | ✅ | ✅ |
 | **Nvidia** | RTX 4080 Super | Ada Lovelace | ✅ | ✅ | ✅ |
 | **Nvidia** | RTX 4070 | Ada Lovelace | ✅ | ✅ | ✅ |
+| **Nvidia** | GTX 1660 Super | Turing | ✅ | ✅ | ✅ |
 | **Nvidia** | GTX 1050 | Pascal | ✅ | ✅ | ✅ |
 | **Nvidia** | GT 1030 | Pascal | ✅ | ✅ | ✅ |
 | **Nvidia** | GT 210 | Tesla | ✅ | ✅ | ❌ |
