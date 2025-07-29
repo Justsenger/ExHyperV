@@ -2,7 +2,7 @@
 
 <div align="center">
 
-**一款图形化的 Hyper-V 高级功能管理工具，能让凡人也能轻松玩转 DDA、GPU-P 等特性。**
+**一款图形化的 Hyper-V 高级功能管理工具，能让凡人也能轻松玩转 DDA、GPU-P 等高阶功能。**
 
 </div>
 
