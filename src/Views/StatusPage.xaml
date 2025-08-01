@@ -35,6 +35,7 @@
                     <RowDefinition Height="52"/>
                     <RowDefinition Height="52"/>
                     <RowDefinition Height="52"/>
+                    <RowDefinition Height="52"/>
                 </Grid.RowDefinitions>
 
                 <ui:Card Grid.Row="0" Padding="12">
@@ -90,6 +91,17 @@
                         </Grid.ColumnDefinitions>
                         <ui:ProgressRing x:Name="progressRing5"  IsIndeterminate="True" Width="16" Height="16"/>
                         <TextBlock Grid.Column="1" x:Name="version" Margin="10,0,0,0" Text="{x:Static properties:Resources.checkversion}" FontSize="16"/>
+                    </Grid>
+                </ui:Card>
+
+                <ui:Card Grid.Row="5" Padding="12">
+                    <Grid x:Name="status6">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <ui:ProgressRing x:Name="progressRing6"  IsIndeterminate="True" Width="16" Height="16"/>
+                        <TextBlock Grid.Column="1" x:Name="iommu" Margin="10,0,0,0" Text="检测BIOS设置：IOMMU..." FontSize="16"/>
                     </Grid>
                 </ui:Card>
 

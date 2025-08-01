@@ -21,6 +21,9 @@ public partial class StatusPage
 
         Task.Run(() => Admininfo());
         Task.Run(() => ServerInfo());
+        Task.Run(() => Iommu());
+        
+
     }
 
     private async void HyperVInfo()
@@ -131,6 +134,35 @@ public partial class StatusPage
         });
 
     }
+
+    private async void Iommu() //检查IOMMU功能
+    {
+        var io = Utils.Run("(Get-CimInstance -Namespace \"Root\\Microsoft\\Windows\\DeviceGuard\" -ClassName \"Win32_DeviceGuard\").AvailableSecurityProperties -contains 3");
+        Dispatcher.Invoke(() =>
+        {
+            status6.Children.Remove(progressRing6);
+            FontIcon icons = new FontIcon
+            {
+                FontSize = 20,
+                FontFamily = (FontFamily)Application.Current.Resources["SegoeFluentIcons"],
+                Glyph = "\xEC61",
+                Foreground = new SolidColorBrush(Color.FromArgb(255, 0, 138, 23)),
+
+            };
+
+            if (io[0].ToString() == "True")
+            { iommu.Text = "BIOS已启用IOMMU。"; }
+            else
+            {
+                iommu.Text = "BIOS未启用IOMMU，DDA和GPU-PV不可用。";
+                icons.Glyph = "\xEB90";
+                icons.Foreground = new SolidColorBrush(Colors.Red);
+            }
+            status6.Children.Add(icons);
+        });
+
+    }
+
 
     private async void Admininfo() 
     {
