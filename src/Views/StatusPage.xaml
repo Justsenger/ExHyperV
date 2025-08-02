@@ -143,6 +143,36 @@
                 </ui:CardControl.Header>
             </ui:CardControl>
 
+            <ui:CardControl Grid.Row="2" Margin="0,10,0,0" Padding="12">
+                <ui:CardControl.Icon>
+                    <ui:FontIcon FontSize="24" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xE932;"/>
+                </ui:CardControl.Icon>
+                <ui:CardControl.Header>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="auto"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <TextBlock Text="Hyper-V 自动睿频" VerticalAlignment="Center"/>
+                            <ui:TextBlock Grid.Row="1" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" Text="虚拟机高负载/低负载时，修改电源模式为高性能/节能。" />
+                        </Grid>
+
+                        <ui:ToggleSwitch
+        x:Name="Turbo"
+        Grid.Column="1"
+        Margin="0,0,0,1"
+        Checked="onturbo"
+        Unchecked="offturbo" VerticalAlignment="Bottom"
+        />
+                    </Grid>
+                </ui:CardControl.Header>
+            </ui:CardControl>
+
         </StackPanel>
     </Grid>
 

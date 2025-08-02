@@ -286,4 +286,14 @@ public partial class StatusPage
         RemoveReg();
         CheckReg();
     }
+    private void onturbo(object sender, RoutedEventArgs e)
+    {
+        RemoveReg();
+        CheckReg();
+    }
+    private void offturbo(object sender, RoutedEventArgs e)
+    {
+        RemoveReg();
+        CheckReg();
+    }
 }
