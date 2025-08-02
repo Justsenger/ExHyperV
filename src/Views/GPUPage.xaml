@@ -3,65 +3,191 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-    xmlns:local="clr-namespace:ExHyperV.Views.Pages"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
     xmlns:properties="clr-namespace:ExHyperV.Properties"
+    xmlns:viewmodels="clr-namespace:ExHyperV.ViewModels"
+    xmlns:converters="clr-namespace:ExHyperV.Converters"
+    xmlns:local="clr-namespace:ExHyperV.Views.Pages"
+    xmlns:sys="clr-namespace:System.Windows.Controls;assembly=PresentationFramework"
     Title="GPUPage"
-    d:DesignHeight="700"
-    d:DesignWidth="1000"
+    d:DataContext="{d:DesignInstance Type=local:GPUPage, IsDesignTimeCreatable=True}"
     mc:Ignorable="d">
 
+    <Page.Resources>
+        <sys:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        <converters:GpuImagePathConverter x:Key="GpuImagePathConverter"/>
+        <converters:InverseBooleanConverter x:Key="InverseBooleanConverter"/>
+        <converters:TupleConverter x:Key="TupleConverter"/>
+    </Page.Resources>
+
+    <!-- 根布局改为 Grid，并添加 ProgressBar -->
     <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="2"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
-        <ProgressBar Grid.Row="0" x:Name="progressbar" IsIndeterminate="True"/>
-
-        <Grid Grid.Row="1">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-            </Grid.RowDefinitions>
-
-            <ui:Card VerticalAlignment="Top" Padding="12" Margin="10,10,10,0">
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Top" Grid.Column="0">
-                    <ui:FontIcon FontSize="24" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xF211;"/>
-                    <TextBlock Text="{x:Static properties:Resources.installedcard}" Margin="10,0,0,0" FontSize="16"/>
+        <!-- StackPanel 用于垂直排列内容，Margin 与您的 DDAPage 保持一致 -->
+        <StackPanel Margin="10,0,10,10">
+            <!-- 1. 已安装显卡部分 -->
+            <ui:Card Padding="12" Margin="10,10,10,0">
+                <StackPanel Orientation="Horizontal">
+                    <ui:FontIcon FontSize="24" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph=""/>
+                    <TextBlock Text="{x:Static properties:Resources.installedcard}" Margin="10,0,0,0" FontSize="16" VerticalAlignment="Center"/>
                 </StackPanel>
             </ui:Card>
-            <Grid x:Name="main" Grid.Row="1"></Grid>
 
-        </Grid>
-        <Grid Grid.Row="2">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-            </Grid.RowDefinitions>
-            <ui:Card VerticalAlignment="Top" Padding="10" Grid.Column="0" Margin="10,10,10,0" Grid.ColumnSpan="2">
+            <ItemsControl ItemsSource="{Binding HostGpus}" Margin="30,0,10,0">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="{x:Type viewmodels:HostGpuViewModel}">
+                        <ui:CardExpander Margin="0,5,0,0" Padding="8">
+                            <ui:CardExpander.Header>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Image Height="64" Width="64" Margin="0,0,10,0" VerticalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality">
+                                        <Image.Source>
+                                            <MultiBinding Converter="{StaticResource GpuImagePathConverter}">
+                                                <Binding Path="Manu"/>
+                                                <Binding Path="Name"/>
+                                            </MultiBinding>
+                                        </Image.Source>
+                                    </Image>
+                                    <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="16" VerticalAlignment="Center"/>
+                                </Grid>
+                            </ui:CardExpander.Header>
+                            <Grid Margin="50,0,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" MinWidth="125"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="32"/>
+                                    <RowDefinition Height="32"/>
+                                    <RowDefinition Height="32"/>
+                                    <RowDefinition Height="32"/>
+                                    <RowDefinition Height="32"/>
+                                    <RowDefinition Height="32"/>
+                                </Grid.RowDefinitions>
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="{x:Static properties:Resources.manu}" FontSize="16" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding Vendor}" FontSize="16" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="{x:Static properties:Resources.ram}" FontSize="16" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding RamDisplay}" FontSize="16" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Row="2" Grid.Column="0" Text="{x:Static properties:Resources.Instanceid}" FontSize="16" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding InstanceId}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" FontSize="16" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Row="3" Grid.Column="0" Text="{x:Static properties:Resources.gpupv}" FontSize="16" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Row="3" Grid.Column="1" Text="{x:Static properties:Resources.support}" FontSize="16" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Row="4" Grid.Column="0" Text="{x:Static properties:Resources.gpupvpath}" FontSize="16" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding Pname}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" FontSize="16" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Row="5" Grid.Column="0" Text="{x:Static properties:Resources.driverversion}" FontSize="16" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding DriverVersion}" FontSize="16" VerticalAlignment="Center"/>
+                            </Grid>
+                        </ui:CardExpander>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <!-- 2. 虚拟机列表部分 -->
+            <ui:Card Padding="10" Margin="10,10,10,0">
                 <Grid>
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"></ColumnDefinition>
-                        <ColumnDefinition Width="*"></ColumnDefinition>
-                        <ColumnDefinition Width="Auto"></ColumnDefinition>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
-                    <ui:FontIcon FontSize="24" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xE7C4;"/>
-                    <TextBlock Grid.Column="1" VerticalAlignment="Center" Text="{x:Static properties:Resources.vmlist}" Margin="10,0,0,0" FontSize="16"/>
-                    <ui:Button Grid.Column="2" Content="{x:Static properties:Resources.refresh}" Margin="0,0,30,0" Click="Vmrefresh"></ui:Button>
-
+                    <StackPanel Grid.Column="0" Orientation="Horizontal">
+                        <ui:FontIcon FontSize="24" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph=""/>
+                        <TextBlock Text="{x:Static properties:Resources.vmlist}" Margin="10,0,0,0" FontSize="16" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <ui:Button Grid.Column="1" Content="{x:Static properties:Resources.refresh}" Margin="0,0,30,0" Command="{Binding LoadDataCommand}" IsEnabled="{Binding IsLoading, Converter={StaticResource InverseBooleanConverter}}"/>
                 </Grid>
             </ui:Card>
 
-            <Grid x:Name="vms" Grid.ColumnSpan="2" Margin="0,63,0,0"/>
+            <ItemsControl x:Name="VirtualMachinesItemsControl" ItemsSource="{Binding VirtualMachines}" Margin="0,0,0,10">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="{x:Type viewmodels:VirtualMachineViewModel}">
+                        <StackPanel>
+                            <ui:CardExpander Margin="30,5,10,0" Padding="10,8,10,8" IsExpanded="{Binding HasAssignedGpus, Mode=OneWay}">
+                                <ui:CardExpander.Header>
+                                    <Grid Height="30">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <ContentControl Grid.Column="0" Content="{Binding VmIcon}" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="16" Margin="0,-2,0,0" VerticalAlignment="Center"/>
+                                        <ui:Button Grid.Column="2" Content="{x:Static properties:Resources.addgpu}" Margin="0,0,5,0" Command="{Binding DataContext.AddGpuCommand, RelativeSource={RelativeSource AncestorType=Page}}" CommandParameter="{Binding}"/>
+                                    </Grid>
+                                </ui:CardExpander.Header>
+                                <ContentControl>
+                                    <ContentControl.Style>
+                                        <Style TargetType="ContentControl">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding HasAssignedGpus}" Value="False">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </ContentControl.Style>
+                                    <ItemsControl ItemsSource="{Binding AssignedGpus}" Margin="-5,-10,-10,-10">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate DataType="{x:Type viewmodels:AssignedGpuViewModel}">
+                                            <ui:CardExpander ContentPadding="6" Padding="10,8,10,8">
+                                                <ui:CardExpander.Header>
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="32"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <Image Height="32" Width="32" VerticalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality">
+                                                            <Image.Source>
+                                                                <MultiBinding Converter="{StaticResource GpuImagePathConverter}">
+                                                                    <Binding Path="ParentGpuManu"/>
+                                                                    <Binding Path="ParentGpuName"/>
+                                                                </MultiBinding>
+                                                            </Image.Source>
+                                                        </Image>
+                                                        <TextBlock Grid.Column="1" Text="{Binding ParentGpuName}" FontSize="16" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                                                        <ui:Button Grid.Column="2" Content="{x:Static properties:Resources.uninstall}" Margin="0,0,5,0"
+                                                                   Command="{Binding DataContext.RemoveGpuCommand, RelativeSource={RelativeSource AncestorType=Page}}">
+                                                            <ui:Button.CommandParameter>
+                                                                <MultiBinding Converter="{StaticResource TupleConverter}">
+                                                                    <Binding Path="DataContext" RelativeSource="{RelativeSource AncestorType=ui:CardExpander}"/>
+                                                                    <Binding Path="DataContext" RelativeSource="{RelativeSource AncestorType=ui:CardExpander, AncestorLevel=2}"/>
+                                                                </MultiBinding>
+                                                            </ui:Button.CommandParameter>
+                                                        </ui:Button>
+                                                    </Grid>
+                                                </ui:CardExpander.Header>
+                                                <Grid Margin="50,5,0,0">
+                                                    <Grid.RowDefinitions>
+                                                        <RowDefinition Height="32"/>
+                                                        <RowDefinition Height="32"/>
+                                                    </Grid.RowDefinitions>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="Auto" MinWidth="125"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="{x:Static properties:Resources.gpupvid}" FontSize="16" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                                    <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding AdapterId}" FontSize="16" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="{x:Static properties:Resources.gpupvpath}" FontSize="16" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding InstancePath}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" FontSize="16" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                                </Grid>
+                                            </ui:CardExpander>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                </ContentControl>
+                            </ui:CardExpander>
+                        </StackPanel>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
 
-        </Grid>
-
-
+        <!-- ProgressBar 放在Grid顶层，通过 ZIndex 确保它显示在最前面 -->
+        <ProgressBar Panel.ZIndex="1" VerticalAlignment="Top" Height="4"
+                     IsIndeterminate="True"
+                     Visibility="{Binding IsLoading, Converter={StaticResource BooleanToVisibilityConverter}}"/>
     </Grid>
-
-
-
-
 </Page>
