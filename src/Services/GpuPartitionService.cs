@@ -13,6 +13,27 @@ namespace ExHyperV.Services
 {
     public class GpuPartitionService : IGpuPartitionService
     {
+        // PowerShell 脚本常量
+        private const string GetGpuWmiInfoScript = "Get-WmiObject -Class Win32_VideoController | select PNPDeviceID,name,AdapterCompatibility,DriverVersion";
+        private const string GetGpuRamScript = @"
+            Get-ItemProperty -Path ""HKLM:\SYSTEM\ControlSet001\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}\0*"" -ErrorAction SilentlyContinue |
+                Select-Object MatchingDeviceId,
+                      @{Name='MemorySize'; Expression={
+                          if ($_. ""HardwareInformation.qwMemorySize"") {
+                              $_.""HardwareInformation.qwMemorySize""
+                          } 
+                          elseif ($_. ""HardwareInformation.MemorySize"" -and $_.""HardwareInformation.MemorySize"" -isnot [byte[]]) {
+                              $_.""HardwareInformation.MemorySize""
+                          }
+                          else {
+                              $null
+                          }
+                      }} |
+                Where-Object { $_.MemorySize -ne $null -and $_.MemorySize -gt 0 }";
+        private const string GetPartitionableGpusScript = "Get-VMHostPartitionableGpu | select name";
+        private const string CheckHyperVModuleScript = "Get-Module -ListAvailable -Name Hyper-V";
+        private const string GetVmsScript = "Get-VM | Select vmname,LowMemoryMappedIoSpace,GuestControlledCacheTypes,HighMemoryMappedIoSpace";
+
         public Task<List<GPUInfo>> GetHostGpusAsync()
         {
             return Task.Run(() =>
@@ -20,46 +41,29 @@ namespace ExHyperV.Services
                 var pciInfoProvider = new PciInfoProvider();
                 pciInfoProvider.EnsureInitializedAsync().Wait();
 
-                List<GPUInfo> gpuList = new List<GPUInfo>();
-
-                var gpulinked = Utils.Run("Get-WmiObject -Class Win32_VideoController | select PNPDeviceID,name,AdapterCompatibility,DriverVersion");
+                var gpuList = new List<GPUInfo>();
+                var gpulinked = Utils.Run(GetGpuWmiInfoScript);
                 if (gpulinked.Count > 0)
                 {
                     foreach (var gpu in gpulinked)
                     {
                         string name = gpu.Members["name"]?.Value.ToString();
                         string instanceId = gpu.Members["PNPDeviceID"]?.Value.ToString();
-                        string Manu = gpu.Members["AdapterCompatibility"]?.Value.ToString();
-                        string DriverVersion = gpu.Members["DriverVersion"]?.Value.ToString();
+                        string manu = gpu.Members["AdapterCompatibility"]?.Value.ToString();
+                        string driverVersion = gpu.Members["DriverVersion"]?.Value.ToString();
                         string vendor = pciInfoProvider.GetVendorFromInstanceId(instanceId);
                         if (vendor == "Unknown") { continue; }
-                        gpuList.Add(new GPUInfo(name, "True", Manu, instanceId, null, null, DriverVersion, vendor));
+                        gpuList.Add(new GPUInfo(name, "True", manu, instanceId, null, null, driverVersion, vendor));
                     }
                 }
 
-                bool hyperv = Utils.Run("Get-Module -ListAvailable -Name Hyper-V").Count > 0;
-                if (!hyperv)
+                bool hasHyperV = Utils.Run(CheckHyperVModuleScript).Count > 0;
+                if (!hasHyperV)
                 {
                     return gpuList;
                 }
 
-                string script = $@"
-Get-ItemProperty -Path ""HKLM:\SYSTEM\ControlSet001\Control\Class\{{4d36e968-e325-11ce-bfc1-08002be10318}}\0*"" -ErrorAction SilentlyContinue |
-    Select-Object MatchingDeviceId,
-          @{{Name='MemorySize'; Expression={{
-              if ($_. ""HardwareInformation.qwMemorySize"") {{
-                  $_.""HardwareInformation.qwMemorySize""
-              }} 
-              elseif ($_. ""HardwareInformation.MemorySize"" -and $_.""HardwareInformation.MemorySize"" -isnot [byte[]]) {{
-                  $_.""HardwareInformation.MemorySize""
-              }}
-              else {{
-                  $null
-              }}
-          }}}} |
-    Where-Object {{ $_.MemorySize -ne $null -and $_.MemorySize -gt 0 }}
-";
-                var gpuram = Utils.Run(script);
+                var gpuram = Utils.Run(GetGpuRamScript);
                 if (gpuram.Count > 0)
                 {
                     foreach (var existingGpu in gpuList)
@@ -75,10 +79,10 @@ Get-ItemProperty -Path ""HKLM:\SYSTEM\ControlSet001\Control\Class\{{4d36e968-e32
                     }
                 }
 
-                var result3 = Utils.Run("Get-VMHostPartitionableGpu | select name");
-                if (result3.Count > 0)
+                var partitionableGpus = Utils.Run(GetPartitionableGpusScript);
+                if (partitionableGpus.Count > 0)
                 {
-                    foreach (var gpu in result3)
+                    foreach (var gpu in partitionableGpus)
                     {
                         string pname = gpu.Members["Name"]?.Value.ToString();
                         var existingGpu = gpuList.FirstOrDefault(g => pname.ToUpper().Contains(g.InstanceId.Replace("\\", "#")));
@@ -96,14 +100,13 @@ Get-ItemProperty -Path ""HKLM:\SYSTEM\ControlSet001\Control\Class\{{4d36e968-e32
         {
             return Task.Run(() =>
             {
-                List<VMInfo> vmList = new List<VMInfo>();
-                var vms = Utils.Run("Get-VM | Select vmname,LowMemoryMappedIoSpace,GuestControlledCacheTypes,HighMemoryMappedIoSpace");
-
+                var vmList = new List<VMInfo>();
+                var vms = Utils.Run(GetVmsScript);
                 if (vms.Count > 0)
                 {
                     foreach (var vm in vms)
                     {
-                        Dictionary<string, string> gpulist = new Dictionary<string, string>();
+                        var gpulist = new Dictionary<string, string>();
                         string vmname = vm.Members["VMName"]?.Value.ToString();
                         string highmmio = vm.Members["HighMemoryMappedIoSpace"]?.Value.ToString();
                         string guest = vm.Members["GuestControlledCacheTypes"]?.Value.ToString();
@@ -130,86 +133,78 @@ Get-ItemProperty -Path ""HKLM:\SYSTEM\ControlSet001\Control\Class\{{4d36e968-e32
             return Task.Run(() =>
             {
                 string harddiskpath = null;
+                bool isVhdMounted = false;
                 try
                 {
                     var vmStateResult = Utils.Run($"(Get-VM -Name '{vmName}').State");
                     if (vmStateResult == null || vmStateResult.Count == 0) return $"错误: 无法获取虚拟机 '{vmName}' 的状态。";
-                    if (vmStateResult[0].ToString() != "Off")
-                    {
-                        return "running";
-                    }
+                    if (vmStateResult[0].ToString() != "Off") return "running";
 
                     string vmConfigScript = $@"
                         Set-VM -GuestControlledCacheTypes $true -VMName '{vmName}'
                         Set-VM -HighMemoryMappedIoSpace 64GB –VMName '{vmName}'
-                        Set-VM -LowMemoryMappedIoSpace 128MB -VMName '{vmName}'
+                        Set-VM -LowMemoryMappedIoSpace 1GB -VMName '{vmName}'
                         Add-VMGpuPartitionAdapter -VMName '{vmName}' -InstancePath '{gpuInstancePath}'
-                        Set-VMGpuPartitionAdapter -VMName '{vmName}' -MinPartitionVRAM 80000000 -MaxPartitionVRAM 100000000 -OptimalPartitionVRAM 100000000 -MinPartitionEncode 80000000 -MaxPartitionEncode 100000000 -OptimalPartitionEncode 100000000 -MinPartitionDecode 80000000 -MaxPartitionDecode 100000000 -OptimalPartitionDecode 100000000 -MinPartitionCompute 80000000 -MaxPartitionCompute 100000000 -OptimalPartitionCompute 100000000
                     ";
-                    if (Utils.Run(vmConfigScript) == null)
-                    {
-                        return "错误：GPU分区参数设定失败。";
-                    }
+                    Utils.Run(vmConfigScript);
 
                     var harddiskPathResult = Utils.Run($"(Get-VMHardDiskDrive -vmname '{vmName}')[0].Path");
-                    if (harddiskPathResult == null || harddiskPathResult.Count == 0)
-                    {
-                        return $"错误: 无法获取虚拟机 '{vmName}' 的硬盘路径。";
-                    }
+                    if (harddiskPathResult == null || harddiskPathResult.Count == 0) return $"错误: 无法获取虚拟机 '{vmName}' 的硬盘路径。";
                     harddiskpath = harddiskPathResult[0].ToString();
 
-                    var mountScript = @$"
-                        $regPath = ""HKCU:\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer""; $regKey = ""NoDriveTypeAutoRun"";
-                        $originalValue = Get-ItemProperty -Path $regPath -Name $regKey -ErrorAction SilentlyContinue;
-                        try {{
-                            if (-not (Test-Path $regPath)) {{ New-Item -Path $regPath -Force | Out-Null }};
-                            Set-ItemProperty -Path $regPath -Name $regKey -Value 255 -Type DWord -Force;
-                            $VHD = Mount-VHD -Path '{harddiskpath}' -PassThru -ErrorAction Stop;
-                            Start-Sleep -Seconds 1;
-                            $VHD | Get-Disk | Get-Partition | Where-Object {{ -not $_.DriveLetter }} | Add-PartitionAccessPath -AssignDriveLetter | Out-Null;
-                            $volumes = $VHD | Get-Disk | Get-Partition | Get-Volume;
-                            foreach ($volume in $volumes) {{
-                                if ($volume.DriveLetter -and (Test-Path ""$($volume.DriveLetter):\Windows\System32\config\SYSTEM"")) {{
-                                    Write-Output $volume.DriveLetter;
-                                    break;
-                                }}
-                            }}
-                        }} finally {{
-                            if ($originalValue) {{ Set-ItemProperty -Path $regPath -Name $regKey -Value $originalValue.$regKey -Force; }}
-                            else {{ Remove-ItemProperty -Path $regPath -Name $regKey -Force -ErrorAction SilentlyContinue; }}
-                        }}";
+                    var mountResult = Utils.Run2($"Mount-VHD -Path '{harddiskpath}' -PassThru");
+                    if (mountResult == null) return $"错误: 挂载硬盘 '{harddiskpath}' 失败。";
+                    isVhdMounted = true;
 
-                    var letterResult = Utils.Run(mountScript);
-                    if (letterResult == null || letterResult.Count == 0)
-                    {
-                        Utils.Run($"Dismount-VHD -Path '{harddiskpath}' -ErrorAction SilentlyContinue");
-                        return $"错误: 挂载硬盘 '{harddiskpath}' 或查找其中的系统分区失败。";
-                    }
+                    var findSystemDriveScript = @$"
+                        $VHD = Get-VHD -Path '{harddiskpath}';
+                        Start-Sleep -Seconds 1;
+                        $VHD | Get-Disk | Get-Partition | Where-Object {{ -not $_.DriveLetter }} | Add-PartitionAccessPath -AssignDriveLetter | Out-Null;
+                        $volumes = $VHD | Get-Disk | Get-Partition | Get-Volume;
+                        foreach ($volume in $volumes) {{
+                            if ($volume.DriveLetter -and (Test-Path ""$($volume.DriveLetter):\Windows\System32\config\SYSTEM"")) {{
+                                Write-Output $volume.DriveLetter;
+                                break;
+                            }}
+                        }}";
+                    var letterResult = Utils.Run(findSystemDriveScript);
+                    if (letterResult == null || letterResult.Count == 0) return $"错误: 在挂载的硬盘 '{harddiskpath}' 中查找系统分区失败。";
                     string letter = letterResult[0].ToString();
 
                     string sourceFolder = @"C:\Windows\System32\DriverStore\FileRepository";
                     string destinationFolder = letter + @":\Windows\System32\HostDriverStore\FileRepository";
 
-                    if (!Directory.Exists(destinationFolder)) { Directory.CreateDirectory(destinationFolder); }
+                    if (Directory.Exists(destinationFolder))
+                    {
+                        try { RemoveReadOnlyAttribute(destinationFolder); }
+                        catch (Exception ex) { return $"错误：尝试移除旧驱动文件夹只读属性失败: {ex.Message}"; }
+                    }
+                    else
+                    {
+                        Directory.CreateDirectory(destinationFolder);
+                    }
 
-                    var process = new Process
+                    Process robocopyProcess = new()
                     {
                         StartInfo = {
                             FileName = "robocopy",
-                            Arguments = $"\"{sourceFolder}\" \"{destinationFolder}\" /MIR /NP /NJH /NFL /NDL",
+                            Arguments = $"\"{sourceFolder}\" \"{destinationFolder}\" /E /R:2 /W:5 /NP /NJH /NFL /NDL",
                             UseShellExecute = false,
                             RedirectStandardOutput = true,
                             CreateNoWindow = true
                         }
                     };
-                    process.Start();
-                    process.WaitForExit();
+                    robocopyProcess.Start();
+                    robocopyProcess.WaitForExit();
+
+                    if (robocopyProcess.ExitCode >= 8) return $"错误：robocopy 驱动文件复制失败，退出代码: {robocopyProcess.ExitCode}";
 
                     SetFolderReadOnly(destinationFolder);
 
                     if (gpuManu.Contains("NVIDIA"))
                     {
-                        NvidiaReg(letter + ":");
+                        string regResult = NvidiaReg(letter + ":");
+                        if (regResult != "OK") return regResult;
                     }
 
                     return "OK";
@@ -220,7 +215,7 @@ Get-ItemProperty -Path ""HKLM:\SYSTEM\ControlSet001\Control\Class\{{4d36e968-e32
                 }
                 finally
                 {
-                    if (!string.IsNullOrEmpty(harddiskpath))
+                    if (isVhdMounted && !string.IsNullOrEmpty(harddiskpath))
                     {
                         Utils.Run($"Dismount-VHD -Path '{harddiskpath}' -ErrorAction SilentlyContinue");
                     }
@@ -237,36 +232,103 @@ Get-ItemProperty -Path ""HKLM:\SYSTEM\ControlSet001\Control\Class\{{4d36e968-e32
             });
         }
 
+        private string NvidiaReg(string letter)
+        {
+            // 为NVIDIA显卡注入注册表信息，模拟DDA的驱动注入过程。
+            string tempRegFile = Path.Combine(Path.GetTempPath(), $"nvlddmkm_{Guid.NewGuid()}.reg");
+            string systemHiveFile = $@"{letter}\Windows\System32\Config\SYSTEM";
+
+            try
+            {
+                ExecuteCommand($"reg unload HKLM\\OfflineSystem");
+
+                string localKeyPath = @"HKLM\SYSTEM\CurrentControlSet\Services\nvlddmkm";
+                if (ExecuteCommand($@"reg export ""{localKeyPath}"" ""{tempRegFile}"" /y") != 0) return "错误：导出本机注册表信息失败。";
+                if (ExecuteCommand($@"reg load HKLM\OfflineSystem ""{systemHiveFile}""") != 0) return "错误：离线加载虚拟机注册表失败。请确保程序以管理员权限运行。";
+
+                string originalText = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\nvlddmkm";
+                string targetText = @"HKEY_LOCAL_MACHINE\OfflineSystem\ControlSet001\Services\nvlddmkm";
+                string regContent = File.ReadAllText(tempRegFile);
+                regContent = regContent.Replace(originalText, targetText);
+                regContent = regContent.Replace("DriverStore", "HostDriverStore");
+                File.WriteAllText(tempRegFile, regContent);
+                ExecuteCommand($@"reg import ""{tempRegFile}""");
+
+                return "OK";
+            }
+            catch (Exception ex)
+            {
+                return $"错误：处理NVIDIA注册表时发生异常: {ex.Message}";
+            }
+            finally
+            {
+                ExecuteCommand($"reg unload HKLM\\OfflineSystem");
+                if (File.Exists(tempRegFile))
+                {
+                    File.Delete(tempRegFile);
+                }
+            }
+        }
+
+        private int ExecuteCommand(string command)
+        {
+            try
+            {
+                Process process = new()
+                {
+                    StartInfo =
+                    {
+                        FileName = "cmd.exe",
+                        Arguments = $"/c {command}",
+                        UseShellExecute = false,
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true,
+                        CreateNoWindow = true
+                    }
+                };
+                process.Start();
+                process.WaitForExit();
+                return process.ExitCode;
+            }
+            catch
+            {
+                return -1;
+            }
+        }
+
         private void SetFolderReadOnly(string folderPath)
         {
-            DirectoryInfo directoryInfo = new DirectoryInfo(folderPath);
-            directoryInfo.Attributes |= FileAttributes.ReadOnly;
-
-            foreach (var subDir in directoryInfo.GetDirectories())
+            var dirInfo = new DirectoryInfo(folderPath);
+            dirInfo.Attributes |= FileAttributes.ReadOnly;
+            foreach (var subDir in dirInfo.GetDirectories())
             {
                 SetFolderReadOnly(subDir.FullName);
             }
-            foreach (var file in directoryInfo.GetFiles())
+            foreach (var file in dirInfo.GetFiles())
             {
                 file.Attributes |= FileAttributes.ReadOnly;
             }
         }
 
-        private void NvidiaReg(string letter)
+        private void RemoveReadOnlyAttribute(string path)
         {
-            string localKeyPath = @"HKLM\SYSTEM\CurrentControlSet\Services\nvlddmkm";
-            string tempRegFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "nvlddmkm.reg");
-            Utils.Run($@"reg export ""{localKeyPath}"" ""{tempRegFile}"" /y");
-            string systemHiveFile = $@"{letter}\Windows\System32\Config\SYSTEM";
-            Utils.Run($@"reg load HKLM\OfflineSystem ""{systemHiveFile}""");
-            string originalText = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\nvlddmkm";
-            string targetText = @"HKEY_LOCAL_MACHINE\OfflineSystem\ControlSet001\Services\nvlddmkm";
-            string regContent = File.ReadAllText(tempRegFile);
-            regContent = regContent.Replace(originalText, targetText);
-            regContent = regContent.Replace("DriverStore", "HostDriverStore");
-            File.WriteAllText(tempRegFile, regContent);
-            Utils.Run($@"reg import ""{tempRegFile}""");
-            Utils.Run("reg unload HKLM\\OfflineSystem");
+            if (Directory.Exists(path))
+            {
+                RemoveReadOnlyAttribute(new DirectoryInfo(path));
+            }
+        }
+
+        private void RemoveReadOnlyAttribute(DirectoryInfo dirInfo)
+        {
+            dirInfo.Attributes &= ~FileAttributes.ReadOnly;
+            foreach (var subDir in dirInfo.GetDirectories())
+            {
+                RemoveReadOnlyAttribute(subDir);
+            }
+            foreach (var file in dirInfo.GetFiles())
+            {
+                file.Attributes &= ~FileAttributes.ReadOnly;
+            }
         }
     }
 }

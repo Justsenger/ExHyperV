@@ -11,7 +11,7 @@
     xmlns:local="clr-namespace:ExHyperV.Views.Pages"
     xmlns:sys="clr-namespace:System.Windows.Controls;assembly=PresentationFramework"
     Title="GPUPage"
-    d:DataContext="{d:DesignInstance Type=local:GPUPage, IsDesignTimeCreatable=True}"
+    d:DataContext="{d:DesignInstance Type=viewmodels:GPUPageViewModel, IsDesignTimeCreatable=True}"
     mc:Ignorable="d">
 
     <Page.Resources>
