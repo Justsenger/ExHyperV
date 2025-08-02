@@ -10,7 +10,8 @@
     Title="StatusPage"
     d:DesignHeight="700"
     d:DesignWidth="1000"
-    mc:Ignorable="d">
+    mc:Ignorable="d"
+    Loaded="Page_Loaded">
 
 
 
@@ -145,7 +146,7 @@
 
             <ui:CardControl Grid.Row="2" Margin="0,10,0,0" Padding="12">
                 <ui:CardControl.Icon>
-                    <ui:FontIcon FontSize="24" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xE932;"/>
+                    <ui:FontIcon FontSize="24" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xEC4A;"/>
                 </ui:CardControl.Icon>
                 <ui:CardControl.Header>
                     <Grid>
@@ -163,11 +164,11 @@
                         </Grid>
 
                         <ui:ToggleSwitch
-        x:Name="Turbo"
+        x:Name="TurboToggleSwitch"
+        Click="OnTurboToggleSwitchClicked"
         Grid.Column="1"
         Margin="0,0,0,1"
-        Checked="onturbo"
-        Unchecked="offturbo" VerticalAlignment="Bottom"
+       VerticalAlignment="Bottom"
         />
                     </Grid>
                 </ui:CardControl.Header>

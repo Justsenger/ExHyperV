@@ -14,6 +14,7 @@
         <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
         <PackageReference Include="Microsoft.PowerShell.SDK" Version="7.4.0" />
         <PackageReference Include="System.Management.Automation" Version="7.4.0" />
+        <PackageReference Include="TaskScheduler" Version="2.12.2" />
         <PackageReference Include="WPF-UI" Version="4.0.0" />
         <PackageReference Include="WPF-UI.Tray" Version="4.0.0" />
     </ItemGroup>
@@ -27,6 +28,13 @@
     </ItemGroup>
 
     <ItemGroup>
+      <Resource Remove="Assets\AutoTurboBoost.ps1" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Content Include="Assets\AutoTurboBoost.ps1">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </Content>
       <Content Include="Assets\pci.ids">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       </Content>
