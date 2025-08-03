@@ -3,20 +3,23 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-    xmlns:local="clr-namespace:ExHyperV.Views.Pages"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
     xmlns:properties="clr-namespace:ExHyperV.Properties"
+    xmlns:vm="clr-namespace:ExHyperV.ViewModels"
+    mc:Ignorable="d"
+    d:DataContext="{d:DesignInstance Type=vm:SettingsViewModel, IsDesignTimeCreatable=True}"
     Title="Setting"
     d:DesignHeight="700"
-    d:DesignWidth="1000"
-    mc:Ignorable="d">
-    
+    d:DesignWidth="1000">
+
     <StackPanel Margin="15,15,15,24">
         <ui:TextBlock
             Margin="0,0,0,8"
             FontTypography="BodyStrong"
+            Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"
             Text="{x:Static properties:Resources.Settings}" />
+
         <ui:CardControl Margin="0,0,0,12" Icon="{ui:SymbolIcon Color24}">
             <ui:CardControl.Header>
                 <Grid>
@@ -24,24 +27,15 @@
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
-                    <ui:TextBlock
-                        Grid.Row="0"
-                        FontTypography="Body"
-                        Text="{x:Static properties:Resources.theme}" />
-                    <ui:TextBlock
-                        Grid.Row="1"
-                        Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"
-                        Text="{x:Static properties:Resources.switchtheme}" />
+                    <ui:TextBlock Grid.Row="0" FontTypography="Body" Text="{x:Static properties:Resources.theme}" />
+                    <ui:TextBlock Grid.Row="1" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" Text="{x:Static properties:Resources.switchtheme}" />
                 </Grid>
             </ui:CardControl.Header>
             <ComboBox
-                x:Name="ThemeComboBox"
                 Grid.Column="1"
                 MinWidth="200"
-                SelectionChanged="OnThemeSelectionChanged">
-                <ComboBoxItem Content="{x:Static properties:Resources.light}" />
-                <ComboBoxItem Content="{x:Static properties:Resources.dark}" />
-            </ComboBox>
+                ItemsSource="{Binding AvailableThemes}"
+                SelectedItem="{Binding SelectedTheme}" />
         </ui:CardControl>
 
         <ui:CardControl Margin="0,0,0,12" Icon="{ui:SymbolIcon Globe24}">
@@ -51,31 +45,24 @@
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
-                    <ui:TextBlock
-                        Grid.Row="0"
-                        FontTypography="Body"
-                        Text="{x:Static properties:Resources.language}" />
-                    <ui:TextBlock
-                        Grid.Row="1"
-                        Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"
-                        Text="{x:Static properties:Resources.reboot}" />
+                    <ui:TextBlock Grid.Row="0" FontTypography="Body" Text="{x:Static properties:Resources.language}" />
+                    <ui:TextBlock Grid.Row="1" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" Text="{x:Static properties:Resources.reboot}" />
                 </Grid>
             </ui:CardControl.Header>
             <ComboBox
-                x:Name="LanguageComboBox"
                 Grid.Column="1"
                 MinWidth="200"
-                SelectionChanged="OnLanguageSelectionChanged">
-                <ComboBoxItem Content="中文" />
-                <ComboBoxItem Content="English" />
-            </ComboBox>
+                ItemsSource="{Binding AvailableLanguages}"
+                SelectedItem="{Binding SelectedLanguage}" />
         </ui:CardControl>
 
 
         <ui:TextBlock
             Margin="0,24,0,8"
             FontTypography="BodyStrong"
+            Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"
             Text="{x:Static properties:Resources.about}" />
+
         <ui:CardExpander ContentPadding="0" Icon="{ui:SymbolIcon Layer24}" IsExpanded="True">
             <ui:CardExpander.Header>
                 <Grid>
@@ -83,25 +70,12 @@
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <ui:TextBlock
-                        Grid.Row="0"
-                        Grid.Column="0"
-                        FontTypography="Body"
-                        Text="ExHyperV" />
-                    <ui:TextBlock
-                        Grid.Row="1"
-                        Grid.Column="0"
-                        Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"
-                        Text="© 2025 | Saniye" />
+                    <ui:TextBlock Grid.Row="0" FontTypography="Body" Text="{Binding AppVersion}" />
+                    <ui:TextBlock Grid.Row="1" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" Text="{Binding CopyrightInfo}" />
                 </Grid>
             </ui:CardExpander.Header>
             <StackPanel>
                 <ui:Anchor
-                    Margin="0"
                     Padding="16"
                     HorizontalAlignment="Stretch"
                     HorizontalContentAlignment="Stretch"
@@ -119,7 +93,6 @@
                     </Grid>
                 </ui:Anchor>
                 <ui:Anchor
-                    Margin="0"
                     Padding="16"
                     HorizontalAlignment="Stretch"
                     HorizontalContentAlignment="Stretch"
@@ -139,6 +112,4 @@
             </StackPanel>
         </ui:CardExpander>
     </StackPanel>
-
-
 </Page>
