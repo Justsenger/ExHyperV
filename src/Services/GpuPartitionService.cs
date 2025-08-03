@@ -107,17 +107,17 @@ namespace ExHyperV.Services
                     foreach (var vm in vms)
                     {
                         var gpulist = new Dictionary<string, string>();
-                        string vmname = vm.Members["VMName"]?.Value.ToString();
-                        string highmmio = vm.Members["HighMemoryMappedIoSpace"]?.Value.ToString();
-                        string guest = vm.Members["GuestControlledCacheTypes"]?.Value.ToString();
+                        string vmname = vm.Members["VMName"]?.Value?.ToString() ?? string.Empty;
+                        string highmmio = vm.Members["HighMemoryMappedIoSpace"]?.Value?.ToString() ?? string.Empty;
+                        string guest = vm.Members["GuestControlledCacheTypes"]?.Value?.ToString() ?? string.Empty;
 
                         var vmgpus = Utils.Run($@"Get-VMGpuPartitionAdapter -VMName '{vmname}' | Select InstancePath,Id");
                         if (vmgpus.Count > 0)
                         {
                             foreach (var gpu in vmgpus)
                             {
-                                string gpupath = gpu.Members["InstancePath"]?.Value.ToString();
-                                string gpuid = gpu.Members["Id"]?.Value.ToString();
+                                string gpupath = gpu.Members["InstancePath"]?.Value?.ToString() ?? string.Empty;
+                                string gpuid = gpu.Members["Id"]?.Value?.ToString() ?? string.Empty;
                                 gpulist[gpuid] = gpupath;
                             }
                         }
