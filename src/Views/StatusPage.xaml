@@ -3,120 +3,106 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-    xmlns:local="clr-namespace:ExHyperV.Views.Pages"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
     xmlns:properties="clr-namespace:ExHyperV.Properties"
+    xmlns:local="clr-namespace:ExHyperV.Views.Pages"
+    xmlns:converters="clr-namespace:ExHyperV.Converters"
     Title="StatusPage"
     d:DesignHeight="700"
     d:DesignWidth="1000"
-    mc:Ignorable="d"
-    Loaded="Page_Loaded">
+    mc:Ignorable="d">
 
-
+    <Page.Resources>
+        <converters:BooleanToVisibilityConverter x:Key="BoolToVis" />
+    </Page.Resources>
 
     <Grid Margin="20" VerticalAlignment="Top">
-
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
+        <StackPanel Grid.Row="0" Margin="0,0,0,8">
+            <ui:TextBlock Text="{x:Static properties:Resources.complicate}" FontSize="36" Margin="0,0,0,8"
+                          Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" />
 
-        <StackPanel Margin="0,0,0,8">
-            <ui:TextBlock
-                            Margin="0,0,0,8"
-                            Text="{x:Static properties:Resources.complicate}"
-                            FontSize="36"
-                            Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"></ui:TextBlock>
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="52"/>
-                    <RowDefinition Height="52"/>
-                    <RowDefinition Height="52"/>
-                    <RowDefinition Height="52"/>
-                    <RowDefinition Height="52"/>
-                    <RowDefinition Height="52"/>
-                </Grid.RowDefinitions>
-
-                <ui:Card Grid.Row="0" Padding="12">
-                    <Grid x:Name="status1">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="auto"/>
-                            <ColumnDefinition Width="278*"/>
-                            <ColumnDefinition Width="637*"/>
-                        </Grid.ColumnDefinitions>
-                        <ui:ProgressRing x:Name="progressRing1"  IsIndeterminate="True" Width="16" Height="16" Margin="0,2,0,3"/>
-                        <TextBlock Grid.Column="1" x:Name="win" Margin="10,0,0,0" Text="{x:Static properties:Resources.checksys}" FontSize="16" Grid.ColumnSpan="2"/>
-                    </Grid>
-                </ui:Card>
-
-                <ui:Card Grid.Row="1" Padding="12">
-                    <Grid x:Name="status2">
+            <StackPanel>
+                <ui:Card Padding="12" Margin="0,0,0,2">
+                    <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="auto"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-                        <ui:ProgressRing x:Name="progressRing2"  IsIndeterminate="True" Width="16" Height="16"/>
-                        <TextBlock Grid.Column="1" x:Name="cpu" Margin="10,0,0,0" Text="{x:Static properties:Resources.checkcpuct}" FontSize="16"/>
+                        <ui:ProgressRing Width="16" Height="16" IsIndeterminate="True" Visibility="{Binding SystemStatus.IsChecking, Converter={StaticResource BoolToVis}}"/>
+                        <ui:FontIcon FontSize="20" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="{Binding SystemStatus.IconGlyph}" Foreground="{Binding SystemStatus.IconColor}" Visibility="{Binding SystemStatus.IsChecking, Converter={StaticResource BoolToVis}, ConverterParameter=Invert}"/>
+                        <TextBlock Grid.Column="1" Text="{Binding SystemStatus.StatusText}" FontSize="16" Margin="10,0,0,0" VerticalAlignment="Center"/>
                     </Grid>
                 </ui:Card>
-
-                <ui:Card Grid.Row="2" Padding="12">
-                    <Grid x:Name="status3">
+                <ui:Card Padding="12" Margin="0,0,0,2">
+                    <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="auto"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-                        <ui:ProgressRing x:Name="progressRing3"  IsIndeterminate="True" Width="16" Height="16"/>
-                        <TextBlock Grid.Column="1" x:Name="hyperv" Margin="10,0,0,0" Text="{x:Static properties:Resources.checkhyperv}" FontSize="16"/>
+                        <ui:ProgressRing Width="16" Height="16" IsIndeterminate="True" Visibility="{Binding CpuStatus.IsChecking, Converter={StaticResource BoolToVis}}"/>
+                        <ui:FontIcon FontSize="20" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="{Binding CpuStatus.IconGlyph}" Foreground="{Binding CpuStatus.IconColor}" Visibility="{Binding CpuStatus.IsChecking, Converter={StaticResource BoolToVis}, ConverterParameter=Invert}"/>
+                        <TextBlock Grid.Column="1" Text="{Binding CpuStatus.StatusText}" FontSize="16" Margin="10,0,0,0" VerticalAlignment="Center"/>
                     </Grid>
                 </ui:Card>
-
-                <ui:Card Grid.Row="3" Padding="12">
-                    <Grid x:Name="status4">
+                <ui:Card Padding="12" Margin="0,0,0,2">
+                    <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="auto"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-                        <ui:ProgressRing x:Name="progressRing4"  IsIndeterminate="True" Width="16" Height="16"/>
-                        <TextBlock Grid.Column="1" x:Name="admin" Margin="10,0,0,0" Text="{x:Static properties:Resources.checkadmin}" FontSize="16"/>
+                        <ui:ProgressRing Width="16" Height="16" IsIndeterminate="True" Visibility="{Binding HyperVStatus.IsChecking, Converter={StaticResource BoolToVis}}"/>
+                        <ui:FontIcon FontSize="20" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="{Binding HyperVStatus.IconGlyph}" Foreground="{Binding HyperVStatus.IconColor}" Visibility="{Binding HyperVStatus.IsChecking, Converter={StaticResource BoolToVis}, ConverterParameter=Invert}"/>
+                        <TextBlock Grid.Column="1" Text="{Binding HyperVStatus.StatusText}" FontSize="16" Margin="10,0,0,0" VerticalAlignment="Center"/>
                     </Grid>
                 </ui:Card>
-
-                <ui:Card Grid.Row="4" Padding="12">
-                    <Grid x:Name="status5">
+                <ui:Card Padding="12" Margin="0,0,0,2">
+                    <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="auto"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-                        <ui:ProgressRing x:Name="progressRing5"  IsIndeterminate="True" Width="16" Height="16"/>
-                        <TextBlock Grid.Column="1" x:Name="version" Margin="10,0,0,0" Text="{x:Static properties:Resources.checkversion}" FontSize="16"/>
+                        <ui:ProgressRing Width="16" Height="16" IsIndeterminate="True" Visibility="{Binding AdminStatus.IsChecking, Converter={StaticResource BoolToVis}}"/>
+                        <ui:FontIcon FontSize="20" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="{Binding AdminStatus.IconGlyph}" Foreground="{Binding AdminStatus.IconColor}" Visibility="{Binding AdminStatus.IsChecking, Converter={StaticResource BoolToVis}, ConverterParameter=Invert}"/>
+                        <TextBlock Grid.Column="1" Text="{Binding AdminStatus.StatusText}" FontSize="16" Margin="10,0,0,0" VerticalAlignment="Center"/>
                     </Grid>
                 </ui:Card>
-
-                <ui:Card Grid.Row="5" Padding="12">
-                    <Grid x:Name="status6">
+                <ui:Card Padding="12" Margin="0,0,0,2">
+                    <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="auto"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-                        <ui:ProgressRing x:Name="progressRing6"  IsIndeterminate="True" Width="16" Height="16"/>
-                        <TextBlock Grid.Column="1" x:Name="iommu" Margin="10,0,0,0" Text="检测BIOS设置：IOMMU..." FontSize="16"/>
+                        <ui:ProgressRing Width="16" Height="16" IsIndeterminate="True" Visibility="{Binding VersionStatus.IsChecking, Converter={StaticResource BoolToVis}}"/>
+                        <ui:FontIcon FontSize="20" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="{Binding VersionStatus.IconGlyph}" Foreground="{Binding VersionStatus.IconColor}" Visibility="{Binding VersionStatus.IsChecking, Converter={StaticResource BoolToVis}, ConverterParameter=Invert}"/>
+                        <TextBlock Grid.Column="1" Text="{Binding VersionStatus.StatusText}" FontSize="16" Margin="10,0,0,0" VerticalAlignment="Center"/>
                     </Grid>
                 </ui:Card>
-
-            </Grid>
+                <ui:Card Padding="12" Margin="0,0,0,2">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <ui:ProgressRing Width="16" Height="16" IsIndeterminate="True" Visibility="{Binding IommuStatus.IsChecking, Converter={StaticResource BoolToVis}}"/>
+                        <ui:FontIcon FontSize="20" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="{Binding IommuStatus.IconGlyph}" Foreground="{Binding IommuStatus.IconColor}" Visibility="{Binding IommuStatus.IsChecking, Converter={StaticResource BoolToVis}, ConverterParameter=Invert}"/>
+                        <TextBlock Grid.Column="1" Text="{Binding IommuStatus.StatusText}" FontSize="16" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                    </Grid>
+                </ui:Card>
+            </StackPanel>
         </StackPanel>
 
+        <StackPanel Grid.Row="1" Margin="0,0,0,8">
+            <ui:TextBlock Text="{x:Static properties:Resources.checksetting}" FontSize="36" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
 
-        <StackPanel Margin="0,0,0,8" Grid.Row="1">
-
-            <ui:TextBlock Text="{x:Static properties:Resources.checksetting}" FontSize="36" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"></ui:TextBlock>
-
-            <ui:CardControl Grid.Row="1" Margin="0,10,0,0" Padding="12">
+            <ui:CardControl Margin="0,10,0,0" Padding="12">
                 <ui:CardControl.Icon>
-                    <ui:FontIcon FontSize="24" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xE932;"/>
+                    <ui:FontIcon FontSize="24" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph=""/>
                 </ui:CardControl.Icon>
                 <ui:CardControl.Header>
                     <Grid>
@@ -124,29 +110,20 @@
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="auto"/>
                         </Grid.ColumnDefinitions>
-                        <Grid>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                            </Grid.RowDefinitions>
-                            <TextBlock Text="{x:Static properties:Resources.disablereg}" VerticalAlignment="Center"/>
-                            <ui:TextBlock Grid.Row="1" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" Text="RequireSecureDeviceAssignment=0 RequireSupportedDeviceAssignment=0" />
-                        </Grid>
-                        
-                        <ui:ToggleSwitch
-                    x:Name="gpustrategy"
-                    Grid.Column="1"
-                    Margin="0,0,0,1"
-                    Checked="addgs"
-                    Unchecked="deletegs" VerticalAlignment="Bottom"
-                    />
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Text="{x:Static properties:Resources.disablereg}"/>
+                            <ui:TextBlock Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" Text="RequireSecureDeviceAssignment=0 RequireSupportedDeviceAssignment=0" />
+                        </StackPanel>
+                        <ui:ToggleSwitch Grid.Column="1" Margin="0,0,0,1" VerticalAlignment="Bottom"
+                                         IsChecked="{Binding IsGpuStrategyEnabled, Mode=TwoWay}"
+                                         IsEnabled="{Binding IsGpuStrategyToggleEnabled}"/>
                     </Grid>
                 </ui:CardControl.Header>
             </ui:CardControl>
 
-            <ui:CardControl Grid.Row="2" Margin="0,10,0,0" Padding="12">
+            <ui:CardControl Margin="0,10,0,0" Padding="12">
                 <ui:CardControl.Icon>
-                    <ui:FontIcon FontSize="24" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xEC4A;"/>
+                    <ui:FontIcon FontSize="24" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph=""/>
                 </ui:CardControl.Icon>
                 <ui:CardControl.Header>
                     <Grid>
@@ -154,28 +131,15 @@
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="auto"/>
                         </Grid.ColumnDefinitions>
-                        <Grid>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                            </Grid.RowDefinitions>
-                            <TextBlock Text="Hyper-V 自动睿频" VerticalAlignment="Center"/>
-                            <ui:TextBlock Grid.Row="1" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" Text="虚拟机高负载/低负载时，修改电源模式为高性能/节能。" />
-                        </Grid>
-
-                        <ui:ToggleSwitch
-        x:Name="TurboToggleSwitch"
-        Click="OnTurboToggleSwitchClicked"
-        Grid.Column="1"
-        Margin="0,0,0,1"
-       VerticalAlignment="Bottom"
-        />
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Text="Hyper-V 自动睿频"/>
+                            <ui:TextBlock Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" Text="虚拟机高负载/低负载时，修改电源模式为高性能/节能。" />
+                        </StackPanel>
+                        <ui:ToggleSwitch Grid.Column="1" Margin="0,0,0,1" VerticalAlignment="Bottom"
+                                         IsChecked="{Binding IsAutoTurboEnabled, Mode=TwoWay}"/>
                     </Grid>
                 </ui:CardControl.Header>
             </ui:CardControl>
-
         </StackPanel>
     </Grid>
-
-
 </Page>
