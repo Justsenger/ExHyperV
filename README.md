@@ -1,165 +1,190 @@
-# Discussion Group
-
-[Telegram](https://t.me/ExHyperV)
-
-# 文档/Document
-
-[中文](https://github.com/Justsenger/ExHyperV/blob/main/README_cn.md) | [English](https://github.com/Justsenger/ExHyperV)
-
 # ExHyperV
 
-A software that provides features such as DDA and GPU paravirtualization (GPU partitioning), allowing users to easily access advanced Hyper-V features.
+<div align="center">
 
-By effectively interpreting Microsoft Hyper-V documentation and conducting in-depth research on James' Easy-GPU-PV project, many issues have been fixed and improved. However, due to limited time and resources, further testing is still needed. If you encounter any issues with software or games not working, please report them!
+**A graphical management tool for advanced Hyper-V features, making it easy for anyone to master high-end functions like DDA and GPU-P.**
 
-# Download & Build
+</div>
 
-* Download: [Latest Version](https://github.com/Justsenger/ExHyperV/releases/latest)
+<p align="center">
+  <a href="https://github.com/Justsenger/ExHyperV/releases/latest"><img src="https://img.shields.io/github/v/release/Justsenger/ExHyperV.svg?style=flat-square" alt="Latest release"></a>
+  <a href="https://github.com/Justsenger/ExHyperV/releases"><img src="https://img.shields.io/github/downloads/Justsenger/ExHyperV/total.svg?style=flat-square" alt="Downloads"></a>
+  <a href="https://t.me/ExHyperV"><img src="https://img.shields.io/badge/discussion-Telegram-blue.svg?style=flat-square" alt="Telegram"></a>
+  <a href="https://github.com/Justsenger/ExHyperV/blob/main/LICENSE"><img src="https://img.shields.io/github/license/Justsenger/ExHyperV.svg?style=flat-square" alt="License"></a>
+</p>
 
-* Build: Install Visual Studio 2022, add C# and WPF, then open /src/ExHyperV.sln to start building your version.
+**English** | [中文](https://github.com/Justsenger/ExHyperV/blob/main/README_cn.md)
 
-# Interface Overview
+---
+
+ExHyperV is built upon in-depth research of official Microsoft documentation and the [Easy-GPU-PV](https://github.com/jamesstringerparsec/Easy-GPU-PV) project. It aims to fix and enhance existing solutions by providing a graphical, user-friendly configuration tool for advanced Hyper-V features.
+
+Due to limited personal time and resources, there may be untested scenarios. If you encounter any software or game compatibility issues, please feel free to report them via [Issues](https://github.com/Justsenger/ExHyperV/issues)!
+
+## ✨ Interface Overview
 
 ![Main Interface](https://github.com/Justsenger/ExHyperV/blob/main/img/1.png)
+<details>
+<summary>Click to see more screenshots</summary>
 
 ![Features](https://github.com/Justsenger/ExHyperV/blob/main/img/2.png)
-
 ![Features](https://github.com/Justsenger/ExHyperV/blob/main/img/3.png)
-
 ![Features](https://github.com/Justsenger/ExHyperV/blob/main/img/4.png)
-
 ![Features](https://github.com/Justsenger/ExHyperV/blob/main/img/5.png)
+![Features](https://github.com/Justsenger/ExHyperV/blob/main/img/various.png)
+*<p align="center">The tool has expanded GPU recognition capabilities, but whether a function can be enabled depends on the hardware itself.</p>*
 
-Yes, it even supports up to 8 types of graphics card recognition! But it may not be possible to activate the function...
+</details>
 
-![Function](https://github.com/Justsenger/ExHyperV/blob/main/img/various.png)
+## 🚀 Quick Start
 
-# Supported Windows Versions
+### 1. System Requirements
 
-### DDA
+#### DDA (Discrete Device Assignment)
+- Windows Server 2019 / 2022 / 2025
 
-* Windows Server 2016
-* Windows Server 2019
-* Windows Server 2022
-* Windows Server 2025
+#### GPU-P (GPU Partitioning / Paravirtualization)
+- Windows 11
+- Windows Server 2022
+- Windows Server 2025
 
-### GPU-PV
+> **Note**: This tool requires the host system to be **Build 22000 or newer**. This is because the `Add-VMGpuPartitionAdapter` cmdlet in older systems lacks the `InstancePath` parameter, making it impossible to precisely specify a GPU and potentially causing confusion. To simplify operations, please ensure your host system is updated.
 
-* Windows 11
-* Windows Server 2022
-* Windows Server 2025
+### 2. Download & Run
+- **Download**: Go to the [Releases page](https://github.com/Justsenger/ExHyperV/releases/latest) to download the latest version.
+- **Run**: Unzip the package and run `ExHyperV.exe`.
 
-For GPU-PV, this tool requires the host system to be version 22000 or above because Hyper-V components in versions below 22000 lack the InstancePath parameter in Add-VMGpuPartitionAdapter, preventing the specification of a specific GPU to virtualize. Therefore, please upgrade your host system for easier operation.
+### 3. Build (Optional)
+1. Install [Visual Studio 2022](https://visualstudio.microsoft.com/vs/) and ensure the .NET desktop development (C# and WPF) workload is installed.
+2. Clone this repository.
+3. Open `/src/ExHyperV.sln` with Visual Studio to compile the project.
 
-# DDA
+## 📌 Important Notes & Limitations
 
-### Introduction
+- It is recommended to assign a **fixed amount** of RAM to your virtual machines.
+- This tool supports both **Generation 1** and **Generation 2** virtual machines.
+- GPU-PV does **not** support the **checkpoint** feature.
+- A single physical GPU can only be used for either **DDA or GPU-P at a time**, not both simultaneously.
+- A virtual machine can use **both DDA and GPU-P at the same time** (e.g., passthrough one device with DDA while using GPU-P from another card).
+- A single physical GPU can create multiple GPU-P partitions for a **single virtual machine**, but the total performance remains unchanged.
+- A virtual machine can use GPU-P partitions from **multiple different physical GPUs** simultaneously.
 
-DDA stands for Discrete Device Assignment, which allows independent devices to be assigned to virtual machines. Devices are assigned based on the PCIe bus, such as GPUs, network cards, and USB controllers (CPU-direct, motherboard chipsets, or dedicated USB chips). If your device is not listed in the tool, it cannot be assigned directly, and you need to pass through the higher-level controller.
+---
 
-### DDA Device Status
-> There are three device states: Host State, Disassociated State, and Virtual State. Although this is not mentioned in Microsoft's documentation, understanding these states is crucial to avoid confusion.
+## Core Features Explained
 
-1. In Host State, the device is attached to the host system.
-2. Executing `Dismount-VMHostAssignableDevice` transitions the device to the Disassociated State (#Disassociated). However, if the device fails to be assigned to a virtual machine, it enters an intermediate state and may not be properly recognized by the host's device manager. You can either remount it to the host or attempt to assign it to the VM again.
-3. In Virtual State, the device is assigned to the virtual machine.
+### Ⅰ. DDA (Discrete Device Assignment)
 
-### DDA Graphics Card Compatibility (More Feedback Needed)
-> Compatibility needs to be checked after installation in the virtual machine. If you have more test cases, please let me know in the issues! Enhancing this table will help provide better guidance for selecting graphics cards.
+DDA (Discrete Device Assignment) allows you to assign a complete PCIe device (like a GPU, network card, or USB controller) directly to a virtual machine.
 
-| Brand | Model | Recognition | FLR | Physical Display Output |
-| ------- | ------- | -------- | ---- | ------------------------ |
-| Nvidia  | RTX 5090 |✔️ |✔️ | ✔️ |
-| Nvidia  | RTX 4090 |✔️ |✔️ | ✔️ |
-| Nvidia  | RTX 4070 |✔️ |✔️ | ✔️ |
-| Nvidia  | GT 1050 |✔️ |✔️ | ✔️ |
-| Nvidia  | GT 1030 |✔️ |✔️ | ✔️ |
-| Nvidia  | GT 210 |✔️ | ✔️ | ✖️ |
-| Intel   | Intel DG1 |✔️ | ✖️ | Specific driver✔️ |
-| Intel   | A380 |Code 43✖️ | ✖️ |✖️ |
+- **Device Compatibility**: If a device is not shown in the list, it means it cannot be assigned independently. You may need to assign its parent PCIe controller instead.
+- **GPU Support**:
+    - **Nvidia**: Generally works well.
+    - **AMD/Intel**: Not extensively tested. AMD consumer-grade GPUs may have issues due to a lack of support for [Function-Level Reset (FLR)](https://www.reddit.com/r/Amd/comments/jehkey/will_big_navi_support_function_level_reset_flr/). Feedback is welcome!
+- **VM Guest OS**: Windows is recommended, with no specific version restrictions. Linux is untested.
 
-1. Recognition: After assigning the graphics card to the virtual machine, it may not function properly. Some modified laptop cards or mining cards may encounter issues.
-2. Function-Level Reset (FLR): If the card does not support this function, restarting the virtual machine that has this GPU assigned will cause a reboot of the host. Nvidia cards work well, but AMD and Intel cards are not widely tested and may have [hardware issues](https://www.reddit.com/r/Amd/comments/jehkey/will_big_navi_support_function_level_reset_flr/).
-3. Physical Display Output: Whether the virtual machine can output a physical signal through the graphics card.
+#### DDA Device States Explained
+> Understanding the three device states is crucial for troubleshooting.
 
-# GPU-PV
+1.  **Host State**: The device is normally attached to the host system and can be used by the host.
+2.  **Dismounted State**: The device has been dismounted from the host (`Dismount-VMHostAssignableDevice`) but has not been successfully assigned to a VM. In this state, the device is unavailable in the host's Device Manager. You can use this tool to remount it to the host or assign it to a VM.
+3.  **Guest State**: The device has been successfully assigned to and is mounted in the virtual machine.
 
-### Introduction
+#### DDA Graphics Card Compatibility (Continuously updated)
+> True compatibility can only be confirmed after installing drivers inside the virtual machine. Please share your test results via [Issues](https://github.com/Justsenger/ExHyperV/issues)!
 
-* GPU-PV stands for GPU paravirtualization. This feature was introduced starting with WDDM 2.4, meaning that both the host and guest systems must be at least version 17134 to function.
+| Brand | Model | Architecture | Recognition | Function-Level Reset (FLR) | Physical Display Output |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Nvidia** | RTX 5090 | Blackwell 2.0 | ✅ | ✅ | ✅ |
+| **Nvidia** | RTX 4090 | Ada Lovelace | ✅ | ✅ | ✅ |
+| **Nvidia** | RTX 4080 Super | Ada Lovelace | ✅ | ✅ | ✅ |
+| **Nvidia** | RTX 4070 | Ada Lovelace | ✅ | ✅ | ✅ |
+| **Nvidia** | GTX 1660 Super | Turing | ✅ | ✅ | ✅ |
+| **Nvidia** | GTX 1050 | Pascal | ✅ | ✅ | ✅ |
+| **Nvidia** | GT 1030 | Pascal | ✅ | ✅ | ✅ |
+| **Nvidia** | GT 210 | Tesla | ✅ | ✅ | ❌ |
+| **Intel** | DG1 | Xe-LP | ✅ | ❌ | [Specific driver](https://www.shengqipc.cn/d21.html) ✅ |
+| **Intel** | A380 | Xe-HPG | Code 43 ❌ | ✅ | ❌ |
+| **Intel**| UHD Graphics 620 Mobile | Generation 9.5 | Passthrough failed ❌ | ❌ | ❌ | 
+| **Intel**| HD Graphics 530 | Generation 9.0 | Passthrough failed ❌ | ❌ | ❌ |
+| **AMD** | Radeon Vega 3 | GCN 5.0 | Code 43 ❌ | ❌ | ❌ |
 
-* Currently, there is no way to limit the GPU resource usage for virtual machines, as the parameters in `Set-VMGpuPartitionAdapter` have no [substantive effect](https://github.com/jamesstringerparsec/Easy-GPU-PV/issues/298). Therefore, resource allocation functionality will not be developed until an effective solution is found. Nvidia's Grid driver can partition resources, but it requires a significant licensing fee.
+- **Recognition**: Whether the driver can be successfully installed and recognized after being assigned to the VM.
+- **Function-Level Reset (FLR)**: If not supported, restarting the VM will cause the host to reboot as well.
+- **Physical Display Output**: Whether the VM can output a video signal through the GPU's physical ports (HDMI/DP).
 
-* The logical adapter created through GPU-PV only simulates the physical adapter at the system level. It does not inherit the physical adapter's unique registry parameters, hardware characteristics, or driver features very well. Therefore, if software or games that rely on these specific flags are attempted, errors may occur and will require targeted fixes.
+---
 
-* Below is an introduction to various components involved in the WDDM paravirtualization design.
+### Ⅱ. GPU-P (GPU Paravirtualization / GPU Partitioning)
 
-![WDDM](https://github.com/Justsenger/ExHyperV/blob/main/img/WDDM.png)
+GPU-P (or GPU-PV) is a paravirtualization technology that allows multiple virtual machines to share the computing power of a physical GPU without full passthrough.
 
-* Below is the correspondence between Windows versions and WDDM versions. The higher the WDDM version, the better the GPU-PV functionality.
+- **Resource Limits**: Currently, Hyper-V does not natively support limiting the GPU resources used by each VM. The parameters in `Set-VMGpuPartitionAdapter` are not effective ([related discussion](https://github.com/jamesstringerparsec/Easy-GPU-PV/issues/298)). Therefore, this tool does not offer resource allocation features at this time.
+- **Drivers & Compatibility**: The virtual device created by GPU-P can call the physical GPU, but it does not fully inherit its hardware features or driver details. Software or games that rely on specific hardware IDs or driver signatures may not run.
 
-| Windows Version | WDDM Version | Virtualization Feature Updates |
-| ---------------- | ------------ | ------------------------------ |
-| 17134 | 2.4 | Introduced IOMMU-based GPU isolation. |
-| 17763 | 2.5 | Enhanced virtualization support for resource handle management and event signaling between host and guest, improving coordination of user-mode and kernel-mode drivers. |
-| 18362 | 2.6 | Improved video memory management. Virtual machine video memory is preferentially allocated in GPU-contiguous physical memory and can reflect memory residency state. |
-| 19041 | 2.7 | Virtual machine device manager can correctly identify the physical GPU model corresponding to the Microsoft Virtual Renderer Driver. |
-| 20348 | 2.9 | Added support for Cross-Adapter Resource Scan Output (CASO), allowing rendering adapter screens to be directly output to display adapters without needing two copies, reducing latency and bandwidth requirements. |
-| 22000 | 3.0 | Broke through GPU address limits with DMA remapping, allowing the GPU to access more memory than the hardware limit. Improved event signaling mechanisms between UMD and KMD, enhancing debugging capabilities. |
-| 22621 | 3.1 | Shared memory regions between UMD and KMD reduce memory copying and transmission, optimizing memory utilization and speeding up data access. |
-| 26100 | 3.2 | Added GPU real-time migration functionality. Enhanced timeout detection and recovery analysis for graphics drivers. Introduced WDDM feature query mechanism. |
+#### WDDM Versions & The Evolution of GPU-P
+> The higher the WDDM (Windows Display Driver Model) version, the more mature the GPU-P functionality. It is recommended to use the latest Windows versions for both the host and the guest VM.
 
-### Virtual Machine Windows Versions
+| Windows Version (Build) | WDDM Version | Key Virtualization Updates |
+| :--- | :--- | :--- |
+| 17134 | 2.4 | First introduction of IOMMU-based GPU isolation. |
+| 17763 | 2.5 | Optimized resource management and communication between host and guest. |
+| 18362 | 2.6 | Improved video memory management, prioritizing contiguous physical memory. |
+| 19041 | 2.7 | VM's Device Manager can correctly identify the physical GPU model. |
+| 20348 | 2.9 | Support for Cross-Adapter Resource Scan-Out (CASO), reducing latency. |
+| 22000 | 3.0 | Support for DMA remapping, overcoming GPU memory address limitations. |
+| 22621 | 3.1 | Shared memory between UMD/KMD, reducing data copies and improving efficiency. |
+| 26100 | 3.2 | Introduction of GPU live migration, WDDM feature queries, and more. |
 
-* Versions below 17134 do not support GPU paravirtualization.
+![WDDM Architecture](https://github.com/Justsenger/ExHyperV/blob/main/img/WDDM.png)
 
-* Versions between 17134 and 19040 (WDDM 2.4–2.6) can call the GPU but will not display the correct graphics card model.
+#### GPU-P Graphics Card Compatibility (Tested with Gpu Caps Viewer + DXVA Checker, continuously updated)
 
-* Starting from version 19041 (WDDM 2.7), GPU functionality can be used properly.
+| Brand | Model | Architecture | Recognition | DirectX 12 | OpenGL | Vulkan | Codec | CUDA/OpenCL | Notes |
+| :--- | :--- | :--- | :--- |:--- | :--- | :--- | :--- | :--- | :--- |
+| **Nvidia** | RTX 4080 Super | Ada Lovelace | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | |
+| **Nvidia** | GTX 1050 | Pascal | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | |
+| **Nvidia** | GT 210 | Tesla | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | Not supported |
+| **Intel**| Iris Xe Graphics| Xe-LP | ⚠️ | ✅ | ✅ | ✅ | ✅ | ❌ | Partial hardware recognition| 
+| **Intel**| A380 | Xe-HPG | ⚠️ | ✅ | ✅ | ✅ | ✅ | ❌ | Partial hardware recognition|
+| **Intel**| UHD Graphics 730 | Xe-LP | ⚠️ | ✅ | ✅ | ✅ | ✅ | ❌ | Partial hardware recognition|
+| **Intel**| UHD Graphics 620 Mobile | Generation 9.5 | ⚠️ | ✅ | ✅ | ✅ | ✅ | ❌ | Partial hardware recognition|
+| **Intel**| HD Graphics 530 | Generation 9.0 | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | Not supported |
+| **AMD** | Radeon Vega 3 | GCN 5.0 | ⚠️ | ✅ | ✅ | ✅ | ✅ | ✅ | Partial hardware recognition|
+| **AMD** | Radeon 890M | RDNA 3.5 | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | Host crashes on startup |
+| **Moore Threads** | MTT S80 | MUSA | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | Not supported |
 
-### Display Signal Output from Virtual Machine
+#### How to Get Display Output from the VM?
 
-In the GPU paravirtualization model, the virtual machine accesses the GPU from the host as a "render adapter" and typically pairs with the Microsoft Hyper-V video as a "display adapter" to output the screen. However, Microsoft Hyper-V video supports only up to 1080p and has a severely limited refresh rate. Therefore, we need a better "display adapter."
+In GPU-P mode, the physical GPU acts as a "render adapter" and needs to be paired with a "display adapter" to output a screen. Here are three options:
 
-Here are several options to achieve display signal output:
+1.  **Microsoft Hyper-V Video (Default)**
+    - **Pros**: Good compatibility, works out of the box.
+    - **Cons**: Maximum resolution of 1080p, low refresh rate (around 62Hz).
 
-> Microsoft Hyper-V Video
+2.  **Indirect Display Driver + Streaming (Recommended)**
+    - Install a [Virtual Display Driver](https://github.com/VirtualDrivers/Virtual-Display-Driver) to create a high-performance virtual monitor.
+    - Use streaming software like Parsec, Sunshine, or Moonlight to get a smooth, high-resolution, high-refresh-rate experience.
+    - ![Sunshine+PV Example](https://github.com/user-attachments/assets/e25fce26-6158-4052-9759-6d5d1ebf1c5d)
 
-This is the default option and is well compatible. However, it reportedly supports a maximum resolution of 1920x1080 and a refresh rate of 62Hz. Further information is being compiled.
+3.  **USB Graphics Card + DDA (Experimental)**
+    - **Concept**: Passthrough a USB controller to the VM via DDA, then connect a USB graphics card (e.g., based on [DisplayLink DL-6950](https://www.synaptics.com/products/displaylink-graphics/integrated-chipsets/dl-6000) or [Silicon Motion SM768](https://www.siliconmotion.com/product/cht/Graphics-Display-SoCs.html) chips) as the display adapter.
+    - **Status**: The author is currently investigating conflict issues when using this solution with large-VRAM GPUs. Not recommended for general users at this time.
 
-> Indirect Display Drivers
+## ⚙️ How It Works
 
-You can try [this](https://github.com/VirtualDrivers/Virtual-Display-Driver) and use it with streaming software such as Sunshine.
+To simplify configuration, this tool automatically performs the following actions:
+- **Driver Injection**: Automatically imports the GPU drivers from the host's `HostDriverStore` into the virtual machine.
+- **Driver Protection**: Sets the imported driver files to "read-only" to prevent accidental modification or deletion.
+- **Nvidia Registry Fix**: Automatically modifies Nvidia-related registry keys in the VM to point the driver path to `HostDriverStore`, ensuring the drivers are loaded correctly.
 
-![Sunshine+PV](https://github.com/user-attachments/assets/e25fce26-6158-4052-9759-6d5d1ebf1c5d)
+## 🤝 Contributing
+Contributions of any kind are welcome!
+- **Testing & Feedback**: Help us improve the compatibility lists.
+- **Reporting Bugs**: Submit issues you encounter via [Issues](https://github.com/Justsenger/ExHyperV/issues).
+- **Code Contributions**: Fork the project and submit a Pull Request.
 
-> USB Graphics Card (Requires DDA passthrough of USB controller x1)
+## ❤️ Support the Project
+If you find this project helpful, please consider sponsoring me. It will motivate me to continue maintenance and development!
 
-A USB controller can be passed through, and a USB graphics card can be used. Currently, there seem to be issues with using graphics cards with more than 4GB of memory together with DDA. Further information is being compiled.
-
-Common chips are [DL-6950](https://www.synaptics.com/cn/products/displaylink-graphics/integrated-chipsets/dl-6000) and [SM768](https://www.siliconmotion.com/product/cht/Graphics-Display-SoCs.html). The following images describe the scenario where a render adapter (GTX 1050) and display adapter (DL 6950) work together, achieving normal operation at 144Hz with almost no latency.
-
-![DL](https://github.com/Justsenger/ExHyperV/blob/main/img/d1.png)
-
-![DL](https://github.com/Justsenger/ExHyperV/blob/main/img/d2.png)
-
-![DL](https://github.com/Justsenger/ExHyperV/blob/main/img/d3.png)
-
-![DL](https://github.com/Justsenger/ExHyperV/blob/main/img/d4.png)
-
-# Notes
-
-### Facts
-
-* It is best for the virtual machine to have a fixed allocation of running memory.
-* All features can be used with either generation 1 or generation 2 virtual machines.
-* No need to disable checkpoint functionality for any feature.
-* A single graphics card can only be used as either DDA or GPU-PV at a time.
-* A virtual machine can use both DDA and GPU-PV simultaneously.
-* A virtual machine can receive multiple logical adapter partitions from the same graphics card, but total performance remains unchanged.
-* A virtual machine can receive multiple logical adapter partitions from multiple graphics cards.
-
-### Magic
-
-* The tool will import host drivers into the virtual machine. Additionally, all files in HostDriverStore will be set to read-only to prevent any driver files from being lost.
-* For Nvidia, the tool will automatically import the host system’s `nvlddmkm.reg` and modify the `DriverStore` to `HostDriverStore`.
+[![Sponsor](https://img.shields.io/static/v1?label=Sponsor&message=%E2%9D%A4&logo=GitHub&color=%23fe8e86)](https://afdian.com/a/saniye)
