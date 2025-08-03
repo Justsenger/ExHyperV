@@ -13,24 +13,30 @@
     <ItemGroup>
         <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
         <PackageReference Include="Microsoft.PowerShell.SDK" Version="7.4.0" />
-        <PackageReference Include="System.Management.Automation" Version="7.4.0" />
         <PackageReference Include="TaskScheduler" Version="2.12.2" />
         <PackageReference Include="WPF-UI" Version="4.0.0" />
         <PackageReference Include="WPF-UI.Tray" Version="4.0.0" />
     </ItemGroup>
 
+    <!-- 这是唯一需要的“魔法”，确保PowerShell文件被复制 -->
+    <ItemGroup>
+      <None Include="$(PkgMicrosoft_PowerShell_SDK)\runtimes\win-x64\native\**\*.*">
+        <Link>%(RecursiveDir)%(FileName)%(Extension)</Link>
+        <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+        <Visible>false</Visible>
+      </None>
+    </ItemGroup>
+
+    <!-- 你项目原有的其他配置 -->
     <ItemGroup>
         <Resource Include="Assets\**\*.*" />
     </ItemGroup>
-
     <ItemGroup>
       <None Remove="pci.ids" />
     </ItemGroup>
-
     <ItemGroup>
       <Resource Remove="Assets\AutoTurboBoost.ps1" />
     </ItemGroup>
-
     <ItemGroup>
       <Content Include="Assets\AutoTurboBoost.ps1">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
@@ -39,7 +45,6 @@
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       </Content>
     </ItemGroup>
-
     <ItemGroup>
         <Compile Update="Properties\Resources.Designer.cs">
             <DesignTime>True</DesignTime>
@@ -47,7 +52,6 @@
             <DependentUpon>Resources.resx</DependentUpon>
         </Compile>
     </ItemGroup>
-
     <ItemGroup>
       <Resource Update="Assets\pci.ids">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>

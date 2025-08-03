@@ -14,7 +14,7 @@ namespace ExHyperV.Services
     public class GpuPartitionService : IGpuPartitionService
     {
         // PowerShell 脚本常量
-        private const string GetGpuWmiInfoScript = "Get-WmiObject -Class Win32_VideoController | select PNPDeviceID,name,AdapterCompatibility,DriverVersion";
+        private const string GetGpuWmiInfoScript = "Get-CimInstance -Class Win32_VideoController | select PNPDeviceID,name,AdapterCompatibility,DriverVersion";
         private const string GetGpuRamScript = @"
             Get-ItemProperty -Path ""HKLM:\SYSTEM\ControlSet001\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}\0*"" -ErrorAction SilentlyContinue |
                 Select-Object MatchingDeviceId,

@@ -181,7 +181,7 @@ namespace ExHyperV.Services
         {
             return await Task.Run(() =>
             {
-                var result = Utils.Run("(Get-WmiObject -Class Win32_OperatingSystem).ProductType");
+                var result = Utils.Run("(Get-CimInstance -Class Win32_OperatingSystem).ProductType");
                 return result != null && result.Count > 0 && result[0].ToString() == "3";
             });
         }
