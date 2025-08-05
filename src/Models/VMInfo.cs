@@ -1,7 +1,4 @@
-﻿// /Models/VMInfo.cs
-using System.Collections.Generic;
-
-namespace ExHyperV.Models
+﻿namespace ExHyperV.Models
 {
     public class VMInfo
     {

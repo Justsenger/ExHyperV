@@ -18,7 +18,7 @@
         <sys:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
         <converters:GpuImagePathConverter x:Key="GpuImagePathConverter"/>
         <converters:InverseBooleanConverter x:Key="InverseBooleanConverter"/>
-        <converters:TupleConverter x:Key="TupleConverter"/>
+        <converters:CommandParameterConverter x:Key="CommandParameterConverter"/>
     </Page.Resources>
 
     <!-- 根布局改为 Grid，并添加 ProgressBar -->
@@ -151,7 +151,7 @@
                                                         <ui:Button Grid.Column="2" Content="{x:Static properties:Resources.uninstall}" Margin="0,0,5,0"
                                                                    Command="{Binding DataContext.RemoveGpuCommand, RelativeSource={RelativeSource AncestorType=Page}}">
                                                             <ui:Button.CommandParameter>
-                                                                <MultiBinding Converter="{StaticResource TupleConverter}">
+                                                                <MultiBinding Converter="{StaticResource CommandParameterConverter}">
                                                                     <Binding Path="DataContext" RelativeSource="{RelativeSource AncestorType=ui:CardExpander}"/>
                                                                     <Binding Path="DataContext" RelativeSource="{RelativeSource AncestorType=ui:CardExpander, AncestorLevel=2}"/>
                                                                 </MultiBinding>

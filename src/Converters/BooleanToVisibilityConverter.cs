@@ -1,5 +1,4 @@
-﻿using System;
-using System.Globalization;
+﻿using System.Globalization;
 using System.Windows;
 using System.Windows.Data;
 
@@ -13,8 +12,6 @@ namespace ExHyperV.Converters
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
             bool boolValue = value is bool b && b;
-
-            // 如果ConverterParameter为"Invert"，则反转布尔值。
             if (parameter is string s && s.Equals("Invert", StringComparison.OrdinalIgnoreCase))
             {
                 boolValue = !boolValue;
@@ -25,7 +22,6 @@ namespace ExHyperV.Converters
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            // 单向绑定，无需实现。
             throw new NotImplementedException();
         }
     }

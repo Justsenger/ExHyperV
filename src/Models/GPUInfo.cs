@@ -1,5 +1,4 @@
-﻿// /Models/GPUInfo.cs
-namespace ExHyperV.Models
+﻿namespace ExHyperV.Models
 {
     public class GPUInfo
     {
@@ -10,7 +9,7 @@ namespace ExHyperV.Models
         public string Pname { get; set; } //可分区的显卡路径
         public string Ram { get; set; } //显存大小
         public string DriverVersion { get; set; } //驱动版本
-        public string Vendor { get; set; }
+        public string Vendor { get; set; } //制造商
 
         // 构造函数
         public GPUInfo(string name, string valid, string manu, string instanceId, string pname, string ram, string driverversion, string vendor)
