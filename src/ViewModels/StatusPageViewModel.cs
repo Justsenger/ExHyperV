@@ -217,6 +217,7 @@ namespace ExHyperV.ViewModels
                 td.RegistrationInfo.Description = "Hyper-V 极简电源调度器，由 ExhyperV 程序创建和管理。";
                 td.Triggers.Add(new BootTrigger { Delay = TimeSpan.FromSeconds(30) });
                 td.Actions.Add(new ExecAction("powershell.exe", $"-ExecutionPolicy Bypass -WindowStyle Hidden -File \"{scriptPath}\""));
+                td.Principal.UserId = "NT AUTHORITY\\SYSTEM";
                 td.Principal.LogonType = TaskLogonType.ServiceAccount;
                 td.Principal.RunLevel = TaskRunLevel.Highest;
                 td.Settings.ExecutionTimeLimit = TimeSpan.Zero;
