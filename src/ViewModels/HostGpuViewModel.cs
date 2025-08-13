@@ -1,12 +1,10 @@
-﻿// /ViewModels/HostGpuViewModel.cs
-using CommunityToolkit.Mvvm.ComponentModel;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
 using ExHyperV.Models;
 
 namespace ExHyperV.ViewModels
 {
     public partial class HostGpuViewModel : ObservableObject
     {
-        // 持有原始数据模型
         public GPUInfo Model { get; }
 
         public HostGpuViewModel(GPUInfo model)
@@ -14,7 +12,6 @@ namespace ExHyperV.ViewModels
             Model = model;
         }
 
-        // 直接从 Model 暴露属性给 XAML 绑定
         public string Name => Model.Name;
         public string Vendor => Model.Vendor;
         public string Manu => Model.Manu;
@@ -23,7 +20,6 @@ namespace ExHyperV.ViewModels
         public string DriverVersion => Model.DriverVersion;
         public string Pname => Model.Pname;
 
-        // 我们可以创建一些计算属性，让 XAML 更简单
         public string RamDisplay
         {
             get

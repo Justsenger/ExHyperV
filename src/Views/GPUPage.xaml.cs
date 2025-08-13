@@ -1,5 +1,4 @@
-﻿// /Views/Pages/GPUPage.xaml.cs
-using System.Windows.Controls;
+﻿using System.Windows.Controls;
 using ExHyperV.ViewModels;
 
 namespace ExHyperV.Views.Pages

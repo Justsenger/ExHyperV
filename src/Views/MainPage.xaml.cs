@@ -1,6 +1,4 @@
-﻿// ExHyperV.Views.Pages/MainPage.xaml.cs
-
-using ExHyperV.ViewModels;
+﻿using ExHyperV.ViewModels;
 
 namespace ExHyperV.Views.Pages
 {

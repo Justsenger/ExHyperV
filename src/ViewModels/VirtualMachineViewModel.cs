@@ -1,10 +1,8 @@
-﻿// /ViewModels/VirtualMachineViewModel.cs
-using System.Collections.ObjectModel;
-using System.Linq;
+﻿using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using ExHyperV.Models;
 using Wpf.Ui.Controls;
-using ExHyperV.Tools;      // <<<--- 确保有这个 using
+using ExHyperV.Tools;
 
 
 namespace ExHyperV.ViewModels
@@ -22,8 +20,6 @@ namespace ExHyperV.ViewModels
 
             VmIcon = Utils.FontIcon(24, "\xE7F4");
 
-
-            // 这是关键：在这里处理数据，将字典转换为包含丰富信息的对象列表
             foreach (var assignedGpu in model.GPUs)
             {
                 // 从所有主机GPU中，找到这个分区的“父亲”

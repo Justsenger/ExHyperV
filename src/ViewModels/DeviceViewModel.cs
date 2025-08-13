@@ -2,7 +2,6 @@
 using ExHyperV.Models;
 using ExHyperV.Tools;
 using ExHyperV.Properties;
-using System.Collections.Generic;
 
 namespace ExHyperV.ViewModels
 {

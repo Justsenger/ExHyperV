@@ -27,7 +27,7 @@ namespace ExHyperV.ViewModels
         private string _selectedLanguage;
 
         // 关于信息
-        public string AppVersion => "ExHyperV"; // 可以从Utils或程序集获取
+        public string AppVersion => "ExHyperV"; 
         public string CopyrightInfo => "© 2025 | Saniye";
 
         public SettingsViewModel()
