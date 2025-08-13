@@ -86,7 +86,18 @@
                         <ui:SymbolIcon Symbol="Globe32" />
                     </ui:NavigationViewItem.Icon>
                 </ui:NavigationViewItem>
-                
+
+                <ui:NavigationViewItem
+                    x:Name="test"
+                    Content="CPU配置"
+                    NavigationCacheMode="Enabled"
+                    Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"
+                    TargetPageType="{x:Type pages:VMNetPage}">
+                    <ui:NavigationViewItem.Icon>
+                        <ui:SymbolIcon Symbol="DeveloperBoard20" FontSize="20"/>
+                    </ui:NavigationViewItem.Icon>
+                </ui:NavigationViewItem>
+
             </ui:NavigationView.MenuItems>
 
             <ui:NavigationView.FooterMenuItems>
