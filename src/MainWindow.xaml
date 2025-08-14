@@ -86,7 +86,6 @@
                         <ui:SymbolIcon Symbol="Globe32" />
                     </ui:NavigationViewItem.Icon>
                 </ui:NavigationViewItem>
-                
             </ui:NavigationView.MenuItems>
 
             <ui:NavigationView.FooterMenuItems>
