@@ -194,22 +194,20 @@ namespace ExHyperV.Services
                 {
                     var results = Utils.Run($"Get-VM -Name \"{vmName}\" | Select-Object HighMemoryMappedIoSpace");
                     if (results == null || results.Count == 0)
-                        return (MmioCheckResultType.Error, "无法获取虚拟机信息。");
+                        return (MmioCheckResultType.Error, Properties.Resources.Error_CannotGetVmInfo);
 
                     var mmioProperty = results[0].Properties["HighMemoryMappedIoSpace"];
                     if (mmioProperty == null || mmioProperty.Value == null)
-                        return (MmioCheckResultType.Error, "无法解析MMIO空间属性。");
+                        return (MmioCheckResultType.Error, Properties.Resources.Error_CannotParseMmioSpace);
 
                     ulong currentMmioBytes = Convert.ToUInt64(mmioProperty.Value);
                     if (currentMmioBytes < RequiredMmioBytes)
                     {
                         long currentMmioGB = (long)(currentMmioBytes / (1024 * 1024 * 1024));
-                        string message = $"虚拟机 '{vmName}' 的MMIO空间当前为 {currentMmioGB}GB，低于推荐的 64GB。\n\n" +
-                                         "这可能导致显卡无法获得足够的内存空间。\n\n" +
-                                         "是否要关闭虚拟机并将其MMIO空间扩展到 64GB？";
+                        string message = string.Format(Properties.Resources.Warning_LowMmioSpace_ConfirmExpand, vmName, currentMmioGB);
                         return (MmioCheckResultType.NeedsConfirmation, message);
                     }
-                    return (MmioCheckResultType.Ok, "MMIO空间充足。");
+                    return (MmioCheckResultType.Ok, Properties.Resources.Info_MmioSpaceSufficient);
                 }
                 catch (Exception ex)
                 {

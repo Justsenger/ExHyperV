@@ -381,4 +381,143 @@
   <data name="servererror" xml:space="preserve">
     <value>The host system is not a server version, and the virtual machine with the DDA device added will not be able to start!</value>
   </data>
+  <data name="GetVmState_Error" xml:space="preserve">
+    <value>Error: Unable to retrieve the state of the virtual machine '{0}'.</value>
+  </data>
+  <data name="VirtualSwitchList" xml:space="preserve">
+    <value>Virtual Switch List</value>
+  </data>
+  <data name="Add" xml:space="preserve">
+    <value>Add</value>
+  </data>
+  <data name="Uninstallswitch" xml:space="preserve">
+    <value>Uninstall this virtual switch</value>
+  </data>
+  <data name="NetMode" xml:space="preserve">
+    <value>Network Mode</value>
+  </data>
+  <data name="Bridge" xml:space="preserve">
+    <value>Bridge</value>
+  </data>
+  <data name="NAT" xml:space="preserve">
+    <value>NAT</value>
+  </data>
+  <data name="Isolate" xml:space="preserve">
+    <value>No Upstream</value>
+  </data>
+  <data name="Internet" xml:space="preserve">
+    <value>Upstream</value>
+  </data>
+  <data name="Hostconnected" xml:space="preserve">
+    <value>Host Connection</value>
+  </data>
+  <data name="NetDraw" xml:space="preserve">
+    <value>Network Topology</value>
+  </data>
+  <data name="Error_CannotGetVmHardDiskPath" xml:space="preserve">
+    <value>Error: Failed to get the hard disk path for virtual machine '{0}'.</value>
+  </data>
+  <data name="Error_FailedToMountHardDisk" xml:space="preserve">
+    <value>Error: Failed to mount hard disk '{0}'.</value>
+  </data>
+  <data name="Error_FailedToFindSystemPartition" xml:space="preserve">
+    <value>Error: Failed to find the system partition in the mounted hard disk '{0}'.</value>
+  </data>
+  <data name="Error_RemoveOldDriverFolderReadOnlyFailed" xml:space="preserve">
+    <value>Error: Failed to remove the read-only attribute from the old driver folder: {0}</value>
+  </data>
+  <data name="Error_RobocopyDriverCopyFailed" xml:space="preserve">
+    <value>Error: Robocopy failed to copy driver files, exit code: {0}</value>
+  </data>
+  <data name="Error_UnexpectedSystemException" xml:space="preserve">
+    <value>Error: An unexpected system exception occurred - {0}</value>
+  </data>
+  <data name="Error_ExportLocalRegistryInfoFailed" xml:space="preserve">
+    <value>Error: Failed to export local registry information.</value>
+  </data>
+  <data name="Error_OfflineLoadVmRegistryFailed" xml:space="preserve">
+    <value>Error: Failed to load the virtual machine registry offline. Please ensure the program is run with administrator privileges.</value>
+  </data>
+  <data name="Error_NvidiaRegistryProcessingException" xml:space="preserve">
+    <value>Error: An exception occurred while processing the NVIDIA registry: {0}</value>
+  </data>
+  <data name="Error_CannotGetVmInfo" xml:space="preserve">
+    <value>Failed to get virtual machine information.</value>
+  </data>
+  <data name="Error_CannotParseMmioSpace" xml:space="preserve">
+    <value>Failed to parse MMIO space properties.</value>
+  </data>
+  <data name="Warning_LowMmioSpace_ConfirmExpand" xml:space="preserve">
+    <value>The MMIO space for virtual machine '{0}' is currently {1}GB, which is below the recommended 64GB.
+
+This may prevent the graphics card from acquiring enough memory space.
+
+Do you want to shut down the virtual machine and expand its MMIO space to 64GB?</value>
+  </data>
+  <data name="Info_MmioSpaceSufficient" xml:space="preserve">
+    <value>MMIO space is sufficient.</value>
+  </data>
+  <data name="Error_GetNetworkInfoFailed" xml:space="preserve">
+    <value>Failed to get network information. Please ensure the program is run with administrator privileges and the Hyper-V module is installed.</value>
+  </data>
+  <data name="DisplayName_HostManagementOS" xml:space="preserve">
+    <value>Host (Management OS)</value>
+  </data>
+  <data name="Error_ExternalSwitchRequiresPhysicalAdapter" xml:space="preserve">
+    <value>A physical network adapter must be specified for an external switch.</value>
+  </data>
+  <data name="Error_CreateSwitchFailed" xml:space="preserve">
+    <value>Failed to create switch '{0}': {1}</value>
+  </data>
+  <data name="Error_DeleteSwitchFailed" xml:space="preserve">
+    <value>Failed to delete switch '{0}'.</value>
+  </data>
+  <data name="create" xml:space="preserve">
+    <value>Create</value>
+  </data>
+  <data name="AddSwitch_DefaultName_External" xml:space="preserve">
+    <value>New External Switch</value>
+  </data>
+  <data name="AddSwitch_DefaultName_NAT" xml:space="preserve">
+    <value>New NAT Switch</value>
+  </data>
+  <data name="AddSwitch_DefaultName_Internal" xml:space="preserve">
+    <value>New Internal Switch</value>
+  </data>
+  <data name="AddSwitch_DefaultName_Generic" xml:space="preserve">
+    <value>New Virtual Switch</value>
+  </data>
+  <data name="AddSwitch_Placeholder_SelectAdapter" xml:space="preserve">
+    <value>Please select a network adapter...</value>
+  </data>
+  <data name="AddSwitch_Placeholder_NoAdaptersAvailable" xml:space="preserve">
+    <value>No available physical network adapters</value>
+  </data>
+  <data name="AddSwitch_Validation_NameCannotBeEmpty" xml:space="preserve">
+    <value>Switch name cannot be empty.</value>
+  </data>
+  <data name="AddSwitch_Validation_NameExists" xml:space="preserve">
+    <value>A switch named '{0}' already exists.</value>
+  </data>
+  <data name="AddSwitch_Validation_NoAdaptersForExternalOrNat" xml:space="preserve">
+    <value>Cannot create an External or NAT switch because no physical network adapters are available.</value>
+  </data>
+  <data name="AddSwitch_Validation_AdapterRequiredForExternalOrNat" xml:space="preserve">
+    <value>An External or NAT switch must have a physical network adapter selected.</value>
+  </data>
+  <data name="AddSwitch_Validation_OnlyOneNatAllowed" xml:space="preserve">
+    <value>The system allows only one user-created NAT network.</value>
+  </data>
+  <data name="DdaPage_Title_MmioSpaceTooSmall" xml:space="preserve">
+    <value>MMIO Space Too Small</value>
+  </data>
+  <data name="Button_Yes" xml:space="preserve">
+    <value>Yes</value>
+  </data>
+  <data name="Button_No" xml:space="preserve">
+    <value>No</value>
+  </data>
+  <data name="Dialog_Title_PleaseWait" xml:space="preserve">
+    <value>Please Wait</value>
+  </data>
 </root>

@@ -131,7 +131,7 @@ namespace ExHyperV.Services
                 try
                 {
                     var vmStateResult = Utils.Run($"(Get-VM -Name '{vmName}').State");
-                    if (vmStateResult == null || vmStateResult.Count == 0) return $"错误: 无法获取虚拟机 '{vmName}' 的状态。";
+                    if (vmStateResult == null || vmStateResult.Count == 0) return string.Format(Properties.Resources.GetVmState_Error, vmName);
                     if (vmStateResult[0].ToString() != "Off") return "running";
 
                     string vmConfigScript = $@"
@@ -143,11 +143,11 @@ namespace ExHyperV.Services
                     Utils.Run(vmConfigScript);
 
                     var harddiskPathResult = Utils.Run($"(Get-VMHardDiskDrive -vmname '{vmName}')[0].Path");
-                    if (harddiskPathResult == null || harddiskPathResult.Count == 0) return $"错误: 无法获取虚拟机 '{vmName}' 的硬盘路径。";
+                    if (harddiskPathResult == null || harddiskPathResult.Count == 0) return string.Format(Properties.Resources.Error_CannotGetVmHardDiskPath, vmName);
                     harddiskpath = harddiskPathResult[0].ToString();
 
                     var mountResult = Utils.Run2($"Mount-VHD -Path '{harddiskpath}' -PassThru");
-                    if (mountResult == null) return $"错误: 挂载硬盘 '{harddiskpath}' 失败。";
+                    if (mountResult == null) return string.Format(Properties.Resources.Error_FailedToMountHardDisk, harddiskpath);
                     isVhdMounted = true;
 
                     var findSystemDriveScript = @$"
@@ -162,7 +162,7 @@ namespace ExHyperV.Services
                             }}
                         }}";
                     var letterResult = Utils.Run(findSystemDriveScript);
-                    if (letterResult == null || letterResult.Count == 0) return $"错误: 在挂载的硬盘 '{harddiskpath}' 中查找系统分区失败。";
+                    if (letterResult == null || letterResult.Count == 0) return string.Format(Properties.Resources.Error_FailedToFindSystemPartition, harddiskpath);
                     string letter = letterResult[0].ToString();
 
                     string sourceFolder = @"C:\Windows\System32\DriverStore\FileRepository";
@@ -171,7 +171,7 @@ namespace ExHyperV.Services
                     if (Directory.Exists(destinationFolder))
                     {
                         try { RemoveReadOnlyAttribute(destinationFolder); }
-                        catch (Exception ex) { return $"错误：尝试移除旧驱动文件夹只读属性失败: {ex.Message}"; }
+                        catch (Exception ex) { return string.Format(Properties.Resources.Error_RemoveOldDriverFolderReadOnlyFailed, ex.Message); }
                     }
                     else
                     {
@@ -191,7 +191,7 @@ namespace ExHyperV.Services
                     robocopyProcess.Start();
                     robocopyProcess.WaitForExit();
 
-                    if (robocopyProcess.ExitCode >= 8) return $"错误：robocopy 驱动文件复制失败，退出代码: {robocopyProcess.ExitCode}";
+                    if (robocopyProcess.ExitCode >= 8) return string.Format(Properties.Resources.Error_RobocopyDriverCopyFailed, robocopyProcess.ExitCode);
 
                     SetFolderReadOnly(destinationFolder);
 
@@ -205,7 +205,7 @@ namespace ExHyperV.Services
                 }
                 catch (Exception ex)
                 {
-                    return $"错误: 发生意外的系统异常 - {ex.Message}";
+                    return string.Format(Properties.Resources.Error_UnexpectedSystemException, ex.Message);
                 }
                 finally
                 {
@@ -237,8 +237,8 @@ namespace ExHyperV.Services
                 ExecuteCommand($"reg unload HKLM\\OfflineSystem");
 
                 string localKeyPath = @"HKLM\SYSTEM\CurrentControlSet\Services\nvlddmkm";
-                if (ExecuteCommand($@"reg export ""{localKeyPath}"" ""{tempRegFile}"" /y") != 0) return "错误：导出本机注册表信息失败。";
-                if (ExecuteCommand($@"reg load HKLM\OfflineSystem ""{systemHiveFile}""") != 0) return "错误：离线加载虚拟机注册表失败。请确保程序以管理员权限运行。";
+                if (ExecuteCommand($@"reg export ""{localKeyPath}"" ""{tempRegFile}"" /y") != 0) return Properties.Resources.Error_ExportLocalRegistryInfoFailed;
+                if (ExecuteCommand($@"reg load HKLM\OfflineSystem ""{systemHiveFile}""") != 0) return Properties.Resources.Error_OfflineLoadVmRegistryFailed;
 
                 string originalText = @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\nvlddmkm";
                 string targetText = @"HKEY_LOCAL_MACHINE\OfflineSystem\ControlSet001\Services\nvlddmkm";
@@ -252,7 +252,7 @@ namespace ExHyperV.Services
             }
             catch (Exception ex)
             {
-                return $"错误：处理NVIDIA注册表时发生异常: {ex.Message}";
+                return string.Format(Properties.Resources.Error_NvidiaRegistryProcessingException, ex.Message);
             }
             finally
             {

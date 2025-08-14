@@ -375,10 +375,149 @@
   <data name="drivererror" xml:space="preserve">
     <value>驱动注入出现错误！检查系统盘是否开启了BitLocker，或不存在Windows目录？</value>
   </data>
+  <data name="error" xml:space="preserve">
+    <value>错误</value>
+  </data>
   <data name="servererror" xml:space="preserve">
     <value>宿主系统非服务器版本，添加了DDA设备的虚拟机将无法启动！</value>
   </data>
-  <data name="error" xml:space="preserve">
-    <value>错误</value>
+  <data name="GetVmState_Error" xml:space="preserve">
+    <value>错误：无法获取虚拟机‘{0}’的状态。</value>
+  </data>
+  <data name="VirtualSwitchList" xml:space="preserve">
+    <value>虚拟交换机列表</value>
+  </data>
+  <data name="Add" xml:space="preserve">
+    <value>新增</value>
+  </data>
+  <data name="Uninstallswitch" xml:space="preserve">
+    <value>卸载此虚拟交换机</value>
+  </data>
+  <data name="NetMode" xml:space="preserve">
+    <value>网络模式</value>
+  </data>
+  <data name="Bridge" xml:space="preserve">
+    <value>桥接模式</value>
+  </data>
+  <data name="NAT" xml:space="preserve">
+    <value>NAT模式</value>
+  </data>
+  <data name="Isolate" xml:space="preserve">
+    <value>无上游</value>
+  </data>
+  <data name="Internet" xml:space="preserve">
+    <value>上游网络</value>
+  </data>
+  <data name="Hostconnected" xml:space="preserve">
+    <value>宿主连接</value>
+  </data>
+  <data name="NetDraw" xml:space="preserve">
+    <value>网络拓扑</value>
+  </data>
+  <data name="Error_CannotGetVmHardDiskPath" xml:space="preserve">
+    <value>错误: 无法获取虚拟机“{0}”的硬盘路径。</value>
+  </data>
+  <data name="Error_FailedToMountHardDisk" xml:space="preserve">
+    <value>错误: 挂载硬盘“{0}”失败。</value>
+  </data>
+  <data name="Error_FailedToFindSystemPartition" xml:space="preserve">
+    <value>错误: 在挂载的硬盘“{0}”中查找系统分区失败。</value>
+  </data>
+  <data name="Error_RemoveOldDriverFolderReadOnlyFailed" xml:space="preserve">
+    <value>错误：尝试移除旧驱动文件夹只读属性失败：{0}</value>
+  </data>
+  <data name="Error_RobocopyDriverCopyFailed" xml:space="preserve">
+    <value>错误：robocopy 驱动文件复制失败，退出代码: {0}</value>
+  </data>
+  <data name="Error_UnexpectedSystemException" xml:space="preserve">
+    <value>错误: 发生意外的系统异常 - {0}</value>
+  </data>
+  <data name="Error_ExportLocalRegistryInfoFailed" xml:space="preserve">
+    <value>错误：导出本机注册表信息失败。</value>
+  </data>
+  <data name="Error_OfflineLoadVmRegistryFailed" xml:space="preserve">
+    <value>错误：离线加载虚拟机注册表失败。请确保程序以管理员权限运行。</value>
+  </data>
+  <data name="Error_NvidiaRegistryProcessingException" xml:space="preserve">
+    <value>错误：处理NVIDIA注册表时发生异常: {0}</value>
+  </data>
+  <data name="Error_CannotGetVmInfo" xml:space="preserve">
+    <value>无法获取虚拟机信息。</value>
+  </data>
+  <data name="Error_CannotParseMmioSpace" xml:space="preserve">
+    <value>无法解析MMIO空间属性。</value>
+  </data>
+  <data name="Warning_LowMmioSpace_ConfirmExpand" xml:space="preserve">
+    <value>虚拟机“{0}”的MMIO空间当前为 {1}GB，低于推荐的 64GB。
+
+这可能导致显卡无法获得足够的内存空间。
+
+是否要关闭虚拟机并将其MMIO空间扩展到 64GB？</value>
+  </data>
+  <data name="Info_MmioSpaceSufficient" xml:space="preserve">
+    <value>MMIO空间充足。</value>
+  </data>
+  <data name="Error_GetNetworkInfoFailed" xml:space="preserve">
+    <value>获取网络信息时发生错误，请确保以管理员权限运行，并已安装Hyper-V模块。</value>
+  </data>
+  <data name="DisplayName_HostManagementOS" xml:space="preserve">
+    <value>主机 (管理操作系统)</value>
+  </data>
+  <data name="Error_ExternalSwitchRequiresPhysicalAdapter" xml:space="preserve">
+    <value>外部交换机必须指定一个物理网卡。</value>
+  </data>
+  <data name="Error_CreateSwitchFailed" xml:space="preserve">
+    <value>创建交换机“{0}”失败：{1}</value>
+  </data>
+  <data name="Error_DeleteSwitchFailed" xml:space="preserve">
+    <value>删除交换机“{0}”失败。</value>
+  </data>
+  <data name="create" xml:space="preserve">
+    <value>创建</value>
+  </data>
+  <data name="AddSwitch_DefaultName_External" xml:space="preserve">
+    <value>新外部交换机</value>
+  </data>
+  <data name="AddSwitch_DefaultName_NAT" xml:space="preserve">
+    <value>新NAT交换机</value>
+  </data>
+  <data name="AddSwitch_DefaultName_Internal" xml:space="preserve">
+    <value>新内部交换机</value>
+  </data>
+  <data name="AddSwitch_DefaultName_Generic" xml:space="preserve">
+    <value>新虚拟交换机</value>
+  </data>
+  <data name="AddSwitch_Placeholder_SelectAdapter" xml:space="preserve">
+    <value>请选择网卡...</value>
+  </data>
+  <data name="AddSwitch_Placeholder_NoAdaptersAvailable" xml:space="preserve">
+    <value>无可用的物理网卡</value>
+  </data>
+  <data name="AddSwitch_Validation_NameCannotBeEmpty" xml:space="preserve">
+    <value>交换机名称不能为空。</value>
+  </data>
+  <data name="AddSwitch_Validation_NameExists" xml:space="preserve">
+    <value>已存在名为“{0}”的交换机。</value>
+  </data>
+  <data name="AddSwitch_Validation_NoAdaptersForExternalOrNat" xml:space="preserve">
+    <value>无法创建外部或NAT交换机，因为没有可用的物理网卡。</value>
+  </data>
+  <data name="AddSwitch_Validation_AdapterRequiredForExternalOrNat" xml:space="preserve">
+    <value>外部或NAT交换机必须选择一个物理网卡。</value>
+  </data>
+  <data name="AddSwitch_Validation_OnlyOneNatAllowed" xml:space="preserve">
+    <value>系统只允许存在一个用户创建的NAT网络。</value>
+  </data>
+  <data name="DdaPage_Title_MmioSpaceTooSmall" xml:space="preserve">
+    <value>MMIO空间过小</value>
+  </data>
+  <data name="Button_Yes" xml:space="preserve">
+    <value>是</value>
+  </data>
+  <data name="Button_No" xml:space="preserve">
+    <value>否</value>
+  </data>
+  <data name="Dialog_Title_PleaseWait" xml:space="preserve">
+    <value>请稍候</value>
   </data>
 </root>

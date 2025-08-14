@@ -69,7 +69,7 @@ namespace ExHyperV.Services
                 catch (Exception ex)
                 {
                     Debug.WriteLine($"Error in GetNetworkInfoAsync: {ex}");
-                    throw new InvalidOperationException("获取网络信息时发生错误，请确保以管理员权限运行，并已安装Hyper-V模块。", ex);
+                    throw new InvalidOperationException(Properties.Resources.Error_GetNetworkInfoFailed, ex);
                 }
 
                 return (switchList, physicalAdapterList);
@@ -97,7 +97,7 @@ namespace ExHyperV.Services
                     "            $ipAddresses = '';" +
                     "        }" +
                     "        [PSCustomObject]@{" +
-                    "            VMName      = '主机';" +
+                    "            VMName      = '(ManagementOS)';" +
                     "            MacAddress  = ($netAdapter.MacAddress -replace '-', ':');" +
                     "            Status      = $netAdapter.Status.ToString();" +
                     "            IPAddresses = $ipAddresses;" +
@@ -109,18 +109,18 @@ namespace ExHyperV.Services
                 {
                     var allAdapters = new List<AdapterInfo>();
                     var vmResults = Utils.Run(vmAdaptersScript);
-                    if (vmResults != null)
-                    {
-                        foreach (var pso in vmResults)
+                        if (vmResults != null)
                         {
-                            allAdapters.Add(new AdapterInfo(
-                                pso.Properties["VMName"]?.Value?.ToString() ?? "",
-                                pso.Properties["MacAddress"]?.Value?.ToString() ?? "",
-                                pso.Properties["Status"]?.Value?.ToString() ?? "",
-                                pso.Properties["IPAddresses"]?.Value?.ToString() ?? ""
-                            ));
+                            foreach (var pso in vmResults)
+                            {
+                                allAdapters.Add(new AdapterInfo(
+                                    pso.Properties["VMName"]?.Value?.ToString() ?? "",
+                                    pso.Properties["MacAddress"]?.Value?.ToString() ?? "",
+                                    pso.Properties["Status"]?.Value?.ToString() ?? "",
+                                    pso.Properties["IPAddresses"]?.Value?.ToString() ?? ""
+                                ));
+                            }
                         }
-                    }
 
                     var stopwatch = Stopwatch.StartNew();
                     Collection<PSObject>? hostResults = null;
@@ -143,8 +143,9 @@ namespace ExHyperV.Services
                     {
                         foreach (var pso in hostResults)
                         {
+                            string rawVmName = pso.Properties["VMName"]?.Value?.ToString() ?? "";
                             allAdapters.Add(new AdapterInfo(
-                                pso.Properties["VMName"]?.Value?.ToString() ?? "",
+                                rawVmName == "(ManagementOS)" ? ExHyperV.Properties.Resources.DisplayName_HostManagementOS : rawVmName,
                                 pso.Properties["MacAddress"]?.Value?.ToString() ?? "",
                                 pso.Properties["Status"]?.Value?.ToString() ?? "",
                                 pso.Properties["IPAddresses"]?.Value?.ToString() ?? ""
@@ -177,7 +178,7 @@ namespace ExHyperV.Services
                     case "EXTERNAL":
                         if (string.IsNullOrEmpty(adapterDescription))
                         {
-                            throw new ArgumentException("外部交换机必须指定一个物理网卡。");
+                            throw new ArgumentException(Properties.Resources.Error_ExternalSwitchRequiresPhysicalAdapter);
                         }
                         script = $"New-VMSwitch -Name '{name}' -NetAdapterInterfaceDescription '{adapterDescription}' -AllowManagementOS $true";
                         await Task.Run(() => Utils.Run(script));
@@ -198,7 +199,7 @@ namespace ExHyperV.Services
             catch (Exception ex)
             {
                 Debug.WriteLine($"Error in CreateSwitchAsync: {ex}");
-                throw new InvalidOperationException($"创建交换机 '{name}' 失败: {ex.Message}", ex);
+                throw new InvalidOperationException(string.Format(Properties.Resources.Error_CreateSwitchFailed, name, ex.Message), ex);
             }
         }
 
@@ -215,7 +216,7 @@ namespace ExHyperV.Services
                 catch (Exception ex)
                 {
                     Debug.WriteLine($"Error in DeleteSwitchAsync: {ex}");
-                    throw new InvalidOperationException($"删除交换机 '{switchName}' 失败。", ex);
+                    throw new InvalidOperationException(string.Format(Properties.Resources.Error_DeleteSwitchFailed, switchName), ex);
                 }
             });
         }

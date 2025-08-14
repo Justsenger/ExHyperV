@@ -112,10 +112,10 @@ namespace ExHyperV.ViewModels
             {
                 var confirmDialog = new ContentDialog
                 {
-                    Title = "MMIO空间过小",
+                    Title = ExHyperV.Properties.Resources.DdaPage_Title_MmioSpaceTooSmall,
                     Content = message,
-                    PrimaryButtonText = "是",
-                    CloseButtonText = "否",
+                    PrimaryButtonText = ExHyperV.Properties.Resources.Button_Yes,
+                    CloseButtonText = ExHyperV.Properties.Resources.Button_No,
                     DialogHost = ((MainWindow)Application.Current.MainWindow).ContentPresenterForDialogs
                 };
                 var result = await confirmDialog.ShowAsync();
@@ -123,7 +123,7 @@ namespace ExHyperV.ViewModels
 
                 var shutdownDialog = new ContentDialog
                 {
-                    Title = "请稍候",
+                    Title = ExHyperV.Properties.Resources.Dialog_Title_PleaseWait,
                     Content = new TextBlock { Text = $"正在关闭虚拟机 '{targetVmName}' ...", HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center },
                     DialogHost = ((MainWindow)Application.Current.MainWindow).ContentPresenterForDialogs,
                 };

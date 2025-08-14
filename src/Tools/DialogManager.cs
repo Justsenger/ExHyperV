@@ -1,4 +1,5 @@
-﻿using System.Windows;
+﻿using System.Linq.Expressions;
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using Wpf.Ui.Controls;
@@ -64,7 +65,7 @@ namespace ExHyperV.Tools
             {
                 Title = title,
                 Content = grid,
-                CloseButtonText = "确定",
+                CloseButtonText = Properties.Resources.sure,
                 DialogHost = dialogHost
             };
 
@@ -88,8 +89,8 @@ namespace ExHyperV.Tools
             {
                 Title = title,
                 Content = content,
-                PrimaryButtonText = "创建",
-                CloseButtonText = "取消",
+                PrimaryButtonText = ExHyperV.Properties.Resources.create,
+                CloseButtonText = ExHyperV.Properties.Resources.cancel,
                 DialogHost = dialogHost,
                 VerticalContentAlignment = VerticalAlignment.Top
             };

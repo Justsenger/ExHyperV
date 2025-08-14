@@ -50,11 +50,11 @@
                     <Grid>
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                             <ui:FontIcon FontFamily="{DynamicResource SegoeFluentIcons}" FontSize="24" Glyph="&#xE7C4;"/>
-                            <TextBlock Text="虚拟交换机列表" FontSize="16" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                            <TextBlock Text="{x:Static properties:Resources.VirtualSwitchList}" FontSize="16" VerticalAlignment="Center" Margin="10,0,0,0"/>
                         </StackPanel>
 
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                            <ui:Button Content="新增" Appearance="Primary" Command="{Binding AddNewSwitchCommand}" />
+                            <ui:Button Content="{x:Static properties:Resources.Add}" Appearance="Primary" Command="{Binding AddNewSwitchCommand}" />
                             <ui:Button Margin="8,0,0,0" Content="{x:Static properties:Resources.refresh}" Command="{Binding LoadNetworkInfoCommand}" IsEnabled="{Binding IsBusy, Converter={StaticResource InvertBool}}" />
                         </StackPanel>
                     </Grid>
@@ -93,8 +93,8 @@
                                     </StackPanel>
 
                                     <ui:Button HorizontalAlignment="Right"
-                                               Content="卸载"
-                                               ToolTip="卸载此虚拟交换机"
+                                               Content="{x:Static properties:Resources.uninstall}"
+                                               ToolTip="{x:Static properties:Resources.Uninstallswitch}"
                                                Visibility="{Binding IsDefaultSwitch, Converter={StaticResource BoolToVis}, ConverterParameter=Invert}"
                                                Command="{Binding DataContext.DeleteSwitchCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
                                                CommandParameter="{Binding}"/>
@@ -113,24 +113,24 @@
                                         <RowDefinition Height="Auto" />
                                     </Grid.RowDefinitions>
 
-                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="网络模式" VerticalAlignment="Center" FontSize="16" Margin="0,0,0,4"/>
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="{x:Static properties:Resources.NetMode}" VerticalAlignment="Center" FontSize="16" Margin="0,0,0,4"/>
                                     <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,0,4"
                                                 IsEnabled="{Binding IsLockedForInteraction, Converter={StaticResource InvertBool}}">
-                                        <RadioButton Content="桥接模式" Padding="8,6,8,4" GroupName="{Binding SwitchId}" 
+                                        <RadioButton Content="{x:Static properties:Resources.Bridge}" Padding="8,6,8,4" GroupName="{Binding SwitchId}" 
                                                      IsChecked="{Binding SelectedNetworkMode, Converter={StaticResource Equality}, ConverterParameter=Bridge, Mode=OneWay}"
                                                      Command="{Binding SetNetworkModeCommand}" CommandParameter="Bridge"
                                                      IsEnabled="{Binding IsDefaultSwitch, Converter={StaticResource InvertBool}}"/>
-                                        <RadioButton Content="NAT模式" Padding="8,6,8,4" GroupName="{Binding SwitchId}" 
+                                        <RadioButton Content="{x:Static properties:Resources.NAT}" Padding="8,6,8,4" GroupName="{Binding SwitchId}" 
                                                      IsChecked="{Binding SelectedNetworkMode, Converter={StaticResource Equality}, ConverterParameter=NAT, Mode=OneWay}"
                                                      Command="{Binding SetNetworkModeCommand}" CommandParameter="NAT"
                                                      IsEnabled="{Binding IsDefaultSwitch, Converter={StaticResource InvertBool}}"/>
-                                        <RadioButton Content="无上游" Padding="8,6,8,4" GroupName="{Binding SwitchId}" 
+                                        <RadioButton Content="{x:Static properties:Resources.Isolate}" Padding="8,6,8,4" GroupName="{Binding SwitchId}" 
                                                      IsChecked="{Binding SelectedNetworkMode, Converter={StaticResource Equality}, ConverterParameter=Isolated, Mode=OneWay}"
                                                      Command="{Binding SetNetworkModeCommand}" CommandParameter="Isolated"
                                                      IsEnabled="{Binding IsDefaultSwitch, Converter={StaticResource InvertBool}}"/>
                                     </StackPanel>
 
-                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="上游网络" VerticalAlignment="Center" FontSize="16" Margin="0,0,0,8"/>
+                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="{x:Static properties:Resources.Internet}" VerticalAlignment="Center" FontSize="16" Margin="0,0,0,8"/>
                                     <ui:DropDownButton Grid.Row="1" Grid.Column="1" Content="{Binding DropDownButtonContent}" IsEnabled="{Binding IsUpstreamSelectionEnabled}" Margin="0,0,0,8">
                                         <ui:DropDownButton.Flyout>
                                             <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}" ItemsSource="{Binding MenuItems}">
@@ -145,12 +145,12 @@
                                         </ui:DropDownButton.Flyout>
                                     </ui:DropDownButton>
 
-                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="宿主连接" VerticalAlignment="Center" FontSize="16" Margin="0,0,0,0"/>
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="{x:Static properties:Resources.Hostconnected}" VerticalAlignment="Center" FontSize="16" Margin="0,0,0,0"/>
                                     <ui:ToggleSwitch Grid.Row="2" Grid.Column="1" HorizontalAlignment="Left" IsChecked="{Binding IsHostConnectionAllowed, Mode=TwoWay}" IsEnabled="{Binding IsHostConnectionToggleEnabled}" Margin="0,0,0,0"/>
                                 </Grid>
 
                                 <StackPanel Margin="0,12,0,10">
-                                    <TextBlock Text="网络拓扑" FontSize="16" Margin="0,0,0,10" />
+                                    <TextBlock Text="{x:Static properties:Resources.NetDraw}" FontSize="16" Margin="0,0,0,10" />
                                     <tools:TopologyCanvas 
                                         ItemsSource="{Binding ConnectedClients}"
                                         SwitchName="{Binding SwitchName}"

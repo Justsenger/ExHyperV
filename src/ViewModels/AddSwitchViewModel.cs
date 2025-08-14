@@ -16,7 +16,7 @@ namespace ExHyperV.ViewModels
         private string _selectedSwitchType = "External";
 
         [ObservableProperty]
-        private string _switchName = "新外部交换机";
+        private string _switchName = ExHyperV.Properties.Resources.AddSwitch_DefaultName_External;
 
         [ObservableProperty]
         private string? _selectedNetworkAdapter;
@@ -26,7 +26,7 @@ namespace ExHyperV.ViewModels
 
         public ObservableCollection<string> AvailableNetworkAdapters { get; } = new();
         public bool IsNetworkAdapterSelectionEnabled => _selectedSwitchType == "External" || _selectedSwitchType == "NAT";
-        public string ComboBoxPlaceholderText => AvailableNetworkAdapters.Any() ? "请选择网卡..." : "无可用的物理网卡";
+        public string ComboBoxPlaceholderText => AvailableNetworkAdapters.Any() ? ExHyperV.Properties.Resources.AddSwitch_Placeholder_SelectAdapter : ExHyperV.Properties.Resources.AddSwitch_Placeholder_NoAdaptersAvailable;
 
         public bool IsComboBoxEnabled => IsNetworkAdapterSelectionEnabled && AvailableNetworkAdapters.Any();
 
@@ -51,10 +51,10 @@ namespace ExHyperV.ViewModels
         {
             SwitchName = value switch
             {
-                "External" => "新外部交换机",
-                "NAT" => "新NAT交换机",
-                "Internal" => "新内部交换机",
-                _ => "新虚拟交换机"
+                "External" => ExHyperV.Properties.Resources.AddSwitch_DefaultName_External,
+                "NAT" => ExHyperV.Properties.Resources.AddSwitch_DefaultName_NAT,
+                "Internal" => ExHyperV.Properties.Resources.AddSwitch_DefaultName_Internal,
+                _ => ExHyperV.Properties.Resources.AddSwitch_DefaultName_Generic
             };
         }
 
@@ -63,29 +63,29 @@ namespace ExHyperV.ViewModels
             ErrorMessage = null;
             if (string.IsNullOrWhiteSpace(SwitchName))
             {
-                ErrorMessage = "交换机名称不能为空。";
+                ErrorMessage = ExHyperV.Properties.Resources.AddSwitch_Validation_NameCannotBeEmpty;
                 return false;
             }
             if (_existingSwitches.Any(s => s.SwitchName.Equals(SwitchName, System.StringComparison.OrdinalIgnoreCase)))
             {
-                ErrorMessage = $"已存在名为 '{SwitchName}' 的交换机。";
+                ErrorMessage = string.Format(Properties.Resources.AddSwitch_Validation_NameExists, SwitchName);
                 return false;
             }
             if (IsNetworkAdapterSelectionEnabled && !AvailableNetworkAdapters.Any())
             {
-                ErrorMessage = "无法创建外部或NAT交换机，因为没有可用的物理网卡。";
+                ErrorMessage = ExHyperV.Properties.Resources.AddSwitch_Validation_NoAdaptersForExternalOrNat;
                 return false;
             }
             if (IsNetworkAdapterSelectionEnabled && string.IsNullOrEmpty(SelectedNetworkAdapter))
             {
-                ErrorMessage = "外部或NAT交换机必须选择一个物理网卡。";
+                ErrorMessage = ExHyperV.Properties.Resources.AddSwitch_Validation_AdapterRequiredForExternalOrNat;
                 return false;
             }
             if (_selectedSwitchType == "NAT")
             {
                 if (_existingSwitches.Any(s => !s.IsDefaultSwitch && s.SelectedNetworkMode == "NAT"))
                 {
-                    ErrorMessage = "系统只允许存在一个用户创建的NAT网络。";
+                    ErrorMessage = ExHyperV.Properties.Resources.AddSwitch_Validation_OnlyOneNatAllowed;
                     return false;
                 }
             }
