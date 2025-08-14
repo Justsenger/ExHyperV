@@ -16,7 +16,6 @@ namespace ExHyperV.ViewModels
         private readonly List<PhysicalAdapterInfo> _allPhysicalAdapters;
         private readonly ObservableCollection<SwitchViewModel> _allSwitchViewModels;
 
-        // **** 修改点 **** (添加一个专门用于在操作期间锁定UI交互的属性)
         [ObservableProperty] private bool _isLockedForInteraction = false;
 
         [ObservableProperty] private string _switchName;

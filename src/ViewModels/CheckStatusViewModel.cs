@@ -19,15 +19,15 @@ namespace ExHyperV.ViewModels
 
         public string IconGlyph => IsSuccess switch
         {
-            true => "\uEC61",  // Success icon
-            false => "\uEB90", // Failure icon
+            true => "\uEC61",  
+            false => "\uEB90", 
             _ => ""
         };
 
         public Brush IconColor => IsSuccess switch
         {
-            true => new SolidColorBrush(Color.FromArgb(255, 0, 138, 23)), // Green
-            false => new SolidColorBrush(Colors.Red),                     // Red
+            true => new SolidColorBrush(Color.FromArgb(255, 0, 138, 23)), 
+            false => new SolidColorBrush(Colors.Red),                   
             _ => Brushes.Transparent
         };
 
@@ -36,7 +36,6 @@ namespace ExHyperV.ViewModels
             _statusText = initialText;
         }
 
-        // 当IsSuccess属性变化时，通知UI更新依赖于它的属性。
         partial void OnIsSuccessChanged(bool? value)
         {
             OnPropertyChanged(nameof(IconGlyph));

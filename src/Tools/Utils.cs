@@ -47,23 +47,6 @@ public class Utils
             return null;
         }
     }
-    public static CardExpander CardExpander1()
-    {
-        return new CardExpander
-        {
-            Margin = new Thickness(20, 5, 0, 0),
-            ContentPadding = new Thickness(6),
-        };
-    }
-
-    public static CardExpander CardExpander2()
-    {
-        return new CardExpander
-        {
-            Margin = new Thickness(30, 5, 10, 0),
-            ContentPadding = new Thickness(6),
-        };
-    }
 
     public static string GetIconPath(string deviceType, string friendlyName)
     {
@@ -102,72 +85,8 @@ public class Utils
             Glyph = GetIconPath(classType, friendlyName) // 获取图标Unicode
         };
     }
-    public static TextBlock TextBlock1(string friendlyName) {
-        return new TextBlock
-        {
-            Text = friendlyName,
-            FontSize = 16,
-            Margin = new Thickness(0, -2, 0, 0),
-            VerticalAlignment = VerticalAlignment.Center
-        };
-    }
-    public static TextBlock TextBlock12(string friendlyName)
-    {
-        var headerText = new TextBlock
-        {
-            Text = friendlyName,
-            FontSize = 12,
-            Margin = new Thickness(0, 2, 0, 0),
-            VerticalAlignment = VerticalAlignment.Center,
-        };
-        headerText.SetResourceReference(System.Windows.Controls.TextBlock.ForegroundProperty, "TextFillColorSecondaryBrush");
-        return headerText;
-    }
-    public static DropDownButton DropDownButton1(string status) {
-        return new DropDownButton
-        {
-            Content = status,
-            Margin = new Thickness(10, 0, 5, 0),
-        };
-    }
-    public static TextBlock TextBlock3(string friendlyName)
-    {
-        return new TextBlock
-        {
-            Text = friendlyName,
-            FontSize = 16,
-            Margin = new Thickness(0, -2, 0, 0),
-            VerticalAlignment = VerticalAlignment.Center,
-            HorizontalAlignment = HorizontalAlignment.Center,
-            TextWrapping = TextWrapping.Wrap // 允许文本换行
-        };
-    }
-    public static TextBlock TextBlock2(string text,int row,int column)
-    {
-        var textBlock = new TextBlock { Text = text, FontSize = 16, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 10, 10) };
-        Grid.SetRow(textBlock, row);
-        Grid.SetColumn(textBlock, column);
-        return textBlock;
-    }
-    public static StackPanel CreateStackPanel(string text)
-    {
-        var stackPanel = new StackPanel
-        {
-            Orientation = Orientation.Horizontal,
-            HorizontalAlignment = HorizontalAlignment.Left,
-            VerticalAlignment = VerticalAlignment.Center,
-            Margin = new Thickness(10, 0, 0, 0),
-        };
 
-        stackPanel.Children.Add(new TextBlock
-        {
-            Text = text,
-            FontSize = 16,
-            VerticalAlignment = VerticalAlignment.Center
-        });
 
-        return stackPanel;
-    }
     public static string GetGpuImagePath(string Manu,string name)
     {
         string imageName;
@@ -225,27 +144,6 @@ public class Utils
 
         return $"pack://application:,,,/Assets/{imageName}";
     }
-    public static Image CreateGpuImage(string key, string name,int size)
-    {
-        var image = new Image
-        {
-            Source = new BitmapImage(new Uri(GetGpuImagePath(key,name)))
-            {
-                CreateOptions = BitmapCreateOptions.PreservePixelFormat | BitmapCreateOptions.IgnoreColorProfile,
-                CacheOption = BitmapCacheOption.OnLoad
-            },
-            Height = size,
-            Width = size,
-            HorizontalAlignment = HorizontalAlignment.Right,
-            VerticalAlignment = VerticalAlignment.Top
-        };
-
-        // 设置抗锯齿参数
-        image.SetValue(RenderOptions.BitmapScalingModeProperty, BitmapScalingMode.HighQuality);
-        image.SetValue(RenderOptions.EdgeModeProperty, EdgeMode.Aliased);
-
-        return image;
-    }
     public static FontIcon FontIcon(int Size,string Glyph)
     {
         var icon = new FontIcon
@@ -264,7 +162,6 @@ public class Utils
         DateTime linkerTime = fileInfo.LastWriteTime;
         return linkerTime;
     }
-
 
     public static async Task UpdateSwitchConfigurationAsync(string switchName, string mode, string? physicalAdapterName, bool allowManagementOS, bool enabledhcp)
     {
@@ -353,7 +250,6 @@ public class Utils
         await RunScriptSTA(script);
         if (enabledhcp){}
     }
-
     public static Task RunScriptSTA(string script)
     {
         var tcs = new TaskCompletionSource<object?>();
@@ -385,12 +281,10 @@ public class Utils
         };
         messageBox.ShowDialogAsync();
     }
-
     public static void Show2(string message)
     {
         System.Windows.MessageBox.Show(message);
     }
-
     public static string Version => "V2.0.1";
     public static string Author => "砂菱叶";
 

@@ -3,7 +3,7 @@ using System.Xml.Linq;
 using System.Windows;
 using Wpf.Ui.Appearance;
 using System.Diagnostics;
-using ExHyperV.Properties; // 引用资源文件
+using ExHyperV.Properties; 
 
 namespace ExHyperV.Services
 {

@@ -67,8 +67,9 @@ namespace ExHyperV.Tools
             double lineThickness = 1.5;
             double upstreamY = 20;
             double switchY = upstreamY + verticalSpacing;
-            double vmBusY = switchY + verticalSpacing;
-            double vmY = vmBusY + 35;
+
+            double vmBusY = switchY + 40; // 从交换机到总线的距离
+            double vmY = vmBusY + 30;    // 从总线到客户端图标的距离
 
             void CreateNode(string type, string name, string ip, string mac, double x, double y, bool wrap = false)
             {
@@ -78,17 +79,19 @@ namespace ExHyperV.Tools
                 var panel = new StackPanel { HorizontalAlignment = HorizontalAlignment.Center, Orientation = Orientation.Vertical };
                 var nameText = new UiTextBlock { Text = name, FontSize = 12, TextAlignment = TextAlignment.Center, Margin = new Thickness(0, 0, 0, 2) };
                 if (wrap) { nameText.MaxWidth = horizontalVmSpacing - 10; nameText.TextWrapping = TextWrapping.Wrap; }
-                nameText.SetResourceReference(UiTextBlock.ForegroundProperty, "TextFillColorSecondaryBrush");
+                nameText.SetResourceReference(UiTextBlock.ForegroundProperty, "TextFillColorPrimaryBrush");
                 panel.Children.Add(nameText);
                 if (!string.IsNullOrEmpty(mac))
                 {
                     var macText = new UiTextBlock { Text = mac, FontSize = 10, TextAlignment = TextAlignment.Center };
-                    macText.SetResourceReference(UiTextBlock.ForegroundProperty, "TextFillColorTertiaryBrush"); macText.Opacity = 0.8; panel.Children.Add(macText);
+                    macText.SetResourceReference(UiTextBlock.ForegroundProperty, "TextFillColorPrimaryBrush");
+                    panel.Children.Add(macText);
                 }
                 if (!string.IsNullOrEmpty(ip))
                 {
                     var ipText = new UiTextBlock { Text = ip, FontSize = 11, TextAlignment = TextAlignment.Center };
-                    ipText.SetResourceReference(UiTextBlock.ForegroundProperty, "TextFillColorTertiaryBrush"); panel.Children.Add(ipText);
+                    ipText.SetResourceReference(UiTextBlock.ForegroundProperty, "TextFillColorPrimaryBrush");
+                    panel.Children.Add(ipText);
                 }
                 panel.Loaded += (s, _) => { if (s is StackPanel p) { SetLeft(p, x - p.ActualWidth / 2); SetTop(p, y + iconSize / 2 + 5); } };
                 Children.Add(panel);
@@ -116,21 +119,20 @@ namespace ExHyperV.Tools
             {
                 string upstreamName = isDefaultSwitch ? "Internet" : UpstreamAdapter;
                 CreateNode("Upstream", upstreamName, "", "", centerX, upstreamY);
-                // **** 唯一的修正点在这里：混合连接策略 ****
-                DrawLine(centerX, upstreamY + radius, centerX, switchY); // 从上游网络下边缘 连接到 交换机中心
+                DrawLine(centerX, upstreamY + radius, centerX, switchY);
             }
 
             if (clients.Any())
             {
                 double startX = centerX - ((clients.Count - 1) * horizontalVmSpacing) / 2;
-                DrawLine(centerX, switchY, centerX, vmBusY); // 从交换机中心 连接到 横向总线
+                DrawLine(centerX, switchY, centerX, vmBusY);
                 if (clients.Count > 1) DrawLine(startX, vmBusY, startX + (clients.Count - 1) * horizontalVmSpacing, vmBusY);
                 for (int i = 0; i < clients.Count; i++)
                 {
                     var c = clients[i];
                     double currentX = startX + i * horizontalVmSpacing;
                     CreateNode("Net", c.Name, c.Ip, c.Mac, currentX, vmY, wrap: true);
-                    DrawLine(currentX, vmBusY, currentX, vmY - radius); // 从横向总线 连接到 客户端上边缘
+                    DrawLine(currentX, vmBusY, currentX, vmY - radius);
                 }
             }
 

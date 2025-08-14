@@ -52,7 +52,11 @@
                             <ui:FontIcon FontFamily="{DynamicResource SegoeFluentIcons}" FontSize="24" Glyph="&#xE7C4;"/>
                             <TextBlock Text="虚拟交换机列表" FontSize="16" VerticalAlignment="Center" Margin="10,0,0,0"/>
                         </StackPanel>
-                        <ui:Button HorizontalAlignment="Right" Content="{x:Static properties:Resources.refresh}" Command="{Binding LoadNetworkInfoCommand}" IsEnabled="{Binding IsBusy, Converter={StaticResource InvertBool}}" />
+
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                            <ui:Button Content="新增" Appearance="Primary" Command="{Binding AddNewSwitchCommand}" />
+                            <ui:Button Margin="8,0,0,0" Content="{x:Static properties:Resources.refresh}" Command="{Binding LoadNetworkInfoCommand}" IsEnabled="{Binding IsBusy, Converter={StaticResource InvertBool}}" />
+                        </StackPanel>
                     </Grid>
                 </ui:Card>
             </Grid>
@@ -60,35 +64,40 @@
             <ItemsControl Grid.Row="2" ItemsSource="{Binding Switches}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate DataType="{x:Type viewModels:SwitchViewModel}">
-                        <ui:CardExpander Margin="0,5,0,0" IsExpanded="{Binding IsExpanded, Mode=TwoWay}">
+                        <ui:CardExpander Margin="20,5,0,0" IsExpanded="{Binding IsExpanded, Mode=TwoWay}">
                             <ui:CardExpander.Icon>
                                 <ui:FontIcon FontFamily="{DynamicResource SegoeFluentIcons}" FontSize="24" Glyph="{Binding IconGlyph}" />
                             </ui:CardExpander.Icon>
                             <ui:CardExpander.Header>
                                 <Grid>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                    </Grid.RowDefinitions>
-                                    <TextBlock Text="{Binding SwitchName}" FontSize="16" Margin="0,-2,0,0" VerticalAlignment="Center"/>
-                                    <StackPanel Grid.Row="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,4,0,0">
-                                        <Ellipse Width="8" Height="8" Margin="0,0,6,0">
-                                            <Ellipse.Style>
-                                                <Style TargetType="Ellipse">
-                                                    <Setter Property="Fill" Value="Red" />
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding IsConnected}" Value="True">
-                                                            <Setter Property="Fill" Value="Green" />
-                                                        </DataTrigger>
-                                                        <DataTrigger Binding="{Binding IsDefaultSwitch}" Value="True">
-                                                            <Setter Property="Fill" Value="Orange" />
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </Ellipse.Style>
-                                        </Ellipse>
-                                        <TextBlock Text="{Binding StatusText}" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0"/>
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding SwitchName}" FontSize="16" FontWeight="SemiBold" Margin="0,-2,0,0" />
+                                        <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                            <Ellipse Width="8" Height="8" Margin="0,0,6,0">
+                                                <Ellipse.Style>
+                                                    <Style TargetType="Ellipse">
+                                                        <Setter Property="Fill" Value="Red" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsConnected}" Value="True">
+                                                                <Setter Property="Fill" Value="Green" />
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding IsDefaultSwitch}" Value="True">
+                                                                <Setter Property="Fill" Value="Orange" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Ellipse.Style>
+                                            </Ellipse>
+                                            <TextBlock Text="{Binding StatusText}" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                        </StackPanel>
                                     </StackPanel>
+
+                                    <ui:Button HorizontalAlignment="Right"
+                                               Content="卸载"
+                                               ToolTip="卸载此虚拟交换机"
+                                               Visibility="{Binding IsDefaultSwitch, Converter={StaticResource BoolToVis}, ConverterParameter=Invert}"
+                                               Command="{Binding DataContext.DeleteSwitchCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                               CommandParameter="{Binding}"/>
                                 </Grid>
                             </ui:CardExpander.Header>
 
@@ -105,7 +114,6 @@
                                     </Grid.RowDefinitions>
 
                                     <TextBlock Grid.Row="0" Grid.Column="0" Text="网络模式" VerticalAlignment="Center" FontSize="16" Margin="0,0,0,4"/>
-                                    <!-- **** 修改点 **** (将整个 RadioButton 容器的 IsEnabled 绑定到锁定属性上) -->
                                     <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,0,4"
                                                 IsEnabled="{Binding IsLockedForInteraction, Converter={StaticResource InvertBool}}">
                                         <RadioButton Content="桥接模式" Padding="8,6,8,4" GroupName="{Binding SwitchId}" 

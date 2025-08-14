@@ -28,7 +28,6 @@ namespace ExHyperV.Services
                         return (switchList, physicalAdapterList);
                     }
 
-                    // **** 唯一的修正点在这里：添加 -Physical 参数 ****
                     var phydata = Utils.Run(@"Get-NetAdapter -Physical | select Name, InterfaceDescription");
                     if (phydata != null)
                     {
@@ -158,6 +157,81 @@ namespace ExHyperV.Services
         public async Task UpdateSwitchConfigurationAsync(string switchName, string mode, string? adapterDescription, bool allowManagementOS, bool enableDhcp)
         {
             await Utils.UpdateSwitchConfigurationAsync(switchName, mode, adapterDescription, allowManagementOS, enableDhcp);
+        }
+
+        public async Task CreateSwitchAsync(string name, string type, string? adapterDescription)
+        {
+            try
+            {
+                string script;
+                switch (type.ToUpper())
+                {
+                    case "EXTERNAL":
+                        if (string.IsNullOrEmpty(adapterDescription))
+                        {
+                            throw new ArgumentException("外部交换机必须指定一个物理网卡。");
+                        }
+                        script = $"New-VMSwitch -Name '{name}' -NetAdapterInterfaceDescription '{adapterDescription}' -AllowManagementOS $true";
+                        await Task.Run(() => Utils.Run(script));
+                        break;
+
+                    case "NAT":
+                        script = $"New-VMSwitch -Name '{name}' -SwitchType Internal";
+                        await Task.Run(() => Utils.Run(script));
+                        await Task.Delay(3000);
+                        await UpdateSwitchConfigurationAsync(name, "NAT", adapterDescription, true, true);
+                        break;
+
+                    case "INTERNAL":
+                    default:
+                        script = $"New-VMSwitch -Name '{name}' -SwitchType Internal";
+                        await Task.Run(() => Utils.Run(script));
+                        break;
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error in CreateSwitchAsync: {ex}");
+                throw new InvalidOperationException($"创建交换机 '{name}' 失败: {ex.Message}", ex);
+            }
+        }
+
+        public async Task DeleteSwitchAsync(string switchName)
+        {
+            await Task.Run(() =>
+            {
+                try
+                {
+                    ClearAllIcsSettings();
+                    string script = $"Remove-VMSwitch -Name '{switchName}' -Force";
+                    Utils.Run(script);
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"Error in DeleteSwitchAsync: {ex}");
+                    throw new InvalidOperationException($"删除交换机 '{switchName}' 失败。", ex);
+                }
+            });
+        }
+
+        private void ClearAllIcsSettings()
+        {
+            try
+            {
+                string script = @"
+                    $netShareManager = New-Object -ComObject HNetCfg.HNetShare;
+                    foreach ($connection in $netShareManager.EnumEveryConnection) {
+                        $config = $netShareManager.INetSharingConfigurationForINetConnection.Invoke($connection);
+                        if ($config.SharingEnabled) {
+                            $config.DisableSharing();
+                        }
+                    }";
+                Utils.Run(script);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Exception in ClearAllIcsSettings: {ex}");
+            }
         }
 
         private string? GetIcsSourceAdapterName(string switchName)

@@ -1,7 +1,4 @@
-﻿// /Services/IGpuPartitionService.cs
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using ExHyperV.Models;
+﻿using ExHyperV.Models;
 
 namespace ExHyperV.Services
 {
@@ -10,8 +7,6 @@ namespace ExHyperV.Services
         Task<List<GPUInfo>> GetHostGpusAsync();
         Task<List<VMInfo>> GetVirtualMachinesAsync();
         Task<bool> RemoveGpuPartitionAsync(string vmName, string adapterId);
-
-        // <<<--- 这是修改过的一行 --->>>
         Task<string> AddGpuPartitionAsync(string vmName, string gpuInstancePath, string gpuManu);
     }
 }
