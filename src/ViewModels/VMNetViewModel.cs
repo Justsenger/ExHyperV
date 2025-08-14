@@ -2,12 +2,13 @@
 using CommunityToolkit.Mvvm.Input;
 using ExHyperV.Models;
 using ExHyperV.Services;
+using ExHyperV.Tools; // **** 1. 引入 Tools 命名空间 ****
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
-using System.Windows;
+// using System.Windows; // 不再需要 MessageBox
 
 namespace ExHyperV.ViewModels
 {
@@ -36,7 +37,7 @@ namespace ExHyperV.ViewModels
             if (IsBusy) return;
             IsBusy = true;
             ErrorMessage = null;
-            IsContentVisible = false; // 初次加载时隐藏内容
+            IsContentVisible = false;
             Switches.Clear();
 
             try
@@ -51,7 +52,6 @@ namespace ExHyperV.ViewModels
                 }
                 else
                 {
-                    var initTasks = new List<Task>();
                     foreach (var switchInfo in _rawSwitchInfos)
                     {
                         var switchVm = new SwitchViewModel(switchInfo, _networkService, _physicalAdapters, Switches);
@@ -59,13 +59,14 @@ namespace ExHyperV.ViewModels
                         Switches.Add(switchVm);
                     }
                     UpdateAllSwitchMenus();
-                    IsContentVisible = true; // 初次加载结束后显示内容
+                    IsContentVisible = true;
                 }
             }
             catch (Exception ex)
             {
                 ErrorMessage = $"加载网络信息时出错: {ex.Message}";
-                MessageBox.Show(ErrorMessage, "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                // **** 2. 替换 MessageBox ****
+                await DialogManager.ShowAlertAsync("错误", ErrorMessage);
             }
             finally
             {
@@ -77,12 +78,21 @@ namespace ExHyperV.ViewModels
         {
             if (sender is not SwitchViewModel changedSwitch) return;
 
+            if (changedSwitch.IsReverting || changedSwitch.IsLockedForInteraction) return;
+
             if (e.PropertyName == nameof(SwitchViewModel.SelectedNetworkMode) ||
                 e.PropertyName == nameof(SwitchViewModel.SelectedUpstreamAdapter) ||
                 e.PropertyName == nameof(SwitchViewModel.IsHostConnectionAllowed))
             {
-                await Task.Delay(100);
-                await ApplyConfigurationChange(changedSwitch);
+                changedSwitch.IsLockedForInteraction = true;
+                try
+                {
+                    await ApplyConfigurationChange(changedSwitch);
+                }
+                finally
+                {
+                    changedSwitch.IsLockedForInteraction = false;
+                }
             }
         }
 
@@ -91,18 +101,14 @@ namespace ExHyperV.ViewModels
             var originalSwitchInfo = _rawSwitchInfos.FirstOrDefault(s => s.Id == changedSwitch.SwitchId);
             if (originalSwitchInfo == null) return;
 
-            if ((changedSwitch.SelectedNetworkMode == "Bridge" || changedSwitch.SelectedNetworkMode == "NAT") && string.IsNullOrEmpty(changedSwitch.SelectedUpstreamAdapter))
-            {
-                return;
-            }
-
             if (changedSwitch.SelectedNetworkMode == "NAT")
             {
                 var otherNatSwitch = Switches.FirstOrDefault(s => s.SwitchId != changedSwitch.SwitchId && !s.IsDefaultSwitch && s.SelectedNetworkMode == "NAT");
                 if (otherNatSwitch != null)
                 {
-                    MessageBox.Show($"操作失败：系统只允许存在一个NAT网络。\n已有的NAT交换机是: '{otherNatSwitch.SwitchName}'", "配置冲突", MessageBoxButton.OK, MessageBoxImage.Warning);
-                    await RevertSwitchState(changedSwitch, originalSwitchInfo);
+                    // **** 3. 替换 MessageBox ****
+                    await DialogManager.ShowAlertAsync("配置冲突", $"操作失败：系统只允许存在一个NAT网络。\n已有的NAT交换机是: '{otherNatSwitch.SwitchName}'");
+                    await changedSwitch.RevertTo(originalSwitchInfo);
                     return;
                 }
             }
@@ -112,14 +118,19 @@ namespace ExHyperV.ViewModels
                 var conflictingSwitch = Switches.FirstOrDefault(s => s.SwitchId != changedSwitch.SwitchId && !string.IsNullOrEmpty(s.SelectedUpstreamAdapter) && s.SelectedUpstreamAdapter == changedSwitch.SelectedUpstreamAdapter);
                 if (conflictingSwitch != null)
                 {
-                    MessageBox.Show($"操作失败：物理网卡 '{changedSwitch.SelectedUpstreamAdapter}' 已被交换机 '{conflictingSwitch.SwitchName}' 使用。", "配置冲突", MessageBoxButton.OK, MessageBoxImage.Warning);
-                    await RevertSwitchState(changedSwitch, originalSwitchInfo);
+                    // **** 4. 替换 MessageBox ****
+                    await DialogManager.ShowAlertAsync("配置冲突", $"操作失败：物理网卡 '{changedSwitch.SelectedUpstreamAdapter}' 已被交换机 '{conflictingSwitch.SwitchName}' 使用。");
+                    await changedSwitch.RevertTo(originalSwitchInfo);
                     return;
                 }
             }
 
+            if ((changedSwitch.SelectedNetworkMode == "Bridge" || changedSwitch.SelectedNetworkMode == "NAT") && string.IsNullOrEmpty(changedSwitch.SelectedUpstreamAdapter))
+            {
+                return;
+            }
+
             IsBusy = true;
-            // **** 唯一的修正点在这里：移除了对 IsContentVisible 的控制 ****
             try
             {
                 await _networkService.UpdateSwitchConfigurationAsync(
@@ -135,7 +146,8 @@ namespace ExHyperV.ViewModels
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"更新交换机 '{changedSwitch.SwitchName}' 配置失败: {ex.InnerException?.Message ?? ex.Message}", "更新失败", MessageBoxButton.OK, MessageBoxImage.Error);
+                // **** 5. 替换 MessageBox ****
+                await DialogManager.ShowAlertAsync("更新失败", $"更新交换机 '{changedSwitch.SwitchName}' 配置失败: {ex.InnerException?.Message ?? ex.Message}");
                 await RefreshDataModels();
                 UpdateAllSwitchMenus();
             }
@@ -169,13 +181,6 @@ namespace ExHyperV.ViewModels
             {
                 vm.UpdateMenuItems();
             }
-        }
-
-        private async Task RevertSwitchState(SwitchViewModel switchVm, SwitchInfo originalInfo)
-        {
-            switchVm.PropertyChanged -= OnSwitchViewModelPropertyChanged;
-            await switchVm.RevertTo(originalInfo);
-            switchVm.PropertyChanged += OnSwitchViewModelPropertyChanged;
         }
     }
 }

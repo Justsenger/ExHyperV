@@ -105,10 +105,21 @@
                                     </Grid.RowDefinitions>
 
                                     <TextBlock Grid.Row="0" Grid.Column="0" Text="网络模式" VerticalAlignment="Center" FontSize="16" Margin="0,0,0,4"/>
-                                    <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,0,4">
-                                        <RadioButton Content="桥接模式" Padding="8,6,8,4" GroupName="{Binding SwitchId}" IsChecked="{Binding SelectedNetworkMode, Converter={StaticResource Equality}, ConverterParameter=Bridge, Mode=TwoWay}" IsEnabled="{Binding IsDefaultSwitch, Converter={StaticResource InvertBool}}"/>
-                                        <RadioButton Content="NAT模式" Padding="8,6,8,4" GroupName="{Binding SwitchId}" IsChecked="{Binding SelectedNetworkMode, Converter={StaticResource Equality}, ConverterParameter=NAT, Mode=TwoWay}" IsEnabled="{Binding IsDefaultSwitch, Converter={StaticResource InvertBool}}"/>
-                                        <RadioButton Content="无上游" Padding="8,6,8,4" GroupName="{Binding SwitchId}" IsChecked="{Binding SelectedNetworkMode, Converter={StaticResource Equality}, ConverterParameter=Isolated, Mode=TwoWay}" IsEnabled="{Binding IsDefaultSwitch, Converter={StaticResource InvertBool}}"/>
+                                    <!-- **** 修改点 **** (将整个 RadioButton 容器的 IsEnabled 绑定到锁定属性上) -->
+                                    <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,0,4"
+                                                IsEnabled="{Binding IsLockedForInteraction, Converter={StaticResource InvertBool}}">
+                                        <RadioButton Content="桥接模式" Padding="8,6,8,4" GroupName="{Binding SwitchId}" 
+                                                     IsChecked="{Binding SelectedNetworkMode, Converter={StaticResource Equality}, ConverterParameter=Bridge, Mode=OneWay}"
+                                                     Command="{Binding SetNetworkModeCommand}" CommandParameter="Bridge"
+                                                     IsEnabled="{Binding IsDefaultSwitch, Converter={StaticResource InvertBool}}"/>
+                                        <RadioButton Content="NAT模式" Padding="8,6,8,4" GroupName="{Binding SwitchId}" 
+                                                     IsChecked="{Binding SelectedNetworkMode, Converter={StaticResource Equality}, ConverterParameter=NAT, Mode=OneWay}"
+                                                     Command="{Binding SetNetworkModeCommand}" CommandParameter="NAT"
+                                                     IsEnabled="{Binding IsDefaultSwitch, Converter={StaticResource InvertBool}}"/>
+                                        <RadioButton Content="无上游" Padding="8,6,8,4" GroupName="{Binding SwitchId}" 
+                                                     IsChecked="{Binding SelectedNetworkMode, Converter={StaticResource Equality}, ConverterParameter=Isolated, Mode=OneWay}"
+                                                     Command="{Binding SetNetworkModeCommand}" CommandParameter="Isolated"
+                                                     IsEnabled="{Binding IsDefaultSwitch, Converter={StaticResource InvertBool}}"/>
                                     </StackPanel>
 
                                     <TextBlock Grid.Row="1" Grid.Column="0" Text="上游网络" VerticalAlignment="Center" FontSize="16" Margin="0,0,0,8"/>

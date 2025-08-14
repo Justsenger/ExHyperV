@@ -16,6 +16,9 @@ namespace ExHyperV.ViewModels
         private readonly List<PhysicalAdapterInfo> _allPhysicalAdapters;
         private readonly ObservableCollection<SwitchViewModel> _allSwitchViewModels;
 
+        // **** 修改点 **** (添加一个专门用于在操作期间锁定UI交互的属性)
+        [ObservableProperty] private bool _isLockedForInteraction = false;
+
         [ObservableProperty] private string _switchName;
         [ObservableProperty] private string _switchId;
         [ObservableProperty][NotifyPropertyChangedFor(nameof(StatusText)), NotifyPropertyChangedFor(nameof(IsConnected))] private string _selectedNetworkMode;
@@ -28,7 +31,9 @@ namespace ExHyperV.ViewModels
         [ObservableProperty] private ObservableCollection<AdapterInfo> _connectedClients = new();
         [ObservableProperty] private bool _isExpanded = false;
 
-        public string StatusText => IsDefaultSwitch ? "系统默认交换机，不可修改" : IsConnected ? $"已连接到: {SelectedUpstreamAdapter}" : "未连接上游网络";
+        public bool IsReverting { get; private set; } = false;
+
+        public string StatusText => IsDefaultSwitch ? "默认交换机，无法修改设定" : IsConnected ? $"已连接到: {SelectedUpstreamAdapter}" : "未连接上游网络";
         public bool IsConnected => !string.IsNullOrEmpty(SelectedUpstreamAdapter) && (SelectedNetworkMode == "Bridge" || SelectedNetworkMode == "NAT");
         public string DropDownButtonContent => IsDefaultSwitch ? "自动适应" : SelectedNetworkMode == "Isolated" ? "不可用" : string.IsNullOrEmpty(SelectedUpstreamAdapter) ? "请选择网卡..." : SelectedUpstreamAdapter;
         public string IconGlyph => Utils.GetIconPath("Switch", SwitchName);
@@ -43,7 +48,7 @@ namespace ExHyperV.ViewModels
             _switchId = switchInfo.Id;
             _isDefaultSwitch = _switchName == "Default Switch";
 
-            RevertTo(switchInfo);
+            _ = RevertTo(switchInfo);
 
             PropertyChanged += (s, e) =>
             {
@@ -56,26 +61,47 @@ namespace ExHyperV.ViewModels
         }
 
         [RelayCommand]
+        private void SetNetworkMode(string? mode)
+        {
+            if (string.IsNullOrEmpty(mode) || SelectedNetworkMode == mode)
+            {
+                return;
+            }
+            SelectedNetworkMode = mode;
+        }
+
+        [RelayCommand]
         private void SelectUpstreamAdapter(string adapterName)
         {
             SelectedUpstreamAdapter = adapterName;
         }
 
-        public Task RevertTo(SwitchInfo switchInfo)
+        public async Task RevertTo(SwitchInfo switchInfo)
         {
-            SelectedNetworkMode = GetModeFromSwitchType(switchInfo.SwitchType);
-            SelectedUpstreamAdapter = switchInfo.NetAdapterInterfaceDescription;
-            IsHostConnectionAllowed = bool.TryParse(switchInfo.AllowManagementOS, out var result) && result;
-            if (_isDefaultSwitch) { SelectedNetworkMode = "NAT"; }
-            UpdateUiLogic();
-            return UpdateTopologyAsync();
+            IsReverting = true;
+            try
+            {
+                SelectedNetworkMode = GetModeFromSwitchType(switchInfo.SwitchType);
+                SelectedUpstreamAdapter = switchInfo.NetAdapterInterfaceDescription;
+                IsHostConnectionAllowed = bool.TryParse(switchInfo.AllowManagementOS, out var result) && result;
+                if (_isDefaultSwitch) { SelectedNetworkMode = "NAT"; }
+                UpdateUiLogic();
+                await UpdateTopologyAsync();
+            }
+            finally
+            {
+                IsReverting = false;
+            }
         }
 
         private void UpdateUiLogic()
         {
             IsUpstreamSelectionEnabled = (SelectedNetworkMode == "Bridge" || SelectedNetworkMode == "NAT") && !IsDefaultSwitch;
             IsHostConnectionToggleEnabled = SelectedNetworkMode == "Isolated" && !IsDefaultSwitch;
-            if (!IsHostConnectionToggleEnabled && !IsDefaultSwitch) { IsHostConnectionAllowed = true; }
+            if (!IsHostConnectionToggleEnabled && !IsDefaultSwitch)
+            {
+                IsHostConnectionAllowed = true;
+            }
         }
 
         public void UpdateMenuItems()
@@ -88,7 +114,6 @@ namespace ExHyperV.ViewModels
             if (!string.IsNullOrEmpty(currentSelection) && !MenuItems.Contains(currentSelection)) { MenuItems.Add(currentSelection); }
         }
 
-        // 这个方法现在只负责获取数据，不再管理加载状态
         [RelayCommand]
         private async Task UpdateTopologyAsync()
         {
