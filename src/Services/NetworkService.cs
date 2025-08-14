@@ -91,7 +91,11 @@ namespace ExHyperV.Services
                     "    $netAdapter = Get-NetAdapter | Where-Object { ($_.MacAddress -replace '-') -eq ($vmAdapter.MacAddress -replace '-') -and ($_.InterfaceDescription -like '*Hyper-V*') };" +
                     "    if ($netAdapter) {" +
                     "        $ipAddressObjects = Get-NetIPAddress -InterfaceIndex $netAdapter.InterfaceIndex -ErrorAction SilentlyContinue;" +
-                    "        $ipAddresses = if ($ipAddressObjects) {{ ($ipAddressObjects.IPAddress) -join ',' }} else {{ '' }};" +
+                    "        if ($ipAddressObjects) {" +
+                    "            $ipAddresses = ($ipAddressObjects.IPAddress) -join ',';" +
+                    "        } else {" +
+                    "            $ipAddresses = '';" +
+                    "        }" +
                     "        [PSCustomObject]@{" +
                     "            VMName      = '主机';" +
                     "            MacAddress  = ($netAdapter.MacAddress -replace '-', ':');" +
@@ -125,7 +129,11 @@ namespace ExHyperV.Services
                         hostResults = Utils.Run(hostAdapterScript);
                         if (hostResults != null && hostResults.Count > 0)
                         {
-                            break;
+                            var ipValue = hostResults[0].Properties["IPAddresses"]?.Value?.ToString();
+                            if (!string.IsNullOrEmpty(ipValue))
+                            {
+                                break;
+                            }
                         }
                         await Task.Delay(200);
                     }
@@ -174,14 +182,12 @@ namespace ExHyperV.Services
                         script = $"New-VMSwitch -Name '{name}' -NetAdapterInterfaceDescription '{adapterDescription}' -AllowManagementOS $true";
                         await Task.Run(() => Utils.Run(script));
                         break;
-
                     case "NAT":
                         script = $"New-VMSwitch -Name '{name}' -SwitchType Internal";
                         await Task.Run(() => Utils.Run(script));
                         await Task.Delay(3000);
                         await UpdateSwitchConfigurationAsync(name, "NAT", adapterDescription, true, true);
                         break;
-
                     case "INTERNAL":
                     default:
                         script = $"New-VMSwitch -Name '{name}' -SwitchType Internal";
