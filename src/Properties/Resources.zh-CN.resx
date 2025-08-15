@@ -178,7 +178,7 @@
     <value>管理员权限已获得。</value>
   </data>
   <data name="Admin2" xml:space="preserve">
-    <value>管理员权限未获得。已禁用所有功能。</value>
+    <value>管理员权限未获得。所有功能无效。</value>
   </data>
   <data name="complicate" xml:space="preserve">
     <value>兼容性</value>
@@ -519,5 +519,134 @@
   </data>
   <data name="Dialog_Title_PleaseWait" xml:space="preserve">
     <value>请稍候</value>
+  </data>
+  <data name="DdaPage_Status_ShuttingDownVm" xml:space="preserve">
+    <value>正在关闭虚拟机“{0}”...</value>
+  </data>
+  <data name="DdaPage_Error_UpdateMmioFailed" xml:space="preserve">
+    <value>更新MMIO空间失败。</value>
+  </data>
+  <data name="DdaPage_Error_CheckMmioGeneric" xml:space="preserve">
+    <value>检查MMIO空间时出错：{0}</value>
+  </data>
+  <data name="DdaPage_Status_AssigningDevice" xml:space="preserve">
+    <value>正在执行设备分配，请稍候...</value>
+  </data>
+  <data name="Dialog_Title_OperationFailed" xml:space="preserve">
+    <value>操作失败</value>
+  </data>
+  <data name="Error_Unknown" xml:space="preserve">
+    <value>未知错误</value>
+  </data>
+  <data name="DdaPage_Error_ExecutionGeneric" xml:space="preserve">
+    <value>执行时遇到错误：
+
+{0}</value>
+  </data>
+  <data name="Close" xml:space="preserve">
+    <value>关闭</value>
+  </data>
+  <data name="GpuPartition_Error_MountGpuFailed" xml:space="preserve">
+    <value>挂载 GPU 失败：{0}</value>
+  </data>
+  <data name="Error_FatalError" xml:space="preserve">
+    <value>发生严重错误：{0}</value>
+  </data>
+  <data name="Error_UnmountGpuFailed" xml:space="preserve">
+    <value>卸载 GPU 失败。</value>
+  </data>
+  <data name="Error_LoadDataFailed" xml:space="preserve">
+    <value>加载数据时出错：{0}</value>
+  </data>
+  <data name="Status_CheckingBiosIommu" xml:space="preserve">
+    <value>检测BIOS设置：IOMMU...</value>
+  </data>
+  <data name="Info_BiosIommuEnabled" xml:space="preserve">
+    <value>BIOS已启用IOMMU。</value>
+  </data>
+  <data name="Error_BiosIommuDisabled" xml:space="preserve">
+    <value>BIOS未启用IOMMU，DDA和GPU-PV不可用。</value>
+  </data>
+  <data name="Description_HyperVRfScheduler" xml:space="preserve">
+    <value>Hyper-V 虚拟机睿频调度器，由 ExhyperV 程序创建和管理。</value>
+  </data>
+  <data name="Auto" xml:space="preserve">
+    <value>自动适应</value>
+  </data>
+  <data name="Warning_CannotModifyDefaultSwitch" xml:space="preserve">
+    <value>默认交换机，无法修改设定</value>
+  </data>
+  <data name="Status_ConnectedTo" xml:space="preserve">
+    <value>已连接到：{0}</value>
+  </data>
+  <data name="Status_UpstreamNotConnected" xml:space="preserve">
+    <value>未连接上游网络</value>
+  </data>
+  <data name="Placeholder_SelectNetworkAdapter" xml:space="preserve">
+    <value>请选择网卡...</value>
+  </data>
+  <data name="Status_Unavailable" xml:space="preserve">
+    <value>不可用</value>
+  </data>
+  <data name="Title_AddVirtualSwitch" xml:space="preserve">
+    <value>新增虚拟交换机</value>
+  </data>
+  <data name="Error_CreationFailed" xml:space="preserve">
+    <value>创建失败</value>
+  </data>
+  <data name="Validation_InputInvalid" xml:space="preserve">
+    <value>输入无效</value>
+  </data>
+  <data name="Error_DeletionFailed" xml:space="preserve">
+    <value>删除失败</value>
+  </data>
+  <data name="Info_NoSwitchesFound" xml:space="preserve">
+    <value>未找到任何 Hyper-V 虚拟交换机。
+
+请确保 Hyper-V 功能已安装并正在运行。</value>
+  </data>
+  <data name="Error_LoadNetworkInfoFailed" xml:space="preserve">
+    <value>加载网络信息时出错：{0}</value>
+  </data>
+  <data name="Error_ConfigurationConflict" xml:space="preserve">
+    <value>配置冲突</value>
+  </data>
+  <data name="Error_OnlyOneNatNetworkAllowed" xml:space="preserve">
+    <value>操作失败：系统只允许存在一个NAT网络。
+
+已有的NAT交换机是：“{0}”</value>
+  </data>
+  <data name="Error_PhysicalAdapterInUse" xml:space="preserve">
+    <value>操作失败：物理网卡“{0}”已被交换机“{1}”使用。</value>
+  </data>
+  <data name="UpdateFailed" xml:space="preserve">
+    <value>更新失败</value>
+  </data>
+  <data name="Error_UpdateSwitchConfigFailed" xml:space="preserve">
+    <value>更新交换机“{0}”配置失败：{1}</value>
+  </data>
+  <data name="Label_SwitchName" xml:space="preserve">
+    <value>交换机名称</value>
+  </data>
+  <data name="SwitchMode" xml:space="preserve">
+    <value>交换机类型</value>
+  </data>
+  <data name="External" xml:space="preserve">
+    <value>外部</value>
+  </data>
+  <data name="Noupstream" xml:space="preserve">
+    <value>无上游</value>
+  </data>
+  <data name="Label_PhysicalNetworkAdapter" xml:space="preserve">
+    <value>物理网卡</value>
+  </data>
+  <data name="Title_HyperVAutoTurbo" xml:space="preserve">
+    <value>Hyper-V 自动睿频</value>
+  </data>
+  <data name="Description_HyperVAutoTurbo" xml:space="preserve">
+    <value>虚拟机高负载/低负载时，修改电源模式为高性能/节能。</value>
+  </data>
+  <data name="Title_VirtualSwitch" xml:space="preserve">
+    <value>虚拟交换机</value>
   </data>
 </root>

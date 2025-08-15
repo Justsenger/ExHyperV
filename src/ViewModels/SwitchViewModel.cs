@@ -32,9 +32,9 @@ namespace ExHyperV.ViewModels
 
         public bool IsReverting { get; private set; } = false;
 
-        public string StatusText => IsDefaultSwitch ? "默认交换机，无法修改设定" : IsConnected ? $"已连接到: {SelectedUpstreamAdapter}" : "未连接上游网络";
+        public string StatusText => IsDefaultSwitch ? ExHyperV.Properties.Resources.Warning_CannotModifyDefaultSwitch : IsConnected ? string.Format(Properties.Resources.Status_ConnectedTo, SelectedUpstreamAdapter) : ExHyperV.Properties.Resources.Status_UpstreamNotConnected;
         public bool IsConnected => !string.IsNullOrEmpty(SelectedUpstreamAdapter) && (SelectedNetworkMode == "Bridge" || SelectedNetworkMode == "NAT");
-        public string DropDownButtonContent => IsDefaultSwitch ? "自动适应" : SelectedNetworkMode == "Isolated" ? "不可用" : string.IsNullOrEmpty(SelectedUpstreamAdapter) ? "请选择网卡..." : SelectedUpstreamAdapter;
+        public string DropDownButtonContent => IsDefaultSwitch ? ExHyperV.Properties.Resources.Auto : SelectedNetworkMode == "Isolated" ? ExHyperV.Properties.Resources.Status_Unavailable : string.IsNullOrEmpty(SelectedUpstreamAdapter) ? ExHyperV.Properties.Resources.Placeholder_SelectNetworkAdapter : SelectedUpstreamAdapter;
         public string IconGlyph => Utils.GetIconPath("Switch", SwitchName);
 
         public SwitchViewModel(SwitchInfo switchInfo, INetworkService networkService, List<PhysicalAdapterInfo> allPhysicalAdapters, ObservableCollection<SwitchViewModel> allSwitchViewModels)

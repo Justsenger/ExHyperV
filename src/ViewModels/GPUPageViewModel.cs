@@ -81,12 +81,12 @@ namespace ExHyperV.ViewModels
                         }
                         else
                         {
-                            Utils.Show($"挂载 GPU 失败: {result}");
+                            Utils.Show(string.Format(Properties.Resources.GpuPartition_Error_MountGpuFailed, result));
                         }
                     }
                     catch (Exception ex)
                     {
-                        Utils.Show($"发生严重错误: {ex.Message}");
+                        Utils.Show(string.Format(Properties.Resources.Error_FatalError, ex.Message));
                     }
                     finally
                     {
@@ -103,7 +103,6 @@ namespace ExHyperV.ViewModels
             if (parameters[0] is not VirtualMachineViewModel vm ||
                 parameters[1] is not AssignedGpuViewModel gpuToRemove)
             {
-                // 注意：这里我们根据 ElementName 绑定的顺序调整回来
                 if (parameters[0] is AssignedGpuViewModel gpu && parameters[1] is VirtualMachineViewModel v)
                 {
                     gpuToRemove = gpu;
@@ -125,7 +124,7 @@ namespace ExHyperV.ViewModels
                 }
                 else
                 {
-                    Utils.Show("卸载 GPU 失败。");
+                    Utils.Show(Properties.Resources.Error_UnmountGpuFailed);
                 }
             }
             finally
@@ -138,12 +137,13 @@ namespace ExHyperV.ViewModels
         {
             try
             {
+                var isHyperVInstalled = await _gpuService.IsHyperVModuleAvailableAsync();
                 var hostGpuModels = await _gpuService.GetHostGpusAsync();
                 var vmModels = await _gpuService.GetVirtualMachinesAsync();
                 var newHostGpus = new List<HostGpuViewModel>();
                 foreach (var gpuModel in hostGpuModels)
                 {
-                    newHostGpus.Add(new HostGpuViewModel(gpuModel));
+                    newHostGpus.Add(new HostGpuViewModel(gpuModel, isHyperVInstalled));
                 }
                 var newVirtualMachines = new List<VirtualMachineViewModel>();
                 foreach (var vmModel in vmModels)
@@ -164,7 +164,7 @@ namespace ExHyperV.ViewModels
             }
             catch (Exception ex)
             {
-                Utils.Show($"加载数据时出错: {ex.Message}");
+                Utils.Show(string.Format(Properties.Resources.Error_LoadDataFailed, ex.Message));
             }
         }
 

@@ -1,6 +1,7 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ExHyperV.Models;
+using ExHyperV.Properties;
 using ExHyperV.Services;
 using ExHyperV.Tools;
 using ExHyperV.Views;
@@ -40,7 +41,7 @@ namespace ExHyperV.ViewModels
                 DataContext = addSwitchVm
             };
 
-            var createConfirmed = await DialogManager.ShowContentDialogAsync("新增虚拟交换机", addSwitchView);
+            var createConfirmed = await DialogManager.ShowContentDialogAsync(ExHyperV.Properties.Resources.Title_AddVirtualSwitch, addSwitchView);
 
             if (!createConfirmed)
             {
@@ -64,7 +65,7 @@ namespace ExHyperV.ViewModels
                 }
                 catch (System.Exception ex)
                 {
-                    await DialogManager.ShowAlertAsync("创建失败", ex.Message);
+                    await DialogManager.ShowAlertAsync(ExHyperV.Properties.Resources.Error_CreationFailed, ex.Message);
                 }
                 finally
                 {
@@ -73,7 +74,7 @@ namespace ExHyperV.ViewModels
             }
             else
             {
-                await DialogManager.ShowAlertAsync("输入无效", addSwitchVm.ErrorMessage ?? "未知错误。");
+                await DialogManager.ShowAlertAsync(ExHyperV.Properties.Resources.Validation_InputInvalid, addSwitchVm.ErrorMessage ?? Resources.Error_Unknown);
             }
         }
         [RelayCommand]
@@ -92,7 +93,7 @@ namespace ExHyperV.ViewModels
             }
             catch (System.Exception ex)
             {
-                await DialogManager.ShowAlertAsync("删除失败", ex.Message);
+                await DialogManager.ShowAlertAsync(ExHyperV.Properties.Resources.Error_DeletionFailed, ex.Message);
             }
             finally
             {
@@ -131,7 +132,7 @@ namespace ExHyperV.ViewModels
 
                 if (!_rawSwitchInfos.Any())
                 {
-                    ErrorMessage = "未找到任何 Hyper-V 虚拟交换机。\n请确保 Hyper-V 功能已安装并正在运行。";
+                    ErrorMessage = ExHyperV.Properties.Resources.Info_NoSwitchesFound;
                 }
                 else
                 {
@@ -147,8 +148,8 @@ namespace ExHyperV.ViewModels
             }
             catch (Exception ex)
             {
-                ErrorMessage = $"加载网络信息时出错: {ex.Message}";
-                await DialogManager.ShowAlertAsync("错误", ErrorMessage);
+                ErrorMessage = string.Format(Properties.Resources.Error_LoadNetworkInfoFailed, ex.Message);
+                await DialogManager.ShowAlertAsync(Resources.error, ErrorMessage);
             }
         }
 
@@ -184,7 +185,7 @@ namespace ExHyperV.ViewModels
                 var otherNatSwitch = Switches.FirstOrDefault(s => s.SwitchId != changedSwitch.SwitchId && !s.IsDefaultSwitch && s.SelectedNetworkMode == "NAT");
                 if (otherNatSwitch != null)
                 {
-                    await DialogManager.ShowAlertAsync("配置冲突", $"操作失败：系统只允许存在一个NAT网络。\n已有的NAT交换机是: '{otherNatSwitch.SwitchName}'");
+                    await DialogManager.ShowAlertAsync(ExHyperV.Properties.Resources.Error_ConfigurationConflict, string.Format(Properties.Resources.Error_OnlyOneNatNetworkAllowed, otherNatSwitch.SwitchName));
                     await changedSwitch.RevertTo(originalSwitchInfo);
                     return;
                 }
@@ -195,7 +196,7 @@ namespace ExHyperV.ViewModels
                 var conflictingSwitch = Switches.FirstOrDefault(s => s.SwitchId != changedSwitch.SwitchId && !string.IsNullOrEmpty(s.SelectedUpstreamAdapter) && s.SelectedUpstreamAdapter == changedSwitch.SelectedUpstreamAdapter);
                 if (conflictingSwitch != null)
                 {
-                    await DialogManager.ShowAlertAsync("配置冲突", $"操作失败：物理网卡 '{changedSwitch.SelectedUpstreamAdapter}' 已被交换机 '{conflictingSwitch.SwitchName}' 使用。");
+                    await DialogManager.ShowAlertAsync(ExHyperV.Properties.Resources.Error_ConfigurationConflict, string.Format(Properties.Resources.Error_PhysicalAdapterInUse, changedSwitch.SelectedUpstreamAdapter, conflictingSwitch.SwitchName));
                     await changedSwitch.RevertTo(originalSwitchInfo);
                     return;
                 }
@@ -222,7 +223,7 @@ namespace ExHyperV.ViewModels
             }
             catch (Exception ex)
             {
-                await DialogManager.ShowAlertAsync("更新失败", $"更新交换机 '{changedSwitch.SwitchName}' 配置失败: {ex.InnerException?.Message ?? ex.Message}");
+                await DialogManager.ShowAlertAsync(ExHyperV.Properties.Resources.UpdateFailed, string.Format(Properties.Resources.Error_UpdateSwitchConfigFailed, changedSwitch.SwitchName, ex.InnerException?.Message ?? ex.Message));
                 await RefreshDataModels();
                 UpdateAllSwitchMenus();
             }

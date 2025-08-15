@@ -31,6 +31,10 @@ namespace ExHyperV.ViewModels
         [ObservableProperty]
         private bool _isAutoTurboEnabled;
 
+        [ObservableProperty]
+        private bool _isAutoTurboToggleEnabled = false;
+
+
         private const string TaskName = "Auto Turbo Boost - ExhyperV";
         private static readonly string ScriptFileName = Path.Combine("Assets", "AutoTurboBoost.ps1");
 
@@ -41,7 +45,7 @@ namespace ExHyperV.ViewModels
             HyperVStatus = new CheckStatusViewModel(Properties.Resources.checkhyperv);
             AdminStatus = new CheckStatusViewModel(Properties.Resources.checkadmin);
             VersionStatus = new CheckStatusViewModel(Properties.Resources.checkversion);
-            IommuStatus = new CheckStatusViewModel("检测BIOS设置：IOMMU...");
+            IommuStatus = new CheckStatusViewModel(Properties.Resources.Status_CheckingBiosIommu);
 
             _ = LoadInitialStatusAsync();
         }
@@ -120,6 +124,7 @@ namespace ExHyperV.ViewModels
                 if (isAdmin)
                 {
                     IsGpuStrategyToggleEnabled = true;
+                    IsAutoTurboToggleEnabled = true;
                     CheckGpuStrategyReg();
                 }
                 AdminStatus.IsChecking = false;
@@ -143,7 +148,7 @@ namespace ExHyperV.ViewModels
             {
                 var io = Utils.Run("(Get-CimInstance -Namespace \"Root\\Microsoft\\Windows\\DeviceGuard\" -ClassName \"Win32_DeviceGuard\").AvailableSecurityProperties -contains 3");
                 IommuStatus.IsSuccess = io.Count > 0 && io[0].ToString() == "True";
-                IommuStatus.StatusText = IommuStatus.IsSuccess == true ? "BIOS已启用IOMMU。" : "BIOS未启用IOMMU，DDA和GPU-PV不可用。";
+                IommuStatus.StatusText = IommuStatus.IsSuccess == true ? ExHyperV.Properties.Resources.Info_BiosIommuEnabled : ExHyperV.Properties.Resources.Error_BiosIommuDisabled;
                 IommuStatus.IsChecking = false;
             });
         }
@@ -214,7 +219,7 @@ namespace ExHyperV.ViewModels
                 if (!File.Exists(scriptPath)) return;
 
                 var td = ts.NewTask();
-                td.RegistrationInfo.Description = "Hyper-V 极简电源调度器，由 ExhyperV 程序创建和管理。";
+                td.RegistrationInfo.Description = ExHyperV.Properties.Resources.Description_HyperVRfScheduler;
                 td.Triggers.Add(new BootTrigger { Delay = TimeSpan.FromSeconds(30) });
                 td.Actions.Add(new ExecAction("powershell.exe", $"-ExecutionPolicy Bypass -WindowStyle Hidden -File \"{scriptPath}\""));
                 td.Principal.UserId = "NT AUTHORITY\\SYSTEM";

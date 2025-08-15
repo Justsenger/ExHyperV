@@ -124,7 +124,7 @@ namespace ExHyperV.ViewModels
                 var shutdownDialog = new ContentDialog
                 {
                     Title = ExHyperV.Properties.Resources.Dialog_Title_PleaseWait,
-                    Content = new TextBlock { Text = $"正在关闭虚拟机 '{targetVmName}' ...", HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center },
+                    Content = new TextBlock { Text = ExHyperV.Properties.Resources.DdaPage_Status_ShuttingDownVm, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center },
                     DialogHost = ((MainWindow)Application.Current.MainWindow).ContentPresenterForDialogs,
                 };
                 var shutdownDialogTask = shutdownDialog.ShowAsync();
@@ -134,7 +134,7 @@ namespace ExHyperV.ViewModels
 
                 if (!updateSuccess)
                 {
-                    var errorDialog = new MessageBox { Title = "错误", Content = "更新MMIO空间失败。", CloseButtonText = "确定" };
+                    var errorDialog = new MessageBox { Title = Properties.Resources.error, Content = Resources.DdaPage_Error_UpdateMmioFailed, CloseButtonText = Resources.sure };
                     await errorDialog.ShowDialogAsync();
                     await LoadDataCommand.ExecuteAsync(null);
                     return false;
@@ -142,7 +142,7 @@ namespace ExHyperV.ViewModels
             }
             else if (resultType == MmioCheckResultType.Error)
             {
-                var errorDialog = new MessageBox { Title = "错误", Content = $"检查MMIO空间时出错: {message}", CloseButtonText = "确定" };
+                var errorDialog = new MessageBox { Title = Resources.error, Content = ExHyperV.Properties.Resources.DdaPage_Error_CheckMmioGeneric, CloseButtonText = Resources.sure };
                 await errorDialog.ShowDialogAsync();
                 return false;
             }
@@ -158,7 +158,7 @@ namespace ExHyperV.ViewModels
             var waitDialog = new ContentDialog
             {
                 Title = Resources.setting,
-                Content = new TextBlock { Text = "正在执行设备分配，请稍候...", HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center },
+                Content = new TextBlock { Text = ExHyperV.Properties.Resources.DdaPage_Status_AssigningDevice, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center },
                 DialogHost = ((MainWindow)Application.Current.MainWindow).ContentPresenterForDialogs,
             };
             var dialogTask = waitDialog.ShowAsync();
@@ -171,9 +171,9 @@ namespace ExHyperV.ViewModels
             }
             else
             {
-                waitDialog.Title = "操作失败";
-                waitDialog.Content = new ScrollViewer { Content = new TextBlock { Text = $"执行时遇到错误：\n\n{errorMessage ?? "未知错误"}", TextWrapping = TextWrapping.Wrap } };
-                waitDialog.CloseButtonText = "关闭";
+                waitDialog.Title = ExHyperV.Properties.Resources.Dialog_Title_OperationFailed;
+                waitDialog.Content = new ScrollViewer { Content = new TextBlock { Text = string.Format(Properties.Resources.DdaPage_Error_ExecutionGeneric, errorMessage ?? Properties.Resources.Error_Unknown) } };
+                waitDialog.CloseButtonText = ExHyperV.Properties.Resources.Close;
             }
             await dialogTask;
         }

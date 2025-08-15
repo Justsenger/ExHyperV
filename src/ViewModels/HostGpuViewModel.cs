@@ -1,5 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using ExHyperV.Models;
+using ExHyperV.Properties;
 
 namespace ExHyperV.ViewModels
 {
@@ -7,9 +8,21 @@ namespace ExHyperV.ViewModels
     {
         public GPUInfo Model { get; }
 
-        public HostGpuViewModel(GPUInfo model)
+        public HostGpuViewModel(GPUInfo model, bool isHyperVInstalled)
         {
             Model = model;
+            if (!isHyperVInstalled)
+            {
+                GpuPartitionStatusText = Resources.needhyperv;
+            }
+            else if (!string.IsNullOrEmpty(Model.Pname) && Model.Pname != Resources.none)
+            {
+                GpuPartitionStatusText = Resources.support;
+            }
+            else
+            {
+                GpuPartitionStatusText = Resources.notsupport;
+            }
         }
 
         public string Name => Model.Name;
@@ -19,6 +32,7 @@ namespace ExHyperV.ViewModels
         public string InstanceId => Model.InstanceId;
         public string DriverVersion => Model.DriverVersion;
         public string Pname => Model.Pname;
+        public string GpuPartitionStatusText { get; }
 
         public string RamDisplay
         {

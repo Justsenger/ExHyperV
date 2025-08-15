@@ -42,7 +42,7 @@
       <Content Include="Assets\AutoTurboBoost.ps1">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       </Content>
-      <Content Include="Assets\pci.ids">
+      <Content Include="Assets\PCI.ids">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       </Content>
     </ItemGroup>
@@ -60,7 +60,7 @@
       </EmbeddedResource>
     </ItemGroup>
     <ItemGroup>
-      <Resource Update="Assets\pci.ids">
+      <Resource Update="Assets\PCI.ids">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       </Resource>
     </ItemGroup>

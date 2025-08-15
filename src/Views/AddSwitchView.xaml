@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+			 xmlns:properties="clr-namespace:ExHyperV.Properties"
              xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
              xmlns:viewModels="clr-namespace:ExHyperV.ViewModels"
              xmlns:converters="clr-namespace:ExHyperV.Converters"
@@ -24,7 +25,7 @@
 					<ColumnDefinition Width="120"/>
 					<ColumnDefinition Width="*"/>
 				</Grid.ColumnDefinitions>
-				<TextBlock Grid.Column="0" Text="交换机名称" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+				<TextBlock Grid.Column="0" Text="{x:Static properties:Resources.Label_SwitchName}" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
 				<ui:TextBox Grid.Column="1" Text="{Binding SwitchName, UpdateSourceTrigger=PropertyChanged}"/>
 			</Grid>
 
@@ -33,11 +34,11 @@
 					<ColumnDefinition Width="120"/>
 					<ColumnDefinition Width="*"/>
 				</Grid.ColumnDefinitions>
-				<TextBlock Grid.Column="0" Text="交换机类型" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+				<TextBlock Grid.Column="0" Text="{x:Static properties:Resources.SwitchMode}" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
 				<StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-					<RadioButton Content="外部" Margin="0,0,15,0" IsChecked="{Binding SelectedSwitchType, Converter={StaticResource Equality}, ConverterParameter=External}" Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+					<RadioButton Content="{x:Static properties:Resources.External}" Margin="0,0,15,0" IsChecked="{Binding SelectedSwitchType, Converter={StaticResource Equality}, ConverterParameter=External}" Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
 					<RadioButton Content="NAT" Margin="0,0,15,0" IsChecked="{Binding SelectedSwitchType, Converter={StaticResource Equality}, ConverterParameter=NAT}" Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
-					<RadioButton Content="无上游" IsChecked="{Binding SelectedSwitchType, Converter={StaticResource Equality}, ConverterParameter=Internal}" Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+					<RadioButton Content="{x:Static properties:Resources.Noupstream}" IsChecked="{Binding SelectedSwitchType, Converter={StaticResource Equality}, ConverterParameter=Internal}" Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
 				</StackPanel>
 			</Grid>
 
@@ -46,7 +47,7 @@
 					<ColumnDefinition Width="120"/>
 					<ColumnDefinition Width="*"/>
 				</Grid.ColumnDefinitions>
-				<TextBlock Grid.Column="0" Text="物理网卡" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+				<TextBlock Grid.Column="0" Text="{x:Static properties:Resources.Label_PhysicalNetworkAdapter}" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
 				<ComboBox Grid.Column="1"
                           ItemsSource="{Binding AvailableNetworkAdapters}"
                           SelectedItem="{Binding SelectedNetworkAdapter}"

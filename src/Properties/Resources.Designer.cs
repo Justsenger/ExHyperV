@@ -196,7 +196,7 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
-        ///   查找类似 Administrator privileges not obtained. All functions disabled. 的本地化字符串。
+        ///   查找类似 Administrator privileges not obtained. All functions are disabled. 的本地化字符串。
         /// </summary>
         public static string Admin2 {
             get {
@@ -264,6 +264,15 @@ namespace ExHyperV.Properties {
         public static string author {
             get {
                 return ResourceManager.GetString("author", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Auto 的本地化字符串。
+        /// </summary>
+        public static string Auto {
+            get {
+                return ResourceManager.GetString("Auto", resourceCulture);
             }
         }
         
@@ -367,6 +376,15 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 Close 的本地化字符串。
+        /// </summary>
+        public static string Close {
+            get {
+                return ResourceManager.GetString("Close", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Please shut down the virtual machine first! 的本地化字符串。
         /// </summary>
         public static string Colsefirst {
@@ -439,11 +457,85 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 Error while checking MMIO space: {0} 的本地化字符串。
+        /// </summary>
+        public static string DdaPage_Error_CheckMmioGeneric {
+            get {
+                return ResourceManager.GetString("DdaPage_Error_CheckMmioGeneric", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 An error occurred during execution:
+        ///
+        ///{0} 的本地化字符串。
+        /// </summary>
+        public static string DdaPage_Error_ExecutionGeneric {
+            get {
+                return ResourceManager.GetString("DdaPage_Error_ExecutionGeneric", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Failed to update MMIO space. 的本地化字符串。
+        /// </summary>
+        public static string DdaPage_Error_UpdateMmioFailed {
+            get {
+                return ResourceManager.GetString("DdaPage_Error_UpdateMmioFailed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Performing device assignment, please wait... 的本地化字符串。
+        /// </summary>
+        public static string DdaPage_Status_AssigningDevice {
+            get {
+                return ResourceManager.GetString("DdaPage_Status_AssigningDevice", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Shutting down virtual machine &apos;{0}&apos;... 的本地化字符串。
+        /// </summary>
+        public static string DdaPage_Status_ShuttingDownVm {
+            get {
+                return ResourceManager.GetString("DdaPage_Status_ShuttingDownVm", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 MMIO Space Too Small 的本地化字符串。
         /// </summary>
         public static string DdaPage_Title_MmioSpaceTooSmall {
             get {
                 return ResourceManager.GetString("DdaPage_Title_MmioSpaceTooSmall", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Changes the power mode to High Performance when the VM is under high load, and to Power Saver during low load. 的本地化字符串。
+        /// </summary>
+        public static string Description_HyperVAutoTurbo {
+            get {
+                return ResourceManager.GetString("Description_HyperVAutoTurbo", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Hyper-V VM Turbo Scheduler, created and managed by the ExhyperV application. 的本地化字符串。
+        /// </summary>
+        public static string Description_HyperVRfScheduler {
+            get {
+                return ResourceManager.GetString("Description_HyperVRfScheduler", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Operation Failed 的本地化字符串。
+        /// </summary>
+        public static string Dialog_Title_OperationFailed {
+            get {
+                return ResourceManager.GetString("Dialog_Title_OperationFailed", resourceCulture);
             }
         }
         
@@ -538,6 +630,15 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 IOMMU is not enabled in the BIOS. DDA and GPU-PV are unavailable. 的本地化字符串。
+        /// </summary>
+        public static string Error_BiosIommuDisabled {
+            get {
+                return ResourceManager.GetString("Error_BiosIommuDisabled", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Error: Failed to get the hard disk path for virtual machine &apos;{0}&apos;. 的本地化字符串。
         /// </summary>
         public static string Error_CannotGetVmHardDiskPath {
@@ -565,6 +666,15 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 Configuration Conflict 的本地化字符串。
+        /// </summary>
+        public static string Error_ConfigurationConflict {
+            get {
+                return ResourceManager.GetString("Error_ConfigurationConflict", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Failed to create switch &apos;{0}&apos;: {1} 的本地化字符串。
         /// </summary>
         public static string Error_CreateSwitchFailed {
@@ -574,11 +684,29 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 Creation Failed 的本地化字符串。
+        /// </summary>
+        public static string Error_CreationFailed {
+            get {
+                return ResourceManager.GetString("Error_CreationFailed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Failed to delete switch &apos;{0}&apos;. 的本地化字符串。
         /// </summary>
         public static string Error_DeleteSwitchFailed {
             get {
                 return ResourceManager.GetString("Error_DeleteSwitchFailed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Deletion Failed 的本地化字符串。
+        /// </summary>
+        public static string Error_DeletionFailed {
+            get {
+                return ResourceManager.GetString("Error_DeletionFailed", resourceCulture);
             }
         }
         
@@ -619,11 +747,38 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 A fatal error occurred: {0} 的本地化字符串。
+        /// </summary>
+        public static string Error_FatalError {
+            get {
+                return ResourceManager.GetString("Error_FatalError", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Failed to get network information. Please ensure the program is run with administrator privileges and the Hyper-V module is installed. 的本地化字符串。
         /// </summary>
         public static string Error_GetNetworkInfoFailed {
             get {
                 return ResourceManager.GetString("Error_GetNetworkInfoFailed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Failed to load data: {0} 的本地化字符串。
+        /// </summary>
+        public static string Error_LoadDataFailed {
+            get {
+                return ResourceManager.GetString("Error_LoadDataFailed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Failed to load network information: {0} 的本地化字符串。
+        /// </summary>
+        public static string Error_LoadNetworkInfoFailed {
+            get {
+                return ResourceManager.GetString("Error_LoadNetworkInfoFailed", resourceCulture);
             }
         }
         
@@ -642,6 +797,26 @@ namespace ExHyperV.Properties {
         public static string Error_OfflineLoadVmRegistryFailed {
             get {
                 return ResourceManager.GetString("Error_OfflineLoadVmRegistryFailed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Operation failed: Only one NAT network is allowed.
+        ///
+        ///The existing NAT switch is: &apos;{0}&apos; 的本地化字符串。
+        /// </summary>
+        public static string Error_OnlyOneNatNetworkAllowed {
+            get {
+                return ResourceManager.GetString("Error_OnlyOneNatNetworkAllowed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Operation failed: The physical network adapter &apos;{0}&apos; is already in use by the switch &apos;{1}&apos;. 的本地化字符串。
+        /// </summary>
+        public static string Error_PhysicalAdapterInUse {
+            get {
+                return ResourceManager.GetString("Error_PhysicalAdapterInUse", resourceCulture);
             }
         }
         
@@ -673,11 +848,47 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 Unknown error 的本地化字符串。
+        /// </summary>
+        public static string Error_Unknown {
+            get {
+                return ResourceManager.GetString("Error_Unknown", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Failed to unmount GPU. 的本地化字符串。
+        /// </summary>
+        public static string Error_UnmountGpuFailed {
+            get {
+                return ResourceManager.GetString("Error_UnmountGpuFailed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Failed to update configuration for switch &apos;{0}&apos;: {1} 的本地化字符串。
+        /// </summary>
+        public static string Error_UpdateSwitchConfigFailed {
+            get {
+                return ResourceManager.GetString("Error_UpdateSwitchConfigFailed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Easily use Hyper-V advanced features 的本地化字符串。
         /// </summary>
         public static string exhyperv {
             get {
                 return ResourceManager.GetString("exhyperv", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 External 的本地化字符串。
+        /// </summary>
+        public static string External {
+            get {
+                return ResourceManager.GetString("External", resourceCulture);
             }
         }
         
@@ -723,6 +934,15 @@ namespace ExHyperV.Properties {
         public static string GPU2 {
             get {
                 return ResourceManager.GetString("GPU2", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Failed to mount GPU: {0} 的本地化字符串。
+        /// </summary>
+        public static string GpuPartition_Error_MountGpuFailed {
+            get {
+                return ResourceManager.GetString("GpuPartition_Error_MountGpuFailed", resourceCulture);
             }
         }
         
@@ -799,11 +1019,31 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 IOMMU is enabled in the BIOS. 的本地化字符串。
+        /// </summary>
+        public static string Info_BiosIommuEnabled {
+            get {
+                return ResourceManager.GetString("Info_BiosIommuEnabled", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 MMIO space is sufficient. 的本地化字符串。
         /// </summary>
         public static string Info_MmioSpaceSufficient {
             get {
                 return ResourceManager.GetString("Info_MmioSpaceSufficient", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 No Hyper-V virtual switches were found.
+        ///
+        ///Please ensure the Hyper-V feature is installed and running. 的本地化字符串。
+        /// </summary>
+        public static string Info_NoSwitchesFound {
+            get {
+                return ResourceManager.GetString("Info_NoSwitchesFound", resourceCulture);
             }
         }
         
@@ -858,6 +1098,24 @@ namespace ExHyperV.Properties {
         public static string kind {
             get {
                 return ResourceManager.GetString("kind", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Physical Adapter 的本地化字符串。
+        /// </summary>
+        public static string Label_PhysicalNetworkAdapter {
+            get {
+                return ResourceManager.GetString("Label_PhysicalNetworkAdapter", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Switch Name 的本地化字符串。
+        /// </summary>
+        public static string Label_SwitchName {
+            get {
+                return ResourceManager.GetString("Label_SwitchName", resourceCulture);
             }
         }
         
@@ -979,6 +1237,15 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 No Upstream 的本地化字符串。
+        /// </summary>
+        public static string Noupstream {
+            get {
+                return ResourceManager.GetString("Noupstream", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 OK 的本地化字符串。
         /// </summary>
         public static string OK {
@@ -1002,6 +1269,15 @@ namespace ExHyperV.Properties {
         public static string path {
             get {
                 return ResourceManager.GetString("path", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Please select a network adapter... 的本地化字符串。
+        /// </summary>
+        public static string Placeholder_SelectNetworkAdapter {
+            get {
+                return ResourceManager.GetString("Placeholder_SelectNetworkAdapter", resourceCulture);
             }
         }
         
@@ -1096,6 +1372,42 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 Checking BIOS setting: IOMMU... 的本地化字符串。
+        /// </summary>
+        public static string Status_CheckingBiosIommu {
+            get {
+                return ResourceManager.GetString("Status_CheckingBiosIommu", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Connected to: {0} 的本地化字符串。
+        /// </summary>
+        public static string Status_ConnectedTo {
+            get {
+                return ResourceManager.GetString("Status_ConnectedTo", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Unavailable 的本地化字符串。
+        /// </summary>
+        public static string Status_Unavailable {
+            get {
+                return ResourceManager.GetString("Status_Unavailable", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Not connected to upstream network 的本地化字符串。
+        /// </summary>
+        public static string Status_UpstreamNotConnected {
+            get {
+                return ResourceManager.GetString("Status_UpstreamNotConnected", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 The HyperV feature has been installed. 的本地化字符串。
         /// </summary>
         public static string String1 {
@@ -1159,6 +1471,15 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 Switch Mode 的本地化字符串。
+        /// </summary>
+        public static string SwitchMode {
+            get {
+                return ResourceManager.GetString("SwitchMode", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Switch between light/dark mode 的本地化字符串。
         /// </summary>
         public static string switchtheme {
@@ -1186,6 +1507,33 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 Add Virtual Switch 的本地化字符串。
+        /// </summary>
+        public static string Title_AddVirtualSwitch {
+            get {
+                return ResourceManager.GetString("Title_AddVirtualSwitch", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Hyper-V Auto Turbo 的本地化字符串。
+        /// </summary>
+        public static string Title_HyperVAutoTurbo {
+            get {
+                return ResourceManager.GetString("Title_HyperVAutoTurbo", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Virtual Switch 的本地化字符串。
+        /// </summary>
+        public static string Title_VirtualSwitch {
+            get {
+                return ResourceManager.GetString("Title_VirtualSwitch", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Uninstall 的本地化字符串。
         /// </summary>
         public static string uninstall {
@@ -1204,11 +1552,29 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 Update Failed 的本地化字符串。
+        /// </summary>
+        public static string UpdateFailed {
+            get {
+                return ResourceManager.GetString("UpdateFailed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 , recommend the virtual machine version not be less than 19041. 的本地化字符串。
         /// </summary>
         public static string v19041 {
             get {
                 return ResourceManager.GetString("v19041", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Invalid Input 的本地化字符串。
+        /// </summary>
+        public static string Validation_InputInvalid {
+            get {
+                return ResourceManager.GetString("Validation_InputInvalid", resourceCulture);
             }
         }
         
@@ -1245,6 +1611,15 @@ namespace ExHyperV.Properties {
         public static string wait {
             get {
                 return ResourceManager.GetString("wait", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 This is a default switch and its settings cannot be modified. 的本地化字符串。
+        /// </summary>
+        public static string Warning_CannotModifyDefaultSwitch {
+            get {
+                return ResourceManager.GetString("Warning_CannotModifyDefaultSwitch", resourceCulture);
             }
         }
         

@@ -1,19 +1,4 @@
-﻿<#
-.SYNOPSIS
-    Hyper-V 极简电源调度器 v12.5 (PowerShell Edition - 响应优化版)
-.DESCRIPTION
-    本脚本持续监控所有虚拟机的 vCPU 负载以及宿主机自身的 CPU 负载，并根据策略在“高性能”和“节能”模式间切换。
-    v12.5 版本针对核心性能进行了优化，以解决循环耗时过长的问题：
-    - 将两次独立的 Get-Counter 调用合并为一次，大幅减少了每次轮询的延迟。
-    - 脚本响应更灵敏，计时更精确，完美解决了“时隙过长”的感觉。
-    - 采纳了更长的节能降级冷却时间(180秒)，增强了高负载状态的稳定性。
-.VERSION
-    12.5
-#>
-
-# ==============================================================================
-# --- 1. 配置区域 (v12.5 变更) ---
-# ==============================================================================
+﻿# --- 配置参数 ---
 $PowerPlans = @{
     "高性能" = "8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c";
     "节能"   = "a1841308-3541-4fab-bc81-f71556f20b4a"
@@ -21,48 +6,32 @@ $PowerPlans = @{
 $HighPerfPlanName = "高性能"
 $PowerSaverPlanName = "节能"
 
-# <<< 新增: 将所有需要监控的计数器路径合并到一个数组中
-$CounterPaths = @(
-    "\Processor(_Total)\% Processor Time",
-    "\Hyper-V Hypervisor Virtual Processor(*:*)\% Guest Run Time"
-)
+# --- 电源设置 GUID (固定值) ---
+$SubgroupProc = "54533251-82be-4824-96c1-47b60b740d00" # 处理器电源管理 GUID
+$MinProcStateGuid = "893dee8e-2bef-41e0-89c6-b55d0929964c" # 最小处理器状态
+$MaxProcStateGuid = "bc5038f7-23e0-4960-96da-33abaf5935ec" # 最大处理器状态
 
-# ==============================================================================
-# --- 2. 智能调度算法参数 (v12.5 变更) ---
-# ==============================================================================
+# --- 阈值与权重 ---
 $HighLoadThreshold = 60.0
 $HighLoadDurationS = 6
 $LowLoadThreshold = 30.0
-$LowLoadDurationS = 180 # <<< 变更: 从 120s 延长到 180s
+$LowLoadDurationS = 180
 $PollingIntervalS = 1
 $ImmediateSwitch_Usage = 90.0
 $HighPerfTier1_Usage   = 80.0; $HighPerfTier1_Weight = 2.0
-$ExtremeLowLoad_Usage = 10.0; $ExtremeLowLoad_Weight = 4.0
-$NormalLowLoad_Weight = 2.0
+$ExtremeLowLoad_Usage  = 10.0; $ExtremeLowLoad_Weight = 4.0
+$NormalLowLoad_Weight  = 2.0
 
-# ==============================================================================
-# --- 3. 核心功能函数 (v12.5 变更) ---
-# ==============================================================================
+# --- 函数定义 ---
 
-# <<< 重构: 将两个函数合并为一个，一次性获取所有数据，提高效率
 function Get-CombinedCpuUsage {
-    $result = [PSCustomObject]@{
-        HostUsage    = 0.0
-        VcpuMaxUsage = 0.0
-        VcpuSource   = "无运行中的VM"
-    }
+    $result = [PSCustomObject]@{ HostUsage = 0.0; VcpuMaxUsage = 0.0; VcpuSource = "无运行中的VM" }
     try {
-        $allSamples = (Get-Counter -Counter $CounterPaths -ErrorAction Stop).CounterSamples
-        if (-not $allSamples) { return $result }
-
-        # 1. 处理宿主机CPU使用率
-        $hostSample = $allSamples | Where-Object { $_.Path -like '*\processor(_total)\% processor time' } | Select-Object -First 1
-        if ($hostSample) {
-            $result.HostUsage = [math]::Round($hostSample.CookedValue, 2)
-        }
-
-        # 2. 处理vCPU使用率
-        $vcpuSamples = $allSamples | Where-Object { $_.Path -like '*\hyper-v hypervisor virtual processor(*)\% guest run time' }
+        $hostSample = (Get-Counter -Counter "\Processor(_Total)\% Processor Time" -ErrorAction Stop).CounterSamples
+        if ($hostSample) { $result.HostUsage = [math]::Round($hostSample.CookedValue, 2) }
+    } catch { Write-Warning "无法获取宿主机CPU使用率: $($_.Exception.Message)" }
+    try {
+        $vcpuSamples = (Get-Counter -Counter "\Hyper-V Hypervisor Virtual Processor(*:*)\% Guest Run Time" -ErrorAction Stop).CounterSamples
         if ($vcpuSamples) {
             $maxVcpuSample = $vcpuSamples | Sort-Object -Property CookedValue -Descending | Select-Object -First 1
             if ($maxVcpuSample) {
@@ -72,10 +41,7 @@ function Get-CombinedCpuUsage {
                 else { $result.VcpuSource = $instanceName }
             }
         }
-    }
-    catch {
-        $result.VcpuSource = "性能计数器错误"
-    }
+    } catch { } # 预期中的失败，无需处理
     return $result
 }
 
@@ -87,27 +53,45 @@ function Get-CurrentHostPowerPlan {
     } catch { return $PowerSaverPlanName }
 }
 
+# [已更新] 切换电源计划并强制设定CPU状态
 function Set-HostPowerPlan {
     param([string]$TargetPlanName, [string]$CurrentPlanName)
     if ($TargetPlanName -eq $CurrentPlanName) { return }
     $guid = $PowerPlans[$TargetPlanName]
     if (-not $guid) { return }
+
     try {
         Write-Host "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') ---> [命令] 切换从 '$($CurrentPlanName)' 到 '$($TargetPlanName)'" -ForegroundColor Yellow
         powercfg /setactive $guid *>&1 | Out-Null
-    } catch { Write-Error "切换电源计划到 '$($TargetPlanName)' 失败。" }
+
+        # 切换成功后，根据目标计划强制设定处理器状态
+        if ($TargetPlanName -eq $HighPerfPlanName) {
+            Write-Host "       ---> [配置] 设定 '$($TargetPlanName)' 处理器状态为 100% (最小) / 100% (最大)" -ForegroundColor DarkGray
+            powercfg /setacvalueindex $guid $SubgroupProc $MinProcStateGuid 100 *>&1 | Out-Null
+            powercfg /setacvalueindex $guid $SubgroupProc $MaxProcStateGuid 100 *>&1 | Out-Null
+            powercfg /setdcvalueindex $guid $SubgroupProc $MinProcStateGuid 100 *>&1 | Out-Null # 电池模式
+            powercfg /setdcvalueindex $guid $SubgroupProc $MaxProcStateGuid 100 *>&1 | Out-Null # 电池模式
+        }
+        elseif ($TargetPlanName -eq $PowerSaverPlanName) {
+            Write-Host "       ---> [配置] 设定 '$($TargetPlanName)' 处理器状态为 1% (最小) / 1% (最大)" -ForegroundColor DarkGray
+            powercfg /setacvalueindex $guid $SubgroupProc $MinProcStateGuid 1 *>&1 | Out-Null
+            powercfg /setacvalueindex $guid $SubgroupProc $MaxProcStateGuid 1 *>&1 | Out-Null
+            powercfg /setdcvalueindex $guid $SubgroupProc $MinProcStateGuid 1 *>&1 | Out-Null # 电池模式
+            powercfg /setdcvalueindex $guid $SubgroupProc $MaxProcStateGuid 1 *>&1 | Out-Null # 电池模式
+        }
+    } catch { 
+        Write-Error "切换或配置电源计划 '$($TargetPlanName)' 失败。" 
+    }
 }
 
-# ==============================================================================
-# --- 4. 主程序循环 (v12.5 - 响应优化版) ---
-# ==============================================================================
-Write-Host "--- Hyper-V 极简电源调度器 v12.5 (响应优化版) ---" -ForegroundColor Green
+# --- 主程序 ---
+Write-Host "--- Hyper-V 极简电源调度器 v13.0 (CPU状态动态配置版) ---" -ForegroundColor Green
 $currentUser = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
 if (-not $currentUser.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
     Write-Error "错误：本脚本需要管理员权限才能运行。"; Read-Host "按 Enter 键退出..."; exit 1
 }
 Write-Host "监控对象: 所有虚拟机 vCPU 及宿主机 CPU"
-Write-Host "按 Ctrl+C 停止程序，并恢复到“节能”模式。"
+Write-Host "按 Ctrl+C 停止程序，并恢复到“节能”模式(1%/1% CPU)。"
 $highLoadAccumulatedS = 0.0
 $lowLoadAccumulatedS = 0.0
 $lastLoopTimestamp = Get-Date
@@ -126,17 +110,10 @@ try {
 
         $currentPlan = Get-CurrentHostPowerPlan
         
-        # --- 获取vCPU和宿主机CPU使用率 (v12.5 优化) ---
         $cpuStats = Get-CombinedCpuUsage
-        $vcpuMaxUsage = $cpuStats.VcpuMaxUsage
-        $hostCpuUsage = $cpuStats.HostUsage
+        $effectiveUsage = [math]::Max($cpuStats.VcpuMaxUsage, $cpuStats.HostUsage)
         
-        # --- 决策依据：取两者中的最大值 ---
-        $effectiveUsage = [math]::Max($vcpuMaxUsage, $hostCpuUsage)
-        
-        # --- 核心切换逻辑 (与v12.4相同) ---
         if ($isSwitching) {
-            # ... (场景0: 等待切换)
             $statusMessage = "状态: 正在切换到 '$($targetPlan)'，等待系统确认..."
             if ($currentPlan -eq $targetPlan) {
                 $statusMessage = "状态: 已确认切换到 '$($targetPlan)'，恢复监控。"
@@ -145,7 +122,6 @@ try {
             }
         }
         elseif ($effectiveUsage -gt $HighLoadThreshold) {
-            # ... (场景1: 高负载)
             $lowLoadAccumulatedS = 0.0
             if ($currentPlan -ne $HighPerfPlanName) {
                 $doSwitch = $false
@@ -168,7 +144,6 @@ try {
             }
         }
         else {
-            # ... (场景2: 非高负载)
             $highLoadAccumulatedS = 0.0
             if ($currentPlan -eq $HighPerfPlanName) {
                 $isCoolingDown = ($effectiveUsage -lt $LowLoadThreshold) -or ($lowLoadAccumulatedS -gt 0)
@@ -187,11 +162,9 @@ try {
                 $statusMessage = "状态: 负载平稳({0}%)，持续监控中..." -f $effectiveUsage
             }
         }
-        
-        # --- 状态显示 ---
         $logLine = @(
             "$(Get-Date -Format 'HH:mm:ss')", "| 模式: $($currentPlan.PadRight(10))",
-            "| vCPU: $('{0,6:F2}' -f $vcpuMaxUsage) %", "| 宿主机: $('{0,6:F2}' -f $hostCpuUsage) %",
+            "| vCPU: $('{0,6:F2}' -f $cpuStats.VcpuMaxUsage) %", "| 宿主机: $('{0,6:F2}' -f $cpuStats.HostUsage) %",
             "| vCPU源: $($cpuStats.VcpuSource.PadRight(28))", "| $($statusMessage)"
         ) -join ' '
         Write-Host $logLine
@@ -200,8 +173,7 @@ try {
     }
 }
 finally {
-    # 优雅退出
-    Write-Host "`n"; Write-Host "脚本正在停止... 正在恢复到“节能”模式..." -ForegroundColor Yellow
+    Write-Host "`n"; Write-Host "脚本正在停止... 正在恢复到“节能”模式(1%/1% CPU)..." -ForegroundColor Yellow
     $finalPlan = Get-CurrentHostPowerPlan
     Set-HostPowerPlan -TargetPlanName $PowerSaverPlanName -CurrentPlanName $finalPlan
     Write-Host "已恢复到“节能”模式。程序退出。" -ForegroundColor Green

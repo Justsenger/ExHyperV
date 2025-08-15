@@ -108,15 +108,15 @@ public class Utils
         {
             imageName = "Intel.png";
             if (name.ToLower().Contains("iris")) {
-                imageName = "Intel_Iris_Xe_Graphics.png";
+                imageName = "Intel-IrisXe.png";
             }
             if (name.ToLower().Contains("arc"))
             {
-                imageName = "ARC.png";
+                imageName = "Inter-ARC.png";
             }
             if (name.ToLower().Contains("data"))
             {
-                imageName = "data-center-gpu-flex-badge-centered-transparent-rwd_1920-1080.png";
+                imageName = "Inter-DataCenter.png";
             }
 
 
@@ -139,7 +139,7 @@ public class Utils
         }
         else
         {
-            imageName = "GPU.png";  // 其他情况
+            imageName = "Default.png";  // 其他情况
         }
 
         return $"pack://application:,,,/Assets/{imageName}";
@@ -285,7 +285,7 @@ public class Utils
     {
         System.Windows.MessageBox.Show(message);
     }
-    public static string Version => "V2.0.1";
+    public static string Version => "V1.2.0";
     public static string Author => "砂菱叶";
 
 }

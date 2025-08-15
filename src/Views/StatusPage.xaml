@@ -34,9 +34,9 @@
                             <ColumnDefinition Width="auto"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-                        <ui:ProgressRing Width="16" Height="16" IsIndeterminate="True" Visibility="{Binding SystemStatus.IsChecking, Converter={StaticResource BoolToVis}}"/>
-                        <ui:FontIcon FontSize="20" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="{Binding SystemStatus.IconGlyph}" Foreground="{Binding SystemStatus.IconColor}" Visibility="{Binding SystemStatus.IsChecking, Converter={StaticResource BoolToVis}, ConverterParameter=Invert}"/>
-                        <TextBlock Grid.Column="1" Text="{Binding SystemStatus.StatusText}" FontSize="16" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                        <ui:ProgressRing Width="16" Height="16" IsIndeterminate="True" Visibility="{Binding IommuStatus.IsChecking, Converter={StaticResource BoolToVis}}"/>
+                        <ui:FontIcon FontSize="20" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="{Binding IommuStatus.IconGlyph}" Foreground="{Binding IommuStatus.IconColor}" Visibility="{Binding IommuStatus.IsChecking, Converter={StaticResource BoolToVis}, ConverterParameter=Invert}"/>
+                        <TextBlock Grid.Column="1" Text="{Binding IommuStatus.StatusText}" FontSize="16" Margin="10,0,0,0" VerticalAlignment="Center"/>
                     </Grid>
                 </ui:Card>
                 <ui:Card Padding="12" Margin="0,0,0,2">
@@ -48,6 +48,28 @@
                         <ui:ProgressRing Width="16" Height="16" IsIndeterminate="True" Visibility="{Binding CpuStatus.IsChecking, Converter={StaticResource BoolToVis}}"/>
                         <ui:FontIcon FontSize="20" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="{Binding CpuStatus.IconGlyph}" Foreground="{Binding CpuStatus.IconColor}" Visibility="{Binding CpuStatus.IsChecking, Converter={StaticResource BoolToVis}, ConverterParameter=Invert}"/>
                         <TextBlock Grid.Column="1" Text="{Binding CpuStatus.StatusText}" FontSize="16" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                    </Grid>
+                </ui:Card>
+                <ui:Card Padding="12" Margin="0,0,0,2">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <ui:ProgressRing Width="16" Height="16" IsIndeterminate="True" Visibility="{Binding SystemStatus.IsChecking, Converter={StaticResource BoolToVis}}"/>
+                        <ui:FontIcon FontSize="20" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="{Binding SystemStatus.IconGlyph}" Foreground="{Binding SystemStatus.IconColor}" Visibility="{Binding SystemStatus.IsChecking, Converter={StaticResource BoolToVis}, ConverterParameter=Invert}"/>
+                        <TextBlock Grid.Column="1" Text="{Binding SystemStatus.StatusText}" FontSize="16" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                    </Grid>
+                </ui:Card>
+                <ui:Card Padding="12" Margin="0,0,0,2">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <ui:ProgressRing Width="16" Height="16" IsIndeterminate="True" Visibility="{Binding VersionStatus.IsChecking, Converter={StaticResource BoolToVis}}"/>
+                        <ui:FontIcon FontSize="20" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="{Binding VersionStatus.IconGlyph}" Foreground="{Binding VersionStatus.IconColor}" Visibility="{Binding VersionStatus.IsChecking, Converter={StaticResource BoolToVis}, ConverterParameter=Invert}"/>
+                        <TextBlock Grid.Column="1" Text="{Binding VersionStatus.StatusText}" FontSize="16" Margin="10,0,0,0" VerticalAlignment="Center"/>
                     </Grid>
                 </ui:Card>
                 <ui:Card Padding="12" Margin="0,0,0,2">
@@ -70,28 +92,6 @@
                         <ui:ProgressRing Width="16" Height="16" IsIndeterminate="True" Visibility="{Binding AdminStatus.IsChecking, Converter={StaticResource BoolToVis}}"/>
                         <ui:FontIcon FontSize="20" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="{Binding AdminStatus.IconGlyph}" Foreground="{Binding AdminStatus.IconColor}" Visibility="{Binding AdminStatus.IsChecking, Converter={StaticResource BoolToVis}, ConverterParameter=Invert}"/>
                         <TextBlock Grid.Column="1" Text="{Binding AdminStatus.StatusText}" FontSize="16" Margin="10,0,0,0" VerticalAlignment="Center"/>
-                    </Grid>
-                </ui:Card>
-                <ui:Card Padding="12" Margin="0,0,0,2">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="auto"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <ui:ProgressRing Width="16" Height="16" IsIndeterminate="True" Visibility="{Binding VersionStatus.IsChecking, Converter={StaticResource BoolToVis}}"/>
-                        <ui:FontIcon FontSize="20" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="{Binding VersionStatus.IconGlyph}" Foreground="{Binding VersionStatus.IconColor}" Visibility="{Binding VersionStatus.IsChecking, Converter={StaticResource BoolToVis}, ConverterParameter=Invert}"/>
-                        <TextBlock Grid.Column="1" Text="{Binding VersionStatus.StatusText}" FontSize="16" Margin="10,0,0,0" VerticalAlignment="Center"/>
-                    </Grid>
-                </ui:Card>
-                <ui:Card Padding="12" Margin="0,0,0,2">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="auto"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <ui:ProgressRing Width="16" Height="16" IsIndeterminate="True" Visibility="{Binding IommuStatus.IsChecking, Converter={StaticResource BoolToVis}}"/>
-                        <ui:FontIcon FontSize="20" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="{Binding IommuStatus.IconGlyph}" Foreground="{Binding IommuStatus.IconColor}" Visibility="{Binding IommuStatus.IsChecking, Converter={StaticResource BoolToVis}, ConverterParameter=Invert}"/>
-                        <TextBlock Grid.Column="1" Text="{Binding IommuStatus.StatusText}" FontSize="16" Margin="10,0,0,0" VerticalAlignment="Center"/>
                     </Grid>
                 </ui:Card>
             </StackPanel>
@@ -132,11 +132,12 @@
                             <ColumnDefinition Width="auto"/>
                         </Grid.ColumnDefinitions>
                         <StackPanel VerticalAlignment="Center">
-                            <TextBlock Text="Hyper-V 自动睿频"/>
-                            <ui:TextBlock Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" Text="虚拟机高负载/低负载时，修改电源模式为高性能/节能。" />
+                            <TextBlock Text="{x:Static properties:Resources.Title_HyperVAutoTurbo}"/>
+                            <ui:TextBlock Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" Text="{x:Static properties:Resources.Description_HyperVAutoTurbo}" />
                         </StackPanel>
                         <ui:ToggleSwitch Grid.Column="1" Margin="0,0,0,1" VerticalAlignment="Bottom"
-                                         IsChecked="{Binding IsAutoTurboEnabled, Mode=TwoWay}"/>
+                                         IsChecked="{Binding IsAutoTurboEnabled, Mode=TwoWay}"
+                                         IsEnabled="{Binding IsAutoTurboToggleEnabled}"/>
                     </Grid>
                 </ui:CardControl.Header>
             </ui:CardControl>

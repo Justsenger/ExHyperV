@@ -23,7 +23,7 @@
         </Grid.RowDefinitions>
 
         <Grid>
-            <ui:Image CornerRadius="15" Stretch="Uniform" Source="pack://application:,,,/Assets/bar.png"/>
+            <ui:Image CornerRadius="15" Stretch="Uniform" Source="pack://application:,,,/Assets/Bar.png"/>
         </Grid>
 
         <StackPanel Grid.Row="0" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="30">
@@ -53,13 +53,11 @@
                         <RowDefinition Height="32"/>
                     </Grid.RowDefinitions>
 
-                    <!-- 第一列内容 (静态文本) -->
                     <TextBlock Text="{x:Static properties:Resources.version}" FontSize="16" VerticalAlignment="Center" Margin="0,0,10,10" Grid.Row="0"/>
                     <TextBlock Text="{x:Static properties:Resources.arch}" FontSize="16" VerticalAlignment="Center" Margin="0,0,10,10" Grid.Row="1"/>
                     <TextBlock Text="{x:Static properties:Resources.model}" FontSize="16" VerticalAlignment="Center" Margin="0,0,10,10" Grid.Row="2"/>
                     <TextBlock Text="{x:Static properties:Resources.Memorycapacity}" FontSize="16" VerticalAlignment="Center" Margin="0,0,10,10" Grid.Row="3"/>
 
-                    <!-- 第二列内容 (绑定到ViewModel) -->
                     <TextBlock Text="{Binding Caption}" FontSize="16" Grid.Column="1" VerticalAlignment="Center" Margin="0,0,10,10" Grid.Row="0"/>
                     <TextBlock Text="{Binding OSArchitecture}" FontSize="16" Grid.Column="1" VerticalAlignment="Center" Margin="0,0,10,10" Grid.Row="1"/>
                     <TextBlock Text="{Binding CpuModel}" FontSize="16" Grid.Column="1" VerticalAlignment="Center" Margin="0,0,10,10" Grid.Row="2"/>
@@ -89,12 +87,10 @@
                         <RowDefinition Height="32"/>
                     </Grid.RowDefinitions>
 
-                    <!-- 第一列内容 (静态文本) -->
                     <TextBlock Text="{x:Static properties:Resources.appversion}" FontSize="16" VerticalAlignment="Center" Margin="0,0,10,10" Grid.Row="0"/>
                     <TextBlock Text="{x:Static properties:Resources.author}" FontSize="16" VerticalAlignment="Center" Margin="0,0,10,10" Grid.Row="1"/>
                     <TextBlock Text="{x:Static properties:Resources.buildtime}" FontSize="16" VerticalAlignment="Center" Margin="0,0,10,10" Grid.Row="2"/>
 
-                    <!-- 第二列内容 (绑定到ViewModel) -->
                     <TextBlock Text="{Binding AppVersion}" FontSize="16" Grid.Column="1" VerticalAlignment="Center" Margin="0,0,10,10" Grid.Row="0"/>
                     <TextBlock Text="{Binding Author}" FontSize="16" Grid.Column="1" VerticalAlignment="Center" Margin="0,0,10,10" Grid.Row="1"/>
                     <TextBlock Text="{Binding BuildDate}" FontSize="16" Grid.Column="1" VerticalAlignment="Center" Margin="0,0,10,10" Grid.Row="2"/>

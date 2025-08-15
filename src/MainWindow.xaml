@@ -28,7 +28,7 @@
             <ui:TitleBar.Icon>
             <ui:ImageIcon Margin="-3,-16,0,-16" Width="20" Height="20">
                 <ui:ImageIcon.Source>
-                    <BitmapImage UriSource="pack://application:,,,/Assets/app.png"/>
+                    <BitmapImage UriSource="pack://application:,,,/Assets/Icon.png"/>
                 </ui:ImageIcon.Source>
             </ui:ImageIcon>
         </ui:TitleBar.Icon>
@@ -78,7 +78,7 @@
 
                 <ui:NavigationViewItem
                     x:Name="VMnet"
-                    Content="虚拟交换机（Beta）"
+                    Content="{x:Static properties:Resources.Title_VirtualSwitch}"
                     NavigationCacheMode="Enabled"
                     Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"
                     TargetPageType="{x:Type pages:VMNetPage}">

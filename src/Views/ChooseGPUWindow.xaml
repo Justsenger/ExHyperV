@@ -25,7 +25,7 @@
             <ui:TitleBar.Icon>
                 <ui:ImageIcon>
                     <ui:ImageIcon.Source>
-                        <BitmapImage UriSource="pack://application:,,,/Assets/app.png" />
+                        <BitmapImage UriSource="pack://application:,,,/Assets/Icon.png" />
                     </ui:ImageIcon.Source>
                 </ui:ImageIcon>
             </ui:TitleBar.Icon>

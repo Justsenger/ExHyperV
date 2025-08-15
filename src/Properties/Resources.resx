@@ -178,7 +178,7 @@
     <value>Administrator privileges have been obtained.</value>
   </data>
   <data name="Admin2" xml:space="preserve">
-    <value>Administrator privileges not obtained. All functions disabled.</value>
+    <value>Administrator privileges not obtained. All functions are disabled.</value>
   </data>
   <data name="complicate" xml:space="preserve">
     <value>Compatibility</value>
@@ -519,5 +519,134 @@ Do you want to shut down the virtual machine and expand its MMIO space to 64GB?<
   </data>
   <data name="Dialog_Title_PleaseWait" xml:space="preserve">
     <value>Please Wait</value>
+  </data>
+  <data name="DdaPage_Status_ShuttingDownVm" xml:space="preserve">
+    <value>Shutting down virtual machine '{0}'...</value>
+  </data>
+  <data name="DdaPage_Error_UpdateMmioFailed" xml:space="preserve">
+    <value>Failed to update MMIO space.</value>
+  </data>
+  <data name="DdaPage_Error_CheckMmioGeneric" xml:space="preserve">
+    <value>Error while checking MMIO space: {0}</value>
+  </data>
+  <data name="DdaPage_Status_AssigningDevice" xml:space="preserve">
+    <value>Performing device assignment, please wait...</value>
+  </data>
+  <data name="Dialog_Title_OperationFailed" xml:space="preserve">
+    <value>Operation Failed</value>
+  </data>
+  <data name="Error_Unknown" xml:space="preserve">
+    <value>Unknown error</value>
+  </data>
+  <data name="DdaPage_Error_ExecutionGeneric" xml:space="preserve">
+    <value>An error occurred during execution:
+
+{0}</value>
+  </data>
+  <data name="Close" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="GpuPartition_Error_MountGpuFailed" xml:space="preserve">
+    <value>Failed to mount GPU: {0}</value>
+  </data>
+  <data name="Error_FatalError" xml:space="preserve">
+    <value>A fatal error occurred: {0}</value>
+  </data>
+  <data name="Error_UnmountGpuFailed" xml:space="preserve">
+    <value>Failed to unmount GPU.</value>
+  </data>
+  <data name="Error_LoadDataFailed" xml:space="preserve">
+    <value>Failed to load data: {0}</value>
+  </data>
+  <data name="Status_CheckingBiosIommu" xml:space="preserve">
+    <value>Checking BIOS setting: IOMMU...</value>
+  </data>
+  <data name="Info_BiosIommuEnabled" xml:space="preserve">
+    <value>IOMMU is enabled in the BIOS.</value>
+  </data>
+  <data name="Error_BiosIommuDisabled" xml:space="preserve">
+    <value>IOMMU is not enabled in the BIOS. DDA and GPU-PV are unavailable.</value>
+  </data>
+  <data name="Description_HyperVRfScheduler" xml:space="preserve">
+    <value>Hyper-V VM Turbo Scheduler, created and managed by the ExhyperV application.</value>
+  </data>
+  <data name="Auto" xml:space="preserve">
+    <value>Auto</value>
+  </data>
+  <data name="Warning_CannotModifyDefaultSwitch" xml:space="preserve">
+    <value>This is a default switch and its settings cannot be modified.</value>
+  </data>
+  <data name="Status_ConnectedTo" xml:space="preserve">
+    <value>Connected to: {0}</value>
+  </data>
+  <data name="Status_UpstreamNotConnected" xml:space="preserve">
+    <value>Not connected to upstream network</value>
+  </data>
+  <data name="Placeholder_SelectNetworkAdapter" xml:space="preserve">
+    <value>Please select a network adapter...</value>
+  </data>
+  <data name="Status_Unavailable" xml:space="preserve">
+    <value>Unavailable</value>
+  </data>
+  <data name="Title_AddVirtualSwitch" xml:space="preserve">
+    <value>Add Virtual Switch</value>
+  </data>
+  <data name="Error_CreationFailed" xml:space="preserve">
+    <value>Creation Failed</value>
+  </data>
+  <data name="Validation_InputInvalid" xml:space="preserve">
+    <value>Invalid Input</value>
+  </data>
+  <data name="Error_DeletionFailed" xml:space="preserve">
+    <value>Deletion Failed</value>
+  </data>
+  <data name="Info_NoSwitchesFound" xml:space="preserve">
+    <value>No Hyper-V virtual switches were found.
+
+Please ensure the Hyper-V feature is installed and running.</value>
+  </data>
+  <data name="Error_LoadNetworkInfoFailed" xml:space="preserve">
+    <value>Failed to load network information: {0}</value>
+  </data>
+  <data name="Error_ConfigurationConflict" xml:space="preserve">
+    <value>Configuration Conflict</value>
+  </data>
+  <data name="Error_OnlyOneNatNetworkAllowed" xml:space="preserve">
+    <value>Operation failed: Only one NAT network is allowed.
+
+The existing NAT switch is: '{0}'</value>
+  </data>
+  <data name="Error_PhysicalAdapterInUse" xml:space="preserve">
+    <value>Operation failed: The physical network adapter '{0}' is already in use by the switch '{1}'.</value>
+  </data>
+  <data name="UpdateFailed" xml:space="preserve">
+    <value>Update Failed</value>
+  </data>
+  <data name="Error_UpdateSwitchConfigFailed" xml:space="preserve">
+    <value>Failed to update configuration for switch '{0}': {1}</value>
+  </data>
+  <data name="Label_SwitchName" xml:space="preserve">
+    <value>Switch Name</value>
+  </data>
+  <data name="SwitchMode" xml:space="preserve">
+    <value>Switch Mode</value>
+  </data>
+  <data name="External" xml:space="preserve">
+    <value>External</value>
+  </data>
+  <data name="Noupstream" xml:space="preserve">
+    <value>No Upstream</value>
+  </data>
+  <data name="Label_PhysicalNetworkAdapter" xml:space="preserve">
+    <value>Physical Adapter</value>
+  </data>
+  <data name="Title_HyperVAutoTurbo" xml:space="preserve">
+    <value>Hyper-V Auto Turbo</value>
+  </data>
+  <data name="Description_HyperVAutoTurbo" xml:space="preserve">
+    <value>Changes the power mode to High Performance when the VM is under high load, and to Power Saver during low load.</value>
+  </data>
+  <data name="Title_VirtualSwitch" xml:space="preserve">
+    <value>Virtual Switch</value>
   </data>
 </root>
