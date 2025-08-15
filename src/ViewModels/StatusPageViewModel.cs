@@ -36,7 +36,11 @@ namespace ExHyperV.ViewModels
 
 
         private const string TaskName = "Auto Turbo Boost - ExhyperV";
-        private static readonly string ScriptFileName = Path.Combine("Assets", "AutoTurboBoost.ps1");
+        private const string AutoTurboScriptName = "ExHyperV_AutoTurboBoost.ps1";
+        private static readonly string ScriptInstallPath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+            "ExHyperV",
+            AutoTurboScriptName);
 
         public StatusPageViewModel()
         {
@@ -215,9 +219,10 @@ namespace ExHyperV.ViewModels
                 using var ts = new TaskService();
                 if (ts.FindTask(TaskName) != null) return;
 
-                string scriptPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, ScriptFileName);
-                if (!File.Exists(scriptPath)) return;
+                // 1. 调用新方法，确保脚本文件存在于系统目录，并获取其路径
+                string scriptPath = EnsureScriptFileExists();
 
+                // 2. 创建计划任务，引用这个稳定、持久的脚本路径
                 var td = ts.NewTask();
                 td.RegistrationInfo.Description = ExHyperV.Properties.Resources.Description_HyperVRfScheduler;
                 td.Triggers.Add(new BootTrigger { Delay = TimeSpan.FromSeconds(30) });
@@ -228,7 +233,13 @@ namespace ExHyperV.ViewModels
                 td.Settings.ExecutionTimeLimit = TimeSpan.Zero;
                 ts.RootFolder.RegisterTaskDefinition(TaskName, td).Run();
             }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[ERROR] EnableAutoTurbo: {ex.Message}"); }
+            catch (Exception ex)
+            {
+                // 增加更详细的错误输出
+                System.Diagnostics.Debug.WriteLine($"[ERROR] EnableAutoTurbo: Failed to create or run task. Exception: {ex}");
+                // 可以在这里弹出一个用户友好的错误提示
+                Utils.Show2($"创建自动 Turbo 任务失败：\n{ex.Message}");
+            }
         }
 
         private void DisableAutoTurbo()
@@ -244,6 +255,37 @@ namespace ExHyperV.ViewModels
                 }
             }
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[ERROR] DisableAutoTurbo: {ex.Message}"); }
+        }
+
+        private string EnsureScriptFileExists()
+        {
+            // 如果文件已经存在，直接返回它的路径
+            if (File.Exists(ScriptInstallPath))
+            {
+                return ScriptInstallPath;
+            }
+
+            // 如果文件不存在，则从资源中提取
+            var resourceUri = new Uri("/assets/autoturboboost.ps1", UriKind.Relative);
+            var resourceInfo = System.Windows.Application.GetResourceStream(resourceUri);
+
+            if (resourceInfo == null)
+            {
+                // 这是一个严重的程序错误，说明资源没打包进来
+                throw new FileNotFoundException("无法在 DLL 中找到嵌入的脚本资源。", resourceUri.ToString());
+            }
+
+            // 确保目标目录存在
+            Directory.CreateDirectory(Path.GetDirectoryName(ScriptInstallPath));
+
+            // 将资源流的内容写入到目标文件中
+            using (var resourceStream = resourceInfo.Stream)
+            using (var fileStream = new FileStream(ScriptInstallPath, FileMode.Create, FileAccess.Write))
+            {
+                resourceStream.CopyTo(fileStream);
+            }
+
+            return ScriptInstallPath;
         }
 
         #endregion
