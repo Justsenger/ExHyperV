@@ -20,7 +20,10 @@
             Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"
             Text="{x:Static properties:Resources.Settings}" />
 
-        <ui:CardControl Margin="0,0,0,12" Icon="{ui:SymbolIcon Color24}">
+        <ui:CardControl Margin="0,0,0,12">
+            <ui:CardControl.Icon>
+                <ui:FontIcon FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xE790;" />
+            </ui:CardControl.Icon>
             <ui:CardControl.Header>
                 <Grid>
                     <Grid.RowDefinitions>
@@ -38,7 +41,10 @@
                 SelectedItem="{Binding SelectedTheme}" />
         </ui:CardControl>
 
-        <ui:CardControl Margin="0,0,0,12" Icon="{ui:SymbolIcon Globe24}">
+        <ui:CardControl Margin="0,0,0,12">
+            <ui:CardControl.Icon>
+                <ui:FontIcon FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xE774;" />
+            </ui:CardControl.Icon>
             <ui:CardControl.Header>
                 <Grid>
                     <Grid.RowDefinitions>
@@ -63,7 +69,10 @@
             Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"
             Text="{x:Static properties:Resources.about}" />
 
-        <ui:CardExpander ContentPadding="0" Icon="{ui:SymbolIcon Layer24}" IsExpanded="True">
+        <ui:CardExpander ContentPadding="0" IsExpanded="True">
+            <ui:CardExpander.Icon>
+                <ui:FontIcon FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xE81E;" />
+            </ui:CardExpander.Icon>
             <ui:CardExpander.Header>
                 <Grid>
                     <Grid.RowDefinitions>
@@ -89,7 +98,10 @@
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <TextBlock Grid.Column="0" Text="{x:Static properties:Resources.report}" />
-                        <ui:SymbolIcon Grid.Column="1" Symbol="Link24" />
+                        <ui:FontIcon
+                            Grid.Column="1"
+                            FontFamily="{DynamicResource SegoeFluentIcons}"
+                            Glyph="&#xE71B;" />
                     </Grid>
                 </ui:Anchor>
                 <ui:Anchor
@@ -106,7 +118,10 @@
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <TextBlock Grid.Column="0" Text="{x:Static properties:Resources.github}" />
-                        <ui:SymbolIcon Grid.Column="1" Symbol="Link24" />
+                        <ui:FontIcon
+                            Grid.Column="1"
+                            FontFamily="{DynamicResource SegoeFluentIcons}"
+                            Glyph="&#xE71B;" />
                     </Grid>
                 </ui:Anchor>
             </StackPanel>

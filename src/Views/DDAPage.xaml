@@ -46,7 +46,6 @@
                         <ui:Button HorizontalAlignment="Right"
                                    Content="{x:Static properties:Resources.refresh}" 
                                    Command="{Binding LoadDataCommand}"
-                                   Icon="{ui:SymbolIcon ArrowRepeatAll16}"
                                    IsEnabled="{Binding IsUiEnabled}"/>
                     </Grid>
                 </ui:Card>

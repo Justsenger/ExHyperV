@@ -42,6 +42,13 @@ namespace ExHyperV.ViewModels
 
         private async Task LoadDataAsync()
         {
+            if (System.ComponentModel.DesignerProperties.GetIsInDesignMode(new System.Windows.DependencyObject()))
+            {
+                IsLoading = false;
+                IsUiEnabled = true;
+                return;
+            }
+
             IsUiEnabled = false;
             IsLoading = true;
             try

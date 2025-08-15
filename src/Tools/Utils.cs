@@ -283,6 +283,7 @@ public class Utils
     }
     public static void Show2(string message)
     {
+
         System.Windows.MessageBox.Show(message);
     }
     public static string Version => "V1.2.0";

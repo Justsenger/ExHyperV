@@ -1,7 +1,9 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
+    <!-- =================================================================== -->
+    <!--                       1. 项目核心属性                               -->
+    <!-- =================================================================== -->
     <PropertyGroup>
-        <!-- ... 您的标准配置，保持不变 ... -->
         <OutputType>WinExe</OutputType>
         <TargetFramework>net8.0-windows</TargetFramework>
         <UseWPF>true</UseWPF>
@@ -15,23 +17,30 @@
         <DebugSymbols Condition=" '$(Configuration)' == 'Release' ">false</DebugSymbols>
     </PropertyGroup>
 
+    <!-- =================================================================== -->
+    <!--                       2. NuGet 包引用                               -->
+    <!-- =================================================================== -->
     <ItemGroup>
-        <!-- ... 您的包引用，保持不变 ... -->
         <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
         <PackageReference Include="Microsoft.PowerShell.SDK" Version="7.4.0" />
         <PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.135" />
         <PackageReference Include="TaskScheduler" Version="2.12.2" />
-        <PackageReference Include="WPF-UI" Version="4.0.0" />
-        <PackageReference Include="WPF-UI.Tray" Version="4.0.0" />
+        <PackageReference Include="WPF-UI" Version="4.0.3" />
+        <PackageReference Include="WPF-UI.Tray" Version="4.0.3" />
     </ItemGroup>
 
+    <!-- =================================================================== -->
+    <!--                       3. 资源文件定义                               -->
+    <!-- =================================================================== -->
     <ItemGroup>
-        <!-- 最终的资源定义：所有 Assets 都作为资源嵌入 -->
+        <!-- 将 Assets 文件夹下的所有文件作为嵌入资源 -->
         <Resource Include="Assets\**\*.*" />
     </ItemGroup>
-    
+
+    <!-- =================================================================== -->
+    <!--                       4. 自动生成文件配置                            -->
+    <!-- =================================================================== -->
     <ItemGroup>
-        <!-- ... 自动生成的代码，保持不变 ... -->
         <Compile Update="Properties\Resources.Designer.cs">
             <DesignTime>True</DesignTime>
             <AutoGen>True</AutoGen>
@@ -50,7 +59,6 @@
         <Message Text="========== Starting God-Tier Cleanup Script... ==========" Importance="high" />
 
         <!-- === 第1级: 绝对安全区 (100% Safe to Remove) === -->
-        <!-- 这些是与编译、调试、多平台支持相关的辅助文件，对运行时没有任何影响。-->
         <ItemGroup>
             <SafeToRemove Include="$(PublishDir)Microsoft.CodeAnalysis*.dll" />
             <SafeToRemove Include="$(PublishDir)zh-Hans\Microsoft.CodeAnalysis*.resources.dll" />
@@ -59,32 +67,29 @@
         <RemoveDir Directories="$(PublishDir)ref" />
         <Delete Files="@(SafeToRemove)" />
         <Message Text="--- [Level 1: SAFE] Removed Roslyn, ref folder, and PDB files." Importance="high" />
-        
+
+        <!-- 清理多余的 runtimes 文件夹，仅保留 win 和 win-x64 -->
         <ItemGroup>
             <AllRuntimeDirs Include="$([System.IO.Directory]::GetDirectories('$(PublishDir)runtimes'))" />
-            <SafeRuntimeDirsToRemove Include="@(AllRuntimeDirs)" Condition=" '%(Filename)' != 'win' AND '%(Filename)' != 'win-arm64' AND '%(Filename)' != 'win-x64' " />
+            <RuntimeDirsToDelete Include="@(AllRuntimeDirs)" Condition=" '%(Filename)' != 'win' AND '%(Filename)' != 'win-x64' " />
         </ItemGroup>
-        <RemoveDir Directories="@(SafeRuntimeDirsToRemove)" />
-        <Message Text="--- [Level 1: SAFE] Removed non-Windows runtimes." Importance="high" />
+        <RemoveDir Directories="@(RuntimeDirsToDelete)" />
+        <Message Text="--- [Final Frontier] Cleaned up non-x64 runtimes." Importance="high" />
 
         <!-- === 第2级: 低风险区 (Low Risk) === -->
-        <!-- 这些是 PowerShell SDK 包含的、用于处理非常见场景的功能模块。
-             您的应用极大概率用不到它们。如果未来需要支持相关功能，请注释掉对应的行。-->
         <ItemGroup>
-            <!-- 数据库支持 (您的应用不使用) -->
+            <!-- 数据库支持 -->
             <LowRiskToRemove Include="$(PublishDir)System.Data.SqlClient.dll" />
             <LowRiskToRemove Include="$(PublishDir)runtimes\**\System.Data.SqlClient.dll" />
             <LowRiskToRemove Include="$(PublishDir)System.Data.OleDb.dll" />
             <LowRiskToRemove Include="$(PublishDir)runtimes\**\System.Data.OleDb.dll" />
             <LowRiskToRemove Include="$(PublishDir)System.Data.Odbc.dll" />
             <LowRiskToRemove Include="$(PublishDir)runtimes\**\System.Data.Odbc.dll" />
-            
-            <!-- Active Directory 支持 (您的应用是本地管理) -->
+            <!-- Active Directory 支持 -->
             <LowRiskToRemove Include="$(PublishDir)System.DirectoryServices.AccountManagement.dll" />
             <LowRiskToRemove Include="$(PublishDir)runtimes\**\System.DirectoryServices.AccountManagement.dll" />
             <LowRiskToRemove Include="$(PublishDir)System.DirectoryServices.Protocols.dll" />
             <LowRiskToRemove Include="$(PublishDir)runtimes\**\System.DirectoryServices.Protocols.dll" />
-            
             <!-- 其他边缘功能 -->
             <LowRiskToRemove Include="$(PublishDir)System.Speech.dll" />
             <LowRiskToRemove Include="$(PublishDir)runtimes\**\System.Speech.dll" />
@@ -99,25 +104,25 @@
         <Message Text="--- [Level 2: LOW RISK] Removed Database, AD, and other optional modules." Importance="high" />
 
         <!-- === 第3级: 中风险区 (Medium Risk) === -->
-        <!-- 这些模块的功能更通用，您的脚本有可能在不经意间使用到它们。
-             我们通过实验证明可以移除，但如果未来功能扩展，需要特别留意。-->
         <ItemGroup>
             <!-- Windows 服务和事件日志管理 -->
             <MediumRiskToRemove Include="$(PublishDir)System.ServiceProcess.ServiceController.dll" />
             <MediumRiskToRemove Include="$(PublishDir)runtimes\**\System.ServiceProcess.ServiceController.dll" />
             <MediumRiskToRemove Include="$(PublishDir)System.Diagnostics.EventLog.dll" />
             <MediumRiskToRemove Include="$(PublishDir)runtimes\**\System.Diagnostics.EventLog.dll" />
-
             <!-- Markdown 渲染 (用于富文本帮助信息) -->
             <MediumRiskToRemove Include="$(PublishDir)Markdig.Signed.dll" />
+            <!-- 新增: GDI+ 图形库、核心窗口库和系统事件 -->
+            <MediumRiskToRemove Include="$(PublishDir)System.Drawing.Common.dll" />
+            <MediumRiskToRemove Include="$(PublishDir)runtimes\**\System.Drawing.Common.dll" />
+            <MediumRiskToRemove Include="$(PublishDir)System.Private.Windows.Core.dll" />
+            <MediumRiskToRemove Include="$(PublishDir)Microsoft.Win32.SystemEvents.dll" />
+            <MediumRiskToRemove Include="$(PublishDir)runtimes\**\Microsoft.Win32.SystemEvents.dll" />
         </ItemGroup>
         <Delete Files="@(MediumRiskToRemove)" />
-        <Message Text="--- [Level 3: MEDIUM RISK] Removed Service/EventLog and Markdig." Importance="high" />
+        <Message Text="--- [Level 3: MEDIUM RISK] Removed Service/EventLog, Markdig, Drawing, and SystemEvents." Importance="high" />
 
         <!-- === 第4级: 高风险区 (High Risk) === -->
-        <!-- 这是您基于“只用于本地管理”这一核心前提做出的极限优化。
-             移除此文件将彻底破坏 PowerShell 的远程处理能力。
-             如果未来需要任何形式的远程管理，请务必注释掉此任务。-->
         <ItemGroup>
             <HighRiskToRemove Include="$(PublishDir)System.Private.ServiceModel.dll" />
             <HighRiskToRemove Include="$(PublishDir)zh-Hans\System.Private.ServiceModel.resources.dll" />
@@ -125,8 +130,12 @@
         <Delete Files="@(HighRiskToRemove)" />
         <Message Text="--- [Level 4: HIGH RISK] Removed ServiceModel (WCF). Remoting is disabled." Importance="high" />
 
-    <Delete Files="@(FinalSprintToDelete)" />
-    <Message Text="--- (Final Sprint) Force removed IO.Ports and MarkdownRender." Importance="high" />
+        <!-- === 最终魔法: 从 dll 文件夹复制优化版 DLL 进行替换 === -->
+        <ItemGroup>
+            <MagicDlls Include="$(MSBuildProjectDirectory)\dll\*.dll" />
+        </ItemGroup>
+        <Copy SourceFiles="@(MagicDlls)" DestinationFolder="$(PublishDir)" OverwriteReadOnlyFiles="true" SkipUnchangedFiles="false" />
+        <Message Text="--- (Magic) Replaced official DLLs with God-Tier versions from dll folder." Importance="high" />
 
         <Message Text="========== God-Tier Cleanup Script Finished. ==========" Importance="high" />
     </Target>

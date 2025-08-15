@@ -89,7 +89,7 @@ namespace ExHyperV.Tools
                 }
                 if (!string.IsNullOrEmpty(ip))
                 {
-                    var ipText = new UiTextBlock { Text = ip, FontSize = 11, TextAlignment = TextAlignment.Center };
+                    var ipText = new UiTextBlock { Text = ip, FontSize = 11, TextAlignment = TextAlignment.Center, Margin = new Thickness(0, -4, 0, 0) };
                     ipText.SetResourceReference(UiTextBlock.ForegroundProperty, "TextFillColorPrimaryBrush");
                     panel.Children.Add(ipText);
                 }

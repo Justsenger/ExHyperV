@@ -42,7 +42,7 @@
                     NavigationCacheMode="Enabled"
                     TargetPageType="{x:Type pages:MainPage}">
                     <ui:NavigationViewItem.Icon>
-                        <ui:SymbolIcon Symbol="Home24" />
+                        <ui:FontIcon FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xE80F;" />
                     </ui:NavigationViewItem.Icon>
                 </ui:NavigationViewItem>
 
@@ -61,7 +61,7 @@
                     NavigationCacheMode="Enabled"
                     TargetPageType="{x:Type pages:DDAPage}">
                     <ui:NavigationViewItem.Icon>
-                        <ui:SymbolIcon Symbol="ToggleMultiple24" />
+                        <ui:FontIcon FontSize="16" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xF19F;"/>
                     </ui:NavigationViewItem.Icon>
                 </ui:NavigationViewItem>
 
@@ -72,7 +72,7 @@
                     Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"
                     TargetPageType="{x:Type pages:GPUPage}">
                     <ui:NavigationViewItem.Icon>
-                        <ui:SymbolIcon Symbol="Grid28" />
+                        <ui:FontIcon FontSize="16" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xF0E2;"/>
                     </ui:NavigationViewItem.Icon>
                 </ui:NavigationViewItem>
 
@@ -83,7 +83,7 @@
                     Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"
                     TargetPageType="{x:Type pages:VMNetPage}">
                     <ui:NavigationViewItem.Icon>
-                        <ui:SymbolIcon Symbol="Globe32" />
+                        <ui:FontIcon FontSize="16" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xE774;"/>
                     </ui:NavigationViewItem.Icon>
                 </ui:NavigationViewItem>
             </ui:NavigationView.MenuItems>
@@ -94,7 +94,7 @@
                     NavigationCacheMode="Disabled"
                     TargetPageType="{x:Type pages:Setting}">
                     <ui:NavigationViewItem.Icon>
-                        <ui:SymbolIcon Symbol="Settings24" />
+                        <ui:FontIcon FontSize="16" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xE713;"/>
                     </ui:NavigationViewItem.Icon>
                 </ui:NavigationViewItem>
             </ui:NavigationView.FooterMenuItems>

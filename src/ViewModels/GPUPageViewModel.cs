@@ -11,6 +11,10 @@ using ExHyperV.Tools;
 using ExHyperV.Views;
 using Wpf.Ui;
 using Wpf.Ui.Controls;
+using System.Windows;
+using System.Windows.Media;
+
+
 
 namespace ExHyperV.ViewModels
 {
@@ -73,7 +77,12 @@ namespace ExHyperV.ViewModels
                                     ExHyperV.Properties.Resources.success,
                                     GPUname + ExHyperV.Properties.Resources.already + VMname,
                                     ControlAppearance.Success,
-                                    new SymbolIcon(SymbolRegular.CheckboxChecked24, 32),
+                                    new FontIcon
+                                    {
+                                        Glyph = "\uF16C",
+                                        FontSize = 32,
+                                        FontFamily = Application.Current.FindResource("SegoeFluentIcons") as FontFamily,
+                                    },
                                     TimeSpan.FromSeconds(2)
                                 );
                             }
