@@ -108,6 +108,7 @@ DDA (Discrete Device Assignment) 允许你将一个完整的 PCIe 设备（如�
 | **Intel** | A380 | Xe-HPG | Code 43 ❌ | ✅ | ❌ |
 | **Intel**| UHD Graphics 620 Mobile | Generation 9.5 | 无法直通❌ | ❌ | ❌ | 
 | **Intel**| HD Graphics 530 | Generation 9.0 | 无法直通❌ | ❌ | ❌ | ❌ |
+| **AMD** | RX 580 | GCN 4.0 | Code 43 ❌ | ✅ | ❌ |
 | **AMD** | Radeon Vega 3 | GCN 5.0 | Code 43 ❌ | ❌ | ❌ |
 
 - **驱动正常**: 分配到虚拟机后能否成功安装驱动并被识别。
