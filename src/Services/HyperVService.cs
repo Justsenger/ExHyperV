@@ -77,58 +77,59 @@ namespace ExHyperV.Services
                     }
 
                     // 3. 获取所有PCI设备并确定其最终状态
-                    string getPciDevicesScript = @"
-                        function Invoke-GetPathBatch {
-                            param($Ids, $Map, $Key)
-                            if ($Ids.Count -eq 0) { return }
-                            Get-PnpDeviceProperty -InstanceId $Ids -KeyName $Key -ErrorAction SilentlyContinue | ForEach-Object {
-                                if ($_.Data -and $_.Data.Count -gt 0) { $Map[$_.InstanceId] = $_.Data[0] }
-                            }
-                        }
+                    string getPciDevicesScript = @"function Invoke-GetPathBatch {
+                                                param($Ids, $Map, $Key)
+                                                if ($Ids.Count -eq 0) { return }
+                                                Get-PnpDeviceProperty -InstanceId $Ids -KeyName $Key -ErrorAction SilentlyContinue | ForEach-Object {
+                                                    if ($_.Data -and $_.Data.Count -gt 0) { $Map[$_.InstanceId] = $_.Data[0] }
+                                                }
+                                            }
 
-                        $maxRetries = 3; $retryIntervalSeconds = 1; 
-                        $KeyName = 'DEVPKEY_Device_LocationPaths'
+                                            $fastRetries = 3
+                                            $slowRetries = 2
+                                            $slowRetryIntervalSeconds = 1
+                                            $maxRetries = $fastRetries + $slowRetries
+                                            $KeyName = 'DEVPKEY_Device_LocationPaths'
 
-                        $pciDevices = Get-PnpDevice | Where-Object { $_.InstanceId -like 'PCI\*' }
-                        if (-not $pciDevices) { exit }
-                        $pciDeviceCount = $pciDevices.Count
-                        if ($pciDeviceCount -gt 200) {
-                            $batchSize = 100
-                        } else {
-                            $batchSize = $pciDeviceCount
-                            if ($batchSize -lt 1) { $batchSize = 1 }
-                        }
-                        $allInstanceIds = $pciDevices.InstanceId; $pathMap = @{}
-                        if ($allInstanceIds.Count -gt 0) { 
-                            $numBatches = [Math]::Ceiling($allInstanceIds.Count / $batchSize)
-                            for ($i = 0; $i -lt $numBatches; $i++) {
-                                $batch = $allInstanceIds[($i * $batchSize) .. ([Math]::Min((($i + 1) * $batchSize - 1), ($allInstanceIds.Count - 1)))]
-                                if ($batch.Count -gt 0) {
-                                    Invoke-GetPathBatch -Ids $batch -Map $pathMap -Key $KeyName
-                                }
-                            }
-                        }
-                        $idsNeedingPath = $allInstanceIds | Where-Object { -not $pathMap.ContainsKey($_) }
-                        $attemptCount = 0
-                        while (($idsNeedingPath.Count -gt 0) -and ($attemptCount -lt $maxRetries)) {
-                            $attemptCount++
-                            if ($idsNeedingPath.Count -gt 0) { 
-                                $numRetryBatches = [Math]::Ceiling($idsNeedingPath.Count / $batchSize)
-                                for ($j = 0; $j -lt $numRetryBatches; $j++) {
-                                    $batch = $idsNeedingPath[($j * $batchSize) .. ([Math]::Min((($j + 1) * $batchSize - 1), ($idsNeedingPath.Count - 1)))]
-                                    if ($batch.Count -gt 0) {
-                                        Invoke-GetPathBatch -Ids $batch -Map $pathMap -Key $KeyName
-                                    }
-                                }
-                            }
-                            $idsNeedingPath = $allInstanceIds | Where-Object { -not $pathMap.ContainsKey($_) }
-                            if (($idsNeedingPath.Count -gt 0) -and ($attemptCount -lt $maxRetries)) { Start-Sleep -Seconds $retryIntervalSeconds }
-                        }
+                                            $pciDevices = Get-PnpDevice | Where-Object { $_.InstanceId -like 'PCI\*' }
+                                            if (-not $pciDevices) { exit }
 
-                        $pciDevices | Select-Object Class, InstanceId, FriendlyName, Status, Service | ForEach-Object {
-                            $val = $null; if ($pathMap.ContainsKey($_.InstanceId)) { $val = $pathMap[$_.InstanceId] }
-                            $_ | Add-Member -NotePropertyName 'Path' -NotePropertyValue $val -Force; $_
-                        }";
+                                            $pciDeviceCount = $pciDevices.Count
+                                            if ($pciDeviceCount -gt 200) {
+                                                $batchSize = 100
+                                            } else {
+                                                $batchSize = $pciDeviceCount
+                                                if ($batchSize -lt 1) { $batchSize = 1 }
+                                            }
+
+                                            $allInstanceIds = $pciDevices.InstanceId
+                                            $pathMap = @{}
+                                            $idsNeedingPath = $allInstanceIds
+                                            $attemptCount = 0
+
+                                            while (($idsNeedingPath.Count -gt 0) -and ($attemptCount -lt $maxRetries)) {
+                                                $attemptCount++
+                                                if ($idsNeedingPath.Count -gt 0) {
+                                                    $numBatches = [Math]::Ceiling($idsNeedingPath.Count / $batchSize)
+                                                    for ($i = 0; $i -lt $numBatches; $i++) {
+                                                        $batch = $idsNeedingPath[($i * $batchSize) .. ([Math]::Min((($i + 1) * $batchSize - 1), ($idsNeedingPath.Count - 1)))]
+                                                        if ($batch.Count -gt 0) {
+                                                            Invoke-GetPathBatch -Ids $batch -Map $pathMap -Key $KeyName
+                                                        }
+                                                    }
+                                                }
+
+                                                $idsNeedingPath = $allInstanceIds | Where-Object { -not $pathMap.ContainsKey($_) }
+
+                                                if (($idsNeedingPath.Count -gt 0) -and ($attemptCount -ge $fastRetries) -and ($attemptCount -lt $maxRetries)) {
+                                                    Start-Sleep -Seconds $slowRetryIntervalSeconds
+                                                }
+                                            }
+
+                                            $pciDevices | Select-Object Class, InstanceId, FriendlyName, Status, Service | ForEach-Object {
+                                                $val = $null; if ($pathMap.ContainsKey($_.InstanceId)) { $val = $pathMap[$_.InstanceId] }
+                                                $_ | Add-Member -NotePropertyName 'Path' -NotePropertyValue $val -Force; $_
+                                            }";
 
                     var pciData = Utils.Run(getPciDevicesScript);
                     if (pciData != null)
