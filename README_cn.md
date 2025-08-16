@@ -31,6 +31,7 @@ ExHyperV 深入研究了微软官方文档和 [Easy-GPU-PV](https://github.com/j
 ![功能](https://github.com/Justsenger/ExHyperV/blob/main/img/03.png)
 ![功能](https://github.com/Justsenger/ExHyperV/blob/main/img/04.png)
 ![功能](https://github.com/Justsenger/ExHyperV/blob/main/img/05.png)
+![功能](https://github.com/Justsenger/ExHyperV/blob/main/img/06.png)
 ![功能](https://github.com/Justsenger/ExHyperV/blob/main/img/various.png)
 *<p align="center">工具扩展了显卡识别能力，但具体功能启用情况取决于硬件本身。</p>*
 
