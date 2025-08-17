@@ -2,7 +2,7 @@
 
 <div align="center">
 
-**A graphical management tool for advanced Hyper-V features, making it easy for anyone to master high-end functions like DDA and GPU-P.**
+**A graphical Hyper-V advanced tool that allows ordinary people to easily use DDA, GPU-P, virtual switch and other features.**
 
 </div>
 
@@ -53,6 +53,9 @@ Due to limited personal time and resources, there may be untested scenarios. If 
 - Windows Server 2025
 
 > **Note**: This tool requires the host system to be **Build 22000 or newer**. This is because the `Add-VMGpuPartitionAdapter` cmdlet in older systems lacks the `InstancePath` parameter, making it impossible to precisely specify a GPU and potentially causing confusion. To simplify operations, please ensure your host system is updated.
+
+#### Virtual Switch
+- No specific requirements
 
 ### 2. Download & Run
 - **Download**: Go to the [Releases page](https://github.com/Justsenger/ExHyperV/releases/latest) to download the latest version.
@@ -177,12 +180,60 @@ In GPU-P mode, the physical GPU acts as a "render adapter" and needs to be paire
     - **Concept**: Passthrough a USB controller to the VM via DDA, then connect a USB graphics card (e.g., based on [DisplayLink DL-6950](https://www.synaptics.com/products/displaylink-graphics/integrated-chipsets/dl-6000) or [Silicon Motion SM768](https://www.siliconmotion.com/product/cht/Graphics-Display-SoCs.html) chips) as the display adapter.
     - **Status**: The author is currently investigating conflict issues when using this solution with large-VRAM GPUs. Not recommended for general users at this time.
 
-## ⚙️ How It Works
+#### ⚙️ How It Works
 
 To simplify configuration, this tool automatically performs the following actions:
 - **Driver Injection**: Automatically imports the GPU drivers from the host's `HostDriverStore` into the virtual machine.
 - **Driver Protection**: Sets the imported driver files to "read-only" to prevent accidental modification or deletion.
 - **Nvidia Registry Fix**: Automatically modifies Nvidia-related registry keys in the VM to point the driver path to `HostDriverStore`, ensuring the drivers are loaded correctly.
+
+### Virtual Switch
+
+A Virtual Switch is used to connect virtual machines to external networks or other VMs. ExHyperV references VMware's network model to simplify and restructure Hyper-V's classic switch types. The mapping is as follows:
+
+*   **Bridged Mode** = Hyper-V External Switch
+*   **NAT Mode** = Hyper-V Internal Switch + ICS (Internet Connection Sharing)
+*   **Upstream-less** = Hyper-V Internal Switch / Private Switch
+
+#### Network Modes
+
+*   **Bridged Mode**
+    Connects the virtual machine directly to the physical network, making it an independent device on the LAN.
+
+*   **NAT Mode**
+    Creates a private network for VMs and provides external access by sharing the host's network connection.
+    *   **Advantage**: No manual configuration of NAT and DHCP is required; it works out-of-the-box after selecting an upstream network adapter.
+    *   **Limitation**: Due to a hard limit of one ICS (Internet Connection Sharing) instance in Windows, you can currently create only a single NAT switch. Custom NAT and DHCP settings are not available.
+
+*   **Upstream-less**
+    Creates an isolated network for communication between VMs only, with no external access.
+
+#### Settings Explanation
+
+*   **Upstream Network**
+    Specifies the physical network adapter to be used as the upstream connection for "Bridged Mode" or "NAT Mode".
+
+*   **Host Connection**
+    Determines whether to connect the host machine to this virtual switch as well. This option is mandatory in certain modes and will therefore be grayed out and unselectable.
+
+#### Network Topology
+
+The network topology diagram below allows you to clearly view all devices connected to this switch, including their IP and MAC addresses. If the information is not up-to-date, please click the **Refresh** button in the top right corner.
+
+### HyperV Auto Turbo
+
+#### The Problem
+In a Hyper-V environment, an intermediary scheduling layer exists between the virtual machine's workload and the host's physical CPU. This prevents the host from directly and accurately sensing the VM's true performance demands. As a result, the host CPU might remain in a power-saving state even when the VM is running high-load tasks, failing to deliver its full performance potential.
+
+#### The Solution
+ExHyperV's Auto-Boosting feature includes a smart boosting algorithm that:
+1.  **Monitors in Real-Time**: It simultaneously monitors the CPU performance counters of both the virtual machine and the host machine.
+2.  **Adjusts Intelligently**: Based on the combined workload, it automatically and instantly adjusts the host's power plan.
+3.  **Guides Performance**: This prompts the physical CPU to enter its highest performance **P0 state** (Turbo Boost) or a power-saving **Pn state** at the appropriate times.
+
+#### Core Advantages
+*   **Instant High Performance**: When the VM requires high performance, the CPU immediately boosts to its maximum frequency, providing instant responsiveness for workloads and ensuring smooth, lag-free operation for applications and the system.
+*   **Smart Power Saving**: When the VM's load decreases, the feature automatically switches the power plan back to a power-saving mode, effectively conserving energy, reducing power consumption, and lowering heat output.
 
 ## 🤝 Contributing
 Contributions of any kind are welcome!
