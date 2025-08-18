@@ -187,7 +187,7 @@ To simplify configuration, this tool automatically performs the following action
 - **Driver Protection**: Sets the imported driver files to "read-only" to prevent accidental modification or deletion.
 - **Nvidia Registry Fix**: Automatically modifies Nvidia-related registry keys in the VM to point the driver path to `HostDriverStore`, ensuring the drivers are loaded correctly.
 
-### Virtual Switch
+### Ⅲ. Virtual Switch
 
 A Virtual Switch is used to connect virtual machines to external networks or other VMs. ExHyperV references VMware's network model to simplify and restructure Hyper-V's classic switch types. The mapping is as follows:
 
@@ -220,7 +220,7 @@ A Virtual Switch is used to connect virtual machines to external networks or oth
 
 The network topology diagram below allows you to clearly view all devices connected to this switch, including their IP and MAC addresses. If the information is not up-to-date, please click the **Refresh** button in the top right corner.
 
-### HyperV Auto Turbo
+### Ⅳ. HyperV Auto Turbo
 
 #### The Problem
 In a Hyper-V environment, an intermediary scheduling layer exists between the virtual machine's workload and the host's physical CPU. This prevents the host from directly and accurately sensing the VM's true performance demands. As a result, the host CPU might remain in a power-saving state even when the VM is running high-load tasks, failing to deliver its full performance potential.
