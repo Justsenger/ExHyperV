@@ -1,5 +1,5 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
-using System.Windows.Media;
+﻿using System.Windows.Media;
+using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace ExHyperV.ViewModels
 {
@@ -19,15 +19,15 @@ namespace ExHyperV.ViewModels
 
         public string IconGlyph => IsSuccess switch
         {
-            true => "\uEC61",  
-            false => "\uEB90", 
+            true => "\uEC61",
+            false => "\uEB90",
             _ => ""
         };
 
         public Brush IconColor => IsSuccess switch
         {
-            true => new SolidColorBrush(Color.FromArgb(255, 0, 138, 23)), 
-            false => new SolidColorBrush(Colors.Red),                   
+            true => new SolidColorBrush(Color.FromArgb(255, 0, 138, 23)),
+            false => new SolidColorBrush(Colors.Red),
             _ => Brushes.Transparent
         };
 

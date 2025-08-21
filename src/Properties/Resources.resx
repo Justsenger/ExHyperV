@@ -124,7 +124,7 @@
     <value>Attention</value>
   </data>
   <data name="attentionwords" xml:space="preserve">
-    <value>Improper allocating devices may cause system instability, please operate with caution!</value>
+    <value>Improperly assigning devices can cause system instability. Please proceed with caution.</value>
   </data>
   <data name="refresh" xml:space="preserve">
     <value>Refresh</value>
@@ -229,7 +229,7 @@
     <value>OK</value>
   </data>
   <data name="removed" xml:space="preserve">
-    <value>#Disassembled</value>
+    <value>#Dismounted</value>
   </data>
   <data name="mounting" xml:space="preserve">
     <value>Mounting device...</value>
@@ -373,7 +373,7 @@
     <value>Enabling device...</value>
   </data>
   <data name="drivererror" xml:space="preserve">
-    <value>An error occurred during driver injection! Check if BitLocker is enabled on the system disk, or if there is no Windows directory?</value>
+    <value>Driver injection failed. Please check if BitLocker is enabled on the system drive or if the Windows directory is missing.</value>
   </data>
   <data name="error" xml:space="preserve">
     <value>Error</value>

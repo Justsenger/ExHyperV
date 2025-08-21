@@ -120,27 +120,6 @@
                     </Grid>
                 </ui:CardControl.Header>
             </ui:CardControl>
-
-            <ui:CardControl Margin="0,10,0,0" Padding="12">
-                <ui:CardControl.Icon>
-                    <ui:FontIcon FontSize="24" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph=""/>
-                </ui:CardControl.Icon>
-                <ui:CardControl.Header>
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="auto"/>
-                        </Grid.ColumnDefinitions>
-                        <StackPanel VerticalAlignment="Center">
-                            <TextBlock Text="{x:Static properties:Resources.Title_HyperVAutoTurbo}"/>
-                            <ui:TextBlock Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" Text="{x:Static properties:Resources.Description_HyperVAutoTurbo}" />
-                        </StackPanel>
-                        <ui:ToggleSwitch Grid.Column="1" Margin="0,0,0,1" VerticalAlignment="Bottom"
-                                         IsChecked="{Binding IsAutoTurboEnabled, Mode=TwoWay}"
-                                         IsEnabled="{Binding IsAutoTurboToggleEnabled}"/>
-                    </Grid>
-                </ui:CardControl.Header>
-            </ui:CardControl>
         </StackPanel>
     </Grid>
 </Page>

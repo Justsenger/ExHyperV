@@ -4,14 +4,12 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows;
 using System.Xml.Linq;
-
 namespace ExHyperV;
 
 public partial class App
 {
     private const string DefaultLanguage = "en-US";
     private const string ConfigFilePath = "config.xml";
-
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);

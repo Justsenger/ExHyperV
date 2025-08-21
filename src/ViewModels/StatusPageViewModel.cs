@@ -1,10 +1,6 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+﻿using System.Security.Principal;
+using CommunityToolkit.Mvvm.ComponentModel;
 using ExHyperV.Tools;
-using Microsoft.Win32.TaskScheduler;
-using System;
-using System.IO;
-using System.Security.Principal;
-using ScheduledTask = Microsoft.Win32.TaskScheduler.Task;
 
 namespace ExHyperV.ViewModels
 {
@@ -28,20 +24,6 @@ namespace ExHyperV.ViewModels
         [ObservableProperty]
         private bool _isGpuStrategyToggleEnabled = false;
 
-        [ObservableProperty]
-        private bool _isAutoTurboEnabled;
-
-        [ObservableProperty]
-        private bool _isAutoTurboToggleEnabled = false;
-
-
-        private const string TaskName = "Auto Turbo Boost - ExhyperV";
-        private const string AutoTurboScriptName = "ExHyperV_AutoTurboBoost.ps1";
-        private static readonly string ScriptInstallPath = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-            "ExHyperV",
-            AutoTurboScriptName);
-
         public StatusPageViewModel()
         {
             SystemStatus = new CheckStatusViewModel(Properties.Resources.checksys);
@@ -61,8 +43,7 @@ namespace ExHyperV.ViewModels
                 CheckCpuInfoAsync(),
                 CheckHyperVInfoAsync(),
                 CheckServerInfoAsync(),
-                CheckIommuAsync(),
-                CheckAndSetInitialTurboToggleStateAsync()
+                CheckIommuAsync()
             );
 
             await CheckAdminInfoAsync(); // 管理员检查依赖其他结果，最后运行
@@ -128,7 +109,6 @@ namespace ExHyperV.ViewModels
                 if (isAdmin)
                 {
                     IsGpuStrategyToggleEnabled = true;
-                    IsAutoTurboToggleEnabled = true;
                     CheckGpuStrategyReg();
                 }
                 AdminStatus.IsChecking = false;
@@ -166,11 +146,6 @@ namespace ExHyperV.ViewModels
             if (value) AddGpuStrategyReg(); else RemoveGpuStrategyReg();
         }
 
-        partial void OnIsAutoTurboEnabledChanged(bool value)
-        {
-            if (value) EnableAutoTurbo(); else DisableAutoTurbo();
-        }
-
         private void CheckGpuStrategyReg()
         {
             string script = @"[bool]((Test-Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\HyperV') -and ($k = Get-Item 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\HyperV' -EA 0) -and ('RequireSecureDeviceAssignment', 'RequireSupportedDeviceAssignment' | ForEach-Object { ($k.GetValue($_, $null) -ne $null) }) -notcontains $false)";
@@ -196,96 +171,6 @@ namespace ExHyperV.ViewModels
                 Remove-ItemProperty -Path '{path}' -Name 'RequireSecureDeviceAssignment' -ErrorAction SilentlyContinue
                 Remove-ItemProperty -Path '{path}' -Name 'RequireSupportedDeviceAssignment' -ErrorAction SilentlyContinue";
             Utils.Run(script);
-        }
-
-        private async System.Threading.Tasks.Task CheckAndSetInitialTurboToggleStateAsync()
-        {
-            bool isRunning = await System.Threading.Tasks.Task.Run(() => {
-                try
-                {
-                    using var ts = new TaskService();
-                    ScheduledTask task = ts.FindTask(TaskName);
-                    return task != null && task.State == TaskState.Running;
-                }
-                catch { return false; }
-            });
-            SetProperty(ref _isAutoTurboEnabled, isRunning, nameof(IsAutoTurboEnabled));
-        }
-
-        private void EnableAutoTurbo()
-        {
-            try
-            {
-                using var ts = new TaskService();
-                if (ts.FindTask(TaskName) != null) return;
-
-                // 1. 调用新方法，确保脚本文件存在于系统目录，并获取其路径
-                string scriptPath = EnsureScriptFileExists();
-
-                // 2. 创建计划任务，引用这个稳定、持久的脚本路径
-                var td = ts.NewTask();
-                td.RegistrationInfo.Description = ExHyperV.Properties.Resources.Description_HyperVRfScheduler;
-                td.Triggers.Add(new BootTrigger { Delay = TimeSpan.FromSeconds(30) });
-                td.Actions.Add(new ExecAction("powershell.exe", $"-ExecutionPolicy Bypass -WindowStyle Hidden -File \"{scriptPath}\""));
-                td.Principal.UserId = "NT AUTHORITY\\SYSTEM";
-                td.Principal.LogonType = TaskLogonType.ServiceAccount;
-                td.Principal.RunLevel = TaskRunLevel.Highest;
-                td.Settings.ExecutionTimeLimit = TimeSpan.Zero;
-                ts.RootFolder.RegisterTaskDefinition(TaskName, td).Run();
-            }
-            catch (Exception ex)
-            {
-                // 增加更详细的错误输出
-                System.Diagnostics.Debug.WriteLine($"[ERROR] EnableAutoTurbo: Failed to create or run task. Exception: {ex}");
-                // 可以在这里弹出一个用户友好的错误提示
-                Utils.Show2($"创建自动 Turbo 任务失败：\n{ex.Message}");
-            }
-        }
-
-        private void DisableAutoTurbo()
-        {
-            try
-            {
-                using var ts = new TaskService();
-                ScheduledTask task = ts.FindTask(TaskName);
-                if (task != null)
-                {
-                    task.Stop();
-                    ts.RootFolder.DeleteTask(TaskName);
-                }
-            }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[ERROR] DisableAutoTurbo: {ex.Message}"); }
-        }
-
-        private string EnsureScriptFileExists()
-        {
-            // 如果文件已经存在，直接返回它的路径
-            if (File.Exists(ScriptInstallPath))
-            {
-                return ScriptInstallPath;
-            }
-
-            // 如果文件不存在，则从资源中提取
-            var resourceUri = new Uri("/assets/autoturboboost.ps1", UriKind.Relative);
-            var resourceInfo = System.Windows.Application.GetResourceStream(resourceUri);
-
-            if (resourceInfo == null)
-            {
-                // 这是一个严重的程序错误，说明资源没打包进来
-                throw new FileNotFoundException("无法在 DLL 中找到嵌入的脚本资源。", resourceUri.ToString());
-            }
-
-            // 确保目标目录存在
-            Directory.CreateDirectory(Path.GetDirectoryName(ScriptInstallPath));
-
-            // 将资源流的内容写入到目标文件中
-            using (var resourceStream = resourceInfo.Stream)
-            using (var fileStream = new FileStream(ScriptInstallPath, FileMode.Create, FileAccess.Write))
-            {
-                resourceStream.CopyTo(fileStream);
-            }
-
-            return ScriptInstallPath;
         }
 
         #endregion
