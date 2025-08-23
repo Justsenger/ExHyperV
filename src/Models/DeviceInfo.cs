@@ -21,7 +21,7 @@ namespace ExHyperV.Models
         public DeviceInfo(string friendlyName, string status, string classType, string instanceId, string path, string vendor)
         {
             FriendlyName = friendlyName;
-            _status = status; 
+            _status = status;
             ClassType = classType;
             InstanceId = instanceId;
             Path = path;

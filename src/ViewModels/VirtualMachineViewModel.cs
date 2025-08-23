@@ -1,8 +1,8 @@
 ﻿using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using ExHyperV.Models;
-using Wpf.Ui.Controls;
 using ExHyperV.Tools;
+using Wpf.Ui.Controls;
 
 
 namespace ExHyperV.ViewModels

@@ -1,11 +1,7 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
-using ExHyperV.Tools;
-using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.Linq;
+﻿using System.Globalization;
 using System.Management.Automation;
-using System.Threading.Tasks;
+using CommunityToolkit.Mvvm.ComponentModel;
+using ExHyperV.Tools;
 
 namespace ExHyperV.ViewModels
 {

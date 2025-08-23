@@ -1,11 +1,7 @@
-﻿using ExHyperV.Models;
-using ExHyperV.Tools;
+﻿using System.Management.Automation;
+using ExHyperV.Models;
 using ExHyperV.Properties;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Management.Automation;
-using System.Threading.Tasks;
+using ExHyperV.Tools;
 
 namespace ExHyperV.Services
 {

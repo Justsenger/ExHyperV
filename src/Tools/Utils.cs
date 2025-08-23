@@ -3,12 +3,8 @@ using System.Management.Automation;
 using System.Reflection;
 using System.Text;
 using System.Windows;
-using System.Windows.Controls;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
 using Wpf.Ui.Controls;
-using Image = Wpf.Ui.Controls.Image;
-using TextBlock = Wpf.Ui.Controls.TextBlock;
 
 namespace ExHyperV.Tools;
 
@@ -36,7 +32,7 @@ public class Utils
                 {
                     errorBuilder.AppendLine($"- {error.Exception.Message}");
                 }
-                Show2(errorBuilder.ToString()); 
+                Show2(errorBuilder.ToString());
                 return null;
             }
             return results;
@@ -54,7 +50,7 @@ public class Utils
         {
             case "Switch":
                 return "\xE967";  // 交换机图标 
-            case "Upstream":     
+            case "Upstream":
                 return "\uE774";  // 地球/上游网络图标
             case "Display":
                 return "\xF211";  // 显卡图标 
@@ -77,7 +73,8 @@ public class Utils
     }
 
 
-    public static FontIcon FontIcon1(string classType, string friendlyName) {
+    public static FontIcon FontIcon1(string classType, string friendlyName)
+    {
         return new FontIcon
         {
             FontSize = 24,
@@ -87,7 +84,7 @@ public class Utils
     }
 
 
-    public static string GetGpuImagePath(string Manu,string name)
+    public static string GetGpuImagePath(string Manu, string name)
     {
         string imageName;
 
@@ -107,7 +104,8 @@ public class Utils
         else if (Manu.Contains("Intel")) // "Intel Corporation"
         {
             imageName = "Intel.png";
-            if (name.ToLower().Contains("iris")) {
+            if (name.ToLower().Contains("iris"))
+            {
                 imageName = "Intel-IrisXe.png";
             }
             if (name.ToLower().Contains("arc"))
@@ -144,7 +142,7 @@ public class Utils
 
         return $"pack://application:,,,/Assets/{imageName}";
     }
-    public static FontIcon FontIcon(int Size,string Glyph)
+    public static FontIcon FontIcon(int Size, string Glyph)
     {
         var icon = new FontIcon
         {
@@ -248,7 +246,7 @@ public class Utils
                 throw new ArgumentException($"错误：未知的网络模式 '{mode}'");
         }
         await RunScriptSTA(script);
-        if (enabledhcp){}
+        if (enabledhcp) { }
     }
     public static Task RunScriptSTA(string script)
     {

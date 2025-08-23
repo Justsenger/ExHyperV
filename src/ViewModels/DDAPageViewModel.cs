@@ -1,13 +1,13 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
-using ExHyperV.Services;
-using ExHyperV.Properties;
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Controls;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using ExHyperV.Properties;
+using ExHyperV.Services;
 using Wpf.Ui.Controls;
-using TextBlock = Wpf.Ui.Controls.TextBlock;
 using MessageBox = Wpf.Ui.Controls.MessageBox;
+using TextBlock = Wpf.Ui.Controls.TextBlock;
 
 namespace ExHyperV.ViewModels
 {

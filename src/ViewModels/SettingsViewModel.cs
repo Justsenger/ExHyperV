@@ -1,8 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
-using ExHyperV.Services;
 using ExHyperV.Properties;
-using System.Collections.Generic;
-using System.Linq;
+using ExHyperV.Services;
 
 namespace ExHyperV.ViewModels
 {
@@ -27,7 +25,7 @@ namespace ExHyperV.ViewModels
         private string _selectedLanguage;
 
         // 关于信息
-        public string AppVersion => "ExHyperV"; 
+        public string AppVersion => "ExHyperV";
         public string CopyrightInfo => "© 2025 | Saniye";
 
         public SettingsViewModel()

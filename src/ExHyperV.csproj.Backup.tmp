@@ -103,9 +103,6 @@
             <LowRiskToRemove Include="$(PublishDir)System.IO.Ports.dll" />
                         <!-- 风险较低: 移除备用的 WinHTTP 网络处理器 -->
             <LowRiskToRemove Include="$(PublishDir)System.Net.Http.WinHttpHandler.dll" />
-            <LowRiskToRemove Include="$(PublishDir)Microsoft.Bcl.AsyncInterfaces.dll" />
-            <LowRiskToRemove Include="$(PublishDir)Microsoft.Extensions.ObjectPool.dll" />
-
 
 
         </ItemGroup>
@@ -144,7 +141,6 @@
             <HighRiskToRemove Include="$(PublishDir)System.ServiceModel.*.dll" />
             <!-- 同时也清理对应的中文语言资源文件 -->
             <HighRiskToRemove Include="$(PublishDir)zh-Hans\System.ServiceModel.*.resources.dll" />
-            <HighRiskToRemove Include="$(PublishDir)System.ServiceModel.dll" />
         </ItemGroup>
         <Delete Files="@(HighRiskToRemove)" />
         <Message Text="--- [Level 4: HIGH RISK] Removed ServiceModel (WCF). Remoting is disabled." Importance="high" />
@@ -157,34 +153,6 @@
         <Message Text="--- (Magic) Replaced official DLLs with God-Tier versions from dll folder." Importance="high" />
 
         <Message Text="========== God-Tier Cleanup Script Finished. ==========" Importance="high" />
-
-
-                <!-- =================================================================== -->
-        <!--           新增: 第2.5级: Runtimes 深度清理区 (外科手术)           -->
-        <!-- =================================================================== -->
-        <ItemGroup>
-            <!-- 1. 移除不再需要的 PowerShell 模块 (保留核心 Utility, Management, CimCmdlets, Host) -->
-            <RuntimesDirsToRemove Include="$(PublishDir)runtimes\win\lib\net8.0\Modules\Microsoft.PowerShell.Security" />
-            <RuntimesDirsToRemove Include="$(PublishDir)runtimes\win\lib\net8.0\Modules\Microsoft.PowerShell.Diagnostics" />
-            <RuntimesDirsToRemove Include="$(PublishDir)runtimes\win\lib\net8.0\Modules\PSDiagnostics" />
-            <RuntimesDirsToRemove Include="$(PublishDir)runtimes\win\lib\net8.0\Modules\Microsoft.WSMan.Management" />
-
-            <!-- 2. 移除之前已确认但在 runtimes 中依然存在的 DLL -->
-            <RuntimesFilesToRemove Include="$(PublishDir)runtimes\**\System.Net.Http.WinHttpHandler.dll" />
-            <RuntimesFilesToRemove Include="$(PublishDir)runtimes\**\System.IO.Ports.dll" />
-            
-            <!-- 3. 移除特定功能的 Native DLLs -->
-            <RuntimesFilesToRemove Include="$(PublishDir)runtimes\**\sni.dll" />
-            <RuntimesFilesToRemove Include="$(PublishDir)runtimes\**\pwrshplugin.dll" />
-            <RuntimesFilesToRemove Include="$(PublishDir)runtimes\**\getfilesiginforedist.dll" />
-        </ItemGroup>
-
-        <!-- 执行文件夹和文件的删除 -->
-        <RemoveDir Directories="@(RuntimesDirsToRemove)" />
-        <Delete Files="@(RuntimesFilesToRemove)" Condition=" '%(Identity)' != '' " />
-        
-        <Message Text="--- [Level 2.5: RUNTIMES SURGERY] Performed deep cleanup on the runtimes folder." Importance="high" />
-
     </Target>
 
 </Project>

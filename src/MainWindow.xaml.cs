@@ -1,7 +1,7 @@
-﻿using Wpf.Ui.Controls;
+﻿using System.Windows;
 using ExHyperV.Views.Pages;
 using Wpf.Ui.Appearance;
-using System.Windows;
+using Wpf.Ui.Controls;
 
 namespace ExHyperV
 {
@@ -12,14 +12,15 @@ namespace ExHyperV
             InitializeComponent();
             Loaded += PagePreload;
 
-            if (SystemThemeManager.GetCachedSystemTheme() == SystemTheme.Dark) { //根据系统主题自动切换
+            if (SystemThemeManager.GetCachedSystemTheme() == SystemTheme.Dark)
+            { //根据系统主题自动切换
                 ApplicationThemeManager.Apply(ApplicationTheme.Dark);
             }
-            else {ApplicationThemeManager.Apply(ApplicationTheme.Light);}
+            else { ApplicationThemeManager.Apply(ApplicationTheme.Light); }
 
             Loaded += (sender, args) =>  //监听系统切换主题事件
             {
-                SystemThemeWatcher.Watch(this,WindowBackdropType.Mica,true);
+                SystemThemeWatcher.Watch(this, WindowBackdropType.Mica, true);
             };
         }
 

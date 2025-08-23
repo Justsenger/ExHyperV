@@ -1,12 +1,8 @@
-﻿using ExHyperV.Models;
-using ExHyperV.Tools;
-using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.Diagnostics;
-using System.Linq;
 using System.Management.Automation;
-using System.Threading.Tasks;
+using ExHyperV.Models;
+using ExHyperV.Tools;
 
 namespace ExHyperV.Services
 {
@@ -109,18 +105,18 @@ namespace ExHyperV.Services
                 {
                     var allAdapters = new List<AdapterInfo>();
                     var vmResults = Utils.Run(vmAdaptersScript);
-                        if (vmResults != null)
+                    if (vmResults != null)
+                    {
+                        foreach (var pso in vmResults)
                         {
-                            foreach (var pso in vmResults)
-                            {
-                                allAdapters.Add(new AdapterInfo(
-                                    pso.Properties["VMName"]?.Value?.ToString() ?? "",
-                                    pso.Properties["MacAddress"]?.Value?.ToString() ?? "",
-                                    pso.Properties["Status"]?.Value?.ToString() ?? "",
-                                    pso.Properties["IPAddresses"]?.Value?.ToString() ?? ""
-                                ));
-                            }
+                            allAdapters.Add(new AdapterInfo(
+                                pso.Properties["VMName"]?.Value?.ToString() ?? "",
+                                pso.Properties["MacAddress"]?.Value?.ToString() ?? "",
+                                pso.Properties["Status"]?.Value?.ToString() ?? "",
+                                pso.Properties["IPAddresses"]?.Value?.ToString() ?? ""
+                            ));
                         }
+                    }
 
                     var stopwatch = Stopwatch.StartNew();
                     Collection<PSObject>? hostResults = null;

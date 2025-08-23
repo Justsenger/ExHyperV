@@ -326,7 +326,8 @@ namespace ExHyperV.Services
         }
         public async Task<bool> IsHyperVModuleAvailableAsync()
         {
-            return await Task.Run(() => {
+            return await Task.Run(() =>
+            {
                 var result = Utils.Run("(Get-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V).State");
                 return result.Count > 0;
             });

@@ -1,9 +1,9 @@
-﻿using System.IO;
-using System.Xml.Linq;
+﻿using System.Diagnostics;
+using System.IO;
 using System.Windows;
+using System.Xml.Linq;
+using ExHyperV.Properties;
 using Wpf.Ui.Appearance;
-using System.Diagnostics;
-using ExHyperV.Properties; 
 
 namespace ExHyperV.Services
 {

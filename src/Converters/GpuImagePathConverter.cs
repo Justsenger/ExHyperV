@@ -1,6 +1,6 @@
 ﻿using System.Globalization;
 using System.Windows.Data;
-using System.Windows.Media.Imaging; 
+using System.Windows.Media.Imaging;
 using ExHyperV.Tools;
 
 namespace ExHyperV.Converters
@@ -11,7 +11,7 @@ namespace ExHyperV.Converters
         {
             if (values == null || values.Length < 2)
             {
-                return null; 
+                return null;
             }
 
             string manu = values[0] as string ?? "";
