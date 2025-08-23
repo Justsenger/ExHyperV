@@ -1,9 +1,7 @@
-# ExHyperV
-
-
-<p align="center">
-  <img src="https://github.com/Justsenger/ExHyperV/raw/main/img/logo.png" alt="ExHyperV Logo" width="256">
-</p>
+<h1>
+  <img src="https://github.com/Justsenger/ExHyperV/blob/main/img/logo.png?raw=true" width="32" alt="ExHyperV logo"> 
+  ExHyperV
+</h1>
 
 <div align="center">
 
