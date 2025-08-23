@@ -1,5 +1,9 @@
 # ExHyperV
 
+<p align="center">
+  <img src="https://github.com/Justsenger/ExHyperV/raw/main/img/logo.png" alt="ExHyperV Logo" width="256">
+</p>
+
 <div align="center">
 
 **A graphical Hyper-V advanced tool that allows ordinary people to easily use DDA, GPU-P, virtual switch and other features.**

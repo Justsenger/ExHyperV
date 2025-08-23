@@ -1,5 +1,10 @@
 # ExHyperV
 
+
+<p align="center">
+  <img src="https://github.com/Justsenger/ExHyperV/raw/main/img/logo.png" alt="ExHyperV Logo" width="256">
+</p>
+
 <div align="center">
 
 **一款图形化的 Hyper-V 高级工具，能让凡人也能轻松玩转 DDA、GPU-P、虚拟交换机等功能。**
