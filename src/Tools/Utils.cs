@@ -4,6 +4,7 @@ using System.Reflection;
 using System.Text;
 using System.Windows;
 using System.Windows.Media;
+using Wpf.Ui.Appearance;
 using Wpf.Ui.Controls;
 
 namespace ExHyperV.Tools;
@@ -143,64 +144,65 @@ public class Utils
         return $"pack://application:,,,/Assets/{imageName}";
     }
 
-    public static string GetMemoryImagePath(string manufacturer)
+
+
+public static string GetMemoryImagePath(string manufacturer)
+{
+    if (string.IsNullOrEmpty(manufacturer) || manufacturer.Equals("Unknown", StringComparison.OrdinalIgnoreCase))
     {
-        // 如果传入的制造商为空或未知，直接返回默认值
-        if (string.IsNullOrEmpty(manufacturer) || manufacturer.Equals("Unknown", StringComparison.OrdinalIgnoreCase))
-        {
-            return $"pack://application:,,,/Assets/Memory/Memory_Default.png";
-        }
+        return $"pack://application:,,,/Assets/Memory/Memory_Default.png";
+    }
+    string imageName;
+    string lowerManu = manufacturer.ToLower();
 
-        string imageName;
-        string lowerManu = manufacturer.ToLower();
-
-        if (lowerManu.Contains("samsung")) imageName = "Samsung.png";
-        else if (lowerManu.Contains("sk hynix") || lowerManu.Contains("klevv")) imageName = "SKHynix.png";
-        else if (lowerManu.Contains("micron") || lowerManu.Contains("crucial")) imageName = "Micron.png";
-        else if (lowerManu.Contains("kingston") || lowerManu.Contains("hyperx")) imageName = "Kingston.png";
-        else if (lowerManu.Contains("corsair")) imageName = "Corsair.png";
-        else if (lowerManu.Contains("g.skill")) imageName = "GSkill.png";
-        else if (lowerManu.Contains("adata") || lowerManu.Contains("xpg")) imageName = "ADATA.png";
-        else if (lowerManu.Contains("team group") || lowerManu.Contains("t-force")) imageName = "TeamGroup.png";
-        else if (lowerManu.Contains("patriot") || lowerManu.Contains("viper")) imageName = "Patriot.png";
-        else if (lowerManu.Contains("apacer")) imageName = "Apacer.png";
-        else if (lowerManu.Contains("gloway")) imageName = "Gloway.png";
-        else if (lowerManu.Contains("asgard")) imageName = "Asgard.png";
-        else if (lowerManu.Contains("kingbank")) imageName = "KingBank.png";
-        else if (lowerManu.Contains("lexar")) imageName = "Lexar.png";
-        else if (lowerManu.Contains("pny")) imageName = "PNY.png";
-        else if (lowerManu.Contains("geil")) imageName = "GeIL.png";
-        else if (lowerManu.Contains("mushkin")) imageName = "Mushkin.png";
-        else if (lowerManu.Contains("v-color")) imageName = "VColor.png";
-        else if (lowerManu.Contains("kingmax")) imageName = "Kingmax.png";
-        else if (lowerManu.Contains("ramaxel")) imageName = "Ramaxel.png";
-        else if (lowerManu.Contains("cxmt")) imageName = "CXMT.png";
-        else if (lowerManu.Contains("transcend")) imageName = "Transcend.png";
-        else if (lowerManu.Contains("silicon power")) imageName = "SiliconPower.png";
-        else if (lowerManu.Contains("acer")) imageName = "Acer.png"; // Acer Predator
-        else if (lowerManu.Contains("galax")) imageName = "GALAX.png";
-        else if (lowerManu.Contains("colorful")) imageName = "Colorful.png";
-        else if (lowerManu.Contains("maxsun")) imageName = "Maxsun.png";
-        else if (lowerManu.Contains("zadak")) imageName = "ZADAK.png";
-        else if (lowerManu.Contains("innodisk")) imageName = "Innodisk.png";
-        else if (lowerManu.Contains("biwin")) imageName = "BIWIN.png";
-        else if (lowerManu.Contains("netac")) imageName = "Netac.png";
-        else if (lowerManu.Contains("tigo")) imageName = "Tigo.png";
-        else if (lowerManu.Contains("zotac")) imageName = "Zotac.png";
-        else if (lowerManu.Contains("inno3d")) imageName = "Inno3D.png";
-        else if (lowerManu.Contains("ocz")) imageName = "OCZ.png";
-        else if (lowerManu.Contains("hp")) imageName = "HP.png";
-        else if (lowerManu.Contains("dell")) imageName = "Dell.png";
-        else if (lowerManu.Contains("lenovo")) imageName = "Lenovo.png";
-        else
-        {
-            imageName = "Memory_Default.png"; // 所有未匹配的厂商都使用这个默认图标
-        }
-
-        return $"pack://application:,,,/Assets/{imageName}";
+    // 完整的厂商 -> 图片文件名映射
+    if (lowerManu.Contains("samsung")) imageName = "Samsung.png";
+    else if (lowerManu.Contains("sk hynix") || lowerManu.Contains("klevv")) imageName = "SKHynix.png";
+    else if (lowerManu.Contains("micron") || lowerManu.Contains("crucial")) imageName = "Micron.png";
+    else if (lowerManu.Contains("kingston") || lowerManu.Contains("hyperx")) imageName = "Kingston.png";
+    else if (lowerManu.Contains("corsair")) imageName = "Corsair.png";
+    else if (lowerManu.Contains("g.skill")) imageName = "GSkill.png";
+    else if (lowerManu.Contains("adata") || lowerManu.Contains("xpg")) imageName = "ADATA.png";
+    else if (lowerManu.Contains("team group") || lowerManu.Contains("t-force")) imageName = "TeamGroup.png";
+    else if (lowerManu.Contains("patriot") || lowerManu.Contains("viper")) imageName = "Patriot.png";
+    else if (lowerManu.Contains("apacer")) imageName = "Apacer.png";
+    else if (lowerManu.Contains("gloway")) imageName = "Gloway.png";
+    else if (lowerManu.Contains("asgard")) imageName = "Asgard.png";
+    else if (lowerManu.Contains("kingbank")) imageName = "KingBank.png";
+    else if (lowerManu.Contains("lexar")) imageName = "Lexar.png";
+    else if (lowerManu.Contains("pny")) imageName = "PNY.png";
+    else if (lowerManu.Contains("geil")) imageName = "GeIL.png";
+    else if (lowerManu.Contains("mushkin")) imageName = "Mushkin.png";
+    else if (lowerManu.Contains("v-color")) imageName = "VColor.png";
+    else if (lowerManu.Contains("kingmax")) imageName = "Kingmax.png";
+    else if (lowerManu.Contains("ramaxel")) imageName = "Ramaxel.png";
+    else if (lowerManu.Contains("cxmt")) imageName = "CXMT.png";
+    else if (lowerManu.Contains("transcend")) imageName = "Transcend.png";
+    else if (lowerManu.Contains("silicon power")) imageName = "SiliconPower.png";
+    else if (lowerManu.Contains("acer")) imageName = "Acer.png";
+    else if (lowerManu.Contains("galax")) imageName = "GALAX.png";
+    else if (lowerManu.Contains("colorful")) imageName = "Colorful.png";
+    else if (lowerManu.Contains("maxsun")) imageName = "Maxsun.png";
+    else if (lowerManu.Contains("zadak")) imageName = "ZADAK.png";
+    else if (lowerManu.Contains("innodisk")) imageName = "Innodisk.png";
+    else if (lowerManu.Contains("biwin")) imageName = "BIWIN.png";
+    else if (lowerManu.Contains("netac")) imageName = "Netac.png";
+    else if (lowerManu.Contains("tigo")) imageName = "Tigo.png";
+    else if (lowerManu.Contains("zotac")) imageName = "Zotac.png";
+    else if (lowerManu.Contains("inno3d")) imageName = "Inno3D.png";
+    else if (lowerManu.Contains("ocz")) imageName = "OCZ.png";
+    else if (lowerManu.Contains("hp")) imageName = "HP.png";
+    else if (lowerManu.Contains("dell")) imageName = "Dell.png";
+    else if (lowerManu.Contains("lenovo")) imageName = "Lenovo.png";
+    else if (lowerManu.Contains("microsoft")) imageName = "microsoft.png";
+    else
+    {
+        imageName = "Memory_Default.png";
     }
 
-    public static FontIcon FontIcon(int Size, string Glyph)
+    return $"pack://application:,,,/Assets/Memory/{imageName}";
+}
+public static FontIcon FontIcon(int Size, string Glyph)
     {
         var icon = new FontIcon
         {

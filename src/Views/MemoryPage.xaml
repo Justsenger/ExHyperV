@@ -15,6 +15,7 @@
         <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
         <converters:MemoryImagePathConverter x:Key="MemoryImagePathConverter"/>
         <converters:InverseBooleanConverter x:Key="InverseBooleanConverter"/>
+        
     </Page.Resources>
 
     <Grid>
@@ -35,12 +36,18 @@
                                     <DataTemplate DataType="{x:Type viewmodels:HostMemoryViewModel}">
                                         <ui:CardExpander Margin="0" Padding="8">
                                             <ui:CardExpander.Header>
-                                                <Grid>
+                                                <Grid MinHeight="40">
                                                     <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="Auto"/>
+                                                        <ColumnDefinition Width="96"/>
                                                         <ColumnDefinition Width="*"/>
                                                     </Grid.ColumnDefinitions>
-                                                    <Image Grid.Column="0" Source="{Binding Manufacturer, Converter={StaticResource MemoryImagePathConverter}}" Height="32" Width="32" Margin="0,0,10,0" VerticalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality"/>
+                                                    <Image Grid.Column="0" Source="{Binding Manufacturer, Converter={StaticResource MemoryImagePathConverter}}" 
+                                                           MaxHeight="38" 
+                                                           HorizontalAlignment="Center"
+                                                           VerticalAlignment="Center"
+                                                           RenderOptions.BitmapScalingMode="HighQuality"
+                                                           Margin="0,0,10,0"
+                                                           SnapsToDevicePixels="True"/>
                                                     <TextBlock Grid.Column="1" Text="{Binding DisplayName}" FontSize="16" VerticalAlignment="Center"/>
                                                 </Grid>
                                             </ui:CardExpander.Header>
