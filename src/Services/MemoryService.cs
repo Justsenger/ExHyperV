@@ -119,7 +119,8 @@ namespace ExHyperV.Services
             if (!vmMemory.DynamicMemoryEnabled)
             {
                 long startupBytes = long.Parse(vmMemory.StartupMB) * 1024 * 1024;
-                scriptBuilder.AppendLine($"Set-VMMemory -VMName \"{vmMemory.VMName}\" -DynamicMemoryEnabled $false -StartupBytes {startupBytes}");
+                int priority = (int)vmMemory.Priority;
+                scriptBuilder.AppendLine($"Set-VMMemory -VMName \"{vmMemory.VMName}\" -DynamicMemoryEnabled $false -StartupBytes {startupBytes} -Priority {priority}");
             }
             else
             {

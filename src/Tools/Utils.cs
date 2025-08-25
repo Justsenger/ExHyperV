@@ -344,7 +344,7 @@ public static FontIcon FontIcon(int Size, string Glyph)
 
         System.Windows.MessageBox.Show(message);
     }
-    public static string Version => "V1.2.2";
+    public static string Version => "V1.2.2-beta";
     public static string Author => "砂菱叶";
 
 }

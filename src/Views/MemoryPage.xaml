@@ -36,13 +36,13 @@
                                     <DataTemplate DataType="{x:Type viewmodels:HostMemoryViewModel}">
                                         <ui:CardExpander Margin="0" Padding="8">
                                             <ui:CardExpander.Header>
-                                                <Grid MinHeight="40">
+                                                <Grid MinHeight="32">
                                                     <Grid.ColumnDefinitions>
                                                         <ColumnDefinition Width="96"/>
                                                         <ColumnDefinition Width="*"/>
                                                     </Grid.ColumnDefinitions>
                                                     <Image Grid.Column="0" Source="{Binding Manufacturer, Converter={StaticResource MemoryImagePathConverter}}" 
-                                                           MaxHeight="38" 
+                                                           MaxHeight="32" 
                                                            HorizontalAlignment="Center"
                                                            VerticalAlignment="Center"
                                                            RenderOptions.BitmapScalingMode="HighQuality"
@@ -129,7 +129,7 @@
 
                                 <StackPanel Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,30,15">
                                     <TextBlock Text="启动 RAM" FontSize="16" FontWeight="SemiBold"/>
-                                    <TextBlock Text="指定启动此虚拟机所需的内存量。" Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="12" Margin="0,2,0,0"/>
+                                    <TextBlock Text="指定启动此虚拟机所需的初始内存量" Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="12" Margin="0,2,0,0"/>
                                 </StackPanel>
                                 <Grid Grid.Row="0" Grid.Column="1" VerticalAlignment="Center" Margin="0,0,0,15">
                                     <Grid.ColumnDefinitions>
@@ -166,7 +166,7 @@
                                     </Grid.RowDefinitions>
                                     <StackPanel Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,30,15">
                                         <TextBlock Text="最小 RAM" FontSize="16" FontWeight="SemiBold"/>
-                                        <TextBlock Text="虚拟机可收缩到的最小内存。" Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                                        <TextBlock Text="虚拟机可收缩到的最小内存" Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
                                     </StackPanel>
                                     <Grid Grid.Row="0" Grid.Column="1" VerticalAlignment="Center" Margin="0,0,0,15">
                                         <Grid.ColumnDefinitions>
@@ -190,7 +190,7 @@
                                     </Grid>
                                     <StackPanel Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,30,15">
                                         <TextBlock Text="最大 RAM" FontSize="16" FontWeight="SemiBold"/>
-                                        <TextBlock Text="虚拟机可扩展到的最大内存。" Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                                        <TextBlock Text="虚拟机可扩展到的最大内存" Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
                                     </StackPanel>
                                     <Grid Grid.Row="1" Grid.Column="1" VerticalAlignment="Center" Margin="0,0,0,15">
                                         <Grid.ColumnDefinitions>
@@ -202,7 +202,7 @@
                                     </Grid>
                                     <StackPanel Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,30,0">
                                         <TextBlock Text="内存缓冲区" FontSize="16" FontWeight="SemiBold"/>
-                                        <TextBlock Text="分配量 = (100% + 缓冲区%) * 实际需求" Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                                        <TextBlock Text="分配量 = (100% + 缓冲区%) * 需求量" Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
                                     </StackPanel>
                                     <Grid Grid.Row="2" Grid.Column="1" VerticalAlignment="Center">
                                         <Grid.ColumnDefinitions>
@@ -224,7 +224,7 @@
 
                                 <StackPanel Grid.Row="3" Grid.Column="0" VerticalAlignment="Center" Margin="0,15,30,0">
                                     <TextBlock Text="内存权重" FontSize="16" FontWeight="SemiBold"/>
-                                    <TextBlock Text="主机内存不足时获取内存的优先级。" Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                                    <TextBlock Text="主机内存不足时获得内存的优先级" Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
                                 </StackPanel>
                                 <Grid Grid.Row="3" Grid.Column="1" VerticalAlignment="Center" Margin="0,15,0,0">
                                     <Grid.ColumnDefinitions>
