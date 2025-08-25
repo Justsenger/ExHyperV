@@ -1,8 +1,12 @@
-﻿// In Services/MemoryService.cs
-using ExHyperV.Models;
-using ExHyperV.Tools; // 假设您的 Utils 类在这个命名空间下
+﻿using ExHyperV.Models;
+using ExHyperV.Tools;
+using ExHyperV.ViewModels;
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Management.Automation;
+using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace ExHyperV.Services
@@ -11,7 +15,6 @@ namespace ExHyperV.Services
     {
         public async Task<List<MemoryInfo>> GetHostMemoryAsync()
         {
-            // PowerShell脚本已更新，移除了末尾的 ConvertTo-Json
             string script = @"
                 Get-CimInstance -ClassName Win32_PhysicalMemory | ForEach-Object {
                     $rawManufacturer = if ($_.Manufacturer) { $_.Manufacturer.Trim() } else { 'Unknown' }; $partNumber = if ($_.PartNumber) { $_.PartNumber.Trim() } else { 'Unknown' }; $finalManufacturer = $rawManufacturer
@@ -37,20 +40,13 @@ namespace ExHyperV.Services
                 } | Sort-Object -Property BankLabel, DeviceLocator";
 
             var memoryList = new List<MemoryInfo>();
-
             try
             {
-                // 使用您项目中的 Utils.Run 方法执行脚本
                 var results = await Task.Run(() => Utils.Run(script));
-
-                if (results == null)
-                {
-                    return memoryList; // 如果执行失败或没有结果，返回空列表
-                }
-
+                if (results == null) return memoryList;
                 foreach (var result in results)
                 {
-                    var memoryInfo = new MemoryInfo
+                    memoryList.Add(new MemoryInfo
                     {
                         BankLabel = result.Properties["BankLabel"]?.Value?.ToString() ?? string.Empty,
                         DeviceLocator = result.Properties["DeviceLocator"]?.Value?.ToString() ?? string.Empty,
@@ -62,17 +58,110 @@ namespace ExHyperV.Services
                         IsEcc = result.Properties["IsEcc"]?.Value?.ToString() ?? "Unknown",
                         MemoryType = result.Properties["MemoryType"]?.Value?.ToString() ?? "Unknown",
                         SerialNumber = result.Properties["SerialNumber"]?.Value?.ToString() ?? "Unknown"
-                    };
-                    memoryList.Add(memoryInfo);
+                    });
                 }
             }
             catch (Exception ex)
             {
-                // 可以添加日志记录等错误处理
                 Console.WriteLine($"Failed to get host memory info: {ex.Message}");
             }
-
             return memoryList;
+        }
+
+        public async Task<List<VirtualMachineMemoryInfo>> GetVirtualMachinesMemoryAsync()
+        {
+            string script = @"
+                Get-VM | ForEach-Object {
+                    $vm = $_
+                    $memory = Get-VMMemory -VMName $vm.VMName
+                    [PSCustomObject]@{
+                        VMName               = $vm.VMName
+                        State                = $vm.State.ToString()
+                        DynamicMemoryEnabled = $memory.DynamicMemoryEnabled
+                        StartupMB            = $memory.Startup / 1MB
+                        MinimumMB            = $memory.Minimum / 1MB
+                        MaximumMB            = $memory.Maximum / 1MB
+                        Buffer               = $memory.Buffer
+                        Priority             = $memory.Priority
+                    }
+                } | ConvertTo-Json";
+
+            var vmMemoryList = new List<VirtualMachineMemoryInfo>();
+            try
+            {
+                var results = await Task.Run(() => Utils.Run(script));
+                if (results != null && results.Any() && results[0] != null)
+                {
+                    string json = results[0].BaseObject.ToString();
+                    if (!json.Trim().StartsWith("["))
+                    {
+                        json = "[" + json + "]";
+                    }
+                    var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                    var parsedList = JsonSerializer.Deserialize<List<VirtualMachineMemoryInfo>>(json, options);
+                    if (parsedList != null)
+                    {
+                        vmMemoryList.AddRange(parsedList);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to get VM memory info: {ex.Message}");
+            }
+            return vmMemoryList;
+        }
+
+        public async Task<bool> SetVmMemoryAsync(VirtualMachineMemoryViewModel vmMemory)
+        {
+            var scriptBuilder = new StringBuilder();
+
+            if (!vmMemory.DynamicMemoryEnabled)
+            {
+                // 静态内存模式
+                long startupBytes = long.Parse(vmMemory.StartupMB) * 1024 * 1024;
+                scriptBuilder.AppendLine($"Set-VMMemory -VMName \"{vmMemory.VMName}\" -DynamicMemoryEnabled $false -StartupBytes {startupBytes}");
+            }
+            else
+            {
+                // 动态内存模式
+                long startupBytes = long.Parse(vmMemory.StartupMB) * 1024 * 1024;
+                long minimumBytes = long.Parse(vmMemory.MinimumMB) * 1024 * 1024;
+                long maximumBytes = long.Parse(vmMemory.MaximumMB) * 1024 * 1024;
+                int buffer = (int)vmMemory.Buffer;
+                int priority = (int)vmMemory.Priority;
+
+                scriptBuilder.AppendLine($"Set-VMMemory -VMName \"{vmMemory.VMName}\" -DynamicMemoryEnabled $true -StartupBytes {startupBytes} -MinimumBytes {minimumBytes} -MaximumBytes {maximumBytes} -Buffer {buffer} -Priority {priority}");
+            }
+
+            string script = scriptBuilder.ToString();
+
+            return await Task.Run(() =>
+            {
+                using (PowerShell ps = PowerShell.Create())
+                {
+                    ps.AddScript(script);
+                    ps.AddParameter("ErrorAction", "Stop");
+                    try
+                    {
+                        ps.Invoke();
+                        if (ps.HadErrors)
+                        {
+                            StringBuilder errorMessages = new StringBuilder();
+                            foreach (var error in ps.Streams.Error)
+                            {
+                                errorMessages.AppendLine(error.ToString());
+                            }
+                            throw new Exception(errorMessages.ToString());
+                        }
+                        return true;
+                    }
+                    catch (Exception ex)
+                    {
+                        throw new Exception($"应用内存设置时出错: {ex.Message}");
+                    }
+                }
+            });
         }
     }
 }

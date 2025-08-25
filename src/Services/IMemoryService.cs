@@ -1,6 +1,7 @@
-﻿using ExHyperV.Models;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Threading.Tasks;
+using ExHyperV.Models;
+using ExHyperV.ViewModels;
 
 namespace ExHyperV.Services
 {
@@ -8,5 +9,7 @@ namespace ExHyperV.Services
     {
         Task<List<MemoryInfo>> GetHostMemoryAsync();
         // Task<List<VirtualMachineMemory>> GetVirtualMachinesMemoryAsync();
+        Task<List<VirtualMachineMemoryInfo>> GetVirtualMachinesMemoryAsync();
+        Task<bool> SetVmMemoryAsync(VirtualMachineMemoryViewModel vmMemory); // 添加新方法
     }
 }
