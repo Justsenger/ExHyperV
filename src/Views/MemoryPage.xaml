@@ -98,8 +98,12 @@
                     <DataTemplate DataType="{x:Type viewmodels:VirtualMachineMemoryViewModel}">
                         <ui:CardExpander Margin="0,5,0,0" Padding="8">
                             <ui:CardExpander.Header>
-                                <StackPanel Orientation="Horizontal">
-                                    <ui:FontIcon Glyph="{Binding VmIconGlyph}" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                                <StackPanel Orientation="Horizontal" MinHeight="32">
+                                    <ui:FontIcon FontFamily="{DynamicResource SegoeFluentIcons}" 
+                                                Glyph="{Binding VmIconGlyph}" 
+                                                Margin="0,0,10,0" 
+                                                VerticalAlignment="Center"
+                                                FontSize="20"/>
                                     <TextBlock Text="{Binding VMName}" FontSize="16" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </ui:CardExpander.Header>

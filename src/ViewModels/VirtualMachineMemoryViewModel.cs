@@ -50,7 +50,7 @@ namespace ExHyperV.ViewModels
 
         public string VMName => _originalModel.VMName;
         public string State => _originalModel.State;
-        public string VmIconGlyph => State.Equals("Running", StringComparison.OrdinalIgnoreCase) ? "\uE768" : "\uE97C";
+        public string VmIconGlyph => "\uE7F4"; // 不再根据状态变化，始终使用这个图标
         public bool IsDataValid => IsStartupMBValid && IsMinimumMBValid && IsMaximumMBValid && IsBufferValid;
 
         private void OnViewModelPropertyChanged(object sender, PropertyChangedEventArgs e)
