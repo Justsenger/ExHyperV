@@ -1,0 +1,101 @@
+﻿<!-- In Views/Pages/MemoryPage.xaml (最终两列布局版) -->
+<Page
+    x:Class="ExHyperV.Views.Pages.MemoryPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    xmlns:viewmodels="clr-namespace:ExHyperV.ViewModels"
+    xmlns:converters="clr-namespace:ExHyperV.Converters"  
+    xmlns:sys="clr-namespace:System.Windows.Controls;assembly=PresentationFramework"
+    Title="MemoryPage"
+    d:DataContext="{d:DesignInstance Type=viewmodels:MemoryPageViewModel, IsDesignTimeCreatable=True}"
+    mc:Ignorable="d">
+
+    <Page.Resources>
+        <sys:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        <converters:MemoryImagePathConverter x:Key="MemoryImagePathConverter"/>
+    </Page.Resources>
+
+    <Grid>
+        <StackPanel Margin="10,0,10,10">
+            <ui:Card Padding="12" Margin="10,10,10,0">
+                <StackPanel Orientation="Horizontal">
+                    <ui:FontIcon FontSize="24" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xEEA0;"/>
+                    <TextBlock Text="已安装内存" Margin="10,0,0,0" FontSize="16" VerticalAlignment="Center"/>
+                </StackPanel>
+            </ui:Card>
+
+            <ItemsControl ItemsSource="{Binding HostMemoryModules}" Margin="30,0,10,0">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="{x:Type viewmodels:HostMemoryViewModel}">
+                        <ui:CardExpander Margin="0,5,0,0" Padding="8">
+                            <ui:CardExpander.Header>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Image Grid.Column="0" Source="{Binding Manufacturer, Converter={StaticResource MemoryImagePathConverter}}" 
+                                           Height="32" Width="32" Margin="0,0,10,0" VerticalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality"/>
+                                    <TextBlock Grid.Column="1" Text="{Binding DisplayName}" FontSize="16" VerticalAlignment="Center"/>
+                                </Grid>
+                            </ui:CardExpander.Header>
+                            <!-- 最终两列布局 -->
+                            <Grid Margin="50,0,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <!-- L1 -->
+                                    <ColumnDefinition Width="*"/>
+                                    <!-- V1 -->
+                                    <ColumnDefinition Width="Auto"/>
+                                    <!-- L2 -->
+                                    <ColumnDefinition Width="*"/>
+                                    <!-- V2 -->
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="30"/>
+                                    <RowDefinition Height="30"/>
+                                    <RowDefinition Height="30"/>
+                                    <RowDefinition Height="30"/>
+                                </Grid.RowDefinitions>
+
+                                <!-- 第一列 -->
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="厂商" FontSize="16" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding Manufacturer}" Margin="25,0,0,0" FontSize="16" VerticalAlignment="Center"/>
+
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="型号" FontSize="16" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding PartNumber}" Margin="25,0,0,0" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" FontSize="16" VerticalAlignment="Center"/>
+
+                                <TextBlock Grid.Row="2" Grid.Column="0" Text="插槽位置" FontSize="16" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding DeviceLocator}" Margin="25,0,0,0" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" FontSize="16" VerticalAlignment="Center"/>
+
+                                <TextBlock Grid.Row="3" Grid.Column="0" Text="内存组" FontSize="16" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding BankLabel}" Margin="25,0,0,0" FontSize="16" VerticalAlignment="Center"/>
+
+                                <!-- 第二列 -->
+                                <TextBlock Grid.Row="0" Grid.Column="2" Text="类型" Margin="40,0,0,0" FontSize="16" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Row="0" Grid.Column="3" Text="{Binding MemoryType}" Margin="25,0,0,0" FontSize="16" VerticalAlignment="Center"/>
+
+                                <TextBlock Grid.Row="1" Grid.Column="2" Text="容量" Margin="40,0,0,0" FontSize="16" VerticalAlignment="center"/>
+                                <TextBlock Grid.Row="1" Grid.Column="3" Text="{Binding Capacity}" Margin="25,0,0,0" FontSize="16" VerticalAlignment="center"/>
+
+                                <TextBlock Grid.Row="2" Grid.Column="2" Text="额定速度" Margin="40,0,0,0" FontSize="16" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Row="2" Grid.Column="3" Text="{Binding DeclaredSpeed}" Margin="25,0,0,0" FontSize="16" VerticalAlignment="Center"/>
+
+                                <TextBlock Grid.Row="3" Grid.Column="2" Text="运行速度" Margin="40,0,0,0" FontSize="16" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Row="3" Grid.Column="3" Text="{Binding ConfiguredSpeed}" Margin="25,0,0,0" FontSize="16" VerticalAlignment="Center"/>
+                            </Grid>
+                        </ui:CardExpander>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+        </StackPanel>
+
+        <ProgressBar Panel.ZIndex="1" VerticalAlignment="Top" Height="4"
+                     IsIndeterminate="True"
+                     Visibility="{Binding IsLoading, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+    </Grid>
+</Page>

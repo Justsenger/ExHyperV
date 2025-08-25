@@ -89,15 +89,15 @@
 
                 <ui:NavigationViewItem
                     x:Name="RAM"
-                    Content="{x:Static properties:Resources.Title_VirtualSwitch}"
+                    Content="内存"
                     NavigationCacheMode="Enabled"
                     Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"
-                    TargetPageType="{x:Type pages:VMNetPage}">
+                    TargetPageType="{x:Type pages:MemoryPage}">
                     <ui:NavigationViewItem.Icon>
                         <ui:FontIcon FontSize="16" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xEEA0;"/>
                     </ui:NavigationViewItem.Icon>
                 </ui:NavigationViewItem>
-                
+
             </ui:NavigationView.MenuItems>
 
             <ui:NavigationView.FooterMenuItems>
