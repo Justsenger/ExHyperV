@@ -1,4 +1,4 @@
-﻿// In ViewModels/MemoryPageViewModel.cs (还原版)
+﻿// In ViewModels/MemoryPageViewModel.cs
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ExHyperV.Services;
@@ -6,6 +6,7 @@ using ExHyperV.Tools;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq; // 确保引用了 LINQ
 using System.Threading.Tasks;
 
 namespace ExHyperV.ViewModels
@@ -17,8 +18,8 @@ namespace ExHyperV.ViewModels
         [ObservableProperty]
         private bool _isLoading;
 
-        // 集合类型恢复为 HostMemoryViewModel
-        public ObservableCollection<HostMemoryViewModel> HostMemoryModules { get; } = new();
+        // 将主集合更改为新的分组ViewModel类型
+        public ObservableCollection<MemoryBankGroupViewModel> MemoryBankGroups { get; } = new();
 
         public MemoryPageViewModel()
         {
@@ -36,22 +37,27 @@ namespace ExHyperV.ViewModels
             {
                 var hostMemoryModels = await _memoryService.GetHostMemoryAsync();
 
-                // 移除分组逻辑，直接创建 HostMemoryViewModel 列表
-                var newHostMemoryModules = new List<HostMemoryViewModel>();
-                foreach (var memModel in hostMemoryModels)
-                {
-                    newHostMemoryModules.Add(new HostMemoryViewModel(memModel));
-                }
+                // 1. 先创建所有独立的内存条ViewModel
+                var allModules = hostMemoryModels
+                    .Select(memModel => new HostMemoryViewModel(memModel))
+                    .ToList();
+
+                // 2. 使用 LINQ 按 BankLabel 对它们进行分组，并为每个组创建一个 MemoryBankGroupViewModel
+                var groupedData = allModules
+                    .GroupBy(module => module.BankLabel)
+                    .Select(group => new MemoryBankGroupViewModel(group.Key, group.ToList()))
+                    .OrderBy(g => g.BankLabel) // 按Bank标签排序，确保BANK 0在BANK 1之前
+                    .ToList();
 
                 if (System.Windows.Application.Current.Dispatcher.CheckAccess())
                 {
-                    UpdateCollections(newHostMemoryModules);
+                    UpdateCollections(groupedData);
                 }
                 else
                 {
                     await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
                     {
-                        UpdateCollections(newHostMemoryModules);
+                        UpdateCollections(groupedData);
                     });
                 }
             }
@@ -65,12 +71,12 @@ namespace ExHyperV.ViewModels
             }
         }
 
-        private void UpdateCollections(List<HostMemoryViewModel> newModules)
+        private void UpdateCollections(List<MemoryBankGroupViewModel> newGroups)
         {
-            HostMemoryModules.Clear();
-            foreach (var module in newModules)
+            MemoryBankGroups.Clear();
+            foreach (var group in newGroups)
             {
-                HostMemoryModules.Add(module);
+                MemoryBankGroups.Add(group);
             }
         }
     }
