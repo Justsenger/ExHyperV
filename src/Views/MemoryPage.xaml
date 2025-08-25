@@ -6,7 +6,7 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
     xmlns:viewmodels="clr-namespace:ExHyperV.ViewModels"
-    xmlns:converters="clr-namespace:ExHyperV.Converters"  
+    xmlns:converters="clr-namespace:ExHyperV.Converters"
     Title="MemoryPage"
     d:DataContext="{d:DesignInstance Type=viewmodels:MemoryPageViewModel, IsDesignTimeCreatable=True}"
     mc:Ignorable="d">
@@ -19,7 +19,7 @@
 
     <Grid>
         <StackPanel Margin="10,0,10,20" IsEnabled="{Binding IsLoading, Converter={StaticResource InverseBooleanConverter}}">
-            <!-- ================== 已安装内存部分 ================== -->
+            <!-- 已安装内存部分 -->
             <ui:Card Padding="12" Margin="10,10,10,0">
                 <StackPanel Orientation="Horizontal">
                     <ui:FontIcon FontSize="24" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xEEA0;"/>
@@ -83,7 +83,7 @@
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
 
-            <!-- ================== 虚拟机内存部分 ================== -->
+            <!-- 虚拟机内存部分 -->
             <ui:Card Padding="12" Margin="10,15,10,0">
                 <Grid>
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
@@ -103,13 +103,11 @@
                                     <TextBlock Text="{Binding VMName}" FontSize="16" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </ui:CardExpander.Header>
-
                             <Grid Margin="20,10,20,10">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
-                                <!-- 关键修改：增加一行给按钮 -->
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="Auto"/>
@@ -128,6 +126,7 @@
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <ComboBox Text="{Binding StartupMB, UpdateSourceTrigger=PropertyChanged}" IsEditable="True">
+                                        <ComboBoxItem Content="512"/>
                                         <ComboBoxItem Content="1024"/>
                                         <ComboBoxItem Content="2048"/>
                                         <ComboBoxItem Content="3072"/>
@@ -164,6 +163,7 @@
                                             <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
                                         <ComboBox Text="{Binding MinimumMB, UpdateSourceTrigger=PropertyChanged}" IsEditable="True">
+                                            <ComboBoxItem Content="512"/>
                                             <ComboBoxItem Content="1024"/>
                                             <ComboBoxItem Content="2048"/>
                                             <ComboBoxItem Content="3072"/>
@@ -224,7 +224,6 @@
                                     <TextBlock Grid.Column="1" Text="{Binding Priority, StringFormat={}{0:F0}%}" Width="40" TextAlignment="Right" VerticalAlignment="Center" Margin="10,0,0,0"/>
                                 </Grid>
 
-                                <!-- 关键修改：按钮移动到新的第5行 -->
                                 <StackPanel Grid.Row="4" Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,25,0,0">
                                     <ui:Button Content="重置" Command="{Binding RevertChangesCommand}" Padding="20,8" MinWidth="100"/>
                                     <ui:Button Content="应用" Appearance="Primary" Margin="15,0,0,0" Command="{Binding SaveChangesCommand}" IsEnabled="{Binding IsDataValid}" Padding="20,8" MinWidth="100"/>

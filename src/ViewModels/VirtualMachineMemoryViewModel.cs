@@ -21,11 +21,12 @@ namespace ExHyperV.ViewModels
         [ObservableProperty]
         private string _maximumMB;
         [ObservableProperty]
-        private double _buffer;
+        private string _buffer;
         [ObservableProperty]
         private double _priority;
         [ObservableProperty]
         private bool _dynamicMemoryEnabled;
+
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(IsDataValid))]
         private bool _isStartupMBValid;
@@ -35,6 +36,9 @@ namespace ExHyperV.ViewModels
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(IsDataValid))]
         private bool _isMaximumMBValid;
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(IsDataValid))]
+        private bool _isBufferValid;
 
         public VirtualMachineMemoryViewModel(VirtualMachineMemoryInfo model)
         {
@@ -47,7 +51,7 @@ namespace ExHyperV.ViewModels
         public string VMName => _originalModel.VMName;
         public string State => _originalModel.State;
         public string VmIconGlyph => State.Equals("Running", StringComparison.OrdinalIgnoreCase) ? "\uE768" : "\uE97C";
-        public bool IsDataValid => IsStartupMBValid && IsMinimumMBValid && IsMaximumMBValid;
+        public bool IsDataValid => IsStartupMBValid && IsMinimumMBValid && IsMaximumMBValid && IsBufferValid;
 
         private void OnViewModelPropertyChanged(object sender, PropertyChangedEventArgs e)
         {
@@ -56,6 +60,7 @@ namespace ExHyperV.ViewModels
                 case nameof(StartupMB):
                 case nameof(MinimumMB):
                 case nameof(MaximumMB):
+                case nameof(Buffer):
                 case nameof(DynamicMemoryEnabled):
                     ValidateAllFields();
                     break;
@@ -67,6 +72,7 @@ namespace ExHyperV.ViewModels
             IsStartupMBValid = long.TryParse(StartupMB, out long s) && s > 0;
             IsMinimumMBValid = long.TryParse(MinimumMB, out long m) && m > 0;
             IsMaximumMBValid = long.TryParse(MaximumMB, out long x) && x > 0;
+            IsBufferValid = int.TryParse(Buffer, out int b) && b >= 5 && b <= 2000;
             OnPropertyChanged(nameof(IsDataValid));
             SaveChangesCommand.NotifyCanExecuteChanged();
         }
@@ -78,7 +84,6 @@ namespace ExHyperV.ViewModels
             long.TryParse(MaximumMB, out long max);
             if (DynamicMemoryEnabled && startup < min) { Utils.Show("启动RAM不能小于最小RAM。"); return false; }
             if (DynamicMemoryEnabled && min > max) { Utils.Show("最小RAM不能大于最大RAM。"); return false; }
-            if (DynamicMemoryEnabled && (Buffer < 5 || Buffer > 2000)) { Utils.Show("内存缓冲区必须在 5% 到 2000% 之间。"); return false; }
             return true;
         }
 
@@ -94,11 +99,13 @@ namespace ExHyperV.ViewModels
                     long.TryParse(StartupMB, out long newStartup);
                     long.TryParse(MinimumMB, out long newMin);
                     long.TryParse(MaximumMB, out long newMax);
+                    int.TryParse(Buffer, out int newBuffer);
+
                     _originalModel.StartupMB = newStartup;
                     _originalModel.MinimumMB = newMin;
                     _originalModel.MaximumMB = newMax;
+                    _originalModel.Buffer = newBuffer;
                     _originalModel.DynamicMemoryEnabled = this.DynamicMemoryEnabled;
-                    _originalModel.Buffer = (int)this.Buffer;
                     _originalModel.Priority = (int)this.Priority;
                 }
             }
@@ -115,7 +122,7 @@ namespace ExHyperV.ViewModels
             StartupMB = _originalModel.StartupMB.ToString();
             MinimumMB = _originalModel.MinimumMB.ToString();
             MaximumMB = _originalModel.MaximumMB.ToString();
-            Buffer = _originalModel.Buffer;
+            Buffer = _originalModel.Buffer.ToString();
             Priority = _originalModel.Priority;
             ValidateAllFields();
         }

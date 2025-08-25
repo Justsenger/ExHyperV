@@ -118,17 +118,16 @@ namespace ExHyperV.Services
 
             if (!vmMemory.DynamicMemoryEnabled)
             {
-                // 静态内存模式
                 long startupBytes = long.Parse(vmMemory.StartupMB) * 1024 * 1024;
                 scriptBuilder.AppendLine($"Set-VMMemory -VMName \"{vmMemory.VMName}\" -DynamicMemoryEnabled $false -StartupBytes {startupBytes}");
             }
             else
             {
-                // 动态内存模式
                 long startupBytes = long.Parse(vmMemory.StartupMB) * 1024 * 1024;
                 long minimumBytes = long.Parse(vmMemory.MinimumMB) * 1024 * 1024;
                 long maximumBytes = long.Parse(vmMemory.MaximumMB) * 1024 * 1024;
-                int buffer = (int)vmMemory.Buffer;
+                // 关键修正：将 string 类型的 Buffer 解析为 int
+                int.TryParse(vmMemory.Buffer, out int buffer);
                 int priority = (int)vmMemory.Priority;
 
                 scriptBuilder.AppendLine($"Set-VMMemory -VMName \"{vmMemory.VMName}\" -DynamicMemoryEnabled $true -StartupBytes {startupBytes} -MinimumBytes {minimumBytes} -MaximumBytes {maximumBytes} -Buffer {buffer} -Priority {priority}");
