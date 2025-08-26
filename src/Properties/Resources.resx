@@ -673,4 +673,46 @@ The existing NAT switch is: '{0}'</value>
   <data name="ConfiguredSpeed" xml:space="preserve">
     <value>Configured Speed</value>
   </data>
+  <data name="VMMemory" xml:space="preserve">
+    <value>Virtual Machine Memory</value>
+  </data>
+  <data name="StartupRAM" xml:space="preserve">
+    <value>Startup RAM</value>
+  </data>
+  <data name="Description_StartupRAM" xml:space="preserve">
+    <value>Specifies the initial amount of memory required to start this virtual machine.</value>
+  </data>
+  <data name="MemoryWeight" xml:space="preserve">
+    <value>Memory Weight</value>
+  </data>
+  <data name="Description_MemoryWeight" xml:space="preserve">
+    <value>The priority for obtaining memory when the host is low on memory.</value>
+  </data>
+  <data name="EnableDynamicMemory" xml:space="preserve">
+    <value>Enable Dynamic Memory</value>
+  </data>
+  <data name="MinimumRAM" xml:space="preserve">
+    <value>Minimum RAM</value>
+  </data>
+  <data name="Description_MinimumRAM" xml:space="preserve">
+    <value>The minimum memory the virtual machine can shrink to.</value>
+  </data>
+  <data name="MaximumRAM" xml:space="preserve">
+    <value>Maximum RAM</value>
+  </data>
+  <data name="Description_MaximumRAM" xml:space="preserve">
+    <value>The maximum memory the virtual machine can expand to.</value>
+  </data>
+  <data name="MemoryBuffer" xml:space="preserve">
+    <value>Memory Buffer</value>
+  </data>
+  <data name="Description_MemoryBuffer" xml:space="preserve">
+    <value>Assigned = (100% + Buffer%) * Demand</value>
+  </data>
+  <data name="Reset" xml:space="preserve">
+    <value>Reset</value>
+  </data>
+  <data name="Apply" xml:space="preserve">
+    <value>Apply</value>
+  </data>
 </root>

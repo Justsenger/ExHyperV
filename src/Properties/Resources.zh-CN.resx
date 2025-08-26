@@ -673,4 +673,46 @@
   <data name="ConfiguredSpeed" xml:space="preserve">
     <value>运行速度</value>
   </data>
+  <data name="VMMemory" xml:space="preserve">
+    <value>虚拟机内存</value>
+  </data>
+  <data name="StartupRAM" xml:space="preserve">
+    <value>启动内存</value>
+  </data>
+  <data name="Description_StartupRAM" xml:space="preserve">
+    <value>指定启动此虚拟机所需的初始内存量</value>
+  </data>
+  <data name="MemoryWeight" xml:space="preserve">
+    <value>内存权重</value>
+  </data>
+  <data name="Description_MemoryWeight" xml:space="preserve">
+    <value>主机内存不足时获得内存的优先级</value>
+  </data>
+  <data name="EnableDynamicMemory" xml:space="preserve">
+    <value>启用动态内存</value>
+  </data>
+  <data name="MinimumRAM" xml:space="preserve">
+    <value>最小内存</value>
+  </data>
+  <data name="Description_MinimumRAM" xml:space="preserve">
+    <value>虚拟机可收缩到的最小内存</value>
+  </data>
+  <data name="MaximumRAM" xml:space="preserve">
+    <value>最大内存</value>
+  </data>
+  <data name="Description_MaximumRAM" xml:space="preserve">
+    <value>虚拟机可扩展到的最大内存</value>
+  </data>
+  <data name="MemoryBuffer" xml:space="preserve">
+    <value>内存缓冲区</value>
+  </data>
+  <data name="Description_MemoryBuffer" xml:space="preserve">
+    <value>分配量 = (100% + 缓冲区%) * 需求量</value>
+  </data>
+  <data name="Reset" xml:space="preserve">
+    <value>重置</value>
+  </data>
+  <data name="Apply" xml:space="preserve">
+    <value>应用</value>
+  </data>
 </root>

@@ -214,6 +214,15 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 Apply 的本地化字符串。
+        /// </summary>
+        public static string Apply {
+            get {
+                return ResourceManager.GetString("Apply", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Version 的本地化字符串。
         /// </summary>
         public static string appversion {
@@ -549,6 +558,51 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 The maximum memory the virtual machine can expand to. 的本地化字符串。
+        /// </summary>
+        public static string Description_MaximumRAM {
+            get {
+                return ResourceManager.GetString("Description_MaximumRAM", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Assigned = (100% + Buffer%) * Demand 的本地化字符串。
+        /// </summary>
+        public static string Description_MemoryBuffer {
+            get {
+                return ResourceManager.GetString("Description_MemoryBuffer", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 The priority for obtaining memory when the host is low on memory. 的本地化字符串。
+        /// </summary>
+        public static string Description_MemoryWeight {
+            get {
+                return ResourceManager.GetString("Description_MemoryWeight", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 The minimum memory the virtual machine can shrink to. 的本地化字符串。
+        /// </summary>
+        public static string Description_MinimumRAM {
+            get {
+                return ResourceManager.GetString("Description_MinimumRAM", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Specifies the initial amount of memory required to start this virtual machine. 的本地化字符串。
+        /// </summary>
+        public static string Description_StartupRAM {
+            get {
+                return ResourceManager.GetString("Description_StartupRAM", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Operation Failed 的本地化字符串。
         /// </summary>
         public static string Dialog_Title_OperationFailed {
@@ -626,6 +680,15 @@ namespace ExHyperV.Properties {
         public static string driverversion {
             get {
                 return ResourceManager.GetString("driverversion", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Enable Dynamic Memory 的本地化字符串。
+        /// </summary>
+        public static string EnableDynamicMemory {
+            get {
+                return ResourceManager.GetString("EnableDynamicMemory", resourceCulture);
             }
         }
         
@@ -1183,6 +1246,24 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 Maximum RAM 的本地化字符串。
+        /// </summary>
+        public static string MaximumRAM {
+            get {
+                return ResourceManager.GetString("MaximumRAM", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Memory Buffer 的本地化字符串。
+        /// </summary>
+        public static string MemoryBuffer {
+            get {
+                return ResourceManager.GetString("MemoryBuffer", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Memory 的本地化字符串。
         /// </summary>
         public static string Memorycapacity {
@@ -1197,6 +1278,24 @@ namespace ExHyperV.Properties {
         public static string MemoryGroup {
             get {
                 return ResourceManager.GetString("MemoryGroup", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Memory Weight 的本地化字符串。
+        /// </summary>
+        public static string MemoryWeight {
+            get {
+                return ResourceManager.GetString("MemoryWeight", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Minimum RAM 的本地化字符串。
+        /// </summary>
+        public static string MinimumRAM {
+            get {
+                return ResourceManager.GetString("MinimumRAM", resourceCulture);
             }
         }
         
@@ -1381,6 +1480,15 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 Reset 的本地化字符串。
+        /// </summary>
+        public static string Reset {
+            get {
+                return ResourceManager.GetString("Reset", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Error executing:   的本地化字符串。
         /// </summary>
         public static string runerror {
@@ -1431,6 +1539,15 @@ namespace ExHyperV.Properties {
         public static string soft {
             get {
                 return ResourceManager.GetString("soft", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Startup RAM 的本地化字符串。
+        /// </summary>
+        public static string StartupRAM {
+            get {
+                return ResourceManager.GetString("StartupRAM", resourceCulture);
             }
         }
         
@@ -1674,6 +1791,15 @@ namespace ExHyperV.Properties {
         public static string vmlist {
             get {
                 return ResourceManager.GetString("vmlist", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Virtual Machine Memory 的本地化字符串。
+        /// </summary>
+        public static string VMMemory {
+            get {
+                return ResourceManager.GetString("VMMemory", resourceCulture);
             }
         }
         

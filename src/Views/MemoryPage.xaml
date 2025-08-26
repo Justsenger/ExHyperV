@@ -89,15 +89,13 @@
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
-
-            <!-- 虚拟机内存部分 -->
             <ui:Card Padding="12" Margin="10,15,10,0">
                 <Grid>
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                         <ui:FontIcon FontSize="24" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xF5ED;"/>
-                        <TextBlock Text="虚拟机内存" Margin="10,0,0,0" FontSize="16" VerticalAlignment="Center"/>
+                        <TextBlock Text="{x:Static properties:Resources.VMMemory}" Margin="10,0,0,0" FontSize="16" VerticalAlignment="Center"/>
                     </StackPanel>
-                    <ui:Button Command="{Binding RefreshVmDataCommand}" HorizontalAlignment="Right" Content="刷新" Appearance="Secondary"/>
+                    <ui:Button Command="{Binding RefreshVmDataCommand}" HorizontalAlignment="Right" Content="{x:Static properties:Resources.refresh}" Appearance="Secondary"/>
                 </Grid>
             </ui:Card>
             <ItemsControl ItemsSource="{Binding VirtualMachinesMemory}" Margin="30,0,10,0">
@@ -108,12 +106,9 @@
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="Auto"/>
-                                        <!-- 图标列 -->
                                         <ColumnDefinition Width="*"/>
-                                        <!-- 内容列 -->
                                     </Grid.ColumnDefinitions>
 
-                                    <!-- 1. 图标现在占据两行 -->
                                     <ui:FontIcon Grid.Row="0" Grid.RowSpan="2"
                      FontFamily="{DynamicResource SegoeFluentIcons}" 
                      Glyph="{Binding VmIconGlyph}" 
@@ -127,25 +122,18 @@
                                             <RowDefinition Height="Auto"/>
                                         </Grid.RowDefinitions>
 
-                                        <!-- 第一行：名称和右对齐的文本 -->
                                         <Grid Grid.Row="0" MinHeight="32">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="Auto"/>
-                                                <!-- VM 名称 -->
                                                 <ColumnDefinition Width="*"/>
-                                                <!-- 弹性空间 -->
                                                 <ColumnDefinition Width="Auto"/>
-                                                <!-- 右侧文本 -->
                                                 <ColumnDefinition Width="10"/>
-                                                <!-- 3. 与箭头之间的固定间距 -->
                                             </Grid.ColumnDefinitions>
                                             <TextBlock Grid.Column="0" Text="{Binding VMName}" FontSize="16" VerticalAlignment="Center" FontWeight="SemiBold"/>
                                             <TextBlock Grid.Column="2" Text="{Binding MemoryUsageText}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" VerticalAlignment="Center"/>
                                         </Grid>
 
-                                        <!-- 第二行：进度条 -->
                                         <Grid Grid.Row="1" Margin="0,5,10,5" Visibility="{Binding IsVmRunning, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                            <!-- 4. 恢复 Border 包裹 ProgressBar 的正确样式 -->
                                             <Border CornerRadius="4" Height="8" Background="{DynamicResource ControlFillColorDefaultBrush}">
                                                 <ProgressBar Value="{Binding UsagePercentage, Mode=OneWay}" 
                                  Foreground="{Binding UsageBarBrush, Mode=OneWay}"
@@ -168,10 +156,9 @@
                                     <RowDefinition Height="Auto"/>
                                 </Grid.RowDefinitions>
 
-                                <!-- 第 1 部分：启动 RAM (Grid.Row="0") -->
                                 <StackPanel Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,30,15">
-                                    <TextBlock Text="启动内存" FontSize="16" FontWeight="SemiBold"/>
-                                    <TextBlock Text="指定启动此虚拟机所需的初始内存量" Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="12" Margin="0,2,0,0"/>
+                                    <TextBlock Text="{x:Static properties:Resources.StartupRAM}" FontSize="16" FontWeight="SemiBold"/>
+                                    <TextBlock Text="{x:Static properties:Resources.Description_StartupRAM}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="12" Margin="0,2,0,0"/>
                                 </StackPanel>
                                 <Grid Grid.Row="0" Grid.Column="1" VerticalAlignment="Center" Margin="0,0,0,15">
                                     <Grid.ColumnDefinitions>
@@ -194,10 +181,9 @@
                                     <TextBlock Grid.Column="1" Text="MB" VerticalAlignment="Center" FontSize="14" Margin="10,0,0,0"/>
                                 </Grid>
 
-                                <!-- 第 2 部分：内存权重 (已从 Grid.Row="3" 移动到 Grid.Row="1") -->
                                 <StackPanel Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,30,15">
-                                    <TextBlock Text="内存权重" FontSize="16" FontWeight="SemiBold"/>
-                                    <TextBlock Text="主机内存不足时获得内存的优先级" Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                                    <TextBlock Text="{x:Static properties:Resources.MemoryWeight}" FontSize="16" FontWeight="SemiBold"/>
+                                    <TextBlock Text="{x:Static properties:Resources.Description_MemoryWeight}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
                                 </StackPanel>
                                 <Grid Grid.Row="1" Grid.Column="1" VerticalAlignment="Center" Margin="0,0,0,15">
                                     <Grid.ColumnDefinitions>
@@ -208,10 +194,8 @@
                                     <TextBlock Grid.Column="1" Text="{Binding Priority, StringFormat={}{0:F0}%}" Width="40" TextAlignment="Right" VerticalAlignment="Center" Margin="10,0,0,0"/>
                                 </Grid>
 
-                                <!-- 第 3 部分：启用动态内存 (已从 Grid.Row="1" 移动到 Grid.Row="2") -->
-                                <CheckBox Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Content="启用动态内存" IsChecked="{Binding DynamicMemoryEnabled}" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,10"/>
+                                <CheckBox Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Content="{x:Static properties:Resources.EnableDynamicMemory}" IsChecked="{Binding DynamicMemoryEnabled}" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,10"/>
 
-                                <!-- 第 4 部分：动态内存详细设置 (已从 Grid.Row="2" 移动到 Grid.Row="3") -->
                                 <Grid Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" IsEnabled="{Binding DynamicMemoryEnabled}" Margin="20,0,0,0">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="Auto" MinWidth="100"/>
@@ -223,8 +207,8 @@
                                         <RowDefinition Height="Auto"/>
                                     </Grid.RowDefinitions>
                                     <StackPanel Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,30,15">
-                                        <TextBlock Text="最小内存" FontSize="16" FontWeight="SemiBold"/>
-                                        <TextBlock Text="虚拟机可收缩到的最小内存" Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                                        <TextBlock Text="{x:Static properties:Resources.MinimumRAM}" FontSize="16" FontWeight="SemiBold"/>
+                                        <TextBlock Text="{x:Static properties:Resources.Description_MinimumRAM}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
                                     </StackPanel>
                                     <Grid Grid.Row="0" Grid.Column="1" VerticalAlignment="Center" Margin="0,0,0,15">
                                         <Grid.ColumnDefinitions>
@@ -247,8 +231,8 @@
                                         <TextBlock Grid.Column="1" Text="MB" VerticalAlignment="Center" FontSize="14" Margin="10,0,0,0"/>
                                     </Grid>
                                     <StackPanel Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,30,15">
-                                        <TextBlock Text="最大内存" FontSize="16" FontWeight="SemiBold"/>
-                                        <TextBlock Text="虚拟机可扩展到的最大内存" Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                                        <TextBlock Text="{x:Static properties:Resources.MaximumRAM}" FontSize="16" FontWeight="SemiBold"/>
+                                        <TextBlock Text="{x:Static properties:Resources.Description_MaximumRAM}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
                                     </StackPanel>
                                     <Grid Grid.Row="1" Grid.Column="1" VerticalAlignment="Center" Margin="0,0,0,15">
                                         <Grid.ColumnDefinitions>
@@ -259,8 +243,8 @@
                                         <TextBlock Grid.Column="1" Text="MB" VerticalAlignment="Center" FontSize="14" Margin="10,0,0,0"/>
                                     </Grid>
                                     <StackPanel Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,30,0">
-                                        <TextBlock Text="内存缓冲区" FontSize="16" FontWeight="SemiBold"/>
-                                        <TextBlock Text="分配量 = (100% + 缓冲区%) * 需求量" Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                                        <TextBlock Text="{x:Static properties:Resources.MemoryBuffer}" FontSize="16" FontWeight="SemiBold"/>
+                                        <TextBlock Text="{x:Static properties:Resources.Description_MemoryBuffer}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
                                     </StackPanel>
                                     <Grid Grid.Row="2" Grid.Column="1" VerticalAlignment="Center">
                                         <Grid.ColumnDefinitions>
@@ -280,10 +264,9 @@
                                     </Grid>
                                 </Grid>
 
-                                <!-- 第 5 部分：操作按钮 (Grid.Row="4") -->
                                 <StackPanel Grid.Row="4" Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
-                                    <ui:Button Content="重置" Command="{Binding RevertChangesCommand}" Padding="20,8" MinWidth="100"/>
-                                    <ui:Button Content="应用" Appearance="Primary" Margin="15,0,0,0" Command="{Binding SaveChangesCommand}" IsEnabled="{Binding IsDataValid}" Padding="20,8" MinWidth="100"/>
+                                    <ui:Button Content="{x:Static properties:Resources.Reset}" Command="{Binding RevertChangesCommand}" Padding="20,8" MinWidth="100"/>
+                                    <ui:Button Content="{x:Static properties:Resources.Apply}" Appearance="Primary" Margin="15,0,0,0" Command="{Binding SaveChangesCommand}" IsEnabled="{Binding IsDataValid}" Padding="20,8" MinWidth="100"/>
                                 </StackPanel>
                             </Grid>
                         </ui:CardExpander>
