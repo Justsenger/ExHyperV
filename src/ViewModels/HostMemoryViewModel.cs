@@ -1,6 +1,5 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using ExHyperV.Models;
-using System;
 
 namespace ExHyperV.ViewModels
 {

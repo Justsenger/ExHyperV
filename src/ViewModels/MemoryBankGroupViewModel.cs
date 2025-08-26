@@ -1,7 +1,6 @@
 ﻿// In ViewModels/MemoryBankGroupViewModel.cs
-using CommunityToolkit.Mvvm.ComponentModel;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace ExHyperV.ViewModels
 {

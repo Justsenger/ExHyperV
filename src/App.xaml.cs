@@ -9,7 +9,7 @@ namespace ExHyperV;
 public partial class App
 {
     private const string DefaultLanguage = "en-US";
-    private const string ConfigFilePath = "config.xml";
+    private const string ConfigFilePath = "Config.xml";
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);

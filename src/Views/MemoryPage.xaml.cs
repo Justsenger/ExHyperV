@@ -1,7 +1,6 @@
 ﻿// In Views/Pages/MemoryPage.xaml.cs
 using ExHyperV.ViewModels;
 using Wpf.Ui.Abstractions.Controls;
-using Wpf.Ui.Controls;
 
 namespace ExHyperV.Views.Pages
 {

@@ -1,13 +1,9 @@
-﻿using ExHyperV.Models;
-using ExHyperV.Tools;
-using ExHyperV.ViewModels;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Management.Automation;
+﻿using System.Management.Automation;
 using System.Text;
 using System.Text.Json;
-using System.Threading.Tasks;
+using ExHyperV.Models;
+using ExHyperV.Tools;
+using ExHyperV.ViewModels;
 
 namespace ExHyperV.Services
 {
@@ -42,7 +38,7 @@ namespace ExHyperV.Services
             var memoryList = new List<MemoryInfo>();
             try
             {
-                var results = await Utils.Run2(script);
+                var results = await Task.Run(() => Utils.Run(script));
                 if (results == null) return memoryList;
                 foreach (var result in results)
                 {
