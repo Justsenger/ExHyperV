@@ -12,36 +12,85 @@ namespace ExHyperV.Tools;
 
 public class Utils
 {
+    private static readonly PowerShell PersistentPowerShell;
+    private static readonly SemaphoreSlim PsLock = new SemaphoreSlim(1, 1);
+    private static readonly CancellationTokenSource AppShutdownCts = new CancellationTokenSource();
+    static Utils()
+    {
+        PersistentPowerShell = PowerShell.Create();
+        AppDomain.CurrentDomain.ProcessExit += (s, e) => Cleanup();
+    }
+
+
     public static Collection<PSObject> Run(string script)
     {
         PowerShell ps = PowerShell.Create();
         ps.AddScript(script);
         return ps.Invoke();
     }
-    public static Collection<PSObject>? Run2(string script)
+    public static async Task<Collection<PSObject>?> Run2(string script)
     {
-        using PowerShell ps = PowerShell.Create();
-        ps.AddScript(script);
+        // 如果程序正在关闭，则不执行任何新操作
+        if (AppShutdownCts.IsCancellationRequested) return null;
+
+        await PsLock.WaitAsync(AppShutdownCts.Token);
         try
         {
-            var results = ps.Invoke();
-            if (ps.HadErrors)
+            // 再次检查，以防在等待锁时程序关闭
+            if (AppShutdownCts.IsCancellationRequested) return null;
+
+            return await Task.Run(() =>
             {
-                var errorBuilder = new StringBuilder();
-                errorBuilder.AppendLine("PowerShell 执行时遇到错误：\n");
-                foreach (var error in ps.Streams.Error)
+                PersistentPowerShell.Commands.Clear();
+                PersistentPowerShell.AddScript(script);
+
+                var results = PersistentPowerShell.Invoke();
+
+                if (PersistentPowerShell.HadErrors)
                 {
-                    errorBuilder.AppendLine($"- {error.Exception.Message}");
+                    var errorBuilder = new StringBuilder();
+                    errorBuilder.AppendLine("PowerShell 执行时遇到错误：\n");
+                    foreach (var error in PersistentPowerShell.Streams.Error)
+                    {
+                        errorBuilder.AppendLine($"- {error.Exception?.Message ?? error.ToString()}");
+                    }
+
+                    Application.Current.Dispatcher.Invoke(() => Show2(errorBuilder.ToString()));
+                    return null;
                 }
-                Show2(errorBuilder.ToString());
-                return null;
-            }
-            return results;
+                return results;
+            }, AppShutdownCts.Token); // 将取消令牌传递给 Task.Run
+        }
+        // 专门捕获并忽略 OperationCanceledException
+        catch (OperationCanceledException)
+        {
+            return null; // 操作被取消是正常行为，静默地返回null
         }
         catch (Exception ex)
         {
-            Show2($"执行 PowerShell 时发生严重系统异常：\n\n{ex.Message}");
+            // 只报告非取消的异常
+            if (!AppShutdownCts.IsCancellationRequested)
+            {
+                Application.Current.Dispatcher.Invoke(() => Show2($"执行 PowerShell 时发生严重系统异常：\n\n{ex.Message}"));
+            }
             return null;
+        }
+        finally
+        {
+            PsLock.Release();
+        }
+    }
+    private static void Cleanup()
+    {
+        PsLock?.Wait();
+        try
+        {
+            PersistentPowerShell?.Dispose();
+        }
+        finally
+        {
+            PsLock?.Release();
+            PsLock?.Dispose();
         }
     }
 

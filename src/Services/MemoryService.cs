@@ -42,7 +42,7 @@ namespace ExHyperV.Services
             var memoryList = new List<MemoryInfo>();
             try
             {
-                var results = await Task.Run(() => Utils.Run(script));
+                var results = await Utils.Run2(script);
                 if (results == null) return memoryList;
                 foreach (var result in results)
                 {
@@ -71,25 +71,68 @@ namespace ExHyperV.Services
         public async Task<List<VirtualMachineMemoryInfo>> GetVirtualMachinesMemoryAsync()
         {
             string script = @"
-                Get-VM | ForEach-Object {
-                    $vm = $_
-                    $memory = Get-VMMemory -VMName $vm.VMName
-                    [PSCustomObject]@{
-                        VMName               = $vm.VMName
-                        State                = $vm.State.ToString()
-                        DynamicMemoryEnabled = $memory.DynamicMemoryEnabled
-                        StartupMB            = $memory.Startup / 1MB
-                        MinimumMB            = $memory.Minimum / 1MB
-                        MaximumMB            = $memory.Maximum / 1MB
-                        Buffer               = $memory.Buffer
-                        Priority             = $memory.Priority
-                    }
-                } | ConvertTo-Json";
+        Get-VM | ForEach-Object {
+            $vm = $_
+            $memoryConfig = Get-VMMemory -VMName $vm.VMName
+            
+            [PSCustomObject]@{
+                VMName               = $vm.VMName
+                State                = $vm.State.ToString()
+                DynamicMemoryEnabled = $memoryConfig.DynamicMemoryEnabled
+                StartupMB            = [long]($memoryConfig.Startup / 1MB)
+                MinimumMB            = [long]($memoryConfig.Minimum / 1MB)
+                MaximumMB            = [long]($memoryConfig.Maximum / 1MB)
+                AssignedMB           = [long]($vm.MemoryAssigned / 1MB)
+                DemandMB             = [long]($vm.MemoryDemand / 1MB)
+                Status               = $vm.MemoryStatus
+                Buffer               = $memoryConfig.Buffer
+                Priority             = $memoryConfig.Priority
+            }
+        } | ConvertTo-Json";
 
             var vmMemoryList = new List<VirtualMachineMemoryInfo>();
             try
             {
-                var results = await Task.Run(() => Utils.Run(script));
+                var results = await Utils.Run2(script);
+                if (results != null && results.Any() && results[0] != null)
+                {
+                    string json = results[0].BaseObject.ToString();
+                    if (!json.Trim().StartsWith("["))
+                    {
+                        json = "[" + json + "]";
+                    }
+                    var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                    var parsedList = JsonSerializer.Deserialize<List<VirtualMachineMemoryInfo>>(json, options);
+                    if (parsedList != null)
+                    {
+                        vmMemoryList.AddRange(parsedList);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to get VM memory info: {ex.Message}");
+            }
+            return vmMemoryList;
+        }
+
+        public async Task<List<VirtualMachineMemoryInfo>> GetVirtualMachinesMemoryQuickAsync()
+        {
+            // 这个脚本只获取实时数据，速度更快
+            string script = @"
+            Get-VM | Where-Object { $_.State -eq 'Running' } | ForEach-Object {
+                $vm = $_
+                [PSCustomObject]@{
+                    VMName      = $vm.VMName
+                    AssignedMB  = [long]($vm.MemoryAssigned / 1MB)
+                    DemandMB    = [long]($vm.MemoryDemand / 1MB)
+                }
+            } | ConvertTo-Json -Depth 5 -Compress";
+
+            var vmMemoryList = new List<VirtualMachineMemoryInfo>();
+            try
+            {
+                var results = await Utils.Run2(script);
                 if (results != null && results.Any() && results[0] != null)
                 {
                     string json = results[0].BaseObject.ToString();

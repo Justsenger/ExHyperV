@@ -49,7 +49,7 @@
                 <ui:Card BorderThickness="1" Padding="10">
                     <Grid>
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <ui:FontIcon FontFamily="{DynamicResource SegoeFluentIcons}" FontSize="24" Glyph="&#xE7C4;"/>
+                            <ui:FontIcon FontFamily="{DynamicResource SegoeFluentIcons}" FontSize="24" Glyph="&#xE774;"/>
                             <TextBlock Text="{x:Static properties:Resources.VirtualSwitchList}" FontSize="16" VerticalAlignment="Center" Margin="10,0,0,0"/>
                         </StackPanel>
 

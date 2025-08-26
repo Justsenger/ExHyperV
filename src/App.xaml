@@ -6,7 +6,9 @@
              StartupUri="MainWindow.xaml">
     <Application.Resources>
         <ResourceDictionary>
-            <FontFamily x:Key="SegoeFluentIcons">pack://application:,,,/Assets/#Segoe Fluent Icons, Segoe MDL2 Assets</FontFamily> 
+            <SolidColorBrush x:Key="OrangeBrush" Color="#FFA500" />
+            <SolidColorBrush x:Key="RedBrush" Color="#FF4500" />
+            <FontFamily x:Key="SegoeFluentIcons">pack://application:,,,/Assets/#Segoe Fluent Icons, Segoe MDL2 Assets</FontFamily>
             <ResourceDictionary.MergedDictionaries>
                 <ui:ThemesDictionary Theme="Light" />
                 <ui:ControlsDictionary />

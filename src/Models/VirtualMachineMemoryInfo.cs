@@ -10,5 +10,8 @@
         public long MaximumMB { get; set; }
         public int Buffer { get; set; } // 内存缓冲区 (%)
         public int Priority { get; set; } // 内存权重 (优先级)
+        public long AssignedMB { get; set; }
+        public long DemandMB { get; set; }
+        public string Status { get; set; }
     }
 }
