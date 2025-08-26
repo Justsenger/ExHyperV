@@ -7,6 +7,7 @@
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
     xmlns:viewmodels="clr-namespace:ExHyperV.ViewModels"
     xmlns:converters="clr-namespace:ExHyperV.Converters"
+    xmlns:properties="clr-namespace:ExHyperV.Properties"
     Title="MemoryPage"
     d:DataContext="{d:DesignInstance Type=viewmodels:MemoryPageViewModel, IsDesignTimeCreatable=True}"
     mc:Ignorable="d">
@@ -20,11 +21,10 @@
 
     <Grid>
         <StackPanel Margin="10,0,10,20" IsEnabled="{Binding IsLoading, Converter={StaticResource InverseBooleanConverter}}">
-            <!-- 已安装内存部分 -->
             <ui:Card Padding="12" Margin="10,10,10,0">
                 <StackPanel Orientation="Horizontal">
                     <ui:FontIcon FontSize="24" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xEEA0;"/>
-                    <TextBlock Text="已安装内存" Margin="10,0,0,0" FontSize="16" VerticalAlignment="Center"/>
+                    <TextBlock Text="{x:Static properties:Resources.InstalledMemory}" Margin="10,0,0,0" FontSize="16" VerticalAlignment="Center"/>
                 </StackPanel>
             </ui:Card>
             <ItemsControl ItemsSource="{Binding MemoryBankGroups}" Margin="30,0,10,0">
@@ -64,21 +64,21 @@
                                                     <RowDefinition Height="30"/>
                                                     <RowDefinition Height="30"/>
                                                 </Grid.RowDefinitions>
-                                                <TextBlock Grid.Row="0" Grid.Column="0" Text="厂商" FontSize="16" VerticalAlignment="Center"/>
+                                                <TextBlock Grid.Row="0" Grid.Column="0" Text="{x:Static properties:Resources.manu}" FontSize="16" VerticalAlignment="Center"/>
                                                 <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding Manufacturer}" Margin="25,0,0,0" FontSize="16" VerticalAlignment="Center"/>
-                                                <TextBlock Grid.Row="0" Grid.Column="2" Text="型号" Margin="40,0,0,0" FontSize="16" VerticalAlignment="Center"/>
+                                                <TextBlock Grid.Row="0" Grid.Column="2" Text="{x:Static properties:Resources.PartNumber}" Margin="40,0,0,0" FontSize="16" VerticalAlignment="Center"/>
                                                 <TextBlock Grid.Row="0" Grid.Column="3" Text="{Binding PartNumber}" Margin="25,0,0,0" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" FontSize="16" VerticalAlignment="Center"/>
-                                                <TextBlock Grid.Row="1" Grid.Column="0" Text="内存组" FontSize="16" VerticalAlignment="Center"/>
+                                                <TextBlock Grid.Row="1" Grid.Column="0" Text="{x:Static properties:Resources.MemoryGroup}" FontSize="16" VerticalAlignment="Center"/>
                                                 <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding BankLabel}" Margin="25,0,0,0" FontSize="16" VerticalAlignment="Center"/>
-                                                <TextBlock Grid.Row="1" Grid.Column="2" Text="插槽位置" Margin="40,0,0,0" FontSize="16" VerticalAlignment="Center"/>
+                                                <TextBlock Grid.Row="1" Grid.Column="2" Text="{x:Static properties:Resources.Slot}" Margin="40,0,0,0" FontSize="16" VerticalAlignment="Center"/>
                                                 <TextBlock Grid.Row="1" Grid.Column="3" Text="{Binding DeviceLocator}" Margin="25,0,0,0" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" FontSize="16" VerticalAlignment="Center"/>
-                                                <TextBlock Grid.Row="2" Grid.Column="0" Text="类型" FontSize="16" VerticalAlignment="Center"/>
+                                                <TextBlock Grid.Row="2" Grid.Column="0" Text="{x:Static properties:Resources.Type}" FontSize="16" VerticalAlignment="Center"/>
                                                 <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding MemoryType}" Margin="25,0,0,0" FontSize="16" VerticalAlignment="Center"/>
-                                                <TextBlock Grid.Row="2" Grid.Column="2" Text="容量" Margin="40,0,0,0" FontSize="16" VerticalAlignment="Center"/>
+                                                <TextBlock Grid.Row="2" Grid.Column="2" Text="{x:Static properties:Resources.Capacity}" Margin="40,0,0,0" FontSize="16" VerticalAlignment="Center"/>
                                                 <TextBlock Grid.Row="2" Grid.Column="3" Text="{Binding Capacity}" Margin="25,0,0,0" FontSize="16" VerticalAlignment="Center"/>
-                                                <TextBlock Grid.Row="3" Grid.Column="0" Text="额定速度" FontSize="16" VerticalAlignment="Center"/>
+                                                <TextBlock Grid.Row="3" Grid.Column="0" Text="{x:Static properties:Resources.RatedSpeed}" FontSize="16" VerticalAlignment="Center"/>
                                                 <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding DeclaredSpeed}" Margin="25,0,0,0" FontSize="16" VerticalAlignment="Center"/>
-                                                <TextBlock Grid.Row="3" Grid.Column="2" Text="运行速度" Margin="40,0,0,0" FontSize="16" VerticalAlignment="Center"/>
+                                                <TextBlock Grid.Row="3" Grid.Column="2" Text="{x:Static properties:Resources.ConfiguredSpeed}" Margin="40,0,0,0" FontSize="16" VerticalAlignment="Center"/>
                                                 <TextBlock Grid.Row="3" Grid.Column="3" Text="{Binding ConfiguredSpeed}" Margin="25,0,0,0" FontSize="16" VerticalAlignment="Center"/>
                                             </Grid>
                                         </ui:CardExpander>

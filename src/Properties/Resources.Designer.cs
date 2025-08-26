@@ -250,7 +250,7 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
-        ///   查找类似 Improper allocating devices may cause system instability, please operate with caution! 的本地化字符串。
+        ///   查找类似 Improperly assigning devices can cause system instability. Please proceed with caution. 的本地化字符串。
         /// </summary>
         public static string attentionwords {
             get {
@@ -318,6 +318,15 @@ namespace ExHyperV.Properties {
         public static string cancel {
             get {
                 return ResourceManager.GetString("cancel", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Capacity 的本地化字符串。
+        /// </summary>
+        public static string Capacity {
+            get {
+                return ResourceManager.GetString("Capacity", resourceCulture);
             }
         }
         
@@ -408,6 +417,15 @@ namespace ExHyperV.Properties {
         public static string complisetting {
             get {
                 return ResourceManager.GetString("complisetting", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Configured Speed 的本地化字符串。
+        /// </summary>
+        public static string ConfiguredSpeed {
+            get {
+                return ResourceManager.GetString("ConfiguredSpeed", resourceCulture);
             }
         }
         
@@ -594,7 +612,7 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
-        ///   查找类似 An error occurred during driver injection! Check if BitLocker is enabled on the system disk, or if there is no Windows directory? 的本地化字符串。
+        ///   查找类似 Driver injection failed. Please check if BitLocker is enabled on the system drive or if the Windows directory is missing. 的本地化字符串。
         /// </summary>
         public static string drivererror {
             get {
@@ -1057,6 +1075,15 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 Installed Memory 的本地化字符串。
+        /// </summary>
+        public static string InstalledMemory {
+            get {
+                return ResourceManager.GetString("InstalledMemory", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 InstanceId 的本地化字符串。
         /// </summary>
         public static string Instanceid {
@@ -1165,6 +1192,15 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 Memory Group 的本地化字符串。
+        /// </summary>
+        public static string MemoryGroup {
+            get {
+                return ResourceManager.GetString("MemoryGroup", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 CPU 的本地化字符串。
         /// </summary>
         public static string model {
@@ -1264,6 +1300,15 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 Part Number 的本地化字符串。
+        /// </summary>
+        public static string PartNumber {
+            get {
+                return ResourceManager.GetString("PartNumber", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Path 的本地化字符串。
         /// </summary>
         public static string path {
@@ -1291,6 +1336,15 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 Rated Speed 的本地化字符串。
+        /// </summary>
+        public static string RatedSpeed {
+            get {
+                return ResourceManager.GetString("RatedSpeed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Changing the language will restart the application 的本地化字符串。
         /// </summary>
         public static string reboot {
@@ -1309,7 +1363,7 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
-        ///   查找类似 #Disassembled 的本地化字符串。
+        ///   查找类似 #Dismounted 的本地化字符串。
         /// </summary>
         public static string removed {
             get {
@@ -1359,6 +1413,15 @@ namespace ExHyperV.Properties {
         public static string Settings {
             get {
                 return ResourceManager.GetString("Settings", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Slot 的本地化字符串。
+        /// </summary>
+        public static string Slot {
+            get {
+                return ResourceManager.GetString("Slot", resourceCulture);
             }
         }
         
@@ -1530,6 +1593,15 @@ namespace ExHyperV.Properties {
         public static string Title_VirtualSwitch {
             get {
                 return ResourceManager.GetString("Title_VirtualSwitch", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Type 的本地化字符串。
+        /// </summary>
+        public static string Type {
+            get {
+                return ResourceManager.GetString("Type", resourceCulture);
             }
         }
         

@@ -649,4 +649,28 @@ The existing NAT switch is: '{0}'</value>
   <data name="Title_VirtualSwitch" xml:space="preserve">
     <value>Virtual Switch</value>
   </data>
+  <data name="InstalledMemory" xml:space="preserve">
+    <value>Installed Memory</value>
+  </data>
+  <data name="PartNumber" xml:space="preserve">
+    <value>Part Number</value>
+  </data>
+  <data name="MemoryGroup" xml:space="preserve">
+    <value>Memory Group</value>
+  </data>
+  <data name="Slot" xml:space="preserve">
+    <value>Slot</value>
+  </data>
+  <data name="Type" xml:space="preserve">
+    <value>Type</value>
+  </data>
+  <data name="Capacity" xml:space="preserve">
+    <value>Capacity</value>
+  </data>
+  <data name="RatedSpeed" xml:space="preserve">
+    <value>Rated Speed</value>
+  </data>
+  <data name="ConfiguredSpeed" xml:space="preserve">
+    <value>Configured Speed</value>
+  </data>
 </root>

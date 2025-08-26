@@ -649,4 +649,28 @@
   <data name="Title_VirtualSwitch" xml:space="preserve">
     <value>虚拟交换机</value>
   </data>
+  <data name="InstalledMemory" xml:space="preserve">
+    <value>已安装内存</value>
+  </data>
+  <data name="PartNumber" xml:space="preserve">
+    <value>型号</value>
+  </data>
+  <data name="MemoryGroup" xml:space="preserve">
+    <value>内存组</value>
+  </data>
+  <data name="Slot" xml:space="preserve">
+    <value>插槽</value>
+  </data>
+  <data name="Type" xml:space="preserve">
+    <value>类型</value>
+  </data>
+  <data name="Capacity" xml:space="preserve">
+    <value>容量</value>
+  </data>
+  <data name="RatedSpeed" xml:space="preserve">
+    <value>额定速度</value>
+  </data>
+  <data name="ConfiguredSpeed" xml:space="preserve">
+    <value>运行速度</value>
+  </data>
 </root>
