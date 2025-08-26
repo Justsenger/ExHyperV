@@ -151,16 +151,23 @@ namespace ExHyperV.Services
                     isVhdMounted = true;
 
                     var findSystemDriveScript = @$"
-                        $VHD = Get-VHD -Path '{harddiskpath}';
-                        Start-Sleep -Seconds 1;
-                        $VHD | Get-Disk | Get-Partition | Where-Object {{ -not $_.DriveLetter }} | Add-PartitionAccessPath -AssignDriveLetter | Out-Null;
-                        $volumes = $VHD | Get-Disk | Get-Partition | Get-Volume;
-                        foreach ($volume in $volumes) {{
-                            if ($volume.DriveLetter -and (Test-Path ""$($volume.DriveLetter):\Windows\System32\config\SYSTEM"")) {{
-                                Write-Output $volume.DriveLetter;
-                                break;
+                            $harddiskpath = '{harddiskpath}';
+                            $stopwatch = [System.Diagnostics.Stopwatch]::StartNew();
+                            while ($stopwatch.Elapsed.TotalSeconds -lt 5) {{
+                                try {{
+                                    (Get-VHD -Path $harddiskpath) | Get-Disk | Get-Partition | Where-Object {{ $_.Type -ne 'Recovery' -and $_.Type -ne 'System' -and -not $_.DriveLetter }} | Add-PartitionAccessPath -AssignDriveLetter -ErrorAction SilentlyContinue | Out-Null;
+                                }} catch {{}}
+
+                                $volumes = (Get-VHD -Path $harddiskpath) | Get-Disk | Get-Partition | Get-Volume;
+                                foreach ($volume in $volumes) {{
+                                    if ($volume.DriveLetter -and (Test-Path ""$($volume.DriveLetter):\Windows\System32\config\SYSTEM"")) {{
+                                        Write-Output $volume.DriveLetter;
+                                        return;
+                                    }}
+                                }}
+                                Start-Sleep -Milliseconds 500;
                             }}
-                        }}";
+                        ";
                     var letterResult = Utils.Run(findSystemDriveScript);
                     if (letterResult == null || letterResult.Count == 0) return string.Format(Properties.Resources.Error_FailedToFindSystemPartition, harddiskpath);
                     string letter = letterResult[0].ToString();

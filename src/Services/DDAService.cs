@@ -8,7 +8,7 @@ namespace ExHyperV.Services
     /// <summary>
     /// 实现了IHyperVService接口，负责处理所有与PowerShell的实际交互。
     /// </summary>
-    public class HyperVService : IHyperVService
+    public class DDAService : IHyperVService
     {
         private const ulong RequiredMmioBytes = 64UL * 1024 * 1024 * 1024; // 64 GiB
 

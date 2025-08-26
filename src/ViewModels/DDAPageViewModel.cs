@@ -33,7 +33,7 @@ namespace ExHyperV.ViewModels
 
         public DDAPageViewModel()
         {
-            _hyperVService = new HyperVService();
+            _hyperVService = new DDAService();
             Devices = new ObservableCollection<DeviceViewModel>();
             LoadDataCommand = new AsyncRelayCommand(LoadDataAsync);
             ChangeAssignmentCommand = new AsyncRelayCommand<object>(ChangeAssignmentAsync);
