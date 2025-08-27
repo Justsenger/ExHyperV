@@ -739,4 +739,7 @@
   <data name="HyperVMemory" xml:space="preserve">
     <value>Hyper-V 内存</value>
   </data>
+  <data name="Memory" xml:space="preserve">
+    <value>内存</value>
+  </data>
 </root>

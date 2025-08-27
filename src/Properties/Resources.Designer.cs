@@ -1291,6 +1291,15 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 Memory 的本地化字符串。
+        /// </summary>
+        public static string Memory {
+            get {
+                return ResourceManager.GetString("Memory", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Memory Buffer 的本地化字符串。
         /// </summary>
         public static string MemoryBuffer {

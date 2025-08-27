@@ -89,7 +89,7 @@
 
                 <ui:NavigationViewItem
                     x:Name="RAM"
-                    Content="内存"
+                    Content="{x:Static properties:Resources.Memory}"
                     NavigationCacheMode="Enabled"
                     Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"
                     TargetPageType="{x:Type pages:MemoryPage}">
