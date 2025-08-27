@@ -189,7 +189,7 @@ namespace ExHyperV.Services
                     }
                     catch (Exception ex)
                     {
-                        throw new Exception(ExHyperV.Properties.Resources.ApplyMemorySettingsFailed);
+                        throw new Exception(ex.Message);
                     }
                 }
             });
