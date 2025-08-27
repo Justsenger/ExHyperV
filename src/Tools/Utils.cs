@@ -31,7 +31,7 @@ public class Utils
         };
     }
 
-    public static Collection<PSObject> RunX(string script)
+    public static Collection<PSObject> Run(string script)
     {
         using (PowerShell ps = PowerShell.Create())
         {
@@ -40,21 +40,6 @@ public class Utils
             return results;
         }
     }
-
-    public static async Task<Collection<PSObject>?> Runs(string script, CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            return await ExecuteCoreAsync(script, cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"PowerShell execution failed silently: {ex.Message}");
-            return null;
-        }
-    }
-
-
     public static async Task<Collection<PSObject>> Run2(string script, CancellationToken cancellationToken = default)
     {
         return await ExecuteCoreAsync(script, cancellationToken);

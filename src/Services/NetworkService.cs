@@ -10,148 +10,153 @@ namespace ExHyperV.Services
     {
         public async Task<(List<SwitchInfo> Switches, List<PhysicalAdapterInfo> PhysicalAdapters)> GetNetworkInfoAsync()
         {
-            var switchList = new List<SwitchInfo>();
-            var physicalAdapterList = new List<PhysicalAdapterInfo>();
-
-            try
+            return await Task.Run(() =>
             {
-                await Utils.Runs("Set-ExecutionPolicy RemoteSigned -Scope Process -Force");
+                var switchList = new List<SwitchInfo>();
+                var physicalAdapterList = new List<PhysicalAdapterInfo>();
 
-                var moduleResults = await Utils.Runs("Get-Module -ListAvailable -Name Hyper-V");
-                if (moduleResults == null || moduleResults.Count == 0)
+                try
                 {
-                    return (switchList, physicalAdapterList);
-                }
+                    Utils.Run("Set-ExecutionPolicy RemoteSigned -Scope Process -Force");
 
-                var phydata = await Utils.Runs(@"Get-NetAdapter -Physical | select Name, InterfaceDescription");
-                if (phydata != null)
-                {
-                    foreach (var result in phydata)
+                    if (Utils.Run("Get-Module -ListAvailable -Name Hyper-V").Count == 0)
                     {
-                        var phyDesc = result.Properties["InterfaceDescription"]?.Value?.ToString();
-                        if (!string.IsNullOrEmpty(phyDesc))
+                        return (switchList, physicalAdapterList);
+                    }
+
+                    var phydata = Utils.Run(@"Get-NetAdapter -Physical | select Name, InterfaceDescription");
+                    if (phydata != null)
+                    {
+                        foreach (var result in phydata)
                         {
-                            physicalAdapterList.Add(new PhysicalAdapterInfo(phyDesc));
+                            var phyDesc = result.Properties["InterfaceDescription"]?.Value?.ToString();
+                            if (!string.IsNullOrEmpty(phyDesc))
+                            {
+                                physicalAdapterList.Add(new PhysicalAdapterInfo(phyDesc));
+                            }
+                        }
+                    }
+
+                    var switchdata = Utils.Run(@"Get-VMSwitch | Select-Object Name, Id, SwitchType, AllowManagementOS, NetAdapterInterfaceDescription");
+                    if (switchdata != null)
+                    {
+                        foreach (var result in switchdata)
+                        {
+                            var switchName = result.Properties["Name"]?.Value?.ToString() ?? string.Empty;
+                            var switchType = result.Properties["SwitchType"]?.Value?.ToString() ?? string.Empty;
+                            var host = result.Properties["AllowManagementOS"]?.Value?.ToString() ?? string.Empty;
+                            var id = result.Properties["Id"]?.Value?.ToString() ?? string.Empty;
+                            var phydesc = result.Properties["NetAdapterInterfaceDescription"]?.Value?.ToString() ?? string.Empty;
+
+                            string? icsAdapter = GetIcsSourceAdapterName(switchName);
+                            if (icsAdapter != null)
+                            {
+                                switchType = "NAT";
+                                phydesc = icsAdapter;
+                            }
+
+                            if (!string.IsNullOrEmpty(switchName))
+                            {
+                                switchList.Add(new SwitchInfo(switchName, switchType, host, id, phydesc));
+                            }
                         }
                     }
                 }
-
-                var switchdata = await Utils.Runs(@"Get-VMSwitch | Select-Object Name, Id, SwitchType, AllowManagementOS, NetAdapterInterfaceDescription");
-                if (switchdata != null)
+                catch (Exception ex)
                 {
-                    foreach (var result in switchdata)
-                    {
-                        var switchName = result.Properties["Name"]?.Value?.ToString() ?? string.Empty;
-                        var switchType = result.Properties["SwitchType"]?.Value?.ToString() ?? string.Empty;
-                        var host = result.Properties["AllowManagementOS"]?.Value?.ToString() ?? string.Empty;
-                        var id = result.Properties["Id"]?.Value?.ToString() ?? string.Empty;
-                        var phydesc = result.Properties["NetAdapterInterfaceDescription"]?.Value?.ToString() ?? string.Empty;
-
-                        string? icsAdapter = GetIcsSourceAdapterName(switchName);
-                        if (icsAdapter != null)
-                        {
-                            switchType = "NAT";
-                            phydesc = icsAdapter;
-                        }
-
-                        if (!string.IsNullOrEmpty(switchName))
-                        {
-                            switchList.Add(new SwitchInfo(switchName, switchType, host, id, phydesc));
-                        }
-                    }
+                    Debug.WriteLine($"Error in GetNetworkInfoAsync: {ex}");
+                    throw new InvalidOperationException(Properties.Resources.Error_GetNetworkInfoFailed, ex);
                 }
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Error in GetNetworkInfoAsync: {ex}");
-                throw new InvalidOperationException(Properties.Resources.Error_GetNetworkInfoFailed, ex);
-            }
 
-            return (switchList, physicalAdapterList);
+                return (switchList, physicalAdapterList);
+            });
         }
 
         public async Task<List<AdapterInfo>> GetFullSwitchNetworkStateAsync(string switchName)
         {
-            string vmAdaptersScript =
-                $"Get-VMNetworkAdapter -VMName * | Where-Object {{ $_.SwitchName -eq '{switchName}' }} | " +
-                "Select-Object VMName, " +
-                "@{Name='MacAddress'; Expression={($_.MacAddress).Insert(2, ':').Insert(5, ':').Insert(8, ':').Insert(11, ':').Insert(14, ':')}}, " +
-                "Status, @{Name='IPAddresses'; Expression={($_.IPAddresses -join ',')}}";
-            string hostAdapterScript =
-                $"$vmAdapter = Get-VMNetworkAdapter -ManagementOS -SwitchName '{switchName}';" +
-                "if ($vmAdapter) {" +
-                "    $netAdapter = Get-NetAdapter | Where-Object { ($_.MacAddress -replace '-') -eq ($vmAdapter.MacAddress -replace '-') -and ($_.InterfaceDescription -like '*Hyper-V*') };" +
-                "    if ($netAdapter) {" +
-                "        $ipAddressObjects = Get-NetIPAddress -InterfaceIndex $netAdapter.InterfaceIndex -ErrorAction SilentlyContinue;" +
-                "        if ($ipAddressObjects) {" +
-                "            $ipAddresses = ($ipAddressObjects.IPAddress) -join ',';" +
-                "        } else {" +
-                "            $ipAddresses = '';" +
-                "        }" +
-                "        [PSCustomObject]@{" +
-                "            VMName      = '(ManagementOS)';" +
-                "            MacAddress  = ($netAdapter.MacAddress -replace '-', ':');" +
-                "            Status      = $netAdapter.Status.ToString();" +
-                "            IPAddresses = $ipAddresses;" +
-                "        };" +
-                "    }" +
-                "}";
-
-            try
+            return await Task.Run(async () =>
             {
-                var allAdapters = new List<AdapterInfo>();
-                var vmResults = await Utils.Runs(vmAdaptersScript);
-                if (vmResults != null)
-                {
-                    foreach (var pso in vmResults)
-                    {
-                        allAdapters.Add(new AdapterInfo(
-                            pso.Properties["VMName"]?.Value?.ToString() ?? "",
-                            pso.Properties["MacAddress"]?.Value?.ToString() ?? "",
-                            pso.Properties["Status"]?.Value?.ToString() ?? "",
-                            pso.Properties["IPAddresses"]?.Value?.ToString() ?? ""
-                        ));
-                    }
-                }
+                string vmAdaptersScript =
+                    $"Get-VMNetworkAdapter -VMName * | Where-Object {{ $_.SwitchName -eq '{switchName}' }} | " +
+                    "Select-Object VMName, " +
+                    "@{Name='MacAddress'; Expression={($_.MacAddress).Insert(2, ':').Insert(5, ':').Insert(8, ':').Insert(11, ':').Insert(14, ':')}}, " +
+                    "Status, @{Name='IPAddresses'; Expression={($_.IPAddresses -join ',')}}";
+                string hostAdapterScript =
+                    $"$vmAdapter = Get-VMNetworkAdapter -ManagementOS -SwitchName '{switchName}';" +
+                    "if ($vmAdapter) {" +
+                    "    $netAdapter = Get-NetAdapter | Where-Object { ($_.MacAddress -replace '-') -eq ($vmAdapter.MacAddress -replace '-') -and ($_.InterfaceDescription -like '*Hyper-V*') };" +
+                    "    if ($netAdapter) {" +
+                    "        $ipAddressObjects = Get-NetIPAddress -InterfaceIndex $netAdapter.InterfaceIndex -ErrorAction SilentlyContinue;" +
+                    "        if ($ipAddressObjects) {" +
+                    "            $ipAddresses = ($ipAddressObjects.IPAddress) -join ',';" +
+                    "        } else {" +
+                    "            $ipAddresses = '';" +
+                    "        }" +
+                    "        [PSCustomObject]@{" +
+                    "            VMName      = '(ManagementOS)';" +
+                    "            MacAddress  = ($netAdapter.MacAddress -replace '-', ':');" +
+                    "            Status      = $netAdapter.Status.ToString();" +
+                    "            IPAddresses = $ipAddresses;" +
+                    "        };" +
+                    "    }" +
+                    "}";
 
-                var stopwatch = Stopwatch.StartNew();
-                Collection<PSObject>? hostResults = null;
-                while (stopwatch.ElapsedMilliseconds < 2000)
+                try
                 {
-                    hostResults = await Utils.Runs(hostAdapterScript);
-                    if (hostResults != null && hostResults.Count > 0)
+                    var allAdapters = new List<AdapterInfo>();
+                    var vmResults = Utils.Run(vmAdaptersScript);
+                    if (vmResults != null)
                     {
-                        var ipValue = hostResults[0].Properties["IPAddresses"]?.Value?.ToString();
-                        if (!string.IsNullOrEmpty(ipValue))
+                        foreach (var pso in vmResults)
                         {
-                            break;
+                            allAdapters.Add(new AdapterInfo(
+                                pso.Properties["VMName"]?.Value?.ToString() ?? "",
+                                pso.Properties["MacAddress"]?.Value?.ToString() ?? "",
+                                pso.Properties["Status"]?.Value?.ToString() ?? "",
+                                pso.Properties["IPAddresses"]?.Value?.ToString() ?? ""
+                            ));
                         }
                     }
-                    await Task.Delay(200);
-                }
-                stopwatch.Stop();
 
-                if (hostResults != null)
-                {
-                    foreach (var pso in hostResults)
+                    var stopwatch = Stopwatch.StartNew();
+                    Collection<PSObject>? hostResults = null;
+                    while (stopwatch.ElapsedMilliseconds < 2000)
                     {
-                        string rawVmName = pso.Properties["VMName"]?.Value?.ToString() ?? "";
-                        allAdapters.Add(new AdapterInfo(
-                            rawVmName == "(ManagementOS)" ? ExHyperV.Properties.Resources.DisplayName_HostManagementOS : rawVmName,
-                            pso.Properties["MacAddress"]?.Value?.ToString() ?? "",
-                            pso.Properties["Status"]?.Value?.ToString() ?? "",
-                            pso.Properties["IPAddresses"]?.Value?.ToString() ?? ""
-                        ));
+                        hostResults = Utils.Run(hostAdapterScript);
+                        if (hostResults != null && hostResults.Count > 0)
+                        {
+                            var ipValue = hostResults[0].Properties["IPAddresses"]?.Value?.ToString();
+                            if (!string.IsNullOrEmpty(ipValue))
+                            {
+                                break;
+                            }
+                        }
+                        await Task.Delay(200);
                     }
-                }
+                    stopwatch.Stop();
 
-                return allAdapters;
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Error getting full network state for switch '{switchName}': {ex.Message}");
-                return new List<AdapterInfo>();
-            }
+                    if (hostResults != null)
+                    {
+                        foreach (var pso in hostResults)
+                        {
+                            string rawVmName = pso.Properties["VMName"]?.Value?.ToString() ?? "";
+                            allAdapters.Add(new AdapterInfo(
+                                rawVmName == "(ManagementOS)" ? ExHyperV.Properties.Resources.DisplayName_HostManagementOS : rawVmName,
+                                pso.Properties["MacAddress"]?.Value?.ToString() ?? "",
+                                pso.Properties["Status"]?.Value?.ToString() ?? "",
+                                pso.Properties["IPAddresses"]?.Value?.ToString() ?? ""
+                            ));
+                        }
+                    }
+
+                    return allAdapters;
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"Error getting full network state for switch '{switchName}': {ex.Message}");
+                    return new List<AdapterInfo>();
+                }
+            });
         }
 
         public async Task UpdateSwitchConfigurationAsync(string switchName, string mode, string? adapterDescription, bool allowManagementOS, bool enableDhcp)
@@ -172,18 +177,18 @@ namespace ExHyperV.Services
                             throw new ArgumentException(Properties.Resources.Error_ExternalSwitchRequiresPhysicalAdapter);
                         }
                         script = $"New-VMSwitch -Name '{name}' -NetAdapterInterfaceDescription '{adapterDescription}' -AllowManagementOS $true";
-                        await Utils.Run2(script);
+                        await Task.Run(() => Utils.Run(script));
                         break;
                     case "NAT":
                         script = $"New-VMSwitch -Name '{name}' -SwitchType Internal";
-                        await Utils.Run2(script);
+                        await Task.Run(() => Utils.Run(script));
                         await Task.Delay(3000);
                         await UpdateSwitchConfigurationAsync(name, "NAT", adapterDescription, true, true);
                         break;
                     case "INTERNAL":
                     default:
                         script = $"New-VMSwitch -Name '{name}' -SwitchType Internal";
-                        await Utils.Run2(script);
+                        await Task.Run(() => Utils.Run(script));
                         break;
                 }
             }
@@ -193,39 +198,45 @@ namespace ExHyperV.Services
                 throw new InvalidOperationException(string.Format(Properties.Resources.Error_CreateSwitchFailed, name, ex.Message), ex);
             }
         }
+
         public async Task DeleteSwitchAsync(string switchName)
         {
-            try
+            await Task.Run(() =>
             {
-                await ClearAllIcsSettingsAsync();
-                string script = $"Remove-VMSwitch -Name '{switchName}' -Force";
-                await Utils.Run2(script);
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Error in DeleteSwitchAsync: {ex}");
-                throw new InvalidOperationException(string.Format(Properties.Resources.Error_DeleteSwitchFailed, switchName), ex);
-            }
+                try
+                {
+                    ClearAllIcsSettings();
+                    string script = $"Remove-VMSwitch -Name '{switchName}' -Force";
+                    Utils.Run(script);
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"Error in DeleteSwitchAsync: {ex}");
+                    throw new InvalidOperationException(string.Format(Properties.Resources.Error_DeleteSwitchFailed, switchName), ex);
+                }
+            });
         }
-        private async Task ClearAllIcsSettingsAsync()
+
+        private void ClearAllIcsSettings()
         {
             try
             {
                 string script = @"
-            $netShareManager = New-Object -ComObject HNetCfg.HNetShare;
-            foreach ($connection in $netShareManager.EnumEveryConnection) {
-                $config = $netShareManager.INetSharingConfigurationForINetConnection.Invoke($connection);
-                if ($config.SharingEnabled) {
-                    $config.DisableSharing();
-                }
-            }";
-                await Utils.Runs(script);
+                    $netShareManager = New-Object -ComObject HNetCfg.HNetShare;
+                    foreach ($connection in $netShareManager.EnumEveryConnection) {
+                        $config = $netShareManager.INetSharingConfigurationForINetConnection.Invoke($connection);
+                        if ($config.SharingEnabled) {
+                            $config.DisableSharing();
+                        }
+                    }";
+                Utils.Run(script);
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Exception in ClearAllIcsSettingsAsync: {ex}");
+                Debug.WriteLine($"Exception in ClearAllIcsSettings: {ex}");
             }
         }
+
         private string? GetIcsSourceAdapterName(string switchName)
         {
             string script = @"
