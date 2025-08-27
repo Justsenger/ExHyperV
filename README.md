@@ -5,7 +5,7 @@
 
 <div align="center">
 
-**A graphical Hyper-V advanced tool that allows ordinary people to easily use DDA, GPU-P, virtual switch and other features.**
+**A graphical Hyper-V advanced tool that allows ordinary people to easily use DDA, GPU-P, virtual switch, memory management and other features.**
 
 </div>
 
