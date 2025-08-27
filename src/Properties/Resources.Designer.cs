@@ -1804,6 +1804,24 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 Off 的本地化字符串。
+        /// </summary>
+        public static string VMMemory_Status_Off {
+            get {
+                return ResourceManager.GetString("VMMemory_Status_Off", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 {0} MB (Demand) / {1} MB (Assigned) 的本地化字符串。
+        /// </summary>
+        public static string VMMemory_UsageFormat {
+            get {
+                return ResourceManager.GetString("VMMemory_UsageFormat", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 The operation cannot be interrupted, please wait 的本地化字符串。
         /// </summary>
         public static string wait {

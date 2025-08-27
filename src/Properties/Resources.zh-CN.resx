@@ -715,4 +715,10 @@
   <data name="Apply" xml:space="preserve">
     <value>应用</value>
   </data>
+  <data name="VMMemory_UsageFormat" xml:space="preserve">
+    <value>{0} MB (需求) / {1} MB (已分配)</value>
+  </data>
+  <data name="VMMemory_Status_Off" xml:space="preserve">
+    <value>已关闭</value>
+  </data>
 </root>

@@ -62,7 +62,23 @@ namespace ExHyperV.ViewModels
             }
         }
 
-        public string MemoryUsageText => IsVmRunning ? $"{DemandMB} MB (需求) / {AssignedMB} MB (已分配)" : "已关闭";
+        public string MemoryUsageText
+        {
+            get
+            {
+                if (IsVmRunning)
+                {
+                    return string.Format(
+                        ExHyperV.Properties.Resources.VMMemory_UsageFormat,
+                        DemandMB,
+                        AssignedMB);
+                }
+                else
+                {
+                    return ExHyperV.Properties.Resources.VMMemory_Status_Off;
+                }
+            }
+        }
 
         public void UpdateLiveData(VirtualMachineMemoryInfo liveData)
         {

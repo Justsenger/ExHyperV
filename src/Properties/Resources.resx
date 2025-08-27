@@ -715,4 +715,10 @@ The existing NAT switch is: '{0}'</value>
   <data name="Apply" xml:space="preserve">
     <value>Apply</value>
   </data>
+  <data name="VMMemory_UsageFormat" xml:space="preserve">
+    <value>{0} MB (Demand) / {1} MB (Assigned)</value>
+  </data>
+  <data name="VMMemory_Status_Off" xml:space="preserve">
+    <value>Off</value>
+  </data>
 </root>
