@@ -223,20 +223,13 @@ A Virtual Switch is used to connect virtual machines to external networks or oth
 
 The network topology diagram below allows you to clearly view all devices connected to this switch, including their IP and MAC addresses. If the information is not up-to-date, please click the **Refresh** button in the top right corner.
 
-### Ⅳ. HyperV Auto Turbo
+### Ⅳ. Memory
 
-#### The Problem
-In a Hyper-V environment, an intermediary scheduling layer exists between the virtual machine's workload and the host's physical CPU. This prevents the host from directly and accurately sensing the VM's true performance demands. As a result, the host CPU might remain in a power-saving state even when the VM is running high-load tasks, failing to deliver its full performance potential.
-
-#### The Solution
-ExHyperV's Auto-Boosting feature includes a smart boosting algorithm that:
-1.  **Monitors in Real-Time**: It simultaneously monitors the CPU performance counters of both the virtual machine and the host machine.
-2.  **Adjusts Intelligently**: Based on the combined workload, it automatically and instantly adjusts the host's power plan.
-3.  **Guides Performance**: This prompts the physical CPU to enter its highest performance **P0 state** (Turbo Boost) or a power-saving **Pn state** at the appropriate times.
-
-#### Core Advantages
-*   **Instant High Performance**: When the VM requires high performance, the CPU immediately boosts to its maximum frequency, providing instant responsiveness for workloads and ensuring smooth, lag-free operation for applications and the system.
-*   **Smart Power Saving**: When the VM's load decreases, the feature automatically switches the power plan back to a power-saving mode, effectively conserving energy, reducing power consumption, and lowering heat output.
+*   **Inspect Physical RAM**: View the status of your installed physical memory modules.
+*   **Manage VM Memory**: Monitor and manage virtual machine memory usage in real-time.
+*   **Dynamic Memory**: Be aware that this feature is a double-edged sword. It offers the convenience of memory scaling but can also introduce unexpected issues.
+*   **Memory Buffer**: The value ranges from 5% to 2000%. It pre-allocates extra memory to prevent performance bottlenecks from sudden usage spikes in the VM.
+*   **Maximum RAM**: This is ultimately limited by your host's physical memory. The default 1TB value is a theoretical placeholder and not a practical limit.
 
 ## 🤝 Contributing
 Contributions of any kind are welcome!
