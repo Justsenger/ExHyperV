@@ -126,8 +126,8 @@ namespace ExHyperV.ViewModels
             long.TryParse(StartupMB, out long startup);
             long.TryParse(MinimumMB, out long min);
             long.TryParse(MaximumMB, out long max);
-            if (DynamicMemoryEnabled && startup < min) { Utils.Show("启动RAM不能小于最小RAM。"); return false; }
-            if (DynamicMemoryEnabled && min > max) { Utils.Show("最小RAM不能大于最大RAM。"); return false; }
+            if (DynamicMemoryEnabled && startup < min) { Utils.Show(ExHyperV.Properties.Resources.StartupRamLessThanMinRam); return false; }
+            if (DynamicMemoryEnabled && min > max) { Utils.Show(ExHyperV.Properties.Resources.MinRamGreaterThanMaxRam); return false; }
             return true;
         }
 
@@ -155,7 +155,7 @@ namespace ExHyperV.ViewModels
             }
             catch (Exception ex)
             {
-                Utils.Show($"错误: {ex.Message}");
+                Utils.Show(string.Format(ExHyperV.Properties.Resources.Error_GenericFormat,ex.Message));
             }
         }
 

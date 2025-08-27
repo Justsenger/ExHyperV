@@ -1,4 +1,4 @@
-﻿// In Views/Pages/MemoryPage.xaml.cs
+﻿using System.Windows;
 using ExHyperV.ViewModels;
 using Wpf.Ui.Abstractions.Controls;
 
@@ -11,10 +11,14 @@ namespace ExHyperV.Views.Pages
         public MemoryPage()
         {
             ViewModel = new MemoryPageViewModel();
-            // --- 修改这里 ---
             DataContext = ViewModel;
-            // ----------------
             InitializeComponent();
+            Unloaded += OnPageUnloaded;
+        }
+        private void OnPageUnloaded(object sender, RoutedEventArgs e)
+        {
+            ViewModel.Cleanup();
+            Unloaded -= OnPageUnloaded;
         }
     }
 }

@@ -14,8 +14,11 @@ namespace ExHyperV.ViewModels
         [ObservableProperty]
         private bool _isLoading;
 
-        public ObservableCollection<MemoryBankGroupViewModel> MemoryBankGroups { get; } = new();
-        public ObservableCollection<VirtualMachineMemoryViewModel> VirtualMachinesMemory { get; } = new();
+        [ObservableProperty]
+        private ObservableCollection<MemoryBankGroupViewModel> _memoryBankGroups = new();
+
+        [ObservableProperty]
+        private ObservableCollection<VirtualMachineMemoryViewModel> _virtualMachinesMemory = new();
 
         private readonly DispatcherTimer _liveDataTimer;
 
@@ -29,7 +32,6 @@ namespace ExHyperV.ViewModels
             };
             _liveDataTimer.Tick += OnLiveDataTimerTick;
 
-            // 页面加载时只调用一次完整加载
             _ = LoadAllDataCommand.ExecuteAsync(null);
         }
 
@@ -39,51 +41,40 @@ namespace ExHyperV.ViewModels
             try
             {
                 var liveDataList = await _memoryService.GetVirtualMachinesMemoryAsync();
-
-                // --- 关键修正：完整的列表同步逻辑 ---
-
-                // 1. 找出需要删除的VM (存在于旧列表，但不存在于新列表)
-                var vmsToRemove = VirtualMachinesMemory
-                    .Where(vm => !liveDataList.Any(ld => ld.VMName == vm.VMName))
-                    .ToList();
-
-                foreach (var vm in vmsToRemove)
-                {
-                    VirtualMachinesMemory.Remove(vm);
-                }
-
-                // 2. 找出需要更新和添加的VM
+                var vmLookup = VirtualMachinesMemory.ToDictionary(vm => vm.VMName);
                 foreach (var liveData in liveDataList)
                 {
-                    var targetVm = VirtualMachinesMemory.FirstOrDefault(vm => vm.VMName == liveData.VMName);
-                    if (targetVm != null)
+                    if (vmLookup.TryGetValue(liveData.VMName, out var targetVm))
                     {
-                        // 如果已存在，则更新其实时数据
                         targetVm.UpdateLiveData(liveData);
+                        vmLookup.Remove(liveData.VMName); 
                     }
                     else
                     {
-                        // 如果不存在，则是新添加的VM
-                        VirtualMachinesMemory.Add(new VirtualMachineMemoryViewModel(liveData));
+                        await Application.Current.Dispatcher.InvokeAsync(() => {
+                            VirtualMachinesMemory.Add(new VirtualMachineMemoryViewModel(liveData));
+                        });
                     }
                 }
+                foreach (var vmToRemove in vmLookup.Values)
+                {
+                    await Application.Current.Dispatcher.InvokeAsync(() => {
+                        VirtualMachinesMemory.Remove(vmToRemove);
+                    });
+                }
             }
-            catch { /* 在后台刷新时静默地忽略错误 */ }
+            catch (Exception ex) {}
         }
         public void Cleanup()
         {
             _liveDataTimer.Stop();
             _liveDataTimer.Tick -= OnLiveDataTimerTick;
         }
-
-        // 这个命令现在是唯一的刷新按钮的入口
         [RelayCommand]
         private async Task RefreshVmDataAsync()
         {
             await LoadAllDataAsync();
         }
-
-        // 初始和手动刷新都调用这个核心加载方法
         [RelayCommand]
         private async Task LoadAllDataAsync()
         {
@@ -94,28 +85,20 @@ namespace ExHyperV.ViewModels
                 var hostMemoryTask = _memoryService.GetHostMemoryAsync();
                 var vmMemoryTask = _memoryService.GetVirtualMachinesMemoryAsync();
                 await Task.WhenAll(hostMemoryTask, vmMemoryTask);
-
                 var hostMemoryModels = await hostMemoryTask;
                 var vmMemoryModels = await vmMemoryTask;
+                var newMemoryBankGroups = new ObservableCollection<MemoryBankGroupViewModel>(
+                    hostMemoryModels.Select(m => new HostMemoryViewModel(m))
+                                    .GroupBy(m => m.BankLabel)
+                                    .Select(g => new MemoryBankGroupViewModel(g.Key, g.ToList()))
+                                    .OrderBy(g => g.BankLabel)
+                );
 
-                var allHostModules = hostMemoryModels.Select(m => new HostMemoryViewModel(m)).ToList();
-                var newMemoryBankGroups = allHostModules.GroupBy(m => m.BankLabel).Select(g => new MemoryBankGroupViewModel(g.Key, g.ToList())).OrderBy(g => g.BankLabel).ToList();
-
-                // 在创建新的ViewModel列表之前，先停止旧列表的定时器（如果适用）
-                // 在我们的设计中，定时器是全局的，所以不需要这一步
-
-                var newVirtualMachinesMemory = vmMemoryModels.Select(vm => new VirtualMachineMemoryViewModel(vm)).ToList();
-
-                if (Application.Current.Dispatcher.CheckAccess())
-                {
-                    UpdateCollections(newMemoryBankGroups, newVirtualMachinesMemory);
-                }
-                else
-                {
-                    await Application.Current.Dispatcher.InvokeAsync(() => UpdateCollections(newMemoryBankGroups, newVirtualMachinesMemory));
-                }
-
-                // 确保定时器只启动一次
+                var newVirtualMachinesMemory = new ObservableCollection<VirtualMachineMemoryViewModel>(
+                    vmMemoryModels.Select(vm => new VirtualMachineMemoryViewModel(vm))
+                );
+                MemoryBankGroups = newMemoryBankGroups;
+                VirtualMachinesMemory = newVirtualMachinesMemory;
                 if (!_liveDataTimer.IsEnabled)
                 {
                     _liveDataTimer.Start();
@@ -123,21 +106,12 @@ namespace ExHyperV.ViewModels
             }
             catch (Exception ex)
             {
-                Utils.Show($"数据加载失败: {ex.Message}");
+                Utils.Show(string.Format(Properties.Resources.LoadDataFailed, ex.Message));
             }
             finally
             {
                 IsLoading = false;
             }
-        }
-
-        private void UpdateCollections(List<MemoryBankGroupViewModel> newGroups, List<VirtualMachineMemoryViewModel> newVmsMemory)
-        {
-            MemoryBankGroups.Clear();
-            foreach (var group in newGroups) MemoryBankGroups.Add(group);
-
-            VirtualMachinesMemory.Clear();
-            foreach (var vm in newVmsMemory) VirtualMachinesMemory.Add(vm);
         }
     }
 }

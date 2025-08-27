@@ -1,5 +1,6 @@
 ﻿using System.Collections.ObjectModel;
 using System.Management.Automation;
+using System.Management.Automation.Runspaces;
 using System.Reflection;
 using System.Text;
 using System.Windows;
@@ -9,89 +10,79 @@ using Wpf.Ui.Controls;
 namespace ExHyperV.Tools;
 
 
+public class PowerShellScriptException : Exception
+{
+    public PowerShellScriptException(string message) : base(message) { }
+}
+
 public class Utils
 {
-    private static readonly PowerShell PersistentPowerShell;
-    private static readonly SemaphoreSlim PsLock = new SemaphoreSlim(1, 1);
+    private static readonly RunspacePool _runspacePool;
     static Utils()
     {
-        PersistentPowerShell = PowerShell.Create();
-        AppDomain.CurrentDomain.ProcessExit += (s, e) => DisposePowerShell();
+        InitialSessionState initialSessionState = InitialSessionState.CreateDefault();
+        _runspacePool = RunspaceFactory.CreateRunspacePool(initialSessionState);
+        _runspacePool.Open();
+
+        AppDomain.CurrentDomain.ProcessExit += (s, e) =>
+        {
+            _runspacePool?.Close();
+            _runspacePool?.Dispose();
+        };
     }
 
-
-    public static Collection<PSObject> Run(string script)
+    public static Collection<PSObject> RunX(string script)
     {
-        PowerShell ps = PowerShell.Create();
-        ps.AddScript(script);
-        return ps.Invoke();
+        using (PowerShell ps = PowerShell.Create())
+        {
+            ps.AddScript(script);
+            var results = ps.Invoke();
+            return results;
+        }
     }
-    public static async Task<PSDataCollection<PSObject>?> Run2(string script, CancellationToken cancellationToken = default)
+
+    public static async Task<Collection<PSObject>?> Runs(string script, CancellationToken cancellationToken = default)
     {
-        await PsLock.WaitAsync(cancellationToken);
         try
         {
-            PersistentPowerShell.Commands.Clear();
-            PersistentPowerShell.AddScript(script);
-
-            // 使用真正的异步 InvokeAsync
-            var result = await PersistentPowerShell.InvokeAsync().WaitAsync(cancellationToken);
-
-            if (PersistentPowerShell.HadErrors)
-            {
-                // 在后台静默地记录错误，不弹窗
-                foreach (var error in PersistentPowerShell.Streams.Error)
-                {
-                    System.Diagnostics.Debug.WriteLine($"Background PS Error: {error}");
-                }
-                PersistentPowerShell.Streams.Error.Clear();
-                return null;
-            }
-            return result;
-        }
-        catch (OperationCanceledException)
-        {
-            // 操作被取消是正常行为，静默处理
-            return null;
+            return await ExecuteCoreAsync(script, cancellationToken);
         }
         catch (Exception ex)
         {
-            // 其他异常在后台也静默处理
-            System.Diagnostics.Debug.WriteLine($"Background PS Exception: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"PowerShell execution failed silently: {ex.Message}");
             return null;
-        }
-        finally
-        {
-            PsLock.Release();
-        }
-    }
-    public static void DisposePowerShell()
-    {
-        PsLock?.Wait();
-        try
-        {
-            PersistentPowerShell?.Dispose();
-        }
-        finally
-        {
-            PsLock?.Release();
-            PsLock?.Dispose();
-        }
-    }
-    private static void Cleanup()
-    {
-        PsLock?.Wait();
-        try
-        {
-            PersistentPowerShell?.Dispose();
-        }
-        finally
-        {
-            PsLock?.Release();
-            PsLock?.Dispose();
         }
     }
 
+
+    public static async Task<Collection<PSObject>> Run2(string script, CancellationToken cancellationToken = default)
+    {
+        return await ExecuteCoreAsync(script, cancellationToken);
+    }
+
+    private static async Task<Collection<PSObject>> ExecuteCoreAsync(string script, CancellationToken cancellationToken)
+    {
+        return await Task.Run(async () =>
+        {
+            using (var ps = PowerShell.Create())
+            {
+                ps.RunspacePool = _runspacePool;
+                ps.AddScript(script);
+                var psDataCollection = await ps.InvokeAsync().WaitAsync(cancellationToken);
+
+                if (ps.HadErrors)
+                {
+                    var errorMessages = new StringBuilder();
+                    foreach (var error in ps.Streams.Error)
+                    {
+                        errorMessages.AppendLine(error.ToString());
+                    }
+                    throw new PowerShellScriptException(errorMessages.ToString());
+                }
+                return new Collection<PSObject>(psDataCollection);
+            }
+        }, cancellationToken);
+    }
     public static string GetIconPath(string deviceType, string friendlyName)
     {
         switch (deviceType)

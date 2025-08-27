@@ -223,6 +223,15 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 Error applying memory settings: {0} 的本地化字符串。
+        /// </summary>
+        public static string ApplyMemorySettingsFailed {
+            get {
+                return ResourceManager.GetString("ApplyMemorySettingsFailed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Version 的本地化字符串。
         /// </summary>
         public static string appversion {
@@ -837,6 +846,15 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 Error: {0} 的本地化字符串。
+        /// </summary>
+        public static string Error_GenericFormat {
+            get {
+                return ResourceManager.GetString("Error_GenericFormat", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Failed to get network information. Please ensure the program is run with administrator privileges and the Hyper-V module is installed. 的本地化字符串。
         /// </summary>
         public static string Error_GetNetworkInfoFailed {
@@ -1100,6 +1118,15 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 Hyper-V Memory 的本地化字符串。
+        /// </summary>
+        public static string HyperVMemory {
+            get {
+                return ResourceManager.GetString("HyperVMemory", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 IOMMU is enabled in the BIOS. 的本地化字符串。
         /// </summary>
         public static string Info_BiosIommuEnabled {
@@ -1228,6 +1255,15 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 Failed to load data: {0} 的本地化字符串。
+        /// </summary>
+        public static string LoadDataFailed {
+            get {
+                return ResourceManager.GetString("LoadDataFailed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Home 的本地化字符串。
         /// </summary>
         public static string Main {
@@ -1296,6 +1332,15 @@ namespace ExHyperV.Properties {
         public static string MinimumRAM {
             get {
                 return ResourceManager.GetString("MinimumRAM", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Minimum RAM cannot be greater than Maximum RAM. 的本地化字符串。
+        /// </summary>
+        public static string MinRamGreaterThanMaxRam {
+            get {
+                return ResourceManager.GetString("MinRamGreaterThanMaxRam", resourceCulture);
             }
         }
         
@@ -1548,6 +1593,15 @@ namespace ExHyperV.Properties {
         public static string StartupRAM {
             get {
                 return ResourceManager.GetString("StartupRAM", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Startup RAM cannot be less than Minimum RAM. 的本地化字符串。
+        /// </summary>
+        public static string StartupRamLessThanMinRam {
+            get {
+                return ResourceManager.GetString("StartupRamLessThanMinRam", resourceCulture);
             }
         }
         

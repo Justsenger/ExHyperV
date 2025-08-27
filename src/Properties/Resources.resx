@@ -721,4 +721,22 @@ The existing NAT switch is: '{0}'</value>
   <data name="VMMemory_Status_Off" xml:space="preserve">
     <value>Off</value>
   </data>
+  <data name="StartupRamLessThanMinRam" xml:space="preserve">
+    <value>Startup RAM cannot be less than Minimum RAM.</value>
+  </data>
+  <data name="MinRamGreaterThanMaxRam" xml:space="preserve">
+    <value>Minimum RAM cannot be greater than Maximum RAM.</value>
+  </data>
+  <data name="Error_GenericFormat" xml:space="preserve">
+    <value>Error: {0}</value>
+  </data>
+  <data name="LoadDataFailed" xml:space="preserve">
+    <value>Failed to load data: {0}</value>
+  </data>
+  <data name="ApplyMemorySettingsFailed" xml:space="preserve">
+    <value>Error applying memory settings: {0}</value>
+  </data>
+  <data name="HyperVMemory" xml:space="preserve">
+    <value>Hyper-V Memory</value>
+  </data>
 </root>

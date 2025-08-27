@@ -721,4 +721,22 @@
   <data name="VMMemory_Status_Off" xml:space="preserve">
     <value>已关闭</value>
   </data>
+  <data name="StartupRamLessThanMinRam" xml:space="preserve">
+    <value>启动RAM不能小于最小RAM。</value>
+  </data>
+  <data name="MinRamGreaterThanMaxRam" xml:space="preserve">
+    <value>最小RAM不能大于最大RAM。</value>
+  </data>
+  <data name="Error_GenericFormat" xml:space="preserve">
+    <value>错误: {0}</value>
+  </data>
+  <data name="LoadDataFailed" xml:space="preserve">
+    <value>数据加载失败: {0}</value>
+  </data>
+  <data name="ApplyMemorySettingsFailed" xml:space="preserve">
+    <value>应用内存设置时出错: {0}</value>
+  </data>
+  <data name="HyperVMemory" xml:space="preserve">
+    <value>Hyper-V 内存</value>
+  </data>
 </root>

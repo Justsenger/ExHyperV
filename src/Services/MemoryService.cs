@@ -1,6 +1,5 @@
 ﻿using System.Management.Automation;
 using System.Text;
-using System.Text.Json;
 using ExHyperV.Models;
 using ExHyperV.Tools;
 using ExHyperV.ViewModels;
@@ -20,7 +19,7 @@ namespace ExHyperV.Services
                         }
                     }
                     $memoryType = switch ($_.SMBIOSMemoryType) { 20 { 'DDR' }; 21 { 'DDR2' }; 22 { 'DDR2 FB-DIMM' }; 24 { 'DDR3' }; 26 { 'DDR4' }; 30 { 'LPDDR4' }; 31 { 'LPDDR4X' }; 34 { 'DDR5' }; 35 { 'LPDDR5' }; 36 { 'LPDDR5X' }; default { ""Unknown ($($_.SMBIOSMemoryType))"" } }
-                    $isECC = if ($_.TotalWidth -gt $_.DataWidth) { '是' } else { '否' }
+                    $isECC = if ($_.TotalWidth -gt $_.DataWidth) { 'Yes' } else { 'No' }
                     [PSCustomObject]@{
                         BankLabel       = $_.BankLabel.Trim()
                         DeviceLocator   = $_.DeviceLocator
@@ -84,25 +83,30 @@ namespace ExHyperV.Services
                 Buffer               = $memoryConfig.Buffer
                 Priority             = $memoryConfig.Priority
             }
-        } | ConvertTo-Json";
+        }";
 
             var vmMemoryList = new List<VirtualMachineMemoryInfo>();
             try
             {
-                var results = await Utils.Run2(script);
-                if (results != null && results.Any() && results[0] != null)
+                var results = await Task.Run(() => Utils.Run(script));
+                if (results == null) return vmMemoryList;
+
+                foreach (var result in results)
                 {
-                    string json = results[0].BaseObject.ToString();
-                    if (!json.Trim().StartsWith("["))
+                    vmMemoryList.Add(new VirtualMachineMemoryInfo
                     {
-                        json = "[" + json + "]";
-                    }
-                    var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-                    var parsedList = JsonSerializer.Deserialize<List<VirtualMachineMemoryInfo>>(json, options);
-                    if (parsedList != null)
-                    {
-                        vmMemoryList.AddRange(parsedList);
-                    }
+                        VMName = result.Properties["VMName"]?.Value?.ToString() ?? string.Empty,
+                        State = result.Properties["State"]?.Value?.ToString() ?? string.Empty,
+                        DynamicMemoryEnabled = (bool)(result.Properties["DynamicMemoryEnabled"]?.Value ?? false),
+                        StartupMB = (long)(result.Properties["StartupMB"]?.Value ?? 0L),
+                        MinimumMB = (long)(result.Properties["MinimumMB"]?.Value ?? 0L),
+                        MaximumMB = (long)(result.Properties["MaximumMB"]?.Value ?? 0L),
+                        AssignedMB = (long)(result.Properties["AssignedMB"]?.Value ?? 0L),
+                        DemandMB = (long)(result.Properties["DemandMB"]?.Value ?? 0L),
+                        Status = result.Properties["Status"]?.Value?.ToString() ?? string.Empty,
+                        Buffer = (int)(result.Properties["Buffer"]?.Value ?? 0),
+                        Priority = (int)(result.Properties["Priority"]?.Value ?? 0)
+                    });
                 }
             }
             catch (Exception ex)
@@ -114,7 +118,6 @@ namespace ExHyperV.Services
 
         public async Task<List<VirtualMachineMemoryInfo>> GetVirtualMachinesMemoryQuickAsync()
         {
-            // 这个脚本只获取实时数据，速度更快
             string script = @"
             Get-VM | Where-Object { $_.State -eq 'Running' } | ForEach-Object {
                 $vm = $_
@@ -123,33 +126,23 @@ namespace ExHyperV.Services
                     AssignedMB  = [long]($vm.MemoryAssigned / 1MB)
                     DemandMB    = [long]($vm.MemoryDemand / 1MB)
                 }
-            } | ConvertTo-Json -Depth 5 -Compress";
+            }";
 
             var vmMemoryList = new List<VirtualMachineMemoryInfo>();
-            try
+            var results = await Utils.Run2(script); 
+            if (results == null) return vmMemoryList;
+            foreach (var result in results)
             {
-                var results = await Utils.Run2(script);
-                if (results != null && results.Any() && results[0] != null)
+                vmMemoryList.Add(new VirtualMachineMemoryInfo
                 {
-                    string json = results[0].BaseObject.ToString();
-                    if (!json.Trim().StartsWith("["))
-                    {
-                        json = "[" + json + "]";
-                    }
-                    var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-                    var parsedList = JsonSerializer.Deserialize<List<VirtualMachineMemoryInfo>>(json, options);
-                    if (parsedList != null)
-                    {
-                        vmMemoryList.AddRange(parsedList);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Failed to get VM memory info: {ex.Message}");
+                    VMName = result.Properties["VMName"]?.Value?.ToString() ?? string.Empty,
+                    AssignedMB = (long)(result.Properties["AssignedMB"]?.Value ?? 0L),
+                    DemandMB = (long)(result.Properties["DemandMB"]?.Value ?? 0L)
+                });
             }
             return vmMemoryList;
         }
+
 
         public async Task<bool> SetVmMemoryAsync(VirtualMachineMemoryViewModel vmMemory)
         {
@@ -166,7 +159,6 @@ namespace ExHyperV.Services
                 long startupBytes = long.Parse(vmMemory.StartupMB) * 1024 * 1024;
                 long minimumBytes = long.Parse(vmMemory.MinimumMB) * 1024 * 1024;
                 long maximumBytes = long.Parse(vmMemory.MaximumMB) * 1024 * 1024;
-                // 关键修正：将 string 类型的 Buffer 解析为 int
                 int.TryParse(vmMemory.Buffer, out int buffer);
                 int priority = (int)vmMemory.Priority;
 
@@ -197,7 +189,7 @@ namespace ExHyperV.Services
                     }
                     catch (Exception ex)
                     {
-                        throw new Exception($"应用内存设置时出错: {ex.Message}");
+                        throw new Exception(ExHyperV.Properties.Resources.ApplyMemorySettingsFailed);
                     }
                 }
             });
