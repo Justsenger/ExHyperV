@@ -48,18 +48,22 @@ ExHyperV 深入研究了微软官方文档和 [Easy-GPU-PV](https://github.com/j
 ### 1. 系统要求
 
 #### DDA (离散设备分配)
-- Windows Server 2019 / 2022 / 2025
+- Windows Server 2019 
+- Windows Server 2022
+- Windows Server 2025
 
 #### GPU-P (GPU 分区/半虚拟化)
 - Windows 11
 - Windows Server 2022
 - Windows Server 2025
 
-> **注意**: 本工具要求宿主机系统版本不低于 **Build 22000**。因为旧版系统中的 `Add-VMGpuPartitionAdapter` 命令缺少 `InstancePath` 参数，无法精确指定显卡，可能导致混乱。为了简化操作，请确保您的宿主系统已更新。
+> **注意**: 由于Win10处于GPU-PV技术前期，缺少Get-VMHostPartitionableGpu命令，Add-VMGpuPartitionAdapter命令缺少InstancePath参数，与虚拟机通信也不稳定，因此本工具要求宿主机系统版本不低于 **Build 22000**。
 
 #### 虚拟交换机
 - 无特定要求
 
+#### 内存
+- 无特定要求
 
 ### 2. 下载与运行
 - **下载**: 前往 [Releases 页面](https://github.com/Justsenger/ExHyperV/releases/latest)下载最新版本。
