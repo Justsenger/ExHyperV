@@ -48,16 +48,22 @@ Due to limited personal time and resources, there may be untested scenarios. If 
 ### 1. System Requirements
 
 #### DDA (Discrete Device Assignment)
-- Windows Server 2019 / 2022 / 2025
-
+- Windows Server 2019 
+- Windows Server 2022
+- Windows Server 2025
+  
 #### GPU-P (GPU Partitioning / Paravirtualization)
 - Windows 11
 - Windows Server 2022
 - Windows Server 2025
 
-> **Note**: This tool requires the host system to be **Build 22000 or newer**. This is because the `Add-VMGpuPartitionAdapter` cmdlet in older systems lacks the `InstancePath` parameter, making it impossible to precisely specify a GPU and potentially causing confusion. To simplify operations, please ensure your host system is updated.
+> **Note**: Due to the early-stage implementation of GPU-PV technology in Windows 10, which results in issues like the missing Get-VMHostPartitionableGpu command, the lack of an InstancePath parameter for Add-VMGpuPartitionAdapter command, and unstable communication with virtual machines, this tool requires the host OS to be **Build 22000** or newer.
+
 
 #### Virtual Switch
+- No specific requirements
+
+#### Memory
 - No specific requirements
 
 ### 2. Download & Run
