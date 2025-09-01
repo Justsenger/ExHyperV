@@ -61,7 +61,7 @@
                     NavigationCacheMode="Enabled"
                     TargetPageType="{x:Type pages:DDAPage}">
                     <ui:NavigationViewItem.Icon>
-                        <ui:FontIcon FontSize="16" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xE964;"/>
+                        <ui:FontIcon FontSize="16" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xF0B9;"/>
                     </ui:NavigationViewItem.Icon>
                 </ui:NavigationViewItem>
 

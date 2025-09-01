@@ -155,7 +155,7 @@ namespace ExHyperV.ViewModels
             }
             catch (Exception ex)
             {
-                Utils.Show(string.Format(ExHyperV.Properties.Resources.Error_GenericFormat,ex.Message));
+                Utils.Show(string.Format(ExHyperV.Properties.Resources.Error_GenericFormat, ex.Message));
             }
         }
 

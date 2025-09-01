@@ -129,7 +129,7 @@ namespace ExHyperV.Services
             }";
 
             var vmMemoryList = new List<VirtualMachineMemoryInfo>();
-            var results = await Utils.Run2(script); 
+            var results = await Utils.Run2(script);
             if (results == null) return vmMemoryList;
             foreach (var result in results)
             {

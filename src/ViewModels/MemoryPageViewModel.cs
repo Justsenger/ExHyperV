@@ -47,23 +47,25 @@ namespace ExHyperV.ViewModels
                     if (vmLookup.TryGetValue(liveData.VMName, out var targetVm))
                     {
                         targetVm.UpdateLiveData(liveData);
-                        vmLookup.Remove(liveData.VMName); 
+                        vmLookup.Remove(liveData.VMName);
                     }
                     else
                     {
-                        await Application.Current.Dispatcher.InvokeAsync(() => {
+                        await Application.Current.Dispatcher.InvokeAsync(() =>
+                        {
                             VirtualMachinesMemory.Add(new VirtualMachineMemoryViewModel(liveData));
                         });
                     }
                 }
                 foreach (var vmToRemove in vmLookup.Values)
                 {
-                    await Application.Current.Dispatcher.InvokeAsync(() => {
+                    await Application.Current.Dispatcher.InvokeAsync(() =>
+                    {
                         VirtualMachinesMemory.Remove(vmToRemove);
                     });
                 }
             }
-            catch (Exception ex) {}
+            catch (Exception ex) { }
         }
         public void Cleanup()
         {

@@ -40,7 +40,7 @@
                 <ui:Card BorderThickness="1" Padding="10">
                     <Grid>
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <ui:FontIcon Glyph="" FontSize="24" FontFamily="{DynamicResource SegoeFluentIcons}"/>
+                            <ui:FontIcon Glyph="&#xF0B9;" FontSize="24" FontFamily="{DynamicResource SegoeFluentIcons}"/>
                             <TextBlock Text="{x:Static properties:Resources.Assignabledevices}" FontSize="16" VerticalAlignment="Center" Margin="10,0,0,0"/>
                         </StackPanel>
                         <ui:Button HorizontalAlignment="Right"
