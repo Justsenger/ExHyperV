@@ -98,6 +98,17 @@
                     </ui:NavigationViewItem.Icon>
                 </ui:NavigationViewItem>
 
+                <ui:NavigationViewItem
+                    x:Name="CPU"
+                    Content="中央处理器"
+                    NavigationCacheMode="Enabled"
+                    Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"
+                    >
+                    <ui:NavigationViewItem.Icon>
+                        <ui:FontIcon FontSize="16" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xF58E;"/>
+                    </ui:NavigationViewItem.Icon>
+                </ui:NavigationViewItem>
+
             </ui:NavigationView.MenuItems>
 
             <ui:NavigationView.FooterMenuItems>
