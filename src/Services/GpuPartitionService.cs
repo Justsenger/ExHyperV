@@ -132,7 +132,7 @@ namespace ExHyperV.Services
                 {
                     var vmStateResult = Utils.Run($"(Get-VM -Name '{vmName}').State");
                     if (vmStateResult == null || vmStateResult.Count == 0) return string.Format(Properties.Resources.GetVmState_Error, vmName);
-                    if (vmStateResult[0].ToString() != "Off") return "running";
+                    if (vmStateResult[0].ToString() != "Off") return ExHyperV.Properties.Resources.Running;
 
                     string vmConfigScript = $@"
                         Set-VM -GuestControlledCacheTypes $true -VMName '{vmName}'

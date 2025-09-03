@@ -742,4 +742,7 @@
   <data name="Memory" xml:space="preserve">
     <value>内存</value>
   </data>
+  <data name="Running" xml:space="preserve">
+    <value>运行中</value>
+  </data>
 </root>

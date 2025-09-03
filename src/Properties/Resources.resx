@@ -742,4 +742,7 @@ The existing NAT switch is: '{0}'</value>
   <data name="Memory" xml:space="preserve">
     <value>Memory</value>
   </data>
+  <data name="Running" xml:space="preserve">
+    <value>Running</value>
+  </data>
 </root>

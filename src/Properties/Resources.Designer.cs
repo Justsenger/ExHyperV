@@ -1552,6 +1552,15 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 Running 的本地化字符串。
+        /// </summary>
+        public static string Running {
+            get {
+                return ResourceManager.GetString("Running", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 The host system is not a server version, and the virtual machine with the DDA device added will not be able to start! 的本地化字符串。
         /// </summary>
         public static string servererror {
