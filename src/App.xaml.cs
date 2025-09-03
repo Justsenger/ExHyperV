@@ -133,10 +133,9 @@ namespace ExHyperV
         {
             switch (command)
             {
-                case "--silent":
-                    Console.WriteLine("正在以静默模式运行后台任务...");
-                    Thread.Sleep(3000);
-                    Console.WriteLine("静默任务完成。");
+                case "--background":
+                    Console.WriteLine("ExHyperV后台服务已启动。");
+                    Thread.Sleep(20000);
                     break;
 
                 case "--help":
