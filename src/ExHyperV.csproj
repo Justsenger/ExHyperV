@@ -106,6 +106,9 @@
             <LowRiskToRemove Include="$(PublishDir)Microsoft.Bcl.AsyncInterfaces.dll" />
             <LowRiskToRemove Include="$(PublishDir)Microsoft.Extensions.ObjectPool.dll" />
 
+			<LowRiskToRemove Include="$(PublishDir)System.Runtime.Caching.dll" />
+			
+
 
 
         </ItemGroup>
@@ -168,6 +171,14 @@
             <RuntimesDirsToRemove Include="$(PublishDir)runtimes\win\lib\net8.0\Modules\Microsoft.PowerShell.Diagnostics" />
             <RuntimesDirsToRemove Include="$(PublishDir)runtimes\win\lib\net8.0\Modules\PSDiagnostics" />
             <RuntimesDirsToRemove Include="$(PublishDir)runtimes\win\lib\net8.0\Modules\Microsoft.WSMan.Management" />
+
+			<RuntimesDirsToRemove Include="$(PublishDir)runtimes\win\lib\netcoreapp2.1" />
+			<RuntimesDirsToRemove Include="$(PublishDir)runtimes\win-x64\native" />
+			
+
+			<RuntimesFilesToRemove Include="$(PublishDir)runtimes\win\lib\net8.0\Microsoft.Management.Infrastructure.CimCmdlets.dll" />
+			<RuntimesFilesToRemove Include="$(PublishDir)runtimes\win\lib\net8.0\Microsoft.PowerShell.SDK.dll" />
+			<RuntimesFilesToRemove Include="$(PublishDir)runtimes\win\lib\net8.0\System.Runtime.Caching.dll" />
 
             <!-- 2. 移除之前已确认但在 runtimes 中依然存在的 DLL -->
             <RuntimesFilesToRemove Include="$(PublishDir)runtimes\**\System.Net.Http.WinHttpHandler.dll" />
