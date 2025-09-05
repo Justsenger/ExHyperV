@@ -263,17 +263,7 @@ public class Utils
                     }}
                 }}";
                 script += $"Get-VMNetworkAdapter -ManagementOS -SwitchName '{switchName}' -ErrorAction SilentlyContinue | Remove-VMNetworkAdapter -Confirm:$false;";
-                string allowManagementOsScriptValue = allowManagementOS ? "$true" : "$false";
-                if (allowManagementOS)
-                {
-                    script += $"\nSet-VMSwitch -Name '{switchName}' -NetAdapterInterfaceDescription '{physicalAdapterName}'";
-                }
-                else
-                {
-                    script += $"\nSet-VMSwitch -Name '{switchName}' -NetAdapterInterfaceDescription '{physicalAdapterName}' -AllowManagementOS {allowManagementOsScriptValue}";
-                }
-
-                
+                script += $"\nSet-VMSwitch -Name '{switchName}' -NetAdapterInterfaceDescription '{physicalAdapterName}'";
 
                 break;
 
@@ -377,7 +367,7 @@ public class Utils
 
         System.Windows.MessageBox.Show(message);
     }
-    public static string Version => "V1.2.3-Beta";
+    public static string Version => "V1.2.2";
     public static string Author => "砂菱叶";
 
 }
