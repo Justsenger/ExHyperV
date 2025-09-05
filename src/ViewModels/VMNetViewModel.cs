@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ExHyperV.Models;
@@ -16,9 +12,6 @@ namespace ExHyperV.ViewModels
     public partial class VMNetViewModel : ObservableObject
     {
         private readonly INetworkService _networkService;
-        // --- 新增：配置服务和配置数据持有者 ---
-        private readonly ConfigurationService _configService;
-        private AppConfig _appConfig;
 
         [ObservableProperty] private bool _isBusy = false;
         [ObservableProperty] private bool _isContentVisible = true;
@@ -32,11 +25,7 @@ namespace ExHyperV.ViewModels
         public VMNetViewModel()
         {
             _networkService = new NetworkService();
-            // --- 新增：初始化配置服务 ---
-            _configService = new ConfigurationService();
-            _appConfig = new AppConfig(); // 初始化为空配置
-
-            _ = LoadNetworkInfoAsync();
+            LoadNetworkInfoCommand.Execute(null);
         }
 
         [RelayCommand]
@@ -55,32 +44,35 @@ namespace ExHyperV.ViewModels
                 return;
             }
 
-            if (!addSwitchVm.Validate())
+            if (addSwitchVm.Validate())
+            {
+                IsBusy = true;
+                try
+                {
+                    string typeForService = addSwitchVm.SelectedSwitchType;
+
+                    await _networkService.CreateSwitchAsync(
+                        addSwitchVm.SwitchName,
+                        typeForService,
+                        addSwitchVm.SelectedNetworkAdapter
+                    );
+
+                    await CoreRefreshLogicAsync();
+                }
+                catch (System.Exception ex)
+                {
+                    await DialogManager.ShowAlertAsync(ExHyperV.Properties.Resources.Error_CreationFailed, ex.Message);
+                }
+                finally
+                {
+                    IsBusy = false;
+                }
+            }
+            else
             {
                 await DialogManager.ShowAlertAsync(ExHyperV.Properties.Resources.Validation_InputInvalid, addSwitchVm.ErrorMessage ?? Resources.Error_Unknown);
-                return;
-            }
-
-            IsBusy = true;
-            try
-            {
-                await _networkService.CreateSwitchAsync(
-                    addSwitchVm.SwitchName,
-                    addSwitchVm.SelectedSwitchType,
-                    addSwitchVm.SelectedNetworkAdapter
-                );
-                await CoreRefreshLogicAsync();
-            }
-            catch (System.Exception ex)
-            {
-                await DialogManager.ShowAlertAsync(ExHyperV.Properties.Resources.Error_CreationFailed, ex.Message);
-            }
-            finally
-            {
-                IsBusy = false;
             }
         }
-
         [RelayCommand]
         private async Task DeleteSwitchAsync(SwitchViewModel? switchToDelete)
         {
@@ -105,6 +97,7 @@ namespace ExHyperV.ViewModels
             }
         }
 
+
         [RelayCommand]
         private async Task LoadNetworkInfoAsync()
         {
@@ -125,19 +118,10 @@ namespace ExHyperV.ViewModels
         {
             ErrorMessage = null;
             IsContentVisible = false;
-
-            foreach (var s in Switches)
-            {
-                s.PropertyChanged -= OnSwitchViewModelPropertyChanged;
-                s.RequestSave -= OnRequestSave; // --- 新增：取消订阅保存请求事件 ---
-            }
             Switches.Clear();
 
             try
             {
-                // --- 新增：在刷新时加载配置文件 ---
-                _appConfig = _configService.LoadConfiguration();
-
                 var (switches, adapters) = await _networkService.GetNetworkInfoAsync();
                 _rawSwitchInfos = switches;
                 _physicalAdapters = adapters;
@@ -150,24 +134,11 @@ namespace ExHyperV.ViewModels
                 {
                     foreach (var switchInfo in _rawSwitchInfos)
                     {
-                        // --- 修改：查找并传递配置给 SwitchViewModel ---
-                        var config = _appConfig.Switches.FirstOrDefault(c => c.Id == switchInfo.Id);
-                        if (config == null)
-                        {
-                            // 如果配置不存在，为这个新交换机创建一个默认配置
-                            config = new SwitchConfig { Id = switchInfo.Id };
-                            _appConfig.Switches.Add(config);
-                        }
-
-                        var switchVm = new SwitchViewModel(switchInfo, config, _networkService, _physicalAdapters, Switches);
-
+                        var switchVm = new SwitchViewModel(switchInfo, _networkService, _physicalAdapters, Switches);
                         switchVm.PropertyChanged += OnSwitchViewModelPropertyChanged;
-                        switchVm.RequestSave += OnRequestSave; // --- 新增：订阅保存请求事件 ---
-
                         Switches.Add(switchVm);
                     }
                     UpdateAllSwitchMenus();
-                    await SaveConfigurationAsync(); // --- 新增：刷新后保存一次，以清理掉不存在的交换机配置
                     IsContentVisible = true;
                 }
             }
@@ -178,41 +149,11 @@ namespace ExHyperV.ViewModels
             }
         }
 
-        // --- 新增：事件处理器，当子VM请求保存时触发 ---
-        private async void OnRequestSave(object? sender, EventArgs e)
-        {
-            await SaveConfigurationAsync();
-        }
-
-        // --- 新增：核心的保存逻辑 ---
-        private async Task SaveConfigurationAsync()
-        {
-            // 从所有 SwitchViewModel 收集最新的配置
-            foreach (var vm in Switches)
-            {
-                var config = _appConfig.Switches.FirstOrDefault(c => c.Id == vm.SwitchId);
-                if (config != null)
-                {
-                    // 更新配置对象
-                    vm.UpdateConfig(config);
-                }
-            }
-
-            // 移除那些已经不存在的交换机的配置
-            _appConfig.Switches.RemoveAll(c => !_rawSwitchInfos.Any(s => s.Id == c.Id));
-
-            // 保存到文件
-            _configService.SaveConfiguration(_appConfig);
-
-            await Task.CompletedTask;
-        }
-
         private async void OnSwitchViewModelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
-            if (sender is not SwitchViewModel changedSwitch || changedSwitch.IsReverting || changedSwitch.IsLockedForInteraction)
-            {
-                return;
-            }
+            if (sender is not SwitchViewModel changedSwitch) return;
+
+            if (changedSwitch.IsReverting || changedSwitch.IsLockedForInteraction) return;
 
             if (e.PropertyName == nameof(SwitchViewModel.SelectedNetworkMode) ||
                 e.PropertyName == nameof(SwitchViewModel.SelectedUpstreamAdapter) ||
@@ -235,15 +176,31 @@ namespace ExHyperV.ViewModels
             var originalSwitchInfo = _rawSwitchInfos.FirstOrDefault(s => s.Id == changedSwitch.SwitchId);
             if (originalSwitchInfo == null) return;
 
-            if (changedSwitch.IsConnected && !string.IsNullOrEmpty(changedSwitch.SelectedUpstreamAdapter))
+            if (changedSwitch.SelectedNetworkMode == "NAT")
             {
-                var conflictingSwitch = Switches.FirstOrDefault(s => s.SwitchId != changedSwitch.SwitchId && s.IsConnected && s.SelectedUpstreamAdapter == changedSwitch.SelectedUpstreamAdapter);
+                var otherNatSwitch = Switches.FirstOrDefault(s => s.SwitchId != changedSwitch.SwitchId && !s.IsDefaultSwitch && s.SelectedNetworkMode == "NAT");
+                if (otherNatSwitch != null)
+                {
+                    await DialogManager.ShowAlertAsync(ExHyperV.Properties.Resources.Error_ConfigurationConflict, string.Format(Properties.Resources.Error_OnlyOneNatNetworkAllowed, otherNatSwitch.SwitchName));
+                    await changedSwitch.RevertTo(originalSwitchInfo);
+                    return;
+                }
+            }
+
+            if ((changedSwitch.SelectedNetworkMode == "Bridge" || changedSwitch.SelectedNetworkMode == "NAT") && !string.IsNullOrEmpty(changedSwitch.SelectedUpstreamAdapter))
+            {
+                var conflictingSwitch = Switches.FirstOrDefault(s => s.SwitchId != changedSwitch.SwitchId && !string.IsNullOrEmpty(s.SelectedUpstreamAdapter) && s.SelectedUpstreamAdapter == changedSwitch.SelectedUpstreamAdapter);
                 if (conflictingSwitch != null)
                 {
                     await DialogManager.ShowAlertAsync(ExHyperV.Properties.Resources.Error_ConfigurationConflict, string.Format(Properties.Resources.Error_PhysicalAdapterInUse, changedSwitch.SelectedUpstreamAdapter, conflictingSwitch.SwitchName));
                     await changedSwitch.RevertTo(originalSwitchInfo);
                     return;
                 }
+            }
+
+            if ((changedSwitch.SelectedNetworkMode == "Bridge" || changedSwitch.SelectedNetworkMode == "NAT") && string.IsNullOrEmpty(changedSwitch.SelectedUpstreamAdapter))
+            {
+                return;
             }
 
             IsBusy = true;
@@ -253,13 +210,13 @@ namespace ExHyperV.ViewModels
                     changedSwitch.SwitchName,
                     changedSwitch.SelectedNetworkMode,
                     changedSwitch.SelectedUpstreamAdapter,
-                    changedSwitch.IsHostConnectionAllowed
+                    changedSwitch.IsHostConnectionAllowed,
+                    false
                 );
 
                 await RefreshDataModels();
                 UpdateAllSwitchMenus();
             }
-
             catch (Exception ex)
             {
                 await DialogManager.ShowAlertAsync(ExHyperV.Properties.Resources.UpdateFailed, string.Format(Properties.Resources.Error_UpdateSwitchConfigFailed, changedSwitch.SwitchName, ex.InnerException?.Message ?? ex.Message));

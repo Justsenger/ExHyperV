@@ -9,10 +9,10 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Windows;
+using System.Xml.Linq;
 using ExHyperV.Models;
 using ExHyperV.Services;
-// 注意：您可能需要为 DhcpConfig 和 DhcpService 创建或调整相应的模型和服务
-// 为了使代码可编译，这里假设它们存在于合适的命名空间下
+using ExHyperV.Tools;
 
 namespace ExHyperV
 {
@@ -29,8 +29,8 @@ namespace ExHyperV
         private static extern int GetUserDefaultLocaleName([Out] StringBuilder lpLocaleName, int cchLocaleName);
 
         private const string DefaultLanguage = "en-US";
+        private const string ConfigFilePath = "Config.xml";
 
-        // 假设 DhcpService 仍然是您后台逻辑的一部分
         private static DhcpService _dhcpService;
 
         protected override void OnStartup(StartupEventArgs e)
@@ -39,14 +39,13 @@ namespace ExHyperV
 
             if (args.Length == 0)
             {
-                // 这是正常的 GUI 启动模式
                 InitializeLanguage();
                 base.OnStartup(e);
                 return;
             }
 
-            // 这是命令行后台模式
             AttachConsole(ATTACH_PARENT_PROCESS);
+
             AppDomain.CurrentDomain.ProcessExit += OnProcessExit;
             Console.CancelKeyPress += (s, ev) => OnProcessExit(s, ev);
 
@@ -69,22 +68,30 @@ namespace ExHyperV
 
         private void InitializeLanguage()
         {
-            var configService = new ConfigurationService();
-            var config = configService.LoadConfiguration();
-
-            string targetLanguage = config.Language;
-
-            if (!IsLanguageSupported(targetLanguage))
+            string targetLanguage;
+            if (File.Exists(ConfigFilePath))
             {
-                var systemLang = GetSystemLanguageViaAPI();
-                targetLanguage = IsLanguageSupported(systemLang) ? systemLang : DefaultLanguage;
-
-                config.Language = targetLanguage;
-                configService.SaveConfiguration(config);
-
+                var configLanguage = ReadLanguageFromConfig();
+                targetLanguage = IsLanguageSupported(configLanguage) ? configLanguage : GetValidSystemLanguageAndSave();
             }
-
+            else
+            {
+                targetLanguage = GetValidSystemLanguageAndSave();
+            }
             SetLanguage(targetLanguage);
+        }
+
+        private string GetValidSystemLanguageAndSave()
+        {
+            var lang = GetValidSystemLanguage();
+            WriteLanguageToConfig(lang);
+            return lang;
+        }
+
+        private string GetValidSystemLanguage()
+        {
+            var systemLang = GetSystemLanguageViaAPI();
+            return IsLanguageSupported(systemLang) ? systemLang : DefaultLanguage;
         }
 
         private bool IsLanguageSupported(string languageCode)
@@ -112,6 +119,35 @@ namespace ExHyperV
                 var defaultCulture = new CultureInfo(DefaultLanguage);
                 Thread.CurrentThread.CurrentCulture = defaultCulture;
                 Thread.CurrentThread.CurrentUICulture = defaultCulture;
+            }
+        }
+
+        private string ReadLanguageFromConfig()
+        {
+            try
+            {
+                var configDoc = XDocument.Load(ConfigFilePath);
+                return configDoc.Root?.Element("Language")?.Value ?? DefaultLanguage;
+            }
+            catch
+            {
+                return DefaultLanguage;
+            }
+        }
+
+        private void WriteLanguageToConfig(string cultureCode)
+        {
+            try
+            {
+                if (!File.Exists(ConfigFilePath))
+                {
+                    var configDoc = new XDocument(new XElement("Config", new XElement("Language", cultureCode)));
+                    configDoc.Save(ConfigFilePath);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"写入配置文件失败: {ex.Message}");
             }
         }
 
@@ -151,25 +187,13 @@ namespace ExHyperV
 
         private static bool StartDhcpServer()
         {
-            // 注意: 这里的后台服务逻辑可能需要根据新的 AppConfig 模型进行调整。
-            // 这是一个基于旧逻辑的示例实现。
-            string configFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.xml");
-
-            if (!File.Exists(configFilePath))
+            if (!File.Exists(ConfigFilePath))
             {
-                Console.WriteLine($"错误: 找不到配置文件 '{configFilePath}'。");
+                Console.WriteLine($"错误: 找不到配置文件 '{ConfigFilePath}'。");
                 return false;
             }
 
-            // 假设您有一个 DhcpConfig 类可以从 AppConfig 中提取或转换
-            // var configService = new ConfigurationService();
-            // var appConfig = configService.LoadConfiguration();
-            // var dhcpConfig = YourDhcpConfigConverter.FromAppConfig(appConfig);
-
-            // 为了保持代码可编译，我们暂时保留旧的 DhcpConfig.Load 模式
-            // 您需要根据实际情况替换这部分逻辑
-            var dhcpConfig = DhcpConfig.Load(configFilePath);
-
+            var dhcpConfig = DhcpConfig.Load(ConfigFilePath);
             if (dhcpConfig == null || !dhcpConfig.Enabled)
             {
                 Console.WriteLine("信息: DHCP服务未配置或被禁用，后台服务未启动。");

@@ -18,6 +18,7 @@ namespace ExHyperV.Services
                 try
                 {
                     Utils.Run("Set-ExecutionPolicy RemoteSigned -Scope Process -Force");
+
                     if (Utils.Run("Get-Module -ListAvailable -Name Hyper-V").Count == 0)
                     {
                         return (switchList, physicalAdapterList);
@@ -46,6 +47,13 @@ namespace ExHyperV.Services
                             var host = result.Properties["AllowManagementOS"]?.Value?.ToString() ?? string.Empty;
                             var id = result.Properties["Id"]?.Value?.ToString() ?? string.Empty;
                             var phydesc = result.Properties["NetAdapterInterfaceDescription"]?.Value?.ToString() ?? string.Empty;
+
+                            string? icsAdapter = GetIcsSourceAdapterName(switchName);
+                            if (icsAdapter != null)
+                            {
+                                switchType = "NAT";
+                                phydesc = icsAdapter;
+                            }
 
                             if (!string.IsNullOrEmpty(switchName))
                             {
@@ -151,9 +159,9 @@ namespace ExHyperV.Services
             });
         }
 
-        public async Task UpdateSwitchConfigurationAsync(string switchName, string mode, string? adapterDescription, bool allowManagementOS)
+        public async Task UpdateSwitchConfigurationAsync(string switchName, string mode, string? adapterDescription, bool allowManagementOS, bool enableDhcp)
         {
-            await Utils.UpdateSwitchConfigurationAsync(switchName, mode, adapterDescription, allowManagementOS);
+            await Utils.UpdateSwitchConfigurationAsync(switchName, mode, adapterDescription, allowManagementOS, enableDhcp);
         }
 
         public async Task CreateSwitchAsync(string name, string type, string? adapterDescription)
@@ -169,14 +177,20 @@ namespace ExHyperV.Services
                             throw new ArgumentException(Properties.Resources.Error_ExternalSwitchRequiresPhysicalAdapter);
                         }
                         script = $"New-VMSwitch -Name '{name}' -NetAdapterInterfaceDescription '{adapterDescription}' -AllowManagementOS $true";
+                        await Task.Run(() => Utils.Run(script));
                         break;
-
+                    case "NAT":
+                        script = $"New-VMSwitch -Name '{name}' -SwitchType Internal";
+                        await Task.Run(() => Utils.Run(script));
+                        await Task.Delay(3000);
+                        await UpdateSwitchConfigurationAsync(name, "NAT", adapterDescription, true, true);
+                        break;
                     case "INTERNAL":
                     default:
                         script = $"New-VMSwitch -Name '{name}' -SwitchType Internal";
+                        await Task.Run(() => Utils.Run(script));
                         break;
                 }
-                await Task.Run(() => Utils.Run(script));
             }
             catch (Exception ex)
             {
@@ -191,6 +205,7 @@ namespace ExHyperV.Services
             {
                 try
                 {
+                    ClearAllIcsSettings();
                     string script = $"Remove-VMSwitch -Name '{switchName}' -Force";
                     Utils.Run(script);
                 }
@@ -200,6 +215,82 @@ namespace ExHyperV.Services
                     throw new InvalidOperationException(string.Format(Properties.Resources.Error_DeleteSwitchFailed, switchName), ex);
                 }
             });
+        }
+
+        private void ClearAllIcsSettings()
+        {
+            try
+            {
+                string script = @"
+                    $netShareManager = New-Object -ComObject HNetCfg.HNetShare;
+                    foreach ($connection in $netShareManager.EnumEveryConnection) {
+                        $config = $netShareManager.INetSharingConfigurationForINetConnection.Invoke($connection);
+                        if ($config.SharingEnabled) {
+                            $config.DisableSharing();
+                        }
+                    }";
+                Utils.Run(script);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Exception in ClearAllIcsSettings: {ex}");
+            }
+        }
+
+        private string? GetIcsSourceAdapterName(string switchName)
+        {
+            string script = @"
+            param([string]$switchName)
+            try {
+                $PublicAdapterNameToFind = ""vEthernet ({0})"" -f $switchName
+                $netShareManager = New-Object -ComObject HNetCfg.HNetShare
+                $icsSourceAdapterName = $null
+                $icsGatewayIsCorrect = $false
+                foreach ($connection in $netShareManager.EnumEveryConnection) {
+                    $config = $netShareManager.INetSharingConfigurationForINetConnection.Invoke($connection)
+                    if ($config.SharingEnabled) {
+                        $props = $netShareManager.NetConnectionProps.Invoke($connection)
+                        if (($config.SharingConnectionType -eq 1) -and ($props.Name -eq $PublicAdapterNameToFind)) {
+                            $icsGatewayIsCorrect = $true
+                        }
+                        elseif ($config.SharingConnectionType -eq 0) {
+                            $icsSourceAdapterName = $props.Name
+                        }
+                    }
+                }
+                if (($icsGatewayIsCorrect) -and ($null -ne $icsSourceAdapterName)) {
+                    try {
+                        $adapterDetails = Get-NetAdapter -Name $icsSourceAdapterName -ErrorAction Stop
+                        return $adapterDetails.InterfaceDescription
+                    }
+                    catch {
+                        return $icsSourceAdapterName
+                    }
+                }
+                return $null
+            }
+            catch {
+                return $null
+            }";
+
+            try
+            {
+                using (var ps = PowerShell.Create())
+                {
+                    ps.AddScript(script);
+                    ps.AddParameter("switchName", switchName);
+                    var results = ps.Invoke();
+                    if (ps.Streams.Error.Count > 0) return null;
+                    if (results.Count > 0 && results[0] != null) return results[0].BaseObject?.ToString();
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Exception in GetIcsSourceAdapterName: {ex}");
+                return null;
+            }
+
+            return null;
         }
     }
 }

@@ -21,7 +21,7 @@ namespace ExHyperV.Services
         /// <summary>
         /// 异步更新一个虚拟交换机的配置。
         /// </summary>
-        Task UpdateSwitchConfigurationAsync(string switchName, string mode, string? adapterDescription, bool allowManagementOS);
+        Task UpdateSwitchConfigurationAsync(string switchName, string mode, string? adapterDescription, bool allowManagementOS, bool enableDhcp);
         /// <summary>
         /// 异步创建一个新的虚拟交换机。
         /// </summary>

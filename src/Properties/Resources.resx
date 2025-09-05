@@ -745,7 +745,4 @@ The existing NAT switch is: '{0}'</value>
   <data name="Running" xml:space="preserve">
     <value>Running</value>
   </data>
-  <data name="Internal" xml:space="preserve">
-    <value>Internal</value>
-  </data>
 </root>

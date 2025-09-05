@@ -19,11 +19,12 @@ namespace ExHyperV.Tools
         public string SwitchName { get => (string)GetValue(SwitchNameProperty); set => SetValue(SwitchNameProperty, value); }
 
         public static readonly DependencyProperty NetworkModeProperty =
-            DependencyProperty.Register("NetworkMode", typeof(string), typeof(TopologyCanvas), new PropertyMetadata("Internal", OnPropertiesChanged));
+            DependencyProperty.Register("NetworkMode", typeof(string), typeof(TopologyCanvas), new PropertyMetadata("Isolated", OnPropertiesChanged));
         public string NetworkMode { get => (string)GetValue(NetworkModeProperty); set => SetValue(NetworkModeProperty, value); }
 
-        // === MODIFICATION: UpstreamAdapterProperty removed as it's no longer used. ===
-        // public static readonly DependencyProperty UpstreamAdapterProperty = ...
+        public static readonly DependencyProperty UpstreamAdapterProperty =
+            DependencyProperty.Register("UpstreamAdapter", typeof(string), typeof(TopologyCanvas), new PropertyMetadata(string.Empty, OnPropertiesChanged));
+        public string UpstreamAdapter { get => (string)GetValue(UpstreamAdapterProperty); set => SetValue(UpstreamAdapterProperty, value); }
 
         public TopologyCanvas()
         {
@@ -60,11 +61,11 @@ namespace ExHyperV.Tools
             double verticalSpacing = 70;
             double horizontalVmSpacing = 140;
             double lineThickness = 1.5;
+            double upstreamY = 20;
+            double switchY = upstreamY + verticalSpacing;
 
-            // === MODIFICATION: Adjusted Y coordinates for a more compact view. ===
-            double switchY = 20; // The switch is now the top-most element.
-            double vmBusY = switchY + 40;
-            double vmY = vmBusY + 30;
+            double vmBusY = switchY + 40; // 从交换机到总线的距离
+            double vmY = vmBusY + 30;    // 从总线到客户端图标的距离
 
             void CreateNode(string type, string name, string ip, string mac, double x, double y, bool wrap = false)
             {
@@ -102,24 +103,32 @@ namespace ExHyperV.Tools
 
             var clients = ItemsSource.Select(a => (Name: a.VMName, Ip: ParseIPv4(a.IPAddresses), Mac: a.MacAddress)).ToList();
 
+            bool isDefaultSwitch = SwitchName == "Default Switch";
+            bool hasUpstream = (NetworkMode == "Bridge" || NetworkMode == "NAT") && (!string.IsNullOrEmpty(UpstreamAdapter) || isDefaultSwitch);
+
             double totalWidth = Math.Max(200, (clients.Count > 0 ? clients.Count : 1) * horizontalVmSpacing);
             double centerX = totalWidth / 2;
 
             CreateNode("Switch", SwitchName, "", "", centerX, switchY);
 
-            // === MODIFICATION: The entire 'if (hasUpstream)' block has been removed. ===
+            if (hasUpstream)
+            {
+                string upstreamName = isDefaultSwitch ? "Internet" : UpstreamAdapter;
+                CreateNode("Upstream", upstreamName, "", "", centerX, upstreamY);
+                DrawLine(centerX, upstreamY + radius, centerX, switchY);
+            }
 
             if (clients.Any())
             {
                 double startX = centerX - ((clients.Count - 1) * horizontalVmSpacing) / 2;
-                DrawLine(centerX, switchY, centerX, vmBusY); // Line from switch to bus
-                if (clients.Count > 1) DrawLine(startX, vmBusY, startX + (clients.Count - 1) * horizontalVmSpacing, vmBusY); // Horizontal bus line
+                DrawLine(centerX, switchY, centerX, vmBusY);
+                if (clients.Count > 1) DrawLine(startX, vmBusY, startX + (clients.Count - 1) * horizontalVmSpacing, vmBusY);
                 for (int i = 0; i < clients.Count; i++)
                 {
                     var c = clients[i];
                     double currentX = startX + i * horizontalVmSpacing;
                     CreateNode("Net", c.Name, c.Ip, c.Mac, currentX, vmY, wrap: true);
-                    DrawLine(currentX, vmBusY, currentX, vmY - radius); // Line from bus to client
+                    DrawLine(currentX, vmBusY, currentX, vmY - radius);
                 }
             }
 

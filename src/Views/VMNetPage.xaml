@@ -28,7 +28,6 @@
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
 
-            <!-- Error message card, no changes -->
             <ui:Card Grid.Row="0" Margin="0,5,0,5" BorderBrush="DarkRed" BorderThickness="1" Background="#19FF0000">
                 <ui:Card.Style>
                     <Style TargetType="ui:Card">
@@ -46,7 +45,6 @@
                 <TextBlock Text="{Binding ErrorMessage}" Foreground="DarkRed" TextWrapping="Wrap" />
             </ui:Card>
 
-            <!-- Header card with buttons, no changes -->
             <Grid Grid.Row="1" Margin="0,5,0,0">
                 <ui:Card BorderThickness="1" Padding="10">
                     <Grid>
@@ -54,6 +52,7 @@
                             <ui:FontIcon FontFamily="{DynamicResource SegoeFluentIcons}" FontSize="24" Glyph="&#xE774;"/>
                             <TextBlock Text="{x:Static properties:Resources.VirtualSwitchList}" FontSize="16" VerticalAlignment="Center" Margin="10,0,0,0"/>
                         </StackPanel>
+
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                             <ui:Button Content="{x:Static properties:Resources.Add}" Appearance="Primary" Command="{Binding AddNewSwitchCommand}" />
                             <ui:Button Margin="8,0,0,0" Content="{x:Static properties:Resources.refresh}" Command="{Binding LoadNetworkInfoCommand}" IsEnabled="{Binding IsBusy, Converter={StaticResource InvertBool}}" />
@@ -65,23 +64,40 @@
             <ItemsControl Grid.Row="2" ItemsSource="{Binding Switches}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate DataType="{x:Type viewModels:SwitchViewModel}">
-                        <ui:CardExpander Margin="20,5,0,0" Padding="16,12,12,12" IsExpanded="{Binding IsExpanded, Mode=TwoWay}">
+                        <ui:CardExpander Margin="20,5,0,0" IsExpanded="{Binding IsExpanded, Mode=TwoWay}">
                             <ui:CardExpander.Icon>
                                 <ui:FontIcon FontFamily="{DynamicResource SegoeFluentIcons}" FontSize="24" Glyph="{Binding IconGlyph}" />
                             </ui:CardExpander.Icon>
                             <ui:CardExpander.Header>
                                 <Grid>
                                     <StackPanel VerticalAlignment="Center">
-                                        <TextBlock Text="{Binding SwitchName}" FontSize="16" FontWeight="SemiBold" Margin="0" />
+                                        <TextBlock Text="{Binding SwitchName}" FontSize="16" FontWeight="SemiBold" Margin="0,-2,0,0" />
+                                        <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                            <Ellipse Width="8" Height="8" Margin="0,0,6,0">
+                                                <Ellipse.Style>
+                                                    <Style TargetType="Ellipse">
+                                                        <Setter Property="Fill" Value="Red" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsConnected}" Value="True">
+                                                                <Setter Property="Fill" Value="Green" />
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding IsDefaultSwitch}" Value="True">
+                                                                <Setter Property="Fill" Value="Orange" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Ellipse.Style>
+                                            </Ellipse>
+                                            <TextBlock Text="{Binding StatusText}" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                        </StackPanel>
                                     </StackPanel>
+
                                     <ui:Button HorizontalAlignment="Right"
                                                Content="{x:Static properties:Resources.uninstall}"
-                                               Margin="0,0,8,0"
                                                ToolTip="{x:Static properties:Resources.Uninstallswitch}"
                                                Visibility="{Binding IsDefaultSwitch, Converter={StaticResource BoolToVis}, ConverterParameter=Invert}"
                                                Command="{Binding DataContext.DeleteSwitchCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
-                                               CommandParameter="{Binding}"
-                                               />
+                                               CommandParameter="{Binding}"/>
                                 </Grid>
                             </ui:CardExpander.Header>
 
@@ -95,19 +111,27 @@
                                         <RowDefinition Height="Auto" />
                                         <RowDefinition Height="Auto" />
                                         <RowDefinition Height="Auto" />
-                                        <RowDefinition Height="Auto" />
-                                        <RowDefinition Height="Auto" />
-                                        <RowDefinition Height="Auto" />
                                     </Grid.RowDefinitions>
 
-                                    <!-- Rows 0-2 -->
-                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="{x:Static properties:Resources.NetMode}" VerticalAlignment="Center" FontSize="16" Margin="0,0,0,8"/>
-                                    <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,0,8" IsEnabled="{Binding IsLockedForInteraction, Converter={StaticResource InvertBool}}">
-                                        <RadioButton Content="{x:Static properties:Resources.External}" Padding="8,6,8,4" GroupName="{Binding SwitchId}" IsChecked="{Binding SelectedNetworkMode, Converter={StaticResource Equality}, ConverterParameter=External, Mode=OneWay}" Command="{Binding SetNetworkModeCommand}" CommandParameter="External" IsEnabled="{Binding IsDefaultSwitch, Converter={StaticResource InvertBool}}"/>
-                                        <RadioButton Content="{x:Static properties:Resources.Internal}" Padding="8,6,8,4" GroupName="{Binding SwitchId}" IsChecked="{Binding SelectedNetworkMode, Converter={StaticResource Equality}, ConverterParameter=Internal, Mode=OneWay}" Command="{Binding SetNetworkModeCommand}" CommandParameter="Internal" IsEnabled="{Binding IsDefaultSwitch, Converter={StaticResource InvertBool}}"/>
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="{x:Static properties:Resources.NetMode}" VerticalAlignment="Center" FontSize="16" Margin="0,0,0,4"/>
+                                    <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,0,4"
+                                                IsEnabled="{Binding IsLockedForInteraction, Converter={StaticResource InvertBool}}">
+                                        <RadioButton Content="{x:Static properties:Resources.Bridge}" Padding="8,6,8,4" GroupName="{Binding SwitchId}" 
+                                                     IsChecked="{Binding SelectedNetworkMode, Converter={StaticResource Equality}, ConverterParameter=Bridge, Mode=OneWay}"
+                                                     Command="{Binding SetNetworkModeCommand}" CommandParameter="Bridge"
+                                                     IsEnabled="{Binding IsDefaultSwitch, Converter={StaticResource InvertBool}}"/>
+                                        <RadioButton Content="{x:Static properties:Resources.NAT}" Padding="8,6,8,4" GroupName="{Binding SwitchId}" 
+                                                     IsChecked="{Binding SelectedNetworkMode, Converter={StaticResource Equality}, ConverterParameter=NAT, Mode=OneWay}"
+                                                     Command="{Binding SetNetworkModeCommand}" CommandParameter="NAT"
+                                                     IsEnabled="{Binding IsDefaultSwitch, Converter={StaticResource InvertBool}}"/>
+                                        <RadioButton Content="{x:Static properties:Resources.Isolate}" Padding="8,6,8,4" GroupName="{Binding SwitchId}" 
+                                                     IsChecked="{Binding SelectedNetworkMode, Converter={StaticResource Equality}, ConverterParameter=Isolated, Mode=OneWay}"
+                                                     Command="{Binding SetNetworkModeCommand}" CommandParameter="Isolated"
+                                                     IsEnabled="{Binding IsDefaultSwitch, Converter={StaticResource InvertBool}}"/>
                                     </StackPanel>
-                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="{x:Static properties:Resources.Internet}" VerticalAlignment="Center" FontSize="16" Margin="0,0,0,8" Visibility="{Binding IsUpstreamSelectionEnabled, Converter={StaticResource BoolToVis}}"/>
-                                    <ui:DropDownButton Grid.Row="1" Grid.Column="1" Content="{Binding DropDownButtonContent}" IsEnabled="{Binding IsUpstreamSelectionEnabled}" Margin="0,0,0,8" Visibility="{Binding IsUpstreamSelectionEnabled, Converter={StaticResource BoolToVis}}">
+
+                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="{x:Static properties:Resources.Internet}" VerticalAlignment="Center" FontSize="16" Margin="0,0,0,8"/>
+                                    <ui:DropDownButton Grid.Row="1" Grid.Column="1" Content="{Binding DropDownButtonContent}" IsEnabled="{Binding IsUpstreamSelectionEnabled}" Margin="0,0,0,8">
                                         <ui:DropDownButton.Flyout>
                                             <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}" ItemsSource="{Binding MenuItems}">
                                                 <ContextMenu.ItemContainerStyle>
@@ -120,44 +144,18 @@
                                             </ContextMenu>
                                         </ui:DropDownButton.Flyout>
                                     </ui:DropDownButton>
-                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="{x:Static properties:Resources.Hostconnected}" VerticalAlignment="Center" FontSize="16" Margin="0,0,0,8"/>
-                                    <ui:ToggleSwitch Grid.Row="2" Grid.Column="1" HorizontalAlignment="Left" IsChecked="{Binding IsHostConnectionAllowed, Mode=TwoWay}" IsEnabled="{Binding IsHostConnectionToggleEnabled}" Margin="0,0,0,8"/>
 
-                                    <!-- Subnet Row (Row 3) -->
-                                    <TextBlock Grid.Row="3" Grid.Column="0" Text="子网设置" VerticalAlignment="Center" FontSize="16" Margin="0,0,0,8" Visibility="{Binding AreAdvancedFeaturesVisible, Converter={StaticResource BoolToVis}}"/>
-                                    <StackPanel Grid.Row="3" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,0,8" Visibility="{Binding AreAdvancedFeaturesVisible, Converter={StaticResource BoolToVis}}">
-                                        <ui:TextBox x:Name="Octet1TextBox" Text="{Binding SubnetOctet1, UpdateSourceTrigger=PropertyChanged}" Width="45" Padding="5,2" TextAlignment="Center" ClearButtonEnabled="False" PreviewTextInput="SubnetTextBox_PreviewTextInput" PreviewKeyDown="SubnetTextBox_PreviewKeyDown" />
-                                        <TextBlock Text="." VerticalAlignment="Center" Margin="2,0"/>
-                                        <ui:TextBox x:Name="Octet2TextBox" Text="{Binding SubnetOctet2, UpdateSourceTrigger=PropertyChanged}" Width="45" Padding="5,2" TextAlignment="Center" ClearButtonEnabled="False" PreviewTextInput="SubnetTextBox_PreviewTextInput" PreviewKeyDown="SubnetTextBox_PreviewKeyDown" />
-                                        <TextBlock Text="." VerticalAlignment="Center" Margin="2,0"/>
-                                        <ui:TextBox x:Name="Octet3TextBox" Text="{Binding SubnetOctet3, UpdateSourceTrigger=PropertyChanged}" Width="45" Padding="5,2" TextAlignment="Center" ClearButtonEnabled="False" PreviewTextInput="SubnetTextBox_PreviewTextInput" PreviewKeyDown="SubnetTextBox_PreviewKeyDown" />
-                                        <TextBlock Text="." VerticalAlignment="Center" Margin="2,0"/>
-                                        <ui:TextBox x:Name="Octet4TextBox" Text="{Binding SubnetOctet4, UpdateSourceTrigger=PropertyChanged}" Width="45" Padding="5,2" TextAlignment="Center" ClearButtonEnabled="False" PreviewTextInput="SubnetTextBox_PreviewTextInput" PreviewKeyDown="SubnetTextBox_PreviewKeyDown" />
-                                        <TextBlock Text="/" VerticalAlignment="Center" Margin="6,0"/>
-                                        <ui:TextBox x:Name="CidrTextBox" Text="{Binding SubnetCidr, UpdateSourceTrigger=PropertyChanged}" Width="35" Padding="5,2" TextAlignment="Center" ClearButtonEnabled="False" PreviewTextInput="SubnetTextBox_PreviewTextInput" PreviewKeyDown="SubnetTextBox_PreviewKeyDown" />
-                                        <TextBlock Text="{Binding SubnetFeedbackText}" Foreground="{Binding SubnetFeedbackBrush}" Margin="12,0,0,0" VerticalAlignment="Center"/>
-                                    </StackPanel>
-
-                                    <!-- Rows 4-5 -->
-                                    <TextBlock Grid.Row="4" Grid.Column="0" Text="NAT" VerticalAlignment="Center" FontSize="16" Margin="0,0,0,8" Visibility="{Binding AreAdvancedFeaturesVisible, Converter={StaticResource BoolToVis}}"/>
-                                    <StackPanel Grid.Row="4" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,0,8" Visibility="{Binding AreAdvancedFeaturesVisible, Converter={StaticResource BoolToVis}}">
-                                        <ui:ToggleSwitch IsChecked="{Binding IsNatEnabled, Mode=TwoWay}"/>
-                                        <ui:Button Margin="8,0,0,0" Appearance="Transparent" Command="{Binding ConfigureNatCommand}" Padding="4">
-                                            <ui:FontIcon FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xE713;" />
-                                        </ui:Button>
-                                    </StackPanel>
-                                    <TextBlock Grid.Row="5" Grid.Column="0" Text="DHCP" VerticalAlignment="Center" FontSize="16" Margin="0,0,0,0" Visibility="{Binding AreAdvancedFeaturesVisible, Converter={StaticResource BoolToVis}}"/>
-                                    <StackPanel Grid.Row="5" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,0,0" Visibility="{Binding AreAdvancedFeaturesVisible, Converter={StaticResource BoolToVis}}">
-                                        <ui:ToggleSwitch IsChecked="{Binding IsDhcpEnabled, Mode=TwoWay}"/>
-                                        <ui:Button Margin="8,0,0,0" Appearance="Transparent" Command="{Binding ConfigureDhcpCommand}" Padding="4">
-                                            <ui:FontIcon FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xE713;" />
-                                        </ui:Button>
-                                    </StackPanel>
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="{x:Static properties:Resources.Hostconnected}" VerticalAlignment="Center" FontSize="16" Margin="0,0,0,0"/>
+                                    <ui:ToggleSwitch Grid.Row="2" Grid.Column="1" HorizontalAlignment="Left" IsChecked="{Binding IsHostConnectionAllowed, Mode=TwoWay}" IsEnabled="{Binding IsHostConnectionToggleEnabled}" Margin="0,0,0,0"/>
                                 </Grid>
 
                                 <StackPanel Margin="0,12,0,10">
                                     <TextBlock Text="{x:Static properties:Resources.NetDraw}" FontSize="16" Margin="0,0,0,10" />
-                                    <tools:TopologyCanvas ItemsSource="{Binding ConnectedClients}" SwitchName="{Binding SwitchName}" NetworkMode="{Binding SelectedNetworkMode}" />
+                                    <tools:TopologyCanvas 
+                                        ItemsSource="{Binding ConnectedClients}"
+                                        SwitchName="{Binding SwitchName}"
+                                        NetworkMode="{Binding SelectedNetworkMode}"
+                                        UpstreamAdapter="{Binding SelectedUpstreamAdapter}" />
                                 </StackPanel>
                             </StackPanel>
                         </ui:CardExpander>
@@ -166,7 +164,6 @@
             </ItemsControl>
         </Grid>
 
-        <!-- Busy indicator, no changes -->
         <Grid Background="#7F000000" Visibility="{Binding IsBusy, Converter={StaticResource BoolToVis}}">
             <ui:ProgressRing IsIndeterminate="True" Width="60" Height="60" />
         </Grid>

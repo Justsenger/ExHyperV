@@ -745,7 +745,4 @@
   <data name="Running" xml:space="preserve">
     <value>运行中</value>
   </data>
-  <data name="Internal" xml:space="preserve">
-    <value>内部</value>
-  </data>
 </root>
