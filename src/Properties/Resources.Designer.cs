@@ -1183,6 +1183,15 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 Internal 的本地化字符串。
+        /// </summary>
+        public static string Internal {
+            get {
+                return ResourceManager.GetString("Internal", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Upstream 的本地化字符串。
         /// </summary>
         public static string Internet {

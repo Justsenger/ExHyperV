@@ -244,102 +244,49 @@ public class Utils
         return linkerTime;
     }
 
-    public static async Task UpdateSwitchConfigurationAsync(string switchName, string mode, string? physicalAdapterName, bool allowManagementOS, bool enabledhcp)
+    // 这个方法可能在您的 Utils.cs 文件中
+    public static async Task UpdateSwitchConfigurationAsync(string switchName, string mode, string? physicalAdapterName, bool allowManagementOS)
     {
         string script;
+        string allowManagementOsScriptValue = allowManagementOS ? "$true" : "$false";
+
         switch (mode)
         {
-            case "Bridge":
-
-
-                //1.清除ICS设置。2.清除多余的宿主适配器。3.设置交换机为外部交换机，指定上游网卡。
-
-                script = $@"$netShareManager = New-Object -ComObject HNetCfg.HNetShare;
-                foreach ($connection in $netShareManager.EnumEveryConnection) {{
-                    $props = $netShareManager.NetConnectionProps.Invoke($connection);
-                    $config = $netShareManager.INetSharingConfigurationForINetConnection.Invoke($connection);
-                    if ($config.SharingEnabled) {{
-                        $config.DisableSharing();
-                    }}
-                }}";
-                script += $"Get-VMNetworkAdapter -ManagementOS -SwitchName '{switchName}' -ErrorAction SilentlyContinue | Remove-VMNetworkAdapter -Confirm:$false;";
-                string allowManagementOsScriptValue = allowManagementOS ? "$true" : "$false";
-                if (allowManagementOS)
+            case "External":
+                if (string.IsNullOrEmpty(physicalAdapterName))
                 {
-                    script += $"\nSet-VMSwitch -Name '{switchName}' -NetAdapterInterfaceDescription '{physicalAdapterName}'";
-                }
-                else
-                {
-                    script += $"\nSet-VMSwitch -Name '{switchName}' -NetAdapterInterfaceDescription '{physicalAdapterName}' -AllowManagementOS {allowManagementOsScriptValue}";
+                    throw new ArgumentException("External switch requires a physical adapter.", nameof(physicalAdapterName));
                 }
 
-                
-
+                // 对于外部交换机，先清理再用一个命令重建是最可靠的方式
+                string cleanupScript = $"Get-VMNetworkAdapter -ManagementOS -SwitchName '{switchName}' -ErrorAction SilentlyContinue | Remove-VMNetworkAdapter -Confirm:$false;";
+                script = cleanupScript;
+                script += $"\nSet-VMSwitch -Name '{switchName}' -NetAdapterInterfaceDescription '{physicalAdapterName}' -AllowManagementOS {allowManagementOsScriptValue}";
                 break;
 
-            case "NAT":
-                //1.设置为内部交换机。2.开启ICS.
-
+            case "Internal":
+                // 步骤 1: 确保交换机类型为 Internal。这会安全地断开它与任何物理网卡的连接。
                 script = $"Set-VMSwitch -Name '{switchName}' -SwitchType Internal;";
-                script += $@"$PublicAdapterDescription = '{physicalAdapterName}';
-                $SwitchName = '{switchName}';
-                $publicNic = Get-NetAdapter -InterfaceDescription $PublicAdapterDescription -ErrorAction SilentlyContinue;
-                $PublicAdapterActualName = $publicNic.Name;
-                $vmAdapter = Get-VMNetworkAdapter -ManagementOS -SwitchName $SwitchName -ErrorAction SilentlyContinue;
-                $privateAdapter = Get-NetAdapter | Where-Object {{ ($_.MacAddress -replace '[-:]') -eq ($vmAdapter.MacAddress -replace '[-:]') }};
-                $PrivateAdapterName = $privateAdapter.Name;
 
-                $netShareManager = New-Object -ComObject HNetCfg.HNetShare;
-                $publicConfig = $null;
-                $privateConfig = $null;
-
-                foreach ($connection in $netShareManager.EnumEveryConnection) {{
-                    $props = $netShareManager.NetConnectionProps.Invoke($connection);
-                    $config = $netShareManager.INetSharingConfigurationForINetConnection.Invoke($connection);
-                    if ($config.SharingEnabled) {{
-                        $config.DisableSharing();
-                    }}
-                    if ($props.Name -eq $PublicAdapterActualName) {{
-                        $publicConfig = $config;
-                    }}
-                    elseif ($props.Name -eq $PrivateAdapterName) {{
-                        $privateConfig = $config;
-                    }}
-                }}
-
-                if ($publicConfig -and $privateConfig) {{
-                    $publicConfig.EnableSharing(0);
-                    $privateConfig.EnableSharing(1);
-
-                }}
-                ";
-                break;
-
-            case "Isolated":
-                script = $"\nSet-VMSwitch -Name '{switchName}' -SwitchType Internal;";
-                script += $@"$netShareManager = New-Object -ComObject HNetCfg.HNetShare;
-                foreach ($connection in $netShareManager.EnumEveryConnection) {{
-                    $props = $netShareManager.NetConnectionProps.Invoke($connection);
-                    $config = $netShareManager.INetSharingConfigurationForINetConnection.Invoke($connection);
-                    if ($config.SharingEnabled) {{
-                        $config.DisableSharing();
-                    }}
-                }}";
+                // === 核心修正 ===
+                // 步骤 2: 根据 allowManagementOS 的值，显式地添加或删除主机虚拟网卡。
                 if (allowManagementOS)
                 {
-                    script += $"\nif (-not (Get-VMNetworkAdapter -ManagementOS -SwitchName '{switchName}' -ErrorAction SilentlyContinue)) {{ Add-VMNetworkAdapter -ManagementOS -SwitchName '{switchName}' }};";
+                    // 如果主机适配器不存在，则添加它。
+                    script += $"\nif (-not (Get-VMNetworkAdapter -ManagementOS -SwitchName '{switchName}' -ErrorAction SilentlyContinue)) {{ Add-VMNetworkAdapter -ManagementOS -SwitchName '{switchName}' }}";
                 }
                 else
                 {
-                    script += $"\nGet-VMNetworkAdapter -ManagementOS -SwitchName '{switchName}' -ErrorAction SilentlyContinue | Remove-VMNetworkAdapter -Confirm:$false;";
+                    // 如果主机适配器存在，则删除它。
+                    script += $"\nGet-VMNetworkAdapter -ManagementOS -SwitchName '{switchName}' -ErrorAction SilentlyContinue | Remove-VMNetworkAdapter -Confirm:$false";
                 }
                 break;
 
             default:
-                throw new ArgumentException($"错误：未知的网络模式 '{mode}'");
+                throw new ArgumentException($"Unknown network mode '{mode}'", nameof(mode));
         }
+
         await RunScriptSTA(script);
-        if (enabledhcp) { }
     }
     public static Task RunScriptSTA(string script)
     {
