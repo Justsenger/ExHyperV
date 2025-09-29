@@ -46,8 +46,6 @@ public partial class App
         base.OnExit(e);
     }
 
-
-    #region 你原有的方法 (保持不变)
     private string GetValidSystemLanguage()
     {
         var systemLang = GetSystemLanguageViaAPI();
@@ -108,5 +106,4 @@ public partial class App
         [Out] StringBuilder lpLocaleName,
         int cchLocaleName
     );
-    #endregion
 }
