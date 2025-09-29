@@ -4,18 +4,20 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows;
 using System.Xml.Linq;
+using ExHyperV.Tools; 
+
 namespace ExHyperV;
 
 public partial class App
 {
     private const string DefaultLanguage = "en-US";
     private const string ConfigFilePath = "Config.xml";
+
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
 
         string targetLanguage;
-
         if (File.Exists(ConfigFilePath))
         {
             var configLanguage = ReadLanguageFromConfig();
@@ -34,16 +36,23 @@ public partial class App
             targetLanguage = GetValidSystemLanguage();
             WriteLanguageToConfig(targetLanguage);
         }
-
         SetLanguage(targetLanguage);
+        Utils.InitializePowerShell();
+    }
+    protected override void OnExit(ExitEventArgs e)
+    {
+        Utils.CleanupPowerShell();
+
+        base.OnExit(e);
     }
 
+
+    #region 你原有的方法 (保持不变)
     private string GetValidSystemLanguage()
     {
         var systemLang = GetSystemLanguageViaAPI();
         return IsLanguageSupported(systemLang) ? systemLang : DefaultLanguage;
     }
-
 
     private bool IsLanguageSupported(string languageCode)
     {
@@ -94,10 +103,10 @@ public partial class App
         configDoc.Save(ConfigFilePath);
     }
 
-    // Windows API 声明
     [DllImport("kernel32.dll", CharSet = CharSet.Auto)]
     private static extern int GetUserDefaultLocaleName(
         [Out] StringBuilder lpLocaleName,
         int cchLocaleName
     );
+    #endregion
 }

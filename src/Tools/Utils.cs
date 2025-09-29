@@ -17,18 +17,24 @@ public class PowerShellScriptException : Exception
 
 public class Utils
 {
-    private static readonly RunspacePool _runspacePool;
-    static Utils()
-    {
-        InitialSessionState initialSessionState = InitialSessionState.CreateDefault();
-        _runspacePool = RunspaceFactory.CreateRunspacePool(initialSessionState);
-        _runspacePool.Open();
+    private static RunspacePool? _runspacePool;
 
-        AppDomain.CurrentDomain.ProcessExit += (s, e) =>
+
+    public static void InitializePowerShell()
+    {
+        if (_runspacePool == null)
         {
-            _runspacePool?.Close();
-            _runspacePool?.Dispose();
-        };
+            InitialSessionState initialSessionState = InitialSessionState.CreateDefault();
+            _runspacePool = RunspaceFactory.CreateRunspacePool(initialSessionState);
+            _runspacePool.Open();
+        }
+    }
+
+    public static void CleanupPowerShell()
+    {
+        _runspacePool?.Close();
+        _runspacePool?.Dispose();
+        _runspacePool = null;
     }
 
     public static Collection<PSObject> Run(string script)
@@ -348,6 +354,7 @@ public class Utils
             }
         });
         staThread.SetApartmentState(ApartmentState.STA);
+        staThread.IsBackground = true;
         staThread.Start();
 
         return tcs.Task;
