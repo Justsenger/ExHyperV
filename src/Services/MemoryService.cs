@@ -66,7 +66,7 @@ namespace ExHyperV.Services
         public async Task<List<VirtualMachineMemoryInfo>> GetVirtualMachinesMemoryAsync()
         {
             string script = @"
-        Get-VM | ForEach-Object {
+        Hyper-V\Get-VM | ForEach-Object {
             $vm = $_
             $memoryConfig = Get-VMMemory -VMName $vm.VMName
             
@@ -119,7 +119,7 @@ namespace ExHyperV.Services
         public async Task<List<VirtualMachineMemoryInfo>> GetVirtualMachinesMemoryQuickAsync()
         {
             string script = @"
-            Get-VM | Where-Object { $_.State -eq 'Running' } | ForEach-Object {
+            Hyper-V\Get-VM | Where-Object { $_.State -eq 'Running' } | ForEach-Object {
                 $vm = $_
                 [PSCustomObject]@{
                     VMName      = $vm.VMName

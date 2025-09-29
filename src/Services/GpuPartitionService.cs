@@ -26,7 +26,7 @@ namespace ExHyperV.Services
                 Where-Object { $_.MemorySize -ne $null -and $_.MemorySize -gt 0 }";
         private const string GetPartitionableGpusScript = "Get-VMHostPartitionableGpu | select name";
         private const string CheckHyperVModuleScript = "Get-Module -ListAvailable -Name Hyper-V";
-        private const string GetVmsScript = "Get-VM | Select vmname,LowMemoryMappedIoSpace,GuestControlledCacheTypes,HighMemoryMappedIoSpace";
+        private const string GetVmsScript = "Hyper-V\\Get-VM | Select vmname,LowMemoryMappedIoSpace,GuestControlledCacheTypes,HighMemoryMappedIoSpace";
 
         public Task<List<GPUInfo>> GetHostGpusAsync()
         {
@@ -130,7 +130,7 @@ namespace ExHyperV.Services
                 bool isVhdMounted = false;
                 try
                 {
-                    var vmStateResult = Utils.Run($"(Get-VM -Name '{vmName}').State");
+                    var vmStateResult = Utils.Run($"(Hyper-V\\Get-VM -Name '{vmName}').State");
                     if (vmStateResult == null || vmStateResult.Count == 0) return string.Format(Properties.Resources.GetVmState_Error, vmName);
                     if (vmStateResult[0].ToString() != "Off") return ExHyperV.Properties.Resources.Running;
 
