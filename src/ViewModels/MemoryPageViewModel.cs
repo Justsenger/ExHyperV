@@ -13,10 +13,6 @@ namespace ExHyperV.ViewModels
         private readonly IMemoryService _memoryService;
         [ObservableProperty]
         private bool _isLoading;
-
-        [ObservableProperty]
-        private ObservableCollection<MemoryBankGroupViewModel> _memoryBankGroups = new();
-
         [ObservableProperty]
         private ObservableCollection<VirtualMachineMemoryViewModel> _virtualMachinesMemory = new();
 
@@ -84,22 +80,12 @@ namespace ExHyperV.ViewModels
             IsLoading = true;
             try
             {
-                var hostMemoryTask = _memoryService.GetHostMemoryAsync();
                 var vmMemoryTask = _memoryService.GetVirtualMachinesMemoryAsync();
-                await Task.WhenAll(hostMemoryTask, vmMemoryTask);
-                var hostMemoryModels = await hostMemoryTask;
+                await vmMemoryTask;
                 var vmMemoryModels = await vmMemoryTask;
-                var newMemoryBankGroups = new ObservableCollection<MemoryBankGroupViewModel>(
-                    hostMemoryModels.Select(m => new HostMemoryViewModel(m))
-                                    .GroupBy(m => m.BankLabel)
-                                    .Select(g => new MemoryBankGroupViewModel(g.Key, g.ToList()))
-                                    .OrderBy(g => g.BankLabel)
-                );
-
                 var newVirtualMachinesMemory = new ObservableCollection<VirtualMachineMemoryViewModel>(
                     vmMemoryModels.Select(vm => new VirtualMachineMemoryViewModel(vm))
                 );
-                MemoryBankGroups = newMemoryBankGroups;
                 VirtualMachinesMemory = newVirtualMachinesMemory;
                 if (!_liveDataTimer.IsEnabled)
                 {

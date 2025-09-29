@@ -14,81 +14,12 @@
 
     <Page.Resources>
         <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
-        <converters:MemoryImagePathConverter x:Key="MemoryImagePathConverter"/>
         <converters:InverseBooleanConverter x:Key="InverseBooleanConverter"/>
         <converters:InversePercentageConverter x:Key="InversePercentageConverter"/>
     </Page.Resources>
 
     <Grid>
         <StackPanel Margin="10,0,10,20" IsEnabled="{Binding IsLoading, Converter={StaticResource InverseBooleanConverter}}">
-            <ui:Card Padding="12" Margin="10,10,10,0">
-                <StackPanel Orientation="Horizontal">
-                    <ui:FontIcon FontSize="24" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xEEA0;"/>
-                    <TextBlock Text="{x:Static properties:Resources.InstalledMemory}" Margin="10,0,0,0" FontSize="16" VerticalAlignment="Center"/>
-                </StackPanel>
-            </ui:Card>
-            <ItemsControl ItemsSource="{Binding MemoryBankGroups}" Margin="30,0,10,0">
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate DataType="{x:Type viewmodels:MemoryBankGroupViewModel}">
-                        <Border BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="4" Margin="0,4,0,0" Padding="8">
-                            <ItemsControl ItemsSource="{Binding MemoryModulesInGroup}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate DataType="{x:Type viewmodels:HostMemoryViewModel}">
-                                        <ui:CardExpander Margin="0" Padding="8">
-                                            <ui:CardExpander.Header>
-                                                <Grid MinHeight="32">
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="96"/>
-                                                        <ColumnDefinition Width="*"/>
-                                                    </Grid.ColumnDefinitions>
-                                                    <Image Grid.Column="0" Source="{Binding Manufacturer, Converter={StaticResource MemoryImagePathConverter}}" 
-                                                           MaxHeight="32" 
-                                                           HorizontalAlignment="Center"
-                                                           VerticalAlignment="Center"
-                                                           RenderOptions.BitmapScalingMode="HighQuality"
-                                                           Margin="0,0,10,0"
-                                                           SnapsToDevicePixels="True"/>
-                                                    <TextBlock Grid.Column="1" Text="{Binding DisplayName}" FontSize="16" VerticalAlignment="Center"/>
-                                                </Grid>
-                                            </ui:CardExpander.Header>
-                                            <Grid Margin="50,0,0,0">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="Auto"/>
-                                                    <ColumnDefinition Width="*"/>
-                                                    <ColumnDefinition Width="Auto"/>
-                                                    <ColumnDefinition Width="*"/>
-                                                </Grid.ColumnDefinitions>
-                                                <Grid.RowDefinitions>
-                                                    <RowDefinition Height="30"/>
-                                                    <RowDefinition Height="30"/>
-                                                    <RowDefinition Height="30"/>
-                                                    <RowDefinition Height="30"/>
-                                                </Grid.RowDefinitions>
-                                                <TextBlock Grid.Row="0" Grid.Column="0" Text="{x:Static properties:Resources.manu}" FontSize="16" VerticalAlignment="Center"/>
-                                                <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding Manufacturer}" Margin="25,0,0,0" FontSize="16" VerticalAlignment="Center"/>
-                                                <TextBlock Grid.Row="0" Grid.Column="2" Text="{x:Static properties:Resources.PartNumber}" Margin="40,0,0,0" FontSize="16" VerticalAlignment="Center"/>
-                                                <TextBlock Grid.Row="0" Grid.Column="3" Text="{Binding PartNumber}" Margin="25,0,0,0" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" FontSize="16" VerticalAlignment="Center"/>
-                                                <TextBlock Grid.Row="1" Grid.Column="0" Text="{x:Static properties:Resources.MemoryGroup}" FontSize="16" VerticalAlignment="Center"/>
-                                                <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding BankLabel}" Margin="25,0,0,0" FontSize="16" VerticalAlignment="Center"/>
-                                                <TextBlock Grid.Row="1" Grid.Column="2" Text="{x:Static properties:Resources.Slot}" Margin="40,0,0,0" FontSize="16" VerticalAlignment="Center"/>
-                                                <TextBlock Grid.Row="1" Grid.Column="3" Text="{Binding DeviceLocator}" Margin="25,0,0,0" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" FontSize="16" VerticalAlignment="Center"/>
-                                                <TextBlock Grid.Row="2" Grid.Column="0" Text="{x:Static properties:Resources.Type}" FontSize="16" VerticalAlignment="Center"/>
-                                                <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding MemoryType}" Margin="25,0,0,0" FontSize="16" VerticalAlignment="Center"/>
-                                                <TextBlock Grid.Row="2" Grid.Column="2" Text="{x:Static properties:Resources.Capacity}" Margin="40,0,0,0" FontSize="16" VerticalAlignment="Center"/>
-                                                <TextBlock Grid.Row="2" Grid.Column="3" Text="{Binding Capacity}" Margin="25,0,0,0" FontSize="16" VerticalAlignment="Center"/>
-                                                <TextBlock Grid.Row="3" Grid.Column="0" Text="{x:Static properties:Resources.RatedSpeed}" FontSize="16" VerticalAlignment="Center"/>
-                                                <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding DeclaredSpeed}" Margin="25,0,0,0" FontSize="16" VerticalAlignment="Center"/>
-                                                <TextBlock Grid.Row="3" Grid.Column="2" Text="{x:Static properties:Resources.ConfiguredSpeed}" Margin="40,0,0,0" FontSize="16" VerticalAlignment="Center"/>
-                                                <TextBlock Grid.Row="3" Grid.Column="3" Text="{Binding ConfiguredSpeed}" Margin="25,0,0,0" FontSize="16" VerticalAlignment="Center"/>
-                                            </Grid>
-                                        </ui:CardExpander>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </Border>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
             <ui:Card Padding="12" Margin="10,15,10,0">
                 <Grid>
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">

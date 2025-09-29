@@ -8,60 +8,9 @@ namespace ExHyperV.Services
 {
     public class MemoryService : IMemoryService
     {
-        public async Task<List<MemoryInfo>> GetHostMemoryAsync()
-        {
-            string script = @"
-                Get-CimInstance -ClassName Win32_PhysicalMemory | ForEach-Object {
-                    $rawManufacturer = if ($_.Manufacturer) { $_.Manufacturer.Trim() } else { 'Unknown' }; $partNumber = if ($_.PartNumber) { $_.PartNumber.Trim() } else { 'Unknown' }; $finalManufacturer = $rawManufacturer
-                    if ($rawManufacturer -eq 'Unknown' -or [string]::IsNullOrEmpty($rawManufacturer) -or $rawManufacturer -match '^\s*0+\s*$') {
-                        switch -Wildcard ($partNumber) {
-                            'H9J*' { $finalManufacturer = 'SK Hynix' }; 'HMA*' { $finalManufacturer = 'SK Hynix' }; 'HMC*' { $finalManufacturer = 'SK Hynix' }; 'M3*' { $finalManufacturer = 'Samsung' }; 'M4*' { $finalManufacturer = 'Samsung' }; 'MTA*' { $finalManufacturer = 'Micron' }; 'MTF*' { $finalManufacturer = 'Micron' }; 'NT*' { $finalManufacturer = 'Nanya' }; 'CX*' { $finalManufacturer = 'CXMT' }; 'CM*' { $finalManufacturer = 'Corsair' }; 'CT*' { $finalManufacturer = 'Crucial' }; 'BL*' { $finalManufacturer = 'Crucial' }; 'KD*' { $finalManufacturer = 'Klevv' }; 'KM*' { $finalManufacturer = 'Klevv' }; 'KVR*' { $finalManufacturer = 'Kingston' }; 'KHX*' { $finalManufacturer = 'HyperX' }; 'KF?*C*'{ $finalManufacturer = 'Kingston' }; 'KSM*' { $finalManufacturer = 'Kingston' }; 'F?-*G*'{ $finalManufacturer = 'G.Skill' }; 'AX?U*' { $finalManufacturer = 'ADATA' }; 'TF*' { $finalManufacturer = 'Team Group' }; 'TP*' { $finalManufacturer = 'Team Group' }; 'PV*' { $finalManufacturer = 'Patriot' }; 'PSD*' { $finalManufacturer = 'Patriot' }; 'TS*' { $finalManufacturer = 'Transcend' }; 'SP*' { $finalManufacturer = 'Silicon Power' }; 'LD?*' { $finalManufacturer = 'Lexar' }; 'MD*' { $finalManufacturer = 'PNY' }; 'GS*' { $finalManufacturer = 'GeIL' }; 'OCZ*' { $finalManufacturer = 'OCZ' }; 'MRA*' { $finalManufacturer = 'Mushkin' }; 'MES*' { $finalManufacturer = 'Mushkin' }; 'TV*' { $finalManufacturer = 'V-Color' }; 'TC*' { $finalManufacturer = 'V-Color' }; 'KMVX*' { $finalManufacturer = 'Kingmax' }; 'AU*' { $finalManufacturer = 'Apacer' }; 'EL*' { $finalManufacturer = 'Apacer' }; 'GL*' { $finalManufacturer = 'Gloway' }; 'GW*' { $finalManufacturer = 'Gloway' }; 'AS*' { $finalManufacturer = 'Asgard' }; 'KP*' { $finalManufacturer = 'KingBank' }; 'CVN*' { $finalManufacturer = 'Colorful' }; 'GAL*' { $finalManufacturer = 'GALAX' }; 'GAM*' { $finalManufacturer = 'GALAX' }; 'HT.*' { $finalManufacturer = 'Acer Predator' }; 'ZA*' { $finalManufacturer = 'ZADAK' }; 'BW*' { $finalManufacturer = 'BIWIN' }; 'NTS*' { $finalManufacturer = 'Netac' }; 'TG*' { $finalManufacturer = 'Tigo' }; 'ZT*' { $finalManufacturer = 'Zotac' }; 'I3*' { $finalManufacturer = 'Inno3D' }; 'RM*' { $finalManufacturer = 'Ramaxel' }; 'D3*' { $finalManufacturer = 'Innodisk' }; '??????-???' { if ($partNumber -match '^\d{6}-\d{3}$') { $finalManufacturer = 'HP' } }; 'FRU*' { $finalManufacturer = 'Lenovo' }; 'A???????' { if ($partNumber -match '^A\d{7}$') { $finalManufacturer = 'Dell' } }; default { $finalManufacturer = 'Unknown' }
-                        }
-                    }
-                    $memoryType = switch ($_.SMBIOSMemoryType) { 20 { 'DDR' }; 21 { 'DDR2' }; 22 { 'DDR2 FB-DIMM' }; 24 { 'DDR3' }; 26 { 'DDR4' }; 30 { 'LPDDR4' }; 31 { 'LPDDR4X' }; 34 { 'DDR5' }; 35 { 'LPDDR5' }; 36 { 'LPDDR5X' }; default { ""Unknown ($($_.SMBIOSMemoryType))"" } }
-                    $isECC = if ($_.TotalWidth -gt $_.DataWidth) { 'Yes' } else { 'No' }
-                    [PSCustomObject]@{
-                        BankLabel       = $_.BankLabel.Trim()
-                        DeviceLocator   = $_.DeviceLocator
-                        Manufacturer    = $finalManufacturer
-                        PartNumber      = $partNumber
-                        Capacity        = ""$([math]::Round($_.Capacity / 1GB, 0)) GB""
-                        DeclaredSpeed   = ""$($_.Speed) MT/s""
-                        ConfiguredSpeed = ""$($_.ConfiguredClockSpeed) MT/s""
-                        IsEcc           = $isECC
-                        MemoryType      = $memoryType
-                        SerialNumber    = $_.SerialNumber
-                    }
-                } | Sort-Object -Property BankLabel, DeviceLocator";
-
-            var memoryList = new List<MemoryInfo>();
-            try
-            {
-                var results = await Task.Run(() => Utils.Run(script));
-                if (results == null) return memoryList;
-                foreach (var result in results)
-                {
-                    memoryList.Add(new MemoryInfo
-                    {
-                        BankLabel = result.Properties["BankLabel"]?.Value?.ToString() ?? string.Empty,
-                        DeviceLocator = result.Properties["DeviceLocator"]?.Value?.ToString() ?? string.Empty,
-                        Manufacturer = result.Properties["Manufacturer"]?.Value?.ToString() ?? "Unknown",
-                        PartNumber = result.Properties["PartNumber"]?.Value?.ToString() ?? "Unknown",
-                        Capacity = result.Properties["Capacity"]?.Value?.ToString() ?? "0 GB",
-                        DeclaredSpeed = result.Properties["DeclaredSpeed"]?.Value?.ToString() ?? "N/A",
-                        ConfiguredSpeed = result.Properties["ConfiguredSpeed"]?.Value?.ToString() ?? "N/A",
-                        IsEcc = result.Properties["IsEcc"]?.Value?.ToString() ?? "Unknown",
-                        MemoryType = result.Properties["MemoryType"]?.Value?.ToString() ?? "Unknown",
-                        SerialNumber = result.Properties["SerialNumber"]?.Value?.ToString() ?? "Unknown"
-                    });
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Failed to get host memory info: {ex.Message}");
-            }
-            return memoryList;
-        }
+        // ▼▼▼▼▼ 【已删除】GetHostMemoryAsync() 方法 ▼▼▼▼▼
+        // 整个获取宿主机物理内存的方法已被移除。
+        // ▲▲▲▲▲ 【已删除】GetHostMemoryAsync() 方法 ▲▲▲▲▲
 
         public async Task<List<VirtualMachineMemoryInfo>> GetVirtualMachinesMemoryAsync()
         {
@@ -88,7 +37,8 @@ namespace ExHyperV.Services
             var vmMemoryList = new List<VirtualMachineMemoryInfo>();
             try
             {
-                var results = await Task.Run(() => Utils.Run(script));
+                // 优化：直接使用更高效的 Run2
+                var results = await Utils.Run2(script);
                 if (results == null) return vmMemoryList;
 
                 foreach (var result in results)
@@ -148,51 +98,45 @@ namespace ExHyperV.Services
         {
             var scriptBuilder = new StringBuilder();
 
+            // 将字符串解析移到这里，增加健壮性
+            if (!long.TryParse(vmMemory.StartupMB, out long startupMB) ||
+                !long.TryParse(vmMemory.MinimumMB, out long minimumMB) ||
+                !long.TryParse(vmMemory.MaximumMB, out long maximumMB) ||
+                !int.TryParse(vmMemory.Buffer, out int buffer))
+            {
+                // 如果解析失败，可以抛出异常或返回 false
+                throw new ArgumentException("Invalid memory value format.");
+            }
+
+            long startupBytes = startupMB * 1024 * 1024;
+            int priority = (int)vmMemory.Priority;
+
             if (!vmMemory.DynamicMemoryEnabled)
             {
-                long startupBytes = long.Parse(vmMemory.StartupMB) * 1024 * 1024;
-                int priority = (int)vmMemory.Priority;
                 scriptBuilder.AppendLine($"Set-VMMemory -VMName \"{vmMemory.VMName}\" -DynamicMemoryEnabled $false -StartupBytes {startupBytes} -Priority {priority}");
             }
             else
             {
-                long startupBytes = long.Parse(vmMemory.StartupMB) * 1024 * 1024;
-                long minimumBytes = long.Parse(vmMemory.MinimumMB) * 1024 * 1024;
-                long maximumBytes = long.Parse(vmMemory.MaximumMB) * 1024 * 1024;
-                int.TryParse(vmMemory.Buffer, out int buffer);
-                int priority = (int)vmMemory.Priority;
-
+                long minimumBytes = minimumMB * 1024 * 1024;
+                long maximumBytes = maximumMB * 1024 * 1024;
                 scriptBuilder.AppendLine($"Set-VMMemory -VMName \"{vmMemory.VMName}\" -DynamicMemoryEnabled $true -StartupBytes {startupBytes} -MinimumBytes {minimumBytes} -MaximumBytes {maximumBytes} -Buffer {buffer} -Priority {priority}");
             }
 
             string script = scriptBuilder.ToString();
 
-            return await Task.Run(() =>
+            // 优化：使用统一的异步执行器 Run2
+            try
             {
-                using (PowerShell ps = PowerShell.Create())
-                {
-                    ps.AddScript(script);
-                    ps.AddParameter("ErrorAction", "Stop");
-                    try
-                    {
-                        ps.Invoke();
-                        if (ps.HadErrors)
-                        {
-                            StringBuilder errorMessages = new StringBuilder();
-                            foreach (var error in ps.Streams.Error)
-                            {
-                                errorMessages.AppendLine(error.ToString());
-                            }
-                            throw new Exception(errorMessages.ToString());
-                        }
-                        return true;
-                    }
-                    catch (Exception ex)
-                    {
-                        throw new Exception(ex.Message);
-                    }
-                }
-            });
+                await Utils.Run2(script);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                // 可以记录日志或向上层抛出更具体的异常
+                Console.WriteLine($"Failed to set VM memory: {ex.Message}");
+                // throw; // 如果希望上层能捕获到详细的 PowerShell 错误，可以重新抛出
+                return false;
+            }
         }
     }
 }
