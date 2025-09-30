@@ -122,6 +122,7 @@ DDA (Discrete Device Assignment) allows you to assign a complete PCIe device (li
 | **Intel** | DG1 | Xe-LP | ✅ | ❌ | [Specific driver](https://www.shengqipc.cn/d21.html) ✅ |
 | **Intel** | A380 | Xe-HPG | Code 43 ❌ | ✅ | ❌ |
 | **Intel**| UHD Graphics 620 Mobile | Generation 9.5 | Passthrough failed ❌ | ❌ | ❌ | 
+| **Intel**| HD Graphics 610 | Generation 9.5 | Passthrough failed❌ | ❌ | ❌ | 
 | **Intel**| HD Graphics 530 | Generation 9.0 | Passthrough failed ❌ | ❌ | ❌ |
 | **AMD** | RX 580 | GCN 4.0 | Code 43 ❌ | ✅ | ❌ |
 | **AMD** | Radeon Vega 3 | GCN 5.0 | Code 43 ❌ | ❌ | ❌ |
