@@ -50,10 +50,10 @@
     </ItemGroup>
 
     <!-- ========================================================================================= -->
-    <!-- ===                        ExHyperV 终极发布后清理脚本 (封神版)                         === -->
+    <!-- ===                        ExHyperV 终极发布后清理脚本，用于修剪应用程序体积          === -->
     <!-- ========================================================================================= -->
     <Target Name="GodTierCleanupAfterPublish" AfterTargets="Publish">
-        <Message Text="========== Starting God-Tier Cleanup Script... ==========" Importance="high" />
+        <Message Text="========== 开始清理... ==========" Importance="high" />
 
         <!-- === 第1级: 绝对安全区 (100% Safe to Remove) === -->
         <ItemGroup>
@@ -63,7 +63,7 @@
         </ItemGroup>
         <RemoveDir Directories="$(PublishDir)ref" />
         <Delete Files="@(SafeToRemove)" />
-        <Message Text="--- [Level 1: SAFE] Removed Roslyn, ref folder, and PDB files." Importance="high" />
+        <Message Text="--- [等级1] 移除： Roslyn, ref folder, and PDB files." Importance="high" />
 
         <!-- 清理多余的 runtimes 文件夹，仅保留 win 和 win-x64 -->
         <ItemGroup>
@@ -72,7 +72,7 @@
         </ItemGroup>
         <RemoveDir Directories="@(RuntimeDirsToDelete)" />
         <RemoveDir Directories="$(PublishDir)zh-Hans" />
-        <Message Text="--- [Final Frontier] Cleaned up non-x64 runtimes." Importance="high" />
+        <Message Text="--- [等级2] 清理运行时" Importance="high" />
 
         <!-- === 第2级: 低风险区 (Low Risk) === -->
         <ItemGroup>
@@ -113,7 +113,7 @@
 
         </ItemGroup>
         <Delete Files="@(LowRiskToRemove)" />
-        <Message Text="--- [Level 2: LOW RISK] Removed Database, AD, and other optional modules." Importance="high" />
+        <Message Text="--- [等级3] 移除数据库等可选模块" Importance="high" />
 
         <!-- === 第3级: 中风险区 (Medium Risk) === -->
         <ItemGroup>
@@ -134,7 +134,7 @@
             <MediumRiskToRemove Include="$(PublishDir)System.Management.dll" />
         </ItemGroup>
         <Delete Files="@(MediumRiskToRemove)" />
-        <Message Text="--- [Level 3: MEDIUM RISK] Removed Service/EventLog, Markdig, Drawing, and SystemEvents." Importance="high" />
+        <Message Text="--- [等级4] 移除部分服务、系统部件" Importance="high" />
 
         <!-- === 第4级: 高风险区 (High Risk) === -->
         <ItemGroup>
@@ -150,19 +150,15 @@
             <HighRiskToRemove Include="$(PublishDir)System.ServiceModel.dll" />
         </ItemGroup>
         <Delete Files="@(HighRiskToRemove)" />
-        <Message Text="--- [Level 4: HIGH RISK] Removed ServiceModel (WCF). Remoting is disabled." Importance="high" />
+        <Message Text="--- [等级5] 移除WCF等系统组件" Importance="high" />
 
         <!-- === 最终魔法: 从 dll 文件夹复制优化版 DLL 进行替换 === -->
         <ItemGroup>
             <MagicDlls Include="$(MSBuildProjectDirectory)\dll\*.dll" />
         </ItemGroup>
         <Copy SourceFiles="@(MagicDlls)" DestinationFolder="$(PublishDir)" OverwriteReadOnlyFiles="true" SkipUnchangedFiles="false" />
-        <Message Text="--- (Magic) Replaced official DLLs with God-Tier versions from dll folder." Importance="high" />
-
-        <Message Text="========== God-Tier Cleanup Script Finished. ==========" Importance="high" />
-
-
-                <!-- =================================================================== -->
+        <Message Text="--- [等级6] 移除没有必要的dll文件，替换自定义的更小的dll" Importance="high" />
+        <!-- =================================================================== -->
         <!--           新增: 第2.5级: Runtimes 深度清理区 (外科手术)           -->
         <!-- =================================================================== -->
         <ItemGroup>
@@ -194,8 +190,6 @@
         <RemoveDir Directories="@(RuntimesDirsToRemove)" />
         <Delete Files="@(RuntimesFilesToRemove)" Condition=" '%(Identity)' != '' " />
         
-        <Message Text="--- [Level 2.5: RUNTIMES SURGERY] Performed deep cleanup on the runtimes folder." Importance="high" />
-
     </Target>
 
 </Project>
