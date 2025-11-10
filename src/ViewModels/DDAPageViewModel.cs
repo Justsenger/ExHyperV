@@ -175,9 +175,20 @@ namespace ExHyperV.ViewModels
             var waitDialog = new ContentDialog
             {
                 Title = Resources.setting,
-                Content = statusTextBlock, 
+                Content = statusTextBlock,
                 DialogHost = ((MainWindow)Application.Current.MainWindow).ContentPresenterForDialogs,
+                CloseButtonText = ExHyperV.Properties.Resources.Close
             };
+            bool isOperationInProgress = true;
+
+            waitDialog.Closing += (sender, args) =>
+            {
+                if (isOperationInProgress)
+                {
+                    args.Cancel = true;
+                }
+            };
+
             var progressReporter = new Progress<string>(message =>
             {
                 statusTextBlock.Text = message;
@@ -190,6 +201,7 @@ namespace ExHyperV.ViewModels
                 device.Path,
                 progressReporter 
             );
+            isOperationInProgress = false;
             if (success)
             {
                 waitDialog.Hide();
@@ -205,7 +217,6 @@ namespace ExHyperV.ViewModels
                         TextWrapping = TextWrapping.Wrap
                     }
                 };
-                waitDialog.CloseButtonText = ExHyperV.Properties.Resources.Close;
             }
             await dialogTask;
         }
