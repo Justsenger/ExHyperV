@@ -1,6 +1,7 @@
 ﻿using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Controls;
+using System.Xml.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ExHyperV.Properties;
@@ -131,7 +132,7 @@ namespace ExHyperV.ViewModels
                 var shutdownDialog = new ContentDialog
                 {
                     Title = ExHyperV.Properties.Resources.Dialog_Title_PleaseWait,
-                    Content = new TextBlock { Text = ExHyperV.Properties.Resources.DdaPage_Status_ShuttingDownVm, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center },
+                    Content = new TextBlock { Text = string.Format(ExHyperV.Properties.Resources.DdaPage_Status_ShuttingDownVm, targetVmName), HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center },
                     DialogHost = ((MainWindow)Application.Current.MainWindow).ContentPresenterForDialogs,
                 };
                 var shutdownDialogTask = shutdownDialog.ShowAsync();
