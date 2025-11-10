@@ -161,18 +161,35 @@ namespace ExHyperV.ViewModels
         /// <summary>
         /// 执行DDA分配并显示一个等待对话框。
         /// </summary>
+        /// <summary>
+        /// 执行DDA分配并显示一个可以报告详细进度的等待对话框。
+        /// </summary>
         private async Task PerformDdaAssignmentAsync(DeviceViewModel device, string target)
         {
+            var statusTextBlock = new TextBlock
+            {
+                Text = "", // 初始文本
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
+            };
             var waitDialog = new ContentDialog
             {
                 Title = Resources.setting,
-                Content = new TextBlock { Text = ExHyperV.Properties.Resources.DdaPage_Status_AssigningDevice, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center },
+                Content = statusTextBlock, 
                 DialogHost = ((MainWindow)Application.Current.MainWindow).ContentPresenterForDialogs,
             };
+            var progressReporter = new Progress<string>(message =>
+            {
+                statusTextBlock.Text = message;
+            });
             var dialogTask = waitDialog.ShowAsync();
-
-            var (success, errorMessage) = await _hyperVService.ExecuteDdaOperationAsync(target, device.Status, device.InstanceId, device.Path);
-
+            var (success, errorMessage) = await _hyperVService.ExecuteDdaOperationAsync(
+                target,
+                device.Status,
+                device.InstanceId,
+                device.Path,
+                progressReporter 
+            );
             if (success)
             {
                 waitDialog.Hide();
@@ -180,7 +197,14 @@ namespace ExHyperV.ViewModels
             else
             {
                 waitDialog.Title = ExHyperV.Properties.Resources.Dialog_Title_OperationFailed;
-                waitDialog.Content = new ScrollViewer { Content = new TextBlock { Text = string.Format(Properties.Resources.DdaPage_Error_ExecutionGeneric, errorMessage ?? Properties.Resources.Error_Unknown) } };
+                waitDialog.Content = new ScrollViewer
+                {
+                    Content = new TextBlock
+                    {
+                        Text = string.Format(Properties.Resources.DdaPage_Error_ExecutionGeneric, errorMessage ?? Properties.Resources.Error_Unknown),
+                        TextWrapping = TextWrapping.Wrap
+                    }
+                };
                 waitDialog.CloseButtonText = ExHyperV.Properties.Resources.Close;
             }
             await dialogTask;

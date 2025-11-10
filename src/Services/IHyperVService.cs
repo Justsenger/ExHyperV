@@ -62,6 +62,6 @@ namespace ExHyperV.Services
         /// <param name="instanceId">设备的实例ID。</param>
         /// <param name="path">设备的位置路径。</param>
         /// <returns>一个元组，包含操作是否成功和失败时的错误信息。</returns>
-        Task<(bool Success, string? ErrorMessage)> ExecuteDdaOperationAsync(string targetVmName, string currentVmName, string instanceId, string path);
+        Task<(bool Success, string? ErrorMessage)> ExecuteDdaOperationAsync(string targetVmName, string currentVmName, string instanceId, string path, IProgress<string>? progress = null);
     }
 }

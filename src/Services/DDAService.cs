@@ -228,19 +228,20 @@ namespace ExHyperV.Services
             });
         }
 
-        public async Task<(bool Success, string? ErrorMessage)> ExecuteDdaOperationAsync(string targetVmName, string currentVmName, string instanceId, string path)
+        public async Task<(bool Success, string? ErrorMessage)> ExecuteDdaOperationAsync(string targetVmName, string currentVmName, string instanceId, string path, IProgress<string>? progress = null)
         {
             try
             {
-                var (psCommands, _) = DDACommands(targetVmName, instanceId, path, currentVmName);
-                if (psCommands.Length == 0) return (true, null);
-
-                foreach (var command in psCommands)
+                var operations = DDACommands(targetVmName, instanceId, path, currentVmName);
+                if (operations.Count == 0) return (true, null); 
+                foreach (var operation in operations)
                 {
-                    var logOutput = await ExecutePowerShellCommandAsync(command);
-                    if (logOutput.Any(log => log.Contains("Error", StringComparison.OrdinalIgnoreCase)))
+                    progress?.Report(operation.Message);
+                    var logOutput = await ExecutePowerShellCommandAsync(operation.Command);
+                    var errorLogs = logOutput.Where(log => log.Contains("Error", StringComparison.OrdinalIgnoreCase)).ToList();
+                    if (errorLogs.Any())
                     {
-                        var errorMessage = string.Join(Environment.NewLine, logOutput.Where(log => log.Contains("Error", StringComparison.OrdinalIgnoreCase)));
+                        var errorMessage = string.Join(Environment.NewLine, errorLogs);
                         return (false, errorMessage);
                     }
                 }
@@ -286,85 +287,54 @@ namespace ExHyperV.Services
             return logOutput;
         }
 
-        private (string[] commands, string[] messages) DDACommands(string Vmname, string instanceId, string path, string Nowname)
+        private List<(string Command, string Message)> DDACommands(string Vmname, string instanceId, string path, string Nowname)
         {
-            string[] commands;
-            string[] messages;
+            var operations = new List<(string Command, string Message)>();
+            // 场景1: 设备已卸除，现在要分配给主机。
             if (Nowname == Resources.removed && Vmname == Resources.Host)
             {
-                commands = new[] { $"Mount-VMHostAssignableDevice -LocationPath '{path}'" };
-                messages = new[] { Resources.mounting };
+                operations.Add((
+                    Command: $"Mount-VMHostAssignableDevice -LocationPath '{path}'",
+                    Message: Resources.mounting
+                ));
             }
+            // 场景2: 设备已卸除，现在要分配给某个虚拟机。
             else if (Nowname == Resources.removed && Vmname != Resources.Host)
             {
-                commands = new[] { $"Add-VMAssignableDevice -LocationPath '{path}' -VMName '{Vmname}'" };
-                messages = new[] { Resources.mounting };
+                operations.Add((
+                    Command: $"Add-VMAssignableDevice -LocationPath '{path}' -VMName '{Vmname}'",
+                    Message: Resources.mounting
+                ));
             }
+            // 场景3: 设备在主机上，现在要分配给某个虚拟机。
             else if (Nowname == Resources.Host)
             {
-                commands = new[]
-                {
-                    $"Set-VM -Name '{Vmname}' -AutomaticStopAction TurnOff",
-                    $"Set-VM -GuestControlledCacheTypes $true -VMName '{Vmname}'",
-                    $"(Get-PnpDeviceProperty -InstanceId '{instanceId}' DEVPKEY_Device_LocationPaths).Data[0]",
-                    $"Disable-PnpDevice -InstanceId '{instanceId}' -Confirm:$false",
-                    $"Dismount-VMHostAssignableDevice -Force -LocationPath '{path}'",
-                    $"Add-VMAssignableDevice -LocationPath '{path}' -VMName '{Vmname}'",
-                };
-                messages = new[]
-                {
-                    Resources.string5,
-                    Resources.cpucache,
-                    Resources.getpath,
-                    Resources.Disabledevice,
-                    Resources.Dismountdevice,
-                    Resources.mounting,
-                };
+                operations.Add(($"Set-VM -Name '{Vmname}' -AutomaticStopAction TurnOff", Resources.string5));
+                operations.Add(($"Set-VM -GuestControlledCacheTypes $true -VMName '{Vmname}'", Resources.cpucache));
+                operations.Add(($"(Get-PnpDeviceProperty -InstanceId '{instanceId}' DEVPKEY_Device_LocationPaths).Data[0]", Resources.getpath));
+                operations.Add(($"Disable-PnpDevice -InstanceId '{instanceId}' -Confirm:$false", Resources.Disabledevice));
+                operations.Add(($"Dismount-VMHostAssignableDevice -Force -LocationPath '{path}'", Resources.Dismountdevice));
+                operations.Add(($"Add-VMAssignableDevice -LocationPath '{path}' -VMName '{Vmname}'", Resources.mounting));
             }
+            // 场景4: 设备从一个虚拟机移到另一个虚拟机。
             else if (Vmname != Resources.Host && Nowname != Resources.Host)
             {
-                commands = new[]
-                {
-                    $"Set-VM -Name '{Vmname}' -AutomaticStopAction TurnOff",
-                    $"Set-VM -GuestControlledCacheTypes $true -VMName '{Vmname}'",
-                    $"(Get-PnpDeviceProperty -InstanceId '{instanceId}' DEVPKEY_Device_LocationPaths).Data[0]",
-                    $"Remove-VMAssignableDevice -LocationPath '{path}' -VMName '{Nowname}'",
-                    $"Add-VMAssignableDevice -LocationPath '{path}' -VMName '{Vmname}'",
-                };
-                messages = new[]
-                {
-                    Resources.string5,
-                    Resources.cpucache,
-                    Resources.getpath,
-                    Resources.Dismountdevice,
-                    Resources.mounting,
-                };
+                operations.Add(($"Set-VM -Name '{Vmname}' -AutomaticStopAction TurnOff", Resources.string5));
+                operations.Add(($"Set-VM -GuestControlledCacheTypes $true -VMName '{Vmname}'", Resources.cpucache));
+                operations.Add(($"(Get-PnpDeviceProperty -InstanceId '{instanceId}' DEVPKEY_Device_LocationPaths).Data[0]", Resources.getpath));
+                operations.Add(($"Remove-VMAssignableDevice -LocationPath '{path}' -VMName '{Nowname}'", Resources.Dismountdevice));
+                operations.Add(($"Add-VMAssignableDevice -LocationPath '{path}' -VMName '{Vmname}'", Resources.mounting));
             }
+            // 场景5: 设备从一个虚拟机移回给主机。
             else if (Vmname == Resources.Host && Nowname != Resources.Host)
             {
-                commands = new[]
-                {
-                    $"(Get-PnpDeviceProperty -InstanceId '{instanceId}' DEVPKEY_Device_LocationPaths).Data[0]",
-                    $"Remove-VMAssignableDevice -LocationPath '{path}' -VMName '{Nowname}'",
-                    $"Mount-VMHostAssignableDevice -LocationPath '{path}'",
-                    $"Enable-PnpDevice -InstanceId '{instanceId}' -Confirm:$false",
-                };
-                messages = new[]
-                {
-                    Resources.getpath,
-                    Resources.Dismountdevice,
-                    Resources.mounting,
-                    Resources.enabling,
-                };
+                operations.Add(($"(Get-PnpDeviceProperty -InstanceId '{instanceId}' DEVPKEY_Device_LocationPaths).Data[0]", Resources.getpath));
+                operations.Add(($"Remove-VMAssignableDevice -LocationPath '{path}' -VMName '{Nowname}'", Resources.Dismountdevice));
+                operations.Add(($"Mount-VMHostAssignableDevice -LocationPath '{path}'", Resources.mounting));
+                operations.Add(($"Enable-PnpDevice -InstanceId '{instanceId}' -Confirm:$false", Resources.enabling));
             }
-            else
-            {
-                commands = new string[0];
-                messages = new string[0];
-            }
-            return (commands, messages);
+            return operations;
         }
-
         #endregion
     }
 }
