@@ -103,7 +103,7 @@
                     Content="中央处理器"
                     NavigationCacheMode="Enabled"
                     Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"
-                    TargetPageType="{x:Type pages:CpuPage}">
+                    >
                     <ui:NavigationViewItem.Icon>
                         <ui:FontIcon FontSize="16" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xF58E;"/>
                     </ui:NavigationViewItem.Icon>
