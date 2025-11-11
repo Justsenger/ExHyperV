@@ -69,7 +69,8 @@ namespace ExHyperV.Services
                         string manu = gpu.Members["AdapterCompatibility"]?.Value.ToString();
                         string driverVersion = gpu.Members["DriverVersion"]?.Value.ToString();
                         string vendor = pciInfoProvider.GetVendorFromInstanceId(instanceId);
-                        if (vendor == "Unknown") { continue; }
+                        //if (vendor == "Unknown") { continue; }
+                        if (instanceId != null && !instanceId.ToUpper().StartsWith("PCI\\")){continue; }
                         gpuList.Add(new GPUInfo(name, "True", manu, instanceId, null, null, driverVersion, vendor));
                     }
                 }
