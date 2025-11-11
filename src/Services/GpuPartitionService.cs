@@ -7,6 +7,7 @@ namespace ExHyperV.Services
 {
     public class GpuPartitionService : IGpuPartitionService
     {
+
         // PowerShell 脚本常量
         private const string GetGpuWmiInfoScript = "Get-CimInstance -Class Win32_VideoController | select PNPDeviceID,name,AdapterCompatibility,DriverVersion";
         private const string GetGpuRamScript = @"
@@ -27,6 +28,28 @@ namespace ExHyperV.Services
         private const string GetPartitionableGpusScript = "Get-VMHostPartitionableGpu | select name";
         private const string CheckHyperVModuleScript = "Get-Module -ListAvailable -Name Hyper-V";
         private const string GetVmsScript = "Hyper-V\\Get-VM | Select vmname,LowMemoryMappedIoSpace,GuestControlledCacheTypes,HighMemoryMappedIoSpace";
+
+
+        private string NormalizeDeviceId(string deviceId)
+        {
+            if (string.IsNullOrWhiteSpace(deviceId))
+            {
+                return string.Empty;
+            }
+            var normalizedId = deviceId.ToUpper();
+            if (normalizedId.StartsWith(@"\\?\"))
+            {
+                normalizedId = normalizedId.Substring(4);
+            }
+            int suffixIndex = normalizedId.IndexOf("#{");
+            if (suffixIndex != -1)
+            {
+                normalizedId = normalizedId.Substring(0, suffixIndex);
+            }
+            normalizedId = normalizedId.Replace('\\', '#');
+
+            return normalizedId;
+        }
 
         public Task<List<GPUInfo>> GetHostGpusAsync()
         {
@@ -79,7 +102,12 @@ namespace ExHyperV.Services
                     foreach (var gpu in partitionableGpus)
                     {
                         string pname = gpu.Members["Name"]?.Value.ToString();
-                        var existingGpu = gpuList.FirstOrDefault(g => pname.ToUpper().Contains(g.InstanceId.Replace("\\", "#")));
+                        string normalizedPNameId = NormalizeDeviceId(pname);
+
+                        if (string.IsNullOrEmpty(normalizedPNameId)) continue;
+                        var existingGpu = gpuList.FirstOrDefault(g =>
+                            NormalizeDeviceId(g.InstanceId) == normalizedPNameId
+                        );
                         if (existingGpu != null)
                         {
                             existingGpu.Pname = pname;
