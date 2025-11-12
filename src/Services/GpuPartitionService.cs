@@ -159,6 +159,7 @@ namespace ExHyperV.Services
                 bool isVhdMounted = false;
                 try
                 {
+                    Utils.AddGpuAssignmentStrategyReg(); //自动关闭安全策略
                     var vmStateResult = Utils.Run($"(Hyper-V\\Get-VM -Name '{vmName}').State");
                     if (vmStateResult == null || vmStateResult.Count == 0) return string.Format(Properties.Resources.GetVmState_Error, vmName);
                     if (vmStateResult[0].ToString() != "Off") return ExHyperV.Properties.Resources.Running;

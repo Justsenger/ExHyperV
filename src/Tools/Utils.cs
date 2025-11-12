@@ -301,6 +301,37 @@ public class Utils
 
         return tcs.Task;
     }
+
+
+    /// <summary>
+    /// 添加Hyper-V GPU分配策略注册表项，以允许不受支持的GPU进行分区。
+    /// </summary>
+    public static void AddGpuAssignmentStrategyReg()
+    {
+        string path = @"HKLM:\SOFTWARE\Policies\Microsoft\Windows\HyperV";
+        string script = $@"
+            if (-not (Test-Path '{path}')) {{ New-Item -Path '{path}' -Force }}
+            Set-ItemProperty -Path '{path}' -Name 'RequireSecureDeviceAssignment' -Value 0 -Type DWord
+            Set-ItemProperty -Path '{path}' -Name 'RequireSupportedDeviceAssignment' -Value 0 -Type DWord";
+        Run(script); 
+    }
+
+    /// <summary>
+    /// 移除Hyper-V GPU分配策略注册表项。
+    /// </summary>
+    public static void RemoveGpuAssignmentStrategyReg()
+    {
+        string path = @"HKLM:\SOFTWARE\Policies\Microsoft\Windows\HyperV";
+        string script = $@"
+            if (Test-Path '{path}') {{
+                Remove-ItemProperty -Path '{path}' -Name 'RequireSecureDeviceAssignment' -ErrorAction SilentlyContinue
+                Remove-ItemProperty -Path '{path}' -Name 'RequireSupportedDeviceAssignment' -ErrorAction SilentlyContinue
+            }}";
+        Run(script); 
+    }
+
+
+
     public static void Show(string message)
     {
         var messageBox = new Wpf.Ui.Controls.MessageBox

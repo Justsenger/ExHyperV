@@ -143,7 +143,7 @@ namespace ExHyperV.ViewModels
 
         partial void OnIsGpuStrategyEnabledChanged(bool value)
         {
-            if (value) AddGpuStrategyReg(); else RemoveGpuStrategyReg();
+            if (value) Utils.AddGpuAssignmentStrategyReg(); else Utils.RemoveGpuAssignmentStrategyReg();
         }
 
         private void CheckGpuStrategyReg()
@@ -153,26 +153,6 @@ namespace ExHyperV.ViewModels
             // 直接设置属性，避免再次触发OnChanged回调
             SetProperty(ref _isGpuStrategyEnabled, result.Count > 0 && result[0].ToString().ToLower() == "true", nameof(IsGpuStrategyEnabled));
         }
-
-        private void AddGpuStrategyReg()
-        {
-            string path = @"HKLM:\SOFTWARE\Policies\Microsoft\Windows\HyperV";
-            string script = $@"
-                if (-not (Test-Path '{path}')) {{ New-Item -Path '{path}' -Force }}
-                Set-ItemProperty -Path '{path}' -Name 'RequireSecureDeviceAssignment' -Value 0 -Type DWord
-                Set-ItemProperty -Path '{path}' -Name 'RequireSupportedDeviceAssignment' -Value 0 -Type DWord";
-            Utils.Run(script);
-        }
-
-        private void RemoveGpuStrategyReg()
-        {
-            string path = @"HKLM:\SOFTWARE\Policies\Microsoft\Windows\HyperV";
-            string script = $@"
-                Remove-ItemProperty -Path '{path}' -Name 'RequireSecureDeviceAssignment' -ErrorAction SilentlyContinue
-                Remove-ItemProperty -Path '{path}' -Name 'RequireSupportedDeviceAssignment' -ErrorAction SilentlyContinue";
-            Utils.Run(script);
-        }
-
         #endregion
     }
 }
