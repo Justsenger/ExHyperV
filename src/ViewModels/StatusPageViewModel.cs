@@ -56,7 +56,7 @@ namespace ExHyperV.ViewModels
             await System.Threading.Tasks.Task.Run(() =>
             {
                 int buildVersion = Environment.OSVersion.Version.Build;
-                if (buildVersion >= 22000)
+                if (buildVersion >= 17134)
                 {
                     SystemStatus.StatusText = $"{Properties.Resources.String3}{buildVersion}{Properties.Resources.v19041}";
                     SystemStatus.IsSuccess = true;
