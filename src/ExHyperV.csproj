@@ -23,6 +23,7 @@
         <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
         <PackageReference Include="Microsoft.PowerShell.SDK" Version="7.4.0" />
         <PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.135" />
+        <PackageReference Include="SSH.NET" Version="2025.1.0" />
         <PackageReference Include="WPF-UI" Version="4.0.3" />
     </ItemGroup>
 
@@ -38,6 +39,9 @@
     <!--                       4. 自动生成文件配置                            -->
     <!-- =================================================================== -->
     <ItemGroup>
+        <Compile Update="Models\SshCredentials.cs">
+          <Generator>MSBuild:Compile</Generator>
+        </Compile>
         <Compile Update="Properties\Resources.Designer.cs">
             <DesignTime>True</DesignTime>
             <AutoGen>True</AutoGen>

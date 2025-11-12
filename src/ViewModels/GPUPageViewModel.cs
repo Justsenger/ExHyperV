@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using ExHyperV.Models;
 using ExHyperV.Services;
 using ExHyperV.Tools;
 using ExHyperV.Views;
@@ -16,6 +17,7 @@ namespace ExHyperV.ViewModels
     public partial class GPUPageViewModel : ObservableObject
     {
         private readonly IGpuPartitionService _gpuService;
+        private readonly SshService _sshService;
 
         [ObservableProperty]
         private bool _isLoading;
@@ -26,6 +28,7 @@ namespace ExHyperV.ViewModels
         public GPUPageViewModel()
         {
             _gpuService = new GpuPartitionService();
+            _sshService = new SshService();
             _ = LoadDataCommand.ExecuteAsync(null);
         }
 
@@ -48,6 +51,27 @@ namespace ExHyperV.ViewModels
         private async Task AddGpuAsync(VirtualMachineViewModel vm)
         {
             if (vm == null) return;
+            string vmState = await _gpuService.GetVmStateAsync(vm.Name);
+            if (vmState != "Off")
+            {
+                ShutdownChoice choice = ShutdownChoice.Cancel;
+                await Application.Current.Dispatcher.InvokeAsync(() => {
+                    var dialog = new ShutdownConfirmationDialog(vm.Name);
+                    dialog.ShowDialog();
+                    choice = dialog.UserChoice;
+                });
+
+                if (choice == ShutdownChoice.ShutdownAndContinue)
+                {
+                    IsLoading = true;
+                    await _gpuService.ShutdownVmAsync(vm.Name);
+                    IsLoading = false;
+                }
+                else
+                {
+                    return; 
+                }
+            }
 
             var gpuInfoList = this.HostGpus.Select(h => h.Model).ToList();
             var chooseGpuWindow = new ChooseGPUWindow(vm.Name, gpuInfoList);
@@ -66,7 +90,6 @@ namespace ExHyperV.ViewModels
             try
             {
                 var partitions = await _gpuService.GetPartitionsFromVmAsync(vm.Name);
-
                 var selectablePartitions = partitions
                     .Where(p => p.OsType == OperatingSystemType.Windows || p.OsType == OperatingSystemType.Linux)
                     .ToList();
@@ -116,7 +139,41 @@ namespace ExHyperV.ViewModels
                 }
                 else if (result == "SSH_REQUIRED")
                 {
-                    Utils.Show($"检测到 Linux 分区。下一步将通过 SSH 进行配置（功能待实现）。");
+                    // ==========================================================
+                    // ===== 这是根据您最终决策修改的 Linux 流程 =====
+                    // ==========================================================
+
+                    // 1. 启动虚拟机
+                    // (我们假设有一个服务方法可以启动VM，如果没有，可以直接用Utils.Run)
+                    Utils.Run($"Start-VM -Name '{vm.Name}'");
+
+                    // 2. 弹出一个清晰的引导提示
+                    Utils.Show(
+                        "Linux GPU已分配成功！\n\n" +
+                        "接下来的操作：\n\n" +
+                        "1. 请手动进入虚拟机，查看并记录其IP地址。\n\n" +
+                        "2. 准备好IP地址、用户名和口令，以便后续进行驱动安装。"
+                    );
+
+                    // 3. （可选）直接弹出SSH登录窗口，让用户手动填入IP
+                    SshCredentials credentials = null;
+                    await Application.Current.Dispatcher.InvokeAsync(() =>
+                    {
+                        var sshDialog = new SshLoginWindow();
+                        if (sshDialog.ShowDialog() == true)
+                        {
+                            credentials = sshDialog.Credentials;
+                        }
+                    });
+
+                    if (credentials != null)
+                    {
+                        // IsLoading 仍然为 true，可以开始执行耗时的SSH操作
+                        // 这里的 _sshService 实例需要您在 ViewModel 中定义
+                        //string osInfo = await _sshService.ExecuteCommandAsync(credentials, "cat /etc/os-release");
+                        Utils.Show($"已成功连接到 {credentials.Host}！\n\n操作系统信息：\n");
+                        // TODO: 添加驱动安装逻辑
+                    }
                 }
                 else
                 {

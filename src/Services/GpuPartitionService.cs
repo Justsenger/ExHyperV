@@ -29,6 +29,38 @@ namespace ExHyperV.Services
         private const string GetPartitionableGpusScript = "Get-VMHostPartitionableGpu | select name";
         private const string CheckHyperVModuleScript = "Get-Module -ListAvailable -Name Hyper-V";
         private const string GetVmsScript = "Hyper-V\\Get-VM | Select vmname,LowMemoryMappedIoSpace,GuestControlledCacheTypes,HighMemoryMappedIoSpace";
+
+        public Task<string> GetVmStateAsync(string vmName)
+        {
+            return Task.Run(() =>
+            {
+                var result = Utils.Run($"(Get-VM -Name '{vmName}').State");
+                if (result != null && result.Count > 0)
+                {
+                    return result[0].ToString();
+                }
+                return "NotFound";
+            });
+        }
+        public Task ShutdownVmAsync(string vmName)
+        {
+            return Task.Run(() =>
+            {
+                Utils.Run($"Stop-VM -Name '{vmName}' -TurnOff");
+
+                while (true)
+                {
+                    var result = Utils.Run($"(Get-VM -Name '{vmName}').State");
+                    if (result != null && result.Count > 0 && result[0].ToString() == "Off")
+                    {
+                        break;
+                    }
+                    System.Threading.Thread.Sleep(500); 
+                }
+            });
+        }
+
+
         private char GetFreeDriveLetter()
         {
             var usedLetters = DriveInfo.GetDrives().Select(d => d.Name[0]).ToList();

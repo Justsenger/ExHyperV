@@ -10,5 +10,8 @@ namespace ExHyperV.Services
         Task<List<PartitionInfo>> GetPartitionsFromVmAsync(string vmName);
         Task<string> AddGpuPartitionAsync(string vmName, string gpuInstancePath, string gpuManu, PartitionInfo selectedPartition);
         Task<bool> IsHyperVModuleAvailableAsync();
+        Task<string> GetVmStateAsync(string vmName);
+        Task ShutdownVmAsync(string vmName);
+
     }
 }
