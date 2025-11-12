@@ -53,6 +53,7 @@ Due to limited personal time and resources, there may be untested scenarios. If 
 - Windows Server 2025
   
 #### GPU-P (GPU Partitioning / Paravirtualization)
+- Windows 10（Build 17134+）
 - Windows 11
 - Windows Server 2022
 - Windows Server 2025
