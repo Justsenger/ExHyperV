@@ -135,27 +135,17 @@ namespace ExHyperV.ViewModels
                             System.TimeSpan.FromSeconds(2)
                         );
                     }
-                    await CoreLoadDataAsync();
+                    
                 }
                 else if (result == "SSH_REQUIRED")
                 {
-                    // ==========================================================
-                    // ===== 这是根据您最终决策修改的 Linux 流程 =====
-                    // ==========================================================
-
-                    // 1. 启动虚拟机
-                    // (我们假设有一个服务方法可以启动VM，如果没有，可以直接用Utils.Run)
                     Utils.Run($"Start-VM -Name '{vm.Name}'");
-
-                    // 2. 弹出一个清晰的引导提示
                     Utils.Show(
                         "Linux GPU已分配成功！\n\n" +
                         "接下来的操作：\n\n" +
                         "1. 请手动进入虚拟机，查看并记录其IP地址。\n\n" +
                         "2. 准备好IP地址、用户名和口令，以便后续进行驱动安装。"
                     );
-
-                    // 3. （可选）直接弹出SSH登录窗口，让用户手动填入IP
                     SshCredentials credentials = null;
                     await Application.Current.Dispatcher.InvokeAsync(() =>
                     {
@@ -186,6 +176,7 @@ namespace ExHyperV.ViewModels
             }
             finally
             {
+                await CoreLoadDataAsync();
                 IsLoading = false;
             }
         }

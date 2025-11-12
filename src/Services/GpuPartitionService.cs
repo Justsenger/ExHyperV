@@ -269,6 +269,18 @@ namespace ExHyperV.Services
                 string actualLetter = letterResult[0].ToString();
                 assignedDriveLetter = $"{actualLetter}:";
 
+                string system32Path = Path.Combine(assignedDriveLetter, "Windows", "System32");
+                if (!Directory.Exists(system32Path))
+                {
+                    return string.Format(
+                        "所选分区似乎不是一个有效的Windows系统分区。",
+                        partition.PartitionNumber,
+                        assignedDriveLetter,
+                        system32Path
+                    );
+
+                }
+
                 string letter = assignedDriveLetter.TrimEnd(':');
                 string sourceFolder = @"C:\Windows\System32\DriverStore\FileRepository";
                 string destinationFolder = letter + @":\Windows\System32\HostDriverStore\FileRepository";
