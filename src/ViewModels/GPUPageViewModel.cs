@@ -48,58 +48,90 @@ namespace ExHyperV.ViewModels
         private async Task AddGpuAsync(VirtualMachineViewModel vm)
         {
             if (vm == null) return;
+
             var gpuInfoList = this.HostGpus.Select(h => h.Model).ToList();
-            var chooseWindow = new ChooseGPUWindow(vm.Name, gpuInfoList);
-            if (chooseWindow.ShowDialog() == true)
+            var chooseGpuWindow = new ChooseGPUWindow(vm.Name, gpuInfoList);
+            if (chooseGpuWindow.ShowDialog() != true)
             {
-                var selectedGpu = chooseWindow.SelectedGpu;
-                if (selectedGpu != null)
+                return;
+            }
+
+            var selectedGpu = chooseGpuWindow.SelectedGpu;
+            if (selectedGpu == null)
+            {
+                return;
+            }
+
+            IsLoading = true;
+            try
+            {
+                var partitions = await _gpuService.GetPartitionsFromVmAsync(vm.Name);
+
+                var selectablePartitions = partitions
+                    .Where(p => p.OsType == OperatingSystemType.Windows || p.OsType == OperatingSystemType.Linux)
+                    .ToList();
+
+                if (!selectablePartitions.Any())
                 {
-                    IsLoading = true;
-                    try
+                    Utils.Show("错误：未在该虚拟磁盘上找到可识别的 Windows 或 Linux 分区。");
+                    return;
+                }
+
+                PartitionInfo userSelectedPartition = null;
+                await Application.Current.Dispatcher.InvokeAsync(async () =>
+                {
+                    userSelectedPartition = await ShowPartitionSelectionDialog(selectablePartitions);
+                });
+
+                if (userSelectedPartition == null)
+                {
+                    return;
+                }
+
+                string result = await _gpuService.AddGpuPartitionAsync(vm.Name, selectedGpu.Path, selectedGpu.Manu, userSelectedPartition);
+
+                if (result == "OK")
+                {
+                    string GPUname = selectedGpu.GPUname;
+                    string VMname = vm.Name;
+                    var ms = Application.Current.MainWindow as MainWindow;
+                    if (ms != null)
                     {
-                        string result = await _gpuService.AddGpuPartitionAsync(vm.Name, selectedGpu.Path, selectedGpu.Manu);
-                        if (result == "OK")
-                        {
-                            string GPUname = selectedGpu.GPUname;
-                            string VMname = vm.Name;
-                            var ms = System.Windows.Application.Current.MainWindow as MainWindow;
-                            if (ms != null)
+                        var snackbarService = new SnackbarService();
+                        snackbarService.SetSnackbarPresenter(ms.SnackbarPresenter);
+                        snackbarService.Show(
+                            Properties.Resources.success,
+                            GPUname + Properties.Resources.already + VMname,
+                            ControlAppearance.Success,
+                            new FontIcon
                             {
-                                var snackbarService = new SnackbarService();
-                                snackbarService.SetSnackbarPresenter(ms.SnackbarPresenter);
-                                snackbarService.Show(
-                                    ExHyperV.Properties.Resources.success,
-                                    GPUname + ExHyperV.Properties.Resources.already + VMname,
-                                    ControlAppearance.Success,
-                                    new FontIcon
-                                    {
-                                        Glyph = "\uF16C",
-                                        FontSize = 32,
-                                        FontFamily = Application.Current.FindResource("SegoeFluentIcons") as FontFamily,
-                                    },
-                                    TimeSpan.FromSeconds(2)
-                                );
-                            }
-                            await CoreLoadDataAsync();
-                        }
-                        else
-                        {
-                            Utils.Show(string.Format(Properties.Resources.GpuPartition_Error_MountGpuFailed, result));
-                        }
+                                Glyph = "\uF16C",
+                                FontSize = 32,
+                                FontFamily = Application.Current.FindResource("SegoeFluentIcons") as FontFamily,
+                            },
+                            System.TimeSpan.FromSeconds(2)
+                        );
                     }
-                    catch (Exception ex)
-                    {
-                        Utils.Show(string.Format(Properties.Resources.Error_FatalError, ex.Message));
-                    }
-                    finally
-                    {
-                        IsLoading = false;
-                    }
+                    await CoreLoadDataAsync();
+                }
+                else if (result == "SSH_REQUIRED")
+                {
+                    Utils.Show($"检测到 Linux 分区。下一步将通过 SSH 进行配置（功能待实现）。");
+                }
+                else
+                {
+                    Utils.Show(string.Format(Properties.Resources.GpuPartition_Error_MountGpuFailed, result));
                 }
             }
+            catch (System.Exception ex)
+            {
+                Utils.Show(string.Format(Properties.Resources.Error_FatalError, ex.Message));
+            }
+            finally
+            {
+                IsLoading = false;
+            }
         }
-
         [RelayCommand]
         private async Task RemoveGpuAsync(object[] parameters)
         {
@@ -179,5 +211,17 @@ namespace ExHyperV.ViewModels
             VirtualMachines.Clear();
             foreach (var vm in newVms) { VirtualMachines.Add(vm); }
         }
+
+        private async Task<PartitionInfo> ShowPartitionSelectionDialog(List<PartitionInfo> partitions)
+        {
+            var dialog = new ChoosePartitionWindow(partitions);
+            bool? result = dialog.ShowDialog();
+            if (result == true)
+            {
+                return dialog.SelectedPartition;
+            }
+            return null;
+        }
+
     }
 }

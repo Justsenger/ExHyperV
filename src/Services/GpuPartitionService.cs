@@ -2,6 +2,7 @@
 using System.IO;
 using ExHyperV.Models;
 using ExHyperV.Tools;
+using System.Text.Json;
 
 namespace ExHyperV.Services
 {
@@ -28,8 +29,63 @@ namespace ExHyperV.Services
         private const string GetPartitionableGpusScript = "Get-VMHostPartitionableGpu | select name";
         private const string CheckHyperVModuleScript = "Get-Module -ListAvailable -Name Hyper-V";
         private const string GetVmsScript = "Hyper-V\\Get-VM | Select vmname,LowMemoryMappedIoSpace,GuestControlledCacheTypes,HighMemoryMappedIoSpace";
+        private char GetFreeDriveLetter()
+        {
+            var usedLetters = DriveInfo.GetDrives().Select(d => d.Name[0]).ToList();
+            for (char c = 'Z'; c >= 'A'; c--)
+            {
+                if (!usedLetters.Contains(c))
+                {
+                    return c;
+                }
+            }
+            throw new IOException("没有可用的盘符");
+        }
+        public Task<List<PartitionInfo>> GetPartitionsFromVmAsync(string vmName)
+        {
+            return Task.Run(() =>
+            {
+                string harddiskpath = null;
+                int? diskNumber = null;
 
+                try
+                {
+                    var harddiskPathResult = Utils.Run($"(Get-VMHardDiskDrive -vmname '{vmName}')[0].Path");
+                    if (harddiskPathResult == null || harddiskPathResult.Count == 0)
+                    {
+                        throw new FileNotFoundException($"无法找到虚拟机 '{vmName}' 的虚拟硬盘文件。");
+                    }
+                    harddiskpath = harddiskPathResult[0].ToString();
 
+                    var mountScript = $@"
+                $diskImage = Mount-DiskImage -ImagePath '{harddiskpath}' -NoDriveLetter -PassThru;
+                ($diskImage | Get-Disk).Number;
+            ";
+                    var mountResult = Utils.Run(mountScript);
+
+                    if (mountResult == null || mountResult.Count == 0 || !int.TryParse(mountResult[0].ToString(), out int num))
+                    {
+                        throw new InvalidOperationException("挂载虚拟磁盘或获取其磁盘编号失败。");
+                    }
+                    diskNumber = num;
+                    string devicePath = $@"\\.\PhysicalDrive{diskNumber}";
+                    var diskParser = new DiskParserService();
+                    List<PartitionInfo> initialPartitions = diskParser.GetPartitions(devicePath);
+                    return initialPartitions;
+                }
+                catch (UnauthorizedAccessException)
+                {
+                    throw new UnauthorizedAccessException("需要管理员权限才能读取磁盘分区信息，请以管理员身份重新启动应用程序。");
+                }
+                finally
+                {
+                    if (!string.IsNullOrEmpty(harddiskpath))
+                    {
+                        Utils.Run($"Dismount-DiskImage -ImagePath '{harddiskpath}' -ErrorAction SilentlyContinue");
+                    }
+                }
+            });
+        }
         private string NormalizeDeviceId(string deviceId)
         {
             if (string.IsNullOrWhiteSpace(deviceId))
@@ -151,29 +207,124 @@ namespace ExHyperV.Services
             });
         }
         private bool IsWindows11OrGreater() => Environment.OSVersion.Version.Build >= 22000;
-        public Task<string> AddGpuPartitionAsync(string vmName, string gpuInstancePath, string gpuManu)
+        private async Task<string> InjectWindowsDriversAsync(string vmName, string harddiskpath, PartitionInfo partition, string gpuManu)
         {
-            return Task.Run(async() =>
+            string assignedDriveLetter = null;
+
+            try
             {
-                string harddiskpath = null;
-                bool isVhdMounted = false;
+                char suggestedLetter = GetFreeDriveLetter();
+
+                var script = $@"
+            $diskImage = Mount-DiskImage -ImagePath '{harddiskpath}' -PassThru | Get-Disk;
+            $partitionToMount = Get-Partition -DiskNumber $diskImage.Number | Where-Object {{ $_.PartitionNumber -eq {partition.PartitionNumber} }};
+            
+            try {{
+                $partitionToMount | Set-Partition -NewDriveLetter '{suggestedLetter}' -ErrorAction Stop;
+            }} catch {{
+            }}
+            
+            (Get-Partition -DiskNumber $diskImage.Number | Where-Object {{ $_.PartitionNumber -eq {partition.PartitionNumber} }}).DriveLetter
+        ";
+
+                var letterResult = Utils.Run(script);
+
+                if (letterResult == null || letterResult.Count == 0 || string.IsNullOrEmpty(letterResult[0].ToString()))
+                {
+                    return string.Format(Properties.Resources.Error_FailedToFindSystemPartition, harddiskpath);
+                }
+
+                string actualLetter = letterResult[0].ToString();
+                assignedDriveLetter = $"{actualLetter}:";
+
+                string letter = assignedDriveLetter.TrimEnd(':');
+                string sourceFolder = @"C:\Windows\System32\DriverStore\FileRepository";
+                string destinationFolder = letter + @":\Windows\System32\HostDriverStore\FileRepository";
+
+                if (Directory.Exists(destinationFolder))
+                {
+                    try { RemoveReadOnlyAttribute(destinationFolder); }
+                    catch (Exception ex) { return string.Format(Properties.Resources.Error_RemoveOldDriverFolderReadOnlyFailed, ex.Message); }
+                }
+                else
+                {
+                    Directory.CreateDirectory(destinationFolder);
+                }
+
+                Process robocopyProcess = new()
+                {
+                    StartInfo = {
+                FileName = "robocopy",
+                Arguments = $"\"{sourceFolder}\" \"{destinationFolder}\" /E /R:2 /W:5 /NP /NJH /NFL /NDL",
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                CreateNoWindow = true
+            }
+                };
+                robocopyProcess.Start();
+                await robocopyProcess.WaitForExitAsync();
+
+                if (robocopyProcess.ExitCode >= 8)
+                {
+                    return string.Format(Properties.Resources.Error_RobocopyDriverCopyFailed, robocopyProcess.ExitCode);
+                }
+
+                SetFolderReadOnly(destinationFolder);
+
+                if (gpuManu.Contains("NVIDIA"))
+                {
+                    string regResult = NvidiaReg(letter + ":");
+                    if (regResult != "OK")
+                    {
+                        return regResult;
+                    }
+                }
+
+                return "OK";
+            }
+            finally
+            {
+                if (!string.IsNullOrEmpty(harddiskpath))
+                {
+                    var cleanupScript = $@"
+                $diskImage = Get-DiskImage -ImagePath '{harddiskpath}';
+                if ($diskImage -and $diskImage.Attached) {{
+                    if ('{assignedDriveLetter}') {{
+                         try {{
+                            Remove-PartitionAccessPath -DiskNumber $diskImage.Number -PartitionNumber {partition.PartitionNumber} -AccessPath '{assignedDriveLetter}\' -ErrorAction Stop;
+                         }} catch {{}}
+                    }}
+                    Dismount-DiskImage -ImagePath '{harddiskpath}';
+                }}
+            ";
+                    Utils.Run(cleanupScript);
+                }
+            }
+        }
+        public Task<string> AddGpuPartitionAsync(string vmName, string gpuInstancePath, string gpuManu, PartitionInfo selectedPartition)
+        {
+            return Task.Run(async () =>
+            {
                 var disabledGpuInstanceIds = new List<string>();
 
                 try
                 {
-                    Utils.AddGpuAssignmentStrategyReg(); //自动关闭安全策略
+                    Utils.AddGpuAssignmentStrategyReg();
                     var vmStateResult = Utils.Run($"(Hyper-V\\Get-VM -Name '{vmName}').State");
-                    if (vmStateResult == null || vmStateResult.Count == 0) return string.Format(Properties.Resources.GetVmState_Error, vmName);
-                    if (vmStateResult[0].ToString() != "Off") return ExHyperV.Properties.Resources.Running;
+                    if (vmStateResult == null || vmStateResult.Count == 0)
+                    {
+                        return string.Format(Properties.Resources.GetVmState_Error, vmName);
+                    }
+                    if (vmStateResult[0].ToString() != "Off")
+                    {
+                        return ExHyperV.Properties.Resources.Running;
+                    }
 
-                    //根据Windows版本决定执行逻辑：
                     if (!IsWindows11OrGreater())
                     {
-                        // Windows 10
                         var allHostGpus = await GetHostGpusAsync();
                         foreach (var gpu in allHostGpus)
                         {
-                            // 如果不是用户选择的目标GPU，并且是物理GPU，则禁用它
                             if (gpu.InstanceId != gpuInstancePath && gpu.InstanceId.ToUpper().StartsWith("PCI\\"))
                             {
                                 Utils.Run($"Disable-PnpDevice -InstanceId '{gpu.InstanceId}' -Confirm:$false");
@@ -185,84 +336,35 @@ namespace ExHyperV.Services
 
                     string addGpuCommand = IsWindows11OrGreater()
                         ? $"Add-VMGpuPartitionAdapter -VMName '{vmName}' -InstancePath '{gpuInstancePath}'"
-                        : $"Add-VMGpuPartitionAdapter -VMName '{vmName}'"; // Win10 不支持 InstancePath
+                        : $"Add-VMGpuPartitionAdapter -VMName '{vmName}'";
 
                     string vmConfigScript = $@"
-                        Set-VM -GuestControlledCacheTypes $true -VMName '{vmName}'
-                        Set-VM -HighMemoryMappedIoSpace 64GB –VMName '{vmName}'
-                        Set-VM -LowMemoryMappedIoSpace 1GB -VMName '{vmName}'
-                        {addGpuCommand}
-                    ";
-
+                Set-VM -GuestControlledCacheTypes $true -VMName '{vmName}'
+                Set-VM -HighMemoryMappedIoSpace 64GB –VMName '{vmName}'
+                Set-VM -LowMemoryMappedIoSpace 1GB -VMName '{vmName}'
+                {addGpuCommand}
+            ";
                     Utils.Run(vmConfigScript);
 
                     var harddiskPathResult = Utils.Run($"(Get-VMHardDiskDrive -vmname '{vmName}')[0].Path");
-                    if (harddiskPathResult == null || harddiskPathResult.Count == 0) return string.Format(Properties.Resources.Error_CannotGetVmHardDiskPath, vmName);
-                    harddiskpath = harddiskPathResult[0].ToString();
-
-                    var mountResult = Utils.Run2($"Mount-VHD -Path '{harddiskpath}' -PassThru");
-                    if (mountResult == null) return string.Format(Properties.Resources.Error_FailedToMountHardDisk, harddiskpath);
-                    isVhdMounted = true;
-
-                    var findSystemDriveScript = @$"
-                            $harddiskpath = '{harddiskpath}';
-                            $stopwatch = [System.Diagnostics.Stopwatch]::StartNew();
-                            while ($stopwatch.Elapsed.TotalSeconds -lt 5) {{
-                                try {{
-                                    (Get-VHD -Path $harddiskpath) | Get-Disk | Get-Partition | Where-Object {{ $_.Type -ne 'Recovery' -and $_.Type -ne 'System' -and -not $_.DriveLetter }} | Add-PartitionAccessPath -AssignDriveLetter -ErrorAction SilentlyContinue | Out-Null;
-                                }} catch {{}}
-
-                                $volumes = (Get-VHD -Path $harddiskpath) | Get-Disk | Get-Partition | Get-Volume;
-                                foreach ($volume in $volumes) {{
-                                    if ($volume.DriveLetter -and (Test-Path ""$($volume.DriveLetter):\Windows\System32\config\SYSTEM"")) {{
-                                        Write-Output $volume.DriveLetter;
-                                        return;
-                                    }}
-                                }}
-                                Start-Sleep -Milliseconds 500;
-                            }}
-                        ";
-                    var letterResult = Utils.Run(findSystemDriveScript);
-                    if (letterResult == null || letterResult.Count == 0) return string.Format(Properties.Resources.Error_FailedToFindSystemPartition, harddiskpath);
-                    string letter = letterResult[0].ToString();
-
-                    string sourceFolder = @"C:\Windows\System32\DriverStore\FileRepository";
-                    string destinationFolder = letter + @":\Windows\System32\HostDriverStore\FileRepository";
-
-                    if (Directory.Exists(destinationFolder))
+                    if (harddiskPathResult == null || harddiskPathResult.Count == 0)
                     {
-                        try { RemoveReadOnlyAttribute(destinationFolder); }
-                        catch (Exception ex) { return string.Format(Properties.Resources.Error_RemoveOldDriverFolderReadOnlyFailed, ex.Message); }
+                        return string.Format(Properties.Resources.Error_CannotGetVmHardDiskPath, vmName);
+                    }
+                    string harddiskpath = harddiskPathResult[0].ToString();
+
+                    if (selectedPartition.OsType == OperatingSystemType.Windows)
+                    {
+                        return await InjectWindowsDriversAsync(vmName, harddiskpath, selectedPartition, gpuManu);
+                    }
+                    else if (selectedPartition.OsType == OperatingSystemType.Linux)
+                    {
+                        return "SSH_REQUIRED";
                     }
                     else
                     {
-                        Directory.CreateDirectory(destinationFolder);
+                        return $"错误：不支持为所选分区类型（{selectedPartition.TypeDescription}）注入驱动程序。";
                     }
-
-                    Process robocopyProcess = new()
-                    {
-                        StartInfo = {
-                            FileName = "robocopy",
-                            Arguments = $"\"{sourceFolder}\" \"{destinationFolder}\" /E /R:2 /W:5 /NP /NJH /NFL /NDL",
-                            UseShellExecute = false,
-                            RedirectStandardOutput = true,
-                            CreateNoWindow = true
-                        }
-                    };
-                    robocopyProcess.Start();
-                    robocopyProcess.WaitForExit();
-
-                    if (robocopyProcess.ExitCode >= 8) return string.Format(Properties.Resources.Error_RobocopyDriverCopyFailed, robocopyProcess.ExitCode);
-
-                    SetFolderReadOnly(destinationFolder);
-
-                    if (gpuManu.Contains("NVIDIA"))
-                    {
-                        string regResult = NvidiaReg(letter + ":");
-                        if (regResult != "OK") return regResult;
-                    }
-
-                    return "OK";
                 }
                 catch (Exception ex)
                 {
@@ -270,22 +372,16 @@ namespace ExHyperV.Services
                 }
                 finally
                 {
-                    if (disabledGpuInstanceIds.Count > 0)
+                    if (disabledGpuInstanceIds.Any())
                     {
                         foreach (var instanceId in disabledGpuInstanceIds)
                         {
                             Utils.Run($"Enable-PnpDevice -InstanceId '{instanceId}' -Confirm:$false");
                         }
                     }
-
-                    if (isVhdMounted && !string.IsNullOrEmpty(harddiskpath))
-                    {
-                        Utils.Run($"Dismount-VHD -Path '{harddiskpath}' -ErrorAction SilentlyContinue");
-                    }
                 }
             });
         }
-
         public Task<bool> RemoveGpuPartitionAsync(string vmName, string adapterId)
         {
             return Task.Run(() =>
@@ -297,7 +393,7 @@ namespace ExHyperV.Services
 
         private string NvidiaReg(string letter)
         {
-            // 为NVIDIA显卡注入注册表信息，模拟DDA的驱动注入过程。
+            // 为NVIDIA显卡注入注册表信息。
             string tempRegFile = Path.Combine(Path.GetTempPath(), $"nvlddmkm_{Guid.NewGuid()}.reg");
             string systemHiveFile = $@"{letter}\Windows\System32\Config\SYSTEM";
 
