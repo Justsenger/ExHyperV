@@ -53,7 +53,7 @@ ExHyperV 深入研究了微软官方文档和 [Easy-GPU-PV](https://github.com/j
 - Windows Server 2025
 
 #### GPU-P (GPU 分区/半虚拟化)
-- Windows 10 17134+
+- Windows 10 （Build 17134+）
 - Windows 11
 - Windows Server 2022
 - Windows Server 2025
