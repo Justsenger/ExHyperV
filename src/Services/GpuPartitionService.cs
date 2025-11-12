@@ -150,13 +150,15 @@ namespace ExHyperV.Services
                 return vmList;
             });
         }
-
+        private bool IsWindows11OrGreater() => Environment.OSVersion.Version.Build >= 22000;
         public Task<string> AddGpuPartitionAsync(string vmName, string gpuInstancePath, string gpuManu)
         {
-            return Task.Run(() =>
+            return Task.Run(async() =>
             {
                 string harddiskpath = null;
                 bool isVhdMounted = false;
+                var disabledGpuInstanceIds = new List<string>();
+
                 try
                 {
                     Utils.AddGpuAssignmentStrategyReg(); //自动关闭安全策略
@@ -164,12 +166,34 @@ namespace ExHyperV.Services
                     if (vmStateResult == null || vmStateResult.Count == 0) return string.Format(Properties.Resources.GetVmState_Error, vmName);
                     if (vmStateResult[0].ToString() != "Off") return ExHyperV.Properties.Resources.Running;
 
+                    //根据Windows版本决定执行逻辑：
+                    if (!IsWindows11OrGreater())
+                    {
+                        // Windows 10
+                        var allHostGpus = await GetHostGpusAsync();
+                        foreach (var gpu in allHostGpus)
+                        {
+                            // 如果不是用户选择的目标GPU，并且是物理GPU，则禁用它
+                            if (gpu.InstanceId != gpuInstancePath && gpu.InstanceId.ToUpper().StartsWith("PCI\\"))
+                            {
+                                Utils.Run($"Disable-PnpDevice -InstanceId '{gpu.InstanceId}' -Confirm:$false");
+                                disabledGpuInstanceIds.Add(gpu.InstanceId);
+                            }
+                        }
+                        await Task.Delay(3000);
+                    }
+
+                    string addGpuCommand = IsWindows11OrGreater()
+                        ? $"Add-VMGpuPartitionAdapter -VMName '{vmName}' -InstancePath '{gpuInstancePath}'"
+                        : $"Add-VMGpuPartitionAdapter -VMName '{vmName}'"; // Win10 不支持 InstancePath
+
                     string vmConfigScript = $@"
                         Set-VM -GuestControlledCacheTypes $true -VMName '{vmName}'
                         Set-VM -HighMemoryMappedIoSpace 64GB –VMName '{vmName}'
                         Set-VM -LowMemoryMappedIoSpace 1GB -VMName '{vmName}'
-                        Add-VMGpuPartitionAdapter -VMName '{vmName}' -InstancePath '{gpuInstancePath}'
+                        {addGpuCommand}
                     ";
+
                     Utils.Run(vmConfigScript);
 
                     var harddiskPathResult = Utils.Run($"(Get-VMHardDiskDrive -vmname '{vmName}')[0].Path");
@@ -246,6 +270,14 @@ namespace ExHyperV.Services
                 }
                 finally
                 {
+                    if (disabledGpuInstanceIds.Count > 0)
+                    {
+                        foreach (var instanceId in disabledGpuInstanceIds)
+                        {
+                            Utils.Run($"Enable-PnpDevice -InstanceId '{instanceId}' -Confirm:$false");
+                        }
+                    }
+
                     if (isVhdMounted && !string.IsNullOrEmpty(harddiskpath))
                     {
                         Utils.Run($"Dismount-VHD -Path '{harddiskpath}' -ErrorAction SilentlyContinue");
