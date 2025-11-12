@@ -140,7 +140,7 @@ namespace ExHyperV.Services
                             var service = result.Members["Service"]?.Value?.ToString();
                             var classType = result.Members["Class"]?.Value?.ToString();
                             if (service == "pci" || string.IsNullOrEmpty(service)) continue;
-                            if (classType == "System") continue;
+                            //if (classType == "System") continue;
 
                             var instanceId = result.Members["InstanceId"]?.Value?.ToString();
                             var status = result.Members["Status"]?.Value?.ToString();
