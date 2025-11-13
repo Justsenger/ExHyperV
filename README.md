@@ -171,6 +171,7 @@ GPU-P (or GPU-PV) is a paravirtualization technology that allows multiple virtua
 | **Intel**| UHD Graphics 620 Mobile | Generation 9.5 | ⚠️ | ✅ | ✅ | ✅ | ✅ | ❌ | Partial hardware recognition|
 | **Intel**| HD Graphics 530 | Generation 9.0 | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | Not supported |
 | **AMD** | Radeon Vega 3 | GCN 5.0 | ⚠️ | ✅ | ✅ | ✅ | ✅ | ✅ | Partial hardware recognition|
+| **AMD** | Radeon 8060S | RDNA 3.5 | ⚠️ | ✅ | ✅ | ✅ | ✅ | ❌ | Partial hardware recognition |
 | **AMD** | Radeon 890M | RDNA 3.5 | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | Host crashes on startup |
 | **Moore Threads** | MTT S80 | MUSA | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | Not supported |
 
