@@ -442,15 +442,21 @@ namespace ExHyperV.Services
                         ";
                     Utils.Run(vmConfigScript);
 
-                    string gpuTag = $"[AssignedGPU:{gpuInstancePath}]";
-                    string updateNotesScript = $@"
-                    $vm = Get-VM -Name '{vmName}';
-                    $currentNotes = $vm.Notes;
-                    $cleanedNotes = $currentNotes -replace '\[AssignedGPU:[^\]]+\]', '';
-                    $newNotes = ($cleanedNotes.Trim() + ' ' + '{gpuTag}').Trim();
-                    Set-VM -VM $vm -Notes $newNotes;
-                    ";
-                    Utils.Run(updateNotesScript);
+                    if (isWin10)
+                    {
+                        string gpuTag = $"[AssignedGPU:{gpuInstancePath}]";
+                        string updateNotesScript = $@"
+                        $vm = Get-VM -Name '{vmName}';
+                        $currentNotes = $vm.Notes;
+                        $cleanedNotes = $currentNotes -replace '\[AssignedGPU:[^\]]+\]', '';
+                        $newNotes = ($cleanedNotes.Trim() + ' ' + '{gpuTag}').Trim();
+                        Set-VM -VM $vm -Notes $newNotes;
+                        ";
+                        Utils.Run(updateNotesScript);
+                    }
+
+
+
 
                     var harddiskPathResult = Utils.Run($"(Get-VMHardDiskDrive -vmname '{vmName}')[0].Path");
                     if (harddiskPathResult == null || harddiskPathResult.Count == 0)
