@@ -154,9 +154,11 @@ GPU-P (或称 GPU-PV) 是一种半虚拟化技术，它允许多个虚拟机共�
 | 22621 | 3.1 | UMD/KMD 内存共享，减少数据复制，提升效率。 |
 | 26100 | 3.2 | 引入 GPU 实时迁移、WDDM 功能查询等新特性。 |
 
+#### 一、Windows作为虚拟机🪟
+
 ![WDDM 架构](https://github.com/Justsenger/ExHyperV/blob/main/img/WDDM_cn.png)
 
-#### GPU-P 显卡兼容性列表 (使用Gpu Caps Viewer+DXVA Checker测试，持续更新中)
+##### GPU-P 显卡兼容性列表 (使用Gpu Caps Viewer+DXVA Checker测试，持续更新中)
 
 | 品牌 | 型号 | 架构 | 识别 | DirectX 12 | OpenGL | Vulkan | Codec | CUDA/OpenCL | 备注 |
 | :--- | :--- | :--- | :--- |:--- | :--- | :--- | :--- | :--- | :--- |
@@ -174,7 +176,7 @@ GPU-P (或称 GPU-PV) 是一种半虚拟化技术，它允许多个虚拟机共�
 | **AMD** | Radeon 890M | RDNA 3.5 | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | 启动会导致宿主崩溃 |
 | **Moore Threads** | MTT S80 | MUSA | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | 不支持 |
 
-#### 如何从虚拟机输出画面？
+##### 如何从虚拟机输出画面？
 
 GPU-P 模式下，物理 GPU 作为“渲染设备”，需要搭配一个“显示设备”来输出画面。有以下三种方案：
 
@@ -191,12 +193,17 @@ GPU-P 模式下，物理 GPU 作为“渲染设备”，需要搭配一个“显
     - **思路**: 通过 DDA 直通一个 USB 控制器给虚拟机，再连接一个 USB 显卡（如基于 [DisplayLink DL-6950](https://www.synaptics.com/cn/products/displaylink-graphics/integrated-chipsets/dl-6000) 或 [Silicon Motion SM768](https://www.siliconmotion.com/product/cht/Graphics-Display-SoCs.html) 芯片的产品）作为显示设备。
     - **状态**: 作者正在研究此方案与大显存显卡共存时的冲突问题，目前不推荐普通用户尝试。
 
-#### ⚙️ 工作原理
+##### ⚙️ 工作原理
 
 为了简化配置，本工具会自动执行以下操作：
 - **驱动注入**: 自动将宿主机中的 GPU 驱动 (`HostDriverStore`) 导入到虚拟机中。
 - **驱动保护**: 将导入的驱动文件设置为“只读”，防止被意外修改或删除。
 - **Nvidia 注册表修复**: 自动修改虚拟机中 Nvidia 相关的注册表项，将驱动路径指向 `HostDriverStore`，确保驱动被正确加载。
+
+#### 二、Linux作为虚拟机🐧
+
+ExHyperV从V1.2.3开始提供Linux支持。
+标准环境是Ubuntu 22.04，正在测试中。
 
 ### Ⅲ. 虚拟交换机
 
