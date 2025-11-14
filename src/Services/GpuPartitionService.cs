@@ -2,8 +2,6 @@
 using System.IO;
 using ExHyperV.Models;
 using ExHyperV.Tools;
-using System.Text.Json;
-using ExHyperV.Services; // 引用 SshService
 using ExHyperV.Views;   // 引用 SshLoginWindow
 using Renci.SshNet;     // 引用 SSH.NET 库
 
@@ -478,20 +476,12 @@ namespace ExHyperV.Services
                     {
                         var sshService = new SshService();
                         SshCredentials credentials = null;
-
-                        // 将 progressWindow 的定义提到 try-catch 外部
                         ExecutionProgressWindow progressWindow = null;
-
-                        // 自动启动虚拟机
                         var currentState = await GetVmStateAsync(vmName);
                         if (currentState != "Running")
                         {
-                            ShowMessageOnUIThread("正在启动虚拟机，请稍候...", "提示");
                             Utils.Run($"Start-VM -Name '{vmName}'");
-                            await Task.Delay(20000);
                         }
-
-                        // 获取 SSH 凭据
                         await System.Windows.Application.Current.Dispatcher.InvokeAsync(() => {
                             var loginWindow = new SshLoginWindow();
                             if (loginWindow.ShowDialog() == true)
@@ -499,112 +489,72 @@ namespace ExHyperV.Services
                                 credentials = loginWindow.Credentials;
                             }
                         });
-
                         if (credentials == null)
                         {
                             return "用户取消了 SSH 登录操作。";
                         }
-
-                        // 在 GpuPartitionService.cs 的 else if (...) 块内
-
                         try
                         {
-                            // --- 步骤 1: 创建并显示进度窗口 ---
                             await System.Windows.Application.Current.Dispatcher.InvokeAsync(() => {
                                 progressWindow = new ExecutionProgressWindow();
                                 progressWindow.Show();
                             });
-
                             Action<string> log = (message) => progressWindow.AppendLog(message);
                             Action<string> updateStatus = (status) => progressWindow.UpdateStatus(status);
-
-                            // --- 步骤 2: 获取远程主目录并创建部署文件夹 ---
                             updateStatus("正在连接到虚拟机并准备环境...");
                             string homeDirectory;
-
-
-
-
                             using (var client = new SshClient(credentials.Host, credentials.Username, credentials.Password))
                             {
                                 client.Connect();
                                 log("SSH 连接成功。");
-
                                 var pwdResult = client.RunCommand("pwd");
                                 homeDirectory = pwdResult.Result.Trim();
                                 if (string.IsNullOrEmpty(homeDirectory))
                                 {
-                                    throw new Exception("无法获取远程用户的主目录路径。");
+                                    throw new Exception("无法获取Linux主目录路径。");
                                 }
-                                log($"获取到远程主目录: {homeDirectory}");
+                                log($"获取到Linux主目录: {homeDirectory}");
 
                                 string remoteTempDir = $"{homeDirectory}/exhyperv_deploy";
                                 client.RunCommand($"mkdir -p {remoteTempDir}/drivers {remoteTempDir}/lib");
-                                log($"已在远程创建部署目录: {remoteTempDir}");
+                                log($"已创建部署目录: {remoteTempDir}");
                                 client.Disconnect();
                             }
-
-
                             if (!string.IsNullOrEmpty(credentials.ProxyHost) && credentials.ProxyPort.HasValue)
                             {
-                                updateStatus("正在自动为虚拟机配置 HTTP 代理...");
-                                log($"检测到代理设置: {credentials.ProxyHost}:{credentials.ProxyPort}");
-
+                                updateStatus("正在为虚拟机配置 HTTP 代理...");
+                                log($"代理设置: {credentials.ProxyHost}:{credentials.ProxyPort}");
                                 string proxyUrl = $"http://{credentials.ProxyHost}:{credentials.ProxyPort}";
-
-                                // 1. 在 C# 中生成配置文件内容
                                 string aptProxyContent = $"Acquire::http::Proxy \"{proxyUrl}\";\nAcquire::https::Proxy \"{proxyUrl}\";\n";
-                                // **修正**: 确保每个环境变量都在新的一行
                                 string envProxyContent = $"\nexport http_proxy=\"{proxyUrl}\"\nexport https_proxy=\"{proxyUrl}\"\nexport no_proxy=\"localhost,127.0.0.1\"\n";
-
-                                // 2. 将内容上传到远程临时文件
                                 string remoteAptProxyFile = $"{homeDirectory}/99proxy";
                                 string remoteEnvProxyFile = $"{homeDirectory}/proxy_env";
                                 await sshService.WriteTextFileAsync(credentials, aptProxyContent, remoteAptProxyFile);
                                 await sshService.WriteTextFileAsync(credentials, envProxyContent, remoteEnvProxyFile);
-
-                                // 3. 使用 sudo mv 和 sh -c 安全地应用配置
                                 var proxyCommands = new List<string>
-        {
-            // 为 APT 配置代理 (覆盖)
-            $"sudo mv {remoteAptProxyFile} /etc/apt/apt.conf.d/99proxy",
-            
-            // **关键修改**: 为系统环境变量配置代理 (追加)，彻底告别管道
-            $"sudo sh -c 'cat {remoteEnvProxyFile} >> /etc/environment'",
-
-            // 清理临时文件
-            $"rm {remoteEnvProxyFile}",
-
-            // 立即在当前会话中导出环境变量 (为了后续的 apt-get 和 curl 能用上)
-            $"export http_proxy={proxyUrl}",
-            $"export https_proxy={proxyUrl}"
-        };
-
+                                {
+                                    $"sudo mv {remoteAptProxyFile} /etc/apt/apt.conf.d/99proxy",
+                                    $"sudo sh -c 'cat {remoteEnvProxyFile} >> /etc/environment'",
+                                    $"rm {remoteEnvProxyFile}",
+                                    $"export http_proxy={proxyUrl}",
+                                    $"export https_proxy={proxyUrl}"
+                                };
                                 foreach (var cmd in proxyCommands)
                                 {
                                     await sshService.ExecuteSingleCommandAsync(credentials, cmd, log, TimeSpan.FromSeconds(30));
                                 }
-                                log("代理配置成功。");
+                                log("代理配置完成。");
+                                log("导入驱动中...");
                             }
-
-                            // --- 步骤 3: 上传所有本地文件 ---
                             string remoteDriversDir = $"{homeDirectory}/exhyperv_deploy/drivers";
                             string remoteLibDir = $"{homeDirectory}/exhyperv_deploy/lib";
-
-                            updateStatus("正在上传驱动文件 (FileRepository)... 此过程非常耗时，请耐心等待。");
+                            updateStatus("正在导入驱动... 此过程比较耗时，请耐心等待。");
                             await sshService.UploadDirectoryAsync(credentials, @"C:\Windows\System32\DriverStore\FileRepository", remoteDriversDir);
-                            log("驱动文件 (FileRepository) 上传完毕。");
-
-                            updateStatus("正在上传核心库文件和安装脚本...");
-                            // 调用新的 UploadLocalFilesAsync 方法，它会上传 .so 和 install.sh
+                            log("驱动文件导入完毕。");
+                            updateStatus("正在导入核心库文件和安装脚本...");
                             await UploadLocalFilesAsync(sshService, credentials, remoteLibDir);
                             log("核心库文件和安装脚本上传完毕。");
-
-                            // --- 步骤 4: 准备并分步执行全离线安装 ---
-                            updateStatus("正在准备并执行远程安装... 请在下方查看实时进度。");
-
-                            // GpuPartitionService.cs -> try...catch 块内
-
+                            updateStatus("正在准备并执行安装... 请在下方查看实时进度。");
                             var commandsToExecute = new List<Tuple<string, TimeSpan?>>
 {
     // ===================================================================
@@ -626,7 +576,7 @@ namespace ExHyperV.Services
     // ===================================================================
     Tuple.Create("echo '[4/7] 正在安装 GPU 部署所需的依赖包 (dkms, git...)'", (TimeSpan?)TimeSpan.FromSeconds(30)),
     // 一次性安装所有我们需要的工具
-    Tuple.Create("sudo apt-get install -y linux-headers-$(uname -r) build-essential git dkms vainfo", (TimeSpan?)TimeSpan.FromMinutes(10)),
+    Tuple.Create("sudo apt-get install -y linux-headers-amd64 build-essential git dkms vainfo", (TimeSpan?)TimeSpan.FromMinutes(10)),
 
     // ===================================================================
     // 步骤 C: 从本地脚本编译并安装 dxgkrnl 内核模块
@@ -893,51 +843,6 @@ namespace ExHyperV.Services
                 }
                 await sshService.UploadFileAsync(credentials, localFilePath, $"{remoteDirectory}/{name}");
             }
-        }
-
-        /// <summary>
-        /// 构建将在 Linux 虚拟机上执行的完整安装脚本。
-        /// </summary>
-        /// <summary>
-        /// 构建将在 Linux 虚拟机上执行的完整安装脚本。
-        /// </summary>
-        /// <param name="tempDir">远程主机上的临时部署目录路径 (例如: ~/exhyperv_deploy)</param>
-        private string BuildRemoteInstallScript(string tempDir)
-        {
-            var scriptBuilder = new System.Text.StringBuilder();
-            scriptBuilder.AppendLine("#!/bin/bash -e");
-            scriptBuilder.AppendLine("# 由 ExHyperV 自动生成的安装脚本");
-            scriptBuilder.AppendLine("echo '--- 开始自动化 GPU 驱动安装 ---'");
-
-            scriptBuilder.AppendLine("echo '[1/5] 正在从网络安装依赖包和 dxgkrnl 内核模块...'");
-            scriptBuilder.AppendLine("apt-get update && apt-get install -y curl linux-headers-$(uname -r) build-essential git dkms");
-            scriptBuilder.AppendLine("curl -fsSL https://content.staralt.dev/dxgkrnl-dkms/main/install.sh | bash -es");
-
-            scriptBuilder.AppendLine("echo '[2/5] 正在部署宿主机驱动文件和库...'");
-            scriptBuilder.AppendLine("rm -rf /usr/lib/wsl");
-            scriptBuilder.AppendLine("mkdir -p /usr/lib/wsl");
-            // **修改**: 从新的、基于参数的临时路径移动文件
-            scriptBuilder.AppendLine($"mv {tempDir}/drivers /usr/lib/wsl/");
-            scriptBuilder.AppendLine($"mv {tempDir}/lib /usr/lib/wsl/");
-
-            scriptBuilder.AppendLine("echo '[3/5] 正在设置文件权限...'");
-            scriptBuilder.AppendLine("chmod -R 555 /usr/lib/wsl/drivers/");
-            scriptBuilder.AppendLine("chmod -R 755 /usr/lib/wsl/lib/");
-            scriptBuilder.AppendLine("chown -R root:root /usr/lib/wsl");
-
-            scriptBuilder.AppendLine("echo '[4/5] 正在配置系统环境 (创建符号链接)...'");
-            scriptBuilder.AppendLine("ln -sf /usr/lib/wsl/lib/libd3_2core.so /usr/lib/wsl/lib/libD3D12Core.so || true");
-            scriptBuilder.AppendLine("ln -sf /usr/lib/wsl/lib/libnvoptix.so.1 /usr/lib/wsl/lib/libnvoptix_loader.so.1 || true");
-            scriptBuilder.AppendLine("ln -sf /usr/lib/wsl/lib/libcuda.so /usr/lib/wsl/lib/libcuda.so.1 || true");
-            scriptBuilder.AppendLine("sh -c 'echo \"/usr/lib/wsl/lib\" > /etc/ld.so.conf.d/ld.wsl.conf'");
-            scriptBuilder.AppendLine("ldconfig");
-
-            scriptBuilder.AppendLine("echo '[5/5] 清理临时文件并准备重启系统...'");
-            // **修改**: 删除新的、基于参数的临时路径
-            scriptBuilder.AppendLine($"rm -rf {tempDir}");
-            scriptBuilder.AppendLine("reboot");
-
-            return scriptBuilder.ToString();
         }
     }
 }
