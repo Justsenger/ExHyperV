@@ -201,6 +201,7 @@ GPU-P 模式下，物理 GPU 作为“渲染设备”，需要搭配一个“显
 - **Nvidia 注册表修复**: 自动修改虚拟机中 Nvidia 相关的注册表项，将驱动路径指向 `HostDriverStore`，确保驱动被正确加载。
 
 #### 二、Linux作为虚拟机🐧
+<img width="800" height="450" alt="image" src="https://github.com/user-attachments/assets/0bc11e21-3670-42a0-a8cc-fec9ae4f6d0e" />
 
 ExHyperV从V1.2.3开始提供Linux支持。
 标准环境是Ubuntu 22.04，正在测试中。
