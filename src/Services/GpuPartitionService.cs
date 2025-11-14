@@ -603,39 +603,68 @@ namespace ExHyperV.Services
                             // --- 步骤 4: 准备并分步执行全离线安装 ---
                             updateStatus("正在准备并执行远程安装... 请在下方查看实时进度。");
 
+                            // GpuPartitionService.cs -> try...catch 块内
+
                             var commandsToExecute = new List<Tuple<string, TimeSpan?>>
-    {
-        Tuple.Create("echo '[+] 正在安装依赖包 (apt-get)...'", (TimeSpan?)TimeSpan.FromSeconds(30)),
-        Tuple.Create("sudo apt-get update", (TimeSpan?)TimeSpan.FromMinutes(5)),
-        // **修改**: 不再需要安装 curl
-        Tuple.Create("sudo apt-get install -y linux-headers-$(uname -r) build-essential git dkms", (TimeSpan?)TimeSpan.FromMinutes(10)),
+{
+    // ===================================================================
+    // 步骤 A: 环境准备 - 添加 PPA 并全面升级 Mesa
+    // ===================================================================
+    Tuple.Create("echo '[1/7] 正在添加最新的 Mesa 稳定版驱动源 (PPA)...'", (TimeSpan?)TimeSpan.FromSeconds(30)),
+    // '-y' 参数会自动确认添加 PPA，无需人工交互
+    Tuple.Create("sudo add-apt-repository -y ppa:kisak/turtle", (TimeSpan?)TimeSpan.FromMinutes(2)),
 
-        Tuple.Create("echo '[+] 正在从本地脚本编译 dxgkrnl 内核模块...'", (TimeSpan?)TimeSpan.FromSeconds(30)),
-        // **关键修改**: 直接执行我们上传的脚本，不再需要 curl
-        Tuple.Create($"sudo bash {remoteLibDir}/install.sh", (TimeSpan?)null),
+    Tuple.Create("echo '[2/7] 正在更新软件包列表...'", (TimeSpan?)TimeSpan.FromSeconds(30)),
+    Tuple.Create("sudo apt-get update", (TimeSpan?)TimeSpan.FromMinutes(5)),
 
-        Tuple.Create("echo '[+] 正在部署驱动文件到系统目录...'", (TimeSpan?)TimeSpan.FromSeconds(30)),
-        Tuple.Create("sudo rm -rf /usr/lib/wsl", (TimeSpan?)TimeSpan.FromMinutes(1)),
-        Tuple.Create("sudo mkdir -p /usr/lib/wsl", (TimeSpan?)TimeSpan.FromSeconds(30)),
-        Tuple.Create($"sudo mv {remoteDriversDir} /usr/lib/wsl/", (TimeSpan?)TimeSpan.FromMinutes(2)),
-        Tuple.Create($"sudo mv {remoteLibDir} /usr/lib/wsl/", (TimeSpan?)TimeSpan.FromMinutes(1)),
+    Tuple.Create("echo '[3/7] 正在升级 Mesa 驱动及相关系统组件...'", (TimeSpan?)TimeSpan.FromSeconds(30)),
+    // '-y' 参数会自动确认所有升级
+    Tuple.Create("sudo apt-get upgrade -y", (TimeSpan?)TimeSpan.FromMinutes(15)),
 
-        Tuple.Create("echo '[+] 正在配置系统环境...'", (TimeSpan?)TimeSpan.FromSeconds(30)),
-        Tuple.Create("sudo chmod -R 555 /usr/lib/wsl/drivers/", (TimeSpan?)TimeSpan.FromMinutes(1)),
-        Tuple.Create("sudo chmod -R 755 /usr/lib/wsl/lib/", (TimeSpan?)TimeSpan.FromMinutes(1)),
-        Tuple.Create("sudo chown -R root:root /usr/lib/wsl", (TimeSpan?)TimeSpan.FromMinutes(1)),
-        Tuple.Create("sudo ln -sf /usr/lib/wsl/lib/libd3d12core.so /usr/lib/wsl/lib/libD3D12Core.so", (TimeSpan?)TimeSpan.FromSeconds(30)),
-        Tuple.Create("sudo ln -sf /usr/lib/wsl/lib/libnvoptix.so.1 /usr/lib/wsl/lib/libnvoptix_loader.so.1", (TimeSpan?)TimeSpan.FromSeconds(30)),
-        Tuple.Create("sudo ln -sf /usr/lib/wsl/lib/libcuda.so /usr/lib/wsl/lib/libcuda.so.1", (TimeSpan?)TimeSpan.FromSeconds(30)),
-        Tuple.Create("sudo sh -c 'echo \"/usr/lib/wsl/lib\" > /etc/ld.so.conf.d/ld.wsl.conf'", (TimeSpan?)TimeSpan.FromSeconds(30)),
-        Tuple.Create("sudo ldconfig", (TimeSpan?)TimeSpan.FromMinutes(1)),
+    // ===================================================================
+    // 步骤 B: 安装 dxgkrnl 编译所需的依赖
+    // ===================================================================
+    Tuple.Create("echo '[4/7] 正在安装 GPU 部署所需的依赖包 (dkms, git...)'", (TimeSpan?)TimeSpan.FromSeconds(30)),
+    // 一次性安装所有我们需要的工具
+    Tuple.Create("sudo apt-get install -y linux-headers-$(uname -r) build-essential git dkms vainfo", (TimeSpan?)TimeSpan.FromMinutes(10)),
 
-        Tuple.Create("echo '[+] 正在清理临时文件...'", (TimeSpan?)TimeSpan.FromSeconds(30)),
-        // **注意**: 这里 mv 之后，exhyperv_deploy 文件夹应该只剩下空的 drivers 和 lib 子目录，或者直接是空的。
-        // 为了确保能清理干净，我们直接删除顶层目录。
-        Tuple.Create($"rm -rf {homeDirectory}/exhyperv_deploy", (TimeSpan?)TimeSpan.FromMinutes(1)),
-    };
+    // ===================================================================
+    // 步骤 C: 从本地脚本编译并安装 dxgkrnl 内核模块
+    // ===================================================================
+    Tuple.Create("echo '[5/7] 正在从本地脚本编译并安装 dxgkrnl 内核模块...'", (TimeSpan?)TimeSpan.FromSeconds(30)),
+    // 直接执行我们上传的 install.sh 脚本，这步耗时较长
+    Tuple.Create($"sudo bash {remoteLibDir}/install.sh", (TimeSpan?)null), // null 表示使用默认的30分钟长超时
 
+    // ===================================================================
+    // 步骤 D: 部署 Windows 驱动文件并设置权限
+    // ===================================================================
+    Tuple.Create("echo '[6/7] 正在部署 Windows 宿主机驱动文件...'", (TimeSpan?)TimeSpan.FromSeconds(30)),
+    Tuple.Create("sudo rm -rf /usr/lib/wsl", (TimeSpan?)TimeSpan.FromMinutes(1)),
+    Tuple.Create("sudo mkdir -p /usr/lib/wsl", (TimeSpan?)TimeSpan.FromSeconds(30)),
+    Tuple.Create($"sudo mv {homeDirectory}/exhyperv_deploy/drivers /usr/lib/wsl/", (TimeSpan?)TimeSpan.FromMinutes(2)),
+    Tuple.Create($"sudo mv {homeDirectory}/exhyperv_deploy/lib /usr/lib/wsl/", (TimeSpan?)TimeSpan.FromMinutes(1)),
+    Tuple.Create("sudo chmod -R 555 /usr/lib/wsl/drivers/", (TimeSpan?)TimeSpan.FromMinutes(1)),
+    Tuple.Create("sudo chmod -R 755 /usr/lib/wsl/lib/", (TimeSpan?)TimeSpan.FromMinutes(1)),
+    Tuple.Create("sudo chown -R root:root /usr/lib/wsl", (TimeSpan?)TimeSpan.FromMinutes(1)),
+
+    // ===================================================================
+    // 步骤 E: 配置系统环境（符号链接、库缓存）
+    // ===================================================================
+    Tuple.Create("echo '[7/7] 正在配置系统环境...'", (TimeSpan?)TimeSpan.FromSeconds(30)),
+    Tuple.Create("sudo ln -sf /usr/lib/wsl/lib/libd3d12core.so /usr/lib/wsl/lib/libD3D12Core.so", (TimeSpan?)TimeSpan.FromSeconds(30)),
+    Tuple.Create("sudo ln -sf /usr/lib/wsl/lib/libnvoptix.so.1 /usr/lib/wsl/lib/libnvoptix_loader.so.1", (TimeSpan?)TimeSpan.FromSeconds(30)),
+    Tuple.Create("sudo ln -sf /usr/lib/wsl/lib/libcuda.so /usr/lib/wsl/lib/libcuda.so.1", (TimeSpan?)TimeSpan.FromSeconds(30)),
+    Tuple.Create("sudo sh -c 'echo \"/usr/lib/wsl/lib\" > /etc/ld.so.conf.d/ld.wsl.conf'", (TimeSpan?)TimeSpan.FromSeconds(30)),
+    Tuple.Create("sudo ldconfig", (TimeSpan?)TimeSpan.FromMinutes(1)),
+
+    // ===================================================================
+    // 步骤 F: 清理临时文件
+    // ===================================================================
+    Tuple.Create("echo '[+] 正在清理临时文件...'", (TimeSpan?)TimeSpan.FromSeconds(30)),
+    Tuple.Create($"rm -rf {homeDirectory}/exhyperv_deploy", (TimeSpan?)TimeSpan.FromMinutes(1)),
+};
+
+                            // ... 后续的 foreach 循环和重启逻辑保持不变 ...
                             const int maxRetries = 2; // 离线操作，减少重试次数
                             foreach (var cmdInfo in commandsToExecute)
                             {
