@@ -1,4 +1,5 @@
 ﻿using System.IO;
+
 namespace ExHyperV.Services
 {
     public class DiskParserService
@@ -27,7 +28,7 @@ namespace ExHyperV.Services
                 }
                 else
                 {
-                    partitions.AddRange(ParseMbrPartitions(mbrBuffer));
+                    partitions.AddRange(ParseMbrPartitions(diskStream, mbrBuffer));
                 }
             }
 
@@ -52,8 +53,12 @@ namespace ExHyperV.Services
             return false;
         }
 
-        private IEnumerable<PartitionInfo> ParseMbrPartitions(byte[] mbrBuffer)
+        private IEnumerable<PartitionInfo> ParseMbrPartitions(FileStream diskStream, byte[] mbrBuffer)
         {
+            var partitions = new List<PartitionInfo>();
+            int logicalPartitionNumber = 5;
+            ulong extendedPartitionStartOffset = 0;
+
             for (int i = 0; i < 4; i++)
             {
                 int offset = 446 + (i * 16);
@@ -66,9 +71,67 @@ namespace ExHyperV.Services
                 ulong startOffset = (ulong)startSector * 512;
                 ulong size = (ulong)totalSectors * 512;
 
-                var (osType, description) = GetOsTypeFromMbrId(systemId);
-                yield return new PartitionInfo(i + 1, startOffset, size, osType, description);
+                if (systemId == 0x05 || systemId == 0x0F)
+                {
+                    extendedPartitionStartOffset = startOffset;
+                    continue;
+                }
+
+                var (osType, typeDescription) = GetOsTypeFromMbrId(systemId);
+                partitions.Add(new PartitionInfo(i + 1, startOffset, size, osType, typeDescription));
             }
+
+            if (extendedPartitionStartOffset > 0)
+            {
+                partitions.AddRange(ParseLogicalPartitions(diskStream, extendedPartitionStartOffset, ref logicalPartitionNumber));
+            }
+
+            return partitions;
+        }
+
+        private IEnumerable<PartitionInfo> ParseLogicalPartitions(FileStream diskStream, ulong currentEbrOffset, ref int partitionNumber)
+        {
+            var partitions = new List<PartitionInfo>();
+            var ebrBuffer = new byte[512];
+            ulong extendedPartitionBaseOffset = currentEbrOffset;
+
+            while (currentEbrOffset > 0)
+            {
+                diskStream.Seek((long)currentEbrOffset, SeekOrigin.Begin);
+                diskStream.Read(ebrBuffer, 0, 512);
+
+                if (BitConverter.ToUInt16(ebrBuffer, 510) != 0xAA55)
+                {
+                    break;
+                }
+
+                int entry1Offset = 446;
+                byte systemId1 = ebrBuffer[entry1Offset + 4];
+                if (systemId1 != 0x00)
+                {
+                    uint startSectorRelative = BitConverter.ToUInt32(ebrBuffer, entry1Offset + 8);
+                    uint totalSectors = BitConverter.ToUInt32(ebrBuffer, entry1Offset + 12);
+
+                    ulong startOffset = currentEbrOffset + ((ulong)startSectorRelative * 512);
+                    ulong size = (ulong)totalSectors * 512;
+
+                    var (osType, typeDescription) = GetOsTypeFromMbrId(systemId1);
+                    partitions.Add(new PartitionInfo(partitionNumber++, startOffset, size, osType, typeDescription));
+                }
+
+                int entry2Offset = 446 + 16;
+                byte systemId2 = ebrBuffer[entry2Offset + 4];
+                if (systemId2 == 0x05 || systemId2 == 0x0F)
+                {
+                    uint nextEbrSectorRelative = BitConverter.ToUInt32(ebrBuffer, entry2Offset + 8);
+                    currentEbrOffset = extendedPartitionBaseOffset + ((ulong)nextEbrSectorRelative * 512);
+                }
+                else
+                {
+                    currentEbrOffset = 0;
+                }
+            }
+            return partitions;
         }
 
         private IEnumerable<PartitionInfo> ParseGptPartitions(FileStream diskStream)
@@ -102,8 +165,8 @@ namespace ExHyperV.Services
                 ulong startOffset = firstLba * 512;
                 ulong size = (lastLba - firstLba + 1) * 512;
 
-                var (osType, description) = GetOsTypeFromGptGuid(typeGuid);
-                yield return new PartitionInfo(i + 1, startOffset, size, osType, description);
+                var (osType, typeDescription) = GetOsTypeFromGptGuid(typeGuid);
+                yield return new PartitionInfo(i + 1, startOffset, size, osType, typeDescription);
             }
         }
 
@@ -111,12 +174,22 @@ namespace ExHyperV.Services
         {
             switch (systemId)
             {
-                case 0x07: // NTFS
-                    return (OperatingSystemType.Windows, "Windows (NTFS)");
-                case 0x83: // Linux
+                case 0x07:
+                case 0x0C:
+                case 0x0B:
+                case 0x06:
+                case 0x04:
+                case 0x01:
+                    return (OperatingSystemType.Windows, "Windows");
+                case 0x83:
                     return (OperatingSystemType.Linux, "Linux");
-                case 0xEF: // EFI
+                case 0x82:
+                    return (OperatingSystemType.Linux, "Linux Swap");
+                case 0xEF:
                     return (OperatingSystemType.EFI, "EFI System Partition");
+                case 0x05:
+                case 0x0F:
+                    return (OperatingSystemType.Other, "Extended Partition");
                 default:
                     return (OperatingSystemType.Unknown, $"Unknown (Type 0x{systemId:X2})");
             }

@@ -375,6 +375,7 @@ namespace ExHyperV.Services
             {
                 bool isWin10 = !IsWindows11OrGreater();
                 var disabledGpuInstanceIds = new List<string>();
+                int partitionableGpuCount = 0;
                 string NormalizeForComparison(string deviceId)
                 {
                     if (string.IsNullOrWhiteSpace(deviceId)) return string.Empty;
@@ -407,6 +408,7 @@ namespace ExHyperV.Services
                     if (isWin10)
                     {
                         var allHostGpus = await GetHostGpusAsync();
+                        partitionableGpuCount = allHostGpus.Count(gpu => !string.IsNullOrEmpty(gpu.Pname));
                         string normalizedSelectedGpuId = NormalizeForComparison(gpuInstancePath);
 
                         foreach (var gpu in allHostGpus)
@@ -455,18 +457,31 @@ namespace ExHyperV.Services
                         Utils.Run(updateNotesScript);
                     }
 
-
-
-
-                    var harddiskPathResult = Utils.Run($"(Get-VMHardDiskDrive -vmname '{vmName}')[0].Path");
-                    if (harddiskPathResult == null || harddiskPathResult.Count == 0)
+                    if (selectedPartition.OsType == OperatingSystemType.Windows)
                     {
-                        return "错误：无法获取虚拟机硬盘路径以注入驱动。";
+                        var harddiskPathResult = Utils.Run($"(Get-VMHardDiskDrive -vmname '{vmName}')[0].Path");
+                        if (harddiskPathResult == null || harddiskPathResult.Count == 0)
+                        {
+                            return "错误：无法获取虚拟机硬盘路径以注入驱动。";
+                        }
+                        string harddiskpath = harddiskPathResult[0].ToString();
+                        string injectionResult = await InjectWindowsDriversAsync(vmName, harddiskpath, selectedPartition, gpuManu);
+                        if (injectionResult != "OK")
+                        {
+                            return injectionResult;
+                        }
                     }
-                    string harddiskpath = harddiskPathResult[0].ToString();
-                    string injectionResult = await InjectWindowsDriversAsync(vmName, harddiskpath, selectedPartition, gpuManu);
-                    if (injectionResult != "OK") return injectionResult;
-                    if (isWin10)
+                    else { 
+
+                        //针对linux系统，需要使用ssh连接。
+                    
+                    
+                    }
+
+
+
+
+                    if (isWin10 && partitionableGpuCount > 1)
                     {
                         Utils.Run($"Start-VM -Name '{vmName}'");
                     }
@@ -487,11 +502,10 @@ namespace ExHyperV.Services
                             Utils.Run($"Enable-PnpDevice -InstanceId '{instanceId}' -Confirm:$false");
                         }
                     }
-                    if (isWin10)
+                    if (isWin10 && partitionableGpuCount > 1)
                     {
-                        string finalMessage = "GPU配置完成，虚拟机已启动。\n\n" +
-                                              "由于Windows10的固有缺陷，本次指定的GPU分区仅在本次启动时有效。\n\n" +
-                                              "若要确保下次冷启动仍然是该GPU，请先手动禁用其他GPU，或再次通过本工具重新分配。";
+                        string finalMessage = "Windows10作为宿主时，本次指定的GPU分区仅本次有效。\n\n" +
+                                              "若要确保虚拟机下次冷启动仍使用该GPU，请先手动禁用其他GPU；或通过本工具再次分配。";
                         System.Windows.Application.Current.Dispatcher.Invoke(() => Utils.Show(finalMessage));
 
                     }
