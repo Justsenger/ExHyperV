@@ -21,47 +21,63 @@ namespace ExHyperV.Views
 
         private async void ConfirmButton_Click(object sender, RoutedEventArgs e)
         {
-            // 清空之前的错误信息
             ErrorTextBlock.Text = string.Empty;
 
-            // 1. 输入验证
             if (string.IsNullOrWhiteSpace(HostTextBox.Text) || string.IsNullOrWhiteSpace(UsernameTextBox.Text))
             {
                 ErrorTextBlock.Text = "IP地址和用户名不能为空。";
                 return;
             }
 
-            // 禁用按钮，防止重复点击
+            // 收集代理信息
+            string proxyHost = ProxyHostTextBox.Text.Trim();
+            string proxyPortStr = ProxyPortTextBox.Text.Trim();
+            int? proxyPort = null;
+
+            if (!string.IsNullOrEmpty(proxyHost) && !string.IsNullOrEmpty(proxyPortStr))
+            {
+                if (int.TryParse(proxyPortStr, out int port) && port > 0 && port < 65536)
+                {
+                    proxyPort = port;
+                }
+                else
+                {
+                    ErrorTextBlock.Text = "代理端口号无效。";
+                    return;
+                }
+            }
+            else if (!string.IsNullOrEmpty(proxyHost) || !string.IsNullOrEmpty(proxyPortStr))
+            {
+                ErrorTextBlock.Text = "代理 IP 和端口必须同时填写或同时为空。";
+                return;
+            }
+
             ConfirmButton.IsEnabled = false;
             ConfirmButton.Content = "正在连接...";
 
-            // 收集凭据
             Credentials.Host = HostTextBox.Text.Trim();
             Credentials.Username = UsernameTextBox.Text.Trim();
             Credentials.Password = PasswordBox.Password;
+            Credentials.ProxyHost = proxyHost;
+            Credentials.ProxyPort = proxyPort;
 
             try
             {
-                // 2. 连接测试：执行一个非常简单的命令来验证连接
-                //await _sshService.ExecuteCommandAsync(Credentials, "echo 'Connection successful'");
-
-                // 如果没有抛出异常，说明连接成功
+                // 测试连接（可以执行一个简单的 'echo' 或 'pwd'）
+                await _sshService.ExecuteSingleCommandAsync(Credentials, "echo 'Connection test successful'", (log) => { }, TimeSpan.FromSeconds(15));
                 this.DialogResult = true;
                 this.Close();
             }
             catch (Exception ex)
             {
-                // 3. 连接失败反馈
-                ErrorTextBlock.Text = $"连接失败: {ex.Message}";
+                ErrorTextBlock.Text = $"连接测试失败: {ex.Message}";
             }
             finally
             {
-                // 无论成功失败，都恢复按钮状态
                 ConfirmButton.IsEnabled = true;
                 ConfirmButton.Content = "连接";
             }
         }
-
         private void CancelButton_Click(object sender, RoutedEventArgs e)
         {
             this.DialogResult = false;

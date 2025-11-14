@@ -12,6 +12,9 @@
     <Compile Update="Views\ChoosePartitionWindow.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Update="Views\ProgressWindow.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Update="Views\ShutdownConfirmationDialog.xaml.cs">
       <SubType>Code</SubType>
     </Compile>

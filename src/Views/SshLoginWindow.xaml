@@ -5,15 +5,19 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:ExHyperV.Views"
         mc:Ignorable="d"
-        Title="SSH 登录" Height="420" Width="400"
+        Title="SSH 登录" Height="550" Width="400"
         WindowStartupLocation="CenterScreen"
         xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
     <Grid Margin="20">
-        <!-- 重新定义了行布局，确保每个控件都有自己的空间 -->
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <!-- 新增行，用于代理标题 -->
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
@@ -24,22 +28,27 @@
 
         <TextBlock Grid.Row="0" Text="连接到 Linux 虚拟机" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,15"/>
 
-        <!-- 修改了文本，只接受IPv4地址 -->
         <TextBlock Grid.Row="1" Text="IPv4 地址:" Margin="0,5"/>
         <ui:TextBox x:Name="HostTextBox" Grid.Row="2" PlaceholderText="例如: 192.168.1.100"/>
 
         <TextBlock Grid.Row="3" Text="用户名:" Margin="0,10,0,5"/>
         <ui:TextBox x:Name="UsernameTextBox" Grid.Row="4" PlaceholderText="例如: root"/>
 
-        <!-- 修改了文本，“密码”改为“口令” -->
         <TextBlock Grid.Row="5" Text="口令:" Margin="0,10,0,5"/>
         <ui:PasswordBox x:Name="PasswordBox" Grid.Row="6"/>
 
-        <!-- 新增：用于显示错误信息的 TextBlock -->
-        <TextBlock x:Name="ErrorTextBlock" Grid.Row="7" TextWrapping="Wrap" Foreground="Red" VerticalAlignment="Center" Margin="0,10"/>
+        <!-- 新增: HTTP 代理设置 (可选) -->
+        <TextBlock Grid.Row="7" Text="HTTP 代理 (可选)" FontWeight="SemiBold" Margin="0,20,0,5"/>
 
-        <!-- 修复了按钮布局，移除了固定宽度，让Grid自动管理 -->
-        <Grid Grid.Row="8">
+        <TextBlock Grid.Row="8" Text="代理 IP 地址:" Margin="0,5"/>
+        <ui:TextBox x:Name="ProxyHostTextBox" Grid.Row="9" PlaceholderText="例如: 192.168.1.200"/>
+
+        <TextBlock Grid.Row="10" Text="代理端口:" Margin="0,10,0,5"/>
+        <ui:TextBox x:Name="ProxyPortTextBox" Grid.Row="11" PlaceholderText="例如: 7890"/>
+
+        <TextBlock x:Name="ErrorTextBlock" Grid.Row="12" TextWrapping="Wrap" Foreground="Red" VerticalAlignment="Center" Margin="0,10"/>
+
+        <Grid Grid.Row="13">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="*"/>
