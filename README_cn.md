@@ -58,7 +58,7 @@ ExHyperV 深入研究了微软官方文档和 [Easy-GPU-PV](https://github.com/j
 - Windows Server 2022
 - Windows Server 2025
 
-> **注意**: 由于Win10处于GPU-PV技术前期，缺少Get-VMHostPartitionableGpu命令，Add-VMGpuPartitionAdapter命令缺少InstancePath参数，与虚拟机通信也不稳定，因此本工具要求宿主机系统版本不低于 **Build 22000**。
+> **注意**: Win10支持将在V1.2.3添加。
 
 #### 虚拟交换机
 - 无特定要求
