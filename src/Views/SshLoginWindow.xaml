@@ -35,7 +35,7 @@
         <ui:TextBox x:Name="UsernameTextBox" Grid.Row="4" PlaceholderText="例如: root"/>
 
         <TextBlock Grid.Row="5" Text="口令:" Margin="0,10,0,5"/>
-        <ui:PasswordBox x:Name="PasswordBox" Grid.Row="6"/>
+        <ui:PasswordBox x:Name="PasswordBox" Grid.Row="6" MaxLength="128"/>
 
         <!-- 新增: HTTP 代理设置 (可选) -->
         <TextBlock Grid.Row="7" Text="HTTP 代理 (可选)" FontWeight="SemiBold" Margin="0,20,0,5"/>

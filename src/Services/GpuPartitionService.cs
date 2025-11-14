@@ -298,7 +298,7 @@ namespace ExHyperV.Services
                 if (!Directory.Exists(system32Path))
                 {
                     return string.Format(
-                        "所选分区似乎不是一个有效的Windows系统分区。",
+                        "所选分区似乎不是一个有效的Windows系统分区，或已开启Bitlocker。",
                         partition.PartitionNumber,
                         assignedDriveLetter,
                         system32Path
@@ -555,57 +555,81 @@ namespace ExHyperV.Services
                             await UploadLocalFilesAsync(sshService, credentials, remoteLibDir);
                             log("核心库文件和安装脚本上传完毕。");
                             updateStatus("正在准备并执行安装... 请在下方查看实时进度。");
+                            // 在 GpuPartitionService.cs 中
+
                             var commandsToExecute = new List<Tuple<string, TimeSpan?>>
 {
     // ===================================================================
     // 步骤 A: 环境准备 - 添加 PPA 并全面升级 Mesa
     // ===================================================================
     Tuple.Create("echo '[1/7] 正在添加最新的 Mesa 稳定版驱动源 (PPA)...'", (TimeSpan?)TimeSpan.FromSeconds(30)),
-    // '-y' 参数会自动确认添加 PPA，无需人工交互
     Tuple.Create("sudo add-apt-repository -y ppa:kisak/turtle", (TimeSpan?)TimeSpan.FromMinutes(2)),
 
     Tuple.Create("echo '[2/7] 正在更新软件包列表...'", (TimeSpan?)TimeSpan.FromSeconds(30)),
     Tuple.Create("sudo apt-get update", (TimeSpan?)TimeSpan.FromMinutes(5)),
 
     Tuple.Create("echo '[3/7] 正在升级 Mesa 驱动及相关系统组件...'", (TimeSpan?)TimeSpan.FromSeconds(30)),
-    // '-y' 参数会自动确认所有升级
     Tuple.Create("sudo apt-get upgrade -y", (TimeSpan?)TimeSpan.FromMinutes(15)),
+    Tuple.Create("echo '[+] 正在确保关键 Mesa 组件已安装...'", (TimeSpan?)TimeSpan.FromSeconds(30)),
+    Tuple.Create("sudo apt-get install -y libegl-mesa0 libgbm1 libgl1-mesa-dri libglx-mesa0 mesa-va-drivers mesa-vulkan-drivers", (TimeSpan?)TimeSpan.FromMinutes(5)),
 
     // ===================================================================
     // 步骤 B: 安装 dxgkrnl 编译所需的依赖
     // ===================================================================
     Tuple.Create("echo '[4/7] 正在安装 GPU 部署所需的依赖包 (dkms, git...)'", (TimeSpan?)TimeSpan.FromSeconds(30)),
-    // 一次性安装所有我们需要的工具
-    Tuple.Create("sudo apt-get install -y linux-headers-amd64 build-essential git dkms vainfo", (TimeSpan?)TimeSpan.FromMinutes(10)),
+    Tuple.Create("sudo apt-get install -y linux-headers-$(uname -r) build-essential git dkms vainfo curl", (TimeSpan?)TimeSpan.FromMinutes(10)),
 
     // ===================================================================
     // 步骤 C: 从本地脚本编译并安装 dxgkrnl 内核模块
     // ===================================================================
     Tuple.Create("echo '[5/7] 正在从本地脚本编译并安装 dxgkrnl 内核模块...'", (TimeSpan?)TimeSpan.FromSeconds(30)),
-    // 直接执行我们上传的 install.sh 脚本，这步耗时较长
-    Tuple.Create($"sudo bash {remoteLibDir}/install.sh", (TimeSpan?)null), // null 表示使用默认的30分钟长超时
+    Tuple.Create($"sudo bash {remoteLibDir}/install.sh", (TimeSpan?)null),
 
-    // ===================================================================
-    // 步骤 D: 部署 Windows 驱动文件并设置权限
-    // ===================================================================
-    Tuple.Create("echo '[6/7] 正在部署 Windows 宿主机驱动文件...'", (TimeSpan?)TimeSpan.FromSeconds(30)),
-    Tuple.Create("sudo rm -rf /usr/lib/wsl", (TimeSpan?)TimeSpan.FromMinutes(1)),
-    Tuple.Create("sudo mkdir -p /usr/lib/wsl", (TimeSpan?)TimeSpan.FromSeconds(30)),
-    Tuple.Create($"sudo mv {homeDirectory}/exhyperv_deploy/drivers /usr/lib/wsl/", (TimeSpan?)TimeSpan.FromMinutes(2)),
-    Tuple.Create($"sudo mv {homeDirectory}/exhyperv_deploy/lib /usr/lib/wsl/", (TimeSpan?)TimeSpan.FromMinutes(1)),
-    Tuple.Create("sudo chmod -R 555 /usr/lib/wsl/drivers/", (TimeSpan?)TimeSpan.FromMinutes(1)),
-    Tuple.Create("sudo chmod -R 755 /usr/lib/wsl/lib/", (TimeSpan?)TimeSpan.FromMinutes(1)),
-    Tuple.Create("sudo chown -R root:root /usr/lib/wsl", (TimeSpan?)TimeSpan.FromMinutes(1)),
+// ===================================================================
+// 步骤 D: 部署驱动和库文件 (修正为标准 WSL 结构)
+// ===================================================================
+Tuple.Create("echo '[6/7] 正在部署驱动及库文件...'", (TimeSpan?)TimeSpan.FromSeconds(30)),
 
-    // ===================================================================
-    // 步骤 E: 配置系统环境（符号链接、库缓存）
-    // ===================================================================
-    Tuple.Create("echo '[7/7] 正在配置系统环境...'", (TimeSpan?)TimeSpan.FromSeconds(30)),
-    Tuple.Create("sudo ln -sf /usr/lib/wsl/lib/libd3d12core.so /usr/lib/wsl/lib/libD3D12Core.so", (TimeSpan?)TimeSpan.FromSeconds(30)),
-    Tuple.Create("sudo ln -sf /usr/lib/wsl/lib/libnvoptix.so.1 /usr/lib/wsl/lib/libnvoptix_loader.so.1", (TimeSpan?)TimeSpan.FromSeconds(30)),
-    Tuple.Create("sudo ln -sf /usr/lib/wsl/lib/libcuda.so /usr/lib/wsl/lib/libcuda.so.1", (TimeSpan?)TimeSpan.FromSeconds(30)),
-    Tuple.Create("sudo sh -c 'echo \"/usr/lib/wsl/lib\" > /etc/ld.so.conf.d/ld.wsl.conf'", (TimeSpan?)TimeSpan.FromSeconds(30)),
-    Tuple.Create("sudo ldconfig", (TimeSpan?)TimeSpan.FromMinutes(1)),
+// 1. 创建标准目录结构
+Tuple.Create("sudo mkdir -p /usr/lib/wsl/drivers", (TimeSpan?)TimeSpan.FromSeconds(30)),
+Tuple.Create("sudo mkdir -p /usr/lib/wsl/lib", (TimeSpan?)TimeSpan.FromSeconds(30)),
+
+// 2. 部署 Drivers (保持不变)
+Tuple.Create("sudo rm -rf /usr/lib/wsl/drivers/*", (TimeSpan?)TimeSpan.FromMinutes(1)),
+Tuple.Create($"sudo cp -r {homeDirectory}/exhyperv_deploy/drivers/* /usr/lib/wsl/drivers/", (TimeSpan?)TimeSpan.FromMinutes(2)),
+
+// 3. 部署 Libs (修正：复制到 /usr/lib/wsl/lib 而不是 /usr/lib)
+Tuple.Create($"sudo cp -a {homeDirectory}/exhyperv_deploy/lib/*.so* /usr/lib/wsl/lib/", (TimeSpan?)TimeSpan.FromMinutes(2)),
+Tuple.Create($"sudo cp {homeDirectory}/exhyperv_deploy/lib/nvidia-smi /usr/bin/nvidia-smi", (TimeSpan?)TimeSpan.FromSeconds(30)),
+Tuple.Create("sudo chmod 755 /usr/bin/nvidia-smi", (TimeSpan?)TimeSpan.FromSeconds(10)),
+
+// 4. 【关键修复】创建大小写敏感的符号链接
+// 无论源文件是大写还是小写，强制创建一个 libD3D12Core.so 指向它
+Tuple.Create("sudo ln -sf /usr/lib/wsl/lib/libd3d12core.so /usr/lib/wsl/lib/libD3D12Core.so", (TimeSpan?)TimeSpan.FromSeconds(10)),
+
+// 5. 设置权限 (这是 Gist 中的关键一步)
+Tuple.Create("sudo chmod -R 0555 /usr/lib/wsl", (TimeSpan?)TimeSpan.FromMinutes(1)),
+Tuple.Create("sudo chown -R root:root /usr/lib/wsl", (TimeSpan?)TimeSpan.FromMinutes(1)),
+
+// ===================================================================
+// 步骤 E: 配置系统环境
+// ===================================================================
+Tuple.Create("echo '[7/7] 正在配置链接库和环境变量...'", (TimeSpan?)TimeSpan.FromSeconds(30)),
+
+// 1. 【关键修复】配置 ld.so.conf 让系统找到 /usr/lib/wsl/lib
+Tuple.Create("sudo sh -c 'echo \"/usr/lib/wsl/lib\" > /etc/ld.so.conf.d/ld.wsl.conf'", (TimeSpan?)TimeSpan.FromSeconds(10)),
+Tuple.Create("sudo ldconfig", (TimeSpan?)TimeSpan.FromMinutes(1)),
+
+// 2. 【关键修复】修正环境变量
+// 移除 vgem 覆盖，改用 d3d12 (或者完全不设置，让其自动检测)
+Tuple.Create("sudo sh -c 'echo \"export LIBVA_DRIVER_NAME=d3d12\" > /etc/profile.d/99-dxgkrnl.sh'", (TimeSpan?)TimeSpan.FromSeconds(10)),
+// 修正：不要强制 vgem，这会导致 llvmpipe。如果需要强制，应该是 d3d12，但通常不需要。
+// 如果你想强制尝试 d3d12，使用下面这行；否则注释掉 MESA_LOADER_DRIVER_OVERRIDE。
+Tuple.Create("sudo sh -c 'echo \"export MESA_LOADER_DRIVER_OVERRIDE=d3d12\" >> /etc/profile.d/99-dxgkrnl.sh'", (TimeSpan?)TimeSpan.FromSeconds(10)),
+Tuple.Create("sudo chmod 644 /etc/profile.d/99-dxgkrnl.sh", (TimeSpan?)TimeSpan.FromSeconds(10)),
+
+// 3. 赋予设备权限 (防止非 root 用户无法访问 dxg)
+Tuple.Create("sudo chmod 666 /dev/dxg", (TimeSpan?)TimeSpan.FromSeconds(10)),
 
     // ===================================================================
     // 步骤 F: 清理临时文件
@@ -615,6 +639,7 @@ namespace ExHyperV.Services
 };
 
                             // ... 后续的 foreach 循环和重启逻辑保持不变 ...
+
                             const int maxRetries = 2; // 离线操作，减少重试次数
                             foreach (var cmdInfo in commandsToExecute)
                             {
@@ -821,27 +846,60 @@ namespace ExHyperV.Services
         /// <summary>
         /// 从项目的 Assets/linuxlib 文件夹中读取本地文件 (.so 和 install.sh) 并上传。
         /// </summary>
+        /// <summary>
+        /// 将主机系统的WSL GPU库和自定义安装脚本上传到虚拟机。
+        /// </summary>
         private async Task UploadLocalFilesAsync(SshService sshService, SshCredentials credentials, string remoteDirectory)
         {
-            string baseDirectory = AppContext.BaseDirectory;
-            string localLibDirectory = Path.Combine(baseDirectory, "Assets", "linuxlib");
+            // 步骤 1: 从主机系统路径获取并上传 GPU 相关的 .so 库文件
+            // 这是更健壮的方式，确保与主机驱动版本一致
+            string systemWslLibPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "lxss", "lib");
 
-            if (!Directory.Exists(localLibDirectory))
+            if (!Directory.Exists(systemWslLibPath))
             {
-                throw new DirectoryNotFoundException($"无法找到本地资源文件夹: {localLibDirectory}。请确保 Assets/linuxlib 文件夹和其中的文件已设置为“如果较新则复制”并随程序一起发布。");
+                throw new DirectoryNotFoundException($"无法在主机上找到 WSL GPU 库文件夹: '{systemWslLibPath}'。请确认 NVIDIA/Intel/AMD 驱动已正确安装并支持 WSLg。");
             }
 
-            // **修改**: 增加 install.sh 到文件列表
-            string[] fileNames = { "libd3d12.so", "libd3d12core.so", "libdxcore.so", "install.sh" };
-
-            foreach (var name in fileNames)
+            // 使用 SshService 的目录上传功能，将整个 lib 目录内容上传到目标 remoteDirectory
+            // 注意：这里我们是上传目录的 *内容*，而不是目录本身。
+            // 假设 sshService.UploadDirectoryAsync 能够处理这个问题，如果不行，我们需要遍历文件。
+            // 我们先假设可以直接上传文件夹。
+            var filesInSystemDir = Directory.GetFiles(systemWslLibPath);
+            foreach (var filePath in filesInSystemDir)
             {
-                string localFilePath = Path.Combine(localLibDirectory, name);
-                if (!File.Exists(localFilePath))
+                string fileName = Path.GetFileName(filePath);
+                await sshService.UploadFileAsync(credentials, filePath, $"{remoteDirectory}/{fileName}");
+            }
+
+            // 步骤 2: 从项目内嵌资源上传自定义的 install.sh 脚本
+            // 这个脚本是你自己编写的，用于编译 dxgkrnl 内核模块，所以它必须随程序分发
+            string baseDirectory = AppContext.BaseDirectory;
+            string localAssetDirectory = Path.Combine(baseDirectory, "Assets", "linuxlib");
+            string installScriptPath = Path.Combine(localAssetDirectory, "install.sh");
+
+            if (!File.Exists(installScriptPath))
+            {
+                throw new FileNotFoundException($"无法在资源文件夹中找到安装脚本: {installScriptPath}。请确保 install.sh 文件已设置为“如果较新则复制”并随程序一起发布。");
+            }
+
+            await sshService.UploadFileAsync(credentials, installScriptPath, $"{remoteDirectory}/install.sh");
+
+            // （可选）如果还有其他必须随包分发的 .so 文件 (比如微软的 core D3D 库，以防万一系统里没有)
+            // 你也可以在这里添加一个检查，如果 lxss/lib 中不存在，就从 Assets 中上传作为后备。
+            // 但根据 WSLg 的设计，这些文件应该存在。
+            string[] coreDxFiles = { "libd3d12.so", "libd3d12core.so", "libdxcore.so" };
+            foreach (var file in coreDxFiles)
+            {
+                string systemFilePath = Path.Combine(systemWslLibPath, file);
+                if (!File.Exists(systemFilePath))
                 {
-                    throw new FileNotFoundException($"无法在资源文件夹中找到文件: {localFilePath}。");
+                    // 如果系统目录里没有，就从我们的资源包里上传
+                    string localFilePath = Path.Combine(localAssetDirectory, file);
+                    if (File.Exists(localFilePath))
+                    {
+                        await sshService.UploadFileAsync(credentials, localFilePath, $"{remoteDirectory}/{file}");
+                    }
                 }
-                await sshService.UploadFileAsync(credentials, localFilePath, $"{remoteDirectory}/{name}");
             }
         }
     }

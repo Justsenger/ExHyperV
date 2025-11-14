@@ -49,6 +49,10 @@ namespace ExHyperV.Services
         /// <summary>
         /// (最终版) 一次只执行一条命令，并返回完整输出。自动处理 sudo，支持自定义超时，并能实时处理所有类型的流输出（包括进度条）。
         /// </summary>
+        /// 
+        private static readonly Encoding Utf8NoBom = new UTF8Encoding(false);
+
+
         public async Task<string> ExecuteSingleCommandAsync(SshCredentials credentials, string command, Action<string> logCallback, TimeSpan? commandTimeout = null)
         {
             var connectionInfo = new ConnectionInfo(credentials.Host, credentials.Username,
@@ -210,7 +214,7 @@ namespace ExHyperV.Services
                 using (var sftp = new SftpClient(connectionInfo))
                 {
                     sftp.Connect();
-                    sftp.WriteAllText(remotePath, content, Encoding.UTF8);
+                    sftp.WriteAllText(remotePath, content, Utf8NoBom);
                     sftp.Disconnect();
                 }
             });

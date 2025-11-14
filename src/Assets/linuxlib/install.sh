@@ -145,6 +145,10 @@ EOF
 }
 
 install_dkms() {
+    if dkms status | grep -q "dxgkrnl/$VERSION"; then
+        echo "模块 dxgkrnl/$VERSION 已存在，正在先将其移除..."
+        dkms remove dxgkrnl/$VERSION --all
+    fi
     dkms -k ${TARGET_KERNEL_VERSION} add dxgkrnl/$VERSION
     dkms -k ${TARGET_KERNEL_VERSION} build dxgkrnl/$VERSION
     dkms -k ${TARGET_KERNEL_VERSION} install dxgkrnl/$VERSION
