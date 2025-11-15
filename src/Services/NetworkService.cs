@@ -74,13 +74,35 @@ namespace ExHyperV.Services
 
         public async Task<List<AdapterInfo>> GetFullSwitchNetworkStateAsync(string switchName)
         {
+
+            async Task<string> GetIpFromArpCacheByMacAsync(string macWithColons)
+            {
+                string formattedMac = macWithColons.Replace(':', '-');
+                string script = $"Get-NetNeighbor -AddressFamily IPv4 | Where-Object {{ $_.LinkLayerAddress -eq '{formattedMac}' -and $_.State -ne 'Incomplete' }} | Select-Object -ExpandProperty IPAddress -ErrorAction SilentlyContinue";
+
+                try
+                {
+                    var results = await Task.Run(() => Utils.Run(script));
+                    if (results != null && results.Count > 0)
+                    {
+                        return results[0]?.BaseObject?.ToString() ?? string.Empty;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"ARP lookup failed for MAC {formattedMac}: {ex.Message}");
+                }
+                return string.Empty;
+            }
+
             return await Task.Run(async () =>
             {
                 string vmAdaptersScript =
                     $"Get-VMNetworkAdapter -VMName * | Where-Object {{ $_.SwitchName -eq '{switchName}' }} | " +
                     "Select-Object VMName, " +
                     "@{Name='MacAddress'; Expression={($_.MacAddress).Insert(2, ':').Insert(5, ':').Insert(8, ':').Insert(11, ':').Insert(14, ':')}}, " +
-                    "Status, @{Name='IPAddresses'; Expression={($_.IPAddresses -join ',')}}";
+                    "@{Name='AdapterStatus'; Expression={($_.Status | Out-String).Trim()}}, " + 
+                    "@{Name='IPAddresses'; Expression={($_.IPAddresses -join ', ')}}";
                 string hostAdapterScript =
                     $"$vmAdapter = Get-VMNetworkAdapter -ManagementOS -SwitchName '{switchName}';" +
                     "if ($vmAdapter) {" +
@@ -104,17 +126,28 @@ namespace ExHyperV.Services
                 try
                 {
                     var allAdapters = new List<AdapterInfo>();
+
                     var vmResults = Utils.Run(vmAdaptersScript);
                     if (vmResults != null)
                     {
                         foreach (var pso in vmResults)
                         {
-                            allAdapters.Add(new AdapterInfo(
-                                pso.Properties["VMName"]?.Value?.ToString() ?? "",
-                                pso.Properties["MacAddress"]?.Value?.ToString() ?? "",
-                                pso.Properties["Status"]?.Value?.ToString() ?? "",
-                                pso.Properties["IPAddresses"]?.Value?.ToString() ?? ""
-                            ));
+                            var vmName = pso.Properties["VMName"]?.Value?.ToString() ?? "";
+                            var macAddress = pso.Properties["MacAddress"]?.Value?.ToString() ?? "";
+                            var adapterStatus = pso.Properties["AdapterStatus"]?.Value?.ToString() ?? "";
+                            var ipAddresses = pso.Properties["IPAddresses"]?.Value?.ToString() ?? "";
+
+                            // 尝试ARP
+                            if (string.IsNullOrEmpty(ipAddresses) && !string.IsNullOrEmpty(adapterStatus))
+                            {
+                                string ipFromArp = await GetIpFromArpCacheByMacAsync(macAddress);
+                                if (!string.IsNullOrEmpty(ipFromArp))
+                                {
+                                    ipAddresses = ipFromArp;
+                                }
+                            }
+
+                            allAdapters.Add(new AdapterInfo(vmName, macAddress, adapterStatus, ipAddresses));
                         }
                     }
 

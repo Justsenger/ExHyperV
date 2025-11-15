@@ -560,85 +560,116 @@ namespace ExHyperV.Services
                             var commandsToExecute = new List<Tuple<string, TimeSpan?>>
 {
     // ===================================================================
-    // 步骤 A: 环境准备 - 添加 PPA 并全面升级 Mesa
+    // 步骤 1: 环境准备 - 纠正 Mesa 版本并安装核心依赖
     // ===================================================================
-    Tuple.Create("echo '[1/7] 正在添加最新的 Mesa 稳定版驱动源 (PPA)...'", (TimeSpan?)TimeSpan.FromSeconds(30)),
-    Tuple.Create("sudo add-apt-repository -y ppa:kisak/turtle", (TimeSpan?)TimeSpan.FromMinutes(2)),
+    Tuple.Create("echo '[1/7] 正在准备环境，确保使用系统默认的稳定版 Mesa 驱动...'", (TimeSpan?)TimeSpan.FromSeconds(30)),
+    
+    // 1.1 安装 ppa-purge 工具，用于安全地移除 PPA 及其软件包
+    Tuple.Create("echo '[+] 正在安装 ppa-purge 工具...'", (TimeSpan?)TimeSpan.FromSeconds(30)),
+    Tuple.Create("sudo apt-get install -y ppa-purge", (TimeSpan?)TimeSpan.FromMinutes(2)),
 
-    Tuple.Create("echo '[2/7] 正在更新软件包列表...'", (TimeSpan?)TimeSpan.FromSeconds(30)),
+    // 1.2 移除可能存在的不稳定 Kisak PPA，并将 Mesa 降级到官方稳定版
+    Tuple.Create("echo '[+] 正在移除 Kisak PPA (如果存在) 并降级相关软件包...'", (TimeSpan?)TimeSpan.FromSeconds(30)),
+    // 使用 || true 确保即使 PPA 不存在，脚本也不会因错误而中止
+    Tuple.Create("sudo ppa-purge -y ppa:kisak/turtle || true", (TimeSpan?)TimeSpan.FromMinutes(3)),
+    Tuple.Create("sudo ppa-purge -y ppa:kisak/kisak-mesa || true", (TimeSpan?)TimeSpan.FromMinutes(3)),
+
+    // ===================================================================
+    // 步骤 2: 更新系统并安装所有依赖
+    // ===================================================================
+    Tuple.Create("echo '[2/7] 正在更新软件包列表并升级系统...'", (TimeSpan?)TimeSpan.FromSeconds(30)),
     Tuple.Create("sudo apt-get update", (TimeSpan?)TimeSpan.FromMinutes(5)),
-
-    Tuple.Create("echo '[3/7] 正在升级 Mesa 驱动及相关系统组件...'", (TimeSpan?)TimeSpan.FromSeconds(30)),
     Tuple.Create("sudo apt-get upgrade -y", (TimeSpan?)TimeSpan.FromMinutes(15)),
-    Tuple.Create("echo '[+] 正在确保关键 Mesa 组件已安装...'", (TimeSpan?)TimeSpan.FromSeconds(30)),
-    Tuple.Create("sudo apt-get install -y libegl-mesa0 libgbm1 libgl1-mesa-dri libglx-mesa0 mesa-va-drivers mesa-vulkan-drivers", (TimeSpan?)TimeSpan.FromMinutes(5)),
+
+    // 2.1 强制重装核心图形组件，确保状态纯净
+    Tuple.Create("echo '[3/7] 正在强制重装核心图形组件以确保稳定...'", (TimeSpan?)TimeSpan.FromSeconds(30)),
+    Tuple.Create("sudo apt-get install --reinstall -y mesa-va-drivers vainfo libgl1-mesa-dri libglx-mesa0 libgbm1", (TimeSpan?)TimeSpan.FromMinutes(5)),
+
+    // 2.2 安装编译内核模块及其他功能所需的全部依赖包
+    Tuple.Create("echo '[+] 正在安装所有其他必要的依赖包...'", (TimeSpan?)TimeSpan.FromSeconds(30)),
+    Tuple.Create("sudo apt-get install -y linux-headers-$(uname -r) build-essential git dkms curl mesa-utils mesa-vulkan-drivers", (TimeSpan?)TimeSpan.FromMinutes(10)),
+    
+    // ===================================================================
+// 新增步骤 4: 从源码编译并安装 dxgkrnl 内核模块
+// ===================================================================
+Tuple.Create("echo '[4/7] 正在编译并安装 GPU-PV 核心内核模块 (dxgkrnl)... 此过程耗时较长，请耐心等待。'", (TimeSpan?)TimeSpan.FromSeconds(30)),
+// remoteLibDir 变量是在这个列表外部定义的，包含了 install.sh 的路径
+Tuple.Create($"sudo chmod +x {remoteLibDir}/install.sh", (TimeSpan?)TimeSpan.FromSeconds(20)),
+// 使用 sudo 执行脚本，因为它需要系统权限来安装 DKMS 模块
+Tuple.Create($"sudo {remoteLibDir}/install.sh", (TimeSpan?)TimeSpan.FromMinutes(30)), // 编译和安装非常耗时，给予足够长的超时时间
+
+    
+    // ===================================================================
+    // 步骤 3: 部署 GPU 驱动和库文件
+    // ===================================================================
+    Tuple.Create("echo '[5/7] 正在部署 GPU 驱动及库文件到系统标准路径...'", (TimeSpan?)TimeSpan.FromSeconds(30)),
+    Tuple.Create("sudo mkdir -p /usr/lib/wsl/drivers /usr/lib/wsl/lib", (TimeSpan?)TimeSpan.FromSeconds(30)),
+    Tuple.Create("sudo rm -rf /usr/lib/wsl/drivers/* /usr/lib/wsl/lib/*", (TimeSpan?)TimeSpan.FromMinutes(1)),
+    Tuple.Create($"sudo cp -r {homeDirectory}/exhyperv_deploy/drivers/* /usr/lib/wsl/drivers/", (TimeSpan?)TimeSpan.FromMinutes(2)),
+    Tuple.Create($"sudo cp -a {homeDirectory}/exhyperv_deploy/lib/*.so* /usr/lib/wsl/lib/", (TimeSpan?)TimeSpan.FromMinutes(2)),
+    Tuple.Create($"sudo cp {homeDirectory}/exhyperv_deploy/lib/nvidia-smi /usr/bin/nvidia-smi", (TimeSpan?)TimeSpan.FromSeconds(30)),
+    Tuple.Create("sudo chmod 755 /usr/bin/nvidia-smi", (TimeSpan?)TimeSpan.FromSeconds(10)),
+    Tuple.Create("sudo ln -sf /usr/lib/wsl/lib/libd3d12core.so /usr/lib/wsl/lib/libD3D12Core.so", (TimeSpan?)TimeSpan.FromSeconds(10)),
+    Tuple.Create("sudo chmod -R 0555 /usr/lib/wsl", (TimeSpan?)TimeSpan.FromMinutes(1)),
+    Tuple.Create("sudo chown -R root:root /usr/lib/wsl", (TimeSpan?)TimeSpan.FromMinutes(1)),
 
     // ===================================================================
-    // 步骤 B: 安装 dxgkrnl 编译所需的依赖
+    // 步骤 4: 配置系统环境 (最终修正版)
     // ===================================================================
-    Tuple.Create("echo '[4/7] 正在安装 GPU 部署所需的依赖包 (dkms, git...)'", (TimeSpan?)TimeSpan.FromSeconds(30)),
-    Tuple.Create("sudo apt-get install -y linux-headers-$(uname -r) build-essential git dkms vainfo curl", (TimeSpan?)TimeSpan.FromMinutes(10)),
+    Tuple.Create("echo '[6/7] 正在配置链接库和全局环境变量...'", (TimeSpan?)TimeSpan.FromSeconds(30)),
+    
+    // 4.1. 配置链接库路径
+    Tuple.Create("sudo sh -c 'echo \"/usr/lib/wsl/lib\" > /etc/ld.so.conf.d/ld.wsl.conf'", (TimeSpan?)TimeSpan.FromSeconds(10)),
+    Tuple.Create("sudo ldconfig", (TimeSpan?)TimeSpan.FromMinutes(1)),
 
-    // ===================================================================
-    // 步骤 C: 从本地脚本编译并安装 dxgkrnl 内核模块
-    // ===================================================================
-    Tuple.Create("echo '[5/7] 正在从本地脚本编译并安装 dxgkrnl 内核模块...'", (TimeSpan?)TimeSpan.FromSeconds(30)),
-    Tuple.Create($"sudo bash {remoteLibDir}/install.sh", (TimeSpan?)null),
+    // 4.2. 【核心修复】使用 /etc/environment 设置全局环境变量
+    Tuple.Create("echo '[+] 正在设置全局环境变量以强制启用 D3D12 驱动...'", (TimeSpan?)TimeSpan.FromSeconds(30)),
+    Tuple.Create("sudo rm -f /etc/profile.d/99-dxgkrnl.sh", (TimeSpan?)TimeSpan.FromSeconds(10)), // 清理旧配置文件
+    // 创建一个包含所有必需变量的临时文件
+    Tuple.Create($"echo 'GALLIUM_DRIVERS=d3d12' > {homeDirectory}/env_tmp", (TimeSpan?)TimeSpan.FromSeconds(10)),
+    Tuple.Create($"echo 'LIBVA_DRIVER_NAME=d3d12' >> {homeDirectory}/env_tmp", (TimeSpan?)TimeSpan.FromSeconds(10)),
+    Tuple.Create($"echo 'MESA_LOADER_DRIVER_OVERRIDE=vgem' >> {homeDirectory}/env_tmp", (TimeSpan?)TimeSpan.FromSeconds(10)),
+Tuple.Create($"echo 'GST_VAAPI_DRM_DEVICE=/dev/dri/card0' >> {homeDirectory}/env_tmp", (TimeSpan?)TimeSpan.FromSeconds(10)),
 
-// ===================================================================
-// 步骤 D: 部署驱动和库文件 (修正为标准 WSL 结构)
-// ===================================================================
-Tuple.Create("echo '[6/7] 正在部署驱动及库文件...'", (TimeSpan?)TimeSpan.FromSeconds(30)),
-
-// 1. 创建标准目录结构
-Tuple.Create("sudo mkdir -p /usr/lib/wsl/drivers", (TimeSpan?)TimeSpan.FromSeconds(30)),
-Tuple.Create("sudo mkdir -p /usr/lib/wsl/lib", (TimeSpan?)TimeSpan.FromSeconds(30)),
-
-// 2. 部署 Drivers (保持不变)
-Tuple.Create("sudo rm -rf /usr/lib/wsl/drivers/*", (TimeSpan?)TimeSpan.FromMinutes(1)),
-Tuple.Create($"sudo cp -r {homeDirectory}/exhyperv_deploy/drivers/* /usr/lib/wsl/drivers/", (TimeSpan?)TimeSpan.FromMinutes(2)),
-
-// 3. 部署 Libs (修正：复制到 /usr/lib/wsl/lib 而不是 /usr/lib)
-Tuple.Create($"sudo cp -a {homeDirectory}/exhyperv_deploy/lib/*.so* /usr/lib/wsl/lib/", (TimeSpan?)TimeSpan.FromMinutes(2)),
-Tuple.Create($"sudo cp {homeDirectory}/exhyperv_deploy/lib/nvidia-smi /usr/bin/nvidia-smi", (TimeSpan?)TimeSpan.FromSeconds(30)),
-Tuple.Create("sudo chmod 755 /usr/bin/nvidia-smi", (TimeSpan?)TimeSpan.FromSeconds(10)),
-
-// 4. 【关键修复】创建大小写敏感的符号链接
-// 无论源文件是大写还是小写，强制创建一个 libD3D12Core.so 指向它
-Tuple.Create("sudo ln -sf /usr/lib/wsl/lib/libd3d12core.so /usr/lib/wsl/lib/libD3D12Core.so", (TimeSpan?)TimeSpan.FromSeconds(10)),
-
-// 5. 设置权限 (这是 Gist 中的关键一步)
-Tuple.Create("sudo chmod -R 0555 /usr/lib/wsl", (TimeSpan?)TimeSpan.FromMinutes(1)),
-Tuple.Create("sudo chown -R root:root /usr/lib/wsl", (TimeSpan?)TimeSpan.FromMinutes(1)),
+    // 安全地将新变量合并到 /etc/environment，并处理已存在PATH的情况
+    Tuple.Create($"sudo sh -c 'grep -q -F \"PATH=\" /etc/environment || echo \"PATH=\\\"/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin\\\"\" >> /etc/environment'", (TimeSpan?)TimeSpan.FromSeconds(20)),
+    Tuple.Create($"sudo sh -c 'cat {homeDirectory}/env_tmp /etc/environment | sort | uniq > /etc/environment.new && mv /etc/environment.new /etc/environment'", (TimeSpan?)TimeSpan.FromSeconds(30)),
+    Tuple.Create($"rm {homeDirectory}/env_tmp", (TimeSpan?)TimeSpan.FromSeconds(10)),
 
 // ===================================================================
-// 步骤 E: 配置系统环境
+// 步骤 4.3: 配置用户权限
 // ===================================================================
-Tuple.Create("echo '[7/7] 正在配置链接库和环境变量...'", (TimeSpan?)TimeSpan.FromSeconds(30)),
+Tuple.Create("echo '[+] 正在将用户添加到 video 和 render 组以获取硬件访问权限...'", (TimeSpan?)TimeSpan.FromSeconds(30)),
+Tuple.Create("sudo usermod -a -G video $USER || sudo usermod -a -G video $SUDO_USER || true", (TimeSpan?)TimeSpan.FromSeconds(30)),
+Tuple.Create("sudo usermod -a -G render $USER || sudo usermod -a -G render $SUDO_USER || true", (TimeSpan?)TimeSpan.FromSeconds(30)),
 
-// 1. 【关键修复】配置 ld.so.conf 让系统找到 /usr/lib/wsl/lib
-Tuple.Create("sudo sh -c 'echo \"/usr/lib/wsl/lib\" > /etc/ld.so.conf.d/ld.wsl.conf'", (TimeSpan?)TimeSpan.FromSeconds(10)),
-Tuple.Create("sudo ldconfig", (TimeSpan?)TimeSpan.FromMinutes(1)),
+// ===================================================================
+// 步骤 4.4: 确保核心内核模块开机自启并立即加载
+// ===================================================================
+Tuple.Create("echo '[+] 正在确保 vgem 和 dxgkrnl 模块开机自启并立即加载...'", (TimeSpan?)TimeSpan.FromSeconds(30)),
+// 4.4.1. 设置开机自动加载 (永久生效)
+Tuple.Create("sudo sh -c \"echo 'vgem' > /etc/modules-load.d/vgem.conf\"", (TimeSpan?)TimeSpan.FromSeconds(20)),
+Tuple.Create("sudo sh -c \"echo 'dxgkrnl' > /etc/modules-load.d/dxgkrnl.conf\"", (TimeSpan?)TimeSpan.FromSeconds(20)),
+// 4.4.2. 立即加载模块以供当前会话使用 (即时生效)
+Tuple.Create("sudo modprobe vgem", (TimeSpan?)TimeSpan.FromSeconds(20)),
+Tuple.Create("sudo modprobe dxgkrnl", (TimeSpan?)TimeSpan.FromSeconds(20)),
 
-// 2. 【关键修复】修正环境变量
-// 移除 vgem 覆盖，改用 d3d12 (或者完全不设置，让其自动检测)
-Tuple.Create("sudo sh -c 'echo \"export LIBVA_DRIVER_NAME=d3d12\" > /etc/profile.d/99-dxgkrnl.sh'", (TimeSpan?)TimeSpan.FromSeconds(10)),
-// 修正：不要强制 vgem，这会导致 llvmpipe。如果需要强制，应该是 d3d12，但通常不需要。
-// 如果你想强制尝试 d3d12，使用下面这行；否则注释掉 MESA_LOADER_DRIVER_OVERRIDE。
-Tuple.Create("sudo sh -c 'echo \"export MESA_LOADER_DRIVER_OVERRIDE=d3d12\" >> /etc/profile.d/99-dxgkrnl.sh'", (TimeSpan?)TimeSpan.FromSeconds(10)),
-Tuple.Create("sudo chmod 644 /etc/profile.d/99-dxgkrnl.sh", (TimeSpan?)TimeSpan.FromSeconds(10)),
-
-// 3. 赋予设备权限 (防止非 root 用户无法访问 dxg)
+// ===================================================================
+// 步骤 4.5: 开放设备节点权限
+// ===================================================================
+Tuple.Create("echo '[+] 正在开放设备节点权限...'", (TimeSpan?)TimeSpan.FromSeconds(30)),
+// 注意：现在 modprobe 已经执行，这些设备应该都存在了
 Tuple.Create("sudo chmod 666 /dev/dxg", (TimeSpan?)TimeSpan.FromSeconds(10)),
+Tuple.Create("sudo chmod 666 /dev/dri/card0 || true", (TimeSpan?)TimeSpan.FromSeconds(10)), // card0 可能不存在于无头环境，所以 || true
+Tuple.Create("sudo chmod 666 /dev/dri/renderD128 || true", (TimeSpan?)TimeSpan.FromSeconds(10)), // 同上
 
     // ===================================================================
-    // 步骤 F: 清理临时文件
+    // 步骤 5: 清理临时文件
     // ===================================================================
-    Tuple.Create("echo '[+] 正在清理临时文件...'", (TimeSpan?)TimeSpan.FromSeconds(30)),
+    Tuple.Create("echo '[7/7] 正在清理临时文件...'", (TimeSpan?)TimeSpan.FromSeconds(30)),
     Tuple.Create($"rm -rf {homeDirectory}/exhyperv_deploy", (TimeSpan?)TimeSpan.FromMinutes(1)),
 };
 
-                            // ... 后续的 foreach 循环和重启逻辑保持不变 ...
 
                             const int maxRetries = 2; // 离线操作，减少重试次数
                             foreach (var cmdInfo in commandsToExecute)
