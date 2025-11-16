@@ -331,6 +331,84 @@ public class Utils
     }
 
 
+    #region Hyper-V Network Helpers
+
+    /// <summary>
+    /// 异步获取虚拟机的IP地址。
+    /// 首先尝试通过Hyper-V集成服务直接获取，如果失败，则回退到使用主机的ARP缓存通过MAC地址查找。
+    /// </summary>
+    /// <param name="vmName">虚拟机的名称。</param>
+    /// <param name="macAddressWithColons">虚拟机网络适配器的MAC地址，格式为 "00:15:5D:..."。</param>
+    /// <returns>一个包含逗号分隔的IP地址的字符串，如果未找到则为空字符串。</returns>
+    public static async Task<string> GetVmIpAddressAsync(string vmName, string macAddressWithColons)
+    {
+        if (string.IsNullOrEmpty(vmName) || string.IsNullOrEmpty(macAddressWithColons))
+        {
+            return string.Empty;
+        }
+
+        // 1. 尝试直接从Hyper-V获取IP
+        string macAddressWithoutColons = macAddressWithColons.Replace(":", "");
+        // 注意: Get-VMNetworkAdapter 返回的 IPAddresses 是一个字符串数组
+        string directIpScript = $"@(Get-VMNetworkAdapter -VMName '{vmName}' | Where-Object {{ $_.MacAddress -eq '{macAddressWithoutColons}' }}).IPAddresses";
+
+        string ipAddresses = string.Empty;
+        try
+        {
+            // 使用你现有的健壮的 Run2 方法
+            var directResults = await Run2(directIpScript);
+
+            if (directResults != null && directResults.Count > 0)
+            {
+                var ips = directResults.Select(pso => pso?.BaseObject?.ToString()).Where(ip => !string.IsNullOrEmpty(ip));
+                ipAddresses = string.Join(", ", ips);
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Direct IP lookup for VM '{vmName}' failed: {ex.Message}");
+            // 失败时继续尝试ARP，所以这里不抛出异常
+        }
+
+
+        // 2. 如果直接获取失败，则尝试从ARP缓存获取
+        if (string.IsNullOrEmpty(ipAddresses))
+        {
+            System.Diagnostics.Debug.WriteLine($"Direct IP lookup failed or returned empty for VM '{vmName}' (MAC: {macAddressWithColons}). Trying ARP cache.");
+            ipAddresses = await GetIpFromArpCacheByMacAsync(macAddressWithColons);
+        }
+
+        return ipAddresses;
+    }
+
+    /// <summary>
+    /// 通过MAC地址在主机的ARP缓存中查找对应的IPv4地址。
+    /// </summary>
+    /// <param name="macWithColons">带冒号的MAC地址。</param>
+    /// <returns>找到的IP地址，如果未找到则为空字符串。</returns>
+    private static async Task<string> GetIpFromArpCacheByMacAsync(string macWithColons)
+    {
+        string formattedMacForArp = macWithColons.Replace(':', '-');
+        string script = $"Get-NetNeighbor -AddressFamily IPv4 | Where-Object {{ $_.LinkLayerAddress -eq '{formattedMacForArp}' -and $_.State -ne 'Incomplete' }} | Select-Object -ExpandProperty IPAddress -First 1 -ErrorAction SilentlyContinue";
+
+        try
+        {
+            // 使用 Run2 方法
+            var results = await Run2(script);
+            if (results != null && results.Count > 0)
+            {
+                return results[0]?.BaseObject?.ToString() ?? string.Empty;
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"ARP lookup failed for MAC {formattedMacForArp}: {ex.Message}");
+        }
+        return string.Empty;
+    }
+
+    #endregion
+
 
     public static void Show(string message)
     {

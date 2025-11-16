@@ -55,6 +55,9 @@ namespace ExHyperV.Services
 
         public async Task<string> ExecuteSingleCommandAsync(SshCredentials credentials, string command, Action<string> logCallback, TimeSpan? commandTimeout = null)
         {
+            string commandToExecute = command; // 默认情况下，执行和记录的命令是相同的
+            string commandToLog = command;     // 这是用于日志的、干净的命令版本
+
             var connectionInfo = new ConnectionInfo(credentials.Host, credentials.Username,
                 new PasswordAuthenticationMethod(credentials.Username, credentials.Password))
             {
@@ -67,12 +70,18 @@ namespace ExHyperV.Services
 
                 if (command.Trim().StartsWith("sudo"))
                 {
-                    command = $"echo '{credentials.Password}' | sudo -S -p '' bash -c '{command.Replace("sudo ", "").Replace("'", "'\"'\"'")}'";
+                    // 准备要执行的命令，包含密码，这个不对外显示
+                    string actualCommand = command.Substring(5).Trim(); // 移除 "sudo "
+                    string escapedCommand = actualCommand.Replace("'", "'\\''"); // 正确处理单引号
+
+                    commandToExecute = $"echo '{credentials.Password}' | sudo -S -p '' bash -c '{escapedCommand}'";
+
+                    // commandToLog 保持不变，它已经是干净的 "sudo ..." 命令了
                 }
 
-                logCallback($"\n>>> Executing: {command}\n");
+                //logCallback($"\n>>> Executing: {command}\n");
 
-                var sshCommand = client.CreateCommand(command);
+                var sshCommand = client.CreateCommand(commandToExecute);
                 sshCommand.CommandTimeout = commandTimeout ?? TimeSpan.FromMinutes(30);
 
                 var asyncResult = sshCommand.BeginExecute();
