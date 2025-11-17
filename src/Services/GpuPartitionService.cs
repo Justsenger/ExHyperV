@@ -679,10 +679,19 @@ Tuple.Create("sudo sh -c 'echo \"Pin-Priority: 900\" >> /etc/apt/preferences.d/9
 Tuple.Create("echo '[+] 应用规则并强制安装/升级 Vulkan 驱动...'", (TimeSpan?)TimeSpan.FromSeconds(30)),
 Tuple.Create("sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq mesa-vulkan-drivers", (TimeSpan?)TimeSpan.FromMinutes(5)),
 
+
+
                                 // ===================================================================
                                 // 新增步骤 4: 从源码编译并安装 dxgkrnl 内核模块
                                 // ===================================================================
     Tuple.Create("echo '\n[7/9] 正在编译并安装 GPU-PV 核心内核模块 (dxgkrnl)...'", (TimeSpan?)TimeSpan.FromSeconds(30)),
+
+        // 【新增的核心修复步骤】
+    Tuple.Create("echo '[+] 正在安装 dos2unix 以确保脚本格式正确...'", (TimeSpan?)TimeSpan.FromSeconds(30)),
+    Tuple.Create("sudo apt-get install -y -qq dos2unix", (TimeSpan?)TimeSpan.FromMinutes(2)),
+    Tuple.Create($"echo '[+] 正在转换 install.sh 的行尾符 (CRLF -> LF)...'", (TimeSpan?)TimeSpan.FromSeconds(30)),
+    Tuple.Create($"dos2unix {remoteLibDir}/install.sh", (TimeSpan?)TimeSpan.FromSeconds(20)), // 转换文件！
+
     Tuple.Create("echo '[+] 赋予安装脚本执行权限...'", (TimeSpan?)TimeSpan.FromSeconds(30)),
                                 // remoteLibDir 变量是在这个列表外部定义的，包含了 install.sh 的路径
                                 Tuple.Create($"sudo chmod +x {remoteLibDir}/install.sh", (TimeSpan?)TimeSpan.FromSeconds(20)),
