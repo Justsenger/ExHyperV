@@ -820,7 +820,7 @@ Tuple.Create("sudo ln -sf /dev/dri/card1 /dev/dri/card0", (TimeSpan?)TimeSpan.Fr
                                 }
                                 catch (Exception ex)
                                 {
-                                    log($"[+] 连接已按预期中断: {ex.GetType().Name}");
+                                    log($"[+] 连接已断开。");
                                 }
 
                                 progressWindow.ShowSuccessState();
