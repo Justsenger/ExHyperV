@@ -398,6 +398,7 @@ namespace ExHyperV.Services
                     System.Windows.Application.Current.Dispatcher.Invoke(() => Utils.Show2(message));
                 }
 
+
                 try
                 {
                     Utils.AddGpuAssignmentStrategyReg();
@@ -481,6 +482,17 @@ namespace ExHyperV.Services
                         Action<string> showMessage = (msg) => System.Windows.Application.Current.Dispatcher.Invoke(() => Utils.Show2(msg));
 
 
+                        Func<string, string> withSudo = (cmd) =>
+                        {
+                            // 移除命令开头可能存在的 sudo，以防重复
+                            if (cmd.Trim().StartsWith("sudo "))
+                            {
+                                cmd = cmd.Trim().Substring(5);
+                            }
+                            // 对密码中的单引号进行转义，防止shell注入
+                            string escapedPassword = credentials.Password.Replace("'", "'\\''");
+                            return $"echo '{escapedPassword}' | sudo -S -p '' {cmd}";
+                        };
                         try
                         {
                             // 步骤 1.1: 确保虚拟机正在运行 (此部分代码从原 try 块移动而来，内容不变)
@@ -637,6 +649,8 @@ namespace ExHyperV.Services
                                 log("[✓] 核心库与脚本上传完毕。");
                                 updateStatus("[5/9] 开始执行系统配置脚本...");
 
+                                string password = credentials.Password; // 假设密码存储在这里
+
                                 var commandsToExecute = new List<Tuple<string, TimeSpan?>>
                                 {
 
@@ -679,19 +693,10 @@ Tuple.Create("sudo sh -c 'echo \"Pin-Priority: 900\" >> /etc/apt/preferences.d/9
 Tuple.Create("echo '[+] 应用规则并强制安装/升级 Vulkan 驱动...'", (TimeSpan?)TimeSpan.FromSeconds(30)),
 Tuple.Create("sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq mesa-vulkan-drivers", (TimeSpan?)TimeSpan.FromMinutes(5)),
 
-
-
                                 // ===================================================================
                                 // 新增步骤 4: 从源码编译并安装 dxgkrnl 内核模块
                                 // ===================================================================
     Tuple.Create("echo '\n[7/9] 正在编译并安装 GPU-PV 核心内核模块 (dxgkrnl)...'", (TimeSpan?)TimeSpan.FromSeconds(30)),
-
-        // 【新增的核心修复步骤】
-    Tuple.Create("echo '[+] 正在安装 dos2unix 以确保脚本格式正确...'", (TimeSpan?)TimeSpan.FromSeconds(30)),
-    Tuple.Create("sudo apt-get install -y -qq dos2unix", (TimeSpan?)TimeSpan.FromMinutes(2)),
-    Tuple.Create($"echo '[+] 正在转换 install.sh 的行尾符 (CRLF -> LF)...'", (TimeSpan?)TimeSpan.FromSeconds(30)),
-    Tuple.Create($"dos2unix {remoteLibDir}/install.sh", (TimeSpan?)TimeSpan.FromSeconds(20)), // 转换文件！
-
     Tuple.Create("echo '[+] 赋予安装脚本执行权限...'", (TimeSpan?)TimeSpan.FromSeconds(30)),
                                 // remoteLibDir 变量是在这个列表外部定义的，包含了 install.sh 的路径
                                 Tuple.Create($"sudo chmod +x {remoteLibDir}/install.sh", (TimeSpan?)TimeSpan.FromSeconds(20)),
@@ -702,17 +707,17 @@ Tuple.Create("sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq mesa-vu
                                     // ===================================================================
                                     // 步骤 3: 部署 GPU 驱动和库文件
                                     // ===================================================================
-    Tuple.Create("echo '\n[8/9] 正在部署驱动文件并配置系统环境...'", (TimeSpan?)TimeSpan.FromSeconds(30)),
+Tuple.Create("echo '\n[8/9] 正在部署驱动文件并配置系统环境...'", (TimeSpan?)TimeSpan.FromSeconds(30)),
     Tuple.Create("echo '[+] 部署 GPU 驱动及库文件到系统路径...'", (TimeSpan?)TimeSpan.FromSeconds(30)),
-                                    Tuple.Create("sudo mkdir -p /usr/lib/wsl/drivers /usr/lib/wsl/lib", (TimeSpan?)TimeSpan.FromSeconds(30)),
-                                    Tuple.Create("sudo rm -rf /usr/lib/wsl/drivers/* /usr/lib/wsl/lib/*", (TimeSpan?)TimeSpan.FromMinutes(1)),
-                                    Tuple.Create($"sudo cp -r {homeDirectory}/exhyperv_deploy/drivers/* /usr/lib/wsl/drivers/", (TimeSpan?)TimeSpan.FromMinutes(2)),
-                                    Tuple.Create($"sudo cp -a {homeDirectory}/exhyperv_deploy/lib/*.so* /usr/lib/wsl/lib/", (TimeSpan?)TimeSpan.FromMinutes(2)),
-                                    Tuple.Create($"[ -f {homeDirectory}/exhyperv_deploy/lib/nvidia-smi ] && sudo cp {homeDirectory}/exhyperv_deploy/lib/nvidia-smi /usr/bin/nvidia-smi || echo 'nvidia-smi not found, skipping.'", (TimeSpan?)TimeSpan.FromSeconds(30)),
-                                    Tuple.Create($"[ -f /usr/bin/nvidia-smi ] && sudo chmod 755 /usr/bin/nvidia-smi || echo 'nvidia-smi not found in /usr/bin, skipping chmod.'", (TimeSpan?)TimeSpan.FromSeconds(10)),
-                                    Tuple.Create("sudo ln -sf /usr/lib/wsl/lib/libd3d12core.so /usr/lib/wsl/lib/libD3D12Core.so", (TimeSpan?)TimeSpan.FromSeconds(10)),
-                                    Tuple.Create("sudo chmod -R 0555 /usr/lib/wsl", (TimeSpan?)TimeSpan.FromMinutes(1)),
-                                    Tuple.Create("sudo chown -R root:root /usr/lib/wsl", (TimeSpan?)TimeSpan.FromMinutes(1)),
+    Tuple.Create(withSudo("mkdir -p /usr/lib/wsl/drivers /usr/lib/wsl/lib"), (TimeSpan?)TimeSpan.FromSeconds(30)),
+    Tuple.Create(withSudo("rm -rf /usr/lib/wsl/drivers/* /usr/lib/wsl/lib/*"), (TimeSpan?)TimeSpan.FromMinutes(1)),
+    Tuple.Create(withSudo($"cp -r {homeDirectory}/exhyperv_deploy/drivers/* /usr/lib/wsl/drivers/"), (TimeSpan?)TimeSpan.FromMinutes(2)),
+    Tuple.Create(withSudo($"cp -a {homeDirectory}/exhyperv_deploy/lib/*.so* /usr/lib/wsl/lib/"), (TimeSpan?)TimeSpan.FromMinutes(2)),
+    Tuple.Create($"[ -f {homeDirectory}/exhyperv_deploy/lib/nvidia-smi ] && {withSudo($"cp {homeDirectory}/exhyperv_deploy/lib/nvidia-smi /usr/bin/nvidia-smi")} || echo 'nvidia-smi not found, skipping.'", (TimeSpan?)TimeSpan.FromSeconds(30)),
+    Tuple.Create($"[ -f /usr/bin/nvidia-smi ] && {withSudo("chmod 755 /usr/bin/nvidia-smi")} || echo 'nvidia-smi not found in /usr/bin, skipping chmod.'", (TimeSpan?)TimeSpan.FromSeconds(10)),
+    Tuple.Create(withSudo("ln -sf /usr/lib/wsl/lib/libd3d12core.so /usr/lib/wsl/lib/libD3D12Core.so"), (TimeSpan?)TimeSpan.FromSeconds(10)),
+    Tuple.Create(withSudo("chmod -R 0555 /usr/lib/wsl"), (TimeSpan?)TimeSpan.FromMinutes(1)),
+    Tuple.Create(withSudo("chown -R root:root /usr/lib/wsl"), (TimeSpan?)TimeSpan.FromMinutes(1)),
 
                                     // ===================================================================
                                     // 步骤 4: 配置系统环境 (最终修正版)
@@ -820,7 +825,7 @@ Tuple.Create("sudo ln -sf /dev/dri/card1 /dev/dri/card0", (TimeSpan?)TimeSpan.Fr
                                 }
                                 catch (Exception ex)
                                 {
-                                    log($"[+] 连接已断开。");
+                                    log($"[+] 连接已按预期中断: {ex.GetType().Name}");
                                 }
 
                                 progressWindow.ShowSuccessState();
