@@ -6,12 +6,18 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
     xmlns:properties="clr-namespace:ExHyperV.Properties"
+    xmlns:converters="clr-namespace:ExHyperV.Converters"
     xmlns:vm="clr-namespace:ExHyperV.ViewModels"
     mc:Ignorable="d"
     d:DataContext="{d:DesignInstance Type=vm:SettingsViewModel, IsDesignTimeCreatable=True}"
     Title="Setting"
     d:DesignHeight="700"
     d:DesignWidth="1000">
+
+    <Page.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+        <converters:CommandParameterConverter x:Key="CommandParameterConverter"/>
+    </Page.Resources>
 
     <StackPanel Margin="15,15,15,24">
         <ui:TextBlock
@@ -84,6 +90,36 @@
                 </Grid>
             </ui:CardExpander.Header>
             <StackPanel>
+                <ui:Anchor
+                    Padding="16,12"
+                    HorizontalAlignment="Stretch"
+                    HorizontalContentAlignment="Stretch"
+                    Background="Transparent"
+                    BorderThickness="0,1,0,0"
+                    CornerRadius="0"
+                    Command="{Binding UpdateActionCommand}"
+                    IsEnabled="{Binding IsUpdateActionEnabled}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock
+                            Grid.Column="0"
+                            VerticalAlignment="Center"
+                            Text="{Binding UpdateStatusText, FallbackValue='正在检查更新...'}" />
+                        <Grid Grid.Column="1" MinWidth="20">
+                            <ui:ProgressRing
+                                Width="16" Height="16"
+                                IsIndeterminate="True"
+                                Visibility="{Binding IsCheckingForUpdate, Converter={StaticResource BoolToVis}}" />
+                            <ui:FontIcon
+                                FontFamily="{DynamicResource SegoeFluentIcons}"
+                                Glyph="{Binding UpdateActionIcon}"
+                                Visibility="{Binding IsCheckingForUpdate, Converter={StaticResource BoolToVis}, ConverterParameter=invert}" />
+                        </Grid>
+                    </Grid>
+                </ui:Anchor>
                 <ui:Anchor
                     Padding="16"
                     HorizontalAlignment="Stretch"

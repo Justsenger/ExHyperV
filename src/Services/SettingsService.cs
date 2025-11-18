@@ -4,11 +4,69 @@ using System.Windows;
 using System.Xml.Linq;
 using ExHyperV.Properties;
 using Wpf.Ui.Appearance;
+using System.Net.Http;
 
 namespace ExHyperV.Services
 {
+
+    public record UpdateResult(bool IsUpdateAvailable, string LatestVersion);
+    internal class GitHubRelease
+    {
+        public string tag_name { get; set; }
+    }
     public static class SettingsService
     {
+
+        private static readonly HttpClient _httpClient = new HttpClient();
+        private const string GitHubApiUrl = "https://api.github.com/repos/Justsenger/ExHyperV/releases/latest";
+        private const string FallbackUrl = "https://update.shalingye.workers.dev/";
+
+        static SettingsService()
+        {
+            _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("ExHyperV-App-Check");
+        }
+
+        public static async Task<UpdateResult> CheckForUpdateAsync(string currentVersion)
+        {
+            string latestVersionTag = null;
+            try
+            {
+                var response = await _httpClient.GetAsync(GitHubApiUrl);
+                if (response.IsSuccessStatusCode)
+                {
+                    var jsonStream = await response.Content.ReadAsStreamAsync();
+                    var release = await System.Text.Json.JsonSerializer.DeserializeAsync<GitHubRelease>(jsonStream);
+                    latestVersionTag = release?.tag_name;
+                }
+                else
+                {
+                    string errorContent = await response.Content.ReadAsStringAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+            }
+            if (string.IsNullOrEmpty(latestVersionTag))
+            {
+                try
+                {
+                    latestVersionTag = await _httpClient.GetStringAsync(FallbackUrl);
+                }
+                catch (Exception ex)
+                {
+                    throw new Exception("检查更新失败，请检查网络连接。");
+                }
+            }
+            var cleanCurrent = currentVersion.TrimStart('v').Split('-')[0];
+            var cleanLatest = latestVersionTag.TrimStart('v').Split('-')[0];
+
+            if (Version.TryParse(cleanCurrent, out var current) && Version.TryParse(cleanLatest, out var latest))
+            {
+                bool isUpdateAvailable = latest > current;
+                return new UpdateResult(isUpdateAvailable, latestVersionTag);
+            }
+            return new UpdateResult(latestVersionTag.Trim() != currentVersion.Trim(), latestVersionTag);
+        }
         private const string ConfigFilePath = "config.xml";
 
         // 从XML加载语言设置
