@@ -41,31 +41,52 @@ namespace ExHyperV.Services
                 else
                 {
                     string errorContent = await response.Content.ReadAsStringAsync();
+                    // 建议在这里添加日志记录，方便调试
+                    Debug.WriteLine($"GitHub API request failed: {response.StatusCode} - {errorContent}");
                 }
             }
             catch (Exception ex)
             {
+                // 建议在这里添加日志记录
+                Debug.WriteLine($"Error checking for update from GitHub: {ex.Message}");
             }
+
             if (string.IsNullOrEmpty(latestVersionTag))
             {
                 try
                 {
-                    latestVersionTag = await _httpClient.GetStringAsync(FallbackUrl);
+                    latestVersionTag = (await _httpClient.GetStringAsync(FallbackUrl))?.Trim();
                 }
                 catch (Exception ex)
                 {
+                    Debug.WriteLine($"Error checking for update from Fallback: {ex.Message}");
                     throw new Exception("检查更新失败，请检查网络连接。");
                 }
             }
-            var cleanCurrent = currentVersion.TrimStart('v').Split('-')[0];
-            var cleanLatest = latestVersionTag.TrimStart('v').Split('-')[0];
 
-            if (Version.TryParse(cleanCurrent, out var current) && Version.TryParse(cleanLatest, out var latest))
+            if (string.IsNullOrEmpty(latestVersionTag))
             {
-                bool isUpdateAvailable = latest > current;
+                // 如果两个源都失败了，就直接认为没有更新
+                return new UpdateResult(false, currentVersion);
+            }
+
+            // --- 以下是核心修改 ---
+
+            // 1. 同时处理大写 'V' 和小写 'v'
+            var cleanCurrentStr = currentVersion.TrimStart('V', 'v').Split('-')[0];
+            var cleanLatestStr = latestVersionTag.TrimStart('V', 'v').Split('-')[0];
+
+            // 2. 尝试解析，如果成功，则进行正确的版本比较
+            if (Version.TryParse(cleanCurrentStr, out var currentVer) && Version.TryParse(cleanLatestStr, out var latestVer))
+            {
+                // 使用严格大于 ">" 来判断是否有新版本
+                bool isUpdateAvailable = latestVer > currentVer;
                 return new UpdateResult(isUpdateAvailable, latestVersionTag);
             }
-            return new UpdateResult(latestVersionTag.Trim() != currentVersion.Trim(), latestVersionTag);
+
+            // 3. 如果解析失败（作为最后的保险措施），才使用不区分大小写的字符串比较
+            bool updateAvailableByString = !string.Equals(latestVersionTag, currentVersion, StringComparison.OrdinalIgnoreCase);
+            return new UpdateResult(updateAvailableByString, latestVersionTag);
         }
         private const string ConfigFilePath = "config.xml";
 

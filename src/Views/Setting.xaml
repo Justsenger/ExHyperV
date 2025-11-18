@@ -85,38 +85,70 @@
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
-                    <ui:TextBlock Grid.Row="0" FontTypography="Body" Text="{Binding AppVersion}" />
+                    <ui:TextBlock Grid.Row="0" FontTypography="Body" Text="ExHyperV" />
                     <ui:TextBlock Grid.Row="1" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" Text="{Binding CopyrightInfo}" />
                 </Grid>
             </ui:CardExpander.Header>
             <StackPanel>
+                <!-- Setting.xaml -->
+
                 <ui:Anchor
-                    Padding="16,12"
-                    HorizontalAlignment="Stretch"
-                    HorizontalContentAlignment="Stretch"
-                    Background="Transparent"
-                    BorderThickness="0,1,0,0"
-                    CornerRadius="0"
-                    Command="{Binding UpdateActionCommand}"
-                    IsEnabled="{Binding IsUpdateActionEnabled}">
+    Padding="16,12"
+    HorizontalAlignment="Stretch"
+    HorizontalContentAlignment="Stretch"
+    Background="Transparent"
+    BorderThickness="0,1,0,0"
+    CornerRadius="0"
+    Command="{Binding UpdateActionCommand}"
+    IsEnabled="{Binding IsUpdateActionEnabled}">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <TextBlock
-                            Grid.Column="0"
-                            VerticalAlignment="Center"
-                            Text="{Binding UpdateStatusText, FallbackValue='正在检查更新...'}" />
-                        <Grid Grid.Column="1" MinWidth="20">
+
+                        <!-- === 修改部分从这里开始 === -->
+                        <!-- 用一个 StackPanel 来组合红点和文字 -->
+                        <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+
+                            <!-- 这就是那个“娇嫩欲滴”的红点 -->
+                            <Ellipse
+                Width="8"
+                Height="8"
+                Margin="0,0,8,0"
+                Visibility="{Binding ShowUpdateIndicator, Converter={StaticResource BoolToVis}}">
+                                <Ellipse.Fill>
+                                    <!-- 径向渐变，实现中间亮、边缘稍暗的效果 -->
+                                    <RadialGradientBrush>
+                                        <GradientStop Color="#FFFF4C4C" Offset="0.0" />
+                                        <GradientStop Color="#FFD62828" Offset="1.0" />
+                                    </RadialGradientBrush>
+                                </Ellipse.Fill>
+                            </Ellipse>
+                            <TextBlock
+                VerticalAlignment="Center"
+                Text="{Binding UpdateStatusText, FallbackValue='正在检查更新...'}" />
+
+                        </StackPanel>
+                        <Grid Grid.Column="1">
                             <ui:ProgressRing
-                                Width="16" Height="16"
-                                IsIndeterminate="True"
-                                Visibility="{Binding IsCheckingForUpdate, Converter={StaticResource BoolToVis}}" />
+                Width="16" Height="16"
+                IsIndeterminate="True"
+                Visibility="{Binding IsCheckingForUpdate, Converter={StaticResource BoolToVis}}" />
                             <ui:FontIcon
-                                FontFamily="{DynamicResource SegoeFluentIcons}"
-                                Glyph="{Binding UpdateActionIcon}"
-                                Visibility="{Binding IsCheckingForUpdate, Converter={StaticResource BoolToVis}, ConverterParameter=invert}" />
+                FontFamily="{DynamicResource SegoeFluentIcons}"
+                Glyph="{Binding UpdateActionIcon}">
+                                <ui:FontIcon.Style>
+                                    <Style TargetType="ui:FontIcon">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsCheckingForUpdate}" Value="True">
+                                                <Setter Property="Visibility" Value="Collapsed" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </ui:FontIcon.Style>
+                            </ui:FontIcon>
                         </Grid>
                     </Grid>
                 </ui:Anchor>

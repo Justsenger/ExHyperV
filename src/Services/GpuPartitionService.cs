@@ -1033,58 +1033,81 @@ Tuple.Create("sudo ln -sf /dev/dri/card1 /dev/dri/card0", (TimeSpan?)TimeSpan.Fr
         /// <summary>
         /// 将主机系统的WSL GPU库和自定义安装脚本上传到虚拟机。
         /// </summary>
+        /// 
+
+
+        /// <summary>
+        /// 准备虚拟机部署所需的所有文件。
+        /// 它会优先从主机系统上传库文件，然后上传自定义安装脚本。
+        /// 最后，它会通过 SSH 在虚拟机内部检查核心库文件是否存在，如果不存在，则从网络下载。
+        /// </summary>
         private async Task UploadLocalFilesAsync(SshService sshService, SshCredentials credentials, string remoteDirectory)
         {
-            // 步骤 1: 从主机系统路径获取并上传 GPU 相关的 .so 库文件
-            // 这是更健壮的方式，确保与主机驱动版本一致
+            // ===================================================================================================
+            // 步骤 1: 从主机上传文件 (如果存在)
+            // ===================================================================================================
             string systemWslLibPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "lxss", "lib");
 
-            if (!Directory.Exists(systemWslLibPath))
+            if (Directory.Exists(systemWslLibPath))
             {
-                throw new DirectoryNotFoundException($"无法在主机上找到 WSL GPU 库文件夹: '{systemWslLibPath}'。请确认 NVIDIA/Intel/AMD 驱动已正确安装并支持 WSLg。");
+                var filesInSystemDir = Directory.GetFiles(systemWslLibPath);
+                foreach (var filePath in filesInSystemDir)
+                {
+                    string fileName = Path.GetFileName(filePath);
+                    await sshService.UploadFileAsync(credentials, filePath, $"{remoteDirectory}/{fileName}");
+                }
             }
+            // 如果主机目录不存在（例如N卡环境），则此步骤被安全跳过。
 
-            // 使用 SshService 的目录上传功能，将整个 lib 目录内容上传到目标 remoteDirectory
-            // 注意：这里我们是上传目录的 *内容*，而不是目录本身。
-            // 假设 sshService.UploadDirectoryAsync 能够处理这个问题，如果不行，我们需要遍历文件。
-            // 我们先假设可以直接上传文件夹。
-            var filesInSystemDir = Directory.GetFiles(systemWslLibPath);
-            foreach (var filePath in filesInSystemDir)
-            {
-                string fileName = Path.GetFileName(filePath);
-                await sshService.UploadFileAsync(credentials, filePath, $"{remoteDirectory}/{fileName}");
-            }
-
-            // 步骤 2: 从项目内嵌资源上传自定义的 install.sh 脚本
-            // 这个脚本是你自己编写的，用于编译 dxgkrnl 内核模块，所以它必须随程序分发
+            // ===================================================================================================
+            // 步骤 2: 从应用程序资源上传必要的脚本
+            // ===================================================================================================
             string baseDirectory = AppContext.BaseDirectory;
             string localAssetDirectory = Path.Combine(baseDirectory, "Assets", "linuxlib");
             string installScriptPath = Path.Combine(localAssetDirectory, "install.sh");
 
             if (!File.Exists(installScriptPath))
             {
-                throw new FileNotFoundException($"无法在资源文件夹中找到安装脚本: {installScriptPath}。请确保 install.sh 文件已设置为“如果较新则复制”并随程序一起发布。");
+                throw new FileNotFoundException($"错误：无法在应用程序资源文件夹中找到安装脚本 '{installScriptPath}'。\n\n" +
+                                                "请确保 install.sh 文件已包含在项目中，并设置为“内容”以及“如果较新则复制”。");
             }
-
             await sshService.UploadFileAsync(credentials, installScriptPath, $"{remoteDirectory}/install.sh");
 
-            // （可选）如果还有其他必须随包分发的 .so 文件 (比如微软的 core D3D 库，以防万一系统里没有)
-            // 你也可以在这里添加一个检查，如果 lxss/lib 中不存在，就从 Assets 中上传作为后备。
-            // 但根据 WSLg 的设计，这些文件应该存在。
+            // ===================================================================================================
+            // 步骤 3: 在虚拟机内部检查并按需下载缺失的核心库文件
+            // ===================================================================================================
+
+            // !!! 重要：请确保这些常量已在类的顶部定义，或者直接在这里定义 !!!
+            const string GitHubRawContentBaseUrl = "https://raw.githubusercontent.com/Justsenger/wsl2lib/main/"; // 请替换为您自己的 URL
             string[] coreDxFiles = { "libd3d12.so", "libd3d12core.so", "libdxcore.so" };
+
+            // 定义一个简单的日志委托，用于在控制台或UI上显示进度
+            // 如果您能从这里访问 ExecutionProgressWindow.AppendLog，效果会更好
+            Action<string> log = (message) => Debug.WriteLine(message);
+
+            log("正在通过 SSH 检查并下载缺失的核心库文件...");
+
             foreach (var file in coreDxFiles)
             {
-                string systemFilePath = Path.Combine(systemWslLibPath, file);
-                if (!File.Exists(systemFilePath))
+                string remoteFilePath = $"{remoteDirectory}/{file}";
+                string fileUrl = GitHubRawContentBaseUrl + file;
+
+                // 构建一个单行的 shell 命令: [ ! -f "文件路径" ] && wget ...
+                string checkAndDownloadCommand = $"[ ! -f \"{remoteFilePath}\" ] && echo \"[+] 文件 {file} 不存在，正在从网络下载...\" && wget -q -c \"{fileUrl}\" -O \"{remoteFilePath}\" || echo \"[✓] 文件 {file} 已存在，跳过下载。\"";
+
+                try
                 {
-                    // 如果系统目录里没有，就从我们的资源包里上传
-                    string localFilePath = Path.Combine(localAssetDirectory, file);
-                    if (File.Exists(localFilePath))
-                    {
-                        await sshService.UploadFileAsync(credentials, localFilePath, $"{remoteDirectory}/{file}");
-                    }
+                    // 使用 SshService 执行这个命令
+                    await sshService.ExecuteSingleCommandAsync(credentials, checkAndDownloadCommand, log, TimeSpan.FromMinutes(5));
+                }
+                catch (Exception ex)
+                {
+                    // 如果命令执行失败（例如，wget 未安装或网络问题），抛出更详细的异常
+                    throw new InvalidOperationException($"在虚拟机内部检查或下载文件 '{file}' 时失败。请确保虚拟机已安装 'wget' 并且可以访问互联网。\n\n命令: {checkAndDownloadCommand}\n错误: {ex.Message}", ex);
                 }
             }
+
+            log("核心库文件准备完毕。");
         }
     }
 }

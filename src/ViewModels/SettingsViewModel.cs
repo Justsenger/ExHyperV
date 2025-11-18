@@ -1,9 +1,12 @@
 ﻿using System.Diagnostics;
+using System.Collections.Generic;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ExHyperV.Properties;
 using ExHyperV.Services;
 using ExHyperV.Tools;
+using System.Threading.Tasks;
+using System;
 
 namespace ExHyperV.ViewModels
 {
@@ -11,75 +14,62 @@ namespace ExHyperV.ViewModels
     {
         private bool _isInitializing = true;
 
-        // 可用主题列表
-        [ObservableProperty]
-        private List<string> _availableThemes;
-
-        // 当前选中的主题
-        [ObservableProperty]
-        private string _selectedTheme;
-
-        // 可用语言列表
-        [ObservableProperty]
-        private List<string> _availableLanguages;
-
-        // 当前选中的语言
-        [ObservableProperty]
-        private string _selectedLanguage;
+        [ObservableProperty] private List<string> _availableThemes;
+        [ObservableProperty] private string _selectedTheme;
+        [ObservableProperty] private List<string> _availableLanguages;
+        [ObservableProperty] private string _selectedLanguage;
 
         [ObservableProperty] private string _updateStatusText;
         [ObservableProperty] private bool _isCheckingForUpdate;
         [ObservableProperty] private string _updateActionIcon;
         [ObservableProperty] private IRelayCommand _updateActionCommand;
-        [ObservableProperty] private bool _isUpdateActionEnabled; // 新增：控制 Anchor 是否可点击
-
+        [ObservableProperty] private bool _isUpdateActionEnabled;
         private string _latestVersionTag;
+
+        [ObservableProperty]
+        private bool _showUpdateIndicator;
+
 
         [RelayCommand]
         private async Task CheckForUpdateAsync()
         {
-            // 1. 检查开始，设置初始状态
             IsCheckingForUpdate = true;
             IsUpdateActionEnabled = false;
+            ShowUpdateIndicator = false;
             UpdateStatusText = "正在检查更新...";
 
             try
             {
-                // 调用服务进行网络请求
-                var result = await SettingsService.CheckForUpdateAsync(AppVersion);
+                var result = await SettingsService.CheckForUpdateAsync(Utils.Version);
 
-                // 根据结果更新 UI 状态
                 if (result.IsUpdateAvailable)
                 {
-                    // 发现新版本
                     UpdateStatusText = $"发现新版本: {result.LatestVersion}";
-                    _updateActionIcon = "\uE71B"; // 外部链接图标
-                    _updateActionCommand = GoToReleasePageCommand; // 整行点击行为变为“跳转”
+                    UpdateActionIcon = "\uE71B";
+                    UpdateActionCommand = GoToReleasePageCommand;
                     _latestVersionTag = result.LatestVersion;
+                    ShowUpdateIndicator = true;
                 }
                 else
                 {
-                    // 已是最新版本
                     UpdateStatusText = "已是最新版本";
-                    _updateActionIcon = "\uE73E"; // 对勾图标
-                    _updateActionCommand = CheckForUpdateCommand; // 整行点击行为变为“再次检查”
+                    UpdateActionIcon = "\uE73E";
+                    UpdateActionCommand = CheckForUpdateCommand;
                 }
             }
             catch (Exception ex)
             {
-                // 捕获到异常（例如网络错误）
                 UpdateStatusText = ex.Message;
-                _updateActionIcon = "\uE72C"; // 刷新图标
-                _updateActionCommand = CheckForUpdateCommand; // 整行点击行为变为“重试”
+                UpdateActionIcon = "\uE72C";
+                UpdateActionCommand = CheckForUpdateCommand;
             }
             finally
             {
-                // 2. 检查结束，无论成功与否，都恢复最终状态
-                //    这是让结果图标显示出来的关键
                 IsCheckingForUpdate = false;
-                IsUpdateActionEnabled = true; // 恢复可点击
+                IsUpdateActionEnabled = true;
             }
         }
+
         [RelayCommand]
         private void GoToReleasePage()
         {
@@ -96,55 +86,33 @@ namespace ExHyperV.ViewModels
                 Debug.WriteLine($"无法打开链接: {ex.Message}");
             }
         }
+        public string CopyrightInfo => "© 2025 | Saniye | " + Utils.Version;
 
-        // 关于信息
-        public string AppVersion
-        {
-            get
-            {
-                var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
-                // 只取前三位 Major.Minor.Build
-                return version != null ? $"v{version.Major}.{version.Minor}.{version.Build}" : "vUnknown";
-            }
-        }
-
-
-        public string CopyrightInfo => "© 2025 | Saniye | "+Utils.Version;
-
-        // 构造函数现在非常简单，不需要任何参数
         public SettingsViewModel()
         {
-            // 1. 初始化数据源 (这部分你已有了)
             AvailableThemes = new List<string> { Resources.light, Resources.dark };
             AvailableLanguages = new List<string> { "中文", "English" };
 
-            // 2. 从服务加载当前设置 (这部分你已有了)
             LoadCurrentSettings();
             _isInitializing = false;
 
-            // 3. 【新增】页面加载时自动开始检查更新 (无需等待)
+            UpdateActionCommand = CheckForUpdateCommand;
             _ = CheckForUpdateCommand.ExecuteAsync(null);
         }
 
-
-
         private void LoadCurrentSettings()
         {
-            // 直接设置字段，避免在初始化时触发OnChanged逻辑
             _selectedTheme = SettingsService.GetTheme();
-
             string langCode = SettingsService.GetLanguage();
             _selectedLanguage = langCode == "zh-CN" ? "中文" : "English";
         }
 
-        // 当 SelectedTheme 属性发生变化时，此方法会被自动调用
         partial void OnSelectedThemeChanged(string value)
         {
             if (_isInitializing || value == null) return;
             SettingsService.ApplyTheme(value);
         }
 
-        // 当 SelectedLanguage 属性发生变化时，此方法会被自动调用
         partial void OnSelectedLanguageChanged(string value)
         {
             if (_isInitializing || value == null) return;
