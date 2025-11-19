@@ -918,33 +918,18 @@ namespace ExHyperV.Services
             });
         }
 
-        /// <summary>
-        /// 准备虚拟机部署所需的所有文件。
-        /// 它会优先从主机系统上传库文件，然后上传自定义安装脚本。
-        /// 最后，它会通过 SSH 在虚拟机内部检查核心库文件是否存在，如果不存在，则从网络下载。
-        /// </summary>
-        /// <summary>
-        /// 尝试将本地 Windows (WSL) 目录中的核心库上传到虚拟机。
-        /// 如果本地没有这些文件，此方法不做任何事，后续脚本会自动从 GitHub 下载。
-        /// </summary>
         private async Task UploadLocalFilesAsync(SshService sshService, SshCredentials credentials, string remoteDirectory)
         {
-            // 尝试从本地 Windows 的 WSL 子系统目录获取 .so 文件
             string systemWslLibPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "lxss", "lib");
 
             if (Directory.Exists(systemWslLibPath))
             {
-                // 只查找我们需要的几个核心库，避免上传无关文件
-                string[] targetFiles = { "libd3d12.so", "libd3d12core.so", "libdxcore.so" };
+                var allFiles = Directory.GetFiles(systemWslLibPath);
 
-                foreach (var fileName in targetFiles)
+                foreach (var filePath in allFiles)
                 {
-                    string localFilePath = Path.Combine(systemWslLibPath, fileName);
-                    if (File.Exists(localFilePath))
-                    {
-                        // 上传到远程的 lib 目录
-                        await sshService.UploadFileAsync(credentials, localFilePath, $"{remoteDirectory}/{fileName}");
-                    }
+                    string fileName = Path.GetFileName(filePath);
+                    await sshService.UploadFileAsync(credentials, filePath, $"{remoteDirectory}/{fileName}");
                 }
             }
         }

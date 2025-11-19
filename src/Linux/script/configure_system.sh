@@ -2,10 +2,6 @@
 # configure_system.sh
 # 参数 $1: "enable_graphics" 或其他
 
-# ==========================================
-# 修复：使用脚本所在目录作为基准，而不是 $HOME
-# 防止 sudo 执行时路径指向 /root
-# ==========================================
 DEPLOY_DIR="$(dirname $(realpath $0))"
 LIB_DIR="$DEPLOY_DIR/lib"
 GITHUB_LIB_URL="https://raw.githubusercontent.com/Justsenger/ExHyperV/main/src/Linux/lib"
@@ -17,7 +13,6 @@ echo "[+] Checking and downloading missing core libraries..."
 
 LIBS=("libd3d12.so" "libd3d12core.so" "libdxcore.so")
 
-# 创建 lib 目录（如果因为某种原因不存在）
 mkdir -p "$LIB_DIR"
 
 for lib in "${LIBS[@]}"; do
@@ -33,7 +28,6 @@ echo "[+] Deploying driver files..."
 sudo mkdir -p /usr/lib/wsl/drivers /usr/lib/wsl/lib
 sudo rm -rf /usr/lib/wsl/drivers/* /usr/lib/wsl/lib/*
 
-# 检查源目录是否存在，防止 cp 报错
 if [ -d "$DEPLOY_DIR/drivers" ]; then
     sudo cp -r "$DEPLOY_DIR/drivers"/* /usr/lib/wsl/drivers/
 else
