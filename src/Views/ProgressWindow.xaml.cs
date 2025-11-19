@@ -34,7 +34,7 @@ namespace ExHyperV.Views
                 Dispatcher.Invoke(action);
             }
             catch
-            {S
+            {
             }
         }
 

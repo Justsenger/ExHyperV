@@ -1042,18 +1042,6 @@ Tuple.Create("sudo ln -sf /dev/dri/card1 /dev/dri/card0", (TimeSpan?)TimeSpan.Fr
         }
 
         /// <summary>
-        /// 从项目的 Assets/linuxlib 文件夹中读取核心 .so 文件并上传到虚拟机的指定目录。
-        /// </summary>
-        /// <summary>
-        /// 从项目的 Assets/linuxlib 文件夹中读取本地文件 (.so 和 install.sh) 并上传。
-        /// </summary>
-        /// <summary>
-        /// 将主机系统的WSL GPU库和自定义安装脚本上传到虚拟机。
-        /// </summary>
-        /// 
-
-
-        /// <summary>
         /// 准备虚拟机部署所需的所有文件。
         /// 它会优先从主机系统上传库文件，然后上传自定义安装脚本。
         /// 最后，它会通过 SSH 在虚拟机内部检查核心库文件是否存在，如果不存在，则从网络下载。
@@ -1093,9 +1081,7 @@ Tuple.Create("sudo ln -sf /dev/dri/card1 /dev/dri/card0", (TimeSpan?)TimeSpan.Fr
             // ===================================================================================================
             // 步骤 3: 在虚拟机内部检查并按需下载缺失的核心库文件
             // ===================================================================================================
-
-            // !!! 重要：请确保这些常量已在类的顶部定义，或者直接在这里定义 !!!
-            const string GitHubRawContentBaseUrl = "https://raw.githubusercontent.com/Justsenger/wsl2lib/main/"; // 请替换为您自己的 URL
+            const string GitHubRawContentBaseUrl = "https://raw.githubusercontent.com/Justsenger/wsl2lib/main/";
             string[] coreDxFiles = { "libd3d12.so", "libd3d12core.so", "libdxcore.so" };
 
             // 定义一个简单的日志委托，用于在控制台或UI上显示进度
