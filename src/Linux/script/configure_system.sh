@@ -108,13 +108,22 @@ sudo systemctl enable load-dxg-late.service
 if [ "$ENABLE_GRAPHICS" == "enable_graphics" ]; then
     echo "[+] Configuring environment variables for Graphics..."
     
-    # Clean old
+    # Clean old from /etc/environment
     sudo sed -i '/GALLIUM_DRIVERS/d' /etc/environment
+    sudo sed -i '/DRI_PRIME/d' /etc/environment
+    sudo sed -i '/LIBVA_DRIVER_NAME/d' /etc/environment
+
+    # Clean old from .bashrc (可选，保持清洁)
     sudo sed -i '/LIBVA_DRIVER_NAME/d' ~/.bashrc
     
-    # Add new
+    # 【关键修改】写入全局 /etc/environment
+    # 这样所有用户、所有会话（包括桌面环境）都能生效
+    echo "GALLIUM_DRIVERS=d3d12" | sudo tee -a /etc/environment
+    echo "DRI_PRIME=1" | sudo tee -a /etc/environment
+    echo "LIBVA_DRIVER_NAME=d3d12" | sudo tee -a /etc/environment
+    
+    # 依然保留写入 .bashrc 作为双重保险 (可选)
     cat >> ~/.bashrc <<EOF
-
 # GPU-PV Configuration
 export GALLIUM_DRIVERS=d3d12
 export DRI_PRIME=1
