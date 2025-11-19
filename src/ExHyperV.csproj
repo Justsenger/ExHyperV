@@ -34,17 +34,6 @@
         <!-- 将 Assets 文件夹下的所有文件作为嵌入资源 -->
         <Resource Include="Assets\**\*.*" />
     </ItemGroup>
-    <ItemGroup>
-      <Resource Remove="Assets\linuxlib\install.sh" />
-      <Resource Remove="Assets\linuxlib\libd3d12.so" />
-      <Resource Remove="Assets\linuxlib\libd3d12core.so" />
-      <Resource Remove="Assets\linuxlib\libdxcore.so" />
-    </ItemGroup>
-    <ItemGroup>
-      <Content Include="Assets\linuxlib\install.sh">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </Content>
-    </ItemGroup>
 
     <!-- =================================================================== -->
     <!--                       4. 自动生成文件配置                            -->
