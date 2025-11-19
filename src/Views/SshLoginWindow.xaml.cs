@@ -87,6 +87,7 @@ namespace ExHyperV.Views
             Credentials.Password = PasswordBox.Password;
             Credentials.ProxyHost = proxyHost;
             Credentials.ProxyPort = proxyPort;
+            Credentials.InstallGraphics = GraphicsCheckBox.IsChecked ?? false;
 
             try
             {

@@ -53,6 +53,10 @@
 
                 <TextBlock Text="口令:" Margin="0,0,0,5"/>
                 <ui:PasswordBox x:Name="PasswordBox" MaxLength="128"/>
+                <CheckBox x:Name="GraphicsCheckBox" 
+                      Content="安装 OpenGL/Vulkan 图形驱动" 
+                      IsChecked="False" 
+                      Margin="0,0,0,0"/>
             </StackPanel>
 
             <StackPanel Grid.Row="2" Margin="0,25,0,0">

@@ -547,6 +547,7 @@ namespace ExHyperV.Services
 
                             if (credentials == null)return "用户取消了 SSH 登录操作。";
                             credentials.Host = targetIp;
+
                         }
                         catch (Exception ex)
                         {
@@ -668,11 +669,14 @@ namespace ExHyperV.Services
                                 // 核心修改：命令生成逻辑替换
                                 // =========================================================
                                 var commandsToExecute = new List<Tuple<string, TimeSpan?>>();
-                                bool enableGraphics = true; // 暂时硬编码，后续可改为参数传入
+                                bool enableGraphics = credentials.InstallGraphics;
 
                                 // 1. 下载脚本
                                 commandsToExecute.Add(Tuple.Create($"wget -O {remoteTempDir}/install_dxgkrnl.sh {ScriptBaseUrl}install_dxgkrnl.sh", (TimeSpan?)TimeSpan.FromMinutes(2)));
-                                commandsToExecute.Add(Tuple.Create($"wget -O {remoteTempDir}/setup_graphics.sh {ScriptBaseUrl}setup_graphics.sh", (TimeSpan?)TimeSpan.FromMinutes(2)));
+                                if (enableGraphics)
+                                {
+                                    commandsToExecute.Add(Tuple.Create($"wget -O {remoteTempDir}/setup_graphics.sh {ScriptBaseUrl}setup_graphics.sh", (TimeSpan?)TimeSpan.FromMinutes(2)));
+                                }
                                 commandsToExecute.Add(Tuple.Create($"wget -O {remoteTempDir}/configure_system.sh {ScriptBaseUrl}configure_system.sh", (TimeSpan?)TimeSpan.FromMinutes(2)));
                                 commandsToExecute.Add(Tuple.Create($"chmod +x {remoteTempDir}/*.sh", (TimeSpan?)TimeSpan.FromSeconds(10)));
 

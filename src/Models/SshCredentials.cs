@@ -11,6 +11,8 @@
         public string ProxyHost { get; set; } // 新增
         public int? ProxyPort { get; set; }   // 新增, int? 表示可为空
 
+        public bool InstallGraphics { get; set; } = true;
+
 
     }
 }
