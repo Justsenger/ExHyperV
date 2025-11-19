@@ -2,8 +2,8 @@
 using System.IO;
 using ExHyperV.Models;
 using ExHyperV.Tools;
-using ExHyperV.Views;   // 引用 SshLoginWindow
-using Renci.SshNet;     // 引用 SSH.NET 库
+using ExHyperV.Views;  
+using Renci.SshNet; 
 
 namespace ExHyperV.Services
 {
@@ -253,7 +253,6 @@ namespace ExHyperV.Services
                                         }
                                     }
                                 }
-
                                 gpulist[gpuid] = gpupath;
                             }
                         }
@@ -479,6 +478,10 @@ namespace ExHyperV.Services
                         SshCredentials credentials = null;
                         ExecutionProgressWindow progressWindow = null;
 
+                        // 定义取消令牌源
+                        var cts = new CancellationTokenSource();
+
+
                         Action<string> showMessage = (msg) => System.Windows.Application.Current.Dispatcher.Invoke(() => Utils.Show2(msg));
 
 
@@ -495,14 +498,11 @@ namespace ExHyperV.Services
                         };
                         try
                         {
-                            // 步骤 1.1: 确保虚拟机正在运行 (此部分代码从原 try 块移动而来，内容不变)
                             var currentState = await GetVmStateAsync(vmName);
                             if (currentState != "Running")
                             {
                                 Utils.Run($"Start-VM -Name '{vmName}'");
                             }
-
-                            // 步骤 1.2: 自动获取虚拟机的IP地址 (此部分代码从原 try 块移动而来，内容不变)
                             string getMacScript = $"(Get-VMNetworkAdapter -VMName '{vmName}').MacAddress | Select-Object -First 1";
                             var macResult = await Utils.Run2(getMacScript);
                             if (macResult == null || macResult.Count == 0 || string.IsNullOrEmpty(macResult[0]?.ToString()))
@@ -514,7 +514,7 @@ namespace ExHyperV.Services
 
                             string vmIpAddress = string.Empty;
                             var stopwatch = Stopwatch.StartNew();
-                            while (stopwatch.Elapsed.TotalSeconds < 60 && string.IsNullOrEmpty(vmIpAddress))
+                            while (stopwatch.Elapsed.TotalSeconds < 5 && string.IsNullOrEmpty(vmIpAddress))
                             {
                                 vmIpAddress = await Utils.GetVmIpAddressAsync(vmName, macAddressWithColons);
                                 if (string.IsNullOrEmpty(vmIpAddress))
@@ -544,15 +544,11 @@ namespace ExHyperV.Services
                                 }
                             });
 
-                            if (credentials == null)
-                            {
-                                return "用户取消了 SSH 登录操作。";
-                            }
+                            if (credentials == null)return "用户取消了 SSH 登录操作。";
                             credentials.Host = targetIp;
                         }
                         catch (Exception ex)
                         {
-                            // 【新增】为准备阶段添加异常捕获，如果获取IP或登录出错，则直接提示并返回
                             ShowMessageOnUIThread($"准备阶段发生错误: {ex.Message}");
                             return $"准备阶段发生错误: {ex.Message}";
                         }
@@ -564,35 +560,53 @@ namespace ExHyperV.Services
                             progressWindow.Show();
                         });
 
+                        // 【关键修改】绑定窗口关闭事件到取消令牌
+                        progressWindow.Closed += (s, e) =>
+                        {
+                            cts.Cancel(); // 用户关闭窗口时，触发取消
+                        };
+
                         while (true)
                         {
-                            // 【新增】用于异步等待用户操作的 TaskCompletionSource
                             var userActionTcs = new TaskCompletionSource<bool>();
-                            // 【新增】用于响应UI事件的处理器
                             EventHandler retryHandler = (s, e) => userActionTcs.TrySetResult(true);
                             EventHandler closeHandler = (s, e) => userActionTcs.TrySetResult(false);
 
 
                             try
                             {
-                                // 新增：订阅UI窗口的事件
                                 progressWindow.RetryClicked += retryHandler;
                                 progressWindow.Closed += closeHandler;
 
-                                // 【新增】判断是否是重试操作，如果是，则重置UI
+                                if (cts.IsCancellationRequested)
+                                {
+                                    cts.Dispose();
+                                    cts = new CancellationTokenSource();
+                                    progressWindow.Closed += (s, e) => cts.Cancel();
+                                }
+
                                 if (userActionTcs.Task.IsCompleted && userActionTcs.Task.Result)
                                 {
                                     progressWindow.ResetForRetry();
                                 }
+                                Action<string> log = (message) =>
+                                {
+                                    if (!cts.IsCancellationRequested) progressWindow.AppendLog(message);
+                                };
+                                Action<string> updateStatus = (status) =>
+                                {
+                                    if (!cts.IsCancellationRequested) progressWindow.UpdateStatus(status);
+                                };
 
-                                // 【移动】以下是您原来的部署逻辑，从 `try` 块的中部移动到这里，内容不变
-                                Action<string> log = (message) => progressWindow.AppendLog(message);
-                                Action<string> updateStatus = (status) => progressWindow.UpdateStatus(status);
+                                // 【检查取消】
+                                if (cts.IsCancellationRequested) throw new OperationCanceledException();
+
+
                                 updateStatus("[1/9] 正在连接到虚拟机...");
                                 log("[1/9] 正在连接到虚拟机并初始化远程环境...");
                                 string homeDirectory;
 
-                                using (var client = new SshClient(credentials.Host, credentials.Username, credentials.Password))
+                                using (var client = new SshClient(credentials.Host, credentials.Port, credentials.Username, credentials.Password))
                                 {
                                     client.Connect();
                                     log("[+] SSH 连接成功。");
@@ -795,6 +809,7 @@ Tuple.Create("sudo ln -sf /dev/dri/card1 /dev/dri/card0", (TimeSpan?)TimeSpan.Fr
                                 const int maxRetries = 2; // 离线操作，减少重试次数
                                 foreach (var cmdInfo in commandsToExecute)
                                 {
+                                    if (cts.IsCancellationRequested) throw new OperationCanceledException();
                                     var command = cmdInfo.Item1;
                                     var timeout = cmdInfo.Item2;
 
@@ -805,14 +820,21 @@ Tuple.Create("sudo ln -sf /dev/dri/card1 /dev/dri/card0", (TimeSpan?)TimeSpan.Fr
                                             await sshService.ExecuteSingleCommandAsync(credentials, command, log, timeout);
                                             break;
                                         }
-                                        catch (Exception ex) when (ex is Renci.SshNet.Common.SshOperationTimeoutException || ex.InnerException is TimeoutException)
+                                        catch (Exception ex)
                                         {
-                                            log($"--- 命令执行超时 (尝试 {retry}/{maxRetries}) ---");
-                                            if (retry == maxRetries)
+                                            // 如果是因为我们手动取消引发的异常，直接抛出
+                                            if (cts.IsCancellationRequested) throw new OperationCanceledException();
+
+                                            if (ex is Renci.SshNet.Common.SshOperationTimeoutException || ex.InnerException is TimeoutException)
                                             {
-                                                throw new Exception("命令执行超时，部署中止。", ex);
+                                                log($"--- 命令执行超时 (尝试 {retry}/{maxRetries}) ---");
+                                                if (retry == maxRetries) throw new Exception("命令执行超时，部署中止。", ex);
+                                                await Task.Delay(2000, cts.Token); // 使用带 Token 的延迟
                                             }
-                                            await Task.Delay(2000);
+                                            else
+                                            {
+                                                throw; // 其他错误直接抛出
+                                            }
                                         }
                                     }
                                 }
@@ -823,42 +845,37 @@ Tuple.Create("sudo ln -sf /dev/dri/card1 /dev/dri/card0", (TimeSpan?)TimeSpan.Fr
                                 {
                                     await sshService.ExecuteSingleCommandAsync(credentials, "sudo reboot", log, TimeSpan.FromSeconds(5));
                                 }
-                                catch (Exception ex)
-                                {
-                                    log($"[+] 连接已按预期中断: {ex.GetType().Name}");
-                                }
+                                catch {}
 
                                 progressWindow.ShowSuccessState();
                                 return "OK";
                             }
+                            catch (OperationCanceledException)
+                            {
+                                // 捕获取消异常，直接返回
+                                return "操作已取消";
+                            }
                             catch (Exception ex)
                             {
-                                // ====================================================================================================
-                                // 步骤 5: 【重构】完全重写原来的 catch 块，以实现重试逻辑
-                                // ====================================================================================================
-                                // 【删除】原来空的 catch(Exception ex) {} 块
-                                // 【新增】以下所有代码
+                                // 错误处理逻辑 (重试或退出)
                                 string errorMsg = $"部署失败: {ex.Message}";
 
-                                // 在UI上记录错误并更新状态以显示重试按钮
-                                progressWindow.AppendLog($"\n\n--- 错误发生 ---\n{errorMsg}\n请检查以上日志，修复问题后可点击“重试”按钮。");
-                                progressWindow.ShowErrorState("部署失败，请检查日志");
-
-                                // 异步等待用户点击“重试”或“关闭”
-                                bool shouldRetry = await userActionTcs.Task;
-
-                                if (!shouldRetry)
+                                // 确保窗口没关才更新 UI
+                                if (!cts.IsCancellationRequested)
                                 {
-                                    // 如果用户选择关闭，则返回错误信息并跳出循环
-                                    return errorMsg;
+                                    progressWindow.AppendLog($"\n\n--- 错误发生 ---\n{errorMsg}");
+                                    progressWindow.ShowErrorState("部署失败，请检查日志");
                                 }
-                                // 如果用户选择重试，则循环将继续
+                                else
+                                {
+                                    return "操作被用户强行中止。";
+                                }
+
+                                bool shouldRetry = await userActionTcs.Task;
+                                if (!shouldRetry) return errorMsg;
                             }
                             finally
                             {
-                                // ====================================================================================================
-                                // 步骤 6: 【新增】添加 finally 块，确保每次循环后都取消事件订阅
-                                // ====================================================================================================
                                 progressWindow.RetryClicked -= retryHandler;
                                 progressWindow.Closed -= closeHandler;
                             }

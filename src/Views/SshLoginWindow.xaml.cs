@@ -1,58 +1,60 @@
-﻿// ExHyperV/Views/SshLoginWindow.xaml.cs
-
-using ExHyperV.Models;
-using ExHyperV.Services;
-using System;
+﻿using ExHyperV.Models;
 using System.Windows;
 using Wpf.Ui.Controls;
+using Renci.SshNet;
 
 namespace ExHyperV.Views
 {
     public partial class SshLoginWindow : FluentWindow
     {
         public SshCredentials Credentials { get; private set; }
-        private readonly SshService _sshService;
-        private readonly string _hostIpAddress; // 用于在内部存储自动获取的IP地址
 
-        /// <summary>
-        /// 默认构造函数，供设计器和链式调用使用。
-        /// </summary>
         public SshLoginWindow()
         {
             InitializeComponent();
-            _sshService = new SshService();
             Credentials = new SshCredentials();
-            UsernameTextBox.Text = "root"; // 设置默认用户名
+            UsernameTextBox.Text = "root";
+            PortTextBox.Text = "22";
         }
 
-        /// <summary>
-        /// 用于自动化流程的构造函数，接收虚拟机名和IP地址。
-        /// </summary>
-        /// <param name="vmName">虚拟机的名称。</param>
-        /// <param name="ipAddress">自动获取到的虚拟机IP地址。</param>
         public SshLoginWindow(string vmName, string ipAddress) : this()
         {
-            _hostIpAddress = ipAddress; // 在私有字段中保存IP
+            string title = $"连接到 {vmName}";
+            TitleTextBlock.Text = title;
+            Title = title;
 
-            // 动态设置窗口内的可见标题，包含虚拟机名和IP
-            TitleTextBlock.Text = $"连接到 {vmName} ({_hostIpAddress})";
-
-            // (可选) 设置窗口的后台Title属性，可能用于Windows任务栏等
-            this.Title = $"连接到 {vmName}";
+            if (!string.IsNullOrWhiteSpace(ipAddress))
+            {
+                HostTextBox.Text = ipAddress;
+            }
+            else
+            {
+                Loaded += (s, e) => HostTextBox.Focus();
+            }
         }
 
         private async void ConfirmButton_Click(object sender, RoutedEventArgs e)
         {
             ErrorTextBlock.Text = string.Empty;
 
-            // 由于IP地址是自动传入的，我们只需要验证用户名
+            if (string.IsNullOrWhiteSpace(HostTextBox.Text))
+            {
+                ErrorTextBlock.Text = "主机 IP 地址不能为空。";
+                return;
+            }
+
+            if (!int.TryParse(PortTextBox.Text, out int sshPort) || sshPort <= 0 || sshPort > 65535)
+            {
+                ErrorTextBlock.Text = "SSH 端口无效 (应为 1-65535)。";
+                return;
+            }
+
             if (string.IsNullOrWhiteSpace(UsernameTextBox.Text))
             {
                 ErrorTextBlock.Text = "用户名不能为空。";
                 return;
             }
 
-            // 收集代理信息
             string proxyHost = ProxyHostTextBox.Text.Trim();
             string proxyPortStr = ProxyPortTextBox.Text.Trim();
             int? proxyPort = null;
@@ -64,6 +66,7 @@ namespace ExHyperV.Views
                     ErrorTextBlock.Text = "代理 IP 和端口必须同时填写或同时为空。";
                     return;
                 }
+
                 if (int.TryParse(proxyPortStr, out int port) && port > 0 && port < 65536)
                 {
                     proxyPort = port;
@@ -76,10 +79,10 @@ namespace ExHyperV.Views
             }
 
             ConfirmButton.IsEnabled = false;
-            ConfirmButton.Content = "正在连接...";
+            ConfirmButton.Content = "正在验证连接...";
 
-            // 从私有字段获取IP地址来构建凭据对象
-            Credentials.Host = _hostIpAddress;
+            Credentials.Host = HostTextBox.Text.Trim();
+            Credentials.Port = sshPort;
             Credentials.Username = UsernameTextBox.Text.Trim();
             Credentials.Password = PasswordBox.Password;
             Credentials.ProxyHost = proxyHost;
@@ -87,15 +90,32 @@ namespace ExHyperV.Views
 
             try
             {
-                // 测试连接
-                await _sshService.ExecuteSingleCommandAsync(Credentials, "echo 'Connection test successful'", (log) => { }, TimeSpan.FromSeconds(15));
-                this.DialogResult = true;
-                this.Close();
+                await Task.Run(() =>
+                {
+                    using var client = new SshClient(Credentials.Host, Credentials.Port, Credentials.Username, Credentials.Password);
+                    client.ConnectionInfo.Timeout = TimeSpan.FromSeconds(5);
+                    client.Connect();
+                    client.Disconnect();
+                });
+
+                DialogResult = true;
+                Close();
+            }
+            catch (System.Net.Sockets.SocketException)
+            {
+                ErrorTextBlock.Text = $"连接失败: 无法连接到主机 {Credentials.Host} 的端口 {Credentials.Port}。\n请检查 IP 和端口是否正确。";
+            }
+            catch (Renci.SshNet.Common.SshOperationTimeoutException)
+            {
+                ErrorTextBlock.Text = $"连接超时: 无法连接到主机 {Credentials.Host} 的端口 {Credentials.Port}。";
+            }
+            catch (Renci.SshNet.Common.SshAuthenticationException)
+            {
+                ErrorTextBlock.Text = "身份验证失败: 用户名或口令不正确。";
             }
             catch (Exception ex)
             {
-                // 使用最终确定的错误提示
-                ErrorTextBlock.Text = $"连接失败: {ex.Message}";
+                ErrorTextBlock.Text = $"连接发生未知错误: {ex.Message}";
             }
             finally
             {
@@ -106,8 +126,8 @@ namespace ExHyperV.Views
 
         private void CancelButton_Click(object sender, RoutedEventArgs e)
         {
-            this.DialogResult = false;
-            this.Close();
+            DialogResult = false;
+            Close();
         }
     }
 }

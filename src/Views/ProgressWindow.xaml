@@ -11,14 +11,11 @@
     WindowStartupLocation="CenterScreen">
 
     <Grid Margin="10">
-        <!-- 定义网格布局：第一行放状态，第二行放日志（占据大部分空间），第三行放按钮 -->
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
-
-        <!-- 状态文本块，位于顶部 (Grid.Row="0") -->
         <TextBlock x:Name="StatusTextBlock"
                    Grid.Row="0"
                    Text="正在准备并执行安装... 请在下方查看实时进度。"
@@ -26,15 +23,6 @@
                    FontWeight="SemiBold"
                    Margin="10,5,10,10"
                    TextWrapping="Wrap"/>
-
-        <!-- 
-            ======================
-            ==   修改的核心部分   ==
-            ======================
-            将 TextBox 放入一个 ScrollViewer 中。
-            Grid 的 "*" 空间分配给 ScrollViewer，使其获得固定大小。
-            当 TextBox 内容超出 ScrollViewer 的大小时，滚动条就会出现。
-        -->
         <Border Grid.Row="1" Margin="10,0" BorderThickness="1" BorderBrush="{DynamicResource TextControlBorderBrush}">
             <ScrollViewer x:Name="LogScrollViewer"
                   VerticalScrollBarVisibility="Auto" 
@@ -52,15 +40,11 @@
                  Background="Transparent"/>
             </ScrollViewer>
         </Border>
-
-        <!-- 包含按钮的面板，位于底部 (Grid.Row="2") -->
         <StackPanel Grid.Row="2"
                     Orientation="Horizontal"
                     HorizontalAlignment="Right"
                     VerticalAlignment="Bottom"
                     Margin="10,10,10,5">
-
-            <!-- 重试按钮，默认隐藏 -->
             <Button x:Name="RetryButton" 
                     Content="重试" 
                     Width="80" 
@@ -69,8 +53,6 @@
                     Click="RetryButton_Click" 
                     Visibility="Collapsed"
                     />
-
-            <!-- 关闭按钮，默认禁用 -->
             <Button x:Name="CloseButton" 
                     Content="关闭" 
                     Width="80"

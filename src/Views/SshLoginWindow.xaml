@@ -1,76 +1,97 @@
-﻿<!-- ExHyperV/Views/SshLoginWindow.xaml -->
-<ui:FluentWindow x:Class="ExHyperV.Views.SshLoginWindow"
+﻿<ui:FluentWindow x:Class="ExHyperV.Views.SshLoginWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:ExHyperV.Views"
         mc:Ignorable="d"
-        Title="SSH 登录" Height="450" Width="420"
+        Title="SSH 登录" Height="560" Width="420"
         WindowStartupLocation="CenterScreen"
+        ResizeMode="NoResize"
+        ExtendsContentIntoTitleBar="True"
         xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
 
-    <Grid Margin="25">
+    <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
-            <!-- 标题 -->
-            <RowDefinition Height="Auto"/>
-            <!-- 主要输入区 -->
-            <RowDefinition Height="Auto"/>
-            <!-- 代理区 -->
             <RowDefinition Height="*"/>
-            <!-- 错误信息 (弹性空间) -->
-            <RowDefinition Height="Auto"/>
-            <!-- 按钮 -->
         </Grid.RowDefinitions>
 
-        <!-- 标题 -->
-        <TextBlock x:Name="TitleTextBlock" Grid.Row="0" Text="连接到 Linux 虚拟机" FontSize="20" FontWeight="SemiBold" Margin="0,0,0,25"/>
+        <ui:TitleBar Grid.Row="0" Title="SSH 登录" ForceShutdown="False"/>
 
-        <!-- 主要输入区 -->
-        <StackPanel Grid.Row="1">
-            <!-- IP地址输入框已移除 -->
+        <Grid Grid.Row="1" Margin="25,0,25,25">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
 
-            <TextBlock Text="用户名:" Margin="0,0,0,5"/>
-            <ui:TextBox x:Name="UsernameTextBox" PlaceholderText="例如: root" Margin="0,0,0,15"/>
+            <TextBlock x:Name="TitleTextBlock" Grid.Row="0" Text="连接到 Linux 虚拟机" FontSize="20" FontWeight="SemiBold" Margin="0,0,0,25"/>
 
-            <TextBlock Text="口令:" Margin="0,0,0,5"/>
-            <ui:PasswordBox x:Name="PasswordBox" MaxLength="128"/>
-        </StackPanel>
+            <StackPanel Grid.Row="1">
+                <Grid Margin="0,0,0,15">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="2*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
 
-        <!-- 代理设置区 -->
-        <GroupBox Grid.Row="2" Header="HTTP 代理 (可选)" Margin="0,25,0,0">
-            <Grid Margin="5">
+                    <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                        <TextBlock Text="主机 IP 地址:" Margin="0,0,0,5"/>
+                        <ui:TextBox x:Name="HostTextBox" PlaceholderText="例如: 192.168.1.100"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="1" Margin="10,0,0,0">
+                        <TextBlock Text="端口:" Margin="0,0,0,5"/>
+                        <ui:TextBox x:Name="PortTextBox" Text="22" PlaceholderText="22"/>
+                    </StackPanel>
+                </Grid>
+
+                <TextBlock Text="用户名:" Margin="0,0,0,5"/>
+                <ui:TextBox x:Name="UsernameTextBox" PlaceholderText="例如: root" Margin="0,0,0,15"/>
+
+                <TextBlock Text="口令:" Margin="0,0,0,5"/>
+                <ui:PasswordBox x:Name="PasswordBox" MaxLength="128"/>
+            </StackPanel>
+
+            <StackPanel Grid.Row="2" Margin="0,25,0,0">
+                <TextBlock Text="HTTP 代理 (可选)" FontWeight="Medium" Margin="0,0,0,5"/>
+                <TextBlock Text="如果不能直连 GitHub.com，请使用稳定可靠的代理。" 
+                           FontSize="11" 
+                           Foreground="Gray" 
+                           Margin="0,0,0,15"
+                           TextWrapping="Wrap"/>
+
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="2*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                        <TextBlock Text="代理 IP 地址:" Margin="0,0,0,5"/>
+                        <ui:TextBox x:Name="ProxyHostTextBox" PlaceholderText="例如: 192.168.1.200"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="1" Margin="10,0,0,0">
+                        <TextBlock Text="端口:" Margin="0,0,0,5"/>
+                        <ui:TextBox x:Name="ProxyPortTextBox" PlaceholderText="7890"/>
+                    </StackPanel>
+                </Grid>
+            </StackPanel>
+
+            <TextBlock x:Name="ErrorTextBlock" Grid.Row="3" TextWrapping="Wrap" Foreground="Red" 
+                       VerticalAlignment="Bottom" Margin="0,15,0,15"/>
+
+            <Grid Grid.Row="4">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="2*" />
-                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
-
-                <StackPanel Grid.Column="0" Margin="0,0,10,0">
-                    <TextBlock Text="代理 IP 地址:" Margin="0,0,0,5"/>
-                    <ui:TextBox x:Name="ProxyHostTextBox" PlaceholderText="例如: 192.168.1.200"/>
-                </StackPanel>
-
-                <StackPanel Grid.Column="1" Margin="10,0,0,0">
-                    <!-- "代理端口" 已改为 "端口" -->
-                    <TextBlock Text="端口:" Margin="0,0,0,5"/>
-                    <ui:TextBox x:Name="ProxyPortTextBox" PlaceholderText="7890"/>
-                </StackPanel>
+                <ui:Button Grid.Column="0" Content="取消" Margin="0,0,5,0" HorizontalAlignment="Stretch" Click="CancelButton_Click" IsCancel="True"/>
+                <ui:Button Grid.Column="1" x:Name="ConfirmButton" Content="连接" Margin="5,0,0,0" Appearance="Primary" HorizontalAlignment="Stretch" Click="ConfirmButton_Click" IsDefault="True"/>
             </Grid>
-        </GroupBox>
-
-        <!-- 错误消息显示区 -->
-        <TextBlock x:Name="ErrorTextBlock" Grid.Row="3" TextWrapping="Wrap" Foreground="Red" 
-                   VerticalAlignment="Bottom" Margin="0,15,0,15"/>
-
-        <!-- 按钮区 -->
-        <Grid Grid.Row="4">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
-            <ui:Button Grid.Column="0" Content="取消" Margin="0,0,5,0" HorizontalAlignment="Stretch" Click="CancelButton_Click"/>
-            <ui:Button Grid.Column="1" x:Name="ConfirmButton" Content="连接" Margin="5,0,0,0" Appearance="Primary" HorizontalAlignment="Stretch" Click="ConfirmButton_Click"/>
         </Grid>
     </Grid>
 </ui:FluentWindow>
