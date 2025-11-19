@@ -1,172 +1,113 @@
-#!/bin/bash -e
+#!/bin/bash
+# configure_system.sh
+# 参数 $1: "enable_graphics" 或其他
 
-# --------------------------------------------------------
-# install_dxgkrnl.sh
-# 路径: src/Linux/script/install_dxgkrnl.sh
-# --------------------------------------------------------
+ENABLE_GRAPHICS=$1
+DEPLOY_DIR="$HOME/exhyperv_deploy"
+LIB_DIR="$DEPLOY_DIR/lib"
+GITHUB_LIB_URL="https://raw.githubusercontent.com/Justsenger/ExHyperV/main/src/Linux/lib"
 
-WORKDIR="$(dirname $(realpath $0))"
-LINUX_DISTRO="$(cat /etc/*-release)"
-LINUX_DISTRO=${LINUX_DISTRO,,}
+echo "[+] Checking and downloading missing core libraries..."
+LIBS=("libd3d12.so" "libd3d12core.so" "libdxcore.so")
 
-# === 修改此处：指向 src/Linux/script/patches ===
-PATCH_BASE_URL="https://raw.githubusercontent.com/Justsenger/ExHyperV/main/src/Linux/script/patches"
-
-KERNEL_6_6_NEWER_REGEX="^(6\.[6-9]\.|6\.[0-9]{2,}\.)"
-KERNEL_5_15_NEWER_REGEX="^(5\.1[5-9]+\.)"
-
-install_dependencies() {
-    NEED_TO_INSTALL=""
-    if [ ! -e "/bin/git" ] && [ ! -e "/usr/bin/git" ]; then
-        NEED_TO_INSTALL="git"; 
+for lib in "${LIBS[@]}"; do
+    if [ ! -f "$LIB_DIR/$lib" ]; then
+        echo " -> $lib not found locally, downloading from GitHub..."
+        wget -q -c "$GITHUB_LIB_URL/$lib" -O "$LIB_DIR/$lib"
     fi
-    if [ ! -e "/sbin/dkms" ] && [ ! -e "/bin/dkms" ] && [ ! -e "/usr/bin/dkms" ]; then
-        NEED_TO_INSTALL="$NEED_TO_INSTALL dkms"
-    fi
-    if [ ! -e "/usr/src/linux-headers-${TARGET_KERNEL_VERSION}" ]; then
-        NEED_TO_INSTALL="$NEED_TO_INSTALL linux-headers-${TARGET_KERNEL_VERSION}";
-    fi
+done
 
-    if [[ -z "$NEED_TO_INSTALL" ]]; then
-        echo "All dependencies are already installed."
-        return 0;
-    fi
+echo "[+] Deploying driver files..."
+sudo mkdir -p /usr/lib/wsl/drivers /usr/lib/wsl/lib
+sudo rm -rf /usr/lib/wsl/drivers/* /usr/lib/wsl/lib/*
+sudo cp -r $DEPLOY_DIR/drivers/* /usr/lib/wsl/drivers/
+sudo cp -a $LIB_DIR/*.so* /usr/lib/wsl/lib/
 
-    if [[ "$LINUX_DISTRO" == *"debian"* ]]; then
-        apt update;
-        apt install -y $NEED_TO_INSTALL;
-    elif [[ "$LINUX_DISTRO" == *"fedora"* ]]; then
-        yum -y install $NEED_TO_INSTALL;
-    else
-        echo "Fatal: The system distro is unsupported";
-        exit 1;
-    fi
-}
-
-update_git() {
-    if [[ "${TARGET_KERNEL_VERSION}" =~ $KERNEL_6_6_NEWER_REGEX ]]; then
-        TARGET_BRANCH="linux-msft-wsl-6.6.y";
-    elif [[ "${TARGET_KERNEL_VERSION}" =~ $KERNEL_5_15_NEWER_REGEX ]]; then
-        TARGET_BRANCH="linux-msft-wsl-5.15.y";
-    else
-        echo "Fatal: Unsupported kernel version (5.15.0 <=)";
-        exit 1;
-    fi
-
-    if [ ! -e "/tmp/WSL2-Linux-Kernel" ]; then
-        git clone --branch=$TARGET_BRANCH --no-checkout --depth=1 https://github.com/microsoft/WSL2-Linux-Kernel.git /tmp/WSL2-Linux-Kernel
-    fi
-
-    cd /tmp/WSL2-Linux-Kernel;
-
-    if [ "`git branch -a | grep -o $TARGET_BRANCH`" == "" ]; then
-        git fetch --depth=1 origin $TARGET_BRANCH:$TARGET_BRANCH;
-    fi
-
-    git sparse-checkout set --no-cone /drivers/hv/dxgkrnl /include/uapi/misc/d3dkmthk.h
-    git checkout -f $TARGET_BRANCH
-}
-
-get_version() {
-    cd /tmp/WSL2-Linux-Kernel
-    CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
-    VERSION=$(git rev-parse --short HEAD)
-}
-
-install() {
-    cd /tmp/WSL2-Linux-Kernel
-
-    case $CURRENT_BRANCH in
-        "linux-msft-wsl-5.15.y")
-            PATCHES="0001-Add-a-gpu-pv-support.patch \
-                     0002-Add-a-multiple-kernel-version-support.patch";
-            if [[ "$TARGET_KERNEL_VERSION" != *"azure"* ]]; then
-                    PATCHES="$PATCHES 0003-Fix-gpadl-has-incomplete-type-error.patch";
-            fi
-            
-            for PATCH in $PATCHES; do
-                echo "Downloading patch: $PATCH"
-                # 注意：这里假设你在 patches 目录下建了 5.15 子目录
-                curl -fsSL "$PATCH_BASE_URL/5.15/$PATCH" | git apply -v;
-                echo;
-            done
-            ;;
-        "linux-msft-wsl-6.6.y")
-            PATCHES="0001-Add-a-gpu-pv-support.patch";
-            if [[ "$TARGET_KERNEL_VERSION" != *"truenas"* ]]; then
-                PATCHES="$PATCHES 0002-Fix-eventfd_signal.patch";
-            fi
-
-            for PATCH in $PATCHES; do
-                echo "Downloading patch: $PATCH"
-                # 注意：这里假设你在 patches 目录下建了 6.6 子目录
-                curl -fsSL "$PATCH_BASE_URL/6.6/$PATCH" | git apply -v;
-                echo;
-            done
-            ;;
-        *)
-            echo "Fatal: \"$CURRENT_BRANCH\" is not available";
-            exit 1;;
-    esac
-
-    echo -e "Copy: \n  \"/tmp/WSL2-Linux-Kernel/drivers/hv/dxgkrnl\" -> \"/usr/src/dxgkrnl-$VERSION\""
-    cp -r ./drivers/hv/dxgkrnl /usr/src/dxgkrnl-$VERSION
-
-    echo -e "Copy: \n  \"/tmp/WSL2-Linux-Kernel/include\" -> \"/usr/src/dxgkrnl-$VERSION/include\""
-    cp -r ./include /usr/src/dxgkrnl-$VERSION/include
-
-    sed -i 's/\$(CONFIG_DXGKRNL)/m/' /usr/src/dxgkrnl-$VERSION/Makefile
-    echo "EXTRA_CFLAGS=-I\$(PWD)/include -D_MAIN_KERNEL_ \
-                       -I/usr/src/linux-headers-\${kernelver}/include/linux \
-                       -include /usr/src/linux-headers-\${kernelver}/include/linux/vmalloc.h" >> /usr/src/dxgkrnl-$VERSION/Makefile
-
-    if [[ "${TARGET_KERNEL_VERSION}" =~ $KERNEL_6_6_NEWER_REGEX ]]; then
-        BUILD_EXCLUSIVE_KERNEL=$KERNEL_6_6_NEWER_REGEX
-    else
-        BUILD_EXCLUSIVE_KERNEL=$KERNEL_5_15_NEWER_REGEX
-    fi
-
-    cat > /usr/src/dxgkrnl-$VERSION/dkms.conf << EOF
-PACKAGE_NAME="dxgkrnl"
-PACKAGE_VERSION="$VERSION"
-BUILT_MODULE_NAME="dxgkrnl"
-DEST_MODULE_LOCATION="/kernel/drivers/hv/dxgkrnl/"
-AUTOINSTALL="yes"
-BUILD_EXCLUSIVE_KERNEL="$BUILD_EXCLUSIVE_KERNEL"
-EOF
-}
-
-install_dkms() {
-    if dkms status | grep -q "dxgkrnl/$VERSION"; then
-        echo "Module dxgkrnl/$VERSION already exists, removing first..."
-        dkms remove dxgkrnl/$VERSION --all
-    fi
-    dkms -k ${TARGET_KERNEL_VERSION} add dxgkrnl/$VERSION
-    dkms -k ${TARGET_KERNEL_VERSION} build dxgkrnl/$VERSION
-    dkms -k ${TARGET_KERNEL_VERSION} install dxgkrnl/$VERSION
-}
-
-all() {
-    TARGET_KERNEL_VERSION="$1";
-    if [ "$TARGET_KERNEL_VERSION" == "" ]; then
-        TARGET_KERNEL_VERSION=`uname -r`
-    fi
-
-    echo -e "\nTarget Kernel Version: ${TARGET_KERNEL_VERSION}\n"
-    install_dependencies
-    update_git
-    get_version
-    echo -e "\nModule Version: ${CURRENT_BRANCH} @ ${VERSION}\n"
-    install
-    install_dkms
-}
-
-if [ -z $1 ]; then
-    all `uname -r`
-elif [[ "$1" =~ ^[0-9]+\.[0-9]+\.[0-9]+.+$ ]]; then
-    all $1
-else
-    echo "Usage: $0 [kernel_version]"
+if [ -f "$LIB_DIR/nvidia-smi" ]; then
+    sudo cp $LIB_DIR/nvidia-smi /usr/bin/nvidia-smi
+    sudo chmod 755 /usr/bin/nvidia-smi
 fi
 
-echo "Done."
+sudo ln -sf /usr/lib/wsl/lib/libd3d12core.so /usr/lib/wsl/lib/libD3D12Core.so
+sudo chmod -R 0555 /usr/lib/wsl
+sudo chown -R root:root /usr/lib/wsl
+
+# ldconfig
+echo "/usr/lib/wsl/lib" | sudo tee /etc/ld.so.conf.d/ld.wsl.conf > /dev/null
+sudo ldconfig
+
+# ==========================================================
+# ### 关键变更点：内核模块加载策略修改 (延迟加载 dxgkrnl) ###
+# ==========================================================
+
+echo "[+] Configuring Kernel Modules (vgem & dxgkrnl)..."
+
+# 1. vgem 依然使用标准方式自动加载
+echo "vgem" | sudo tee /etc/modules-load.d/vgem.conf > /dev/null
+sudo modprobe vgem
+
+# 2. dxgkrnl 加入黑名单，防止系统启动时自动加载
+echo "blacklist dxgkrnl" | sudo tee /etc/modprobe.d/blacklist-dxgkrnl.conf > /dev/null
+
+# 3. 更新 initramfs 以应用黑名单
+echo " -> Updating initramfs (this may take a while)..."
+sudo update-initramfs -u
+
+# 4. 创建延迟加载脚本 (完全匹配你的输入)
+echo " -> Creating late-load script..."
+sudo tee /usr/local/bin/load_dxg_driver.sh > /dev/null << 'EOF'
+#!/bin/bash
+modprobe dxgkrnl
+if [ -e /dev/dxg ]; then
+    chmod 666 /dev/dxg
+fi
+EOF
+sudo chmod +x /usr/local/bin/load_dxg_driver.sh
+
+# 5. 创建 systemd 服务 (完全匹配你的输入)
+echo " -> Creating systemd service for late loading..."
+sudo tee /etc/systemd/system/load-dxg-late.service > /dev/null << 'EOF'
+[Unit]
+Description=Late load dxgkrnl
+After=graphical.target
+
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/local/bin/load_dxg_driver.sh
+
+[Install]
+WantedBy=graphical.target
+EOF
+
+# 6. 启用服务
+sudo systemctl daemon-reload
+sudo systemctl enable load-dxg-late.service
+
+# ==========================================================
+# ### 变更结束 ###
+# ==========================================================
+
+if [ "$ENABLE_GRAPHICS" == "enable_graphics" ]; then
+    echo "[+] Configuring environment variables for Graphics..."
+    
+    # Clean old
+    sudo sed -i '/GALLIUM_DRIVERS/d' /etc/environment
+    sudo sed -i '/LIBVA_DRIVER_NAME/d' ~/.bashrc
+    
+    # Add new
+    cat >> ~/.bashrc <<EOF
+
+# GPU-PV Configuration
+export GALLIUM_DRIVERS=d3d12
+export DRI_PRIME=1
+export LIBVA_DRIVER_NAME=d3d12
+EOF
+    
+    sudo usermod -a -G video,render $USER
+    sudo chmod 666 /dev/dri/* || true
+    sudo ln -sf /dev/dri/card1 /dev/dri/card0
+fi
+
+echo "[+] Cleaning up..."
+rm -rf $DEPLOY_DIR
