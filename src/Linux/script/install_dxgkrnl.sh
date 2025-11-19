@@ -2,13 +2,13 @@
 
 # --------------------------------------------------------
 # install_dxgkrnl.sh
-# 路径: src/Linux/script/install_dxgkrnl.sh
 # --------------------------------------------------------
 
 WORKDIR="$(dirname $(realpath $0))"
 LINUX_DISTRO="$(cat /etc/*-release)"
 LINUX_DISTRO=${LINUX_DISTRO,,}
 
+# 指向你的 patches 根目录
 PATCH_BASE_URL="https://raw.githubusercontent.com/Justsenger/ExHyperV/main/src/Linux/script/patches"
 
 KERNEL_6_6_NEWER_REGEX="^(6\.[6-9]\.|6\.[0-9]{2,}\.)"
@@ -16,23 +16,16 @@ KERNEL_5_15_NEWER_REGEX="^(5\.1[5-9]+\.)"
 
 install_dependencies() {
     NEED_TO_INSTALL=""
-    
-    # 检查 git
     if [ ! -e "/bin/git" ] && [ ! -e "/usr/bin/git" ]; then
         NEED_TO_INSTALL="git"; 
     fi
-    
-    # 【新增】检查并安装 curl (修复报错的关键)
+    # 确保 curl 被安装
     if [ ! -e "/usr/bin/curl" ] && [ ! -e "/bin/curl" ]; then
         NEED_TO_INSTALL="$NEED_TO_INSTALL curl"
     fi
-
-    # 检查 dkms
     if [ ! -e "/sbin/dkms" ] && [ ! -e "/bin/dkms" ] && [ ! -e "/usr/bin/dkms" ]; then
         NEED_TO_INSTALL="$NEED_TO_INSTALL dkms"
     fi
-    
-    # 检查内核头文件
     if [ ! -e "/usr/src/linux-headers-${TARGET_KERNEL_VERSION}" ]; then
         NEED_TO_INSTALL="$NEED_TO_INSTALL linux-headers-${TARGET_KERNEL_VERSION}";
     fi
@@ -44,7 +37,6 @@ install_dependencies() {
 
     if [[ "$LINUX_DISTRO" == *"debian"* ]]; then
         apt update;
-        # 这里的 NEED_TO_INSTALL 现在包含了 curl
         apt install -y $NEED_TO_INSTALL;
     elif [[ "$LINUX_DISTRO" == *"fedora"* ]]; then
         yum -y install $NEED_TO_INSTALL;
@@ -97,7 +89,8 @@ install() {
             
             for PATCH in $PATCHES; do
                 echo "Downloading patch: $PATCH"
-                curl -fsSL "$PATCH_BASE_URL/5.15/$PATCH" | git apply -v;
+                # 修正：使用完整的文件夹名称 linux-msft-wsl-5.15.y
+                curl -fsSL "$PATCH_BASE_URL/linux-msft-wsl-5.15.y/$PATCH" | git apply -v;
                 echo;
             done
             ;;
@@ -109,7 +102,8 @@ install() {
 
             for PATCH in $PATCHES; do
                 echo "Downloading patch: $PATCH"
-                curl -fsSL "$PATCH_BASE_URL/6.6/$PATCH" | git apply -v;
+                # 修正：使用完整的文件夹名称 linux-msft-wsl-6.6.y
+                curl -fsSL "$PATCH_BASE_URL/linux-msft-wsl-6.6.y/$PATCH" | git apply -v;
                 echo;
             done
             ;;
