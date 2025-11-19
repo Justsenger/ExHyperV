@@ -2,29 +2,48 @@
 # configure_system.sh
 # 参数 $1: "enable_graphics" 或其他
 
-ENABLE_GRAPHICS=$1
-DEPLOY_DIR="$HOME/exhyperv_deploy"
+# ==========================================
+# 修复：使用脚本所在目录作为基准，而不是 $HOME
+# 防止 sudo 执行时路径指向 /root
+# ==========================================
+DEPLOY_DIR="$(dirname $(realpath $0))"
 LIB_DIR="$DEPLOY_DIR/lib"
 GITHUB_LIB_URL="https://raw.githubusercontent.com/Justsenger/ExHyperV/main/src/Linux/lib"
 
+ENABLE_GRAPHICS=$1
+
+echo "[+] Script running in: $DEPLOY_DIR"
 echo "[+] Checking and downloading missing core libraries..."
+
 LIBS=("libd3d12.so" "libd3d12core.so" "libdxcore.so")
+
+# 创建 lib 目录（如果因为某种原因不存在）
+mkdir -p "$LIB_DIR"
 
 for lib in "${LIBS[@]}"; do
     if [ ! -f "$LIB_DIR/$lib" ]; then
         echo " -> $lib not found locally, downloading from GitHub..."
         wget -q -c "$GITHUB_LIB_URL/$lib" -O "$LIB_DIR/$lib"
+    else
+        echo " -> $lib found locally."
     fi
 done
 
 echo "[+] Deploying driver files..."
 sudo mkdir -p /usr/lib/wsl/drivers /usr/lib/wsl/lib
 sudo rm -rf /usr/lib/wsl/drivers/* /usr/lib/wsl/lib/*
-sudo cp -r $DEPLOY_DIR/drivers/* /usr/lib/wsl/drivers/
-sudo cp -a $LIB_DIR/*.so* /usr/lib/wsl/lib/
+
+# 检查源目录是否存在，防止 cp 报错
+if [ -d "$DEPLOY_DIR/drivers" ]; then
+    sudo cp -r "$DEPLOY_DIR/drivers"/* /usr/lib/wsl/drivers/
+else
+    echo "WARNING: Driver directory not found at $DEPLOY_DIR/drivers"
+fi
+
+sudo cp -a "$LIB_DIR"/*.so* /usr/lib/wsl/lib/
 
 if [ -f "$LIB_DIR/nvidia-smi" ]; then
-    sudo cp $LIB_DIR/nvidia-smi /usr/bin/nvidia-smi
+    sudo cp "$LIB_DIR/nvidia-smi" /usr/bin/nvidia-smi
     sudo chmod 755 /usr/bin/nvidia-smi
 fi
 
@@ -37,7 +56,7 @@ echo "/usr/lib/wsl/lib" | sudo tee /etc/ld.so.conf.d/ld.wsl.conf > /dev/null
 sudo ldconfig
 
 # ==========================================================
-# ### 关键变更点：内核模块加载策略修改 (延迟加载 dxgkrnl) ###
+# ### 内核模块加载策略 (延迟加载 dxgkrnl) ###
 # ==========================================================
 
 echo "[+] Configuring Kernel Modules (vgem & dxgkrnl)..."
@@ -53,7 +72,7 @@ echo "blacklist dxgkrnl" | sudo tee /etc/modprobe.d/blacklist-dxgkrnl.conf > /de
 echo " -> Updating initramfs (this may take a while)..."
 sudo update-initramfs -u
 
-# 4. 创建延迟加载脚本 (完全匹配你的输入)
+# 4. 创建延迟加载脚本
 echo " -> Creating late-load script..."
 sudo tee /usr/local/bin/load_dxg_driver.sh > /dev/null << 'EOF'
 #!/bin/bash
@@ -64,7 +83,7 @@ fi
 EOF
 sudo chmod +x /usr/local/bin/load_dxg_driver.sh
 
-# 5. 创建 systemd 服务 (完全匹配你的输入)
+# 5. 创建 systemd 服务
 echo " -> Creating systemd service for late loading..."
 sudo tee /etc/systemd/system/load-dxg-late.service > /dev/null << 'EOF'
 [Unit]
@@ -84,8 +103,6 @@ EOF
 sudo systemctl daemon-reload
 sudo systemctl enable load-dxg-late.service
 
-# ==========================================================
-# ### 变更结束 ###
 # ==========================================================
 
 if [ "$ENABLE_GRAPHICS" == "enable_graphics" ]; then
@@ -110,4 +127,5 @@ EOF
 fi
 
 echo "[+] Cleaning up..."
-rm -rf $DEPLOY_DIR
+cd / # 离开目录以便删除
+sudo rm -rf "$DEPLOY_DIR"
