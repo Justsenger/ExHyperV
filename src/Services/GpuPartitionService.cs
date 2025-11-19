@@ -10,6 +10,7 @@ namespace ExHyperV.Services
     public class GpuPartitionService : IGpuPartitionService
     {
 
+        private const string ScriptBaseUrl = "https://raw.githubusercontent.com/Justsenger/ExHyperV/main/src/Linux/script/";
         private bool IsWindows11OrGreater() => Environment.OSVersion.Version.Build >= 22000;
 
         // PowerShell 脚本常量
@@ -602,9 +603,10 @@ namespace ExHyperV.Services
                                 if (cts.IsCancellationRequested) throw new OperationCanceledException();
 
 
-                                updateStatus("[1/9] 正在连接到虚拟机...");
-                                log("[1/9] 正在连接到虚拟机并初始化远程环境...");
+                                updateStatus("[1/5] 正在连接到虚拟机...");
+                                log("[1/5] 正在连接到虚拟机并初始化远程环境...");
                                 string homeDirectory;
+                                string remoteTempDir;
 
                                 using (var client = new SshClient(credentials.Host, credentials.Port, credentials.Username, credentials.Password))
                                 {
@@ -618,7 +620,7 @@ namespace ExHyperV.Services
                                     }
                                     log($"[+] 获取到Linux主目录: {homeDirectory}");
 
-                                    string remoteTempDir = $"{homeDirectory}/exhyperv_deploy";
+                                    remoteTempDir = $"{homeDirectory}/exhyperv_deploy";
                                     client.RunCommand($"mkdir -p {remoteTempDir}/drivers {remoteTempDir}/lib");
                                     log($"[+] 已创建临时部署目录: {remoteTempDir}");
                                     client.Disconnect();
@@ -627,8 +629,8 @@ namespace ExHyperV.Services
 
                                 if (!string.IsNullOrEmpty(credentials.ProxyHost) && credentials.ProxyPort.HasValue)
                                 {
-                                    updateStatus("[2/9] 正在配置网络代理...");
-                                    log("\n[2/9] 正在为虚拟机配置 HTTP 网络代理...");
+                                    updateStatus("[2/5] 正在配置网络代理...");
+                                    log("\n[2/5] 正在为虚拟机配置 HTTP 网络代理...");
                                     log($"[+] 代理服务器: {credentials.ProxyHost}:{credentials.ProxyPort}");
                                     string proxyUrl = $"http://{credentials.ProxyHost}:{credentials.ProxyPort}";
                                     string aptProxyContent = $"Acquire::http::Proxy \"{proxyUrl}\";\nAcquire::https::Proxy \"{proxyUrl}\";\n";
@@ -638,229 +640,104 @@ namespace ExHyperV.Services
                                     await sshService.WriteTextFileAsync(credentials, aptProxyContent, remoteAptProxyFile);
                                     await sshService.WriteTextFileAsync(credentials, envProxyContent, remoteEnvProxyFile);
                                     var proxyCommands = new List<string>
-                                {
-                                    $"sudo mv {remoteAptProxyFile} /etc/apt/apt.conf.d/99proxy",
-                                    $"sudo sh -c 'cat {remoteEnvProxyFile} >> /etc/environment'",
-                                    $"rm {remoteEnvProxyFile}",
-                                    $"export http_proxy={proxyUrl}",
-                                    $"export https_proxy={proxyUrl}"
-                                };
+                                    {
+                                        $"sudo mv {remoteAptProxyFile} /etc/apt/apt.conf.d/99proxy",
+                                        $"sudo sh -c 'cat {remoteEnvProxyFile} >> /etc/environment'",
+                                        $"rm {remoteEnvProxyFile}",
+                                        $"export http_proxy={proxyUrl}",
+                                        $"export https_proxy={proxyUrl}"
+                                    };
                                     foreach (var cmd in proxyCommands)
                                     {
                                         await sshService.ExecuteSingleCommandAsync(credentials, cmd, log, TimeSpan.FromSeconds(30));
                                     }
                                     log("[✓] 网络代理配置完成。");
                                 }
-                                string remoteDriversDir = $"{homeDirectory}/exhyperv_deploy/drivers";
-                                string remoteLibDir = $"{homeDirectory}/exhyperv_deploy/lib";
-                                updateStatus("[3/9] 正在上传主机驱动文件...");
-                                log("\n[3/9] 正在上传主机 GPU 驱动文件... (此过程耗时较长，请耐心等待)");
-                                await sshService.UploadDirectoryAsync(credentials, @"C:\Windows\System32\DriverStore\FileRepository", remoteDriversDir);
+
+                                updateStatus("[3/5] 正在上传驱动与库文件...");
+                                log("\n[3/5] 正在上传主机 GPU 驱动与本地库文件...");
+                                await sshService.UploadDirectoryAsync(credentials, @"C:\Windows\System32\DriverStore\FileRepository", $"{remoteTempDir}/drivers");
                                 log("[✓] 主机驱动文件上传完毕。");
-                                updateStatus("[4/9] 正在上传核心库与脚本...");
-                                log("\n[4/9] 正在上传核心库文件和安装脚本...");
-                                await UploadLocalFilesAsync(sshService, credentials, remoteLibDir);
-                                log("[✓] 核心库与脚本上传完毕。");
-                                updateStatus("[5/9] 开始执行系统配置脚本...");
+                                await UploadLocalFilesAsync(sshService, credentials, $"{remoteTempDir}/lib");
+                                log("[✓] 本地核心库检查完毕。");
 
-                                string password = credentials.Password; // 假设密码存储在这里
+                                updateStatus("[4/5] 正在下载并执行部署脚本...");
+                                log("\n[4/5] 正在从 GitHub 下载最新部署脚本...");
 
-                                var commandsToExecute = new List<Tuple<string, TimeSpan?>>
+                                // =========================================================
+                                // 核心修改：命令生成逻辑替换
+                                // =========================================================
+                                var commandsToExecute = new List<Tuple<string, TimeSpan?>>();
+                                bool enableGraphics = true; // 暂时硬编码，后续可改为参数传入
+
+                                // 1. 下载脚本
+                                commandsToExecute.Add(Tuple.Create($"wget -O {remoteTempDir}/install_dxgkrnl.sh {ScriptBaseUrl}install_dxgkrnl.sh", (TimeSpan?)TimeSpan.FromMinutes(2)));
+                                commandsToExecute.Add(Tuple.Create($"wget -O {remoteTempDir}/setup_graphics.sh {ScriptBaseUrl}setup_graphics.sh", (TimeSpan?)TimeSpan.FromMinutes(2)));
+                                commandsToExecute.Add(Tuple.Create($"wget -O {remoteTempDir}/configure_system.sh {ScriptBaseUrl}configure_system.sh", (TimeSpan?)TimeSpan.FromMinutes(2)));
+                                commandsToExecute.Add(Tuple.Create($"chmod +x {remoteTempDir}/*.sh", (TimeSpan?)TimeSpan.FromSeconds(10)));
+
+                                // 2. 编译内核模块
+                                commandsToExecute.Add(Tuple.Create(withSudo($"{remoteTempDir}/install_dxgkrnl.sh"), (TimeSpan?)TimeSpan.FromMinutes(60)));
+
+                                // 3. 图形环境 (可选)
+                                if (enableGraphics)
                                 {
+                                    commandsToExecute.Add(Tuple.Create(withSudo($"{remoteTempDir}/setup_graphics.sh"), (TimeSpan?)TimeSpan.FromMinutes(20)));
+                                }
 
+                                // 4. 系统配置
+                                string configArgs = enableGraphics ? "enable_graphics" : "no_graphics";
+                                commandsToExecute.Add(Tuple.Create(withSudo($"{remoteTempDir}/configure_system.sh {configArgs}"), (TimeSpan?)TimeSpan.FromMinutes(5)));
 
-// 步骤 5: 【全新逻辑 v3】准备并安装 Mesa 驱动
-// ===========================================================================================
-Tuple.Create("echo '\n[5/9] 正在准备并安装 Mesa 图形驱动...'", (TimeSpan?)TimeSpan.FromSeconds(30)),
-
-// 5.1 清理环境：移除所有旧的 PPA 和配置，确保一个干净的开始
-Tuple.Create("echo '[+] 清理旧的 PPA 配置...'", (TimeSpan?)TimeSpan.FromSeconds(30)),
-Tuple.Create("sudo apt-get install -y -qq ppa-purge", (TimeSpan?)TimeSpan.FromMinutes(2)),
-Tuple.Create("sudo ppa-purge -y ppa:kisak/turtle || true", (TimeSpan?)TimeSpan.FromMinutes(3)),
-Tuple.Create("sudo ppa-purge -y ppa:kisak/kisak-mesa || true", (TimeSpan?)TimeSpan.FromMinutes(3)),
-Tuple.Create("sudo rm -f /etc/apt/preferences.d/99-mesa-pinning", (TimeSpan?)TimeSpan.FromSeconds(10)),
-
-// 5.2 安装基础依赖和官方版 Mesa
-Tuple.Create("echo '[+] 安装基础依赖和 Ubuntu 官方稳定版 Mesa...'", (TimeSpan?)TimeSpan.FromSeconds(30)),
-Tuple.Create("sudo apt-get update -qq", (TimeSpan?)TimeSpan.FromMinutes(5)),
-// 安装所有必需品，包括 vulkan-tools！
-Tuple.Create("sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq linux-headers-$(uname -r) build-essential git dkms curl software-properties-common mesa-utils vulkan-tools mesa-va-drivers vainfo libgl1-mesa-dri", (TimeSpan?)TimeSpan.FromMinutes(10)),
-
-Tuple.Create("echo '\n[6/9] 正在精确升级 Vulkan 驱动至最新版...'", (TimeSpan?)TimeSpan.FromSeconds(30)),
-
-// 6.1 添加 Kisak PPA 软件源 (不变)
-Tuple.Create("echo '[+] 添加 Kisak PPA 软件源...'", (TimeSpan?)TimeSpan.FromSeconds(30)),
-Tuple.Create("sudo add-apt-repository ppa:kisak/turtle -y", (TimeSpan?)TimeSpan.FromMinutes(2)),
-Tuple.Create("sudo apt-get update -qq", (TimeSpan?)TimeSpan.FromMinutes(2)),
-
-// 6.2 【核心修正 v4】创建通过版本号锁定的 APT Pinning 规则
-Tuple.Create("echo '[+] 创建通过版本号锁定的 APT Pinning 规则...'", (TimeSpan?)TimeSpan.FromSeconds(30)),
-// 首先，用 > 创建并覆盖文件
-Tuple.Create("sudo sh -c 'echo \"# 规则: 优先选择版本号中包含 ~kisak 的 mesa-vulkan-drivers\" > /etc/apt/preferences.d/99-mesa-pinning'", (TimeSpan?)TimeSpan.FromSeconds(10)),
-// 之后，用 >> 追加内容
-Tuple.Create("sudo sh -c 'echo \"Package: mesa-vulkan-drivers\" >> /etc/apt/preferences.d/99-mesa-pinning'", (TimeSpan?)TimeSpan.FromSeconds(10)),
-// 【关键】使用版本号通配符 *kisak* 来锁定 PPA 的版本
-Tuple.Create("sudo sh -c 'echo \"Pin: version *kisak*\" >> /etc/apt/preferences.d/99-mesa-pinning'", (TimeSpan?)TimeSpan.FromSeconds(10)),
-Tuple.Create("sudo sh -c 'echo \"Pin-Priority: 900\" >> /etc/apt/preferences.d/99-mesa-pinning'", (TimeSpan?)TimeSpan.FromSeconds(10)),
-
-// 6.3 应用规则并安装/升级 Vulkan 驱动
-Tuple.Create("echo '[+] 应用规则并强制安装/升级 Vulkan 驱动...'", (TimeSpan?)TimeSpan.FromSeconds(30)),
-Tuple.Create("sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq mesa-vulkan-drivers", (TimeSpan?)TimeSpan.FromMinutes(5)),
-
-                                // ===================================================================
-                                // 新增步骤 4: 从源码编译并安装 dxgkrnl 内核模块
-                                // ===================================================================
-    Tuple.Create("echo '\n[7/9] 正在编译并安装 GPU-PV 核心内核模块 (dxgkrnl)...'", (TimeSpan?)TimeSpan.FromSeconds(30)),
-    Tuple.Create("echo '[+] 赋予安装脚本执行权限...'", (TimeSpan?)TimeSpan.FromSeconds(30)),
-                                // remoteLibDir 变量是在这个列表外部定义的，包含了 install.sh 的路径
-                                Tuple.Create($"sudo chmod +x {remoteLibDir}/install.sh", (TimeSpan?)TimeSpan.FromSeconds(20)),
-    Tuple.Create("echo '[+] 开始执行编译和安装 (此过程耗时最长，请耐心等待)...'", (TimeSpan?)TimeSpan.FromSeconds(30)),
-                                Tuple.Create($"sudo {remoteLibDir}/install.sh", (TimeSpan?)TimeSpan.FromMinutes(30)), // 编译和安装非常耗时，给予足够长的超时时间
-
-                                    
-                                    // ===================================================================
-                                    // 步骤 3: 部署 GPU 驱动和库文件
-                                    // ===================================================================
-Tuple.Create("echo '\n[8/9] 正在部署驱动文件并配置系统环境...'", (TimeSpan?)TimeSpan.FromSeconds(30)),
-    Tuple.Create("echo '[+] 部署 GPU 驱动及库文件到系统路径...'", (TimeSpan?)TimeSpan.FromSeconds(30)),
-    Tuple.Create(withSudo("mkdir -p /usr/lib/wsl/drivers /usr/lib/wsl/lib"), (TimeSpan?)TimeSpan.FromSeconds(30)),
-    Tuple.Create(withSudo("rm -rf /usr/lib/wsl/drivers/* /usr/lib/wsl/lib/*"), (TimeSpan?)TimeSpan.FromMinutes(1)),
-    Tuple.Create(withSudo($"cp -r {homeDirectory}/exhyperv_deploy/drivers/* /usr/lib/wsl/drivers/"), (TimeSpan?)TimeSpan.FromMinutes(2)),
-    Tuple.Create(withSudo($"cp -a {homeDirectory}/exhyperv_deploy/lib/*.so* /usr/lib/wsl/lib/"), (TimeSpan?)TimeSpan.FromMinutes(2)),
-    Tuple.Create($"[ -f {homeDirectory}/exhyperv_deploy/lib/nvidia-smi ] && {withSudo($"cp {homeDirectory}/exhyperv_deploy/lib/nvidia-smi /usr/bin/nvidia-smi")} || echo 'nvidia-smi not found, skipping.'", (TimeSpan?)TimeSpan.FromSeconds(30)),
-    Tuple.Create($"[ -f /usr/bin/nvidia-smi ] && {withSudo("chmod 755 /usr/bin/nvidia-smi")} || echo 'nvidia-smi not found in /usr/bin, skipping chmod.'", (TimeSpan?)TimeSpan.FromSeconds(10)),
-    Tuple.Create(withSudo("ln -sf /usr/lib/wsl/lib/libd3d12core.so /usr/lib/wsl/lib/libD3D12Core.so"), (TimeSpan?)TimeSpan.FromSeconds(10)),
-    Tuple.Create(withSudo("chmod -R 0555 /usr/lib/wsl"), (TimeSpan?)TimeSpan.FromMinutes(1)),
-    Tuple.Create(withSudo("chown -R root:root /usr/lib/wsl"), (TimeSpan?)TimeSpan.FromMinutes(1)),
-
-                                    // ===================================================================
-                                    // 步骤 4: 配置系统环境 (最终修正版)
-                                    // ===================================================================
-    Tuple.Create("echo '[+] 配置链接库和全局环境变量...'", (TimeSpan?)TimeSpan.FromSeconds(30)),
-                                    
-                                    // 4.1. 配置链接库路径
-                                    Tuple.Create("sudo sh -c 'echo \"/usr/lib/wsl/lib\" > /etc/ld.so.conf.d/ld.wsl.conf'", (TimeSpan?)TimeSpan.FromSeconds(10)),
-                                    Tuple.Create("sudo ldconfig", (TimeSpan?)TimeSpan.FromMinutes(1)),
-
-
-// 【核心修正】将环境变量配置写入用户 .bashrc 以实现精细化控制
-Tuple.Create("echo '[+] 将优化配置写入用户 .bashrc 文件...'", (TimeSpan?)TimeSpan.FromSeconds(30)),
-
-// 创建一个包含所有优化配置的临时脚本文件
-Tuple.Create($"echo '' >> {homeDirectory}/env_tmp", (TimeSpan?)TimeSpan.FromSeconds(10)),
-Tuple.Create($"echo '# ===============================================' >> {homeDirectory}/env_tmp", (TimeSpan?)TimeSpan.FromSeconds(10)),
-Tuple.Create($"echo '# GPU-PV (D3D12 Backend) Configuration' >> {homeDirectory}/env_tmp", (TimeSpan?)TimeSpan.FromSeconds(10)),
-Tuple.Create($"echo '# ===============================================' >> {homeDirectory}/env_tmp", (TimeSpan?)TimeSpan.FromSeconds(10)),
-Tuple.Create($"echo 'export GALLIUM_DRIVERS=d3d12' >> {homeDirectory}/env_tmp", (TimeSpan?)TimeSpan.FromSeconds(10)),
-Tuple.Create($"echo 'export DRI_PRIME=1' >> {homeDirectory}/env_tmp", (TimeSpan?)TimeSpan.FromSeconds(10)),
-// 【关键】为 vainfo 单独设置视频驱动变量
-Tuple.Create($"echo 'export LIBVA_DRIVER_NAME=d3d12' >> {homeDirectory}/env_tmp", (TimeSpan?)TimeSpan.FromSeconds(10)),
-
-// 将临时文件的内容追加到目标用户的 .bashrc 文件中
-Tuple.Create($"sudo sh -c 'cat {homeDirectory}/env_tmp >> /home/$SUDO_USER/.bashrc || cat {homeDirectory}/env_tmp >> {homeDirectory}/.bashrc'", (TimeSpan?)TimeSpan.FromSeconds(20)),
-Tuple.Create($"rm {homeDirectory}/env_tmp", (TimeSpan?)TimeSpan.FromSeconds(10)),
-
-// 清理旧的、可能冲突的系统级配置文件
-Tuple.Create("echo '[+] 清理系统级全局环境变量以避免冲突...'", (TimeSpan?)TimeSpan.FromSeconds(30)),
-Tuple.Create("sudo rm -f /etc/profile.d/99-dxgkrnl.sh", (TimeSpan?)TimeSpan.FromSeconds(10)),
-Tuple.Create("sudo sed -i '/GALLIUM_DRIVERS/d' /etc/environment", (TimeSpan?)TimeSpan.FromSeconds(10)),
-Tuple.Create("sudo sed -i '/MESA_LOADER_DRIVER_OVERRIDE/d' /etc/environment", (TimeSpan?)TimeSpan.FromSeconds(10)),
-Tuple.Create("sudo sed -i '/DRI_PRIME/d' /etc/environment", (TimeSpan?)TimeSpan.FromSeconds(10)),
-Tuple.Create("sudo sed -i '/LIBVA_DRIVER_NAME/d' /etc/environment", (TimeSpan?)TimeSpan.FromSeconds(10)),
-
-
-
-
-                                // ===================================================================
-                                // 步骤 4.3: 配置用户权限
-                                // ===================================================================
-    Tuple.Create("echo '[+] 配置用户硬件访问权限...'", (TimeSpan?)TimeSpan.FromSeconds(30)),
-                                Tuple.Create("sudo usermod -a -G video $USER || sudo usermod -a -G video $SUDO_USER || true", (TimeSpan?)TimeSpan.FromSeconds(30)),
-                                Tuple.Create("sudo usermod -a -G render $USER || sudo usermod -a -G render $SUDO_USER || true", (TimeSpan?)TimeSpan.FromSeconds(30)),
-
-                                // ===================================================================
-                                // 步骤 4.4: 确保核心内核模块开机自启并立即加载
-                                // ===================================================================
-    Tuple.Create("echo '[+] 配置核心内核模块自启动并立即加载...'", (TimeSpan?)TimeSpan.FromSeconds(30)),
-                                // 4.4.1. 设置开机自动加载 (永久生效)
-                                Tuple.Create("sudo sh -c \"echo 'vgem' > /etc/modules-load.d/vgem.conf\"", (TimeSpan?)TimeSpan.FromSeconds(20)),
-                                Tuple.Create("sudo sh -c \"echo 'dxgkrnl' > /etc/modules-load.d/dxgkrnl.conf\"", (TimeSpan?)TimeSpan.FromSeconds(20)),
-                                // 4.4.2. 立即加载模块以供当前会话使用 (即时生效)
-                                Tuple.Create("sudo modprobe vgem", (TimeSpan?)TimeSpan.FromSeconds(20)),
-                                Tuple.Create("sudo modprobe dxgkrnl", (TimeSpan?)TimeSpan.FromSeconds(20)),
-
-// ===================================================================
-// 步骤 4.5: 开放设备节点权限并创建兼容性链接
-// ===================================================================
-Tuple.Create("echo '[+] 开放设备节点权限并创建兼容性链接...'", (TimeSpan?)TimeSpan.FromSeconds(30)),
-Tuple.Create("sudo chmod 666 /dev/dxg", (TimeSpan?)TimeSpan.FromSeconds(10)),
-Tuple.Create("sudo chmod 666 /dev/dri/* || true", (TimeSpan?)TimeSpan.FromSeconds(10)),
-// 【核心修正】为 vainfo 等老程序创建 card0 符号链接
-Tuple.Create("sudo ln -sf /dev/dri/card1 /dev/dri/card0", (TimeSpan?)TimeSpan.FromSeconds(10)),
-
-                                    // ===================================================================
-                                    // 步骤 5: 清理临时文件
-                                    // ===================================================================
-    Tuple.Create("echo '\n[9/9] 正在清理临时文件...'", (TimeSpan?)TimeSpan.FromSeconds(30)),
-                                    Tuple.Create($"rm -rf {homeDirectory}/exhyperv_deploy", (TimeSpan?)TimeSpan.FromMinutes(1)),
-                                };
-
-
-                                const int maxRetries = 2; // 离线操作，减少重试次数
+                                const int maxRetries = 2;
                                 foreach (var cmdInfo in commandsToExecute)
                                 {
                                     if (cts.IsCancellationRequested) throw new OperationCanceledException();
-                                    var command = cmdInfo.Item1;
-                                    var timeout = cmdInfo.Item2;
+
+                                    if (cmdInfo.Item1.Contains("install_dxgkrnl.sh"))
+                                        log("\n[!] 正在编译内核模块，此过程可能需要较长时间 (10-30分钟)，请耐心等待...");
+                                    else if (cmdInfo.Item1.Contains("setup_graphics.sh"))
+                                        log("\n[!] 正在配置 Mesa 图形环境...");
 
                                     for (int retry = 1; retry <= maxRetries; retry++)
                                     {
                                         try
                                         {
-                                            await sshService.ExecuteSingleCommandAsync(credentials, command, log, timeout);
+                                            await sshService.ExecuteSingleCommandAsync(credentials, cmdInfo.Item1, log, cmdInfo.Item2);
                                             break;
                                         }
                                         catch (Exception ex)
                                         {
-                                            // 如果是因为我们手动取消引发的异常，直接抛出
                                             if (cts.IsCancellationRequested) throw new OperationCanceledException();
-
                                             if (ex is Renci.SshNet.Common.SshOperationTimeoutException || ex.InnerException is TimeoutException)
                                             {
                                                 log($"--- 命令执行超时 (尝试 {retry}/{maxRetries}) ---");
                                                 if (retry == maxRetries) throw new Exception("命令执行超时，部署中止。", ex);
-                                                await Task.Delay(2000, cts.Token); // 使用带 Token 的延迟
+                                                await Task.Delay(2000, cts.Token);
                                             }
-                                            else
-                                            {
-                                                throw; // 其他错误直接抛出
-                                            }
+                                            else throw;
                                         }
                                     }
                                 }
 
                                 updateStatus("部署完成！虚拟机即将重启...");
-                                log("\n[+] 部署完成！虚拟机即将重启...");
+                                log("\n[5/5] 部署完成！虚拟机即将重启...");
                                 try
                                 {
                                     await sshService.ExecuteSingleCommandAsync(credentials, "sudo reboot", log, TimeSpan.FromSeconds(5));
                                 }
-                                catch {}
+                                catch { }
 
                                 progressWindow.ShowSuccessState();
                                 return "OK";
                             }
                             catch (OperationCanceledException)
                             {
-                                // 捕获取消异常，直接返回
                                 return "操作已取消";
                             }
                             catch (Exception ex)
                             {
-                                // 错误处理逻辑 (重试或退出)
                                 string errorMsg = $"部署失败: {ex.Message}";
-
-                                // 确保窗口没关才更新 UI
                                 if (!cts.IsCancellationRequested)
                                 {
                                     progressWindow.AppendLog($"\n\n--- 错误发生 ---\n{errorMsg}");
@@ -1046,71 +923,30 @@ Tuple.Create("sudo ln -sf /dev/dri/card1 /dev/dri/card0", (TimeSpan?)TimeSpan.Fr
         /// 它会优先从主机系统上传库文件，然后上传自定义安装脚本。
         /// 最后，它会通过 SSH 在虚拟机内部检查核心库文件是否存在，如果不存在，则从网络下载。
         /// </summary>
+        /// <summary>
+        /// 尝试将本地 Windows (WSL) 目录中的核心库上传到虚拟机。
+        /// 如果本地没有这些文件，此方法不做任何事，后续脚本会自动从 GitHub 下载。
+        /// </summary>
         private async Task UploadLocalFilesAsync(SshService sshService, SshCredentials credentials, string remoteDirectory)
         {
-            // ===================================================================================================
-            // 步骤 1: 从主机上传文件 (如果存在)
-            // ===================================================================================================
+            // 尝试从本地 Windows 的 WSL 子系统目录获取 .so 文件
             string systemWslLibPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "lxss", "lib");
 
             if (Directory.Exists(systemWslLibPath))
             {
-                var filesInSystemDir = Directory.GetFiles(systemWslLibPath);
-                foreach (var filePath in filesInSystemDir)
+                // 只查找我们需要的几个核心库，避免上传无关文件
+                string[] targetFiles = { "libd3d12.so", "libd3d12core.so", "libdxcore.so" };
+
+                foreach (var fileName in targetFiles)
                 {
-                    string fileName = Path.GetFileName(filePath);
-                    await sshService.UploadFileAsync(credentials, filePath, $"{remoteDirectory}/{fileName}");
+                    string localFilePath = Path.Combine(systemWslLibPath, fileName);
+                    if (File.Exists(localFilePath))
+                    {
+                        // 上传到远程的 lib 目录
+                        await sshService.UploadFileAsync(credentials, localFilePath, $"{remoteDirectory}/{fileName}");
+                    }
                 }
             }
-            // 如果主机目录不存在（例如N卡环境），则此步骤被安全跳过。
-
-            // ===================================================================================================
-            // 步骤 2: 从应用程序资源上传必要的脚本
-            // ===================================================================================================
-            string baseDirectory = AppContext.BaseDirectory;
-            string localAssetDirectory = Path.Combine(baseDirectory, "Assets", "linuxlib");
-            string installScriptPath = Path.Combine(localAssetDirectory, "install.sh");
-
-            if (!File.Exists(installScriptPath))
-            {
-                throw new FileNotFoundException($"错误：无法在应用程序资源文件夹中找到安装脚本 '{installScriptPath}'。\n\n" +
-                                                "请确保 install.sh 文件已包含在项目中，并设置为“内容”以及“如果较新则复制”。");
-            }
-            await sshService.UploadFileAsync(credentials, installScriptPath, $"{remoteDirectory}/install.sh");
-
-            // ===================================================================================================
-            // 步骤 3: 在虚拟机内部检查并按需下载缺失的核心库文件
-            // ===================================================================================================
-            const string GitHubRawContentBaseUrl = "https://raw.githubusercontent.com/Justsenger/wsl2lib/main/";
-            string[] coreDxFiles = { "libd3d12.so", "libd3d12core.so", "libdxcore.so" };
-
-            // 定义一个简单的日志委托，用于在控制台或UI上显示进度
-            // 如果您能从这里访问 ExecutionProgressWindow.AppendLog，效果会更好
-            Action<string> log = (message) => Debug.WriteLine(message);
-
-            log("正在通过 SSH 检查并下载缺失的核心库文件...");
-
-            foreach (var file in coreDxFiles)
-            {
-                string remoteFilePath = $"{remoteDirectory}/{file}";
-                string fileUrl = GitHubRawContentBaseUrl + file;
-
-                // 构建一个单行的 shell 命令: [ ! -f "文件路径" ] && wget ...
-                string checkAndDownloadCommand = $"[ ! -f \"{remoteFilePath}\" ] && echo \"[+] 文件 {file} 不存在，正在从网络下载...\" && wget -q -c \"{fileUrl}\" -O \"{remoteFilePath}\" || echo \"[✓] 文件 {file} 已存在，跳过下载。\"";
-
-                try
-                {
-                    // 使用 SshService 执行这个命令
-                    await sshService.ExecuteSingleCommandAsync(credentials, checkAndDownloadCommand, log, TimeSpan.FromMinutes(5));
-                }
-                catch (Exception ex)
-                {
-                    // 如果命令执行失败（例如，wget 未安装或网络问题），抛出更详细的异常
-                    throw new InvalidOperationException($"在虚拟机内部检查或下载文件 '{file}' 时失败。请确保虚拟机已安装 'wget' 并且可以访问互联网。\n\n命令: {checkAndDownloadCommand}\n错误: {ex.Message}", ex);
-                }
-            }
-
-            log("核心库文件准备完毕。");
         }
     }
 }
