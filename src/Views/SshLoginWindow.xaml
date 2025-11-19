@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:ExHyperV.Views"
         mc:Ignorable="d"
-        Title="SSH 登录" Height="560" Width="420"
+        Title="SSH 登录" Height="600" Width="420"
         WindowStartupLocation="CenterScreen"
         ResizeMode="NoResize"
         ExtendsContentIntoTitleBar="True"
@@ -28,7 +28,7 @@
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
-            <TextBlock x:Name="TitleTextBlock" Grid.Row="0" Text="连接到 Linux 虚拟机" FontSize="20" FontWeight="SemiBold" Margin="0,0,0,25"/>
+            <TextBlock x:Name="TitleTextBlock" Grid.Row="0" Text="连接到 Linux 虚拟机" FontSize="20" FontWeight="SemiBold" Margin="0,0,0,10"/>
 
             <StackPanel Grid.Row="1">
                 <Grid Margin="0,0,0,15">
@@ -54,9 +54,9 @@
                 <TextBlock Text="口令:" Margin="0,0,0,5"/>
                 <ui:PasswordBox x:Name="PasswordBox" MaxLength="128"/>
                 <CheckBox x:Name="GraphicsCheckBox" 
-                      Content="安装 OpenGL/Vulkan 图形驱动" 
+                      Content="安装 OpenGL/Vulkan 图形驱动（更耗时）" 
                       IsChecked="False" 
-                      Margin="0,0,0,0"/>
+                      Margin="-10,10,0,0"/>
             </StackPanel>
 
             <StackPanel Grid.Row="2" Margin="0,25,0,0">
