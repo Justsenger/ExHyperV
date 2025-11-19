@@ -1,0 +1,68 @@
+diff --git drivers/hv/dxgkrnl/dxgadapter.c drivers/hv/dxgkrnl/dxgadapter.c
+index 8eb65e764..0c9710b6b 100644
+--- /drivers/hv/dxgkrnl/dxgadapter.c
++++ /drivers/hv/dxgkrnl/dxgadapter.c
+@@ -928,11 +928,19 @@ void dxgallocation_destroy(struct dxgallocation *alloc)
+ 					       &args, &alloc->alloc_handle);
+ 	}
+ #ifdef _MAIN_KERNEL_
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(5,16,0)
+ 	if (alloc->gpadl.gpadl_handle) {
+ 		DXG_TRACE("Teardown gpadl %d", alloc->gpadl.gpadl_handle);
+ 		vmbus_teardown_gpadl(dxgglobal_get_vmbus(), &alloc->gpadl);
+ 		alloc->gpadl.gpadl_handle = 0;
+ 	}
++#else
++	if (alloc->gpadl) {
++		DXG_TRACE("Teardown gpadl %d", alloc->gpadl);
++		vmbus_teardown_gpadl(dxgglobal_get_vmbus(), alloc->gpadl);
++		alloc->gpadl = 0;
++	}
++#endif
+ #else
+ 	if (alloc->gpadl) {
+ 		DXG_TRACE("Teardown gpadl %d", alloc->gpadl);
+diff --git drivers/hv/dxgkrnl/dxgkrnl.h drivers/hv/dxgkrnl/dxgkrnl.h
+index 71eac6b1f..5b0d7ccf9 100644
+--- /drivers/hv/dxgkrnl/dxgkrnl.h
++++ /drivers/hv/dxgkrnl/dxgkrnl.h
+@@ -743,7 +743,11 @@ struct dxgallocation {
+ 	u32				handle_valid:1;
+ 	/* GPADL address list for existing sysmem allocations */
+ #ifdef _MAIN_KERNEL_
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(5,16,0)
+ 	struct vmbus_gpadl		gpadl;
++#else
++	u32				gpadl;
++#endif
+ #else
+ 	u32				gpadl;
+ #endif
+diff --git drivers/hv/dxgkrnl/dxgvmbus.c drivers/hv/dxgkrnl/dxgvmbus.c
+index f5f7b2f26..3cc098bae 100644
+--- /drivers/hv/dxgkrnl/dxgvmbus.c
++++ /drivers/hv/dxgkrnl/dxgvmbus.c
+@@ -1511,7 +1511,11 @@ int create_existing_sysmem(struct dxgdevice *device,
+ 			goto cleanup;
+ 		}
+ #ifdef _MAIN_KERNEL_
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(5,16,0)
+ 		DXG_TRACE("New gpadl %d", dxgalloc->gpadl.gpadl_handle);
++#else
++		DXG_TRACE("New gpadl %d", dxgalloc->gpadl);
++#endif
+ #else
+ 		DXG_TRACE("New gpadl %d", dxgalloc->gpadl);
+ #endif
+@@ -1522,7 +1526,11 @@ int create_existing_sysmem(struct dxgdevice *device,
+ 		set_store_command->device = device->handle;
+ 		set_store_command->allocation = host_alloc->allocation;
+ #ifdef _MAIN_KERNEL_
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(5,16,0)
+ 		set_store_command->gpadl = dxgalloc->gpadl.gpadl_handle;
++#else
++		set_store_command->gpadl = dxgalloc->gpadl;
++#endif
+ #else
+ 		set_store_command->gpadl = dxgalloc->gpadl;
+ #endif
