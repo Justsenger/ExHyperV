@@ -8,7 +8,7 @@ WORKDIR="$(dirname $(realpath $0))"
 LINUX_DISTRO="$(cat /etc/*-release)"
 LINUX_DISTRO=${LINUX_DISTRO,,}
 
-# 指向你的 patches 根目录
+# 基础 URL
 PATCH_BASE_URL="https://raw.githubusercontent.com/Justsenger/ExHyperV/main/src/Linux/script/patches"
 
 KERNEL_6_6_NEWER_REGEX="^(6\.[6-9]\.|6\.[0-9]{2,}\.)"
@@ -19,7 +19,6 @@ install_dependencies() {
     if [ ! -e "/bin/git" ] && [ ! -e "/usr/bin/git" ]; then
         NEED_TO_INSTALL="git"; 
     fi
-    # 确保 curl 被安装
     if [ ! -e "/usr/bin/curl" ] && [ ! -e "/bin/curl" ]; then
         NEED_TO_INSTALL="$NEED_TO_INSTALL curl"
     fi
@@ -81,6 +80,7 @@ install() {
 
     case $CURRENT_BRANCH in
         "linux-msft-wsl-5.15.y")
+            # 5.15 内核：所有补丁都在 5.15 文件夹里
             PATCHES="0001-Add-a-gpu-pv-support.patch \
                      0002-Add-a-multiple-kernel-version-support.patch";
             if [[ "$TARGET_KERNEL_VERSION" != *"azure"* ]]; then
@@ -89,20 +89,26 @@ install() {
             
             for PATCH in $PATCHES; do
                 echo "Downloading patch: $PATCH"
-                # 修正：使用完整的文件夹名称 linux-msft-wsl-5.15.y
                 curl -fsSL "$PATCH_BASE_URL/linux-msft-wsl-5.15.y/$PATCH" | git apply -v;
                 echo;
             done
             ;;
+            
         "linux-msft-wsl-6.6.y")
-            PATCHES="0001-Add-a-gpu-pv-support.patch";
+            # 6.6 内核：这是最关键的部分！
+            # 补丁 1：复用 5.15 文件夹里的文件 (因为是通用的)
+            echo "Downloading patch: 0001-Add-a-gpu-pv-support.patch (Shared)"
+            curl -fsSL "$PATCH_BASE_URL/linux-msft-wsl-5.15.y/0001-Add-a-gpu-pv-support.patch" | git apply -v;
+            echo;
+
+            # 补丁 2：使用 6.6 文件夹里的文件 (这是 6.6 特有的)
+            PATCHES="";
             if [[ "$TARGET_KERNEL_VERSION" != *"truenas"* ]]; then
-                PATCHES="$PATCHES 0002-Fix-eventfd_signal.patch";
+                PATCHES="0002-Fix-eventfd_signal.patch";
             fi
 
             for PATCH in $PATCHES; do
                 echo "Downloading patch: $PATCH"
-                # 修正：使用完整的文件夹名称 linux-msft-wsl-6.6.y
                 curl -fsSL "$PATCH_BASE_URL/linux-msft-wsl-6.6.y/$PATCH" | git apply -v;
                 echo;
             done
