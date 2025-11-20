@@ -8,7 +8,6 @@ WORKDIR="$(dirname $(realpath $0))"
 LINUX_DISTRO="$(cat /etc/*-release)"
 LINUX_DISTRO=${LINUX_DISTRO,,}
 
-# 基础 URL
 PATCH_BASE_URL="https://raw.githubusercontent.com/Justsenger/ExHyperV/main/src/Linux/script/patches"
 
 KERNEL_6_6_NEWER_REGEX="^(6\.[6-9]\.|6\.[0-9]{2,}\.)"
@@ -49,7 +48,6 @@ check_and_install_kernel() {
     echo "========================================"
     echo "Target kernel version: ${TARGET_KERNEL_VERSION}"
     
-    # 检查精确版本的 headers 是否存在
     if [ -e "/usr/src/linux-headers-${TARGET_KERNEL_VERSION}" ] && [ -e "/lib/modules/${TARGET_KERNEL_VERSION}/build" ]; then
         echo "✓ Kernel headers found for ${TARGET_KERNEL_VERSION}"
         return 0
@@ -61,11 +59,9 @@ check_and_install_kernel() {
     echo ""
     
     if [[ "$LINUX_DISTRO" == *"debian"* ]]; then
-        # 更新软件包列表
         echo "Updating package list..."
         apt update
         
-        # 获取可用的最新内核版本
         echo "Searching for available kernels..."
         AVAILABLE_KERNELS=$(apt-cache search "^linux-image-[0-9]" | grep -E "linux-image-[0-9]+\.[0-9]+\.[0-9]+-[0-9]+-amd64" | awk '{print $1}' | sort -V | tail -5)
         
@@ -73,7 +69,6 @@ check_and_install_kernel() {
         echo "$AVAILABLE_KERNELS" | nl
         echo ""
         
-        # 选择最新的内核
         NEW_KERNEL_IMAGE=$(echo "$AVAILABLE_KERNELS" | tail -1)
         NEW_KERNEL_VERSION=$(echo "$NEW_KERNEL_IMAGE" | sed 's/linux-image-//')
         NEW_KERNEL_HEADERS="linux-headers-${NEW_KERNEL_VERSION}"
@@ -81,7 +76,6 @@ check_and_install_kernel() {
         echo "Selected kernel: $NEW_KERNEL_VERSION"
         echo ""
         
-        # 检查是否已经安装
         if dpkg -l | grep -q "^ii.*$NEW_KERNEL_IMAGE"; then
             echo "✓ Kernel $NEW_KERNEL_VERSION is already installed"
         else
@@ -90,41 +84,24 @@ check_and_install_kernel() {
             echo "  - $NEW_KERNEL_HEADERS"
             echo ""
             
-            # 安装内核和 headers
             apt install -y "$NEW_KERNEL_IMAGE" "$NEW_KERNEL_HEADERS"
             
             echo ""
             echo "========================================"
-            echo "  Kernel Installation Completed"
+            echo "  ACTION REQUIRED: REBOOT"
             echo "========================================"
-            echo "New kernel installed: $NEW_KERNEL_VERSION"
-            echo ""
-            echo "System will reboot in 5 seconds..."
-            echo "After reboot, please run this script again:"
-            echo "  sudo $0"
-            echo ""
-            
-            # 创建标记文件，重启后继续执行
-            echo "$NEW_KERNEL_VERSION" > /tmp/dxgkrnl_install_pending
-            
-            sleep 5
-            reboot
+            echo "A new kernel (${NEW_KERNEL_VERSION}) has been installed to ensure compatibility."
+            echo "The system must be rebooted to continue the installation process."
+            echo "STATUS: REBOOT_REQUIRED"
             exit 0
         fi
         
-        # 更新 TARGET_KERNEL_VERSION 为新内核版本
         echo ""
         echo "Updating target kernel version to: $NEW_KERNEL_VERSION"
         TARGET_KERNEL_VERSION="$NEW_KERNEL_VERSION"
         
-        # 验证 headers 是否存在
-        if [ ! -e "/usr/src/linux-headers-${TARGET_KERNEL_VERSION}" ]; then
+        if [ ! -e "/usr/src/linux-headers-${TARGET_KERNEL_VERSION}" ] || [ ! -e "/lib/modules/${TARGET_KERNEL_VERSION}/build" ]; then
             echo "ERROR: Headers not found after installation!"
-            exit 1
-        fi
-        
-        if [ ! -e "/lib/modules/${TARGET_KERNEL_VERSION}/build" ]; then
-            echo "ERROR: /lib/modules/${TARGET_KERNEL_VERSION}/build not found!"
             exit 1
         fi
         
@@ -134,24 +111,16 @@ check_and_install_kernel() {
         echo "Installing latest kernel..."
         yum -y install kernel kernel-devel
         
-        # 获取新安装的内核版本
         NEW_KERNEL_VERSION=$(rpm -q kernel --last | head -1 | awk '{print $1}' | sed 's/kernel-//')
         echo "New kernel version: $NEW_KERNEL_VERSION"
         
         echo ""
         echo "========================================"
-        echo "  Kernel Installation Completed"
+        echo "  ACTION REQUIRED: REBOOT"
         echo "========================================"
-        echo "System will reboot in 5 seconds..."
-        echo "After reboot, please run this script again:"
-        echo "  sudo $0"
-        echo ""
-        
-        # 创建标记文件
-        echo "$NEW_KERNEL_VERSION" > /tmp/dxgkrnl_install_pending
-        
-        sleep 5
-        reboot
+        echo "A new kernel (${NEW_KERNEL_VERSION}) has been installed to ensure compatibility."
+        echo "The system must be rebooted to continue the installation process."
+        echo "STATUS: REBOOT_REQUIRED"
         exit 0
     else
         echo "Fatal: The system distro is unsupported";
@@ -160,7 +129,6 @@ check_and_install_kernel() {
 }
 
 update_git() {
-    # 提取内核主版本号和次版本号
     KERNEL_MAJOR=$(echo ${TARGET_KERNEL_VERSION} | grep -oP '^\d+')
     KERNEL_MINOR=$(echo ${TARGET_KERNEL_VERSION} | grep -oP '^\d+\.(\d+)' | grep -oP '\d+$')
     
@@ -170,7 +138,6 @@ update_git() {
     echo "========================================"
     echo "Detected kernel version: ${KERNEL_MAJOR}.${KERNEL_MINOR}"
     
-    # 根据版本选择分支
     if [[ "$KERNEL_MAJOR" -eq 6 && "$KERNEL_MINOR" -ge 6 ]] || [[ "$KERNEL_MAJOR" -gt 6 ]]; then
         TARGET_BRANCH="linux-msft-wsl-6.6.y"
         echo "Using branch: linux-msft-wsl-6.6.y (for kernel 6.6+)"
@@ -261,7 +228,6 @@ install() {
     sed -i 's/\$(CONFIG_DXGKRNL)/m/' /usr/src/dxgkrnl-$VERSION/Makefile
     echo "EXTRA_CFLAGS=-I\$(PWD)/include -D_MAIN_KERNEL_" >> /usr/src/dxgkrnl-$VERSION/Makefile
 
-    # 根据实际使用的分支设置 BUILD_EXCLUSIVE_KERNEL
     if [[ "$CURRENT_BRANCH" == "linux-msft-wsl-6.6.y" ]]; then
         BUILD_EXCLUSIVE_KERNEL=$KERNEL_6_6_NEWER_REGEX
     else
@@ -287,7 +253,6 @@ install_dkms() {
     echo "  Building and Installing DKMS Module"
     echo "========================================"
     
-    # 确认 kernel headers 路径存在
     echo "Verifying kernel headers..."
     if [ ! -e "/lib/modules/${TARGET_KERNEL_VERSION}/build" ]; then
         echo "ERROR: /lib/modules/${TARGET_KERNEL_VERSION}/build not found!"
@@ -314,14 +279,11 @@ install_dkms() {
     
     echo ""
     echo "✓ DKMS module installed successfully"
-    
-    # 清理标记文件
-    rm -f /tmp/dxgkrnl_install_pending
 }
 
 all() {
     TARGET_KERNEL_VERSION="$1";
-    if [ "$TARGET_KERNEL_VERSION" == "" ]; then
+    if [ -z "$TARGET_KERNEL_VERSION" ]; then
         TARGET_KERNEL_VERSION=`uname -r`
     fi
 
@@ -330,18 +292,10 @@ all() {
     echo "========================================"
     echo "Initial target kernel: ${TARGET_KERNEL_VERSION}"
     echo "Current running kernel: $(uname -r)"
-    
-    # 检查是否有待处理的安装（重启后）
-    if [ -f /tmp/dxgkrnl_install_pending ]; then
-        PENDING_VERSION=$(cat /tmp/dxgkrnl_install_pending)
-        echo "Resuming installation for kernel: $PENDING_VERSION"
-        TARGET_KERNEL_VERSION=$PENDING_VERSION
-    fi
-    
     echo ""
     
     install_dependencies
-    check_and_install_kernel  # 这个函数会检查并可能更新 TARGET_KERNEL_VERSION
+    check_and_install_kernel
     update_git
     get_version
     
@@ -358,7 +312,7 @@ all() {
     install_dkms
 }
 
-if [ -z $1 ]; then
+if [ -z "$1" ]; then
     all `uname -r`
 elif [[ "$1" =~ ^[0-9]+\.[0-9]+\.[0-9]+.+$ ]]; then
     all $1
@@ -366,8 +320,8 @@ else
     echo "Usage: $0 [kernel_version]"
     echo ""
     echo "Examples:"
-    echo "  $0                    # Use current running kernel"
-    echo "  $0 6.1.0-41-amd64     # Use specific kernel version"
+    echo "  $0"
+    echo "  $0 6.1.0-41-amd64"
     exit 1
 fi
 
@@ -378,21 +332,4 @@ echo "========================================"
 echo "Kernel version: ${TARGET_KERNEL_VERSION}"
 echo "Module installed: dxgkrnl/${VERSION}"
 echo ""
-
-if [ "$(uname -r)" != "$TARGET_KERNEL_VERSION" ]; then
-    echo "⚠ WARNING: The module was built for kernel ${TARGET_KERNEL_VERSION}"
-    echo "           but you are currently running $(uname -r)"
-    echo ""
-    echo "Please reboot to use the new kernel:"
-    echo "  sudo reboot"
-else
-    echo "✓ Module is ready to use!"
-    echo ""
-    echo "You can load the module with:"
-    echo "  sudo modprobe dxgkrnl"
-    echo ""
-    echo "To verify:"
-    echo "  lsmod | grep dxgkrnl"
-fi
-
-echo ""
+echo "STATUS: SUCCESS"

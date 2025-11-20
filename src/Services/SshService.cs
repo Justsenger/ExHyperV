@@ -9,6 +9,19 @@ namespace ExHyperV.Services
     {
         public SshCommandErrorException(string message) : base(message) { }
     }
+
+    public class SshCommandResult
+    {
+        public string Output { get; }
+        public int ExitStatus { get; }
+
+        public SshCommandResult(string output, int exitStatus)
+        {
+            Output = output;
+            ExitStatus = exitStatus;
+        }
+    }
+
     public class SshService
     {
         private static readonly Encoding Utf8NoBom = new UTF8Encoding(false);
@@ -51,6 +64,56 @@ namespace ExHyperV.Services
                 return sshCommand.Result;
             }
         }
+
+        public async Task<SshCommandResult> ExecuteCommandAndCaptureOutputAsync(SshCredentials credentials, string command, Action<string> logCallback, TimeSpan? commandTimeout = null)
+        {
+            string commandToExecute = command;
+            var outputBuilder = new StringBuilder();
+
+            // 将日志委托包装一下，使其同时写入 StringBuilder
+            Action<string> combinedLogCallback = (log) =>
+            {
+                logCallback(log);
+                outputBuilder.Append(log);
+            };
+
+            var connectionInfo = new ConnectionInfo(credentials.Host, credentials.Username,
+                new PasswordAuthenticationMethod(credentials.Username, credentials.Password))
+            {
+                Timeout = TimeSpan.FromSeconds(30)
+            };
+
+            using (var client = new SshClient(connectionInfo))
+            {
+                await Task.Run(() => client.Connect());
+
+                if (command.Trim().StartsWith("sudo"))
+                {
+                    string actualCommand = command.Substring(5).Trim();
+                    string escapedCommand = actualCommand.Replace("'", "'\\''");
+                    commandToExecute = $"echo '{credentials.Password}' | sudo -S -p '' bash -c '{escapedCommand}'";
+                }
+
+                var sshCommand = client.CreateCommand(commandToExecute);
+                sshCommand.CommandTimeout = commandTimeout ?? TimeSpan.FromMinutes(30);
+
+                var asyncResult = sshCommand.BeginExecute();
+
+                // 使用包装后的委托来处理流式输出
+                var stdoutTask = ReadStreamAsync(sshCommand.OutputStream, Encoding.UTF8, combinedLogCallback);
+                var stderrTask = ReadStreamAsync(sshCommand.ExtendedOutputStream, Encoding.UTF8, combinedLogCallback);
+
+                await Task.Run(() => sshCommand.EndExecute(asyncResult));
+                await Task.WhenAll(stdoutTask, stderrTask);
+
+                client.Disconnect();
+
+                // 注意：这里我们不再根据 ExitStatus 抛出异常
+                // 而是将结果返回，由调用方来决定如何处理
+                return new SshCommandResult(outputBuilder.ToString(), sshCommand.ExitStatus ?? -1);
+            }
+        }
+        
         private async Task ReadStreamAsync(Stream stream, Encoding encoding, Action<string> logCallback)
         {
             var buffer = new byte[1024];

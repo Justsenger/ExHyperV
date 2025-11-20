@@ -3,7 +3,9 @@ using System.IO;
 using ExHyperV.Models;
 using ExHyperV.Tools;
 using ExHyperV.Views;  
-using Renci.SshNet; 
+using Renci.SshNet;
+using System.Net.Sockets; 
+
 
 namespace ExHyperV.Services
 {
@@ -38,6 +40,31 @@ namespace ExHyperV.Services
 
         private const string CheckHyperVModuleScript = "Get-Module -ListAvailable -Name Hyper-V";
         private const string GetVmsScript = "Hyper-V\\Get-VM | Select vmname,LowMemoryMappedIoSpace,GuestControlledCacheTypes,HighMemoryMappedIoSpace,Notes";
+
+
+        private async Task<bool> WaitForVmToBeResponsiveAsync(string host, int port, CancellationToken cancellationToken)
+        {
+            var stopwatch = Stopwatch.StartNew();
+            while (stopwatch.Elapsed < TimeSpan.FromMinutes(1)) // 1分钟总超时
+            {
+                if (cancellationToken.IsCancellationRequested) return false;
+                try
+                {
+                    using (var client = new TcpClient())
+                    {
+                        var connectTask = client.ConnectAsync(host, port);
+                        if (await Task.WhenAny(connectTask, Task.Delay(2000, cancellationToken)) == connectTask)
+                        {
+                            await connectTask; // 确保没有异常
+                            return true;
+                        }
+                    }
+                }
+                catch { /* 忽略连接错误，继续重试 */ }
+                await Task.Delay(5000, cancellationToken);
+            }
+            return false; // 超时
+        }
 
         public Task<string> GetVmStateAsync(string vmName)
         {
@@ -422,8 +449,6 @@ namespace ExHyperV.Services
                 {
                     System.Windows.Application.Current.Dispatcher.Invoke(() => Utils.Show2(message));
                 }
-
-
                 try
                 {
                     Utils.AddGpuAssignmentStrategyReg();
@@ -703,57 +728,60 @@ namespace ExHyperV.Services
                                 bool enableGraphics = credentials.InstallGraphics;
 
                                 // 1. 下载脚本
-                                commandsToExecute.Add(Tuple.Create($"wget -O {remoteTempDir}/install_dxgkrnl.sh {ScriptBaseUrl}install_dxgkrnl.sh", (TimeSpan?)TimeSpan.FromMinutes(2)));
-                                if (enableGraphics)
+                                var scriptsToDownload = new List<string>
                                 {
-                                    commandsToExecute.Add(Tuple.Create($"wget -O {remoteTempDir}/setup_graphics.sh {ScriptBaseUrl}setup_graphics.sh", (TimeSpan?)TimeSpan.FromMinutes(2)));
+                                    $"wget -O {remoteTempDir}/install_dxgkrnl.sh {ScriptBaseUrl}install_dxgkrnl.sh",
+                                    enableGraphics ? $"wget -O {remoteTempDir}/setup_graphics.sh {ScriptBaseUrl}setup_graphics.sh" : null,
+                                    $"wget -O {remoteTempDir}/configure_system.sh {ScriptBaseUrl}configure_system.sh"
+                                }.Where(s => s != null).ToList();
+
+                                foreach (var scriptCmd in scriptsToDownload)
+                                {
+                                    await sshService.ExecuteSingleCommandAsync(credentials, scriptCmd, log, TimeSpan.FromMinutes(2));
                                 }
-                                commandsToExecute.Add(Tuple.Create($"wget -O {remoteTempDir}/configure_system.sh {ScriptBaseUrl}configure_system.sh", (TimeSpan?)TimeSpan.FromMinutes(2)));
-                                commandsToExecute.Add(Tuple.Create($"chmod +x {remoteTempDir}/*.sh", (TimeSpan?)TimeSpan.FromSeconds(10)));
-
-                                // 2. 编译内核模块
-                                commandsToExecute.Add(Tuple.Create(withSudo($"{remoteTempDir}/install_dxgkrnl.sh"), (TimeSpan?)TimeSpan.FromMinutes(60)));
-
-                                // 3. 图形环境 (可选)
-                                if (enableGraphics)
+                                await sshService.ExecuteSingleCommandAsync(credentials, $"chmod +x {remoteTempDir}/*.sh", log, TimeSpan.FromSeconds(10));
+                                log("\n[!] 正在编译内核模块，此过程可能需要较长时间 (10-30分钟)，并可能触发系统重启...");
+                                string dxgkrnlCommand = withSudo($"{remoteTempDir}/install_dxgkrnl.sh");
+                                var dxgkrnlResult = await sshService.ExecuteCommandAndCaptureOutputAsync(credentials, dxgkrnlCommand, log, TimeSpan.FromMinutes(60));
+                                if (dxgkrnlResult.Output.Contains("STATUS: REBOOT_REQUIRED"))
                                 {
-                                    commandsToExecute.Add(Tuple.Create(withSudo($"{remoteTempDir}/setup_graphics.sh"), (TimeSpan?)TimeSpan.FromMinutes(20)));
-                                }
+                                    log("\n[!] 内核更新完成，系统需要重启。程序将自动处理...");
+                                    updateStatus("正在重启虚拟机...");
 
-                                // 4. 系统配置
-                                string configArgs = enableGraphics ? "enable_graphics" : "no_graphics";
-                                commandsToExecute.Add(Tuple.Create(withSudo($"{remoteTempDir}/configure_system.sh {configArgs}"), (TimeSpan?)TimeSpan.FromMinutes(5)));
-
-                                const int maxRetries = 2;
-                                foreach (var cmdInfo in commandsToExecute)
-                                {
-                                    if (cts.IsCancellationRequested) throw new OperationCanceledException();
-
-                                    if (cmdInfo.Item1.Contains("install_dxgkrnl.sh"))
-                                        log("\n[!] 正在编译内核模块，此过程可能需要较长时间 (10-30分钟)，请耐心等待...");
-                                    else if (cmdInfo.Item1.Contains("setup_graphics.sh"))
-                                        log("\n[!] 正在配置 Mesa 图形环境...");
-
-                                    for (int retry = 1; retry <= maxRetries; retry++)
+                                    try
                                     {
-                                        try
-                                        {
-                                            await sshService.ExecuteSingleCommandAsync(credentials, cmdInfo.Item1, log, cmdInfo.Item2);
-                                            break;
-                                        }
-                                        catch (Exception ex)
-                                        {
-                                            if (cts.IsCancellationRequested) throw new OperationCanceledException();
-                                            if (ex is Renci.SshNet.Common.SshOperationTimeoutException || ex.InnerException is TimeoutException)
-                                            {
-                                                log($"--- 命令执行超时 (尝试 {retry}/{maxRetries}) ---");
-                                                if (retry == maxRetries) throw new Exception("命令执行超时，部署中止。", ex);
-                                                await Task.Delay(2000, cts.Token);
-                                            }
-                                            else throw;
-                                        }
+                                        // 使用原有的方法发送重启命令，因为它不需要捕获输出
+                                        await sshService.ExecuteSingleCommandAsync(credentials, withSudo("reboot"), log, TimeSpan.FromSeconds(10));
                                     }
+                                    catch (Exception) { /* 忽略，重启会强制断开连接，这是预期行为 */ }
+                                    log("[~] 等待虚拟机重新上线 (这可能需要1-2分钟)...");
+                                    // 使用放在本类中的辅助方法
+                                    bool isVmUp = await WaitForVmToBeResponsiveAsync(credentials.Host, credentials.Port, cts.Token);
+                                    if (!isVmUp) throw new Exception("虚拟机重启后未能恢复在线状态，部署失败。");
+
+                                    log("[✓] 虚拟机已重新连接！正在重新执行部署流程...");
+                                    continue; // 跳转到 while(true) 的开头，重新执行整个流程
                                 }
+
+                                if (!dxgkrnlResult.Output.Contains("STATUS: SUCCESS"))
+                                {
+                                    throw new Exception("内核模块安装脚本执行失败，未返回成功状态。请检查日志。");
+                                }
+
+                                log("[✓] 内核模块安装成功。");
+
+
+                                if (enableGraphics)
+                                {
+                                    log("\n[!] 正在配置 Mesa 图形环境...");
+                                    await sshService.ExecuteSingleCommandAsync(credentials, withSudo($"{remoteTempDir}/setup_graphics.sh"), log, TimeSpan.FromMinutes(20));
+                                }
+
+                                log("\n[!] 正在进行系统配置...");
+                                string configArgs = enableGraphics ? "enable_graphics" : "no_graphics";
+                                await sshService.ExecuteSingleCommandAsync(credentials, withSudo($"{remoteTempDir}/configure_system.sh {configArgs}"), log, TimeSpan.FromMinutes(5));
+
+
 
                                 updateStatus("部署完成！虚拟机即将重启...");
                                 log("\n[5/5] 部署完成！虚拟机即将重启...");
