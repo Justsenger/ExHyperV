@@ -27,7 +27,7 @@ install_dependencies() {
 
     if [[ ! -z "$NEED_TO_INSTALL" ]]; then
         echo "Installing basic dependencies: $NEED_TO_INSTALL"
-        if [[ "$LINUX_DISTRO" == *"debian"* ]]; then
+        if [[ "$LINUX_DISTRO" == *"debian"* || "$LINUX_DISTRO" == *"ubuntu"* ]]; then
             apt update;
             apt install -y $NEED_TO_INSTALL;
         elif [[ "$LINUX_DISTRO" == *"fedora"* ]]; then
@@ -58,12 +58,12 @@ check_and_install_kernel() {
     echo "Will install a new kernel from standard repository..."
     echo ""
     
-    if [[ "$LINUX_DISTRO" == *"debian"* ]]; then
+    if [[ "$LINUX_DISTRO" == *"debian"* || "$LINUX_DISTRO" == *"ubuntu"* ]]; then
         echo "Updating package list..."
         apt update
         
         echo "Searching for available kernels..."
-        AVAILABLE_KERNELS=$(apt-cache search "^linux-image-[0-9]" | grep -E "linux-image-[0-9]+\.[0-9]+\.[0-9]+-[0-9]+-amd64" | awk '{print $1}' | sort -V | tail -5)
+        AVAILABLE_KERNELS=$(apt-cache search "^linux-image-[0-9]" | grep -E "linux-image-[0-9]+\.[0-9]+\.[0-9]+-[0-9]+-(generic|amd64)" | awk '{print $1}' | sort -V | tail -5)
         
         echo "Available kernels:"
         echo "$AVAILABLE_KERNELS" | nl
@@ -182,8 +182,7 @@ install() {
     case $CURRENT_BRANCH in
         "linux-msft-wsl-5.15.y")
             echo "Applying patches for 5.15 branch..."
-            PATCHES="0001-Add-a-gpu-pv-support.patch \
-                     0002-Add-a-multiple-kernel-version-support.patch";
+            PATCHES="0001-Add-a-gpu-pv-support.patch 0002-Add-a-multiple-kernel-version-support.patch";
             if [[ "$TARGET_KERNEL_VERSION" != *"azure"* ]]; then
                     PATCHES="$PATCHES 0003-Fix-gpadl-has-incomplete-type-error.patch";
             fi
