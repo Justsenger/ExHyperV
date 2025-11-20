@@ -304,30 +304,46 @@ namespace ExHyperV.Services
                 }
 
                 string letter = assignedDriveLetter.TrimEnd(':');
-
-                // =================================================================
-                // 核心优化：极速定位驱动路径
-                // =================================================================
-
                 string sourceFolder = null;
                 string driverStoreBase = @"C:\Windows\System32\DriverStore\FileRepository";
 
+
+                Utils.Show2(gpuInstancePath);
                 // WMI 极速查询脚本
                 string fastScript = $@"
             $ErrorActionPreference = 'Stop';
             try {{
-                $wmi = Get-CimInstance Win32_VideoController | Where-Object {{ $_.PNPDeviceID -eq '{gpuInstancePath}' }} | Select-Object -First 1;
+                # 这里的 gpuInstancePath 必须确保没有多余的引号
+                $targetId = '{gpuInstancePath}'.Trim();
+                
+                # 使用 -like 进行匹配，容忍度更高
+                $wmi = Get-CimInstance Win32_VideoController | Where-Object {{ $_.PNPDeviceID -like ""*$targetId*"" }} | Select-Object -First 1;
+                
                 if ($wmi -and $wmi.InstalledDisplayDrivers) {{
-                    ($wmi.InstalledDisplayDrivers -split ',') | Where-Object {{ $_ -match 'FileRepository' }} | Select-Object -First 1 | ForEach-Object {{ [System.IO.Path]::GetDirectoryName($_.Trim()) }}
+                    # 获取所有驱动路径
+                    $drivers = $wmi.InstalledDisplayDrivers -split ',';
+                    
+                    # 筛选包含 FileRepository 的路径
+                    $repoDriver = $drivers | Where-Object {{ $_ -match 'FileRepository' }} | Select-Object -First 1;
+                    
+                    if ($repoDriver) {{
+                        # 使用 PowerShell 原生命令获取父目录
+                        return (Split-Path -Parent $repoDriver.Trim())
+                    }}
                 }}
-            }} catch {{}}";
+            }} catch {{
+            }}";
 
                 try
                 {
                     var fastRes = Utils.Run(fastScript);
-                    if (fastRes != null && fastRes.Count > 0 && !string.IsNullOrEmpty(fastRes[0]?.ToString()))
+                    if (fastRes != null && fastRes.Count > 0 && fastRes[0] != null)
                     {
-                        sourceFolder = fastRes[0].ToString();
+                        string resultPath = fastRes[0].ToString().Trim();
+                        if (!string.IsNullOrEmpty(resultPath) && Directory.Exists(resultPath))
+                        {
+                            sourceFolder = resultPath;
+                        }
                     }
                 }
                 catch { }
@@ -418,7 +434,7 @@ namespace ExHyperV.Services
                 }
             }
         }
-        public Task<string> AddGpuPartitionAsync(string vmName, string gpuInstancePath, string gpuManu, PartitionInfo selectedPartition)
+        public Task<string> AddGpuPartitionAsync(string vmName, string gpuInstancePath, string gpuManu, PartitionInfo selectedPartition, string id)
         {
             return Task.Run(async () =>
             {
@@ -515,7 +531,7 @@ namespace ExHyperV.Services
                             return "错误：无法获取虚拟机硬盘路径以注入驱动。";
                         }
                         string harddiskpath = harddiskPathResult[0].ToString();
-                        string injectionResult = await InjectWindowsDriversAsync(vmName, harddiskpath, selectedPartition, gpuManu, gpuInstancePath);
+                        string injectionResult = await InjectWindowsDriversAsync(vmName, harddiskpath, selectedPartition, gpuManu, id);
                         if (injectionResult != "OK")
                         {
                             return injectionResult;

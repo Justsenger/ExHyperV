@@ -41,10 +41,6 @@ public class Utils
     {
         using (PowerShell ps = PowerShell.Create())
         {
-            if (_runspacePool != null)
-            {
-                ps.RunspacePool = _runspacePool;
-            }
             ps.AddScript(script);
             var results = ps.Invoke();
             return results;
