@@ -545,7 +545,7 @@ namespace ExHyperV.Services
                             }
                             // 对密码中的单引号进行转义，防止shell注入
                             string escapedPassword = credentials.Password.Replace("'", "'\\''");
-                            return $"echo '{escapedPassword}' | sudo -S -p '' {cmd}";
+                            return $"echo '{escapedPassword}' | sudo -S -E -p '' {cmd}";
                         };
                         try
                         {
