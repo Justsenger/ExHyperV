@@ -710,7 +710,7 @@ namespace ExHyperV.Services
 
 
                                 updateStatus("[3/5] 正在上传驱动与库文件...");
-                                log("\n[3/5] 正在上传主机 GPU 驱动与本地库文件...");
+                                log("正在上传主机 GPU 驱动与本地库文件...");
                                 string sourceFolderName = new DirectoryInfo(sourceDriverPath).Name;
                                 string remoteDestinationPath = $"{remoteTempDir}/drivers/{sourceFolderName}";
                                 await sshService.UploadDirectoryAsync(credentials, sourceDriverPath, remoteDestinationPath);
