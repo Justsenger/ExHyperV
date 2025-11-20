@@ -304,49 +304,10 @@ namespace ExHyperV.Services
                 }
 
                 string letter = assignedDriveLetter.TrimEnd(':');
-                string sourceFolder = null;
                 string driverStoreBase = @"C:\Windows\System32\DriverStore\FileRepository";
 
+                string sourceFolder = FindGpuDriverSourcePath(gpuInstancePath);
 
-                Utils.Show2(gpuInstancePath);
-                // WMI 极速查询脚本
-                string fastScript = $@"
-            $ErrorActionPreference = 'Stop';
-            try {{
-                # 这里的 gpuInstancePath 必须确保没有多余的引号
-                $targetId = '{gpuInstancePath}'.Trim();
-                
-                # 使用 -like 进行匹配，容忍度更高
-                $wmi = Get-CimInstance Win32_VideoController | Where-Object {{ $_.PNPDeviceID -like ""*$targetId*"" }} | Select-Object -First 1;
-                
-                if ($wmi -and $wmi.InstalledDisplayDrivers) {{
-                    # 获取所有驱动路径
-                    $drivers = $wmi.InstalledDisplayDrivers -split ',';
-                    
-                    # 筛选包含 FileRepository 的路径
-                    $repoDriver = $drivers | Where-Object {{ $_ -match 'FileRepository' }} | Select-Object -First 1;
-                    
-                    if ($repoDriver) {{
-                        # 使用 PowerShell 原生命令获取父目录
-                        return (Split-Path -Parent $repoDriver.Trim())
-                    }}
-                }}
-            }} catch {{
-            }}";
-
-                try
-                {
-                    var fastRes = Utils.Run(fastScript);
-                    if (fastRes != null && fastRes.Count > 0 && fastRes[0] != null)
-                    {
-                        string resultPath = fastRes[0].ToString().Trim();
-                        if (!string.IsNullOrEmpty(resultPath) && Directory.Exists(resultPath))
-                        {
-                            sourceFolder = resultPath;
-                        }
-                    }
-                }
-                catch { }
 
                 // 逻辑判定：如果找到了具体文件夹，就只复制那个文件夹；如果没找到，回退到全量复制
                 bool isFullCopy = false;
@@ -707,6 +668,22 @@ namespace ExHyperV.Services
                                     log("[✓] 网络代理配置完成。");
                                 }
 
+                                log("\n[3/5] 正在定位主机 GPU 驱动...");
+                                string driverStoreBase = @"C:\Windows\System32\DriverStore\FileRepository";
+                                string preciseDriverPath = FindGpuDriverSourcePath(id);
+                                string sourceDriverPath = preciseDriverPath; // 默认为精准路径
+
+                                if (string.IsNullOrEmpty(preciseDriverPath))
+                                {
+                                    log("[!] 未能定位到特定 GPU 驱动文件夹，将执行全量驱动拷贝。");
+                                    sourceDriverPath = driverStoreBase; // 回退到全量拷贝
+                                }
+                                else
+                                {
+                                    log($"[✓] 已定位到精准驱动路径: {new DirectoryInfo(preciseDriverPath).Name}");
+                                }
+
+
                                 updateStatus("[3/5] 正在上传驱动与库文件...");
                                 log("\n[3/5] 正在上传主机 GPU 驱动与本地库文件...");
                                 await sshService.UploadDirectoryAsync(credentials, @"C:\Windows\System32\DriverStore\FileRepository", $"{remoteTempDir}/drivers");
@@ -988,6 +965,45 @@ namespace ExHyperV.Services
                     await sshService.UploadFileAsync(credentials, filePath, $"{remoteDirectory}/{fileName}");
                 }
             }
+        }
+        private string FindGpuDriverSourcePath(string gpuInstancePath)
+        {
+            string sourceFolder = null;
+            string driverStoreBase = @"C:\Windows\System32\DriverStore\FileRepository";
+
+            // WMI 极速查询脚本 (从 InjectWindowsDriversAsync 方法中复制过来)
+            string fastScript = $@"
+        $ErrorActionPreference = 'Stop';
+        try {{
+            $targetId = '{gpuInstancePath}'.Trim();
+            $wmi = Get-CimInstance Win32_VideoController | Where-Object {{ $_.PNPDeviceID -like ""*$targetId*"" }} | Select-Object -First 1;
+            
+            if ($wmi -and $wmi.InstalledDisplayDrivers) {{
+                $drivers = $wmi.InstalledDisplayDrivers -split ',';
+                $repoDriver = $drivers | Where-Object {{ $_ -match 'FileRepository' }} | Select-Object -First 1;
+                
+                if ($repoDriver) {{
+                    return (Split-Path -Parent $repoDriver.Trim())
+                }}
+            }}
+        }} catch {{ }}";
+
+            try
+            {
+                var fastRes = Utils.Run(fastScript);
+                if (fastRes != null && fastRes.Count > 0 && fastRes[0] != null)
+                {
+                    string resultPath = fastRes[0].ToString().Trim();
+                    if (!string.IsNullOrEmpty(resultPath) && Directory.Exists(resultPath))
+                    {
+                        sourceFolder = resultPath;
+                    }
+                }
+            }
+            catch { /* 忽略异常，后面会处理 sourceFolder 为 null 的情况 */ }
+
+            // 如果没找到，返回 null。如果找到了，返回具体路径。
+            return sourceFolder;
         }
     }
 }
