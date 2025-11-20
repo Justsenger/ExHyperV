@@ -263,28 +263,30 @@ namespace ExHyperV.Services
                 return vmList;
             });
         }
-        
-        private async Task<string> InjectWindowsDriversAsync(string vmName, string harddiskpath, PartitionInfo partition, string gpuManu)
+
+        private async Task<string> InjectWindowsDriversAsync(string vmName, string harddiskpath, PartitionInfo partition, string gpuManu, string gpuInstancePath)
         {
             string assignedDriveLetter = null;
 
             try
             {
+                // 1. 挂载分区
                 char suggestedLetter = GetFreeDriveLetter();
-
-                var script = $@"
+                var mountScript = $@"
             $diskImage = Mount-DiskImage -ImagePath '{harddiskpath}' -PassThru | Get-Disk;
             $partitionToMount = Get-Partition -DiskNumber $diskImage.Number | Where-Object {{ $_.PartitionNumber -eq {partition.PartitionNumber} }};
             
+            if ($partitionToMount.DriveLetter) {{ return $partitionToMount.DriveLetter }}
+            
             try {{
                 $partitionToMount | Set-Partition -NewDriveLetter '{suggestedLetter}' -ErrorAction Stop;
+                return '{suggestedLetter}'
             }} catch {{
+                return ($partitionToMount | Get-Partition).DriveLetter
             }}
-            
-            (Get-Partition -DiskNumber $diskImage.Number | Where-Object {{ $_.PartitionNumber -eq {partition.PartitionNumber} }}).DriveLetter
         ";
 
-                var letterResult = Utils.Run(script);
+                var letterResult = Utils.Run(mountScript);
 
                 if (letterResult == null || letterResult.Count == 0 || string.IsNullOrEmpty(letterResult[0].ToString()))
                 {
@@ -292,34 +294,79 @@ namespace ExHyperV.Services
                 }
 
                 string actualLetter = letterResult[0].ToString();
-                assignedDriveLetter = $"{actualLetter}:";
+                assignedDriveLetter = actualLetter.EndsWith(":") ? actualLetter : $"{actualLetter}:";
 
+                // 2. 验证系统路径
                 string system32Path = Path.Combine(assignedDriveLetter, "Windows", "System32");
                 if (!Directory.Exists(system32Path))
                 {
-                    return string.Format(
-                        "所选分区似乎不是一个有效的Windows系统分区，或已开启Bitlocker。",
-                        partition.PartitionNumber,
-                        assignedDriveLetter,
-                        system32Path
-                    );
-
+                    return string.Format("所选分区似乎不是一个有效的Windows系统分区，或已开启Bitlocker。", partition.PartitionNumber, assignedDriveLetter, system32Path);
                 }
 
                 string letter = assignedDriveLetter.TrimEnd(':');
-                string sourceFolder = @"C:\Windows\System32\DriverStore\FileRepository";
-                string destinationFolder = letter + @":\Windows\System32\HostDriverStore\FileRepository";
 
+                // =================================================================
+                // 核心优化：极速定位驱动路径
+                // =================================================================
+
+                string sourceFolder = null;
+                string driverStoreBase = @"C:\Windows\System32\DriverStore\FileRepository";
+
+                // WMI 极速查询脚本
+                string fastScript = $@"
+            $ErrorActionPreference = 'Stop';
+            try {{
+                $wmi = Get-CimInstance Win32_VideoController | Where-Object {{ $_.PNPDeviceID -eq '{gpuInstancePath}' }} | Select-Object -First 1;
+                if ($wmi -and $wmi.InstalledDisplayDrivers) {{
+                    ($wmi.InstalledDisplayDrivers -split ',') | Where-Object {{ $_ -match 'FileRepository' }} | Select-Object -First 1 | ForEach-Object {{ [System.IO.Path]::GetDirectoryName($_.Trim()) }}
+                }}
+            }} catch {{}}";
+
+                try
+                {
+                    var fastRes = Utils.Run(fastScript);
+                    if (fastRes != null && fastRes.Count > 0 && !string.IsNullOrEmpty(fastRes[0]?.ToString()))
+                    {
+                        sourceFolder = fastRes[0].ToString();
+                    }
+                }
+                catch { }
+
+                // 逻辑判定：如果找到了具体文件夹，就只复制那个文件夹；如果没找到，回退到全量复制
+                bool isFullCopy = false;
+                if (string.IsNullOrEmpty(sourceFolder))
+                {
+                    sourceFolder = driverStoreBase;
+                    isFullCopy = true;
+                }
+
+                // 确定目标路径
+                string destinationBase = letter + @":\Windows\System32\HostDriverStore\FileRepository";
+                string destinationFolder;
+
+                if (isFullCopy)
+                {
+                    destinationFolder = destinationBase;
+                }
+                else
+                {
+                    // 精准复制模式：目标路径要包含具体的驱动文件夹名
+                    string folderName = new DirectoryInfo(sourceFolder).Name;
+                    destinationFolder = Path.Combine(destinationBase, folderName);
+                }
+
+                // 创建目录结构
+                if (!Directory.Exists(destinationBase)) Directory.CreateDirectory(destinationBase);
+                if (!Directory.Exists(destinationFolder)) Directory.CreateDirectory(destinationFolder);
+
+                // 处理只读属性
                 if (Directory.Exists(destinationFolder))
                 {
                     try { RemoveReadOnlyAttribute(destinationFolder); }
                     catch (Exception ex) { return string.Format(Properties.Resources.Error_RemoveOldDriverFolderReadOnlyFailed, ex.Message); }
                 }
-                else
-                {
-                    Directory.CreateDirectory(destinationFolder);
-                }
 
+                // 执行 Robocopy
                 Process robocopyProcess = new()
                 {
                     StartInfo = {
@@ -340,6 +387,7 @@ namespace ExHyperV.Services
 
                 SetFolderReadOnly(destinationFolder);
 
+                // 3. 注册表注入
                 if (gpuManu.Contains("NVIDIA"))
                 {
                     string regResult = NvidiaReg(letter + ":");
@@ -360,10 +408,10 @@ namespace ExHyperV.Services
                 if ($diskImage -and $diskImage.Attached) {{
                     if ('{assignedDriveLetter}') {{
                          try {{
-                            Remove-PartitionAccessPath -DiskNumber $diskImage.Number -PartitionNumber {partition.PartitionNumber} -AccessPath '{assignedDriveLetter}\' -ErrorAction Stop;
+                            Remove-PartitionAccessPath -DiskNumber $diskImage.Number -PartitionNumber {partition.PartitionNumber} -AccessPath '{assignedDriveLetter}\' -ErrorAction SilentlyContinue;
                          }} catch {{}}
                     }}
-                    Dismount-DiskImage -ImagePath '{harddiskpath}';
+                    Dismount-DiskImage -ImagePath '{harddiskpath}' -ErrorAction SilentlyContinue;
                 }}
             ";
                     Utils.Run(cleanupScript);
@@ -467,7 +515,7 @@ namespace ExHyperV.Services
                             return "错误：无法获取虚拟机硬盘路径以注入驱动。";
                         }
                         string harddiskpath = harddiskPathResult[0].ToString();
-                        string injectionResult = await InjectWindowsDriversAsync(vmName, harddiskpath, selectedPartition, gpuManu);
+                        string injectionResult = await InjectWindowsDriversAsync(vmName, harddiskpath, selectedPartition, gpuManu, gpuInstancePath);
                         if (injectionResult != "OK")
                         {
                             return injectionResult;
@@ -515,20 +563,8 @@ namespace ExHyperV.Services
 
                             string vmIpAddress = string.Empty;
                             var stopwatch = Stopwatch.StartNew();
-                            while (stopwatch.Elapsed.TotalSeconds < 5 && string.IsNullOrEmpty(vmIpAddress))
-                            {
-                                vmIpAddress = await Utils.GetVmIpAddressAsync(vmName, macAddressWithColons);
-                                if (string.IsNullOrEmpty(vmIpAddress))
-                                {
-                                    await Task.Delay(5000);
-                                }
-                            }
+                            vmIpAddress = await Utils.GetVmIpAddressAsync(vmName, macAddressWithColons);
                             stopwatch.Stop();
-
-                            if (string.IsNullOrEmpty(vmIpAddress))
-                            {
-                                return $"错误：在60秒内无法自动获取到虚拟机 '{vmName}' 的IP地址。\n\n可能的原因：\n- 虚拟机未成功启动或卡住\n- 网络配置问题 (如DHCP服务)\n- Hyper-V集成服务未运行";
-                            }
 
                             string targetIp = vmIpAddress.Split(',').Select(ip => ip.Trim()).FirstOrDefault(ip => System.Net.IPAddress.TryParse(ip, out var addr) && addr.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork);
                             if (string.IsNullOrEmpty(targetIp))

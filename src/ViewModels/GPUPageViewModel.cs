@@ -111,7 +111,7 @@ namespace ExHyperV.ViewModels
                     return;
                 }
 
-                string result = await _gpuService.AddGpuPartitionAsync(vm.Name, selectedGpu.Path, selectedGpu.Manu, userSelectedPartition);
+                string result = await _gpuService.AddGpuPartitionAsync(vm.Name, selectedGpu.Path, selectedGpu.Manu, userSelectedPartition,selectedGpu.Path);
 
                 if (result == "OK")
                 {
