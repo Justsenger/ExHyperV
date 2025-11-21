@@ -1,7 +1,7 @@
 #!/bin/bash -e
 
 # --------------------------------------------------------
-# install_dxgkrnl.sh
+# install_dxgkrnl.sh - Fixed version
 # --------------------------------------------------------
 
 WORKDIR="$(dirname $(realpath $0))"
@@ -63,25 +63,56 @@ check_and_install_kernel() {
         apt update
         
         echo "Searching for available kernels..."
-        AVAILABLE_KERNELS=$(apt-cache search "^linux-image-[0-9]" | grep -E "linux-image-[0-9]+\.[0-9]+\.[0-9]+-[0-9]+-(generic|amd64)" | awk '{print $1}' | sort -V | tail -5)
+        # 🔧 修复：只获取标准内核镜像（排除 -dbg, -unsigned 变体）
+        AVAILABLE_KERNELS=$(apt-cache search "^linux-image-[0-9]" | \
+            grep -E "linux-image-[0-9]+\.[0-9]+\.[0-9]+-[0-9]+-(generic|amd64)$" | \
+            awk '{print $1}' | sort -V | tail -5)
+        
+        if [ -z "$AVAILABLE_KERNELS" ]; then
+            echo "ERROR: No available kernels found"
+            exit 1
+        fi
         
         echo "Available kernels:"
         echo "$AVAILABLE_KERNELS" | nl
         echo ""
         
         NEW_KERNEL_IMAGE=$(echo "$AVAILABLE_KERNELS" | tail -1)
+        # 🔧 修复：提取版本号（移除 linux-image- 前缀）
         NEW_KERNEL_VERSION=$(echo "$NEW_KERNEL_IMAGE" | sed 's/linux-image-//')
         NEW_KERNEL_HEADERS="linux-headers-${NEW_KERNEL_VERSION}"
         
-        echo "Selected kernel: $NEW_KERNEL_VERSION"
+        echo "Selected packages:"
+        echo "  Image:   $NEW_KERNEL_IMAGE"
+        echo "  Version: $NEW_KERNEL_VERSION"
+        echo "  Headers: $NEW_KERNEL_HEADERS"
         echo ""
+        
+        # 验证 headers 包是否存在
+        if ! apt-cache show "$NEW_KERNEL_HEADERS" >/dev/null 2>&1; then
+            echo "ERROR: Headers package '$NEW_KERNEL_HEADERS' not found in repository!"
+            echo ""
+            echo "Trying to find matching headers..."
+            
+            # 尝试查找匹配的 headers
+            BASE_VERSION=$(echo "$NEW_KERNEL_VERSION" | grep -oP '^\d+\.\d+\.\d+-\d+')
+            MATCHING_HEADERS=$(apt-cache search "^linux-headers-${BASE_VERSION}" | awk '{print $1}' | grep -E "(generic|amd64)$" | head -1)
+            
+            if [ -n "$MATCHING_HEADERS" ]; then
+                echo "Found alternative: $MATCHING_HEADERS"
+                NEW_KERNEL_HEADERS="$MATCHING_HEADERS"
+                NEW_KERNEL_VERSION=$(echo "$MATCHING_HEADERS" | sed 's/linux-headers-//')
+                echo "Updated version to: $NEW_KERNEL_VERSION"
+            else
+                echo "ERROR: Cannot find compatible kernel headers"
+                exit 1
+            fi
+        fi
         
         if dpkg -l | grep -q "^ii.*$NEW_KERNEL_IMAGE"; then
             echo "✓ Kernel $NEW_KERNEL_VERSION is already installed"
         else
             echo "Installing kernel and headers..."
-            echo "  - $NEW_KERNEL_IMAGE"
-            echo "  - $NEW_KERNEL_HEADERS"
             echo ""
             
             apt install -y "$NEW_KERNEL_IMAGE" "$NEW_KERNEL_HEADERS"
@@ -90,8 +121,12 @@ check_and_install_kernel() {
             echo "========================================"
             echo "  ACTION REQUIRED: REBOOT"
             echo "========================================"
-            echo "A new kernel (${NEW_KERNEL_VERSION}) has been installed to ensure compatibility."
-            echo "The system must be rebooted to continue the installation process."
+            echo "A new kernel (${NEW_KERNEL_VERSION}) has been installed."
+            echo "Please reboot and run this script again."
+            echo ""
+            echo "After reboot, run:"
+            echo "  sudo $0"
+            echo ""
             echo "STATUS: REBOOT_REQUIRED"
             exit 0
         fi
@@ -102,6 +137,8 @@ check_and_install_kernel() {
         
         if [ ! -e "/usr/src/linux-headers-${TARGET_KERNEL_VERSION}" ] || [ ! -e "/lib/modules/${TARGET_KERNEL_VERSION}/build" ]; then
             echo "ERROR: Headers not found after installation!"
+            echo "Expected: /usr/src/linux-headers-${TARGET_KERNEL_VERSION}"
+            echo "Please check installation and try again."
             exit 1
         fi
         
@@ -118,8 +155,7 @@ check_and_install_kernel() {
         echo "========================================"
         echo "  ACTION REQUIRED: REBOOT"
         echo "========================================"
-        echo "A new kernel (${NEW_KERNEL_VERSION}) has been installed to ensure compatibility."
-        echo "The system must be rebooted to continue the installation process."
+        echo "A new kernel (${NEW_KERNEL_VERSION}) has been installed."
         echo "STATUS: REBOOT_REQUIRED"
         exit 0
     else
