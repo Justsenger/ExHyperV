@@ -101,6 +101,7 @@
                 <ui:NavigationViewItem
                     x:Name="CPU"
                     Content="中央处理器"
+                    TargetPageType="{x:Type pages:CpuPage}"
                     NavigationCacheMode="Enabled"
                     Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"
                     >

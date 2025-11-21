@@ -563,10 +563,6 @@ namespace ExHyperV.Services
                             stopwatch.Stop();
 
                             string targetIp = vmIpAddress.Split(',').Select(ip => ip.Trim()).FirstOrDefault(ip => System.Net.IPAddress.TryParse(ip, out var addr) && addr.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork);
-                            if (string.IsNullOrEmpty(targetIp))
-                            {
-                                return string.Format(Properties.Resources.Error_NoValidIpv4AddressFound, vmIpAddress);
-                            }
 
                             //弹出登录框
                             await System.Windows.Application.Current.Dispatcher.InvokeAsync(() => {
@@ -578,7 +574,14 @@ namespace ExHyperV.Services
                             });
 
                             if (credentials == null)return ExHyperV.Properties.Resources.Info_SshLoginCancelledByUser;
-                            credentials.Host = targetIp;
+                            if (!string.IsNullOrEmpty(targetIp))
+                            {
+                                credentials.Host = targetIp;
+                            }
+                            if (string.IsNullOrEmpty(credentials.Host))
+                            {
+                                return string.Format(Properties.Resources.Error_NoValidIpv4AddressFound, "Unknown");
+                            }
 
                         }
                         catch (Exception ex)
