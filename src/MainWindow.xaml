@@ -105,7 +105,16 @@
                     Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"
                     >
                     <ui:NavigationViewItem.Icon>
-                        <ui:FontIcon FontSize="16" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xE12C;"/>
+                        <ui:FontIcon FontSize="16" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xF58E;" RenderTransformOrigin="0.5,0.5">
+                            <ui:FontIcon.RenderTransform>
+                                <TransformGroup>
+                                    <ScaleTransform/>
+                                    <SkewTransform/>
+                                    <RotateTransform Angle="90"/>
+                                    <TranslateTransform/>
+                                </TransformGroup>
+                            </ui:FontIcon.RenderTransform>
+                        </ui:FontIcon>
                     </ui:NavigationViewItem.Icon>
                 </ui:NavigationViewItem>
 
