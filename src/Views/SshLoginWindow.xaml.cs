@@ -19,7 +19,7 @@ namespace ExHyperV.Views
 
         public SshLoginWindow(string vmName, string ipAddress) : this()
         {
-            string title = $"连接到 {vmName}";
+            string title = string.Format(Properties.Resources.Title_ConnectingToVm, vmName);
             TitleTextBlock.Text = title;
             Title = title;
 
@@ -39,19 +39,19 @@ namespace ExHyperV.Views
 
             if (string.IsNullOrWhiteSpace(HostTextBox.Text))
             {
-                ErrorTextBlock.Text = "主机 IP 地址不能为空。";
+                ErrorTextBlock.Text = ExHyperV.Properties.Resources.Validation_HostIpCannotBeEmpty;
                 return;
             }
 
             if (!int.TryParse(PortTextBox.Text, out int sshPort) || sshPort <= 0 || sshPort > 65535)
             {
-                ErrorTextBlock.Text = "SSH 端口无效 (应为 1-65535)。";
+                ErrorTextBlock.Text = ExHyperV.Properties.Resources.Validation_InvalidSshPort;
                 return;
             }
 
             if (string.IsNullOrWhiteSpace(UsernameTextBox.Text))
             {
-                ErrorTextBlock.Text = "用户名不能为空。";
+                ErrorTextBlock.Text = ExHyperV.Properties.Resources.Validation_UsernameCannotBeEmpty;
                 return;
             }
 
@@ -63,7 +63,7 @@ namespace ExHyperV.Views
             {
                 if (string.IsNullOrEmpty(proxyHost) || string.IsNullOrEmpty(proxyPortStr))
                 {
-                    ErrorTextBlock.Text = "代理 IP 和端口必须同时填写或同时为空。";
+                    ErrorTextBlock.Text = ExHyperV.Properties.Resources.Validation_ProxyIpAndPortMismatch;
                     return;
                 }
 
@@ -73,13 +73,13 @@ namespace ExHyperV.Views
                 }
                 else
                 {
-                    ErrorTextBlock.Text = "代理端口号无效 (应为 1-65535)。";
+                    ErrorTextBlock.Text = ExHyperV.Properties.Resources.Validation_InvalidProxyPort;
                     return;
                 }
             }
 
             ConfirmButton.IsEnabled = false;
-            ConfirmButton.Content = "正在验证连接...";
+            ConfirmButton.Content = ExHyperV.Properties.Resources.Status_Connecting;
 
             Credentials.Host = HostTextBox.Text.Trim();
             Credentials.Port = sshPort;
@@ -104,24 +104,24 @@ namespace ExHyperV.Views
             }
             catch (System.Net.Sockets.SocketException)
             {
-                ErrorTextBlock.Text = $"连接失败: 无法连接到主机 {Credentials.Host} 的端口 {Credentials.Port}。\n请检查 IP 和端口是否正确。";
+                ErrorTextBlock.Text = string.Format(Properties.Resources.Error_ConnectionFailed, Credentials.Host, Credentials.Port);
             }
             catch (Renci.SshNet.Common.SshOperationTimeoutException)
             {
-                ErrorTextBlock.Text = $"连接超时: 无法连接到主机 {Credentials.Host} 的端口 {Credentials.Port}。";
+                ErrorTextBlock.Text = string.Format(Properties.Resources.Error_ConnectionTimedOut, Credentials.Host, Credentials.Port);
             }
             catch (Renci.SshNet.Common.SshAuthenticationException)
             {
-                ErrorTextBlock.Text = "身份验证失败: 用户名或口令不正确。";
+                ErrorTextBlock.Text = ExHyperV.Properties.Resources.Error_AuthenticationFailed;
             }
             catch (Exception ex)
             {
-                ErrorTextBlock.Text = $"连接发生未知错误: {ex.Message}";
+                ErrorTextBlock.Text = string.Format(Properties.Resources.Error_UnknownConnectionError, ex.Message);
             }
             finally
             {
                 ConfirmButton.IsEnabled = true;
-                ConfirmButton.Content = "连接";
+                ConfirmButton.Content = Properties.Resources.Button_Connect;
             }
         }
 

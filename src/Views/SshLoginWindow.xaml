@@ -4,8 +4,9 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:ExHyperV.Views"
+        xmlns:properties="clr-namespace:ExHyperV.Properties"
         mc:Ignorable="d"
-        Title="SSH 登录" Height="600" Width="420"
+        Title="{x:Static properties:Resources.Title_SshLogin}" Height="600" Width="420"
         WindowStartupLocation="CenterScreen"
         ResizeMode="NoResize"
         ExtendsContentIntoTitleBar="True"
@@ -17,7 +18,7 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <ui:TitleBar Grid.Row="0" Title="SSH 登录" ForceShutdown="False"/>
+        <ui:TitleBar Grid.Row="0" Title="{x:Static properties:Resources.Title_SshLogin}" ForceShutdown="False"/>
 
         <Grid Grid.Row="1" Margin="25,0,25,25">
             <Grid.RowDefinitions>
@@ -28,7 +29,7 @@
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
-            <TextBlock x:Name="TitleTextBlock" Grid.Row="0" Text="连接到 Linux 虚拟机" FontSize="20" FontWeight="SemiBold" Margin="0,0,0,10"/>
+            <TextBlock x:Name="TitleTextBlock" Grid.Row="0" Text="{x:Static properties:Resources.Label_ConnectToLinuxVm}" FontSize="20" FontWeight="SemiBold" Margin="0,0,0,10"/>
 
             <StackPanel Grid.Row="1">
                 <Grid Margin="0,0,0,15">
@@ -38,30 +39,30 @@
                     </Grid.ColumnDefinitions>
 
                     <StackPanel Grid.Column="0" Margin="0,0,10,0">
-                        <TextBlock Text="主机 IP 地址:" Margin="0,0,0,5"/>
-                        <ui:TextBox x:Name="HostTextBox" PlaceholderText="例如: 192.168.1.100"/>
+                        <TextBlock Text="{x:Static properties:Resources.Label_HostIpAddress}" Margin="0,0,0,5"/>
+                        <ui:TextBox x:Name="HostTextBox" PlaceholderText="{x:Static properties:Resources.Placeholder_IpAddressExample}"/>
                     </StackPanel>
 
                     <StackPanel Grid.Column="1" Margin="10,0,0,0">
-                        <TextBlock Text="端口:" Margin="0,0,0,5"/>
+                        <TextBlock Text="{x:Static properties:Resources.Label_Port}" Margin="0,0,0,5"/>
                         <ui:TextBox x:Name="PortTextBox" Text="22" PlaceholderText="22"/>
                     </StackPanel>
                 </Grid>
 
-                <TextBlock Text="用户名:" Margin="0,0,0,5"/>
-                <ui:TextBox x:Name="UsernameTextBox" PlaceholderText="例如: root" Margin="0,0,0,15"/>
+                <TextBlock Text="{x:Static properties:Resources.Label_Username}" Margin="0,0,0,5"/>
+                <ui:TextBox x:Name="UsernameTextBox" PlaceholderText="{x:Static properties:Resources.Placeholder_UsernameExample}" Margin="0,0,0,15"/>
 
-                <TextBlock Text="口令:" Margin="0,0,0,5"/>
+                <TextBlock Text="{x:Static properties:Resources.Label_Password}" Margin="0,0,0,5"/>
                 <ui:PasswordBox x:Name="PasswordBox" MaxLength="128"/>
                 <CheckBox x:Name="GraphicsCheckBox" 
-                      Content="安装 OpenGL/Vulkan 图形驱动（更耗时）" 
+                      Content="{x:Static properties:Resources.CheckBox_InstallGraphicsDrivers}" 
                       IsChecked="False" 
                       Margin="-10,10,0,0"/>
             </StackPanel>
 
             <StackPanel Grid.Row="2" Margin="0,25,0,0">
-                <TextBlock Text="HTTP 代理 (可选)" FontWeight="Medium" Margin="0,0,0,5"/>
-                <TextBlock Text="如果不能直连 GitHub.com，请使用稳定可靠的代理。" 
+                <TextBlock Text="{x:Static properties:Resources.GroupBox_HttpProxyOptional}" FontWeight="Medium" Margin="0,0,0,5"/>
+                <TextBlock Text="{x:Static properties:Resources.Info_UseProxyForGitHub}" 
                            FontSize="11" 
                            Foreground="Gray" 
                            Margin="0,0,0,15"
@@ -74,12 +75,12 @@
                     </Grid.ColumnDefinitions>
 
                     <StackPanel Grid.Column="0" Margin="0,0,10,0">
-                        <TextBlock Text="代理 IP 地址:" Margin="0,0,0,5"/>
-                        <ui:TextBox x:Name="ProxyHostTextBox" PlaceholderText="例如: 192.168.1.200"/>
+                        <TextBlock Text="{x:Static properties:Resources.Label_ProxyIpAddress}" Margin="0,0,0,5"/>
+                        <ui:TextBox x:Name="ProxyHostTextBox" PlaceholderText="{x:Static properties:Resources.Placeholder_IpAddressExample}"/>
                     </StackPanel>
 
                     <StackPanel Grid.Column="1" Margin="10,0,0,0">
-                        <TextBlock Text="端口:" Margin="0,0,0,5"/>
+                        <TextBlock Text="{x:Static properties:Resources.Label_Port}" Margin="0,0,0,5"/>
                         <ui:TextBox x:Name="ProxyPortTextBox" PlaceholderText="7890"/>
                     </StackPanel>
                 </Grid>
@@ -93,8 +94,8 @@
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
-                <ui:Button Grid.Column="0" Content="取消" Margin="0,0,5,0" HorizontalAlignment="Stretch" Click="CancelButton_Click" IsCancel="True"/>
-                <ui:Button Grid.Column="1" x:Name="ConfirmButton" Content="连接" Margin="5,0,0,0" Appearance="Primary" HorizontalAlignment="Stretch" Click="ConfirmButton_Click" IsDefault="True"/>
+                <ui:Button Grid.Column="0" Content="{x:Static properties:Resources.Button_Cancel}" Margin="0,0,5,0" HorizontalAlignment="Stretch" Click="CancelButton_Click" IsCancel="True"/>
+                <ui:Button Grid.Column="1" x:Name="ConfirmButton" Content="{x:Static properties:Resources.Button_Connect}" Margin="5,0,0,0" Appearance="Primary" HorizontalAlignment="Stretch" Click="ConfirmButton_Click" IsDefault="True"/>
             </Grid>
         </Grid>
     </Grid>

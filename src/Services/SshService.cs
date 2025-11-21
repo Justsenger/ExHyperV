@@ -59,7 +59,7 @@ namespace ExHyperV.Services
 
                 if (sshCommand.ExitStatus != 0)
                 {
-                    throw new SshCommandErrorException($"命令执行失败 (Exit code: {sshCommand.ExitStatus}): {sshCommand.Error}");
+                    throw new SshCommandErrorException(string.Format(Properties.Resources.Error_SshCommandFailed, sshCommand.ExitStatus, sshCommand.Error));
                 }
                 return sshCommand.Result;
             }
@@ -70,7 +70,6 @@ namespace ExHyperV.Services
             string commandToExecute = command;
             var outputBuilder = new StringBuilder();
 
-            // 将日志委托包装一下，使其同时写入 StringBuilder
             Action<string> combinedLogCallback = (log) =>
             {
                 logCallback(log);
@@ -98,8 +97,6 @@ namespace ExHyperV.Services
                 sshCommand.CommandTimeout = commandTimeout ?? TimeSpan.FromMinutes(30);
 
                 var asyncResult = sshCommand.BeginExecute();
-
-                // 使用包装后的委托来处理流式输出
                 var stdoutTask = ReadStreamAsync(sshCommand.OutputStream, Encoding.UTF8, combinedLogCallback);
                 var stderrTask = ReadStreamAsync(sshCommand.ExtendedOutputStream, Encoding.UTF8, combinedLogCallback);
 
@@ -107,9 +104,6 @@ namespace ExHyperV.Services
                 await Task.WhenAll(stdoutTask, stderrTask);
 
                 client.Disconnect();
-
-                // 注意：这里我们不再根据 ExitStatus 抛出异常
-                // 而是将结果返回，由调用方来决定如何处理
                 return new SshCommandResult(outputBuilder.ToString(), sshCommand.ExitStatus ?? -1);
             }
         }
@@ -161,7 +155,7 @@ namespace ExHyperV.Services
                     var dirInfo = new DirectoryInfo(localDirectory);
                     if (!dirInfo.Exists)
                     {
-                        throw new DirectoryNotFoundException($"本地目录未找到: {localDirectory}");
+                        throw new DirectoryNotFoundException(string.Format(Properties.Resources.Error_LocalDirectoryNotFound, localDirectory));
                     }
                     if (!sftp.Exists(remoteDirectory))
                     {

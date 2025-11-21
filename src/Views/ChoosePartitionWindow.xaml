@@ -17,7 +17,7 @@
         </Grid.RowDefinitions>
 
         <ui:TitleBar
-            Title="驱动注入" Grid.RowSpan="1" VerticalAlignment="Center">
+            Title="{x:Static properties:Resources.Label_DriverInjection}" Grid.RowSpan="1" VerticalAlignment="Center">
             <ui:TitleBar.Icon>
                 <ui:ImageIcon>
                     <ui:ImageIcon.Source>

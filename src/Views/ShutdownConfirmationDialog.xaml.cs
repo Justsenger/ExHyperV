@@ -16,9 +16,7 @@ namespace ExHyperV.Views
         public ShutdownConfirmationDialog(string vmName)
         {
             InitializeComponent();
-            MessageTextBlock.Text = $"虚拟机 “{vmName}” 当前正在运行。\n\n" +
-                                    "为了继续分配GPU，需要将此虚拟机关闭。\n\n" +
-                                    "选择“强制关机并继续”将执行强制关闭操作（等同于断开电源）。";
+            MessageTextBlock.Text = string.Format(Properties.Resources.Confirm_ShutdownMessage, vmName);
         }
 
         private void ConfirmButton_Click(object sender, RoutedEventArgs e)

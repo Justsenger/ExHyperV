@@ -8,9 +8,7 @@ namespace ExHyperV.Views
     {
         public event EventHandler RetryClicked;
         private bool _autoScroll = true;
-
         public ExecutionProgressWindow() => InitializeComponent();
-
         private void LogTextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
             if (_autoScroll)
@@ -18,7 +16,6 @@ namespace ExHyperV.Views
                 LogScrollViewer.ScrollToEnd();
             }
         }
-
         private void LogScrollViewer_ScrollChanged(object sender, ScrollChangedEventArgs e)
         {
             if (e.ExtentHeightChange == 0)
@@ -26,7 +23,6 @@ namespace ExHyperV.Views
                 _autoScroll = LogScrollViewer.VerticalOffset == LogScrollViewer.ScrollableHeight;
             }
         }
-
         private void SafeInvoke(Action action)
         {
             try
@@ -51,14 +47,14 @@ namespace ExHyperV.Views
 
         public void ShowSuccessState() => SafeInvoke(() =>
         {
-            UpdateStatus("部署完成！");
+            UpdateStatus(ExHyperV.Properties.Resources.Status_DeploymentComplete);
             RetryButton.Visibility = Visibility.Collapsed;
             CloseButton.IsEnabled = true;
         });
 
         public void ShowErrorState(string errorMessage) => SafeInvoke(() =>
         {
-            UpdateStatus($"发生错误: {errorMessage}");
+            UpdateStatus(string.Format(Properties.Resources.Error_AnErrorOccurred, errorMessage));
             RetryButton.Visibility = Visibility.Visible;
             CloseButton.IsEnabled = true;
         });
@@ -66,7 +62,7 @@ namespace ExHyperV.Views
         public void ResetForRetry() => SafeInvoke(() =>
         {
             LogTextBox.Clear();
-            AppendLog("用户选择重试，正在重新执行部署脚本...\n");
+            AppendLog(ExHyperV.Properties.Resources.Log_UserRetryingDeployment);
             RetryButton.Visibility = Visibility.Collapsed;
             CloseButton.IsEnabled = false;
             _autoScroll = true;

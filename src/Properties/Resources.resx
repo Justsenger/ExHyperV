@@ -883,4 +883,139 @@ The existing NAT switch is: '{0}'</value>
   <data name="Warning_Win10GpuAssignmentNotPersistent" xml:space="preserve">
     <value>When using Windows 10 as the host, the assigned GPU partition is only effective for the current session.\n\nTo ensure the virtual machine uses the same GPU on the next cold boot, you must either manually disable other GPUs first, or re-assign it using this tool.</value>
   </data>
+  <data name="Error_EmbeddedWpfResourceNotFound" xml:space="preserve">
+    <value>Could not find the embedded WPF resource.</value>
+  </data>
+  <data name="Error_CheckForUpdateFailed" xml:space="preserve">
+    <value>Failed to check for updates. Please check your network connection.</value>
+  </data>
+  <data name="Error_SshCommandFailed" xml:space="preserve">
+    <value>[X] Command execution failed.Exit code: {0}): {1}</value>
+  </data>
+  <data name="Error_LocalDirectoryNotFound" xml:space="preserve">
+    <value>[X] Local directory not found: {0}</value>
+  </data>
+  <data name="Error_NoRecognizedPartitionFound" xml:space="preserve">
+    <value>Error: No recognizable Windows or Linux partitions were found on this virtual disk.</value>
+  </data>
+  <data name="Status_CheckingForUpdates" xml:space="preserve">
+    <value>Checking for updates...</value>
+  </data>
+  <data name="Info_NewVersionFound" xml:space="preserve">
+    <value>New version found: {0}</value>
+  </data>
+  <data name="Info_AlreadyLatestVersion" xml:space="preserve">
+    <value>You are already using the latest version.</value>
+  </data>
+  <data name="Label_DriverInjection" xml:space="preserve">
+    <value>Driver Injection</value>
+  </data>
+  <data name="Status_InstallationInProgress" xml:space="preserve">
+    <value>Preparing and executing installation... Please see the real-time progress below.</value>
+  </data>
+  <data name="Button_Retry" xml:space="preserve">
+    <value>Retry</value>
+  </data>
+  <data name="Button_Close" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="Status_DeploymentComplete" xml:space="preserve">
+    <value>Deployment Complete!</value>
+  </data>
+  <data name="Error_AnErrorOccurred" xml:space="preserve">
+    <value>An error occurred: {0}</value>
+  </data>
+  <data name="Log_UserRetryingDeployment" xml:space="preserve">
+    <value>User selected retry, re-executing deployment script...\n</value>
+  </data>
+  <data name="Title_ConfirmOperation" xml:space="preserve">
+    <value>Confirm Operation</value>
+  </data>
+  <data name="Title_ShutdownConfirmation" xml:space="preserve">
+    <value>Shutdown Confirmation</value>
+  </data>
+  <data name="Info_VmMustBeOffForGpuAssignment" xml:space="preserve">
+    <value>To assign a GPU to this virtual machine, it must be in the 'Off' state.</value>
+  </data>
+  <data name="Button_Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="Button_ShutdownAndContinue" xml:space="preserve">
+    <value>Shutdown and Continue</value>
+  </data>
+  <data name="Confirm_ShutdownMessage" xml:space="preserve">
+    <value>The virtual machine "{0}" is currently running.\n\nTo proceed with the GPU assignment, this virtual machine needs to be shut down.\n\nSelecting "Shutdown and Continue" will perform a forced shutdown (equivalent to unplugging the power cord).</value>
+  </data>
+  <data name="Title_SshLogin" xml:space="preserve">
+    <value>SSH Login</value>
+  </data>
+  <data name="Label_ConnectToLinuxVm" xml:space="preserve">
+    <value>Connect to Linux Virtual Machine</value>
+  </data>
+  <data name="Label_HostIpAddress" xml:space="preserve">
+    <value>Host IP Address:</value>
+  </data>
+  <data name="Placeholder_IpAddressExample" xml:space="preserve">
+    <value>e.g., 192.168.1.100</value>
+  </data>
+  <data name="Label_Port" xml:space="preserve">
+    <value>Port:</value>
+  </data>
+  <data name="Label_Username" xml:space="preserve">
+    <value>Username:</value>
+  </data>
+  <data name="Placeholder_UsernameExample" xml:space="preserve">
+    <value>e.g., root</value>
+  </data>
+  <data name="Label_Password" xml:space="preserve">
+    <value>Password:</value>
+  </data>
+  <data name="CheckBox_InstallGraphicsDrivers" xml:space="preserve">
+    <value>Install OpenGL/Vulkan graphics drivers (Need more time)</value>
+  </data>
+  <data name="GroupBox_HttpProxyOptional" xml:space="preserve">
+    <value>HTTP Proxy (Optional)</value>
+  </data>
+  <data name="Info_UseProxyForGitHub" xml:space="preserve">
+    <value>If you cannot connect directly to GitHub.com, please use a stable and reliable proxy.</value>
+  </data>
+  <data name="Label_ProxyIpAddress" xml:space="preserve">
+    <value>Proxy IP Address:</value>
+  </data>
+  <data name="Button_Connect" xml:space="preserve">
+    <value>Connect</value>
+  </data>
+  <data name="Title_ConnectingToVm" xml:space="preserve">
+    <value>Connecting to {0}</value>
+  </data>
+  <data name="Validation_HostIpCannotBeEmpty" xml:space="preserve">
+    <value>Host IP address cannot be empty.</value>
+  </data>
+  <data name="Validation_InvalidSshPort" xml:space="preserve">
+    <value>Invalid SSH port (should be between 1-65535).</value>
+  </data>
+  <data name="Validation_UsernameCannotBeEmpty" xml:space="preserve">
+    <value>Username cannot be empty.</value>
+  </data>
+  <data name="Validation_ProxyIpAndPortMismatch" xml:space="preserve">
+    <value>Proxy IP and Port must be either both filled or both empty.</value>
+  </data>
+  <data name="Validation_InvalidProxyPort" xml:space="preserve">
+    <value>Invalid Proxy Port (should be between 1-65535).</value>
+  </data>
+  <data name="Status_Connecting" xml:space="preserve">
+    <value>Connecting...</value>
+  </data>
+  <data name="Error_ConnectionFailed" xml:space="preserve">
+    <value>Connection failed: Could not connect to host {0} on port {1}.\nPlease check if the IP and port are correct.</value>
+  </data>
+  <data name="Error_ConnectionTimedOut" xml:space="preserve">
+    <value>Connection timed out: Could not connect to host {0} on port {1}.</value>
+  </data>
+  <data name="Error_AuthenticationFailed" xml:space="preserve">
+    <value>Authentication failed: Incorrect username or password.</value>
+  </data>
+  <data name="Error_UnknownConnectionError" xml:space="preserve">
+    <value>An unknown connection error occurred: {0}</value>
+  </data>
 </root>

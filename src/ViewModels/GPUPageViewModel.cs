@@ -96,7 +96,7 @@ namespace ExHyperV.ViewModels
 
                 if (!selectablePartitions.Any())
                 {
-                    Utils.Show("错误：未在该虚拟磁盘上找到可识别的 Windows 或 Linux 分区。");
+                    Utils.Show(ExHyperV.Properties.Resources.Error_NoRecognizedPartitionFound);
                     return;
                 }
 
@@ -136,34 +136,6 @@ namespace ExHyperV.ViewModels
                         );
                     }
                     
-                }
-                else if (result == "SSH_REQUIRED")
-                {
-                    Utils.Run($"Start-VM -Name '{vm.Name}'");
-                    Utils.Show(
-                        "Linux GPU已分配成功！\n\n" +
-                        "接下来的操作：\n\n" +
-                        "1. 请手动进入虚拟机，查看并记录其IP地址。\n\n" +
-                        "2. 准备好IP地址、用户名和口令，以便后续进行驱动安装。"
-                    );
-                    SshCredentials credentials = null;
-                    await Application.Current.Dispatcher.InvokeAsync(() =>
-                    {
-                        var sshDialog = new SshLoginWindow();
-                        if (sshDialog.ShowDialog() == true)
-                        {
-                            credentials = sshDialog.Credentials;
-                        }
-                    });
-
-                    if (credentials != null)
-                    {
-                        // IsLoading 仍然为 true，可以开始执行耗时的SSH操作
-                        // 这里的 _sshService 实例需要您在 ViewModel 中定义
-                        //string osInfo = await _sshService.ExecuteCommandAsync(credentials, "cat /etc/os-release");
-                        Utils.Show($"已成功连接到 {credentials.Host}！\n\n操作系统信息：\n");
-                        // TODO: 添加驱动安装逻辑
-                    }
                 }
                 else
                 {

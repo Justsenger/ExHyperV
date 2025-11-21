@@ -883,4 +883,139 @@
   <data name="Warning_Win10GpuAssignmentNotPersistent" xml:space="preserve">
     <value>Windows10作为宿主时，本次指定的GPU分区仅本次有效。\n\n若要确保虚拟机下次冷启动仍使用该GPU，请先手动禁用其他GPU；或通过本工具再次分配。</value>
   </data>
+  <data name="Error_EmbeddedWpfResourceNotFound" xml:space="preserve">
+    <value>无法找到嵌入的 WPF 资源。</value>
+  </data>
+  <data name="Error_CheckForUpdateFailed" xml:space="preserve">
+    <value>检查更新失败，请检查网络连接。</value>
+  </data>
+  <data name="Error_SshCommandFailed" xml:space="preserve">
+    <value>[X] 命令执行失败。错误码: {0}): {1}</value>
+  </data>
+  <data name="Error_LocalDirectoryNotFound" xml:space="preserve">
+    <value>[X] 本地目录未找到: {0}</value>
+  </data>
+  <data name="Error_NoRecognizedPartitionFound" xml:space="preserve">
+    <value>错误：未在该虚拟磁盘上找到可识别的 Windows 或 Linux 分区。</value>
+  </data>
+  <data name="Status_CheckingForUpdates" xml:space="preserve">
+    <value>正在检查更新...</value>
+  </data>
+  <data name="Info_NewVersionFound" xml:space="preserve">
+    <value>发现新版本: {0}</value>
+  </data>
+  <data name="Info_AlreadyLatestVersion" xml:space="preserve">
+    <value>已是最新版本</value>
+  </data>
+  <data name="Label_DriverInjection" xml:space="preserve">
+    <value>驱动注入</value>
+  </data>
+  <data name="Status_InstallationInProgress" xml:space="preserve">
+    <value>正在准备并执行安装... 请在下方查看实时进度。</value>
+  </data>
+  <data name="Button_Retry" xml:space="preserve">
+    <value>重试</value>
+  </data>
+  <data name="Button_Close" xml:space="preserve">
+    <value>关闭</value>
+  </data>
+  <data name="Status_DeploymentComplete" xml:space="preserve">
+    <value>部署完成！</value>
+  </data>
+  <data name="Error_AnErrorOccurred" xml:space="preserve">
+    <value>发生错误: {0}</value>
+  </data>
+  <data name="Log_UserRetryingDeployment" xml:space="preserve">
+    <value>用户选择重试，正在重新执行部署脚本...\n</value>
+  </data>
+  <data name="Title_ConfirmOperation" xml:space="preserve">
+    <value>确认操作</value>
+  </data>
+  <data name="Title_ShutdownConfirmation" xml:space="preserve">
+    <value>关机确认</value>
+  </data>
+  <data name="Info_VmMustBeOffForGpuAssignment" xml:space="preserve">
+    <value>要为此虚拟机分配GPU，它必须处于关闭状态。</value>
+  </data>
+  <data name="Button_Cancel" xml:space="preserve">
+    <value>取消</value>
+  </data>
+  <data name="Button_ShutdownAndContinue" xml:space="preserve">
+    <value>关机并继续</value>
+  </data>
+  <data name="Confirm_ShutdownMessage" xml:space="preserve">
+    <value>虚拟机 “{0}” 当前正在运行。\n\n为了继续分配GPU，需要将此虚拟机关闭。\n\n选择“关机并继续”将执行强制关闭操作（等同于断开电源）。</value>
+  </data>
+  <data name="Title_SshLogin" xml:space="preserve">
+    <value>SSH 登录</value>
+  </data>
+  <data name="Label_ConnectToLinuxVm" xml:space="preserve">
+    <value>连接到 Linux 虚拟机</value>
+  </data>
+  <data name="Label_HostIpAddress" xml:space="preserve">
+    <value>主机 IP 地址:</value>
+  </data>
+  <data name="Placeholder_IpAddressExample" xml:space="preserve">
+    <value>例如: 192.168.1.100</value>
+  </data>
+  <data name="Label_Port" xml:space="preserve">
+    <value>端口:</value>
+  </data>
+  <data name="Label_Username" xml:space="preserve">
+    <value>用户名:</value>
+  </data>
+  <data name="Placeholder_UsernameExample" xml:space="preserve">
+    <value>例如: root</value>
+  </data>
+  <data name="CheckBox_InstallGraphicsDrivers" xml:space="preserve">
+    <value>安装 OpenGL/Vulkan 图形驱动（更耗时）</value>
+  </data>
+  <data name="Label_Password" xml:space="preserve">
+    <value>口令:</value>
+  </data>
+  <data name="GroupBox_HttpProxyOptional" xml:space="preserve">
+    <value>HTTP 代理 (可选)</value>
+  </data>
+  <data name="Info_UseProxyForGitHub" xml:space="preserve">
+    <value>如果不能直连 GitHub.com，请使用稳定可靠的代理。</value>
+  </data>
+  <data name="Button_Connect" xml:space="preserve">
+    <value>连接</value>
+  </data>
+  <data name="Label_ProxyIpAddress" xml:space="preserve">
+    <value>代理 IP 地址:</value>
+  </data>
+  <data name="Title_ConnectingToVm" xml:space="preserve">
+    <value>连接到 {0}</value>
+  </data>
+  <data name="Validation_HostIpCannotBeEmpty" xml:space="preserve">
+    <value>主机 IP 地址不能为空。</value>
+  </data>
+  <data name="Validation_InvalidSshPort" xml:space="preserve">
+    <value>SSH 端口无效 (应为 1-65535)。</value>
+  </data>
+  <data name="Validation_InvalidProxyPort" xml:space="preserve">
+    <value>代理端口号无效 (应为 1-65535)。</value>
+  </data>
+  <data name="Validation_ProxyIpAndPortMismatch" xml:space="preserve">
+    <value>代理 IP 和端口必须同时填写或同时为空。</value>
+  </data>
+  <data name="Validation_UsernameCannotBeEmpty" xml:space="preserve">
+    <value>用户名不能为空。</value>
+  </data>
+  <data name="Status_Connecting" xml:space="preserve">
+    <value>正在连接中...</value>
+  </data>
+  <data name="Error_ConnectionFailed" xml:space="preserve">
+    <value>连接失败: 无法连接到主机 {0} 的端口 {1}。\n请检查 IP 和端口是否正确。</value>
+  </data>
+  <data name="Error_ConnectionTimedOut" xml:space="preserve">
+    <value>连接超时: 无法连接到主机 {0} 的端口 {1}。</value>
+  </data>
+  <data name="Error_AuthenticationFailed" xml:space="preserve">
+    <value>身份验证失败: 用户名或口令不正确。</value>
+  </data>
+  <data name="Error_UnknownConnectionError" xml:space="preserve">
+    <value>连接发生未知错误: {0}</value>
+  </data>
 </root>

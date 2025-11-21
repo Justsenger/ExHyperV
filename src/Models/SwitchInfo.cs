@@ -10,8 +10,6 @@
         public string AllowManagementOS { get; set; }
         public string Id { get; set; }
         public string NetAdapterInterfaceDescription { get; set; }
-
-        // 提供一个构造函数，方便创建实例
         public SwitchInfo(string switchName, string switchType, string host, string id, string phydesc)
         {
             SwitchName = switchName;

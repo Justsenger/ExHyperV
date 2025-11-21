@@ -313,11 +313,56 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 Cancel 的本地化字符串。
+        /// </summary>
+        public static string Button_Cancel {
+            get {
+                return ResourceManager.GetString("Button_Cancel", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Close 的本地化字符串。
+        /// </summary>
+        public static string Button_Close {
+            get {
+                return ResourceManager.GetString("Button_Close", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Connect 的本地化字符串。
+        /// </summary>
+        public static string Button_Connect {
+            get {
+                return ResourceManager.GetString("Button_Connect", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 No 的本地化字符串。
         /// </summary>
         public static string Button_No {
             get {
                 return ResourceManager.GetString("Button_No", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Retry 的本地化字符串。
+        /// </summary>
+        public static string Button_Retry {
+            get {
+                return ResourceManager.GetString("Button_Retry", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Shutdown and Continue 的本地化字符串。
+        /// </summary>
+        public static string Button_ShutdownAndContinue {
+            get {
+                return ResourceManager.GetString("Button_ShutdownAndContinue", resourceCulture);
             }
         }
         
@@ -354,6 +399,15 @@ namespace ExHyperV.Properties {
         public static string checkadmin {
             get {
                 return ResourceManager.GetString("checkadmin", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Install OpenGL/Vulkan graphics drivers (Need more time) 的本地化字符串。
+        /// </summary>
+        public static string CheckBox_InstallGraphicsDrivers {
+            get {
+                return ResourceManager.GetString("CheckBox_InstallGraphicsDrivers", resourceCulture);
             }
         }
         
@@ -444,6 +498,15 @@ namespace ExHyperV.Properties {
         public static string ConfiguredSpeed {
             get {
                 return ResourceManager.GetString("ConfiguredSpeed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 The virtual machine &quot;{0}&quot; is currently running.\n\nTo proceed with the GPU assignment, this virtual machine needs to be shut down.\n\nSelecting &quot;Shutdown and Continue&quot; will perform a forced shutdown (equivalent to unplugging the power cord). 的本地化字符串。
+        /// </summary>
+        public static string Confirm_ShutdownMessage {
+            get {
+                return ResourceManager.GetString("Confirm_ShutdownMessage", resourceCulture);
             }
         }
         
@@ -729,6 +792,24 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 An error occurred: {0} 的本地化字符串。
+        /// </summary>
+        public static string Error_AnErrorOccurred {
+            get {
+                return ResourceManager.GetString("Error_AnErrorOccurred", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Authentication failed: Incorrect username or password. 的本地化字符串。
+        /// </summary>
+        public static string Error_AuthenticationFailed {
+            get {
+                return ResourceManager.GetString("Error_AuthenticationFailed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 IOMMU is not enabled in the BIOS. DDA and GPU-PV are unavailable. 的本地化字符串。
         /// </summary>
         public static string Error_BiosIommuDisabled {
@@ -765,11 +846,38 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 Failed to check for updates. Please check your network connection. 的本地化字符串。
+        /// </summary>
+        public static string Error_CheckForUpdateFailed {
+            get {
+                return ResourceManager.GetString("Error_CheckForUpdateFailed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Configuration Conflict 的本地化字符串。
         /// </summary>
         public static string Error_ConfigurationConflict {
             get {
                 return ResourceManager.GetString("Error_ConfigurationConflict", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Connection failed: Could not connect to host {0} on port {1}.\nPlease check if the IP and port are correct. 的本地化字符串。
+        /// </summary>
+        public static string Error_ConnectionFailed {
+            get {
+                return ResourceManager.GetString("Error_ConnectionFailed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Connection timed out: Could not connect to host {0} on port {1}. 的本地化字符串。
+        /// </summary>
+        public static string Error_ConnectionTimedOut {
+            get {
+                return ResourceManager.GetString("Error_ConnectionTimedOut", resourceCulture);
             }
         }
         
@@ -815,6 +923,15 @@ namespace ExHyperV.Properties {
         public static string Error_DeploymentFailed {
             get {
                 return ResourceManager.GetString("Error_DeploymentFailed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Could not find the embedded WPF resource. 的本地化字符串。
+        /// </summary>
+        public static string Error_EmbeddedWpfResourceNotFound {
+            get {
+                return ResourceManager.GetString("Error_EmbeddedWpfResourceNotFound", resourceCulture);
             }
         }
         
@@ -954,6 +1071,15 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 [X] Local directory not found: {0} 的本地化字符串。
+        /// </summary>
+        public static string Error_LocalDirectoryNotFound {
+            get {
+                return ResourceManager.GetString("Error_LocalDirectoryNotFound", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Failed to mount the virtual disk or get its disk number. 的本地化字符串。
         /// </summary>
         public static string Error_MountVhdOrGetDiskNumberFailed {
@@ -968,6 +1094,15 @@ namespace ExHyperV.Properties {
         public static string Error_NoAvailableDriveLetters {
             get {
                 return ResourceManager.GetString("Error_NoAvailableDriveLetters", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Error: No recognizable Windows or Linux partitions were found on this virtual disk. 的本地化字符串。
+        /// </summary>
+        public static string Error_NoRecognizedPartitionFound {
+            get {
+                return ResourceManager.GetString("Error_NoRecognizedPartitionFound", resourceCulture);
             }
         }
         
@@ -1055,6 +1190,15 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 [X] Command execution failed.Exit code: {0}): {1} 的本地化字符串。
+        /// </summary>
+        public static string Error_SshCommandFailed {
+            get {
+                return ResourceManager.GetString("Error_SshCommandFailed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Error: An unexpected system exception occurred - {0} 的本地化字符串。
         /// </summary>
         public static string Error_UnexpectedSystemException {
@@ -1069,6 +1213,15 @@ namespace ExHyperV.Properties {
         public static string Error_Unknown {
             get {
                 return ResourceManager.GetString("Error_Unknown", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 An unknown connection error occurred: {0} 的本地化字符串。
+        /// </summary>
+        public static string Error_UnknownConnectionError {
+            get {
+                return ResourceManager.GetString("Error_UnknownConnectionError", resourceCulture);
             }
         }
         
@@ -1244,6 +1397,15 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 HTTP Proxy (Optional) 的本地化字符串。
+        /// </summary>
+        public static string GroupBox_HttpProxyOptional {
+            get {
+                return ResourceManager.GetString("GroupBox_HttpProxyOptional", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Host 的本地化字符串。
         /// </summary>
         public static string Host {
@@ -1271,6 +1433,15 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 You are already using the latest version. 的本地化字符串。
+        /// </summary>
+        public static string Info_AlreadyLatestVersion {
+            get {
+                return ResourceManager.GetString("Info_AlreadyLatestVersion", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 IOMMU is enabled in the BIOS. 的本地化字符串。
         /// </summary>
         public static string Info_BiosIommuEnabled {
@@ -1285,6 +1456,15 @@ namespace ExHyperV.Properties {
         public static string Info_MmioSpaceSufficient {
             get {
                 return ResourceManager.GetString("Info_MmioSpaceSufficient", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 New version found: {0} 的本地化字符串。
+        /// </summary>
+        public static string Info_NewVersionFound {
+            get {
+                return ResourceManager.GetString("Info_NewVersionFound", resourceCulture);
             }
         }
         
@@ -1323,6 +1503,24 @@ namespace ExHyperV.Properties {
         public static string Info_SshLoginCancelledByUser {
             get {
                 return ResourceManager.GetString("Info_SshLoginCancelledByUser", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 If you cannot connect directly to GitHub.com, please use a stable and reliable proxy. 的本地化字符串。
+        /// </summary>
+        public static string Info_UseProxyForGitHub {
+            get {
+                return ResourceManager.GetString("Info_UseProxyForGitHub", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 To assign a GPU to this virtual machine, it must be in the &apos;Off&apos; state. 的本地化字符串。
+        /// </summary>
+        public static string Info_VmMustBeOffForGpuAssignment {
+            get {
+                return ResourceManager.GetString("Info_VmMustBeOffForGpuAssignment", resourceCulture);
             }
         }
         
@@ -1390,6 +1588,42 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 Connect to Linux Virtual Machine 的本地化字符串。
+        /// </summary>
+        public static string Label_ConnectToLinuxVm {
+            get {
+                return ResourceManager.GetString("Label_ConnectToLinuxVm", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Driver Injection 的本地化字符串。
+        /// </summary>
+        public static string Label_DriverInjection {
+            get {
+                return ResourceManager.GetString("Label_DriverInjection", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Host IP Address: 的本地化字符串。
+        /// </summary>
+        public static string Label_HostIpAddress {
+            get {
+                return ResourceManager.GetString("Label_HostIpAddress", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Password: 的本地化字符串。
+        /// </summary>
+        public static string Label_Password {
+            get {
+                return ResourceManager.GetString("Label_Password", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Physical Adapter 的本地化字符串。
         /// </summary>
         public static string Label_PhysicalNetworkAdapter {
@@ -1399,11 +1633,38 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 Port: 的本地化字符串。
+        /// </summary>
+        public static string Label_Port {
+            get {
+                return ResourceManager.GetString("Label_Port", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Proxy IP Address: 的本地化字符串。
+        /// </summary>
+        public static string Label_ProxyIpAddress {
+            get {
+                return ResourceManager.GetString("Label_ProxyIpAddress", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Switch Name 的本地化字符串。
         /// </summary>
         public static string Label_SwitchName {
             get {
                 return ResourceManager.GetString("Label_SwitchName", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Username: 的本地化字符串。
+        /// </summary>
+        public static string Label_Username {
+            get {
+                return ResourceManager.GetString("Label_Username", resourceCulture);
             }
         }
         
@@ -1633,6 +1894,15 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 User selected retry, re-executing deployment script...\n 的本地化字符串。
+        /// </summary>
+        public static string Log_UserRetryingDeployment {
+            get {
+                return ResourceManager.GetString("Log_UserRetryingDeployment", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 [✓] Virtual machine reconnected! Restarting the deployment process... 的本地化字符串。
         /// </summary>
         public static string Log_VmReconnectedRestartingDeploy {
@@ -1858,11 +2128,29 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 e.g., 192.168.1.100 的本地化字符串。
+        /// </summary>
+        public static string Placeholder_IpAddressExample {
+            get {
+                return ResourceManager.GetString("Placeholder_IpAddressExample", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Please select a network adapter... 的本地化字符串。
         /// </summary>
         public static string Placeholder_SelectNetworkAdapter {
             get {
                 return ResourceManager.GetString("Placeholder_SelectNetworkAdapter", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 e.g., root 的本地化字符串。
+        /// </summary>
+        public static string Placeholder_UsernameExample {
+            get {
+                return ResourceManager.GetString("Placeholder_UsernameExample", resourceCulture);
             }
         }
         
@@ -2020,6 +2308,15 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 Checking for updates... 的本地化字符串。
+        /// </summary>
+        public static string Status_CheckingForUpdates {
+            get {
+                return ResourceManager.GetString("Status_CheckingForUpdates", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Connected to: {0} 的本地化字符串。
         /// </summary>
         public static string Status_ConnectedTo {
@@ -2029,11 +2326,38 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 Connecting... 的本地化字符串。
+        /// </summary>
+        public static string Status_Connecting {
+            get {
+                return ResourceManager.GetString("Status_Connecting", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Deployment Complete! 的本地化字符串。
+        /// </summary>
+        public static string Status_DeploymentComplete {
+            get {
+                return ResourceManager.GetString("Status_DeploymentComplete", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Deployment failed, please check the logs. 的本地化字符串。
         /// </summary>
         public static string Status_DeploymentFailedCheckLogs {
             get {
                 return ResourceManager.GetString("Status_DeploymentFailedCheckLogs", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Preparing and executing installation... Please see the real-time progress below. 的本地化字符串。
+        /// </summary>
+        public static string Status_InstallationInProgress {
+            get {
+                return ResourceManager.GetString("Status_InstallationInProgress", resourceCulture);
             }
         }
         
@@ -2173,11 +2497,47 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 Confirm Operation 的本地化字符串。
+        /// </summary>
+        public static string Title_ConfirmOperation {
+            get {
+                return ResourceManager.GetString("Title_ConfirmOperation", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Connecting to {0} 的本地化字符串。
+        /// </summary>
+        public static string Title_ConnectingToVm {
+            get {
+                return ResourceManager.GetString("Title_ConnectingToVm", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Hyper-V Auto Turbo 的本地化字符串。
         /// </summary>
         public static string Title_HyperVAutoTurbo {
             get {
                 return ResourceManager.GetString("Title_HyperVAutoTurbo", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Shutdown Confirmation 的本地化字符串。
+        /// </summary>
+        public static string Title_ShutdownConfirmation {
+            get {
+                return ResourceManager.GetString("Title_ShutdownConfirmation", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 SSH Login 的本地化字符串。
+        /// </summary>
+        public static string Title_SshLogin {
+            get {
+                return ResourceManager.GetString("Title_SshLogin", resourceCulture);
             }
         }
         
@@ -2236,11 +2596,56 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 Host IP address cannot be empty. 的本地化字符串。
+        /// </summary>
+        public static string Validation_HostIpCannotBeEmpty {
+            get {
+                return ResourceManager.GetString("Validation_HostIpCannotBeEmpty", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Invalid Input 的本地化字符串。
         /// </summary>
         public static string Validation_InputInvalid {
             get {
                 return ResourceManager.GetString("Validation_InputInvalid", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Invalid Proxy Port (should be between 1-65535). 的本地化字符串。
+        /// </summary>
+        public static string Validation_InvalidProxyPort {
+            get {
+                return ResourceManager.GetString("Validation_InvalidProxyPort", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Invalid SSH port (should be between 1-65535). 的本地化字符串。
+        /// </summary>
+        public static string Validation_InvalidSshPort {
+            get {
+                return ResourceManager.GetString("Validation_InvalidSshPort", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Proxy IP and Port must be either both filled or both empty. 的本地化字符串。
+        /// </summary>
+        public static string Validation_ProxyIpAndPortMismatch {
+            get {
+                return ResourceManager.GetString("Validation_ProxyIpAndPortMismatch", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Username cannot be empty. 的本地化字符串。
+        /// </summary>
+        public static string Validation_UsernameCannotBeEmpty {
+            get {
+                return ResourceManager.GetString("Validation_UsernameCannotBeEmpty", resourceCulture);
             }
         }
         

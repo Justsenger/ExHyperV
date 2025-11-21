@@ -22,7 +22,7 @@ public class PciInfoProvider
 
         if (resourceInfo == null)
         {
-            throw new FileNotFoundException("无法找到嵌入的 WPF 资源。", _pciResourceUri.ToString());
+            throw new FileNotFoundException(ExHyperV.Properties.Resources.Error_EmbeddedWpfResourceNotFound, _pciResourceUri.ToString());
         }
 
         using (var stream = resourceInfo.Stream)

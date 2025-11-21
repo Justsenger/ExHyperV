@@ -5,8 +5,9 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    xmlns:properties="clr-namespace:ExHyperV.Properties"
     mc:Ignorable="d"
-    Title="正在自动化部署 Linux GPU 环境"
+    Title=""
     Height="500" Width="800"
     WindowStartupLocation="CenterScreen">
 
@@ -18,7 +19,7 @@
         </Grid.RowDefinitions>
         <TextBlock x:Name="StatusTextBlock"
                    Grid.Row="0"
-                   Text="正在准备并执行安装... 请在下方查看实时进度。"
+                   Text="{x:Static properties:Resources.Status_InstallationInProgress}"
                    FontSize="16"
                    FontWeight="SemiBold"
                    Margin="10,5,10,10"
@@ -46,7 +47,7 @@
                     VerticalAlignment="Bottom"
                     Margin="10,10,10,5">
             <Button x:Name="RetryButton" 
-                    Content="重试" 
+                    Content="{x:Static properties:Resources.Button_Retry}"
                     Width="80" 
                     Height="32"
                     Margin="0,0,10,0" 
@@ -54,7 +55,7 @@
                     Visibility="Collapsed"
                     />
             <Button x:Name="CloseButton" 
-                    Content="关闭" 
+                    Content="{x:Static properties:Resources.Button_Close}"
                     Width="80"
                     Height="32"
                     Click="CloseButton_Click" 

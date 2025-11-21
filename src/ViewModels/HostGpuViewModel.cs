@@ -40,12 +40,12 @@ namespace ExHyperV.ViewModels
             {
                 if (long.TryParse(Model.Ram, out long ramBytes))
                 {
-                    // 摩尔线程的特殊处理逻辑
+                    // 专门为摩尔线程准备的单位换算逻辑（注册表里面单位是 MB）
                     if (Model.Manu.Contains("Moore"))
                     {
                         return $"{ramBytes / 1024} MB";
                     }
-                    // 标准处理逻辑
+                    // 标准逻辑
                     return $"{ramBytes / (1024 * 1024)} MB";
                 }
                 return "N/A"; // 如果无法解析，则显示 N/A

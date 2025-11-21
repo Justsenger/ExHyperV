@@ -110,7 +110,6 @@ namespace ExHyperV.Services
                     var vmResults = Utils.Run(vmAdaptersScript);
                     if (vmResults != null)
                     {
-                        // 2. 彻底替换掉旧的循环逻辑
                         var tasks = vmResults.Select(async pso =>
                         {
                             var vmName = pso.Properties["VMName"]?.Value?.ToString() ?? "";

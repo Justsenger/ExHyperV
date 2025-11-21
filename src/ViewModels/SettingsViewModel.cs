@@ -36,7 +36,7 @@ namespace ExHyperV.ViewModels
             IsCheckingForUpdate = true;
             IsUpdateActionEnabled = false;
             ShowUpdateIndicator = false;
-            UpdateStatusText = "正在检查更新...";
+            UpdateStatusText = ExHyperV.Properties.Resources.Status_CheckingForUpdates;
 
             try
             {
@@ -44,7 +44,7 @@ namespace ExHyperV.ViewModels
 
                 if (result.IsUpdateAvailable)
                 {
-                    UpdateStatusText = $"发现新版本: {result.LatestVersion}";
+                    UpdateStatusText = string.Format(Properties.Resources.Info_NewVersionFound, result.LatestVersion);
                     UpdateActionIcon = "\uE71B";
                     UpdateActionCommand = GoToReleasePageCommand;
                     _latestVersionTag = result.LatestVersion;
@@ -52,7 +52,7 @@ namespace ExHyperV.ViewModels
                 }
                 else
                 {
-                    UpdateStatusText = "已是最新版本";
+                    UpdateStatusText = ExHyperV.Properties.Resources.Info_AlreadyLatestVersion;
                     UpdateActionIcon = "\uE73E";
                     UpdateActionCommand = CheckForUpdateCommand;
                 }
@@ -81,10 +81,7 @@ namespace ExHyperV.ViewModels
             {
                 Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
             }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"无法打开链接: {ex.Message}");
-            }
+            catch{}
         }
         public string CopyrightInfo => "© 2025 | Saniye | " + Utils.Version;
 
