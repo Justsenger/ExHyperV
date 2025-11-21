@@ -733,7 +733,7 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
-        ///   查找类似 Host (Management OS) 的本地化字符串。
+        ///   查找类似 Host 的本地化字符串。
         /// </summary>
         public static string DisplayName_HostManagementOS {
             get {

@@ -461,7 +461,7 @@
     <value>获取网络信息时发生错误，请确保以管理员权限运行，并已安装Hyper-V模块。</value>
   </data>
   <data name="DisplayName_HostManagementOS" xml:space="preserve">
-    <value>主机 (管理操作系统)</value>
+    <value>主机</value>
   </data>
   <data name="Error_ExternalSwitchRequiresPhysicalAdapter" xml:space="preserve">
     <value>外部交换机必须指定一个物理网卡。</value>

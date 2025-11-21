@@ -1,9 +1,5 @@
 #!/bin/bash -e
-
-# --------------------------------------------------------
-# install_dxgkrnl.sh - Final Fixed Version
-# --------------------------------------------------------
-
+# install_dxgkrnl.sh
 WORKDIR="$(dirname $(realpath $0))"
 LINUX_DISTRO="$(cat /etc/*-release)"
 LINUX_DISTRO=${LINUX_DISTRO,,}

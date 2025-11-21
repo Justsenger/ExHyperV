@@ -461,7 +461,7 @@ Do you want to shut down the virtual machine and expand its MMIO space to 64GB?<
     <value>Failed to get network information. Please ensure the program is run with administrator privileges and the Hyper-V module is installed.</value>
   </data>
   <data name="DisplayName_HostManagementOS" xml:space="preserve">
-    <value>Host (Management OS)</value>
+    <value>Host</value>
   </data>
   <data name="Error_ExternalSwitchRequiresPhysicalAdapter" xml:space="preserve">
     <value>A physical network adapter must be specified for an external switch.</value>

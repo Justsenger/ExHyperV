@@ -113,7 +113,7 @@
                                         <RowDefinition Height="Auto" />
                                     </Grid.RowDefinitions>
 
-                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="{x:Static properties:Resources.NetMode}" VerticalAlignment="Center" FontSize="16" Margin="0,0,0,4"/>
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="{x:Static properties:Resources.NetMode}" VerticalAlignment="Center" FontSize="15" Margin="0,0,0,4"/>
                                     <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,0,4"
                                                 IsEnabled="{Binding IsLockedForInteraction, Converter={StaticResource InvertBool}}">
                                         <RadioButton Content="{x:Static properties:Resources.Bridge}" Padding="8,6,8,4" GroupName="{Binding SwitchId}" 
@@ -130,7 +130,7 @@
                                                      IsEnabled="{Binding IsDefaultSwitch, Converter={StaticResource InvertBool}}"/>
                                     </StackPanel>
 
-                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="{x:Static properties:Resources.Internet}" VerticalAlignment="Center" FontSize="16" Margin="0,0,0,8"/>
+                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="{x:Static properties:Resources.Internet}" VerticalAlignment="Center" FontSize="15" Margin="0,0,0,8"/>
                                     <ui:DropDownButton Grid.Row="1" Grid.Column="1" Content="{Binding DropDownButtonContent}" IsEnabled="{Binding IsUpstreamSelectionEnabled}" Margin="0,0,0,8">
                                         <ui:DropDownButton.Flyout>
                                             <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}" ItemsSource="{Binding MenuItems}">
@@ -145,12 +145,12 @@
                                         </ui:DropDownButton.Flyout>
                                     </ui:DropDownButton>
 
-                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="{x:Static properties:Resources.Hostconnected}" VerticalAlignment="Center" FontSize="16" Margin="0,0,0,0"/>
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="{x:Static properties:Resources.Hostconnected}" VerticalAlignment="Center" FontSize="15" Margin="0,0,0,0"/>
                                     <ui:ToggleSwitch Grid.Row="2" Grid.Column="1" HorizontalAlignment="Left" IsChecked="{Binding IsHostConnectionAllowed, Mode=TwoWay}" IsEnabled="{Binding IsHostConnectionToggleEnabled}" Margin="0,0,0,0"/>
                                 </Grid>
 
                                 <StackPanel Margin="0,12,0,10">
-                                    <TextBlock Text="{x:Static properties:Resources.NetDraw}" FontSize="16" Margin="0,0,0,10" />
+                                    <TextBlock Text="{x:Static properties:Resources.NetDraw}" FontSize="15" Margin="0,0,0,10" />
                                     <tools:TopologyCanvas 
                                         ItemsSource="{Binding ConnectedClients}"
                                         SwitchName="{Binding SwitchName}"
