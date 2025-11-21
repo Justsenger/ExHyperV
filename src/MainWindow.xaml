@@ -105,7 +105,7 @@
                     Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"
                     >
                     <ui:NavigationViewItem.Icon>
-                        <ui:FontIcon FontSize="16" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xF58E;"/>
+                        <ui:FontIcon FontSize="16" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xE12C;"/>
                     </ui:NavigationViewItem.Icon>
                 </ui:NavigationViewItem>
 

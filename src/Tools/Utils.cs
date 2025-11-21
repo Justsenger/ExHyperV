@@ -79,7 +79,7 @@ public class Utils
         switch (deviceType)
         {
             case "Switch":
-                return "\xE967";  // 交换机图标 
+                return "\xF597";  // 交换机图标 
             case "Upstream":
                 return "\uE774";  // 地球/上游网络图标
             case "Display":
