@@ -45,7 +45,7 @@ Due to limited personal time and resources, there may be untested scenarios. If 
 
 ## 🚀 Quick Start
 
-### 1. System Requirements
+### 1. Host System Requirements
 
 #### DDA (Discrete Device Assignment)
 - Windows Server 2019 
