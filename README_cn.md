@@ -45,7 +45,7 @@ ExHyperV 深入研究了微软官方文档和 [Easy-GPU-PV](https://github.com/j
 
 ## 🚀 快速开始
 
-### 1. 系统要求
+### 1. 宿主系统要求
 
 #### DDA (离散设备分配)
 - Windows Server 2019 
@@ -57,8 +57,6 @@ ExHyperV 深入研究了微软官方文档和 [Easy-GPU-PV](https://github.com/j
 - Windows 11
 - Windows Server 2022
 - Windows Server 2025
-
-> **注意**: Win10支持将在V1.2.3添加。
 
 #### 虚拟交换机
 - 无特定要求
