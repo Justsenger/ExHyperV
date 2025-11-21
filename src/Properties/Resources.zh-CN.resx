@@ -866,7 +866,10 @@
     <value>[X] 部署失败: {0}</value>
   </data>
   <data name="Log_ErrorBlockHeader" xml:space="preserve">
-    <value>\n\n--- 错误发生 ---\n{0}</value>
+    <value>
+
+--- 错误发生 ---
+{0}</value>
   </data>
   <data name="Status_DeploymentFailedCheckLogs" xml:space="preserve">
     <value>部署失败，请检查日志</value>
@@ -875,13 +878,17 @@
     <value>操作被用户强行中止。</value>
   </data>
   <data name="Error_FatalExceptionOccurred" xml:space="preserve">
-    <value>【严重异常】\n\n操作中发生异常: {0}</value>
+    <value>【严重异常】
+
+操作中发生异常: {0}</value>
   </data>
   <data name="Error_OperationFailed" xml:space="preserve">
     <value>操作失败: {0}</value>
   </data>
   <data name="Warning_Win10GpuAssignmentNotPersistent" xml:space="preserve">
-    <value>Windows10作为宿主时，本次指定的GPU分区仅本次有效。\n\n若要确保虚拟机下次冷启动仍使用该GPU，请先手动禁用其他GPU；或通过本工具再次分配。</value>
+    <value>Windows10作为宿主时，本次指定的GPU分区仅本次有效。
+
+若要确保虚拟机下次冷启动仍使用该GPU，请先手动禁用其他GPU；或通过本工具再次分配。</value>
   </data>
   <data name="Error_EmbeddedWpfResourceNotFound" xml:space="preserve">
     <value>无法找到嵌入的 WPF 资源。</value>
@@ -926,7 +933,8 @@
     <value>发生错误: {0}</value>
   </data>
   <data name="Log_UserRetryingDeployment" xml:space="preserve">
-    <value>用户选择重试，正在重新执行部署脚本...\n</value>
+    <value>用户选择重试，正在重新执行部署脚本...
+</value>
   </data>
   <data name="Title_ConfirmOperation" xml:space="preserve">
     <value>确认操作</value>
@@ -944,7 +952,11 @@
     <value>关机并继续</value>
   </data>
   <data name="Confirm_ShutdownMessage" xml:space="preserve">
-    <value>虚拟机 “{0}” 当前正在运行。\n\n为了继续分配GPU，需要将此虚拟机关闭。\n\n选择“关机并继续”将执行强制关闭操作（等同于断开电源）。</value>
+    <value>虚拟机 “{0}” 当前正在运行。
+
+为了继续分配GPU，需要将此虚拟机关闭。
+
+选择“关机并继续”将执行强制关闭操作（等同于断开电源）。</value>
   </data>
   <data name="Title_SshLogin" xml:space="preserve">
     <value>SSH 登录</value>
@@ -967,11 +979,11 @@
   <data name="Placeholder_UsernameExample" xml:space="preserve">
     <value>例如: root</value>
   </data>
-  <data name="CheckBox_InstallGraphicsDrivers" xml:space="preserve">
-    <value>安装 OpenGL/Vulkan 图形驱动（更耗时）</value>
-  </data>
   <data name="Label_Password" xml:space="preserve">
     <value>口令:</value>
+  </data>
+  <data name="CheckBox_InstallGraphicsDrivers" xml:space="preserve">
+    <value>安装 OpenGL/Vulkan 图形驱动（更耗时）</value>
   </data>
   <data name="GroupBox_HttpProxyOptional" xml:space="preserve">
     <value>HTTP 代理 (可选)</value>
@@ -979,11 +991,11 @@
   <data name="Info_UseProxyForGitHub" xml:space="preserve">
     <value>如果不能直连 GitHub.com，请使用稳定可靠的代理。</value>
   </data>
-  <data name="Button_Connect" xml:space="preserve">
-    <value>连接</value>
-  </data>
   <data name="Label_ProxyIpAddress" xml:space="preserve">
     <value>代理 IP 地址:</value>
+  </data>
+  <data name="Button_Connect" xml:space="preserve">
+    <value>连接</value>
   </data>
   <data name="Title_ConnectingToVm" xml:space="preserve">
     <value>连接到 {0}</value>
@@ -994,20 +1006,21 @@
   <data name="Validation_InvalidSshPort" xml:space="preserve">
     <value>SSH 端口无效 (应为 1-65535)。</value>
   </data>
-  <data name="Validation_InvalidProxyPort" xml:space="preserve">
-    <value>代理端口号无效 (应为 1-65535)。</value>
+  <data name="Validation_UsernameCannotBeEmpty" xml:space="preserve">
+    <value>用户名不能为空。</value>
   </data>
   <data name="Validation_ProxyIpAndPortMismatch" xml:space="preserve">
     <value>代理 IP 和端口必须同时填写或同时为空。</value>
   </data>
-  <data name="Validation_UsernameCannotBeEmpty" xml:space="preserve">
-    <value>用户名不能为空。</value>
+  <data name="Validation_InvalidProxyPort" xml:space="preserve">
+    <value>代理端口号无效 (应为 1-65535)。</value>
   </data>
   <data name="Status_Connecting" xml:space="preserve">
     <value>正在连接中...</value>
   </data>
   <data name="Error_ConnectionFailed" xml:space="preserve">
-    <value>连接失败: 无法连接到主机 {0} 的端口 {1}。\n请检查 IP 和端口是否正确。</value>
+    <value>连接失败: 无法连接到主机 {0} 的端口 {1}。
+请检查 IP 和端口是否正确。</value>
   </data>
   <data name="Error_ConnectionTimedOut" xml:space="preserve">
     <value>连接超时: 无法连接到主机 {0} 的端口 {1}。</value>
@@ -1017,5 +1030,8 @@
   </data>
   <data name="Error_UnknownConnectionError" xml:space="preserve">
     <value>连接发生未知错误: {0}</value>
+  </data>
+  <data name="Title_Information" xml:space="preserve">
+    <value>提示</value>
   </data>
 </root>

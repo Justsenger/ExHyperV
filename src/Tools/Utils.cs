@@ -414,7 +414,7 @@ public class Utils
     {
         var messageBox = new Wpf.Ui.Controls.MessageBox
         {
-            Title = "提示",
+            Title = ExHyperV.Properties.Resources.Title_Information,
             Content = message,
             CloseButtonText = "OK"
         };

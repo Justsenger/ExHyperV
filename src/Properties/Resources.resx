@@ -866,7 +866,10 @@ The existing NAT switch is: '{0}'</value>
     <value>[X] Deployment failed: {0}</value>
   </data>
   <data name="Log_ErrorBlockHeader" xml:space="preserve">
-    <value>\n\n--- ERROR OCCURRED ---\n{0}</value>
+    <value>
+
+--- ERROR OCCURRED ---
+{0}</value>
   </data>
   <data name="Status_DeploymentFailedCheckLogs" xml:space="preserve">
     <value>Deployment failed, please check the logs.</value>
@@ -875,13 +878,17 @@ The existing NAT switch is: '{0}'</value>
     <value>The operation was forcibly aborted by the user.</value>
   </data>
   <data name="Error_FatalExceptionOccurred" xml:space="preserve">
-    <value>[FATAL EXCEPTION]\n\nAn exception occurred during the operation: {0}</value>
+    <value>[FATAL EXCEPTION]
+
+An exception occurred during the operation: {0}</value>
   </data>
   <data name="Error_OperationFailed" xml:space="preserve">
     <value>Operation failed: {0}</value>
   </data>
   <data name="Warning_Win10GpuAssignmentNotPersistent" xml:space="preserve">
-    <value>When using Windows 10 as the host, the assigned GPU partition is only effective for the current session.\n\nTo ensure the virtual machine uses the same GPU on the next cold boot, you must either manually disable other GPUs first, or re-assign it using this tool.</value>
+    <value>When using Windows 10 as the host, the assigned GPU partition is only effective for the current session.
+
+To ensure the virtual machine uses the same GPU on the next cold boot, you must either manually disable other GPUs first, or re-assign it using this tool.</value>
   </data>
   <data name="Error_EmbeddedWpfResourceNotFound" xml:space="preserve">
     <value>Could not find the embedded WPF resource.</value>
@@ -926,7 +933,8 @@ The existing NAT switch is: '{0}'</value>
     <value>An error occurred: {0}</value>
   </data>
   <data name="Log_UserRetryingDeployment" xml:space="preserve">
-    <value>User selected retry, re-executing deployment script...\n</value>
+    <value>User selected retry, re-executing deployment script...
+</value>
   </data>
   <data name="Title_ConfirmOperation" xml:space="preserve">
     <value>Confirm Operation</value>
@@ -944,7 +952,11 @@ The existing NAT switch is: '{0}'</value>
     <value>Shutdown and Continue</value>
   </data>
   <data name="Confirm_ShutdownMessage" xml:space="preserve">
-    <value>The virtual machine "{0}" is currently running.\n\nTo proceed with the GPU assignment, this virtual machine needs to be shut down.\n\nSelecting "Shutdown and Continue" will perform a forced shutdown (equivalent to unplugging the power cord).</value>
+    <value>The virtual machine "{0}" is currently running.
+
+To proceed with the GPU assignment, this virtual machine needs to be shut down.
+
+Selecting "Shutdown and Continue" will perform a forced shutdown (equivalent to unplugging the power cord).</value>
   </data>
   <data name="Title_SshLogin" xml:space="preserve">
     <value>SSH Login</value>
@@ -1007,7 +1019,8 @@ The existing NAT switch is: '{0}'</value>
     <value>Connecting...</value>
   </data>
   <data name="Error_ConnectionFailed" xml:space="preserve">
-    <value>Connection failed: Could not connect to host {0} on port {1}.\nPlease check if the IP and port are correct.</value>
+    <value>Connection failed: Could not connect to host {0} on port {1}.
+Please check if the IP and port are correct.</value>
   </data>
   <data name="Error_ConnectionTimedOut" xml:space="preserve">
     <value>Connection timed out: Could not connect to host {0} on port {1}.</value>

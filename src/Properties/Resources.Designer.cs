@@ -502,7 +502,11 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
-        ///   查找类似 The virtual machine &quot;{0}&quot; is currently running.\n\nTo proceed with the GPU assignment, this virtual machine needs to be shut down.\n\nSelecting &quot;Shutdown and Continue&quot; will perform a forced shutdown (equivalent to unplugging the power cord). 的本地化字符串。
+        ///   查找类似 The virtual machine &quot;{0}&quot; is currently running.
+        ///
+        ///To proceed with the GPU assignment, this virtual machine needs to be shut down.
+        ///
+        ///Selecting &quot;Shutdown and Continue&quot; will perform a forced shutdown (equivalent to unplugging the power cord). 的本地化字符串。
         /// </summary>
         public static string Confirm_ShutdownMessage {
             get {
@@ -864,7 +868,8 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
-        ///   查找类似 Connection failed: Could not connect to host {0} on port {1}.\nPlease check if the IP and port are correct. 的本地化字符串。
+        ///   查找类似 Connection failed: Could not connect to host {0} on port {1}.
+        ///Please check if the IP and port are correct. 的本地化字符串。
         /// </summary>
         public static string Error_ConnectionFailed {
             get {
@@ -981,7 +986,9 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
-        ///   查找类似 [FATAL EXCEPTION]\n\nAn exception occurred during the operation: {0} 的本地化字符串。
+        ///   查找类似 [FATAL EXCEPTION]
+        ///
+        ///An exception occurred during the operation: {0} 的本地化字符串。
         /// </summary>
         public static string Error_FatalExceptionOccurred {
             get {
@@ -1777,7 +1784,10 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
-        ///   查找类似 \n\n--- ERROR OCCURRED ---\n{0} 的本地化字符串。
+        ///   查找类似 
+        ///
+        ///--- ERROR OCCURRED ---
+        ///{0} 的本地化字符串。
         /// </summary>
         public static string Log_ErrorBlockHeader {
             get {
@@ -1894,7 +1904,8 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
-        ///   查找类似 User selected retry, re-executing deployment script...\n 的本地化字符串。
+        ///   查找类似 User selected retry, re-executing deployment script...
+        /// 的本地化字符串。
         /// </summary>
         public static string Log_UserRetryingDeployment {
             get {
@@ -2735,7 +2746,9 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
-        ///   查找类似 When using Windows 10 as the host, the assigned GPU partition is only effective for the current session.\n\nTo ensure the virtual machine uses the same GPU on the next cold boot, you must either manually disable other GPUs first, or re-assign it using this tool. 的本地化字符串。
+        ///   查找类似 When using Windows 10 as the host, the assigned GPU partition is only effective for the current session.
+        ///
+        ///To ensure the virtual machine uses the same GPU on the next cold boot, you must either manually disable other GPUs first, or re-assign it using this tool. 的本地化字符串。
         /// </summary>
         public static string Warning_Win10GpuAssignmentNotPersistent {
             get {
