@@ -425,7 +425,7 @@ public class Utils
 
         System.Windows.MessageBox.Show(message);
     }
-    public static string Version => "V1.2.3-Beta8";
+    public static string Version => "V1.3";
     public static string Author => "砂菱叶";
 
 }
