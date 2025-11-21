@@ -58,9 +58,6 @@ Due to limited personal time and resources, there may be untested scenarios. If 
 - Windows Server 2022
 - Windows Server 2025
 
-> **Note**: Win10 support will be added in version 1.2.3.
-
-
 #### Virtual Switch
 - No specific requirements
 
