@@ -745,4 +745,142 @@ The existing NAT switch is: '{0}'</value>
   <data name="Running" xml:space="preserve">
     <value>Running</value>
   </data>
+  <data name="Error_VmHardDiskNotFound" xml:space="preserve">
+    <value>Could not find the virtual hard disk file for virtual machine '{0}'.</value>
+  </data>
+  <data name="Error_NoAvailableDriveLetters" xml:space="preserve">
+    <value>No available drive letters.</value>
+  </data>
+  <data name="Error_MountVhdOrGetDiskNumberFailed" xml:space="preserve">
+    <value>Failed to mount the virtual disk or get its disk number.</value>
+  </data>
+  <data name="Error_AdminRequiredForPartitionInfo" xml:space="preserve">
+    <value>Reading disk partition information requires administrator privileges. Please restart the application as an administrator.</value>
+  </data>
+  <data name="Error_InvalidWindowsPartition" xml:space="preserve">
+    <value>The selected partition (Number: {0}, mounted as {1}) does not appear to be a valid Windows system partition. The required path '{2}' was not found, or the partition is encrypted with Bitlocker.</value>
+  </data>
+  <data name="Error_VmMustBeOff" xml:space="preserve">
+    <value>Error: Virtual machine '{0}' must be in the 'Off' state.</value>
+  </data>
+  <data name="Error_GetVmHardDiskPathFailed" xml:space="preserve">
+    <value>Error: Failed to get the virtual machine's hard disk path for driver injection.</value>
+  </data>
+  <data name="Error_GetVmMacAddressFailed" xml:space="preserve">
+    <value>Error: Failed to get the MAC address for virtual machine '{0}'. Please check the virtual machine's network settings.</value>
+  </data>
+  <data name="Error_NoValidIpv4AddressFound" xml:space="preserve">
+    <value>Error: Found address(es) '{0}' but could not resolve a valid IPv4 address.</value>
+  </data>
+  <data name="Info_SshLoginCancelledByUser" xml:space="preserve">
+    <value>The SSH login operation was cancelled by the user.</value>
+  </data>
+  <data name="Error_PreparationFailed" xml:space="preserve">
+    <value>An error occurred during the preparation phase: {0}</value>
+  </data>
+  <data name="LinuxDeploy_Step1" xml:space="preserve">
+    <value>[1/5] Connecting to VM and initializing remote environment...</value>
+  </data>
+  <data name="Log_SshConnectionSuccess" xml:space="preserve">
+    <value>[✓] SSH connection successful.</value>
+  </data>
+  <data name="Error_GetLinuxHomeDirectoryFailed" xml:space="preserve">
+    <value>[X] Failed to get the Linux home directory path.</value>
+  </data>
+  <data name="Log_LinuxHomeDirectoryFound" xml:space="preserve">
+    <value>[✓] Linux home directory found: {0}</value>
+  </data>
+  <data name="Log_TempDeployDirectoryCreated" xml:space="preserve">
+    <value>[✓] Temporary deployment directory created: {0}</value>
+  </data>
+  <data name="Log_RemoteEnvInitializationComplete" xml:space="preserve">
+    <value>[✓] Remote environment initialization complete.</value>
+  </data>
+  <data name="LinuxDeploy_Step2" xml:space="preserve">
+    <value>[2/5] Configuring network proxy...</value>
+  </data>
+  <data name="Log_ProxyServerInfo" xml:space="preserve">
+    <value>[✓] Proxy server: {0}:{1}</value>
+  </data>
+  <data name="Log_ProxyConfigurationComplete" xml:space="preserve">
+    <value>[✓] Network proxy configuration complete.</value>
+  </data>
+  <data name="LinuxDeploy_Step3" xml:space="preserve">
+    <value>[3/5] Locating host GPU driver...</value>
+  </data>
+  <data name="Log_GpuDriverNotFoundFallback" xml:space="preserve">
+    <value>[!] Could not locate the specific GPU driver folder. A full driver copy will be performed.</value>
+  </data>
+  <data name="Log_PreciseDriverPathLocated" xml:space="preserve">
+    <value>[✓] Precise driver path located: {0}</value>
+  </data>
+  <data name="LinuxDeploy_Step3_Status_Import" xml:space="preserve">
+    <value>[3/5] Importing GPU drivers and library files...</value>
+  </data>
+  <data name="Log_HostDriverImportComplete" xml:space="preserve">
+    <value>[✓] Host driver files import complete.</value>
+  </data>
+  <data name="Log_LocalLibrariesCheckComplete" xml:space="preserve">
+    <value>[✓] Local core libraries check complete.</value>
+  </data>
+  <data name="LinuxDeploy_Step4" xml:space="preserve">
+    <value>[4/5] Downloading and executing the deployment script from GitHub...</value>
+  </data>
+  <data name="Log_DxgkrnlModuleCompiling" xml:space="preserve">
+    <value>[!] Compiling the dxgkrnl kernel module, this process may take a long time and might trigger a system reboot...</value>
+  </data>
+  <data name="Log_KernelUpdateRebootRequired" xml:space="preserve">
+    <value>[!] Kernel update complete, a system reboot is required. The program will handle it automatically...</value>
+  </data>
+  <data name="Status_RebootingVm" xml:space="preserve">
+    <value>[~] Rebooting the virtual machine...</value>
+  </data>
+  <data name="Log_WaitingForVmToComeOnline" xml:space="preserve">
+    <value>[~] Waiting for the virtual machine to come back online (this may take 1-2 minutes)...</value>
+  </data>
+  <data name="Error_VmDidNotComeBackOnline" xml:space="preserve">
+    <value>[X] The virtual machine failed to come back online after reboot. Deployment failed.</value>
+  </data>
+  <data name="Log_VmReconnectedRestartingDeploy" xml:space="preserve">
+    <value>[✓] Virtual machine reconnected! Restarting the deployment process...</value>
+  </data>
+  <data name="Error_KernelModuleScriptFailed" xml:space="preserve">
+    <value>[X] The kernel module installation script failed to return a success status. Please check the logs.</value>
+  </data>
+  <data name="Log_KernelModuleInstallSuccess" xml:space="preserve">
+    <value>[✓] Kernel module installed successfully.</value>
+  </data>
+  <data name="Log_ConfiguringMesa" xml:space="preserve">
+    <value>[!] Configuring Mesa graphics environment...</value>
+  </data>
+  <data name="Log_ConfiguringSystem" xml:space="preserve">
+    <value>[!] Performing system configuration...</value>
+  </data>
+  <data name="LinuxDeploy_Step5" xml:space="preserve">
+    <value>[5/5] Deployment complete! The virtual machine will now reboot...</value>
+  </data>
+  <data name="Info_OperationCancelled" xml:space="preserve">
+    <value>Operation cancelled.</value>
+  </data>
+  <data name="Error_DeploymentFailed" xml:space="preserve">
+    <value>[X] Deployment failed: {0}</value>
+  </data>
+  <data name="Log_ErrorBlockHeader" xml:space="preserve">
+    <value>\n\n--- ERROR OCCURRED ---\n{0}</value>
+  </data>
+  <data name="Status_DeploymentFailedCheckLogs" xml:space="preserve">
+    <value>Deployment failed, please check the logs.</value>
+  </data>
+  <data name="Info_OperationAbortedByUser" xml:space="preserve">
+    <value>The operation was forcibly aborted by the user.</value>
+  </data>
+  <data name="Error_FatalExceptionOccurred" xml:space="preserve">
+    <value>[FATAL EXCEPTION]\n\nAn exception occurred during the operation: {0}</value>
+  </data>
+  <data name="Error_OperationFailed" xml:space="preserve">
+    <value>Operation failed: {0}</value>
+  </data>
+  <data name="Warning_Win10GpuAssignmentNotPersistent" xml:space="preserve">
+    <value>When using Windows 10 as the host, the assigned GPU partition is only effective for the current session.\n\nTo ensure the virtual machine uses the same GPU on the next cold boot, you must either manually disable other GPUs first, or re-assign it using this tool.</value>
+  </data>
 </root>

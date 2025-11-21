@@ -720,6 +720,15 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 Reading disk partition information requires administrator privileges. Please restart the application as an administrator. 的本地化字符串。
+        /// </summary>
+        public static string Error_AdminRequiredForPartitionInfo {
+            get {
+                return ResourceManager.GetString("Error_AdminRequiredForPartitionInfo", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 IOMMU is not enabled in the BIOS. DDA and GPU-PV are unavailable. 的本地化字符串。
         /// </summary>
         public static string Error_BiosIommuDisabled {
@@ -801,6 +810,15 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 [X] Deployment failed: {0} 的本地化字符串。
+        /// </summary>
+        public static string Error_DeploymentFailed {
+            get {
+                return ResourceManager.GetString("Error_DeploymentFailed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Error: Failed to export local registry information. 的本地化字符串。
         /// </summary>
         public static string Error_ExportLocalRegistryInfoFailed {
@@ -846,6 +864,15 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 [FATAL EXCEPTION]\n\nAn exception occurred during the operation: {0} 的本地化字符串。
+        /// </summary>
+        public static string Error_FatalExceptionOccurred {
+            get {
+                return ResourceManager.GetString("Error_FatalExceptionOccurred", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Error: {0} 的本地化字符串。
         /// </summary>
         public static string Error_GenericFormat {
@@ -855,11 +882,56 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 [X] Failed to get the Linux home directory path. 的本地化字符串。
+        /// </summary>
+        public static string Error_GetLinuxHomeDirectoryFailed {
+            get {
+                return ResourceManager.GetString("Error_GetLinuxHomeDirectoryFailed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Failed to get network information. Please ensure the program is run with administrator privileges and the Hyper-V module is installed. 的本地化字符串。
         /// </summary>
         public static string Error_GetNetworkInfoFailed {
             get {
                 return ResourceManager.GetString("Error_GetNetworkInfoFailed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Error: Failed to get the virtual machine&apos;s hard disk path for driver injection. 的本地化字符串。
+        /// </summary>
+        public static string Error_GetVmHardDiskPathFailed {
+            get {
+                return ResourceManager.GetString("Error_GetVmHardDiskPathFailed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Error: Failed to get the MAC address for virtual machine &apos;{0}&apos;. Please check the virtual machine&apos;s network settings. 的本地化字符串。
+        /// </summary>
+        public static string Error_GetVmMacAddressFailed {
+            get {
+                return ResourceManager.GetString("Error_GetVmMacAddressFailed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 The selected partition (Number: {0}, mounted as {1}) does not appear to be a valid Windows system partition. The required path &apos;{2}&apos; was not found, or the partition is encrypted with Bitlocker. 的本地化字符串。
+        /// </summary>
+        public static string Error_InvalidWindowsPartition {
+            get {
+                return ResourceManager.GetString("Error_InvalidWindowsPartition", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 [X] The kernel module installation script failed to return a success status. Please check the logs. 的本地化字符串。
+        /// </summary>
+        public static string Error_KernelModuleScriptFailed {
+            get {
+                return ResourceManager.GetString("Error_KernelModuleScriptFailed", resourceCulture);
             }
         }
         
@@ -878,6 +950,33 @@ namespace ExHyperV.Properties {
         public static string Error_LoadNetworkInfoFailed {
             get {
                 return ResourceManager.GetString("Error_LoadNetworkInfoFailed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Failed to mount the virtual disk or get its disk number. 的本地化字符串。
+        /// </summary>
+        public static string Error_MountVhdOrGetDiskNumberFailed {
+            get {
+                return ResourceManager.GetString("Error_MountVhdOrGetDiskNumberFailed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 No available drive letters. 的本地化字符串。
+        /// </summary>
+        public static string Error_NoAvailableDriveLetters {
+            get {
+                return ResourceManager.GetString("Error_NoAvailableDriveLetters", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Error: Found address(es) &apos;{0}&apos; but could not resolve a valid IPv4 address. 的本地化字符串。
+        /// </summary>
+        public static string Error_NoValidIpv4AddressFound {
+            get {
+                return ResourceManager.GetString("Error_NoValidIpv4AddressFound", resourceCulture);
             }
         }
         
@@ -911,11 +1010,29 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 Operation failed: {0} 的本地化字符串。
+        /// </summary>
+        public static string Error_OperationFailed {
+            get {
+                return ResourceManager.GetString("Error_OperationFailed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Operation failed: The physical network adapter &apos;{0}&apos; is already in use by the switch &apos;{1}&apos;. 的本地化字符串。
         /// </summary>
         public static string Error_PhysicalAdapterInUse {
             get {
                 return ResourceManager.GetString("Error_PhysicalAdapterInUse", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 An error occurred during the preparation phase: {0} 的本地化字符串。
+        /// </summary>
+        public static string Error_PreparationFailed {
+            get {
+                return ResourceManager.GetString("Error_PreparationFailed", resourceCulture);
             }
         }
         
@@ -970,6 +1087,33 @@ namespace ExHyperV.Properties {
         public static string Error_UpdateSwitchConfigFailed {
             get {
                 return ResourceManager.GetString("Error_UpdateSwitchConfigFailed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 [X] The virtual machine failed to come back online after reboot. Deployment failed. 的本地化字符串。
+        /// </summary>
+        public static string Error_VmDidNotComeBackOnline {
+            get {
+                return ResourceManager.GetString("Error_VmDidNotComeBackOnline", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Could not find the virtual hard disk file for virtual machine &apos;{0}&apos;. 的本地化字符串。
+        /// </summary>
+        public static string Error_VmHardDiskNotFound {
+            get {
+                return ResourceManager.GetString("Error_VmHardDiskNotFound", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Error: Virtual machine &apos;{0}&apos; must be in the &apos;Off&apos; state. 的本地化字符串。
+        /// </summary>
+        public static string Error_VmMustBeOff {
+            get {
+                return ResourceManager.GetString("Error_VmMustBeOff", resourceCulture);
             }
         }
         
@@ -1156,6 +1300,33 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 The operation was forcibly aborted by the user. 的本地化字符串。
+        /// </summary>
+        public static string Info_OperationAbortedByUser {
+            get {
+                return ResourceManager.GetString("Info_OperationAbortedByUser", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Operation cancelled. 的本地化字符串。
+        /// </summary>
+        public static string Info_OperationCancelled {
+            get {
+                return ResourceManager.GetString("Info_OperationCancelled", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 The SSH login operation was cancelled by the user. 的本地化字符串。
+        /// </summary>
+        public static string Info_SshLoginCancelledByUser {
+            get {
+                return ResourceManager.GetString("Info_SshLoginCancelledByUser", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Graphics Card 的本地化字符串。
         /// </summary>
         public static string installedcard {
@@ -1255,11 +1426,227 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 [1/5] Connecting to VM and initializing remote environment... 的本地化字符串。
+        /// </summary>
+        public static string LinuxDeploy_Step1 {
+            get {
+                return ResourceManager.GetString("LinuxDeploy_Step1", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 [2/5] Configuring network proxy... 的本地化字符串。
+        /// </summary>
+        public static string LinuxDeploy_Step2 {
+            get {
+                return ResourceManager.GetString("LinuxDeploy_Step2", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 [3/5] Locating host GPU driver... 的本地化字符串。
+        /// </summary>
+        public static string LinuxDeploy_Step3 {
+            get {
+                return ResourceManager.GetString("LinuxDeploy_Step3", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 [3/5] Importing GPU drivers and library files... 的本地化字符串。
+        /// </summary>
+        public static string LinuxDeploy_Step3_Status_Import {
+            get {
+                return ResourceManager.GetString("LinuxDeploy_Step3_Status_Import", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 [4/5] Downloading and executing the deployment script from GitHub... 的本地化字符串。
+        /// </summary>
+        public static string LinuxDeploy_Step4 {
+            get {
+                return ResourceManager.GetString("LinuxDeploy_Step4", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 [5/5] Deployment complete! The virtual machine will now reboot... 的本地化字符串。
+        /// </summary>
+        public static string LinuxDeploy_Step5 {
+            get {
+                return ResourceManager.GetString("LinuxDeploy_Step5", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Failed to load data: {0} 的本地化字符串。
         /// </summary>
         public static string LoadDataFailed {
             get {
                 return ResourceManager.GetString("LoadDataFailed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 [!] Configuring Mesa graphics environment... 的本地化字符串。
+        /// </summary>
+        public static string Log_ConfiguringMesa {
+            get {
+                return ResourceManager.GetString("Log_ConfiguringMesa", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 [!] Performing system configuration... 的本地化字符串。
+        /// </summary>
+        public static string Log_ConfiguringSystem {
+            get {
+                return ResourceManager.GetString("Log_ConfiguringSystem", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 [!] Compiling the dxgkrnl kernel module, this process may take a long time and might trigger a system reboot... 的本地化字符串。
+        /// </summary>
+        public static string Log_DxgkrnlModuleCompiling {
+            get {
+                return ResourceManager.GetString("Log_DxgkrnlModuleCompiling", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 \n\n--- ERROR OCCURRED ---\n{0} 的本地化字符串。
+        /// </summary>
+        public static string Log_ErrorBlockHeader {
+            get {
+                return ResourceManager.GetString("Log_ErrorBlockHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 [!] Could not locate the specific GPU driver folder. A full driver copy will be performed. 的本地化字符串。
+        /// </summary>
+        public static string Log_GpuDriverNotFoundFallback {
+            get {
+                return ResourceManager.GetString("Log_GpuDriverNotFoundFallback", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 [✓] Host driver files import complete. 的本地化字符串。
+        /// </summary>
+        public static string Log_HostDriverImportComplete {
+            get {
+                return ResourceManager.GetString("Log_HostDriverImportComplete", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 [✓] Kernel module installed successfully. 的本地化字符串。
+        /// </summary>
+        public static string Log_KernelModuleInstallSuccess {
+            get {
+                return ResourceManager.GetString("Log_KernelModuleInstallSuccess", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 [!] Kernel update complete, a system reboot is required. The program will handle it automatically... 的本地化字符串。
+        /// </summary>
+        public static string Log_KernelUpdateRebootRequired {
+            get {
+                return ResourceManager.GetString("Log_KernelUpdateRebootRequired", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 [✓] Linux home directory found: {0} 的本地化字符串。
+        /// </summary>
+        public static string Log_LinuxHomeDirectoryFound {
+            get {
+                return ResourceManager.GetString("Log_LinuxHomeDirectoryFound", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 [✓] Local core libraries check complete. 的本地化字符串。
+        /// </summary>
+        public static string Log_LocalLibrariesCheckComplete {
+            get {
+                return ResourceManager.GetString("Log_LocalLibrariesCheckComplete", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 [✓] Precise driver path located: {0} 的本地化字符串。
+        /// </summary>
+        public static string Log_PreciseDriverPathLocated {
+            get {
+                return ResourceManager.GetString("Log_PreciseDriverPathLocated", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 [✓] Network proxy configuration complete. 的本地化字符串。
+        /// </summary>
+        public static string Log_ProxyConfigurationComplete {
+            get {
+                return ResourceManager.GetString("Log_ProxyConfigurationComplete", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 [✓] Proxy server: {0}:{1} 的本地化字符串。
+        /// </summary>
+        public static string Log_ProxyServerInfo {
+            get {
+                return ResourceManager.GetString("Log_ProxyServerInfo", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 [✓] Remote environment initialization complete. 的本地化字符串。
+        /// </summary>
+        public static string Log_RemoteEnvInitializationComplete {
+            get {
+                return ResourceManager.GetString("Log_RemoteEnvInitializationComplete", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 [✓] SSH connection successful. 的本地化字符串。
+        /// </summary>
+        public static string Log_SshConnectionSuccess {
+            get {
+                return ResourceManager.GetString("Log_SshConnectionSuccess", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 [✓] Temporary deployment directory created: {0} 的本地化字符串。
+        /// </summary>
+        public static string Log_TempDeployDirectoryCreated {
+            get {
+                return ResourceManager.GetString("Log_TempDeployDirectoryCreated", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 [✓] Virtual machine reconnected! Restarting the deployment process... 的本地化字符串。
+        /// </summary>
+        public static string Log_VmReconnectedRestartingDeploy {
+            get {
+                return ResourceManager.GetString("Log_VmReconnectedRestartingDeploy", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 [~] Waiting for the virtual machine to come back online (this may take 1-2 minutes)... 的本地化字符串。
+        /// </summary>
+        public static string Log_WaitingForVmToComeOnline {
+            get {
+                return ResourceManager.GetString("Log_WaitingForVmToComeOnline", resourceCulture);
             }
         }
         
@@ -1642,6 +2029,24 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 Deployment failed, please check the logs. 的本地化字符串。
+        /// </summary>
+        public static string Status_DeploymentFailedCheckLogs {
+            get {
+                return ResourceManager.GetString("Status_DeploymentFailedCheckLogs", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 [~] Rebooting the virtual machine... 的本地化字符串。
+        /// </summary>
+        public static string Status_RebootingVm {
+            get {
+                return ResourceManager.GetString("Status_RebootingVm", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Unavailable 的本地化字符串。
         /// </summary>
         public static string Status_Unavailable {
@@ -1921,6 +2326,15 @@ namespace ExHyperV.Properties {
         public static string Warning_LowMmioSpace_ConfirmExpand {
             get {
                 return ResourceManager.GetString("Warning_LowMmioSpace_ConfirmExpand", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 When using Windows 10 as the host, the assigned GPU partition is only effective for the current session.\n\nTo ensure the virtual machine uses the same GPU on the next cold boot, you must either manually disable other GPUs first, or re-assign it using this tool. 的本地化字符串。
+        /// </summary>
+        public static string Warning_Win10GpuAssignmentNotPersistent {
+            get {
+                return ResourceManager.GetString("Warning_Win10GpuAssignmentNotPersistent", resourceCulture);
             }
         }
     }

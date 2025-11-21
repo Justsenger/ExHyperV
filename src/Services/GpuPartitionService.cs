@@ -42,6 +42,7 @@ namespace ExHyperV.Services
         private const string GetVmsScript = "Hyper-V\\Get-VM | Select vmname,LowMemoryMappedIoSpace,GuestControlledCacheTypes,HighMemoryMappedIoSpace,Notes";
 
 
+        //SSH重新连接
         private async Task<bool> WaitForVmToBeResponsiveAsync(string host, int port, CancellationToken cancellationToken)
         {
             var stopwatch = Stopwatch.StartNew();
@@ -55,12 +56,12 @@ namespace ExHyperV.Services
                         var connectTask = client.ConnectAsync(host, port);
                         if (await Task.WhenAny(connectTask, Task.Delay(2000, cancellationToken)) == connectTask)
                         {
-                            await connectTask; // 确保没有异常
+                            await connectTask;
                             return true;
                         }
                     }
                 }
-                catch { /* 忽略连接错误，继续重试 */ }
+                catch {}
                 await Task.Delay(5000, cancellationToken);
             }
             return false; // 超时
@@ -97,6 +98,7 @@ namespace ExHyperV.Services
         }
 
 
+        //挂载VHDX时寻找可用的盘符，可能存在问题。
         private char GetFreeDriveLetter()
         {
             var usedLetters = DriveInfo.GetDrives().Select(d => d.Name[0]).ToList();
@@ -107,7 +109,7 @@ namespace ExHyperV.Services
                     return c;
                 }
             }
-            throw new IOException("没有可用的盘符");
+            throw new IOException(ExHyperV.Properties.Resources.Error_NoAvailableDriveLetters);
         }
         public Task<List<PartitionInfo>> GetPartitionsFromVmAsync(string vmName)
         {
@@ -121,7 +123,7 @@ namespace ExHyperV.Services
                     var harddiskPathResult = Utils.Run($"(Get-VMHardDiskDrive -vmname '{vmName}')[0].Path");
                     if (harddiskPathResult == null || harddiskPathResult.Count == 0)
                     {
-                        throw new FileNotFoundException($"无法找到虚拟机 '{vmName}' 的虚拟硬盘文件。");
+                        throw new FileNotFoundException(string.Format(Properties.Resources.Error_VmHardDiskNotFound, vmName));
                     }
                     harddiskpath = harddiskPathResult[0].ToString();
 
@@ -133,7 +135,7 @@ namespace ExHyperV.Services
 
                     if (mountResult == null || mountResult.Count == 0 || !int.TryParse(mountResult[0].ToString(), out int num))
                     {
-                        throw new InvalidOperationException("挂载虚拟磁盘或获取其磁盘编号失败。");
+                        throw new InvalidOperationException(ExHyperV.Properties.Resources.Error_MountVhdOrGetDiskNumberFailed);
                     }
                     diskNumber = num;
                     string devicePath = $@"\\.\PhysicalDrive{diskNumber}";
@@ -143,7 +145,7 @@ namespace ExHyperV.Services
                 }
                 catch (UnauthorizedAccessException)
                 {
-                    throw new UnauthorizedAccessException("需要管理员权限才能读取磁盘分区信息，请以管理员身份重新启动应用程序。");
+                    throw new UnauthorizedAccessException(ExHyperV.Properties.Resources.Error_AdminRequiredForPartitionInfo);
                 }
                 finally
                 {
@@ -327,7 +329,7 @@ namespace ExHyperV.Services
                 string system32Path = Path.Combine(assignedDriveLetter, "Windows", "System32");
                 if (!Directory.Exists(system32Path))
                 {
-                    return string.Format("所选分区似乎不是一个有效的Windows系统分区，或已开启Bitlocker。", partition.PartitionNumber, assignedDriveLetter, system32Path);
+                    return string.Format(Properties.Resources.Error_InvalidWindowsPartition, partition.PartitionNumber, assignedDriveLetter, system32Path);
                 }
 
                 string letter = assignedDriveLetter.TrimEnd(':');
@@ -336,15 +338,13 @@ namespace ExHyperV.Services
                 string sourceFolder = FindGpuDriverSourcePath(gpuInstancePath);
 
 
-                // 逻辑判定：如果找到了具体文件夹，就只复制那个文件夹；如果没找到，回退到全量复制
+                // 逻辑判定：如果找到了驱动文件夹，就只复制那个文件夹；如果没找到，回退到全量复制
                 bool isFullCopy = false;
                 if (string.IsNullOrEmpty(sourceFolder))
                 {
                     sourceFolder = driverStoreBase;
                     isFullCopy = true;
                 }
-
-                // 确定目标路径
                 string destinationBase = letter + @":\Windows\System32\HostDriverStore\FileRepository";
                 string destinationFolder;
 
@@ -354,7 +354,7 @@ namespace ExHyperV.Services
                 }
                 else
                 {
-                    // 精准复制模式：目标路径要包含具体的驱动文件夹名
+                    // 精准复制模式
                     string folderName = new DirectoryInfo(sourceFolder).Name;
                     destinationFolder = Path.Combine(destinationBase, folderName);
                 }
@@ -455,7 +455,7 @@ namespace ExHyperV.Services
                     var vmStateResult = Utils.Run($"(Get-VM -Name '{vmName}').State");
                     if (vmStateResult == null || vmStateResult.Count == 0 || vmStateResult[0].ToString() != "Off")
                     {
-                        return $"错误：虚拟机 '{vmName}' 必须处于关闭状态。";
+                        return string.Format(Properties.Resources.Error_VmMustBeOff, vmName);
                     }
                     if (isWin10)
                     {
@@ -514,7 +514,7 @@ namespace ExHyperV.Services
                         var harddiskPathResult = Utils.Run($"(Get-VMHardDiskDrive -vmname '{vmName}')[0].Path");
                         if (harddiskPathResult == null || harddiskPathResult.Count == 0)
                         {
-                            return "错误：无法获取虚拟机硬盘路径以注入驱动。";
+                            return ExHyperV.Properties.Resources.Error_GetVmHardDiskPathFailed;
                         }
                         string harddiskpath = harddiskPathResult[0].ToString();
                         string injectionResult = await InjectWindowsDriversAsync(vmName, harddiskpath, selectedPartition, gpuManu, id);
@@ -528,14 +528,8 @@ namespace ExHyperV.Services
                         var sshService = new SshService();
                         SshCredentials credentials = null;
                         ExecutionProgressWindow progressWindow = null;
-
-                        // 定义取消令牌源
                         var cts = new CancellationTokenSource();
-
-
                         Action<string> showMessage = (msg) => System.Windows.Application.Current.Dispatcher.Invoke(() => Utils.Show2(msg));
-
-
                         Func<string, string> withSudo = (cmd) =>
                         {
                             // 移除命令开头可能存在的 sudo，以防重复
@@ -558,7 +552,7 @@ namespace ExHyperV.Services
                             var macResult = await Utils.Run2(getMacScript);
                             if (macResult == null || macResult.Count == 0 || string.IsNullOrEmpty(macResult[0]?.ToString()))
                             {
-                                return $"错误：无法获取虚拟机 '{vmName}' 的MAC地址。请检查虚拟机网络设置。";
+                                return string.Format(Properties.Resources.Error_GetVmMacAddressFailed, vmName);
                             }
                             string macAddressWithoutColons = macResult[0].ToString();
                             string macAddressWithColons = System.Text.RegularExpressions.Regex.Replace(macAddressWithoutColons, "(.{2})", "$1:").TrimEnd(':');
@@ -571,10 +565,10 @@ namespace ExHyperV.Services
                             string targetIp = vmIpAddress.Split(',').Select(ip => ip.Trim()).FirstOrDefault(ip => System.Net.IPAddress.TryParse(ip, out var addr) && addr.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork);
                             if (string.IsNullOrEmpty(targetIp))
                             {
-                                return $"错误：找到了地址 '{vmIpAddress}' 但无法解析为有效的IPv4地址。";
+                                return string.Format(Properties.Resources.Error_NoValidIpv4AddressFound, vmIpAddress);
                             }
 
-                            // 步骤 1.3: 弹出窗口让用户仅输入用户名和密码 (此部分代码从原 try 块移动而来，内容不变)
+                            //弹出登录框
                             await System.Windows.Application.Current.Dispatcher.InvokeAsync(() => {
                                 var loginWindow = new SshLoginWindow(vmName, targetIp);
                                 if (loginWindow.ShowDialog() == true)
@@ -583,14 +577,14 @@ namespace ExHyperV.Services
                                 }
                             });
 
-                            if (credentials == null)return "用户取消了 SSH 登录操作。";
+                            if (credentials == null)return ExHyperV.Properties.Resources.Info_SshLoginCancelledByUser;
                             credentials.Host = targetIp;
 
                         }
                         catch (Exception ex)
                         {
-                            ShowMessageOnUIThread($"准备阶段发生错误: {ex.Message}");
-                            return $"准备阶段发生错误: {ex.Message}";
+                            ShowMessageOnUIThread(string.Format(Properties.Resources.Error_PreparationFailed, ex.Message));
+                            return string.Format(Properties.Resources.Error_PreparationFailed, ex.Message);
                         }
 
 
@@ -600,10 +594,9 @@ namespace ExHyperV.Services
                             progressWindow.Show();
                         });
 
-                        // 【关键修改】绑定窗口关闭事件到取消令牌
                         progressWindow.Closed += (s, e) =>
                         {
-                            cts.Cancel(); // 用户关闭窗口时，触发取消
+                            cts.Cancel();
                         };
 
                         while (true)
@@ -611,8 +604,6 @@ namespace ExHyperV.Services
                             var userActionTcs = new TaskCompletionSource<bool>();
                             EventHandler retryHandler = (s, e) => userActionTcs.TrySetResult(true);
                             EventHandler closeHandler = (s, e) => userActionTcs.TrySetResult(false);
-
-
                             try
                             {
                                 progressWindow.RetryClicked += retryHandler;
@@ -638,39 +629,38 @@ namespace ExHyperV.Services
                                     if (!cts.IsCancellationRequested) progressWindow.UpdateStatus(status);
                                 };
 
-                                // 【检查取消】
                                 if (cts.IsCancellationRequested) throw new OperationCanceledException();
 
 
-                                updateStatus("[1/5] 正在连接到虚拟机...");
-                                log("[1/5] 正在连接到虚拟机并初始化远程环境...");
+                                updateStatus(ExHyperV.Properties.Resources.LinuxDeploy_Step1);
+                                log(ExHyperV.Properties.Resources.LinuxDeploy_Step1);
                                 string homeDirectory;
                                 string remoteTempDir;
 
                                 using (var client = new SshClient(credentials.Host, credentials.Port, credentials.Username, credentials.Password))
                                 {
                                     client.Connect();
-                                    log("[+] SSH 连接成功。");
+                                    log(ExHyperV.Properties.Resources.Log_SshConnectionSuccess);
                                     var pwdResult = client.RunCommand("pwd");
                                     homeDirectory = pwdResult.Result.Trim();
                                     if (string.IsNullOrEmpty(homeDirectory))
                                     {
-                                        throw new Exception("无法获取Linux主目录路径。");
+                                        throw new Exception(ExHyperV.Properties.Resources.Error_GetLinuxHomeDirectoryFailed);
                                     }
-                                    log($"[+] 获取到Linux主目录: {homeDirectory}");
+                                    log(string.Format(Properties.Resources.Log_LinuxHomeDirectoryFound, homeDirectory));
 
                                     remoteTempDir = $"{homeDirectory}/exhyperv_deploy";
                                     client.RunCommand($"mkdir -p {remoteTempDir}/drivers {remoteTempDir}/lib");
-                                    log($"[+] 已创建临时部署目录: {remoteTempDir}");
+                                    log(string.Format(Properties.Resources.Log_TempDeployDirectoryCreated, remoteTempDir));
                                     client.Disconnect();
                                 }
-                                log("[✓] 远程环境初始化完成。");
+                                log(ExHyperV.Properties.Resources.Log_RemoteEnvInitializationComplete);
 
                                 if (!string.IsNullOrEmpty(credentials.ProxyHost) && credentials.ProxyPort.HasValue)
                                 {
-                                    updateStatus("[2/5] 正在配置网络代理...");
-                                    log("\n[2/5] 正在为虚拟机配置 HTTP 网络代理...");
-                                    log($"[+] 代理服务器: {credentials.ProxyHost}:{credentials.ProxyPort}");
+                                    updateStatus(ExHyperV.Properties.Resources.LinuxDeploy_Step2);
+                                    log(ExHyperV.Properties.Resources.LinuxDeploy_Step2);
+                                    log(string.Format(Properties.Resources.Log_ProxyServerInfo, credentials.ProxyHost, credentials.ProxyPort));
                                     string proxyUrl = $"http://{credentials.ProxyHost}:{credentials.ProxyPort}";
                                     string aptProxyContent = $"Acquire::http::Proxy \"{proxyUrl}\";\nAcquire::https::Proxy \"{proxyUrl}\";\n";
                                     string envProxyContent = $"\nexport http_proxy=\"{proxyUrl}\"\nexport https_proxy=\"{proxyUrl}\"\nexport no_proxy=\"localhost,127.0.0.1\"\n";
@@ -690,40 +680,37 @@ namespace ExHyperV.Services
                                     {
                                         await sshService.ExecuteSingleCommandAsync(credentials, cmd, log, TimeSpan.FromSeconds(30));
                                     }
-                                    log("[✓] 网络代理配置完成。");
+                                    log(ExHyperV.Properties.Resources.Log_ProxyConfigurationComplete);
                                 }
 
-                                log("\n[3/5] 正在定位主机 GPU 驱动...");
+                                log(ExHyperV.Properties.Resources.LinuxDeploy_Step3);
                                 string driverStoreBase = @"C:\Windows\System32\DriverStore\FileRepository";
                                 string preciseDriverPath = FindGpuDriverSourcePath(id);
                                 string sourceDriverPath = preciseDriverPath; // 默认为精准路径
 
                                 if (string.IsNullOrEmpty(preciseDriverPath))
                                 {
-                                    log("[!] 未能定位到特定 GPU 驱动文件夹，将执行全量驱动拷贝。");
+                                    log(ExHyperV.Properties.Resources.Log_GpuDriverNotFoundFallback);
                                     sourceDriverPath = driverStoreBase; // 回退到全量拷贝
                                 }
                                 else
                                 {
-                                    log($"[✓] 已定位到精准驱动路径: {new DirectoryInfo(preciseDriverPath).Name}");
+                                    log(string.Format(Properties.Resources.Log_PreciseDriverPathLocated, new DirectoryInfo(preciseDriverPath).Name));
                                 }
 
 
-                                updateStatus("[3/5] 正在上传驱动与库文件...");
-                                log("正在上传主机 GPU 驱动与本地库文件...");
+                                updateStatus(ExHyperV.Properties.Resources.LinuxDeploy_Step3_Status_Import);
+                                log(ExHyperV.Properties.Resources.LinuxDeploy_Step3_Status_Import);
                                 string sourceFolderName = new DirectoryInfo(sourceDriverPath).Name;
                                 string remoteDestinationPath = $"{remoteTempDir}/drivers/{sourceFolderName}";
                                 await sshService.UploadDirectoryAsync(credentials, sourceDriverPath, remoteDestinationPath);
-                                log("[✓] 主机驱动文件上传完毕。");
+                                log(ExHyperV.Properties.Resources.Log_HostDriverImportComplete);
                                 await UploadLocalFilesAsync(sshService, credentials, $"{remoteTempDir}/lib");
-                                log("[✓] 本地核心库检查完毕。");
+                                log(ExHyperV.Properties.Resources.Log_LocalLibrariesCheckComplete);
 
-                                updateStatus("[4/5] 正在下载并执行部署脚本...");
-                                log("\n[4/5] 正在从 GitHub 下载最新部署脚本...");
+                                updateStatus(ExHyperV.Properties.Resources.LinuxDeploy_Step4);
+                                log(ExHyperV.Properties.Resources.LinuxDeploy_Step4);
 
-                                // =========================================================
-                                // 核心修改：命令生成逻辑替换
-                                // =========================================================
                                 var commandsToExecute = new List<Tuple<string, TimeSpan?>>();
                                 bool enableGraphics = credentials.InstallGraphics;
 
@@ -740,51 +727,49 @@ namespace ExHyperV.Services
                                     await sshService.ExecuteSingleCommandAsync(credentials, scriptCmd, log, TimeSpan.FromMinutes(2));
                                 }
                                 await sshService.ExecuteSingleCommandAsync(credentials, $"chmod +x {remoteTempDir}/*.sh", log, TimeSpan.FromSeconds(10));
-                                log("\n[!] 正在编译内核模块，此过程可能需要较长时间 (10-30分钟)，并可能触发系统重启...");
+                                log(ExHyperV.Properties.Resources.Log_DxgkrnlModuleCompiling);
                                 string dxgkrnlCommand = withSudo($"{remoteTempDir}/install_dxgkrnl.sh");
                                 var dxgkrnlResult = await sshService.ExecuteCommandAndCaptureOutputAsync(credentials, dxgkrnlCommand, log, TimeSpan.FromMinutes(60));
                                 if (dxgkrnlResult.Output.Contains("STATUS: REBOOT_REQUIRED"))
                                 {
-                                    log("\n[!] 内核更新完成，系统需要重启。程序将自动处理...");
-                                    updateStatus("正在重启虚拟机...");
+                                    log(ExHyperV.Properties.Resources.Log_KernelUpdateRebootRequired);
+                                    updateStatus(ExHyperV.Properties.Resources.Status_RebootingVm);
 
                                     try
                                     {
-                                        // 使用原有的方法发送重启命令，因为它不需要捕获输出
                                         await sshService.ExecuteSingleCommandAsync(credentials, withSudo("reboot"), log, TimeSpan.FromSeconds(10));
                                     }
-                                    catch (Exception) { /* 忽略，重启会强制断开连接，这是预期行为 */ }
-                                    log("[~] 等待虚拟机重新上线 (这可能需要1-2分钟)...");
-                                    // 使用放在本类中的辅助方法
+                                    catch (Exception) {}
+                                    log(ExHyperV.Properties.Resources.Log_WaitingForVmToComeOnline);
                                     bool isVmUp = await WaitForVmToBeResponsiveAsync(credentials.Host, credentials.Port, cts.Token);
-                                    if (!isVmUp) throw new Exception("虚拟机重启后未能恢复在线状态，部署失败。");
+                                    if (!isVmUp) throw new Exception(ExHyperV.Properties.Resources.Error_VmDidNotComeBackOnline);
 
-                                    log("[✓] 虚拟机已重新连接！正在重新执行部署流程...");
-                                    continue; // 跳转到 while(true) 的开头，重新执行整个流程
+                                    log(ExHyperV.Properties.Resources.Log_VmReconnectedRestartingDeploy);
+                                    continue; //重新执行整个流程
                                 }
 
                                 if (!dxgkrnlResult.Output.Contains("STATUS: SUCCESS"))
                                 {
-                                    throw new Exception("内核模块安装脚本执行失败，未返回成功状态。请检查日志。");
+                                    throw new Exception(ExHyperV.Properties.Resources.Error_KernelModuleScriptFailed);
                                 }
 
-                                log("[✓] 内核模块安装成功。");
+                                log(ExHyperV.Properties.Resources.Log_KernelModuleInstallSuccess);
 
 
                                 if (enableGraphics)
                                 {
-                                    log("\n[!] 正在配置 Mesa 图形环境...");
+                                    log(ExHyperV.Properties.Resources.Log_ConfiguringMesa);
                                     await sshService.ExecuteSingleCommandAsync(credentials, withSudo($"{remoteTempDir}/setup_graphics.sh"), log, TimeSpan.FromMinutes(20));
                                 }
 
-                                log("\n[!] 正在进行系统配置...");
+                                log(ExHyperV.Properties.Resources.Log_ConfiguringSystem);
                                 string configArgs = enableGraphics ? "enable_graphics" : "no_graphics";
                                 await sshService.ExecuteSingleCommandAsync(credentials, withSudo($"{remoteTempDir}/configure_system.sh {configArgs}"), log, TimeSpan.FromMinutes(5));
 
 
 
-                                updateStatus("部署完成！虚拟机即将重启...");
-                                log("\n[5/5] 部署完成！虚拟机即将重启...");
+                                updateStatus(ExHyperV.Properties.Resources.LinuxDeploy_Step5);
+                                log(ExHyperV.Properties.Resources.LinuxDeploy_Step5);
                                 try
                                 {
                                     await sshService.ExecuteSingleCommandAsync(credentials, "sudo reboot", log, TimeSpan.FromSeconds(5));
@@ -796,19 +781,19 @@ namespace ExHyperV.Services
                             }
                             catch (OperationCanceledException)
                             {
-                                return "操作已取消";
+                                return ExHyperV.Properties.Resources.Info_OperationCancelled;
                             }
                             catch (Exception ex)
                             {
-                                string errorMsg = $"部署失败: {ex.Message}";
+                                string errorMsg = string.Format(Properties.Resources.Error_DeploymentFailed, ex.Message);
                                 if (!cts.IsCancellationRequested)
                                 {
-                                    progressWindow.AppendLog($"\n\n--- 错误发生 ---\n{errorMsg}");
-                                    progressWindow.ShowErrorState("部署失败，请检查日志");
+                                    progressWindow.AppendLog(string.Format(Properties.Resources.Log_ErrorBlockHeader, errorMsg));
+                                    progressWindow.ShowErrorState(ExHyperV.Properties.Resources.Status_DeploymentFailedCheckLogs);
                                 }
                                 else
                                 {
-                                    return "操作被用户强行中止。";
+                                    return ExHyperV.Properties.Resources.Info_OperationAbortedByUser;
                                 }
 
                                 bool shouldRetry = await userActionTcs.Task;
@@ -829,8 +814,8 @@ namespace ExHyperV.Services
                 }
                 catch (Exception ex)
                 {
-                    ShowMessageOnUIThread($"【严重异常】\n\n操作中发生异常: {ex.Message}");
-                    return $"操作失败: {ex.Message}";
+                    ShowMessageOnUIThread(string.Format(Properties.Resources.Error_FatalExceptionOccurred, ex.Message));
+                    return string.Format(Properties.Resources.Error_OperationFailed, ex.Message);
                 }
                 finally
                 {
@@ -844,8 +829,7 @@ namespace ExHyperV.Services
                     }
                     if (isWin10 && partitionableGpuCount > 1)
                     {
-                        string finalMessage = "Windows10作为宿主时，本次指定的GPU分区仅本次有效。\n\n" +
-                                              "若要确保虚拟机下次冷启动仍使用该GPU，请先手动禁用其他GPU；或通过本工具再次分配。";
+                        string finalMessage = Properties.Resources.Warning_Win10GpuAssignmentNotPersistent;
                         System.Windows.Application.Current.Dispatcher.Invoke(() => Utils.Show(finalMessage));
 
                     }
@@ -1001,7 +985,7 @@ namespace ExHyperV.Services
             string sourceFolder = null;
             string driverStoreBase = @"C:\Windows\System32\DriverStore\FileRepository";
 
-            // WMI 极速查询脚本 (从 InjectWindowsDriversAsync 方法中复制过来)
+            //极速查询
             string fastScript = $@"
         $ErrorActionPreference = 'Stop';
         try {{
@@ -1030,9 +1014,7 @@ namespace ExHyperV.Services
                     }
                 }
             }
-            catch { /* 忽略异常，后面会处理 sourceFolder 为 null 的情况 */ }
-
-            // 如果没找到，返回 null。如果找到了，返回具体路径。
+            catch {}
             return sourceFolder;
         }
     }

@@ -745,4 +745,142 @@
   <data name="Running" xml:space="preserve">
     <value>运行中</value>
   </data>
+  <data name="Error_VmHardDiskNotFound" xml:space="preserve">
+    <value>无法找到虚拟机 '{0}' 的虚拟硬盘文件。</value>
+  </data>
+  <data name="Error_NoAvailableDriveLetters" xml:space="preserve">
+    <value>没有可用的盘符</value>
+  </data>
+  <data name="Error_MountVhdOrGetDiskNumberFailed" xml:space="preserve">
+    <value>挂载虚拟磁盘或获取其磁盘编号失败。</value>
+  </data>
+  <data name="Error_AdminRequiredForPartitionInfo" xml:space="preserve">
+    <value>需要管理员权限才能读取磁盘分区信息，请以管理员身份重新启动应用程序。</value>
+  </data>
+  <data name="Error_InvalidWindowsPartition" xml:space="preserve">
+    <value>所选分区 (分区号: {0}, 已挂载为 {1}) 似乎不是一个有效的Windows系统分区。所需路径 '{2}' 不存在，或者该分区已被Bitlocker加密。</value>
+  </data>
+  <data name="Error_VmMustBeOff" xml:space="preserve">
+    <value>错误：虚拟机 '{0}' 必须处于关闭状态。</value>
+  </data>
+  <data name="Error_GetVmHardDiskPathFailed" xml:space="preserve">
+    <value>错误：无法获取虚拟机硬盘路径以注入驱动。</value>
+  </data>
+  <data name="Error_GetVmMacAddressFailed" xml:space="preserve">
+    <value>错误：无法获取虚拟机 '{0}' 的MAC地址。请检查虚拟机网络设置。</value>
+  </data>
+  <data name="Error_NoValidIpv4AddressFound" xml:space="preserve">
+    <value>错误：找到了地址 '{0}' 但无法解析为有效的IPv4地址。</value>
+  </data>
+  <data name="Info_SshLoginCancelledByUser" xml:space="preserve">
+    <value>用户取消了 SSH 登录操作。</value>
+  </data>
+  <data name="Error_PreparationFailed" xml:space="preserve">
+    <value>准备阶段发生错误: {0}</value>
+  </data>
+  <data name="LinuxDeploy_Step1" xml:space="preserve">
+    <value>[1/5] 正在连接到虚拟机并初始化远程环境...</value>
+  </data>
+  <data name="Log_SshConnectionSuccess" xml:space="preserve">
+    <value>[✓] SSH 连接成功。</value>
+  </data>
+  <data name="Error_GetLinuxHomeDirectoryFailed" xml:space="preserve">
+    <value>[X] 无法获取Linux主目录路径。</value>
+  </data>
+  <data name="Log_LinuxHomeDirectoryFound" xml:space="preserve">
+    <value>[✓] 获取到Linux主目录: {0}</value>
+  </data>
+  <data name="Log_TempDeployDirectoryCreated" xml:space="preserve">
+    <value>[✓] 已创建临时部署目录: {0}</value>
+  </data>
+  <data name="Log_RemoteEnvInitializationComplete" xml:space="preserve">
+    <value>[✓] 远程环境初始化完成。</value>
+  </data>
+  <data name="LinuxDeploy_Step2" xml:space="preserve">
+    <value>[2/5] 正在配置网络代理...</value>
+  </data>
+  <data name="Log_ProxyServerInfo" xml:space="preserve">
+    <value>[✓] 代理服务器: {0}:{1}</value>
+  </data>
+  <data name="Log_ProxyConfigurationComplete" xml:space="preserve">
+    <value>[✓] 网络代理配置完成。</value>
+  </data>
+  <data name="LinuxDeploy_Step3" xml:space="preserve">
+    <value>[3/5] 正在定位主机 GPU 驱动...</value>
+  </data>
+  <data name="Log_GpuDriverNotFoundFallback" xml:space="preserve">
+    <value>[!] 未能定位到特定 GPU 驱动文件夹，将执行全量驱动拷贝。</value>
+  </data>
+  <data name="Log_PreciseDriverPathLocated" xml:space="preserve">
+    <value>[✓] 已定位到精准驱动路径: {0}</value>
+  </data>
+  <data name="LinuxDeploy_Step3_Status_Import" xml:space="preserve">
+    <value>[3/5] 正在导入GPU驱动与库文件...</value>
+  </data>
+  <data name="Log_HostDriverImportComplete" xml:space="preserve">
+    <value>[✓] 主机驱动文件导入完毕。</value>
+  </data>
+  <data name="Log_LocalLibrariesCheckComplete" xml:space="preserve">
+    <value>[✓] 本地核心库检查完毕。</value>
+  </data>
+  <data name="LinuxDeploy_Step4" xml:space="preserve">
+    <value>[4/5] 正在从 GitHub 下载并执行部署脚本...</value>
+  </data>
+  <data name="Log_DxgkrnlModuleCompiling" xml:space="preserve">
+    <value>[!] 正在编译dxgkrnl内核模块，此过程可能需要较长时间，并可能触发系统重启...</value>
+  </data>
+  <data name="Log_KernelUpdateRebootRequired" xml:space="preserve">
+    <value>[!] 内核更新完成，系统需要重启。程序将自动处理...</value>
+  </data>
+  <data name="Status_RebootingVm" xml:space="preserve">
+    <value>[~] 正在重启虚拟机...</value>
+  </data>
+  <data name="Log_WaitingForVmToComeOnline" xml:space="preserve">
+    <value>[~] 等待虚拟机重新上线 (这可能需要1-2分钟)...</value>
+  </data>
+  <data name="Error_VmDidNotComeBackOnline" xml:space="preserve">
+    <value>[X] 虚拟机重启后未能恢复在线状态，部署失败。</value>
+  </data>
+  <data name="Log_VmReconnectedRestartingDeploy" xml:space="preserve">
+    <value>[✓] 虚拟机已重新连接！正在重新执行部署流程...</value>
+  </data>
+  <data name="Error_KernelModuleScriptFailed" xml:space="preserve">
+    <value>[X] 内核模块安装脚本执行失败，未返回成功状态。请检查日志。</value>
+  </data>
+  <data name="Log_KernelModuleInstallSuccess" xml:space="preserve">
+    <value>[✓] 内核模块安装成功。</value>
+  </data>
+  <data name="Log_ConfiguringMesa" xml:space="preserve">
+    <value>[!] 正在配置 Mesa 图形环境...</value>
+  </data>
+  <data name="Log_ConfiguringSystem" xml:space="preserve">
+    <value>[!] 正在进行系统配置...</value>
+  </data>
+  <data name="LinuxDeploy_Step5" xml:space="preserve">
+    <value>[5/5] 部署完成！虚拟机即将重启...</value>
+  </data>
+  <data name="Info_OperationCancelled" xml:space="preserve">
+    <value>操作已取消</value>
+  </data>
+  <data name="Error_DeploymentFailed" xml:space="preserve">
+    <value>[X] 部署失败: {0}</value>
+  </data>
+  <data name="Log_ErrorBlockHeader" xml:space="preserve">
+    <value>\n\n--- 错误发生 ---\n{0}</value>
+  </data>
+  <data name="Status_DeploymentFailedCheckLogs" xml:space="preserve">
+    <value>部署失败，请检查日志</value>
+  </data>
+  <data name="Info_OperationAbortedByUser" xml:space="preserve">
+    <value>操作被用户强行中止。</value>
+  </data>
+  <data name="Error_FatalExceptionOccurred" xml:space="preserve">
+    <value>【严重异常】\n\n操作中发生异常: {0}</value>
+  </data>
+  <data name="Error_OperationFailed" xml:space="preserve">
+    <value>操作失败: {0}</value>
+  </data>
+  <data name="Warning_Win10GpuAssignmentNotPersistent" xml:space="preserve">
+    <value>Windows10作为宿主时，本次指定的GPU分区仅本次有效。\n\n若要确保虚拟机下次冷启动仍使用该GPU，请先手动禁用其他GPU；或通过本工具再次分配。</value>
+  </data>
 </root>
