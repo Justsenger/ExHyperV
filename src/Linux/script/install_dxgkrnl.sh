@@ -318,8 +318,13 @@ install_dkms() {
     
     echo ""
     echo "Installing module..."
-    dkms -k ${TARGET_KERNEL_VERSION} install dxgkrnl/$VERSION
-    
+    dkms -k ${TARGET_KERNEL_VERSION} install dxgkrnl/$VERSION || true
+
+    if ! dkms status dxgkrnl/${VERSION} -k ${TARGET_KERNEL_VERSION} | grep -q "installed"; then
+        echo "Error: DKMS installation failed (Module not found in dkms status)."
+        exit 1
+    fi
+
     echo ""
     echo "✓ DKMS module installed successfully"
 }
