@@ -986,24 +986,34 @@ namespace ExHyperV.Services
         private string FindGpuDriverSourcePath(string gpuInstancePath)
         {
             string sourceFolder = null;
-            string driverStoreBase = @"C:\Windows\System32\DriverStore\FileRepository";
-
-            //极速查询
             string fastScript = $@"
-        $ErrorActionPreference = 'Stop';
-        try {{
-            $targetId = '{gpuInstancePath}'.Trim();
-            $wmi = Get-CimInstance Win32_VideoController | Where-Object {{ $_.PNPDeviceID -like ""*$targetId*"" }} | Select-Object -First 1;
+    $ErrorActionPreference = 'Stop';
+    try {{
+        $targetId = '{gpuInstancePath}'.Trim();
+        $wmi = Get-CimInstance Win32_VideoController | Where-Object {{ $_.PNPDeviceID -like ""*$targetId*"" }} | Select-Object -First 1;
+        
+        if ($wmi -and $wmi.InstalledDisplayDrivers) {{
+            $drivers = $wmi.InstalledDisplayDrivers -split ',';
+            $repoDriver = $drivers | Where-Object {{ $_ -match 'FileRepository' }} | Select-Object -First 1;
             
-            if ($wmi -and $wmi.InstalledDisplayDrivers) {{
-                $drivers = $wmi.InstalledDisplayDrivers -split ',';
-                $repoDriver = $drivers | Where-Object {{ $_ -match 'FileRepository' }} | Select-Object -First 1;
-                
-                if ($repoDriver) {{
-                    return (Split-Path -Parent $repoDriver.Trim())
+            if ($repoDriver) {{
+                $currentPath = Split-Path -Parent $repoDriver.Trim();
+                while ($true) {{
+                    if (Get-ChildItem -Path $currentPath -Filter *.inf -ErrorAction SilentlyContinue) {{
+                        return $currentPath;
+                    }}
+                    $parentPath = Split-Path -Parent $currentPath;
+                    $parentName = Split-Path -Leaf $parentPath;
+                    if ($parentName -eq 'FileRepository') {{
+                        return $currentPath;
+                    }}
+                    if ($parentPath -eq $currentPath) {{ break; }}
+                    $currentPath = $parentPath;
                 }}
+                return (Split-Path -Parent $repoDriver.Trim());
             }}
-        }} catch {{ }}";
+        }}
+    }} catch {{ }}";
 
             try
             {
@@ -1017,7 +1027,7 @@ namespace ExHyperV.Services
                     }
                 }
             }
-            catch {}
+            catch { }
             return sourceFolder;
         }
     }
