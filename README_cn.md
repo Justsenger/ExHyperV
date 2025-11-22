@@ -201,9 +201,9 @@ GPU-P 模式下，物理 GPU 作为“渲染设备”，需要搭配一个“显
 
 #### 二、Linux作为虚拟机🐧
 <img width="800" height="450" alt="image" src="https://github.com/user-attachments/assets/0bc11e21-3670-42a0-a8cc-fec9ae4f6d0e" />
+目前，已兼容Ubuntu22、Ubuntu24、Debian12.
 
-ExHyperV从V1.2.3开始提供Linux支持。
-标准环境是Ubuntu 22.04，正在测试中。
+![Linux&Blender](https://github.com/Justsenger/ExHyperV/blob/main/img/Linux.png)
 
 ### Ⅲ. 虚拟交换机
 
