@@ -38,8 +38,8 @@ Due to limited personal time and resources, there may be untested scenarios. If 
 ![Features](https://github.com/Justsenger/ExHyperV/blob/main/img/4.png)
 ![Features](https://github.com/Justsenger/ExHyperV/blob/main/img/5.png)
 ![Features](https://github.com/Justsenger/ExHyperV/blob/main/img/6.png)
-![Features](https://github.com/Justsenger/ExHyperV/blob/main/img/various.png)
-*<p align="center">The tool has expanded GPU recognition capabilities, but whether a function can be enabled depends on the hardware itself.</p>*
+![Features](https://github.com/Justsenger/ExHyperV/blob/main/img/7.png)
+![Features](https://github.com/Justsenger/ExHyperV/blob/main/img/8.png)
 
 </details>
 
