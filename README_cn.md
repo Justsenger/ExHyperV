@@ -201,9 +201,15 @@ GPU-P 模式下，物理 GPU 作为“渲染设备”，需要搭配一个“显
 
 #### 二、Linux作为虚拟机🐧
 <img width="800" height="450" alt="image" src="https://github.com/user-attachments/assets/0bc11e21-3670-42a0-a8cc-fec9ae4f6d0e" />
-目前，已兼容Ubuntu22、Ubuntu24、Debian12.
 
 ![Linux&Blender](https://github.com/Justsenger/ExHyperV/blob/main/img/Linux.png)
+
+已知兼容性：
+| 系统 | 内核版本 | Dxgkrnl | CUDA | Vulkan | OpenGL | Codec |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | 
+| Ubuntu 24.04  | 6.14.0-36-generic | ❌ | \ | \ | \ | \ |
+| Ubuntu 22.04  | 6.8.0-87-generic | ✅ | ✅ | ✅ | ✅ | ✅ |
+| fnOS 0.9.2 | 6.12.18-trim | ❌ | \ | \ | \ | \ |
 
 ### Ⅲ. 虚拟交换机
 
