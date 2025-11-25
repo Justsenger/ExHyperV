@@ -34,4 +34,5 @@ Pin-Priority: 900
 EOF'
 
 echo "[+] (Graphics) Installing latest Vulkan drivers..."
-sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq mesa-vulkan-drivers
+sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
+    mesa-vulkan-drivers libgl1-mesa-dri
