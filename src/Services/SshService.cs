@@ -171,10 +171,22 @@ namespace ExHyperV.Services
         {
             foreach (var file in localDirectory.GetFiles())
             {
-                using (var fileStream = file.OpenRead())
+                if (file.Extension.Equals(".log", StringComparison.OrdinalIgnoreCase))
                 {
-                    var remoteFilePath = $"{remoteDirectory}/{file.Name}";
-                    sftp.UploadFile(fileStream, remoteFilePath);
+                    continue;
+                }
+                try
+                {
+                    using (var fileStream = new FileStream(file.FullName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                    {
+                        var remoteFilePath = $"{remoteDirectory}/{file.Name}";
+                        sftp.UploadFile(fileStream, remoteFilePath);
+                    }
+                }
+                catch (IOException)
+                {
+
+                    continue;
                 }
             }
             foreach (var subDir in localDirectory.GetDirectories())
