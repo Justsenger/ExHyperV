@@ -330,6 +330,18 @@ public class Utils
         Run(script); 
     }
 
+    /// <summary>
+    /// 应用 GPU-P 修复补丁。
+    /// 该方法通过禁用 Hyper-V 的 GPU 分区严格模式来解决 Windows 更新后的问题。
+    /// </summary>
+    public static void ApplyGpuPartitionStrictModeFix()
+    {
+        string path = @"HKLM:\SOFTWARE\Microsoft\WindowsNT\CurrentVersion\Virtualization";
+        string script = $@"
+            if (-not (Test-Path '{path}')) {{ New-Item -Path '{path}' -Force }}
+            Set-ItemProperty -Path '{path}' -Name 'DisableGpuPartitionStrictMode' -Value 1 -Type DWord -Force";
+        Run(script);
+    }
 
     #region Hyper-V Network Helpers
 

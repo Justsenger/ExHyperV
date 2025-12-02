@@ -452,6 +452,7 @@ namespace ExHyperV.Services
                 try
                 {
                     Utils.AddGpuAssignmentStrategyReg();
+                    Utils.ApplyGpuPartitionStrictModeFix();
                     var vmStateResult = Utils.Run($"(Get-VM -Name '{vmName}').State");
                     if (vmStateResult == null || vmStateResult.Count == 0 || vmStateResult[0].ToString() != "Off")
                     {
