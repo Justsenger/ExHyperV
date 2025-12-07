@@ -4,26 +4,28 @@
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
       xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
-      xmlns:converters="clr-namespace:ExHyperV.Converters"
       xmlns:vm="clr-namespace:ExHyperV.ViewModels"
+      xmlns:converters="clr-namespace:ExHyperV.Converters"
+      xmlns:tools="clr-namespace:ExHyperV.Tools" 
       Title="CpuPage"
       d:DataContext="{d:DesignInstance vm:CpuPageViewModel, IsDesignTimeCreatable=True}"
       mc:Ignorable="d">
 
+    <Page.DataContext>
+        <vm:CpuPageViewModel/>
+    </Page.DataContext>
+
     <Page.Resources>
         <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
         <converters:InverseBooleanConverter x:Key="InverseBooleanConverter"/>
-            
-        <!-- 找回特效：精细网格笔刷 -->
-        <DrawingBrush x:Key="FineGridBrush" 
-                      Viewport="0,0,10,10" ViewportUnits="Absolute" 
-                      TileMode="Tile">
+        <converters:VmNameToIconConverter x:Key="VmNameToIconConverter" />
+
+        <DrawingBrush x:Key="FineGridBrush" Viewport="0,0,10,10" ViewportUnits="Absolute" TileMode="Tile">
             <DrawingBrush.Drawing>
                 <GeometryDrawing>
                     <GeometryDrawing.Geometry>
                         <RectangleGeometry Rect="0,0,10,10"/>
                     </GeometryDrawing.Geometry>
-                    <!-- 极淡的灰色网格，适应深浅主题 -->
                     <GeometryDrawing.Pen>
                         <Pen Brush="#15888888" Thickness="1"/>
                     </GeometryDrawing.Pen>
@@ -33,111 +35,147 @@
     </Page.Resources>
 
     <Grid>
-        <StackPanel Margin="10,0,10,10">
+        <Grid IsEnabled="{Binding IsLoading, Converter={StaticResource InverseBooleanConverter}}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
 
-            <!-- 标题栏：改回 ui:Card，自动适配主题颜色 -->
-            <Grid Margin="0,5,0,0">
-                <ui:Card BorderThickness="1" Padding="10">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
+            <Border Grid.Row="0" Margin="10,5,10,0" Background="{ui:ThemeResource ControlFillColorDefaultBrush}" BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="4" Padding="10">
+                <Grid>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <ui:FontIcon Glyph="&#xF58E;" FontSize="20" FontFamily="{DynamicResource SegoeFluentIcons}" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" RenderTransformOrigin="0.5,0.5">
+                            <ui:FontIcon.RenderTransform>
+                                <TransformGroup>
+                                    <ScaleTransform/>
+                                    <SkewTransform/>
+                                    <RotateTransform Angle="90"/>
+                                    <TranslateTransform/>
+                                </TransformGroup>
+                            </ui:FontIcon.RenderTransform>
+                        </ui:FontIcon>
+                        <TextBlock Text="中央处理器" FontSize="16" VerticalAlignment="Center" Margin="10,0,0,0"
+                                   Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Right">
+                        <TextBlock Text="更新速度：" VerticalAlignment="Center" Margin="0,0,10,0"
+                                   Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                        <ComboBox SelectedIndex="{Binding SelectedSpeedIndex}" Width="120">
+                            <ComboBoxItem Content="快 (1s)"/>
+                            <ComboBoxItem Content="常规 (2s)"/>
+                            <ComboBoxItem Content="慢 (5s)"/>
+                            <ComboBoxItem Content="暂停"/>
+                        </ComboBox>
+                    </StackPanel>
+                </Grid>
+            </Border>
 
-                        <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                            <ui:FontIcon Glyph="&#xE9D9;" FontSize="20" FontFamily="{DynamicResource SegoeFluentIcons}"/>
-                            <TextBlock Text="CPU 负载监控" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" Margin="10,0,0,0"/>
-                        </StackPanel>
+            <Grid Grid.Row="1" Margin="10,5,10,10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" MinWidth="220" MaxWidth="400"/>
+                    <ColumnDefinition Width="5"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
 
-                        <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                            <TextBlock Text="更新速度：" VerticalAlignment="Center" Margin="0,0,10,0" Opacity="0.8"/>
-                            <ComboBox SelectedIndex="{Binding SelectedSpeedIndex}" Width="120">
-                                <ComboBoxItem Content="快 (1s)"/>
-                                <ComboBoxItem Content="常规 (2s)"/>
-                                <ComboBoxItem Content="慢 (5s)"/>
-                                <ComboBoxItem Content="暂停"/>
-                            </ComboBox>
-                        </StackPanel>
-                    </Grid>
-                </ui:Card>
-            </Grid>
+                <Border Grid.Column="0" Background="{ui:ThemeResource ControlFillColorDefaultBrush}" BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="4">
+                    <ui:ListView ItemsSource="{Binding VmList}" 
+                                 SelectedItem="{Binding SelectedVm, Mode=TwoWay}"
+                                 MaxHeight="550"
+                                 VerticalAlignment="Top">
+                        <ui:ListView.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Margin="5">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
 
-            <!-- 虚拟机列表 -->
-            <ItemsControl ItemsSource="{Binding VmList}" Margin="0,5,0,0">
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate>
-                        <!-- 容器：改回 ui:Card，解决背景色突兀的问题 -->
-                        <ui:Card Margin="0,5,0,0" Padding="15">
-                            <StackPanel>
-                                <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                                    <ui:FontIcon FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xE977;" FontSize="18" Margin="0,0,10,0"/>
-                                    <TextBlock Text="{Binding Name}" FontSize="16" FontWeight="SemiBold"/>
-                                </StackPanel>
+                                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <ui:FontIcon FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="{Binding Name, Converter={StaticResource VmNameToIconConverter}}" FontSize="18" Margin="0,0,12,0" VerticalAlignment="Center"/>
+                                        <TextBlock Text="{Binding Name}" VerticalAlignment="Center"/>
+                                    </StackPanel>
 
-                                <!-- 核心矩阵 -->
-                                <ItemsControl ItemsSource="{Binding Cores}">
-                                    <ItemsControl.ItemsPanel>
-                                        <ItemsPanelTemplate>
-                                            <UniformGrid Columns="{Binding Columns}" FirstColumn="0"/>
-                                        </ItemsPanelTemplate>
-                                    </ItemsControl.ItemsPanel>
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding AverageUsage, StringFormat='{}{0:N1}%'}"
+                                               VerticalAlignment="Center"
+                                               Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"
+                                               Margin="10,0,0,0"/>
+                                </Grid>
+                            </DataTemplate>
+                        </ui:ListView.ItemTemplate>
+                    </ui:ListView>
+                </Border>
 
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate>
-                                            <Grid Margin="3" Height="65">
-                                                <!-- 内部核心：保持 Border 以节省性能，但颜色改为通用半透明，不冲突 -->
-                                                <Border CornerRadius="4" BorderThickness="1" BorderBrush="#1A888888" Background="#08FFFFFF" ClipToBounds="True">
-                                                    <Grid>
-                                                        <!-- 1. 找回特效：网格背景 -->
-                                                        <Rectangle Fill="{StaticResource FineGridBrush}"/>
+                <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Stretch" Background="Transparent"/>
 
+                <ContentControl Grid.Column="2" Content="{Binding SelectedVm}">
+                    <ContentControl.Style>
+                        <Style TargetType="ContentControl">
+                            <Setter Property="ContentTemplate">
+                                <Setter.Value>
+                                    <DataTemplate>
+                                        <Border Background="{ui:ThemeResource ControlFillColorDefaultBrush}" BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="4" Padding="15">
+                                            <Grid>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="*"/>
+                                                    <RowDefinition Height="*"/>
+                                                </Grid.RowDefinitions>
 
-                                                        <!-- 2. 波形图 -->
-                                                        <Viewbox Stretch="Fill">
-                                                            <Grid Width="100" Height="100">
-                                                                <Polygon Points="{Binding HistoryPoints}"
-                                                                         Fill="#66117DBB"/>
-                                                                <Polyline Points="{Binding HistoryPoints}"
-                                                                          Stroke="#FF54C7FC"
-                                                                          StrokeThickness="1.5"/>
+                                                <ItemsControl Grid.Row="0" ItemsSource="{Binding Cores}">
+                                                    <ItemsControl.ItemsPanel>
+                                                        <ItemsPanelTemplate>
+                                                            <tools:StretchUniformGrid Columns="{Binding Columns}" Rows="{Binding Rows}" />
+                                                        </ItemsPanelTemplate>
+                                                    </ItemsControl.ItemsPanel>
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <Grid Margin="2">
+                                                                <Border CornerRadius="4" BorderThickness="1" BorderBrush="#1A888888" Background="#08FFFFFF" ClipToBounds="True">
+                                                                    <Grid>
+                                                                        <Rectangle Fill="{StaticResource FineGridBrush}"/>
+                                                                        <Viewbox Stretch="Fill">
+                                                                            <Grid Width="100" Height="100">
+                                                                                <Polygon Points="{Binding HistoryPoints}" Fill="#66117DBB"/>
+                                                                                <Polyline Points="{Binding HistoryPoints}" Stroke="#FF54C7FC" StrokeThickness="1.5"/>
+                                                                            </Grid>
+                                                                        </Viewbox>
+                                                                        <TextBlock Text="{Binding CoreId}" FontSize="10" Opacity="0.6" Margin="5,2,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                                                        <TextBlock Text="{Binding Usage, StringFormat='{}{0:N1}%'}" FontSize="16" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                                                    </Grid>
+                                                                </Border>
                                                             </Grid>
-                                                        </Viewbox>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
 
-                                                        <!-- ID -->
-                                                        <TextBlock Text="{Binding CoreId}" 
-                                                                   FontSize="10" 
-                                                                   Opacity="0.6" 
-                                                                   Margin="5,2,0,0"
-                                                                   HorizontalAlignment="Left" 
-                                                                   VerticalAlignment="Top"
-                                                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
-
-                                                        <!-- 数值 -->
-                                                        <TextBlock Text="{Binding Usage, StringFormat='{}{0:N1}%'}" 
-                                                                   FontSize="16" 
-                                                                   FontWeight="Bold" 
-                                                                   HorizontalAlignment="Center" 
-                                                                   VerticalAlignment="Center"
-                                                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}">
-                                                        </TextBlock>
-                                                    </Grid>
+                                                <Border Grid.Row="1" Margin="0,10,0,0">
+                                                    <TextBlock Text="控制按钮区域" HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="0.3" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
                                                 </Border>
                                             </Grid>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                            </StackPanel>
-                        </ui:Card>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
-        </StackPanel>
-        <ProgressBar Panel.ZIndex="1" 
-                 VerticalAlignment="Top" 
-                 Height="4" 
-                 IsIndeterminate="True"
-                 Visibility="{Binding IsLoading, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-    </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </Setter.Value>
+                            </Setter>
+                            <Style.Triggers>
+                                <Trigger Property="Content" Value="{x:Null}">
+                                    <Setter Property="ContentTemplate">
+                                        <Setter.Value>
+                                            <DataTemplate>
+                                                <Border Background="{ui:ThemeResource ControlFillColorDefaultBrush}" BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="4">
+                                                    <TextBlock Text="等待数据中..." HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="0.5" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                                                </Border>
+                                            </DataTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </ContentControl.Style>
+                </ContentControl>
+            </Grid>
+        </Grid>
 
+        <ProgressBar Panel.ZIndex="1" VerticalAlignment="Top" Height="4" IsIndeterminate="True"
+                     Visibility="{Binding IsLoading, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+    </Grid>
 </Page>

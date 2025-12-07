@@ -62,7 +62,7 @@ namespace ExHyperV.Services
                         var match = _hostRegex.Match(name);
                         if (match.Success)
                         {
-                            AddCounter(CatHost, CounterHost, name, "Host System", int.Parse(match.Groups[1].Value));
+                            AddCounter(CatHost, CounterHost, name, "Host", int.Parse(match.Groups[1].Value));
                         }
                     }
                 }

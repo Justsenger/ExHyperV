@@ -1,4 +1,6 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+﻿// 文件路径: ExHyperV/ViewModels/CpuPageViewModel.cs
+
+using CommunityToolkit.Mvvm.ComponentModel;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -22,40 +24,28 @@ namespace ExHyperV.ViewModels
 
     public partial class CpuPageViewModel : ObservableObject, IDisposable
     {
-        // 【修复1】去掉 readonly，否则无法在 MonitorLoop 中初始化
         private CpuMonitorService _cpuService;
         private volatile bool _isMonitoring = true;
-
         private CancellationTokenSource _sleepTokenSource = new CancellationTokenSource();
-
         private const int MaxHistoryLength = 25;
         private readonly Dictionary<string, LinkedList<double>> _historyCache = new();
-
         public ObservableCollection<UiVmModel> VmList { get; } = new ObservableCollection<UiVmModel>();
-
+        [ObservableProperty]
+        private UiVmModel? _selectedVm;
         [ObservableProperty]
         private int _refreshInterval = 2000;
-
         [ObservableProperty]
         private bool _isLoading = true;
-
         private int _selectedSpeedIndex = 1;
         public int SelectedSpeedIndex
         {
             get => _selectedSpeedIndex;
-            set
-            {
-                if (SetProperty(ref _selectedSpeedIndex, value))
-                {
-                    UpdateInterval();
-                    WakeUpThread();
-                }
-            }
+            set { if (SetProperty(ref _selectedSpeedIndex, value)) { UpdateInterval(); WakeUpThread(); } }
         }
 
         public CpuPageViewModel()
         {
-            // 构造函数保持干净，只启动任务
+            SelectedSpeedIndex = 1;
             Task.Run(MonitorLoop);
         }
 
@@ -66,7 +56,7 @@ namespace ExHyperV.ViewModels
                 0 => 1000,
                 1 => 2000,
                 2 => 5000,
-                3 => -1, // 暂停
+                3 => -1,
                 _ => 2000
             };
         }
@@ -78,67 +68,36 @@ namespace ExHyperV.ViewModels
 
         private async Task MonitorLoop()
         {
-            // 1. 在后台初始化 Service (解决进入页面卡顿)
-            try
-            {
-                _cpuService = new CpuMonitorService();
-            }
-            catch
-            {
-                // 如果初始化失败，取消加载状态避免死锁，然后退出
-                Application.Current.Dispatcher.Invoke(() => IsLoading = false);
-                return;
-            }
+            try { _cpuService = new CpuMonitorService(); }
+            catch { Application.Current.Dispatcher.Invoke(() => IsLoading = false); return; }
+
+            Application.Current.Dispatcher.Invoke(() => IsLoading = false);
 
             while (_isMonitoring)
             {
-                // 【修复2】删除了这里原先错误的代码块 (就是引发 CS0103 updates 不存在 和 CS0136 rawData 重复定义的代码)
-                // 逻辑已经移入下方的 else 分支中
-
-                if (_sleepTokenSource.IsCancellationRequested)
-                {
-                    _sleepTokenSource.Dispose();
-                    _sleepTokenSource = new CancellationTokenSource();
-                }
-
                 try
                 {
+                    if (_sleepTokenSource.IsCancellationRequested)
+                    {
+                        _sleepTokenSource.Dispose();
+                        _sleepTokenSource = new CancellationTokenSource();
+                    }
                     if (RefreshInterval == -1)
                     {
-                        // 暂停状态
                         await Task.Delay(Timeout.Infinite, _sleepTokenSource.Token);
+                        continue;
                     }
-                    else
-                    {
-                        // 工作状态
-                        var startTime = DateTime.Now;
-
-                        var rawData = _cpuService.GetCpuUsage();
-                        var updates = ProcessData(rawData);
-
-                        // 更新 UI 并处理加载条状态
-                        Application.Current.Dispatcher.Invoke(() =>
-                        {
-                            ApplyUpdates(updates);
-                            // 【修复3】数据上屏后，关闭加载条 (逻辑移到这里)
-                            if (IsLoading) IsLoading = false;
-                        });
-
-                        var elapsed = (DateTime.Now - startTime).TotalMilliseconds;
-                        var delay = RefreshInterval - (int)elapsed;
-                        if (delay < 100) delay = 100;
-
-                        await Task.Delay(delay, _sleepTokenSource.Token);
-                    }
+                    var startTime = DateTime.Now;
+                    var rawData = _cpuService.GetCpuUsage();
+                    var updates = ProcessData(rawData);
+                    Application.Current.Dispatcher.Invoke(() => ApplyUpdates(updates));
+                    var elapsed = (DateTime.Now - startTime).TotalMilliseconds;
+                    var delay = RefreshInterval - (int)elapsed;
+                    if (delay < 100) delay = 100;
+                    await Task.Delay(delay, _sleepTokenSource.Token);
                 }
-                catch (TaskCanceledException)
-                {
-                    // 忽略取消异常
-                }
-                catch (Exception)
-                {
-                    await Task.Delay(5000);
-                }
+                catch (TaskCanceledException) { }
+                catch (Exception) { await Task.Delay(5000); }
             }
         }
 
@@ -154,20 +113,11 @@ namespace ExHyperV.ViewModels
                     for (int k = 0; k < MaxHistoryLength; k++) history.AddLast(0);
                     _historyCache[key] = history;
                 }
-
                 history.AddLast(metric.Usage);
                 if (history.Count > MaxHistoryLength) history.RemoveFirst();
-
                 var points = CalculatePoints(history);
                 points.Freeze();
-
-                updates.Add(new CoreUpdateDto
-                {
-                    VmName = metric.VmName,
-                    CoreId = metric.CoreId,
-                    Usage = metric.Usage,
-                    RenderedGraph = points
-                });
+                updates.Add(new CoreUpdateDto { VmName = metric.VmName, CoreId = metric.CoreId, Usage = metric.Usage, RenderedGraph = points });
             }
             return updates;
         }
@@ -191,37 +141,92 @@ namespace ExHyperV.ViewModels
         private void ApplyUpdates(List<CoreUpdateDto> updates)
         {
             if (!_isMonitoring) return;
+
             var activeVmNames = updates.Select(x => x.VmName).ToHashSet();
             var vmsToRemove = VmList.Where(vm => !activeVmNames.Contains(vm.Name)).ToList();
+
+            bool selectionRemoved = vmsToRemove.Any(vm => vm == SelectedVm);
             foreach (var vm in vmsToRemove) VmList.Remove(vm);
+            if (selectionRemoved) SelectedVm = null;
+
             var grouped = updates.GroupBy(x => x.VmName);
             foreach (var group in grouped)
             {
                 var vmName = group.Key;
                 var uiVm = VmList.FirstOrDefault(v => v.Name == vmName);
-                if (uiVm == null) { uiVm = new UiVmModel { Name = vmName }; VmList.Add(uiVm); }
-                int cols = CalculateOptimalColumns(group.Count());
+                if (uiVm == null)
+                {
+                    uiVm = new UiVmModel { Name = vmName };
+                    VmList.Add(uiVm);
+                }
+
+                uiVm.AverageUsage = group.Average(update => update.Usage);
+
+                int coreCount = group.Count();
+                int cols = CalculateOptimalColumns(coreCount);
                 if (uiVm.Columns != cols) uiVm.Columns = cols;
+
+                int rows = (int)Math.Ceiling((double)coreCount / cols);
+                if (uiVm.Rows != rows) uiVm.Rows = rows;
+
+                var existingCoreIds = uiVm.Cores.Select(c => c.CoreId).ToHashSet();
+                var updatedCoreIds = group.Select(u => u.CoreId).ToHashSet();
+
+                var coresToRemove = uiVm.Cores.Where(c => !updatedCoreIds.Contains(c.CoreId)).ToList();
+                foreach (var core in coresToRemove) uiVm.Cores.Remove(core);
+
                 foreach (var update in group)
                 {
                     var uiCore = uiVm.Cores.FirstOrDefault(c => c.CoreId == update.CoreId);
-                    if (uiCore == null) { uiCore = new UiCoreModel { CoreId = update.CoreId }; uiVm.Cores.Add(uiCore); }
-                    uiCore.Usage = update.Usage; uiCore.HistoryPoints = update.RenderedGraph;
+                    if (uiCore == null)
+                    {
+                        uiCore = new UiCoreModel { CoreId = update.CoreId };
+                        uiVm.Cores.Add(uiCore);
+                    }
+                    uiCore.Usage = update.Usage;
+                    uiCore.HistoryPoints = update.RenderedGraph;
                 }
+            }
+
+            if (SelectedVm == null && VmList.Any())
+            {
+                SelectedVm = VmList[0];
             }
         }
 
         private int CalculateOptimalColumns(int count)
         {
+            // 1. 优先处理常见的小数量，确保最佳美学效果
             if (count <= 1) return 1;
-            double sqrt = Math.Sqrt(count);
-            int minCols = (int)Math.Ceiling(sqrt);
-            int maxCols = 8;
-            if (minCols > maxCols) maxCols = minCols + 2;
-            for (int cols = minCols; cols <= maxCols; cols++) if (count % cols == 0) return cols;
-            return minCols;
-        }
+            if (count <= 3) return count; // 2和3个核心，单行显示
+            if (count == 4) return 2;     // 2x2
+            if (count <= 6) return 3;     // 5和6个核心，3x2布局
+            if (count == 8) return 4;     // 8个核心，4x2布局，远优于3x3
 
+            double sqrt = Math.Sqrt(count);
+
+            // 2. 如果是完美的正方形，直接返回
+            if (sqrt == (int)sqrt)
+            {
+                return (int)sqrt;
+            }
+
+            // 3. 核心逻辑：寻找最接近平方根的因数，以形成最饱满的矩形
+            // 从平方根的整数部分向下搜索
+            int startingPoint = (int)sqrt;
+            for (int i = startingPoint; i >= 2; i--)
+            {
+                if (count % i == 0)
+                {
+                    // 找到了一个因数对 (i, count / i)
+                    // 返回两者中较大的那个作为列数，以优先形成更宽的“横向”矩形
+                    return count / i;
+                }
+            }
+
+            // 4. 如果找不到因数 (数字是素数), 则回退到原始的“最接近正方形”的方法
+            return (int)Math.Ceiling(sqrt);
+        }
         public void Dispose()
         {
             _isMonitoring = false;
