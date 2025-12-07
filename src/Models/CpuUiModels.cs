@@ -14,6 +14,8 @@ namespace ExHyperV.Models
         [ObservableProperty]
         private PointCollection _historyPoints;
 
+
+
         public System.Collections.Generic.LinkedList<double> RawHistory { get; } = new();
     }
 
@@ -24,6 +26,9 @@ namespace ExHyperV.Models
         // 新增：动态控制该虚拟机在界面上显示几列
         [ObservableProperty]
         private int _columns = 2;
+
+        [ObservableProperty]
+        private int _rows; // <-- 添加这一行
 
         public ObservableCollection<UiCoreModel> Cores { get; } = new ObservableCollection<UiCoreModel>();
     }

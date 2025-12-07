@@ -10,7 +10,7 @@ namespace ExHyperV.Services
     public class CachedCounter
     {
         public PerformanceCounter Counter { get; set; }
-        public string VmName { get; set; } // 虚拟机名 或 "Host System"
+        public string VmName { get; set; }
         public int CoreId { get; set; }
     }
 
