@@ -1,10 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Runtime.InteropServices; // <--- 关键引用：用于调用 Windows API
+﻿using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using ExHyperV.Models;
+using ExHyperV.Tools;
 
 namespace ExHyperV.Services
 {
@@ -24,15 +22,8 @@ namespace ExHyperV.Services
 
     public class CpuMonitorService
     {
-        // ==========================================
-        // 区域：核心类型检测 (API 级精准识别)
-        // ==========================================
-        #region Core Type Detection (Native API)
-
-        // 缓存：逻辑处理器ID -> 核心类型
         private static readonly Dictionary<int, CoreType> _coreTypeCache = new Dictionary<int, CoreType>();
         private static bool _isHybrid = false;
-
         static CpuMonitorService()
         {
             InitializeCoreTypes();
@@ -44,20 +35,13 @@ namespace ExHyperV.Services
             return _coreTypeCache.TryGetValue(coreId, out var type) ? type : CoreType.Unknown;
         }
 
-        /// <summary>
-        /// 使用 Windows API (GetLogicalProcessorInformationEx) 获取每个核心的能效等级
-        /// </summary>
         private static void InitializeCoreTypes()
         {
             try
             {
-                // 1. 获取缓冲区大小
                 uint returnLength = 0;
                 GetLogicalProcessorInformationEx(LOGICAL_PROCESSOR_RELATIONSHIP.RelationProcessorCore, IntPtr.Zero, ref returnLength);
-
                 if (returnLength == 0) return;
-
-                // 2. 分配内存并读取数据
                 IntPtr buffer = Marshal.AllocHGlobal((int)returnLength);
                 try
                 {
@@ -68,58 +52,37 @@ namespace ExHyperV.Services
                         byte maxClass = 0;
                         byte minClass = 255;
                         var tempInfo = new List<(int Id, byte Class)>();
-
-                        // 3. 遍历结构体链表
                         while (offset < returnLength)
                         {
                             var info = Marshal.PtrToStructure<SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX>(ptr);
-
-                            // 只需要处理 Core 类型
                             if (info.Relationship == LOGICAL_PROCESSOR_RELATIONSHIP.RelationProcessorCore)
                             {
                                 byte efficiencyClass = info.Processor.EfficiencyClass;
-
-                                // 记录最大和最小能效等级，用于判断是否是混合架构
                                 if (efficiencyClass > maxClass) maxClass = efficiencyClass;
                                 if (efficiencyClass < minClass) minClass = efficiencyClass;
 
-                                // 解析 GroupMask 找出对应的逻辑处理器 ID
-                                // 通常消费级 CPU 只有一个 Group (Group 0)
                                 for (int i = 0; i < info.Processor.GroupCount; i++)
                                 {
                                     var groupInfo = info.Processor.GroupMask[i];
                                     ulong mask = groupInfo.Mask.ToUInt64();
 
-                                    // 遍历 64 位掩码
                                     for (int bit = 0; bit < 64; bit++)
                                     {
                                         if ((mask & (1UL << bit)) != 0)
                                         {
-                                            // 这是一个逻辑处理器
-                                            // 真正的逻辑ID可能需要结合 GroupID，但简单起见假设 Group 0
-                                            // 对于绝大多数 PC，这足够了。
                                             tempInfo.Add((bit, efficiencyClass));
                                         }
                                     }
                                 }
                             }
-
-                            // 移动指针
                             offset += info.Size;
                             ptr = IntPtr.Add(ptr, (int)info.Size);
                         }
-
-                        // 4. 判断是否混合架构
-                        // 只有当存在不同的能效等级时，才认为是混合架构
-                        // Arrow Lake: P核 Class 1, E核 Class 0 -> 混合
-                        // 5950X: 全是 Class 0 (或相同) -> 非混合
                         if (maxClass > minClass)
                         {
                             _isHybrid = true;
                             foreach (var item in tempInfo)
                             {
-                                // 最高等级的是 P 核，其余算 E 核
-                                // (实际上可能有中间层，但目前Intel只有两层)
                                 _coreTypeCache[item.Id] = (item.Class == maxClass) ? CoreType.Performance : CoreType.Efficient;
                             }
                         }
@@ -139,8 +102,6 @@ namespace ExHyperV.Services
                 _isHybrid = false;
             }
         }
-
-        // --- P/Invoke 定义 ---
         [DllImport("kernel32.dll", SetLastError = true)]
         private static extern bool GetLogicalProcessorInformationEx(
             LOGICAL_PROCESSOR_RELATIONSHIP RelationshipType,
@@ -162,18 +123,18 @@ namespace ExHyperV.Services
         {
             public LOGICAL_PROCESSOR_RELATIONSHIP Relationship;
             public uint Size;
-            public PROCESSOR_RELATIONSHIP Processor; // 这是一个联合体，这里简化处理
+            public PROCESSOR_RELATIONSHIP Processor;
         }
 
         [StructLayout(LayoutKind.Sequential)]
         private struct PROCESSOR_RELATIONSHIP
         {
             public byte Flags;
-            public byte EfficiencyClass; // <--- 我们需要这个！
+            public byte EfficiencyClass;
             [MarshalAs(UnmanagedType.ByValArray, SizeConst = 20)]
             public byte[] Reserved;
             public ushort GroupCount;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 1)] // 实际是变长的，但我们只读第一个通常够用
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 1)]
             public GROUP_AFFINITY[] GroupMask;
         }
 
@@ -186,11 +147,7 @@ namespace ExHyperV.Services
             public ushort[] Reserved;
         }
 
-        #endregion
 
-        // ==========================================
-        // 区域：核心监控逻辑 (以下逻辑保持不变)
-        // ==========================================
 
         private readonly List<CachedCounter> _cachedCounters = new List<CachedCounter>();
         private readonly Dictionary<string, int> _vmCoreCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
@@ -234,39 +191,30 @@ namespace ExHyperV.Services
 
             try
             {
-                var startInfo = new ProcessStartInfo
+                string script = "Get-VMProcessor * | Select-Object VMName, Count";
+                var results = Utils.Run(script);
+                foreach (var pso in results)
                 {
-                    FileName = "powershell.exe",
-                    Arguments = "-NoProfile -WindowStyle Hidden -Command \"Get-VMProcessor * | Select-Object VMName, Count | ConvertTo-Csv -NoTypeInformation\"",
-                    RedirectStandardOutput = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true
-                };
-
-                using var process = Process.Start(startInfo);
-                if (process != null)
-                {
-                    while (!process.StandardOutput.EndOfStream)
+                    if (pso?.Properties["VMName"]?.Value is string vmName &&
+                        pso.Properties["Count"]?.Value != null)
                     {
-                        string line = process.StandardOutput.ReadLine();
-                        if (string.IsNullOrWhiteSpace(line) || line.StartsWith("\"VMName\"")) continue;
-
-                        var parts = line.Split(',');
-                        if (parts.Length >= 2)
+                        try
                         {
-                            string name = parts[0].Trim('"');
-                            if (int.TryParse(parts[1].Trim('"'), out int count))
-                            {
-                                _vmCoreCounts[name] = count;
-                            }
+                            int coreCount = Convert.ToInt32(pso.Properties["Count"].Value);
+                            _vmCoreCounts[vmName] = coreCount;
+                        }
+                        catch (FormatException ex)
+                        {
+                            Debug.WriteLine($"Failed to parse core count for VM '{vmName}': {ex.Message}");
                         }
                     }
-                    process.WaitForExit(1000);
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Failed to update VM list from PowerShell: {ex.Message}");
+            }
         }
-
         private void UpdateRunningCounters()
         {
             if (PerformanceCounterCategory.Exists(CatVm))

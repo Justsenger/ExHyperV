@@ -1,12 +1,5 @@
-﻿// ExHyperV/ViewModels/CpuPageViewModel.cs
-
-using CommunityToolkit.Mvvm.ComponentModel;
-using System;
-using System.Collections.Generic;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
 using System.Collections.ObjectModel;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Media;
 using ExHyperV.Models;
@@ -38,12 +31,12 @@ namespace ExHyperV.ViewModels
         private UiVmModel? _selectedVm;
 
         [ObservableProperty]
-        private int _refreshInterval = 2000;
+        private int _refreshInterval = 1000;
 
         [ObservableProperty]
         private bool _isLoading = true;
 
-        private int _selectedSpeedIndex = 1;
+        private int _selectedSpeedIndex = 0;
         public int SelectedSpeedIndex
         {
             get => _selectedSpeedIndex;
@@ -52,7 +45,7 @@ namespace ExHyperV.ViewModels
 
         public CpuPageViewModel()
         {
-            SelectedSpeedIndex = 1;
+            SelectedSpeedIndex = 0;
         }
 
         public void StartMonitoring()
@@ -62,13 +55,24 @@ namespace ExHyperV.ViewModels
             _monitoringTask = Task.Run(() => MonitorLoop(_monitoringCts.Token));
         }
 
-        public void StopMonitoring()
+        public async Task StopMonitoringAsync()
         {
             if (_monitoringCts != null && !_monitoringCts.IsCancellationRequested)
             {
                 _monitoringCts.Cancel();
                 WakeUpThread();
-                _monitoringTask?.Wait(TimeSpan.FromSeconds(1));
+
+                if (_monitoringTask != null)
+                {
+                    try
+                    {
+                        await Task.WhenAny(_monitoringTask, Task.Delay(1000));
+                    }
+                    catch
+                    {
+                    }
+                }
+
                 _monitoringCts.Dispose();
                 _monitoringCts = null;
             }
@@ -76,7 +80,7 @@ namespace ExHyperV.ViewModels
 
         private void UpdateInterval()
         {
-            RefreshInterval = SelectedSpeedIndex switch { 0 => 1000, 1 => 2000, 2 => 5000, 3 => -1, _ => 2000 };
+            RefreshInterval = SelectedSpeedIndex switch { 0 => 1000, 1 => 2000, 2 => -1, _ => 1000 };
         }
 
         private void WakeUpThread()
@@ -131,7 +135,6 @@ namespace ExHyperV.ViewModels
             foreach (var metric in rawData)
             {
                 PointCollection points = null;
-                // 仅运行中计算图表
                 if (metric.IsRunning)
                 {
                     var key = $"{metric.VmName}_{metric.CoreId}";
@@ -195,17 +198,14 @@ namespace ExHyperV.ViewModels
                 bool isVmRunning = group.Any(x => x.IsRunning);
                 uiVm.IsRunning = isVmRunning;
 
-                // 【修复】无论运行还是关机，都要更新核心列表，否则关机后格子会消失
                 int coreCount = group.Count();
                 int cols = CalculateOptimalColumns(coreCount);
                 if (uiVm.Columns != cols) uiVm.Columns = cols;
                 int rows = (int)Math.Ceiling((double)coreCount / cols);
                 if (uiVm.Rows != rows) uiVm.Rows = rows;
 
-                // 如果关机，平均使用率置0，否则计算平均值
                 uiVm.AverageUsage = isVmRunning ? group.Average(update => update.Usage) : 0;
 
-                // 更新 Core 列表 (移除多余的)
                 var updatedCoreIds = group.Select(u => u.CoreId).ToHashSet();
                 var coresToRemove = uiVm.Cores.Where(c => !updatedCoreIds.Contains(c.CoreId)).ToList();
                 foreach (var core in coresToRemove) uiVm.Cores.Remove(core);
@@ -242,9 +242,9 @@ namespace ExHyperV.ViewModels
             return (int)Math.Ceiling(sqrt);
         }
 
-        public void Dispose()
+        public async void Dispose()
         {
-            StopMonitoring();
+            await StopMonitoringAsync();
             _sleepTokenSource?.Dispose();
         }
     }

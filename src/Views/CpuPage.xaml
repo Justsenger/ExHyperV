@@ -62,8 +62,7 @@
                                    Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
                         <ComboBox SelectedIndex="{Binding SelectedSpeedIndex}" Width="120">
                             <ComboBoxItem Content="快 (1s)"/>
-                            <ComboBoxItem Content="常规 (2s)"/>
-                            <ComboBoxItem Content="慢 (5s)"/>
+                            <ComboBoxItem Content="慢 (2s)"/>
                             <ComboBoxItem Content="暂停"/>
                         </ComboBox>
                     </StackPanel>
@@ -94,17 +93,12 @@
                                         <ui:FontIcon FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="{Binding Name, Converter={StaticResource VmNameToIconConverter}}" FontSize="18" Margin="0,0,12,0" VerticalAlignment="Center"/>
                                         <TextBlock Text="{Binding Name}" VerticalAlignment="Center"/>
                                     </StackPanel>
-
-                                    <!-- 修改此处：状态文本 -->
                                     <TextBlock Grid.Column="1" VerticalAlignment="Center" Margin="10,0,0,0">
                                         <TextBlock.Style>
                                             <Style TargetType="TextBlock">
-                                                <!-- 默认：运行中 -->
                                                 <Setter Property="Text" Value="{Binding AverageUsage, StringFormat='{}{0:N1}%'}"/>
                                                 <Setter Property="Foreground" Value="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
-
                                                 <Style.Triggers>
-                                                    <!-- 关机状态 -->
                                                     <DataTrigger Binding="{Binding IsRunning}" Value="False">
                                                         <Setter Property="Text" Value="已关闭"/>
                                                         <Setter Property="Foreground" Value="{ui:ThemeResource TextFillColorDisabledBrush}"/>
@@ -121,8 +115,6 @@
 
                 <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Stretch" Background="Transparent"/>
 
-                <!-- 右侧详情面板 -->
-                <!-- 右侧详情面板 -->
                 <ContentControl Grid.Column="2" Content="{Binding SelectedVm}">
                     <ContentControl.Style>
                         <Style TargetType="ContentControl">
@@ -132,12 +124,10 @@
                                         <Border Background="{ui:ThemeResource ControlFillColorDefaultBrush}" BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="4" Padding="15">
                                             <Grid>
                                                 <Grid.RowDefinitions>
-                                                    <!-- 1. 上下 50% 等分 -->
                                                     <RowDefinition Height="*"/>
                                                     <RowDefinition Height="*"/>
                                                 </Grid.RowDefinitions>
 
-                                                <!-- 2. 核心显示区域 -->
                                                 <ItemsControl Grid.Row="0" ItemsSource="{Binding Cores}">
                                                     <ItemsControl.ItemsPanel>
                                                         <ItemsPanelTemplate>
@@ -149,10 +139,7 @@
                                                             <Grid Margin="2">
                                                                 <Border CornerRadius="4" BorderThickness="1" BorderBrush="#1A888888" Background="#08FFFFFF" ClipToBounds="True">
                                                                     <Grid>
-                                                                        <!-- 背景网格 (关机也显示) -->
                                                                         <Rectangle Fill="{StaticResource FineGridBrush}"/>
-
-                                                                        <!-- 波形图 (关机隐藏) -->
                                                                         <Viewbox Stretch="Fill" x:Name="WaveGraph">
                                                                             <Grid Width="100" Height="100">
                                                                                 <Polygon Points="{Binding HistoryPoints}" Fill="#66117DBB"/>
@@ -160,11 +147,11 @@
                                                                             </Grid>
                                                                         </Viewbox>
 
-                                                                        <!-- 左上角信息 -->
+                                                                        
                                                                         <StackPanel Orientation="Horizontal" Margin="5,2,0,0" HorizontalAlignment="Left" VerticalAlignment="Top">
                                                                             <TextBlock Text="{Binding CoreId}" FontSize="10" Opacity="0.6" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
 
-                                                                            <!-- 【修改】换回 Emoji 图标，去掉 Segoe Fluent Icons -->
+                                                                            
                                                                             <TextBlock FontSize="10" Margin="3,0,0,0" VerticalAlignment="Center" FontWeight="Bold">
                                                                                 <TextBlock.Style>
                                                                                     <Style TargetType="TextBlock">
@@ -186,14 +173,14 @@
                                                                             </TextBlock>
                                                                         </StackPanel>
 
-                                                                        <!-- 中间数字 (关机隐藏) -->
+                                                                        
                                                                         <TextBlock x:Name="UsageText"
                                                                    Text="{Binding Usage, StringFormat='{}{0:N1}%'}" 
                                                                    FontSize="16" FontWeight="SemiBold" 
                                                                    HorizontalAlignment="Center" VerticalAlignment="Center" 
                                                                    Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
 
-                                                                        <!-- 关机标记 (关机显示) -->
+                                                                        
                                                                         <TextBlock Text="OFF" FontSize="14" FontWeight="Bold" Opacity="0.1" 
                                                                    HorizontalAlignment="Center" VerticalAlignment="Center"
                                                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}"
@@ -202,7 +189,7 @@
                                                                 </Border>
                                                             </Grid>
 
-                                                            <!-- 关机时的显示逻辑 -->
+                                                            
                                                             <DataTemplate.Triggers>
                                                                 <DataTrigger Binding="{Binding DataContext.IsRunning, RelativeSource={RelativeSource AncestorType=ItemsControl}}" Value="False">
                                                                     <Setter TargetName="WaveGraph" Property="Visibility" Value="Hidden"/>
@@ -214,10 +201,10 @@
                                                     </ItemsControl.ItemTemplate>
                                                 </ItemsControl>
 
-                                                <!-- 3. 控制面板 (保留您的位置) -->
+                                                
                                                 <Border Grid.Row="1" Margin="0,10,0,0">
                                                     <Grid>
-                                                        <TextBlock Text="（此处是您的控制面板区域）" 
+                                                        <TextBlock Text="控制面板区域" 
                                                    VerticalAlignment="Center" HorizontalAlignment="Center"
                                                    Opacity="0.2"
                                                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
