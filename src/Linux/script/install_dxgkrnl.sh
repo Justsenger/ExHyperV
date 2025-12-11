@@ -316,7 +316,7 @@ install_dkms() {
     echo "Installing module..."
     dkms -k ${TARGET_KERNEL_VERSION} install dxgkrnl/$VERSION || true
 
-    if [ ! -f "/lib/modules/${TARGET_KERNEL_VERSION}/updates/dkms/dxgkrnl.ko" ]; then
+    if [ ! -f "/lib/modules/${TARGET_KERNEL_VERSION}/updates/dkms/dxgkrnl.ko" ] && [ ! -f "/lib/modules/${TARGET_KERNEL_VERSION}/updates/dkms/dxgkrnl.ko.zst" ]; then
         echo "Error: DKMS installation failed (Module file not found)."
         exit 1
     fi
