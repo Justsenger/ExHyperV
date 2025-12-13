@@ -56,6 +56,11 @@ namespace ExHyperV.ViewModels
             set { if (SetProperty(ref _selectedSpeedIndex, value)) { UpdateInterval(); WakeUpThread(); } }
         }
 
+        // 用于缓存系统信息的字段
+        private bool _systemInfoCached = false;
+        private HyperVSchedulerType _cachedSchedulerType = HyperVSchedulerType.Unknown;
+        private Dictionary<int, int> _cachedCpuSiblingMap = new Dictionary<int, int>();
+
         public CpuPageViewModel()
         {
             SelectedSpeedIndex = 0;
@@ -209,6 +214,16 @@ namespace ExHyperV.ViewModels
                     uiCore.Usage = update.Usage;
                     uiCore.HistoryPoints = update.RenderedGraph;
                 }
+
+                if (!_systemInfoCached && vmName.Equals("Host", StringComparison.OrdinalIgnoreCase) && uiVm.Cores.Any())
+                {
+                    Debug.WriteLine("===== [Cache] 首次加载Host信息，开始缓存系统拓扑和调度器类型... =====");
+                    _cachedSchedulerType = HyperVSchedulerService.GetSchedulerType();
+                    _cachedCpuSiblingMap = CpuTopologyService.GetCpuSiblingMap();
+                    _systemInfoCached = true;
+                    Debug.WriteLine($"[Cache] 缓存完成。调度器: {_cachedSchedulerType}, 兄弟核心对: {_cachedCpuSiblingMap.Count / 2}");
+                    Debug.WriteLine("==================================================================");
+                }
             }
             if (SelectedVm == null && VmList.Any()) SelectedVm = VmList[0];
         }
@@ -231,14 +246,12 @@ namespace ExHyperV.ViewModels
             try
             {
                 if (SelectedVm == null || SelectedVm.Name.Equals("Host", StringComparison.OrdinalIgnoreCase)) return;
-
                 var vmId = GetVmGuidByName(SelectedVm.Name);
                 if (vmId == Guid.Empty)
                 {
                     MessageBox.Show($"无法找到虚拟机 '{SelectedVm.Name}' 的GUID。", "配置错误", MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
-
                 var hostVm = VmList.FirstOrDefault(vm => vm.Name.Equals("Host", StringComparison.OrdinalIgnoreCase));
                 if (hostVm == null || hostVm.Cores.Count == 0)
                 {
@@ -246,78 +259,94 @@ namespace ExHyperV.ViewModels
                     return;
                 }
 
-                var dialogViewModel = new CpuAffinityDialogViewModel(SelectedVm.Name, SelectedVm.Cores.Count, hostVm.Cores);
-
-                try
+                if (_cachedSchedulerType == HyperVSchedulerType.Root)
                 {
-                    string vmGroupJson = await Task.Run(() => HcsManager.GetVmCpuGroupAsJson(vmId));
-                    if (!string.IsNullOrEmpty(vmGroupJson))
+                    // ---------- Root 调度器逻辑分支 ----------
+                    if (!SelectedVm.IsRunning)
                     {
-                        var vmGroupInfo = JsonSerializer.Deserialize<VmCpuGroupInfo>(vmGroupJson);
-                        if (vmGroupInfo?.CpuGroupId != Guid.Empty)
+                        MessageBox.Show("在“根调度器”模式下，只能为正在运行的虚拟机设置临时的 CPU 相关性。", "操作受限", MessageBoxButton.OK, MessageBoxImage.Information);
+                        return;
+                    }
+
+                    var dialogViewModel = new CpuAffinityDialogViewModel(
+                        SelectedVm.Name, SelectedVm.Cores.Count, hostVm.Cores,
+                        _cachedSchedulerType, _cachedCpuSiblingMap
+                    );
+
+                    var currentAffinity = ProcessAffinityManager.GetVmProcessAffinity(vmId);
+                    foreach (var coreVm in dialogViewModel.Cores)
+                    {
+                        if (currentAffinity.Contains(coreVm.CoreId))
                         {
-                            var groupDetails = await _cpuAffinityService.GetCpuGroupDetailsAsync(vmGroupInfo.CpuGroupId);
-                            if (groupDetails?.Affinity?.LogicalProcessors != null)
+                            coreVm.IsSelected = true;
+                        }
+                    }
+
+                    var dialog = new CpuAffinityDialog { DataContext = dialogViewModel, Owner = Application.Current.MainWindow };
+                    if (dialog.ShowDialog() == true)
+                    {
+                        var selectedCoreIds = dialogViewModel.Cores
+                            .Where(c => c.IsSelected).Select(c => c.CoreId).ToList();
+
+                        ProcessAffinityManager.SetVmProcessAffinity(vmId, selectedCoreIds);
+
+                        MessageBox.Show($"已为虚拟机 '{SelectedVm.Name}' 的工作进程应用了临时的 CPU 相关性。\n\n此设置将在虚拟机关闭或宿主机重启后失效。", "操作成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
+                }
+                else
+                {
+                    // ---------- Classic / Core 调度器逻辑分支 ----------
+                    var dialogViewModel = new CpuAffinityDialogViewModel(
+                        SelectedVm.Name, SelectedVm.Cores.Count, hostVm.Cores,
+                        _cachedSchedulerType, _cachedCpuSiblingMap
+                    );
+
+                    try
+                    {
+                        string vmGroupJson = await Task.Run(() => HcsManager.GetVmCpuGroupAsJson(vmId));
+                        if (!string.IsNullOrEmpty(vmGroupJson))
+                        {
+                            var vmGroupInfo = JsonSerializer.Deserialize<VmCpuGroupInfo>(vmGroupJson);
+                            if (vmGroupInfo?.CpuGroupId != Guid.Empty)
                             {
-                                foreach (var coreVM in dialogViewModel.Cores)
+                                var groupDetails = await _cpuAffinityService.GetCpuGroupDetailsAsync(vmGroupInfo.CpuGroupId);
+                                if (groupDetails?.Affinity?.LogicalProcessors != null)
                                 {
-                                    if (groupDetails.Affinity.LogicalProcessors.Contains((uint)coreVM.CoreId))
+                                    foreach (var coreVM in dialogViewModel.Cores)
                                     {
-                                        coreVM.IsSelected = true;
+                                        if (groupDetails.Affinity.LogicalProcessors.Contains((uint)coreVM.CoreId))
+                                        {
+                                            coreVM.IsSelected = true;
+                                        }
                                     }
                                 }
                             }
                         }
                     }
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine($"查询虚拟机当前CPU组失败: {ex.Message}");
-                }
-
-                var dialog = new CpuAffinityDialog { DataContext = dialogViewModel, Owner = Application.Current.MainWindow };
-
-                if (dialog.ShowDialog() == true)
-                {
-                    var selectedCoreIds = dialogViewModel.Cores
-                                                         .Where(c => c.IsSelected)
-                                                         .Select(c => c.CoreId)
-                                                         .ToList();
-
-                    // =======================================================
-                    // 终极业务逻辑: 先解绑，再绑定
-                    // =======================================================
-
-                    // 步骤 1: 无论如何，先执行解除绑定操作
-                    Debug.WriteLine("------------------ APPLYING CHANGES ------------------");
-                    Debug.WriteLine($"正在为 VM {vmId} 执行步骤 1: 解除旧的CPU组绑定...");
-                    await Task.Run(() => HcsManager.SetVmCpuGroup(vmId, Guid.Empty));
-                    Debug.WriteLine($"步骤 1: 解除绑定完成。");
-
-                    // 步骤 2: 如果用户选择了核心，则查找/创建新组并绑定
-                    if (selectedCoreIds.Any())
+                    catch (Exception ex)
                     {
-                        Debug.WriteLine("用户选择了非0个核心，继续执行 [绑定] 逻辑。");
-
-                        Guid cpuGroupId = await _cpuAffinityService.FindOrCreateCpuGroupAsync(selectedCoreIds);
-
-                        Debug.WriteLine($"正在为 VM {vmId} 执行步骤 2: 绑定新的CPU组 {cpuGroupId}...");
-                        await Task.Run(() => HcsManager.SetVmCpuGroup(vmId, cpuGroupId));
-                        Debug.WriteLine($"步骤 2: 新组绑定完成。");
-
-                        MessageBox.Show($"已成功将CPU组 '{cpuGroupId}' 应用到虚拟机 '{SelectedVm.Name}'。", "操作成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                        Debug.WriteLine($"查询虚拟机当前CPU组失败: {ex.Message}");
                     }
-                    else
+
+                    var dialog = new CpuAffinityDialog { DataContext = dialogViewModel, Owner = Application.Current.MainWindow };
+                    if (dialog.ShowDialog() == true)
                     {
-                        Debug.WriteLine("用户选择了0个核心，流程结束。");
-                        MessageBox.Show($"已为虚拟机 '{SelectedVm.Name}' 解除CPU绑定。", "操作成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                        var selectedCoreIds = dialogViewModel.Cores
+                            .Where(c => c.IsSelected).Select(c => c.CoreId).ToList();
+
+                        await Task.Run(() => HcsManager.SetVmCpuGroup(vmId, Guid.Empty));
+                        if (selectedCoreIds.Any())
+                        {
+                            Guid cpuGroupId = await _cpuAffinityService.FindOrCreateCpuGroupAsync(selectedCoreIds);
+                            await Task.Run(() => HcsManager.SetVmCpuGroup(vmId, cpuGroupId));
+                        }
+                        MessageBox.Show($"已成功为虚拟机 '{SelectedVm.Name}' 应用了持久的 CPU 组绑定。", "操作成功", MessageBoxButton.OK, MessageBoxImage.Information);
                     }
-                    Debug.WriteLine("------------------ CHANGES APPLIED -------------------");
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"应用CPU组时发生错误：\n\n{ex.Message}", "严重错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"处理 CPU 绑定时发生错误：\n\n{ex.Message}", "严重错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
