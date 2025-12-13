@@ -56,7 +56,6 @@ namespace ExHyperV.ViewModels
             set { if (SetProperty(ref _selectedSpeedIndex, value)) { UpdateInterval(); WakeUpThread(); } }
         }
 
-        // 用于缓存系统信息的字段
         private bool _systemInfoCached = false;
         private HyperVSchedulerType _cachedSchedulerType = HyperVSchedulerType.Unknown;
         private Dictionary<int, int> _cachedCpuSiblingMap = new Dictionary<int, int>();
@@ -195,10 +194,8 @@ namespace ExHyperV.ViewModels
                 bool isVmRunning = group.Any(x => x.IsRunning);
                 uiVm.IsRunning = isVmRunning;
                 int coreCount = group.Count();
-                int cols = CalculateOptimalColumns(coreCount);
-                if (uiVm.Columns != cols) uiVm.Columns = cols;
-                int rows = (int)Math.Ceiling((double)coreCount / cols);
-                if (uiVm.Rows != rows) uiVm.Rows = rows;
+                uiVm.Columns = CalculateOptimalColumns(coreCount);
+                uiVm.Rows = (coreCount > 0) ? (int)Math.Ceiling((double)coreCount / uiVm.Columns) : 0;
                 uiVm.AverageUsage = isVmRunning ? group.Average(update => update.Usage) : 0;
                 var updatedCoreIds = group.Select(u => u.CoreId).ToHashSet();
                 var coresToRemove = uiVm.Cores.Where(c => !updatedCoreIds.Contains(c.CoreId)).ToList();
@@ -214,18 +211,75 @@ namespace ExHyperV.ViewModels
                     uiCore.Usage = update.Usage;
                     uiCore.HistoryPoints = update.RenderedGraph;
                 }
+            }
 
-                if (!_systemInfoCached && vmName.Equals("Host", StringComparison.OrdinalIgnoreCase) && uiVm.Cores.Any())
+            var hostVm = VmList.FirstOrDefault(vm => vm.Name.Equals("Host", StringComparison.OrdinalIgnoreCase));
+            if (hostVm != null)
+            {
+                var totalCoreUsage = hostVm.Cores.ToDictionary(c => c.CoreId, c => c.Usage);
+                foreach (var vm in VmList.Where(v => !v.Name.Equals("Host", StringComparison.OrdinalIgnoreCase) && v.IsRunning))
                 {
-                    Debug.WriteLine("===== [Cache] 首次加载Host信息，开始缓存系统拓扑和调度器类型... =====");
-                    _cachedSchedulerType = HyperVSchedulerService.GetSchedulerType();
-                    _cachedCpuSiblingMap = CpuTopologyService.GetCpuSiblingMap();
-                    _systemInfoCached = true;
-                    Debug.WriteLine($"[Cache] 缓存完成。调度器: {_cachedSchedulerType}, 兄弟核心对: {_cachedCpuSiblingMap.Count / 2}");
-                    Debug.WriteLine("==================================================================");
+                    foreach (var vmCore in vm.Cores)
+                    {
+                        if (totalCoreUsage.ContainsKey(vmCore.CoreId))
+                        {
+                            totalCoreUsage[vmCore.CoreId] += vmCore.Usage;
+                        }
+                        else
+                        {
+                            totalCoreUsage[vmCore.CoreId] = vmCore.Usage;
+                        }
+                    }
                 }
+                foreach (var hostCore in hostVm.Cores)
+                {
+                    var newTotalUsage = totalCoreUsage[hostCore.CoreId];
+                    hostCore.Usage = Math.Min(100.0, newTotalUsage);
+                    var historyKey = $"Host_{hostCore.CoreId}";
+                    if (!_historyCache.TryGetValue(historyKey, out var history))
+                    {
+                        history = new LinkedList<double>();
+                        for (int k = 0; k < MaxHistoryLength; k++) history.AddLast(0);
+                        _historyCache[historyKey] = history;
+                    }
+                    history.AddLast(hostCore.Usage);
+                    if (history.Count > MaxHistoryLength) history.RemoveFirst();
+                    hostCore.HistoryPoints = CalculatePoints(history);
+                }
+                hostVm.AverageUsage = hostVm.Cores.Any() ? hostVm.Cores.Average(c => c.Usage) : 0;
+            }
+
+            if (!_systemInfoCached && hostVm != null && hostVm.Cores.Any())
+            {
+                _cachedSchedulerType = HyperVSchedulerService.GetSchedulerType();
+                _cachedCpuSiblingMap = CpuTopologyService.GetCpuSiblingMap();
+                _systemInfoCached = true;
             }
             if (SelectedVm == null && VmList.Any()) SelectedVm = VmList[0];
+
+            // ===================================================================
+            //            ★★★ 新增：三级排序逻辑 ★★★
+            // ===================================================================
+            // 1. 根据新的三级规则，创建一个期望的有序列表。
+            var sortedVms = VmList
+                // 规则1: Host 永远第一 (false 排在 true 前面)
+                .OrderBy(vm => vm.Name != "Host")
+                // 规则2: 运行中的排在前面 (IsRunning 是 true, !IsRunning 是 false, false 排在 true 前面)
+                .ThenBy(vm => !vm.IsRunning)
+                // 规则3: 在各自的分组内，按字母顺序排序
+                .ThenBy(vm => vm.Name)
+                .ToList();
+
+            // 2. 高效地移动列表项到正确的位置，避免UI闪烁。
+            for (int i = 0; i < sortedVms.Count; i++)
+            {
+                var desiredVm = sortedVms[i];
+                var currentIndex = VmList.IndexOf(desiredVm);
+                if (currentIndex != i)
+                {
+                    VmList.Move(currentIndex, i);
+                }
+            }
         }
 
         private int CalculateOptimalColumns(int count)
@@ -247,26 +301,13 @@ namespace ExHyperV.ViewModels
             {
                 if (SelectedVm == null || SelectedVm.Name.Equals("Host", StringComparison.OrdinalIgnoreCase)) return;
                 var vmId = GetVmGuidByName(SelectedVm.Name);
-                if (vmId == Guid.Empty)
-                {
-                    MessageBox.Show($"无法找到虚拟机 '{SelectedVm.Name}' 的GUID。", "配置错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                    return;
-                }
+                if (vmId == Guid.Empty) return;
                 var hostVm = VmList.FirstOrDefault(vm => vm.Name.Equals("Host", StringComparison.OrdinalIgnoreCase));
-                if (hostVm == null || hostVm.Cores.Count == 0)
-                {
-                    MessageBox.Show("未能找到宿主机核心信息，无法设置 CPU 绑定。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                    return;
-                }
+                if (hostVm == null || hostVm.Cores.Count == 0) return;
 
                 if (_cachedSchedulerType == HyperVSchedulerType.Root)
                 {
-                    // ---------- Root 调度器逻辑分支 ----------
-                    if (!SelectedVm.IsRunning)
-                    {
-                        MessageBox.Show("在“根调度器”模式下，只能为正在运行的虚拟机设置临时的 CPU 相关性。", "操作受限", MessageBoxButton.OK, MessageBoxImage.Information);
-                        return;
-                    }
+                    if (!SelectedVm.IsRunning) return;
 
                     var dialogViewModel = new CpuAffinityDialogViewModel(
                         SelectedVm.Name, SelectedVm.Cores.Count, hostVm.Cores,
@@ -287,15 +328,11 @@ namespace ExHyperV.ViewModels
                     {
                         var selectedCoreIds = dialogViewModel.Cores
                             .Where(c => c.IsSelected).Select(c => c.CoreId).ToList();
-
                         ProcessAffinityManager.SetVmProcessAffinity(vmId, selectedCoreIds);
-
-                        MessageBox.Show($"已为虚拟机 '{SelectedVm.Name}' 的工作进程应用了临时的 CPU 相关性。\n\n此设置将在虚拟机关闭或宿主机重启后失效。", "操作成功", MessageBoxButton.OK, MessageBoxImage.Information);
                     }
                 }
                 else
                 {
-                    // ---------- Classic / Core 调度器逻辑分支 ----------
                     var dialogViewModel = new CpuAffinityDialogViewModel(
                         SelectedVm.Name, SelectedVm.Cores.Count, hostVm.Cores,
                         _cachedSchedulerType, _cachedCpuSiblingMap
@@ -333,20 +370,18 @@ namespace ExHyperV.ViewModels
                     {
                         var selectedCoreIds = dialogViewModel.Cores
                             .Where(c => c.IsSelected).Select(c => c.CoreId).ToList();
-
                         await Task.Run(() => HcsManager.SetVmCpuGroup(vmId, Guid.Empty));
                         if (selectedCoreIds.Any())
                         {
                             Guid cpuGroupId = await _cpuAffinityService.FindOrCreateCpuGroupAsync(selectedCoreIds);
                             await Task.Run(() => HcsManager.SetVmCpuGroup(vmId, cpuGroupId));
                         }
-                        MessageBox.Show($"已成功为虚拟机 '{SelectedVm.Name}' 应用了持久的 CPU 组绑定。", "操作成功", MessageBoxButton.OK, MessageBoxImage.Information);
                     }
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"处理 CPU 绑定时发生错误：\n\n{ex.Message}", "严重错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                Debug.WriteLine($"处理 CPU 绑定时发生错误: {ex.Message}");
             }
         }
 
