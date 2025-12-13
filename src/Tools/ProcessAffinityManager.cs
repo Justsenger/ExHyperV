@@ -3,7 +3,6 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using System.Management;
 
 namespace ExHyperV.Services
@@ -11,80 +10,113 @@ namespace ExHyperV.Services
     public static class ProcessAffinityManager
     {
         /// <summary>
-        /// 根据虚拟机的 GUID 查找其对应的正在运行的 vmwp.exe 工作进程。
+        /// 根据虚拟机的 GUID，通过查询用户名为该 GUID 的 vmmem 进程来查找其内存进程。
+        /// 这是根据实际系统行为确定的最直接、最可靠的方法。
         /// </summary>
-        private static Process FindVmWorkerProcess(Guid vmId)
+        private static Process FindVmMemoryProcess(Guid vmId)
         {
-            // 在 Root 调度器下，vmwp.exe 进程的用户名就是虚拟机的 GUID
+            // 在 Root 调度器下，vmmem 进程的用户名就是虚拟机的 GUID
             string vmIdString = vmId.ToString("D").ToUpper();
 
-            // 使用 WMI 查询所有 vmwp.exe 进程，并获取其拥有者的用户名
-            string wmiQuery = "SELECT ProcessId, Handle FROM Win32_Process WHERE Name = 'vmwp.exe'";
-            using (var searcher = new ManagementObjectSearcher(wmiQuery))
+            // 使用 WMI 查询所有 vmmem.exe 进程，并获取其 ProcessId 和用于 GetOwner 的 Handle
+            string wmiQuery = "SELECT ProcessId, Handle FROM Win32_Process WHERE Name = 'vmmem.exe'";
+            try
             {
-                foreach (ManagementObject mo in searcher.Get())
+                using (var searcher = new ManagementObjectSearcher(wmiQuery))
                 {
-                    string[] owner = new string[2];
-                    mo.InvokeMethod("GetOwner", (object[])owner);
-                    string userName = owner[0];
-
-                    // 如果进程的用户名与我们的 VM GUID 匹配，就找到了目标进程
-                    if (!string.IsNullOrEmpty(userName) && userName.Equals(vmIdString, StringComparison.OrdinalIgnoreCase))
+                    foreach (ManagementObject mo in searcher.Get())
                     {
-                        try
+                        // GetOwner 方法需要一个 out string[2] 数组来接收用户名和域名
+                        string[] owner = new string[2];
+                        mo.InvokeMethod("GetOwner", (object[])owner);
+                        string userName = owner[0];
+
+                        // 如果进程的用户名与我们的 VM GUID 匹配，就找到了目标进程
+                        if (!string.IsNullOrEmpty(userName) && userName.Equals(vmIdString, StringComparison.OrdinalIgnoreCase))
                         {
-                            int pid = Convert.ToInt32(mo["ProcessId"]);
-                            return Process.GetProcessById(pid);
+                            try
+                            {
+                                int pid = Convert.ToInt32(mo["ProcessId"]);
+                                return Process.GetProcessById(pid);
+                            }
+                            catch (Exception ex)
+                            {
+                                Debug.WriteLine($"[ProcessAffinityManager] 找到匹配的 vmmem 进程 (PID: {mo["ProcessId"]}) 但获取失败: {ex.Message}");
+                            }
                         }
-                        catch { /* 进程可能在我们找到它和获取它之间退出了 */ }
                     }
                 }
             }
-            return null; // 没有找到匹配的进程
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[ProcessAffinityManager] WMI 查询 vmmem 进程失败: {ex.Message}");
+            }
+
+            return null; // 没有找到匹配的 vmmem 进程
         }
 
         /// <summary>
-        /// 获取指定虚拟机的 vmwp.exe 进程的当前 CPU 核心相关性。
+        /// 获取指定虚拟机的 vmmem 进程的当前 CPU 核心相关性。
         /// </summary>
         public static List<int> GetVmProcessAffinity(Guid vmId)
         {
             var coreIds = new List<int>();
-            var process = FindVmWorkerProcess(vmId);
+            var process = FindVmMemoryProcess(vmId); // 调用新的查找方法
             if (process != null)
             {
-                long affinityMask = (long)process.ProcessorAffinity;
-                for (int i = 0; i < Environment.ProcessorCount; i++)
+                try
                 {
-                    // 检查掩码的每一位是否为 1
-                    if ((affinityMask & (1L << i)) != 0)
+                    long affinityMask = (long)process.ProcessorAffinity;
+                    for (int i = 0; i < Environment.ProcessorCount; i++)
                     {
-                        coreIds.Add(i);
+                        if ((affinityMask & (1L << i)) != 0)
+                        {
+                            coreIds.Add(i);
+                        }
                     }
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"[ProcessAffinityManager] 获取进程 {process.Id} 的相关性失败: {ex.Message}");
                 }
             }
             return coreIds;
         }
 
         /// <summary>
-        /// 为指定虚拟机的 vmwp.exe 进程设置新的 CPU 核心相关性。
+        /// 为指定虚拟机的 vmmem 进程设置新的 CPU 核心相关性。
         /// </summary>
         public static void SetVmProcessAffinity(Guid vmId, List<int> coreIds)
         {
-            var process = FindVmWorkerProcess(vmId);
+            var process = FindVmMemoryProcess(vmId); // 调用新的查找方法
             if (process != null)
             {
-                // 根据选择的核心列表，计算出新的 64 位进程相关性掩码
-                long newAffinityMask = 0;
-                foreach (int coreId in coreIds)
+                try
                 {
-                    newAffinityMask |= (1L << coreId);
-                }
+                    long newAffinityMask = 0;
+                    foreach (int coreId in coreIds)
+                    {
+                        newAffinityMask |= (1L << coreId);
+                    }
 
-                if (newAffinityMask > 0)
-                {
-                    process.ProcessorAffinity = (IntPtr)newAffinityMask;
+                    if (coreIds.Any())
+                    {
+                        process.ProcessorAffinity = (IntPtr)newAffinityMask;
+                    }
+                    else // 如果用户没有选择任何核心，则恢复为允许所有核心
+                    {
+                        long allProcessorsMask = (1L << Environment.ProcessorCount) - 1;
+                        if (Environment.ProcessorCount == 64)
+                        {
+                            allProcessorsMask = -1; // Special case for 64 processors
+                        }
+                        process.ProcessorAffinity = (IntPtr)allProcessorsMask;
+                    }
                 }
-                // 如果 newAffinityMask 为 0，则表示不限制，系统会自动分配
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"[ProcessAffinityManager] 设置进程 {process.Id} 的相关性失败: {ex.Message}");
+                }
             }
         }
     }
