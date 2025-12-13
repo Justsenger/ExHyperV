@@ -11,27 +11,27 @@ namespace ExHyperV.Services
     {
         /// <summary>
         /// 根据虚拟机的 GUID，通过查询用户名为该 GUID 的 vmmem 进程来查找其内存进程。
-        /// 这是根据实际系统行为确定的最直接、最可靠的方法。
+        /// 使用 LIKE 操作符以兼容进程名是否带有 .exe 后缀的情况。
         /// </summary>
         private static Process FindVmMemoryProcess(Guid vmId)
         {
-            // 在 Root 调度器下，vmmem 进程的用户名就是虚拟机的 GUID
             string vmIdString = vmId.ToString("D").ToUpper();
 
-            // 使用 WMI 查询所有 vmmem.exe 进程，并获取其 ProcessId 和用于 GetOwner 的 Handle
-            string wmiQuery = "SELECT ProcessId, Handle FROM Win32_Process WHERE Name = 'vmmem.exe'";
+            // ===================================================================
+            //                      ★★★ 最终修正点 ★★★
+            // 将精确匹配 'vmmem.exe' 修改为模式匹配 'vmmem%'，以确保健壮性。
+            // ===================================================================
+            string wmiQuery = "SELECT ProcessId, Handle FROM Win32_Process WHERE Name LIKE 'vmmem%'";
             try
             {
                 using (var searcher = new ManagementObjectSearcher(wmiQuery))
                 {
                     foreach (ManagementObject mo in searcher.Get())
                     {
-                        // GetOwner 方法需要一个 out string[2] 数组来接收用户名和域名
                         string[] owner = new string[2];
                         mo.InvokeMethod("GetOwner", (object[])owner);
                         string userName = owner[0];
 
-                        // 如果进程的用户名与我们的 VM GUID 匹配，就找到了目标进程
                         if (!string.IsNullOrEmpty(userName) && userName.Equals(vmIdString, StringComparison.OrdinalIgnoreCase))
                         {
                             try
@@ -52,7 +52,7 @@ namespace ExHyperV.Services
                 Debug.WriteLine($"[ProcessAffinityManager] WMI 查询 vmmem 进程失败: {ex.Message}");
             }
 
-            return null; // 没有找到匹配的 vmmem 进程
+            return null;
         }
 
         /// <summary>
@@ -61,7 +61,7 @@ namespace ExHyperV.Services
         public static List<int> GetVmProcessAffinity(Guid vmId)
         {
             var coreIds = new List<int>();
-            var process = FindVmMemoryProcess(vmId); // 调用新的查找方法
+            var process = FindVmMemoryProcess(vmId);
             if (process != null)
             {
                 try
@@ -88,7 +88,7 @@ namespace ExHyperV.Services
         /// </summary>
         public static void SetVmProcessAffinity(Guid vmId, List<int> coreIds)
         {
-            var process = FindVmMemoryProcess(vmId); // 调用新的查找方法
+            var process = FindVmMemoryProcess(vmId);
             if (process != null)
             {
                 try
@@ -103,12 +103,12 @@ namespace ExHyperV.Services
                     {
                         process.ProcessorAffinity = (IntPtr)newAffinityMask;
                     }
-                    else // 如果用户没有选择任何核心，则恢复为允许所有核心
+                    else
                     {
                         long allProcessorsMask = (1L << Environment.ProcessorCount) - 1;
                         if (Environment.ProcessorCount == 64)
                         {
-                            allProcessorsMask = -1; // Special case for 64 processors
+                            allProcessorsMask = -1;
                         }
                         process.ProcessorAffinity = (IntPtr)allProcessorsMask;
                     }
