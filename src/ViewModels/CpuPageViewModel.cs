@@ -3,13 +3,17 @@ using CommunityToolkit.Mvvm.Input;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Linq;
+using System.Management;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Media;
 using ExHyperV.Models;
 using ExHyperV.Services;
+using ExHyperV.Tools;
 using ExHyperV.ViewModels.Dialogs;
 using ExHyperV.Views.Dialogs;
 
@@ -32,6 +36,7 @@ namespace ExHyperV.ViewModels
         private CancellationTokenSource _sleepTokenSource = new CancellationTokenSource();
         private const int MaxHistoryLength = 25;
         private readonly Dictionary<string, LinkedList<double>> _historyCache = new();
+        private readonly CpuAffinityService _cpuAffinityService;
 
         public ObservableCollection<UiVmModel> VmList { get; } = new ObservableCollection<UiVmModel>();
 
@@ -54,6 +59,7 @@ namespace ExHyperV.ViewModels
         public CpuPageViewModel()
         {
             SelectedSpeedIndex = 0;
+            _cpuAffinityService = new CpuAffinityService();
         }
 
         public void StartMonitoring()
@@ -69,16 +75,10 @@ namespace ExHyperV.ViewModels
             {
                 _monitoringCts.Cancel();
                 WakeUpThread();
-
                 if (_monitoringTask != null)
                 {
-                    try
-                    {
-                        await Task.WhenAny(_monitoringTask, Task.Delay(1000));
-                    }
-                    catch { }
+                    try { await Task.WhenAny(_monitoringTask, Task.Delay(1000)); } catch { }
                 }
-
                 _monitoringCts.Dispose();
                 _monitoringCts = null;
             }
@@ -113,13 +113,11 @@ namespace ExHyperV.ViewModels
                         await Task.Delay(Timeout.Infinite, CancellationTokenSource.CreateLinkedTokenSource(token, _sleepTokenSource.Token).Token);
                         continue;
                     }
-
                     var startTime = DateTime.Now;
                     var rawData = _cpuService.GetCpuUsage();
                     var updates = ProcessData(rawData);
                     if (token.IsCancellationRequested) break;
                     Application.Current.Dispatcher.Invoke(() => ApplyUpdates(updates));
-
                     var elapsed = (DateTime.Now - startTime).TotalMilliseconds;
                     var delay = RefreshInterval - (int)elapsed;
                     if (delay < 100) delay = 100;
@@ -152,15 +150,7 @@ namespace ExHyperV.ViewModels
                     points = CalculatePoints(history);
                     points.Freeze();
                 }
-
-                updates.Add(new CoreUpdateDto
-                {
-                    VmName = metric.VmName,
-                    CoreId = metric.CoreId,
-                    Usage = metric.Usage,
-                    RenderedGraph = points,
-                    IsRunning = metric.IsRunning
-                });
+                updates.Add(new CoreUpdateDto { VmName = metric.VmName, CoreId = metric.CoreId, Usage = metric.Usage, RenderedGraph = points, IsRunning = metric.IsRunning });
             }
             return updates;
         }
@@ -186,54 +176,40 @@ namespace ExHyperV.ViewModels
         private void ApplyUpdates(List<CoreUpdateDto> updates)
         {
             if (_monitoringCts == null || _monitoringCts.IsCancellationRequested) return;
-
             var activeVmNames = updates.Select(x => x.VmName).ToHashSet();
             var vmsToRemove = VmList.Where(vm => !activeVmNames.Contains(vm.Name)).ToList();
             bool selectionRemoved = vmsToRemove.Any(vm => vm == SelectedVm);
             foreach (var vm in vmsToRemove) VmList.Remove(vm);
             if (selectionRemoved) SelectedVm = null;
-
             var grouped = updates.GroupBy(x => x.VmName);
             foreach (var group in grouped)
             {
                 var vmName = group.Key;
                 var uiVm = VmList.FirstOrDefault(v => v.Name == vmName);
                 if (uiVm == null) { uiVm = new UiVmModel { Name = vmName }; VmList.Add(uiVm); }
-
                 bool isVmRunning = group.Any(x => x.IsRunning);
                 uiVm.IsRunning = isVmRunning;
-
                 int coreCount = group.Count();
                 int cols = CalculateOptimalColumns(coreCount);
                 if (uiVm.Columns != cols) uiVm.Columns = cols;
                 int rows = (int)Math.Ceiling((double)coreCount / cols);
                 if (uiVm.Rows != rows) uiVm.Rows = rows;
-
                 uiVm.AverageUsage = isVmRunning ? group.Average(update => update.Usage) : 0;
-
                 var updatedCoreIds = group.Select(u => u.CoreId).ToHashSet();
                 var coresToRemove = uiVm.Cores.Where(c => !updatedCoreIds.Contains(c.CoreId)).ToList();
                 foreach (var core in coresToRemove) uiVm.Cores.Remove(core);
-
                 foreach (var update in group)
                 {
                     var uiCore = uiVm.Cores.FirstOrDefault(c => c.CoreId == update.CoreId);
                     if (uiCore == null)
                     {
-                        uiCore = new UiCoreModel
-                        {
-                            CoreId = update.CoreId,
-                            CoreType = vmName.Equals("Host", StringComparison.OrdinalIgnoreCase)
-                                        ? CpuMonitorService.GetCoreType(update.CoreId)
-                                        : CoreType.Unknown
-                        };
+                        uiCore = new UiCoreModel { CoreId = update.CoreId, CoreType = vmName.Equals("Host", StringComparison.OrdinalIgnoreCase) ? CpuMonitorService.GetCoreType(update.CoreId) : CoreType.Unknown };
                         uiVm.Cores.Add(uiCore);
                     }
                     uiCore.Usage = update.Usage;
                     uiCore.HistoryPoints = update.RenderedGraph;
                 }
             }
-
             if (SelectedVm == null && VmList.Any()) SelectedVm = VmList[0];
         }
 
@@ -250,12 +226,16 @@ namespace ExHyperV.ViewModels
         #region --- 控制面板命令 ---
 
         [RelayCommand]
-        private void OpenVmCpuAffinity()
+        private async Task OpenVmCpuAffinityAsync()
         {
             try
             {
-                if (SelectedVm == null || SelectedVm.Name.Equals("Host", StringComparison.OrdinalIgnoreCase))
+                if (SelectedVm == null || SelectedVm.Name.Equals("Host", StringComparison.OrdinalIgnoreCase)) return;
+
+                var vmId = GetVmGuidByName(SelectedVm.Name);
+                if (vmId == Guid.Empty)
                 {
+                    MessageBox.Show($"无法找到虚拟机 '{SelectedVm.Name}' 的GUID。", "配置错误", MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
 
@@ -266,16 +246,36 @@ namespace ExHyperV.ViewModels
                     return;
                 }
 
-                // =======================================================
-                // 修正点: 传递了正确的参数 SelectedVm.Cores.Count (int)
-                // =======================================================
                 var dialogViewModel = new CpuAffinityDialogViewModel(SelectedVm.Name, SelectedVm.Cores.Count, hostVm.Cores);
 
-                var dialog = new CpuAffinityDialog
+                try
                 {
-                    DataContext = dialogViewModel,
-                    Owner = Application.Current.MainWindow
-                };
+                    string vmGroupJson = await Task.Run(() => HcsManager.GetVmCpuGroupAsJson(vmId));
+                    if (!string.IsNullOrEmpty(vmGroupJson))
+                    {
+                        var vmGroupInfo = JsonSerializer.Deserialize<VmCpuGroupInfo>(vmGroupJson);
+                        if (vmGroupInfo?.CpuGroupId != Guid.Empty)
+                        {
+                            var groupDetails = await _cpuAffinityService.GetCpuGroupDetailsAsync(vmGroupInfo.CpuGroupId);
+                            if (groupDetails?.Affinity?.LogicalProcessors != null)
+                            {
+                                foreach (var coreVM in dialogViewModel.Cores)
+                                {
+                                    if (groupDetails.Affinity.LogicalProcessors.Contains((uint)coreVM.CoreId))
+                                    {
+                                        coreVM.IsSelected = true;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"查询虚拟机当前CPU组失败: {ex.Message}");
+                }
+
+                var dialog = new CpuAffinityDialog { DataContext = dialogViewModel, Owner = Application.Current.MainWindow };
 
                 if (dialog.ShowDialog() == true)
                 {
@@ -284,21 +284,65 @@ namespace ExHyperV.ViewModels
                                                          .Select(c => c.CoreId)
                                                          .ToList();
 
-                    string selectedIdsText = selectedCoreIds.Any() ? string.Join(", ", selectedCoreIds) : "无";
-                    MessageBox.Show($"已为虚拟机 '{SelectedVm.Name}' 选择的核心: {selectedIdsText}", "设置成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                    // =======================================================
+                    // 终极业务逻辑: 先解绑，再绑定
+                    // =======================================================
+
+                    // 步骤 1: 无论如何，先执行解除绑定操作
+                    Debug.WriteLine("------------------ APPLYING CHANGES ------------------");
+                    Debug.WriteLine($"正在为 VM {vmId} 执行步骤 1: 解除旧的CPU组绑定...");
+                    await Task.Run(() => HcsManager.SetVmCpuGroup(vmId, Guid.Empty));
+                    Debug.WriteLine($"步骤 1: 解除绑定完成。");
+
+                    // 步骤 2: 如果用户选择了核心，则查找/创建新组并绑定
+                    if (selectedCoreIds.Any())
+                    {
+                        Debug.WriteLine("用户选择了非0个核心，继续执行 [绑定] 逻辑。");
+
+                        Guid cpuGroupId = await _cpuAffinityService.FindOrCreateCpuGroupAsync(selectedCoreIds);
+
+                        Debug.WriteLine($"正在为 VM {vmId} 执行步骤 2: 绑定新的CPU组 {cpuGroupId}...");
+                        await Task.Run(() => HcsManager.SetVmCpuGroup(vmId, cpuGroupId));
+                        Debug.WriteLine($"步骤 2: 新组绑定完成。");
+
+                        MessageBox.Show($"已成功将CPU组 '{cpuGroupId}' 应用到虚拟机 '{SelectedVm.Name}'。", "操作成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
+                    else
+                    {
+                        Debug.WriteLine("用户选择了0个核心，流程结束。");
+                        MessageBox.Show($"已为虚拟机 '{SelectedVm.Name}' 解除CPU绑定。", "操作成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
+                    Debug.WriteLine("------------------ CHANGES APPLIED -------------------");
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"程序在执行“CPU绑定”操作时发生了一个未处理的异常：\n\n" +
-                                $"类型: {ex.GetType().Name}\n" +
-                                $"信息: {ex.Message}\n\n" +
-                                $"堆栈跟踪:\n{ex.StackTrace}",
-                                "严重运行时错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"应用CPU组时发生错误：\n\n{ex.Message}", "严重错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
         #endregion
+
+        private Guid GetVmGuidByName(string vmName)
+        {
+            try
+            {
+                string query = $"SELECT * FROM Msvm_ComputerSystem WHERE ElementName = '{vmName}'";
+                using (var searcher = new ManagementObjectSearcher("root\\virtualization\\v2", query))
+                {
+                    var vmObject = searcher.Get().Cast<ManagementObject>().FirstOrDefault();
+                    if (vmObject != null && Guid.TryParse((string)vmObject["Name"], out Guid vmId))
+                    {
+                        return vmId;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"GetVmGuidByName for '{vmName}' failed: {ex.Message}");
+            }
+            return Guid.Empty;
+        }
 
         public async void Dispose()
         {
