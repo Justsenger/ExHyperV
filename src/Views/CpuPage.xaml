@@ -196,62 +196,62 @@
                                                     </ItemsControl.ItemTemplate>
                                                 </ItemsControl>
 
-                                                <!-- ======================================================= -->
-                                                <!-- =============  修改区域开始  =========================== -->
-                                                <!-- ======================================================= -->
+                                                <Grid Grid.Row="1" Margin="0,15,0,0">
 
-                                                <!-- 控制面板区域 -->
-                                                <Border Grid.Row="1" Margin="0,10,0,0">
-                                                    <Grid>
-                                                        <!-- 虚拟机控制面板 -->
-                                                        <StackPanel VerticalAlignment="Center">
-                                                            <StackPanel.Style>
-                                                                <Style TargetType="StackPanel">
-                                                                    <!-- 1. 默认设置为可见 -->
-                                                                    <Setter Property="Visibility" Value="Visible"/>
-                                                                    <Style.Triggers>
-                                                                        <!-- 2. 仅在选择 "Host" 时隐藏 -->
-                                                                        <DataTrigger Binding="{Binding Name}" Value="Host">
-                                                                            <Setter Property="Visibility" Value="Collapsed"/>
-                                                                        </DataTrigger>
-                                                                    </Style.Triggers>
-                                                                </Style>
-                                                            </StackPanel.Style>
+                                                    <!-- ======================================================= -->
+                                                    <!--             1. 虚拟机控制面板 (非Host时显示)              -->
+                                                    <!-- ======================================================= -->
+                                                    <StackPanel VerticalAlignment="Top" HorizontalAlignment="Left">
+                                                        <StackPanel.Style>
+                                                            <Style TargetType="StackPanel">
+                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                                <Style.Triggers>
+                                                                    <!-- 规则: 当选择的是 "Host" 时，隐藏此面板 -->
+                                                                    <DataTrigger Binding="{Binding Name}" Value="Host">
+                                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </StackPanel.Style>
 
-                                                            <TextBlock Text="虚拟机控制面板" FontWeight="SemiBold" Margin="0,0,0,10" HorizontalAlignment="Center" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
-                                                            <ui:Button HorizontalAlignment="Center"
-                                                                       Command="{Binding DataContext.OpenVmCpuAffinityCommand, ElementName=CpuRootPage}">
-                                                                <StackPanel Orientation="Horizontal">
-                                                                    <ui:FontIcon Glyph="&#xF58E;" Margin="0,0,8,0"/>
-                                                                    <TextBlock Text="CPU 绑定"/>
-                                                                </StackPanel>
-                                                            </ui:Button>
-                                                        </StackPanel>
+                                                        <!-- CPU绑定按钮 -->
+                                                        <ui:Button Command="{Binding DataContext.OpenVmCpuAffinityCommand, ElementName=CpuRootPage}">
+                                                            <StackPanel Orientation="Horizontal">
+                                                                <ui:FontIcon Glyph="&#xF58E;" Margin="0,0,8,0"/>
+                                                                <TextBlock Text="CPU 绑定"/>
+                                                            </StackPanel>
+                                                        </ui:Button>
+                                                    </StackPanel>
 
-                                                        <!-- 占位符 -->
-                                                        <TextBlock VerticalAlignment="Center" HorizontalAlignment="Center"
-                                                                   Opacity="0.2"
-                                                                   Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"
-                                                                   Text="选择一个虚拟机以进行配置">
-                                                            <TextBlock.Style>
-                                                                <Style TargetType="TextBlock">
-                                                                    <!-- 3. 默认设置为隐藏 -->
-                                                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                                                    <Style.Triggers>
-                                                                        <!-- 4. 仅在选择 "Host" 时显示 -->
-                                                                        <DataTrigger Binding="{Binding Name}" Value="Host">
-                                                                            <Setter Property="Visibility" Value="Visible"/>
-                                                                        </DataTrigger>
-                                                                    </Style.Triggers>
-                                                                </Style>
-                                                            </TextBlock.Style>
-                                                        </TextBlock>
-                                                    </Grid>
-                                                </Border>
+                                                    <!-- ======================================================= -->
+                                                    <!--               2. 宿主机控制面板 (仅Host时显示)              -->
+                                                    <!-- ======================================================= -->
+                                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Top" HorizontalAlignment="Left">
+                                                        <StackPanel.Style>
+                                                            <Style TargetType="StackPanel">
+                                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                                <Style.Triggers>
+                                                                    <!-- 规则: 当选择的是 "Host" 时，显示此面板 -->
+                                                                    <DataTrigger Binding="{Binding Name}" Value="Host">
+                                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </StackPanel.Style>
 
-                                                <!-- ======================================================= -->
-                                                <!-- =============  修改区域结束  =========================== -->
-                                                <!-- ======================================================= -->
+                                                        <!-- 调度器设置 -->
+                                                        <TextBlock Text="调度器：" 
+                   VerticalAlignment="Center" 
+                   Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                                                        <ComboBox Margin="10,0,0,0" Width="150"
+                  SelectedIndex="{Binding DataContext.SelectedSchedulerIndex, ElementName=CpuRootPage, Mode=TwoWay}">
+                                                            <ComboBoxItem Content="经典 (Classic)"/>
+                                                            <ComboBoxItem Content="核心 (Core)"/>
+                                                            <ComboBoxItem Content="根 (Root)"/>
+                                                        </ComboBox>
+                                                    </StackPanel>
+
+                                                </Grid>
                                             </Grid>
                                         </Border>
                                     </DataTemplate>

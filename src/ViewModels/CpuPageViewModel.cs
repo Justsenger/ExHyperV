@@ -15,7 +15,11 @@ using ExHyperV.Models;
 using ExHyperV.Services;
 using ExHyperV.Tools;
 using ExHyperV.ViewModels.Dialogs;
+using ExHyperV.Views; // 引入 MainWindow 所在的命名空间
 using ExHyperV.Views.Dialogs;
+using Wpf.Ui.Controls; // 引入 Snackbar 和 FontIcon 等控件的命名空间
+using Wpf.Ui;
+
 
 namespace ExHyperV.ViewModels
 {
@@ -64,6 +68,57 @@ namespace ExHyperV.ViewModels
         {
             SelectedSpeedIndex = 0;
             _cpuAffinityService = new CpuAffinityService();
+        }
+
+        private int _selectedSchedulerIndex = -1;
+        public int SelectedSchedulerIndex
+        {
+            get => _selectedSchedulerIndex;
+            set
+            {
+                if (value == _selectedSchedulerIndex || !_systemInfoCached || value < 0)
+                {
+                    SetProperty(ref _selectedSchedulerIndex, value);
+                    return;
+                }
+
+                SetProperty(ref _selectedSchedulerIndex, value);
+
+                var newType = value switch
+                {
+                    0 => HyperVSchedulerType.Classic,
+                    1 => HyperVSchedulerType.Core,
+                    2 => HyperVSchedulerType.Root,
+                    _ => HyperVSchedulerType.Unknown
+                };
+
+                if (newType != HyperVSchedulerType.Unknown)
+                {
+                    _ = Task.Run(async () =>
+                    {
+                        if (await HyperVSchedulerService.SetSchedulerTypeAsync(newType))
+                        {
+                            // 在UI线程上显示 Snackbar
+                            Application.Current.Dispatcher.Invoke(() =>
+                            {
+                                var mainWindow = Application.Current.MainWindow as MainWindow;
+                                if (mainWindow != null)
+                                {
+                                    var snackbarService = new SnackbarService();
+                                    snackbarService.SetSnackbarPresenter(mainWindow.SnackbarPresenter);
+                                    snackbarService.Show(
+                                        "操作成功",
+                                        "调度器类型已更改，需要重启系统才能生效。",
+                                        ControlAppearance.Success,
+                                        new SymbolIcon(SymbolRegular.CheckmarkCircle24),
+                                        TimeSpan.FromSeconds(5)
+                                    );
+                                }
+                            });
+                        }
+                    });
+                }
+            }
         }
 
         public void StartMonitoring()
@@ -235,6 +290,16 @@ namespace ExHyperV.ViewModels
                 _cachedSchedulerType = HyperVSchedulerService.GetSchedulerType();
                 _cachedCpuSiblingMap = CpuTopologyService.GetCpuSiblingMap();
                 _systemInfoCached = true;
+
+                var initialIndex = _cachedSchedulerType switch
+                {
+                    HyperVSchedulerType.Classic => 0,
+                    HyperVSchedulerType.Core => 1,
+                    HyperVSchedulerType.Root => 2,
+                    _ => -1
+                };
+                _selectedSchedulerIndex = initialIndex;
+                OnPropertyChanged(nameof(SelectedSchedulerIndex));
             }
 
             if (SelectedVm == null)
