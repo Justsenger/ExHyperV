@@ -1,4 +1,7 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using ExHyperV.Models;
@@ -11,19 +14,11 @@ namespace ExHyperV.Services
         Performance, Efficient, Unknown
     }
 
-    public class CachedCounter
-    {
-        public PerformanceCounter Counter { get; set; }
-        public string VmName { get; set; }
-        public int CoreId { get; set; }
-        public string InstanceKey { get; set; }
-        public bool IsValid { get; set; } = true;
-    }
-
-    public class CpuMonitorService
+    public class CpuMonitorService : IDisposable
     {
         private static readonly Dictionary<int, CoreType> _coreTypeCache = new Dictionary<int, CoreType>();
         private static bool _isHybrid = false;
+
         static CpuMonitorService()
         {
             InitializeCoreTypes();
@@ -35,6 +30,7 @@ namespace ExHyperV.Services
             return _coreTypeCache.TryGetValue(coreId, out var type) ? type : CoreType.Unknown;
         }
 
+        #region P/Invoke for Core Type Detection
         private static void InitializeCoreTypes()
         {
             try
@@ -60,17 +56,18 @@ namespace ExHyperV.Services
                                 byte efficiencyClass = info.Processor.EfficiencyClass;
                                 if (efficiencyClass > maxClass) maxClass = efficiencyClass;
                                 if (efficiencyClass < minClass) minClass = efficiencyClass;
-
                                 for (int i = 0; i < info.Processor.GroupCount; i++)
                                 {
-                                    var groupInfo = info.Processor.GroupMask[i];
-                                    ulong mask = groupInfo.Mask.ToUInt64();
-
+                                    IntPtr groupMaskPtr = ptr + (int)Marshal.OffsetOf<SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX>("Processor")
+                                                          + (int)Marshal.OffsetOf<PROCESSOR_RELATIONSHIP>("GroupMask")
+                                                          + i * Marshal.SizeOf<GROUP_AFFINITY>();
+                                    var groupInfo = Marshal.PtrToStructure<GROUP_AFFINITY>(groupMaskPtr);
+                                    ulong mask = (ulong)groupInfo.Mask;
                                     for (int bit = 0; bit < 64; bit++)
                                     {
                                         if ((mask & (1UL << bit)) != 0)
                                         {
-                                            tempInfo.Add((bit, efficiencyClass));
+                                            tempInfo.Add((bit + groupInfo.Group * 64, efficiencyClass));
                                         }
                                     }
                                 }
@@ -86,10 +83,6 @@ namespace ExHyperV.Services
                                 _coreTypeCache[item.Id] = (item.Class == maxClass) ? CoreType.Performance : CoreType.Efficient;
                             }
                         }
-                        else
-                        {
-                            _isHybrid = false;
-                        }
                     }
                 }
                 finally
@@ -97,75 +90,31 @@ namespace ExHyperV.Services
                     Marshal.FreeHGlobal(buffer);
                 }
             }
-            catch
-            {
-                _isHybrid = false;
-            }
-        }
-        [DllImport("kernel32.dll", SetLastError = true)]
-        private static extern bool GetLogicalProcessorInformationEx(
-            LOGICAL_PROCESSOR_RELATIONSHIP RelationshipType,
-            IntPtr Buffer,
-            ref uint ReturnedLength);
-
-        private enum LOGICAL_PROCESSOR_RELATIONSHIP
-        {
-            RelationProcessorCore = 0,
-            RelationNumaNode = 1,
-            RelationCache = 2,
-            RelationProcessorPackage = 3,
-            RelationGroup = 4,
-            RelationAll = 0xffff
+            catch { _isHybrid = false; }
         }
 
-        [StructLayout(LayoutKind.Sequential)]
-        private struct SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX
-        {
-            public LOGICAL_PROCESSOR_RELATIONSHIP Relationship;
-            public uint Size;
-            public PROCESSOR_RELATIONSHIP Processor;
-        }
+        [DllImport("kernel32.dll", SetLastError = true)] private static extern bool GetLogicalProcessorInformationEx(LOGICAL_PROCESSOR_RELATIONSHIP RelationshipType, IntPtr Buffer, ref uint ReturnedLength);
+        private enum LOGICAL_PROCESSOR_RELATIONSHIP { RelationProcessorCore = 0 }
+        [StructLayout(LayoutKind.Sequential)] private struct SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX { public LOGICAL_PROCESSOR_RELATIONSHIP Relationship; public uint Size; public PROCESSOR_RELATIONSHIP Processor; }
+        [StructLayout(LayoutKind.Sequential)] private struct PROCESSOR_RELATIONSHIP { public byte Flags; public byte EfficiencyClass; [MarshalAs(UnmanagedType.ByValArray, SizeConst = 20)] public byte[] Reserved; public ushort GroupCount; [MarshalAs(UnmanagedType.ByValArray, SizeConst = 1)] public GROUP_AFFINITY[] GroupMask; }
+        [StructLayout(LayoutKind.Sequential)] private struct GROUP_AFFINITY { public UIntPtr Mask; public ushort Group; [MarshalAs(UnmanagedType.ByValArray, SizeConst = 3)] public ushort[] Reserved; }
+        #endregion
 
-        [StructLayout(LayoutKind.Sequential)]
-        private struct PROCESSOR_RELATIONSHIP
-        {
-            public byte Flags;
-            public byte EfficiencyClass;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 20)]
-            public byte[] Reserved;
-            public ushort GroupCount;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 1)]
-            public GROUP_AFFINITY[] GroupMask;
-        }
-
-        [StructLayout(LayoutKind.Sequential)]
-        private struct GROUP_AFFINITY
-        {
-            public UIntPtr Mask; // KAFFINITY
-            public ushort Group;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 3)]
-            public ushort[] Reserved;
-        }
-
-
-
-        private readonly List<CachedCounter> _cachedCounters = new List<CachedCounter>();
+        private readonly List<PerformanceCounter> _hostTotalRunTimeCounters = new List<PerformanceCounter>();
+        private readonly List<PerformanceCounter> _vmCpuCounters = new List<PerformanceCounter>();
         private readonly Dictionary<string, int> _vmCoreCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-
         private DateTime _lastSyncTime = DateTime.MinValue;
         private readonly TimeSpan _syncInterval = TimeSpan.FromSeconds(5);
-
-        private const string CatVm = "Hyper-V Hypervisor Virtual Processor";
-        private const string CounterVm = "% Total Run Time";
-        private const string CatHost = "Processor";
-        private const string CounterHost = "% Processor Time";
-
-        private readonly Regex _vmRegex = new Regex(@"^(.+):Hv VP (\d+)$", RegexOptions.Compiled);
-        private readonly Regex _hostRegex = new Regex(@"^(\d+)$", RegexOptions.Compiled);
 
         public CpuMonitorService()
         {
             SyncCounters();
+        }
+
+        public void Dispose()
+        {
+            _hostTotalRunTimeCounters.ForEach(c => c?.Dispose());
+            _vmCpuCounters.ForEach(c => c?.Dispose());
         }
 
         public void SyncCounters()
@@ -173,138 +122,138 @@ namespace ExHyperV.Services
             try
             {
                 UpdateVmListFromPowerShell();
-                UpdateRunningCounters();
+                Dispose();
+                _hostTotalRunTimeCounters.Clear();
+                _vmCpuCounters.Clear();
 
-                _cachedCounters.Sort((a, b) =>
+                if (PerformanceCounterCategory.Exists("Hyper-V Hypervisor Logical Processor"))
                 {
-                    int vmCompare = string.Compare(a.VmName, b.VmName, StringComparison.OrdinalIgnoreCase);
-                    if (vmCompare != 0) return vmCompare;
-                    return a.CoreId.CompareTo(b.CoreId);
-                });
+                    var cat = new PerformanceCounterCategory("Hyper-V Hypervisor Logical Processor");
+                    foreach (var instance in cat.GetInstanceNames().Where(i => i.Contains("LP ")))
+                    {
+                        _hostTotalRunTimeCounters.Add(new PerformanceCounter("Hyper-V Hypervisor Logical Processor", "% Total Run Time", instance));
+                    }
+                }
+
+                if (PerformanceCounterCategory.Exists("Hyper-V Hypervisor Virtual Processor"))
+                {
+                    var cat = new PerformanceCounterCategory("Hyper-V Hypervisor Virtual Processor");
+                    foreach (var instance in cat.GetInstanceNames().Where(i => i.Contains(":")))
+                    {
+                        _vmCpuCounters.Add(new PerformanceCounter("Hyper-V Hypervisor Virtual Processor", "% Total Run Time", instance));
+                    }
+                }
+
+                _hostTotalRunTimeCounters.ForEach(c => c.NextValue());
+                _vmCpuCounters.ForEach(c => c.NextValue());
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[CpuMonitorService] SyncCounters failed: {ex.Message}");
+            }
+        }
+
+        public List<CpuCoreMetric> GetCpuUsage()
+        {
+            if ((DateTime.Now - _lastSyncTime) > _syncInterval)
+            {
+                SyncCounters();
+                _lastSyncTime = DateTime.Now;
+            }
+
+            var results = new List<CpuCoreMetric>();
+            var runningVmNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            // 步骤 1: 获取 Host 的真实物理核心负载
+            foreach (var counter in _hostTotalRunTimeCounters)
+            {
+                try
+                {
+                    if (int.TryParse(counter.InstanceName.Split(' ').Last(), out int coreId))
+                    {
+                        results.Add(new CpuCoreMetric { VmName = "Host", CoreId = coreId, Usage = counter.NextValue(), IsRunning = true });
+                    }
+                }
+                catch { /* Counter might become invalid */ }
+            }
+
+            // 步骤 2: 获取每个运行中VM的 vCPU 占用率
+            var vmRegex = new Regex(@"^(.+?):Hv VP (\d+)$");
+            foreach (var counter in _vmCpuCounters)
+            {
+                try
+                {
+                    var match = vmRegex.Match(counter.InstanceName);
+                    if (match.Success)
+                    {
+                        string vmName = match.Groups[1].Value;
+                        int vCpuId = int.Parse(match.Groups[2].Value);
+                        runningVmNames.Add(vmName);
+
+                        results.Add(new CpuCoreMetric
+                        {
+                            VmName = vmName,
+                            CoreId = vCpuId,
+                            Usage = counter.NextValue(),
+                            IsRunning = true
+                        });
+                    }
+                }
+                catch { /* Counter might become invalid */ }
+            }
+
+            // 步骤 3: 为已关闭的VM添加占位条目
+            foreach (var kvp in _vmCoreCounts)
+            {
+                if (kvp.Key != "Host" && !runningVmNames.Contains(kvp.Key))
+                {
+                    // 为已关闭的VM的每个vCPU都生成一个条目
+                    for (int i = 0; i < kvp.Value; i++)
+                    {
+                        results.Add(new CpuCoreMetric { VmName = kvp.Key, CoreId = i, IsRunning = false });
+                    }
+                }
+            }
+
+            return results;
         }
 
         private void UpdateVmListFromPowerShell()
         {
-            if (!_vmCoreCounts.ContainsKey("Host")) _vmCoreCounts["Host"] = 0;
-
+            if (!_vmCoreCounts.ContainsKey("Host")) _vmCoreCounts["Host"] = Environment.ProcessorCount;
             try
             {
                 string script = "Get-VMProcessor * | Select-Object VMName, Count";
                 var results = Utils.Run(script);
-                foreach (var pso in results)
+                var vmsFromPs = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+                if (results != null)
                 {
-                    if (pso?.Properties["VMName"]?.Value is string vmName &&
-                        pso.Properties["Count"]?.Value != null)
+                    foreach (var pso in results)
                     {
-                        try
+                        if (pso?.Properties["VMName"]?.Value is string vmName && pso.Properties["Count"]?.Value != null)
                         {
-                            int coreCount = Convert.ToInt32(pso.Properties["Count"].Value);
-                            _vmCoreCounts[vmName] = coreCount;
-                        }
-                        catch (FormatException ex)
-                        {
-                            Debug.WriteLine($"Failed to parse core count for VM '{vmName}': {ex.Message}");
+                            try
+                            {
+                                int coreCount = Convert.ToInt32(pso.Properties["Count"].Value);
+                                _vmCoreCounts[vmName] = coreCount;
+                                vmsFromPs.Add(vmName);
+                            }
+                            catch (FormatException) { }
                         }
                     }
+                }
+
+                var vmsToRemove = _vmCoreCounts.Keys.Where(k => k != "Host" && !vmsFromPs.Contains(k)).ToList();
+                foreach (var oldVm in vmsToRemove)
+                {
+                    _vmCoreCounts.Remove(oldVm);
                 }
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"Failed to update VM list from PowerShell: {ex.Message}");
             }
-        }
-        private void UpdateRunningCounters()
-        {
-            if (PerformanceCounterCategory.Exists(CatVm))
-            {
-                var cat = new PerformanceCounterCategory(CatVm);
-                foreach (var name in cat.GetInstanceNames())
-                {
-                    if (name == "_Total") continue;
-                    var match = _vmRegex.Match(name);
-                    if (match.Success)
-                    {
-                        string vmName = match.Groups[1].Value;
-                        int coreId = int.Parse(match.Groups[2].Value);
-                        if (!_vmCoreCounts.ContainsKey(vmName)) _vmCoreCounts[vmName] = 1;
-                        UpdateOrAddCounter($"{CatVm}|{name}", CatVm, CounterVm, name, vmName, coreId);
-                    }
-                }
-            }
-
-            if (PerformanceCounterCategory.Exists(CatHost))
-            {
-                var cat = new PerformanceCounterCategory(CatHost);
-                foreach (var name in cat.GetInstanceNames())
-                {
-                    if (name == "_Total") continue;
-                    var match = _hostRegex.Match(name);
-                    if (match.Success)
-                    {
-                        int coreId = int.Parse(match.Groups[1].Value);
-                        UpdateOrAddCounter($"{CatHost}|{name}", CatHost, CounterHost, name, "Host", coreId);
-                    }
-                }
-            }
-        }
-
-        private void UpdateOrAddCounter(string key, string category, string counterName, string instance, string vmName, int coreId)
-        {
-            var existing = _cachedCounters.FirstOrDefault(x => x.InstanceKey == key);
-            if (existing != null)
-            {
-                if (!existing.IsValid)
-                {
-                    try { existing.Counter = new PerformanceCounter(category, counterName, instance); existing.Counter.NextValue(); existing.IsValid = true; } catch { }
-                }
-                return;
-            }
-            try
-            {
-                var counter = new PerformanceCounter(category, counterName, instance); counter.NextValue();
-                _cachedCounters.Add(new CachedCounter { Counter = counter, VmName = vmName, CoreId = coreId, InstanceKey = key, IsValid = true });
-            }
-            catch { }
-        }
-
-        public List<CpuCoreMetric> GetCpuUsage()
-        {
-            if ((DateTime.Now - _lastSyncTime) > _syncInterval) { SyncCounters(); _lastSyncTime = DateTime.Now; }
-
-            var results = new List<CpuCoreMetric>();
-            var runningVmNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-            foreach (var item in _cachedCounters)
-            {
-                float value = 0;
-                bool isRunning = false;
-                if (item.IsValid) { try { value = item.Counter.NextValue(); isRunning = true; } catch { item.IsValid = false; } }
-                if (isRunning)
-                {
-                    runningVmNames.Add(item.VmName);
-                    results.Add(new CpuCoreMetric { VmName = item.VmName, CoreId = item.CoreId, Usage = (float)Math.Round(value, 1), IsRunning = true });
-                }
-            }
-
-            foreach (var kvp in _vmCoreCounts)
-            {
-                string vmName = kvp.Key;
-                if (vmName == "Host") continue;
-
-                if (!runningVmNames.Contains(vmName))
-                {
-                    int count = kvp.Value;
-                    if (count <= 0) count = 1;
-
-                    for (int i = 0; i < count; i++)
-                    {
-                        results.Add(new CpuCoreMetric { VmName = vmName, CoreId = i, Usage = 0, IsRunning = false });
-                    }
-                }
-            }
-            return results;
         }
     }
 }

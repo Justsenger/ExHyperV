@@ -130,7 +130,7 @@ namespace ExHyperV.ViewModels
                 catch (TaskCanceledException) { if (token.IsCancellationRequested) break; }
                 catch (Exception) { if (token.IsCancellationRequested) break; await Task.Delay(5000, token); }
             }
-            (_cpuService as IDisposable)?.Dispose();
+            _cpuService?.Dispose();
             _cpuService = null;
         }
 
@@ -139,7 +139,6 @@ namespace ExHyperV.ViewModels
             var updates = new List<CoreUpdateDto>();
             foreach (var metric in rawData)
             {
-                PointCollection points = null;
                 if (metric.IsRunning)
                 {
                     var key = $"{metric.VmName}_{metric.CoreId}";
@@ -151,10 +150,14 @@ namespace ExHyperV.ViewModels
                     }
                     history.AddLast(metric.Usage);
                     if (history.Count > MaxHistoryLength) history.RemoveFirst();
-                    points = CalculatePoints(history);
+                    var points = CalculatePoints(history);
                     points.Freeze();
+                    updates.Add(new CoreUpdateDto { VmName = metric.VmName, CoreId = metric.CoreId, Usage = metric.Usage, RenderedGraph = points, IsRunning = true });
                 }
-                updates.Add(new CoreUpdateDto { VmName = metric.VmName, CoreId = metric.CoreId, Usage = metric.Usage, RenderedGraph = points, IsRunning = metric.IsRunning });
+                else
+                {
+                    updates.Add(new CoreUpdateDto { VmName = metric.VmName, CoreId = metric.CoreId, IsRunning = false });
+                }
             }
             return updates;
         }
@@ -168,8 +171,7 @@ namespace ExHyperV.ViewModels
             foreach (var val in history)
             {
                 double x = i * step;
-                double y = h - val;
-                if (y < 0) y = 0; if (y > h) y = h;
+                double y = h - (val * h / 100.0);
                 points.Add(new Point(x, y));
                 i++;
             }
@@ -180,105 +182,75 @@ namespace ExHyperV.ViewModels
         private void ApplyUpdates(List<CoreUpdateDto> updates)
         {
             if (_monitoringCts == null || _monitoringCts.IsCancellationRequested) return;
+
             var activeVmNames = updates.Select(x => x.VmName).ToHashSet();
             var vmsToRemove = VmList.Where(vm => !activeVmNames.Contains(vm.Name)).ToList();
-            bool selectionRemoved = vmsToRemove.Any(vm => vm == SelectedVm);
             foreach (var vm in vmsToRemove) VmList.Remove(vm);
-            if (selectionRemoved) SelectedVm = null;
+
             var grouped = updates.GroupBy(x => x.VmName);
             foreach (var group in grouped)
             {
                 var vmName = group.Key;
                 var uiVm = VmList.FirstOrDefault(v => v.Name == vmName);
                 if (uiVm == null) { uiVm = new UiVmModel { Name = vmName }; VmList.Add(uiVm); }
-                bool isVmRunning = group.Any(x => x.IsRunning);
-                uiVm.IsRunning = isVmRunning;
-                int coreCount = group.Count();
-                uiVm.Columns = CalculateOptimalColumns(coreCount);
-                uiVm.Rows = (coreCount > 0) ? (int)Math.Ceiling((double)coreCount / uiVm.Columns) : 0;
-                uiVm.AverageUsage = isVmRunning ? group.Average(update => update.Usage) : 0;
+
+                uiVm.IsRunning = group.Any(u => u.IsRunning);
+                uiVm.AverageUsage = uiVm.IsRunning ? group.Average(u => u.Usage) : 0;
+
                 var updatedCoreIds = group.Select(u => u.CoreId).ToHashSet();
                 var coresToRemove = uiVm.Cores.Where(c => !updatedCoreIds.Contains(c.CoreId)).ToList();
                 foreach (var core in coresToRemove) uiVm.Cores.Remove(core);
+
                 foreach (var update in group)
                 {
                     var uiCore = uiVm.Cores.FirstOrDefault(c => c.CoreId == update.CoreId);
                     if (uiCore == null)
                     {
-                        uiCore = new UiCoreModel { CoreId = update.CoreId, CoreType = vmName.Equals("Host", StringComparison.OrdinalIgnoreCase) ? CpuMonitorService.GetCoreType(update.CoreId) : CoreType.Unknown };
+                        var coreType = vmName == "Host" ? CpuMonitorService.GetCoreType(update.CoreId) : CoreType.Unknown;
+                        uiCore = new UiCoreModel { CoreId = update.CoreId, CoreType = coreType };
                         uiVm.Cores.Add(uiCore);
                     }
                     uiCore.Usage = update.Usage;
                     uiCore.HistoryPoints = update.RenderedGraph;
                 }
+
+                var sortedCores = uiVm.Cores.OrderBy(c => c.CoreId).ToList();
+                for (int i = 0; i < sortedCores.Count; i++)
+                {
+                    var desiredCore = sortedCores[i];
+                    int currentIndex = uiVm.Cores.IndexOf(desiredCore);
+                    if (currentIndex != i)
+                    {
+                        uiVm.Cores.Move(currentIndex, i);
+                    }
+                }
+
+                uiVm.Columns = CalculateOptimalColumns(uiVm.Cores.Count);
+                uiVm.Rows = (uiVm.Cores.Count > 0) ? (int)Math.Ceiling((double)uiVm.Cores.Count / uiVm.Columns) : 0;
             }
 
             var hostVm = VmList.FirstOrDefault(vm => vm.Name.Equals("Host", StringComparison.OrdinalIgnoreCase));
-            if (hostVm != null)
-            {
-                var totalCoreUsage = hostVm.Cores.ToDictionary(c => c.CoreId, c => c.Usage);
-                foreach (var vm in VmList.Where(v => !v.Name.Equals("Host", StringComparison.OrdinalIgnoreCase) && v.IsRunning))
-                {
-                    foreach (var vmCore in vm.Cores)
-                    {
-                        if (totalCoreUsage.ContainsKey(vmCore.CoreId))
-                        {
-                            totalCoreUsage[vmCore.CoreId] += vmCore.Usage;
-                        }
-                        else
-                        {
-                            totalCoreUsage[vmCore.CoreId] = vmCore.Usage;
-                        }
-                    }
-                }
-                foreach (var hostCore in hostVm.Cores)
-                {
-                    var newTotalUsage = totalCoreUsage[hostCore.CoreId];
-                    hostCore.Usage = Math.Min(100.0, newTotalUsage);
-                    var historyKey = $"Host_{hostCore.CoreId}";
-                    if (!_historyCache.TryGetValue(historyKey, out var history))
-                    {
-                        history = new LinkedList<double>();
-                        for (int k = 0; k < MaxHistoryLength; k++) history.AddLast(0);
-                        _historyCache[historyKey] = history;
-                    }
-                    history.AddLast(hostCore.Usage);
-                    if (history.Count > MaxHistoryLength) history.RemoveFirst();
-                    hostCore.HistoryPoints = CalculatePoints(history);
-                }
-                hostVm.AverageUsage = hostVm.Cores.Any() ? hostVm.Cores.Average(c => c.Usage) : 0;
-            }
-
             if (!_systemInfoCached && hostVm != null && hostVm.Cores.Any())
             {
                 _cachedSchedulerType = HyperVSchedulerService.GetSchedulerType();
                 _cachedCpuSiblingMap = CpuTopologyService.GetCpuSiblingMap();
                 _systemInfoCached = true;
             }
-            if (SelectedVm == null && VmList.Any()) SelectedVm = VmList[0];
 
-            // ===================================================================
-            //            ★★★ 新增：三级排序逻辑 ★★★
-            // ===================================================================
-            // 1. 根据新的三级规则，创建一个期望的有序列表。
+            if (SelectedVm == null)
+            {
+                SelectedVm = VmList.FirstOrDefault(vm => vm.Name == "Host") ?? VmList.FirstOrDefault();
+            }
+
             var sortedVms = VmList
-                // 规则1: Host 永远第一 (false 排在 true 前面)
                 .OrderBy(vm => vm.Name != "Host")
-                // 规则2: 运行中的排在前面 (IsRunning 是 true, !IsRunning 是 false, false 排在 true 前面)
                 .ThenBy(vm => !vm.IsRunning)
-                // 规则3: 在各自的分组内，按字母顺序排序
                 .ThenBy(vm => vm.Name)
                 .ToList();
-
-            // 2. 高效地移动列表项到正确的位置，避免UI闪烁。
             for (int i = 0; i < sortedVms.Count; i++)
             {
                 var desiredVm = sortedVms[i];
-                var currentIndex = VmList.IndexOf(desiredVm);
-                if (currentIndex != i)
-                {
-                    VmList.Move(currentIndex, i);
-                }
+                if (VmList.IndexOf(desiredVm) != i) VmList.Move(VmList.IndexOf(desiredVm), i);
             }
         }
 
@@ -411,7 +383,7 @@ namespace ExHyperV.ViewModels
         public async void Dispose()
         {
             await StopMonitoringAsync();
-            _sleepTokenSource?.Dispose();
+            _cpuService?.Dispose();
         }
     }
 }
