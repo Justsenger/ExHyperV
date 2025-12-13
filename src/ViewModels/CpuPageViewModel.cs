@@ -1,9 +1,17 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Media;
 using ExHyperV.Models;
 using ExHyperV.Services;
+using ExHyperV.ViewModels.Dialogs;
+using ExHyperV.Views.Dialogs;
 
 namespace ExHyperV.ViewModels
 {
@@ -68,9 +76,7 @@ namespace ExHyperV.ViewModels
                     {
                         await Task.WhenAny(_monitoringTask, Task.Delay(1000));
                     }
-                    catch
-                    {
-                    }
+                    catch { }
                 }
 
                 _monitoringCts.Dispose();
@@ -102,7 +108,6 @@ namespace ExHyperV.ViewModels
                 try
                 {
                     if (_sleepTokenSource.IsCancellationRequested) { _sleepTokenSource.Dispose(); _sleepTokenSource = new CancellationTokenSource(); }
-
                     if (RefreshInterval == -1)
                     {
                         await Task.Delay(Timeout.Infinite, CancellationTokenSource.CreateLinkedTokenSource(token, _sleepTokenSource.Token).Token);
@@ -112,9 +117,7 @@ namespace ExHyperV.ViewModels
                     var startTime = DateTime.Now;
                     var rawData = _cpuService.GetCpuUsage();
                     var updates = ProcessData(rawData);
-
                     if (token.IsCancellationRequested) break;
-
                     Application.Current.Dispatcher.Invoke(() => ApplyUpdates(updates));
 
                     var elapsed = (DateTime.Now - startTime).TotalMilliseconds;
@@ -170,9 +173,11 @@ namespace ExHyperV.ViewModels
             int i = 0;
             foreach (var val in history)
             {
-                double x = i * step; double y = h - val;
+                double x = i * step;
+                double y = h - val;
                 if (y < 0) y = 0; if (y > h) y = h;
-                points.Add(new Point(x, y)); i++;
+                points.Add(new Point(x, y));
+                i++;
             }
             points.Add(new Point(w, h));
             return points;
@@ -241,6 +246,59 @@ namespace ExHyperV.ViewModels
             for (int i = startingPoint; i >= 2; i--) { if (count % i == 0) return count / i; }
             return (int)Math.Ceiling(sqrt);
         }
+
+        #region --- 控制面板命令 ---
+
+        [RelayCommand]
+        private void OpenVmCpuAffinity()
+        {
+            try
+            {
+                if (SelectedVm == null || SelectedVm.Name.Equals("Host", StringComparison.OrdinalIgnoreCase))
+                {
+                    return;
+                }
+
+                var hostVm = VmList.FirstOrDefault(vm => vm.Name.Equals("Host", StringComparison.OrdinalIgnoreCase));
+                if (hostVm == null || hostVm.Cores.Count == 0)
+                {
+                    MessageBox.Show("未能找到宿主机核心信息，无法设置 CPU 绑定。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
+                // =======================================================
+                // 修正点: 传递了正确的参数 SelectedVm.Cores.Count (int)
+                // =======================================================
+                var dialogViewModel = new CpuAffinityDialogViewModel(SelectedVm.Name, SelectedVm.Cores.Count, hostVm.Cores);
+
+                var dialog = new CpuAffinityDialog
+                {
+                    DataContext = dialogViewModel,
+                    Owner = Application.Current.MainWindow
+                };
+
+                if (dialog.ShowDialog() == true)
+                {
+                    var selectedCoreIds = dialogViewModel.Cores
+                                                         .Where(c => c.IsSelected)
+                                                         .Select(c => c.CoreId)
+                                                         .ToList();
+
+                    string selectedIdsText = selectedCoreIds.Any() ? string.Join(", ", selectedCoreIds) : "无";
+                    MessageBox.Show($"已为虚拟机 '{SelectedVm.Name}' 选择的核心: {selectedIdsText}", "设置成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"程序在执行“CPU绑定”操作时发生了一个未处理的异常：\n\n" +
+                                $"类型: {ex.GetType().Name}\n" +
+                                $"信息: {ex.Message}\n\n" +
+                                $"堆栈跟踪:\n{ex.StackTrace}",
+                                "严重运行时错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        #endregion
 
         public async void Dispose()
         {
