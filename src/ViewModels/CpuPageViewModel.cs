@@ -15,11 +15,10 @@ using ExHyperV.Models;
 using ExHyperV.Services;
 using ExHyperV.Tools;
 using ExHyperV.ViewModels.Dialogs;
-using ExHyperV.Views; // 引入 MainWindow 所在的命名空间
+using ExHyperV.Views;
 using ExHyperV.Views.Dialogs;
-using Wpf.Ui.Controls; // 引入 Snackbar 和 FontIcon 等控件的命名空间
+using Wpf.Ui.Controls;
 using Wpf.Ui;
-
 
 namespace ExHyperV.ViewModels
 {
@@ -40,12 +39,28 @@ namespace ExHyperV.ViewModels
         private CancellationTokenSource _sleepTokenSource = new CancellationTokenSource();
         private const int MaxHistoryLength = 25;
         private readonly Dictionary<string, LinkedList<double>> _historyCache = new();
+        private readonly IVmProcessorService _vmProcessorService;
         private readonly CpuAffinityService _cpuAffinityService;
+        private VMProcessorViewModel _originalProcessorConfig;
 
         public ObservableCollection<UiVmModel> VmList { get; } = new ObservableCollection<UiVmModel>();
 
         [ObservableProperty]
         private UiVmModel? _selectedVm;
+
+        async partial void OnSelectedVmChanged(UiVmModel? value)
+        {
+            if (value != null && value.Name != "Host")
+            {
+                await LoadVmProcessorSettingsAsync(value);
+                _originalProcessorConfig = value.Processor.CreateCopy();
+                value.Processor.InstantApplyAction = (propertyName) => HandleInstantApply(propertyName);
+            }
+            else
+            {
+                _originalProcessorConfig = null;
+            }
+        }
 
         [ObservableProperty]
         private int _refreshInterval = 1000;
@@ -68,6 +83,7 @@ namespace ExHyperV.ViewModels
         {
             SelectedSpeedIndex = 0;
             _cpuAffinityService = new CpuAffinityService();
+            _vmProcessorService = new VmProcessorService();
         }
 
         private int _selectedSchedulerIndex = -1;
@@ -98,7 +114,6 @@ namespace ExHyperV.ViewModels
                     {
                         if (await HyperVSchedulerService.SetSchedulerTypeAsync(newType))
                         {
-                            // 在UI线程上显示 Snackbar
                             Application.Current.Dispatcher.Invoke(() =>
                             {
                                 var mainWindow = Application.Current.MainWindow as MainWindow;
@@ -141,6 +156,12 @@ namespace ExHyperV.ViewModels
                 _monitoringCts.Dispose();
                 _monitoringCts = null;
             }
+        }
+
+        private void HandleInstantApply(string propertyName)
+        {
+            if (SelectedVm == null || SelectedVm.Name == "Host") return;
+            Debug.WriteLine($"即时应用: {propertyName} 属性已更改。");
         }
 
         private void UpdateInterval()
@@ -242,12 +263,25 @@ namespace ExHyperV.ViewModels
             var vmsToRemove = VmList.Where(vm => !activeVmNames.Contains(vm.Name)).ToList();
             foreach (var vm in vmsToRemove) VmList.Remove(vm);
 
-            var grouped = updates.GroupBy(x => x.VmName);
-            foreach (var group in grouped)
+            var groupedByVm = updates.GroupBy(x => x.VmName);
+            foreach (var group in groupedByVm)
             {
                 var vmName = group.Key;
                 var uiVm = VmList.FirstOrDefault(v => v.Name == vmName);
-                if (uiVm == null) { uiVm = new UiVmModel { Name = vmName }; VmList.Add(uiVm); }
+                if (uiVm == null)
+                {
+                    uiVm = new UiVmModel { Name = vmName };
+                    if (vmName != "Host")
+                    {
+                        uiVm.Processor.Count = group.Count();
+                        uiVm.Processor.RelativeWeight = 100;
+                        uiVm.Processor.Reserve = 0;
+                        uiVm.Processor.Maximum = 100;
+                        uiVm.Processor.SmtMode = SmtMode.Inherit;
+                        uiVm.Processor.EnableHostResourceProtection = true;
+                    }
+                    VmList.Add(uiVm);
+                }
 
                 uiVm.IsRunning = group.Any(u => u.IsRunning);
                 uiVm.AverageUsage = uiVm.IsRunning ? group.Average(u => u.Usage) : 0;
@@ -261,8 +295,25 @@ namespace ExHyperV.ViewModels
                     var uiCore = uiVm.Cores.FirstOrDefault(c => c.CoreId == update.CoreId);
                     if (uiCore == null)
                     {
-                        var coreType = vmName == "Host" ? CpuMonitorService.GetCoreType(update.CoreId) : CoreType.Unknown;
-                        uiCore = new UiCoreModel { CoreId = update.CoreId, CoreType = coreType };
+                        var serviceCoreType = vmName.Equals("Host", StringComparison.OrdinalIgnoreCase)
+                            ? CpuMonitorService.GetCoreType(update.CoreId)
+                            : Services.CoreType.Unknown;
+
+                        Models.CoreType modelCoreType;
+                        switch (serviceCoreType)
+                        {
+                            case Services.CoreType.Performance:
+                                modelCoreType = Models.CoreType.Performance;
+                                break;
+                            case Services.CoreType.Efficient:
+                                modelCoreType = Models.CoreType.Efficient;
+                                break;
+                            default:
+                                modelCoreType = Models.CoreType.Unknown;
+                                break;
+                        }
+
+                        uiCore = new UiCoreModel { CoreId = update.CoreId, CoreType = modelCoreType };
                         uiVm.Cores.Add(uiCore);
                     }
                     uiCore.Usage = update.Usage;
@@ -329,7 +380,34 @@ namespace ExHyperV.ViewModels
             return (int)Math.Ceiling(sqrt);
         }
 
-        #region --- 控制面板命令 ---
+        private async Task LoadVmProcessorSettingsAsync(UiVmModel vm)
+        {
+            IsLoading = true;
+            try
+            {
+                var processorSettings = await _vmProcessorService.GetVmProcessorAsync(vm.Name);
+                if (processorSettings != null)
+                {
+                    vm.Processor.Count = processorSettings.Count;
+                    vm.Processor.Reserve = processorSettings.Reserve;
+                    vm.Processor.Maximum = processorSettings.Maximum;
+                    vm.Processor.RelativeWeight = processorSettings.RelativeWeight;
+                    vm.Processor.ExposeVirtualizationExtensions = processorSettings.ExposeVirtualizationExtensions;
+                    vm.Processor.EnableHostResourceProtection = processorSettings.EnableHostResourceProtection;
+                    vm.Processor.CompatibilityForMigrationEnabled = processorSettings.CompatibilityForMigrationEnabled;
+                    vm.Processor.CompatibilityForOlderOperatingSystemsEnabled = processorSettings.CompatibilityForOlderOperatingSystemsEnabled;
+                    vm.Processor.SmtMode = processorSettings.SmtMode;
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"加载虚拟机 {vm.Name} 的处理器配置失败: {ex.Message}");
+            }
+            finally
+            {
+                IsLoading = false;
+            }
+        }
 
         [RelayCommand]
         private async Task OpenVmCpuAffinityAsync()
@@ -422,7 +500,39 @@ namespace ExHyperV.ViewModels
             }
         }
 
-        #endregion
+        [RelayCommand]
+        private async Task ApplyChangesAsync()
+        {
+            if (SelectedVm == null || SelectedVm.Name == "Host" || IsLoading) return;
+
+            IsLoading = true;
+            var (success, message) = await _vmProcessorService.SetVmProcessorAsync(SelectedVm.Name, SelectedVm.Processor);
+            IsLoading = false;
+
+            var mainWindow = Application.Current.MainWindow as MainWindow;
+            if (mainWindow != null)
+            {
+                var snackbarService = new SnackbarService();
+                snackbarService.SetSnackbarPresenter(mainWindow.SnackbarPresenter);
+                snackbarService.Show(
+                    success ? "操作成功" : "操作失败",
+                    message,
+                    success ? ControlAppearance.Success : ControlAppearance.Danger,
+                    new SymbolIcon(success ? SymbolRegular.CheckmarkCircle24 : SymbolRegular.ErrorCircle24),
+                    TimeSpan.FromSeconds(5)
+                );
+            }
+
+            if (success)
+            {
+                _originalProcessorConfig = SelectedVm.Processor.CreateCopy();
+            }
+        }
+
+        [RelayCommand]
+        private void OpenNumaSettings()
+        {
+        }
 
         private Guid GetVmGuidByName(string vmName)
         {

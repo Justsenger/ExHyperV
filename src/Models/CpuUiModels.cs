@@ -1,7 +1,8 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using System.Collections.ObjectModel;
 using System.Windows.Media;
-using ExHyperV.Services; 
+using ExHyperV.Services;
+using ExHyperV.ViewModels;
 
 namespace ExHyperV.Models
 {
@@ -10,7 +11,14 @@ namespace ExHyperV.Models
         public string VmName { get; set; }
         public int CoreId { get; set; }
         public float Usage { get; set; }
-        public bool IsRunning { get; set; } 
+        public bool IsRunning { get; set; }
+    }
+
+    public enum CoreType
+    {
+        Unknown,
+        Performance,
+        Efficient
     }
 
     public partial class UiCoreModel : ObservableObject
@@ -45,5 +53,8 @@ namespace ExHyperV.Models
         private double _averageUsage;
 
         public ObservableCollection<UiCoreModel> Cores { get; } = new ObservableCollection<UiCoreModel>();
+
+        [ObservableProperty]
+        private VMProcessorViewModel _processor = new VMProcessorViewModel();
     }
 }

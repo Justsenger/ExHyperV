@@ -1,5 +1,5 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
-using ExHyperV.Services; // 需要这个 using 来引用 CoreType 枚举
+using ExHyperV.Models;
 
 namespace ExHyperV.ViewModels.Dialogs
 {
@@ -11,9 +11,6 @@ namespace ExHyperV.ViewModels.Dialogs
         [ObservableProperty]
         private bool _isSelected;
 
-        // =======================================================
-        // 新增属性: 存储核心类型
-        // =======================================================
         [ObservableProperty]
         private CoreType _coreType;
     }

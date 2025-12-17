@@ -11,7 +11,6 @@ namespace ExHyperV.ViewModels.Dialogs
 {
     public partial class CpuAffinityDialogViewModel : ObservableObject
     {
-        // --- 属性定义 ---
         [ObservableProperty]
         private string _title;
 
@@ -30,15 +29,11 @@ namespace ExHyperV.ViewModels.Dialogs
         private readonly int _assignedCoreCount;
         public ObservableCollection<SelectableCoreViewModel> Cores { get; } = new();
 
-        // --- 核心逻辑所需成员 ---
         private readonly HyperVSchedulerType _schedulerType;
         private readonly Dictionary<int, int> _cpuSiblingMap;
         private bool _isUpdatingFromLogic = false;
         public string SchedulerTypeInfoText => $"当前调度器模式: {_schedulerType}";
 
-        /// <summary>
-        /// 构造函数
-        /// </summary>
         public CpuAffinityDialogViewModel(
             string vmName,
             int assignedCoreCount,
@@ -58,7 +53,6 @@ namespace ExHyperV.ViewModels.Dialogs
                 var selectableCore = new SelectableCoreViewModel();
                 selectableCore.CoreId = core.CoreId;
                 selectableCore.CoreType = core.CoreType;
-                selectableCore.IsSelected = false;
 
                 selectableCore.PropertyChanged += OnCoreSelectionChanged;
                 Cores.Add(selectableCore);
@@ -76,17 +70,10 @@ namespace ExHyperV.ViewModels.Dialogs
             }
         }
 
-        // ====================================================================
-        //            ★★★ 这是最终修正的、正确的联动逻辑 ★★★
-        // ====================================================================
         private void HandleSiblingSelection(SelectableCoreViewModel changedCore)
         {
             if (changedCore == null || _isUpdatingFromLogic) return;
 
-            // 修正后的联动规则：
-            // 1. 必须是 Core 调度器模式。
-            // 2. 只要被操作的核心存在于“兄弟”映射表中，就执行联动。
-            // (不再需要检查 CoreType，因为映射表本身就代表了所有应联动的核心)
             if (_schedulerType == HyperVSchedulerType.Core)
             {
                 if (_cpuSiblingMap.TryGetValue(changedCore.CoreId, out int siblingId))
