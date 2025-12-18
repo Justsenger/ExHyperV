@@ -66,7 +66,7 @@ public class Utils
                     var errorMessages = new StringBuilder();
                     foreach (var error in ps.Streams.Error)
                     {
-                        errorMessages.AppendLine(error.ToString());
+                        errorMessages.AppendLine(error.Exception.Message);
                     }
                     throw new PowerShellScriptException(errorMessages.ToString());
                 }

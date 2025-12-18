@@ -92,25 +92,29 @@ namespace ExHyperV.ViewModels.Dialogs
         private void UpdateStatusText()
         {
             int selectedCount = Cores.Count(c => c.IsSelected);
+
+            // 构造 X / Y 格式的字符串
+            string countStr = $"({selectedCount} / {_assignedCoreCount})";
+
             if (selectedCount == 0)
             {
                 StatusEmoji = "🎲";
-                StatusText = "将随机分配CPU核心";
+                StatusText = $"将随机分配CPU核心";
             }
             else if (selectedCount < _assignedCoreCount)
             {
                 StatusEmoji = "⚠️";
-                StatusText = "性能将受限";
+                StatusText = $"性能将受限 {countStr}";
             }
             else if (selectedCount > _assignedCoreCount)
             {
                 StatusEmoji = "💨";
-                StatusText = "会在选定的核心组内随机漂移";
+                StatusText = $"会在选定的核心组内随机漂移 {countStr}";
             }
             else
             {
                 StatusEmoji = "✅";
-                StatusText = "完美！";
+                StatusText = $"完美！ {countStr}";
             }
         }
 

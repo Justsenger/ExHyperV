@@ -1,174 +1,156 @@
 ﻿using ExHyperV.Models;
+using ExHyperV.Tools;
 using ExHyperV.ViewModels;
 using System;
 using System.Linq;
-using System.Management;
+using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace ExHyperV.Services
 {
     public class VmProcessorService : IVmProcessorService
     {
-        private const string WmiNamespace = @"root\virtualization\v2";
-
         public async Task<VMProcessorViewModel?> GetVmProcessorAsync(string vmName)
         {
-            return await Task.Run(() =>
+            try
             {
-                ManagementObject vmSettings = null;
-                ManagementObject processorSetting = null;
-                try
+                var safeVmName = vmName.Replace("'", "''");
+                var script = $"Get-VM -Name '{safeVmName}' -ErrorAction Stop | Get-VMProcessor | Select-Object " +
+                             "Count, Reservation, Maximum, RelativeWeight, " +
+                             "ExposeVirtualizationExtensions, EnableHostResourceProtection, " +
+                             "CompatibilityForMigrationEnabled, CompatibilityForOlderOperatingSystemsEnabled, " +
+                             "HwThreadCountPerCore";
+
+                var results = await Utils.Run2(script);
+                var psObj = results.FirstOrDefault();
+
+                if (psObj == null) return null;
+
+                dynamic data = psObj;
+
+                return new VMProcessorViewModel
                 {
-                    var scope = new ManagementScope(WmiNamespace);
-                    scope.Connect();
-
-                    // 步骤 1 & 2: 使用 Msvm_SummaryInformation 将 vmName 转换为可靠的 GUID
-                    var vmGuid = GetVmGuidByNameFromSummary(vmName, scope);
-                    if (vmGuid == Guid.Empty) return null;
-
-                    // 步骤 3: 使用 GUID 查询主设置对象
-                    vmSettings = GetVirtualSystemSettingDataByGuid(vmGuid, scope);
-                    if (vmSettings == null) return null;
-
-                    // 步骤 4: 获取处理器设置
-                    processorSetting = GetAssociatedProcessorSetting(vmSettings);
-                    if (processorSetting == null) return null;
-
-                    var processor = new VMProcessorViewModel
-                    {
-                        Count = (ushort)processorSetting["VirtualQuantity"],
-                        Reserve = (ushort)processorSetting["Reservation"],
-                        Maximum = (ushort)processorSetting["Limit"],
-                        RelativeWeight = (ushort)processorSetting["Weight"],
-                        ExposeVirtualizationExtensions = (bool)processorSetting["ExposeVirtualizationExtensions"],
-                        EnableHostResourceProtection = (bool)processorSetting["EnableHostResourceProtection"],
-                        CompatibilityForMigrationEnabled = (bool)processorSetting["CompatibilityForMigrationEnabled"],
-                        CompatibilityForOlderOperatingSystemsEnabled = (bool)processorSetting["CompatibilityForOlderOperatingSystemsEnabled"],
-                        SmtMode = ConvertHwThreadsToSmtMode((ushort)processorSetting["HwThreadsPerCore"])
-                    };
-                    return processor;
-                }
-                catch
-                {
-                    return null;
-                }
-                finally
-                {
-                    processorSetting?.Dispose();
-                    vmSettings?.Dispose();
-                }
-            });
+                    Count = GetLong(data.Count),
+                    Reserve = GetLong(data.Reservation),
+                    Maximum = GetLong(data.Maximum),
+                    RelativeWeight = (int)GetLong(data.RelativeWeight),
+                    ExposeVirtualizationExtensions = GetBool(data.ExposeVirtualizationExtensions),
+                    EnableHostResourceProtection = GetBool(data.EnableHostResourceProtection),
+                    CompatibilityForMigrationEnabled = GetBool(data.CompatibilityForMigrationEnabled),
+                    CompatibilityForOlderOperatingSystemsEnabled = GetBool(data.CompatibilityForOlderOperatingSystemsEnabled),
+                    SmtMode = ConvertHwThreadsToSmtMode((uint)GetLong(data.HwThreadCountPerCore))
+                };
+            }
+            catch
+            {
+                return null;
+            }
         }
 
         public async Task<(bool Success, string Message)> SetVmProcessorAsync(string vmName, VMProcessorViewModel processorSettings)
         {
-            return await Task.Run(() =>
+            try
             {
-                ManagementObject vmSettings = null;
-                ManagementObject processorSetting = null;
-                try
-                {
-                    var scope = new ManagementScope(WmiNamespace);
-                    scope.Connect();
+                var safeVmName = vmName.Replace("'", "''");
+                var hwThreadCount = ConvertSmtModeToHwThreads(processorSettings.SmtMode);
 
-                    var vmGuid = GetVmGuidByNameFromSummary(vmName, scope);
-                    if (vmGuid == Guid.Empty) return (false, "找不到指定的虚拟机。");
+                var sb = new StringBuilder();
+                sb.Append($"$vm = Get-VM -Name '{safeVmName}' -ErrorAction Stop; ");
+                sb.Append("Set-VMProcessor -VM $vm ");
+                sb.Append($"-Count {processorSettings.Count} ");
+                sb.Append($"-Reserve {processorSettings.Reserve} ");
+                sb.Append($"-Maximum {processorSettings.Maximum} ");
+                sb.Append($"-RelativeWeight {processorSettings.RelativeWeight} ");
+                sb.Append($"-ExposeVirtualizationExtensions {ToPsBool(processorSettings.ExposeVirtualizationExtensions)} ");
+                sb.Append($"-EnableHostResourceProtection {ToPsBool(processorSettings.EnableHostResourceProtection)} ");
+                sb.Append($"-CompatibilityForMigrationEnabled {ToPsBool(processorSettings.CompatibilityForMigrationEnabled)} ");
+                sb.Append($"-CompatibilityForOlderOperatingSystemsEnabled {ToPsBool(processorSettings.CompatibilityForOlderOperatingSystemsEnabled)} ");
+                sb.Append($"-HwThreadCountPerCore {hwThreadCount} ");
+                sb.Append("-ErrorAction Stop");
 
-                    vmSettings = GetVirtualSystemSettingDataByGuid(vmGuid, scope);
-                    if (vmSettings == null) return (false, "找不到虚拟机的主设置对象。");
+                await Utils.Run2(sb.ToString());
 
-                    processorSetting = GetAssociatedProcessorSetting(vmSettings);
-                    if (processorSetting == null) return (false, "找不到虚拟机的处理器设置。");
-
-                    processorSetting["VirtualQuantity"] = (ulong)processorSettings.Count;
-                    processorSetting["Reservation"] = (ulong)processorSettings.Reserve;
-                    processorSetting["Limit"] = (ulong)processorSettings.Maximum;
-                    processorSetting["Weight"] = (uint)processorSettings.RelativeWeight;
-                    processorSetting["ExposeVirtualizationExtensions"] = processorSettings.ExposeVirtualizationExtensions;
-                    processorSetting["EnableHostResourceProtection"] = processorSettings.EnableHostResourceProtection;
-                    processorSetting["CompatibilityForMigrationEnabled"] = processorSettings.CompatibilityForMigrationEnabled;
-                    processorSetting["CompatibilityForOlderOperatingSystemsEnabled"] = processorSettings.CompatibilityForOlderOperatingSystemsEnabled;
-                    processorSetting["HwThreadsPerCore"] = ConvertSmtModeToHwThreads(processorSettings.SmtMode);
-
-                    using (var managementService = new ManagementClass(WmiNamespace, "Msvm_VirtualSystemManagementService", null))
-                    {
-                        using (var inParams = managementService.GetMethodParameters("ModifySystemSettings"))
-                        {
-                            inParams["SystemSettings"] = vmSettings.GetText(TextFormat.CimDtd20);
-
-                            using (var outParams = managementService.InvokeMethod("ModifySystemSettings", inParams, null))
-                            {
-                                if ((uint)outParams["ReturnValue"] == 4096)
-                                {
-                                    return WaitForJob((string)outParams["Job"], scope);
-                                }
-                                if ((uint)outParams["ReturnValue"] == 0)
-                                {
-                                    return (true, "设置已成功应用。");
-                                }
-                                return (false, $"应用设置失败，错误码: {outParams["ReturnValue"]}");
-                            }
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    return (false, $"应用设置时发生异常: {ex.Message}");
-                }
-                finally
-                {
-                    processorSetting?.Dispose();
-                    vmSettings?.Dispose();
-                }
-            });
-        }
-
-        // 最可靠的辅助方法：通过 Msvm_SummaryInformation 将名称映射到 GUID
-        private Guid GetVmGuidByNameFromSummary(string vmName, ManagementScope scope)
-        {
-            string queryText = $"SELECT Name FROM Msvm_SummaryInformation WHERE ElementName = '{vmName}'";
-            var query = new ObjectQuery(queryText);
-            using (var searcher = new ManagementObjectSearcher(scope, query))
-            {
-                var summaryObject = searcher.Get().Cast<ManagementObject>().FirstOrDefault();
-                if (summaryObject != null && Guid.TryParse((string)summaryObject["Name"], out Guid vmId))
-                {
-                    summaryObject.Dispose();
-                    return vmId;
-                }
+                return (true, "设置已成功应用。");
             }
-            return Guid.Empty;
-        }
-
-        // 通过 GUID 获取主设置对象
-        private ManagementObject GetVirtualSystemSettingDataByGuid(Guid vmGuid, ManagementScope scope)
-        {
-            string queryText = $"SELECT * FROM Msvm_VirtualSystemSettingData WHERE ConfigurationID = '{vmGuid}'";
-            var query = new ObjectQuery(queryText);
-            using (var searcher = new ManagementObjectSearcher(scope, query))
+            catch (Exception ex)
             {
-                return searcher.Get().Cast<ManagementObject>().FirstOrDefault();
+                // 【修改点】调用错误清洗方法，去掉废话
+                var friendlyMsg = GetFriendlyErrorMessage(ex.Message);
+                return (false, friendlyMsg);
             }
         }
 
-        private ManagementObject GetAssociatedProcessorSetting(ManagementObject vmSettings)
-        {
-            var relatedObjects = vmSettings.GetRelated("Msvm_ProcessorSettingData", "Msvm_ComponentSettingData", null, null, "GroupComponent", "PartComponent", false, null);
-            return relatedObjects.OfType<ManagementObject>().FirstOrDefault();
-        }
+        #region Helpers
 
-        private (bool Success, string Message) WaitForJob(string jobPath, ManagementScope scope)
+        /// <summary>
+        /// 简单清洗，主要用于去除 GUID，保留操作系统的原生本地化错误提示
+        /// </summary>
+        private string GetFriendlyErrorMessage(string rawMessage)
         {
-            using (var job = new ManagementObject(scope, new ManagementPath(jobPath), null))
+            if (string.IsNullOrWhiteSpace(rawMessage)) return "未知错误";
+
+            string cleanMsg = rawMessage.Trim();
+
+            // 去除 GUID (通用正则，匹配 (虚拟机 ID xxxx) 或 (Virtual Machine ID xxxx))
+            // 这里的正则兼容了中文括号和英文括号，以及任何语言中包含 "ID GUID" 的模式
+            cleanMsg = Regex.Replace(cleanMsg, @"[\(\（].*?ID\s+[a-fA-F0-9-]{36}.*?[\)\）]", "");
+
+            // 去除换行符，变成一行显示
+            cleanMsg = cleanMsg.Replace("\r", "").Replace("\n", " ");
+
+            // Hyper-V 的错误通常是："无法修改 A。无法修改 A。原因 B。"
+            // 我们尝试提取最后一部分，因为那通常是真正的“原因”
+            var parts = cleanMsg.Split(new[] { '。', '.' }, StringSplitOptions.RemoveEmptyEntries)
+                                .Select(s => s.Trim())
+                                .Where(s => !string.IsNullOrWhiteSpace(s))
+                                .ToList();
+
+            // 如果句子超过2句，且最后一句长度适中，通常最后一句是真正的 Human Readable 原因
+            // 例如日文："プロセッサを変更できません。仮想マシンが実行中です。" -> 取最后一句
+            if (parts.Count >= 2)
             {
-                job.Get();
-                while ((ushort)job["JobState"] == 4) { System.Threading.Thread.Sleep(500); job.Get(); }
-                if ((ushort)job["JobState"] == 7) { return (true, "设置已成功应用。"); }
-                else { return (false, $"操作失败: {job["ErrorDescription"]?.ToString() ?? "未知错误。"}"); }
+                var lastPart = parts.Last();
+                // 简单的防误判：如果最后一句太短（比如只是一个标点），就显示全文
+                if (lastPart.Length > 2)
+                {
+                    return lastPart + "。";
+                }
             }
+
+            return cleanMsg;
         }
 
-        private SmtMode ConvertHwThreadsToSmtMode(ushort hwThreads) => hwThreads switch { 0 => SmtMode.Inherit, 1 => SmtMode.SingleThread, _ => SmtMode.MultiThread };
-        private ulong ConvertSmtModeToHwThreads(SmtMode smtMode) => smtMode switch { SmtMode.Inherit => 0, SmtMode.SingleThread => 1, SmtMode.MultiThread => 2, _ => 0 };
+        private SmtMode ConvertHwThreadsToSmtMode(uint hwThreads) => hwThreads switch
+        {
+            0 => SmtMode.Inherit,
+            1 => SmtMode.SingleThread,
+            2 => SmtMode.MultiThread,
+            _ => SmtMode.Inherit
+        };
+
+        private uint ConvertSmtModeToHwThreads(SmtMode smtMode) => smtMode switch
+        {
+            SmtMode.Inherit => 0,
+            SmtMode.SingleThread => 1,
+            SmtMode.MultiThread => 2,
+            _ => 0
+        };
+
+        private string ToPsBool(bool value) => value ? "$true" : "$false";
+
+        private long GetLong(object value)
+        {
+            if (value == null) return 0;
+            try { return Convert.ToInt64(value); } catch { return 0; }
+        }
+
+        private bool GetBool(object value)
+        {
+            if (value == null) return false;
+            try { return Convert.ToBoolean(value); } catch { return false; }
+        }
+
+        #endregion
     }
 }

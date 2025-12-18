@@ -43,6 +43,13 @@ namespace ExHyperV.ViewModels
         private readonly CpuAffinityService _cpuAffinityService;
         private VMProcessorViewModel _originalProcessorConfig;
 
+        // 用于防止监控数据回滚 UI 拓扑的锁
+        private string? _lockedTopologyVmName;
+        private DateTime _lockedTopologyUntil;
+
+        // 【新增】智能 vCPU 选项列表
+        public List<int> PossibleVCpuCounts { get; }
+
         public ObservableCollection<UiVmModel> VmList { get; } = new ObservableCollection<UiVmModel>();
 
         [ObservableProperty]
@@ -65,6 +72,7 @@ namespace ExHyperV.ViewModels
         [ObservableProperty]
         private int _refreshInterval = 1000;
 
+        // IsLoading 仅用于切换虚拟机时的初始数据加载，不再用于保存操作
         [ObservableProperty]
         private bool _isLoading = true;
 
@@ -84,6 +92,21 @@ namespace ExHyperV.ViewModels
             SelectedSpeedIndex = 0;
             _cpuAffinityService = new CpuAffinityService();
             _vmProcessorService = new VmProcessorService();
+
+            // 【新增】生成 vCPU 选项逻辑：1, 2, 4... 直到最大值
+            var options = new HashSet<int>();
+            int maxCores = Environment.ProcessorCount;
+            int current = 1;
+
+            while (current <= maxCores)
+            {
+                options.Add(current);
+                current *= 2;
+            }
+            // 确保最大核心数也在列表中（例如 12核机器，序列为 1,2,4,8,12）
+            options.Add(maxCores);
+
+            PossibleVCpuCounts = options.OrderBy(x => x).ToList();
         }
 
         private int _selectedSchedulerIndex = -1;
@@ -116,19 +139,7 @@ namespace ExHyperV.ViewModels
                         {
                             Application.Current.Dispatcher.Invoke(() =>
                             {
-                                var mainWindow = Application.Current.MainWindow as MainWindow;
-                                if (mainWindow != null)
-                                {
-                                    var snackbarService = new SnackbarService();
-                                    snackbarService.SetSnackbarPresenter(mainWindow.SnackbarPresenter);
-                                    snackbarService.Show(
-                                        "操作成功",
-                                        "调度器类型已更改，需要重启系统才能生效。",
-                                        ControlAppearance.Success,
-                                        new SymbolIcon(SymbolRegular.CheckmarkCircle24),
-                                        TimeSpan.FromSeconds(5)
-                                    );
-                                }
+                                ShowSnackbar("操作成功", "调度器类型已更改，需要重启系统才能生效。", ControlAppearance.Success, SymbolRegular.CheckmarkCircle24);
                             });
                         }
                     });
@@ -158,10 +169,36 @@ namespace ExHyperV.ViewModels
             }
         }
 
-        private void HandleInstantApply(string propertyName)
+        private async void HandleInstantApply(string propertyName)
         {
-            if (SelectedVm == null || SelectedVm.Name == "Host") return;
-            Debug.WriteLine($"即时应用: {propertyName} 属性已更改。");
+            if (SelectedVm == null || SelectedVm.Name == "Host" || IsLoading) return;
+
+            try
+            {
+                Debug.WriteLine($"即时应用: {propertyName} 属性已更改。");
+                var (success, message) = await _vmProcessorService.SetVmProcessorAsync(SelectedVm.Name, SelectedVm.Processor);
+
+                if (success)
+                {
+                    _originalProcessorConfig = SelectedVm.Processor.CreateCopy();
+                }
+                else
+                {
+                    ShowSnackbar("设置失败", message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                    if (_originalProcessorConfig != null)
+                    {
+                        SelectedVm.Processor.Restore(_originalProcessorConfig);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowSnackbar("错误", $"发生未预期的错误: {ex.Message}", ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                if (_originalProcessorConfig != null)
+                {
+                    SelectedVm.Processor.Restore(_originalProcessorConfig);
+                }
+            }
         }
 
         private void UpdateInterval()
@@ -278,7 +315,7 @@ namespace ExHyperV.ViewModels
                         uiVm.Processor.Reserve = 0;
                         uiVm.Processor.Maximum = 100;
                         uiVm.Processor.SmtMode = SmtMode.Inherit;
-                        uiVm.Processor.EnableHostResourceProtection = true;
+                        uiVm.Processor.EnableHostResourceProtection = false;
                     }
                     VmList.Add(uiVm);
                 }
@@ -286,53 +323,62 @@ namespace ExHyperV.ViewModels
                 uiVm.IsRunning = group.Any(u => u.IsRunning);
                 uiVm.AverageUsage = uiVm.IsRunning ? group.Average(u => u.Usage) : 0;
 
-                var updatedCoreIds = group.Select(u => u.CoreId).ToHashSet();
-                var coresToRemove = uiVm.Cores.Where(c => !updatedCoreIds.Contains(c.CoreId)).ToList();
-                foreach (var core in coresToRemove) uiVm.Cores.Remove(core);
+                // 【锁机制】检查是否允许修改拓扑
+                bool isTopologyLocked = (vmName == _lockedTopologyVmName && DateTime.Now < _lockedTopologyUntil);
+
+                if (!isTopologyLocked)
+                {
+                    var updatedCoreIds = group.Select(u => u.CoreId).ToHashSet();
+                    var coresToRemove = uiVm.Cores.Where(c => !updatedCoreIds.Contains(c.CoreId)).ToList();
+                    foreach (var core in coresToRemove) uiVm.Cores.Remove(core);
+                }
 
                 foreach (var update in group)
                 {
                     var uiCore = uiVm.Cores.FirstOrDefault(c => c.CoreId == update.CoreId);
                     if (uiCore == null)
                     {
+                        // 锁定时，不添加旧数据里的“幽灵”核心
+                        if (isTopologyLocked) continue;
+
                         var serviceCoreType = vmName.Equals("Host", StringComparison.OrdinalIgnoreCase)
                             ? CpuMonitorService.GetCoreType(update.CoreId)
                             : Services.CoreType.Unknown;
 
-                        Models.CoreType modelCoreType;
-                        switch (serviceCoreType)
+                        Models.CoreType modelCoreType = serviceCoreType switch
                         {
-                            case Services.CoreType.Performance:
-                                modelCoreType = Models.CoreType.Performance;
-                                break;
-                            case Services.CoreType.Efficient:
-                                modelCoreType = Models.CoreType.Efficient;
-                                break;
-                            default:
-                                modelCoreType = Models.CoreType.Unknown;
-                                break;
-                        }
+                            Services.CoreType.Performance => Models.CoreType.Performance,
+                            Services.CoreType.Efficient => Models.CoreType.Efficient,
+                            _ => Models.CoreType.Unknown
+                        };
 
                         uiCore = new UiCoreModel { CoreId = update.CoreId, CoreType = modelCoreType };
                         uiVm.Cores.Add(uiCore);
                     }
-                    uiCore.Usage = update.Usage;
-                    uiCore.HistoryPoints = update.RenderedGraph;
-                }
 
-                var sortedCores = uiVm.Cores.OrderBy(c => c.CoreId).ToList();
-                for (int i = 0; i < sortedCores.Count; i++)
-                {
-                    var desiredCore = sortedCores[i];
-                    int currentIndex = uiVm.Cores.IndexOf(desiredCore);
-                    if (currentIndex != i)
+                    if (uiCore != null)
                     {
-                        uiVm.Cores.Move(currentIndex, i);
+                        uiCore.Usage = update.Usage;
+                        uiCore.HistoryPoints = update.RenderedGraph;
                     }
                 }
 
-                uiVm.Columns = CalculateOptimalColumns(uiVm.Cores.Count);
-                uiVm.Rows = (uiVm.Cores.Count > 0) ? (int)Math.Ceiling((double)uiVm.Cores.Count / uiVm.Columns) : 0;
+                if (!isTopologyLocked)
+                {
+                    var sortedCores = uiVm.Cores.OrderBy(c => c.CoreId).ToList();
+                    for (int i = 0; i < sortedCores.Count; i++)
+                    {
+                        var desiredCore = sortedCores[i];
+                        int currentIndex = uiVm.Cores.IndexOf(desiredCore);
+                        if (currentIndex != i)
+                        {
+                            uiVm.Cores.Move(currentIndex, i);
+                        }
+                    }
+
+                    uiVm.Columns = CalculateOptimalColumns(uiVm.Cores.Count);
+                    uiVm.Rows = (uiVm.Cores.Count > 0) ? (int)Math.Ceiling((double)uiVm.Cores.Count / uiVm.Columns) : 0;
+                }
             }
 
             var hostVm = VmList.FirstOrDefault(vm => vm.Name.Equals("Host", StringComparison.OrdinalIgnoreCase));
@@ -382,7 +428,9 @@ namespace ExHyperV.ViewModels
 
         private async Task LoadVmProcessorSettingsAsync(UiVmModel vm)
         {
-            IsLoading = true;
+            // 删除这行，避免切换时闪烁
+            // IsLoading = true; 
+
             try
             {
                 var processorSettings = await _vmProcessorService.GetVmProcessorAsync(vm.Name);
@@ -405,10 +453,10 @@ namespace ExHyperV.ViewModels
             }
             finally
             {
-                IsLoading = false;
+                // 删除这行
+                // IsLoading = false; 
             }
         }
-
         [RelayCommand]
         private async Task OpenVmCpuAffinityAsync()
         {
@@ -505,33 +553,84 @@ namespace ExHyperV.ViewModels
         {
             if (SelectedVm == null || SelectedVm.Name == "Host" || IsLoading) return;
 
-            IsLoading = true;
             var (success, message) = await _vmProcessorService.SetVmProcessorAsync(SelectedVm.Name, SelectedVm.Processor);
-            IsLoading = false;
-
-            var mainWindow = Application.Current.MainWindow as MainWindow;
-            if (mainWindow != null)
-            {
-                var snackbarService = new SnackbarService();
-                snackbarService.SetSnackbarPresenter(mainWindow.SnackbarPresenter);
-                snackbarService.Show(
-                    success ? "操作成功" : "操作失败",
-                    message,
-                    success ? ControlAppearance.Success : ControlAppearance.Danger,
-                    new SymbolIcon(success ? SymbolRegular.CheckmarkCircle24 : SymbolRegular.ErrorCircle24),
-                    TimeSpan.FromSeconds(5)
-                );
-            }
 
             if (success)
             {
                 _originalProcessorConfig = SelectedVm.Processor.CreateCopy();
+
+                // 1. 立即更新 UI
+                UpdateCoresImmediately();
+
+                // 2. 锁定该虚拟机的拓扑更新 5 秒
+                _lockedTopologyVmName = SelectedVm.Name;
+                _lockedTopologyUntil = DateTime.Now.AddSeconds(5);
+
+                ShowSnackbar("操作成功", message, ControlAppearance.Success, SymbolRegular.CheckmarkCircle24, 1.5);
             }
+            else
+            {
+                ShowSnackbar("操作失败", message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+            }
+        }
+
+        private void UpdateCoresImmediately()
+        {
+            if (SelectedVm == null) return;
+
+            int targetCount = (int)SelectedVm.Processor.Count;
+            var currentCores = SelectedVm.Cores;
+
+            while (currentCores.Count > targetCount)
+            {
+                currentCores.RemoveAt(currentCores.Count - 1);
+            }
+
+            while (currentCores.Count < targetCount)
+            {
+                int newId = currentCores.Count;
+                currentCores.Add(new UiCoreModel
+                {
+                    CoreId = newId,
+                    CoreType = Models.CoreType.Unknown,
+                    Usage = 0,
+                    HistoryPoints = null
+                });
+            }
+
+            SelectedVm.Columns = CalculateOptimalColumns(currentCores.Count);
+            SelectedVm.Rows = (currentCores.Count > 0) ? (int)Math.Ceiling((double)currentCores.Count / SelectedVm.Columns) : 0;
         }
 
         [RelayCommand]
         private void OpenNumaSettings()
         {
+        }
+
+        private void ShowSnackbar(string title, string message, ControlAppearance appearance, SymbolRegular icon, double seconds = 2)
+        {
+            var mainWindow = Application.Current.MainWindow as MainWindow;
+            if (mainWindow != null)
+            {
+                // 使用手动创建 Snackbar 的方式来精细控制样式
+                // 1. 传入 mainWindow.SnackbarPresenter 以绑定显示位置
+                var snackbar = new Snackbar(mainWindow.SnackbarPresenter)
+                {
+                    Title = title,
+                    Content = message,
+                    Appearance = appearance,
+
+                    // 2. 增大图标尺寸 (原默认值较小，改为 32)
+                    Icon = new SymbolIcon(icon) { FontSize = 32 },
+
+                    Timeout = TimeSpan.FromSeconds(seconds),
+
+                    // 3. 减小内边距 (Padding)，使提示条高度变矮、更紧凑
+                    Padding = new Thickness(12, 8, 12, 8)
+                };
+
+                snackbar.Show();
+            }
         }
 
         private Guid GetVmGuidByName(string vmName)
