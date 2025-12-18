@@ -83,6 +83,7 @@ ExHyperV 深入研究了微软官方文档和 [Easy-GPU-PV](https://github.com/j
 - 一个虚拟机可以**同时使用 DDA 和 GPU-P** (例如，DDA 直通一个设备，同时使用另一张卡的 GPU-P 功能)。
 - 一张物理显卡可以为**单个虚拟机**划分出多个 GPU-P 分区，但总性能不变。
 - 一个虚拟机可以同时使用来自**多张不同物理显卡**的 GPU-P 分区。
+- 建议 Windows 宿主机将系统版本更新到 `26100.4946` 及以上，以解决 `vmmem` Committed Memory内存泄露问题 [Ref to](https://github.com/jamesstringer90/Easy-GPU-PV/issues/446)
 
 ---
 
