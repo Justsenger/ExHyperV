@@ -83,6 +83,7 @@ Due to limited personal time and resources, there may be untested scenarios. If 
 - A virtual machine can use **both DDA and GPU-P at the same time** (e.g., passthrough one device with DDA while using GPU-P from another card).
 - A single physical GPU can create multiple GPU-P partitions for a **single virtual machine**, but the total performance remains unchanged.
 - A virtual machine can use GPU-P partitions from **multiple different physical GPUs** simultaneously.
+- It is recommended to update the Windows host system version to `26100.4946` or above to resolve the `vmmem` Committed Memory leak issue. [Ref to](https://github.com/jamesstringer90/Easy-GPU-PV/issues/446)
 
 ---
 
