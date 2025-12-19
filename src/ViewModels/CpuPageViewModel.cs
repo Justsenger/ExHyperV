@@ -43,17 +43,18 @@ namespace ExHyperV.ViewModels
         private readonly CpuAffinityService _cpuAffinityService;
         private VMProcessorViewModel _originalProcessorConfig;
 
-        // 用于防止监控数据回滚 UI 拓扑的锁
         private string? _lockedTopologyVmName;
         private DateTime _lockedTopologyUntil;
 
-        // 【新增】智能 vCPU 选项列表
         public List<int> PossibleVCpuCounts { get; }
 
         public ObservableCollection<UiVmModel> VmList { get; } = new ObservableCollection<UiVmModel>();
 
         [ObservableProperty]
         private UiVmModel? _selectedVm;
+
+        [ObservableProperty]
+        private bool _isRootSchedulerActive;
 
         async partial void OnSelectedVmChanged(UiVmModel? value)
         {
@@ -72,11 +73,10 @@ namespace ExHyperV.ViewModels
         [ObservableProperty]
         private int _refreshInterval = 1000;
 
-        // IsLoading 仅用于切换虚拟机时的初始数据加载，不再用于保存操作
         [ObservableProperty]
         private bool _isLoading = true;
 
-        private int _selectedSpeedIndex = 0;
+        private int _selectedSpeedIndex = 1;
         public int SelectedSpeedIndex
         {
             get => _selectedSpeedIndex;
@@ -87,13 +87,37 @@ namespace ExHyperV.ViewModels
         private HyperVSchedulerType _cachedSchedulerType = HyperVSchedulerType.Unknown;
         private Dictionary<int, int> _cachedCpuSiblingMap = new Dictionary<int, int>();
 
+        [ObservableProperty]
+        private bool _isNumaSpanningEnabled = true;
+
+        private bool _suppressNumaChange = false;
+
+        async partial void OnIsNumaSpanningEnabledChanged(bool value)
+        {
+            if (_suppressNumaChange) return;
+            if (SelectedVm == null || SelectedVm.Name != "Host") return;
+
+            var (success, message) = await HyperVNUMAService.SetNumaSpanningEnabledAsync(value);
+
+            if (success)
+            {
+                ShowSnackbar("设置已保存", "NUMA 设置已更新，重启计算机后生效。", ControlAppearance.Success, SymbolRegular.CheckmarkCircle24, 3);
+            }
+            else
+            {
+                _suppressNumaChange = true;
+                IsNumaSpanningEnabled = !value;
+                _suppressNumaChange = false;
+                ShowSnackbar("设置失败", message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+            }
+        }
+
         public CpuPageViewModel()
         {
-            SelectedSpeedIndex = 0;
+            SelectedSpeedIndex = 1;
             _cpuAffinityService = new CpuAffinityService();
             _vmProcessorService = new VmProcessorService();
 
-            // 【新增】生成 vCPU 选项逻辑：1, 2, 4... 直到最大值
             var options = new HashSet<int>();
             int maxCores = Environment.ProcessorCount;
             int current = 1;
@@ -103,7 +127,6 @@ namespace ExHyperV.ViewModels
                 options.Add(current);
                 current *= 2;
             }
-            // 确保最大核心数也在列表中（例如 12核机器，序列为 1,2,4,8,12）
             options.Add(maxCores);
 
             PossibleVCpuCounts = options.OrderBy(x => x).ToList();
@@ -122,6 +145,7 @@ namespace ExHyperV.ViewModels
                 }
 
                 SetProperty(ref _selectedSchedulerIndex, value);
+                IsRootSchedulerActive = (value == 2);
 
                 var newType = value switch
                 {
@@ -203,7 +227,14 @@ namespace ExHyperV.ViewModels
 
         private void UpdateInterval()
         {
-            RefreshInterval = SelectedSpeedIndex switch { 0 => 1000, 1 => 2000, 2 => -1, _ => 1000 };
+            RefreshInterval = SelectedSpeedIndex switch
+            {
+                0 => 500,
+                1 => 1000,
+                2 => 2000,
+                3 => -1,
+                _ => 1000
+            };
         }
 
         private void WakeUpThread()
@@ -323,7 +354,6 @@ namespace ExHyperV.ViewModels
                 uiVm.IsRunning = group.Any(u => u.IsRunning);
                 uiVm.AverageUsage = uiVm.IsRunning ? group.Average(u => u.Usage) : 0;
 
-                // 【锁机制】检查是否允许修改拓扑
                 bool isTopologyLocked = (vmName == _lockedTopologyVmName && DateTime.Now < _lockedTopologyUntil);
 
                 if (!isTopologyLocked)
@@ -338,7 +368,6 @@ namespace ExHyperV.ViewModels
                     var uiCore = uiVm.Cores.FirstOrDefault(c => c.CoreId == update.CoreId);
                     if (uiCore == null)
                     {
-                        // 锁定时，不添加旧数据里的“幽灵”核心
                         if (isTopologyLocked) continue;
 
                         var serviceCoreType = vmName.Equals("Host", StringComparison.OrdinalIgnoreCase)
@@ -386,6 +415,18 @@ namespace ExHyperV.ViewModels
             {
                 _cachedSchedulerType = HyperVSchedulerService.GetSchedulerType();
                 _cachedCpuSiblingMap = CpuTopologyService.GetCpuSiblingMap();
+
+                Task.Run(async () =>
+                {
+                    var numaEnabled = await HyperVNUMAService.GetNumaSpanningEnabledAsync();
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        _suppressNumaChange = true;
+                        IsNumaSpanningEnabled = numaEnabled;
+                        _suppressNumaChange = false;
+                    });
+                });
+
                 _systemInfoCached = true;
 
                 var initialIndex = _cachedSchedulerType switch
@@ -396,6 +437,7 @@ namespace ExHyperV.ViewModels
                     _ => -1
                 };
                 _selectedSchedulerIndex = initialIndex;
+                IsRootSchedulerActive = (initialIndex == 2);
                 OnPropertyChanged(nameof(SelectedSchedulerIndex));
             }
 
@@ -428,9 +470,6 @@ namespace ExHyperV.ViewModels
 
         private async Task LoadVmProcessorSettingsAsync(UiVmModel vm)
         {
-            // 删除这行，避免切换时闪烁
-            // IsLoading = true; 
-
             try
             {
                 var processorSettings = await _vmProcessorService.GetVmProcessorAsync(vm.Name);
@@ -451,12 +490,8 @@ namespace ExHyperV.ViewModels
             {
                 Debug.WriteLine($"加载虚拟机 {vm.Name} 的处理器配置失败: {ex.Message}");
             }
-            finally
-            {
-                // 删除这行
-                // IsLoading = false; 
-            }
         }
+
         [RelayCommand]
         private async Task OpenVmCpuAffinityAsync()
         {
@@ -559,10 +594,8 @@ namespace ExHyperV.ViewModels
             {
                 _originalProcessorConfig = SelectedVm.Processor.CreateCopy();
 
-                // 1. 立即更新 UI
                 UpdateCoresImmediately();
 
-                // 2. 锁定该虚拟机的拓扑更新 5 秒
                 _lockedTopologyVmName = SelectedVm.Name;
                 _lockedTopologyUntil = DateTime.Now.AddSeconds(5);
 
@@ -612,27 +645,19 @@ namespace ExHyperV.ViewModels
             var mainWindow = Application.Current.MainWindow as MainWindow;
             if (mainWindow != null)
             {
-                // 使用手动创建 Snackbar 的方式来精细控制样式
-                // 1. 传入 mainWindow.SnackbarPresenter 以绑定显示位置
                 var snackbar = new Snackbar(mainWindow.SnackbarPresenter)
                 {
                     Title = title,
                     Content = message,
                     Appearance = appearance,
-
-                    // 2. 增大图标尺寸 (原默认值较小，改为 32)
                     Icon = new SymbolIcon(icon) { FontSize = 32 },
-
                     Timeout = TimeSpan.FromSeconds(seconds),
-
-                    // 3. 减小内边距 (Padding)，使提示条高度变矮、更紧凑
-                    Padding = new Thickness(12, 8, 12, 8)
+                    Padding = new Thickness(12, 4, 12, 4)
                 };
 
                 snackbar.Show();
             }
         }
-
         private Guid GetVmGuidByName(string vmName)
         {
             try

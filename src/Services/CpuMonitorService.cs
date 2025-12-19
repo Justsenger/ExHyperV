@@ -1,11 +1,14 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
+using System.Threading;
+using System.Threading.Tasks;
 using ExHyperV.Models;
-using ExHyperV.Tools;
+using ExHyperV.Tools; // 引用你的 Utils 所在的命名空间
 
 namespace ExHyperV.Services
 {
@@ -16,6 +19,7 @@ namespace ExHyperV.Services
 
     public class CpuMonitorService : IDisposable
     {
+        #region P/Invoke for Core Type Detection (保持不变)
         private static readonly Dictionary<int, CoreType> _coreTypeCache = new Dictionary<int, CoreType>();
         private static bool _isHybrid = false;
 
@@ -30,7 +34,6 @@ namespace ExHyperV.Services
             return _coreTypeCache.TryGetValue(coreId, out var type) ? type : CoreType.Unknown;
         }
 
-        #region P/Invoke for Core Type Detection
         private static void InitializeCoreTypes()
         {
             try
@@ -100,117 +103,118 @@ namespace ExHyperV.Services
         [StructLayout(LayoutKind.Sequential)] private struct GROUP_AFFINITY { public UIntPtr Mask; public ushort Group; [MarshalAs(UnmanagedType.ByValArray, SizeConst = 3)] public ushort[] Reserved; }
         #endregion
 
-        private readonly List<PerformanceCounter> _hostTotalRunTimeCounters = new List<PerformanceCounter>();
-        private readonly List<PerformanceCounter> _vmCpuCounters = new List<PerformanceCounter>();
-        private readonly Dictionary<string, int> _vmCoreCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-        private DateTime _lastSyncTime = DateTime.MinValue;
-        private readonly TimeSpan _syncInterval = TimeSpan.FromSeconds(5);
+        // --- 核心逻辑重构 ---
+
+        // 使用线程安全的字典存储活跃的计数器，Key 为 Instance Name (例如 "Ubuntu:Hv VP 0")
+        private readonly ConcurrentDictionary<string, PerformanceCounter> _counters = new ConcurrentDictionary<string, PerformanceCounter>();
+
+        // 存储所有 VM 的核心数配置 (用于显示已关闭的 VM)，Key 为 VM Name
+        private readonly ConcurrentDictionary<string, int> _vmCoreCounts = new ConcurrentDictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+
+        private readonly CancellationTokenSource _cts = new CancellationTokenSource();
 
         public CpuMonitorService()
         {
-            SyncCounters();
+            // 初始化宿主机核心数
+            _vmCoreCounts["Host"] = Environment.ProcessorCount;
+
+            // 启动后台维护线程：负责处理计数器的增删和 PowerShell 信息的获取
+            Task.Run(() => MaintainCountersLoop(_cts.Token));
         }
 
         public void Dispose()
         {
-            _hostTotalRunTimeCounters.ForEach(c => c?.Dispose());
-            _vmCpuCounters.ForEach(c => c?.Dispose());
+            _cts.Cancel();
+            foreach (var counter in _counters.Values)
+            {
+                counter.Dispose();
+            }
+            _counters.Clear();
         }
 
-        public void SyncCounters()
-        {
-            try
-            {
-                UpdateVmListFromPowerShell();
-                Dispose();
-                _hostTotalRunTimeCounters.Clear();
-                _vmCpuCounters.Clear();
-
-                if (PerformanceCounterCategory.Exists("Hyper-V Hypervisor Logical Processor"))
-                {
-                    var cat = new PerformanceCounterCategory("Hyper-V Hypervisor Logical Processor");
-                    foreach (var instance in cat.GetInstanceNames().Where(i => i.Contains("LP ")))
-                    {
-                        _hostTotalRunTimeCounters.Add(new PerformanceCounter("Hyper-V Hypervisor Logical Processor", "% Total Run Time", instance));
-                    }
-                }
-
-                if (PerformanceCounterCategory.Exists("Hyper-V Hypervisor Virtual Processor"))
-                {
-                    var cat = new PerformanceCounterCategory("Hyper-V Hypervisor Virtual Processor");
-                    foreach (var instance in cat.GetInstanceNames().Where(i => i.Contains(":")))
-                    {
-                        _vmCpuCounters.Add(new PerformanceCounter("Hyper-V Hypervisor Virtual Processor", "% Total Run Time", instance));
-                    }
-                }
-
-                _hostTotalRunTimeCounters.ForEach(c => c.NextValue());
-                _vmCpuCounters.ForEach(c => c.NextValue());
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"[CpuMonitorService] SyncCounters failed: {ex.Message}");
-            }
-        }
-
+        /// <summary>
+        /// 获取当前 CPU 用量。
+        /// 此方法只读取内存中的计数器，不进行 I/O 操作，因此速度极快，适合 UI 定时调用。
+        /// </summary>
         public List<CpuCoreMetric> GetCpuUsage()
         {
-            if ((DateTime.Now - _lastSyncTime) > _syncInterval)
-            {
-                SyncCounters();
-                _lastSyncTime = DateTime.Now;
-            }
-
             var results = new List<CpuCoreMetric>();
-            var runningVmNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var activeVmNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-            // 步骤 1: 获取 Host 的真实物理核心负载
-            foreach (var counter in _hostTotalRunTimeCounters)
+            // 1. 读取所有现存计数器的值
+            // ToArray() 创建当前时刻的快照，保证遍历安全
+            var currentCounters = _counters.ToArray();
+
+            foreach (var kvp in currentCounters)
             {
+                string instanceName = kvp.Key;
+                PerformanceCounter counter = kvp.Value;
+
                 try
                 {
-                    if (int.TryParse(counter.InstanceName.Split(' ').Last(), out int coreId))
-                    {
-                        results.Add(new CpuCoreMetric { VmName = "Host", CoreId = coreId, Usage = counter.NextValue(), IsRunning = true });
-                    }
-                }
-                catch { /* Counter might become invalid */ }
-            }
+                    float value = counter.NextValue();
 
-            // 步骤 2: 获取每个运行中VM的 vCPU 占用率
-            var vmRegex = new Regex(@"^(.+?):Hv VP (\d+)$");
-            foreach (var counter in _vmCpuCounters)
-            {
-                try
-                {
-                    var match = vmRegex.Match(counter.InstanceName);
-                    if (match.Success)
+                    if (instanceName.StartsWith("Host_"))
                     {
-                        string vmName = match.Groups[1].Value;
-                        int vCpuId = int.Parse(match.Groups[2].Value);
-                        runningVmNames.Add(vmName);
-
-                        results.Add(new CpuCoreMetric
+                        // 处理宿主机 Host_0, Host_1 等
+                        if (int.TryParse(instanceName.Substring(5), out int coreId))
                         {
-                            VmName = vmName,
-                            CoreId = vCpuId,
-                            Usage = counter.NextValue(),
-                            IsRunning = true
-                        });
+                            results.Add(new CpuCoreMetric
+                            {
+                                VmName = "Host",
+                                CoreId = coreId,
+                                Usage = value,
+                                IsRunning = true
+                            });
+                        }
+                    }
+                    else
+                    {
+                        // 处理虚拟机
+                        // 格式通常为 "VmName:Hv VP X" 
+                        int colonIndex = instanceName.LastIndexOf(':');
+                        if (colonIndex > 0)
+                        {
+                            string vmName = instanceName.Substring(0, colonIndex);
+                            string suffix = instanceName.Substring(colonIndex + 1); // "Hv VP 0"
+
+                            // 简单解析 ID
+                            var match = Regex.Match(suffix, @"Hv VP (\d+)");
+                            if (match.Success)
+                            {
+                                int vCpuId = int.Parse(match.Groups[1].Value);
+                                activeVmNames.Add(vmName);
+                                results.Add(new CpuCoreMetric
+                                {
+                                    VmName = vmName,
+                                    CoreId = vCpuId,
+                                    Usage = value,
+                                    IsRunning = true
+                                });
+                            }
+                        }
                     }
                 }
-                catch { /* Counter might become invalid */ }
+                catch
+                {
+                    // 计数器可能在读取瞬间失效（VM刚关闭），忽略本次错误，后台线程会清理它
+                }
             }
 
-            // 步骤 3: 为已关闭的VM添加占位条目
+            // 2. 补全已关闭 VM 的显示条目
+            // 基于后台 PowerShell 获取的静态配置
             foreach (var kvp in _vmCoreCounts)
             {
-                if (kvp.Key != "Host" && !runningVmNames.Contains(kvp.Key))
+                string vmName = kvp.Key;
+                if (vmName == "Host") continue;
+
+                // 如果该 VM 没有任何活跃的计数器，说明它已关闭
+                if (!activeVmNames.Contains(vmName))
                 {
-                    // 为已关闭的VM的每个vCPU都生成一个条目
-                    for (int i = 0; i < kvp.Value; i++)
+                    int count = kvp.Value;
+                    for (int i = 0; i < count; i++)
                     {
-                        results.Add(new CpuCoreMetric { VmName = kvp.Key, CoreId = i, IsRunning = false });
+                        results.Add(new CpuCoreMetric { VmName = vmName, CoreId = i, IsRunning = false });
                     }
                 }
             }
@@ -218,41 +222,147 @@ namespace ExHyperV.Services
             return results;
         }
 
-        private void UpdateVmListFromPowerShell()
+        // --- 后台维护循环 ---
+
+        private async Task MaintainCountersLoop(CancellationToken token)
         {
-            if (!_vmCoreCounts.ContainsKey("Host")) _vmCoreCounts["Host"] = Environment.ProcessorCount;
+            int loopCount = 0;
+            while (!token.IsCancellationRequested)
+            {
+                try
+                {
+                    // 1. 快速更新：基于 PerformanceCounter 类别扫描实例 (每 2 秒一次)
+                    UpdateCounterInstances();
+
+                    // 2. 慢速更新：PowerShell 获取静态信息 (每 5 个循环，即约 10 秒一次)
+                    if (loopCount % 5 == 0)
+                    {
+                        await UpdateVmInfoFromPowerShellAsync(token);
+                    }
+
+                    loopCount++;
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"[CpuMonitor] Maintain loop error: {ex.Message}");
+                }
+
+                // 等待 2 秒再次检查实例变动
+                try { await Task.Delay(2000, token); } catch (TaskCanceledException) { break; }
+            }
+        }
+
+        private void UpdateCounterInstances()
+        {
+            var detectedInstances = new HashSet<string>();
+
+            // A. 宿主机计数器 (Host)
+            if (PerformanceCounterCategory.Exists("Hyper-V Hypervisor Logical Processor"))
+            {
+                var cat = new PerformanceCounterCategory("Hyper-V Hypervisor Logical Processor");
+                // 过滤得到 "LP 0", "LP 1" 这样的实例
+                var instances = cat.GetInstanceNames().Where(i => i.StartsWith("LP ") || i.Contains("LP "));
+
+                foreach (var instance in instances)
+                {
+                    string coreIdStr = instance.Split(' ').Last(); // "LP 0" -> "0"
+                    string key = $"Host_{coreIdStr}";
+                    detectedInstances.Add(key);
+
+                    // 如果不存在则添加
+                    if (!_counters.ContainsKey(key))
+                    {
+                        try
+                        {
+                            var pc = new PerformanceCounter("Hyper-V Hypervisor Logical Processor", "% Total Run Time", instance);
+                            pc.NextValue(); // 第一次读取作为基准，防止初次返回 0
+                            _counters.TryAdd(key, pc);
+                        }
+                        catch { /* 忽略创建失败 */ }
+                    }
+                }
+            }
+
+            // B. 虚拟机计数器 (VM)
+            if (PerformanceCounterCategory.Exists("Hyper-V Hypervisor Virtual Processor"))
+            {
+                var cat = new PerformanceCounterCategory("Hyper-V Hypervisor Virtual Processor");
+                // 实例名通常是 "Ubuntu:Hv VP 0"
+                var instances = cat.GetInstanceNames().Where(i => i.Contains(":"));
+
+                foreach (var instance in instances)
+                {
+                    detectedInstances.Add(instance);
+
+                    if (!_counters.ContainsKey(instance))
+                    {
+                        try
+                        {
+                            var pc = new PerformanceCounter("Hyper-V Hypervisor Virtual Processor", "% Total Run Time", instance);
+                            pc.NextValue(); // 第一次读取作为基准
+                            _counters.TryAdd(instance, pc);
+                        }
+                        catch { /* 忽略创建失败 */ }
+                    }
+                }
+            }
+
+            // C. 清理已经消失的计数器 (VM 关闭)
+            // 找出所有在 _counters 中但不在本次 detectedInstances 中的 Key
+            var deadKeys = _counters.Keys.Where(k => !detectedInstances.Contains(k)).ToList();
+            foreach (var key in deadKeys)
+            {
+                if (_counters.TryRemove(key, out var pc))
+                {
+                    pc.Dispose();
+                }
+            }
+        }
+
+        private async Task UpdateVmInfoFromPowerShellAsync(CancellationToken token)
+        {
             try
             {
+                // 获取 VM 列表和核心数，用于显示"已关闭"的 VM
+                // 使用 Utils.Run2 (异步)
                 string script = "Get-VMProcessor * | Select-Object VMName, Count";
-                var results = Utils.Run(script);
-                var vmsFromPs = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                var results = await Utils.Run2(script, token);
 
-                if (results != null)
+                if (results == null) return;
+
+                var activeConfigNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+                foreach (var pso in results)
                 {
-                    foreach (var pso in results)
+                    if (pso == null) continue;
+                    var vmName = pso.Properties["VMName"]?.Value as string;
+                    var countVal = pso.Properties["Count"]?.Value;
+
+                    if (!string.IsNullOrEmpty(vmName) && countVal != null)
                     {
-                        if (pso?.Properties["VMName"]?.Value is string vmName && pso.Properties["Count"]?.Value != null)
+                        try
                         {
-                            try
-                            {
-                                int coreCount = Convert.ToInt32(pso.Properties["Count"].Value);
-                                _vmCoreCounts[vmName] = coreCount;
-                                vmsFromPs.Add(vmName);
-                            }
-                            catch (FormatException) { }
+                            int count = Convert.ToInt32(countVal);
+                            _vmCoreCounts[vmName] = count;
+                            activeConfigNames.Add(vmName);
                         }
+                        catch { }
                     }
                 }
 
-                var vmsToRemove = _vmCoreCounts.Keys.Where(k => k != "Host" && !vmsFromPs.Contains(k)).ToList();
-                foreach (var oldVm in vmsToRemove)
+                // 移除已被彻底删除的 VM 配置
+                var keysToRemove = _vmCoreCounts.Keys
+                    .Where(k => k != "Host" && !activeConfigNames.Contains(k))
+                    .ToList();
+
+                foreach (var key in keysToRemove)
                 {
-                    _vmCoreCounts.Remove(oldVm);
+                    _vmCoreCounts.TryRemove(key, out _);
                 }
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Failed to update VM list from PowerShell: {ex.Message}");
+                Debug.WriteLine($"[CpuMonitor] PowerShell update failed: {ex.Message}");
             }
         }
     }
