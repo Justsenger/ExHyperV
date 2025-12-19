@@ -33,6 +33,8 @@ namespace ExHyperV.ViewModels
 
     public partial class CpuPageViewModel : ObservableObject, IDisposable
     {
+        public static CpuPageViewModel Instance { get; } = new CpuPageViewModel();
+
         private CpuMonitorService _cpuService;
         private CancellationTokenSource _monitoringCts;
         private Task _monitoringTask;
@@ -130,6 +132,7 @@ namespace ExHyperV.ViewModels
             options.Add(maxCores);
 
             PossibleVCpuCounts = options.OrderBy(x => x).ToList();
+            StartMonitoring();
         }
 
         private int _selectedSchedulerIndex = -1;
@@ -495,24 +498,35 @@ namespace ExHyperV.ViewModels
         [RelayCommand]
         private async Task OpenVmCpuAffinityAsync()
         {
-            try
+            if (SelectedVm == null || SelectedVm.Name.Equals("Host", StringComparison.OrdinalIgnoreCase)) return;
+            var hostVm = VmList.FirstOrDefault(vm => vm.Name.Equals("Host", StringComparison.OrdinalIgnoreCase));
+            if (hostVm == null || hostVm.Cores.Count == 0) return;
+
+            if (_cachedSchedulerType == HyperVSchedulerType.Root)
             {
-                if (SelectedVm == null || SelectedVm.Name.Equals("Host", StringComparison.OrdinalIgnoreCase)) return;
-                var vmId = GetVmGuidByName(SelectedVm.Name);
-                if (vmId == Guid.Empty) return;
-                var hostVm = VmList.FirstOrDefault(vm => vm.Name.Equals("Host", StringComparison.OrdinalIgnoreCase));
-                if (hostVm == null || hostVm.Cores.Count == 0) return;
-
-                if (_cachedSchedulerType == HyperVSchedulerType.Root)
+                if (!SelectedVm.IsRunning)
                 {
-                    if (!SelectedVm.IsRunning) return;
+                    ShowSnackbar("操作不可用", "根调度器模式下，虚拟机未运行时，无法设置 CPU 绑定。", ControlAppearance.Caution, SymbolRegular.Warning24);
+                    return;
+                }
 
-                    var dialogViewModel = new CpuAffinityDialogViewModel(
-                        SelectedVm.Name, SelectedVm.Cores.Count, hostVm.Cores,
-                        _cachedSchedulerType, _cachedCpuSiblingMap
-                    );
+                IsLoading = true;
+                try
+                {
+                    var (vmId, currentAffinity) = await Task.Run(() =>
+                    {
+                        var id = GetVmGuidByName(SelectedVm.Name);
+                        var affinity = (id != Guid.Empty) ? ProcessAffinityManager.GetVmProcessAffinity(id) : new List<int>();
+                        return (id, affinity);
+                    });
 
-                    var currentAffinity = ProcessAffinityManager.GetVmProcessAffinity(vmId);
+                    if (vmId == Guid.Empty)
+                    {
+                        ShowSnackbar("错误", "无法找到虚拟机进程，请确保虚拟机正在运行。", ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                        return;
+                    }
+
+                    var dialogViewModel = new CpuAffinityDialogViewModel(SelectedVm.Name, SelectedVm.Cores.Count, hostVm.Cores, _cachedSchedulerType, _cachedCpuSiblingMap);
                     foreach (var coreVm in dialogViewModel.Cores)
                     {
                         if (currentAffinity.Contains(coreVm.CoreId))
@@ -524,64 +538,63 @@ namespace ExHyperV.ViewModels
                     var dialog = new CpuAffinityDialog { DataContext = dialogViewModel, Owner = Application.Current.MainWindow };
                     if (dialog.ShowDialog() == true)
                     {
-                        var selectedCoreIds = dialogViewModel.Cores
-                            .Where(c => c.IsSelected).Select(c => c.CoreId).ToList();
-                        ProcessAffinityManager.SetVmProcessAffinity(vmId, selectedCoreIds);
+                        var selectedCoreIds = dialogViewModel.Cores.Where(c => c.IsSelected).Select(c => c.CoreId).ToList();
+                        await Task.Run(() => ProcessAffinityManager.SetVmProcessAffinity(vmId, selectedCoreIds));
                     }
                 }
-                else
+                finally
                 {
-                    var dialogViewModel = new CpuAffinityDialogViewModel(
-                        SelectedVm.Name, SelectedVm.Cores.Count, hostVm.Cores,
-                        _cachedSchedulerType, _cachedCpuSiblingMap
-                    );
+                    IsLoading = false;
+                }
+            }
+            else
+            {
+                var vmId = GetVmGuidByName(SelectedVm.Name);
+                if (vmId == Guid.Empty) return;
 
-                    try
+                var dialogViewModel = new CpuAffinityDialogViewModel(SelectedVm.Name, SelectedVm.Cores.Count, hostVm.Cores, _cachedSchedulerType, _cachedCpuSiblingMap);
+
+                try
+                {
+                    string vmGroupJson = await Task.Run(() => HcsManager.GetVmCpuGroupAsJson(vmId));
+                    if (!string.IsNullOrEmpty(vmGroupJson))
                     {
-                        string vmGroupJson = await Task.Run(() => HcsManager.GetVmCpuGroupAsJson(vmId));
-                        if (!string.IsNullOrEmpty(vmGroupJson))
+                        var vmGroupInfo = JsonSerializer.Deserialize<VmCpuGroupInfo>(vmGroupJson);
+                        if (vmGroupInfo?.CpuGroupId != Guid.Empty)
                         {
-                            var vmGroupInfo = JsonSerializer.Deserialize<VmCpuGroupInfo>(vmGroupJson);
-                            if (vmGroupInfo?.CpuGroupId != Guid.Empty)
+                            var groupDetails = await _cpuAffinityService.GetCpuGroupDetailsAsync(vmGroupInfo.CpuGroupId);
+                            if (groupDetails?.Affinity?.LogicalProcessors != null)
                             {
-                                var groupDetails = await _cpuAffinityService.GetCpuGroupDetailsAsync(vmGroupInfo.CpuGroupId);
-                                if (groupDetails?.Affinity?.LogicalProcessors != null)
+                                foreach (var coreVM in dialogViewModel.Cores)
                                 {
-                                    foreach (var coreVM in dialogViewModel.Cores)
+                                    if (groupDetails.Affinity.LogicalProcessors.Contains((uint)coreVM.CoreId))
                                     {
-                                        if (groupDetails.Affinity.LogicalProcessors.Contains((uint)coreVM.CoreId))
-                                        {
-                                            coreVM.IsSelected = true;
-                                        }
+                                        coreVM.IsSelected = true;
                                     }
                                 }
                             }
                         }
                     }
-                    catch (Exception ex)
-                    {
-                        Debug.WriteLine($"查询虚拟机当前CPU组失败: {ex.Message}");
-                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"查询虚拟机当前CPU组失败: {ex.Message}");
+                }
 
-                    var dialog = new CpuAffinityDialog { DataContext = dialogViewModel, Owner = Application.Current.MainWindow };
-                    if (dialog.ShowDialog() == true)
+                var dialog = new CpuAffinityDialog { DataContext = dialogViewModel, Owner = Application.Current.MainWindow };
+                if (dialog.ShowDialog() == true)
+                {
+                    var selectedCoreIds = dialogViewModel.Cores.Where(c => c.IsSelected).Select(c => c.CoreId).ToList();
+                    await Task.Run(() => HcsManager.SetVmCpuGroup(vmId, Guid.Empty));
+                    if (selectedCoreIds.Any())
                     {
-                        var selectedCoreIds = dialogViewModel.Cores
-                            .Where(c => c.IsSelected).Select(c => c.CoreId).ToList();
-                        await Task.Run(() => HcsManager.SetVmCpuGroup(vmId, Guid.Empty));
-                        if (selectedCoreIds.Any())
-                        {
-                            Guid cpuGroupId = await _cpuAffinityService.FindOrCreateCpuGroupAsync(selectedCoreIds);
-                            await Task.Run(() => HcsManager.SetVmCpuGroup(vmId, cpuGroupId));
-                        }
+                        Guid cpuGroupId = await _cpuAffinityService.FindOrCreateCpuGroupAsync(selectedCoreIds);
+                        await Task.Run(() => HcsManager.SetVmCpuGroup(vmId, cpuGroupId));
                     }
                 }
             }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"处理 CPU 绑定时发生错误: {ex.Message}");
-            }
         }
+
 
         [RelayCommand]
         private async Task ApplyChangesAsync()
@@ -593,12 +606,9 @@ namespace ExHyperV.ViewModels
             if (success)
             {
                 _originalProcessorConfig = SelectedVm.Processor.CreateCopy();
-
                 UpdateCoresImmediately();
-
                 _lockedTopologyVmName = SelectedVm.Name;
                 _lockedTopologyUntil = DateTime.Now.AddSeconds(5);
-
                 ShowSnackbar("操作成功", message, ControlAppearance.Success, SymbolRegular.CheckmarkCircle24, 1.5);
             }
             else

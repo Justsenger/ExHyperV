@@ -12,10 +12,6 @@
       d:DataContext="{d:DesignInstance vm:CpuPageViewModel, IsDesignTimeCreatable=True}"
       mc:Ignorable="d">
 
-    <Page.DataContext>
-        <vm:CpuPageViewModel/>
-    </Page.DataContext>
-
     <Page.Resources>
         <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
         <converters:InverseBooleanConverter x:Key="InverseBooleanConverter"/>
