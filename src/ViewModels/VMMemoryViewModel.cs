@@ -6,19 +6,21 @@ using CommunityToolkit.Mvvm.Input;
 using ExHyperV.Models;
 using ExHyperV.Services;
 using ExHyperV.Tools;
+using Wpf.Ui.Controls;
 
 namespace ExHyperV.ViewModels
 {
-    public partial class VirtualMachineMemoryViewModel : ObservableObject
+    public partial class VMMemoryViewModel : ObservableObject
     {
-        private readonly VirtualMachineMemoryInfo _originalModel;
+        private VirtualMachineMemoryInfo _originalModel;
+        private readonly MemoryPageViewModel _parentViewModel;
         private readonly IMemoryService _memoryService;
 
         [ObservableProperty] private string _startupMB;
         [ObservableProperty] private string _minimumMB;
         [ObservableProperty] private string _maximumMB;
         [ObservableProperty] private string _buffer;
-        [ObservableProperty] private double _priority;
+        [ObservableProperty] private int _priority;
         [ObservableProperty] private bool _dynamicMemoryEnabled;
 
         [ObservableProperty][NotifyPropertyChangedFor(nameof(IsDataValid))] private bool _isStartupMBValid;
@@ -29,13 +31,18 @@ namespace ExHyperV.ViewModels
         [ObservableProperty] private long _assignedMB;
         [ObservableProperty] private long _demandMB;
         [ObservableProperty] private string _state;
+        [ObservableProperty] private string _status;
 
-        public string Status { get; private set; }
+        [ObservableProperty]
+        [NotifyCanExecuteChangedFor(nameof(SaveChangesCommand))]
+        [NotifyCanExecuteChangedFor(nameof(RevertChangesCommand))]
+        private bool _isSaving;
 
-        public VirtualMachineMemoryViewModel(VirtualMachineMemoryInfo model)
+        public VMMemoryViewModel(VirtualMachineMemoryInfo model, MemoryPageViewModel parent, IMemoryService memoryService)
         {
             _originalModel = model;
-            _memoryService = new MemoryService();
+            _parentViewModel = parent;
+            _memoryService = memoryService;
 
             this.PropertyChanged += OnViewModelPropertyChanged;
 
@@ -82,23 +89,37 @@ namespace ExHyperV.ViewModels
 
         public void UpdateLiveData(VirtualMachineMemoryInfo liveData)
         {
+            if (liveData == null) return;
             State = liveData.State;
             AssignedMB = liveData.AssignedMB;
             DemandMB = liveData.DemandMB;
             Status = liveData.Status;
 
             OnPropertyChanged(nameof(IsVmRunning));
-            OnPropertyChanged(nameof(VmIconGlyph));
+            OnPropertyChanged(nameof(UsagePercentage));
+            OnPropertyChanged(nameof(UsageBarBrush));
+            OnPropertyChanged(nameof(MemoryUsageText));
+        }
+
+        public void UpdateConfiguration(VirtualMachineMemoryInfo newConfig)
+        {
+            if (IsDirty()) return;
+            _originalModel = newConfig;
+            RevertChanges();
+        }
+
+        public void MarkAsOff()
+        {
+            State = "Off";
+            AssignedMB = 0;
+            DemandMB = 0;
+            Status = ExHyperV.Properties.Resources.VMMemory_Status_Off;
+            OnPropertyChanged(nameof(IsVmRunning));
+            OnPropertyChanged(nameof(MemoryUsageText));
         }
 
         private void OnViewModelPropertyChanged(object sender, PropertyChangedEventArgs e)
         {
-            if (e.PropertyName == nameof(AssignedMB) || e.PropertyName == nameof(DemandMB) || e.PropertyName == nameof(State))
-            {
-                OnPropertyChanged(nameof(UsagePercentage));
-                OnPropertyChanged(nameof(UsageBarBrush));
-                OnPropertyChanged(nameof(MemoryUsageText));
-            }
             switch (e.PropertyName)
             {
                 case nameof(StartupMB):
@@ -106,6 +127,7 @@ namespace ExHyperV.ViewModels
                 case nameof(MaximumMB):
                 case nameof(Buffer):
                 case nameof(DynamicMemoryEnabled):
+                case nameof(Priority):
                     ValidateAllFields();
                     break;
             }
@@ -117,8 +139,20 @@ namespace ExHyperV.ViewModels
             IsMinimumMBValid = long.TryParse(MinimumMB, out long m) && m > 0;
             IsMaximumMBValid = long.TryParse(MaximumMB, out long x) && x > 0;
             IsBufferValid = int.TryParse(Buffer, out int b) && b >= 5 && b <= 2000;
+
             OnPropertyChanged(nameof(IsDataValid));
             SaveChangesCommand.NotifyCanExecuteChanged();
+            RevertChangesCommand.NotifyCanExecuteChanged();
+        }
+
+        public bool IsDirty()
+        {
+            return StartupMB != _originalModel.StartupMB.ToString() ||
+                   MinimumMB != _originalModel.MinimumMB.ToString() ||
+                   MaximumMB != _originalModel.MaximumMB.ToString() ||
+                   Buffer != _originalModel.Buffer.ToString() ||
+                   Priority != _originalModel.Priority ||
+                   DynamicMemoryEnabled != _originalModel.DynamicMemoryEnabled;
         }
 
         private bool FinalValidation()
@@ -126,40 +160,79 @@ namespace ExHyperV.ViewModels
             long.TryParse(StartupMB, out long startup);
             long.TryParse(MinimumMB, out long min);
             long.TryParse(MaximumMB, out long max);
-            if (DynamicMemoryEnabled && startup < min) { Utils.Show(ExHyperV.Properties.Resources.StartupRamLessThanMinRam); return false; }
-            if (DynamicMemoryEnabled && min > max) { Utils.Show(ExHyperV.Properties.Resources.MinRamGreaterThanMaxRam); return false; }
+            if (DynamicMemoryEnabled && startup < min)
+            {
+                _parentViewModel.ShowSnackbar(ExHyperV.Properties.Resources.error, ExHyperV.Properties.Resources.StartupRamLessThanMinRam, ControlAppearance.Caution, SymbolRegular.Warning24);
+                return false;
+            }
+            if (DynamicMemoryEnabled && min > max)
+            {
+                _parentViewModel.ShowSnackbar(ExHyperV.Properties.Resources.error, ExHyperV.Properties.Resources.MinRamGreaterThanMaxRam, ControlAppearance.Caution, SymbolRegular.Warning24);
+                return false;
+            }
             return true;
         }
 
-        [RelayCommand(CanExecute = nameof(IsDataValid))]
+        private bool CanExecuteModifyCommands() => IsDataValid && !IsSaving && IsDirty();
+
+        [RelayCommand(CanExecute = nameof(CanExecuteModifyCommands))]
         private async Task SaveChangesAsync()
         {
             if (!FinalValidation()) return;
+
+            IsSaving = true;
+            _parentViewModel.IsLoading = true;
+
             try
             {
-                bool success = await _memoryService.SetVmMemoryAsync(this);
-                if (success)
-                {
-                    long.TryParse(StartupMB, out long newStartup);
-                    long.TryParse(MinimumMB, out long newMin);
-                    long.TryParse(MaximumMB, out long newMax);
-                    int.TryParse(Buffer, out int newBuffer);
+                long.TryParse(StartupMB, out long startup);
+                long.TryParse(MinimumMB, out long min);
+                long.TryParse(MaximumMB, out long max);
+                int.TryParse(Buffer, out int buffer);
 
-                    _originalModel.StartupMB = newStartup;
-                    _originalModel.MinimumMB = newMin;
-                    _originalModel.MaximumMB = newMax;
-                    _originalModel.Buffer = newBuffer;
-                    _originalModel.DynamicMemoryEnabled = this.DynamicMemoryEnabled;
-                    _originalModel.Priority = (int)this.Priority;
+                var newInfo = new VirtualMachineMemoryInfo
+                {
+                    VMName = this.VMName,
+                    StartupMB = startup,
+                    MinimumMB = min,
+                    MaximumMB = max,
+                    Buffer = buffer,
+                    Priority = this.Priority,
+                    DynamicMemoryEnabled = this.DynamicMemoryEnabled
+                };
+
+                var result = await _memoryService.SetVmMemoryAsync(newInfo);
+                if (result.Success)
+                {
+                    _originalModel = newInfo;
+                    _parentViewModel.ShowSnackbar(
+                        ExHyperV.Properties.Resources.success,
+                        string.Format("虚拟机 {0} 的设置已成功保存。", VMName),
+                        ControlAppearance.Success,
+                        SymbolRegular.CheckmarkCircle24);
+                    ValidateAllFields();
+                }
+                else
+                {
+                    _parentViewModel.ShowSnackbar(ExHyperV.Properties.Resources.error, result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
                 }
             }
             catch (Exception ex)
             {
-                Utils.Show(string.Format(ExHyperV.Properties.Resources.Error_GenericFormat, ex.Message));
+                _parentViewModel.ShowSnackbar(
+                    ExHyperV.Properties.Resources.error,
+                    string.Format(ExHyperV.Properties.Resources.Error_GenericFormat, ex.Message),
+                    ControlAppearance.Danger,
+                    SymbolRegular.ErrorCircle24);
+            }
+            finally
+            {
+                IsSaving = false;
+                _parentViewModel.IsLoading = false;
             }
         }
 
-        [RelayCommand]
+        [RelayCommand(CanExecute = nameof(CanExecuteModifyCommands))]
         private void RevertChanges()
         {
             DynamicMemoryEnabled = _originalModel.DynamicMemoryEnabled;

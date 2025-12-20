@@ -1,142 +1,126 @@
-﻿using System.Management.Automation;
-using System.Text;
-using ExHyperV.Models;
+﻿using ExHyperV.Models;
 using ExHyperV.Tools;
-using ExHyperV.ViewModels;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Management.Automation;
+using System.Text;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 
 namespace ExHyperV.Services
 {
     public class MemoryService : IMemoryService
     {
-        // ▼▼▼▼▼ 【已删除】GetHostMemoryAsync() 方法 ▼▼▼▼▼
-        // 整个获取宿主机物理内存的方法已被移除。
-        // ▲▲▲▲▲ 【已删除】GetHostMemoryAsync() 方法 ▲▲▲▲▲
-
-        public async Task<List<VirtualMachineMemoryInfo>> GetVirtualMachinesMemoryAsync()
+        public async Task<List<VirtualMachineMemoryInfo>> GetVirtualMachinesMemoryConfigurationAsync()
         {
             string script = @"
-        Hyper-V\Get-VM | ForEach-Object {
-            $vm = $_
-            $memoryConfig = Get-VMMemory -VMName $vm.VMName
-            
-            [PSCustomObject]@{
-                VMName               = $vm.VMName
-                State                = $vm.State.ToString()
-                DynamicMemoryEnabled = $memoryConfig.DynamicMemoryEnabled
-                StartupMB            = [long]($memoryConfig.Startup / 1MB)
-                MinimumMB            = [long]($memoryConfig.Minimum / 1MB)
-                MaximumMB            = [long]($memoryConfig.Maximum / 1MB)
-                AssignedMB           = [long]($vm.MemoryAssigned / 1MB)
-                DemandMB             = [long]($vm.MemoryDemand / 1MB)
-                Status               = $vm.MemoryStatus
-                Buffer               = $memoryConfig.Buffer
-                Priority             = $memoryConfig.Priority
-            }
-        }";
+                Get-VM | ForEach-Object {
+                    $vm = $_
+                    $memoryConfig = Get-VMMemory -VMName $vm.VMName
+                    
+                    [PSCustomObject]@{
+                        VMName               = $vm.VMName
+                        State                = $vm.State.ToString()
+                        DynamicMemoryEnabled = [bool]$memoryConfig.DynamicMemoryEnabled
+                        StartupMB            = [long]($memoryConfig.Startup / 1MB)
+                        MinimumMB            = [long]($memoryConfig.Minimum / 1MB)
+                        MaximumMB            = [long]($memoryConfig.Maximum / 1MB)
+                        AssignedMB           = [long]($vm.MemoryAssigned / 1MB)
+                        DemandMB             = [long]($vm.MemoryDemand / 1MB)
+                        Status               = $vm.MemoryStatus
+                        Buffer               = [int]$memoryConfig.Buffer
+                        Priority             = [int]$memoryConfig.Priority
+                    }
+                }";
 
-            var vmMemoryList = new List<VirtualMachineMemoryInfo>();
-            try
-            {
-                // 优化：直接使用更高效的 Run2
-                var results = await Utils.Run2(script);
-                if (results == null) return vmMemoryList;
-
-                foreach (var result in results)
-                {
-                    vmMemoryList.Add(new VirtualMachineMemoryInfo
-                    {
-                        VMName = result.Properties["VMName"]?.Value?.ToString() ?? string.Empty,
-                        State = result.Properties["State"]?.Value?.ToString() ?? string.Empty,
-                        DynamicMemoryEnabled = (bool)(result.Properties["DynamicMemoryEnabled"]?.Value ?? false),
-                        StartupMB = (long)(result.Properties["StartupMB"]?.Value ?? 0L),
-                        MinimumMB = (long)(result.Properties["MinimumMB"]?.Value ?? 0L),
-                        MaximumMB = (long)(result.Properties["MaximumMB"]?.Value ?? 0L),
-                        AssignedMB = (long)(result.Properties["AssignedMB"]?.Value ?? 0L),
-                        DemandMB = (long)(result.Properties["DemandMB"]?.Value ?? 0L),
-                        Status = result.Properties["Status"]?.Value?.ToString() ?? string.Empty,
-                        Buffer = (int)(result.Properties["Buffer"]?.Value ?? 0),
-                        Priority = (int)(result.Properties["Priority"]?.Value ?? 0)
-                    });
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Failed to get VM memory info: {ex.Message}");
-            }
-            return vmMemoryList;
-        }
-
-        public async Task<List<VirtualMachineMemoryInfo>> GetVirtualMachinesMemoryQuickAsync()
-        {
-            string script = @"
-            Hyper-V\Get-VM | Where-Object { $_.State -eq 'Running' } | ForEach-Object {
-                $vm = $_
-                [PSCustomObject]@{
-                    VMName      = $vm.VMName
-                    AssignedMB  = [long]($vm.MemoryAssigned / 1MB)
-                    DemandMB    = [long]($vm.MemoryDemand / 1MB)
-                }
-            }";
-
-            var vmMemoryList = new List<VirtualMachineMemoryInfo>();
             var results = await Utils.Run2(script);
-            if (results == null) return vmMemoryList;
-            foreach (var result in results)
-            {
-                vmMemoryList.Add(new VirtualMachineMemoryInfo
-                {
-                    VMName = result.Properties["VMName"]?.Value?.ToString() ?? string.Empty,
-                    AssignedMB = (long)(result.Properties["AssignedMB"]?.Value ?? 0L),
-                    DemandMB = (long)(result.Properties["DemandMB"]?.Value ?? 0L)
-                });
-            }
-            return vmMemoryList;
+            return results?.Select(ParsePsoToModel).ToList() ?? new List<VirtualMachineMemoryInfo>();
         }
 
-
-        public async Task<bool> SetVmMemoryAsync(VirtualMachineMemoryViewModel vmMemory)
+        public async Task<List<VirtualMachineMemoryInfo>> GetVirtualMachinesMemoryUsageAsync()
         {
-            var scriptBuilder = new StringBuilder();
+            string script = @"
+                Get-VM | Where-Object { $_.State -eq 'Running' } | ForEach-Object {
+                    $vm = $_
+                    [PSCustomObject]@{
+                        VMName      = $vm.VMName
+                        State       = $vm.State.ToString()
+                        AssignedMB  = [long]($vm.MemoryAssigned / 1MB)
+                        DemandMB    = [long]($vm.MemoryDemand / 1MB)
+                        Status      = $vm.MemoryStatus
+                    }
+                }";
 
-            // 将字符串解析移到这里，增加健壮性
-            if (!long.TryParse(vmMemory.StartupMB, out long startupMB) ||
-                !long.TryParse(vmMemory.MinimumMB, out long minimumMB) ||
-                !long.TryParse(vmMemory.MaximumMB, out long maximumMB) ||
-                !int.TryParse(vmMemory.Buffer, out int buffer))
-            {
-                // 如果解析失败，可以抛出异常或返回 false
-                throw new ArgumentException("Invalid memory value format.");
-            }
+            var results = await Utils.Run2(script);
+            return results?.Select(ParsePsoToModel).ToList() ?? new List<VirtualMachineMemoryInfo>();
+        }
 
-            long startupBytes = startupMB * 1024 * 1024;
-            int priority = (int)vmMemory.Priority;
-
-            if (!vmMemory.DynamicMemoryEnabled)
-            {
-                scriptBuilder.AppendLine($"Set-VMMemory -VMName \"{vmMemory.VMName}\" -DynamicMemoryEnabled $false -StartupBytes {startupBytes} -Priority {priority}");
-            }
-            else
-            {
-                long minimumBytes = minimumMB * 1024 * 1024;
-                long maximumBytes = maximumMB * 1024 * 1024;
-                scriptBuilder.AppendLine($"Set-VMMemory -VMName \"{vmMemory.VMName}\" -DynamicMemoryEnabled $true -StartupBytes {startupBytes} -MinimumBytes {minimumBytes} -MaximumBytes {maximumBytes} -Buffer {buffer} -Priority {priority}");
-            }
-
-            string script = scriptBuilder.ToString();
-
-            // 优化：使用统一的异步执行器 Run2
+        public async Task<(bool Success, string Message)> SetVmMemoryAsync(VirtualMachineMemoryInfo vmMemory)
+        {
             try
             {
-                await Utils.Run2(script);
-                return true;
+                var sb = new StringBuilder();
+                string escapedName = vmMemory.VMName.Replace("'", "''");
+                long startupBytes = vmMemory.StartupMB * 1024 * 1024;
+
+                if (!vmMemory.DynamicMemoryEnabled)
+                {
+                    sb.Append($"Set-VMMemory -VMName '{escapedName}' -DynamicMemoryEnabled $false -StartupBytes {startupBytes} -Priority {vmMemory.Priority} -ErrorAction Stop");
+                }
+                else
+                {
+                    long minBytes = vmMemory.MinimumMB * 1024 * 1024;
+                    long maxBytes = vmMemory.MaximumMB * 1024 * 1024;
+                    sb.Append($"Set-VMMemory -VMName '{escapedName}' -DynamicMemoryEnabled $true -StartupBytes {startupBytes} -MinimumBytes {minBytes} -MaximumBytes {maxBytes} -Buffer {vmMemory.Buffer} -Priority {vmMemory.Priority} -ErrorAction Stop");
+                }
+
+                await Utils.Run2(sb.ToString());
+                return (true, "设置已成功保存。");
             }
             catch (Exception ex)
             {
-                // 可以记录日志或向上层抛出更具体的异常
-                Console.WriteLine($"Failed to set VM memory: {ex.Message}");
-                // throw; // 如果希望上层能捕获到详细的 PowerShell 错误，可以重新抛出
-                return false;
+                return (false, GetFriendlyErrorMessage(ex.Message));
             }
+        }
+
+        private string GetFriendlyErrorMessage(string rawMessage)
+        {
+            if (string.IsNullOrWhiteSpace(rawMessage)) return "未知错误";
+            string cleanMsg = rawMessage.Trim();
+            cleanMsg = Regex.Replace(cleanMsg, @"[\(\（].*?ID\s+[a-fA-F0-9-]{36}.*?[\)\）]", "");
+            cleanMsg = cleanMsg.Replace("\r", "").Replace("\n", " ");
+            var parts = cleanMsg.Split(new[] { '。', '.' }, StringSplitOptions.RemoveEmptyEntries)
+                                .Select(s => s.Trim())
+                                .Where(s => !string.IsNullOrWhiteSpace(s))
+                                .ToList();
+            if (parts.Count >= 2)
+            {
+                var lastPart = parts.Last();
+                if (lastPart.Length > 2) return lastPart + "。";
+            }
+            return cleanMsg;
+        }
+
+        private VirtualMachineMemoryInfo ParsePsoToModel(PSObject pso)
+        {
+            if (pso == null) return null;
+            var model = new VirtualMachineMemoryInfo();
+            model.VMName = pso.Properties["VMName"]?.Value?.ToString() ?? string.Empty;
+            model.State = pso.Properties["State"]?.Value?.ToString() ?? string.Empty;
+            model.Status = pso.Properties["Status"]?.Value?.ToString() ?? string.Empty;
+            if (pso.Properties["DynamicMemoryEnabled"]?.Value != null)
+                model.DynamicMemoryEnabled = Convert.ToBoolean(pso.Properties["DynamicMemoryEnabled"].Value);
+            long GetLong(string name) => pso.Properties[name]?.Value != null ? Convert.ToInt64(pso.Properties[name].Value) : 0L;
+            int GetInt(string name) => pso.Properties[name]?.Value != null ? Convert.ToInt32(pso.Properties[name].Value) : 0;
+            model.StartupMB = GetLong("StartupMB");
+            model.MinimumMB = GetLong("MinimumMB");
+            model.MaximumMB = GetLong("MaximumMB");
+            model.AssignedMB = GetLong("AssignedMB");
+            model.DemandMB = GetLong("DemandMB");
+            model.Buffer = GetInt("Buffer");
+            model.Priority = GetInt("Priority");
+            return model;
         }
     }
 }

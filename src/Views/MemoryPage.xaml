@@ -15,23 +15,21 @@
     <Page.Resources>
         <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
         <converters:InverseBooleanConverter x:Key="InverseBooleanConverter"/>
-        <converters:InversePercentageConverter x:Key="InversePercentageConverter"/>
     </Page.Resources>
 
     <Grid>
-        <StackPanel Margin="10,0,10,20" IsEnabled="{Binding IsLoading, Converter={StaticResource InverseBooleanConverter}}">
-            <ui:Card Padding="12" Margin="10,15,10,0">
+        <StackPanel Margin="0,-3,0,0" IsEnabled="{Binding IsLoading, Converter={StaticResource InverseBooleanConverter}}">
+            <ui:Card Padding="15" Margin="12,10,10,0">
                 <Grid>
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                         <ui:FontIcon FontSize="24" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xF5ED;"/>
-                        <TextBlock Text="{x:Static properties:Resources.VMMemory}" Margin="10,0,0,0" FontSize="16" VerticalAlignment="Center"/>
+                        <TextBlock Text="{x:Static properties:Resources.VMMemory}" Margin="5,0,0,0" FontSize="16" VerticalAlignment="Center"/>
                     </StackPanel>
-                    <ui:Button Command="{Binding RefreshVmDataCommand}" HorizontalAlignment="Right" Content="{x:Static properties:Resources.refresh}" Appearance="Secondary"/>
                 </Grid>
             </ui:Card>
             <ItemsControl ItemsSource="{Binding VirtualMachinesMemory}" Margin="30,0,10,0">
                 <ItemsControl.ItemTemplate>
-                    <DataTemplate DataType="{x:Type viewmodels:VirtualMachineMemoryViewModel}">
+                    <DataTemplate DataType="{x:Type viewmodels:VMMemoryViewModel}">
                         <ui:CardExpander Margin="0,5,0,0" Padding="8">
                             <ui:CardExpander.Header>
                                 <Grid>
@@ -41,11 +39,11 @@
                                     </Grid.ColumnDefinitions>
 
                                     <ui:FontIcon Grid.Row="0" Grid.RowSpan="2"
-                     FontFamily="{DynamicResource SegoeFluentIcons}" 
-                     Glyph="{Binding VmIconGlyph}" 
-                     FontSize="28" 
-                     Margin="0,0,10,0" 
-                     VerticalAlignment="Center"/>
+                                         FontFamily="{DynamicResource SegoeFluentIcons}" 
+                                         Glyph="{Binding VmIconGlyph}" 
+                                         FontSize="28" 
+                                         Margin="0,0,10,0" 
+                                         VerticalAlignment="Center"/>
 
                                     <Grid Grid.Column="1">
                                         <Grid.RowDefinitions>
@@ -67,8 +65,8 @@
                                         <Grid Grid.Row="1" Margin="0,5,10,5" Visibility="{Binding IsVmRunning, Converter={StaticResource BooleanToVisibilityConverter}}">
                                             <Border CornerRadius="4" Height="8" Background="{DynamicResource ControlFillColorDefaultBrush}">
                                                 <ProgressBar Value="{Binding UsagePercentage, Mode=OneWay}" 
-                                 Foreground="{Binding UsageBarBrush, Mode=OneWay}"
-                                 Maximum="100" Height="8" BorderThickness="0"/>
+                                                             Foreground="{Binding UsageBarBrush, Mode=OneWay}"
+                                                             Maximum="100" Height="8" BorderThickness="0"/>
                                             </Border>
                                         </Grid>
                                     </Grid>
@@ -197,7 +195,7 @@
 
                                 <StackPanel Grid.Row="4" Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
                                     <ui:Button Content="{x:Static properties:Resources.Reset}" Command="{Binding RevertChangesCommand}" Padding="20,8" MinWidth="100"/>
-                                    <ui:Button Content="{x:Static properties:Resources.Apply}" Appearance="Primary" Margin="15,0,0,0" Command="{Binding SaveChangesCommand}" IsEnabled="{Binding IsDataValid}" Padding="20,8" MinWidth="100"/>
+                                    <ui:Button Content="{x:Static properties:Resources.Apply}" Appearance="Primary" Margin="15,0,0,0" Command="{Binding SaveChangesCommand}" IsEnabled="{Binding IsDirty}" Padding="20,8" MinWidth="100"/>
                                 </StackPanel>
                             </Grid>
                         </ui:CardExpander>

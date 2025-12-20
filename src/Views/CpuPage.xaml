@@ -38,7 +38,7 @@
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
 
-            <Border Grid.Row="0" Margin="10,5,10,0" Background="{ui:ThemeResource ControlFillColorDefaultBrush}" BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="4" Padding="10">
+            <Border Grid.Row="0" Margin="10,5,10,0" BorderThickness="1" CornerRadius="4" Padding="10" Background="{ui:ThemeResource ControlFillColorDefaultBrush}" BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}">
                 <Grid>
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                         <ui:FontIcon Glyph="&#xF58E;" FontSize="20" FontFamily="{DynamicResource SegoeFluentIcons}" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" RenderTransformOrigin="0.5,0.5">
@@ -407,7 +407,7 @@
                                                                     </Grid.ColumnDefinitions>
                                                                     <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,0">
                                                                         <TextBlock Text="允许 NUMA 跨越" FontWeight="SemiBold" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
-                                                                        <TextBlock Text="允许虚拟机使用其他 NUMA 节点的内存 (在 Server 2025 中关闭可能会错误地禁用 CPU 超售)" FontSize="12" Foreground="{ui:ThemeResource TextFillColorTertiaryBrush}" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                                                        <TextBlock Text="允许虚拟机使用其他 NUMA 节点的内存 (在 Server 2025 中关闭可能会错误地禁用 CPU 超额订阅)" FontSize="12" Foreground="{ui:ThemeResource TextFillColorTertiaryBrush}" TextWrapping="Wrap" Margin="0,2,0,0"/>
                                                                     </StackPanel>
                                                                     <ui:ToggleSwitch Grid.Column="1" IsChecked="{Binding DataContext.IsNumaSpanningEnabled, ElementName=CpuRootPage, Mode=TwoWay}" />
                                                                 </Grid>

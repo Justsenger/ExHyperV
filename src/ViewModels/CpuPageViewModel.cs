@@ -1,24 +1,17 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
-using System.Linq;
 using System.Management;
 using System.Text.Json;
-using System.Threading;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Media;
 using ExHyperV.Models;
 using ExHyperV.Services;
 using ExHyperV.Tools;
 using ExHyperV.ViewModels.Dialogs;
-using ExHyperV.Views;
 using ExHyperV.Views.Dialogs;
 using Wpf.Ui.Controls;
-using Wpf.Ui;
 
 namespace ExHyperV.ViewModels
 {
@@ -39,7 +32,7 @@ namespace ExHyperV.ViewModels
         private CancellationTokenSource _monitoringCts;
         private Task _monitoringTask;
         private CancellationTokenSource _sleepTokenSource = new CancellationTokenSource();
-        private const int MaxHistoryLength = 25;
+        private const int MaxHistoryLength = 60;
         private readonly Dictionary<string, LinkedList<double>> _historyCache = new();
         private readonly IVmProcessorService _vmProcessorService;
         private readonly CpuAffinityService _cpuAffinityService;
@@ -73,7 +66,7 @@ namespace ExHyperV.ViewModels
         }
 
         [ObservableProperty]
-        private int _refreshInterval = 1000;
+        private int _refreshInterval = 1000; //默认刷新间隔
 
         [ObservableProperty]
         private bool _isLoading = true;
