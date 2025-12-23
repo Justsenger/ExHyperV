@@ -1,16 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
+﻿using System.IO;
 
 namespace ExHyperV.Services
 {
-    // 注意：这里删除了 PartitionInfo 和 OperatingSystemType 的定义
-    // 程序会自动使用你项目中已存在的定义
-
     public class DiskParserService
     {
-        // 常见 GUID 定义
         private static readonly Guid WindowsBasicDataGuid = new Guid("EBD0A0A2-B9E5-4433-87C0-68B6B72699C7");
         private static readonly Guid LinuxFileSystemGuid = new Guid("0FC63DAF-8483-4772-8E79-3D69D8477DE4");
         private static readonly Guid LinuxLvmGuid = new Guid("E6D6D379-F507-44C2-A23C-238F2A3DF928");

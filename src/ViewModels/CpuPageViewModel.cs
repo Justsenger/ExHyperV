@@ -96,14 +96,14 @@ namespace ExHyperV.ViewModels
 
             if (success)
             {
-                ShowSnackbar("设置已保存", "NUMA 设置已更新，重启计算机后生效。", ControlAppearance.Success, SymbolRegular.CheckmarkCircle24, 3);
+                ShowSnackbar(ExHyperV.Properties.Resources.SettingsSavedSuccessfully, ExHyperV.Properties.Resources.NumaSettingsModifiedRestartRequired, ControlAppearance.Success, SymbolRegular.CheckmarkCircle24, 3);
             }
             else
             {
                 _suppressNumaChange = true;
                 IsNumaSpanningEnabled = !value;
                 _suppressNumaChange = false;
-                ShowSnackbar("设置失败", message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                ShowSnackbar(ExHyperV.Properties.Resources.SettingFailed, message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
             }
         }
 
@@ -159,7 +159,7 @@ namespace ExHyperV.ViewModels
                         {
                             Application.Current.Dispatcher.Invoke(() =>
                             {
-                                ShowSnackbar("操作成功", "调度器类型已更改，需要重启系统才能生效。", ControlAppearance.Success, SymbolRegular.CheckmarkCircle24);
+                                ShowSnackbar(ExHyperV.Properties.Resources.SettingsSavedSuccessfully, ExHyperV.Properties.Resources.SchedulerTypeChangedRestartRequired, ControlAppearance.Success, SymbolRegular.CheckmarkCircle24);
                             });
                         }
                     });
@@ -204,7 +204,7 @@ namespace ExHyperV.ViewModels
                 }
                 else
                 {
-                    ShowSnackbar("设置失败", message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                    ShowSnackbar(ExHyperV.Properties.Resources.SettingFailed, message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
                     if (_originalProcessorConfig != null)
                     {
                         SelectedVm.Processor.Restore(_originalProcessorConfig);

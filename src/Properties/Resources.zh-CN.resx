@@ -1034,4 +1034,31 @@
   <data name="Title_Information" xml:space="preserve">
     <value>提示</value>
   </data>
+  <data name="SettingsSavedSuccessfully" xml:space="preserve">
+    <value>设置已成功保存</value>
+  </data>
+  <data name="UnknownError" xml:space="preserve">
+    <value>未知错误</value>
+  </data>
+  <data name="SystemAutomaticallyScheduled" xml:space="preserve">
+    <value>由系统自动调度</value>
+  </data>
+  <data name="PerformanceLimited" xml:space="preserve">
+    <value>性能受限 {0}</value>
+  </data>
+  <data name="RandomlyDriftWithinSelectedCoreGroup" xml:space="preserve">
+    <value>将在选定的核心组内随机漂移 {0}</value>
+  </data>
+  <data name="Perfect" xml:space="preserve">
+    <value>完美！ {0}</value>
+  </data>
+  <data name="NumaSettingsModifiedRestartRequired" xml:space="preserve">
+    <value>NUMA 设置已更新，重启计算机后生效。</value>
+  </data>
+  <data name="SettingFailed" xml:space="preserve">
+    <value>设置失败</value>
+  </data>
+  <data name="SchedulerTypeChangedRestartRequired" xml:space="preserve">
+    <value>Hyper-V 调度器类型已更改，需要重启系统才能生效。</value>
+  </data>
 </root>

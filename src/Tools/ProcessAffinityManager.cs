@@ -11,16 +11,10 @@ namespace ExHyperV.Services
     {
         /// <summary>
         /// 根据虚拟机的 GUID，通过查询用户名为该 GUID 的 vmmem 进程来查找其内存进程。
-        /// 使用 LIKE 操作符以兼容进程名是否带有 .exe 后缀的情况。
         /// </summary>
         private static Process FindVmMemoryProcess(Guid vmId)
         {
             string vmIdString = vmId.ToString("D").ToUpper();
-
-            // ===================================================================
-            //                      ★★★ 最终修正点 ★★★
-            // 将精确匹配 'vmmem.exe' 修改为模式匹配 'vmmem%'，以确保健壮性。
-            // ===================================================================
             string wmiQuery = "SELECT ProcessId, Handle FROM Win32_Process WHERE Name LIKE 'vmmem%'";
             try
             {

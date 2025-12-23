@@ -1,19 +1,13 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using ExHyperV.Models;
 using ExHyperV.Services;
-using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Linq;
 
 namespace ExHyperV.ViewModels.Dialogs
 {
     public partial class CpuAffinityDialogViewModel : ObservableObject
     {
-        [ObservableProperty]
-        private string _title;
-
         [ObservableProperty]
         private int _columns;
 
@@ -32,7 +26,6 @@ namespace ExHyperV.ViewModels.Dialogs
         private readonly HyperVSchedulerType _schedulerType;
         private readonly Dictionary<int, int> _cpuSiblingMap;
         private bool _isUpdatingFromLogic = false;
-        public string SchedulerTypeInfoText => $"当前调度器模式: {_schedulerType}";
 
         public CpuAffinityDialogViewModel(
             string vmName,
@@ -41,7 +34,6 @@ namespace ExHyperV.ViewModels.Dialogs
             HyperVSchedulerType schedulerType,
             Dictionary<int, int> cpuSiblingMap)
         {
-            Title = $"为 {vmName} 设置 CPU 绑定";
             _assignedCoreCount = assignedCoreCount;
             Columns = CalculateOptimalColumns(hostCores.Count);
             Rows = (hostCores.Count > 0) ? (int)Math.Ceiling((double)hostCores.Count / Columns) : 0;
@@ -88,33 +80,31 @@ namespace ExHyperV.ViewModels.Dialogs
                 }
             }
         }
-
         private void UpdateStatusText()
         {
             int selectedCount = Cores.Count(c => c.IsSelected);
 
-            // 构造 X / Y 格式的字符串
             string countStr = $"({selectedCount} / {_assignedCoreCount})";
 
             if (selectedCount == 0)
             {
-                StatusEmoji = "🎲";
-                StatusText = $"将随机分配CPU核心";
+                StatusEmoji = "🔄";
+                StatusText = ExHyperV.Properties.Resources.SystemAutomaticallyScheduled;
             }
             else if (selectedCount < _assignedCoreCount)
             {
                 StatusEmoji = "⚠️";
-                StatusText = $"性能将受限 {countStr}";
+                StatusText = string.Format(ExHyperV.Properties.Resources.PerformanceLimited, countStr);
             }
             else if (selectedCount > _assignedCoreCount)
             {
                 StatusEmoji = "💨";
-                StatusText = $"会在选定的核心组内随机漂移 {countStr}";
+                StatusText = string.Format(ExHyperV.Properties.Resources.RandomlyDriftWithinSelectedCoreGroup, countStr);
             }
             else
             {
-                StatusEmoji = "✅";
-                StatusText = $"完美！ {countStr}";
+                StatusEmoji = "🎯";
+                StatusText = string.Format(ExHyperV.Properties.Resources.Perfect, countStr);
             }
         }
 

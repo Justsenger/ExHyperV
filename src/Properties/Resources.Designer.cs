@@ -2103,6 +2103,15 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 NUMA settings have been modified. The changes will take effect after restarting the computer. 的本地化字符串。
+        /// </summary>
+        public static string NumaSettingsModifiedRestartRequired {
+            get {
+                return ResourceManager.GetString("NumaSettingsModifiedRestartRequired", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 OK 的本地化字符串。
         /// </summary>
         public static string OK {
@@ -2139,6 +2148,24 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 Perfect! {0} 的本地化字符串。
+        /// </summary>
+        public static string Perfect {
+            get {
+                return ResourceManager.GetString("Perfect", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Performance limited {0} 的本地化字符串。
+        /// </summary>
+        public static string PerformanceLimited {
+            get {
+                return ResourceManager.GetString("PerformanceLimited", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 e.g., 192.168.1.100 的本地化字符串。
         /// </summary>
         public static string Placeholder_IpAddressExample {
@@ -2171,6 +2198,15 @@ namespace ExHyperV.Properties {
         public static string ram {
             get {
                 return ResourceManager.GetString("ram", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Will randomly drift within the selected core group {0} 的本地化字符串。
+        /// </summary>
+        public static string RandomlyDriftWithinSelectedCoreGroup {
+            get {
+                return ResourceManager.GetString("RandomlyDriftWithinSelectedCoreGroup", resourceCulture);
             }
         }
         
@@ -2247,6 +2283,15 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 Hyper-V scheduler type has been changed. A system restart is required for the changes to take effect. 的本地化字符串。
+        /// </summary>
+        public static string SchedulerTypeChangedRestartRequired {
+            get {
+                return ResourceManager.GetString("SchedulerTypeChangedRestartRequired", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 The host system is not a server version, and the virtual machine with the DDA device added will not be able to start! 的本地化字符串。
         /// </summary>
         public static string servererror {
@@ -2265,11 +2310,29 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 Setting failed. 的本地化字符串。
+        /// </summary>
+        public static string SettingFailed {
+            get {
+                return ResourceManager.GetString("SettingFailed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Settings 的本地化字符串。
         /// </summary>
         public static string Settings {
             get {
                 return ResourceManager.GetString("Settings", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Settings saved successfully. 的本地化字符串。
+        /// </summary>
+        public static string SettingsSavedSuccessfully {
+            get {
+                return ResourceManager.GetString("SettingsSavedSuccessfully", resourceCulture);
             }
         }
         
@@ -2481,6 +2544,15 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 Automatically scheduled by system. 的本地化字符串。
+        /// </summary>
+        public static string SystemAutomaticallyScheduled {
+            get {
+                return ResourceManager.GetString("SystemAutomaticallyScheduled", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 System 的本地化字符串。
         /// </summary>
         public static string systeminfo {
@@ -2535,6 +2607,15 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 Attention 的本地化字符串。
+        /// </summary>
+        public static string Title_Information {
+            get {
+                return ResourceManager.GetString("Title_Information", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Shutdown Confirmation 的本地化字符串。
         /// </summary>
         public static string Title_ShutdownConfirmation {
@@ -2585,6 +2666,15 @@ namespace ExHyperV.Properties {
         public static string Uninstallswitch {
             get {
                 return ResourceManager.GetString("Uninstallswitch", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Unknown error 的本地化字符串。
+        /// </summary>
+        public static string UnknownError {
+            get {
+                return ResourceManager.GetString("UnknownError", resourceCulture);
             }
         }
         

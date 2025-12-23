@@ -1031,4 +1031,34 @@ Please check if the IP and port are correct.</value>
   <data name="Error_UnknownConnectionError" xml:space="preserve">
     <value>An unknown connection error occurred: {0}</value>
   </data>
+  <data name="SettingsSavedSuccessfully" xml:space="preserve">
+    <value>Settings saved successfully.</value>
+  </data>
+  <data name="Title_Information" xml:space="preserve">
+    <value>Attention</value>
+  </data>
+  <data name="UnknownError" xml:space="preserve">
+    <value>Unknown error</value>
+  </data>
+  <data name="SystemAutomaticallyScheduled" xml:space="preserve">
+    <value>Automatically scheduled by system.</value>
+  </data>
+  <data name="PerformanceLimited" xml:space="preserve">
+    <value>Performance limited {0}</value>
+  </data>
+  <data name="RandomlyDriftWithinSelectedCoreGroup" xml:space="preserve">
+    <value>Will randomly drift within the selected core group {0}</value>
+  </data>
+  <data name="Perfect" xml:space="preserve">
+    <value>Perfect! {0}</value>
+  </data>
+  <data name="NumaSettingsModifiedRestartRequired" xml:space="preserve">
+    <value>NUMA settings have been modified. The changes will take effect after restarting the computer.</value>
+  </data>
+  <data name="SettingFailed" xml:space="preserve">
+    <value>Setting failed.</value>
+  </data>
+  <data name="SchedulerTypeChangedRestartRequired" xml:space="preserve">
+    <value>Hyper-V scheduler type has been changed. A system restart is required for the changes to take effect.</value>
+  </data>
 </root>

@@ -1,12 +1,8 @@
 ﻿using ExHyperV.Models;
 using ExHyperV.Tools;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Management.Automation;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 
 namespace ExHyperV.Services
 {
@@ -76,7 +72,7 @@ namespace ExHyperV.Services
                 }
 
                 await Utils.Run2(sb.ToString());
-                return (true, "设置已成功保存。");
+                return (true, ExHyperV.Properties.Resources.SettingsSavedSuccessfully);
             }
             catch (Exception ex)
             {
@@ -86,7 +82,7 @@ namespace ExHyperV.Services
 
         private string GetFriendlyErrorMessage(string rawMessage)
         {
-            if (string.IsNullOrWhiteSpace(rawMessage)) return "未知错误";
+            if (string.IsNullOrWhiteSpace(rawMessage)) return ExHyperV.Properties.Resources.UnknownError;
             string cleanMsg = rawMessage.Trim();
             cleanMsg = Regex.Replace(cleanMsg, @"[\(\（].*?ID\s+[a-fA-F0-9-]{36}.*?[\)\）]", "");
             cleanMsg = cleanMsg.Replace("\r", "").Replace("\n", " ");

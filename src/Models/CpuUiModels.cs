@@ -1,7 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using System.Collections.ObjectModel;
 using System.Windows.Media;
-using ExHyperV.Services;
 using ExHyperV.ViewModels;
 
 namespace ExHyperV.Models

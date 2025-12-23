@@ -1,7 +1,7 @@
 ﻿namespace ExHyperV.Models
 {
     /// <summary>
-    /// 表示一个 Hyper-V 虚拟交换机的数据模型。
+    /// Hyper-V 虚拟交换机的数据模型。
     /// </summary>
     public class SwitchInfo
     {

@@ -1,6 +1,4 @@
 ﻿using ExHyperV.ViewModels;
-using System;
-using System.Threading.Tasks;
 
 namespace ExHyperV.Services
 {

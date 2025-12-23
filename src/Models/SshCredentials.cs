@@ -8,8 +8,8 @@
         public string Username { get; set; }
         public string Password { get; set; }
 
-        public string ProxyHost { get; set; } // 新增
-        public int? ProxyPort { get; set; }   // 新增, int? 表示可为空
+        public string ProxyHost { get; set; } 
+        public int? ProxyPort { get; set; }   
 
         public bool InstallGraphics { get; set; } = true;
 
