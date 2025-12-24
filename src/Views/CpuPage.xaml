@@ -1,18 +1,18 @@
 ﻿<Page x:Class="ExHyperV.Views.Pages.CpuPage"
-      x:Name="CpuRootPage"
-      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-      xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-      xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
-      xmlns:vm="clr-namespace:ExHyperV.ViewModels"
-      xmlns:converters="clr-namespace:ExHyperV.Converters"
-      xmlns:properties="clr-namespace:ExHyperV.Properties"
-      xmlns:tools="clr-namespace:ExHyperV.Tools"
-      Title="CpuPage"
-      d:DataContext="{d:DesignInstance vm:CpuPageViewModel, IsDesignTimeCreatable=True}"
-      mc:Ignorable="d"
-      tools:ScrollHelper.LockParentScroll="True">
+          x:Name="CpuRootPage"
+          xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+          xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+          xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+          xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+          xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+          xmlns:vm="clr-namespace:ExHyperV.ViewModels"
+          xmlns:converters="clr-namespace:ExHyperV.Converters"
+          xmlns:properties="clr-namespace:ExHyperV.Properties"
+          xmlns:tools="clr-namespace:ExHyperV.Tools"
+          Title="CpuPage"
+          d:DataContext="{d:DesignInstance vm:CpuPageViewModel, IsDesignTimeCreatable=True}"
+          mc:Ignorable="d"
+          tools:ScrollHelper.LockParentScroll="True">
 
     <Page.Resources>
         <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
@@ -31,7 +31,7 @@
                 </GeometryDrawing>
             </DrawingBrush.Drawing>
         </DrawingBrush>
-        
+
         <DataTemplate x:Key="VmLoadingTemplate">
             <Border Background="{ui:ThemeResource ControlFillColorDefaultBrush}" BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="4">
                 <TextBlock Text="{x:Static properties:Resources.DataLoading}" HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="0.5" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
@@ -47,7 +47,7 @@
                             <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
 
-                        <ItemsControl Grid.Row="0" ItemsSource="{Binding Cores}" Margin="0,0,0,10">
+                        <ItemsControl Grid.Row="0" x:Name="CoresItemsControl" ItemsSource="{Binding Cores}" Margin="0,0,0,10">
                             <ItemsControl.ItemsPanel>
                                 <ItemsPanelTemplate>
                                     <tools:StretchUniformGrid Columns="{Binding Columns}" Rows="{Binding Rows}" />
@@ -91,12 +91,12 @@
                                                 </StackPanel>
 
                                                 <TextBlock x:Name="UsageText" 
-                                                           Text="{Binding Usage, StringFormat='{}{0:N1}%'}" 
-                                                           FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" 
-                                                           Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                                                               Text="{Binding Usage, StringFormat='{}{0:N1}%'}" 
+                                                               FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" 
+                                                               Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
 
                                                 <TextBlock x:Name="OffText" Text="OFF" FontSize="14" FontWeight="Bold" Opacity="0.1" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,-2,0,0"
-                                                           Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Visibility="Collapsed"/>
+                                                               Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Visibility="Collapsed"/>
                                             </Grid>
                                         </Border>
                                     </Grid>
@@ -114,9 +114,9 @@
                         <!-- 设置区域 -->
                         <Grid Grid.Row="1">
                             <Border Background="{ui:ThemeResource ControlFillColorInputActiveBrush}" 
-                                    BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" 
-                                    BorderThickness="1" CornerRadius="4" 
-                                    Padding="12" VerticalAlignment="Stretch">
+                                        BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" 
+                                        BorderThickness="1" CornerRadius="4" 
+                                        Padding="12" VerticalAlignment="Stretch">
                                 <Border.Style>
                                     <Style TargetType="Border">
                                         <Setter Property="Visibility" Value="Visible"/>
@@ -150,8 +150,8 @@
                                         <StackPanel Grid.Column="0" Margin="0,0,8,0">
                                             <TextBlock Text="{x:Static properties:Resources.VCpuCount}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
                                             <ComboBox IsEditable="True" 
-                                                      Text="{Binding Processor.Count, UpdateSourceTrigger=PropertyChanged}"
-                                                      ItemsSource="{Binding DataContext.PossibleVCpuCounts, ElementName=CpuRootPage}"/>
+                                                          Text="{Binding Processor.Count, UpdateSourceTrigger=PropertyChanged}"
+                                                          ItemsSource="{Binding DataContext.PossibleVCpuCounts, ElementName=CpuRootPage}"/>
                                         </StackPanel>
                                         <StackPanel Grid.Column="1" Margin="8,0,8,0" IsEnabled="{Binding DataContext.IsRootSchedulerActive, ElementName=CpuRootPage, Converter={StaticResource InverseBooleanConverter}}">
                                             <TextBlock Text="{x:Static properties:Resources.ReservePercentage}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
@@ -273,8 +273,8 @@
                                         </Grid>
 
                                         <ui:Button Grid.Row="2" Grid.Column="2" 
-                                                   Content="{x:Static properties:Resources.CpuBinding}" Icon="BranchFork24" HorizontalAlignment="Left" VerticalAlignment="Center"
-                                                   Command="{Binding DataContext.OpenVmCpuAffinityCommand, ElementName=CpuRootPage}"/>
+                                                       Content="{x:Static properties:Resources.CpuBinding}" Icon="BranchFork24" HorizontalAlignment="Left" VerticalAlignment="Center"
+                                                       Command="{Binding DataContext.OpenVmCpuAffinityCommand, ElementName=CpuRootPage}"/>
                                     </Grid>
                                 </Grid>
                             </Border>
@@ -292,8 +292,8 @@
                                 </StackPanel.Style>
 
                                 <Border Background="{ui:ThemeResource ControlFillColorInputActiveBrush}" 
-                                        BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" 
-                                        BorderThickness="1" CornerRadius="4" Padding="20,15" Margin="0,0,0,0">
+                                            BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" 
+                                            BorderThickness="1" CornerRadius="4" Padding="20,15" Margin="0,0,0,0">
                                     <StackPanel>
                                         <Grid Margin="0,0,0,15">
                                             <Grid.ColumnDefinitions>
@@ -304,7 +304,7 @@
                                             <TextBlock Grid.Column="0" Text="{x:Static properties:Resources.SchedulerType}" FontSize="16" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" VerticalAlignment="Center"/>
 
                                             <ComboBox Grid.Column="2" Width="160"
-                                                      SelectedIndex="{Binding DataContext.SelectedSchedulerIndex, ElementName=CpuRootPage, Mode=TwoWay}">
+                                                          SelectedIndex="{Binding DataContext.SelectedSchedulerIndex, ElementName=CpuRootPage, Mode=TwoWay}">
                                                 <ComboBoxItem Content="{x:Static properties:Resources.ClassicScheduler}"/>
                                                 <ComboBoxItem Content="{x:Static properties:Resources.CoreScheduler}"/>
                                                 <ComboBoxItem Content="{x:Static properties:Resources.RootScheduler}"/>
@@ -392,13 +392,13 @@
 
                 <Border Grid.Column="0" Background="{ui:ThemeResource ControlFillColorDefaultBrush}" BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="4">
                     <ui:ListView ItemsSource="{Binding VmList}" 
-                                 SelectedItem="{Binding SelectedVm, Mode=TwoWay}" 
-                                 VerticalAlignment="Stretch"
-                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                                 ScrollViewer.VerticalScrollBarVisibility="Auto"
-                                 ScrollViewer.CanContentScroll="True"
-                                 VirtualizingStackPanel.IsVirtualizing="True"
-                                 VirtualizingStackPanel.VirtualizationMode="Recycling">
+                                     SelectedItem="{Binding SelectedVm, Mode=TwoWay}" 
+                                     VerticalAlignment="Stretch"
+                                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                     ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                     ScrollViewer.CanContentScroll="True"
+                                     VirtualizingStackPanel.IsVirtualizing="True"
+                                     VirtualizingStackPanel.VirtualizationMode="Recycling">
                         <ui:ListView.ItemTemplate>
                             <DataTemplate>
                                 <Grid Margin="8,6,12,6">
@@ -447,6 +447,6 @@
         </Grid>
 
         <ProgressBar Panel.ZIndex="1" VerticalAlignment="Top" Height="4" IsIndeterminate="True"
-                     Visibility="{Binding IsLoading, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                         Visibility="{Binding IsLoading, Converter={StaticResource BooleanToVisibilityConverter}}"/>
     </Grid>
 </Page>

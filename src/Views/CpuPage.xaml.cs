@@ -1,7 +1,6 @@
 ﻿using ExHyperV.ViewModels;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Media;
 
 namespace ExHyperV.Views.Pages
 {
@@ -11,7 +10,14 @@ namespace ExHyperV.Views.Pages
         {
             InitializeComponent();
             DataContext = CpuPageViewModel.Instance;
+            this.SizeChanged += CpuPage_SizeChanged;
         }
 
+        private void CpuPage_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            if (CpuPageViewModel.Instance.IsLoading) return;
+            this.InvalidateMeasure();
+            this.UpdateLayout();
+        }
     }
 }
