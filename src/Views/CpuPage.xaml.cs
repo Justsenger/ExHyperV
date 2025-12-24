@@ -15,9 +15,8 @@ namespace ExHyperV.Views.Pages
 
         private void CpuPage_SizeChanged(object sender, SizeChangedEventArgs e)
         {
-            if (CpuPageViewModel.Instance.IsLoading) return;
-            this.InvalidateMeasure();
-            this.UpdateLayout();
+            Dispatcher.BeginInvoke(new Action(() => this.InvalidateMeasure()),
+                System.Windows.Threading.DispatcherPriority.Background);
         }
     }
 }
