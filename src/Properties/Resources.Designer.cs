@@ -2580,7 +2580,7 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
-        ///   查找类似 Scheduler Type 的本地化字符串。
+        ///   查找类似 Hyper-V Scheduler Type 的本地化字符串。
         /// </summary>
         public static string SchedulerType {
             get {

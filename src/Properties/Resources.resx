@@ -1152,7 +1152,7 @@ Please check if the IP and port are correct.</value>
     <value>Cpu Pinning</value>
   </data>
   <data name="SchedulerType" xml:space="preserve">
-    <value>Scheduler Type</value>
+    <value>Hyper-V Scheduler Type</value>
   </data>
   <data name="ClassicScheduler" xml:space="preserve">
     <value>Classic Scheduler</value>

@@ -1153,7 +1153,7 @@
     <value>CPU 绑定</value>
   </data>
   <data name="SchedulerType" xml:space="preserve">
-    <value>调度器类型</value>
+    <value>Hyper-V 调度器类型</value>
   </data>
   <data name="ClassicScheduler" xml:space="preserve">
     <value>经典调度器</value>
