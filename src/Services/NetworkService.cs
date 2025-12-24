@@ -77,27 +77,30 @@ namespace ExHyperV.Services
             return await Task.Run(async () =>
             {
                 string vmAdaptersScript =
-                    $"Get-VMNetworkAdapter -VMName * | Where-Object {{ $_.SwitchName -eq '{switchName}' }} | " +
+                    $@"Get-VMNetworkAdapter -VMName * | Where-Object {{ $_.SwitchName -eq '{switchName}' }} | " +
                     "Select-Object VMName, " +
-                    "@{Name='MacAddress'; Expression={($_.MacAddress).Insert(2, ':').Insert(5, ':').Insert(8, ':').Insert(11, ':').Insert(14, ':')}}, " +
+                    "@{Name='MacAddress'; Expression={ " +
+                    "  $m = ($_.MacAddress -replace '[^0-9A-F]', '').ToUpper(); " +
+                    "  if($m.Length -eq 12) { $m -replace '(..)(..)(..)(..)(..)(..)', '$1:$2:$3:$4:$5:$6' } else { $m } " +
+                    "}}, " +
                     "@{Name='AdapterStatus'; Expression={($_.Status | Out-String).Trim()}}";
 
                 string hostAdapterScript =
                     $@"
-            $mgmtAdapter = Get-VMNetworkAdapter -ManagementOS | Where-Object {{ $_.SwitchName -eq '{switchName}' }};
-            if ($mgmtAdapter) {{
-                $mgmtMac = $mgmtAdapter.MacAddress;
-                $netAdapter = Get-NetAdapter -IncludeHidden | Where-Object {{ ($_.MacAddress -replace '-') -eq $mgmtMac }};
-                
-                if ($netAdapter) {{
-                    $ipAddressObjects = Get-NetIPAddress -InterfaceIndex $netAdapter.InterfaceIndex -ErrorAction SilentlyContinue;
-                    $ipAddresses = if ($ipAddressObjects) {{ ($ipAddressObjects.IPAddress) -join ',' }} else {{ '' }};
-                    
+            $v = Get-VMNetworkAdapter -ManagementOS | Where-Object {{ $_.SwitchName -eq '{switchName}' }};
+            if ($v) {{
+                $targetMac = $v.MacAddress -replace '[^0-9A-F]', '';
+                $n = Get-NetAdapter -IncludeHidden | Where-Object {{ (($_.MacAddress -replace '[^0-9A-F]', '') -eq $targetMac) -and ($_.InterfaceDescription -like '*Hyper-V*') }} | Select-Object -First 1;
+                if ($n) {{
+                    $rm = ($n.MacAddress -replace '[^0-9A-F]', '').ToUpper();
+                    $fm = if($rm.Length -eq 12) {{ $rm -replace '(..)(..)(..)(..)(..)(..)', '$1:$2:$3:$4:$5:$6' }} else {{ $rm }};
+                    $ipList = (Get-NetIPAddress -InterfaceIndex $n.InterfaceIndex -ErrorAction SilentlyContinue).IPAddress;
+                    $ips = if($ipList) {{ $ipList -join ',' }} else {{ '' }};
                     [PSCustomObject]@{{
                         VMName      = '(ManagementOS)';
-                        MacAddress  = (($netAdapter.MacAddress).Insert(2, ':').Insert(5, ':').Insert(8, ':').Insert(11, ':').Insert(14, ':'));
-                        Status      = $netAdapter.Status.ToString();
-                        IPAddresses = $ipAddresses;
+                        MacAddress  = $fm;
+                        Status      = $n.Status.ToString();
+                        IPAddresses = $ips;
                     }};
                 }}
             }}";
@@ -155,7 +158,6 @@ namespace ExHyperV.Services
                 }
             });
         }
-
         public async Task UpdateSwitchConfigurationAsync(string switchName, string mode, string? adapterDescription, bool allowManagementOS, bool enableDhcp)
         {
             await Utils.UpdateSwitchConfigurationAsync(switchName, mode, adapterDescription, allowManagementOS, enableDhcp);
