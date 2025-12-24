@@ -74,7 +74,6 @@ namespace ExHyperV.Services
 
         public async Task<List<AdapterInfo>> GetFullSwitchNetworkStateAsync(string switchName)
         {
-
             return await Task.Run(async () =>
             {
                 string vmAdaptersScript =
@@ -84,29 +83,28 @@ namespace ExHyperV.Services
                     "@{Name='AdapterStatus'; Expression={($_.Status | Out-String).Trim()}}";
 
                 string hostAdapterScript =
-                    $"$vmAdapter = Get-VMNetworkAdapter -ManagementOS -SwitchName '{switchName}';" +
-                    "if ($vmAdapter) {" +
-                    "    $netAdapter = Get-NetAdapter | Where-Object { ($_.MacAddress -replace '-') -eq ($vmAdapter.MacAddress -replace '-') -and ($_.InterfaceDescription -like '*Hyper-V*') };" +
-                    "    if ($netAdapter) {" +
-                    "        $ipAddressObjects = Get-NetIPAddress -InterfaceIndex $netAdapter.InterfaceIndex -ErrorAction SilentlyContinue;" +
-                    "        if ($ipAddressObjects) {" +
-                    "            $ipAddresses = ($ipAddressObjects.IPAddress) -join ',';" +
-                    "        } else {" +
-                    "            $ipAddresses = '';" +
-                    "        }" +
-                    "        [PSCustomObject]@{" +
-                    "            VMName      = '(ManagementOS)';" +
-                    "            MacAddress  = ($netAdapter.MacAddress -replace '-', ':');" +
-                    "            Status      = $netAdapter.Status.ToString();" +
-                    "            IPAddresses = $ipAddresses;" +
-                    "        };" +
-                    "    }" +
-                    "}";
+                    $@"
+            $mgmtAdapter = Get-VMNetworkAdapter -ManagementOS | Where-Object {{ $_.SwitchName -eq '{switchName}' }};
+            if ($mgmtAdapter) {{
+                $mgmtMac = $mgmtAdapter.MacAddress;
+                $netAdapter = Get-NetAdapter -IncludeHidden | Where-Object {{ ($_.MacAddress -replace '-') -eq $mgmtMac }};
+                
+                if ($netAdapter) {{
+                    $ipAddressObjects = Get-NetIPAddress -InterfaceIndex $netAdapter.InterfaceIndex -ErrorAction SilentlyContinue;
+                    $ipAddresses = if ($ipAddressObjects) {{ ($ipAddressObjects.IPAddress) -join ',' }} else {{ '' }};
+                    
+                    [PSCustomObject]@{{
+                        VMName      = '(ManagementOS)';
+                        MacAddress  = (($netAdapter.MacAddress).Insert(2, ':').Insert(5, ':').Insert(8, ':').Insert(11, ':').Insert(14, ':'));
+                        Status      = $netAdapter.Status.ToString();
+                        IPAddresses = $ipAddresses;
+                    }};
+                }}
+            }}";
 
                 try
                 {
                     var allAdapters = new List<AdapterInfo>();
-
                     var vmResults = Utils.Run(vmAdaptersScript);
                     if (vmResults != null)
                     {
@@ -115,27 +113,21 @@ namespace ExHyperV.Services
                             var vmName = pso.Properties["VMName"]?.Value?.ToString() ?? "";
                             var macAddress = pso.Properties["MacAddress"]?.Value?.ToString() ?? "";
                             var adapterStatus = pso.Properties["AdapterStatus"]?.Value?.ToString() ?? "";
-
                             var ipAddresses = await Utils.GetVmIpAddressAsync(vmName, macAddress);
-
                             return new AdapterInfo(vmName, macAddress, adapterStatus, ipAddresses);
                         });
-
                         allAdapters.AddRange(await Task.WhenAll(tasks));
                     }
 
                     var stopwatch = Stopwatch.StartNew();
-                    Collection<PSObject>? hostResults = null;
+                    System.Collections.ObjectModel.Collection<PSObject>? hostResults = null;
                     while (stopwatch.ElapsedMilliseconds < 2000)
                     {
                         hostResults = Utils.Run(hostAdapterScript);
                         if (hostResults != null && hostResults.Count > 0)
                         {
                             var ipValue = hostResults[0].Properties["IPAddresses"]?.Value?.ToString();
-                            if (!string.IsNullOrEmpty(ipValue))
-                            {
-                                break;
-                            }
+                            if (!string.IsNullOrEmpty(ipValue)) break;
                         }
                         await Task.Delay(200);
                     }
@@ -154,7 +146,6 @@ namespace ExHyperV.Services
                             ));
                         }
                     }
-
                     return allAdapters;
                 }
                 catch (Exception ex)
