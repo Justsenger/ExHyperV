@@ -11,7 +11,8 @@
       xmlns:tools="clr-namespace:ExHyperV.Tools"
       Title="CpuPage"
       d:DataContext="{d:DesignInstance vm:CpuPageViewModel, IsDesignTimeCreatable=True}"
-      mc:Ignorable="d">
+      mc:Ignorable="d"
+      tools:ScrollHelper.LockParentScroll="True">
 
     <Page.Resources>
         <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
