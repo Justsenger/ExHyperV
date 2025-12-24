@@ -7,6 +7,7 @@
       xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
       xmlns:vm="clr-namespace:ExHyperV.ViewModels"
       xmlns:converters="clr-namespace:ExHyperV.Converters"
+      xmlns:properties="clr-namespace:ExHyperV.Properties"
       xmlns:tools="clr-namespace:ExHyperV.Tools"
       Title="CpuPage"
       d:DataContext="{d:DesignInstance vm:CpuPageViewModel, IsDesignTimeCreatable=True}"
@@ -51,15 +52,15 @@
                                 </TransformGroup>
                             </ui:FontIcon.RenderTransform>
                         </ui:FontIcon>
-                        <TextBlock Text="中央处理器" FontSize="16" VerticalAlignment="Center" Margin="10,0,0,0" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                        <TextBlock Text="{x:Static properties:Resources.Cpu}" FontSize="16" VerticalAlignment="Center" Margin="10,0,0,0" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Right">
-                        <TextBlock Text="更新速度：" VerticalAlignment="Center" Margin="0,0,10,0" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                        <TextBlock Text="{x:Static properties:Resources.RefreshRate}" VerticalAlignment="Center" Margin="0,0,10,0" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
                         <ComboBox SelectedIndex="{Binding SelectedSpeedIndex}" Width="120">
-                            <ComboBoxItem Content="极速 (0.5s)"/>
-                            <ComboBoxItem Content="快 (1s)"/>
-                            <ComboBoxItem Content="慢 (2s)"/>
-                            <ComboBoxItem Content="暂停"/>
+                            <ComboBoxItem Content="{x:Static properties:Resources.RefreshRateFastest}"/>
+                            <ComboBoxItem Content="{x:Static properties:Resources.RefreshRateFast}"/>
+                            <ComboBoxItem Content="{x:Static properties:Resources.RefreshRateSlow}"/>
+                            <ComboBoxItem Content="{x:Static properties:Resources.RefreshRatePaused}"/>
                         </ComboBox>
                     </StackPanel>
                 </Grid>
@@ -92,7 +93,7 @@
                                                 <Setter Property="Foreground" Value="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
                                                 <Style.Triggers>
                                                     <DataTrigger Binding="{Binding IsRunning}" Value="False">
-                                                        <Setter Property="Text" Value="已关闭"/>
+                                                        <Setter Property="Text" Value="{x:Static properties:Resources.Off}"/>
                                                         <Setter Property="Foreground" Value="{ui:ThemeResource TextFillColorDisabledBrush}"/>
                                                     </DataTrigger>
                                                 </Style.Triggers>
@@ -209,7 +210,7 @@
                                                                 <RowDefinition Height="*"/>
                                                             </Grid.RowDefinitions>
 
-                                                            <TextBlock Grid.Row="0" Text="计算资源" FontWeight="SemiBold" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,8"/>
+                                                            <TextBlock Grid.Row="0" Text="{x:Static properties:Resources.ComputeResources}" FontWeight="SemiBold" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,8"/>
 
                                                             <Grid Grid.Row="1">
                                                                 <Grid.ColumnDefinitions>
@@ -220,13 +221,13 @@
                                                                     <ColumnDefinition Width="Auto"/>
                                                                 </Grid.ColumnDefinitions>
                                                                 <StackPanel Grid.Column="0" Margin="0,0,8,0">
-                                                                    <TextBlock Text="核心数 (vCPU)" FontSize="12" Foreground="{ui:ThemeResource TextFillColorTertiaryBrush}" Margin="0,0,0,4"/>
+                                                                    <TextBlock Text="{x:Static properties:Resources.VCpuCount}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorTertiaryBrush}" Margin="0,0,0,4"/>
                                                                     <ComboBox IsEditable="True" 
                                                                               Text="{Binding Processor.Count, UpdateSourceTrigger=PropertyChanged}"
                                                                               ItemsSource="{Binding DataContext.PossibleVCpuCounts, ElementName=CpuRootPage}"/>
                                                                 </StackPanel>
                                                                 <StackPanel Grid.Column="1" Margin="8,0,8,0" IsEnabled="{Binding DataContext.IsRootSchedulerActive, ElementName=CpuRootPage, Converter={StaticResource InverseBooleanConverter}}">
-                                                                    <TextBlock Text="预留 (%)" FontSize="12" Foreground="{ui:ThemeResource TextFillColorTertiaryBrush}" Margin="0,0,0,4"/>
+                                                                    <TextBlock Text="{x:Static properties:Resources.ReservePercentage}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorTertiaryBrush}" Margin="0,0,0,4"/>
                                                                     <ComboBox IsEditable="True" Text="{Binding Processor.Reserve, UpdateSourceTrigger=PropertyChanged}">
                                                                         <ComboBoxItem Content="0"/>
                                                                         <ComboBoxItem Content="10"/>
@@ -235,7 +236,7 @@
                                                                     </ComboBox>
                                                                 </StackPanel>
                                                                 <StackPanel Grid.Column="2" Margin="8,0,8,0" IsEnabled="{Binding DataContext.IsRootSchedulerActive, ElementName=CpuRootPage, Converter={StaticResource InverseBooleanConverter}}">
-                                                                    <TextBlock Text="限制 (%)" FontSize="12" Foreground="{ui:ThemeResource TextFillColorTertiaryBrush}" Margin="0,0,0,4"/>
+                                                                    <TextBlock Text="{x:Static properties:Resources.LimitPercentage}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorTertiaryBrush}" Margin="0,0,0,4"/>
                                                                     <ComboBox IsEditable="True" Text="{Binding Processor.Maximum, UpdateSourceTrigger=PropertyChanged}">
                                                                         <ComboBoxItem Content="100"/>
                                                                         <ComboBoxItem Content="75"/>
@@ -244,7 +245,7 @@
                                                                     </ComboBox>
                                                                 </StackPanel>
                                                                 <StackPanel Grid.Column="3" Margin="8,0,12,0" IsEnabled="{Binding DataContext.IsRootSchedulerActive, ElementName=CpuRootPage, Converter={StaticResource InverseBooleanConverter}}">
-                                                                    <TextBlock Text="权重" FontSize="12" Foreground="{ui:ThemeResource TextFillColorTertiaryBrush}" Margin="0,0,0,4"/>
+                                                                    <TextBlock Text="{x:Static properties:Resources.Weight}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorTertiaryBrush}" Margin="0,0,0,4"/>
                                                                     <ComboBox IsEditable="True" Text="{Binding Processor.RelativeWeight, UpdateSourceTrigger=PropertyChanged}">
                                                                         <ComboBoxItem Content="50"/>
                                                                         <ComboBoxItem Content="100"/>
@@ -252,7 +253,7 @@
                                                                         <ComboBoxItem Content="200"/>
                                                                     </ComboBox>
                                                                 </StackPanel>
-                                                                <ui:Button Grid.Column="4" Content="应用" Appearance="Primary" Command="{Binding DataContext.ApplyChangesCommand, ElementName=CpuRootPage}" VerticalAlignment="Bottom"/>
+                                                                <ui:Button Grid.Column="4" Content="{x:Static properties:Resources.Apply}" Appearance="Primary" Command="{Binding DataContext.ApplyChangesCommand, ElementName=CpuRootPage}" VerticalAlignment="Bottom"/>
                                                             </Grid>
 
                                                             <Rectangle Grid.Row="2" Height="1" Margin="0,15,0,15">
@@ -266,7 +267,7 @@
                                                                 </Rectangle.Fill>
                                                             </Rectangle>
 
-                                                            <TextBlock Grid.Row="3" Text="高级功能" FontWeight="SemiBold" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,8"/>
+                                                            <TextBlock Grid.Row="3" Text="{x:Static properties:Resources.AdvancedFeatures}" FontWeight="SemiBold" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,8"/>
 
                                                             <Grid Grid.Row="4">
                                                                 <Grid.RowDefinitions>
@@ -286,8 +287,8 @@
                                                                         <ColumnDefinition Width="Auto"/>
                                                                     </Grid.ColumnDefinitions>
                                                                     <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,0">
-                                                                        <TextBlock Text="嵌套虚拟化" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" FontWeight="SemiBold"/>
-                                                                        <TextBlock Text="决定虚拟机是否开启虚拟化" FontSize="12" Foreground="{ui:ThemeResource TextFillColorTertiaryBrush}" TextTrimming="CharacterEllipsis"/>
+                                                                        <TextBlock Text="{x:Static properties:Resources.NestedVirtualization}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" FontWeight="SemiBold"/>
+                                                                        <TextBlock Text="{x:Static properties:Resources.NestedVirtualizationDescription}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorTertiaryBrush}" TextTrimming="CharacterEllipsis"/>
                                                                     </StackPanel>
                                                                     <ui:ToggleSwitch Grid.Column="1" IsChecked="{Binding Processor.ExposeVirtualizationExtensions}" />
                                                                 </Grid>
@@ -298,8 +299,8 @@
                                                                         <ColumnDefinition Width="Auto"/>
                                                                     </Grid.ColumnDefinitions>
                                                                     <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,0">
-                                                                        <TextBlock Text="主机资源保护" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" FontWeight="SemiBold"/>
-                                                                        <TextBlock Text="限制虚拟机 VMbus 请求频率" FontSize="12" Foreground="{ui:ThemeResource TextFillColorTertiaryBrush}" TextTrimming="CharacterEllipsis"/>
+                                                                        <TextBlock Text="{x:Static properties:Resources.HostResourceProtection}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" FontWeight="SemiBold"/>
+                                                                        <TextBlock Text="{x:Static properties:Resources.LimitVmBusCommunicationFrequency}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorTertiaryBrush}" TextTrimming="CharacterEllipsis"/>
                                                                     </StackPanel>
                                                                     <ui:ToggleSwitch Grid.Column="1" IsChecked="{Binding Processor.EnableHostResourceProtection}" />
                                                                 </Grid>
@@ -310,8 +311,8 @@
                                                                         <ColumnDefinition Width="Auto"/>
                                                                     </Grid.ColumnDefinitions>
                                                                     <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,0">
-                                                                        <TextBlock Text="迁移兼容性" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" FontWeight="SemiBold"/>
-                                                                        <TextBlock Text="限制 CPU 特性，以便在不同版本的宿主间迁移" FontSize="12" Foreground="{ui:ThemeResource TextFillColorTertiaryBrush}" TextTrimming="CharacterEllipsis"/>
+                                                                        <TextBlock Text="{x:Static properties:Resources.MigrationCompatibility}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" FontWeight="SemiBold"/>
+                                                                        <TextBlock Text="{x:Static properties:Resources.MigrationCompatibilityDescription}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorTertiaryBrush}" TextTrimming="CharacterEllipsis"/>
                                                                     </StackPanel>
                                                                     <ui:ToggleSwitch Grid.Column="1" IsChecked="{Binding Processor.CompatibilityForMigrationEnabled}" />
                                                                 </Grid>
@@ -322,8 +323,8 @@
                                                                         <ColumnDefinition Width="Auto"/>
                                                                     </Grid.ColumnDefinitions>
                                                                     <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,0">
-                                                                        <TextBlock Text="旧系统兼容性" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" FontWeight="SemiBold"/>
-                                                                        <TextBlock Text="限制 CPU 特性，以便兼容老旧操作系统" FontSize="12" Foreground="{ui:ThemeResource TextFillColorTertiaryBrush}" TextTrimming="CharacterEllipsis"/>
+                                                                        <TextBlock Text="{x:Static properties:Resources.LegacySystemCompatibility}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" FontWeight="SemiBold"/>
+                                                                        <TextBlock Text="{x:Static properties:Resources.LegacySystemCompatibilityDescription}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorTertiaryBrush}" TextTrimming="CharacterEllipsis"/>
                                                                     </StackPanel>
                                                                     <ui:ToggleSwitch Grid.Column="1" IsChecked="{Binding Processor.CompatibilityForOlderOperatingSystemsEnabled}" />
                                                                 </Grid>
@@ -334,18 +335,18 @@
                                                                         <ColumnDefinition Width="Auto"/>
                                                                     </Grid.ColumnDefinitions>
                                                                     <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,0">
-                                                                        <TextBlock Text="虚拟机 SMT" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" FontWeight="SemiBold"/>
-                                                                        <TextBlock Text="决定虚拟机超线程是否开启" FontSize="12" Foreground="{ui:ThemeResource TextFillColorTertiaryBrush}"/>
+                                                                        <TextBlock Text="{x:Static properties:Resources.VirtualMachineSmt}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" FontWeight="SemiBold"/>
+                                                                        <TextBlock Text="{x:Static properties:Resources.VirtualMachineSmtDescription}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorTertiaryBrush}"/>
                                                                     </StackPanel>
                                                                     <ComboBox Grid.Column="1" SelectedValue="{Binding Processor.SmtMode, Mode=TwoWay}" SelectedValuePath="Tag" Width="140" VerticalAlignment="Center">
-                                                                        <ComboBoxItem Content="跟随宿主" Tag="{x:Static vm:SmtMode.Inherit}"/>
-                                                                        <ComboBoxItem Content="开启" Tag="{x:Static vm:SmtMode.MultiThread}"/>
-                                                                        <ComboBoxItem Content="关闭" Tag="{x:Static vm:SmtMode.SingleThread}"/>
+                                                                        <ComboBoxItem Content="{x:Static properties:Resources.FollowHost}" Tag="{x:Static vm:SmtMode.Inherit}"/>
+                                                                        <ComboBoxItem Content="{x:Static properties:Resources.On}" Tag="{x:Static vm:SmtMode.MultiThread}"/>
+                                                                        <ComboBoxItem Content="{x:Static properties:Resources.Close}" Tag="{x:Static vm:SmtMode.SingleThread}"/>
                                                                     </ComboBox>
                                                                 </Grid>
 
                                                                 <ui:Button Grid.Row="2" Grid.Column="2" 
-                                                                           Content="CPU 绑定" Icon="BranchFork24" HorizontalAlignment="Left" VerticalAlignment="Center"
+                                                                           Content="{x:Static properties:Resources.CpuBinding}" Icon="BranchFork24" HorizontalAlignment="Left" VerticalAlignment="Center"
                                                                            Command="{Binding DataContext.OpenVmCpuAffinityCommand, ElementName=CpuRootPage}"/>
                                                             </Grid>
                                                         </Grid>
@@ -373,20 +374,20 @@
                                                                         <ColumnDefinition Width="*"/>
                                                                         <ColumnDefinition Width="Auto"/>
                                                                     </Grid.ColumnDefinitions>
-                                                                    <TextBlock Grid.Column="0" Text="调度器类型" FontWeight="SemiBold" FontSize="16" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" VerticalAlignment="Center"/>
+                                                                    <TextBlock Grid.Column="0" Text="{x:Static properties:Resources.SchedulerType}" FontWeight="SemiBold" FontSize="16" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" VerticalAlignment="Center"/>
 
                                                                     <ComboBox Grid.Column="2" Width="160"
                                                                               SelectedIndex="{Binding DataContext.SelectedSchedulerIndex, ElementName=CpuRootPage, Mode=TwoWay}">
-                                                                        <ComboBoxItem Content="经典调度器"/>
-                                                                        <ComboBoxItem Content="核心调度器"/>
-                                                                        <ComboBoxItem Content="根调度器"/>
+                                                                        <ComboBoxItem Content="{x:Static properties:Resources.ClassicScheduler}"/>
+                                                                        <ComboBoxItem Content="{x:Static properties:Resources.CoreScheduler}"/>
+                                                                        <ComboBoxItem Content="{x:Static properties:Resources.RootScheduler}"/>
                                                                     </ComboBox>
                                                                 </Grid>
 
                                                                 <StackPanel Margin="0,0,0,15">
-                                                                    <TextBlock Text="经典调度器：基于传统时间片轮换，公平分配 CPU 资源，性能更强但安全性稍弱。" FontSize="14" Foreground="{ui:ThemeResource TextFillColorTertiaryBrush}" Margin="0,0,0,4"/>
-                                                                    <TextBlock Text="核心调度器：优先为单个虚拟机分配单个物理核心的全部线程，安全性更强但性能稍弱。" FontSize="14" Foreground="{ui:ThemeResource TextFillColorTertiaryBrush}" Margin="0,0,0,4"/>
-                                                                    <TextBlock Text="根调度器：由系统接管 CPU 调度，适合普通用户。启用后无法调整虚拟机预留、限制和权重等设置。" FontSize="14" Foreground="{ui:ThemeResource TextFillColorTertiaryBrush}"/>
+                                                                    <TextBlock Text="{x:Static properties:Resources.ClassicSchedulerDescription}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorTertiaryBrush}" Margin="0,0,0,4"/>
+                                                                    <TextBlock Text="{x:Static properties:Resources.CoreSchedulerDescription}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorTertiaryBrush}" Margin="0,0,0,4"/>
+                                                                    <TextBlock Text="{x:Static properties:Resources.RootSchedulerDescription}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorTertiaryBrush}"/>
                                                                 </StackPanel>
 
                                                                 <Rectangle Height="1" Margin="0,0,0,15">
@@ -406,8 +407,8 @@
                                                                         <ColumnDefinition Width="Auto"/>
                                                                     </Grid.ColumnDefinitions>
                                                                     <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,0">
-                                                                        <TextBlock Text="允许 NUMA 跨越" FontWeight="SemiBold" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
-                                                                        <TextBlock Text="允许虚拟机使用其他 NUMA 节点的内存 (在 Server 2025 中关闭可能会错误地禁用 CPU 超额订阅)" FontSize="12" Foreground="{ui:ThemeResource TextFillColorTertiaryBrush}" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                                                        <TextBlock Text="{x:Static properties:Resources.AllowNumaSpanning}" FontWeight="SemiBold" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                                                                        <TextBlock Text="{x:Static properties:Resources.AllowNumaSpanningDescription}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorTertiaryBrush}" TextWrapping="Wrap" Margin="0,2,0,0"/>
                                                                     </StackPanel>
                                                                     <ui:ToggleSwitch Grid.Column="1" IsChecked="{Binding DataContext.IsNumaSpanningEnabled, ElementName=CpuRootPage, Mode=TwoWay}" />
                                                                 </Grid>
@@ -426,7 +427,7 @@
                                         <Setter.Value>
                                             <DataTemplate>
                                                 <Border Background="{ui:ThemeResource ControlFillColorDefaultBrush}" BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="4">
-                                                    <TextBlock Text="数据加载中..." HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="0.5" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                                                    <TextBlock Text="{x:Static properties:Resources.DataLoading}" HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="0.5" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
                                                 </Border>
                                             </DataTemplate>
                                         </Setter.Value>

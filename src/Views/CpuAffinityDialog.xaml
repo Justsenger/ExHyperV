@@ -4,6 +4,7 @@
                  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
                  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
                  xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+                 xmlns:properties="clr-namespace:ExHyperV.Properties"
                  xmlns:vm="clr-namespace:ExHyperV.ViewModels.Dialogs"
                  mc:Ignorable="d"
                  d:DataContext="{d:DesignInstance vm:CpuAffinityDialogViewModel, IsDesignTimeCreatable=False}"
@@ -20,14 +21,10 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <TextBlock Grid.Row="0" Text="请选择要绑定到此虚拟机的宿主机处理器核心（可按住鼠标拖动选择）：" 
+        <TextBlock Grid.Row="0" Text="{x:Static properties:Resources.SelectHostCpuCoresToBind}" 
                    Margin="20,10,20,10" 
                    TextWrapping="Wrap"
                    Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
-
-        <!-- ======================================================= -->
-        <!-- 修正点: 移除了 Viewbox -->
-        <!-- ======================================================= -->
         <ItemsControl x:Name="CoresItemsControl" 
                       Grid.Row="1"
                       ItemsSource="{Binding Cores}"
@@ -49,9 +46,6 @@
                                         BorderBrush="#1A888888" 
                                         Background="#08FFFFFF">
                                     <Grid>
-                                        <!-- ======================================================= -->
-                                        <!-- 修正点: 字体大小固定，不再被放大 -->
-                                        <!-- ======================================================= -->
                                         <TextBlock Text="{Binding CoreId}"
                                                    FontSize="16" FontWeight="SemiBold" 
                                                    HorizontalAlignment="Center" VerticalAlignment="Center" 
@@ -121,8 +115,8 @@
                 </StackPanel>
 
                 <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
-                    <ui:Button Content="确定" Appearance="Primary" Margin="0,0,10,0" Click="ConfirmButton_Click"/>
-                    <ui:Button Content="取消" Click="CancelButton_Click"/>
+                    <ui:Button Content="{x:Static properties:Resources.sure}" Appearance="Primary" Margin="0,0,10,0" Click="ConfirmButton_Click"/>
+                    <ui:Button Content="{x:Static properties:Resources.Button_Cancel}" Click="CancelButton_Click"/>
                 </StackPanel>
             </Grid>
         </Border>

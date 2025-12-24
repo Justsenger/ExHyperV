@@ -10,9 +10,9 @@ namespace ExHyperV.Converters
         {
             if (value is string name)
             {
-                return name.Equals("Host", StringComparison.OrdinalIgnoreCase) ? "\uE7F8" : "\uE977";
+                return name.Equals("Host", StringComparison.OrdinalIgnoreCase) ? "\uE977" : "\uE7F8";
             }
-            return "\uE977";
+            return "\uE7F8";
         }
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         {

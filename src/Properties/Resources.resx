@@ -1061,4 +1061,130 @@ Please check if the IP and port are correct.</value>
   <data name="SchedulerTypeChangedRestartRequired" xml:space="preserve">
     <value>Hyper-V scheduler type has been changed. A system restart is required for the changes to take effect.</value>
   </data>
+  <data name="UnexpectedErrorOccurred" xml:space="preserve">
+    <value>An unexpected error occurred: {0}</value>
+  </data>
+  <data name="CannotSetCpuPinningWithRootSchedulerAndVmOff" xml:space="preserve">
+    <value>CPU pinning cannot be set when using the root scheduler and the VM is not running.</value>
+  </data>
+  <data name="VmProcessNotFound" xml:space="preserve">
+    <value>The virtual machine process could not be found. Please ensure the virtual machine is running.</value>
+  </data>
+  <data name="OperationSucceeded" xml:space="preserve">
+    <value>Operation succeeded.</value>
+  </data>
+  <data name="SelectHostCpuCoresToBind" xml:space="preserve">
+    <value>Select the host processor cores to bind to this virtual machine (Click and drag to select):</value>
+  </data>
+  <data name="Cpu" xml:space="preserve">
+    <value>CPU</value>
+  </data>
+  <data name="RefreshRate" xml:space="preserve">
+    <value>Refresh Rate:</value>
+  </data>
+  <data name="RefreshRateFastest" xml:space="preserve">
+    <value>Rapid (0.5s)</value>
+  </data>
+  <data name="RefreshRateFast" xml:space="preserve">
+    <value>Fast (1s)</value>
+  </data>
+  <data name="RefreshRateSlow" xml:space="preserve">
+    <value>Slow (2s)</value>
+  </data>
+  <data name="RefreshRatePaused" xml:space="preserve">
+    <value>Paused</value>
+  </data>
+  <data name="Off" xml:space="preserve">
+    <value>Off</value>
+  </data>
+  <data name="ComputeResources" xml:space="preserve">
+    <value>Compute Resources</value>
+  </data>
+  <data name="VCpuCount" xml:space="preserve">
+    <value>VCpuCount</value>
+  </data>
+  <data name="ReservePercentage" xml:space="preserve">
+    <value>Reserve (%)</value>
+  </data>
+  <data name="LimitPercentage" xml:space="preserve">
+    <value>Limit (%)</value>
+  </data>
+  <data name="Weight" xml:space="preserve">
+    <value>Weight</value>
+  </data>
+  <data name="AdvancedFeatures" xml:space="preserve">
+    <value>Advanced Features</value>
+  </data>
+  <data name="NestedVirtualization" xml:space="preserve">
+    <value>Nested Virtualization</value>
+  </data>
+  <data name="NestedVirtualizationDescription" xml:space="preserve">
+    <value>Enables nested virtualization.</value>
+  </data>
+  <data name="HostResourceProtection" xml:space="preserve">
+    <value>Host Resource Protection</value>
+  </data>
+  <data name="MigrationCompatibility" xml:space="preserve">
+    <value>Migration Compatibility</value>
+  </data>
+  <data name="MigrationCompatibilityDescription" xml:space="preserve">
+    <value>Allows migration to hosts with different CPUs.</value>
+  </data>
+  <data name="LegacySystemCompatibility" xml:space="preserve">
+    <value>Legacy System Compatibility</value>
+  </data>
+  <data name="LegacySystemCompatibilityDescription" xml:space="preserve">
+    <value>Improves compatibility with older OS.</value>
+  </data>
+  <data name="VirtualMachineSmt" xml:space="preserve">
+    <value>Virtual Machine SMT</value>
+  </data>
+  <data name="VirtualMachineSmtDescription" xml:space="preserve">
+    <value>Enables Hyper-Threading.</value>
+  </data>
+  <data name="FollowHost" xml:space="preserve">
+    <value>Follow Host</value>
+  </data>
+  <data name="On" xml:space="preserve">
+    <value>On</value>
+  </data>
+  <data name="CpuBinding" xml:space="preserve">
+    <value>Cpu Pinning</value>
+  </data>
+  <data name="SchedulerType" xml:space="preserve">
+    <value>Scheduler Type</value>
+  </data>
+  <data name="ClassicScheduler" xml:space="preserve">
+    <value>Classic Scheduler</value>
+  </data>
+  <data name="CoreScheduler" xml:space="preserve">
+    <value>Core Scheduler</value>
+  </data>
+  <data name="RootScheduler" xml:space="preserve">
+    <value>Root Scheduler</value>
+  </data>
+  <data name="ClassicSchedulerDescription" xml:space="preserve">
+    <value>Classic Scheduler: Optimized for performance using fair, time-sliced scheduling.</value>
+  </data>
+  <data name="CoreSchedulerDescription" xml:space="preserve">
+    <value>Core Scheduler: Increases security by isolating VMs on dedicated physical cores.</value>
+  </data>
+  <data name="RootSchedulerDescription" xml:space="preserve">
+    <value>Root Scheduler: Lets the host OS manage scheduling; disables manual VM resource controls.</value>
+  </data>
+  <data name="AllowNumaSpanning" xml:space="preserve">
+    <value>Allow NUMA Spanning</value>
+  </data>
+  <data name="AllowNumaSpanningDescription" xml:space="preserve">
+    <value>Enables cross-NUMA memory access. Warning: Disabling may affect CPU oversubscription on Server 2025.</value>
+  </data>
+  <data name="DataLoading" xml:space="preserve">
+    <value>Loading data...</value>
+  </data>
+  <data name="LimitVmBusCommunicationFrequency" xml:space="preserve">
+    <value>Limits VMbus communication frequency.</value>
+  </data>
+  <data name="VMSettingsSavedSuccessfully" xml:space="preserve">
+    <value>Settings for virtual machine '{0}' saved successfully.</value>
+  </data>
 </root>

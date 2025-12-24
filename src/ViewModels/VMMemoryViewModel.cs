@@ -5,7 +5,6 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ExHyperV.Models;
 using ExHyperV.Services;
-using ExHyperV.Tools;
 using Wpf.Ui.Controls;
 
 namespace ExHyperV.ViewModels
@@ -52,7 +51,7 @@ namespace ExHyperV.ViewModels
 
         public string VMName => _originalModel.VMName;
         public bool IsVmRunning => State?.Equals("Running", StringComparison.OrdinalIgnoreCase) ?? false;
-        public string VmIconGlyph => "\uE977";
+        public string VmIconGlyph => "\uE7F8";
         public bool IsDataValid => IsStartupMBValid && IsMinimumMBValid && IsMaximumMBValid && IsBufferValid;
 
         public double UsagePercentage => IsVmRunning && AssignedMB > 0 ? Math.Min((double)DemandMB / AssignedMB * 100, 100) : 0;
@@ -207,7 +206,7 @@ namespace ExHyperV.ViewModels
                     _originalModel = newInfo;
                     _parentViewModel.ShowSnackbar(
                         ExHyperV.Properties.Resources.success,
-                        string.Format("虚拟机 {0} 的设置已成功保存。", VMName),
+                        string.Format(ExHyperV.Properties.Resources.VMSettingsSavedSuccessfully, VMName),
                         ControlAppearance.Success,
                         SymbolRegular.CheckmarkCircle24);
                     ValidateAllFields();

@@ -213,7 +213,7 @@ namespace ExHyperV.ViewModels
             }
             catch (Exception ex)
             {
-                ShowSnackbar("错误", $"发生未预期的错误: {ex.Message}", ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                ShowSnackbar(ExHyperV.Properties.Resources.UnknownError, string.Format(ExHyperV.Properties.Resources.UnexpectedErrorOccurred, ex.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
                 if (_originalProcessorConfig != null)
                 {
                     SelectedVm.Processor.Restore(_originalProcessorConfig);
@@ -499,7 +499,7 @@ namespace ExHyperV.ViewModels
             {
                 if (!SelectedVm.IsRunning)
                 {
-                    ShowSnackbar("操作不可用", "根调度器模式下，虚拟机未运行时，无法设置 CPU 绑定。", ControlAppearance.Caution, SymbolRegular.Warning24);
+                    ShowSnackbar(ExHyperV.Properties.Resources.Dialog_Title_OperationFailed, ExHyperV.Properties.Resources.CannotSetCpuPinningWithRootSchedulerAndVmOff, ControlAppearance.Caution, SymbolRegular.Warning24);
                     return;
                 }
 
@@ -515,7 +515,7 @@ namespace ExHyperV.ViewModels
 
                     if (vmId == Guid.Empty)
                     {
-                        ShowSnackbar("错误", "无法找到虚拟机进程，请确保虚拟机正在运行。", ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                        ShowSnackbar(ExHyperV.Properties.Resources.error,ExHyperV.Properties.Resources.VmProcessNotFound, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
                         return;
                     }
 
@@ -602,11 +602,11 @@ namespace ExHyperV.ViewModels
                 UpdateCoresImmediately();
                 _lockedTopologyVmName = SelectedVm.Name;
                 _lockedTopologyUntil = DateTime.Now.AddSeconds(5);
-                ShowSnackbar("操作成功", message, ControlAppearance.Success, SymbolRegular.CheckmarkCircle24, 1.5);
+                ShowSnackbar(ExHyperV.Properties.Resources.OperationSucceeded, message, ControlAppearance.Success, SymbolRegular.CheckmarkCircle24, 1.5);
             }
             else
             {
-                ShowSnackbar("操作失败", message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                ShowSnackbar(ExHyperV.Properties.Resources.Dialog_Title_OperationFailed, message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
             }
         }
 

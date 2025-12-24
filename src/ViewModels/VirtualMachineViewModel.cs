@@ -18,7 +18,7 @@ namespace ExHyperV.ViewModels
         {
             Model = model;
 
-            VmIcon = Utils.FontIcon(24, "\xE977");
+            VmIcon = Utils.FontIcon(24, "\xE7F8");
 
             foreach (var assignedGpu in model.GPUs)
             {

@@ -205,6 +205,33 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 Advanced Features 的本地化字符串。
+        /// </summary>
+        public static string AdvancedFeatures {
+            get {
+                return ResourceManager.GetString("AdvancedFeatures", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Allow NUMA Spanning 的本地化字符串。
+        /// </summary>
+        public static string AllowNumaSpanning {
+            get {
+                return ResourceManager.GetString("AllowNumaSpanning", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Enables cross-NUMA memory access. Warning: Disabling may affect CPU oversubscription on Server 2025. 的本地化字符串。
+        /// </summary>
+        public static string AllowNumaSpanningDescription {
+            get {
+                return ResourceManager.GetString("AllowNumaSpanningDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似  has assigned to  的本地化字符串。
         /// </summary>
         public static string already {
@@ -385,6 +412,15 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 CPU pinning cannot be set when using the root scheduler and the VM is not running. 的本地化字符串。
+        /// </summary>
+        public static string CannotSetCpuPinningWithRootSchedulerAndVmOff {
+            get {
+                return ResourceManager.GetString("CannotSetCpuPinningWithRootSchedulerAndVmOff", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Capacity 的本地化字符串。
         /// </summary>
         public static string Capacity {
@@ -457,6 +493,24 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 Classic Scheduler 的本地化字符串。
+        /// </summary>
+        public static string ClassicScheduler {
+            get {
+                return ResourceManager.GetString("ClassicScheduler", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Classic Scheduler: Optimized for performance using fair, time-sliced scheduling. 的本地化字符串。
+        /// </summary>
+        public static string ClassicSchedulerDescription {
+            get {
+                return ResourceManager.GetString("ClassicSchedulerDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Close 的本地化字符串。
         /// </summary>
         public static string Close {
@@ -493,6 +547,15 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 Compute Resources 的本地化字符串。
+        /// </summary>
+        public static string ComputeResources {
+            get {
+                return ResourceManager.GetString("ComputeResources", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Configured Speed 的本地化字符串。
         /// </summary>
         public static string ConfiguredSpeed {
@@ -511,6 +574,42 @@ namespace ExHyperV.Properties {
         public static string Confirm_ShutdownMessage {
             get {
                 return ResourceManager.GetString("Confirm_ShutdownMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Core Scheduler 的本地化字符串。
+        /// </summary>
+        public static string CoreScheduler {
+            get {
+                return ResourceManager.GetString("CoreScheduler", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Core Scheduler: Increases security by isolating VMs on dedicated physical cores. 的本地化字符串。
+        /// </summary>
+        public static string CoreSchedulerDescription {
+            get {
+                return ResourceManager.GetString("CoreSchedulerDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 CPU 的本地化字符串。
+        /// </summary>
+        public static string Cpu {
+            get {
+                return ResourceManager.GetString("Cpu", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Cpu Pinning 的本地化字符串。
+        /// </summary>
+        public static string CpuBinding {
+            get {
+                return ResourceManager.GetString("CpuBinding", resourceCulture);
             }
         }
         
@@ -538,6 +637,15 @@ namespace ExHyperV.Properties {
         public static string dark {
             get {
                 return ResourceManager.GetString("dark", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Loading data... 的本地化字符串。
+        /// </summary>
+        public static string DataLoading {
+            get {
+                return ResourceManager.GetString("DataLoading", resourceCulture);
             }
         }
         
@@ -1296,6 +1404,15 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 Follow Host 的本地化字符串。
+        /// </summary>
+        public static string FollowHost {
+            get {
+                return ResourceManager.GetString("FollowHost", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Get the path of the device... 的本地化字符串。
         /// </summary>
         public static string getpath {
@@ -1427,6 +1544,15 @@ namespace ExHyperV.Properties {
         public static string Hostconnected {
             get {
                 return ResourceManager.GetString("Hostconnected", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Host Resource Protection 的本地化字符串。
+        /// </summary>
+        public static string HostResourceProtection {
+            get {
+                return ResourceManager.GetString("HostResourceProtection", resourceCulture);
             }
         }
         
@@ -1685,11 +1811,47 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 Legacy System Compatibility 的本地化字符串。
+        /// </summary>
+        public static string LegacySystemCompatibility {
+            get {
+                return ResourceManager.GetString("LegacySystemCompatibility", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Improves compatibility with older OS. 的本地化字符串。
+        /// </summary>
+        public static string LegacySystemCompatibilityDescription {
+            get {
+                return ResourceManager.GetString("LegacySystemCompatibilityDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Light 的本地化字符串。
         /// </summary>
         public static string light {
             get {
                 return ResourceManager.GetString("light", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Limit (%) 的本地化字符串。
+        /// </summary>
+        public static string LimitPercentage {
+            get {
+                return ResourceManager.GetString("LimitPercentage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Limits VMbus communication frequency. 的本地化字符串。
+        /// </summary>
+        public static string LimitVmBusCommunicationFrequency {
+            get {
+                return ResourceManager.GetString("LimitVmBusCommunicationFrequency", resourceCulture);
             }
         }
         
@@ -2004,6 +2166,24 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 Migration Compatibility 的本地化字符串。
+        /// </summary>
+        public static string MigrationCompatibility {
+            get {
+                return ResourceManager.GetString("MigrationCompatibility", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Allows migration to hosts with different CPUs. 的本地化字符串。
+        /// </summary>
+        public static string MigrationCompatibilityDescription {
+            get {
+                return ResourceManager.GetString("MigrationCompatibilityDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Minimum RAM 的本地化字符串。
         /// </summary>
         public static string MinimumRAM {
@@ -2054,6 +2234,24 @@ namespace ExHyperV.Properties {
         public static string needhyperv {
             get {
                 return ResourceManager.GetString("needhyperv", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Nested Virtualization 的本地化字符串。
+        /// </summary>
+        public static string NestedVirtualization {
+            get {
+                return ResourceManager.GetString("NestedVirtualization", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Enables nested virtualization. 的本地化字符串。
+        /// </summary>
+        public static string NestedVirtualizationDescription {
+            get {
+                return ResourceManager.GetString("NestedVirtualizationDescription", resourceCulture);
             }
         }
         
@@ -2112,6 +2310,15 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 Off 的本地化字符串。
+        /// </summary>
+        public static string Off {
+            get {
+                return ResourceManager.GetString("Off", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 OK 的本地化字符串。
         /// </summary>
         public static string OK {
@@ -2121,11 +2328,29 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 On 的本地化字符串。
+        /// </summary>
+        public static string On {
+            get {
+                return ResourceManager.GetString("On", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Operation completed! 的本地化字符串。
         /// </summary>
         public static string operated {
             get {
                 return ResourceManager.GetString("operated", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Operation succeeded. 的本地化字符串。
+        /// </summary>
+        public static string OperationSucceeded {
+            get {
+                return ResourceManager.GetString("OperationSucceeded", resourceCulture);
             }
         }
         
@@ -2238,6 +2463,51 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 Refresh Rate: 的本地化字符串。
+        /// </summary>
+        public static string RefreshRate {
+            get {
+                return ResourceManager.GetString("RefreshRate", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Fast (1s) 的本地化字符串。
+        /// </summary>
+        public static string RefreshRateFast {
+            get {
+                return ResourceManager.GetString("RefreshRateFast", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Rapid (0.5s) 的本地化字符串。
+        /// </summary>
+        public static string RefreshRateFastest {
+            get {
+                return ResourceManager.GetString("RefreshRateFastest", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Paused 的本地化字符串。
+        /// </summary>
+        public static string RefreshRatePaused {
+            get {
+                return ResourceManager.GetString("RefreshRatePaused", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Slow (2s) 的本地化字符串。
+        /// </summary>
+        public static string RefreshRateSlow {
+            get {
+                return ResourceManager.GetString("RefreshRateSlow", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 #Dismounted 的本地化字符串。
         /// </summary>
         public static string removed {
@@ -2256,11 +2526,38 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 Reserve (%) 的本地化字符串。
+        /// </summary>
+        public static string ReservePercentage {
+            get {
+                return ResourceManager.GetString("ReservePercentage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Reset 的本地化字符串。
         /// </summary>
         public static string Reset {
             get {
                 return ResourceManager.GetString("Reset", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Root Scheduler 的本地化字符串。
+        /// </summary>
+        public static string RootScheduler {
+            get {
+                return ResourceManager.GetString("RootScheduler", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Root Scheduler: Lets the host OS manage scheduling; disables manual VM resource controls. 的本地化字符串。
+        /// </summary>
+        public static string RootSchedulerDescription {
+            get {
+                return ResourceManager.GetString("RootSchedulerDescription", resourceCulture);
             }
         }
         
@@ -2283,11 +2580,29 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 Scheduler Type 的本地化字符串。
+        /// </summary>
+        public static string SchedulerType {
+            get {
+                return ResourceManager.GetString("SchedulerType", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Hyper-V scheduler type has been changed. A system restart is required for the changes to take effect. 的本地化字符串。
         /// </summary>
         public static string SchedulerTypeChangedRestartRequired {
             get {
                 return ResourceManager.GetString("SchedulerTypeChangedRestartRequired", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Select the host processor cores to bind to this virtual machine (Click and drag to select): 的本地化字符串。
+        /// </summary>
+        public static string SelectHostCpuCoresToBind {
+            get {
+                return ResourceManager.GetString("SelectHostCpuCoresToBind", resourceCulture);
             }
         }
         
@@ -2652,6 +2967,15 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 An unexpected error occurred: {0} 的本地化字符串。
+        /// </summary>
+        public static string UnexpectedErrorOccurred {
+            get {
+                return ResourceManager.GetString("UnexpectedErrorOccurred", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Uninstall 的本地化字符串。
         /// </summary>
         public static string uninstall {
@@ -2751,11 +3075,38 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 VCpuCount 的本地化字符串。
+        /// </summary>
+        public static string VCpuCount {
+            get {
+                return ResourceManager.GetString("VCpuCount", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Version 的本地化字符串。
         /// </summary>
         public static string version {
             get {
                 return ResourceManager.GetString("version", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Virtual Machine SMT 的本地化字符串。
+        /// </summary>
+        public static string VirtualMachineSmt {
+            get {
+                return ResourceManager.GetString("VirtualMachineSmt", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Enables Hyper-Threading. 的本地化字符串。
+        /// </summary>
+        public static string VirtualMachineSmtDescription {
+            get {
+                return ResourceManager.GetString("VirtualMachineSmtDescription", resourceCulture);
             }
         }
         
@@ -2805,6 +3156,24 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 The virtual machine process could not be found. Please ensure the virtual machine is running. 的本地化字符串。
+        /// </summary>
+        public static string VmProcessNotFound {
+            get {
+                return ResourceManager.GetString("VmProcessNotFound", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Settings for virtual machine &apos;{0}&apos; saved successfully. 的本地化字符串。
+        /// </summary>
+        public static string VMSettingsSavedSuccessfully {
+            get {
+                return ResourceManager.GetString("VMSettingsSavedSuccessfully", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 The operation cannot be interrupted, please wait 的本地化字符串。
         /// </summary>
         public static string wait {
@@ -2843,6 +3212,15 @@ namespace ExHyperV.Properties {
         public static string Warning_Win10GpuAssignmentNotPersistent {
             get {
                 return ResourceManager.GetString("Warning_Win10GpuAssignmentNotPersistent", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Weight 的本地化字符串。
+        /// </summary>
+        public static string Weight {
+            get {
+                return ResourceManager.GetString("Weight", resourceCulture);
             }
         }
     }

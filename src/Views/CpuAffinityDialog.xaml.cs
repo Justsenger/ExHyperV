@@ -23,7 +23,6 @@ namespace ExHyperV.Views.Dialogs
         {
             _isDragging = false;
             _lastToggledCore = null;
-            // 捕获鼠标，确保 MouseUp 事件总能被触发
             (sender as IInputElement)?.CaptureMouse();
         }
 
@@ -31,7 +30,6 @@ namespace ExHyperV.Views.Dialogs
         {
             if (e.LeftButton == MouseButtonState.Pressed)
             {
-                // 一旦鼠标移动，就确认为拖动
                 _isDragging = true;
 
                 var core = GetCoreFromPosition(e.GetPosition(CoresItemsControl));
@@ -45,9 +43,6 @@ namespace ExHyperV.Views.Dialogs
 
         private void ItemsControl_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
-            // =======================================================
-            // 修正点: 只有在非拖动状态下（即一次纯粹的单击）才执行切换
-            // =======================================================
             if (!_isDragging)
             {
                 var core = GetCoreFromPosition(e.GetPosition(CoresItemsControl));
@@ -56,8 +51,6 @@ namespace ExHyperV.Views.Dialogs
                     core.IsSelected = !core.IsSelected;
                 }
             }
-
-            // 重置状态并释放鼠标
             _isDragging = false;
             _lastToggledCore = null;
             (sender as IInputElement)?.ReleaseMouseCapture();

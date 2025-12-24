@@ -1031,11 +1031,11 @@
   <data name="Error_UnknownConnectionError" xml:space="preserve">
     <value>连接发生未知错误: {0}</value>
   </data>
-  <data name="Title_Information" xml:space="preserve">
-    <value>提示</value>
-  </data>
   <data name="SettingsSavedSuccessfully" xml:space="preserve">
     <value>设置已成功保存</value>
+  </data>
+  <data name="Title_Information" xml:space="preserve">
+    <value>提示</value>
   </data>
   <data name="UnknownError" xml:space="preserve">
     <value>未知错误</value>
@@ -1060,5 +1060,132 @@
   </data>
   <data name="SchedulerTypeChangedRestartRequired" xml:space="preserve">
     <value>Hyper-V 调度器类型已更改，需要重启系统才能生效。</value>
+  </data>
+  <data name="UnexpectedErrorOccurred" xml:space="preserve">
+    <value>发生未预期的错误:</value>
+  </data>
+  <data name="CannotSetCpuPinningWithRootSchedulerAndVmOff" xml:space="preserve">
+    <value>当使用根调度器且虚拟机未运行时，无法设置 CPU 绑定。</value>
+  </data>
+  <data name="VmProcessNotFound" xml:space="preserve">
+    <value>无法找到虚拟机进程，请确保虚拟机正在运行。</value>
+  </data>
+  <data name="OperationSucceeded" xml:space="preserve">
+    <value>操作成功</value>
+  </data>
+  <data name="SelectHostCpuCoresToBind" xml:space="preserve">
+    <value>选择要绑定的宿主机核心 (可拖动多选)：
+</value>
+  </data>
+  <data name="Cpu" xml:space="preserve">
+    <value>中央处理器</value>
+  </data>
+  <data name="RefreshRate" xml:space="preserve">
+    <value>更新速度：</value>
+  </data>
+  <data name="RefreshRateFastest" xml:space="preserve">
+    <value>迅速 (0.5s)</value>
+  </data>
+  <data name="RefreshRateFast" xml:space="preserve">
+    <value>快 (1s)</value>
+  </data>
+  <data name="RefreshRateSlow" xml:space="preserve">
+    <value>慢 (2s)</value>
+  </data>
+  <data name="RefreshRatePaused" xml:space="preserve">
+    <value>暂停</value>
+  </data>
+  <data name="Off" xml:space="preserve">
+    <value>已关闭</value>
+  </data>
+  <data name="ComputeResources" xml:space="preserve">
+    <value>计算资源</value>
+  </data>
+  <data name="VCpuCount" xml:space="preserve">
+    <value>核心数 (vCPU)</value>
+  </data>
+  <data name="ReservePercentage" xml:space="preserve">
+    <value>预留 (%)</value>
+  </data>
+  <data name="LimitPercentage" xml:space="preserve">
+    <value>限制 (%)</value>
+  </data>
+  <data name="Weight" xml:space="preserve">
+    <value>权重</value>
+  </data>
+  <data name="AdvancedFeatures" xml:space="preserve">
+    <value>高级功能</value>
+  </data>
+  <data name="NestedVirtualization" xml:space="preserve">
+    <value>嵌套虚拟化</value>
+  </data>
+  <data name="NestedVirtualizationDescription" xml:space="preserve">
+    <value>决定虚拟机是否开启虚拟化</value>
+  </data>
+  <data name="HostResourceProtection" xml:space="preserve">
+    <value>主机资源保护</value>
+  </data>
+  <data name="MigrationCompatibility" xml:space="preserve">
+    <value>迁移兼容性</value>
+  </data>
+  <data name="MigrationCompatibilityDescription" xml:space="preserve">
+    <value>限制 CPU 特性，以便在不同版本的宿主间迁移</value>
+  </data>
+  <data name="LegacySystemCompatibility" xml:space="preserve">
+    <value>旧系统兼容性</value>
+  </data>
+  <data name="LegacySystemCompatibilityDescription" xml:space="preserve">
+    <value>限制 CPU 特性，以便兼容老旧操作系统</value>
+  </data>
+  <data name="VirtualMachineSmt" xml:space="preserve">
+    <value>虚拟机 SMT</value>
+  </data>
+  <data name="VirtualMachineSmtDescription" xml:space="preserve">
+    <value>决定虚拟机超线程是否开启</value>
+  </data>
+  <data name="FollowHost" xml:space="preserve">
+    <value>跟随宿主</value>
+  </data>
+  <data name="On" xml:space="preserve">
+    <value>开启</value>
+  </data>
+  <data name="CpuBinding" xml:space="preserve">
+    <value>CPU 绑定</value>
+  </data>
+  <data name="SchedulerType" xml:space="preserve">
+    <value>调度器类型</value>
+  </data>
+  <data name="ClassicScheduler" xml:space="preserve">
+    <value>经典调度器</value>
+  </data>
+  <data name="CoreScheduler" xml:space="preserve">
+    <value>核心调度器</value>
+  </data>
+  <data name="RootScheduler" xml:space="preserve">
+    <value>根调度器</value>
+  </data>
+  <data name="ClassicSchedulerDescription" xml:space="preserve">
+    <value>经典调度器：基于传统时间片轮换，公平分配 CPU 资源，性能更强但安全性稍弱。</value>
+  </data>
+  <data name="CoreSchedulerDescription" xml:space="preserve">
+    <value>核心调度器：优先为单个虚拟机分配单个物理核心的全部线程，安全性更强但性能稍弱。</value>
+  </data>
+  <data name="RootSchedulerDescription" xml:space="preserve">
+    <value>根调度器：由系统接管 CPU 调度，适合普通用户。启用后无法调整虚拟机预留、限制和权重等设置。</value>
+  </data>
+  <data name="AllowNumaSpanning" xml:space="preserve">
+    <value>允许 NUMA 跨越</value>
+  </data>
+  <data name="AllowNumaSpanningDescription" xml:space="preserve">
+    <value>允许虚拟机使用其他 NUMA 节点的内存 (在 Server 2025 中关闭可能会错误地禁用 CPU 超额订阅)</value>
+  </data>
+  <data name="DataLoading" xml:space="preserve">
+    <value>数据加载中...</value>
+  </data>
+  <data name="LimitVmBusCommunicationFrequency" xml:space="preserve">
+    <value>限制虚拟机 VMbus 通信频率</value>
+  </data>
+  <data name="VMSettingsSavedSuccessfully" xml:space="preserve">
+    <value>虚拟机 {0} 的设置已成功保存。</value>
   </data>
 </root>
