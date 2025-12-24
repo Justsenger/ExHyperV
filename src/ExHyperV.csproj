@@ -157,11 +157,12 @@
         <Message Text="--- [等级5] 移除WCF等系统组件" Importance="high" />
 
         <!-- === 最终魔法: 从 dll 文件夹复制优化版 DLL 进行替换 === -->
-        <ItemGroup>
+		<!--<ItemGroup>
             <MagicDlls Include="$(MSBuildProjectDirectory)\dll\*.dll" />
         </ItemGroup>
-        <Copy SourceFiles="@(MagicDlls)" DestinationFolder="$(PublishDir)" OverwriteReadOnlyFiles="true" SkipUnchangedFiles="false" />
-        <Message Text="--- [等级6] 移除没有必要的dll文件，替换自定义的更小的dll" Importance="high" />
+        <Copy SourceFiles="@(MagicDlls)" DestinationFolder="$(PublishDir)" OverwriteReadOnlyFiles="true" SkipUnchangedFiles="false" /> -->
+
+		<Message Text="--- [等级6] 移除没有必要的dll文件，替换自定义的更小的dll" Importance="high" />
         <!-- =================================================================== -->
         <!--           新增: 第2.5级: Runtimes 深度清理区 (外科手术)           -->
         <!-- =================================================================== -->
