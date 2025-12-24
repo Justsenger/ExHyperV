@@ -1128,7 +1128,7 @@ Please check if the IP and port are correct.</value>
     <value>Migration Compatibility</value>
   </data>
   <data name="MigrationCompatibilityDescription" xml:space="preserve">
-    <value>Allows migration to hosts with different CPUs.</value>
+    <value>Allows migration across different CPUs.</value>
   </data>
   <data name="LegacySystemCompatibility" xml:space="preserve">
     <value>Legacy System Compatibility</value>

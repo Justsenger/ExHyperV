@@ -68,7 +68,7 @@
                                                 </Viewbox>
 
                                                 <StackPanel Orientation="Horizontal" Margin="5,2,0,0" HorizontalAlignment="Left" VerticalAlignment="Top">
-                                                    <TextBlock Text="{Binding CoreId}" FontSize="10" Opacity="0.6" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                                                    <TextBlock Text="{Binding CoreId}" FontSize="10" Opacity="0.6" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
                                                     <TextBlock FontSize="10" Margin="3,0,0,0" VerticalAlignment="Center" FontWeight="Bold">
                                                         <TextBlock.Style>
                                                             <Style TargetType="TextBlock">
@@ -92,11 +92,11 @@
 
                                                 <TextBlock x:Name="UsageText" 
                                                            Text="{Binding Usage, StringFormat='{}{0:N1}%'}" 
-                                                           FontSize="16" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" 
+                                                           FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" 
                                                            Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
 
                                                 <TextBlock x:Name="OffText" Text="OFF" FontSize="14" FontWeight="Bold" Opacity="0.1" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,-2,0,0"
-                                                           Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" Visibility="Collapsed"/>
+                                                           Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Visibility="Collapsed"/>
                                             </Grid>
                                         </Border>
                                     </Grid>
@@ -148,13 +148,13 @@
                                             <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
                                         <StackPanel Grid.Column="0" Margin="0,0,8,0">
-                                            <TextBlock Text="{x:Static properties:Resources.VCpuCount}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorTertiaryBrush}" Margin="0,0,0,4"/>
+                                            <TextBlock Text="{x:Static properties:Resources.VCpuCount}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
                                             <ComboBox IsEditable="True" 
                                                       Text="{Binding Processor.Count, UpdateSourceTrigger=PropertyChanged}"
                                                       ItemsSource="{Binding DataContext.PossibleVCpuCounts, ElementName=CpuRootPage}"/>
                                         </StackPanel>
                                         <StackPanel Grid.Column="1" Margin="8,0,8,0" IsEnabled="{Binding DataContext.IsRootSchedulerActive, ElementName=CpuRootPage, Converter={StaticResource InverseBooleanConverter}}">
-                                            <TextBlock Text="{x:Static properties:Resources.ReservePercentage}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorTertiaryBrush}" Margin="0,0,0,4"/>
+                                            <TextBlock Text="{x:Static properties:Resources.ReservePercentage}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
                                             <ComboBox IsEditable="True" Text="{Binding Processor.Reserve, UpdateSourceTrigger=PropertyChanged}">
                                                 <ComboBoxItem Content="0"/>
                                                 <ComboBoxItem Content="10"/>
@@ -163,7 +163,7 @@
                                             </ComboBox>
                                         </StackPanel>
                                         <StackPanel Grid.Column="2" Margin="8,0,8,0" IsEnabled="{Binding DataContext.IsRootSchedulerActive, ElementName=CpuRootPage, Converter={StaticResource InverseBooleanConverter}}">
-                                            <TextBlock Text="{x:Static properties:Resources.LimitPercentage}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorTertiaryBrush}" Margin="0,0,0,4"/>
+                                            <TextBlock Text="{x:Static properties:Resources.LimitPercentage}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
                                             <ComboBox IsEditable="True" Text="{Binding Processor.Maximum, UpdateSourceTrigger=PropertyChanged}">
                                                 <ComboBoxItem Content="100"/>
                                                 <ComboBoxItem Content="75"/>
@@ -172,7 +172,7 @@
                                             </ComboBox>
                                         </StackPanel>
                                         <StackPanel Grid.Column="3" Margin="8,0,12,0" IsEnabled="{Binding DataContext.IsRootSchedulerActive, ElementName=CpuRootPage, Converter={StaticResource InverseBooleanConverter}}">
-                                            <TextBlock Text="{x:Static properties:Resources.Weight}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorTertiaryBrush}" Margin="0,0,0,4"/>
+                                            <TextBlock Text="{x:Static properties:Resources.Weight}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
                                             <ComboBox IsEditable="True" Text="{Binding Processor.RelativeWeight, UpdateSourceTrigger=PropertyChanged}">
                                                 <ComboBoxItem Content="50"/>
                                                 <ComboBoxItem Content="100"/>
@@ -215,7 +215,7 @@
                                             </Grid.ColumnDefinitions>
                                             <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,0">
                                                 <TextBlock Text="{x:Static properties:Resources.NestedVirtualization}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" FontWeight="SemiBold"/>
-                                                <TextBlock Text="{x:Static properties:Resources.NestedVirtualizationDescription}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorTertiaryBrush}" TextTrimming="CharacterEllipsis"/>
+                                                <TextBlock Text="{x:Static properties:Resources.NestedVirtualizationDescription}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" TextTrimming="CharacterEllipsis"/>
                                             </StackPanel>
                                             <ui:ToggleSwitch Grid.Column="1" IsChecked="{Binding Processor.ExposeVirtualizationExtensions}" />
                                         </Grid>
@@ -227,7 +227,7 @@
                                             </Grid.ColumnDefinitions>
                                             <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,0">
                                                 <TextBlock Text="{x:Static properties:Resources.HostResourceProtection}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" FontWeight="SemiBold"/>
-                                                <TextBlock Text="{x:Static properties:Resources.LimitVmBusCommunicationFrequency}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorTertiaryBrush}" TextTrimming="CharacterEllipsis"/>
+                                                <TextBlock Text="{x:Static properties:Resources.LimitVmBusCommunicationFrequency}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" TextTrimming="CharacterEllipsis"/>
                                             </StackPanel>
                                             <ui:ToggleSwitch Grid.Column="1" IsChecked="{Binding Processor.EnableHostResourceProtection}" />
                                         </Grid>
@@ -239,7 +239,7 @@
                                             </Grid.ColumnDefinitions>
                                             <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,0">
                                                 <TextBlock Text="{x:Static properties:Resources.MigrationCompatibility}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" FontWeight="SemiBold"/>
-                                                <TextBlock Text="{x:Static properties:Resources.MigrationCompatibilityDescription}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorTertiaryBrush}" TextTrimming="CharacterEllipsis"/>
+                                                <TextBlock Text="{x:Static properties:Resources.MigrationCompatibilityDescription}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" TextTrimming="CharacterEllipsis"/>
                                             </StackPanel>
                                             <ui:ToggleSwitch Grid.Column="1" IsChecked="{Binding Processor.CompatibilityForMigrationEnabled}" />
                                         </Grid>
@@ -251,7 +251,7 @@
                                             </Grid.ColumnDefinitions>
                                             <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,0">
                                                 <TextBlock Text="{x:Static properties:Resources.LegacySystemCompatibility}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" FontWeight="SemiBold"/>
-                                                <TextBlock Text="{x:Static properties:Resources.LegacySystemCompatibilityDescription}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorTertiaryBrush}" TextTrimming="CharacterEllipsis"/>
+                                                <TextBlock Text="{x:Static properties:Resources.LegacySystemCompatibilityDescription}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" TextTrimming="CharacterEllipsis"/>
                                             </StackPanel>
                                             <ui:ToggleSwitch Grid.Column="1" IsChecked="{Binding Processor.CompatibilityForOlderOperatingSystemsEnabled}" />
                                         </Grid>
@@ -263,7 +263,7 @@
                                             </Grid.ColumnDefinitions>
                                             <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,0">
                                                 <TextBlock Text="{x:Static properties:Resources.VirtualMachineSmt}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" FontWeight="SemiBold"/>
-                                                <TextBlock Text="{x:Static properties:Resources.VirtualMachineSmtDescription}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorTertiaryBrush}"/>
+                                                <TextBlock Text="{x:Static properties:Resources.VirtualMachineSmtDescription}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
                                             </StackPanel>
                                             <ComboBox Grid.Column="1" SelectedValue="{Binding Processor.SmtMode, Mode=TwoWay}" SelectedValuePath="Tag" Width="140" VerticalAlignment="Center">
                                                 <ComboBoxItem Content="{x:Static properties:Resources.FollowHost}" Tag="{x:Static vm:SmtMode.Inherit}"/>
@@ -301,7 +301,7 @@
                                                 <ColumnDefinition Width="*"/>
                                                 <ColumnDefinition Width="Auto"/>
                                             </Grid.ColumnDefinitions>
-                                            <TextBlock Grid.Column="0" Text="{x:Static properties:Resources.SchedulerType}" FontWeight="SemiBold" FontSize="16" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" VerticalAlignment="Center"/>
+                                            <TextBlock Grid.Column="0" Text="{x:Static properties:Resources.SchedulerType}" FontSize="16" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" VerticalAlignment="Center"/>
 
                                             <ComboBox Grid.Column="2" Width="160"
                                                       SelectedIndex="{Binding DataContext.SelectedSchedulerIndex, ElementName=CpuRootPage, Mode=TwoWay}">
@@ -312,9 +312,9 @@
                                         </Grid>
 
                                         <StackPanel Margin="0,0,0,15">
-                                            <TextBlock Text="{x:Static properties:Resources.ClassicSchedulerDescription}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorTertiaryBrush}" Margin="0,0,0,4"/>
-                                            <TextBlock Text="{x:Static properties:Resources.CoreSchedulerDescription}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorTertiaryBrush}" Margin="0,0,0,4"/>
-                                            <TextBlock Text="{x:Static properties:Resources.RootSchedulerDescription}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorTertiaryBrush}"/>
+                                            <TextBlock Text="{x:Static properties:Resources.ClassicSchedulerDescription}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
+                                            <TextBlock Text="{x:Static properties:Resources.CoreSchedulerDescription}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
+                                            <TextBlock Text="{x:Static properties:Resources.RootSchedulerDescription}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
                                         </StackPanel>
 
                                         <Rectangle Height="1" Margin="0,0,0,15">
@@ -334,8 +334,8 @@
                                                 <ColumnDefinition Width="Auto"/>
                                             </Grid.ColumnDefinitions>
                                             <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,0">
-                                                <TextBlock Text="{x:Static properties:Resources.AllowNumaSpanning}" FontWeight="SemiBold" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
-                                                <TextBlock Text="{x:Static properties:Resources.AllowNumaSpanningDescription}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorTertiaryBrush}" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                                <TextBlock Text="{x:Static properties:Resources.AllowNumaSpanning}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                                                <TextBlock Text="{x:Static properties:Resources.AllowNumaSpanningDescription}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" TextWrapping="Wrap" Margin="0,2,0,0"/>
                                             </StackPanel>
                                             <ui:ToggleSwitch Grid.Column="1" IsChecked="{Binding DataContext.IsNumaSpanningEnabled, ElementName=CpuRootPage, Mode=TwoWay}" />
                                         </Grid>
@@ -372,8 +372,8 @@
                         <TextBlock Text="{x:Static properties:Resources.Cpu}" FontSize="16" VerticalAlignment="Center" Margin="10,0,0,0" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Right">
-                        <TextBlock Text="{x:Static properties:Resources.RefreshRate}" VerticalAlignment="Center" Margin="0,0,10,0" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
-                        <ComboBox SelectedIndex="{Binding SelectedSpeedIndex}" Width="120">
+                        <TextBlock Text="{x:Static properties:Resources.RefreshRate}" VerticalAlignment="Center" Margin="0,0,10,0" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                        <ComboBox SelectedIndex="{Binding SelectedSpeedIndex}" Width="130">
                             <ComboBoxItem Content="{x:Static properties:Resources.RefreshRateFastest}"/>
                             <ComboBoxItem Content="{x:Static properties:Resources.RefreshRateFast}"/>
                             <ComboBoxItem Content="{x:Static properties:Resources.RefreshRateSlow}"/>
@@ -414,7 +414,7 @@
                                         <TextBlock.Style>
                                             <Style TargetType="TextBlock">
                                                 <Setter Property="Text" Value="{Binding AverageUsage, StringFormat='{}{0:N1}%'}"/>
-                                                <Setter Property="Foreground" Value="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                                                <Setter Property="Foreground" Value="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
                                                 <Style.Triggers>
                                                     <DataTrigger Binding="{Binding IsRunning}" Value="False">
                                                         <Setter Property="Text" Value="{x:Static properties:Resources.Off}"/>

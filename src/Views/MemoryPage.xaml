@@ -58,8 +58,8 @@
                                                 <ColumnDefinition Width="Auto"/>
                                                 <ColumnDefinition Width="10"/>
                                             </Grid.ColumnDefinitions>
-                                            <TextBlock Grid.Column="0" Text="{Binding VMName}" FontSize="16" VerticalAlignment="Center" FontWeight="SemiBold"/>
-                                            <TextBlock Grid.Column="2" Text="{Binding MemoryUsageText}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" VerticalAlignment="Center"/>
+                                            <TextBlock Grid.Column="0" Text="{Binding VMName}" FontSize="16" VerticalAlignment="Center" />
+                                            <TextBlock Grid.Column="2" Text="{Binding MemoryUsageText}" Foreground="{DynamicResource TextFillColorPrimaryBrush}" VerticalAlignment="Center"/>
                                         </Grid>
 
                                         <Grid Grid.Row="1" Margin="0,5,10,5" Visibility="{Binding IsVmRunning, Converter={StaticResource BooleanToVisibilityConverter}}">
@@ -86,8 +86,8 @@
                                 </Grid.RowDefinitions>
 
                                 <StackPanel Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,30,15">
-                                    <TextBlock Text="{x:Static properties:Resources.StartupRAM}" FontSize="16" FontWeight="SemiBold"/>
-                                    <TextBlock Text="{x:Static properties:Resources.Description_StartupRAM}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="12" Margin="0,2,0,0"/>
+                                    <TextBlock Text="{x:Static properties:Resources.StartupRAM}" FontSize="16" />
+                                    <TextBlock Text="{x:Static properties:Resources.Description_StartupRAM}" Foreground="{DynamicResource TextFillColorPrimaryBrush}" FontSize="12" Margin="0,2,0,0"/>
                                 </StackPanel>
                                 <Grid Grid.Row="0" Grid.Column="1" VerticalAlignment="Center" Margin="0,0,0,15">
                                     <Grid.ColumnDefinitions>
@@ -111,8 +111,8 @@
                                 </Grid>
 
                                 <StackPanel Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,30,15">
-                                    <TextBlock Text="{x:Static properties:Resources.MemoryWeight}" FontSize="16" FontWeight="SemiBold"/>
-                                    <TextBlock Text="{x:Static properties:Resources.Description_MemoryWeight}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                                    <TextBlock Text="{x:Static properties:Resources.MemoryWeight}" FontSize="16" />
+                                    <TextBlock Text="{x:Static properties:Resources.Description_MemoryWeight}" Foreground="{DynamicResource TextFillColorPrimaryBrush}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
                                 </StackPanel>
                                 <Grid Grid.Row="1" Grid.Column="1" VerticalAlignment="Center" Margin="0,0,0,15">
                                     <Grid.ColumnDefinitions>
@@ -123,7 +123,7 @@
                                     <TextBlock Grid.Column="1" Text="{Binding Priority, StringFormat={}{0:F0}%}" Width="40" TextAlignment="Right" VerticalAlignment="Center" Margin="10,0,0,0"/>
                                 </Grid>
 
-                                <CheckBox Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Content="{x:Static properties:Resources.EnableDynamicMemory}" IsChecked="{Binding DynamicMemoryEnabled}" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,10"/>
+                                <CheckBox Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Content="{x:Static properties:Resources.EnableDynamicMemory}" IsChecked="{Binding DynamicMemoryEnabled}" FontSize="16"  Margin="0,0,0,10"/>
 
                                 <Grid Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" IsEnabled="{Binding DynamicMemoryEnabled}" Margin="20,0,0,0">
                                     <Grid.ColumnDefinitions>
@@ -136,8 +136,8 @@
                                         <RowDefinition Height="Auto"/>
                                     </Grid.RowDefinitions>
                                     <StackPanel Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,30,15">
-                                        <TextBlock Text="{x:Static properties:Resources.MinimumRAM}" FontSize="16" FontWeight="SemiBold"/>
-                                        <TextBlock Text="{x:Static properties:Resources.Description_MinimumRAM}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                                        <TextBlock Text="{x:Static properties:Resources.MinimumRAM}" FontSize="16" />
+                                        <TextBlock Text="{x:Static properties:Resources.Description_MinimumRAM}" Foreground="{DynamicResource TextFillColorPrimaryBrush}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
                                     </StackPanel>
                                     <Grid Grid.Row="0" Grid.Column="1" VerticalAlignment="Center" Margin="0,0,0,15">
                                         <Grid.ColumnDefinitions>
@@ -160,8 +160,8 @@
                                         <TextBlock Grid.Column="1" Text="MB" VerticalAlignment="Center" FontSize="14" Margin="10,0,0,0"/>
                                     </Grid>
                                     <StackPanel Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,30,15">
-                                        <TextBlock Text="{x:Static properties:Resources.MaximumRAM}" FontSize="16" FontWeight="SemiBold"/>
-                                        <TextBlock Text="{x:Static properties:Resources.Description_MaximumRAM}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                                        <TextBlock Text="{x:Static properties:Resources.MaximumRAM}" FontSize="16" />
+                                        <TextBlock Text="{x:Static properties:Resources.Description_MaximumRAM}" Foreground="{DynamicResource TextFillColorPrimaryBrush}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
                                     </StackPanel>
                                     <Grid Grid.Row="1" Grid.Column="1" VerticalAlignment="Center" Margin="0,0,0,15">
                                         <Grid.ColumnDefinitions>
@@ -172,8 +172,8 @@
                                         <TextBlock Grid.Column="1" Text="MB" VerticalAlignment="Center" FontSize="14" Margin="10,0,0,0"/>
                                     </Grid>
                                     <StackPanel Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,30,0">
-                                        <TextBlock Text="{x:Static properties:Resources.MemoryBuffer}" FontSize="16" FontWeight="SemiBold"/>
-                                        <TextBlock Text="{x:Static properties:Resources.Description_MemoryBuffer}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                                        <TextBlock Text="{x:Static properties:Resources.MemoryBuffer}" FontSize="16" />
+                                        <TextBlock Text="{x:Static properties:Resources.Description_MemoryBuffer}" Foreground="{DynamicResource TextFillColorPrimaryBrush}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
                                     </StackPanel>
                                     <Grid Grid.Row="2" Grid.Column="1" VerticalAlignment="Center">
                                         <Grid.ColumnDefinitions>

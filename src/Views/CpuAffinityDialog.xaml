@@ -24,7 +24,7 @@
         <TextBlock Grid.Row="0" Text="{x:Static properties:Resources.SelectHostCpuCoresToBind}" 
                    Margin="20,10,20,10" 
                    TextWrapping="Wrap"
-                   Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                   Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
         <ItemsControl x:Name="CoresItemsControl" 
                       Grid.Row="1"
                       ItemsSource="{Binding Cores}"
@@ -111,7 +111,7 @@
 
                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock Text="{Binding StatusEmoji}" FontSize="16" Margin="0,0,8,0"/>
-                    <TextBlock Text="{Binding StatusText}" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                    <TextBlock Text="{Binding StatusText}" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
                 </StackPanel>
 
                 <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">

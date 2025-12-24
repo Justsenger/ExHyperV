@@ -71,7 +71,7 @@
                             <ui:CardExpander.Header>
                                 <Grid>
                                     <StackPanel VerticalAlignment="Center">
-                                        <TextBlock Text="{Binding SwitchName}" FontSize="16" FontWeight="SemiBold" Margin="0,-2,0,0" />
+                                        <TextBlock Text="{Binding SwitchName}" FontSize="16" Margin="0,-2,0,0" />
                                         <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
                                             <Ellipse Width="8" Height="8" Margin="0,0,6,0">
                                                 <Ellipse.Style>
@@ -88,7 +88,7 @@
                                                     </Style>
                                                 </Ellipse.Style>
                                             </Ellipse>
-                                            <TextBlock Text="{Binding StatusText}" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                            <TextBlock Text="{Binding StatusText}" FontSize="12" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
                                         </StackPanel>
                                     </StackPanel>
 

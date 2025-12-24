@@ -2175,7 +2175,7 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
-        ///   查找类似 Allows migration to hosts with different CPUs. 的本地化字符串。
+        ///   查找类似 Allows migration across different CPUs. 的本地化字符串。
         /// </summary>
         public static string MigrationCompatibilityDescription {
             get {
