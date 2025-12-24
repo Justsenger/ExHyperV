@@ -1032,7 +1032,7 @@
     <value>连接发生未知错误: {0}</value>
   </data>
   <data name="SettingsSavedSuccessfully" xml:space="preserve">
-    <value>设置已成功保存</value>
+    <value>设置已成功应用</value>
   </data>
   <data name="Title_Information" xml:space="preserve">
     <value>提示</value>
@@ -1186,6 +1186,6 @@
     <value>限制虚拟机 VMbus 通信频率</value>
   </data>
   <data name="VMSettingsSavedSuccessfully" xml:space="preserve">
-    <value>虚拟机 {0} 的设置已成功保存。</value>
+    <value>虚拟机 {0} 的设置已成功应用。</value>
   </data>
 </root>

@@ -30,6 +30,322 @@
                 </GeometryDrawing>
             </DrawingBrush.Drawing>
         </DrawingBrush>
+        
+        <DataTemplate x:Key="VmLoadingTemplate">
+            <Border Background="{ui:ThemeResource ControlFillColorDefaultBrush}" BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="4">
+                <TextBlock Text="{x:Static properties:Resources.DataLoading}" HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="0.5" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+            </Border>
+        </DataTemplate>
+
+        <DataTemplate x:Key="VmDetailTemplate">
+            <Border Background="{ui:ThemeResource ControlFillColorDefaultBrush}" BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="4">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="15">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <ItemsControl Grid.Row="0" ItemsSource="{Binding Cores}" Margin="0,0,0,10">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <tools:StretchUniformGrid Columns="{Binding Columns}" Rows="{Binding Rows}" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="2" MinHeight="80">
+                                        <Border CornerRadius="4" BorderThickness="1" BorderBrush="#1A888888" Background="#08FFFFFF" ClipToBounds="True">
+                                            <Grid>
+                                                <Rectangle Fill="{StaticResource FineGridBrush}"/>
+
+                                                <Viewbox Stretch="Fill" x:Name="WaveGraph">
+                                                    <Grid Width="100" Height="100">
+                                                        <Polygon Points="{Binding HistoryPoints}" Fill="#66117DBB"/>
+                                                        <Polyline Points="{Binding HistoryPoints}" Stroke="#FF54C7FC" StrokeThickness="1.5"/>
+                                                    </Grid>
+                                                </Viewbox>
+
+                                                <StackPanel Orientation="Horizontal" Margin="5,2,0,0" HorizontalAlignment="Left" VerticalAlignment="Top">
+                                                    <TextBlock Text="{Binding CoreId}" FontSize="10" Opacity="0.6" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                                                    <TextBlock FontSize="10" Margin="3,0,0,0" VerticalAlignment="Center" FontWeight="Bold">
+                                                        <TextBlock.Style>
+                                                            <Style TargetType="TextBlock">
+                                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding CoreType}" Value="Performance">
+                                                                        <Setter Property="Text" Value="⚡"/>
+                                                                        <Setter Property="Foreground" Value="#FFFAA146"/>
+                                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                                    </DataTrigger>
+                                                                    <DataTrigger Binding="{Binding CoreType}" Value="Efficient">
+                                                                        <Setter Property="Text" Value="🍃"/>
+                                                                        <Setter Property="Foreground" Value="#FF107C10"/>
+                                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </TextBlock.Style>
+                                                    </TextBlock>
+                                                </StackPanel>
+
+                                                <TextBlock x:Name="UsageText" 
+                                                           Text="{Binding Usage, StringFormat='{}{0:N1}%'}" 
+                                                           FontSize="16" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" 
+                                                           Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+
+                                                <TextBlock x:Name="OffText" Text="OFF" FontSize="14" FontWeight="Bold" Opacity="0.1" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,-2,0,0"
+                                                           Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" Visibility="Collapsed"/>
+                                            </Grid>
+                                        </Border>
+                                    </Grid>
+                                    <DataTemplate.Triggers>
+                                        <DataTrigger Binding="{Binding DataContext.IsRunning, RelativeSource={RelativeSource AncestorType=ItemsControl}}" Value="False">
+                                            <Setter TargetName="WaveGraph" Property="Visibility" Value="Collapsed"/>
+                                            <Setter TargetName="UsageText" Property="Visibility" Value="Collapsed"/>
+                                            <Setter TargetName="OffText" Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </DataTemplate.Triggers>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <!-- 设置区域 -->
+                        <Grid Grid.Row="1">
+                            <Border Background="{ui:ThemeResource ControlFillColorInputActiveBrush}" 
+                                    BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" 
+                                    BorderThickness="1" CornerRadius="4" 
+                                    Padding="12" VerticalAlignment="Stretch">
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding Name}" Value="Host">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="*"/>
+                                    </Grid.RowDefinitions>
+
+                                    <TextBlock Grid.Row="0" Text="{x:Static properties:Resources.ComputeResources}" FontWeight="SemiBold" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,8"/>
+
+                                    <Grid Grid.Row="1">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                                            <TextBlock Text="{x:Static properties:Resources.VCpuCount}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorTertiaryBrush}" Margin="0,0,0,4"/>
+                                            <ComboBox IsEditable="True" 
+                                                      Text="{Binding Processor.Count, UpdateSourceTrigger=PropertyChanged}"
+                                                      ItemsSource="{Binding DataContext.PossibleVCpuCounts, ElementName=CpuRootPage}"/>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="1" Margin="8,0,8,0" IsEnabled="{Binding DataContext.IsRootSchedulerActive, ElementName=CpuRootPage, Converter={StaticResource InverseBooleanConverter}}">
+                                            <TextBlock Text="{x:Static properties:Resources.ReservePercentage}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorTertiaryBrush}" Margin="0,0,0,4"/>
+                                            <ComboBox IsEditable="True" Text="{Binding Processor.Reserve, UpdateSourceTrigger=PropertyChanged}">
+                                                <ComboBoxItem Content="0"/>
+                                                <ComboBoxItem Content="10"/>
+                                                <ComboBoxItem Content="25"/>
+                                                <ComboBoxItem Content="50"/>
+                                            </ComboBox>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="2" Margin="8,0,8,0" IsEnabled="{Binding DataContext.IsRootSchedulerActive, ElementName=CpuRootPage, Converter={StaticResource InverseBooleanConverter}}">
+                                            <TextBlock Text="{x:Static properties:Resources.LimitPercentage}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorTertiaryBrush}" Margin="0,0,0,4"/>
+                                            <ComboBox IsEditable="True" Text="{Binding Processor.Maximum, UpdateSourceTrigger=PropertyChanged}">
+                                                <ComboBoxItem Content="100"/>
+                                                <ComboBoxItem Content="75"/>
+                                                <ComboBoxItem Content="50"/>
+                                                <ComboBoxItem Content="25"/>
+                                            </ComboBox>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="3" Margin="8,0,12,0" IsEnabled="{Binding DataContext.IsRootSchedulerActive, ElementName=CpuRootPage, Converter={StaticResource InverseBooleanConverter}}">
+                                            <TextBlock Text="{x:Static properties:Resources.Weight}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorTertiaryBrush}" Margin="0,0,0,4"/>
+                                            <ComboBox IsEditable="True" Text="{Binding Processor.RelativeWeight, UpdateSourceTrigger=PropertyChanged}">
+                                                <ComboBoxItem Content="50"/>
+                                                <ComboBoxItem Content="100"/>
+                                                <ComboBoxItem Content="150"/>
+                                                <ComboBoxItem Content="200"/>
+                                            </ComboBox>
+                                        </StackPanel>
+                                        <ui:Button Grid.Column="4" Content="{x:Static properties:Resources.Apply}" Appearance="Primary" Command="{Binding DataContext.ApplyChangesCommand, ElementName=CpuRootPage}" VerticalAlignment="Bottom"/>
+                                    </Grid>
+
+                                    <Rectangle Grid.Row="2" Height="1" Margin="0,15,0,15">
+                                        <Rectangle.Fill>
+                                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                                <GradientStop Color="Transparent" Offset="0"/>
+                                                <GradientStop Color="#40808080" Offset="0.1"/>
+                                                <GradientStop Color="#40808080" Offset="0.9"/>
+                                                <GradientStop Color="Transparent" Offset="1"/>
+                                            </LinearGradientBrush>
+                                        </Rectangle.Fill>
+                                    </Rectangle>
+
+                                    <TextBlock Grid.Row="3" Text="{x:Static properties:Resources.AdvancedFeatures}" FontWeight="SemiBold" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,8"/>
+
+                                    <Grid Grid.Row="4">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="20"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <Grid Grid.Row="0" Grid.Column="0" Margin="0,0,0,8">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,0">
+                                                <TextBlock Text="{x:Static properties:Resources.NestedVirtualization}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" FontWeight="SemiBold"/>
+                                                <TextBlock Text="{x:Static properties:Resources.NestedVirtualizationDescription}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorTertiaryBrush}" TextTrimming="CharacterEllipsis"/>
+                                            </StackPanel>
+                                            <ui:ToggleSwitch Grid.Column="1" IsChecked="{Binding Processor.ExposeVirtualizationExtensions}" />
+                                        </Grid>
+
+                                        <Grid Grid.Row="0" Grid.Column="2" Margin="0,0,0,8">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,0">
+                                                <TextBlock Text="{x:Static properties:Resources.HostResourceProtection}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" FontWeight="SemiBold"/>
+                                                <TextBlock Text="{x:Static properties:Resources.LimitVmBusCommunicationFrequency}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorTertiaryBrush}" TextTrimming="CharacterEllipsis"/>
+                                            </StackPanel>
+                                            <ui:ToggleSwitch Grid.Column="1" IsChecked="{Binding Processor.EnableHostResourceProtection}" />
+                                        </Grid>
+
+                                        <Grid Grid.Row="1" Grid.Column="0" Margin="0,0,0,8">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,0">
+                                                <TextBlock Text="{x:Static properties:Resources.MigrationCompatibility}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" FontWeight="SemiBold"/>
+                                                <TextBlock Text="{x:Static properties:Resources.MigrationCompatibilityDescription}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorTertiaryBrush}" TextTrimming="CharacterEllipsis"/>
+                                            </StackPanel>
+                                            <ui:ToggleSwitch Grid.Column="1" IsChecked="{Binding Processor.CompatibilityForMigrationEnabled}" />
+                                        </Grid>
+
+                                        <Grid Grid.Row="1" Grid.Column="2" Margin="0,0,0,8">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,0">
+                                                <TextBlock Text="{x:Static properties:Resources.LegacySystemCompatibility}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" FontWeight="SemiBold"/>
+                                                <TextBlock Text="{x:Static properties:Resources.LegacySystemCompatibilityDescription}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorTertiaryBrush}" TextTrimming="CharacterEllipsis"/>
+                                            </StackPanel>
+                                            <ui:ToggleSwitch Grid.Column="1" IsChecked="{Binding Processor.CompatibilityForOlderOperatingSystemsEnabled}" />
+                                        </Grid>
+
+                                        <Grid Grid.Row="2" Grid.Column="0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,0">
+                                                <TextBlock Text="{x:Static properties:Resources.VirtualMachineSmt}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" FontWeight="SemiBold"/>
+                                                <TextBlock Text="{x:Static properties:Resources.VirtualMachineSmtDescription}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorTertiaryBrush}"/>
+                                            </StackPanel>
+                                            <ComboBox Grid.Column="1" SelectedValue="{Binding Processor.SmtMode, Mode=TwoWay}" SelectedValuePath="Tag" Width="140" VerticalAlignment="Center">
+                                                <ComboBoxItem Content="{x:Static properties:Resources.FollowHost}" Tag="{x:Static vm:SmtMode.Inherit}"/>
+                                                <ComboBoxItem Content="{x:Static properties:Resources.On}" Tag="{x:Static vm:SmtMode.MultiThread}"/>
+                                                <ComboBoxItem Content="{x:Static properties:Resources.Close}" Tag="{x:Static vm:SmtMode.SingleThread}"/>
+                                            </ComboBox>
+                                        </Grid>
+
+                                        <ui:Button Grid.Row="2" Grid.Column="2" 
+                                                   Content="{x:Static properties:Resources.CpuBinding}" Icon="BranchFork24" HorizontalAlignment="Left" VerticalAlignment="Center"
+                                                   Command="{Binding DataContext.OpenVmCpuAffinityCommand, ElementName=CpuRootPage}"/>
+                                    </Grid>
+                                </Grid>
+                            </Border>
+
+                            <StackPanel VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
+                                <StackPanel.Style>
+                                    <Style TargetType="StackPanel">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding Name}" Value="Host">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </StackPanel.Style>
+
+                                <Border Background="{ui:ThemeResource ControlFillColorInputActiveBrush}" 
+                                        BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" 
+                                        BorderThickness="1" CornerRadius="4" Padding="20,15" Margin="0,0,0,0">
+                                    <StackPanel>
+                                        <Grid Margin="0,0,0,15">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="{x:Static properties:Resources.SchedulerType}" FontWeight="SemiBold" FontSize="16" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" VerticalAlignment="Center"/>
+
+                                            <ComboBox Grid.Column="2" Width="160"
+                                                      SelectedIndex="{Binding DataContext.SelectedSchedulerIndex, ElementName=CpuRootPage, Mode=TwoWay}">
+                                                <ComboBoxItem Content="{x:Static properties:Resources.ClassicScheduler}"/>
+                                                <ComboBoxItem Content="{x:Static properties:Resources.CoreScheduler}"/>
+                                                <ComboBoxItem Content="{x:Static properties:Resources.RootScheduler}"/>
+                                            </ComboBox>
+                                        </Grid>
+
+                                        <StackPanel Margin="0,0,0,15">
+                                            <TextBlock Text="{x:Static properties:Resources.ClassicSchedulerDescription}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorTertiaryBrush}" Margin="0,0,0,4"/>
+                                            <TextBlock Text="{x:Static properties:Resources.CoreSchedulerDescription}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorTertiaryBrush}" Margin="0,0,0,4"/>
+                                            <TextBlock Text="{x:Static properties:Resources.RootSchedulerDescription}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorTertiaryBrush}"/>
+                                        </StackPanel>
+
+                                        <Rectangle Height="1" Margin="0,0,0,15">
+                                            <Rectangle.Fill>
+                                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                                    <GradientStop Color="Transparent" Offset="0"/>
+                                                    <GradientStop Color="#40808080" Offset="0.1"/>
+                                                    <GradientStop Color="#40808080" Offset="0.9"/>
+                                                    <GradientStop Color="Transparent" Offset="1"/>
+                                                </LinearGradientBrush>
+                                            </Rectangle.Fill>
+                                        </Rectangle>
+
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,0">
+                                                <TextBlock Text="{x:Static properties:Resources.AllowNumaSpanning}" FontWeight="SemiBold" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                                                <TextBlock Text="{x:Static properties:Resources.AllowNumaSpanningDescription}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorTertiaryBrush}" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                            </StackPanel>
+                                            <ui:ToggleSwitch Grid.Column="1" IsChecked="{Binding DataContext.IsNumaSpanningEnabled, ElementName=CpuRootPage, Mode=TwoWay}" />
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </Grid>
+                    </Grid>
+                </ScrollViewer>
+            </Border>
+        </DataTemplate>
     </Page.Resources>
 
     <Grid>
@@ -74,10 +390,17 @@
                 </Grid.ColumnDefinitions>
 
                 <Border Grid.Column="0" Background="{ui:ThemeResource ControlFillColorDefaultBrush}" BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="4">
-                    <ui:ListView ItemsSource="{Binding VmList}" SelectedItem="{Binding SelectedVm, Mode=TwoWay}" VerticalAlignment="Stretch">
+                    <ui:ListView ItemsSource="{Binding VmList}" 
+                                 SelectedItem="{Binding SelectedVm, Mode=TwoWay}" 
+                                 VerticalAlignment="Stretch"
+                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                 ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                 ScrollViewer.CanContentScroll="True"
+                                 VirtualizingStackPanel.IsVirtualizing="True"
+                                 VirtualizingStackPanel.VirtualizationMode="Recycling">
                         <ui:ListView.ItemTemplate>
                             <DataTemplate>
-                                <Grid Margin="5">
+                                <Grid Margin="8,6,12,6">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
@@ -107,331 +430,13 @@
                 </Border>
 
                 <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Stretch" Background="Transparent"/>
-
                 <ContentControl Grid.Column="2" Content="{Binding SelectedVm}">
                     <ContentControl.Style>
                         <Style TargetType="ContentControl">
-                            <Setter Property="ContentTemplate">
-                                <Setter.Value>
-                                    <DataTemplate>
-                                        <Border Background="{ui:ThemeResource ControlFillColorDefaultBrush}" BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="4" Padding="15">
-                                            <Grid>
-                                                <Grid.RowDefinitions>
-                                                    <RowDefinition Height="*"/>
-                                                    <RowDefinition Height="*"/>
-                                                </Grid.RowDefinitions>
-
-                                                <ItemsControl Grid.Row="0" ItemsSource="{Binding Cores}" Margin="0,0,0,10">
-                                                    <ItemsControl.ItemsPanel>
-                                                        <ItemsPanelTemplate>
-                                                            <tools:StretchUniformGrid Columns="{Binding Columns}" Rows="{Binding Rows}" />
-                                                        </ItemsPanelTemplate>
-                                                    </ItemsControl.ItemsPanel>
-                                                    <ItemsControl.ItemTemplate>
-                                                        <DataTemplate>
-                                                            <Grid Margin="2">
-                                                                <Border CornerRadius="4" BorderThickness="1" BorderBrush="#1A888888" Background="#08FFFFFF" ClipToBounds="True">
-                                                                    <Grid>
-                                                                        <Rectangle Fill="{StaticResource FineGridBrush}"/>
-
-                                                                        <Viewbox Stretch="Fill" x:Name="WaveGraph">
-                                                                            <Grid Width="100" Height="100">
-                                                                                <Polygon Points="{Binding HistoryPoints}" Fill="#66117DBB"/>
-                                                                                <Polyline Points="{Binding HistoryPoints}" Stroke="#FF54C7FC" StrokeThickness="1.5"/>
-                                                                            </Grid>
-                                                                        </Viewbox>
-
-                                                                        <StackPanel Orientation="Horizontal" Margin="5,2,0,0" HorizontalAlignment="Left" VerticalAlignment="Top">
-                                                                            <TextBlock Text="{Binding CoreId}" FontSize="10" Opacity="0.6" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
-                                                                            <TextBlock FontSize="10" Margin="3,0,0,0" VerticalAlignment="Center" FontWeight="Bold">
-                                                                                <TextBlock.Style>
-                                                                                    <Style TargetType="TextBlock">
-                                                                                        <Setter Property="Visibility" Value="Collapsed"/>
-                                                                                        <Style.Triggers>
-                                                                                            <DataTrigger Binding="{Binding CoreType}" Value="Performance">
-                                                                                                <Setter Property="Text" Value="⚡"/>
-                                                                                                <Setter Property="Foreground" Value="#FFFAA146"/>
-                                                                                                <Setter Property="Visibility" Value="Visible"/>
-                                                                                            </DataTrigger>
-                                                                                            <DataTrigger Binding="{Binding CoreType}" Value="Efficient">
-                                                                                                <Setter Property="Text" Value="🍃"/>
-                                                                                                <Setter Property="Foreground" Value="#FF107C10"/>
-                                                                                                <Setter Property="Visibility" Value="Visible"/>
-                                                                                            </DataTrigger>
-                                                                                        </Style.Triggers>
-                                                                                    </Style>
-                                                                                </TextBlock.Style>
-                                                                            </TextBlock>
-                                                                        </StackPanel>
-
-                                                                        <TextBlock x:Name="UsageText" 
-                                                                                   Text="{Binding Usage, StringFormat='{}{0:N1}%'}" 
-                                                                                   FontSize="16" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" 
-                                                                                   Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
-
-                                                                        <TextBlock x:Name="OffText" Text="OFF" FontSize="14" FontWeight="Bold" Opacity="0.1" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,-2,0,0"
-                                                                                   Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" Visibility="Collapsed"/>
-                                                                    </Grid>
-                                                                </Border>
-                                                            </Grid>
-                                                            <DataTemplate.Triggers>
-                                                                <DataTrigger Binding="{Binding DataContext.IsRunning, RelativeSource={RelativeSource AncestorType=ItemsControl}}" Value="False">
-                                                                    <Setter TargetName="WaveGraph" Property="Visibility" Value="Collapsed"/>
-                                                                    <Setter TargetName="UsageText" Property="Visibility" Value="Collapsed"/>
-                                                                    <Setter TargetName="OffText" Property="Visibility" Value="Visible"/>
-                                                                </DataTrigger>
-                                                            </DataTemplate.Triggers>
-                                                        </DataTemplate>
-                                                    </ItemsControl.ItemTemplate>
-                                                </ItemsControl>
-
-                                                <Grid Grid.Row="1">
-                                                    <Border Background="{ui:ThemeResource ControlFillColorInputActiveBrush}" 
-                                                            BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" 
-                                                            BorderThickness="1" CornerRadius="4" 
-                                                            Padding="12" VerticalAlignment="Stretch">
-                                                        <Border.Style>
-                                                            <Style TargetType="Border">
-                                                                <Setter Property="Visibility" Value="Visible"/>
-                                                                <Style.Triggers>
-                                                                    <DataTrigger Binding="{Binding Name}" Value="Host">
-                                                                        <Setter Property="Visibility" Value="Collapsed"/>
-                                                                    </DataTrigger>
-                                                                </Style.Triggers>
-                                                            </Style>
-                                                        </Border.Style>
-
-                                                        <Grid>
-                                                            <Grid.RowDefinitions>
-                                                                <RowDefinition Height="Auto"/>
-                                                                <RowDefinition Height="Auto"/>
-                                                                <RowDefinition Height="Auto"/>
-                                                                <RowDefinition Height="Auto"/>
-                                                                <RowDefinition Height="*"/>
-                                                            </Grid.RowDefinitions>
-
-                                                            <TextBlock Grid.Row="0" Text="{x:Static properties:Resources.ComputeResources}" FontWeight="SemiBold" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,8"/>
-
-                                                            <Grid Grid.Row="1">
-                                                                <Grid.ColumnDefinitions>
-                                                                    <ColumnDefinition Width="*"/>
-                                                                    <ColumnDefinition Width="*"/>
-                                                                    <ColumnDefinition Width="*"/>
-                                                                    <ColumnDefinition Width="*"/>
-                                                                    <ColumnDefinition Width="Auto"/>
-                                                                </Grid.ColumnDefinitions>
-                                                                <StackPanel Grid.Column="0" Margin="0,0,8,0">
-                                                                    <TextBlock Text="{x:Static properties:Resources.VCpuCount}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorTertiaryBrush}" Margin="0,0,0,4"/>
-                                                                    <ComboBox IsEditable="True" 
-                                                                              Text="{Binding Processor.Count, UpdateSourceTrigger=PropertyChanged}"
-                                                                              ItemsSource="{Binding DataContext.PossibleVCpuCounts, ElementName=CpuRootPage}"/>
-                                                                </StackPanel>
-                                                                <StackPanel Grid.Column="1" Margin="8,0,8,0" IsEnabled="{Binding DataContext.IsRootSchedulerActive, ElementName=CpuRootPage, Converter={StaticResource InverseBooleanConverter}}">
-                                                                    <TextBlock Text="{x:Static properties:Resources.ReservePercentage}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorTertiaryBrush}" Margin="0,0,0,4"/>
-                                                                    <ComboBox IsEditable="True" Text="{Binding Processor.Reserve, UpdateSourceTrigger=PropertyChanged}">
-                                                                        <ComboBoxItem Content="0"/>
-                                                                        <ComboBoxItem Content="10"/>
-                                                                        <ComboBoxItem Content="25"/>
-                                                                        <ComboBoxItem Content="50"/>
-                                                                    </ComboBox>
-                                                                </StackPanel>
-                                                                <StackPanel Grid.Column="2" Margin="8,0,8,0" IsEnabled="{Binding DataContext.IsRootSchedulerActive, ElementName=CpuRootPage, Converter={StaticResource InverseBooleanConverter}}">
-                                                                    <TextBlock Text="{x:Static properties:Resources.LimitPercentage}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorTertiaryBrush}" Margin="0,0,0,4"/>
-                                                                    <ComboBox IsEditable="True" Text="{Binding Processor.Maximum, UpdateSourceTrigger=PropertyChanged}">
-                                                                        <ComboBoxItem Content="100"/>
-                                                                        <ComboBoxItem Content="75"/>
-                                                                        <ComboBoxItem Content="50"/>
-                                                                        <ComboBoxItem Content="25"/>
-                                                                    </ComboBox>
-                                                                </StackPanel>
-                                                                <StackPanel Grid.Column="3" Margin="8,0,12,0" IsEnabled="{Binding DataContext.IsRootSchedulerActive, ElementName=CpuRootPage, Converter={StaticResource InverseBooleanConverter}}">
-                                                                    <TextBlock Text="{x:Static properties:Resources.Weight}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorTertiaryBrush}" Margin="0,0,0,4"/>
-                                                                    <ComboBox IsEditable="True" Text="{Binding Processor.RelativeWeight, UpdateSourceTrigger=PropertyChanged}">
-                                                                        <ComboBoxItem Content="50"/>
-                                                                        <ComboBoxItem Content="100"/>
-                                                                        <ComboBoxItem Content="150"/>
-                                                                        <ComboBoxItem Content="200"/>
-                                                                    </ComboBox>
-                                                                </StackPanel>
-                                                                <ui:Button Grid.Column="4" Content="{x:Static properties:Resources.Apply}" Appearance="Primary" Command="{Binding DataContext.ApplyChangesCommand, ElementName=CpuRootPage}" VerticalAlignment="Bottom"/>
-                                                            </Grid>
-
-                                                            <Rectangle Grid.Row="2" Height="1" Margin="0,15,0,15">
-                                                                <Rectangle.Fill>
-                                                                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-                                                                        <GradientStop Color="Transparent" Offset="0"/>
-                                                                        <GradientStop Color="#40808080" Offset="0.1"/>
-                                                                        <GradientStop Color="#40808080" Offset="0.9"/>
-                                                                        <GradientStop Color="Transparent" Offset="1"/>
-                                                                    </LinearGradientBrush>
-                                                                </Rectangle.Fill>
-                                                            </Rectangle>
-
-                                                            <TextBlock Grid.Row="3" Text="{x:Static properties:Resources.AdvancedFeatures}" FontWeight="SemiBold" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,8"/>
-
-                                                            <Grid Grid.Row="4">
-                                                                <Grid.RowDefinitions>
-                                                                    <RowDefinition Height="Auto"/>
-                                                                    <RowDefinition Height="Auto"/>
-                                                                    <RowDefinition Height="Auto"/>
-                                                                </Grid.RowDefinitions>
-                                                                <Grid.ColumnDefinitions>
-                                                                    <ColumnDefinition Width="*"/>
-                                                                    <ColumnDefinition Width="20"/>
-                                                                    <ColumnDefinition Width="*"/>
-                                                                </Grid.ColumnDefinitions>
-
-                                                                <Grid Grid.Row="0" Grid.Column="0" Margin="0,0,0,8">
-                                                                    <Grid.ColumnDefinitions>
-                                                                        <ColumnDefinition Width="*"/>
-                                                                        <ColumnDefinition Width="Auto"/>
-                                                                    </Grid.ColumnDefinitions>
-                                                                    <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,0">
-                                                                        <TextBlock Text="{x:Static properties:Resources.NestedVirtualization}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" FontWeight="SemiBold"/>
-                                                                        <TextBlock Text="{x:Static properties:Resources.NestedVirtualizationDescription}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorTertiaryBrush}" TextTrimming="CharacterEllipsis"/>
-                                                                    </StackPanel>
-                                                                    <ui:ToggleSwitch Grid.Column="1" IsChecked="{Binding Processor.ExposeVirtualizationExtensions}" />
-                                                                </Grid>
-
-                                                                <Grid Grid.Row="0" Grid.Column="2" Margin="0,0,0,8">
-                                                                    <Grid.ColumnDefinitions>
-                                                                        <ColumnDefinition Width="*"/>
-                                                                        <ColumnDefinition Width="Auto"/>
-                                                                    </Grid.ColumnDefinitions>
-                                                                    <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,0">
-                                                                        <TextBlock Text="{x:Static properties:Resources.HostResourceProtection}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" FontWeight="SemiBold"/>
-                                                                        <TextBlock Text="{x:Static properties:Resources.LimitVmBusCommunicationFrequency}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorTertiaryBrush}" TextTrimming="CharacterEllipsis"/>
-                                                                    </StackPanel>
-                                                                    <ui:ToggleSwitch Grid.Column="1" IsChecked="{Binding Processor.EnableHostResourceProtection}" />
-                                                                </Grid>
-
-                                                                <Grid Grid.Row="1" Grid.Column="0" Margin="0,0,0,8">
-                                                                    <Grid.ColumnDefinitions>
-                                                                        <ColumnDefinition Width="*"/>
-                                                                        <ColumnDefinition Width="Auto"/>
-                                                                    </Grid.ColumnDefinitions>
-                                                                    <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,0">
-                                                                        <TextBlock Text="{x:Static properties:Resources.MigrationCompatibility}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" FontWeight="SemiBold"/>
-                                                                        <TextBlock Text="{x:Static properties:Resources.MigrationCompatibilityDescription}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorTertiaryBrush}" TextTrimming="CharacterEllipsis"/>
-                                                                    </StackPanel>
-                                                                    <ui:ToggleSwitch Grid.Column="1" IsChecked="{Binding Processor.CompatibilityForMigrationEnabled}" />
-                                                                </Grid>
-
-                                                                <Grid Grid.Row="1" Grid.Column="2" Margin="0,0,0,8">
-                                                                    <Grid.ColumnDefinitions>
-                                                                        <ColumnDefinition Width="*"/>
-                                                                        <ColumnDefinition Width="Auto"/>
-                                                                    </Grid.ColumnDefinitions>
-                                                                    <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,0">
-                                                                        <TextBlock Text="{x:Static properties:Resources.LegacySystemCompatibility}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" FontWeight="SemiBold"/>
-                                                                        <TextBlock Text="{x:Static properties:Resources.LegacySystemCompatibilityDescription}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorTertiaryBrush}" TextTrimming="CharacterEllipsis"/>
-                                                                    </StackPanel>
-                                                                    <ui:ToggleSwitch Grid.Column="1" IsChecked="{Binding Processor.CompatibilityForOlderOperatingSystemsEnabled}" />
-                                                                </Grid>
-
-                                                                <Grid Grid.Row="2" Grid.Column="0">
-                                                                    <Grid.ColumnDefinitions>
-                                                                        <ColumnDefinition Width="*"/>
-                                                                        <ColumnDefinition Width="Auto"/>
-                                                                    </Grid.ColumnDefinitions>
-                                                                    <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,0">
-                                                                        <TextBlock Text="{x:Static properties:Resources.VirtualMachineSmt}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" FontWeight="SemiBold"/>
-                                                                        <TextBlock Text="{x:Static properties:Resources.VirtualMachineSmtDescription}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorTertiaryBrush}"/>
-                                                                    </StackPanel>
-                                                                    <ComboBox Grid.Column="1" SelectedValue="{Binding Processor.SmtMode, Mode=TwoWay}" SelectedValuePath="Tag" Width="140" VerticalAlignment="Center">
-                                                                        <ComboBoxItem Content="{x:Static properties:Resources.FollowHost}" Tag="{x:Static vm:SmtMode.Inherit}"/>
-                                                                        <ComboBoxItem Content="{x:Static properties:Resources.On}" Tag="{x:Static vm:SmtMode.MultiThread}"/>
-                                                                        <ComboBoxItem Content="{x:Static properties:Resources.Close}" Tag="{x:Static vm:SmtMode.SingleThread}"/>
-                                                                    </ComboBox>
-                                                                </Grid>
-
-                                                                <ui:Button Grid.Row="2" Grid.Column="2" 
-                                                                           Content="{x:Static properties:Resources.CpuBinding}" Icon="BranchFork24" HorizontalAlignment="Left" VerticalAlignment="Center"
-                                                                           Command="{Binding DataContext.OpenVmCpuAffinityCommand, ElementName=CpuRootPage}"/>
-                                                            </Grid>
-                                                        </Grid>
-                                                    </Border>
-
-                                                    <StackPanel VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
-                                                        <StackPanel.Style>
-                                                            <Style TargetType="StackPanel">
-                                                                <Setter Property="Visibility" Value="Collapsed"/>
-                                                                <Style.Triggers>
-                                                                    <DataTrigger Binding="{Binding Name}" Value="Host">
-                                                                        <Setter Property="Visibility" Value="Visible"/>
-                                                                    </DataTrigger>
-                                                                </Style.Triggers>
-                                                            </Style>
-                                                        </StackPanel.Style>
-
-                                                        <Border Background="{ui:ThemeResource ControlFillColorInputActiveBrush}" 
-                                                                BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" 
-                                                                BorderThickness="1" CornerRadius="4" Padding="20,15" Margin="0,0,0,0">
-                                                            <StackPanel>
-                                                                <Grid Margin="0,0,0,15">
-                                                                    <Grid.ColumnDefinitions>
-                                                                        <ColumnDefinition Width="Auto"/>
-                                                                        <ColumnDefinition Width="*"/>
-                                                                        <ColumnDefinition Width="Auto"/>
-                                                                    </Grid.ColumnDefinitions>
-                                                                    <TextBlock Grid.Column="0" Text="{x:Static properties:Resources.SchedulerType}" FontWeight="SemiBold" FontSize="16" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" VerticalAlignment="Center"/>
-
-                                                                    <ComboBox Grid.Column="2" Width="160"
-                                                                              SelectedIndex="{Binding DataContext.SelectedSchedulerIndex, ElementName=CpuRootPage, Mode=TwoWay}">
-                                                                        <ComboBoxItem Content="{x:Static properties:Resources.ClassicScheduler}"/>
-                                                                        <ComboBoxItem Content="{x:Static properties:Resources.CoreScheduler}"/>
-                                                                        <ComboBoxItem Content="{x:Static properties:Resources.RootScheduler}"/>
-                                                                    </ComboBox>
-                                                                </Grid>
-
-                                                                <StackPanel Margin="0,0,0,15">
-                                                                    <TextBlock Text="{x:Static properties:Resources.ClassicSchedulerDescription}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorTertiaryBrush}" Margin="0,0,0,4"/>
-                                                                    <TextBlock Text="{x:Static properties:Resources.CoreSchedulerDescription}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorTertiaryBrush}" Margin="0,0,0,4"/>
-                                                                    <TextBlock Text="{x:Static properties:Resources.RootSchedulerDescription}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorTertiaryBrush}"/>
-                                                                </StackPanel>
-
-                                                                <Rectangle Height="1" Margin="0,0,0,15">
-                                                                    <Rectangle.Fill>
-                                                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-                                                                            <GradientStop Color="Transparent" Offset="0"/>
-                                                                            <GradientStop Color="#40808080" Offset="0.1"/>
-                                                                            <GradientStop Color="#40808080" Offset="0.9"/>
-                                                                            <GradientStop Color="Transparent" Offset="1"/>
-                                                                        </LinearGradientBrush>
-                                                                    </Rectangle.Fill>
-                                                                </Rectangle>
-
-                                                                <Grid>
-                                                                    <Grid.ColumnDefinitions>
-                                                                        <ColumnDefinition Width="*"/>
-                                                                        <ColumnDefinition Width="Auto"/>
-                                                                    </Grid.ColumnDefinitions>
-                                                                    <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,0">
-                                                                        <TextBlock Text="{x:Static properties:Resources.AllowNumaSpanning}" FontWeight="SemiBold" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
-                                                                        <TextBlock Text="{x:Static properties:Resources.AllowNumaSpanningDescription}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorTertiaryBrush}" TextWrapping="Wrap" Margin="0,2,0,0"/>
-                                                                    </StackPanel>
-                                                                    <ui:ToggleSwitch Grid.Column="1" IsChecked="{Binding DataContext.IsNumaSpanningEnabled, ElementName=CpuRootPage, Mode=TwoWay}" />
-                                                                </Grid>
-                                                            </StackPanel>
-                                                        </Border>
-                                                    </StackPanel>
-                                                </Grid>
-                                            </Grid>
-                                        </Border>
-                                    </DataTemplate>
-                                </Setter.Value>
-                            </Setter>
+                            <Setter Property="ContentTemplate" Value="{StaticResource VmDetailTemplate}"/>
                             <Style.Triggers>
                                 <Trigger Property="Content" Value="{x:Null}">
-                                    <Setter Property="ContentTemplate">
-                                        <Setter.Value>
-                                            <DataTemplate>
-                                                <Border Background="{ui:ThemeResource ControlFillColorDefaultBrush}" BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="4">
-                                                    <TextBlock Text="{x:Static properties:Resources.DataLoading}" HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="0.5" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
-                                                </Border>
-                                            </DataTemplate>
-                                        </Setter.Value>
-                                    </Setter>
+                                    <Setter Property="ContentTemplate" Value="{StaticResource VmLoadingTemplate}"/>
                                 </Trigger>
                             </Style.Triggers>
                         </Style>
