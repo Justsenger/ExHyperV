@@ -437,7 +437,7 @@ public class Utils
 
         System.Windows.MessageBox.Show(message);
     }
-    public static string Version => "V1.3.0-beta4";
+    public static string Version => "V1.3.1";
     public static string Author => "Saniye";
 
 }
