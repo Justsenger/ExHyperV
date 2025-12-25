@@ -6,12 +6,12 @@ Signed-off-by: Justsenger <Justsenger@users.noreply.github.com>
 ---
  drivers/hv/dxgkrnl/dxgadapter.c  |  1 +
  drivers/hv/dxgkrnl/dxgkrnl.h     |  1 +
- drivers/hv/dxgkrnl/dxgmodule.c   |  7 ++++++-
- drivers/hv/dxgkrnl/dxgsyncfile.c | 14 ++++++++++++--
+ drivers/hv/dxgkrnl/dxgmodule.c   |  6 +++++-
+ drivers/hv/dxgkrnl/dxgsyncfile.c | 13 ++++++++++++--
  drivers/hv/dxgkrnl/dxgvmbus.c    | 12 ++++++++++--
  drivers/hv/dxgkrnl/hmgr.c        |  1 +
  drivers/hv/dxgkrnl/ioctl.c       |  1 +
- 7 files changed, 32 insertions(+), 5 deletions(-)
+ 7 files changed, 35 insertions(+), 5 deletions(-)
 
 diff --git a/drivers/hv/dxgkrnl/dxgadapter.c b/drivers/hv/dxgkrnl/dxgadapter.c
 index 6d3cabb..0844ef0 100644
@@ -29,7 +29,7 @@ diff --git a/drivers/hv/dxgkrnl/dxgmodule.c b/drivers/hv/dxgkrnl/dxgmodule.c
 index 1501e0a..d8941db 100644
 --- a/drivers/hv/dxgkrnl/dxgmodule.c
 +++ b/drivers/hv/dxgkrnl/dxgmodule.c
-@@ -173 +173,6 @@ void signal_host_cpu_event(struct dxghostevent *eventhdr)
+@@ -173 +173,5 @@ void signal_host_cpu_event(struct dxghostevent *eventhdr)
 -		eventfd_signal(event->cpu_event, 1);
 +#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 8, 0)
 +		eventfd_signal(event->cpu_event);
@@ -42,7 +42,7 @@ index 3456789..9876543 100644
 +++ b/drivers/hv/dxgkrnl/dxgsyncfile.c
 @@ -13,0 +14 @@
 +#include <linux/version.h>
-@@ -441,2 +442,6 @@ static bool dxgdmafence_signaled(struct dma_fence *fence)
+@@ -441,2 +442,5 @@ static bool dxgdmafence_signaled(struct dma_fence *fence)
 -	return __dma_fence_is_later(syncpoint->fence_value, fence->seqno,
 -				    fence->ops);
 +#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 10, 0)
@@ -51,13 +51,13 @@ index 3456789..9876543 100644
 +	return __dma_fence_is_later(syncpoint->fence_value, fence->seqno, fence->ops);
 +#endif
  }
-@@ -448,0 +454,2 @@ static bool dxgdmafence_enable_signaling(struct dma_fence *fence)
+@@ -448,0 +452,2 @@ static bool dxgdmafence_enable_signaling(struct dma_fence *fence)
 +#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 4, 0)
 +/* Removed in kernel 6.4 */
-@@ -458,0 +466,2 @@ static void dxgdmafence_timeline_value_str(struct dma_fence *fence,
+@@ -458,0 +464,2 @@ static void dxgdmafence_timeline_value_str(struct dma_fence *fence,
 +#endif
 +
-@@ -465,2 +475,4 @@ static const struct dma_fence_ops dxgdmafence_ops = {
+@@ -465,2 +473,4 @@ static const struct dma_fence_ops dxgdmafence_ops = {
 +#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 4, 0)
  	.fence_value_str = dxgdmafence_value_str,
  	.timeline_value_str = dxgdmafence_timeline_value_str,
