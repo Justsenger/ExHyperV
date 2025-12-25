@@ -1,30 +1,30 @@
 From: Justsenger <Justsenger@users.noreply.github.com>
-Date: Tue, 21 Jan 2025 17:00:00 +0800
-Subject: [PATCH] dxgkrnl: Compatibility fixes for Kernel 6.12
+Date: Tue, 21 Jan 2025 18:00:00 +0800
+Subject: [PATCH] dxgkrnl: Unified compatibility fixes for Kernel 6.12
 
 Signed-off-by: Justsenger <Justsenger@users.noreply.github.com>
 ---
  drivers/hv/dxgkrnl/dxgadapter.c  |  1 +
  drivers/hv/dxgkrnl/dxgkrnl.h     |  1 +
  drivers/hv/dxgkrnl/dxgmodule.c   |  6 +++++-
- drivers/hv/dxgkrnl/dxgsyncfile.c | 21 +++++++++++++++++++--
+ drivers/hv/dxgkrnl/dxgsyncfile.c | 22 +++++++++++++++++++---
  drivers/hv/dxgkrnl/dxgvmbus.c    | 12 ++++++++++--
  drivers/hv/dxgkrnl/hmgr.c        |  1 +
  drivers/hv/dxgkrnl/ioctl.c       |  1 +
- 7 files changed, 38 insertions(+), 5 deletions(-)
+ 7 files changed, 39 insertions(+), 5 deletions(-)
 
 diff --git a/drivers/hv/dxgkrnl/dxgadapter.c b/drivers/hv/dxgkrnl/dxgadapter.c
 index 6d3cabb..0844ef0 100644
 --- a/drivers/hv/dxgkrnl/dxgadapter.c
 +++ b/drivers/hv/dxgkrnl/dxgadapter.c
-@@ -15,6 +15,7 @@
- #include <linux/hyperv.h>
- #include <linux/pagemap.h>
+@@ -17,6 +17,7 @@
  #include <linux/eventfd.h>
-+#include <linux/vmalloc.h>
  
  #include "dxgkrnl.h"
++#include <linux/vmalloc.h>
  
+ #undef dev_fmt
+ #define dev_fmt(fmt)	"dxgk: " fmt
 diff --git a/drivers/hv/dxgkrnl/dxgkrnl.h b/drivers/hv/dxgkrnl/dxgkrnl.h
 index 1234567..89abcdef 100644
 --- a/drivers/hv/dxgkrnl/dxgkrnl.h
@@ -58,14 +58,14 @@ diff --git a/drivers/hv/dxgkrnl/dxgsyncfile.c b/drivers/hv/dxgkrnl/dxgsyncfile.c
 index 3456789..9876543 100644
 --- a/drivers/hv/dxgkrnl/dxgsyncfile.c
 +++ b/drivers/hv/dxgkrnl/dxgsyncfile.c
-@@ -18,6 +18,7 @@
+@@ -17,6 +17,7 @@
+ #include <linux/anon_inodes.h>
  #include <linux/mman.h>
  
- #include "dxgkrnl.h"
 +#include <linux/version.h>
+ #include "dxgkrnl.h"
  #include "dxgvmbus.h"
  #include "dxgsyncfile.h"
- 
 @@ -446,8 +447,12 @@ static bool dxgdmafence_signaled(struct dma_fence *fence)
  	syncpoint = to_syncpoint(fence);
  	if (syncpoint == 0)
@@ -110,14 +110,14 @@ diff --git a/drivers/hv/dxgkrnl/dxgvmbus.c b/drivers/hv/dxgkrnl/dxgvmbus.c
 index abb6d2a..f04240d 100644
 --- a/drivers/hv/dxgkrnl/dxgvmbus.c
 +++ b/drivers/hv/dxgkrnl/dxgvmbus.c
-@@ -19,6 +19,7 @@
- #include <linux/mman.h>
- #include <linux/delay.h>
+@@ -21,6 +21,7 @@
  #include <linux/pagemap.h>
-+#include <linux/vmalloc.h>
  #include "dxgkrnl.h"
  #include "dxgvmbus.h"
++#include <linux/vmalloc.h>
  
+ #undef dev_fmt
+ #define dev_fmt(fmt)	"dxgk: " fmt
 @@ -600,7 +601,7 @@ static u8 *dxg_map_iospace(u64 iospace_address, u32 size,
  		return NULL;
  	}
@@ -153,24 +153,22 @@ diff --git a/drivers/hv/dxgkrnl/hmgr.c b/drivers/hv/dxgkrnl/hmgr.c
 index 24101d0..528402a 100644
 --- a/drivers/hv/dxgkrnl/hmgr.c
 +++ b/drivers/hv/dxgkrnl/hmgr.c
-@@ -14,6 +14,7 @@
- #include <linux/kernel.h>
- #include <linux/mutex.h>
- #include <linux/rwsem.h>
+@@ -19,6 +19,7 @@
+ #include "dxgkrnl.h"
+ #include "hmgr.h"
 +#include <linux/vmalloc.h>
  
- #include "misc.h"
- #include "dxgkrnl.h"
+ #undef dev_fmt
+ #define dev_fmt(fmt)	"dxgk: " fmt
 diff --git a/drivers/hv/dxgkrnl/ioctl.c b/drivers/hv/dxgkrnl/ioctl.c
 index 42f3de3..d70a4b9 100644
 --- a/drivers/hv/dxgkrnl/ioctl.c
 +++ b/drivers/hv/dxgkrnl/ioctl.c
-@@ -17,6 +17,7 @@
- #include <linux/anon_inodes.h>
- #include <linux/mman.h>
- #include <linux/pid_namespace.h>
-+#include <linux/vmalloc.h>
- 
+@@ -20,6 +20,7 @@
  #include "dxgkrnl.h"
  #include "dxgvmbus.h"
++#include <linux/vmalloc.h>
+ 
+ #undef dev_fmt
+ #define dev_fmt(fmt)	"dxgk: " fmt
 --
