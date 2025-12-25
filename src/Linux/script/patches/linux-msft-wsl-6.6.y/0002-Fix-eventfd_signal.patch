@@ -1,6 +1,6 @@
 From: Justsenger <Justsenger@users.noreply.github.com>
-Date: Tue, 21 Jan 2025 16:00:00 +0800
-Subject: [PATCH] dxgkrnl: Unified compatibility fixes for Kernel 6.1 to 6.12+
+Date: Tue, 21 Jan 2025 17:00:00 +0800
+Subject: [PATCH] dxgkrnl: Compatibility fixes for Kernel 6.12
 
 Signed-off-by: Justsenger <Justsenger@users.noreply.github.com>
 ---
@@ -34,14 +34,14 @@ index 1234567..89abcdef 100644
  #define _DXGKRNL_H
  
 +#include <linux/version.h>
- #include <linux/types.h>
- #include <linux/fs.h>
- #include <linux/pci.h>
+ #include <linux/uuid.h>
+ #include <linux/kernel.h>
+ #include <linux/mutex.h>
 diff --git a/drivers/hv/dxgkrnl/dxgmodule.c b/drivers/hv/dxgkrnl/dxgmodule.c
 index 1501e0a..d8941db 100644
 --- a/drivers/hv/dxgkrnl/dxgmodule.c
 +++ b/drivers/hv/dxgkrnl/dxgmodule.c
-@@ -170,7 +170,11 @@ void signal_host_cpu_event(struct dxghostevent *eventhdr)
+@@ -190,7 +190,11 @@ void signal_host_cpu_event(struct dxghostevent *eventhdr)
  	}
  	if (event->cpu_event) {
  		DXG_TRACE("signal cpu event");
@@ -58,15 +58,15 @@ diff --git a/drivers/hv/dxgkrnl/dxgsyncfile.c b/drivers/hv/dxgkrnl/dxgsyncfile.c
 index 3456789..9876543 100644
 --- a/drivers/hv/dxgkrnl/dxgsyncfile.c
 +++ b/drivers/hv/dxgkrnl/dxgsyncfile.c
-@@ -11,6 +11,7 @@
-  */
+@@ -18,6 +18,7 @@
+ #include <linux/mman.h>
  
  #include "dxgkrnl.h"
 +#include <linux/version.h>
+ #include "dxgvmbus.h"
+ #include "dxgsyncfile.h"
  
- /*
-  * A fence implementation that uses the dxgk kernel module to wait for
-@@ -438,8 +439,12 @@ static bool dxgdmafence_signaled(struct dma_fence *fence)
+@@ -446,8 +447,12 @@ static bool dxgdmafence_signaled(struct dma_fence *fence)
  	syncpoint = to_syncpoint(fence);
  	if (syncpoint == 0)
  		return true;
@@ -81,7 +81,7 @@ index 3456789..9876543 100644
  }
  
  static bool dxgdmafence_enable_signaling(struct dma_fence *fence)
-@@ -447,6 +452,7 @@ static bool dxgdmafence_enable_signaling(struct dma_fence *fence)
+@@ -455,6 +460,7 @@ static bool dxgdmafence_enable_signaling(struct dma_fence *fence)
  	return true;
  }
  
@@ -89,7 +89,7 @@ index 3456789..9876543 100644
  static void dxgdmafence_value_str(struct dma_fence *fence,
  				  char *str, int size)
  {
-@@ -460,13 +466,16 @@ static void dxgdmafence_timeline_value_str(struct dma_fence *fence,
+@@ -468,13 +474,16 @@ static void dxgdmafence_timeline_value_str(struct dma_fence *fence,
  	syncpoint = to_syncpoint(fence);
  	snprintf(str, size, "%lld", syncpoint->fence_value);
  }
