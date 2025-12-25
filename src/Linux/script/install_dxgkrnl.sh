@@ -245,7 +245,7 @@ install() {
 
             for PATCH in $PATCHES; do
                 echo "  - $PATCH"
-                curl -fsSL "$PATCH_BASE_URL/linux-msft-wsl-6.6.y/$PATCH" | git apply -v;
+                curl -fsSL "$PATCH_BASE_URL/linux-msft-wsl-6.6.y/$PATCH" | git apply -v --ignore-whitespace --ignore-space-change;
             done
             ;;
         *)
