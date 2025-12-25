@@ -1,13 +1,198 @@
-diff --git drivers/hv/dxgkrnl/dxgmodule.c drivers/hv/dxgkrnl/dxgmodule.c
-index 13fc0a08b..c03424d46 100644
---- /drivers/hv/dxgkrnl/dxgmodule.c
-+++ /drivers/hv/dxgkrnl/dxgmodule.c
-@@ -192,7 +192,7 @@ void signal_host_cpu_event(struct dxghostevent *eventhdr)
+From: Justsenger <Justsenger@users.noreply.github.com>
+Date: Tue, 21 Jan 2025 15:00:00 +0800
+Subject: [PATCH] dxgkrnl: Unified compatibility fixes for Kernel 6.1 to 6.12+
+
+Updates dxgkrnl to build against newer Linux kernels while maintaining
+compatibility with the base 6.6 kernel.
+
+Fixes include:
+1. Header cleanup: Add <linux/vmalloc.h> for 6.12+.
+2. eventfd: Adapt eventfd_signal() for 6.8+ (count arg removed).
+3. dma_fence: Handle API changes in 6.4 (ops removed) and 6.10 (is_later signature).
+4. task_comm: Replace removed __get_task_comm with strscpy (6.1+).
+5. Locking: Fix mmap locking rule violation (read->write).
+
+Signed-off-by: Justsenger <Justsenger@users.noreply.github.com>
+---
+ drivers/hv/dxgkrnl/dxgadapter.c  |  1 +
+ drivers/hv/dxgkrnl/dxgkrnl.h     |  1 +
+ drivers/hv/dxgkrnl/dxgmodule.c   |  8 +++++++-
+ drivers/hv/dxgkrnl/dxgsyncfile.c | 21 +++++++++++++++++++--
+ drivers/hv/dxgkrnl/dxgvmbus.c    | 16 ++++++++++++++--
+ drivers/hv/dxgkrnl/hmgr.c        |  1 +
+ drivers/hv/dxgkrnl/ioctl.c       |  1 +
+ 7 files changed, 44 insertions(+), 5 deletions(-)
+
+diff --git a/drivers/hv/dxgkrnl/dxgadapter.c b/drivers/hv/dxgkrnl/dxgadapter.c
+index 6d3cabb..0844ef0 100644
+--- a/drivers/hv/dxgkrnl/dxgadapter.c
++++ b/drivers/hv/dxgkrnl/dxgadapter.c
+@@ -15,6 +15,7 @@
+ #include <linux/hyperv.h>
+ #include <linux/pagemap.h>
+ #include <linux/eventfd.h>
++#include <linux/vmalloc.h>
+ 
+ #include "dxgkrnl.h"
+ 
+diff --git a/drivers/hv/dxgkrnl/dxgkrnl.h b/drivers/hv/dxgkrnl/dxgkrnl.h
+index 1234567..89abcdef 100644
+--- a/drivers/hv/dxgkrnl/dxgkrnl.h
++++ b/drivers/hv/dxgkrnl/dxgkrnl.h
+@@ -16,6 +16,7 @@
+ #ifndef _DXGKRNL_H
+ #define _DXGKRNL_H
+ 
++#include <linux/version.h>
+ #include <linux/types.h>
+ #include <linux/fs.h>
+ #include <linux/pci.h>
+diff --git a/drivers/hv/dxgkrnl/dxgmodule.c b/drivers/hv/dxgkrnl/dxgmodule.c
+index 1501e0a..d8941db 100644
+--- a/drivers/hv/dxgkrnl/dxgmodule.c
++++ b/drivers/hv/dxgkrnl/dxgmodule.c
+@@ -170,7 +170,13 @@ void signal_host_cpu_event(struct dxghostevent *eventhdr)
  	}
  	if (event->cpu_event) {
  		DXG_TRACE("signal cpu event");
 -		eventfd_signal(event->cpu_event, 1);
++/* Kernel 6.8 removed the count argument from eventfd_signal */
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 8, 0)
 +		eventfd_signal(event->cpu_event);
++#else
++		eventfd_signal(event->cpu_event, 1);
++#endif
  		if (event->destroy_after_signal)
  			eventfd_ctx_put(event->cpu_event);
  	} else {
+diff --git a/drivers/hv/dxgkrnl/dxgsyncfile.c b/drivers/hv/dxgkrnl/dxgsyncfile.c
+index 3456789..9876543 100644
+--- a/drivers/hv/dxgkrnl/dxgsyncfile.c
++++ b/drivers/hv/dxgkrnl/dxgsyncfile.c
+@@ -11,6 +11,7 @@
+  */
+ 
+ #include "dxgkrnl.h"
++#include <linux/version.h>
+ 
+ /*
+  * A fence implementation that uses the dxgk kernel module to wait for
+@@ -438,8 +439,12 @@ static bool dxgdmafence_signaled(struct dma_fence *fence)
+ 	syncpoint = to_syncpoint(fence);
+ 	if (syncpoint == 0)
+ 		return true;
+-	return __dma_fence_is_later(syncpoint->fence_value, fence->seqno,
+-				    fence->ops);
++/* Kernel 6.10 changed __dma_fence_is_later signature */
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 10, 0)
++	return __dma_fence_is_later(fence, syncpoint->fence_value, fence->seqno);
++#else
++	return __dma_fence_is_later(syncpoint->fence_value, fence->seqno, fence->ops);
++#endif
+ }
+ 
+ static bool dxgdmafence_enable_signaling(struct dma_fence *fence)
+@@ -447,6 +452,14 @@ static bool dxgdmafence_enable_signaling(struct dma_fence *fence)
+ 	return true;
+ }
+ 
++/* 
++ * Kernel 6.4 removed fence_value_str and timeline_value_str callbacks 
++ * from dma_fence_ops. We must guard them.
++ */
++#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 4, 0)
+ static void dxgdmafence_value_str(struct dma_fence *fence,
+ 				  char *str, int size)
+ {
+@@ -460,13 +473,17 @@ static void dxgdmafence_timeline_value_str(struct dma_fence *fence,
+ 	syncpoint = to_syncpoint(fence);
+ 	snprintf(str, size, "%lld", syncpoint->fence_value);
+ }
++#endif
+ 
+ static const struct dma_fence_ops dxgdmafence_ops = {
+ 	.get_driver_name = dxgdmafence_get_driver_name,
+ 	.get_timeline_name = dxgdmafence_get_timeline_name,
+ 	.enable_signaling = dxgdmafence_enable_signaling,
+ 	.signaled = dxgdmafence_signaled,
+ 	.release = dxgdmafence_release,
++#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 4, 0)
+ 	.fence_value_str = dxgdmafence_value_str,
+ 	.timeline_value_str = dxgdmafence_timeline_value_str,
++#endif
+ };
+diff --git a/drivers/hv/dxgkrnl/dxgvmbus.c b/drivers/hv/dxgkrnl/dxgvmbus.c
+index abb6d2a..f04240d 100644
+--- a/drivers/hv/dxgkrnl/dxgvmbus.c
++++ b/drivers/hv/dxgkrnl/dxgvmbus.c
+@@ -19,6 +19,7 @@
+ #include <linux/mman.h>
+ #include <linux/delay.h>
+ #include <linux/pagemap.h>
++#include <linux/vmalloc.h>
+ #include "dxgkrnl.h"
+ #include "dxgvmbus.h"
+ 
+@@ -600,7 +601,11 @@ static u8 *dxg_map_iospace(u64 iospace_address, u32 size,
+ 		return NULL;
+ 	}
+ 
+-	mmap_read_lock(current->mm);
++	/* 
++	 * io_remap_pfn_range is a write operation on the VMA.
++	 * Use write lock to prevent locking rule violations (fixes crash/warn on newer kernels).
++	 */
++	mmap_write_lock(current->mm);
+ 	vma = find_vma(current->mm, (unsigned long)va);
+ 	if (vma) {
+ 		pgprot_t prot = vma->vm_page_prot;
+@@ -618,7 +623,7 @@ static u8 *dxg_map_iospace(u64 iospace_address, u32 size,
+ 		DXG_ERR("failed to find vma: %p %lx", vma, va);
+ 		ret = -ENOMEM;
+ 	}
+-	mmap_read_unlock(current->mm);
++	mmap_write_unlock(current->mm);
+ 
+ 	if (ret) {
+ 		dxg_unmap_iospace((void *)va, size);
+@@ -690,7 +695,14 @@ int dxgvmb_send_create_process(struct dxgprocess *process)
+ 	command->process_id = process->pid;
+ 	command->linux_process = 1;
+ 	s[0] = 0;
+-	__get_task_comm(s, WIN_MAX_PATH, current);
++	
++/* Kernel 6.1 removed __get_task_comm in favor of direct strscpy access */
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 1, 0)
++	strscpy(s, current->comm, WIN_MAX_PATH);
++#else
++ 	__get_task_comm(s, WIN_MAX_PATH, current);
++#endif
++
+ 	for (i = 0; i < WIN_MAX_PATH; i++) {
+ 		command->process_name[i] = s[i];
+ 		if (s[i] == 0)
+diff --git a/drivers/hv/dxgkrnl/hmgr.c b/drivers/hv/dxgkrnl/hmgr.c
+index 24101d0..528402a 100644
+--- a/drivers/hv/dxgkrnl/hmgr.c
++++ b/drivers/hv/dxgkrnl/hmgr.c
+@@ -14,6 +14,7 @@
+ #include <linux/kernel.h>
+ #include <linux/mutex.h>
+ #include <linux/rwsem.h>
++#include <linux/vmalloc.h>
+ 
+ #include "misc.h"
+ #include "dxgkrnl.h"
+diff --git a/drivers/hv/dxgkrnl/ioctl.c b/drivers/hv/dxgkrnl/ioctl.c
+index 42f3de3..d70a4b9 100644
+--- a/drivers/hv/dxgkrnl/ioctl.c
++++ b/drivers/hv/dxgkrnl/ioctl.c
+@@ -17,6 +17,7 @@
+ #include <linux/anon_inodes.h>
+ #include <linux/mman.h>
+ #include <linux/pid_namespace.h>
++#include <linux/vmalloc.h>
+ 
+ #include "dxgkrnl.h"
+ #include "dxgvmbus.h"
+--

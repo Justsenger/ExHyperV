@@ -10,7 +10,7 @@ namespace ExHyperV.Views
     public partial class ChooseGPUWindow : FluentWindow
     {
         public string Machinename { get; private set; }
-
+        public bool IsSimpleMode { get; private set; }
         public ObservableCollection<GpuChoice> Items { get; } = new();
         public GpuChoice SelectedGpu { get; private set; }
         public ChooseGPUWindow(string vmname, List<GPUInfo> hostGpuList)
@@ -51,6 +51,7 @@ namespace ExHyperV.Views
             if (GpuListView.SelectedItem is GpuChoice selectedGpu)
             {
                 this.SelectedGpu = selectedGpu;
+                this.IsSimpleMode = SimpleModeCheckBox.IsChecked ?? false;
                 this.DialogResult = true;
                 this.Close();
             }

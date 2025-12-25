@@ -453,11 +453,16 @@ namespace ExHyperV.Services
                 {
                     Utils.AddGpuAssignmentStrategyReg();
                     Utils.ApplyGpuPartitionStrictModeFix();
-                    var vmStateResult = Utils.Run($"(Get-VM -Name '{vmName}').State");
-                    if (vmStateResult == null || vmStateResult.Count == 0 || vmStateResult[0].ToString() != "Off")
+
+                    if (selectedPartition != null)
                     {
-                        return string.Format(Properties.Resources.Error_VmMustBeOff, vmName);
+                        var vmStateResult = Utils.Run($"(Get-VM -Name '{vmName}').State");
+                        if (vmStateResult == null || vmStateResult.Count == 0 || vmStateResult[0].ToString() != "Off")
+                        {
+                            return string.Format(Properties.Resources.Error_VmMustBeOff, vmName);
+                        }
                     }
+
                     if (isWin10)
                     {
                         var allHostGpus = await GetHostGpusAsync();
@@ -488,15 +493,22 @@ namespace ExHyperV.Services
                     string addGpuCommand = isWin10
                         ? $"Add-VMGpuPartitionAdapter -VMName '{vmName}'"
                         : $"Add-VMGpuPartitionAdapter -VMName '{vmName}' -InstancePath '{gpuInstancePath}'";
-                    
-                    string vmConfigScript = $@"
+
+                    string vmConfigScript;
+                    if (selectedPartition == null)
+                    {
+                        vmConfigScript = addGpuCommand;
+                    }
+                    else
+                    {
+                        vmConfigScript = $@"
                         Set-VM -GuestControlledCacheTypes $true -VMName '{vmName}';
                         Set-VM -HighMemoryMappedIoSpace 64GB –VMName '{vmName}';
                         Set-VM -LowMemoryMappedIoSpace 1GB -VMName '{vmName}';
                         {addGpuCommand};
                         ";
+                    }
                     Utils.Run(vmConfigScript);
-
                     if (isWin10)
                     {
                         string gpuTag = $"[AssignedGPU:{gpuInstancePath}]";
@@ -509,170 +521,171 @@ namespace ExHyperV.Services
                         ";
                         Utils.Run(updateNotesScript);
                     }
-
-                    if (selectedPartition.OsType == OperatingSystemType.Windows)
+                    if (selectedPartition != null)
                     {
-                        var harddiskPathResult = Utils.Run($"(Get-VMHardDiskDrive -vmname '{vmName}')[0].Path");
-                        if (harddiskPathResult == null || harddiskPathResult.Count == 0)
+                        if (selectedPartition.OsType == OperatingSystemType.Windows)
                         {
-                            return ExHyperV.Properties.Resources.Error_GetVmHardDiskPathFailed;
+                            var harddiskPathResult = Utils.Run($"(Get-VMHardDiskDrive -vmname '{vmName}')[0].Path");
+                            if (harddiskPathResult == null || harddiskPathResult.Count == 0)
+                            {
+                                return ExHyperV.Properties.Resources.Error_GetVmHardDiskPathFailed;
+                            }
+                            string harddiskpath = harddiskPathResult[0].ToString();
+                            string injectionResult = await InjectWindowsDriversAsync(vmName, harddiskpath, selectedPartition, gpuManu, id);
+                            if (injectionResult != "OK")
+                            {
+                                return injectionResult;
+                            }
                         }
-                        string harddiskpath = harddiskPathResult[0].ToString();
-                        string injectionResult = await InjectWindowsDriversAsync(vmName, harddiskpath, selectedPartition, gpuManu, id);
-                        if (injectionResult != "OK")
+                        else if (selectedPartition.OsType == OperatingSystemType.Linux)
                         {
-                            return injectionResult;
-                        }
-                    }
-                    else if (selectedPartition.OsType == OperatingSystemType.Linux)
-                    {
-                        var sshService = new SshService();
-                        SshCredentials credentials = null;
-                        ExecutionProgressWindow progressWindow = null;
-                        var cts = new CancellationTokenSource();
-                        Action<string> showMessage = (msg) => System.Windows.Application.Current.Dispatcher.Invoke(() => Utils.Show2(msg));
-                        Func<string, string> withSudo = (cmd) =>
-                        {
-                            // 移除命令开头可能存在的 sudo，以防重复
-                            if (cmd.Trim().StartsWith("sudo "))
+                            var sshService = new SshService();
+                            SshCredentials credentials = null;
+                            ExecutionProgressWindow progressWindow = null;
+                            var cts = new CancellationTokenSource();
+                            Action<string> showMessage = (msg) => System.Windows.Application.Current.Dispatcher.Invoke(() => Utils.Show2(msg));
+                            Func<string, string> withSudo = (cmd) =>
                             {
-                                cmd = cmd.Trim().Substring(5);
-                            }
-                            // 对密码中的单引号进行转义，防止shell注入
-                            string escapedPassword = credentials.Password.Replace("'", "'\\''");
-                            return $"echo '{escapedPassword}' | sudo -S -E -p '' {cmd}";
-                        };
-                        try
-                        {
-                            var currentState = await GetVmStateAsync(vmName);
-                            if (currentState != "Running")
-                            {
-                                Utils.Run($"Start-VM -Name '{vmName}'");
-                            }
-                            string getMacScript = $"(Get-VMNetworkAdapter -VMName '{vmName}').MacAddress | Select-Object -First 1";
-                            var macResult = await Utils.Run2(getMacScript);
-                            if (macResult == null || macResult.Count == 0 || string.IsNullOrEmpty(macResult[0]?.ToString()))
-                            {
-                                return string.Format(Properties.Resources.Error_GetVmMacAddressFailed, vmName);
-                            }
-                            string macAddressWithoutColons = macResult[0].ToString();
-                            string macAddressWithColons = System.Text.RegularExpressions.Regex.Replace(macAddressWithoutColons, "(.{2})", "$1:").TrimEnd(':');
-
-                            string vmIpAddress = string.Empty;
-                            var stopwatch = Stopwatch.StartNew();
-                            vmIpAddress = await Utils.GetVmIpAddressAsync(vmName, macAddressWithColons);
-                            stopwatch.Stop();
-
-                            string targetIp = vmIpAddress.Split(',').Select(ip => ip.Trim()).FirstOrDefault(ip => System.Net.IPAddress.TryParse(ip, out var addr) && addr.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork);
-
-                            //弹出登录框
-                            await System.Windows.Application.Current.Dispatcher.InvokeAsync(() => {
-                                var loginWindow = new SshLoginWindow(vmName, targetIp);
-                                if (loginWindow.ShowDialog() == true)
+                                // 移除命令开头可能存在的 sudo，以防重复
+                                if (cmd.Trim().StartsWith("sudo "))
                                 {
-                                    credentials = loginWindow.Credentials;
+                                    cmd = cmd.Trim().Substring(5);
                                 }
-                            });
-
-                            if (credentials == null)return ExHyperV.Properties.Resources.Info_SshLoginCancelledByUser;
-                            if (!string.IsNullOrEmpty(targetIp))
-                            {
-                                credentials.Host = targetIp;
-                            }
-                            if (string.IsNullOrEmpty(credentials.Host))
-                            {
-                                return string.Format(Properties.Resources.Error_NoValidIpv4AddressFound, "Unknown");
-                            }
-
-                        }
-                        catch (Exception ex)
-                        {
-                            ShowMessageOnUIThread(string.Format(Properties.Resources.Error_PreparationFailed, ex.Message));
-                            return string.Format(Properties.Resources.Error_PreparationFailed, ex.Message);
-                        }
-
-
-                        await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
-                        {
-                            progressWindow = new ExecutionProgressWindow();
-                            progressWindow.Show();
-                        });
-
-                        progressWindow.Closed += (s, e) =>
-                        {
-                            cts.Cancel();
-                        };
-
-                        while (true)
-                        {
-                            var userActionTcs = new TaskCompletionSource<bool>();
-                            EventHandler retryHandler = (s, e) => userActionTcs.TrySetResult(true);
-                            EventHandler closeHandler = (s, e) => userActionTcs.TrySetResult(false);
+                                // 对密码中的单引号进行转义，防止shell注入
+                                string escapedPassword = credentials.Password.Replace("'", "'\\''");
+                                return $"echo '{escapedPassword}' | sudo -S -E -p '' {cmd}";
+                            };
                             try
                             {
-                                progressWindow.RetryClicked += retryHandler;
-                                progressWindow.Closed += closeHandler;
-
-                                if (cts.IsCancellationRequested)
+                                var currentState = await GetVmStateAsync(vmName);
+                                if (currentState != "Running")
                                 {
-                                    cts.Dispose();
-                                    cts = new CancellationTokenSource();
-                                    progressWindow.Closed += (s, e) => cts.Cancel();
+                                    Utils.Run($"Start-VM -Name '{vmName}'");
                                 }
-
-                                if (userActionTcs.Task.IsCompleted && userActionTcs.Task.Result)
+                                string getMacScript = $"(Get-VMNetworkAdapter -VMName '{vmName}').MacAddress | Select-Object -First 1";
+                                var macResult = await Utils.Run2(getMacScript);
+                                if (macResult == null || macResult.Count == 0 || string.IsNullOrEmpty(macResult[0]?.ToString()))
                                 {
-                                    progressWindow.ResetForRetry();
+                                    return string.Format(Properties.Resources.Error_GetVmMacAddressFailed, vmName);
                                 }
-                                Action<string> log = (message) =>
-                                {
-                                    if (!cts.IsCancellationRequested) progressWindow.AppendLog(message);
-                                };
-                                Action<string> updateStatus = (status) =>
-                                {
-                                    if (!cts.IsCancellationRequested) progressWindow.UpdateStatus(status);
-                                };
+                                string macAddressWithoutColons = macResult[0].ToString();
+                                string macAddressWithColons = System.Text.RegularExpressions.Regex.Replace(macAddressWithoutColons, "(.{2})", "$1:").TrimEnd(':');
 
-                                if (cts.IsCancellationRequested) throw new OperationCanceledException();
+                                string vmIpAddress = string.Empty;
+                                var stopwatch = Stopwatch.StartNew();
+                                vmIpAddress = await Utils.GetVmIpAddressAsync(vmName, macAddressWithColons);
+                                stopwatch.Stop();
 
+                                string targetIp = vmIpAddress.Split(',').Select(ip => ip.Trim()).FirstOrDefault(ip => System.Net.IPAddress.TryParse(ip, out var addr) && addr.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork);
 
-                                updateStatus(ExHyperV.Properties.Resources.LinuxDeploy_Step1);
-                                log(ExHyperV.Properties.Resources.LinuxDeploy_Step1);
-                                string homeDirectory;
-                                string remoteTempDir;
-
-                                using (var client = new SshClient(credentials.Host, credentials.Port, credentials.Username, credentials.Password))
-                                {
-                                    client.Connect();
-                                    log(ExHyperV.Properties.Resources.Log_SshConnectionSuccess);
-                                    var pwdResult = client.RunCommand("pwd");
-                                    homeDirectory = pwdResult.Result.Trim();
-                                    if (string.IsNullOrEmpty(homeDirectory))
+                                //弹出登录框
+                                await System.Windows.Application.Current.Dispatcher.InvokeAsync(() => {
+                                    var loginWindow = new SshLoginWindow(vmName, targetIp);
+                                    if (loginWindow.ShowDialog() == true)
                                     {
-                                        throw new Exception(ExHyperV.Properties.Resources.Error_GetLinuxHomeDirectoryFailed);
+                                        credentials = loginWindow.Credentials;
                                     }
-                                    log(string.Format(Properties.Resources.Log_LinuxHomeDirectoryFound, homeDirectory));
+                                });
 
-                                    remoteTempDir = $"{homeDirectory}/exhyperv_deploy";
-                                    client.RunCommand($"mkdir -p {remoteTempDir}/drivers {remoteTempDir}/lib");
-                                    log(string.Format(Properties.Resources.Log_TempDeployDirectoryCreated, remoteTempDir));
-                                    client.Disconnect();
-                                }
-                                log(ExHyperV.Properties.Resources.Log_RemoteEnvInitializationComplete);
-
-                                if (!string.IsNullOrEmpty(credentials.ProxyHost) && credentials.ProxyPort.HasValue)
+                                if (credentials == null) return ExHyperV.Properties.Resources.Info_SshLoginCancelledByUser;
+                                if (!string.IsNullOrEmpty(targetIp))
                                 {
-                                    updateStatus(ExHyperV.Properties.Resources.LinuxDeploy_Step2);
-                                    log(ExHyperV.Properties.Resources.LinuxDeploy_Step2);
-                                    log(string.Format(Properties.Resources.Log_ProxyServerInfo, credentials.ProxyHost, credentials.ProxyPort));
-                                    string proxyUrl = $"http://{credentials.ProxyHost}:{credentials.ProxyPort}";
-                                    string aptProxyContent = $"Acquire::http::Proxy \"{proxyUrl}\";\nAcquire::https::Proxy \"{proxyUrl}\";\n";
-                                    string envProxyContent = $"\nexport http_proxy=\"{proxyUrl}\"\nexport https_proxy=\"{proxyUrl}\"\nexport no_proxy=\"localhost,127.0.0.1\"\n";
-                                    string remoteAptProxyFile = $"{homeDirectory}/99proxy";
-                                    string remoteEnvProxyFile = $"{homeDirectory}/proxy_env";
-                                    await sshService.WriteTextFileAsync(credentials, aptProxyContent, remoteAptProxyFile);
-                                    await sshService.WriteTextFileAsync(credentials, envProxyContent, remoteEnvProxyFile);
-                                    var proxyCommands = new List<string>
+                                    credentials.Host = targetIp;
+                                }
+                                if (string.IsNullOrEmpty(credentials.Host))
+                                {
+                                    return string.Format(Properties.Resources.Error_NoValidIpv4AddressFound, "Unknown");
+                                }
+
+                            }
+                            catch (Exception ex)
+                            {
+                                ShowMessageOnUIThread(string.Format(Properties.Resources.Error_PreparationFailed, ex.Message));
+                                return string.Format(Properties.Resources.Error_PreparationFailed, ex.Message);
+                            }
+
+
+                            await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+                            {
+                                progressWindow = new ExecutionProgressWindow();
+                                progressWindow.Show();
+                            });
+
+                            progressWindow.Closed += (s, e) =>
+                            {
+                                cts.Cancel();
+                            };
+
+                            while (true)
+                            {
+                                var userActionTcs = new TaskCompletionSource<bool>();
+                                EventHandler retryHandler = (s, e) => userActionTcs.TrySetResult(true);
+                                EventHandler closeHandler = (s, e) => userActionTcs.TrySetResult(false);
+                                try
+                                {
+                                    progressWindow.RetryClicked += retryHandler;
+                                    progressWindow.Closed += closeHandler;
+
+                                    if (cts.IsCancellationRequested)
+                                    {
+                                        cts.Dispose();
+                                        cts = new CancellationTokenSource();
+                                        progressWindow.Closed += (s, e) => cts.Cancel();
+                                    }
+
+                                    if (userActionTcs.Task.IsCompleted && userActionTcs.Task.Result)
+                                    {
+                                        progressWindow.ResetForRetry();
+                                    }
+                                    Action<string> log = (message) =>
+                                    {
+                                        if (!cts.IsCancellationRequested) progressWindow.AppendLog(message);
+                                    };
+                                    Action<string> updateStatus = (status) =>
+                                    {
+                                        if (!cts.IsCancellationRequested) progressWindow.UpdateStatus(status);
+                                    };
+
+                                    if (cts.IsCancellationRequested) throw new OperationCanceledException();
+
+
+                                    updateStatus(ExHyperV.Properties.Resources.LinuxDeploy_Step1);
+                                    log(ExHyperV.Properties.Resources.LinuxDeploy_Step1);
+                                    string homeDirectory;
+                                    string remoteTempDir;
+
+                                    using (var client = new SshClient(credentials.Host, credentials.Port, credentials.Username, credentials.Password))
+                                    {
+                                        client.Connect();
+                                        log(ExHyperV.Properties.Resources.Log_SshConnectionSuccess);
+                                        var pwdResult = client.RunCommand("pwd");
+                                        homeDirectory = pwdResult.Result.Trim();
+                                        if (string.IsNullOrEmpty(homeDirectory))
+                                        {
+                                            throw new Exception(ExHyperV.Properties.Resources.Error_GetLinuxHomeDirectoryFailed);
+                                        }
+                                        log(string.Format(Properties.Resources.Log_LinuxHomeDirectoryFound, homeDirectory));
+
+                                        remoteTempDir = $"{homeDirectory}/exhyperv_deploy";
+                                        client.RunCommand($"mkdir -p {remoteTempDir}/drivers {remoteTempDir}/lib");
+                                        log(string.Format(Properties.Resources.Log_TempDeployDirectoryCreated, remoteTempDir));
+                                        client.Disconnect();
+                                    }
+                                    log(ExHyperV.Properties.Resources.Log_RemoteEnvInitializationComplete);
+
+                                    if (!string.IsNullOrEmpty(credentials.ProxyHost) && credentials.ProxyPort.HasValue)
+                                    {
+                                        updateStatus(ExHyperV.Properties.Resources.LinuxDeploy_Step2);
+                                        log(ExHyperV.Properties.Resources.LinuxDeploy_Step2);
+                                        log(string.Format(Properties.Resources.Log_ProxyServerInfo, credentials.ProxyHost, credentials.ProxyPort));
+                                        string proxyUrl = $"http://{credentials.ProxyHost}:{credentials.ProxyPort}";
+                                        string aptProxyContent = $"Acquire::http::Proxy \"{proxyUrl}\";\nAcquire::https::Proxy \"{proxyUrl}\";\n";
+                                        string envProxyContent = $"\nexport http_proxy=\"{proxyUrl}\"\nexport https_proxy=\"{proxyUrl}\"\nexport no_proxy=\"localhost,127.0.0.1\"\n";
+                                        string remoteAptProxyFile = $"{homeDirectory}/99proxy";
+                                        string remoteEnvProxyFile = $"{homeDirectory}/proxy_env";
+                                        await sshService.WriteTextFileAsync(credentials, aptProxyContent, remoteAptProxyFile);
+                                        await sshService.WriteTextFileAsync(credentials, envProxyContent, remoteEnvProxyFile);
+                                        var proxyCommands = new List<string>
                                     {
                                         $"sudo mv {remoteAptProxyFile} /etc/apt/apt.conf.d/99proxy",
                                         $"sudo sh -c 'cat {remoteEnvProxyFile} >> /etc/environment'",
@@ -680,136 +693,139 @@ namespace ExHyperV.Services
                                         $"export http_proxy={proxyUrl}",
                                         $"export https_proxy={proxyUrl}"
                                     };
-                                    foreach (var cmd in proxyCommands)
-                                    {
-                                        await sshService.ExecuteSingleCommandAsync(credentials, cmd, log, TimeSpan.FromSeconds(30));
+                                        foreach (var cmd in proxyCommands)
+                                        {
+                                            await sshService.ExecuteSingleCommandAsync(credentials, cmd, log, TimeSpan.FromSeconds(30));
+                                        }
+                                        log(ExHyperV.Properties.Resources.Log_ProxyConfigurationComplete);
                                     }
-                                    log(ExHyperV.Properties.Resources.Log_ProxyConfigurationComplete);
-                                }
 
-                                log(ExHyperV.Properties.Resources.LinuxDeploy_Step3);
-                                string driverStoreBase = @"C:\Windows\System32\DriverStore\FileRepository";
-                                string preciseDriverPath = FindGpuDriverSourcePath(id);
-                                string sourceDriverPath = preciseDriverPath; // 默认为精准路径
+                                    log(ExHyperV.Properties.Resources.LinuxDeploy_Step3);
+                                    string driverStoreBase = @"C:\Windows\System32\DriverStore\FileRepository";
+                                    string preciseDriverPath = FindGpuDriverSourcePath(id);
+                                    string sourceDriverPath = preciseDriverPath; // 默认为精准路径
 
-                                if (string.IsNullOrEmpty(preciseDriverPath))
-                                {
-                                    log(ExHyperV.Properties.Resources.Log_GpuDriverNotFoundFallback);
-                                    sourceDriverPath = driverStoreBase; // 回退到全量拷贝
-                                }
-                                else
-                                {
-                                    log(string.Format(Properties.Resources.Log_PreciseDriverPathLocated, new DirectoryInfo(preciseDriverPath).Name));
-                                }
+                                    if (string.IsNullOrEmpty(preciseDriverPath))
+                                    {
+                                        log(ExHyperV.Properties.Resources.Log_GpuDriverNotFoundFallback);
+                                        sourceDriverPath = driverStoreBase; // 回退到全量拷贝
+                                    }
+                                    else
+                                    {
+                                        log(string.Format(Properties.Resources.Log_PreciseDriverPathLocated, new DirectoryInfo(preciseDriverPath).Name));
+                                    }
 
 
-                                updateStatus(ExHyperV.Properties.Resources.LinuxDeploy_Step3_Status_Import);
-                                log(ExHyperV.Properties.Resources.LinuxDeploy_Step3_Status_Import);
-                                string sourceFolderName = new DirectoryInfo(sourceDriverPath).Name;
-                                string remoteDestinationPath = $"{remoteTempDir}/drivers/{sourceFolderName}";
-                                await sshService.UploadDirectoryAsync(credentials, sourceDriverPath, remoteDestinationPath);
-                                log(ExHyperV.Properties.Resources.Log_HostDriverImportComplete);
-                                await UploadLocalFilesAsync(sshService, credentials, $"{remoteTempDir}/lib");
-                                log(ExHyperV.Properties.Resources.Log_LocalLibrariesCheckComplete);
+                                    updateStatus(ExHyperV.Properties.Resources.LinuxDeploy_Step3_Status_Import);
+                                    log(ExHyperV.Properties.Resources.LinuxDeploy_Step3_Status_Import);
+                                    string sourceFolderName = new DirectoryInfo(sourceDriverPath).Name;
+                                    string remoteDestinationPath = $"{remoteTempDir}/drivers/{sourceFolderName}";
+                                    await sshService.UploadDirectoryAsync(credentials, sourceDriverPath, remoteDestinationPath);
+                                    log(ExHyperV.Properties.Resources.Log_HostDriverImportComplete);
+                                    await UploadLocalFilesAsync(sshService, credentials, $"{remoteTempDir}/lib");
+                                    log(ExHyperV.Properties.Resources.Log_LocalLibrariesCheckComplete);
 
-                                updateStatus(ExHyperV.Properties.Resources.LinuxDeploy_Step4);
-                                log(ExHyperV.Properties.Resources.LinuxDeploy_Step4);
+                                    updateStatus(ExHyperV.Properties.Resources.LinuxDeploy_Step4);
+                                    log(ExHyperV.Properties.Resources.LinuxDeploy_Step4);
 
-                                var commandsToExecute = new List<Tuple<string, TimeSpan?>>();
-                                bool enableGraphics = credentials.InstallGraphics;
+                                    var commandsToExecute = new List<Tuple<string, TimeSpan?>>();
+                                    bool enableGraphics = credentials.InstallGraphics;
 
-                                // 1. 下载脚本
-                                var scriptsToDownload = new List<string>
+                                    // 1. 下载脚本
+                                    var scriptsToDownload = new List<string>
                                 {
                                     $"wget -O {remoteTempDir}/install_dxgkrnl.sh {ScriptBaseUrl}install_dxgkrnl.sh",
                                     enableGraphics ? $"wget -O {remoteTempDir}/setup_graphics.sh {ScriptBaseUrl}setup_graphics.sh" : null,
                                     $"wget -O {remoteTempDir}/configure_system.sh {ScriptBaseUrl}configure_system.sh"
                                 }.Where(s => s != null).ToList();
 
-                                foreach (var scriptCmd in scriptsToDownload)
-                                {
-                                    await sshService.ExecuteSingleCommandAsync(credentials, scriptCmd, log, TimeSpan.FromMinutes(2));
-                                }
-                                await sshService.ExecuteSingleCommandAsync(credentials, $"chmod +x {remoteTempDir}/*.sh", log, TimeSpan.FromSeconds(10));
-                                log(ExHyperV.Properties.Resources.Log_DxgkrnlModuleCompiling);
-                                string dxgkrnlCommand = withSudo($"{remoteTempDir}/install_dxgkrnl.sh");
-                                var dxgkrnlResult = await sshService.ExecuteCommandAndCaptureOutputAsync(credentials, dxgkrnlCommand, log, TimeSpan.FromMinutes(60));
-                                if (dxgkrnlResult.Output.Contains("STATUS: REBOOT_REQUIRED"))
-                                {
-                                    log(ExHyperV.Properties.Resources.Log_KernelUpdateRebootRequired);
-                                    updateStatus(ExHyperV.Properties.Resources.Status_RebootingVm);
+                                    foreach (var scriptCmd in scriptsToDownload)
+                                    {
+                                        await sshService.ExecuteSingleCommandAsync(credentials, scriptCmd, log, TimeSpan.FromMinutes(2));
+                                    }
+                                    await sshService.ExecuteSingleCommandAsync(credentials, $"chmod +x {remoteTempDir}/*.sh", log, TimeSpan.FromSeconds(10));
+                                    log(ExHyperV.Properties.Resources.Log_DxgkrnlModuleCompiling);
+                                    string dxgkrnlCommand = withSudo($"{remoteTempDir}/install_dxgkrnl.sh");
+                                    var dxgkrnlResult = await sshService.ExecuteCommandAndCaptureOutputAsync(credentials, dxgkrnlCommand, log, TimeSpan.FromMinutes(60));
+                                    if (dxgkrnlResult.Output.Contains("STATUS: REBOOT_REQUIRED"))
+                                    {
+                                        log(ExHyperV.Properties.Resources.Log_KernelUpdateRebootRequired);
+                                        updateStatus(ExHyperV.Properties.Resources.Status_RebootingVm);
 
+                                        try
+                                        {
+                                            await sshService.ExecuteSingleCommandAsync(credentials, withSudo("reboot"), log, TimeSpan.FromSeconds(10));
+                                        }
+                                        catch (Exception) { }
+                                        log(ExHyperV.Properties.Resources.Log_WaitingForVmToComeOnline);
+                                        bool isVmUp = await WaitForVmToBeResponsiveAsync(credentials.Host, credentials.Port, cts.Token);
+                                        if (!isVmUp) throw new Exception(ExHyperV.Properties.Resources.Error_VmDidNotComeBackOnline);
+
+                                        log(ExHyperV.Properties.Resources.Log_VmReconnectedRestartingDeploy);
+                                        continue; //重新执行整个流程
+                                    }
+
+                                    if (!dxgkrnlResult.Output.Contains("STATUS: SUCCESS"))
+                                    {
+                                        throw new Exception(ExHyperV.Properties.Resources.Error_KernelModuleScriptFailed);
+                                    }
+
+                                    log(ExHyperV.Properties.Resources.Log_KernelModuleInstallSuccess);
+
+
+                                    if (enableGraphics)
+                                    {
+                                        log(ExHyperV.Properties.Resources.Log_ConfiguringMesa);
+                                        await sshService.ExecuteSingleCommandAsync(credentials, withSudo($"{remoteTempDir}/setup_graphics.sh"), log, TimeSpan.FromMinutes(20));
+                                    }
+
+                                    log(ExHyperV.Properties.Resources.Log_ConfiguringSystem);
+                                    string configArgs = enableGraphics ? "enable_graphics" : "no_graphics";
+                                    await sshService.ExecuteSingleCommandAsync(credentials, withSudo($"{remoteTempDir}/configure_system.sh {configArgs}"), log, TimeSpan.FromMinutes(5));
+
+
+
+                                    updateStatus(ExHyperV.Properties.Resources.LinuxDeploy_Step5);
+                                    log(ExHyperV.Properties.Resources.LinuxDeploy_Step5);
                                     try
                                     {
-                                        await sshService.ExecuteSingleCommandAsync(credentials, withSudo("reboot"), log, TimeSpan.FromSeconds(10));
+                                        await sshService.ExecuteSingleCommandAsync(credentials, "sudo reboot", log, TimeSpan.FromSeconds(5));
                                     }
-                                    catch (Exception) {}
-                                    log(ExHyperV.Properties.Resources.Log_WaitingForVmToComeOnline);
-                                    bool isVmUp = await WaitForVmToBeResponsiveAsync(credentials.Host, credentials.Port, cts.Token);
-                                    if (!isVmUp) throw new Exception(ExHyperV.Properties.Resources.Error_VmDidNotComeBackOnline);
+                                    catch { }
 
-                                    log(ExHyperV.Properties.Resources.Log_VmReconnectedRestartingDeploy);
-                                    continue; //重新执行整个流程
+                                    progressWindow.ShowSuccessState();
+                                    return "OK";
                                 }
-
-                                if (!dxgkrnlResult.Output.Contains("STATUS: SUCCESS"))
+                                catch (OperationCanceledException)
                                 {
-                                    throw new Exception(ExHyperV.Properties.Resources.Error_KernelModuleScriptFailed);
+                                    return ExHyperV.Properties.Resources.Info_OperationCancelled;
                                 }
-
-                                log(ExHyperV.Properties.Resources.Log_KernelModuleInstallSuccess);
-
-
-                                if (enableGraphics)
+                                catch (Exception ex)
                                 {
-                                    log(ExHyperV.Properties.Resources.Log_ConfiguringMesa);
-                                    await sshService.ExecuteSingleCommandAsync(credentials, withSudo($"{remoteTempDir}/setup_graphics.sh"), log, TimeSpan.FromMinutes(20));
+                                    string errorMsg = string.Format(Properties.Resources.Error_DeploymentFailed, ex.Message);
+                                    if (!cts.IsCancellationRequested)
+                                    {
+                                        progressWindow.AppendLog(string.Format(Properties.Resources.Log_ErrorBlockHeader, errorMsg));
+                                        progressWindow.ShowErrorState(ExHyperV.Properties.Resources.Status_DeploymentFailedCheckLogs);
+                                    }
+                                    else
+                                    {
+                                        return ExHyperV.Properties.Resources.Info_OperationAbortedByUser;
+                                    }
+
+                                    bool shouldRetry = await userActionTcs.Task;
+                                    if (!shouldRetry) return errorMsg;
                                 }
-
-                                log(ExHyperV.Properties.Resources.Log_ConfiguringSystem);
-                                string configArgs = enableGraphics ? "enable_graphics" : "no_graphics";
-                                await sshService.ExecuteSingleCommandAsync(credentials, withSudo($"{remoteTempDir}/configure_system.sh {configArgs}"), log, TimeSpan.FromMinutes(5));
-
-
-
-                                updateStatus(ExHyperV.Properties.Resources.LinuxDeploy_Step5);
-                                log(ExHyperV.Properties.Resources.LinuxDeploy_Step5);
-                                try
+                                finally
                                 {
-                                    await sshService.ExecuteSingleCommandAsync(credentials, "sudo reboot", log, TimeSpan.FromSeconds(5));
+                                    progressWindow.RetryClicked -= retryHandler;
+                                    progressWindow.Closed -= closeHandler;
                                 }
-                                catch { }
-
-                                progressWindow.ShowSuccessState();
-                                return "OK";
-                            }
-                            catch (OperationCanceledException)
-                            {
-                                return ExHyperV.Properties.Resources.Info_OperationCancelled;
-                            }
-                            catch (Exception ex)
-                            {
-                                string errorMsg = string.Format(Properties.Resources.Error_DeploymentFailed, ex.Message);
-                                if (!cts.IsCancellationRequested)
-                                {
-                                    progressWindow.AppendLog(string.Format(Properties.Resources.Log_ErrorBlockHeader, errorMsg));
-                                    progressWindow.ShowErrorState(ExHyperV.Properties.Resources.Status_DeploymentFailedCheckLogs);
-                                }
-                                else
-                                {
-                                    return ExHyperV.Properties.Resources.Info_OperationAbortedByUser;
-                                }
-
-                                bool shouldRetry = await userActionTcs.Task;
-                                if (!shouldRetry) return errorMsg;
-                            }
-                            finally
-                            {
-                                progressWindow.RetryClicked -= retryHandler;
-                                progressWindow.Closed -= closeHandler;
                             }
                         }
+
                     }
+
                     if (isWin10 && partitionableGpuCount > 1)
                     {
                         Utils.Run($"Start-VM -Name '{vmName}'");

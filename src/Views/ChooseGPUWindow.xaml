@@ -60,12 +60,19 @@
 
         <Grid Grid.Row="3" Margin="10">
             <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
+            
+            <CheckBox x:Name="SimpleModeCheckBox" 
+              Content="仅添加GPU，不注入驱动" 
+              VerticalAlignment="Center" 
+              Margin="10,0,0,0"
+              Grid.Column="0"/>
 
-            <ui:Button Content="{x:Static properties:Resources.cancel}" Width="200" Margin="20,0,40,0" Click="CancelButton_Click"/>
-            <ui:Button x:Name="ConfirmButton" Appearance="Primary" Content="{x:Static properties:Resources.sure}" Width="200" Click="ConfirmButton_Click" Grid.Column="1" IsEnabled="False"/>
+            <ui:Button Content="{x:Static properties:Resources.cancel}" Width="100" Margin="10,0" Click="CancelButton_Click" Grid.Column="1"/>
+            <ui:Button x:Name="ConfirmButton" Appearance="Primary" Content="{x:Static properties:Resources.sure}" Width="100" Click="ConfirmButton_Click" Grid.Column="2" IsEnabled="False"/>
         </Grid>
 
         <ContentPresenter Grid.Row="1" Grid.RowSpan="2" Grid.ColumnSpan="2" x:Name="ContentPresenterForDialogs"/>

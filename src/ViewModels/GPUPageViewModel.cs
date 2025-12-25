@@ -51,66 +51,68 @@ namespace ExHyperV.ViewModels
         private async Task AddGpuAsync(VirtualMachineViewModel vm)
         {
             if (vm == null) return;
-            string vmState = await _gpuService.GetVmStateAsync(vm.Name);
-            if (vmState != "Off")
-            {
-                ShutdownChoice choice = ShutdownChoice.Cancel;
-                await Application.Current.Dispatcher.InvokeAsync(() => {
-                    var dialog = new ShutdownConfirmationDialog(vm.Name);
-                    dialog.ShowDialog();
-                    choice = dialog.UserChoice;
-                });
-
-                if (choice == ShutdownChoice.ShutdownAndContinue)
-                {
-                    IsLoading = true;
-                    await _gpuService.ShutdownVmAsync(vm.Name);
-                    IsLoading = false;
-                }
-                else
-                {
-                    return; 
-                }
-            }
 
             var gpuInfoList = this.HostGpus.Select(h => h.Model).ToList();
             var chooseGpuWindow = new ChooseGPUWindow(vm.Name, gpuInfoList);
-            if (chooseGpuWindow.ShowDialog() != true)
-            {
-                return;
-            }
+            if (chooseGpuWindow.ShowDialog() != true) return;
 
             var selectedGpu = chooseGpuWindow.SelectedGpu;
-            if (selectedGpu == null)
+            bool isSimpleMode = chooseGpuWindow.IsSimpleMode;
+
+            PartitionInfo userSelectedPartition = null;
+
+            if (!isSimpleMode)
             {
-                return;
+                string vmState = await _gpuService.GetVmStateAsync(vm.Name);
+                if (vmState != "Off")
+                {
+                    ShutdownChoice choice = ShutdownChoice.Cancel;
+                    await Application.Current.Dispatcher.InvokeAsync(() => {
+                        var dialog = new ShutdownConfirmationDialog(vm.Name);
+                        dialog.ShowDialog();
+                        choice = dialog.UserChoice;
+                    });
+
+                    if (choice == ShutdownChoice.ShutdownAndContinue)
+                    {
+                        IsLoading = true;
+                        await _gpuService.ShutdownVmAsync(vm.Name);
+                        IsLoading = false;
+                    }
+                    else return;
+                }
+
+                IsLoading = true;
+                try
+                {
+                    var partitions = await _gpuService.GetPartitionsFromVmAsync(vm.Name);
+                    var selectablePartitions = partitions
+                        .Where(p => p.OsType == OperatingSystemType.Windows || p.OsType == OperatingSystemType.Linux)
+                        .ToList();
+
+                    if (!selectablePartitions.Any())
+                    {
+                        Utils.Show(ExHyperV.Properties.Resources.Error_NoRecognizedPartitionFound);
+                        return;
+                    }
+
+                    await Application.Current.Dispatcher.InvokeAsync(async () => {
+                        userSelectedPartition = await ShowPartitionSelectionDialog(selectablePartitions);
+                    });
+
+                    if (userSelectedPartition == null) return;
+                }
+                catch (Exception ex)
+                {
+                    Utils.Show(string.Format(Properties.Resources.Error_FatalError, ex.Message));
+                    return;
+                }
+                finally { IsLoading = false; }
             }
 
             IsLoading = true;
             try
             {
-                var partitions = await _gpuService.GetPartitionsFromVmAsync(vm.Name);
-                var selectablePartitions = partitions
-                    .Where(p => p.OsType == OperatingSystemType.Windows || p.OsType == OperatingSystemType.Linux)
-                    .ToList();
-
-                if (!selectablePartitions.Any())
-                {
-                    Utils.Show(ExHyperV.Properties.Resources.Error_NoRecognizedPartitionFound);
-                    return;
-                }
-
-                PartitionInfo userSelectedPartition = null;
-                await Application.Current.Dispatcher.InvokeAsync(async () =>
-                {
-                    userSelectedPartition = await ShowPartitionSelectionDialog(selectablePartitions);
-                });
-
-                if (userSelectedPartition == null)
-                {
-                    return;
-                }
-
                 string result = await _gpuService.AddGpuPartitionAsync(vm.Name, selectedGpu.Path, selectedGpu.Manu, userSelectedPartition, selectedGpu.Id);
 
                 if (result == "OK")
@@ -135,7 +137,6 @@ namespace ExHyperV.ViewModels
                             System.TimeSpan.FromSeconds(2)
                         );
                     }
-                    
                 }
                 else
                 {
