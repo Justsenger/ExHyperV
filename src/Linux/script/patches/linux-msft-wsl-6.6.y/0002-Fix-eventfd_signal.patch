@@ -1,27 +1,17 @@
 From: Justsenger <Justsenger@users.noreply.github.com>
 Date: Tue, 21 Jan 2025 15:00:00 +0800
-Subject: [PATCH] dxgkrnl: Unified compatibility fixes for Kernel 6.1 to 6.12+
-
-Updates dxgkrnl to build against newer Linux kernels while maintaining
-compatibility with the base 6.6 kernel.
-
-Fixes include:
-1. Header cleanup: Add <linux/vmalloc.h> for 6.12+.
-2. eventfd: Adapt eventfd_signal() for 6.8+ (count arg removed).
-3. dma_fence: Handle API changes in 6.4 (ops removed) and 6.10 (is_later signature).
-4. task_comm: Replace removed __get_task_comm with strscpy (6.1+).
-5. Locking: Fix mmap locking rule violation (read->write).
+Subject: [PATCH] dxgkrnl: Unified compatibility fixes
 
 Signed-off-by: Justsenger <Justsenger@users.noreply.github.com>
 ---
  drivers/hv/dxgkrnl/dxgadapter.c  |  1 +
  drivers/hv/dxgkrnl/dxgkrnl.h     |  1 +
- drivers/hv/dxgkrnl/dxgmodule.c   |  8 +++++++-
- drivers/hv/dxgkrnl/dxgsyncfile.c | 21 +++++++++++++++++++--
- drivers/hv/dxgkrnl/dxgvmbus.c    | 16 ++++++++++++++--
+ drivers/hv/dxgkrnl/dxgmodule.c   |  6 +++++-
+ drivers/hv/dxgkrnl/dxgsyncfile.c | 11 +++++++++--
+ drivers/hv/dxgkrnl/dxgvmbus.c    | 12 ++++++++++--
  drivers/hv/dxgkrnl/hmgr.c        |  1 +
  drivers/hv/dxgkrnl/ioctl.c       |  1 +
- 7 files changed, 44 insertions(+), 5 deletions(-)
+ 7 files changed, 28 insertions(+), 5 deletions(-)
 
 diff --git a/drivers/hv/dxgkrnl/dxgadapter.c b/drivers/hv/dxgkrnl/dxgadapter.c
 index 6d3cabb..0844ef0 100644
@@ -51,12 +41,11 @@ diff --git a/drivers/hv/dxgkrnl/dxgmodule.c b/drivers/hv/dxgkrnl/dxgmodule.c
 index 1501e0a..d8941db 100644
 --- a/drivers/hv/dxgkrnl/dxgmodule.c
 +++ b/drivers/hv/dxgkrnl/dxgmodule.c
-@@ -170,7 +170,13 @@ void signal_host_cpu_event(struct dxghostevent *eventhdr)
+@@ -170,7 +170,11 @@ void signal_host_cpu_event(struct dxghostevent *eventhdr)
  	}
  	if (event->cpu_event) {
  		DXG_TRACE("signal cpu event");
 -		eventfd_signal(event->cpu_event, 1);
-+/* Kernel 6.8 removed the count argument from eventfd_signal */
 +#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 8, 0)
 +		eventfd_signal(event->cpu_event);
 +#else
@@ -83,7 +72,6 @@ index 3456789..9876543 100644
  		return true;
 -	return __dma_fence_is_later(syncpoint->fence_value, fence->seqno,
 -				    fence->ops);
-+/* Kernel 6.10 changed __dma_fence_is_later signature */
 +#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 10, 0)
 +	return __dma_fence_is_later(fence, syncpoint->fence_value, fence->seqno);
 +#else
@@ -92,19 +80,15 @@ index 3456789..9876543 100644
  }
  
  static bool dxgdmafence_enable_signaling(struct dma_fence *fence)
-@@ -447,6 +452,14 @@ static bool dxgdmafence_enable_signaling(struct dma_fence *fence)
+@@ -447,6 +452,7 @@ static bool dxgdmafence_enable_signaling(struct dma_fence *fence)
  	return true;
  }
  
-+/* 
-+ * Kernel 6.4 removed fence_value_str and timeline_value_str callbacks 
-+ * from dma_fence_ops. We must guard them.
-+ */
 +#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 4, 0)
  static void dxgdmafence_value_str(struct dma_fence *fence,
  				  char *str, int size)
  {
-@@ -460,13 +473,17 @@ static void dxgdmafence_timeline_value_str(struct dma_fence *fence,
+@@ -460,13 +466,14 @@ static void dxgdmafence_timeline_value_str(struct dma_fence *fence,
  	syncpoint = to_syncpoint(fence);
  	snprintf(str, size, "%lld", syncpoint->fence_value);
  }
@@ -133,20 +117,16 @@ index abb6d2a..f04240d 100644
  #include "dxgkrnl.h"
  #include "dxgvmbus.h"
  
-@@ -600,7 +601,11 @@ static u8 *dxg_map_iospace(u64 iospace_address, u32 size,
+@@ -600,7 +601,7 @@ static u8 *dxg_map_iospace(u64 iospace_address, u32 size,
  		return NULL;
  	}
  
 -	mmap_read_lock(current->mm);
-+	/* 
-+	 * io_remap_pfn_range is a write operation on the VMA.
-+	 * Use write lock to prevent locking rule violations (fixes crash/warn on newer kernels).
-+	 */
 +	mmap_write_lock(current->mm);
  	vma = find_vma(current->mm, (unsigned long)va);
  	if (vma) {
  		pgprot_t prot = vma->vm_page_prot;
-@@ -618,7 +623,7 @@ static u8 *dxg_map_iospace(u64 iospace_address, u32 size,
+@@ -618,7 +619,7 @@ static u8 *dxg_map_iospace(u64 iospace_address, u32 size,
  		DXG_ERR("failed to find vma: %p %lx", vma, va);
  		ret = -ENOMEM;
  	}
@@ -155,19 +135,16 @@ index abb6d2a..f04240d 100644
  
  	if (ret) {
  		dxg_unmap_iospace((void *)va, size);
-@@ -690,7 +695,14 @@ int dxgvmb_send_create_process(struct dxgprocess *process)
+@@ -690,7 +691,11 @@ int dxgvmb_send_create_process(struct dxgprocess *process)
  	command->process_id = process->pid;
  	command->linux_process = 1;
  	s[0] = 0;
 -	__get_task_comm(s, WIN_MAX_PATH, current);
-+	
-+/* Kernel 6.1 removed __get_task_comm in favor of direct strscpy access */
 +#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 1, 0)
 +	strscpy(s, current->comm, WIN_MAX_PATH);
 +#else
 + 	__get_task_comm(s, WIN_MAX_PATH, current);
 +#endif
-+
  	for (i = 0; i < WIN_MAX_PATH; i++) {
  		command->process_name[i] = s[i];
  		if (s[i] == 0)
