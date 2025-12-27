@@ -1,21 +1,40 @@
-﻿namespace ExHyperV.Models
-{
-    public class VMInfo
-    {
-        public string Name { get; set; } //虚拟机名称
-        public string LowMMIO { get; set; } //低位内存空间大小
-        public string HighMMIO { get; set; } //高位内存空间大小
-        public string GuestControlled { get; set; } //控制缓存
-        public Dictionary<string, string> GPUs { get; set; } //存储显卡适配器列表
+﻿using CommunityToolkit.Mvvm.ComponentModel;
+using System.Collections.Generic;
 
-        // 构造函数
-        public VMInfo(string name, string low, string high, string guest, Dictionary<string, string> gpus)
+namespace ExHyperV.Models
+{
+    public partial class VMInfo : ObservableObject
+    {
+        [ObservableProperty]
+        private string _name;
+
+        [ObservableProperty]
+        private string _lowMMIO;
+
+        [ObservableProperty]
+        private string _highMMIO;
+
+        [ObservableProperty]
+        private string _guestControlled;
+
+        [ObservableProperty]
+        private Dictionary<string, string> _gPUs;
+
+        [ObservableProperty]
+        private int _generation;
+
+        [ObservableProperty]
+        private bool _isRunning;
+
+        public VMInfo(string name, string low, string high, string guest, Dictionary<string, string> gpus, int generation = 0, bool isRunning = false)
         {
-            Name = name;
-            LowMMIO = low;
-            HighMMIO = high;
-            GuestControlled = guest;
-            GPUs = gpus;
+            _name = name;
+            _lowMMIO = low;
+            _highMMIO = high;
+            _guestControlled = guest;
+            _gPUs = gpus;
+            _generation = generation;
+            _isRunning = isRunning;
         }
     }
 }
