@@ -1,0 +1,306 @@
+﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using ExHyperV.Models;
+using ExHyperV.Services;
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Windows;
+
+namespace ExHyperV.ViewModels
+{
+    public partial class AddDiskViewModel : ObservableObject
+    {
+        private readonly IStorageService _storageService;
+        private readonly string _vmName;
+        private readonly int _vmGeneration;
+        private readonly bool _isVmRunning;
+        private readonly List<VmStorageControllerInfo> _currentStorage;
+        private List<HostDiskInfo> _cachedHostDisks = new();
+        private bool _isInternalUpdating = false;
+
+        public AddDiskViewModel(string vmName, int generation, bool isVmRunning, List<VmStorageControllerInfo> currentStorage)
+        {
+            _storageService = new StorageService();
+            _vmName = vmName;
+            _vmGeneration = generation;
+            _isVmRunning = isVmRunning;
+            _currentStorage = currentStorage ?? new List<VmStorageControllerInfo>();
+
+            AvailableControllerTypes = new ObservableCollection<string>();
+            AvailableControllerNumbers = new ObservableCollection<int>();
+            AvailableLocations = new ObservableCollection<int>();
+
+            _ = InitialLoadAsync();
+        }
+
+        private async Task InitialLoadAsync()
+        {
+            await InitialDiskScanAsync();
+            UpdateControllerTypeOptions();
+            await RefreshControllerLayoutAsync(true);
+        }
+
+        #region 控制器逻辑
+
+        public ObservableCollection<string> AvailableControllerTypes { get; }
+        public ObservableCollection<int> AvailableControllerNumbers { get; }
+        public ObservableCollection<int> AvailableLocations { get; }
+
+        [ObservableProperty] private string _selectedControllerType = "SCSI";
+        [ObservableProperty] private int _selectedControllerNumber = 0;
+        [ObservableProperty] private int _selectedLocation = 0;
+        [ObservableProperty] private bool _autoAssign = true;
+
+        async partial void OnAutoAssignChanged(bool value) => await RefreshControllerLayoutAsync(value);
+
+        async partial void OnSelectedControllerTypeChanged(string value)
+        {
+            if (_isInternalUpdating || string.IsNullOrEmpty(value)) return;
+            await RefreshControllerLayoutAsync(AutoAssign);
+        }
+
+        async partial void OnSelectedControllerNumberChanged(int value)
+        {
+            if (_isInternalUpdating || value < 0) return;
+            await RefreshControllerLayoutAsync(AutoAssign);
+        }
+
+        private void UpdateControllerTypeOptions()
+        {
+            _isInternalUpdating = true;
+            AvailableControllerTypes.Clear();
+
+            if (_vmGeneration == 2)
+            {
+                AvailableControllerTypes.Add("SCSI");
+                SelectedControllerType = "SCSI";
+            }
+            else
+            {
+                if (DeviceType == "DvdDrive")
+                {
+                    AvailableControllerTypes.Add("IDE");
+                    SelectedControllerType = "IDE";
+                }
+                else
+                {
+                    if (_isVmRunning)
+                    {
+                        AvailableControllerTypes.Add("SCSI");
+                        SelectedControllerType = "SCSI";
+                    }
+                    else
+                    {
+                        AvailableControllerTypes.Add("IDE");
+                        AvailableControllerTypes.Add("SCSI");
+                        SelectedControllerType = "IDE";
+                    }
+                }
+            }
+            _isInternalUpdating = false;
+        }
+
+        private async Task RefreshControllerLayoutAsync(bool useAutoAssign)
+        {
+            if (_isInternalUpdating) return;
+            _isInternalUpdating = true;
+
+            try
+            {
+                string targetType = SelectedControllerType;
+                int targetNumber = SelectedControllerNumber;
+                int targetLocation = SelectedLocation;
+
+                if (useAutoAssign)
+                {
+                    var bestSlot = FindFirstAvailableSlot();
+                    targetType = bestSlot.Type;
+                    targetNumber = bestSlot.Number;
+                    targetLocation = bestSlot.Location;
+                }
+
+                int maxNum = (targetType == "IDE") ? 2 : 1;
+                if (AvailableControllerNumbers.Count != maxNum)
+                {
+                    AvailableControllerNumbers.Clear();
+                    for (int i = 0; i < maxNum; i++) AvailableControllerNumbers.Add(i);
+                }
+
+                int maxSlots = (targetType == "IDE") ? 2 : 64;
+                var occupied = _currentStorage
+                    .Where(c => c.ControllerType == targetType && c.ControllerNumber == targetNumber)
+                    .SelectMany(c => c.AttachedDrives)
+                    .Select(d => d.ControllerLocation).ToList();
+
+                var validLocations = new List<int>();
+                for (int i = 0; i < maxSlots; i++)
+                {
+                    if (useAutoAssign || !occupied.Contains(i) || i == targetLocation)
+                        validLocations.Add(i);
+                }
+
+                if (!AvailableLocations.SequenceEqual(validLocations))
+                {
+                    AvailableLocations.Clear();
+                    foreach (var loc in validLocations) AvailableLocations.Add(loc);
+                }
+
+                SelectedControllerType = targetType;
+                SelectedControllerNumber = AvailableControllerNumbers.Contains(targetNumber) ? targetNumber : AvailableControllerNumbers.FirstOrDefault();
+                SelectedLocation = AvailableLocations.Contains(targetLocation) ? targetLocation : AvailableLocations.FirstOrDefault();
+
+                OnPropertyChanged(nameof(SelectedControllerNumber));
+                OnPropertyChanged(nameof(SelectedLocation));
+            }
+            finally { _isInternalUpdating = false; }
+            ConfirmCommand.NotifyCanExecuteChanged();
+        }
+
+        private (string Type, int Number, int Location) FindFirstAvailableSlot()
+        {
+            var usedSlots = _currentStorage.SelectMany(c =>
+                c.AttachedDrives.Select(d => $"{c.ControllerType}-{c.ControllerNumber}-{d.ControllerLocation}")
+            ).ToHashSet();
+
+            if (_vmGeneration == 1)
+            {
+                if (DeviceType == "DvdDrive")
+                {
+                    for (int n = 0; n < 2; n++)
+                        for (int l = 0; l < 2; l++)
+                            if (!usedSlots.Contains($"IDE-{n}-{l}")) return ("IDE", n, l);
+                }
+                else if (!_isVmRunning)
+                {
+                    for (int n = 0; n < 2; n++)
+                        for (int l = 0; l < 2; l++)
+                            if (!usedSlots.Contains($"IDE-{n}-{l}")) return ("IDE", n, l);
+                }
+            }
+
+            for (int l = 0; l < 64; l++)
+                if (!usedSlots.Contains($"SCSI-0-{l}")) return ("SCSI", 0, l);
+
+            return ("SCSI", 0, 0);
+        }
+
+        #endregion
+
+        #region 媒介与来源逻辑
+
+        [ObservableProperty][NotifyCanExecuteChangedFor(nameof(ConfirmCommand))] private string _deviceType = "HardDisk";
+        [ObservableProperty][NotifyCanExecuteChangedFor(nameof(ConfirmCommand))] private bool _isPhysicalSource = false;
+        [ObservableProperty][NotifyCanExecuteChangedFor(nameof(ConfirmCommand))] private string _filePath = string.Empty;
+        [ObservableProperty][NotifyCanExecuteChangedFor(nameof(ConfirmCommand))] private HostDiskInfo? _selectedPhysicalDisk;
+        [ObservableProperty][NotifyCanExecuteChangedFor(nameof(ConfirmCommand))] private bool _isNewDisk = false;
+        [ObservableProperty] private int _newDiskSize = 256;
+        [ObservableProperty] private string _selectedVhdType = "Dynamic";
+        [ObservableProperty] private string _parentPath = "";
+        [ObservableProperty] private string _sectorFormat = "Default";
+        [ObservableProperty] private string _blockSize = "默认";
+
+        // 更新候选容量
+        public List<int> NewDiskSizePresets { get; } = new() { 64, 128, 256, 512, 1024, 2048 };
+
+        // 补全所有支持的 VHDX 块大小候选 (1MB - 256MB)
+        public List<string> BlockSizeOptions { get; } = new()
+        {
+            "默认", "1MB", "2MB", "4MB", "8MB", "16MB", "32MB", "64MB", "128MB", "256MB"
+        };
+
+        public string FilePathPlaceholder => IsNewDisk ? "请指定保存路径..." : "请指定文件路径...";
+
+        async partial void OnDeviceTypeChanged(string value)
+        {
+            if (value == "DvdDrive") IsNewDisk = false;
+            SyncHostDiskDisplay();
+            UpdateControllerTypeOptions();
+            await RefreshControllerLayoutAsync(AutoAssign);
+            ConfirmCommand.NotifyCanExecuteChanged();
+        }
+
+        async partial void OnIsPhysicalSourceChanged(bool value)
+        {
+            if (value) IsNewDisk = false;
+            SyncHostDiskDisplay();
+            await RefreshControllerLayoutAsync(AutoAssign);
+            ConfirmCommand.NotifyCanExecuteChanged();
+        }
+
+        async partial void OnParentPathChanged(string value)
+        {
+            if (!string.IsNullOrEmpty(value) && System.IO.File.Exists(value))
+            {
+                var size = await _storageService.GetVhdSizeGbAsync(value);
+                if (size > 0) NewDiskSize = (int)Math.Ceiling(size);
+            }
+        }
+
+        partial void OnIsNewDiskChanged(bool value)
+        {
+            if (!value) ParentPath = string.Empty;
+            OnPropertyChanged(nameof(FilePathPlaceholder));
+            ConfirmCommand.NotifyCanExecuteChanged();
+        }
+
+        public ObservableCollection<HostDiskInfo> HostDisks { get; } = new();
+
+        private async Task InitialDiskScanAsync()
+        {
+            try
+            {
+                var disks = await _storageService.GetHostDisksAsync();
+                _cachedHostDisks = disks.ToList();
+                SyncHostDiskDisplay();
+            }
+            catch { }
+        }
+
+        private void SyncHostDiskDisplay()
+        {
+            HostDisks.Clear();
+            if (IsPhysicalSource && DeviceType == "HardDisk")
+                foreach (var disk in _cachedHostDisks) HostDisks.Add(disk);
+        }
+
+        [RelayCommand]
+        private void BrowseFile()
+        {
+            Microsoft.Win32.FileDialog dialog = IsNewDisk ? (Microsoft.Win32.FileDialog)new Microsoft.Win32.SaveFileDialog() : new Microsoft.Win32.OpenFileDialog();
+            dialog.Filter = DeviceType == "HardDisk" ? "虚拟磁盘|*.vhdx;*.vhd" : "光盘镜像|*.iso";
+            if (dialog.ShowDialog() == true) FilePath = dialog.FileName;
+            ConfirmCommand.NotifyCanExecuteChanged();
+        }
+
+        [RelayCommand]
+        private void BrowseParentFile()
+        {
+            var dialog = new Microsoft.Win32.OpenFileDialog { Title = "选择父虚拟磁盘", Filter = "虚拟磁盘|*.vhdx;*.vhd" };
+            if (dialog.ShowDialog() == true) ParentPath = dialog.FileName;
+            ConfirmCommand.NotifyCanExecuteChanged();
+        }
+
+        [RelayCommand(CanExecute = nameof(CanConfirmAction))]
+        private void Confirm(Window window)
+        {
+            if (window != null)
+            {
+                window.DialogResult = true;
+                window.Close();
+            }
+        }
+
+        private bool CanConfirmAction()
+        {
+            if (_vmGeneration == 1 && _isVmRunning && SelectedControllerType == "IDE") return false;
+            if (_vmGeneration == 1 && DeviceType == "DvdDrive" && SelectedControllerType == "SCSI") return false;
+
+            if (IsPhysicalSource) return SelectedPhysicalDisk != null;
+            return !string.IsNullOrEmpty(FilePath);
+        }
+        #endregion
+    }
+}

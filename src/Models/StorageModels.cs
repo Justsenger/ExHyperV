@@ -6,7 +6,11 @@ namespace ExHyperV.Models
         public int ControllerLocation { get; set; }
         public string DriveType { get; set; } 
         public string DiskType { get; set; }  
-        public string PathOrDiskNumber { get; set; } 
+        public string PathOrDiskNumber { get; set; }
+        public string DiskModel { get; set; }
+        public double DiskSizeGB { get; set; }
+        public string SerialNumber { get; set; }
+        public int DiskNumber { get; set; } // 新增：专门存储物理磁盘号
     }
 
     public class VmStorageControllerInfo
