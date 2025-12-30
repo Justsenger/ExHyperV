@@ -152,7 +152,7 @@ GPU-P (or GPU-PV) is a paravirtualization technology that allows multiple virtua
 | 20348 | 2.9 | Support for Cross-Adapter Resource Scan-Out (CASO), reducing latency. |
 | 22000 | 3.0 | Support for DMA remapping, overcoming GPU memory address limitations. |
 | 22621 | 3.1 | Shared memory between UMD/KMD, reducing data copies and improving efficiency. |
-| 26100 | 3.2 | Introduction of GPU live migration, WDDM feature queries, and more. |
+| 26100 | 3.2 | Introduction of GPU live migration, WDDM feature queries, and more.The virtual machine's Task Manager can be used to view GPU performance. |
 
 ![WDDM Architecture](https://github.com/Justsenger/ExHyperV/blob/main/img/WDDM.png)
 
