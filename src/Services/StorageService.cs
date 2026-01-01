@@ -45,11 +45,8 @@ namespace ExHyperV.Services
                         if (vm == null) return resultList;
 
                         var settings = session.EnumerateAssociatedInstances(
-                            namespaceName, vm,
-                            "Msvm_SettingsDefineState",
-                            "Msvm_VirtualSystemSettingData",
-                            "ManagedElement",
-                            "SettingData").FirstOrDefault();
+                            namespaceName, vm, "Msvm_SettingsDefineState", "Msvm_VirtualSystemSettingData",
+                            "ManagedElement", "SettingData").FirstOrDefault();
 
                         if (settings == null) return resultList;
 
@@ -67,7 +64,6 @@ namespace ExHyperV.Services
                         foreach (var res in allResources)
                         {
                             int rt = Convert.ToInt32(res.CimInstanceProperties["ResourceType"]?.Value ?? 0);
-
                             if (rt == 5 || rt == 6)
                             {
                                 controllers.Add(res);
@@ -87,10 +83,8 @@ namespace ExHyperV.Services
                             }
                         }
 
-                        controllers = controllers
-                            .OrderBy(c => c.CimInstanceProperties["ResourceType"]?.Value)
-                            .ThenBy(c => c.CimInstanceProperties["Address"]?.Value)
-                            .ToList();
+                        controllers = controllers.OrderBy(c => c.CimInstanceProperties["ResourceType"]?.Value)
+                                                 .ThenBy(c => c.CimInstanceProperties["Address"]?.Value).ToList();
 
                         var deviceIdRegex = new Regex("DeviceID=\"([^\"]+)\"", RegexOptions.Compiled);
 
@@ -150,8 +144,12 @@ namespace ExHyperV.Services
 
                                         if (!string.IsNullOrWhiteSpace(rawPath))
                                         {
-                                            if (rawPath.IndexOf("Msvm_DiskDrive", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                                                rawPath.IndexOf("PHYSICALDRIVE", StringComparison.OrdinalIgnoreCase) >= 0)
+                                            bool isPhysicalHardDisk = rawPath.IndexOf("Msvm_DiskDrive", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                                                                      rawPath.IndexOf("PHYSICALDRIVE", StringComparison.OrdinalIgnoreCase) >= 0;
+                                            bool isPhysicalCdRom = rawPath.IndexOf("CDROM", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                                                                   rawPath.IndexOf("Msvm_OpticalDrive", StringComparison.OrdinalIgnoreCase) >= 0;
+
+                                            if (isPhysicalHardDisk)
                                             {
                                                 driveInfo.DiskType = "Physical";
                                                 driveInfo.PathOrDiskNumber = "Physical Drive";
@@ -189,7 +187,6 @@ namespace ExHyperV.Services
                                                     if (devMatch.Success)
                                                     {
                                                         string devId = devMatch.Groups[1].Value.Replace("\\\\", "\\");
-
                                                         if (hvDiskMap != null && hvDiskMap.TryGetValue(devId, out int dNum))
                                                         {
                                                             driveInfo.DiskNumber = dNum;
@@ -210,12 +207,17 @@ namespace ExHyperV.Services
                                                 }
                                                 catch { }
                                             }
+                                            else if (isPhysicalCdRom)
+                                            {
+                                                driveInfo.DiskType = "Physical";
+                                                driveInfo.PathOrDiskNumber = rawPath;
+                                                driveInfo.DiskModel = "Passthrough Optical Drive";
+                                            }
                                             else
                                             {
                                                 driveInfo.DiskType = "Virtual";
                                                 string cleanPath = rawPath.Trim('"');
                                                 driveInfo.PathOrDiskNumber = cleanPath;
-
                                                 try
                                                 {
                                                     if (File.Exists(cleanPath))
@@ -228,11 +230,9 @@ namespace ExHyperV.Services
                                             }
                                         }
                                     }
-
                                     vmCtrlInfo.AttachedDrives.Add(driveInfo);
                                 }
                             }
-
                             vmCtrlInfo.AttachedDrives = vmCtrlInfo.AttachedDrives.OrderBy(d => d.ControllerLocation).ToList();
                             resultList.Add(vmCtrlInfo);
                         }
@@ -250,6 +250,7 @@ namespace ExHyperV.Services
             public string? SerialNumber { get; set; }
             public double SizeGB { get; set; }
         }
+
         public async Task<List<HostDiskInfo>> GetHostDisksAsync()
         {
             string script = @"
