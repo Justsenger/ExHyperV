@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
@@ -30,20 +29,21 @@ namespace ExHyperV.Services
         {
             return await Task.Run(() =>
             {
-                Debug.WriteLine($"[ExHyperV] === 开始查询虚拟机: {vmName} ===");
                 var resultList = new List<VmStorageControllerInfo>();
                 string namespaceName = @"root\virtualization\v2";
+                string hostNamespace = @"root\cimv2";
+
+                Dictionary<string, int>? hvDiskMap = null;
+                Dictionary<int, HostDiskInfoCache>? osDiskMap = null;
 
                 try
                 {
                     using (var session = CimSession.Create(null))
                     {
-                        // 1. 获取虚拟机
                         var vmQuery = $"SELECT * FROM Msvm_ComputerSystem WHERE ElementName = '{vmName}'";
                         var vm = session.QueryInstances(namespaceName, "WQL", vmQuery).FirstOrDefault();
                         if (vm == null) return resultList;
 
-                        // 2. 获取 Settings
                         var settings = session.EnumerateAssociatedInstances(
                             namespaceName, vm,
                             "Msvm_SettingsDefineState",
@@ -53,62 +53,47 @@ namespace ExHyperV.Services
 
                         if (settings == null) return resultList;
 
-                        // 3. 获取所有资源 (合并 RASD 和 SASD)
-                        var rasd = session.EnumerateAssociatedInstances(
-                            namespaceName, settings,
-                            "Msvm_VirtualSystemSettingDataComponent",
-                            "Msvm_ResourceAllocationSettingData",
-                            "GroupComponent",
-                            "PartComponent").ToList();
-
-                        var sasd = session.EnumerateAssociatedInstances(
-                            namespaceName, settings,
-                            "Msvm_VirtualSystemSettingDataComponent",
-                            "Msvm_StorageAllocationSettingData",
-                            "GroupComponent",
-                            "PartComponent").ToList();
+                        var rasd = session.EnumerateAssociatedInstances(namespaceName, settings, "Msvm_VirtualSystemSettingDataComponent", "Msvm_ResourceAllocationSettingData", "GroupComponent", "PartComponent").ToList();
+                        var sasd = session.EnumerateAssociatedInstances(namespaceName, settings, "Msvm_VirtualSystemSettingDataComponent", "Msvm_StorageAllocationSettingData", "GroupComponent", "PartComponent").ToList();
 
                         var allResources = new List<CimInstance>(rasd.Count + sasd.Count);
                         allResources.AddRange(rasd);
                         allResources.AddRange(sasd);
 
-                        // 4. 提取控制器 (5=IDE, 6=SCSI)
-                        var controllers = allResources
-                            .Where(r => {
-                                var rt = Convert.ToInt32(r.CimInstanceProperties["ResourceType"]?.Value);
-                                return rt == 5 || rt == 6;
-                            })
-                            .OrderBy(c => c.CimInstanceProperties["ResourceType"]?.Value)
-                            .ToList();
-
-                        // 5. 建立 [InstanceID -> List<Resource>] 的子设备映射表 (预处理，提升性能)
-                        // 这一步完全模拟 PowerShell 脚本中的 childrenMap 逻辑
+                        var controllers = new List<CimInstance>();
                         var childrenMap = new Dictionary<string, List<CimInstance>>();
-
-                        // 正则表达式：用于从 Parent 属性中提取 InstanceID
-                        // 匹配模式：InstanceID="任意字符"
-                        var regex = new Regex("InstanceID=\"([^\"]+)\"", RegexOptions.Compiled);
+                        var parentRegex = new Regex("InstanceID=\"([^\"]+)\"", RegexOptions.Compiled);
 
                         foreach (var res in allResources)
                         {
-                            var parentPath = res.CimInstanceProperties["Parent"]?.Value?.ToString();
-                            if (string.IsNullOrEmpty(parentPath)) continue;
+                            int rt = Convert.ToInt32(res.CimInstanceProperties["ResourceType"]?.Value ?? 0);
 
-                            var match = regex.Match(parentPath);
-                            if (match.Success)
+                            if (rt == 5 || rt == 6)
                             {
-                                // 关键修复：WMI 路径里的 \\ 必须转回 \ 才能跟控制器的 ID 匹配
-                                string parentId = match.Groups[1].Value.Replace("\\\\", "\\");
+                                controllers.Add(res);
+                                continue;
+                            }
 
-                                if (!childrenMap.ContainsKey(parentId))
+                            var parentPath = res.CimInstanceProperties["Parent"]?.Value?.ToString();
+                            if (!string.IsNullOrEmpty(parentPath))
+                            {
+                                var match = parentRegex.Match(parentPath);
+                                if (match.Success)
                                 {
-                                    childrenMap[parentId] = new List<CimInstance>();
+                                    string parentId = match.Groups[1].Value.Replace("\\\\", "\\");
+                                    if (!childrenMap.ContainsKey(parentId)) childrenMap[parentId] = new List<CimInstance>();
+                                    childrenMap[parentId].Add(res);
                                 }
-                                childrenMap[parentId].Add(res);
                             }
                         }
 
-                        // 6. 遍历控制器并关联设备
+                        controllers = controllers
+                            .OrderBy(c => c.CimInstanceProperties["ResourceType"]?.Value)
+                            .ThenBy(c => c.CimInstanceProperties["Address"]?.Value)
+                            .ToList();
+
+                        var deviceIdRegex = new Regex("DeviceID=\"([^\"]+)\"", RegexOptions.Compiled);
+
                         foreach (var ctrl in controllers)
                         {
                             string ctrlId = ctrl.CimInstanceProperties["InstanceID"]?.Value?.ToString() ?? "";
@@ -124,97 +109,123 @@ namespace ExHyperV.Services
                                 AttachedDrives = new List<AttachedDriveInfo>()
                             };
 
-                            // 从 Map 中直接查找该控制器的子设备
                             if (childrenMap.ContainsKey(ctrlId))
                             {
-                                var slots = childrenMap[ctrlId];
-                                foreach (var slot in slots)
+                                foreach (var slot in childrenMap[ctrlId])
                                 {
-                                    // 确定插槽位置 (AddressOnParent)
+                                    int resType = Convert.ToInt32(slot.CimInstanceProperties["ResourceType"]?.Value);
+                                    if (resType != 16 && resType != 17) continue;
+
                                     string address = slot.CimInstanceProperties["AddressOnParent"]?.Value?.ToString() ?? "0";
                                     int location = int.TryParse(address, out int loc) ? loc : 0;
 
-                                    // 寻找真正的媒介 (Media)
-                                    // 逻辑：插槽 (Slot) 本身可能就是媒介，也可能指向另一个 Image 资源
-                                    // 检查 Slot 是否有子节点 (Media)
+                                    CimInstance? media = null;
                                     string slotId = slot.CimInstanceProperties["InstanceID"]?.Value?.ToString() ?? "";
-                                    CimInstance media = null;
 
-                                    // 看看这个 slot 下面有没有挂着 ISO 或 VHD (递归找一层)
                                     if (childrenMap.ContainsKey(slotId))
                                     {
-                                        var childMedias = childrenMap[slotId];
-                                        media = childMedias.FirstOrDefault(m => {
+                                        media = childrenMap[slotId].FirstOrDefault(m => {
                                             int t = Convert.ToInt32(m.CimInstanceProperties["ResourceType"]?.Value);
-                                            return t == 31 || t == 16 || t == 22; // 31=DiskImage, 16=DVDImage
+                                            return t == 31 || t == 16 || t == 22;
                                         });
                                     }
 
-                                    // 如果没有子媒介，且 Slot 本身有 HostResource (HostResource[] 包含路径)，则 Slot 就是媒介
                                     var slotHostRes = slot.CimInstanceProperties["HostResource"]?.Value as string[];
                                     if (media == null && slotHostRes != null && slotHostRes.Length > 0)
                                     {
                                         media = slot;
                                     }
 
-                                    // 准备数据
-                                    string path = "";
-                                    int resType = Convert.ToInt32(slot.CimInstanceProperties["ResourceType"]?.Value);
-
-                                    // 最终判断设备类型 (根据 Slot 类型)
-                                    // 16=DVD Drive, 17=Disk Drive
-                                    if (resType != 16 && resType != 17) continue;
-
-                                    if (media != null)
-                                    {
-                                        var hostRes = media.CimInstanceProperties["HostResource"]?.Value as string[];
-                                        if (hostRes != null && hostRes.Length > 0)
-                                        {
-                                            path = hostRes[0];
-                                        }
-                                    }
-
                                     var driveInfo = new AttachedDriveInfo
                                     {
                                         ControllerLocation = location,
                                         DriveType = (resType == 16) ? "DvdDrive" : "HardDisk",
-                                        DiskType = "Empty",
-                                        PathOrDiskNumber = path,
-                                        DiskNumber = -1,
-                                        DiskModel = "",
-                                        DiskSizeGB = 0,
-                                        SerialNumber = ""
+                                        DiskType = "Empty"
                                     };
 
-                                    // 解析路径信息
-                                    if (!string.IsNullOrEmpty(path))
+                                    if (media != null)
                                     {
-                                        if (path.IndexOf("PHYSICALDRIVE", StringComparison.OrdinalIgnoreCase) >= 0)
+                                        var hostRes = media.CimInstanceProperties["HostResource"]?.Value as string[];
+                                        string rawPath = (hostRes != null && hostRes.Length > 0) ? hostRes[0] : "";
+
+                                        if (!string.IsNullOrWhiteSpace(rawPath))
                                         {
-                                            driveInfo.DiskType = "Physical";
-                                            var parts = path.Split(new[] { "PHYSICALDRIVE" }, StringSplitOptions.None);
-                                            if (parts.Length > 1)
+                                            if (rawPath.IndexOf("Msvm_DiskDrive", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                                                rawPath.IndexOf("PHYSICALDRIVE", StringComparison.OrdinalIgnoreCase) >= 0)
                                             {
-                                                string numStr = parts[1].Replace("\"", "").Replace("\\", "").Trim();
-                                                if (int.TryParse(numStr, out int dNum))
+                                                driveInfo.DiskType = "Physical";
+                                                driveInfo.PathOrDiskNumber = "Physical Drive";
+
+                                                try
                                                 {
-                                                    driveInfo.DiskNumber = dNum;
-                                                    driveInfo.PathOrDiskNumber = $"PhysicalDisk{dNum}";
+                                                    if (hvDiskMap == null)
+                                                    {
+                                                        var allHvDisks = session.QueryInstances(namespaceName, "WQL", "SELECT DeviceID, DriveNumber FROM Msvm_DiskDrive");
+                                                        hvDiskMap = new Dictionary<string, int>();
+                                                        foreach (var d in allHvDisks)
+                                                        {
+                                                            string did = d.CimInstanceProperties["DeviceID"]?.Value?.ToString() ?? "";
+                                                            did = did.Replace("\\\\", "\\");
+                                                            int dnum = Convert.ToInt32(d.CimInstanceProperties["DriveNumber"]?.Value);
+                                                            if (!string.IsNullOrEmpty(did)) hvDiskMap[did] = dnum;
+                                                        }
+
+                                                        var allOsDisks = session.QueryInstances(hostNamespace, "WQL", "SELECT Index, Model, Size, SerialNumber FROM Win32_DiskDrive");
+                                                        osDiskMap = new Dictionary<int, HostDiskInfoCache>();
+                                                        foreach (var d in allOsDisks)
+                                                        {
+                                                            int idx = Convert.ToInt32(d.CimInstanceProperties["Index"]?.Value);
+                                                            long size = Convert.ToInt64(d.CimInstanceProperties["Size"]?.Value);
+                                                            osDiskMap[idx] = new HostDiskInfoCache
+                                                            {
+                                                                Model = d.CimInstanceProperties["Model"]?.Value?.ToString(),
+                                                                SerialNumber = d.CimInstanceProperties["SerialNumber"]?.Value?.ToString()?.Trim(),
+                                                                SizeGB = Math.Round(size / (1024.0 * 1024.0 * 1024.0), 2)
+                                                            };
+                                                        }
+                                                    }
+
+                                                    var devMatch = deviceIdRegex.Match(rawPath);
+                                                    if (devMatch.Success)
+                                                    {
+                                                        string devId = devMatch.Groups[1].Value.Replace("\\\\", "\\");
+
+                                                        if (hvDiskMap != null && hvDiskMap.TryGetValue(devId, out int dNum))
+                                                        {
+                                                            driveInfo.DiskNumber = dNum;
+                                                            driveInfo.PathOrDiskNumber = $"PhysicalDisk{dNum}";
+
+                                                            if (osDiskMap != null && osDiskMap.TryGetValue(dNum, out var hostInfo))
+                                                            {
+                                                                driveInfo.DiskModel = hostInfo.Model;
+                                                                driveInfo.SerialNumber = hostInfo.SerialNumber;
+                                                                driveInfo.DiskSizeGB = hostInfo.SizeGB;
+                                                            }
+                                                        }
+                                                    }
+                                                    else if (rawPath.ToUpper().Contains("PHYSICALDRIVE"))
+                                                    {
+                                                        driveInfo.PathOrDiskNumber = rawPath;
+                                                    }
                                                 }
+                                                catch { }
                                             }
-                                        }
-                                        else
-                                        {
-                                            driveInfo.DiskType = "Virtual";
-                                            try
+                                            else
                                             {
-                                                if (File.Exists(path))
+                                                driveInfo.DiskType = "Virtual";
+                                                string cleanPath = rawPath.Trim('"');
+                                                driveInfo.PathOrDiskNumber = cleanPath;
+
+                                                try
                                                 {
-                                                    var fi = new FileInfo(path);
-                                                    driveInfo.DiskSizeGB = Math.Round(fi.Length / (1024.0 * 1024.0 * 1024.0), 2);
+                                                    if (File.Exists(cleanPath))
+                                                    {
+                                                        var fi = new FileInfo(cleanPath);
+                                                        driveInfo.DiskSizeGB = Math.Round(fi.Length / (1024.0 * 1024.0 * 1024.0), 2);
+                                                    }
                                                 }
+                                                catch { }
                                             }
-                                            catch { }
                                         }
                                     }
 
@@ -227,13 +238,17 @@ namespace ExHyperV.Services
                         }
                     }
                 }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine($"[ExHyperV] WMI Error: {ex.Message}");
-                }
+                catch { }
 
                 return resultList;
             });
+        }
+
+        private class HostDiskInfoCache
+        {
+            public string? Model { get; set; }
+            public string? SerialNumber { get; set; }
+            public double SizeGB { get; set; }
         }
         public async Task<List<HostDiskInfo>> GetHostDisksAsync()
         {
