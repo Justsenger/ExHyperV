@@ -91,7 +91,7 @@ namespace ExHyperV.ViewModels
         public async Task RefreshVmStorageAsync()
         {
             if (SelectedVm == null) return;
-            IsLoading = true;
+            //IsLoading = true;
             try
             {
                 var storageInfo = await _storageService.GetVmStorageInfoAsync(SelectedVm.Name);
