@@ -1,11 +1,14 @@
-﻿using System.Management.Automation;
-using System.Text.Json;
-using ExHyperV.Models;
-using System.Linq;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Threading.Tasks;
 using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using System.Text.Json;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
+using ExHyperV.Models;
+using ExHyperV.Tools;
+using Microsoft.Management.Infrastructure;
 
 namespace ExHyperV.Services
 {
@@ -25,98 +28,213 @@ namespace ExHyperV.Services
     {
         public async Task<List<VmStorageControllerInfo>> GetVmStorageInfoAsync(string vmName)
         {
-            string script = $@"
-            $ErrorActionPreference = 'Stop'
-            $vm = Get-CimInstance -Namespace root\virtualization\v2 -ClassName Msvm_ComputerSystem -Filter ""ElementName = '{vmName}'""
-            if (-not $vm) {{ return ""[]"" }}
-            $vmSettings = Get-CimAssociatedInstance -InputObject $vm -ResultClassName Msvm_VirtualSystemSettingData -Association Msvm_SettingsDefineState
-            if (-not $vmSettings) {{ return ""[]"" }}
-            $rasd = Get-CimAssociatedInstance -InputObject $vmSettings -ResultClassName Msvm_ResourceAllocationSettingData
-            $sasd = Get-CimAssociatedInstance -InputObject $vmSettings -ResultClassName Msvm_StorageAllocationSettingData
-            $allObjects = @{{}}
-            foreach ($item in ($rasd + $sasd)) {{ if ($item.InstanceID) {{ $allObjects[$item.InstanceID] = $item }} }}
-            $allList = $allObjects.Values
-            $childrenMap = @{{}}
-            foreach ($obj in $allList) {{
-                if ($obj.Parent -match 'InstanceID=""([^""]+)""') {{
-                    $parentId = $matches[1].Replace('\\', '\')
-                    if (-not $childrenMap.ContainsKey($parentId)) {{ $childrenMap[$parentId] = @() }}
-                    $childrenMap[$parentId] += $obj
-                }}
-            }}
-            $controllers = $allList | Where-Object {{ $_.ResourceType -eq 5 -or $_.ResourceType -eq 6 }}
-            $result = foreach ($ctrl in $controllers) {{
-                $drivesFound = @()
-                $slots = $childrenMap[$ctrl.InstanceID]
-                if ($slots) {{
-                    foreach ($slot in $slots) {{
-                        $mediaList = $childrenMap[$slot.InstanceID]
-                        $media = $mediaList | Where-Object {{ $_.ResourceType -eq 31 -or $_.ResourceType -eq 16 -or $_.ResourceType -eq 22 }} | Select-Object -First 1
-                        if (-not $media -and $slot.HostResource) {{ $media = $slot }}
-                        $location = 0
-                        if ($slot.AddressOnParent) {{ $location = [int]$slot.AddressOnParent }}
-                        elseif ($slot.InstanceID -match ""(\d+)\\\w+$"") {{ $location = [int]$matches[1] }}
-                        $dType = ""Empty""; $path = """"; $dModel = """"; $dSize = 0; $sn = """"; $dNum = -1
-                        if ($media) {{
-                            $rawPath = if ($media.HostResource) {{ [string]$media.HostResource[0] }} else {{ """" }}
-                            $path = $rawPath; $dType = ""Virtual""
-                            if ([string]::IsNullOrWhiteSpace($path)) {{ $dType = ""Empty"" }}
-                            elseif ($path -match ""Msvm_DiskDrive|PHYSICALDRIVE"") {{
-                                $dType = ""Physical""
-                                if ($path -match 'DeviceID=""([^""]+)""') {{
-                                    try {{
-                                        $devID = $matches[1].Replace('\\\\', '\\'); $hvDisk = Get-CimInstance -Namespace root\virtualization\v2 -ClassName Msvm_DiskDrive -Filter ""DeviceID = '$devID'""
-                                        if ($hvDisk) {{
-                                            $dNum = $hvDisk.DriveNumber; $path = ""PhysicalDisk$dNum""
-                                            $osDisk = Get-CimInstance -Namespace root\cimv2 -ClassName Win32_DiskDrive -Filter ""Index = $dNum""
-                                            if ($osDisk) {{ $dModel = $osDisk.Model; $dSize = [math]::Round($osDisk.Size / 1GB, 2); $sn = if ($osDisk.SerialNumber) {{ $osDisk.SerialNumber.Trim() }} else {{ """" }} }}
-                                        }}
-                                    }} catch {{}}
-                                }}
-                            }} else {{
-                                if (Test-Path $path) {{
-                                    try {{
-                                        if ($path.EndsWith("".iso"", [System.StringComparison]::OrdinalIgnoreCase)) {{ $f = Get-Item $path; $dSize = [math]::Round($f.Length / 1GB, 2) }}
-                                        else {{ $v = Get-VHD -Path $path; if ($v) {{ $dSize = [math]::Round($v.Size / 1GB, 2) }} }}
-                                    }} catch {{}}
-                                }}
-                            }}
-                        }}
-                        $drvType = if ($slot.ResourceType -eq 16 -or ($media -and $media.ResourceType -eq 16)) {{ ""DvdDrive"" }} else {{ ""HardDisk"" }}
-                        if ($slot.ResourceType -eq 17 -or $slot.ResourceType -eq 16 -or $slot.ResourceType -eq 31 -or $slot.ResourceType -eq 22) {{
-                            $drivesFound += [PSCustomObject]@{{
-                                ControllerLocation = $location; DriveType = $drvType; DiskType = $dType; PathOrDiskNumber = $path;
-                                DiskNumber = $dNum; DiskModel = $dModel; DiskSizeGB = $dSize; SerialNumber = $sn
-                            }}
-                        }}
-                    }}
-                }}
-                $cNum = 0
-                if ($ctrl.InstanceID -match ""(\d+)$"") {{ $cNum = [int]$matches[1] }}
-                [PSCustomObject]@{{
-                    VMName = '{vmName}'
-                    Generation = if ($controllers | Where-Object {{ $_.ResourceType -eq 5 }}) {{ 1 }} else {{ 2 }}
-                    ControllerType = if ($ctrl.ResourceType -eq 6) {{ ""SCSI"" }} else {{ ""IDE"" }}
-                    ControllerNumber = $cNum
-                    AttachedDrives = @($drivesFound)
-                }}
-            }}
-            $result | ConvertTo-Json -Depth 10 -Compress";
-
-            var json = await ExecutePowerShellAsync(script);
-            if (string.IsNullOrWhiteSpace(json) || json == "null") return new List<VmStorageControllerInfo>();
-            json = json.Trim();
-            if (json.StartsWith("{")) json = $"[{json}]";
-
-            try
+            return await Task.Run(() =>
             {
-                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-                var list = JsonSerializer.Deserialize<List<VmStorageControllerInfo>>(json, options) ?? new List<VmStorageControllerInfo>();
-                return list.OrderBy(c => c.ControllerType == "IDE" ? 0 : 1).ThenBy(c => c.ControllerNumber).ToList();
-            }
-            catch { return new List<VmStorageControllerInfo>(); }
-        }
+                Debug.WriteLine($"[ExHyperV] === 开始查询虚拟机: {vmName} ===");
+                var resultList = new List<VmStorageControllerInfo>();
+                string namespaceName = @"root\virtualization\v2";
 
+                try
+                {
+                    using (var session = CimSession.Create(null))
+                    {
+                        // 1. 获取虚拟机
+                        var vmQuery = $"SELECT * FROM Msvm_ComputerSystem WHERE ElementName = '{vmName}'";
+                        var vm = session.QueryInstances(namespaceName, "WQL", vmQuery).FirstOrDefault();
+                        if (vm == null) return resultList;
+
+                        // 2. 获取 Settings
+                        var settings = session.EnumerateAssociatedInstances(
+                            namespaceName, vm,
+                            "Msvm_SettingsDefineState",
+                            "Msvm_VirtualSystemSettingData",
+                            "ManagedElement",
+                            "SettingData").FirstOrDefault();
+
+                        if (settings == null) return resultList;
+
+                        // 3. 获取所有资源 (合并 RASD 和 SASD)
+                        var rasd = session.EnumerateAssociatedInstances(
+                            namespaceName, settings,
+                            "Msvm_VirtualSystemSettingDataComponent",
+                            "Msvm_ResourceAllocationSettingData",
+                            "GroupComponent",
+                            "PartComponent").ToList();
+
+                        var sasd = session.EnumerateAssociatedInstances(
+                            namespaceName, settings,
+                            "Msvm_VirtualSystemSettingDataComponent",
+                            "Msvm_StorageAllocationSettingData",
+                            "GroupComponent",
+                            "PartComponent").ToList();
+
+                        var allResources = new List<CimInstance>(rasd.Count + sasd.Count);
+                        allResources.AddRange(rasd);
+                        allResources.AddRange(sasd);
+
+                        // 4. 提取控制器 (5=IDE, 6=SCSI)
+                        var controllers = allResources
+                            .Where(r => {
+                                var rt = Convert.ToInt32(r.CimInstanceProperties["ResourceType"]?.Value);
+                                return rt == 5 || rt == 6;
+                            })
+                            .OrderBy(c => c.CimInstanceProperties["ResourceType"]?.Value)
+                            .ToList();
+
+                        // 5. 建立 [InstanceID -> List<Resource>] 的子设备映射表 (预处理，提升性能)
+                        // 这一步完全模拟 PowerShell 脚本中的 childrenMap 逻辑
+                        var childrenMap = new Dictionary<string, List<CimInstance>>();
+
+                        // 正则表达式：用于从 Parent 属性中提取 InstanceID
+                        // 匹配模式：InstanceID="任意字符"
+                        var regex = new Regex("InstanceID=\"([^\"]+)\"", RegexOptions.Compiled);
+
+                        foreach (var res in allResources)
+                        {
+                            var parentPath = res.CimInstanceProperties["Parent"]?.Value?.ToString();
+                            if (string.IsNullOrEmpty(parentPath)) continue;
+
+                            var match = regex.Match(parentPath);
+                            if (match.Success)
+                            {
+                                // 关键修复：WMI 路径里的 \\ 必须转回 \ 才能跟控制器的 ID 匹配
+                                string parentId = match.Groups[1].Value.Replace("\\\\", "\\");
+
+                                if (!childrenMap.ContainsKey(parentId))
+                                {
+                                    childrenMap[parentId] = new List<CimInstance>();
+                                }
+                                childrenMap[parentId].Add(res);
+                            }
+                        }
+
+                        // 6. 遍历控制器并关联设备
+                        foreach (var ctrl in controllers)
+                        {
+                            string ctrlId = ctrl.CimInstanceProperties["InstanceID"]?.Value?.ToString() ?? "";
+                            int ctrlTypeVal = Convert.ToInt32(ctrl.CimInstanceProperties["ResourceType"]?.Value);
+                            string ctrlType = ctrlTypeVal == 6 ? "SCSI" : "IDE";
+                            int ctrlNum = int.Parse(ctrl.CimInstanceProperties["Address"]?.Value?.ToString() ?? "0");
+
+                            var vmCtrlInfo = new VmStorageControllerInfo
+                            {
+                                VMName = vmName,
+                                ControllerType = ctrlType,
+                                ControllerNumber = ctrlNum,
+                                AttachedDrives = new List<AttachedDriveInfo>()
+                            };
+
+                            // 从 Map 中直接查找该控制器的子设备
+                            if (childrenMap.ContainsKey(ctrlId))
+                            {
+                                var slots = childrenMap[ctrlId];
+                                foreach (var slot in slots)
+                                {
+                                    // 确定插槽位置 (AddressOnParent)
+                                    string address = slot.CimInstanceProperties["AddressOnParent"]?.Value?.ToString() ?? "0";
+                                    int location = int.TryParse(address, out int loc) ? loc : 0;
+
+                                    // 寻找真正的媒介 (Media)
+                                    // 逻辑：插槽 (Slot) 本身可能就是媒介，也可能指向另一个 Image 资源
+                                    // 检查 Slot 是否有子节点 (Media)
+                                    string slotId = slot.CimInstanceProperties["InstanceID"]?.Value?.ToString() ?? "";
+                                    CimInstance media = null;
+
+                                    // 看看这个 slot 下面有没有挂着 ISO 或 VHD (递归找一层)
+                                    if (childrenMap.ContainsKey(slotId))
+                                    {
+                                        var childMedias = childrenMap[slotId];
+                                        media = childMedias.FirstOrDefault(m => {
+                                            int t = Convert.ToInt32(m.CimInstanceProperties["ResourceType"]?.Value);
+                                            return t == 31 || t == 16 || t == 22; // 31=DiskImage, 16=DVDImage
+                                        });
+                                    }
+
+                                    // 如果没有子媒介，且 Slot 本身有 HostResource (HostResource[] 包含路径)，则 Slot 就是媒介
+                                    var slotHostRes = slot.CimInstanceProperties["HostResource"]?.Value as string[];
+                                    if (media == null && slotHostRes != null && slotHostRes.Length > 0)
+                                    {
+                                        media = slot;
+                                    }
+
+                                    // 准备数据
+                                    string path = "";
+                                    int resType = Convert.ToInt32(slot.CimInstanceProperties["ResourceType"]?.Value);
+
+                                    // 最终判断设备类型 (根据 Slot 类型)
+                                    // 16=DVD Drive, 17=Disk Drive
+                                    if (resType != 16 && resType != 17) continue;
+
+                                    if (media != null)
+                                    {
+                                        var hostRes = media.CimInstanceProperties["HostResource"]?.Value as string[];
+                                        if (hostRes != null && hostRes.Length > 0)
+                                        {
+                                            path = hostRes[0];
+                                        }
+                                    }
+
+                                    var driveInfo = new AttachedDriveInfo
+                                    {
+                                        ControllerLocation = location,
+                                        DriveType = (resType == 16) ? "DvdDrive" : "HardDisk",
+                                        DiskType = "Empty",
+                                        PathOrDiskNumber = path,
+                                        DiskNumber = -1,
+                                        DiskModel = "",
+                                        DiskSizeGB = 0,
+                                        SerialNumber = ""
+                                    };
+
+                                    // 解析路径信息
+                                    if (!string.IsNullOrEmpty(path))
+                                    {
+                                        if (path.IndexOf("PHYSICALDRIVE", StringComparison.OrdinalIgnoreCase) >= 0)
+                                        {
+                                            driveInfo.DiskType = "Physical";
+                                            var parts = path.Split(new[] { "PHYSICALDRIVE" }, StringSplitOptions.None);
+                                            if (parts.Length > 1)
+                                            {
+                                                string numStr = parts[1].Replace("\"", "").Replace("\\", "").Trim();
+                                                if (int.TryParse(numStr, out int dNum))
+                                                {
+                                                    driveInfo.DiskNumber = dNum;
+                                                    driveInfo.PathOrDiskNumber = $"PhysicalDisk{dNum}";
+                                                }
+                                            }
+                                        }
+                                        else
+                                        {
+                                            driveInfo.DiskType = "Virtual";
+                                            try
+                                            {
+                                                if (File.Exists(path))
+                                                {
+                                                    var fi = new FileInfo(path);
+                                                    driveInfo.DiskSizeGB = Math.Round(fi.Length / (1024.0 * 1024.0 * 1024.0), 2);
+                                                }
+                                            }
+                                            catch { }
+                                        }
+                                    }
+
+                                    vmCtrlInfo.AttachedDrives.Add(driveInfo);
+                                }
+                            }
+
+                            vmCtrlInfo.AttachedDrives = vmCtrlInfo.AttachedDrives.OrderBy(d => d.ControllerLocation).ToList();
+                            resultList.Add(vmCtrlInfo);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"[ExHyperV] WMI Error: {ex.Message}");
+                }
+
+                return resultList;
+            });
+        }
         public async Task<List<HostDiskInfo>> GetHostDisksAsync()
         {
             string script = @"
@@ -146,74 +264,62 @@ namespace ExHyperV.Services
             string psPath = string.IsNullOrWhiteSpace(pathOrNumber) ? "$null" : $"'{pathOrNumber}'";
 
             string script = $@"
-    $ErrorActionPreference = 'Stop'
-    $vmName = '{vmName}'
-    $ctype = '{controllerType}'; $cnum = {controllerNumber}; $loc = {location}
-    $driveType = '{driveType}'
-    $path = {psPath}
+            $ErrorActionPreference = 'Stop'
+            $vmName = '{vmName}'
+            $ctype = '{controllerType}'; $cnum = {controllerNumber}; $loc = {location}
+            $driveType = '{driveType}'
+            $path = {psPath}
 
-    $v = Get-VM -Name $vmName
-    if (-not $v) {{ throw ""找不到虚拟机 $vmName"" }}
-    $state = [int]$v.State
+            $v = Get-VM -Name $vmName
+            if (-not $v) {{ throw ""找不到虚拟机 $vmName"" }}
+            $state = [int]$v.State
 
-    # 1. 探测该位置现有的硬件驱动器
-    $oldDisk = Get-VMHardDiskDrive -VMName $vmName -ControllerType $ctype -ControllerNumber $cnum -ControllerLocation $loc -ErrorAction SilentlyContinue
-    $oldDvd = Get-VMDvdDrive -VMName $vmName -ControllerNumber $cnum -ControllerLocation $loc | Where-Object {{ $_.ControllerType -eq $ctype }}
+            $oldDisk = Get-VMHardDiskDrive -VMName $vmName -ControllerType $ctype -ControllerNumber $cnum -ControllerLocation $loc -ErrorAction SilentlyContinue
+            $oldDvd = Get-VMDvdDrive -VMName $vmName -ControllerNumber $cnum -ControllerLocation $loc | Where-Object {{ $_.ControllerType -eq $ctype }}
 
-    # 2. 核心逻辑：针对硬盘 (VHDX) 的“更换”处理
-    if ($driveType -eq 'HardDisk') {{
-        # 如果是 IDE 且虚拟机在运行，Hyper-V 严禁热插拔硬盘
-        if ($state -eq 2 -and $ctype -eq 'IDE') {{
-            throw ""IDE 控制器不支持在虚拟机运行状态下更换硬盘。""
-        }}
+            if ($driveType -eq 'HardDisk') {{
+                if ($state -eq 2 -and $ctype -eq 'IDE') {{
+                    throw ""IDE 控制器不支持在虚拟机运行状态下更换硬盘。""
+                }}
 
-        # 如果原位置有东西（不管是硬盘还是光驱），先执行物理删除
-        # 这是“更换” VHDX 的唯一可靠方法：先拔掉旧的，再插上新的
-        if ($oldDisk) {{ Remove-VMHardDiskDrive -VMName $vmName -ControllerType $ctype -ControllerNumber $cnum -ControllerLocation $loc }}
-        if ($oldDvd) {{ Remove-VMDvdDrive -VMName $vmName -ControllerNumber $cnum -ControllerLocation $loc }}
+                if ($oldDisk) {{ Remove-VMHardDiskDrive -VMName $vmName -ControllerType $ctype -ControllerNumber $cnum -ControllerLocation $loc }}
+                if ($oldDvd) {{ Remove-VMDvdDrive -VMName $vmName -ControllerNumber $cnum -ControllerLocation $loc }}
 
-        # 3. 处理新建 VHD 逻辑 (仅在添加物理硬盘之外的情况下)
-        if ('{isNew.ToString().ToLower()}' -eq 'true') {{
-            $vhdParams = @{{ Path = $path; SizeBytes = {sizeGb}GB; {vhdType} = $true }}
-            if ('{sectorFormat}' -eq '512n') {{ $vhdParams.LogicalSectorSizeBytes = 512; $vhdParams.PhysicalSectorSizeBytes = 512 }}
-            elseif ('{sectorFormat}' -eq '512e') {{ $vhdParams.LogicalSectorSizeBytes = 512; $vhdParams.PhysicalSectorSizeBytes = 4096 }}
-            elseif ('{sectorFormat}' -eq '4kn') {{ $vhdParams.LogicalSectorSizeBytes = 4096; $vhdParams.PhysicalSectorSizeBytes = 4096 }}
-            if ('{blockSize}' -ne '默认') {{ $vhdParams.BlockSizeBytes = '{blockSize}' }}
-            if ('{vhdType}' -eq 'Differencing') {{
-                $vhdParams.Remove('SizeBytes'); $vhdParams.Remove('Dynamic'); $vhdParams.Remove('Fixed')
-                $vhdParams.ParentPath = '{parentPath}'
+                if ('{isNew.ToString().ToLower()}' -eq 'true') {{
+                    $vhdParams = @{{ Path = $path; SizeBytes = {sizeGb}GB; {vhdType} = $true }}
+                    if ('{sectorFormat}' -eq '512n') {{ $vhdParams.LogicalSectorSizeBytes = 512; $vhdParams.PhysicalSectorSizeBytes = 512 }}
+                    elseif ('{sectorFormat}' -eq '512e') {{ $vhdParams.LogicalSectorSizeBytes = 512; $vhdParams.PhysicalSectorSizeBytes = 4096 }}
+                    elseif ('{sectorFormat}' -eq '4kn') {{ $vhdParams.LogicalSectorSizeBytes = 4096; $vhdParams.PhysicalSectorSizeBytes = 4096 }}
+                    if ('{blockSize}' -ne '默认') {{ $vhdParams.BlockSizeBytes = '{blockSize}' }}
+                    if ('{vhdType}' -eq 'Differencing') {{
+                        $vhdParams.Remove('SizeBytes'); $vhdParams.Remove('Dynamic'); $vhdParams.Remove('Fixed')
+                        $vhdParams.ParentPath = '{parentPath}'
+                    }}
+                    New-VHD @vhdParams
+                }}
+
+                $p = @{{ VMName=$vmName; ControllerType=$ctype; ControllerNumber=$cnum; ControllerLocation=$loc }}
+                if ('{isPhysical.ToString().ToLower()}' -eq 'true') {{ $p.DiskNumber=$path }} else {{ $p.Path=$path }}
+                Add-VMHardDiskDrive @p
+                
+            }} else {{
+                if ($oldDisk) {{ 
+                    if ($state -eq 2) {{ throw ""运行状态下无法将硬盘位更换为光驱位。"" }}
+                    Remove-VMHardDiskDrive -VMName $vmName -ControllerType $ctype -ControllerNumber $cnum -ControllerLocation $loc 
+                }}
+
+                if ($oldDvd) {{
+                    Set-VMDvdDrive -VMName $vmName -ControllerNumber $cnum -ControllerLocation $loc -Path $path
+                }} else {{
+                    Add-VMDvdDrive -VMName $vmName -ControllerNumber $cnum -ControllerLocation $loc -Path $path
+                }}
             }}
-            New-VHD @vhdParams
-        }}
+            
+            Write-Output ""RESULT:$ctype,$cnum,$loc""";
 
-        # 4. 执行 Add 操作（此时插槽已干净）
-        $p = @{{ VMName=$vmName; ControllerType=$ctype; ControllerNumber=$cnum; ControllerLocation=$loc }}
-        if ('{isPhysical.ToString().ToLower()}' -eq 'true') {{ $p.DiskNumber=$path }} else {{ $p.Path=$path }}
-        Add-VMHardDiskDrive @p
-        
-    }} else {{
-        # --- 光驱处理逻辑 (光驱支持 Set-VMDvdDrive 换碟) ---
-        if ($oldDisk) {{ 
-            if ($state -eq 2) {{ throw ""运行状态下无法将硬盘位更换为光驱位。"" }}
-            Remove-VMHardDiskDrive -VMName $vmName -ControllerType $ctype -ControllerNumber $cnum -ControllerLocation $loc 
-        }}
-
-        if ($oldDvd) {{
-            # 光驱硬件已存在，直接 Set 路径即可
-            Set-VMDvdDrive -VMName $vmName -ControllerNumber $cnum -ControllerLocation $loc -Path $path
-        }} else {{
-            # 光驱硬件不存在，执行物理添加
-            Add-VMDvdDrive -VMName $vmName -ControllerNumber $cnum -ControllerLocation $loc -Path $path
-        }}
-    }}
-    
-    Write-Output ""RESULT:$ctype,$cnum,$loc""";
-
-            using (PowerShell ps = PowerShell.Create())
+            try
             {
-                ps.AddScript(script);
-                var results = await Task.Run(() => ps.Invoke());
-                if (ps.HadErrors) return (false, ps.Streams.Error.FirstOrDefault()?.ToString() ?? "Unknown Error", controllerType, controllerNumber, location);
+                var results = await Utils.Run2(script);
                 string lastLine = results.LastOrDefault()?.ToString() ?? "";
                 if (lastLine.StartsWith("RESULT:"))
                 {
@@ -222,53 +328,51 @@ namespace ExHyperV.Services
                 }
                 return (true, "Success", controllerType, controllerNumber, location);
             }
+            catch (Exception ex)
+            {
+                return (false, ex.Message, controllerType, controllerNumber, location);
+            }
         }
 
         public async Task<(bool Success, string Message)> RemoveDriveAsync(string vmName, UiDriveModel drive)
         {
             string script = $@"
-    $ErrorActionPreference = 'Stop'
-    $vmName = '{vmName}'
-    $cnum = {drive.ControllerNumber}
-    $loc = {drive.ControllerLocation}
+            $ErrorActionPreference = 'Stop'
+            $vmName = '{vmName}'
+            $cnum = {drive.ControllerNumber}
+            $loc = {drive.ControllerLocation}
 
-    # 1. 强制获取 WMI 原始状态 (3 = Off)
-    $vmWmi = Get-CimInstance -Namespace root\virtualization\v2 -ClassName Msvm_ComputerSystem -Filter ""ElementName = '$vmName'""
-    $state = [int]$vmWmi.EnabledState
+            $vmWmi = Get-CimInstance -Namespace root\virtualization\v2 -ClassName Msvm_ComputerSystem -Filter ""ElementName = '$vmName'""
+            $state = [int]$vmWmi.EnabledState
 
-    if ('{drive.DriveType}' -eq 'DvdDrive') {{
-        # 实时获取最新驱动器对象
-        $dvd = Get-VMDvdDrive -VMName $vmName -ControllerNumber $cnum -ControllerLocation $loc -ErrorAction SilentlyContinue
-        
-        if (-not $dvd) {{ return ""SUCCESS:AlreadyRemoved"" }}
+            if ('{drive.DriveType}' -eq 'DvdDrive') {{
+                $dvd = Get-VMDvdDrive -VMName $vmName -ControllerNumber $cnum -ControllerLocation $loc -ErrorAction SilentlyContinue
+                
+                if (-not $dvd) {{ return ""SUCCESS:AlreadyRemoved"" }}
 
-        if ($state -eq 3) {{
-            # --- 情况 A: 虚拟机已关机 (State 3) ---
-            # 别废话，直接一记物理删除，管它有没有盘，一步到位
-            Remove-VMDvdDrive -VMName $vmName -ControllerNumber $cnum -ControllerLocation $loc
-            return ""SUCCESS:Removed""
-        }} 
-        else {{
-            # --- 情况 B: 虚拟机运行中 (State 2) ---
-            # 运行中删不掉硬件，只能弹盘
-            if (-not [string]::IsNullOrWhiteSpace($dvd.Path)) {{
-                $dvd | Set-VMDvdDrive -Path $null
-                return ""SUCCESS:Ejected""
+                if ($state -eq 3) {{
+                    Remove-VMDvdDrive -VMName $vmName -ControllerNumber $cnum -ControllerLocation $loc
+                    return ""SUCCESS:Removed""
+                }} 
+                else {{
+                    if (-not [string]::IsNullOrWhiteSpace($dvd.Path)) {{
+                        $dvd | Set-VMDvdDrive -Path $null
+                        return ""SUCCESS:Ejected""
+                    }} else {{
+                        throw ""虚拟机运行中，无法移除空光驱硬件。""
+                    }}
+                }}
             }} else {{
-                throw ""虚拟机运行中，无法移除空光驱硬件。""
-            }}
-        }}
-    }} else {{
-        # 硬盘移除 (关机状态下也建议直接坐标删除，不留活口)
-        Remove-VMHardDiskDrive -VMName $vmName -ControllerType '{drive.ControllerType}' -ControllerNumber $cnum -ControllerLocation $loc
-        if ('{drive.DiskType}' -eq 'Physical' -and {drive.DiskNumber} -ne -1) {{
-            Start-Sleep -Milliseconds 500
-            Set-Disk -Number {drive.DiskNumber} -IsOffline $false -ErrorAction SilentlyContinue
-        }}
-    }}";
+                Remove-VMHardDiskDrive -VMName $vmName -ControllerType '{drive.ControllerType}' -ControllerNumber $cnum -ControllerLocation $loc
+                if ('{drive.DiskType}' -eq 'Physical' -and {drive.DiskNumber} -ne -1) {{
+                    Start-Sleep -Milliseconds 500
+                    Set-Disk -Number {drive.DiskNumber} -IsOffline $false -ErrorAction SilentlyContinue
+                }}
+            }}";
 
             return await RunCommandAsync(script);
         }
+
         public async Task<(bool Success, string Message)> ModifyDvdDrivePathAsync(string vmName, string controllerType, int controllerNumber, int controllerLocation, string newIsoPath)
         {
             string pathArgument = string.IsNullOrWhiteSpace(newIsoPath) ? "$null" : $"'{newIsoPath}'";
@@ -286,11 +390,19 @@ namespace ExHyperV.Services
             }}";
             return await RunCommandAsync(script);
         }
+
         public async Task<double> GetVhdSizeGbAsync(string path)
         {
             string script = $"Get-VHD -Path '{path}' | Select-Object -ExpandProperty Size";
-            var res = await ExecutePowerShellAsync(script);
-            if (long.TryParse(res.Trim(), out long bytes)) return Math.Round(bytes / 1073741824.0, 2);
+            try
+            {
+                var res = await Utils.Run2(script);
+                if (res != null && res.Count > 0 && long.TryParse(res[0].ToString().Trim(), out long bytes))
+                {
+                    return Math.Round(bytes / 1073741824.0, 2);
+                }
+            }
+            catch { }
             return 0;
         }
 
@@ -325,27 +437,29 @@ namespace ExHyperV.Services
 
         private async Task<string> ExecutePowerShellAsync(string script)
         {
-            return await Task.Run(() => {
-                using (PowerShell ps = PowerShell.Create())
-                {
-                    ps.AddScript(script);
-                    var results = ps.Invoke();
-                    return string.Join(Environment.NewLine, results.Select(r => r.ToString()));
-                }
-            });
+            try
+            {
+                var results = await Utils.Run2(script);
+                if (results == null || results.Count == 0) return string.Empty;
+                return string.Join(Environment.NewLine, results.Select(r => r?.ToString() ?? ""));
+            }
+            catch
+            {
+                return string.Empty;
+            }
         }
 
         private async Task<(bool Success, string Message)> RunCommandAsync(string script)
         {
-            return await Task.Run(() => {
-                using (PowerShell ps = PowerShell.Create())
-                {
-                    ps.AddScript(script);
-                    ps.Invoke();
-                    if (ps.HadErrors) return (false, ps.Streams.Error.FirstOrDefault()?.ToString() ?? "Execution Error");
-                    return (true, "Success");
-                }
-            });
+            try
+            {
+                await Utils.Run2(script);
+                return (true, "Success");
+            }
+            catch (Exception ex)
+            {
+                return (false, ex.Message);
+            }
         }
     }
 }
