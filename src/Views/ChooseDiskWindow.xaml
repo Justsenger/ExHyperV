@@ -5,7 +5,7 @@
         xmlns:converters="clr-namespace:ExHyperV.Converters"
         xmlns:properties="clr-namespace:ExHyperV.Properties"
         x:Name="AddDiskDialog"
-        Title="添加存储设备" Height="650" Width="520"
+        Title="添加存储设备" Height="580" Width="450"
         WindowStartupLocation="CenterOwner"
         ExtendsContentIntoTitleBar="True"
         WindowBackdropType="Mica">
@@ -32,8 +32,7 @@
         <ScrollViewer Grid.Row="1" Margin="15,10,15,0" VerticalScrollBarVisibility="Auto">
             <StackPanel>
 
-                <!-- 1. 控制器设置 (扁平化重构) -->
-                <ui:CardExpander Padding="15,12" Margin="0,0,0,15" IsExpanded="False" HorizontalContentAlignment="Stretch">
+                <ui:CardExpander Padding="15,8" Margin="0,0,0,8" IsExpanded="False" HorizontalContentAlignment="Stretch">
                     <ui:CardExpander.Header>
                         <Grid HorizontalAlignment="Stretch">
                             <Grid.ColumnDefinitions>
@@ -45,7 +44,7 @@
                         </Grid>
                     </ui:CardExpander.Header>
 
-                    <Grid IsEnabled="{Binding AutoAssign, Converter={StaticResource InverseBooleanConverter}}" Margin="0,10,0,0">
+                    <Grid IsEnabled="{Binding AutoAssign, Converter={StaticResource InverseBooleanConverter}}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="*"/>
@@ -65,13 +64,12 @@
 
                         <TextBlock Grid.Column="6" Text="位置" VerticalAlignment="Center" Margin="0,0,8,0" FontSize="12" Opacity="0.6"/>
                         <ComboBox Grid.Column="7" 
-          ItemsSource="{Binding AvailableLocations}" 
-          SelectedItem="{Binding SelectedLocation, Mode=TwoWay}"/>
+                          ItemsSource="{Binding AvailableLocations}" 
+                          SelectedItem="{Binding SelectedLocation, Mode=TwoWay}"/>
                     </Grid>
                 </ui:CardExpander>
-                
-                <!-- 2. 类型与来源 -->
-                <ui:Card Padding="15" Margin="0,0,0,15">
+
+                <ui:Card Padding="15" Margin="0,0,0,8">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
@@ -80,24 +78,22 @@
                         <StackPanel Grid.Column="0">
                             <TextBlock Text="类型" FontWeight="SemiBold" Margin="0,0,0,8"/>
                             <StackPanel Orientation="Horizontal">
-                                <RadioButton Content="硬盘" Margin="0,0,12,0" IsChecked="{Binding DeviceType, Converter={StaticResource EqualityConverter}, ConverterParameter='HardDisk'}"/>
+                                <RadioButton Content="硬盘" Margin="0,0,-12,0" IsChecked="{Binding DeviceType, Converter={StaticResource EqualityConverter}, ConverterParameter='HardDisk'}"/>
                                 <RadioButton Content="光驱" IsChecked="{Binding DeviceType, Converter={StaticResource EqualityConverter}, ConverterParameter='DvdDrive'}"/>
                             </StackPanel>
                         </StackPanel>
                         <StackPanel Grid.Column="1">
                             <TextBlock Text="来源" FontWeight="SemiBold" Margin="0,0,0,8"/>
                             <StackPanel Orientation="Horizontal">
-                                <RadioButton Content="虚拟文件" Margin="0,0,12,0" IsChecked="{Binding IsPhysicalSource, Converter={StaticResource InverseBooleanConverter}}"/>
+                                <RadioButton Content="虚拟文件" Margin="0,0,-12,0" IsChecked="{Binding IsPhysicalSource, Converter={StaticResource InverseBooleanConverter}}"/>
                                 <RadioButton Content="物理设备" IsChecked="{Binding IsPhysicalSource}"/>
                             </StackPanel>
                         </StackPanel>
                     </Grid>
                 </ui:Card>
 
-                <!-- 3. 媒介选择整体卡片 (包含虚拟和物理两种模式) -->
-                <ui:Card Padding="15" Margin="0,0,0,15">
+                <ui:Card Padding="15" Margin="0,0,0,8">
                     <Grid MinHeight="100">
-                        <!-- 模式 A: 虚拟文件配置区域 -->
                         <StackPanel>
                             <StackPanel.Style>
                                 <Style TargetType="StackPanel">
@@ -110,13 +106,12 @@
                                 </Style>
                             </StackPanel.Style>
 
-                            <!-- 第一行：媒介标题与新建 -->
                             <Grid Margin="0,0,0,10">
                                 <TextBlock Text="媒介选择" FontWeight="SemiBold" VerticalAlignment="Center"/>
                                 <CheckBox Content="新建" IsChecked="{Binding IsNewDisk}" HorizontalAlignment="Right">
                                     <CheckBox.Style>
                                         <Style TargetType="CheckBox" BasedOn="{StaticResource {x:Type CheckBox}}">
-                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Setter Property="Visibility" Value="Hidden"/>
                                             <Style.Triggers>
                                                 <DataTrigger Binding="{Binding DeviceType}" Value="HardDisk">
                                                     <Setter Property="Visibility" Value="Visible"/>
@@ -127,7 +122,6 @@
                                 </CheckBox>
                             </Grid>
 
-                            <!-- 第二行：路径与浏览 -->
                             <Grid Margin="0,0,0,10">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
@@ -137,7 +131,6 @@
                                 <ui:Button Grid.Column="1" Content="浏览" Margin="10,0,0,0" Width="60" Command="{Binding BrowseFileCommand}"/>
                             </Grid>
 
-                            <!-- 第三行：容量与类型 -->
                             <Grid Margin="0,0,0,10">
                                 <Grid.Style>
                                     <Style TargetType="Grid">
@@ -177,7 +170,6 @@
                                 </StackPanel>
                             </Grid>
 
-                            <!-- 第四行：父盘选择 -->
                             <Grid Margin="0,0,0,5">
                                 <Grid.Style>
                                     <Style TargetType="Grid">
@@ -201,13 +193,11 @@
                                 <ui:Button Grid.Column="1" Content="浏览" Margin="10,0,0,0" Width="60" Command="{Binding BrowseParentFileCommand}"/>
                             </Grid>
 
-                            <!-- 第五行：高级配置 (扇区与块大小) -->
                             <Grid Margin="0,0,0,10">
                                 <Grid.Style>
                                     <Style TargetType="Grid">
                                         <Setter Property="Visibility" Value="Collapsed"/>
                                         <Style.Triggers>
-                                            <!-- 仅新建时可见 -->
                                             <DataTrigger Binding="{Binding IsNewDisk}" Value="True">
                                                 <Setter Property="Visibility" Value="Visible"/>
                                             </DataTrigger>
@@ -232,8 +222,8 @@
                                     </StackPanel.Style>
                                     <TextBlock Text="扇区格式" FontSize="12" Opacity="0.7" Margin="0,0,0,5"/>
                                     <ComboBox SelectedValue="{Binding SectorFormat}" 
-          SelectedValuePath="Tag" 
-          HorizontalAlignment="Stretch">
+                                          SelectedValuePath="Tag" 
+                                          HorizontalAlignment="Stretch">
                                         <ComboBoxItem Content="默认" Tag="Default"/>
                                         <ComboBoxItem Content="512n" Tag="512n"/>
                                         <ComboBoxItem Content="512e" Tag="512e"/>
@@ -259,7 +249,6 @@
 
                         </StackPanel>
 
-                        <!-- 模式 B: 物理设备模式 -->
                         <Grid>
                             <Grid.Style>
                                 <Style TargetType="Grid">
@@ -323,7 +312,6 @@
             </StackPanel>
         </ScrollViewer>
 
-        <!-- 5. 页脚 -->
         <Grid Grid.Row="2" Margin="15">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                 <ui:Button Content="{x:Static properties:Resources.sure}" Appearance="Primary" Width="80" Command="{Binding ConfirmCommand}" CommandParameter="{Binding ElementName=AddDiskDialog}"/>
