@@ -259,10 +259,74 @@ namespace ExHyperV.Services
 
         public async Task<List<HostDiskInfo>> GetHostDisksAsync()
         {
-            string script = @"$used = (Get-VM | Get-VMHardDiskDrive).DiskNumber; Get-Disk | Where-Object { $_.BusType -ne 'USB' -and $_.MediaType -ne 'Removable' -and $_.IsSystem -eq $false -and $_.IsBoot -eq $false -and $used -notcontains $_.Number } | Select-Object Number, FriendlyName, @{N='SizeGB';E={[math]::round($_.Size/1GB, 2)}}, IsOffline, IsSystem, OperationalStatus | ConvertTo-Json -Compress";
-            var json = await ExecutePowerShellAsync(script);
-            if (string.IsNullOrEmpty(json)) return new List<HostDiskInfo>();
-            return JsonSerializer.Deserialize<List<HostDiskInfo>>(json.StartsWith("{") ? "[" + json + "]" : json) ?? new List<HostDiskInfo>();
+            return await Task.Run(() =>
+            {
+                var result = new List<HostDiskInfo>();
+                var usedDiskNumbers = new HashSet<int>();
+
+                try
+                {
+                    using (var session = CimSession.Create(null))
+                    {
+                        // 1. 快速获取所有被 Hyper-V 占用的物理磁盘编号
+                        var vmUsedDisks = session.QueryInstances(@"root\virtualization\v2", "WQL",
+                            "SELECT DriveNumber FROM Msvm_DiskDrive WHERE DriveNumber IS NOT NULL");
+
+                        foreach (var disk in vmUsedDisks)
+                        {
+                            if (int.TryParse(disk.CimInstanceProperties["DriveNumber"]?.Value?.ToString(), out int num))
+                            {
+                                usedDiskNumbers.Add(num);
+                            }
+                        }
+
+                        // 2. 获取宿主机上所有物理磁盘
+                        var allHostDisks = session.QueryInstances(@"Root\Microsoft\Windows\Storage", "WQL",
+                            "SELECT Number, FriendlyName, Size, IsOffline, IsSystem, IsBoot, BusType, OperationalStatus FROM MSFT_Disk");
+
+                        foreach (var disk in allHostDisks)
+                        {
+                            // 安全地获取属性值
+                            var number = Convert.ToInt32(disk.CimInstanceProperties["Number"]?.Value ?? -1);
+                            if (number == -1) continue;
+
+                            var busType = Convert.ToUInt16(disk.CimInstanceProperties["BusType"]?.Value ?? 0);
+                            var isSystem = Convert.ToBoolean(disk.CimInstanceProperties["IsSystem"]?.Value ?? false);
+                            var isBoot = Convert.ToBoolean(disk.CimInstanceProperties["IsBoot"]?.Value ?? false);
+
+                            // 3. 应用筛选逻辑
+                            // 排除USB盘 (BusType 7), 系统盘, 引导盘, 以及已被VM占用的盘
+                            if (busType == 7 || isSystem || isBoot || usedDiskNumbers.Contains(number))
+                            {
+                                continue;
+                            }
+
+                            // 属性映射
+                            long sizeBytes = Convert.ToInt64(disk.CimInstanceProperties["Size"]?.Value ?? 0);
+                            var opStatusArray = disk.CimInstanceProperties["OperationalStatus"]?.Value as ushort[];
+                            // 假设 HostDiskInfo.OperationalStatus 是 string 类型
+                            string opStatus = (opStatusArray != null && opStatusArray.Length > 0) ? opStatusArray[0].ToString() : "Unknown";
+
+                            result.Add(new HostDiskInfo
+                            {
+                                Number = number,
+                                FriendlyName = disk.CimInstanceProperties["FriendlyName"]?.Value?.ToString() ?? string.Empty,
+                                SizeGB = Math.Round(sizeBytes / (1024.0 * 1024.0 * 1024.0), 2),
+                                IsOffline = Convert.ToBoolean(disk.CimInstanceProperties["IsOffline"]?.Value ?? false),
+                                IsSystem = isSystem,
+                                OperationalStatus = opStatus
+                            });
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // 可以在这里记录详细错误日志，以便调试
+                    Console.WriteLine($"[ERROR] GetHostDisksAsync failed: {ex.Message}");
+                }
+
+                return result;
+            });
         }
 
         public async Task<(bool Success, string Message)> SetDiskOfflineStatusAsync(int diskNumber, bool isOffline) => await RunCommandAsync($"Set-Disk -Number {diskNumber} -IsOffline ${isOffline.ToString().ToLower()}");

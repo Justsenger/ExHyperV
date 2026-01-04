@@ -275,14 +275,14 @@
                                     </Style>
                                 </StackPanel.Style>
 
-                                <TextBlock Text="源文件内容" FontSize="12" Opacity="0.7" Margin="0,0,0,5"/>
+                                <TextBlock Text="文件内容" FontSize="12" Opacity="0.7" Margin="0,0,0,5"/>
                                 <Grid Margin="0,0,0,10">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <ui:TextBox Text="{Binding IsoSourceFolderPath, UpdateSourceTrigger=PropertyChanged}" PlaceholderText="请选择要打包的文件夹..." VerticalAlignment="Center"/>
-                                    <ui:Button Grid.Column="1" Content="选择文件夹" Margin="10,0,0,0" Command="{Binding BrowseFolderCommand}"/>
+                                    <ui:Button Grid.Column="1" Content="选择" Margin="10,0,0,0" Command="{Binding BrowseFolderCommand}"/>
                                 </Grid>
 
                                 <Grid>
