@@ -39,7 +39,7 @@
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="控制器设置" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="0" Text="插槽配置" FontWeight="SemiBold" VerticalAlignment="Center"/>
                             <CheckBox Grid.Column="1" Content="自动分配" IsChecked="{Binding AutoAssign}" VerticalAlignment="Center" Margin="0,0,10,0"/>
                         </Grid>
                     </ui:CardExpander.Header>

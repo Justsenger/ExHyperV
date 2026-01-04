@@ -280,58 +280,61 @@ namespace ExHyperV.Services
             string psPath = string.IsNullOrWhiteSpace(pathOrNumber) ? "$null" : $"'{pathOrNumber}'";
 
             string script = $@"
-            $ErrorActionPreference = 'Stop'
-            $vmName = '{vmName}'
-            $ctype = '{controllerType}'; $cnum = {controllerNumber}; $loc = {location}
-            $driveType = '{driveType}'
-            $path = {psPath}
+    $ErrorActionPreference = 'Stop'
+    $vmName = '{vmName}'
+    $ctype = '{controllerType}'; $cnum = {controllerNumber}; $loc = {location}
+    $driveType = '{driveType}'
+    $path = {psPath}
 
-            $v = Get-VM -Name $vmName
-            if (-not $v) {{ throw ""找不到虚拟机 $vmName"" }}
-            $state = [int]$v.State
+    $v = Get-VM -Name $vmName
+    if (-not $v) {{ throw ""找不到虚拟机 $vmName"" }}
+    $state = [int]$v.State
 
-            $oldDisk = Get-VMHardDiskDrive -VMName $vmName -ControllerType $ctype -ControllerNumber $cnum -ControllerLocation $loc -ErrorAction SilentlyContinue
-            $oldDvd = Get-VMDvdDrive -VMName $vmName -ControllerNumber $cnum -ControllerLocation $loc | Where-Object {{ $_.ControllerType -eq $ctype }}
-
-            if ($driveType -eq 'HardDisk') {{
-                if ($state -eq 2 -and $ctype -eq 'IDE') {{
-                    throw ""IDE 控制器不支持在虚拟机运行状态下更换硬盘。""
-                }}
-
-                if ($oldDisk) {{ Remove-VMHardDiskDrive -VMName $vmName -ControllerType $ctype -ControllerNumber $cnum -ControllerLocation $loc }}
-                if ($oldDvd) {{ Remove-VMDvdDrive -VMName $vmName -ControllerNumber $cnum -ControllerLocation $loc }}
-
-                if ('{isNew.ToString().ToLower()}' -eq 'true') {{
-                    $vhdParams = @{{ Path = $path; SizeBytes = {sizeGb}GB; {vhdType} = $true }}
-                    if ('{sectorFormat}' -eq '512n') {{ $vhdParams.LogicalSectorSizeBytes = 512; $vhdParams.PhysicalSectorSizeBytes = 512 }}
-                    elseif ('{sectorFormat}' -eq '512e') {{ $vhdParams.LogicalSectorSizeBytes = 512; $vhdParams.PhysicalSectorSizeBytes = 4096 }}
-                    elseif ('{sectorFormat}' -eq '4kn') {{ $vhdParams.LogicalSectorSizeBytes = 4096; $vhdParams.PhysicalSectorSizeBytes = 4096 }}
-                    if ('{blockSize}' -ne '默认') {{ $vhdParams.BlockSizeBytes = '{blockSize}' }}
-                    if ('{vhdType}' -eq 'Differencing') {{
-                        $vhdParams.Remove('SizeBytes'); $vhdParams.Remove('Dynamic'); $vhdParams.Remove('Fixed')
-                        $vhdParams.ParentPath = '{parentPath}'
-                    }}
-                    New-VHD @vhdParams
-                }}
-
-                $p = @{{ VMName=$vmName; ControllerType=$ctype; ControllerNumber=$cnum; ControllerLocation=$loc }}
-                if ('{isPhysical.ToString().ToLower()}' -eq 'true') {{ $p.DiskNumber=$path }} else {{ $p.Path=$path }}
-                Add-VMHardDiskDrive @p
-                
-            }} else {{
-                if ($oldDisk) {{ 
-                    if ($state -eq 2) {{ throw ""运行状态下无法将硬盘位更换为光驱位。"" }}
-                    Remove-VMHardDiskDrive -VMName $vmName -ControllerType $ctype -ControllerNumber $cnum -ControllerLocation $loc 
-                }}
-
-                if ($oldDvd) {{
-                    Set-VMDvdDrive -VMName $vmName -ControllerNumber $cnum -ControllerLocation $loc -Path $path
-                }} else {{
-                    Add-VMDvdDrive -VMName $vmName -ControllerNumber $cnum -ControllerLocation $loc -Path $path
-                }}
+    if ($ctype -eq 'SCSI') {{
+        $scsiCtrls = Get-VMScsiController -VMName $vmName | Sort-Object ControllerNumber
+        $maxExisting = if ($scsiCtrls) {{ ($scsiCtrls | Select-Object -Last 1).ControllerNumber }} else {{ -1 }}
+        if ($cnum -gt $maxExisting) {{
+            if ($state -eq 2) {{ throw ""虚拟机正在运行，无法动态创建 SCSI 控制器 $cnum。"" }}
+            for ($i = $maxExisting + 1; $i -le $cnum; $i++) {{
+                Add-VMScsiController -VMName $vmName
             }}
-            
-            Write-Output ""RESULT:$ctype,$cnum,$loc""";
+        }}
+    }}
+
+    $oldDisk = Get-VMHardDiskDrive -VMName $vmName -ControllerType $ctype -ControllerNumber $cnum -ControllerLocation $loc -ErrorAction SilentlyContinue
+    $oldDvd = Get-VMDvdDrive -VMName $vmName -ControllerNumber $cnum -ControllerLocation $loc | Where-Object {{ $_.ControllerType -eq $ctype }}
+
+    if ($driveType -eq 'HardDisk') {{
+        if ($state -eq 2 -and $ctype -eq 'IDE') {{ throw ""IDE 控制器不支持在虚拟机运行状态下更换硬盘。"" }}
+
+        if ($oldDisk) {{ Remove-VMHardDiskDrive -VMName $vmName -ControllerType $ctype -ControllerNumber $cnum -ControllerLocation $loc }}
+        if ($oldDvd) {{ Remove-VMDvdDrive -VMName $vmName -ControllerNumber $cnum -ControllerLocation $loc }}
+
+        if ('{isNew.ToString().ToLower()}' -eq 'true') {{
+            $vhdParams = @{{ Path = $path; SizeBytes = {sizeGb}GB; {vhdType} = $true }}
+            if ('{sectorFormat}' -eq '512n') {{ $vhdParams.LogicalSectorSizeBytes = 512; $vhdParams.PhysicalSectorSizeBytes = 512 }}
+            elseif ('{sectorFormat}' -eq '512e') {{ $vhdParams.LogicalSectorSizeBytes = 512; $vhdParams.PhysicalSectorSizeBytes = 4096 }}
+            elseif ('{sectorFormat}' -eq '4kn') {{ $vhdParams.LogicalSectorSizeBytes = 4096; $vhdParams.PhysicalSectorSizeBytes = 4096 }}
+            if ('{blockSize}' -ne '默认') {{ $vhdParams.BlockSizeBytes = '{blockSize}' }}
+            if ('{vhdType}' -eq 'Differencing') {{
+                $vhdParams.Remove('SizeBytes'); $vhdParams.Remove('Dynamic'); $vhdParams.Remove('Fixed')
+                $vhdParams.ParentPath = '{parentPath}'
+            }}
+            New-VHD @vhdParams
+        }}
+
+        $p = @{{ VMName=$vmName; ControllerType=$ctype; ControllerNumber=$cnum; ControllerLocation=$loc }}
+        if ('{isPhysical.ToString().ToLower()}' -eq 'true') {{ $p.DiskNumber=$path }} else {{ $p.Path=$path }}
+        Add-VMHardDiskDrive @p
+    }} else {{
+        if ($oldDisk) {{ 
+            if ($state -eq 2) {{ throw ""运行状态下无法将硬盘位更换为光驱位。"" }}
+            Remove-VMHardDiskDrive -VMName $vmName -ControllerType $ctype -ControllerNumber $cnum -ControllerLocation $loc 
+        }}
+        if ($oldDvd) {{ Set-VMDvdDrive -VMName $vmName -ControllerNumber $cnum -ControllerLocation $loc -Path $path }}
+        else {{ Add-VMDvdDrive -VMName $vmName -ControllerNumber $cnum -ControllerLocation $loc -Path $path }}
+    }}
+    Write-Output ""RESULT:$ctype,$cnum,$loc""";
 
             try
             {
@@ -349,7 +352,6 @@ namespace ExHyperV.Services
                 return (false, ex.Message, controllerType, controllerNumber, location);
             }
         }
-
         public async Task<(bool Success, string Message)> RemoveDriveAsync(string vmName, UiDriveModel drive)
         {
             string script = $@"
@@ -425,32 +427,61 @@ namespace ExHyperV.Services
         public async Task<(string ControllerType, int ControllerNumber, int Location)> GetNextAvailableSlotAsync(string vmName, string driveType)
         {
             string script = $@"
-            $v = Get-VM -Name '{vmName}'
-            $ctype = 'IDE'; $cnum = 0; $loc = 0;
-            if ($v.Generation -eq 2 -or ($v.Generation -eq 1 -and $v.State -eq 'Running')) {{
-                $ctype = 'SCSI'
-                $ctrl = Get-VMScsiController -VMName '{vmName}' | Select-Object -First 1
-                if (-not $ctrl) {{ $cnum = 0 }} else {{ $cnum = $ctrl.ControllerNumber }}
-                $used = (Get-VMHardDiskDrive -VMName '{vmName}' -ControllerType SCSI -ControllerNumber $cnum).ControllerLocation + `
-                        (Get-VMDvdDrive -VMName '{vmName}' -ControllerNumber $cnum).ControllerLocation
-                for ($i=0; $i -lt 64; $i++) {{ if ($used -notcontains $i) {{ $loc = $i; break }} }}
-            }} else {{
-                $ctype = 'IDE'
-                for ($c=0; $c -lt 2; $c++) {{
-                    $used = (Get-VMHardDiskDrive -VMName '{vmName}' -ControllerType IDE -ControllerNumber $c).ControllerLocation + `
-                            (Get-VMDvdDrive -VMName '{vmName}' -ControllerNumber $c).ControllerLocation
-                    for ($i=0; $i -lt 2; $i++) {{ if ($used -notcontains $i) {{ $cnum=$c; $loc=$i; break }} }}
-                    if ($loc -ne 0 -or $used.Count -lt 2) {{ break }}
+    $v = Get-VM -Name '{vmName}'
+    $ctype = 'IDE'; $cnum = 0; $loc = 0;
+    $found = $false
+
+    if ($v.Generation -eq 2 -or ($v.Generation -eq 1 -and $v.State -eq 'Running')) {{
+        $ctype = 'SCSI'
+        # 获取所有已存在的 SCSI 控制器并按编号排序
+        $controllers = Get-VMScsiController -VMName '{vmName}' | Sort-Object ControllerNumber
+        
+        # 1. 尝试在现有控制器中寻找空位
+        foreach ($ctrl in $controllers) {{
+            $cn = $ctrl.ControllerNumber
+            $used = (Get-VMHardDiskDrive -VMName '{vmName}' -ControllerType SCSI -ControllerNumber $cn).ControllerLocation + `
+                    (Get-VMDvdDrive -VMName '{vmName}' -ControllerNumber $cn).ControllerLocation
+            
+            for ($i=0; $i -lt 64; $i++) {{
+                if ($used -notcontains $i) {{
+                    $cnum = $cn; $loc = $i; $found = $true; break
                 }}
             }}
-            ""$ctype,$cnum,$loc""";
+            if ($found) {{ break }}
+        }}
+
+        # 2. 如果现有控制器都满了，且控制器数量未达上限(4个)，则建议使用下一个控制器编号
+        if (-not $found) {{
+            $existingNums = $controllers.ControllerNumber
+            for ($cn=0; $cn -lt 4; $cn++) {{
+                if ($existingNums -notcontains $cn) {{
+                    $cnum = $cn; $loc = 0; $found = $true; break
+                }}
+            }}
+        }}
+    }} else {{
+        # IDE 逻辑保持不变 (最多2个控制器，每个2个位置)
+        $ctype = 'IDE'
+        for ($c=0; $c -lt 2; $c++) {{
+            $used = (Get-VMHardDiskDrive -VMName '{vmName}' -ControllerType IDE -ControllerNumber $c).ControllerLocation + `
+                    (Get-VMDvdDrive -VMName '{vmName}' -ControllerNumber $c).ControllerLocation
+            for ($i=0; $i -lt 2; $i++) {{
+                if ($used -notcontains $i) {{
+                    $cnum=$c; $loc=$i; $found=$true; break
+                }}
+            }}
+            if ($found) {{ break }}
+        }}
+    }}
+    
+    # 返回格式：类型,控制器编号,插槽位置
+    ""$ctype,$cnum,$loc""";
 
             var res = await ExecutePowerShellAsync(script);
             var parts = res.Trim().Split(',');
             if (parts.Length == 3) return (parts[0], int.Parse(parts[1]), int.Parse(parts[2]));
             return ("SCSI", 0, 0);
         }
-
         private async Task<string> ExecutePowerShellAsync(string script)
         {
             try

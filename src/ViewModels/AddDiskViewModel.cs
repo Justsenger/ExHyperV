@@ -122,11 +122,36 @@ namespace ExHyperV.ViewModels
                     targetLocation = bestSlot.Location;
                 }
 
-                int maxNum = (targetType == "IDE") ? 2 : 1;
-                if (AvailableControllerNumbers.Count != maxNum)
+                if (targetType == "IDE")
                 {
-                    AvailableControllerNumbers.Clear();
-                    for (int i = 0; i < maxNum; i++) AvailableControllerNumbers.Add(i);
+                    if (AvailableControllerNumbers.Count != 2)
+                    {
+                        AvailableControllerNumbers.Clear();
+                        AvailableControllerNumbers.Add(0);
+                        AvailableControllerNumbers.Add(1);
+                    }
+                }
+                else
+                {
+                    var existingScsiNums = _currentStorage
+                        .Where(c => c.ControllerType == "SCSI")
+                        .Select(c => c.ControllerNumber)
+                        .OrderBy(n => n).ToList();
+
+                    if (_isVmRunning)
+                    {
+                        AvailableControllerNumbers.Clear();
+                        foreach (var n in existingScsiNums) AvailableControllerNumbers.Add(n);
+                        if (AvailableControllerNumbers.Count == 0) AvailableControllerNumbers.Add(0);
+                    }
+                    else
+                    {
+                        if (AvailableControllerNumbers.Count != 4 || AvailableControllerNumbers.Max() < 3)
+                        {
+                            AvailableControllerNumbers.Clear();
+                            for (int i = 0; i < 4; i++) AvailableControllerNumbers.Add(i);
+                        }
+                    }
                 }
 
                 int maxSlots = (targetType == "IDE") ? 2 : 64;
@@ -158,7 +183,6 @@ namespace ExHyperV.ViewModels
             finally { _isInternalUpdating = false; }
             ConfirmCommand.NotifyCanExecuteChanged();
         }
-
         private (string Type, int Number, int Location) FindFirstAvailableSlot()
         {
             var usedSlots = _currentStorage.SelectMany(c =>
@@ -181,8 +205,33 @@ namespace ExHyperV.ViewModels
                 }
             }
 
-            for (int l = 0; l < 64; l++)
-                if (!usedSlots.Contains($"SCSI-0-{l}")) return ("SCSI", 0, l);
+            if (_isVmRunning)
+            {
+                var existingScsiNums = _currentStorage
+                    .Where(c => c.ControllerType == "SCSI")
+                    .Select(c => c.ControllerNumber)
+                    .OrderBy(n => n).ToList();
+
+                if (existingScsiNums.Count == 0) existingScsiNums.Add(0);
+
+                foreach (var n in existingScsiNums)
+                {
+                    for (int l = 0; l < 64; l++)
+                    {
+                        if (!usedSlots.Contains($"SCSI-{n}-{l}")) return ("SCSI", n, l);
+                    }
+                }
+            }
+            else
+            {
+                for (int n = 0; n < 4; n++)
+                {
+                    for (int l = 0; l < 64; l++)
+                    {
+                        if (!usedSlots.Contains($"SCSI-{n}-{l}")) return ("SCSI", n, l);
+                    }
+                }
+            }
 
             return ("SCSI", 0, 0);
         }
