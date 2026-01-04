@@ -137,14 +137,12 @@ namespace ExHyperV.ViewModels
                     var resultVm = dialog.ViewModel;
                     IsLoading = true;
 
-                    // 物理磁盘处理逻辑保持不变
                     if (resultVm.IsPhysicalSource && resultVm.SelectedPhysicalDisk != null)
                         await _storageService.SetDiskOfflineStatusAsync(resultVm.SelectedPhysicalDisk.Number, true);
 
                     string pathOrNumber = resultVm.IsPhysicalSource ? resultVm.SelectedPhysicalDisk?.Number.ToString() : resultVm.FilePath;
 
-                    // ==================== 修改开始 ====================
-                    // 核心修改：在方法末尾追加了 ISO 相关的三个参数
+                    // 传递常规参数以及新增的 ISO 参数
                     var (success, message, actualType, actualNumber, actualLocation) = await _storageService.AddDriveAsync(
                         SelectedVm.Name,
                         resultVm.SelectedControllerType,
@@ -159,12 +157,11 @@ namespace ExHyperV.ViewModels
                         resultVm.ParentPath,
                         resultVm.SectorFormat,
                         resultVm.BlockSize,
-                        // 新增参数：从 Dialog ViewModel 中获取 ISO 配置
-                        resultVm.IsoSourceFolderPath,  // 源文件夹路径
-                        resultVm.IsoVolumeLabel,       // 卷标
-                        resultVm.IsoFileSystem         // 文件系统枚举 (Udf/Iso9660)
+                        // ISO 专属参数
+                        resultVm.IsoSourceFolderPath,
+                        resultVm.IsoVolumeLabel,
+                        resultVm.IsoFileSystem
                     );
-                    // ==================== 修改结束 ====================
 
                     if (success)
                     {
@@ -181,6 +178,7 @@ namespace ExHyperV.ViewModels
             catch (Exception ex) { ShowSnackbar(Translate("Storage_Title_Error"), ex.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24); }
             finally { IsLoading = false; }
         }
+
         private List<VmStorageControllerInfo> ConvertUiDrivesToInfo(IEnumerable<UiDriveModel> uiDrives)
         {
             return uiDrives.GroupBy(d => new { d.ControllerType, d.ControllerNumber }).Select(g => new VmStorageControllerInfo
@@ -202,6 +200,7 @@ namespace ExHyperV.ViewModels
                 IsLoading = true;
                 try
                 {
+                    // 修改光驱时不需要创建新ISO，因此不需要传后面可选参数，让其使用默认值即可
                     var (addSuccess, addMsg, _, _, _) = await _storageService.AddDriveAsync(SelectedVm.Name, drive.ControllerType, drive.ControllerNumber, drive.ControllerLocation, drive.DriveType, dialog.FileName, false);
                     if (addSuccess)
                     {

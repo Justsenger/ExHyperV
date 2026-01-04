@@ -8,6 +8,8 @@ using System.Threading.Tasks;
 using ExHyperV.Models;
 using ExHyperV.Tools;
 using Microsoft.Management.Infrastructure;
+using DiscUtils.Iso9660;
+// 移除了 DiscUtils.Udf，因为该库只读不可写
 
 namespace ExHyperV.Services
 {
@@ -270,42 +272,45 @@ namespace ExHyperV.Services
         {
             string psPath = string.IsNullOrWhiteSpace(pathOrNumber) ? "$null" : $"'{pathOrNumber}'";
 
-            string isoCreationScript = "";
+            // === ISO 创建逻辑修正 ===
             if (driveType == "DvdDrive" && isNew && !string.IsNullOrWhiteSpace(isoSourcePath))
             {
-                string safeSource = isoSourcePath.Replace("'", "''");
-                string safeTarget = pathOrNumber.Replace("'", "''");
-                string safeLabel = string.IsNullOrWhiteSpace(isoVolumeLabel) ? new DirectoryInfo(isoSourcePath).Name : isoVolumeLabel;
-                safeLabel = safeLabel.Replace("'", "''");
+                await Task.Run(() =>
+                {
+                    string label = string.IsNullOrWhiteSpace(isoVolumeLabel) ? new DirectoryInfo(isoSourcePath).Name : isoVolumeLabel;
+                    var targetDir = Path.GetDirectoryName(pathOrNumber);
+                    if (!string.IsNullOrEmpty(targetDir) && !Directory.Exists(targetDir)) Directory.CreateDirectory(targetDir);
 
-                isoCreationScript = $@"
-function New-IsoFile {{
-    param($Source,$Target,$Title,$FileSystem)
-    $m = New-Object -ComObject IMAPI2.MsftFileSystemImage -ErrorAction Stop
-    $m.FileSystemsToCreate = $FileSystem
-    $m.VolumeName = $Title
-    $m.Root.AddTree($Source, $false)
-    $result = $m.CreateResultImage()
-    $stream = $result.ImageStream
-    $block = $stream.Clone()
-    $buffer = New-Object byte[] 65536
-    $file = [System.IO.File]::Create($Target)
-    try {{
-        do {{
-            $count = $block.Read($buffer, 0, $buffer.Length)
-            $file.Write($buffer, 0, $count)
-        }} while ($count -gt 0)
-    }} finally {{ $file.Close() }}
-}}
-$fsType = {(isoFileSystem == IsoFileSystemType.Iso9660 ? "1" : "4")} 
-if (Test-Path '{safeTarget}') {{ Remove-Item '{safeTarget}' -Force }}
-New-IsoFile -Source '{safeSource}' -Target '{safeTarget}' -Title '{safeLabel}' -FileSystem $fsType
-";
+                    // 使用 CDBuilder 代替不存在的 UdfWriter
+                    // UseJoliet = true 可以保证长文件名和中文名的兼容性，实际上是最佳实践
+                    var builder = new CDBuilder
+                    {
+                        UseJoliet = true,
+                        VolumeIdentifier = label
+                    };
+
+                    // 手动递归添加文件，解决 AddDirectory 的参数问题
+                    void AddFilesRecursively(string currentDir)
+                    {
+                        foreach (var file in Directory.GetFiles(currentDir))
+                        {
+                            // 计算 ISO 内部的相对路径
+                            string relPath = Path.GetRelativePath(isoSourcePath, file);
+                            builder.AddFile(relPath, file);
+                        }
+                        foreach (var dir in Directory.GetDirectories(currentDir))
+                        {
+                            AddFilesRecursively(dir);
+                        }
+                    }
+
+                    AddFilesRecursively(isoSourcePath);
+                    builder.Build(pathOrNumber);
+                });
             }
 
             string script = $@"
     $ErrorActionPreference = 'Stop'
-    {isoCreationScript}
     if ('{controllerType}' -eq 'SCSI') {{
         $scsiCtrls = Get-VMScsiController -VMName '{vmName}' | Sort-Object ControllerNumber
         $max = if ($scsiCtrls) {{ ($scsiCtrls | Select-Object -Last 1).ControllerNumber }} else {{ -1 }}
