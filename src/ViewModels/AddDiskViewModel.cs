@@ -191,17 +191,15 @@ namespace ExHyperV.ViewModels
 
             if (_vmGeneration == 1)
             {
-                if (DeviceType == "DvdDrive")
+                if (DeviceType == "DvdDrive" || !_isVmRunning)
                 {
                     for (int n = 0; n < 2; n++)
                         for (int l = 0; l < 2; l++)
                             if (!usedSlots.Contains($"IDE-{n}-{l}")) return ("IDE", n, l);
                 }
-                else if (!_isVmRunning)
+                if (DeviceType == "DvdDrive")
                 {
-                    for (int n = 0; n < 2; n++)
-                        for (int l = 0; l < 2; l++)
-                            if (!usedSlots.Contains($"IDE-{n}-{l}")) return ("IDE", n, l);
+                    return ("IDE", 0, 0);
                 }
             }
 

@@ -9,7 +9,6 @@ using ExHyperV.Models;
 using ExHyperV.Tools;
 using Microsoft.Management.Infrastructure;
 using DiscUtils.Iso9660;
-// 移除了 DiscUtils.Udf，因为该库只读不可写
 
 namespace ExHyperV.Services
 {
@@ -272,7 +271,6 @@ namespace ExHyperV.Services
         {
             string psPath = string.IsNullOrWhiteSpace(pathOrNumber) ? "$null" : $"'{pathOrNumber}'";
 
-            // === ISO 创建逻辑修正 ===
             if (driveType == "DvdDrive" && isNew && !string.IsNullOrWhiteSpace(isoSourcePath))
             {
                 await Task.Run(() =>
@@ -281,20 +279,16 @@ namespace ExHyperV.Services
                     var targetDir = Path.GetDirectoryName(pathOrNumber);
                     if (!string.IsNullOrEmpty(targetDir) && !Directory.Exists(targetDir)) Directory.CreateDirectory(targetDir);
 
-                    // 使用 CDBuilder 代替不存在的 UdfWriter
-                    // UseJoliet = true 可以保证长文件名和中文名的兼容性，实际上是最佳实践
                     var builder = new CDBuilder
                     {
                         UseJoliet = true,
                         VolumeIdentifier = label
                     };
 
-                    // 手动递归添加文件，解决 AddDirectory 的参数问题
                     void AddFilesRecursively(string currentDir)
                     {
                         foreach (var file in Directory.GetFiles(currentDir))
                         {
-                            // 计算 ISO 内部的相对路径
                             string relPath = Path.GetRelativePath(isoSourcePath, file);
                             builder.AddFile(relPath, file);
                         }
@@ -311,16 +305,36 @@ namespace ExHyperV.Services
 
             string script = $@"
     $ErrorActionPreference = 'Stop'
-    if ('{controllerType}' -eq 'SCSI') {{
-        $scsiCtrls = Get-VMScsiController -VMName '{vmName}' | Sort-Object ControllerNumber
-        $max = if ($scsiCtrls) {{ ($scsiCtrls | Select-Object -Last 1).ControllerNumber }} else {{ -1 }}
-        for ($i = $max + 1; $i -le {controllerNumber}; $i++) {{ Add-VMScsiController -VMName '{vmName}' -ErrorAction Stop }}
+    
+    $vmName = '{vmName}'
+    $v = Get-VM -Name $vmName
+    
+    $oldDisk = Get-VMHardDiskDrive -VMName $vmName -ControllerType '{controllerType}' -ControllerNumber {controllerNumber} -ControllerLocation {location} -ErrorAction SilentlyContinue
+    $oldDvd = Get-VMDvdDrive -VMName $vmName -ControllerNumber {controllerNumber} -ControllerLocation {location} | Where-Object {{ $_.ControllerType -eq '{controllerType}' }}
+
+    if ('{controllerType}' -eq 'IDE' -and $v.State -eq 'Running') {{
+        if ('{driveType}' -ne 'DvdDrive' -or (-not $oldDvd)) {{
+            throw 'Storage_Error_IdeHotPlugNotSupported'
+        }}
     }}
-    $oldDisk = Get-VMHardDiskDrive -VMName '{vmName}' -ControllerType '{controllerType}' -ControllerNumber {controllerNumber} -ControllerLocation {location} -ErrorAction SilentlyContinue
-    $oldDvd = Get-VMDvdDrive -VMName '{vmName}' -ControllerNumber {controllerNumber} -ControllerLocation {location} | Where-Object {{ $_.ControllerType -eq '{controllerType}' }}
+
+    if ('{controllerType}' -eq 'SCSI') {{
+        $scsiCtrls = Get-VMScsiController -VMName $vmName | Sort-Object ControllerNumber
+        $max = if ($scsiCtrls) {{ ($scsiCtrls | Select-Object -Last 1).ControllerNumber }} else {{ -1 }}
+        
+        if ({controllerNumber} -gt $max) {{
+            if ($v.State -eq 'Running') {{
+                throw 'Storage_Error_ScsiControllerHotAddNotSupported'
+            }}
+            for ($i = $max + 1; $i -le {controllerNumber}; $i++) {{ 
+                Add-VMScsiController -VMName $vmName -ErrorAction Stop 
+            }}
+        }}
+    }}
+    
     if ('{driveType}' -eq 'HardDisk') {{
-        if ($oldDisk) {{ Remove-VMHardDiskDrive -VMName '{vmName}' -ControllerType '{controllerType}' -ControllerNumber {controllerNumber} -ControllerLocation {location} -ErrorAction Stop }}
-        if ($oldDvd) {{ Remove-VMDvdDrive -VMName '{vmName}' -ControllerNumber {controllerNumber} -ControllerLocation {location} -ErrorAction Stop }}
+        if ($oldDisk) {{ Remove-VMHardDiskDrive -VMName $vmName -ControllerType '{controllerType}' -ControllerNumber {controllerNumber} -ControllerLocation {location} -ErrorAction Stop }}
+        if ($oldDvd) {{ Remove-VMDvdDrive -VMName $vmName -ControllerNumber {controllerNumber} -ControllerLocation {location} -ErrorAction Stop }}
         if ('{isNew.ToString().ToLower()}' -eq 'true') {{
             $vhdParams = @{{ Path = {psPath}; SizeBytes = {sizeGb}GB; {vhdType} = $true; ErrorAction = 'Stop' }}
             if ('{sectorFormat}' -eq '512n') {{ $vhdParams.LogicalSectorSizeBytes = 512; $vhdParams.PhysicalSectorSizeBytes = 512 }}
@@ -330,13 +344,13 @@ namespace ExHyperV.Services
             if ('{vhdType}' -eq 'Differencing') {{ $vhdParams.Remove('SizeBytes'); $vhdParams.Remove('Dynamic'); $vhdParams.Remove('Fixed'); $vhdParams.ParentPath = '{parentPath}' }}
             New-VHD @vhdParams
         }}
-        $p = @{{ VMName='{vmName}'; ControllerType='{controllerType}'; ControllerNumber={controllerNumber}; ControllerLocation={location}; ErrorAction='Stop' }}
+        $p = @{{ VMName=$vmName; ControllerType='{controllerType}'; ControllerNumber={controllerNumber}; ControllerLocation={location}; ErrorAction='Stop' }}
         if ('{isPhysical.ToString().ToLower()}' -eq 'true') {{ $p.DiskNumber={psPath} }} else {{ $p.Path={psPath} }}
         Add-VMHardDiskDrive @p
     }} else {{
-        if ($oldDisk) {{ Remove-VMHardDiskDrive -VMName '{vmName}' -ControllerType '{controllerType}' -ControllerNumber {controllerNumber} -ControllerLocation {location} -ErrorAction Stop }}
-        if ($oldDvd) {{ Set-VMDvdDrive -VMName '{vmName}' -ControllerNumber {controllerNumber} -ControllerLocation {location} -Path {psPath} -ErrorAction Stop }}
-        else {{ Add-VMDvdDrive -VMName '{vmName}' -ControllerNumber {controllerNumber} -ControllerLocation {location} -Path {psPath} -ErrorAction Stop }}
+        if ($oldDisk) {{ Remove-VMHardDiskDrive -VMName $vmName -ControllerType '{controllerType}' -ControllerNumber {controllerNumber} -ControllerLocation {location} -ErrorAction Stop }}
+        if ($oldDvd) {{ Set-VMDvdDrive -VMName $vmName -ControllerNumber {controllerNumber} -ControllerLocation {location} -Path {psPath} -ErrorAction Stop }}
+        else {{ Add-VMDvdDrive -VMName $vmName -ControllerNumber {controllerNumber} -ControllerLocation {location} -Path {psPath} -ErrorAction Stop }}
     }}
     Write-Output ""RESULT:{controllerType},{controllerNumber},{location}""";
             try
@@ -352,18 +366,29 @@ namespace ExHyperV.Services
             }
             catch (Exception ex) { return (false, GetFriendlyErrorMessage(ex.Message), controllerType, controllerNumber, location); }
         }
-
         public async Task<(bool Success, string Message)> RemoveDriveAsync(string vmName, UiDriveModel drive)
         {
             string script = $@"
     $ErrorActionPreference = 'Stop'
     $vmName = '{vmName}'; $cnum = {drive.ControllerNumber}; $loc = {drive.ControllerLocation}; $ctype = '{drive.ControllerType}'
     $v = Get-VM -Name $vmName
+    
     if ('{drive.DriveType}' -eq 'DvdDrive') {{
-        $dvd = Get-VMDvdDrive -VMName $vmName | Where-Object {{ $_.ControllerType -eq $ctype -and $_.ControllerNumber -eq $cnum -and $_.ControllerLocation -eq $loc }}
-        if (-not $dvd) {{ throw 'Storage_Error_DvdDriveNotFound' }}
-        if ($v.State -eq 'Off' -or $ctype -eq 'SCSI') {{ $dvd | Remove-VMDvdDrive -ErrorAction Stop; return 'Storage_Msg_Removed' }}
-        else {{ if ($dvd.Path) {{ $dvd | Set-VMDvdDrive -Path $null -ErrorAction Stop; return 'Storage_Msg_Ejected' }} else {{ throw 'Storage_Error_DvdHotRemoveNotSupported' }} }}
+        $check = Get-VMDvdDrive -VMName $vmName | Where-Object {{ $_.ControllerType -eq $ctype -and $_.ControllerNumber -eq $cnum -and $_.ControllerLocation -eq $loc }}
+        if (-not $check) {{ throw 'Storage_Error_DvdDriveNotFound' }}
+
+        if ($v.State -eq 'Off' -or $ctype -eq 'SCSI') {{ 
+            Get-VMDvdDrive -VMName $vmName | Where-Object {{ $_.ControllerType -eq $ctype -and $_.ControllerNumber -eq $cnum -and $_.ControllerLocation -eq $loc }} | Remove-VMDvdDrive -ErrorAction Stop
+            return 'Storage_Msg_Removed' 
+        }}
+        else {{ 
+            if ($check.Path) {{ 
+                $check | Set-VMDvdDrive -Path $null -ErrorAction Stop; 
+                return 'Storage_Msg_Ejected' 
+            }} else {{ 
+                throw 'Storage_Error_DvdHotRemoveNotSupported' 
+            }} 
+        }}
     }} else {{
         $disk = Get-VMHardDiskDrive -VMName $vmName | Where-Object {{ $_.ControllerType -eq $ctype -and $_.ControllerNumber -eq $cnum -and $_.ControllerLocation -eq $loc }}
         if (-not $disk) {{ throw 'Storage_Error_DiskNotFound' }}

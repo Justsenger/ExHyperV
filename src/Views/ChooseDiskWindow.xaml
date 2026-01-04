@@ -117,7 +117,6 @@
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
-                                <!-- 修改1：添加 UpdateSourceTrigger=PropertyChanged -->
                                 <ui:TextBox Text="{Binding FilePath, UpdateSourceTrigger=PropertyChanged}" PlaceholderText="{Binding FilePathPlaceholder}" VerticalAlignment="Center"/>
                                 <ui:Button Grid.Column="1" Content="浏览" Margin="10,0,0,0" Width="60" Command="{Binding BrowseFileCommand}"/>
                             </Grid>
@@ -282,7 +281,6 @@
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
-                                    <!-- 修改2：添加 UpdateSourceTrigger=PropertyChanged -->
                                     <ui:TextBox Text="{Binding IsoSourceFolderPath, UpdateSourceTrigger=PropertyChanged}" PlaceholderText="请选择要打包的文件夹..." VerticalAlignment="Center"/>
                                     <ui:Button Grid.Column="1" Content="选择文件夹" Margin="10,0,0,0" Command="{Binding BrowseFolderCommand}"/>
                                 </Grid>
@@ -295,7 +293,6 @@
 
                                     <StackPanel Grid.Column="0" Margin="0,0,10,0">
                                         <TextBlock Text="卷标" FontSize="12" Opacity="0.7" Margin="0,0,0,5"/>
-                                        <!-- 修改3：添加 UpdateSourceTrigger=PropertyChanged -->
                                         <ui:TextBox Text="{Binding IsoVolumeLabel, UpdateSourceTrigger=PropertyChanged}" PlaceholderText="默认为文件夹名" HorizontalAlignment="Stretch"/>
                                     </StackPanel>
 

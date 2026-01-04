@@ -120,7 +120,7 @@
                                                             <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
                                                                 <Style.Triggers>
                                                                     <DataTrigger Binding="{Binding DiskType}" Value="Virtual">
-                                                                        <Setter Property="Text" Value="虚拟设备"/>
+                                                                        <Setter Property="Text" Value="虚拟文件"/>
                                                                     </DataTrigger>
                                                                     <DataTrigger Binding="{Binding DiskType}" Value="Physical">
                                                                         <Setter Property="Text" Value="物理设备"/>
