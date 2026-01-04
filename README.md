@@ -152,11 +152,13 @@ GPU-P (or GPU-PV) is a paravirtualization technology that allows multiple virtua
 | 20348 | 2.9 | Support for Cross-Adapter Resource Scan-Out (CASO), reducing latency. |
 | 22000 | 3.0 | Support for DMA remapping, overcoming GPU memory address limitations. |
 | 22621 | 3.1 | Shared memory between UMD/KMD, reducing data copies and improving efficiency. |
-| 26100 | 3.2 | Introduction of GPU live migration, WDDM feature queries, and more.The virtual machine's Task Manager can be used to view GPU performance. |
+| 26100 | 3.2 | Introduction of GPU live migration, WDDM feature queries, and more. The virtual machine's Task Manager can be used to view GPU performance. |
+
+#### Windows as Guest VM 🪟
 
 ![WDDM Architecture](https://github.com/Justsenger/ExHyperV/blob/main/img/WDDM.png)
 
-#### GPU-P Graphics Card Compatibility (Tested with Gpu Caps Viewer + DXVA Checker, continuously updated)
+##### GPU-P Graphics Card Compatibility (Tested with Gpu Caps Viewer + DXVA Checker, continuously updated)
 
 | Brand | Model | Architecture | Recognition | DirectX 12 | OpenGL | Vulkan | Codec | CUDA/OpenCL | Notes |
 | :--- | :--- | :--- | :--- |:--- | :--- | :--- | :--- | :--- | :--- |
@@ -174,7 +176,7 @@ GPU-P (or GPU-PV) is a paravirtualization technology that allows multiple virtua
 | **AMD** | Radeon 890M | RDNA 3.5 | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | Host crashes on startup |
 | **Moore Threads** | MTT S80 | MUSA | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | Not supported |
 
-#### How to Get Display Output from the VM?
+##### How to Get Display Output from the VM?
 
 In GPU-P mode, the physical GPU acts as a "render adapter" and needs to be paired with a "display adapter" to output a screen. Here are three options:
 
@@ -191,12 +193,29 @@ In GPU-P mode, the physical GPU acts as a "render adapter" and needs to be paire
     - **Concept**: Passthrough a USB controller to the VM via DDA, then connect a USB graphics card (e.g., based on [DisplayLink DL-6950](https://www.synaptics.com/products/displaylink-graphics/integrated-chipsets/dl-6000) or [Silicon Motion SM768](https://www.siliconmotion.com/product/cht/Graphics-Display-SoCs.html) chips) as the display adapter.
     - **Status**: The author is currently investigating conflict issues when using this solution with large-VRAM GPUs. Not recommended for general users at this time.
 
-#### ⚙️ How It Works
+##### ⚙️ How It Works
 
 To simplify configuration, this tool automatically performs the following actions:
 - **Driver Injection**: Automatically imports the GPU drivers from the host's `HostDriverStore` into the virtual machine.
 - **Driver Protection**: Sets the imported driver files to "read-only" to prevent accidental modification or deletion.
 - **Nvidia Registry Fix**: Automatically modifies Nvidia-related registry keys in the VM to point the driver path to `HostDriverStore`, ensuring the drivers are loaded correctly.
+
+#### Linux as Guest VM 🐧
+
+<img width="800" height="450" alt="image" src="https://github.com/user-attachments/assets/0bc11e21-3670-42a0-a8cc-fec9ae4f6d0e" />
+
+![Linux&Blender](https://github.com/Justsenger/ExHyperV/blob/main/img/Linux.png)
+
+GPU-PV is also supported in Linux virtual machines. For detailed deployment instructions, please refer to [Linux.md](https://github.com/Justsenger/ExHyperV/blob/main/Linux.md).
+
+**Known Compatibility:**
+
+| OS | Kernel Version | Dxgkrnl | CUDA | Vulkan | OpenGL | Codec |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | 
+| Ubuntu 24.04  | 6.14.0-36-generic | ❌ | \ | \ | \ | \ |
+| Ubuntu 22.04  | 6.8.0-87-generic | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Arch Linux | 6.6.119-1-lts66 | ✅ | ✅ | Untested | Untested | Untested |
+| fnOS 0.9.2 | 6.12.18-trim | ❌ | \ | \ | \ | \ |
 
 ### Ⅲ. Virtual Switch
 
