@@ -249,17 +249,8 @@ namespace ExHyperV.ViewModels
         [ObservableProperty] private string _selectedVhdType = "Dynamic";
         [ObservableProperty] private string _parentPath = "";
         [ObservableProperty] private string _sectorFormat = "Default";
-        [ObservableProperty] private string _blockSize = "默认";
-
-        // 更新候选容量
-        public List<int> NewDiskSizePresets { get; } = new() { 64, 128, 256, 512, 1024, 2048 };
-
-        // 补全所有支持的 VHDX 块大小候选 (1MB - 256MB)
-        public List<string> BlockSizeOptions { get; } = new()
-        {
-            "默认", "1MB", "2MB", "4MB", "8MB", "16MB", "32MB", "64MB", "128MB", "256MB"
-        };
-
+        [ObservableProperty] private string _blockSize = "Default";
+    
         public string FilePathPlaceholder => IsNewDisk ? "请指定保存路径..." : "请指定文件路径...";
 
         async partial void OnDeviceTypeChanged(string value)

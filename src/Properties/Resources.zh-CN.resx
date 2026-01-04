@@ -1188,4 +1188,25 @@
   <data name="VMSettingsSavedSuccessfully" xml:space="preserve">
     <value>虚拟机 {0} 的设置已成功应用。</value>
   </data>
+	<data name="Storage_Title_Error" xml:space="preserve"><value>错误</value></data>
+	<data name="Storage_Title_AddSuccess" xml:space="preserve"><value>添加成功</value></data>
+	<data name="Storage_Title_ModifySuccess" xml:space="preserve"><value>修改成功</value></data>
+	<data name="Storage_Title_EjectSuccess" xml:space="preserve"><value>弹出成功</value></data>
+	<data name="Storage_Title_RemoveSuccess" xml:space="preserve"><value>移除成功</value></data>
+	<data name="Storage_Msg_MountedTo" xml:space="preserve"><value>设备已挂载至</value></data>
+	<data name="Storage_Msg_MediaUpdated" xml:space="preserve"><value>驱动器媒体已更新。</value></data>
+	<data name="Storage_Msg_Success" xml:space="preserve"><value>操作成功。</value></data>
+	<data name="Storage_Msg_Removed" xml:space="preserve"><value>设备已成功移除。</value></data>
+	<data name="Storage_Msg_Ejected" xml:space="preserve"><value>媒介已成功弹出。</value></data>
+	<data name="Storage_Msg_AlreadyRemoved" xml:space="preserve"><value>设备已移除。</value></data>
+	<data name="Storage_Error_VmNotFound" xml:space="preserve"><value>找不到指定的虚拟机。</value></data>
+	<data name="Storage_Error_ScsiHotAddNotSupported" xml:space="preserve"><value>虚拟机正在运行，无法动态创建 SCSI 控制器。</value></data>
+	<data name="Storage_Error_IdeHotSwapNotSupported" xml:space="preserve"><value>IDE 控制器不支持在虚拟机运行状态下更换硬件。</value></data>
+	<data name="Storage_Error_DiskToDvdHotSwapNotSupported" xml:space="preserve"><value>虚拟机运行中，无法将硬盘位更换为光驱位。</value></data>
+	<data name="Storage_Error_DvdHotRemoveNotSupported" xml:space="preserve"><value>虚拟机运行中，无法移除空光驱硬件，仅支持弹出光盘。</value></data>
+	<data name="Storage_Error_DvdDriveNotFound" xml:space="preserve"><value>找不到指定位置的光驱设备。</value></data>
+	<data name="Storage_Error_DiskNotFound" xml:space="preserve"><value>找不到指定的硬盘设备。</value></data>
+	<data name="Storage_Error_DiskAlreadyAttached" xml:space="preserve"><value>磁盘已连接到虚拟机，无法重复挂载。</value></data>
+	<data name="Storage_Error_FileNotFound" xml:space="preserve"><value>找不到指定的虚拟磁盘文件。</value></data>
+	<data name="Storage_Error_Unknown" xml:space="preserve"><value>发生未知错误。</value></data>
 </root>

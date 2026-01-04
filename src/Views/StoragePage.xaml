@@ -51,7 +51,7 @@
                             <ItemsControl ItemsSource="{Binding DataContext.AllDrives, ElementName=StorageRootPage}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <ui:CardExpander Margin="0,0,0,4" IsExpanded="False" ContentPadding="0" Padding="10,8,10,8">
+                                        <ui:CardExpander Margin="0,0,0,4" IsExpanded="True" ContentPadding="0" Padding="10,8,10,8">
                                             <ui:CardExpander.Header>
                                                 <Grid Height="30">
                                                     <Grid.ColumnDefinitions>

@@ -243,7 +243,20 @@
                                         </Style>
                                     </StackPanel.Style>
                                     <TextBlock Text="块大小" FontSize="12" Opacity="0.7" Margin="0,0,0,5"/>
-                                    <ComboBox ItemsSource="{Binding BlockSizeOptions}" SelectedItem="{Binding BlockSize}" HorizontalAlignment="Stretch"/>
+                                    <ComboBox SelectedValue="{Binding BlockSize, Mode=TwoWay}" 
+          SelectedValuePath="Tag" 
+          HorizontalAlignment="Stretch">
+                                        <ComboBoxItem Content="默认" Tag="Default"/>
+                                        <ComboBoxItem Content="1MB" Tag="1048576"/>
+                                        <ComboBoxItem Content="2MB" Tag="2097152"/>
+                                        <ComboBoxItem Content="4MB" Tag="4194304"/>
+                                        <ComboBoxItem Content="8MB" Tag="8388608"/>
+                                        <ComboBoxItem Content="16MB" Tag="16777216"/>
+                                        <ComboBoxItem Content="32MB" Tag="33554432"/>
+                                        <ComboBoxItem Content="64MB" Tag="67108864"/>
+                                        <ComboBoxItem Content="128MB" Tag="134217728"/>
+                                        <ComboBoxItem Content="256MB" Tag="268435456"/>
+                                    </ComboBox>
                                 </StackPanel>
                             </Grid>
 

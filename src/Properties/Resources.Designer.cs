@@ -2778,6 +2778,195 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 Disk is already attached to a virtual machine. 的本地化字符串。
+        /// </summary>
+        public static string Storage_Error_DiskAlreadyAttached {
+            get {
+                return ResourceManager.GetString("Storage_Error_DiskAlreadyAttached", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Specified hard disk drive not found. 的本地化字符串。
+        /// </summary>
+        public static string Storage_Error_DiskNotFound {
+            get {
+                return ResourceManager.GetString("Storage_Error_DiskNotFound", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Cannot swap a hard disk slot to a DVD drive while the VM is running. 的本地化字符串。
+        /// </summary>
+        public static string Storage_Error_DiskToDvdHotSwapNotSupported {
+            get {
+                return ResourceManager.GetString("Storage_Error_DiskToDvdHotSwapNotSupported", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Optical drive at the specified location was not found. 的本地化字符串。
+        /// </summary>
+        public static string Storage_Error_DvdDriveNotFound {
+            get {
+                return ResourceManager.GetString("Storage_Error_DvdDriveNotFound", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Cannot remove empty optical drive while the VM is running. Only eject is supported. 的本地化字符串。
+        /// </summary>
+        public static string Storage_Error_DvdHotRemoveNotSupported {
+            get {
+                return ResourceManager.GetString("Storage_Error_DvdHotRemoveNotSupported", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Specified virtual disk file not found. 的本地化字符串。
+        /// </summary>
+        public static string Storage_Error_FileNotFound {
+            get {
+                return ResourceManager.GetString("Storage_Error_FileNotFound", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 IDE controller does not support hot-swapping while the VM is running. 的本地化字符串。
+        /// </summary>
+        public static string Storage_Error_IdeHotSwapNotSupported {
+            get {
+                return ResourceManager.GetString("Storage_Error_IdeHotSwapNotSupported", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Cannot hot-add SCSI controller while the VM is running. 的本地化字符串。
+        /// </summary>
+        public static string Storage_Error_ScsiHotAddNotSupported {
+            get {
+                return ResourceManager.GetString("Storage_Error_ScsiHotAddNotSupported", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 An unknown error occurred. 的本地化字符串。
+        /// </summary>
+        public static string Storage_Error_Unknown {
+            get {
+                return ResourceManager.GetString("Storage_Error_Unknown", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Specified virtual machine not found. 的本地化字符串。
+        /// </summary>
+        public static string Storage_Error_VmNotFound {
+            get {
+                return ResourceManager.GetString("Storage_Error_VmNotFound", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Device already removed. 的本地化字符串。
+        /// </summary>
+        public static string Storage_Msg_AlreadyRemoved {
+            get {
+                return ResourceManager.GetString("Storage_Msg_AlreadyRemoved", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Media ejected successfully. 的本地化字符串。
+        /// </summary>
+        public static string Storage_Msg_Ejected {
+            get {
+                return ResourceManager.GetString("Storage_Msg_Ejected", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Drive media has been hot-updated. 的本地化字符串。
+        /// </summary>
+        public static string Storage_Msg_MediaUpdated {
+            get {
+                return ResourceManager.GetString("Storage_Msg_MediaUpdated", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Device mounted to 的本地化字符串。
+        /// </summary>
+        public static string Storage_Msg_MountedTo {
+            get {
+                return ResourceManager.GetString("Storage_Msg_MountedTo", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Device removed successfully. 的本地化字符串。
+        /// </summary>
+        public static string Storage_Msg_Removed {
+            get {
+                return ResourceManager.GetString("Storage_Msg_Removed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Operation successful. 的本地化字符串。
+        /// </summary>
+        public static string Storage_Msg_Success {
+            get {
+                return ResourceManager.GetString("Storage_Msg_Success", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Add Successful 的本地化字符串。
+        /// </summary>
+        public static string Storage_Title_AddSuccess {
+            get {
+                return ResourceManager.GetString("Storage_Title_AddSuccess", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Eject Successful 的本地化字符串。
+        /// </summary>
+        public static string Storage_Title_EjectSuccess {
+            get {
+                return ResourceManager.GetString("Storage_Title_EjectSuccess", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Error 的本地化字符串。
+        /// </summary>
+        public static string Storage_Title_Error {
+            get {
+                return ResourceManager.GetString("Storage_Title_Error", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Modify Successful 的本地化字符串。
+        /// </summary>
+        public static string Storage_Title_ModifySuccess {
+            get {
+                return ResourceManager.GetString("Storage_Title_ModifySuccess", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Remove Successful 的本地化字符串。
+        /// </summary>
+        public static string Storage_Title_RemoveSuccess {
+            get {
+                return ResourceManager.GetString("Storage_Title_RemoveSuccess", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 The HyperV feature has been installed. 的本地化字符串。
         /// </summary>
         public static string String1 {

@@ -1187,4 +1187,25 @@ Please check if the IP and port are correct.</value>
   <data name="VMSettingsSavedSuccessfully" xml:space="preserve">
     <value>Settings for virtual machine '{0}' saved successfully.</value>
   </data>
+	<data name="Storage_Title_Error" xml:space="preserve"><value>Error</value></data>
+	<data name="Storage_Title_AddSuccess" xml:space="preserve"><value>Add Successful</value></data>
+	<data name="Storage_Title_ModifySuccess" xml:space="preserve"><value>Modify Successful</value></data>
+	<data name="Storage_Title_EjectSuccess" xml:space="preserve"><value>Eject Successful</value></data>
+	<data name="Storage_Title_RemoveSuccess" xml:space="preserve"><value>Remove Successful</value></data>
+	<data name="Storage_Msg_MountedTo" xml:space="preserve"><value>Device mounted to</value></data>
+	<data name="Storage_Msg_MediaUpdated" xml:space="preserve"><value>Drive media has been hot-updated.</value></data>
+	<data name="Storage_Msg_Success" xml:space="preserve"><value>Operation successful.</value></data>
+	<data name="Storage_Msg_Removed" xml:space="preserve"><value>Device removed successfully.</value></data>
+	<data name="Storage_Msg_Ejected" xml:space="preserve"><value>Media ejected successfully.</value></data>
+	<data name="Storage_Msg_AlreadyRemoved" xml:space="preserve"><value>Device already removed.</value></data>
+	<data name="Storage_Error_VmNotFound" xml:space="preserve"><value>Specified virtual machine not found.</value></data>
+	<data name="Storage_Error_ScsiHotAddNotSupported" xml:space="preserve"><value>Cannot hot-add SCSI controller while the VM is running.</value></data>
+	<data name="Storage_Error_IdeHotSwapNotSupported" xml:space="preserve"><value>IDE controller does not support hot-swapping while the VM is running.</value></data>
+	<data name="Storage_Error_DiskToDvdHotSwapNotSupported" xml:space="preserve"><value>Cannot swap a hard disk slot to a DVD drive while the VM is running.</value></data>
+	<data name="Storage_Error_DvdHotRemoveNotSupported" xml:space="preserve"><value>Cannot remove empty optical drive while the VM is running. Only eject is supported.</value></data>
+	<data name="Storage_Error_DvdDriveNotFound" xml:space="preserve"><value>Optical drive at the specified location was not found.</value></data>
+	<data name="Storage_Error_DiskNotFound" xml:space="preserve"><value>Specified hard disk drive not found.</value></data>
+	<data name="Storage_Error_DiskAlreadyAttached" xml:space="preserve"><value>Disk is already attached to a virtual machine.</value></data>
+	<data name="Storage_Error_FileNotFound" xml:space="preserve"><value>Specified virtual disk file not found.</value></data>
+	<data name="Storage_Error_Unknown" xml:space="preserve"><value>An unknown error occurred.</value></data>
 </root>
