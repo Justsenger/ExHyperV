@@ -28,6 +28,8 @@ install_dependencies() {
             apt install -y $NEED_TO_INSTALL;
         elif [[ "$LINUX_DISTRO" == *"fedora"* ]]; then
             yum -y install $NEED_TO_INSTALL;
+        elif [[ "$LINUX_DISTRO" == *"arch"* ]]; then
+            pacman -Sy --noconfirm $NEED_TO_INSTALL;
         else
             echo "Fatal: The system distro is unsupported";
             exit 1;
@@ -44,9 +46,17 @@ check_and_install_kernel() {
     echo "========================================"
     echo "Target kernel version: ${TARGET_KERNEL_VERSION}"
     
-    if [ -e "/usr/src/linux-headers-${TARGET_KERNEL_VERSION}" ] && [ -e "/lib/modules/${TARGET_KERNEL_VERSION}/build" ]; then
-        echo "✓ Kernel headers found for ${TARGET_KERNEL_VERSION}"
-        return 0
+    # Arch Linux uses different paths for kernel headers
+    if [[ "$LINUX_DISTRO" == *"arch"* ]]; then
+        if [ -e "/usr/lib/modules/${TARGET_KERNEL_VERSION}/build" ]; then
+            echo "✓ Kernel headers found for ${TARGET_KERNEL_VERSION}"
+            return 0
+        fi
+    else
+        if [ -e "/usr/src/linux-headers-${TARGET_KERNEL_VERSION}" ] && [ -e "/lib/modules/${TARGET_KERNEL_VERSION}/build" ]; then
+            echo "✓ Kernel headers found for ${TARGET_KERNEL_VERSION}"
+            return 0
+        fi
     fi
     
     echo "✗ Kernel headers not found for ${TARGET_KERNEL_VERSION}"
@@ -162,6 +172,116 @@ check_and_install_kernel() {
         echo "A new kernel (${NEW_KERNEL_VERSION}) has been installed."
         echo "STATUS: REBOOT_REQUIRED"
         exit 0
+        
+    elif [[ "$LINUX_DISTRO" == *"arch"* ]]; then
+        echo "Installing kernel headers for Arch Linux..."
+        
+        # Detect which headers package to install based on kernel version
+        HEADERS_PKG=""
+        IS_AUR_PKG=false
+        if [[ "$TARGET_KERNEL_VERSION" == *"-lts66"* ]]; then
+            HEADERS_PKG="linux-lts66-headers"
+            IS_AUR_PKG=true
+            echo "Detected LTS 6.6 kernel, installing linux-lts66-headers..."
+        elif [[ "$TARGET_KERNEL_VERSION" == *"-lts"* ]]; then
+            # Extract LTS version (e.g., 6.12.63-1-lts -> linux-lts-headers)
+            HEADERS_PKG="linux-lts-headers"
+            echo "Detected LTS kernel, installing linux-lts-headers..."
+        elif [[ "$TARGET_KERNEL_VERSION" == *"-zen"* ]]; then
+            HEADERS_PKG="linux-zen-headers"
+            echo "Detected Zen kernel, installing linux-zen-headers..."
+        elif [[ "$TARGET_KERNEL_VERSION" == *"-hardened"* ]]; then
+            HEADERS_PKG="linux-hardened-headers"
+            echo "Detected Hardened kernel, installing linux-hardened-headers..."
+        else
+            HEADERS_PKG="linux-headers"
+            echo "Detected standard kernel, installing linux-headers..."
+        fi
+        
+        # Try to install the headers package
+        INSTALLED=false
+        
+        # First, try pacman (for official packages)
+        if ! $IS_AUR_PKG; then
+            if pacman -Sy --noconfirm "$HEADERS_PKG" 2>/dev/null; then
+                echo "✓ Installed $HEADERS_PKG via pacman"
+                INSTALLED=true
+            fi
+        fi
+        
+        # If it's an AUR package or pacman failed, try AUR helpers
+        if ! $INSTALLED && $IS_AUR_PKG; then
+            # Check for paru
+            if command -v paru >/dev/null 2>&1; then
+                echo "Attempting to install $HEADERS_PKG via paru (AUR)..."
+                if paru -S --noconfirm --needed "$HEADERS_PKG" 2>/dev/null; then
+                    echo "✓ Installed $HEADERS_PKG via paru"
+                    INSTALLED=true
+                fi
+            # Check for yay
+            elif command -v yay >/dev/null 2>&1; then
+                echo "Attempting to install $HEADERS_PKG via yay (AUR)..."
+                if yay -S --noconfirm --needed "$HEADERS_PKG" 2>/dev/null; then
+                    echo "✓ Installed $HEADERS_PKG via yay"
+                    INSTALLED=true
+                fi
+            fi
+        fi
+        
+        # If still not installed, show helpful message
+        if ! $INSTALLED; then
+            echo ""
+            echo "WARNING: Failed to install $HEADERS_PKG automatically."
+            if $IS_AUR_PKG; then
+                echo "This package is from AUR and requires an AUR helper."
+                echo ""
+                echo "Please install it manually using one of these methods:"
+                if command -v paru >/dev/null 2>&1; then
+                    echo "  paru -S $HEADERS_PKG"
+                elif command -v yay >/dev/null 2>&1; then
+                    echo "  yay -S $HEADERS_PKG"
+                else
+                    echo "  paru -S $HEADERS_PKG  # if you have paru installed"
+                    echo "  yay -S $HEADERS_PKG    # if you have yay installed"
+                    echo ""
+                    echo "If you don't have an AUR helper, install one first:"
+                    echo "  # For paru:"
+                    echo "  git clone https://aur.archlinux.org/paru.git"
+                    echo "  cd paru && makepkg -si"
+                fi
+            else
+                echo "You may need to install it manually using:"
+                echo "  sudo pacman -S $HEADERS_PKG"
+            fi
+        fi
+        
+        # Arch Linux kernel headers are installed to /usr/lib/modules/$(uname -r)/build
+        # Check if headers exist for current kernel
+        if [ ! -e "/usr/lib/modules/${TARGET_KERNEL_VERSION}/build" ]; then
+            echo ""
+            echo "WARNING: Headers not found for ${TARGET_KERNEL_VERSION}"
+            echo "This may happen if you're using a custom kernel."
+            echo ""
+            echo "Available kernel versions:"
+            ls -d /usr/lib/modules/*/build 2>/dev/null | sed 's|/usr/lib/modules/||;s|/build||' || echo "None found"
+            echo ""
+            echo "Please install the matching headers package manually:"
+            if [[ "$TARGET_KERNEL_VERSION" == *"-lts66"* ]]; then
+                echo "  sudo pacman -S linux-lts66-headers"
+                echo "  or"
+                echo "  paru -S linux-lts66-headers  # if using AUR"
+            else
+                echo "  sudo pacman -S $HEADERS_PKG"
+                echo "  or"
+                echo "  paru -S $HEADERS_PKG  # if using AUR"
+            fi
+            echo ""
+            echo "After installing headers, run this script again."
+            exit 1
+        fi
+        
+        echo "✓ Kernel headers verified for ${TARGET_KERNEL_VERSION}"
+        
     else
         echo "Fatal: The system distro is unsupported";
         exit 1;
@@ -263,6 +383,32 @@ install() {
     echo "Copying include files..."
     cp -r ./include /usr/src/dxgkrnl-$VERSION/include
 
+    # Fix eventfd_signal for kernels that require 2 parameters
+    # The patch (0002-Fix-eventfd_signal.patch) removes the second parameter,
+    # but some kernel versions still require it. We detect this by checking the kernel headers.
+    echo "Checking eventfd_signal API compatibility..."
+    DXGMODULE_FILE="/usr/src/dxgkrnl-$VERSION/dxgmodule.c"
+    
+    if [ -f "$DXGMODULE_FILE" ] && grep -q "eventfd_signal(event->cpu_event);" "$DXGMODULE_FILE"; then
+        # Check if kernel headers define eventfd_signal with 2 parameters (__u64 n)
+        NEEDS_TWO_PARAMS=false
+        if grep -q "eventfd_signal.*struct eventfd_ctx.*__u64" /usr/lib/modules/${TARGET_KERNEL_VERSION}/build/include/linux/eventfd.h 2>/dev/null; then
+            NEEDS_TWO_PARAMS=true
+        elif grep -q "eventfd_signal.*struct eventfd_ctx.*__u64" /lib/modules/${TARGET_KERNEL_VERSION}/build/include/linux/eventfd.h 2>/dev/null; then
+            NEEDS_TWO_PARAMS=true
+        fi
+        
+        if [ "$NEEDS_TWO_PARAMS" = true ]; then
+            echo "Detected 2-parameter eventfd_signal API in kernel headers, fixing..."
+            sed -i 's/eventfd_signal(event->cpu_event);/eventfd_signal(event->cpu_event, 1);/g' "$DXGMODULE_FILE"
+            echo "✓ Fixed eventfd_signal call to use 2 parameters"
+        else
+            echo "✓ Kernel uses 1-parameter eventfd_signal API, no fix needed"
+        fi
+    else
+        echo "✓ eventfd_signal already uses correct format"
+    fi
+
     echo "Configuring Makefile..."
     sed -i 's/\$(CONFIG_DXGKRNL)/m/' /usr/src/dxgkrnl-$VERSION/Makefile
     echo "EXTRA_CFLAGS=-I\$(PWD)/include -D_MAIN_KERNEL_" >> /usr/src/dxgkrnl-$VERSION/Makefile
@@ -293,11 +439,18 @@ install_dkms() {
     echo "========================================"
     
     echo "Verifying kernel headers..."
-    if [ ! -e "/lib/modules/${TARGET_KERNEL_VERSION}/build" ]; then
-        echo "ERROR: /lib/modules/${TARGET_KERNEL_VERSION}/build not found!"
+    # Arch Linux uses /usr/lib/modules, others use /lib/modules (which may be a symlink)
+    if [[ "$LINUX_DISTRO" == *"arch"* ]]; then
+        HEADERS_PATH="/usr/lib/modules/${TARGET_KERNEL_VERSION}/build"
+    else
+        HEADERS_PATH="/lib/modules/${TARGET_KERNEL_VERSION}/build"
+    fi
+    
+    if [ ! -e "$HEADERS_PATH" ]; then
+        echo "ERROR: $HEADERS_PATH not found!"
         exit 1
     fi
-    echo "✓ Headers path: $(readlink -f /lib/modules/${TARGET_KERNEL_VERSION}/build)"
+    echo "✓ Headers path: $(readlink -f $HEADERS_PATH)"
     
     if dkms status | grep -q "dxgkrnl/$VERSION"; then
         echo "Removing existing dxgkrnl/$VERSION..."
@@ -310,14 +463,59 @@ install_dkms() {
     
     echo ""
     echo "Building module (this may take a few minutes)..."
-    dkms -k ${TARGET_KERNEL_VERSION} build dxgkrnl/$VERSION
+    if ! dkms -k ${TARGET_KERNEL_VERSION} build dxgkrnl/$VERSION; then
+        echo ""
+        echo "========================================"
+        echo "  Build Failed"
+        echo "========================================"
+        echo "DKMS build failed. Please check the build log for details:"
+        echo "  /var/lib/dkms/dxgkrnl/$VERSION/build/make.log"
+        echo ""
+        echo "Common issues:"
+        echo "  1. Kernel version too new - patches may not be compatible"
+        echo "  2. Missing dependencies - ensure all build tools are installed"
+        echo "  3. Kernel headers mismatch - verify headers match kernel version"
+        echo ""
+        echo "Showing last 50 lines of build log:"
+        echo "----------------------------------------"
+        tail -50 /var/lib/dkms/dxgkrnl/$VERSION/build/make.log 2>/dev/null || echo "Log file not found"
+        echo "----------------------------------------"
+        exit 1
+    fi
     
     echo ""
     echo "Installing module..."
     dkms -k ${TARGET_KERNEL_VERSION} install dxgkrnl/$VERSION || true
 
-    if [ ! -f "/lib/modules/${TARGET_KERNEL_VERSION}/updates/dkms/dxgkrnl.ko" ] && [ ! -f "/lib/modules/${TARGET_KERNEL_VERSION}/updates/dkms/dxgkrnl.ko.zst" ]; then
+    # Check for module in both possible locations (Arch uses /usr/lib/modules, others use /lib/modules)
+    MODULE_FOUND=false
+    if [[ "$LINUX_DISTRO" == *"arch"* ]]; then
+        if [ -f "/usr/lib/modules/${TARGET_KERNEL_VERSION}/updates/dkms/dxgkrnl.ko" ] || [ -f "/usr/lib/modules/${TARGET_KERNEL_VERSION}/updates/dkms/dxgkrnl.ko.zst" ]; then
+            MODULE_FOUND=true
+        fi
+        # Also check /lib/modules in case it's a symlink
+        if [ -f "/lib/modules/${TARGET_KERNEL_VERSION}/updates/dkms/dxgkrnl.ko" ] || [ -f "/lib/modules/${TARGET_KERNEL_VERSION}/updates/dkms/dxgkrnl.ko.zst" ]; then
+            MODULE_FOUND=true
+        fi
+    else
+        if [ -f "/lib/modules/${TARGET_KERNEL_VERSION}/updates/dkms/dxgkrnl.ko" ] || [ -f "/lib/modules/${TARGET_KERNEL_VERSION}/updates/dkms/dxgkrnl.ko.zst" ]; then
+            MODULE_FOUND=true
+        fi
+    fi
+    
+    if [ "$MODULE_FOUND" = false ]; then
+        echo ""
         echo "Error: DKMS installation failed (Module file not found)."
+        echo "Checked locations:"
+        if [[ "$LINUX_DISTRO" == *"arch"* ]]; then
+            echo "  /usr/lib/modules/${TARGET_KERNEL_VERSION}/updates/dkms/"
+            echo "  /lib/modules/${TARGET_KERNEL_VERSION}/updates/dkms/"
+        else
+            echo "  /lib/modules/${TARGET_KERNEL_VERSION}/updates/dkms/"
+        fi
+        echo ""
+        echo "Please check the build log:"
+        echo "  /var/lib/dkms/dxgkrnl/$VERSION/build/make.log"
         exit 1
     fi
 

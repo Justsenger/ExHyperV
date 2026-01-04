@@ -8,6 +8,10 @@ GITHUB_LIB_URL="https://raw.githubusercontent.com/Justsenger/ExHyperV/main/src/L
 
 ENABLE_GRAPHICS=$1
 
+# Detect Linux distribution
+LINUX_DISTRO="$(cat /etc/*-release 2>/dev/null || echo "")"
+LINUX_DISTRO=${LINUX_DISTRO,,}
+
 echo "[+] Script running in: $DEPLOY_DIR"
 echo "[+] Checking and downloading missing core libraries..."
 
@@ -64,7 +68,13 @@ echo "blacklist dxgkrnl" | sudo tee /etc/modprobe.d/blacklist-dxgkrnl.conf > /de
 
 # 3. 更新 initramfs 以应用黑名单
 echo " -> Updating initramfs (this may take a while)..."
-sudo update-initramfs -u
+if [[ "$LINUX_DISTRO" == *"arch"* ]]; then
+    # Arch Linux uses mkinitcpio
+    sudo mkinitcpio -P
+else
+    # Debian/Ubuntu uses update-initramfs
+    sudo update-initramfs -u
+fi
 
 # 4. 创建延迟加载脚本
 echo " -> Creating late-load script..."
