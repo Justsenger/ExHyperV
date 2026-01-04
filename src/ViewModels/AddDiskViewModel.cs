@@ -250,12 +250,25 @@ namespace ExHyperV.ViewModels
         [ObservableProperty] private string _parentPath = "";
         [ObservableProperty] private string _sectorFormat = "Default";
         [ObservableProperty] private string _blockSize = "Default";
-    
+
+        [ObservableProperty][NotifyCanExecuteChangedFor(nameof(ConfirmCommand))] private string _isoSourceFolderPath = string.Empty;
+        [ObservableProperty] private string _isoVolumeLabel = string.Empty;
+        [ObservableProperty] private IsoFileSystemType _isoFileSystem = IsoFileSystemType.Udf;
+
+        public ObservableCollection<int> NewDiskSizePresets { get; } = new ObservableCollection<int> { 64, 128, 256, 512, 1024 };
+
         public string FilePathPlaceholder => IsNewDisk ? "请指定保存路径..." : "请指定文件路径...";
 
         async partial void OnDeviceTypeChanged(string value)
         {
-            if (value == "DvdDrive") IsNewDisk = false;
+            if (value == "DvdDrive")
+            {
+                // 保留 IsNewDisk 状态，以便用户在 ISO 模式下使用新建
+            }
+            else
+            {
+                // 如果切回 HardDisk，IsNewDisk 默认行为保持不变
+            }
             SyncHostDiskDisplay();
             UpdateControllerTypeOptions();
             await RefreshControllerLayoutAsync(AutoAssign);
@@ -323,6 +336,28 @@ namespace ExHyperV.ViewModels
             ConfirmCommand.NotifyCanExecuteChanged();
         }
 
+        [RelayCommand]
+        private void BrowseFolder()
+        {
+            var dialog = new Microsoft.Win32.OpenFolderDialog
+            {
+                Title = "选择源文件夹",
+                Multiselect = false
+            };
+
+            if (dialog.ShowDialog() == true)
+            {
+                IsoSourceFolderPath = dialog.FolderName;
+                try
+                {
+                    var dirInfo = new System.IO.DirectoryInfo(dialog.FolderName);
+                    IsoVolumeLabel = dirInfo.Name.ToUpper();
+                }
+                catch { }
+            }
+            ConfirmCommand.NotifyCanExecuteChanged();
+        }
+
         [RelayCommand(CanExecute = nameof(CanConfirmAction))]
         private void Confirm(Window window)
         {
@@ -339,6 +374,12 @@ namespace ExHyperV.ViewModels
             if (_vmGeneration == 1 && DeviceType == "DvdDrive" && SelectedControllerType == "SCSI") return false;
 
             if (IsPhysicalSource) return SelectedPhysicalDisk != null;
+
+            if (IsNewDisk && DeviceType == "DvdDrive")
+            {
+                return !string.IsNullOrEmpty(FilePath) && !string.IsNullOrEmpty(IsoSourceFolderPath);
+            }
+
             return !string.IsNullOrEmpty(FilePath);
         }
         #endregion

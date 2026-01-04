@@ -4,8 +4,9 @@
         xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
         xmlns:converters="clr-namespace:ExHyperV.Converters"
         xmlns:properties="clr-namespace:ExHyperV.Properties"
+        xmlns:models="clr-namespace:ExHyperV.Models"
         x:Name="AddDiskDialog"
-        Title="添加存储设备" Height="580" Width="450"
+        Title="添加存储设备" Height="600" Width="480"
         WindowStartupLocation="CenterOwner"
         ExtendsContentIntoTitleBar="True"
         WindowBackdropType="Mica">
@@ -108,18 +109,7 @@
 
                             <Grid Margin="0,0,0,10">
                                 <TextBlock Text="媒介选择" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                                <CheckBox Content="新建" IsChecked="{Binding IsNewDisk}" HorizontalAlignment="Right">
-                                    <CheckBox.Style>
-                                        <Style TargetType="CheckBox" BasedOn="{StaticResource {x:Type CheckBox}}">
-                                            <Setter Property="Visibility" Value="Hidden"/>
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding DeviceType}" Value="HardDisk">
-                                                    <Setter Property="Visibility" Value="Visible"/>
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </CheckBox.Style>
-                                </CheckBox>
+                                <CheckBox Content="新建" IsChecked="{Binding IsNewDisk}" HorizontalAlignment="Right"/>
                             </Grid>
 
                             <Grid Margin="0,0,0,10">
@@ -136,9 +126,13 @@
                                     <Style TargetType="Grid">
                                         <Setter Property="Visibility" Value="Collapsed"/>
                                         <Style.Triggers>
-                                            <DataTrigger Binding="{Binding IsNewDisk}" Value="True">
+                                            <MultiDataTrigger>
+                                                <MultiDataTrigger.Conditions>
+                                                    <Condition Binding="{Binding IsNewDisk}" Value="True"/>
+                                                    <Condition Binding="{Binding DeviceType}" Value="HardDisk"/>
+                                                </MultiDataTrigger.Conditions>
                                                 <Setter Property="Visibility" Value="Visible"/>
-                                            </DataTrigger>
+                                            </MultiDataTrigger>
                                         </Style.Triggers>
                                     </Style>
                                 </Grid.Style>
@@ -178,6 +172,7 @@
                                             <MultiDataTrigger>
                                                 <MultiDataTrigger.Conditions>
                                                     <Condition Binding="{Binding IsNewDisk}" Value="True"/>
+                                                    <Condition Binding="{Binding DeviceType}" Value="HardDisk"/>
                                                     <Condition Binding="{Binding SelectedVhdType}" Value="Differencing"/>
                                                 </MultiDataTrigger.Conditions>
                                                 <Setter Property="Visibility" Value="Visible"/>
@@ -198,9 +193,13 @@
                                     <Style TargetType="Grid">
                                         <Setter Property="Visibility" Value="Collapsed"/>
                                         <Style.Triggers>
-                                            <DataTrigger Binding="{Binding IsNewDisk}" Value="True">
+                                            <MultiDataTrigger>
+                                                <MultiDataTrigger.Conditions>
+                                                    <Condition Binding="{Binding IsNewDisk}" Value="True"/>
+                                                    <Condition Binding="{Binding DeviceType}" Value="HardDisk"/>
+                                                </MultiDataTrigger.Conditions>
                                                 <Setter Property="Visibility" Value="Visible"/>
-                                            </DataTrigger>
+                                            </MultiDataTrigger>
                                         </Style.Triggers>
                                     </Style>
                                 </Grid.Style>
@@ -244,8 +243,8 @@
                                     </StackPanel.Style>
                                     <TextBlock Text="块大小" FontSize="12" Opacity="0.7" Margin="0,0,0,5"/>
                                     <ComboBox SelectedValue="{Binding BlockSize, Mode=TwoWay}" 
-          SelectedValuePath="Tag" 
-          HorizontalAlignment="Stretch">
+                                          SelectedValuePath="Tag" 
+                                          HorizontalAlignment="Stretch">
                                         <ComboBoxItem Content="默认" Tag="Default"/>
                                         <ComboBoxItem Content="1MB" Tag="1048576"/>
                                         <ComboBoxItem Content="2MB" Tag="2097152"/>
@@ -259,6 +258,55 @@
                                     </ComboBox>
                                 </StackPanel>
                             </Grid>
+
+                            <StackPanel Margin="0,0,0,10">
+                                <StackPanel.Style>
+                                    <Style TargetType="StackPanel">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                        <Style.Triggers>
+                                            <MultiDataTrigger>
+                                                <MultiDataTrigger.Conditions>
+                                                    <Condition Binding="{Binding IsNewDisk}" Value="True"/>
+                                                    <Condition Binding="{Binding DeviceType}" Value="DvdDrive"/>
+                                                </MultiDataTrigger.Conditions>
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </MultiDataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </StackPanel.Style>
+
+                                <TextBlock Text="源文件内容" FontSize="12" Opacity="0.7" Margin="0,0,0,5"/>
+                                <Grid Margin="0,0,0,10">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <ui:TextBox Text="{Binding IsoSourceFolderPath}" PlaceholderText="请选择要打包的文件夹..." VerticalAlignment="Center"/>
+                                    <ui:Button Grid.Column="1" Content="选择文件夹" Margin="10,0,0,0" Command="{Binding BrowseFolderCommand}"/>
+                                </Grid>
+
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                                        <TextBlock Text="卷标" FontSize="12" Opacity="0.7" Margin="0,0,0,5"/>
+                                        <ui:TextBox Text="{Binding IsoVolumeLabel}" PlaceholderText="默认为文件夹名" HorizontalAlignment="Stretch"/>
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Column="1">
+                                        <TextBlock Text="文件系统" FontSize="12" Opacity="0.7" Margin="0,0,0,5"/>
+                                        <ComboBox SelectedValue="{Binding IsoFileSystem}" 
+                                                  SelectedValuePath="Tag" 
+                                                  HorizontalAlignment="Stretch">
+                                            <ComboBoxItem Content="UDF (推荐)" Tag="{x:Static models:IsoFileSystemType.Udf}"/>
+                                            <ComboBoxItem Content="ISO 9660 (兼容)" Tag="{x:Static models:IsoFileSystemType.Iso9660}"/>
+                                        </ComboBox>
+                                    </StackPanel>
+                                </Grid>
+                            </StackPanel>
 
                         </StackPanel>
 

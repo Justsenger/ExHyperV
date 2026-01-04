@@ -131,29 +131,56 @@ namespace ExHyperV.ViewModels
                 var currentStorage = ConvertUiDrivesToInfo(AllDrives);
                 var dialog = new ChooseDiskWindow(SelectedVm.Name, SelectedVm.Generation, SelectedVm.IsRunning, currentStorage);
                 if (Application.Current.MainWindow != null) dialog.Owner = Application.Current.MainWindow;
+
                 if (dialog.ShowDialog() == true)
                 {
                     var resultVm = dialog.ViewModel;
                     IsLoading = true;
-                    if (resultVm.IsPhysicalSource && resultVm.SelectedPhysicalDisk != null) await _storageService.SetDiskOfflineStatusAsync(resultVm.SelectedPhysicalDisk.Number, true);
+
+                    // 物理磁盘处理逻辑保持不变
+                    if (resultVm.IsPhysicalSource && resultVm.SelectedPhysicalDisk != null)
+                        await _storageService.SetDiskOfflineStatusAsync(resultVm.SelectedPhysicalDisk.Number, true);
+
                     string pathOrNumber = resultVm.IsPhysicalSource ? resultVm.SelectedPhysicalDisk?.Number.ToString() : resultVm.FilePath;
+
+                    // ==================== 修改开始 ====================
+                    // 核心修改：在方法末尾追加了 ISO 相关的三个参数
                     var (success, message, actualType, actualNumber, actualLocation) = await _storageService.AddDriveAsync(
-                        SelectedVm.Name, resultVm.SelectedControllerType, resultVm.SelectedControllerNumber, resultVm.SelectedLocation,
-                        resultVm.DeviceType, pathOrNumber, resultVm.IsPhysicalSource, resultVm.IsNewDisk, resultVm.NewDiskSize,
-                        resultVm.SelectedVhdType, resultVm.ParentPath, resultVm.SectorFormat, resultVm.BlockSize);
+                        SelectedVm.Name,
+                        resultVm.SelectedControllerType,
+                        resultVm.SelectedControllerNumber,
+                        resultVm.SelectedLocation,
+                        resultVm.DeviceType,
+                        pathOrNumber,
+                        resultVm.IsPhysicalSource,
+                        resultVm.IsNewDisk,
+                        resultVm.NewDiskSize,
+                        resultVm.SelectedVhdType,
+                        resultVm.ParentPath,
+                        resultVm.SectorFormat,
+                        resultVm.BlockSize,
+                        // 新增参数：从 Dialog ViewModel 中获取 ISO 配置
+                        resultVm.IsoSourceFolderPath,  // 源文件夹路径
+                        resultVm.IsoVolumeLabel,       // 卷标
+                        resultVm.IsoFileSystem         // 文件系统枚举 (Udf/Iso9660)
+                    );
+                    // ==================== 修改结束 ====================
+
                     if (success)
                     {
                         await RefreshVmStorageAsync();
                         string detail = $"{Translate("Storage_Msg_MountedTo")} {actualType} {actualNumber} : {actualLocation}";
                         ShowSnackbar(Translate("Storage_Title_AddSuccess"), detail, ControlAppearance.Success, SymbolRegular.CheckmarkCircle24);
                     }
-                    else { ShowSnackbar(Translate("Storage_Title_Error"), Translate(message), ControlAppearance.Danger, SymbolRegular.DismissCircle24); }
+                    else
+                    {
+                        ShowSnackbar(Translate("Storage_Title_Error"), Translate(message), ControlAppearance.Danger, SymbolRegular.DismissCircle24);
+                    }
                 }
             }
             catch (Exception ex) { ShowSnackbar(Translate("Storage_Title_Error"), ex.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24); }
             finally { IsLoading = false; }
         }
-
         private List<VmStorageControllerInfo> ConvertUiDrivesToInfo(IEnumerable<UiDriveModel> uiDrives)
         {
             return uiDrives.GroupBy(d => new { d.ControllerType, d.ControllerNumber }).Select(g => new VmStorageControllerInfo
