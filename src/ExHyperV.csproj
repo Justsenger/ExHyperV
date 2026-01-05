@@ -24,7 +24,6 @@
         <PackageReference Include="DiscUtils.Core" Version="0.16.13" />
         <PackageReference Include="DiscUtils.Iso9660" Version="0.16.13" />
         <PackageReference Include="DiscUtils.Streams" Version="0.16.13" />
-        <PackageReference Include="DiscUtils.Udf" Version="0.16.13" />
         <PackageReference Include="Microsoft.PowerShell.SDK" Version="7.4.0" />
         <PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.135" />
         <PackageReference Include="SSH.NET" Version="2025.1.0" />

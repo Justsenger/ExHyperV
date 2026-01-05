@@ -1,14 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text.Json;
+﻿using System.IO;
+using System.Management;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
+using DiscUtils.Iso9660;
 using ExHyperV.Models;
 using ExHyperV.Tools;
 using Microsoft.Management.Infrastructure;
-using DiscUtils.Iso9660;
 
 namespace ExHyperV.Services
 {
@@ -25,6 +21,7 @@ namespace ExHyperV.Services
 
     public class StorageService : IStorageService
     {
+        //快速查询虚拟机磁盘信息
         public async Task<List<VmStorageControllerInfo>> GetVmStorageInfoAsync(string vmName)
         {
             return await Task.Run(() =>
@@ -256,6 +253,7 @@ namespace ExHyperV.Services
             public double SizeGB { get; set; }
         }
 
+        //快速查询主机磁盘信息
         public async Task<List<HostDiskInfo>> GetHostDisksAsync()
         {
             return await Task.Run(() =>
@@ -267,7 +265,6 @@ namespace ExHyperV.Services
                 {
                     using (var session = CimSession.Create(null))
                     {
-                        // 1. 快速获取所有被 Hyper-V 占用的物理磁盘编号
                         var vmUsedDisks = session.QueryInstances(@"root\virtualization\v2", "WQL",
                             "SELECT DriveNumber FROM Msvm_DiskDrive WHERE DriveNumber IS NOT NULL");
 
@@ -278,34 +275,24 @@ namespace ExHyperV.Services
                                 usedDiskNumbers.Add(num);
                             }
                         }
-
-                        // 2. 获取宿主机上所有物理磁盘
                         var allHostDisks = session.QueryInstances(@"Root\Microsoft\Windows\Storage", "WQL",
                             "SELECT Number, FriendlyName, Size, IsOffline, IsSystem, IsBoot, BusType, OperationalStatus FROM MSFT_Disk");
 
                         foreach (var disk in allHostDisks)
                         {
-                            // 安全地获取属性值
                             var number = Convert.ToInt32(disk.CimInstanceProperties["Number"]?.Value ?? -1);
                             if (number == -1) continue;
 
                             var busType = Convert.ToUInt16(disk.CimInstanceProperties["BusType"]?.Value ?? 0);
                             var isSystem = Convert.ToBoolean(disk.CimInstanceProperties["IsSystem"]?.Value ?? false);
                             var isBoot = Convert.ToBoolean(disk.CimInstanceProperties["IsBoot"]?.Value ?? false);
-
-                            // 3. 应用筛选逻辑
-                            // 排除USB盘 (BusType 7), 系统盘, 引导盘, 以及已被VM占用的盘
                             if (busType == 7 || isSystem || isBoot || usedDiskNumbers.Contains(number))
                             {
                                 continue;
                             }
-
-                            // 属性映射
                             long sizeBytes = Convert.ToInt64(disk.CimInstanceProperties["Size"]?.Value ?? 0);
                             var opStatusArray = disk.CimInstanceProperties["OperationalStatus"]?.Value as ushort[];
-                            // 假设 HostDiskInfo.OperationalStatus 是 string 类型
                             string opStatus = (opStatusArray != null && opStatusArray.Length > 0) ? opStatusArray[0].ToString() : "Unknown";
-
                             result.Add(new HostDiskInfo
                             {
                                 Number = number,
@@ -320,7 +307,6 @@ namespace ExHyperV.Services
                 }
                 catch (Exception ex)
                 {
-                    // 可以在这里记录详细错误日志，以便调试
                     Console.WriteLine($"[ERROR] GetHostDisksAsync failed: {ex.Message}");
                 }
 
@@ -333,80 +319,19 @@ namespace ExHyperV.Services
         public async Task<(bool Success, string Message, string ActualType, int ActualNumber, int ActualLocation)> AddDriveAsync(string vmName, string controllerType, int controllerNumber, int location, string driveType, string pathOrNumber, bool isPhysical, bool isNew = false, int sizeGb = 256, string vhdType = "Dynamic", string parentPath = "", string sectorFormat = "Default", string blockSize = "Default", string isoSourcePath = null, string isoVolumeLabel = null)
         {
             string psPath = string.IsNullOrWhiteSpace(pathOrNumber) ? "$null" : $"'{pathOrNumber}'";
+    if (driveType == "DvdDrive" && isNew && !string.IsNullOrWhiteSpace(isoSourcePath))
+    {
+        try
+        {
+            await CreateIsoFromDirectoryAsync(isoSourcePath, pathOrNumber, isoVolumeLabel);
+        }
+        catch (Exception ex)
+        {
+            return (false, $"创建ISO失败: {ex.Message}", controllerType, controllerNumber, location);
+        }
+    }
 
-            // --- 核心修改部分开始 ---
-            if (driveType == "DvdDrive" && isNew && !string.IsNullOrWhiteSpace(isoSourcePath))
-            {
-                try
-                {
-                    await Task.Run(() =>
-                    {
-                        var sourceDirInfo = new DirectoryInfo(isoSourcePath);
 
-                        // 1. 定义所有已知的 ISO 9660 + Joliet 限制
-                        const long maxFileSize = 4294967295; // 4 GiB - 1 byte
-                        const int maxFileNameLength = 60; // Joliet 限制为 64 Unicode 字符，我们留一些余量以策安全
-                        const int maxPathLength = 240; // ISO 9660 总路径限制约为 255，同样留一些余量
-
-                        // 2. 一次性遍历所有文件和目录，进行全面的前置检查
-                        var allItems = sourceDirInfo.EnumerateFileSystemInfos("*", SearchOption.AllDirectories);
-
-                        foreach (var item in allItems)
-                        {
-                            // 检查单文件大小
-                            if (item is FileInfo file && file.Length >= maxFileSize)
-                            {
-                                throw new IOException($"文件 '{file.Name}' 的大小超过了 4GB 上限。");
-                            }
-
-                            // 检查文件名长度
-                            if (item.Name.Length > maxFileNameLength)
-                            {
-                                throw new IOException($"文件名过长 (超过 {maxFileNameLength} 字符): '{item.Name}'。");
-                            }
-
-                            // 检查完整路径长度
-                            // 注意：这里的 'FullName' 是在你的本地文件系统中的路径，它会比最终在 ISO 内的相对路径要长。
-                            // 但这是一个很好的近似检查，可以捕获大多数问题。
-                            if (item.FullName.Length > maxPathLength)
-                            {
-                                throw new IOException($"文件路径过长 (超过 {maxPathLength} 字符): '{item.Name}'。");
-                            }
-                        }
-
-                        string label = string.IsNullOrWhiteSpace(isoVolumeLabel) ? sourceDirInfo.Name : isoVolumeLabel;
-                        var targetDir = Path.GetDirectoryName(pathOrNumber);
-                        if (!string.IsNullOrEmpty(targetDir) && !Directory.Exists(targetDir)) Directory.CreateDirectory(targetDir);
-
-                        var builder = new CDBuilder
-                        {
-                            UseJoliet = true,
-                            VolumeIdentifier = label
-                        };
-
-                        void AddFilesRecursively(string currentDir, string rootDir)
-                        {
-                            foreach (var file in Directory.GetFiles(currentDir))
-                            {
-                                string relPath = Path.GetRelativePath(rootDir, file);
-                                builder.AddFile(relPath, file);
-                            }
-                            foreach (var dir in Directory.GetDirectories(currentDir))
-                            {
-                                AddFilesRecursively(dir, rootDir);
-                            }
-                        }
-
-                        AddFilesRecursively(isoSourcePath, isoSourcePath);
-                        builder.Build(pathOrNumber);
-                    });
-                }
-                catch (Exception ex)
-                {
-                    // 将所有错误（包括我们自己抛出的检查错误）转换为友好的失败结果
-                    return (false, $"创建ISO失败: {ex.Message}", controllerType, controllerNumber, location);
-                }
-            }
             string script = $@"
     $ErrorActionPreference = 'Stop'
     
@@ -468,7 +393,7 @@ namespace ExHyperV.Services
                 }
                 return (true, "Storage_Msg_Success", controllerType, controllerNumber, location);
             }
-            catch (Exception ex) { return (false, GetFriendlyErrorMessage(ex.Message), controllerType, controllerNumber, location); }
+            catch (Exception ex) { return (false, Utils.GetFriendlyErrorMessage(ex.Message), controllerType, controllerNumber, location); }
         }
         public async Task<(bool Success, string Message)> RemoveDriveAsync(string vmName, UiDriveModel drive)
         {
@@ -505,22 +430,55 @@ namespace ExHyperV.Services
                 var results = await Utils.Run2(script);
                 return (true, results.LastOrDefault()?.ToString() ?? "Storage_Msg_Removed");
             }
-            catch (Exception ex) { return (false, GetFriendlyErrorMessage(ex.Message)); }
+            catch (Exception ex) { return (false, Utils.GetFriendlyErrorMessage(ex.Message)); }
         }
 
         public async Task<(bool Success, string Message)> ModifyDvdDrivePathAsync(string vmName, string controllerType, int controllerNumber, int controllerLocation, string newIsoPath) => await RunCommandAsync($"Set-VMDvdDrive -VMName '{vmName}' -ControllerNumber {controllerNumber} -ControllerLocation {controllerLocation} -Path {(string.IsNullOrWhiteSpace(newIsoPath) ? "$null" : $"'{newIsoPath}'")} -ErrorAction Stop");
-
-        private string GetFriendlyErrorMessage(string rawMessage)
+        public async Task<double> GetVhdSizeGbAsync(string path)
         {
-            if (string.IsNullOrWhiteSpace(rawMessage)) return "Storage_Error_Unknown";
-            var match = Regex.Match(rawMessage, @"Storage_(Error|Msg)_[A-Za-z0-9_]+");
-            if (match.Success) return match.Value;
-            string cleanMsg = Regex.Replace(rawMessage.Trim(), @"[\(\（].*?ID\s+[a-fA-F0-9-]{36}.*?[\)\）]", "").Replace("\r", "").Replace("\n", " ");
-            var parts = cleanMsg.Split(new[] { '。', '.' }, StringSplitOptions.RemoveEmptyEntries).Select(s => s.Trim()).Where(s => !string.IsNullOrWhiteSpace(s)).ToList();
-            return (parts.Count >= 2 && parts.Last().Length > 2) ? parts.Last() + "。" : cleanMsg;
-        }
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    var scope = new ManagementScope(@"root\virtualization\v2");
+                    scope.Connect();
 
-        public async Task<double> GetVhdSizeGbAsync(string path) { try { var res = await Utils.Run2($"Get-VHD -Path '{path}' | Select-Object -ExpandProperty Size"); return Math.Round(Convert.ToInt64(res[0].ToString()) / 1073741824.0, 2); } catch { return 0; } }
+                    var wmiQuery = new ObjectQuery("SELECT * FROM Msvm_ImageManagementService");
+                    using (var searcher = new ManagementObjectSearcher(scope, wmiQuery))
+                    {
+                        using (var managementService = searcher.Get().OfType<ManagementObject>().FirstOrDefault())
+                        {
+                            if (managementService == null)
+                            {
+                                return 0;
+                            }
+
+                            using (var inParams = managementService.GetMethodParameters("GetVirtualHardDiskSettingData"))
+                            {
+                                inParams["Path"] = path;
+
+                                using (var outParams = managementService.InvokeMethod("GetVirtualHardDiskSettingData", inParams, null))
+                                {
+                                    string settingData = outParams["SettingData"].ToString();
+
+                                    var vhdSettingData = new ManagementClass("Msvm_VirtualHardDiskSettingData");
+                                    vhdSettingData.SetPropertyValue("text", settingData);
+
+                                    var sizeInBytes = (ulong)vhdSettingData.GetPropertyValue("MaxInternalSize");
+
+                                    const double bytesPerGb = 1024.0 * 1024 * 1024;
+                                    return Math.Round(sizeInBytes / bytesPerGb, 2);
+                                }
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    return 0;
+                }
+            });
+        }
 
         public async Task<(string ControllerType, int ControllerNumber, int Location)> GetNextAvailableSlotAsync(string vmName, string driveType)
         {
@@ -542,6 +500,82 @@ namespace ExHyperV.Services
         }
 
         private async Task<string> ExecutePowerShellAsync(string script) { try { var results = await Utils.Run2(script); return results == null ? "" : string.Join(Environment.NewLine, results.Select(r => r?.ToString() ?? "")); } catch { return ""; } }
-        private async Task<(bool Success, string Message)> RunCommandAsync(string script) { try { await Utils.Run2(script); return (true, "Storage_Msg_Success"); } catch (Exception ex) { return (false, GetFriendlyErrorMessage(ex.Message)); } }
+        private async Task<(bool Success, string Message)> RunCommandAsync(string script) { try { await Utils.Run2(script); return (true, "Storage_Msg_Success"); } catch (Exception ex) { return (false, Utils.GetFriendlyErrorMessage(ex.Message)); } }
+        private async Task CreateIsoFromDirectoryAsync(string sourceDirectory, string targetIsoPath, string volumeLabel)
+{
+    var sourceDirInfo = new DirectoryInfo(sourceDirectory);
+    if (!sourceDirInfo.Exists)
+    {
+        throw new DirectoryNotFoundException($"源目录不存在: '{sourceDirectory}'");
+    }
+
+    const long MaxFileSize = 4294967295; 
+    const int MaxFileNameLength = 64;    
+    const int MaxPathLength = 240;       
+    const int MaxDirectoryDepth = 8;     
+    const int MaxVolumeLabelLength = 16; 
+
+    string finalVolumeLabel = string.IsNullOrWhiteSpace(volumeLabel) ? sourceDirInfo.Name : volumeLabel;
+    if (finalVolumeLabel.Length > MaxVolumeLabelLength)
+    {
+        throw new IOException($"卷标 '{finalVolumeLabel}' 过长，超过了 {MaxVolumeLabelLength} 个字符的限制。");
+    }
+
+    await Task.Run(() =>
+    {
+        foreach (var item in sourceDirInfo.EnumerateFileSystemInfos("*", SearchOption.AllDirectories))
+        {
+            string relativePath = Path.GetRelativePath(sourceDirInfo.FullName, item.FullName);
+
+            if (item.Name.Length > MaxFileNameLength)
+            {
+                throw new IOException($"文件名过长 (超过 {MaxFileNameLength} 字符): '{item.Name}'。");
+            }
+
+            if (relativePath.Length > MaxPathLength)
+            {
+                throw new IOException($"ISO 内相对路径过长 (超过 {MaxPathLength} 字符): '{relativePath}'。");
+            }
+            
+            int depth = relativePath.Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries).Length;
+            if (item is FileInfo)
+            {
+                 if (depth - 1 >= MaxDirectoryDepth)
+                    throw new IOException($"文件所在目录结构过深 (超过 {MaxDirectoryDepth} 层): '{relativePath}'。");
+            }
+            else if (depth > MaxDirectoryDepth)
+            {
+                 throw new IOException($"目录结构过深 (超过 {MaxDirectoryDepth} 层): '{relativePath}'。");
+            }
+
+            if (item is FileInfo file && file.Length >= MaxFileSize)
+            {
+                throw new IOException($"文件大小超过 4GB 上限: '{file.Name}'。");
+            }
+        }
+
+        var targetDir = Path.GetDirectoryName(targetIsoPath);
+        if (!string.IsNullOrEmpty(targetDir) && !Directory.Exists(targetDir))
+        {
+            Directory.CreateDirectory(targetDir);
+        }
+
+        var builder = new CDBuilder
+        {
+            UseJoliet = true,
+            VolumeIdentifier = finalVolumeLabel
+        };
+        
+        foreach (var file in Directory.GetFiles(sourceDirectory, "*", SearchOption.AllDirectories))
+        {
+            string relativePath = Path.GetRelativePath(sourceDirectory, file);
+            builder.AddFile(relativePath, file);
+        }
+
+        builder.Build(targetIsoPath);
+    });
+}
+    
+    
     }
 }
