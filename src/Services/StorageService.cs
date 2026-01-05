@@ -17,8 +17,7 @@ namespace ExHyperV.Services
         Task<List<VmStorageControllerInfo>> GetVmStorageInfoAsync(string vmName);
         Task<List<HostDiskInfo>> GetHostDisksAsync();
         Task<(bool Success, string Message)> SetDiskOfflineStatusAsync(int diskNumber, bool isOffline);
-        Task<(bool Success, string Message, string ActualType, int ActualNumber, int ActualLocation)> AddDriveAsync(string vmName, string controllerType, int controllerNumber, int location, string driveType, string pathOrNumber, bool isPhysical, bool isNew = false, int sizeGb = 256, string vhdType = "Dynamic", string parentPath = "", string sectorFormat = "Default", string blockSize = "Default", string isoSourcePath = null, string isoVolumeLabel = null, IsoFileSystemType? isoFileSystem = null);
-        Task<(bool Success, string Message)> RemoveDriveAsync(string vmName, UiDriveModel drive);
+        Task<(bool Success, string Message, string ActualType, int ActualNumber, int ActualLocation)> AddDriveAsync(string vmName, string controllerType, int controllerNumber, int location, string driveType, string pathOrNumber, bool isPhysical, bool isNew = false, int sizeGb = 256, string vhdType = "Dynamic", string parentPath = "", string sectorFormat = "Default", string blockSize = "Default", string isoSourcePath = null, string isoVolumeLabel = null); Task<(bool Success, string Message)> RemoveDriveAsync(string vmName, UiDriveModel drive);
         Task<(bool Success, string Message)> ModifyDvdDrivePathAsync(string vmName, string controllerType, int controllerNumber, int controllerLocation, string newIsoPath);
         Task<double> GetVhdSizeGbAsync(string path);
         Task<(string ControllerType, int ControllerNumber, int Location)> GetNextAvailableSlotAsync(string vmName, string driveType);
@@ -331,42 +330,83 @@ namespace ExHyperV.Services
 
         public async Task<(bool Success, string Message)> SetDiskOfflineStatusAsync(int diskNumber, bool isOffline) => await RunCommandAsync($"Set-Disk -Number {diskNumber} -IsOffline ${isOffline.ToString().ToLower()}");
 
-        public async Task<(bool Success, string Message, string ActualType, int ActualNumber, int ActualLocation)> AddDriveAsync(string vmName, string controllerType, int controllerNumber, int location, string driveType, string pathOrNumber, bool isPhysical, bool isNew = false, int sizeGb = 256, string vhdType = "Dynamic", string parentPath = "", string sectorFormat = "Default", string blockSize = "Default", string isoSourcePath = null, string isoVolumeLabel = null, IsoFileSystemType? isoFileSystem = null)
+        public async Task<(bool Success, string Message, string ActualType, int ActualNumber, int ActualLocation)> AddDriveAsync(string vmName, string controllerType, int controllerNumber, int location, string driveType, string pathOrNumber, bool isPhysical, bool isNew = false, int sizeGb = 256, string vhdType = "Dynamic", string parentPath = "", string sectorFormat = "Default", string blockSize = "Default", string isoSourcePath = null, string isoVolumeLabel = null)
         {
             string psPath = string.IsNullOrWhiteSpace(pathOrNumber) ? "$null" : $"'{pathOrNumber}'";
 
+            // --- 核心修改部分开始 ---
             if (driveType == "DvdDrive" && isNew && !string.IsNullOrWhiteSpace(isoSourcePath))
             {
-                await Task.Run(() =>
+                try
                 {
-                    string label = string.IsNullOrWhiteSpace(isoVolumeLabel) ? new DirectoryInfo(isoSourcePath).Name : isoVolumeLabel;
-                    var targetDir = Path.GetDirectoryName(pathOrNumber);
-                    if (!string.IsNullOrEmpty(targetDir) && !Directory.Exists(targetDir)) Directory.CreateDirectory(targetDir);
-
-                    var builder = new CDBuilder
+                    await Task.Run(() =>
                     {
-                        UseJoliet = true,
-                        VolumeIdentifier = label
-                    };
+                        var sourceDirInfo = new DirectoryInfo(isoSourcePath);
 
-                    void AddFilesRecursively(string currentDir)
-                    {
-                        foreach (var file in Directory.GetFiles(currentDir))
-                        {
-                            string relPath = Path.GetRelativePath(isoSourcePath, file);
-                            builder.AddFile(relPath, file);
-                        }
-                        foreach (var dir in Directory.GetDirectories(currentDir))
-                        {
-                            AddFilesRecursively(dir);
-                        }
-                    }
+                        // 1. 定义所有已知的 ISO 9660 + Joliet 限制
+                        const long maxFileSize = 4294967295; // 4 GiB - 1 byte
+                        const int maxFileNameLength = 60; // Joliet 限制为 64 Unicode 字符，我们留一些余量以策安全
+                        const int maxPathLength = 240; // ISO 9660 总路径限制约为 255，同样留一些余量
 
-                    AddFilesRecursively(isoSourcePath);
-                    builder.Build(pathOrNumber);
-                });
+                        // 2. 一次性遍历所有文件和目录，进行全面的前置检查
+                        var allItems = sourceDirInfo.EnumerateFileSystemInfos("*", SearchOption.AllDirectories);
+
+                        foreach (var item in allItems)
+                        {
+                            // 检查单文件大小
+                            if (item is FileInfo file && file.Length >= maxFileSize)
+                            {
+                                throw new IOException($"文件 '{file.Name}' 的大小超过了 4GB 上限。");
+                            }
+
+                            // 检查文件名长度
+                            if (item.Name.Length > maxFileNameLength)
+                            {
+                                throw new IOException($"文件名过长 (超过 {maxFileNameLength} 字符): '{item.Name}'。");
+                            }
+
+                            // 检查完整路径长度
+                            // 注意：这里的 'FullName' 是在你的本地文件系统中的路径，它会比最终在 ISO 内的相对路径要长。
+                            // 但这是一个很好的近似检查，可以捕获大多数问题。
+                            if (item.FullName.Length > maxPathLength)
+                            {
+                                throw new IOException($"文件路径过长 (超过 {maxPathLength} 字符): '{item.Name}'。");
+                            }
+                        }
+
+                        string label = string.IsNullOrWhiteSpace(isoVolumeLabel) ? sourceDirInfo.Name : isoVolumeLabel;
+                        var targetDir = Path.GetDirectoryName(pathOrNumber);
+                        if (!string.IsNullOrEmpty(targetDir) && !Directory.Exists(targetDir)) Directory.CreateDirectory(targetDir);
+
+                        var builder = new CDBuilder
+                        {
+                            UseJoliet = true,
+                            VolumeIdentifier = label
+                        };
+
+                        void AddFilesRecursively(string currentDir, string rootDir)
+                        {
+                            foreach (var file in Directory.GetFiles(currentDir))
+                            {
+                                string relPath = Path.GetRelativePath(rootDir, file);
+                                builder.AddFile(relPath, file);
+                            }
+                            foreach (var dir in Directory.GetDirectories(currentDir))
+                            {
+                                AddFilesRecursively(dir, rootDir);
+                            }
+                        }
+
+                        AddFilesRecursively(isoSourcePath, isoSourcePath);
+                        builder.Build(pathOrNumber);
+                    });
+                }
+                catch (Exception ex)
+                {
+                    // 将所有错误（包括我们自己抛出的检查错误）转换为友好的失败结果
+                    return (false, $"创建ISO失败: {ex.Message}", controllerType, controllerNumber, location);
+                }
             }
-
             string script = $@"
     $ErrorActionPreference = 'Stop'
     

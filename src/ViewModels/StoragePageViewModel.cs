@@ -159,8 +159,7 @@ namespace ExHyperV.ViewModels
                         resultVm.BlockSize,
                         // ISO 专属参数
                         resultVm.IsoSourceFolderPath,
-                        resultVm.IsoVolumeLabel,
-                        resultVm.IsoFileSystem
+                        resultVm.IsoVolumeLabel
                     );
 
                     if (success)

@@ -285,25 +285,22 @@
                                     <ui:Button Grid.Column="1" Content="选择" Margin="10,0,0,0" Command="{Binding BrowseFolderCommand}"/>
                                 </Grid>
 
+                                <!-- 修改后的Grid，移除了文件系统选择，并增加了限制说明 -->
                                 <Grid>
+                                    <!-- 1. 移除了两列布局的定义 -->
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
 
-                                    <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                                    <!-- 2. 将卷标输入框扩展到整个宽度 -->
+                                    <StackPanel Grid.Column="0">
                                         <TextBlock Text="卷标" FontSize="12" Opacity="0.7" Margin="0,0,0,5"/>
                                         <ui:TextBox Text="{Binding IsoVolumeLabel, UpdateSourceTrigger=PropertyChanged}" PlaceholderText="默认为文件夹名" HorizontalAlignment="Stretch"/>
-                                    </StackPanel>
 
-                                    <StackPanel Grid.Column="1">
-                                        <TextBlock Text="文件系统" FontSize="12" Opacity="0.7" Margin="0,0,0,5"/>
-                                        <ComboBox SelectedValue="{Binding IsoFileSystem}" 
-                                                  SelectedValuePath="Tag" 
-                                                  HorizontalAlignment="Stretch">
-                                            <ComboBoxItem Content="UDF (推荐)" Tag="{x:Static models:IsoFileSystemType.Udf}"/>
-                                            <ComboBoxItem Content="ISO 9660 (兼容)" Tag="{x:Static models:IsoFileSystemType.Iso9660}"/>
-                                        </ComboBox>
+                                        <TextBlock Text="ISO 创建仅使用9660标准，单文件上限为4GB。" 
+                                        FontSize="12" 
+                                        Opacity="0.6" 
+                                        Margin="4,8,0,0"/>
                                     </StackPanel>
                                 </Grid>
                             </StackPanel>

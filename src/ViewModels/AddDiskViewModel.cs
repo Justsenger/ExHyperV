@@ -251,7 +251,6 @@ namespace ExHyperV.ViewModels
 
         [ObservableProperty][NotifyCanExecuteChangedFor(nameof(ConfirmCommand))] private string _isoSourceFolderPath = string.Empty;
         [ObservableProperty] private string _isoVolumeLabel = string.Empty;
-        [ObservableProperty] private IsoFileSystemType _isoFileSystem = IsoFileSystemType.Udf;
 
         public ObservableCollection<int> NewDiskSizePresets { get; } = new ObservableCollection<int> { 64, 128, 256, 512, 1024 };
 
