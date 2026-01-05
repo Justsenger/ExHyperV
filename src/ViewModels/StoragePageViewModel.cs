@@ -3,15 +3,9 @@ using CommunityToolkit.Mvvm.Input;
 using ExHyperV.Models;
 using ExHyperV.Services;
 using ExHyperV.Views;
-using System;
 using System.Collections.ObjectModel;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using System.Windows;
 using Wpf.Ui.Controls;
-using System.Diagnostics;
-using System.Text.RegularExpressions;
 
 namespace ExHyperV.ViewModels
 {
@@ -142,7 +136,6 @@ namespace ExHyperV.ViewModels
 
                     string pathOrNumber = resultVm.IsPhysicalSource ? resultVm.SelectedPhysicalDisk?.Number.ToString() : resultVm.FilePath;
 
-                    // 传递常规参数以及新增的 ISO 参数
                     var (success, message, actualType, actualNumber, actualLocation) = await _storageService.AddDriveAsync(
                         SelectedVm.Name,
                         resultVm.SelectedControllerType,
@@ -157,7 +150,6 @@ namespace ExHyperV.ViewModels
                         resultVm.ParentPath,
                         resultVm.SectorFormat,
                         resultVm.BlockSize,
-                        // ISO 专属参数
                         resultVm.IsoSourceFolderPath,
                         resultVm.IsoVolumeLabel
                     );
@@ -199,7 +191,6 @@ namespace ExHyperV.ViewModels
                 IsLoading = true;
                 try
                 {
-                    // 修改光驱时不需要创建新ISO，因此不需要传后面可选参数，让其使用默认值即可
                     var (addSuccess, addMsg, _, _, _) = await _storageService.AddDriveAsync(SelectedVm.Name, drive.ControllerType, drive.ControllerNumber, drive.ControllerLocation, drive.DriveType, dialog.FileName, false);
                     if (addSuccess)
                     {

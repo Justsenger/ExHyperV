@@ -1187,25 +1187,277 @@ Please check if the IP and port are correct.</value>
   <data name="VMSettingsSavedSuccessfully" xml:space="preserve">
     <value>Settings for virtual machine '{0}' saved successfully.</value>
   </data>
-	<data name="Storage_Title_Error" xml:space="preserve"><value>Error</value></data>
-	<data name="Storage_Title_AddSuccess" xml:space="preserve"><value>Add Successful</value></data>
-	<data name="Storage_Title_ModifySuccess" xml:space="preserve"><value>Modify Successful</value></data>
-	<data name="Storage_Title_EjectSuccess" xml:space="preserve"><value>Eject Successful</value></data>
-	<data name="Storage_Title_RemoveSuccess" xml:space="preserve"><value>Remove Successful</value></data>
-	<data name="Storage_Msg_MountedTo" xml:space="preserve"><value>Device mounted to</value></data>
-	<data name="Storage_Msg_MediaUpdated" xml:space="preserve"><value>Drive media has been hot-updated.</value></data>
-	<data name="Storage_Msg_Success" xml:space="preserve"><value>Operation successful.</value></data>
-	<data name="Storage_Msg_Removed" xml:space="preserve"><value>Device removed successfully.</value></data>
-	<data name="Storage_Msg_Ejected" xml:space="preserve"><value>Media ejected successfully.</value></data>
-	<data name="Storage_Msg_AlreadyRemoved" xml:space="preserve"><value>Device already removed.</value></data>
-	<data name="Storage_Error_VmNotFound" xml:space="preserve"><value>Specified virtual machine not found.</value></data>
-	<data name="Storage_Error_ScsiHotAddNotSupported" xml:space="preserve"><value>Cannot hot-add SCSI controller while the VM is running.</value></data>
-	<data name="Storage_Error_IdeHotSwapNotSupported" xml:space="preserve"><value>IDE controller does not support hot-swapping while the VM is running.</value></data>
-	<data name="Storage_Error_DiskToDvdHotSwapNotSupported" xml:space="preserve"><value>Cannot swap a hard disk slot to a DVD drive while the VM is running.</value></data>
-	<data name="Storage_Error_DvdHotRemoveNotSupported" xml:space="preserve"><value>Cannot remove empty optical drive while the VM is running. Only eject is supported.</value></data>
-	<data name="Storage_Error_DvdDriveNotFound" xml:space="preserve"><value>Optical drive at the specified location was not found.</value></data>
-	<data name="Storage_Error_DiskNotFound" xml:space="preserve"><value>Specified hard disk drive not found.</value></data>
-	<data name="Storage_Error_DiskAlreadyAttached" xml:space="preserve"><value>Disk is already attached to a virtual machine.</value></data>
-	<data name="Storage_Error_FileNotFound" xml:space="preserve"><value>Specified virtual disk file not found.</value></data>
-	<data name="Storage_Error_Unknown" xml:space="preserve"><value>An unknown error occurred.</value></data>
+  <data name="Storage_Title_Error" xml:space="preserve">
+    <value>Error</value>
+  </data>
+  <data name="Storage_Title_AddSuccess" xml:space="preserve">
+    <value>Add Successful</value>
+  </data>
+  <data name="Storage_Title_ModifySuccess" xml:space="preserve">
+    <value>Modify Successful</value>
+  </data>
+  <data name="Storage_Title_EjectSuccess" xml:space="preserve">
+    <value>Eject Successful</value>
+  </data>
+  <data name="Storage_Title_RemoveSuccess" xml:space="preserve">
+    <value>Remove Successful</value>
+  </data>
+  <data name="Storage_Msg_MountedTo" xml:space="preserve">
+    <value>Device mounted to</value>
+  </data>
+  <data name="Storage_Msg_MediaUpdated" xml:space="preserve">
+    <value>Drive media has been hot-updated.</value>
+  </data>
+  <data name="Storage_Msg_Success" xml:space="preserve">
+    <value>Operation successful.</value>
+  </data>
+  <data name="Storage_Msg_Removed" xml:space="preserve">
+    <value>Device removed successfully.</value>
+  </data>
+  <data name="Storage_Msg_Ejected" xml:space="preserve">
+    <value>Media ejected successfully.</value>
+  </data>
+  <data name="Storage_Msg_AlreadyRemoved" xml:space="preserve">
+    <value>Device already removed.</value>
+  </data>
+  <data name="Storage_Error_VmNotFound" xml:space="preserve">
+    <value>Specified virtual machine not found.</value>
+  </data>
+  <data name="Storage_Error_ScsiHotAddNotSupported" xml:space="preserve">
+    <value>Cannot hot-add SCSI controller while the VM is running.</value>
+  </data>
+  <data name="Storage_Error_IdeHotSwapNotSupported" xml:space="preserve">
+    <value>IDE controller does not support hot-swapping while the VM is running.</value>
+  </data>
+  <data name="Storage_Error_DiskToDvdHotSwapNotSupported" xml:space="preserve">
+    <value>Cannot swap a hard disk slot to a DVD drive while the VM is running.</value>
+  </data>
+  <data name="Storage_Error_DvdHotRemoveNotSupported" xml:space="preserve">
+    <value>Cannot remove empty optical drive while the VM is running. Only eject is supported.</value>
+  </data>
+  <data name="Storage_Error_DvdDriveNotFound" xml:space="preserve">
+    <value>Optical drive at the specified location was not found.</value>
+  </data>
+  <data name="Storage_Error_DiskNotFound" xml:space="preserve">
+    <value>Specified hard disk drive not found.</value>
+  </data>
+  <data name="Storage_Error_DiskAlreadyAttached" xml:space="preserve">
+    <value>Disk is already attached to a virtual machine.</value>
+  </data>
+  <data name="Storage_Error_FileNotFound" xml:space="preserve">
+    <value>Specified virtual disk file not found.</value>
+  </data>
+  <data name="Storage_Error_Unknown" xml:space="preserve">
+    <value>An unknown error occurred.</value>
+  </data>
+  <data name="Iso_Error_BuildFailed" xml:space="preserve">
+    <value>An unknown error occurred while creating the ISO image.</value>
+  </data>
+  <data name="Iso_Error_DirectoryDepthTooDeep" xml:space="preserve">
+    <value>Directory structure is too deep (exceeds 8 levels).</value>
+  </data>
+  <data name="Iso_Error_FileDepthTooDeep" xml:space="preserve">
+    <value>The directory structure for the file is too deep (exceeds 8 levels).</value>
+  </data>
+  <data name="Iso_Error_FileNameTooLong" xml:space="preserve">
+    <value>File name is too long (exceeds 64 characters).</value>
+  </data>
+  <data name="Iso_Error_FileTooLarge" xml:space="preserve">
+    <value>A single file exceeds the 4GB size limit.</value>
+  </data>
+  <data name="Iso_Error_PathTooLong" xml:space="preserve">
+    <value>Relative path within the ISO is too long (exceeds 240 characters).</value>
+  </data>
+  <data name="Iso_Error_SourceDirNotFound" xml:space="preserve">
+    <value>Source directory does not exist.</value>
+  </data>
+  <data name="Iso_Error_VolumeLabelTooLong" xml:space="preserve">
+    <value>Volume label is too long, exceeding the limit of 16 characters.</value>
+  </data>
+  <data name="Iso_Msg_CreateSuccess" xml:space="preserve">
+    <value>ISO image created successfully.</value>
+  </data>
+  <data name="AddDisk_Filter_OpticalImage" xml:space="preserve">
+    <value>Optical Images</value>
+  </data>
+  <data name="AddDisk_Filter_VirtualDisk" xml:space="preserve">
+    <value>Virtual Disks</value>
+  </data>
+  <data name="AddDisk_Placeholder_FilePath" xml:space="preserve">
+    <value>Please specify the file path...</value>
+  </data>
+  <data name="AddDisk_Placeholder_SavePath" xml:space="preserve">
+    <value>Please specify a path to save...</value>
+  </data>
+  <data name="AddDisk_Title_SelectParentDisk" xml:space="preserve">
+    <value>Select Parent Virtual Disk</value>
+  </data>
+  <data name="AddDisk_Title_SelectSourceFolder" xml:space="preserve">
+    <value>Select Source Folder</value>
+  </data>
+  <data name="AddDisk_AutoAssign" xml:space="preserve">
+    <value>Auto-Assign</value>
+  </data>
+  <data name="AddDisk_BlockSize" xml:space="preserve">
+    <value>Block Size</value>
+  </data>
+  <data name="AddDisk_CapacityGB" xml:space="preserve">
+    <value>Capacity (GB)</value>
+  </data>
+  <data name="AddDisk_DiskType" xml:space="preserve">
+    <value>Disk Type</value>
+  </data>
+  <data name="AddDisk_FileContent" xml:space="preserve">
+    <value>File Content</value>
+  </data>
+  <data name="AddDisk_Info_IsoLimits" xml:space="preserve">
+    <value>ISO creation uses Joliet, with a 4GB file size limit.</value>
+  </data>
+  <data name="AddDisk_Interface" xml:space="preserve">
+    <value>Controller</value>
+  </data>
+  <data name="AddDisk_Location" xml:space="preserve">
+    <value>Location</value>
+  </data>
+  <data name="AddDisk_MediaSelection" xml:space="preserve">
+    <value>Media Selection</value>
+  </data>
+  <data name="AddDisk_New" xml:space="preserve">
+    <value>New</value>
+  </data>
+  <data name="AddDisk_NoAvailablePhysical" xml:space="preserve">
+    <value>No available physical devices</value>
+  </data>
+  <data name="AddDisk_Number" xml:space="preserve">
+    <value>Number</value>
+  </data>
+  <data name="AddDisk_Placeholder_PackageFolder" xml:space="preserve">
+    <value>Select a folder to package...</value>
+  </data>
+  <data name="AddDisk_Placeholder_ParentPath" xml:space="preserve">
+    <value>Please specify parent disk path...</value>
+  </data>
+  <data name="AddDisk_Placeholder_VolumeLabel" xml:space="preserve">
+    <value>Defaults to folder name</value>
+  </data>
+  <data name="AddDisk_SectorFormat" xml:space="preserve">
+    <value>Sector Format</value>
+  </data>
+  <data name="AddDisk_SlotConfig" xml:space="preserve">
+    <value>Slot Configuration</value>
+  </data>
+  <data name="AddDisk_Source" xml:space="preserve">
+    <value>Source</value>
+  </data>
+  <data name="AddDisk_Source_Physical" xml:space="preserve">
+    <value>Physical Device</value>
+  </data>
+  <data name="AddDisk_Source_VirtualFile" xml:space="preserve">
+    <value>Virtual File</value>
+  </data>
+  <data name="AddDisk_Type" xml:space="preserve">
+    <value>Type</value>
+  </data>
+  <data name="AddDisk_Type_HardDisk" xml:space="preserve">
+    <value>Hard Disk</value>
+  </data>
+  <data name="AddDisk_Type_OpticalDrive" xml:space="preserve">
+    <value>Optical Drive</value>
+  </data>
+  <data name="AddDisk_VhdType_Differencing" xml:space="preserve">
+    <value>Differencing</value>
+  </data>
+  <data name="AddDisk_VhdType_Dynamic" xml:space="preserve">
+    <value>Dynamic</value>
+  </data>
+  <data name="AddDisk_VhdType_Fixed" xml:space="preserve">
+    <value>Fixed</value>
+  </data>
+  <data name="AddDisk_VolumeLabel" xml:space="preserve">
+    <value>Volume Label</value>
+  </data>
+  <data name="AddDisk_WindowTitle" xml:space="preserve">
+    <value>Add Storage Device</value>
+  </data>
+  <data name="Common_Browse" xml:space="preserve">
+    <value>Browse</value>
+  </data>
+  <data name="Common_Default" xml:space="preserve">
+    <value>Default</value>
+  </data>
+  <data name="Common_Disk" xml:space="preserve">
+    <value>Disk</value>
+  </data>
+  <data name="Common_Select" xml:space="preserve">
+    <value>Select</value>
+  </data>
+  <data name="Common_Empty" xml:space="preserve">
+    <value>Empty</value>
+  </data>
+  <data name="Common_Modify" xml:space="preserve">
+    <value>Modify</value>
+  </data>
+  <data name="Common_Path" xml:space="preserve">
+    <value>Path</value>
+  </data>
+  <data name="Common_Remove" xml:space="preserve">
+    <value>Remove</value>
+  </data>
+  <data name="Common_Type" xml:space="preserve">
+    <value>Type</value>
+  </data>
+  <data name="Storage_AddStorage" xml:space="preserve">
+    <value>Add Storage</value>
+  </data>
+  <data name="Storage_Controller" xml:space="preserve">
+    <value>Controller</value>
+  </data>
+  <data name="Storage_DeviceList" xml:space="preserve">
+    <value>Device List</value>
+  </data>
+  <data name="Storage_DiskType_Empty" xml:space="preserve">
+    <value>Empty Device</value>
+  </data>
+  <data name="Storage_DiskType_Physical" xml:space="preserve">
+    <value>Physical Device</value>
+  </data>
+  <data name="Storage_DiskType_Virtual" xml:space="preserve">
+    <value>Virtual File</value>
+  </data>
+  <data name="Storage_Location" xml:space="preserve">
+    <value>Location</value>
+  </data>
+  <data name="Storage_NoDevicesFound" xml:space="preserve">
+    <value>This VM has no storage devices.</value>
+  </data>
+  <data name="Storage_Settings" xml:space="preserve">
+    <value>Storage Settings</value>
+  </data>
+  <data name="Storage_Slot" xml:space="preserve">
+    <value>Slot</value>
+  </data>
+  <data name="Storage_Tooltip_RemoveDevice" xml:space="preserve">
+    <value>Remove this device</value>
+  </data>
+  <data name="VM_State_Running" xml:space="preserve">
+    <value>Running</value>
+  </data>
+  <data name="Storage" xml:space="preserve">
+    <value>Storage</value>
+  </data>
+	<data name="Model_Drive_OpticalDrive" xml:space="preserve">
+    <value>Optical Drive</value>
+  </data>
+	<data name="Model_Drive_SourcePhysical" xml:space="preserve">
+    <value>Physical Device</value>
+  </data>
+	<data name="Model_Drive_SourceVirtual" xml:space="preserve">
+    <value>Virtual File</value>
+  </data>
+	<data name="Model_Drive_VirtualDisk" xml:space="preserve">
+    <value>Virtual Disk</value>
+  </data>
+	<data name="Model_Drive_VirtualHardDisk" xml:space="preserve">
+    <value>Virtual Hard Disk</value>
+  </data>
 </root>

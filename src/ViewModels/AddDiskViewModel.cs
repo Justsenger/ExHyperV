@@ -2,11 +2,7 @@
 using CommunityToolkit.Mvvm.Input;
 using ExHyperV.Models;
 using ExHyperV.Services;
-using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Linq;
-using System.Threading.Tasks;
 using System.Windows;
 
 namespace ExHyperV.ViewModels
@@ -42,8 +38,6 @@ namespace ExHyperV.ViewModels
             UpdateControllerTypeOptions();
             await RefreshControllerLayoutAsync(true);
         }
-
-        #region 控制器逻辑
 
         public ObservableCollection<string> AvailableControllerTypes { get; }
         public ObservableCollection<int> AvailableControllerNumbers { get; }
@@ -234,10 +228,6 @@ namespace ExHyperV.ViewModels
             return ("SCSI", 0, 0);
         }
 
-        #endregion
-
-        #region 媒介与来源逻辑
-
         [ObservableProperty][NotifyCanExecuteChangedFor(nameof(ConfirmCommand))] private string _deviceType = "HardDisk";
         [ObservableProperty][NotifyCanExecuteChangedFor(nameof(ConfirmCommand))] private bool _isPhysicalSource = false;
         [ObservableProperty][NotifyCanExecuteChangedFor(nameof(ConfirmCommand))] private string _filePath = string.Empty;
@@ -254,17 +244,15 @@ namespace ExHyperV.ViewModels
 
         public ObservableCollection<int> NewDiskSizePresets { get; } = new ObservableCollection<int> { 64, 128, 256, 512, 1024 };
 
-        public string FilePathPlaceholder => IsNewDisk ? "请指定保存路径..." : "请指定文件路径...";
+        public string FilePathPlaceholder => IsNewDisk ? Properties.Resources.AddDisk_Placeholder_SavePath : Properties.Resources.AddDisk_Placeholder_FilePath;
 
         async partial void OnDeviceTypeChanged(string value)
         {
             if (value == "DvdDrive")
             {
-                // 保留 IsNewDisk 状态，以便用户在 ISO 模式下使用新建
             }
             else
             {
-                // 如果切回 HardDisk，IsNewDisk 默认行为保持不变
             }
             SyncHostDiskDisplay();
             UpdateControllerTypeOptions();
@@ -320,7 +308,7 @@ namespace ExHyperV.ViewModels
         private void BrowseFile()
         {
             Microsoft.Win32.FileDialog dialog = IsNewDisk ? (Microsoft.Win32.FileDialog)new Microsoft.Win32.SaveFileDialog() : new Microsoft.Win32.OpenFileDialog();
-            dialog.Filter = DeviceType == "HardDisk" ? "虚拟磁盘|*.vhdx;*.vhd" : "光盘镜像|*.iso";
+            dialog.Filter = DeviceType == "HardDisk" ? $"{Properties.Resources.AddDisk_Filter_VirtualDisk}|*.vhdx;*.vhd" : $"{Properties.Resources.AddDisk_Filter_OpticalImage}|*.iso";
             if (dialog.ShowDialog() == true) FilePath = dialog.FileName;
             ConfirmCommand.NotifyCanExecuteChanged();
         }
@@ -328,7 +316,7 @@ namespace ExHyperV.ViewModels
         [RelayCommand]
         private void BrowseParentFile()
         {
-            var dialog = new Microsoft.Win32.OpenFileDialog { Title = "选择父虚拟磁盘", Filter = "虚拟磁盘|*.vhdx;*.vhd" };
+            var dialog = new Microsoft.Win32.OpenFileDialog { Title = Properties.Resources.AddDisk_Title_SelectParentDisk, Filter = $"{Properties.Resources.AddDisk_Filter_VirtualDisk}|*.vhdx;*.vhd" };
             if (dialog.ShowDialog() == true) ParentPath = dialog.FileName;
             ConfirmCommand.NotifyCanExecuteChanged();
         }
@@ -338,7 +326,7 @@ namespace ExHyperV.ViewModels
         {
             var dialog = new Microsoft.Win32.OpenFolderDialog
             {
-                Title = "选择源文件夹",
+                Title = Properties.Resources.AddDisk_Title_SelectSourceFolder,
                 Multiselect = false
             };
 
@@ -379,6 +367,5 @@ namespace ExHyperV.ViewModels
 
             return !string.IsNullOrEmpty(FilePath);
         }
-        #endregion
     }
 }

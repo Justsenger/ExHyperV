@@ -321,15 +321,13 @@ namespace ExHyperV.Services
             string psPath = string.IsNullOrWhiteSpace(pathOrNumber) ? "$null" : $"'{pathOrNumber}'";
     if (driveType == "DvdDrive" && isNew && !string.IsNullOrWhiteSpace(isoSourcePath))
     {
-        try
-        {
-            await CreateIsoFromDirectoryAsync(isoSourcePath, pathOrNumber, isoVolumeLabel);
-        }
-        catch (Exception ex)
-        {
-            return (false, $"创建ISO失败: {ex.Message}", controllerType, controllerNumber, location);
-        }
-    }
+                var createResult = await CreateIsoFromDirectoryAsync(isoSourcePath, pathOrNumber, isoVolumeLabel);
+
+                if (!createResult.Success)
+                {
+                    return (false, createResult.Message, controllerType, controllerNumber, location);
+                }
+            }
 
 
             string script = $@"
@@ -501,81 +499,91 @@ namespace ExHyperV.Services
 
         private async Task<string> ExecutePowerShellAsync(string script) { try { var results = await Utils.Run2(script); return results == null ? "" : string.Join(Environment.NewLine, results.Select(r => r?.ToString() ?? "")); } catch { return ""; } }
         private async Task<(bool Success, string Message)> RunCommandAsync(string script) { try { await Utils.Run2(script); return (true, "Storage_Msg_Success"); } catch (Exception ex) { return (false, Utils.GetFriendlyErrorMessage(ex.Message)); } }
-        private async Task CreateIsoFromDirectoryAsync(string sourceDirectory, string targetIsoPath, string volumeLabel)
-{
-    var sourceDirInfo = new DirectoryInfo(sourceDirectory);
-    if (!sourceDirInfo.Exists)
-    {
-        throw new DirectoryNotFoundException($"源目录不存在: '{sourceDirectory}'");
-    }
-
-    const long MaxFileSize = 4294967295; 
-    const int MaxFileNameLength = 64;    
-    const int MaxPathLength = 240;       
-    const int MaxDirectoryDepth = 8;     
-    const int MaxVolumeLabelLength = 16; 
-
-    string finalVolumeLabel = string.IsNullOrWhiteSpace(volumeLabel) ? sourceDirInfo.Name : volumeLabel;
-    if (finalVolumeLabel.Length > MaxVolumeLabelLength)
-    {
-        throw new IOException($"卷标 '{finalVolumeLabel}' 过长，超过了 {MaxVolumeLabelLength} 个字符的限制。");
-    }
-
-    await Task.Run(() =>
-    {
-        foreach (var item in sourceDirInfo.EnumerateFileSystemInfos("*", SearchOption.AllDirectories))
+        private async Task<(bool Success, string Message)> CreateIsoFromDirectoryAsync(string sourceDirectory, string targetIsoPath, string volumeLabel)
         {
-            string relativePath = Path.GetRelativePath(sourceDirInfo.FullName, item.FullName);
-
-            if (item.Name.Length > MaxFileNameLength)
+            var sourceDirInfo = new DirectoryInfo(sourceDirectory);
+            if (!sourceDirInfo.Exists)
             {
-                throw new IOException($"文件名过长 (超过 {MaxFileNameLength} 字符): '{item.Name}'。");
+                return (false, "Iso_Error_SourceDirNotFound");
             }
 
-            if (relativePath.Length > MaxPathLength)
+            const long MaxFileSize = 4294967295;
+            const int MaxFileNameLength = 64;
+            const int MaxPathLength = 240;
+            const int MaxDirectoryDepth = 8;
+            const int MaxVolumeLabelLength = 16;
+
+            string finalVolumeLabel = string.IsNullOrWhiteSpace(volumeLabel) ? sourceDirInfo.Name : volumeLabel;
+            if (finalVolumeLabel.Length > MaxVolumeLabelLength)
             {
-                throw new IOException($"ISO 内相对路径过长 (超过 {MaxPathLength} 字符): '{relativePath}'。");
-            }
-            
-            int depth = relativePath.Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries).Length;
-            if (item is FileInfo)
-            {
-                 if (depth - 1 >= MaxDirectoryDepth)
-                    throw new IOException($"文件所在目录结构过深 (超过 {MaxDirectoryDepth} 层): '{relativePath}'。");
-            }
-            else if (depth > MaxDirectoryDepth)
-            {
-                 throw new IOException($"目录结构过深 (超过 {MaxDirectoryDepth} 层): '{relativePath}'。");
+                return (false, "Iso_Error_VolumeLabelTooLong");
             }
 
-            if (item is FileInfo file && file.Length >= MaxFileSize)
+            return await Task.Run(() =>
             {
-                throw new IOException($"文件大小超过 4GB 上限: '{file.Name}'。");
-            }
+                try
+                {
+                    foreach (var item in sourceDirInfo.EnumerateFileSystemInfos("*", SearchOption.AllDirectories))
+                    {
+                        string relativePath = Path.GetRelativePath(sourceDirInfo.FullName, item.FullName);
+
+                        if (item.Name.Length > MaxFileNameLength)
+                        {
+                            return (false, "Iso_Error_FileNameTooLong");
+                        }
+
+                        if (relativePath.Length > MaxPathLength)
+                        {
+                            return (false, "Iso_Error_PathTooLong");
+                        }
+
+                        int depth = relativePath.Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries).Length;
+
+                        if (item is FileInfo)
+                        {
+                            if (depth - 1 >= MaxDirectoryDepth)
+                            {
+                                return (false, "Iso_Error_FileDepthTooDeep");
+                            }
+                        }
+                        else if (depth > MaxDirectoryDepth)
+                        {
+                            return (false, "Iso_Error_DirectoryDepthTooDeep");
+                        }
+
+                        if (item is FileInfo file && file.Length >= MaxFileSize)
+                        {
+                            return (false, "Iso_Error_FileTooLarge");
+                        }
+                    }
+
+                    var targetDir = Path.GetDirectoryName(targetIsoPath);
+                    if (!string.IsNullOrEmpty(targetDir) && !Directory.Exists(targetDir))
+                    {
+                        Directory.CreateDirectory(targetDir);
+                    }
+
+                    var builder = new CDBuilder
+                    {
+                        UseJoliet = true,
+                        VolumeIdentifier = finalVolumeLabel
+                    };
+
+                    foreach (var file in Directory.GetFiles(sourceDirectory, "*", SearchOption.AllDirectories))
+                    {
+                        string relativePath = Path.GetRelativePath(sourceDirectory, file);
+                        builder.AddFile(relativePath, file);
+                    }
+
+                    builder.Build(targetIsoPath);
+
+                    return (true, "Iso_Msg_CreateSuccess");
+                }
+                catch (Exception)
+                {
+                    return (false, "Iso_Error_BuildFailed");
+                }
+            });
         }
-
-        var targetDir = Path.GetDirectoryName(targetIsoPath);
-        if (!string.IsNullOrEmpty(targetDir) && !Directory.Exists(targetDir))
-        {
-            Directory.CreateDirectory(targetDir);
-        }
-
-        var builder = new CDBuilder
-        {
-            UseJoliet = true,
-            VolumeIdentifier = finalVolumeLabel
-        };
-        
-        foreach (var file in Directory.GetFiles(sourceDirectory, "*", SearchOption.AllDirectories))
-        {
-            string relativePath = Path.GetRelativePath(sourceDirectory, file);
-            builder.AddFile(relativePath, file);
-        }
-
-        builder.Build(targetIsoPath);
-    });
-}
-    
-    
     }
 }

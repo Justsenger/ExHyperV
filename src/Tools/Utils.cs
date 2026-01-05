@@ -447,8 +447,29 @@ public class Utils
         var parts = cleanMsg.Split(new[] { '。', '.' }, StringSplitOptions.RemoveEmptyEntries).Select(s => s.Trim()).Where(s => !string.IsNullOrWhiteSpace(s)).ToList();
         return (parts.Count >= 2 && parts.Last().Length > 2) ? parts.Last() + "。" : cleanMsg;
     }
+    public static string FormatBytes(long bytes)
+    {
+        if (bytes < 0)
+        {
+            return "Invalid size";
+        }
+        if (bytes == 0)
+        {
+            return "0 B";
+        }
 
-    public static string Version => "V1.3.2";
+        string[] units = { "B", "KB", "MB", "GB", "TB", "PB", "EB" };
+
+        int unitIndex = (int)Math.Floor(Math.Log(bytes, 1024));
+
+        double number = bytes / Math.Pow(1024, unitIndex);
+
+        string format = (unitIndex == 0) ? "F0" : "F2";
+
+        return $"{number.ToString(format)} {units[unitIndex]}";
+    }
+
+    public static string Version => "V1.3.2-Beta";
     public static string Author => "Saniye";
 
 }

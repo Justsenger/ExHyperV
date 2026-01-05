@@ -121,7 +121,7 @@
 
                 <ui:NavigationViewItem
                     x:Name="Storage"
-                    Content="存储"
+                    Content="{x:Static properties:Resources.Storage}"
                     NavigationCacheMode="Enabled"
                     Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"
                     TargetPageType="{x:Type pages:StoragePage}">
