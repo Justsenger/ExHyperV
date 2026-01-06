@@ -123,7 +123,6 @@
 
             <ui:CardControl Margin="0,10,0,0" Padding="12">
                 <ui:CardControl.Icon>
-                    <!-- 图标换成了代表操作系统的图标，你可以随意改 -->
                     <ui:FontIcon FontSize="24" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph=""/>
                 </ui:CardControl.Icon>
                 <ui:CardControl.Header>
@@ -139,11 +138,6 @@
                                           Text="{Binding SystemVersionDesc}" />
                         </StackPanel>
 
-                        <!-- 
-                             IsChecked: 绑定到 ViewModel 的 IsServerSystem
-                             IsEnabled: 绑定到 ViewModel 的 IsSystemSwitchEnabled (操作时禁用)
-                             Mode=TwoWay: 确保点击开关能回写到 ViewModel
-                        -->
                         <ui:ToggleSwitch Grid.Column="1" Margin="0,0,0,1" VerticalAlignment="Bottom"
                              IsChecked="{Binding IsServerSystem, Mode=TwoWay}"
                              IsEnabled="{Binding IsSystemSwitchEnabled}"/>

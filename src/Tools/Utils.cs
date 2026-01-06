@@ -368,7 +368,6 @@ public class Utils
         string ipAddresses = string.Empty;
         try
         {
-            // 使用你现有的健壮的 Run2 方法
             var directResults = await Run2(directIpScript);
 
             if (directResults != null && directResults.Count > 0)
