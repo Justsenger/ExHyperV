@@ -1445,19 +1445,73 @@ Please check if the IP and port are correct.</value>
   <data name="Storage" xml:space="preserve">
     <value>Storage</value>
   </data>
-	<data name="Model_Drive_OpticalDrive" xml:space="preserve">
+  <data name="Model_Drive_OpticalDrive" xml:space="preserve">
     <value>Optical Drive</value>
   </data>
-	<data name="Model_Drive_SourcePhysical" xml:space="preserve">
+  <data name="Model_Drive_SourcePhysical" xml:space="preserve">
     <value>Physical Device</value>
   </data>
-	<data name="Model_Drive_SourceVirtual" xml:space="preserve">
+  <data name="Model_Drive_SourceVirtual" xml:space="preserve">
     <value>Virtual File</value>
   </data>
-	<data name="Model_Drive_VirtualDisk" xml:space="preserve">
+  <data name="Model_Drive_VirtualDisk" xml:space="preserve">
     <value>Virtual Disk</value>
   </data>
-	<data name="Model_Drive_VirtualHardDisk" xml:space="preserve">
+  <data name="Model_Drive_VirtualHardDisk" xml:space="preserve">
     <value>Virtual Hard Disk</value>
+  </data>
+  <data name="Status_Msg_RebootRequired" xml:space="preserve">
+    <value>Modification requires a reboot to take effect.</value>
+  </data>
+  <data name="Status_Msg_CurrentVer" xml:space="preserve">
+    <value>Current Version</value>
+  </data>
+  <data name="Status_Title_Success" xml:space="preserve">
+    <value>Success</value>
+  </data>
+  <data name="Status_Msg_RestartNow" xml:space="preserve">
+    <value>System identifier modified. Restart now to apply changes?</value>
+  </data>
+  <data name="Global_Restart" xml:space="preserve">
+    <value>Restart Now</value>
+  </data>
+  <data name="Status_Title_Error" xml:space="preserve">
+    <value>Error</value>
+  </data>
+  <data name="Status_Title_Info" xml:space="preserve">
+    <value>Information</value>
+  </data>
+  <data name="Status_Msg_OperationPending" xml:space="preserve">
+    <value>An operation is already pending. Please restart your computer first.</value>
+  </data>
+  <data name="Status_Edition_Server" xml:space="preserve">
+    <value>Server Edition (ServerNT)</value>
+  </data>
+  <data name="Status_Edition_Workstation" xml:space="preserve">
+    <value>Workstation Edition (WinNT)</value>
+  </data>
+  <data name="Status_Msg_CurrentVer_Duplicate[1]" xml:space="preserve">
+    <value>Currently identified as</value>
+  </data>
+  <data name="Status_Msg_OperationPending_Duplicate[1]" xml:space="preserve">
+    <value>Change pending, reboot to apply.</value>
+  </data>
+  <data name="Status_Msg_RestartNow_Duplicate[1]" xml:space="preserve">
+    <value>System identifier modified. Restart now?</value>
+  </data>
+  <data name="Status_Title_Success_Duplicate[1]" xml:space="preserve">
+    <value>Success</value>
+  </data>
+  <data name="Status_Title_Info_Duplicate[1]" xml:space="preserve">
+    <value>Information</value>
+  </data>
+  <data name="Status_Title_Error_Duplicate[1]" xml:space="preserve">
+    <value>Error</value>
+  </data>
+  <data name="Global_Restart_Duplicate[1]" xml:space="preserve">
+    <value>Restart Now</value>
+  </data>
+  <data name="Status_Title_SwitchEdition" xml:space="preserve">
+    <value>Switch System Edition</value>
   </data>
 </root>

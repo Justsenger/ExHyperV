@@ -1827,6 +1827,24 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 Restart Now 的本地化字符串。
+        /// </summary>
+        public static string Global_Restart {
+            get {
+                return ResourceManager.GetString("Global_Restart", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Restart Now 的本地化字符串。
+        /// </summary>
+        public static string Global_Restart_Duplicate_1_ {
+            get {
+                return ResourceManager.GetString("Global_Restart_Duplicate[1]", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 CPU virtualization has been enabled. 的本地化字符串。
         /// </summary>
         public static string GPU1 {
@@ -3255,6 +3273,24 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 Server Edition (ServerNT) 的本地化字符串。
+        /// </summary>
+        public static string Status_Edition_Server {
+            get {
+                return ResourceManager.GetString("Status_Edition_Server", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Workstation Edition (WinNT) 的本地化字符串。
+        /// </summary>
+        public static string Status_Edition_Workstation {
+            get {
+                return ResourceManager.GetString("Status_Edition_Workstation", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Preparing and executing installation... Please see the real-time progress below. 的本地化字符串。
         /// </summary>
         public static string Status_InstallationInProgress {
@@ -3264,11 +3300,137 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 Current Version 的本地化字符串。
+        /// </summary>
+        public static string Status_Msg_CurrentVer {
+            get {
+                return ResourceManager.GetString("Status_Msg_CurrentVer", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Currently identified as 的本地化字符串。
+        /// </summary>
+        public static string Status_Msg_CurrentVer_Duplicate_1_ {
+            get {
+                return ResourceManager.GetString("Status_Msg_CurrentVer_Duplicate[1]", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 An operation is already pending. Please restart your computer first. 的本地化字符串。
+        /// </summary>
+        public static string Status_Msg_OperationPending {
+            get {
+                return ResourceManager.GetString("Status_Msg_OperationPending", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Change pending, reboot to apply. 的本地化字符串。
+        /// </summary>
+        public static string Status_Msg_OperationPending_Duplicate_1_ {
+            get {
+                return ResourceManager.GetString("Status_Msg_OperationPending_Duplicate[1]", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Modification requires a reboot to take effect. 的本地化字符串。
+        /// </summary>
+        public static string Status_Msg_RebootRequired {
+            get {
+                return ResourceManager.GetString("Status_Msg_RebootRequired", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 System identifier modified. Restart now to apply changes? 的本地化字符串。
+        /// </summary>
+        public static string Status_Msg_RestartNow {
+            get {
+                return ResourceManager.GetString("Status_Msg_RestartNow", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 System identifier modified. Restart now? 的本地化字符串。
+        /// </summary>
+        public static string Status_Msg_RestartNow_Duplicate_1_ {
+            get {
+                return ResourceManager.GetString("Status_Msg_RestartNow_Duplicate[1]", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 [~] Rebooting the virtual machine... 的本地化字符串。
         /// </summary>
         public static string Status_RebootingVm {
             get {
                 return ResourceManager.GetString("Status_RebootingVm", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Error 的本地化字符串。
+        /// </summary>
+        public static string Status_Title_Error {
+            get {
+                return ResourceManager.GetString("Status_Title_Error", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Error 的本地化字符串。
+        /// </summary>
+        public static string Status_Title_Error_Duplicate_1_ {
+            get {
+                return ResourceManager.GetString("Status_Title_Error_Duplicate[1]", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Information 的本地化字符串。
+        /// </summary>
+        public static string Status_Title_Info {
+            get {
+                return ResourceManager.GetString("Status_Title_Info", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Information 的本地化字符串。
+        /// </summary>
+        public static string Status_Title_Info_Duplicate_1_ {
+            get {
+                return ResourceManager.GetString("Status_Title_Info_Duplicate[1]", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Success 的本地化字符串。
+        /// </summary>
+        public static string Status_Title_Success {
+            get {
+                return ResourceManager.GetString("Status_Title_Success", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Success 的本地化字符串。
+        /// </summary>
+        public static string Status_Title_Success_Duplicate_1_ {
+            get {
+                return ResourceManager.GetString("Status_Title_Success_Duplicate[1]", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Switch System Edition 的本地化字符串。
+        /// </summary>
+        public static string Status_Title_SwitchEdition {
+            get {
+                return ResourceManager.GetString("Status_Title_SwitchEdition", resourceCulture);
             }
         }
         

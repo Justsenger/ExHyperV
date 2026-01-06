@@ -1446,19 +1446,73 @@
   <data name="Storage" xml:space="preserve">
     <value>存储</value>
   </data>
-	<data name="Model_Drive_OpticalDrive" xml:space="preserve">
+  <data name="Model_Drive_OpticalDrive" xml:space="preserve">
     <value>光驱</value>
   </data>
-	<data name="Model_Drive_SourcePhysical" xml:space="preserve">
+  <data name="Model_Drive_SourcePhysical" xml:space="preserve">
     <value>物理设备</value>
   </data>
-	<data name="Model_Drive_SourceVirtual" xml:space="preserve">
+  <data name="Model_Drive_SourceVirtual" xml:space="preserve">
     <value>虚拟文件</value>
   </data>
-	<data name="Model_Drive_VirtualDisk" xml:space="preserve">
+  <data name="Model_Drive_VirtualDisk" xml:space="preserve">
     <value>虚拟磁盘</value>
   </data>
-	<data name="Model_Drive_VirtualHardDisk" xml:space="preserve">
+  <data name="Model_Drive_VirtualHardDisk" xml:space="preserve">
     <value>虚拟硬盘</value>
+  </data>
+  <data name="Status_Msg_RebootRequired" xml:space="preserve">
+    <value>修改后需要重启以生效。</value>
+  </data>
+  <data name="Status_Msg_CurrentVer" xml:space="preserve">
+    <value>当前识别为</value>
+  </data>
+  <data name="Status_Title_Success" xml:space="preserve">
+    <value>操作成功</value>
+  </data>
+  <data name="Status_Msg_RestartNow" xml:space="preserve">
+    <value>系统标识已修改。是否立即重启以应用更改？</value>
+  </data>
+  <data name="Global_Restart" xml:space="preserve">
+    <value>立即重启</value>
+  </data>
+  <data name="Status_Title_Error" xml:space="preserve">
+    <value>错误</value>
+  </data>
+  <data name="Status_Title_Info" xml:space="preserve">
+    <value>提示</value>
+  </data>
+  <data name="Status_Msg_OperationPending" xml:space="preserve">
+    <value>已有变更挂起，请先重启电脑。</value>
+  </data>
+  <data name="Status_Edition_Server" xml:space="preserve">
+    <value>服务器版本 (ServerNT)</value>
+  </data>
+  <data name="Status_Edition_Workstation" xml:space="preserve">
+    <value>工作站版本 (WinNT)</value>
+  </data>
+  <data name="Status_Msg_CurrentVer_Duplicate" xml:space="preserve">
+    <value>当前识别为</value>
+  </data>
+  <data name="Status_Msg_OperationPending_Duplicate" xml:space="preserve">
+    <value>变更已挂起，重启后生效。</value>
+  </data>
+  <data name="Status_Msg_RestartNow_Duplicate" xml:space="preserve">
+    <value>系统标识已修改。是否立即重启？</value>
+  </data>
+  <data name="Status_Title_Success_Duplicate" xml:space="preserve">
+    <value>操作成功</value>
+  </data>
+  <data name="Status_Title_Info_Duplicate" xml:space="preserve">
+    <value>提示</value>
+  </data>
+  <data name="Status_Title_Error_Duplicate" xml:space="preserve">
+    <value>错误</value>
+  </data>
+  <data name="Global_Restart_Duplicate" xml:space="preserve">
+    <value>立即重启</value>
+  </data>
+  <data name="Status_Title_SwitchEdition" xml:space="preserve">
+    <value>切换系统版本</value>
   </data>
 </root>
