@@ -34,113 +34,84 @@ namespace ExHyperV.Tools
         [StructLayout(LayoutKind.Sequential)]
         struct LUID_AND_ATTRIBUTES { public LUID Luid; public uint Attributes; }
 
-        const uint TOKEN_ADJUST_PRIVILEGES = 0x0020;
-        const uint TOKEN_QUERY = 0x0008;
-        const uint SE_PRIVILEGE_ENABLED = 0x00000002;
-        static readonly IntPtr HKEY_LOCAL_MACHINE = new IntPtr(unchecked((int)0x80000002));
-        const int KEY_READ = 0x20019;
-        const int ERROR_SUCCESS = 0;
-
         public static bool EnablePrivilege(string privilegeName)
         {
-            IntPtr hToken;
-            if (!OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, out hToken)) return false;
+            if (!OpenProcessToken(GetCurrentProcess(), 0x0020 | 0x0008, out IntPtr hToken)) return false;
             try
             {
-                LUID luid;
-                if (!LookupPrivilegeValue(null, privilegeName, out luid)) return false;
+                if (!LookupPrivilegeValue(null, privilegeName, out LUID luid)) return false;
                 TOKEN_PRIVILEGES tp = new TOKEN_PRIVILEGES { PrivilegeCount = 1, Privileges = new LUID_AND_ATTRIBUTES[1] };
                 tp.Privileges[0].Luid = luid;
-                tp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
-                if (!AdjustTokenPrivileges(hToken, false, ref tp, 0, IntPtr.Zero, IntPtr.Zero)) return false;
-                return Marshal.GetLastWin32Error() == ERROR_SUCCESS;
+                tp.Privileges[0].Attributes = 0x00000002;
+                return AdjustTokenPrivileges(hToken, false, ref tp, 0, IntPtr.Zero, IntPtr.Zero);
             }
             finally { CloseHandle(hToken); }
-        }
-
-        private static void CleanupTempFiles(string tempDir)
-        {
-            try
-            {
-                var files = Directory.GetFiles(tempDir, "sys_*.hiv");
-                foreach (var file in files)
-                {
-                    try { File.Delete(file); } catch { }
-                }
-            }
-            catch { }
         }
 
         public static string ExecutePatch(int mode)
         {
             string tempDir = @"C:\temp";
-            string randomId = Guid.NewGuid().ToString("N").Substring(0, 8);
-            string hiveFile = Path.Combine(tempDir, $"sys_mod_{randomId}.hiv");
-            string backupFile = Path.Combine(tempDir, $"sys_bak_{randomId}.hiv");
+            // 必须使用固定文件名，确保多次点击是“覆盖”而非“累加”
+            string hiveFile = Path.Combine(tempDir, "sys_mod_exec.hiv");
+            string backupFile = Path.Combine(tempDir, "sys_bak_exec.hiv");
 
             try
             {
                 if (!Directory.Exists(tempDir)) Directory.CreateDirectory(tempDir);
-                CleanupTempFiles(tempDir);
+                // 如果文件已被内核锁定，说明已经有任务在排队，直接返回 SUCCESS 提示重启即可
+                try { if (File.Exists(hiveFile)) File.Delete(hiveFile); } catch { return "SUCCESS"; }
+                try { if (File.Exists(backupFile)) File.Delete(backupFile); } catch { }
 
-                if (!EnablePrivilege("SeBackupPrivilege") || !EnablePrivilege("SeRestorePrivilege"))
-                    return "错误：无法获取管理员权限。";
+                if (!EnablePrivilege("SeBackupPrivilege") || !EnablePrivilege("SeRestorePrivilege")) return "权限不足";
 
-                IntPtr hKey;
-                if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, "SYSTEM", 0, KEY_READ, out hKey) != ERROR_SUCCESS)
-                    return "错误：无法打开注册表键。";
-
+                if (RegOpenKeyEx(new IntPtr(unchecked((int)0x80000002)), "SYSTEM", 0, 0x20019, out IntPtr hKey) != 0) return "打不开键";
                 int ret = RegSaveKey(hKey, hiveFile, IntPtr.Zero);
                 RegCloseKey(hKey);
-
-                if (ret != ERROR_SUCCESS) return $"错误：导出失败 (Code: {ret})。";
+                if (ret != 0) return $"导出失败:{ret}";
 
                 byte[] buffer = File.ReadAllBytes(hiveFile);
-                if (!PatchBlock(ref buffer, mode)) return "错误：未找到目标数据结构。";
+                if (!PatchAllInstances(ref buffer, mode)) return "未找到特征";
 
                 File.WriteAllBytes(hiveFile, buffer);
-                ret = RegReplaceKey(HKEY_LOCAL_MACHINE, "SYSTEM", hiveFile, backupFile);
+                ret = RegReplaceKey(new IntPtr(unchecked((int)0x80000002)), "SYSTEM", hiveFile, backupFile);
 
-                if (ret == ERROR_SUCCESS) return "SUCCESS";
-                if (ret == 5) return "PENDING";
-                return $"错误：替换失败 (Code: {ret})。";
+                return ret == 0 || ret == 5 ? "SUCCESS" : $"替换失败:{ret}";
             }
-            catch (Exception ex) { return "异常: " + ex.Message; }
+            catch (Exception ex) { return ex.Message; }
         }
 
-        private static bool PatchBlock(ref byte[] buffer, int mode)
+        private static bool PatchAllInstances(ref byte[] buffer, int mode)
         {
-            byte[] dataWinNT = new byte[] { 0x00, 0x00, 0x00, 0x00, 0xE8, 0xFF, 0xFF, 0xFF, 0x57, 0x00, 0x69, 0x00, 0x6E, 0x00, 0x4E, 0x00, 0x54, 0x00, 0x00, 0x00, 0x4E, 0x00, 0x54, 0x00, 0x00, 0x00, 0x00, 0x00, 0xD0, 0xFF, 0xFF, 0xFF };
-            byte[] dataServerNT = new byte[] { 0x00, 0x00, 0x00, 0x00, 0xE8, 0xFF, 0xFF, 0xFF, 0x53, 0x00, 0x65, 0x00, 0x72, 0x00, 0x76, 0x00, 0x65, 0x00, 0x72, 0x00, 0x4E, 0x00, 0x54, 0x00, 0x00, 0x00, 0x00, 0x00, 0xD0, 0xFF, 0xFF, 0xFF };
-            byte[] targetData = (mode == 1) ? dataServerNT : dataWinNT;
-            byte[] keyPattern = Encoding.ASCII.GetBytes("ProductType").Concat(new byte[] { 0x00 }).ToArray();
-            byte[] cellSig = new byte[] { 0xE8, 0xFF, 0xFF, 0xFF };
+            byte[] dataWinNT = { 0x00, 0x00, 0x00, 0x00, 0xE8, 0xFF, 0xFF, 0xFF, 0x57, 0x00, 0x69, 0x00, 0x6E, 0x00, 0x4E, 0x00, 0x54, 0x00, 0x00, 0x00, 0x4E, 0x00, 0x54, 0x00, 0x00, 0x00, 0x00, 0x00, 0xD0, 0xFF, 0xFF, 0xFF };
+            byte[] dataServerNT = { 0x00, 0x00, 0x00, 0x00, 0xE8, 0xFF, 0xFF, 0xFF, 0x53, 0x00, 0x65, 0x00, 0x72, 0x00, 0x76, 0x00, 0x65, 0x00, 0x72, 0x00, 0x4E, 0x00, 0x54, 0x00, 0x00, 0x00, 0x00, 0x00, 0xD0, 0xFF, 0xFF, 0xFF };
+            byte[] target = (mode == 1) ? dataServerNT : dataWinNT;
+            byte[] key = Encoding.ASCII.GetBytes("ProductType\0");
+            byte[] sig = { 0xE8, 0xFF, 0xFF, 0xFF };
 
-            for (int i = 0; i < buffer.Length - keyPattern.Length; i++)
+            bool foundAny = false;
+            for (int i = 0; i < buffer.Length - key.Length; i++)
             {
-                if (IsMatch(buffer, i, keyPattern))
+                if (IsMatch(buffer, i, key))
                 {
-                    int searchLimit = Math.Min(buffer.Length, i + 128);
-                    for (int j = i; j < searchLimit - 4; j++)
+                    for (int j = i; j < i + 256 && j < buffer.Length - 4; j++)
                     {
-                        if (IsMatch(buffer, j, cellSig))
+                        if (IsMatch(buffer, j, sig))
                         {
-                            int startPos = j - 4;
-                            if (startPos >= 0 && (startPos + 32) <= buffer.Length)
-                            {
-                                Array.Copy(targetData, 0, buffer, startPos, 32);
-                                return true;
-                            }
+                            Array.Copy(target, 0, buffer, j - 4, 32);
+                            foundAny = true;
+                            i = j + 32; // 跳过已修改区域，继续向后扫描其他配置集
+                            break;
                         }
                     }
                 }
             }
-            return false;
+            return foundAny;
         }
 
-        private static bool IsMatch(byte[] buffer, int offset, byte[] pattern)
+        private static bool IsMatch(byte[] b, int o, byte[] p)
         {
-            for (int k = 0; k < pattern.Length; k++) if (buffer[offset + k] != pattern[k]) return false;
+            if (o + p.Length > b.Length) return false;
+            for (int k = 0; k < p.Length; k++) if (b[o + k] != p[k]) return false;
             return true;
         }
     }
