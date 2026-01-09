@@ -2,11 +2,7 @@
 using CommunityToolkit.Mvvm.Input;
 using ExHyperV.Models;
 using ExHyperV.Services;
-using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Linq;
-using System.Threading.Tasks;
 using System.Windows;
 
 namespace ExHyperV.ViewModels
@@ -42,8 +38,6 @@ namespace ExHyperV.ViewModels
             UpdateControllerTypeOptions();
             await RefreshControllerLayoutAsync(true);
         }
-
-        #region 控制器逻辑
 
         public ObservableCollection<string> AvailableControllerTypes { get; }
         public ObservableCollection<int> AvailableControllerNumbers { get; }
@@ -122,11 +116,36 @@ namespace ExHyperV.ViewModels
                     targetLocation = bestSlot.Location;
                 }
 
-                int maxNum = (targetType == "IDE") ? 2 : 1;
-                if (AvailableControllerNumbers.Count != maxNum)
+                if (targetType == "IDE")
                 {
-                    AvailableControllerNumbers.Clear();
-                    for (int i = 0; i < maxNum; i++) AvailableControllerNumbers.Add(i);
+                    if (AvailableControllerNumbers.Count != 2)
+                    {
+                        AvailableControllerNumbers.Clear();
+                        AvailableControllerNumbers.Add(0);
+                        AvailableControllerNumbers.Add(1);
+                    }
+                }
+                else
+                {
+                    var existingScsiNums = _currentStorage
+                        .Where(c => c.ControllerType == "SCSI")
+                        .Select(c => c.ControllerNumber)
+                        .OrderBy(n => n).ToList();
+
+                    if (_isVmRunning)
+                    {
+                        AvailableControllerNumbers.Clear();
+                        foreach (var n in existingScsiNums) AvailableControllerNumbers.Add(n);
+                        if (AvailableControllerNumbers.Count == 0) AvailableControllerNumbers.Add(0);
+                    }
+                    else
+                    {
+                        if (AvailableControllerNumbers.Count != 4 || AvailableControllerNumbers.Max() < 3)
+                        {
+                            AvailableControllerNumbers.Clear();
+                            for (int i = 0; i < 4; i++) AvailableControllerNumbers.Add(i);
+                        }
+                    }
                 }
 
                 int maxSlots = (targetType == "IDE") ? 2 : 64;
@@ -158,7 +177,6 @@ namespace ExHyperV.ViewModels
             finally { _isInternalUpdating = false; }
             ConfirmCommand.NotifyCanExecuteChanged();
         }
-
         private (string Type, int Number, int Location) FindFirstAvailableSlot()
         {
             var usedSlots = _currentStorage.SelectMany(c =>
@@ -167,29 +185,48 @@ namespace ExHyperV.ViewModels
 
             if (_vmGeneration == 1)
             {
-                if (DeviceType == "DvdDrive")
+                if (DeviceType == "DvdDrive" || !_isVmRunning)
                 {
                     for (int n = 0; n < 2; n++)
                         for (int l = 0; l < 2; l++)
                             if (!usedSlots.Contains($"IDE-{n}-{l}")) return ("IDE", n, l);
                 }
-                else if (!_isVmRunning)
+                if (DeviceType == "DvdDrive")
                 {
-                    for (int n = 0; n < 2; n++)
-                        for (int l = 0; l < 2; l++)
-                            if (!usedSlots.Contains($"IDE-{n}-{l}")) return ("IDE", n, l);
+                    return ("IDE", 0, 0);
                 }
             }
 
-            for (int l = 0; l < 64; l++)
-                if (!usedSlots.Contains($"SCSI-0-{l}")) return ("SCSI", 0, l);
+            if (_isVmRunning)
+            {
+                var existingScsiNums = _currentStorage
+                    .Where(c => c.ControllerType == "SCSI")
+                    .Select(c => c.ControllerNumber)
+                    .OrderBy(n => n).ToList();
+
+                if (existingScsiNums.Count == 0) existingScsiNums.Add(0);
+
+                foreach (var n in existingScsiNums)
+                {
+                    for (int l = 0; l < 64; l++)
+                    {
+                        if (!usedSlots.Contains($"SCSI-{n}-{l}")) return ("SCSI", n, l);
+                    }
+                }
+            }
+            else
+            {
+                for (int n = 0; n < 4; n++)
+                {
+                    for (int l = 0; l < 64; l++)
+                    {
+                        if (!usedSlots.Contains($"SCSI-{n}-{l}")) return ("SCSI", n, l);
+                    }
+                }
+            }
 
             return ("SCSI", 0, 0);
         }
-
-        #endregion
-
-        #region 媒介与来源逻辑
 
         [ObservableProperty][NotifyCanExecuteChangedFor(nameof(ConfirmCommand))] private string _deviceType = "HardDisk";
         [ObservableProperty][NotifyCanExecuteChangedFor(nameof(ConfirmCommand))] private bool _isPhysicalSource = false;
@@ -200,22 +237,23 @@ namespace ExHyperV.ViewModels
         [ObservableProperty] private string _selectedVhdType = "Dynamic";
         [ObservableProperty] private string _parentPath = "";
         [ObservableProperty] private string _sectorFormat = "Default";
-        [ObservableProperty] private string _blockSize = "默认";
+        [ObservableProperty] private string _blockSize = "Default";
 
-        // 更新候选容量
-        public List<int> NewDiskSizePresets { get; } = new() { 64, 128, 256, 512, 1024, 2048 };
+        [ObservableProperty][NotifyCanExecuteChangedFor(nameof(ConfirmCommand))] private string _isoSourceFolderPath = string.Empty;
+        [ObservableProperty] private string _isoVolumeLabel = string.Empty;
 
-        // 补全所有支持的 VHDX 块大小候选 (1MB - 256MB)
-        public List<string> BlockSizeOptions { get; } = new()
-        {
-            "默认", "1MB", "2MB", "4MB", "8MB", "16MB", "32MB", "64MB", "128MB", "256MB"
-        };
+        public ObservableCollection<int> NewDiskSizePresets { get; } = new ObservableCollection<int> { 64, 128, 256, 512, 1024 };
 
-        public string FilePathPlaceholder => IsNewDisk ? "请指定保存路径..." : "请指定文件路径...";
+        public string FilePathPlaceholder => IsNewDisk ? Properties.Resources.AddDisk_Placeholder_SavePath : Properties.Resources.AddDisk_Placeholder_FilePath;
 
         async partial void OnDeviceTypeChanged(string value)
         {
-            if (value == "DvdDrive") IsNewDisk = false;
+            if (value == "DvdDrive")
+            {
+            }
+            else
+            {
+            }
             SyncHostDiskDisplay();
             UpdateControllerTypeOptions();
             await RefreshControllerLayoutAsync(AutoAssign);
@@ -270,7 +308,7 @@ namespace ExHyperV.ViewModels
         private void BrowseFile()
         {
             Microsoft.Win32.FileDialog dialog = IsNewDisk ? (Microsoft.Win32.FileDialog)new Microsoft.Win32.SaveFileDialog() : new Microsoft.Win32.OpenFileDialog();
-            dialog.Filter = DeviceType == "HardDisk" ? "虚拟磁盘|*.vhdx;*.vhd" : "光盘镜像|*.iso";
+            dialog.Filter = DeviceType == "HardDisk" ? $"{Properties.Resources.AddDisk_Filter_VirtualDisk}|*.vhdx;*.vhd" : $"{Properties.Resources.AddDisk_Filter_OpticalImage}|*.iso";
             if (dialog.ShowDialog() == true) FilePath = dialog.FileName;
             ConfirmCommand.NotifyCanExecuteChanged();
         }
@@ -278,8 +316,30 @@ namespace ExHyperV.ViewModels
         [RelayCommand]
         private void BrowseParentFile()
         {
-            var dialog = new Microsoft.Win32.OpenFileDialog { Title = "选择父虚拟磁盘", Filter = "虚拟磁盘|*.vhdx;*.vhd" };
+            var dialog = new Microsoft.Win32.OpenFileDialog { Title = Properties.Resources.AddDisk_Title_SelectParentDisk, Filter = $"{Properties.Resources.AddDisk_Filter_VirtualDisk}|*.vhdx;*.vhd" };
             if (dialog.ShowDialog() == true) ParentPath = dialog.FileName;
+            ConfirmCommand.NotifyCanExecuteChanged();
+        }
+
+        [RelayCommand]
+        private void BrowseFolder()
+        {
+            var dialog = new Microsoft.Win32.OpenFolderDialog
+            {
+                Title = Properties.Resources.AddDisk_Title_SelectSourceFolder,
+                Multiselect = false
+            };
+
+            if (dialog.ShowDialog() == true)
+            {
+                IsoSourceFolderPath = dialog.FolderName;
+                try
+                {
+                    var dirInfo = new System.IO.DirectoryInfo(dialog.FolderName);
+                    IsoVolumeLabel = dirInfo.Name.ToUpper();
+                }
+                catch { }
+            }
             ConfirmCommand.NotifyCanExecuteChanged();
         }
 
@@ -299,8 +359,13 @@ namespace ExHyperV.ViewModels
             if (_vmGeneration == 1 && DeviceType == "DvdDrive" && SelectedControllerType == "SCSI") return false;
 
             if (IsPhysicalSource) return SelectedPhysicalDisk != null;
+
+            if (IsNewDisk && DeviceType == "DvdDrive")
+            {
+                return !string.IsNullOrEmpty(FilePath) && !string.IsNullOrEmpty(IsoSourceFolderPath);
+            }
+
             return !string.IsNullOrEmpty(FilePath);
         }
-        #endregion
     }
 }

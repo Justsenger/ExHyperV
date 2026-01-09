@@ -1188,4 +1188,331 @@
   <data name="VMSettingsSavedSuccessfully" xml:space="preserve">
     <value>虚拟机 {0} 的设置已成功应用。</value>
   </data>
+  <data name="Storage_Title_Error" xml:space="preserve">
+    <value>错误</value>
+  </data>
+  <data name="Storage_Title_AddSuccess" xml:space="preserve">
+    <value>添加成功</value>
+  </data>
+  <data name="Storage_Title_ModifySuccess" xml:space="preserve">
+    <value>修改成功</value>
+  </data>
+  <data name="Storage_Title_EjectSuccess" xml:space="preserve">
+    <value>弹出成功</value>
+  </data>
+  <data name="Storage_Title_RemoveSuccess" xml:space="preserve">
+    <value>移除成功</value>
+  </data>
+  <data name="Storage_Msg_MountedTo" xml:space="preserve">
+    <value>设备已挂载至</value>
+  </data>
+  <data name="Storage_Msg_MediaUpdated" xml:space="preserve">
+    <value>驱动器媒体已更新。</value>
+  </data>
+  <data name="Storage_Msg_Success" xml:space="preserve">
+    <value>操作成功。</value>
+  </data>
+  <data name="Storage_Msg_Removed" xml:space="preserve">
+    <value>设备已成功移除。</value>
+  </data>
+  <data name="Storage_Msg_Ejected" xml:space="preserve">
+    <value>媒介已成功弹出。</value>
+  </data>
+  <data name="Storage_Msg_AlreadyRemoved" xml:space="preserve">
+    <value>设备已移除。</value>
+  </data>
+  <data name="Storage_Error_VmNotFound" xml:space="preserve">
+    <value>找不到指定的虚拟机。</value>
+  </data>
+  <data name="Storage_Error_ScsiHotAddNotSupported" xml:space="preserve">
+    <value>虚拟机正在运行，无法动态创建 SCSI 控制器。</value>
+  </data>
+  <data name="Storage_Error_IdeHotSwapNotSupported" xml:space="preserve">
+    <value>IDE 控制器不支持在虚拟机运行状态下更换硬件。</value>
+  </data>
+  <data name="Storage_Error_DiskToDvdHotSwapNotSupported" xml:space="preserve">
+    <value>虚拟机运行中，无法将硬盘位更换为光驱位。</value>
+  </data>
+  <data name="Storage_Error_DvdHotRemoveNotSupported" xml:space="preserve">
+    <value>虚拟机运行中，无法移除空光驱硬件，仅支持弹出光盘。</value>
+  </data>
+  <data name="Storage_Error_DvdDriveNotFound" xml:space="preserve">
+    <value>找不到指定位置的光驱设备。</value>
+  </data>
+  <data name="Storage_Error_DiskNotFound" xml:space="preserve">
+    <value>找不到指定的硬盘设备。</value>
+  </data>
+  <data name="Storage_Error_DiskAlreadyAttached" xml:space="preserve">
+    <value>磁盘已连接到虚拟机，无法重复挂载。</value>
+  </data>
+  <data name="Storage_Error_FileNotFound" xml:space="preserve">
+    <value>找不到指定的虚拟磁盘文件。</value>
+  </data>
+  <data name="Storage_Error_Unknown" xml:space="preserve">
+    <value>发生未知错误。</value>
+  </data>
+  <data name="Iso_Error_BuildFailed" xml:space="preserve">
+    <value>创建 ISO 镜像时发生未知错误</value>
+  </data>
+  <data name="Iso_Error_DirectoryDepthTooDeep" xml:space="preserve">
+    <value>目录结构过深 (超过 8 层)。</value>
+  </data>
+  <data name="Iso_Error_FileDepthTooDeep" xml:space="preserve">
+    <value>文件所在目录结构过深 (超过 8 层)。</value>
+  </data>
+  <data name="Iso_Error_FileNameTooLong" xml:space="preserve">
+    <value>文件名过长 (超过 64 字符)。</value>
+  </data>
+  <data name="Iso_Error_FileTooLarge" xml:space="preserve">
+    <value>单个文件大小超过 4GB 上限。</value>
+  </data>
+  <data name="Iso_Error_PathTooLong" xml:space="preserve">
+    <value>ISO 内相对路径过长 (超过 240 字符)。</value>
+  </data>
+  <data name="Iso_Error_SourceDirNotFound" xml:space="preserve">
+    <value>源目录不存在。</value>
+  </data>
+  <data name="Iso_Error_VolumeLabelTooLong" xml:space="preserve">
+    <value>卷标过长，超过了 16 个字符的限制。</value>
+  </data>
+  <data name="Iso_Msg_CreateSuccess" xml:space="preserve">
+    <value>ISO 镜像创建成功</value>
+  </data>
+  <data name="AddDisk_Filter_OpticalImage" xml:space="preserve">
+    <value>光盘镜像</value>
+  </data>
+  <data name="AddDisk_Filter_VirtualDisk" xml:space="preserve">
+    <value>虚拟磁盘</value>
+  </data>
+  <data name="AddDisk_Placeholder_FilePath" xml:space="preserve">
+    <value>请指定文件路径...</value>
+  </data>
+  <data name="AddDisk_Placeholder_SavePath" xml:space="preserve">
+    <value>请指定保存路径...</value>
+  </data>
+  <data name="AddDisk_Title_SelectParentDisk" xml:space="preserve">
+    <value>选择父虚拟磁盘</value>
+  </data>
+  <data name="AddDisk_Title_SelectSourceFolder" xml:space="preserve">
+    <value>选择源文件夹</value>
+  </data>
+  <data name="AddDisk_AutoAssign" xml:space="preserve">
+    <value>自动分配</value>
+  </data>
+  <data name="AddDisk_BlockSize" xml:space="preserve">
+    <value>块大小</value>
+  </data>
+  <data name="AddDisk_CapacityGB" xml:space="preserve">
+    <value>容量 (GB)</value>
+  </data>
+  <data name="AddDisk_DiskType" xml:space="preserve">
+    <value>磁盘类型</value>
+  </data>
+  <data name="AddDisk_FileContent" xml:space="preserve">
+    <value>文件内容</value>
+  </data>
+  <data name="AddDisk_Info_IsoLimits" xml:space="preserve">
+    <value>ISO 创建仅使用9660标准，单文件上限为4GB。</value>
+  </data>
+  <data name="AddDisk_Interface" xml:space="preserve">
+    <value>接口</value>
+  </data>
+  <data name="AddDisk_Location" xml:space="preserve">
+    <value>位置</value>
+  </data>
+  <data name="AddDisk_MediaSelection" xml:space="preserve">
+    <value>媒介选择</value>
+  </data>
+  <data name="AddDisk_New" xml:space="preserve">
+    <value>新建</value>
+  </data>
+  <data name="AddDisk_NoAvailablePhysical" xml:space="preserve">
+    <value>无可用物理设备</value>
+  </data>
+  <data name="AddDisk_Number" xml:space="preserve">
+    <value>编号</value>
+  </data>
+  <data name="AddDisk_Placeholder_PackageFolder" xml:space="preserve">
+    <value>请选择要打包的文件夹...</value>
+  </data>
+  <data name="AddDisk_Placeholder_ParentPath" xml:space="preserve">
+    <value>请指定父磁盘路径...</value>
+  </data>
+  <data name="AddDisk_Placeholder_VolumeLabel" xml:space="preserve">
+    <value>默认为文件夹名</value>
+  </data>
+  <data name="AddDisk_SectorFormat" xml:space="preserve">
+    <value>扇区格式</value>
+  </data>
+  <data name="AddDisk_SlotConfig" xml:space="preserve">
+    <value>插槽配置</value>
+  </data>
+  <data name="AddDisk_Source" xml:space="preserve">
+    <value>来源</value>
+  </data>
+  <data name="AddDisk_Source_Physical" xml:space="preserve">
+    <value>物理设备</value>
+  </data>
+  <data name="AddDisk_Source_VirtualFile" xml:space="preserve">
+    <value>虚拟文件</value>
+  </data>
+  <data name="AddDisk_Type" xml:space="preserve">
+    <value>类型</value>
+  </data>
+  <data name="AddDisk_Type_HardDisk" xml:space="preserve">
+    <value>硬盘</value>
+  </data>
+  <data name="AddDisk_Type_OpticalDrive" xml:space="preserve">
+    <value>光驱</value>
+  </data>
+  <data name="AddDisk_VhdType_Differencing" xml:space="preserve">
+    <value>差分磁盘</value>
+  </data>
+  <data name="AddDisk_VhdType_Dynamic" xml:space="preserve">
+    <value>动态扩展</value>
+  </data>
+  <data name="AddDisk_VhdType_Fixed" xml:space="preserve">
+    <value>固定大小</value>
+  </data>
+  <data name="AddDisk_VolumeLabel" xml:space="preserve">
+    <value>卷标</value>
+  </data>
+  <data name="AddDisk_WindowTitle" xml:space="preserve">
+    <value>添加存储设备</value>
+  </data>
+  <data name="Common_Browse" xml:space="preserve">
+    <value>浏览</value>
+  </data>
+  <data name="Common_Default" xml:space="preserve">
+    <value>默认</value>
+  </data>
+  <data name="Common_Disk" xml:space="preserve">
+    <value>磁盘</value>
+  </data>
+  <data name="Common_Select" xml:space="preserve">
+    <value>选择</value>
+  </data>
+  <data name="Common_Empty" xml:space="preserve">
+    <value>空</value>
+  </data>
+  <data name="Common_Modify" xml:space="preserve">
+    <value>修改</value>
+  </data>
+  <data name="Common_Path" xml:space="preserve">
+    <value>路径</value>
+  </data>
+  <data name="Common_Remove" xml:space="preserve">
+    <value>移除</value>
+  </data>
+  <data name="Common_Type" xml:space="preserve">
+    <value>类型</value>
+  </data>
+  <data name="Storage_AddStorage" xml:space="preserve">
+    <value>添加存储</value>
+  </data>
+  <data name="Storage_Controller" xml:space="preserve">
+    <value>控制器</value>
+  </data>
+  <data name="Storage_DeviceList" xml:space="preserve">
+    <value>设备列表</value>
+  </data>
+  <data name="Storage_DiskType_Empty" xml:space="preserve">
+    <value>空设备</value>
+  </data>
+  <data name="Storage_DiskType_Physical" xml:space="preserve">
+    <value>物理设备</value>
+  </data>
+  <data name="Storage_DiskType_Virtual" xml:space="preserve">
+    <value>虚拟文件</value>
+  </data>
+  <data name="Storage_Location" xml:space="preserve">
+    <value>位置</value>
+  </data>
+  <data name="Storage_NoDevicesFound" xml:space="preserve">
+    <value>此虚拟机没有任何存储设备</value>
+  </data>
+  <data name="Storage_Settings" xml:space="preserve">
+    <value>存储设置</value>
+  </data>
+  <data name="Storage_Slot" xml:space="preserve">
+    <value>插槽</value>
+  </data>
+  <data name="Storage_Tooltip_RemoveDevice" xml:space="preserve">
+    <value>移除此设备</value>
+  </data>
+  <data name="VM_State_Running" xml:space="preserve">
+    <value>运行中</value>
+  </data>
+  <data name="Storage" xml:space="preserve">
+    <value>存储</value>
+  </data>
+  <data name="Model_Drive_OpticalDrive" xml:space="preserve">
+    <value>光驱</value>
+  </data>
+  <data name="Model_Drive_SourcePhysical" xml:space="preserve">
+    <value>物理设备</value>
+  </data>
+  <data name="Model_Drive_SourceVirtual" xml:space="preserve">
+    <value>虚拟文件</value>
+  </data>
+  <data name="Model_Drive_VirtualDisk" xml:space="preserve">
+    <value>虚拟磁盘</value>
+  </data>
+  <data name="Model_Drive_VirtualHardDisk" xml:space="preserve">
+    <value>虚拟硬盘</value>
+  </data>
+  <data name="Status_Msg_RebootRequired" xml:space="preserve">
+    <value>修改后需要重启以生效。</value>
+  </data>
+  <data name="Status_Msg_CurrentVer" xml:space="preserve">
+    <value>当前识别为</value>
+  </data>
+  <data name="Status_Title_Success" xml:space="preserve">
+    <value>操作成功</value>
+  </data>
+  <data name="Status_Msg_RestartNow" xml:space="preserve">
+    <value>系统标识已修改。是否立即重启以应用更改？</value>
+  </data>
+  <data name="Global_Restart" xml:space="preserve">
+    <value>立即重启</value>
+  </data>
+  <data name="Status_Title_Error" xml:space="preserve">
+    <value>错误</value>
+  </data>
+  <data name="Status_Title_Info" xml:space="preserve">
+    <value>提示</value>
+  </data>
+  <data name="Status_Msg_OperationPending" xml:space="preserve">
+    <value>已有变更挂起，请先重启电脑。</value>
+  </data>
+  <data name="Status_Edition_Server" xml:space="preserve">
+    <value>服务器版本 (ServerNT)</value>
+  </data>
+  <data name="Status_Edition_Workstation" xml:space="preserve">
+    <value>工作站版本 (WinNT)</value>
+  </data>
+  <data name="Status_Msg_CurrentVer_Duplicate" xml:space="preserve">
+    <value>当前识别为</value>
+  </data>
+  <data name="Status_Msg_OperationPending_Duplicate" xml:space="preserve">
+    <value>变更已挂起，重启后生效。</value>
+  </data>
+  <data name="Status_Msg_RestartNow_Duplicate" xml:space="preserve">
+    <value>系统标识已修改。是否立即重启？</value>
+  </data>
+  <data name="Status_Title_Success_Duplicate" xml:space="preserve">
+    <value>操作成功</value>
+  </data>
+  <data name="Status_Title_Info_Duplicate" xml:space="preserve">
+    <value>提示</value>
+  </data>
+  <data name="Status_Title_Error_Duplicate" xml:space="preserve">
+    <value>错误</value>
+  </data>
+  <data name="Global_Restart_Duplicate" xml:space="preserve">
+    <value>立即重启</value>
+  </data>
+  <data name="Status_Title_SwitchEdition" xml:space="preserve">
+    <value>切换系统版本</value>
+  </data>
 </root>

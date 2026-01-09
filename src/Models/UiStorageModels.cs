@@ -1,4 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
+using ExHyperV.Properties;
+using ExHyperV.Tools;
 using System.IO;
 
 namespace ExHyperV.Models
@@ -17,7 +19,6 @@ namespace ExHyperV.Models
         [ObservableProperty] private double _diskSizeGB;
         [ObservableProperty] private string _serialNumber;
 
-        // 增强版显示名称
         public string DisplayName
         {
             get
@@ -28,17 +29,31 @@ namespace ExHyperV.Models
                 if (DiskType == "Virtual" && !string.IsNullOrEmpty(PathOrDiskNumber))
                 {
                     try { return Path.GetFileName(PathOrDiskNumber); }
-                    catch { return "虚拟磁盘"; }
+                    catch { return Resources.Model_Drive_VirtualDisk; }
                 }
 
-                return DriveType == "HardDisk" ? "虚拟硬盘" : "光驱";
+                return DriveType == "HardDisk" ? Resources.Model_Drive_VirtualHardDisk : Resources.Model_Drive_OpticalDrive;
             }
         }
 
-        public string SourceTypeDisplayName => DiskType == "Physical" ? "物理设备" : "虚拟文件";
+        public string SourceTypeDisplayName => DiskType == "Physical" ? Resources.Model_Drive_SourcePhysical : Resources.Model_Drive_SourceVirtual;
+
         public string Icon => DriveType == "HardDisk" ? "\uEDA2" : "\uE958";
 
-        // 统一容量显示
-        public string SizeDisplay => DiskSizeGB > 0 ? $"{DiskSizeGB} GB" : "";
+        public string SizeDisplay
+        {
+            get
+            {
+                if (_diskSizeGB <= 0)
+                {
+                    return "";
+                }
+
+                const long bytesPerGb = 1024L * 1024L * 1024L;
+                long totalBytes = (long)(_diskSizeGB * bytesPerGb);
+
+                return Utils.FormatBytes(totalBytes);
+            }
+        }
     }
 }

@@ -79,6 +79,312 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 Auto-Assign 的本地化字符串。
+        /// </summary>
+        public static string AddDisk_AutoAssign {
+            get {
+                return ResourceManager.GetString("AddDisk_AutoAssign", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Block Size 的本地化字符串。
+        /// </summary>
+        public static string AddDisk_BlockSize {
+            get {
+                return ResourceManager.GetString("AddDisk_BlockSize", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Capacity (GB) 的本地化字符串。
+        /// </summary>
+        public static string AddDisk_CapacityGB {
+            get {
+                return ResourceManager.GetString("AddDisk_CapacityGB", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Disk Type 的本地化字符串。
+        /// </summary>
+        public static string AddDisk_DiskType {
+            get {
+                return ResourceManager.GetString("AddDisk_DiskType", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 File Content 的本地化字符串。
+        /// </summary>
+        public static string AddDisk_FileContent {
+            get {
+                return ResourceManager.GetString("AddDisk_FileContent", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Optical Images 的本地化字符串。
+        /// </summary>
+        public static string AddDisk_Filter_OpticalImage {
+            get {
+                return ResourceManager.GetString("AddDisk_Filter_OpticalImage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Virtual Disks 的本地化字符串。
+        /// </summary>
+        public static string AddDisk_Filter_VirtualDisk {
+            get {
+                return ResourceManager.GetString("AddDisk_Filter_VirtualDisk", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 ISO creation uses Joliet, with a 4GB file size limit. 的本地化字符串。
+        /// </summary>
+        public static string AddDisk_Info_IsoLimits {
+            get {
+                return ResourceManager.GetString("AddDisk_Info_IsoLimits", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Controller 的本地化字符串。
+        /// </summary>
+        public static string AddDisk_Interface {
+            get {
+                return ResourceManager.GetString("AddDisk_Interface", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Location 的本地化字符串。
+        /// </summary>
+        public static string AddDisk_Location {
+            get {
+                return ResourceManager.GetString("AddDisk_Location", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Media Selection 的本地化字符串。
+        /// </summary>
+        public static string AddDisk_MediaSelection {
+            get {
+                return ResourceManager.GetString("AddDisk_MediaSelection", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 New 的本地化字符串。
+        /// </summary>
+        public static string AddDisk_New {
+            get {
+                return ResourceManager.GetString("AddDisk_New", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 No available physical devices 的本地化字符串。
+        /// </summary>
+        public static string AddDisk_NoAvailablePhysical {
+            get {
+                return ResourceManager.GetString("AddDisk_NoAvailablePhysical", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Number 的本地化字符串。
+        /// </summary>
+        public static string AddDisk_Number {
+            get {
+                return ResourceManager.GetString("AddDisk_Number", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Please specify the file path... 的本地化字符串。
+        /// </summary>
+        public static string AddDisk_Placeholder_FilePath {
+            get {
+                return ResourceManager.GetString("AddDisk_Placeholder_FilePath", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Select a folder to package... 的本地化字符串。
+        /// </summary>
+        public static string AddDisk_Placeholder_PackageFolder {
+            get {
+                return ResourceManager.GetString("AddDisk_Placeholder_PackageFolder", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Please specify parent disk path... 的本地化字符串。
+        /// </summary>
+        public static string AddDisk_Placeholder_ParentPath {
+            get {
+                return ResourceManager.GetString("AddDisk_Placeholder_ParentPath", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Please specify a path to save... 的本地化字符串。
+        /// </summary>
+        public static string AddDisk_Placeholder_SavePath {
+            get {
+                return ResourceManager.GetString("AddDisk_Placeholder_SavePath", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Defaults to folder name 的本地化字符串。
+        /// </summary>
+        public static string AddDisk_Placeholder_VolumeLabel {
+            get {
+                return ResourceManager.GetString("AddDisk_Placeholder_VolumeLabel", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Sector Format 的本地化字符串。
+        /// </summary>
+        public static string AddDisk_SectorFormat {
+            get {
+                return ResourceManager.GetString("AddDisk_SectorFormat", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Slot Configuration 的本地化字符串。
+        /// </summary>
+        public static string AddDisk_SlotConfig {
+            get {
+                return ResourceManager.GetString("AddDisk_SlotConfig", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Source 的本地化字符串。
+        /// </summary>
+        public static string AddDisk_Source {
+            get {
+                return ResourceManager.GetString("AddDisk_Source", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Physical Device 的本地化字符串。
+        /// </summary>
+        public static string AddDisk_Source_Physical {
+            get {
+                return ResourceManager.GetString("AddDisk_Source_Physical", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Virtual File 的本地化字符串。
+        /// </summary>
+        public static string AddDisk_Source_VirtualFile {
+            get {
+                return ResourceManager.GetString("AddDisk_Source_VirtualFile", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Select Parent Virtual Disk 的本地化字符串。
+        /// </summary>
+        public static string AddDisk_Title_SelectParentDisk {
+            get {
+                return ResourceManager.GetString("AddDisk_Title_SelectParentDisk", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Select Source Folder 的本地化字符串。
+        /// </summary>
+        public static string AddDisk_Title_SelectSourceFolder {
+            get {
+                return ResourceManager.GetString("AddDisk_Title_SelectSourceFolder", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Type 的本地化字符串。
+        /// </summary>
+        public static string AddDisk_Type {
+            get {
+                return ResourceManager.GetString("AddDisk_Type", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Hard Disk 的本地化字符串。
+        /// </summary>
+        public static string AddDisk_Type_HardDisk {
+            get {
+                return ResourceManager.GetString("AddDisk_Type_HardDisk", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Optical Drive 的本地化字符串。
+        /// </summary>
+        public static string AddDisk_Type_OpticalDrive {
+            get {
+                return ResourceManager.GetString("AddDisk_Type_OpticalDrive", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Differencing 的本地化字符串。
+        /// </summary>
+        public static string AddDisk_VhdType_Differencing {
+            get {
+                return ResourceManager.GetString("AddDisk_VhdType_Differencing", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Dynamic 的本地化字符串。
+        /// </summary>
+        public static string AddDisk_VhdType_Dynamic {
+            get {
+                return ResourceManager.GetString("AddDisk_VhdType_Dynamic", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Fixed 的本地化字符串。
+        /// </summary>
+        public static string AddDisk_VhdType_Fixed {
+            get {
+                return ResourceManager.GetString("AddDisk_VhdType_Fixed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Volume Label 的本地化字符串。
+        /// </summary>
+        public static string AddDisk_VolumeLabel {
+            get {
+                return ResourceManager.GetString("AddDisk_VolumeLabel", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Add Storage Device 的本地化字符串。
+        /// </summary>
+        public static string AddDisk_WindowTitle {
+            get {
+                return ResourceManager.GetString("AddDisk_WindowTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Add GPU 的本地化字符串。
         /// </summary>
         public static string addgpu {
@@ -525,6 +831,87 @@ namespace ExHyperV.Properties {
         public static string Colsefirst {
             get {
                 return ResourceManager.GetString("Colsefirst", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Browse 的本地化字符串。
+        /// </summary>
+        public static string Common_Browse {
+            get {
+                return ResourceManager.GetString("Common_Browse", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Default 的本地化字符串。
+        /// </summary>
+        public static string Common_Default {
+            get {
+                return ResourceManager.GetString("Common_Default", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Disk 的本地化字符串。
+        /// </summary>
+        public static string Common_Disk {
+            get {
+                return ResourceManager.GetString("Common_Disk", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Empty 的本地化字符串。
+        /// </summary>
+        public static string Common_Empty {
+            get {
+                return ResourceManager.GetString("Common_Empty", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Modify 的本地化字符串。
+        /// </summary>
+        public static string Common_Modify {
+            get {
+                return ResourceManager.GetString("Common_Modify", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Path 的本地化字符串。
+        /// </summary>
+        public static string Common_Path {
+            get {
+                return ResourceManager.GetString("Common_Path", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Remove 的本地化字符串。
+        /// </summary>
+        public static string Common_Remove {
+            get {
+                return ResourceManager.GetString("Common_Remove", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Select 的本地化字符串。
+        /// </summary>
+        public static string Common_Select {
+            get {
+                return ResourceManager.GetString("Common_Select", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Type 的本地化字符串。
+        /// </summary>
+        public static string Common_Type {
+            get {
+                return ResourceManager.GetString("Common_Type", resourceCulture);
             }
         }
         
@@ -1440,6 +1827,24 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 Restart Now 的本地化字符串。
+        /// </summary>
+        public static string Global_Restart {
+            get {
+                return ResourceManager.GetString("Global_Restart", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Restart Now 的本地化字符串。
+        /// </summary>
+        public static string Global_Restart_Duplicate_1_ {
+            get {
+                return ResourceManager.GetString("Global_Restart_Duplicate[1]", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 CPU virtualization has been enabled. 的本地化字符串。
         /// </summary>
         public static string GPU1 {
@@ -1690,6 +2095,87 @@ namespace ExHyperV.Properties {
         public static string Internet {
             get {
                 return ResourceManager.GetString("Internet", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 An unknown error occurred while creating the ISO image. 的本地化字符串。
+        /// </summary>
+        public static string Iso_Error_BuildFailed {
+            get {
+                return ResourceManager.GetString("Iso_Error_BuildFailed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Directory structure is too deep (exceeds 8 levels). 的本地化字符串。
+        /// </summary>
+        public static string Iso_Error_DirectoryDepthTooDeep {
+            get {
+                return ResourceManager.GetString("Iso_Error_DirectoryDepthTooDeep", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 The directory structure for the file is too deep (exceeds 8 levels). 的本地化字符串。
+        /// </summary>
+        public static string Iso_Error_FileDepthTooDeep {
+            get {
+                return ResourceManager.GetString("Iso_Error_FileDepthTooDeep", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 File name is too long (exceeds 64 characters). 的本地化字符串。
+        /// </summary>
+        public static string Iso_Error_FileNameTooLong {
+            get {
+                return ResourceManager.GetString("Iso_Error_FileNameTooLong", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 A single file exceeds the 4GB size limit. 的本地化字符串。
+        /// </summary>
+        public static string Iso_Error_FileTooLarge {
+            get {
+                return ResourceManager.GetString("Iso_Error_FileTooLarge", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Relative path within the ISO is too long (exceeds 240 characters). 的本地化字符串。
+        /// </summary>
+        public static string Iso_Error_PathTooLong {
+            get {
+                return ResourceManager.GetString("Iso_Error_PathTooLong", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Source directory does not exist. 的本地化字符串。
+        /// </summary>
+        public static string Iso_Error_SourceDirNotFound {
+            get {
+                return ResourceManager.GetString("Iso_Error_SourceDirNotFound", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Volume label is too long, exceeding the limit of 16 characters. 的本地化字符串。
+        /// </summary>
+        public static string Iso_Error_VolumeLabelTooLong {
+            get {
+                return ResourceManager.GetString("Iso_Error_VolumeLabelTooLong", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 ISO image created successfully. 的本地化字符串。
+        /// </summary>
+        public static string Iso_Msg_CreateSuccess {
+            get {
+                return ResourceManager.GetString("Iso_Msg_CreateSuccess", resourceCulture);
             }
         }
         
@@ -2207,6 +2693,51 @@ namespace ExHyperV.Properties {
         public static string model {
             get {
                 return ResourceManager.GetString("model", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Optical Drive 的本地化字符串。
+        /// </summary>
+        public static string Model_Drive_OpticalDrive {
+            get {
+                return ResourceManager.GetString("Model_Drive_OpticalDrive", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Physical Device 的本地化字符串。
+        /// </summary>
+        public static string Model_Drive_SourcePhysical {
+            get {
+                return ResourceManager.GetString("Model_Drive_SourcePhysical", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Virtual File 的本地化字符串。
+        /// </summary>
+        public static string Model_Drive_SourceVirtual {
+            get {
+                return ResourceManager.GetString("Model_Drive_SourceVirtual", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Virtual Disk 的本地化字符串。
+        /// </summary>
+        public static string Model_Drive_VirtualDisk {
+            get {
+                return ResourceManager.GetString("Model_Drive_VirtualDisk", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Virtual Hard Disk 的本地化字符串。
+        /// </summary>
+        public static string Model_Drive_VirtualHardDisk {
+            get {
+                return ResourceManager.GetString("Model_Drive_VirtualHardDisk", resourceCulture);
             }
         }
         
@@ -2742,6 +3273,24 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 Server Edition (ServerNT) 的本地化字符串。
+        /// </summary>
+        public static string Status_Edition_Server {
+            get {
+                return ResourceManager.GetString("Status_Edition_Server", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Workstation Edition (WinNT) 的本地化字符串。
+        /// </summary>
+        public static string Status_Edition_Workstation {
+            get {
+                return ResourceManager.GetString("Status_Edition_Workstation", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Preparing and executing installation... Please see the real-time progress below. 的本地化字符串。
         /// </summary>
         public static string Status_InstallationInProgress {
@@ -2751,11 +3300,137 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 Current Version 的本地化字符串。
+        /// </summary>
+        public static string Status_Msg_CurrentVer {
+            get {
+                return ResourceManager.GetString("Status_Msg_CurrentVer", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Currently identified as 的本地化字符串。
+        /// </summary>
+        public static string Status_Msg_CurrentVer_Duplicate_1_ {
+            get {
+                return ResourceManager.GetString("Status_Msg_CurrentVer_Duplicate[1]", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 An operation is already pending. Please restart your computer first. 的本地化字符串。
+        /// </summary>
+        public static string Status_Msg_OperationPending {
+            get {
+                return ResourceManager.GetString("Status_Msg_OperationPending", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Change pending, reboot to apply. 的本地化字符串。
+        /// </summary>
+        public static string Status_Msg_OperationPending_Duplicate_1_ {
+            get {
+                return ResourceManager.GetString("Status_Msg_OperationPending_Duplicate[1]", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Modification requires a reboot to take effect. 的本地化字符串。
+        /// </summary>
+        public static string Status_Msg_RebootRequired {
+            get {
+                return ResourceManager.GetString("Status_Msg_RebootRequired", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 System identifier modified. Restart now to apply changes? 的本地化字符串。
+        /// </summary>
+        public static string Status_Msg_RestartNow {
+            get {
+                return ResourceManager.GetString("Status_Msg_RestartNow", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 System identifier modified. Restart now? 的本地化字符串。
+        /// </summary>
+        public static string Status_Msg_RestartNow_Duplicate_1_ {
+            get {
+                return ResourceManager.GetString("Status_Msg_RestartNow_Duplicate[1]", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 [~] Rebooting the virtual machine... 的本地化字符串。
         /// </summary>
         public static string Status_RebootingVm {
             get {
                 return ResourceManager.GetString("Status_RebootingVm", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Error 的本地化字符串。
+        /// </summary>
+        public static string Status_Title_Error {
+            get {
+                return ResourceManager.GetString("Status_Title_Error", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Error 的本地化字符串。
+        /// </summary>
+        public static string Status_Title_Error_Duplicate_1_ {
+            get {
+                return ResourceManager.GetString("Status_Title_Error_Duplicate[1]", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Information 的本地化字符串。
+        /// </summary>
+        public static string Status_Title_Info {
+            get {
+                return ResourceManager.GetString("Status_Title_Info", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Information 的本地化字符串。
+        /// </summary>
+        public static string Status_Title_Info_Duplicate_1_ {
+            get {
+                return ResourceManager.GetString("Status_Title_Info_Duplicate[1]", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Success 的本地化字符串。
+        /// </summary>
+        public static string Status_Title_Success {
+            get {
+                return ResourceManager.GetString("Status_Title_Success", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Success 的本地化字符串。
+        /// </summary>
+        public static string Status_Title_Success_Duplicate_1_ {
+            get {
+                return ResourceManager.GetString("Status_Title_Success_Duplicate[1]", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Switch System Edition 的本地化字符串。
+        /// </summary>
+        public static string Status_Title_SwitchEdition {
+            get {
+                return ResourceManager.GetString("Status_Title_SwitchEdition", resourceCulture);
             }
         }
         
@@ -2774,6 +3449,303 @@ namespace ExHyperV.Properties {
         public static string Status_UpstreamNotConnected {
             get {
                 return ResourceManager.GetString("Status_UpstreamNotConnected", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Storage 的本地化字符串。
+        /// </summary>
+        public static string Storage {
+            get {
+                return ResourceManager.GetString("Storage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Add Storage 的本地化字符串。
+        /// </summary>
+        public static string Storage_AddStorage {
+            get {
+                return ResourceManager.GetString("Storage_AddStorage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Controller 的本地化字符串。
+        /// </summary>
+        public static string Storage_Controller {
+            get {
+                return ResourceManager.GetString("Storage_Controller", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Device List 的本地化字符串。
+        /// </summary>
+        public static string Storage_DeviceList {
+            get {
+                return ResourceManager.GetString("Storage_DeviceList", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Empty Device 的本地化字符串。
+        /// </summary>
+        public static string Storage_DiskType_Empty {
+            get {
+                return ResourceManager.GetString("Storage_DiskType_Empty", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Physical Device 的本地化字符串。
+        /// </summary>
+        public static string Storage_DiskType_Physical {
+            get {
+                return ResourceManager.GetString("Storage_DiskType_Physical", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Virtual File 的本地化字符串。
+        /// </summary>
+        public static string Storage_DiskType_Virtual {
+            get {
+                return ResourceManager.GetString("Storage_DiskType_Virtual", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Disk is already attached to a virtual machine. 的本地化字符串。
+        /// </summary>
+        public static string Storage_Error_DiskAlreadyAttached {
+            get {
+                return ResourceManager.GetString("Storage_Error_DiskAlreadyAttached", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Specified hard disk drive not found. 的本地化字符串。
+        /// </summary>
+        public static string Storage_Error_DiskNotFound {
+            get {
+                return ResourceManager.GetString("Storage_Error_DiskNotFound", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Cannot swap a hard disk slot to a DVD drive while the VM is running. 的本地化字符串。
+        /// </summary>
+        public static string Storage_Error_DiskToDvdHotSwapNotSupported {
+            get {
+                return ResourceManager.GetString("Storage_Error_DiskToDvdHotSwapNotSupported", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Optical drive at the specified location was not found. 的本地化字符串。
+        /// </summary>
+        public static string Storage_Error_DvdDriveNotFound {
+            get {
+                return ResourceManager.GetString("Storage_Error_DvdDriveNotFound", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Cannot remove empty optical drive while the VM is running. Only eject is supported. 的本地化字符串。
+        /// </summary>
+        public static string Storage_Error_DvdHotRemoveNotSupported {
+            get {
+                return ResourceManager.GetString("Storage_Error_DvdHotRemoveNotSupported", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Specified virtual disk file not found. 的本地化字符串。
+        /// </summary>
+        public static string Storage_Error_FileNotFound {
+            get {
+                return ResourceManager.GetString("Storage_Error_FileNotFound", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 IDE controller does not support hot-swapping while the VM is running. 的本地化字符串。
+        /// </summary>
+        public static string Storage_Error_IdeHotSwapNotSupported {
+            get {
+                return ResourceManager.GetString("Storage_Error_IdeHotSwapNotSupported", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Cannot hot-add SCSI controller while the VM is running. 的本地化字符串。
+        /// </summary>
+        public static string Storage_Error_ScsiHotAddNotSupported {
+            get {
+                return ResourceManager.GetString("Storage_Error_ScsiHotAddNotSupported", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 An unknown error occurred. 的本地化字符串。
+        /// </summary>
+        public static string Storage_Error_Unknown {
+            get {
+                return ResourceManager.GetString("Storage_Error_Unknown", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Specified virtual machine not found. 的本地化字符串。
+        /// </summary>
+        public static string Storage_Error_VmNotFound {
+            get {
+                return ResourceManager.GetString("Storage_Error_VmNotFound", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Location 的本地化字符串。
+        /// </summary>
+        public static string Storage_Location {
+            get {
+                return ResourceManager.GetString("Storage_Location", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Device already removed. 的本地化字符串。
+        /// </summary>
+        public static string Storage_Msg_AlreadyRemoved {
+            get {
+                return ResourceManager.GetString("Storage_Msg_AlreadyRemoved", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Media ejected successfully. 的本地化字符串。
+        /// </summary>
+        public static string Storage_Msg_Ejected {
+            get {
+                return ResourceManager.GetString("Storage_Msg_Ejected", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Drive media has been hot-updated. 的本地化字符串。
+        /// </summary>
+        public static string Storage_Msg_MediaUpdated {
+            get {
+                return ResourceManager.GetString("Storage_Msg_MediaUpdated", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Device mounted to 的本地化字符串。
+        /// </summary>
+        public static string Storage_Msg_MountedTo {
+            get {
+                return ResourceManager.GetString("Storage_Msg_MountedTo", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Device removed successfully. 的本地化字符串。
+        /// </summary>
+        public static string Storage_Msg_Removed {
+            get {
+                return ResourceManager.GetString("Storage_Msg_Removed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Operation successful. 的本地化字符串。
+        /// </summary>
+        public static string Storage_Msg_Success {
+            get {
+                return ResourceManager.GetString("Storage_Msg_Success", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 This VM has no storage devices. 的本地化字符串。
+        /// </summary>
+        public static string Storage_NoDevicesFound {
+            get {
+                return ResourceManager.GetString("Storage_NoDevicesFound", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Storage Settings 的本地化字符串。
+        /// </summary>
+        public static string Storage_Settings {
+            get {
+                return ResourceManager.GetString("Storage_Settings", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Slot 的本地化字符串。
+        /// </summary>
+        public static string Storage_Slot {
+            get {
+                return ResourceManager.GetString("Storage_Slot", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Add Successful 的本地化字符串。
+        /// </summary>
+        public static string Storage_Title_AddSuccess {
+            get {
+                return ResourceManager.GetString("Storage_Title_AddSuccess", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Eject Successful 的本地化字符串。
+        /// </summary>
+        public static string Storage_Title_EjectSuccess {
+            get {
+                return ResourceManager.GetString("Storage_Title_EjectSuccess", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Error 的本地化字符串。
+        /// </summary>
+        public static string Storage_Title_Error {
+            get {
+                return ResourceManager.GetString("Storage_Title_Error", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Modify Successful 的本地化字符串。
+        /// </summary>
+        public static string Storage_Title_ModifySuccess {
+            get {
+                return ResourceManager.GetString("Storage_Title_ModifySuccess", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Remove Successful 的本地化字符串。
+        /// </summary>
+        public static string Storage_Title_RemoveSuccess {
+            get {
+                return ResourceManager.GetString("Storage_Title_RemoveSuccess", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Remove this device 的本地化字符串。
+        /// </summary>
+        public static string Storage_Tooltip_RemoveDevice {
+            get {
+                return ResourceManager.GetString("Storage_Tooltip_RemoveDevice", resourceCulture);
             }
         }
         
@@ -3116,6 +4088,15 @@ namespace ExHyperV.Properties {
         public static string VirtualSwitchList {
             get {
                 return ResourceManager.GetString("VirtualSwitchList", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Running 的本地化字符串。
+        /// </summary>
+        public static string VM_State_Running {
+            get {
+                return ResourceManager.GetString("VM_State_Running", resourceCulture);
             }
         }
         

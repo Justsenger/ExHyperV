@@ -28,7 +28,7 @@
 
         <DataTemplate x:Key="VmDetailTemplate">
             <Border Background="{ui:ThemeResource ControlFillColorDefaultBrush}" BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="4">
-                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="24">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="12">
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
@@ -41,9 +41,9 @@
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
                             <StackPanel VerticalAlignment="Center">
-                                <TextBlock Text="设备列表" FontSize="16" FontWeight="SemiBold" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                                <TextBlock Text="{x:Static properties:Resources.Storage_DeviceList}" FontSize="16" FontWeight="SemiBold" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
                             </StackPanel>
-                            <ui:Button Grid.Column="1" Content="添加存储" Icon="Add24" Appearance="Primary" VerticalAlignment="Center" 
+                            <ui:Button Grid.Column="1" Content="{x:Static properties:Resources.Storage_AddStorage}" Icon="Add24" Appearance="Primary" VerticalAlignment="Center" 
                                        Command="{Binding DataContext.AddStorageCommand, ElementName=StorageRootPage}"/>
                         </Grid>
 
@@ -51,7 +51,7 @@
                             <ItemsControl ItemsSource="{Binding DataContext.AllDrives, ElementName=StorageRootPage}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <ui:CardExpander Margin="0,0,0,4" IsExpanded="False" ContentPadding="0" Padding="10,8,10,8">
+                                        <ui:CardExpander Margin="0,0,0,4" IsExpanded="True" ContentPadding="0" Padding="10,8,10,8">
                                             <ui:CardExpander.Header>
                                                 <Grid Height="30">
                                                     <Grid.ColumnDefinitions>
@@ -70,10 +70,10 @@
                                                                     <Setter Property="Text" Value="{Binding SizeDisplay}"/>
                                                                     <Style.Triggers>
                                                                         <DataTrigger Binding="{Binding PathOrDiskNumber}" Value="">
-                                                                            <Setter Property="Text" Value="空"/>
+                                                                            <Setter Property="Text" Value="{x:Static properties:Resources.Common_Empty}"/>
                                                                         </DataTrigger>
                                                                         <DataTrigger Binding="{Binding PathOrDiskNumber}" Value="{x:Null}">
-                                                                            <Setter Property="Text" Value="空"/>
+                                                                            <Setter Property="Text" Value="{x:Static properties:Resources.Common_Empty}"/>
                                                                         </DataTrigger>
                                                                     </Style.Triggers>
                                                                 </Style>
@@ -82,7 +82,7 @@
                                                     </StackPanel>
 
                                                     <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                                                        <ui:Button Content="修改" Appearance="Primary" Margin="0,0,8,0" Padding="10,4" VerticalAlignment="Center" FontSize="12"
+                                                        <ui:Button Content="{x:Static properties:Resources.Common_Modify}" Appearance="Primary" Margin="0,0,8,0" Padding="10,4" VerticalAlignment="Center" FontSize="12"
                                                            Command="{Binding DataContext.ModifyDriveCommand, ElementName=StorageRootPage}" 
                                                            CommandParameter="{Binding}">
                                                             <ui:Button.Style>
@@ -95,9 +95,9 @@
                                                                 </Style>
                                                             </ui:Button.Style>
                                                         </ui:Button>
-                                                        <ui:Button Content="移除" Padding="6" VerticalAlignment="Center"
+                                                        <ui:Button Content="{x:Static properties:Resources.Common_Remove}" Padding="6" VerticalAlignment="Center"
                                                                    Command="{Binding DataContext.RemoveDriveCommand, ElementName=StorageRootPage}" CommandParameter="{Binding}"
-                                                                   ToolTip="移除此设备"/>
+                                                                   ToolTip="{x:Static properties:Resources.Storage_Tooltip_RemoveDevice}"/>
                                                     </StackPanel>
                                                 </Grid>
                                             </ui:CardExpander.Header>
@@ -114,46 +114,46 @@
                                                         <RowDefinition Height="Auto"/>
                                                     </Grid.RowDefinitions>
 
-                                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="类型" Margin="0,0,0,8" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="{x:Static properties:Resources.Common_Type}" Margin="0,0,0,8" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
                                                     <TextBlock Grid.Row="0" Grid.Column="1" Margin="0,0,0,8" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" FontWeight="Medium">
                                                         <TextBlock.Style>
                                                             <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
                                                                 <Style.Triggers>
                                                                     <DataTrigger Binding="{Binding DiskType}" Value="Virtual">
-                                                                        <Setter Property="Text" Value="虚拟设备"/>
+                                                                        <Setter Property="Text" Value="{x:Static properties:Resources.Storage_DiskType_Virtual}"/>
                                                                     </DataTrigger>
                                                                     <DataTrigger Binding="{Binding DiskType}" Value="Physical">
-                                                                        <Setter Property="Text" Value="物理设备"/>
+                                                                        <Setter Property="Text" Value="{x:Static properties:Resources.Storage_DiskType_Physical}"/>
                                                                     </DataTrigger>
                                                                     <DataTrigger Binding="{Binding DiskType}" Value="Empty">
-                                                                        <Setter Property="Text" Value="空设备"/>
+                                                                        <Setter Property="Text" Value="{x:Static properties:Resources.Storage_DiskType_Empty}"/>
                                                                     </DataTrigger>
                                                                 </Style.Triggers>
                                                             </Style>
                                                         </TextBlock.Style>
                                                     </TextBlock>
 
-                                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="插槽" Margin="0,0,0,8" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="{x:Static properties:Resources.Storage_Slot}" Margin="0,0,0,8" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
                                                     <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Margin="0,0,0,8">
                                                         <TextBlock Text="{Binding ControllerType}" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" FontWeight="Medium"/>
-                                                        <TextBlock Text=" 控制器 " Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" FontWeight="Medium"/>
+                                                        <TextBlock Text="{Binding Source={x:Static properties:Resources.Storage_Controller}, StringFormat=' {0} '}" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" FontWeight="Medium"/>
                                                         <TextBlock Text="{Binding ControllerNumber}" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" FontWeight="Medium"/>
-                                                        <TextBlock Text=" - 位置 " Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" FontWeight="Medium"/>
+                                                        <TextBlock Text="{Binding Source={x:Static properties:Resources.Storage_Location}, StringFormat=' - {0} '}" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" FontWeight="Medium"/>
                                                         <TextBlock Text="{Binding ControllerLocation}" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" FontWeight="Medium"/>
                                                     </StackPanel>
 
-                                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="路径" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Top"/>
+                                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="{x:Static properties:Resources.Common_Path}" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Top"/>
                                                     <TextBlock Grid.Row="2" Grid.Column="1" TextWrapping="Wrap" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" FontWeight="Medium" LineHeight="20">
                                                         <TextBlock.Style>
                                                             <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
                                                                 <Setter Property="Text" Value="{Binding PathOrDiskNumber}"/>
                                                                 <Style.Triggers>
                                                                     <DataTrigger Binding="{Binding PathOrDiskNumber}" Value="">
-                                                                        <Setter Property="Text" Value="空"/>
+                                                                        <Setter Property="Text" Value="{x:Static properties:Resources.Common_Empty}"/>
                                                                         <Setter Property="Opacity" Value="0.5"/>
                                                                     </DataTrigger>
                                                                     <DataTrigger Binding="{Binding PathOrDiskNumber}" Value="{x:Null}">
-                                                                        <Setter Property="Text" Value="空"/>
+                                                                        <Setter Property="Text" Value="{x:Static properties:Resources.Common_Empty}"/>
                                                                         <Setter Property="Opacity" Value="0.5"/>
                                                                     </DataTrigger>
                                                                 </Style.Triggers>
@@ -167,7 +167,7 @@
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
 
-                            <TextBlock Text="此虚拟机没有任何存储设备" HorizontalAlignment="Center" Margin="0,40,0,0" Opacity="0.4" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}">
+                            <TextBlock Text="{x:Static properties:Resources.Storage_NoDevicesFound}" HorizontalAlignment="Center" Margin="0,40,0,0" Opacity="0.4" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}">
                                 <TextBlock.Style>
                                     <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
                                         <Setter Property="Visibility" Value="Collapsed"/>
@@ -197,7 +197,7 @@
                 <Grid>
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                         <ui:FontIcon Glyph="&#xEDA2;" FontSize="20" FontFamily="{DynamicResource SegoeFluentIcons}" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
-                        <TextBlock Text="存储设置" FontSize="16" VerticalAlignment="Center" Margin="10,0,0,0" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                        <TextBlock Text="{x:Static properties:Resources.Storage_Settings}" FontSize="16" VerticalAlignment="Center" Margin="10,0,0,0" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
                     </StackPanel>
                 </Grid>
             </Border>
@@ -232,7 +232,7 @@
                                     <TextBlock Grid.Column="1" VerticalAlignment="Center" Margin="10,0,0,0">
                                         <TextBlock.Style>
                                             <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
-                                                <Setter Property="Text" Value="运行中"/>
+                                                <Setter Property="Text" Value="{x:Static properties:Resources.VM_State_Running}"/>
                                                 <Setter Property="Foreground" Value="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
                                                 <Style.Triggers>
                                                     <DataTrigger Binding="{Binding IsRunning}" Value="False">

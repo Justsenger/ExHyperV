@@ -6,6 +6,7 @@ using System.Text;
 using System.Windows;
 using System.Windows.Media;
 using Wpf.Ui.Controls;
+using System.Text.RegularExpressions;
 
 namespace ExHyperV.Tools;
 
@@ -367,7 +368,6 @@ public class Utils
         string ipAddresses = string.Empty;
         try
         {
-            // 使用你现有的健壮的 Run2 方法
             var directResults = await Run2(directIpScript);
 
             if (directResults != null && directResults.Count > 0)
@@ -437,7 +437,38 @@ public class Utils
 
         System.Windows.MessageBox.Show(message);
     }
-    public static string Version => "V1.3.1";
+    public static string GetFriendlyErrorMessage(string rawMessage)
+    {
+        if (string.IsNullOrWhiteSpace(rawMessage)) return "Storage_Error_Unknown";
+        var match = Regex.Match(rawMessage, @"Storage_(Error|Msg)_[A-Za-z0-9_]+");
+        if (match.Success) return match.Value;
+        string cleanMsg = Regex.Replace(rawMessage.Trim(), @"[\(\（].*?ID\s+[a-fA-F0-9-]{36}.*?[\)\）]", "").Replace("\r", "").Replace("\n", " ");
+        var parts = cleanMsg.Split(new[] { '。', '.' }, StringSplitOptions.RemoveEmptyEntries).Select(s => s.Trim()).Where(s => !string.IsNullOrWhiteSpace(s)).ToList();
+        return (parts.Count >= 2 && parts.Last().Length > 2) ? parts.Last() + "。" : cleanMsg;
+    }
+    public static string FormatBytes(long bytes)
+    {
+        if (bytes < 0)
+        {
+            return "Invalid size";
+        }
+        if (bytes == 0)
+        {
+            return "0 B";
+        }
+
+        string[] units = { "B", "KB", "MB", "GB", "TB", "PB", "EB" };
+
+        int unitIndex = (int)Math.Floor(Math.Log(bytes, 1024));
+
+        double number = bytes / Math.Pow(1024, unitIndex);
+
+        string format = (unitIndex == 0) ? "F0" : "F2";
+
+        return $"{number.ToString(format)} {units[unitIndex]}";
+    }
+
+    public static string Version => "V1.3.2-Beta";
     public static string Author => "Saniye";
 
 }
