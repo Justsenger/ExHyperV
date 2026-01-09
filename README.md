@@ -74,6 +74,14 @@ Due to limited personal time and resources, there may be untested scenarios. If 
 2. Clone this repository.
 3. Open `/src/ExHyperV.sln` with Visual Studio to compile the project.
 
+In addition, you can also directly download the [.NET SDK](https://dotnet.microsoft.com/download) and open the project directory:
+
+```pwsh
+cd src
+dotnet build
+```
+
+
 ## 📌 Important Notes & Limitations
 
 - It is recommended to assign a **fixed amount** of RAM to your virtual machines.

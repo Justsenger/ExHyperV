@@ -74,6 +74,12 @@ ExHyperV 深入研究了微软官方文档和 [Easy-GPU-PV](https://github.com/j
 2. 克隆本仓库。
 3. 使用 Visual Studio 打开 `/src/ExHyperV.sln` 文件，即可编译。
 
+除此之外，您也可以直接下载[.NET SDK](https://dotnet.microsoft.com/zh-cn/download),打开项目目录：
+```pwsh
+cd src
+dotnet build
+```
+
 ## 📌 重要提示与限制
 
 - 建议为虚拟机分配**固定大小**的运行内存。
