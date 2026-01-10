@@ -22,7 +22,7 @@
             <ui:Card Padding="15" Margin="12,10,10,0">
                 <Grid>
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <ui:FontIcon FontSize="24" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xF5ED;"/>
+                        <ui:FontIcon FontSize="24" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xEEA0;"/>
                         <TextBlock Text="{x:Static properties:Resources.VMMemory}" Margin="5,0,0,0" FontSize="16" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Grid>
