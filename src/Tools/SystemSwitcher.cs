@@ -2,7 +2,6 @@
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
-using System.Linq;
 
 namespace ExHyperV.Tools
 {
@@ -18,14 +17,25 @@ namespace ExHyperV.Tools
         static extern bool AdjustTokenPrivileges(IntPtr TokenHandle, bool DisableAllPrivileges, ref TOKEN_PRIVILEGES NewState, uint BufferLength, IntPtr PreviousState, IntPtr ReturnLength);
         [DllImport("kernel32.dll", SetLastError = true)]
         static extern bool CloseHandle(IntPtr hObject);
-        [DllImport("advapi32.dll", SetLastError = true)]
+
+        [DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Ansi)]
         static extern int RegOpenKeyEx(IntPtr hKey, string lpSubKey, uint ulOptions, int samDesired, out IntPtr phkResult);
-        [DllImport("advapi32.dll", SetLastError = true)]
+        [DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Ansi)]
         static extern int RegSaveKey(IntPtr hKey, string lpFile, IntPtr lpSecurityAttributes);
-        [DllImport("advapi32.dll", SetLastError = true)]
+        [DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Ansi)]
         static extern int RegReplaceKey(IntPtr hKey, string lpSubKey, string lpNewFile, string lpOldFile);
         [DllImport("advapi32.dll", SetLastError = true)]
         static extern int RegCloseKey(IntPtr hKey);
+        [DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Ansi)]
+        static extern int RegLoadKey(IntPtr hKey, string lpSubKey, string lpFile);
+        [DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Ansi)]
+        static extern int RegUnLoadKey(IntPtr hKey, string lpSubKey);
+        [DllImport("advapi32.dll", SetLastError = true)]
+        static extern int RegFlushKey(IntPtr hKey);
+        [DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Ansi)]
+        static extern int RegSetValueEx(IntPtr hKey, string lpValueName, int Reserved, int dwType, byte[] lpData, int cbData);
+        [DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Ansi)]
+        static extern int RegQueryValueEx(IntPtr hKey, string lpValueName, IntPtr lpReserved, ref int lpType, ref int lpData, ref int lpcbData);
 
         [StructLayout(LayoutKind.Sequential)]
         struct LUID { public uint LowPart; public int HighPart; }
@@ -33,6 +43,11 @@ namespace ExHyperV.Tools
         struct TOKEN_PRIVILEGES { public uint PrivilegeCount; [MarshalAs(UnmanagedType.ByValArray, SizeConst = 1)] public LUID_AND_ATTRIBUTES[] Privileges; }
         [StructLayout(LayoutKind.Sequential)]
         struct LUID_AND_ATTRIBUTES { public LUID Luid; public uint Attributes; }
+
+        const uint KEY_READ = 0x20019;
+        const uint KEY_SET_VALUE = 0x0002;
+        const int REG_SZ = 1;
+        static readonly IntPtr HKEY_LOCAL_MACHINE = new IntPtr(unchecked((int)0x80000002));
 
         public static bool EnablePrivilege(string privilegeName)
         {
@@ -51,68 +66,73 @@ namespace ExHyperV.Tools
         public static string ExecutePatch(int mode)
         {
             string tempDir = @"C:\temp";
-            // 必须使用固定文件名，确保多次点击是“覆盖”而非“累加”
             string hiveFile = Path.Combine(tempDir, "sys_mod_exec.hiv");
             string backupFile = Path.Combine(tempDir, "sys_bak_exec.hiv");
 
             try
             {
                 if (!Directory.Exists(tempDir)) Directory.CreateDirectory(tempDir);
-                // 如果文件已被内核锁定，说明已经有任务在排队，直接返回 SUCCESS 提示重启即可
                 try { if (File.Exists(hiveFile)) File.Delete(hiveFile); } catch { return "SUCCESS"; }
                 try { if (File.Exists(backupFile)) File.Delete(backupFile); } catch { }
 
                 if (!EnablePrivilege("SeBackupPrivilege") || !EnablePrivilege("SeRestorePrivilege")) return "权限不足";
 
-                if (RegOpenKeyEx(new IntPtr(unchecked((int)0x80000002)), "SYSTEM", 0, 0x20019, out IntPtr hKey) != 0) return "打不开键";
+                if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, "SYSTEM", 0, (int)KEY_READ, out IntPtr hKey) != 0) return "打不开键";
                 int ret = RegSaveKey(hKey, hiveFile, IntPtr.Zero);
                 RegCloseKey(hKey);
                 if (ret != 0) return $"导出失败:{ret}";
 
-                byte[] buffer = File.ReadAllBytes(hiveFile);
-                if (!PatchAllInstances(ref buffer, mode)) return "未找到特征";
+                string targetType = (mode == 1) ? "ServerNT" : "WinNT";
+                if (!PatchHiveOffline(hiveFile, targetType)) return "离线修改失败";
 
-                File.WriteAllBytes(hiveFile, buffer);
-                ret = RegReplaceKey(new IntPtr(unchecked((int)0x80000002)), "SYSTEM", hiveFile, backupFile);
+                ret = RegReplaceKey(HKEY_LOCAL_MACHINE, "SYSTEM", hiveFile, backupFile);
 
                 return ret == 0 || ret == 5 ? "SUCCESS" : $"替换失败:{ret}";
             }
             catch (Exception ex) { return ex.Message; }
         }
 
-        private static bool PatchAllInstances(ref byte[] buffer, int mode)
+        private static bool PatchHiveOffline(string hivePath, string targetType)
         {
-            byte[] dataWinNT = { 0x00, 0x00, 0x00, 0x00, 0xE8, 0xFF, 0xFF, 0xFF, 0x57, 0x00, 0x69, 0x00, 0x6E, 0x00, 0x4E, 0x00, 0x54, 0x00, 0x00, 0x00, 0x4E, 0x00, 0x54, 0x00, 0x00, 0x00, 0x00, 0x00, 0xD0, 0xFF, 0xFF, 0xFF };
-            byte[] dataServerNT = { 0x00, 0x00, 0x00, 0x00, 0xE8, 0xFF, 0xFF, 0xFF, 0x53, 0x00, 0x65, 0x00, 0x72, 0x00, 0x76, 0x00, 0x65, 0x00, 0x72, 0x00, 0x4E, 0x00, 0x54, 0x00, 0x00, 0x00, 0x00, 0x00, 0xD0, 0xFF, 0xFF, 0xFF };
-            byte[] target = (mode == 1) ? dataServerNT : dataWinNT;
-            byte[] key = Encoding.ASCII.GetBytes("ProductType\0");
-            byte[] sig = { 0xE8, 0xFF, 0xFF, 0xFF };
+            string tempKeyName = "TEMP_OFFLINE_SYS_MOD";
 
-            bool foundAny = false;
-            for (int i = 0; i < buffer.Length - key.Length; i++)
+            if (RegLoadKey(HKEY_LOCAL_MACHINE, tempKeyName, hivePath) != 0) return false;
+
+            try
             {
-                if (IsMatch(buffer, i, key))
+                int currentSet = 1;
+                string selectPath = tempKeyName + "\\Select";
+                if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, selectPath, 0, (int)KEY_READ, out IntPtr hKeySelect) == 0)
                 {
-                    for (int j = i; j < i + 256 && j < buffer.Length - 4; j++)
+                    int type = 0;
+                    int data = 0;
+                    int size = 4;
+                    if (RegQueryValueEx(hKeySelect, "Current", IntPtr.Zero, ref type, ref data, ref size) == 0)
                     {
-                        if (IsMatch(buffer, j, sig))
-                        {
-                            Array.Copy(target, 0, buffer, j - 4, 32);
-                            foundAny = true;
-                            i = j + 32; // 跳过已修改区域，继续向后扫描其他配置集
-                            break;
-                        }
+                        currentSet = data;
                     }
+                    RegCloseKey(hKeySelect);
                 }
-            }
-            return foundAny;
-        }
 
-        private static bool IsMatch(byte[] b, int o, byte[] p)
-        {
-            if (o + p.Length > b.Length) return false;
-            for (int k = 0; k < p.Length; k++) if (b[o + k] != p[k]) return false;
-            return true;
+                string setPath = $"{tempKeyName}\\ControlSet{currentSet:D3}\\Control\\ProductOptions";
+                if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, setPath, 0, (int)KEY_SET_VALUE, out IntPtr hKey) != 0)
+                {
+                    setPath = $"{tempKeyName}\\ControlSet001\\Control\\ProductOptions";
+                    if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, setPath, 0, (int)KEY_SET_VALUE, out hKey) != 0) return false;
+                }
+
+                byte[] dataBytes = Encoding.ASCII.GetBytes(targetType + "\0");
+                int writeRet = RegSetValueEx(hKey, "ProductType", 0, REG_SZ, dataBytes, dataBytes.Length);
+
+                RegCloseKey(hKey);
+                RegFlushKey(HKEY_LOCAL_MACHINE);
+
+                return writeRet == 0;
+            }
+            finally
+            {
+                RegUnLoadKey(HKEY_LOCAL_MACHINE, tempKeyName);
+            }
         }
     }
 }
