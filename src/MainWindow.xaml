@@ -47,6 +47,15 @@
                 </ui:NavigationViewItem>
 
                 <ui:NavigationViewItem
+                    Content="生命周期管理"
+                    NavigationCacheMode="Enabled"
+                    TargetPageType="{x:Type pages:InstancesPage}">
+                    <ui:NavigationViewItem.Icon>
+                        <ui:FontIcon FontSize="16" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xF5ED;"/>
+                    </ui:NavigationViewItem.Icon>
+                </ui:NavigationViewItem>
+                
+                <ui:NavigationViewItem
                     Content="{x:Static properties:Resources.complisetting}"
                     NavigationCacheMode="Enabled"
                     TargetPageType="{x:Type pages:StatusPage}">
