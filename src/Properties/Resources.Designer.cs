@@ -4204,5 +4204,68 @@ namespace ExHyperV.Properties {
                 return ResourceManager.GetString("Weight", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   查找类似 Confirm Restart 的本地化字符串。
+        /// </summary>
+        public static string Confirm_Restart_Title {
+            get {
+                return ResourceManager.GetString("Confirm_Restart_Title", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Are you sure you want to restart the virtual machine? 的本地化字符串。
+        /// </summary>
+        public static string Confirm_Restart_Message {
+            get {
+                return ResourceManager.GetString("Confirm_Restart_Message", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Confirm Shutdown 的本地化字符串。
+        /// </summary>
+        public static string Confirm_Shutdown_Title {
+            get {
+                return ResourceManager.GetString("Confirm_Shutdown_Title", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Are you sure you want to shut down the virtual machine? 的本地化字符串。
+        /// </summary>
+        public static string Confirm_Shutdown_Message {
+            get {
+                return ResourceManager.GetString("Confirm_Shutdown_Message", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Confirm Force Power Off 的本地化字符串。
+        /// </summary>
+        public static string Confirm_TurnOff_Title {
+            get {
+                return ResourceManager.GetString("Confirm_TurnOff_Title", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Are you sure you want to force power off the virtual machine? 的本地化字符串。
+        /// </summary>
+        public static string Confirm_TurnOff_Message {
+            get {
+                return ResourceManager.GetString("Confirm_TurnOff_Message", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Please select a virtual machine 的本地化字符串。
+        /// </summary>
+        public static string Instances_SelectVmPrompt {
+            get {
+                return ResourceManager.GetString("Instances_SelectVmPrompt", resourceCulture);
+            }
+        }
     }
 }

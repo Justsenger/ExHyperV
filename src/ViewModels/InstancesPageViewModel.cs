@@ -6,6 +6,7 @@ using System.Windows.Threading; // 必须引用：用于定时器
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ExHyperV.Models;
+using ExHyperV.Properties;
 using ExHyperV.Services;
 using ExHyperV.Tools;
 
@@ -139,15 +140,34 @@ namespace ExHyperV.ViewModels
         [RelayCommand]
         private async Task ControlAsync(string action)
         {
-            if (SelectedVm != null)
-            {
-                await _instancesService.ExecuteControlActionAsync(SelectedVm.Name, action);
+            if (SelectedVm == null) return;
 
-                // 操作后立即校准一次状态，提升交互响应感
-                var info = await _instancesService.GetVmDynamicInfoAsync(SelectedVm.Name);
-                SelectedVm.State = info.State;
-                SelectedVm.RawUptime = info.Uptime;
-            }
+            // 对危险操作进行二次确认
+            bool confirmed = action switch
+            {
+                "Restart" => await DialogManager.ShowConfirmAsync(
+                    Resources.Confirm_Restart_Title,
+                    string.Format(Resources.Confirm_Restart_Message, SelectedVm.Name),
+                    isDanger: false),
+                "Stop" => await DialogManager.ShowConfirmAsync(
+                    Resources.Confirm_Shutdown_Title,
+                    string.Format(Resources.Confirm_Shutdown_Message, SelectedVm.Name),
+                    isDanger: false),
+                "TurnOff" => await DialogManager.ShowConfirmAsync(
+                    Resources.Confirm_TurnOff_Title,
+                    string.Format(Resources.Confirm_TurnOff_Message, SelectedVm.Name),
+                    isDanger: true),
+                _ => true // 启动、暂停、保存等操作无需确认
+            };
+
+            if (!confirmed) return;
+
+            await _instancesService.ExecuteControlActionAsync(SelectedVm.Name, action);
+
+            // 操作后立即校准一次状态，提升交互响应感
+            var info = await _instancesService.GetVmDynamicInfoAsync(SelectedVm.Name);
+            SelectedVm.State = info.State;
+            SelectedVm.RawUptime = info.Uptime;
         }
     }
 

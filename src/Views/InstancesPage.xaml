@@ -17,12 +17,22 @@
         <converters:VmNameToIconConverter x:Key="VmNameToIconConverter" />
         <converters:OsTypeToImageConverter x:Key="OsTypeToImageConverter" />
 
-        <!-- 修复：补回加载中模板 -->
+        <!-- 加载中模板 -->
         <DataTemplate x:Key="VmLoadingTemplate">
             <Border Background="{ui:ThemeResource ControlFillColorDefaultBrush}" BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="4">
                 <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
                     <ui:ProgressRing IsIndeterminate="True" Margin="0,0,0,10"/>
                     <TextBlock Text="{x:Static properties:Resources.DataLoading}" Opacity="0.5" />
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+        
+        <!-- 请选择虚拟机提示模板 -->
+        <DataTemplate x:Key="VmSelectPromptTemplate">
+            <Border Background="{ui:ThemeResource ControlFillColorDefaultBrush}" BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="4">
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                    <ui:SymbolIcon Symbol="Desktop24" FontSize="48" Margin="0,0,0,12" Opacity="0.4"/>
+                    <TextBlock Text="{x:Static properties:Resources.Instances_SelectVmPrompt}" Opacity="0.5" FontSize="14"/>
                 </StackPanel>
             </Border>
         </DataTemplate>
@@ -217,9 +227,18 @@
                     <Style TargetType="ContentControl">
                         <Setter Property="ContentTemplate" Value="{StaticResource VmDetailTemplate}"/>
                         <Style.Triggers>
-                            <Trigger Property="Content" Value="{x:Null}">
+                            <!-- 正在加载时显示加载中模板 -->
+                            <DataTrigger Binding="{Binding IsLoading}" Value="True">
                                 <Setter Property="ContentTemplate" Value="{StaticResource VmLoadingTemplate}"/>
-                            </Trigger>
+                            </DataTrigger>
+                            <!-- 未选择虚拟机且未在加载时显示提示模板 -->
+                            <MultiDataTrigger>
+                                <MultiDataTrigger.Conditions>
+                                    <Condition Binding="{Binding SelectedVm}" Value="{x:Null}"/>
+                                    <Condition Binding="{Binding IsLoading}" Value="False"/>
+                                </MultiDataTrigger.Conditions>
+                                <Setter Property="ContentTemplate" Value="{StaticResource VmSelectPromptTemplate}"/>
+                            </MultiDataTrigger>
                         </Style.Triggers>
                     </Style>
                 </ContentControl.Style>
