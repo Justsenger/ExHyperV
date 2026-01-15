@@ -1514,4 +1514,31 @@ Please check if the IP and port are correct.</value>
   <data name="Status_Title_SwitchEdition" xml:space="preserve">
     <value>Switch System Edition</value>
   </data>
+  <data name="Confirm_Restart_Title" xml:space="preserve">
+    <value>Confirm Restart</value>
+  </data>
+  <data name="Confirm_Restart_Message" xml:space="preserve">
+    <value>Are you sure you want to restart the virtual machine "{0}"?
+
+This will interrupt all running services and programs.</value>
+  </data>
+  <data name="Confirm_Shutdown_Title" xml:space="preserve">
+    <value>Confirm Shutdown</value>
+  </data>
+  <data name="Confirm_Shutdown_Message" xml:space="preserve">
+    <value>Are you sure you want to shut down the virtual machine "{0}"?
+
+This operation sends a shutdown signal to the guest OS.</value>
+  </data>
+  <data name="Confirm_TurnOff_Title" xml:space="preserve">
+    <value>Confirm Force Power Off</value>
+  </data>
+  <data name="Confirm_TurnOff_Message" xml:space="preserve">
+    <value>Are you sure you want to force power off the virtual machine "{0}"?
+
+⚠️ Warning: This is equivalent to unplugging the power cord and may cause data loss or file system corruption!</value>
+  </data>
+  <data name="Instances_SelectVmPrompt" xml:space="preserve">
+    <value>Please select a virtual machine</value>
+  </data>
 </root>

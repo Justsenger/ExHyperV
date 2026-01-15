@@ -1515,4 +1515,31 @@
   <data name="Status_Title_SwitchEdition" xml:space="preserve">
     <value>切换系统版本</value>
   </data>
+  <data name="Confirm_Restart_Title" xml:space="preserve">
+    <value>确认重启</value>
+  </data>
+  <data name="Confirm_Restart_Message" xml:space="preserve">
+    <value>确定要重启虚拟机 "{0}" 吗？
+
+这将中断所有正在运行的服务和程序。</value>
+  </data>
+  <data name="Confirm_Shutdown_Title" xml:space="preserve">
+    <value>确认关机</value>
+  </data>
+  <data name="Confirm_Shutdown_Message" xml:space="preserve">
+    <value>确定要关闭虚拟机 "{0}" 吗？
+
+此操作将向客户机操作系统发送关机信号。</value>
+  </data>
+  <data name="Confirm_TurnOff_Title" xml:space="preserve">
+    <value>确认强制断电</value>
+  </data>
+  <data name="Confirm_TurnOff_Message" xml:space="preserve">
+    <value>确定要强制断电虚拟机 "{0}" 吗？
+
+⚠️ 警告：此操作相当于直接拔掉电源线，可能导致数据丢失或文件系统损坏！</value>
+  </data>
+  <data name="Instances_SelectVmPrompt" xml:space="preserve">
+    <value>请选择虚拟机</value>
+  </data>
 </root>
