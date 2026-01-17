@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Linq;
 using System.Threading.Tasks;
-using System.Windows.Threading; // 必须引用：用于定时器
+using System.Windows.Data;
+using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ExHyperV.Models;
@@ -12,7 +14,15 @@ using ExHyperV.Tools;
 
 namespace ExHyperV.ViewModels
 {
-    public partial class InstancesPageViewModel : ObservableObject
+    // 定义视图类型的枚举
+    public enum VmDetailViewType
+    {
+        Dashboard,  // 仪表盘 (默认)
+        CpuSettings, // CPU 设置
+        MemorySettings // 内存设置 (未来)
+    }
+
+    public partial class VirtualMachinesPageViewModel : ObservableObject
     {
         private readonly InstancesService _instancesService;
         private readonly DispatcherTimer _localTimer;
@@ -21,16 +31,22 @@ namespace ExHyperV.ViewModels
         private bool _isLoading;
 
         [ObservableProperty]
+        private string _searchText = string.Empty;
+
+        [ObservableProperty]
         private ObservableCollection<VmInstanceInfo> _vmList = new();
 
         [ObservableProperty]
         private VmInstanceInfo _selectedVm;
 
-        public InstancesPageViewModel(InstancesService instancesService)
+        // 控制右侧显示哪个视图
+        [ObservableProperty]
+        private VmDetailViewType _currentViewType = VmDetailViewType.Dashboard;
+
+        public VirtualMachinesPageViewModel(InstancesService instancesService)
         {
             _instancesService = instancesService;
 
-            // 初始化本地 1秒 定时器 (用于 UI 秒表跳动)
             _localTimer = new DispatcherTimer();
             _localTimer.Interval = TimeSpan.FromSeconds(1);
             _localTimer.Tick += LocalTimer_Tick;
@@ -39,13 +55,48 @@ namespace ExHyperV.ViewModels
             _ = LoadVmsAsync();
         }
 
-        // 每秒触发：纯内存操作，界面极其流畅
+        // 切换到 CPU 设置页命令
+        [RelayCommand]
+        private void GoToCpuSettings()
+        {
+            CurrentViewType = VmDetailViewType.CpuSettings;
+        }
+
+        // 返回仪表盘命令
+        [RelayCommand]
+        private void GoBackToDashboard()
+        {
+            CurrentViewType = VmDetailViewType.Dashboard;
+        }
+
+        // 当切换左侧虚拟机时，强制重置回仪表盘
+        partial void OnSelectedVmChanged(VmInstanceInfo value)
+        {
+            CurrentViewType = VmDetailViewType.Dashboard;
+        }
+
+        partial void OnSearchTextChanged(string value)
+        {
+            var view = CollectionViewSource.GetDefaultView(VmList);
+            if (view != null)
+            {
+                view.Filter = item =>
+                {
+                    if (item is VmInstanceInfo vm)
+                    {
+                        return string.IsNullOrEmpty(value) || vm.Name.Contains(value, StringComparison.OrdinalIgnoreCase);
+                    }
+                    return false;
+                };
+                view.Refresh();
+            }
+        }
+
         private void LocalTimer_Tick(object sender, EventArgs e)
         {
             if (VmList == null) return;
             foreach (var vm in VmList)
             {
-                // 只有处于“运行中”状态才自增时间
                 if (vm.IsRunning)
                 {
                     vm.AddOneSecond();
@@ -60,29 +111,26 @@ namespace ExHyperV.ViewModels
             VmList.Clear();
             var vms = await _instancesService.GetVmListAsync();
 
-            // 排序：正在运行/启动中等非关机状态排在前面，然后按名称排序
             var sortedVms = vms.OrderBy(v => v.Status == "已关机" ? 1 : 0)
                                .ThenBy(v => v.Name);
 
             foreach (var vm in sortedVms)
             {
-                // 解析 Note 中的 OS 类型标记
-                string osType = "windows"; // 默认为 windows
+                string osType = "windows";
                 if (!string.IsNullOrEmpty(vm.Notes))
                 {
                     string notes = vm.Notes.ToLower();
                     if (notes.Contains("[ostype:linux]")) osType = "linux";
                     else if (notes.Contains("[ostype:android]")) osType = "android";
                     else if (notes.Contains("[ostype:macos]")) osType = "macos";
-                    else if (notes.Contains("[ostype:freebsd]")) osType = "freebsd"; // 新增
-                    else if (notes.Contains("[ostype:openbsd]")) osType = "openbsd"; // 新增
+                    else if (notes.Contains("[ostype:freebsd]")) osType = "freebsd";
+                    else if (notes.Contains("[ostype:openbsd]")) osType = "openbsd";
                     else if (notes.Contains("[ostype:openwrt]")) osType = "openwrt";
                     else if (notes.Contains("[ostype:fnos]")) osType = "fnos";
                     else if (notes.Contains("[ostype:chromeos]")) osType = "chromeos";
                     else if (notes.Contains("[ostype:fydeos]")) osType = "fydeos";
                 }
 
-                // 传递原始 TimeSpan
                 var instance = new VmInstanceInfo(
                     vm.Name,
                     vm.Status,
@@ -93,7 +141,6 @@ namespace ExHyperV.ViewModels
                     vm.Uptime
                 );
 
-                // 监听系统类型改变并自动写入 Hyper-V Notes
                 instance.PropertyChanged += async (s, e) =>
                 {
                     if (e.PropertyName == nameof(VmInstanceInfo.OsType))
@@ -105,34 +152,34 @@ namespace ExHyperV.ViewModels
                 VmList.Add(instance);
             }
             IsLoading = false;
+            SelectedVm = VmList.FirstOrDefault();
 
-            // 启动后台轮询
+            if (!string.IsNullOrEmpty(SearchText))
+            {
+                OnSearchTextChanged(SearchText);
+            }
+
             _ = StatusPollingLoop();
         }
 
-        // 后台校准循环：每3秒一次，修正时间误差，获取真实状态
         private async Task StatusPollingLoop()
         {
             while (true)
             {
                 if (VmList.Count > 0)
                 {
-                    // 创建副本列表以防集合修改
                     var checkList = VmList.ToList();
                     foreach (var vm in checkList)
                     {
                         var info = await _instancesService.GetVmDynamicInfoAsync(vm.Name);
 
-                        // 更新 UI 线程上的属性
                         System.Windows.Application.Current.Dispatcher.Invoke(() =>
                         {
-                            vm.State = info.State; // 会自动更新 IsRunning
-                            // 覆盖时间（校准）
+                            vm.State = info.State;
                             vm.RawUptime = info.Uptime;
                         });
                     }
                 }
-                // 每3秒进行一次后台校准
                 await Task.Delay(3000);
             }
         }
@@ -142,7 +189,6 @@ namespace ExHyperV.ViewModels
         {
             if (SelectedVm == null) return;
 
-            // 对危险操作进行二次确认
             bool confirmed = action switch
             {
                 "Restart" => await DialogManager.ShowConfirmAsync(
@@ -157,33 +203,27 @@ namespace ExHyperV.ViewModels
                     Resources.Confirm_TurnOff_Title,
                     string.Format(Resources.Confirm_TurnOff_Message, SelectedVm.Name),
                     isDanger: true),
-                _ => true // 启动、暂停、保存等操作无需确认
+                _ => true
             };
 
             if (!confirmed) return;
 
             await _instancesService.ExecuteControlActionAsync(SelectedVm.Name, action);
 
-            // 操作后立即校准一次状态，提升交互响应感
+            // 操作后立即强制刷新一次状态，确保 UI 按钮状态及时更新
             var info = await _instancesService.GetVmDynamicInfoAsync(SelectedVm.Name);
             SelectedVm.State = info.State;
             SelectedVm.RawUptime = info.Uptime;
         }
     }
 
-    // ==========================================
-    // UI 绑定的包装类
-    // ==========================================
     public partial class VmInstanceInfo : ObservableObject
     {
         [ObservableProperty] private string _name;
-        [ObservableProperty] private string _state; // 如 "运行中", "已关机"
+        [ObservableProperty] private string _state;
         [ObservableProperty] private string _osType;
-
-        // 配置摘要 (用于 UI 显示: "16 Cores / 4.0GB RAM / 64G")
         [ObservableProperty] private string _configSummary;
 
-        // 原始时间数据
         private TimeSpan _rawUptime;
         public TimeSpan RawUptime
         {
@@ -192,17 +232,14 @@ namespace ExHyperV.ViewModels
             {
                 if (SetProperty(ref _rawUptime, value))
                 {
-                    // 当原始时间改变时，通知 Uptime 字符串更新
                     OnPropertyChanged(nameof(Uptime));
                 }
             }
         }
 
-        // 给 UI 绑定的格式化时间字符串
         public string Uptime => string.Format("{0:D2}:{1:D2}:{2:D2}:{3:D2}",
             _rawUptime.Days, _rawUptime.Hours, _rawUptime.Minutes, _rawUptime.Seconds);
 
-        // 判断是否应该计时
         public bool IsRunning => State == "运行中" || State == "正在启动" || State == "正在关闭";
 
         public VmInstanceInfo(string name, string state, string osType, int cpu, double ram, string disk, TimeSpan uptime)
@@ -214,17 +251,14 @@ namespace ExHyperV.ViewModels
             _configSummary = $"{cpu} Cores / {ram:F1}GB RAM / {disk}";
         }
 
-        // 手动增加一秒 (由定时器调用)
         public void AddOneSecond()
         {
             RawUptime = RawUptime.Add(TimeSpan.FromSeconds(1));
         }
 
-        // 当状态改变时，更新 IsRunning 属性
         partial void OnStateChanged(string value)
         {
             OnPropertyChanged(nameof(IsRunning));
-            // 如果关机了，重置时间为 0
             if (value == "已关机")
             {
                 RawUptime = TimeSpan.Zero;

@@ -15,6 +15,12 @@
     <Compile Update="Views\ChoosePartitionWindow.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Update="Views\Components\VmCpuSettingsView.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="Views\Components\VmDashboardView.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Update="Views\CpuAffinityDialog.xaml.cs">
       <SubType>Code</SubType>
     </Compile>

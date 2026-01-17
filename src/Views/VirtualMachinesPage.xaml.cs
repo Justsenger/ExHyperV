@@ -4,12 +4,12 @@ using ExHyperV.Services;
 
 namespace ExHyperV.Views.Pages
 {
-    public partial class InstancesPage : Page
+    public partial class VirtualMachinesPage : Page
     {
-        public InstancesPage()
+        public VirtualMachinesPage()
         {
             InitializeComponent();
-            this.DataContext = new InstancesPageViewModel(new InstancesService());
+            this.DataContext = new VirtualMachinesPageViewModel(new InstancesService());
         }
     }
 }

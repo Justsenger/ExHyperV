@@ -7,7 +7,7 @@
         xmlns:pages="clr-namespace:ExHyperV.Views.Pages"
         xmlns:properties="clr-namespace:ExHyperV.Properties"
         mc:Ignorable="d"
-        Title="ExHyperV" Height="700" Width="1000"
+        Title="ExHyperV" Height="800" Width="1300"
         xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
         WindowStartupLocation="CenterScreen">
     <Grid>
@@ -47,9 +47,9 @@
                 </ui:NavigationViewItem>
 
                 <ui:NavigationViewItem
-                    Content="生命周期管理"
+                    Content="虚拟机"
                     NavigationCacheMode="Enabled"
-                    TargetPageType="{x:Type pages:InstancesPage}">
+                    TargetPageType="{x:Type pages:VirtualMachinesPage}">
                     <ui:NavigationViewItem.Icon>
                         <ui:FontIcon FontSize="16" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xF5ED;"/>
                     </ui:NavigationViewItem.Icon>
