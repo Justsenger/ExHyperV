@@ -15,6 +15,9 @@
     <Compile Update="Views\ChoosePartitionWindow.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Update="Views\Components\VmCpuAffinityView.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Update="Views\Components\VmCpuSettingsView.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
@@ -22,9 +25,6 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Update="Views\CpuAffinityDialog.xaml.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Update="Views\CpuPage.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
     <Compile Update="Views\ProgressWindow.xaml.cs">

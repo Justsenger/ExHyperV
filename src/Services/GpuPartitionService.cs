@@ -245,18 +245,22 @@ namespace ExHyperV.Services
             });
         }
 
-        public Task<List<VMInfo>> GetVirtualMachinesAsync()
+        public Task<List<VmInstanceInfo>> GetVirtualMachinesAsync()
         {
             return Task.Run(() =>
             {
-                var vmList = new List<VMInfo>();
-                var vms = Utils.Run(GetVmsScript);
+                var vmList = new List<VmInstanceInfo>();
+                var vms = Utils.Run(GetVmsScript); // 请确保你的 GetVmsScript 脚本里 Select 了 Id
                 if (vms.Count > 0)
                 {
                     foreach (var vm in vms)
                     {
                         var gpulist = new Dictionary<string, string>();
                         string vmname = vm.Members["VMName"]?.Value?.ToString() ?? string.Empty;
+
+                        // 获取 Guid
+                        Guid vmid = Guid.TryParse(vm.Members["Id"]?.Value?.ToString(), out var g) ? g : Guid.Empty;
+
                         string highmmio = vm.Members["HighMemoryMappedIoSpace"]?.Value?.ToString() ?? string.Empty;
                         string guest = vm.Members["GuestControlledCacheTypes"]?.Value?.ToString() ?? string.Empty;
                         string notes = vm.Members["Notes"]?.Value?.ToString() ?? string.Empty;
@@ -268,7 +272,6 @@ namespace ExHyperV.Services
                             {
                                 string gpupath = gpu.Members["InstancePath"]?.Value?.ToString() ?? string.Empty;
                                 string gpuid = gpu.Members["Id"]?.Value?.ToString() ?? string.Empty;
-                                // 如果InstancePath为空 (Win10场景)，则尝试从备注中解析
                                 if (string.IsNullOrEmpty(gpupath) && !string.IsNullOrEmpty(notes))
                                 {
                                     string tagPrefix = "[AssignedGPU:";
@@ -277,16 +280,21 @@ namespace ExHyperV.Services
                                     {
                                         startIndex += tagPrefix.Length;
                                         int endIndex = notes.IndexOf("]", startIndex);
-                                        if (endIndex != -1)
-                                        {
-                                            gpupath = notes.Substring(startIndex, endIndex - startIndex);
-                                        }
+                                        if (endIndex != -1) gpupath = notes.Substring(startIndex, endIndex - startIndex);
                                     }
                                 }
                                 gpulist[gpuid] = gpupath;
                             }
                         }
-                        vmList.Add(new VMInfo(vmname, null, highmmio, guest, gpulist));
+
+                        // 修复点：使用新的构造函数并设置初始化器
+                        vmList.Add(new VmInstanceInfo(vmid, vmname)
+                        {
+                            HighMMIO = highmmio,
+                            GuestControlled = guest,
+                            GPUs = gpulist,
+                            Notes = notes
+                        });
                     }
                 }
                 return vmList;

@@ -4,16 +4,17 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+             xmlns:tools="clr-namespace:ExHyperV.Tools"
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="800">
 
     <ScrollViewer Padding="24,24,24,24" VerticalScrollBarVisibility="Auto">
         <StackPanel>
 
-            <!-- CPU 模块 -->
+            <!-- 替换原来的 处理器(CPU) Border 块 -->
             <Border Background="{ui:ThemeResource CardBackgroundFillColorDefaultBrush}" 
-                    BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" 
-                    CornerRadius="8" Padding="20" Margin="0,0,0,24">
+        BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" 
+        CornerRadius="8" Padding="20" Margin="0,0,0,24">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -21,69 +22,61 @@
                     </Grid.RowDefinitions>
 
                     <!-- 标题栏 -->
-                    <Grid Grid.Row="0" Margin="0,0,0,20">
+                    <Grid Grid.Row="0" Margin="0,0,0,12">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
-
                         <TextBlock Text="处理器 (CPU)" FontSize="15" FontWeight="Medium" 
-                                   Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center"/>
-
-                        <!-- 齿轮配置按钮：绑定到 ViewModel 的 GoToCpuSettingsCommand -->
+                       Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
                         <ui:Button Grid.Column="1" Appearance="Secondary" Padding="6" 
-                                   ToolTip="配置处理器"
-                                   Command="{Binding DataContext.GoToCpuSettingsCommand, RelativeSource={RelativeSource AncestorType=Page}}">
+                       Command="{Binding DataContext.GoToCpuSettingsCommand, RelativeSource={RelativeSource AncestorType=Page}}">
                             <ui:SymbolIcon Symbol="Settings24"/>
                         </ui:Button>
                     </Grid>
 
-                    <!-- 内容 -->
-                    <Grid Grid.Row="1">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="20"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
+                    <!-- 内容区域：使用 StretchUniformGrid 显示核心 -->
+                    <ItemsControl Grid.Row="1" ItemsSource="{Binding SelectedVm.Cores}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <tools:StretchUniformGrid Columns="{Binding SelectedVm.Columns}" Rows="{Binding SelectedVm.Rows}" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <!-- 单个核心卡片 -->
+                                <Grid Margin="4" MinHeight="60">
+                                    <Border CornerRadius="4" BorderThickness="1" BorderBrush="#1A888888" Background="#08FFFFFF" ClipToBounds="True">
+                                        <Grid>
+                                            <!-- 背景网格 (可选) -->
+                                            <!-- <Rectangle Fill="{StaticResource FineGridBrush}"/> -->
 
-                        <!-- 大图标：旋转 90 度 -->
-                        <Border Grid.Column="0" Width="48" Height="48" CornerRadius="8" 
-                                Background="{ui:ThemeResource ControlFillColorSecondaryBrush}"
-                                BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
-                            <ui:FontIcon FontSize="24" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xF58E;" RenderTransformOrigin="0.5,0.5">
-                                <ui:FontIcon.RenderTransform>
-                                    <RotateTransform Angle="90"/>
-                                </ui:FontIcon.RenderTransform>
-                            </ui:FontIcon>
-                        </Border>
+                                            <!-- 波形图 -->
+                                            <Viewbox Stretch="Fill">
+                                                <Grid Width="100" Height="100">
+                                                    <Polygon Points="{Binding HistoryPoints}" Fill="#66117DBB"/>
+                                                    <Polyline Points="{Binding HistoryPoints}" Stroke="#FF54C7FC" StrokeThickness="1.5"/>
+                                                </Grid>
+                                            </Viewbox>
 
-                        <!-- 数据 -->
-                        <StackPanel Grid.Column="2" VerticalAlignment="Center">
-                            <!-- 数据绑定预留 -->
-                            <TextBlock Text="8 虚拟核心 (vCPU)" FontSize="16" FontWeight="SemiBold" 
-                                       Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,6"/>
+                                            <!-- 核心ID -->
+                                            <TextBlock Text="{Binding CoreId}" FontSize="10" Opacity="0.6" Margin="4,2" 
+                                           HorizontalAlignment="Left" VerticalAlignment="Top"
+                                           Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
 
-                            <Grid Height="4" VerticalAlignment="Center">
-                                <ProgressBar Value="12" Maximum="100" 
-                                             Background="{ui:ThemeResource ControlFillColorSecondaryBrush}" 
-                                             Foreground="{ui:ThemeResource SystemFillColorSuccessBrush}"
-                                             BorderThickness="0"/>
-                            </Grid>
-                        </StackPanel>
-
-                        <!-- 利用率数值 -->
-                        <StackPanel Grid.Column="3" VerticalAlignment="Center" Margin="16,0,0,0">
-                            <TextBlock Text="12%" FontSize="20" FontWeight="SemiBold" 
-                                       Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" HorizontalAlignment="Right"/>
-                            <TextBlock Text="利用率" FontSize="12" 
-                                       Foreground="{ui:ThemeResource TextFillColorTertiaryBrush}" HorizontalAlignment="Right"/>
-                        </StackPanel>
-                    </Grid>
+                                            <!-- 实时数值 -->
+                                            <TextBlock Text="{Binding Usage, StringFormat='{}{0:N0}%'}" 
+                                           FontSize="14" FontWeight="SemiBold"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center" 
+                                           Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                                        </Grid>
+                                    </Border>
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
                 </Grid>
             </Border>
-
-            <!-- 更多卡片可以在此添加... -->
 
         </StackPanel>
     </ScrollViewer>

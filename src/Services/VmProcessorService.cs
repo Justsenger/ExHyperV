@@ -1,22 +1,27 @@
-﻿using ExHyperV.Tools;
-using ExHyperV.ViewModels;
+﻿using ExHyperV.Models;
+using ExHyperV.Tools;
+using System;
+using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 
 namespace ExHyperV.Services
 {
+    public interface IVmProcessorService
+    {
+        Task<VmProcessorSettings?> GetVmProcessorAsync(string vmName);
+        Task<(bool Success, string Message)> SetVmProcessorAsync(string vmName, VmProcessorSettings processorSettings);
+    }
+
     public class VmProcessorService : IVmProcessorService
     {
-        public async Task<VMProcessorViewModel?> GetVmProcessorAsync(string vmName)
+        public async Task<VmProcessorSettings?> GetVmProcessorAsync(string vmName)
         {
             try
             {
                 var safeVmName = vmName.Replace("'", "''");
-                var script = $"Get-VM -Name '{safeVmName}' -ErrorAction Stop | Get-VMProcessor | Select-Object " +
-                             "Count, Reservation, Maximum, RelativeWeight, " +
-                             "ExposeVirtualizationExtensions, EnableHostResourceProtection, " +
-                             "CompatibilityForMigrationEnabled, CompatibilityForOlderOperatingSystemsEnabled, " +
-                             "HwThreadCountPerCore";
+                var script = $"Get-VM -Name '{safeVmName}' -ErrorAction Stop | Get-VMProcessor | Select-Object Count, Reservation, Maximum, RelativeWeight, ExposeVirtualizationExtensions, EnableHostResourceProtection, CompatibilityForMigrationEnabled, CompatibilityForOlderOperatingSystemsEnabled, HwThreadCountPerCore";
 
                 var results = await Utils.Run2(script);
                 var psObj = results.FirstOrDefault();
@@ -25,12 +30,14 @@ namespace ExHyperV.Services
 
                 dynamic data = psObj;
 
-                return new VMProcessorViewModel
+                // ★★★ 重点修改：增加了 (int) 强转 ★★★
+                return new VmProcessorSettings
                 {
-                    Count = GetLong(data.Count),
-                    Reserve = GetLong(data.Reservation),
-                    Maximum = GetLong(data.Maximum),
+                    Count = (int)GetLong(data.Count),
+                    Reserve = (int)GetLong(data.Reservation),
+                    Maximum = (int)GetLong(data.Maximum),
                     RelativeWeight = (int)GetLong(data.RelativeWeight),
+
                     ExposeVirtualizationExtensions = GetBool(data.ExposeVirtualizationExtensions),
                     EnableHostResourceProtection = GetBool(data.EnableHostResourceProtection),
                     CompatibilityForMigrationEnabled = GetBool(data.CompatibilityForMigrationEnabled),
@@ -44,7 +51,7 @@ namespace ExHyperV.Services
             }
         }
 
-        public async Task<(bool Success, string Message)> SetVmProcessorAsync(string vmName, VMProcessorViewModel processorSettings)
+        public async Task<(bool Success, string Message)> SetVmProcessorAsync(string vmName, VmProcessorSettings processorSettings)
         {
             try
             {
@@ -67,64 +74,30 @@ namespace ExHyperV.Services
 
                 await Utils.Run2(sb.ToString());
 
-                return (true, ExHyperV.Properties.Resources.SettingsSavedSuccessfully);
+                return (true, Properties.Resources.SettingsSavedSuccessfully);
             }
             catch (Exception ex)
             {
-                var friendlyMsg = GetFriendlyErrorMessage(ex.Message);
-                return (false, friendlyMsg);
+                return (false, ex.Message);
             }
         }
-        private string GetFriendlyErrorMessage(string rawMessage)
-        {
-            if (string.IsNullOrWhiteSpace(rawMessage)) return ExHyperV.Properties.Resources.UnknownError;
-            string cleanMsg = rawMessage.Trim();
-            cleanMsg = Regex.Replace(cleanMsg, @"[\(\（].*?ID\s+[a-fA-F0-9-]{36}.*?[\)\）]", "");
-            cleanMsg = cleanMsg.Replace("\r", "").Replace("\n", " ");
-            var parts = cleanMsg.Split(new[] { '。', '.' }, StringSplitOptions.RemoveEmptyEntries)
-                                .Select(s => s.Trim())
-                                .Where(s => !string.IsNullOrWhiteSpace(s))
-                                .ToList();
-            if (parts.Count >= 2)
-            {
-                var lastPart = parts.Last();
-                if (lastPart.Length > 2)
-                {
-                    return lastPart + "。";
-                }
-            }
 
-            return cleanMsg;
-        }
-
-        private SmtMode ConvertHwThreadsToSmtMode(uint hwThreads) => hwThreads switch
+        private ExHyperV.Models.SmtMode ConvertHwThreadsToSmtMode(uint hwThreads) => hwThreads switch
         {
-            0 => SmtMode.Inherit,
-            1 => SmtMode.SingleThread,
-            2 => SmtMode.MultiThread,
-            _ => SmtMode.Inherit
+            1 => ExHyperV.Models.SmtMode.SingleThread,
+            2 => ExHyperV.Models.SmtMode.MultiThread,
+            _ => ExHyperV.Models.SmtMode.Inherit
         };
 
-        private uint ConvertSmtModeToHwThreads(SmtMode smtMode) => smtMode switch
+        private uint ConvertSmtModeToHwThreads(ExHyperV.Models.SmtMode smtMode) => smtMode switch
         {
-            SmtMode.Inherit => 0,
-            SmtMode.SingleThread => 1,
-            SmtMode.MultiThread => 2,
+            ExHyperV.Models.SmtMode.SingleThread => 1,
+            ExHyperV.Models.SmtMode.MultiThread => 2,
             _ => 0
         };
 
         private string ToPsBool(bool value) => value ? "$true" : "$false";
-
-        private long GetLong(object value)
-        {
-            if (value == null) return 0;
-            try { return Convert.ToInt64(value); } catch { return 0; }
-        }
-
-        private bool GetBool(object value)
-        {
-            if (value == null) return false;
-            try { return Convert.ToBoolean(value); } catch { return false; }
-        }
+        private long GetLong(object value) { try { return Convert.ToInt64(value); } catch { return 0; } }
+        private bool GetBool(object value) { try { return Convert.ToBoolean(value); } catch { return false; } }
     }
 }

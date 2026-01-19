@@ -32,7 +32,7 @@ namespace ExHyperV
             RootNavigation.Navigate(typeof(StatusPage));
             RootNavigation.Navigate(typeof(VMNetPage));
             RootNavigation.Navigate(typeof(MemoryPage));
-            RootNavigation.Navigate(typeof(CpuPage));
+            //RootNavigation.Navigate(typeof(CpuPage));
 
             RootNavigation.Navigate(typeof(MainPage));
         }

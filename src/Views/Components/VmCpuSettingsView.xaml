@@ -5,6 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
              xmlns:vm="clr-namespace:ExHyperV.ViewModels"
+             xmlns:models="clr-namespace:ExHyperV.Models"
              xmlns:properties="clr-namespace:ExHyperV.Properties"
              xmlns:converters="clr-namespace:ExHyperV.Converters"
              mc:Ignorable="d" 
@@ -12,218 +13,215 @@
 
     <UserControl.Resources>
         <converters:InverseBooleanConverter x:Key="InverseBooleanConverter"/>
+        <converters:BooleanToVisibilityConverter x:Key="BoolToVis" />
+        <converters:SmtModeToBooleanConverter x:Key="SmtModeToBooleanConverter"/>
+
+        <Style x:Key="ShutdownRequiredToggleStyle" TargetType="ui:ToggleSwitch" BasedOn="{StaticResource {x:Type ui:ToggleSwitch}}">
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="ToolTipService.ShowOnDisabled" Value="True"/>
+
+            <!-- 核心优化：控制响应速度 -->
+            <Setter Property="ToolTipService.InitialShowDelay" Value="50"/>
+            <!-- 50毫秒显示，基本是瞬发感 -->
+            <Setter Property="ToolTipService.BetweenShowDelay" Value="0"/>
+            <!-- 鼠标在多个开关间移动时，无需再次等待直接显示 -->
+            <Setter Property="ToolTipService.ShowDuration" Value="10000"/>
+            <!-- 显示时长，防止用户还没看清就消失了 -->
+
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding SelectedVm.IsRunning}" Value="True">
+                    <Setter Property="ToolTip" Value="此设置项要求虚拟机处于关机状态"/>
+                </DataTrigger>
+                <!-- 如果你想在非关机状态显示功能描述，可以保留 Tag 绑定 -->
+                <DataTrigger Binding="{Binding SelectedVm.IsRunning}" Value="False">
+                    <Setter Property="ToolTip" Value="{Binding RelativeSource={RelativeSource Self}, Path=Tag}"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
     </UserControl.Resources>
 
-    <!-- 顶部 Padding 从 24,12,24,24 改为 24,0,24,24，去掉顶部留白 -->
-    <ScrollViewer Padding="24,0,24,24" VerticalScrollBarVisibility="Auto">
-        <StackPanel>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
 
-            <!-- 1. 顶部 Header Bar (标题左，按钮右) -->
-            <!-- 增加底部 Margin，与内容拉开距离 -->
-            <Grid Margin="0,16,0,24">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
+        <!-- 标题区域 -->
+        <Grid Grid.Row="0" Margin="24,16,24,12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="处理器设置" FontSize="20" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+            <ui:Button Grid.Column="1" Appearance="Transparent" Padding="8" Command="{Binding GoBackToDashboardCommand}">
+                <ui:SymbolIcon Symbol="ArrowLeft24" FontSize="18"/>
+            </ui:Button>
+        </Grid>
 
-                <!-- 标题 (左对齐) -->
-                <TextBlock Text="处理器设置" FontSize="20" FontWeight="SemiBold"
-                           VerticalAlignment="Center" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+        <ProgressBar Grid.Row="1" IsIndeterminate="True" VerticalAlignment="Top" Height="2" Margin="0,-2,0,0"
+                     Visibility="{Binding IsLoadingSettings, Converter={StaticResource BoolToVis}}"/>
 
-                <!-- 返回按钮 (右对齐) -->
-                <ui:Button Grid.Column="1" Appearance="Transparent" Padding="8" Margin="0"
-                           ToolTip="返回" VerticalAlignment="Center"
-                           Command="{Binding DataContext.GoBackToDashboardCommand, RelativeSource={RelativeSource AncestorType=Page}}">
-                    <ui:SymbolIcon Symbol="ArrowLeft24" FontSize="18"/>
-                </ui:Button>
-            </Grid>
+        <ScrollViewer Grid.Row="2" Padding="24,12,24,24" VerticalScrollBarVisibility="Auto"
+                      IsEnabled="{Binding IsLoadingSettings, Converter={StaticResource InverseBooleanConverter}}">
+            <StackPanel>
 
-            <!-- 2. 计算资源 -->
-            <TextBlock Text="{x:Static properties:Resources.ComputeResources}" FontSize="14" 
-                       Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" Margin="0,0,0,12"/>
+                <!-- 计算资源 -->
+                <TextBlock Text="{x:Static properties:Resources.ComputeResources}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" Margin="0,0,0,12"/>
+                <Border Background="{ui:ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="24" Margin="0,0,0,32">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="16"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="16"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="16"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="24"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="{x:Static properties:Resources.VCpuCount}" FontSize="13" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" Margin="0,0,0,8"/>
+                            <ComboBox IsEditable="True" HorizontalAlignment="Stretch" Padding="10,6" Text="{Binding SelectedVm.Processor.Count, UpdateSourceTrigger=PropertyChanged}" ItemsSource="{Binding PossibleVCpuCounts}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="{x:Static properties:Resources.ReservePercentage}" FontSize="13" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" Margin="0,0,0,8"/>
+                            <ComboBox IsEditable="True" HorizontalAlignment="Stretch" Padding="10,6" Text="{Binding SelectedVm.Processor.Reserve, UpdateSourceTrigger=PropertyChanged}">
+                                <ComboBoxItem Content="0"/>
+                                <ComboBoxItem Content="10"/>
+                                <ComboBoxItem Content="25"/>
+                                <ComboBoxItem Content="50"/>
+                            </ComboBox>
+                        </StackPanel>
+                        <StackPanel Grid.Column="4">
+                            <TextBlock Text="{x:Static properties:Resources.LimitPercentage}" FontSize="13" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" Margin="0,0,0,8"/>
+                            <ComboBox IsEditable="True" HorizontalAlignment="Stretch" Padding="10,6" Text="{Binding SelectedVm.Processor.Maximum, UpdateSourceTrigger=PropertyChanged}">
+                                <ComboBoxItem Content="100"/>
+                                <ComboBoxItem Content="75"/>
+                                <ComboBoxItem Content="50"/>
+                                <ComboBoxItem Content="25"/>
+                            </ComboBox>
+                        </StackPanel>
+                        <StackPanel Grid.Column="6">
+                            <TextBlock Text="{x:Static properties:Resources.Weight}" FontSize="13" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" Margin="0,0,0,8"/>
+                            <ComboBox IsEditable="True" HorizontalAlignment="Stretch" Padding="10,6" Text="{Binding SelectedVm.Processor.RelativeWeight, UpdateSourceTrigger=PropertyChanged}">
+                                <ComboBoxItem Content="50"/>
+                                <ComboBoxItem Content="100"/>
+                                <ComboBoxItem Content="150"/>
+                                <ComboBoxItem Content="200"/>
+                            </ComboBox>
+                        </StackPanel>
+                        <ui:Button Grid.Column="8" Content="{x:Static properties:Resources.Apply}" Appearance="Primary" VerticalAlignment="Bottom" Padding="24,7" Command="{Binding ApplyChangesCommand}"/>
+                    </Grid>
+                </Border>
 
-            <!-- 恢复 Padding="24" 和内部行间距，让卡片看起来不那么扁 -->
-            <Border Background="{ui:ThemeResource CardBackgroundFillColorDefaultBrush}" 
-                    BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" 
-                    CornerRadius="8" Padding="24" Margin="0,0,0,32">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <!-- 核心 -->
-                        <ColumnDefinition Width="16"/>
-                        <ColumnDefinition Width="*"/>
-                        <!-- 预留 -->
-                        <ColumnDefinition Width="16"/>
-                        <ColumnDefinition Width="*"/>
-                        <!-- 限制 -->
-                        <ColumnDefinition Width="16"/>
-                        <ColumnDefinition Width="*"/>
-                        <!-- 权重 -->
-                        <ColumnDefinition Width="24"/>
-                        <!-- 按钮间距 -->
-                        <ColumnDefinition Width="Auto"/>
-                        <!-- 按钮 -->
-                    </Grid.ColumnDefinitions>
+                <!-- 高级功能 -->
+                <TextBlock Text="{x:Static properties:Resources.AdvancedFeatures}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" Margin="0,0,0,12"/>
+                <Border Background="{ui:ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="0" Margin="0,0,0,32">
+                    <StackPanel>
+                        <!-- 主机资源保护 (不需关机) -->
+                        <Grid Margin="24,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="{x:Static properties:Resources.HostResourceProtection}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
+                                <TextBlock Text="{x:Static properties:Resources.LimitVmBusCommunicationFrequency}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                            </StackPanel>
+                            <ui:ToggleSwitch Grid.Column="1" IsChecked="{Binding SelectedVm.Processor.EnableHostResourceProtection}" Command="{Binding ApplyChangesCommand}"/>
+                        </Grid>
+                        <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
 
-                    <StackPanel Grid.Column="0">
-                        <TextBlock Text="{x:Static properties:Resources.VCpuCount}" FontSize="13" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" Margin="0,0,0,8"/>
-                        <!-- 增加 ComboBox 高度/Padding -->
-                        <ComboBox IsEditable="True" HorizontalAlignment="Stretch" Padding="10,6"
-                                  Text="{Binding SelectedVm.Processor.Count, UpdateSourceTrigger=PropertyChanged}"
-                                  ItemsSource="{Binding PossibleVCpuCounts}"/>
+                        <!-- 嵌套虚拟化 -->
+                        <Grid Margin="24,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="{x:Static properties:Resources.NestedVirtualization}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
+                                <TextBlock Text="{x:Static properties:Resources.NestedVirtualizationDescription}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                            </StackPanel>
+                            <ui:ToggleSwitch Grid.Column="1" Style="{StaticResource ShutdownRequiredToggleStyle}"
+                                             IsChecked="{Binding SelectedVm.Processor.ExposeVirtualizationExtensions}" 
+                                             IsEnabled="{Binding SelectedVm.IsRunning, Converter={StaticResource InverseBooleanConverter}}" 
+                                             Command="{Binding ApplyChangesCommand}"/>
+                        </Grid>
+                        <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
+
+                        <!-- 迁移兼容性 -->
+                        <Grid Margin="24,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="{x:Static properties:Resources.MigrationCompatibility}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
+                                <TextBlock Text="{x:Static properties:Resources.MigrationCompatibilityDescription}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                            </StackPanel>
+                            <ui:ToggleSwitch Grid.Column="1" Style="{StaticResource ShutdownRequiredToggleStyle}"
+                                             IsChecked="{Binding SelectedVm.Processor.CompatibilityForMigrationEnabled}" 
+                                             IsEnabled="{Binding SelectedVm.IsRunning, Converter={StaticResource InverseBooleanConverter}}" 
+                                             Command="{Binding ApplyChangesCommand}"/>
+                        </Grid>
+                        <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
+
+                        <!-- 旧系统兼容性 -->
+                        <Grid Margin="24,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="{x:Static properties:Resources.LegacySystemCompatibility}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
+                                <TextBlock Text="{x:Static properties:Resources.LegacySystemCompatibilityDescription}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                            </StackPanel>
+                            <ui:ToggleSwitch Grid.Column="1" Style="{StaticResource ShutdownRequiredToggleStyle}"
+                                             IsChecked="{Binding SelectedVm.Processor.CompatibilityForOlderOperatingSystemsEnabled}" 
+                                             IsEnabled="{Binding SelectedVm.IsRunning, Converter={StaticResource InverseBooleanConverter}}" 
+                                             Command="{Binding ApplyChangesCommand}"/>
+                        </Grid>
                     </StackPanel>
+                </Border>
 
-                    <StackPanel Grid.Column="2">
-                        <TextBlock Text="{x:Static properties:Resources.ReservePercentage}" FontSize="13" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" Margin="0,0,0,8"/>
-                        <ComboBox IsEditable="True" HorizontalAlignment="Stretch" Padding="10,6"
-                                  Text="{Binding SelectedVm.Processor.Reserve, UpdateSourceTrigger=PropertyChanged}">
-                            <ComboBoxItem Content="0"/>
-                            <ComboBoxItem Content="10"/>
-                            <ComboBoxItem Content="25"/>
-                            <ComboBoxItem Content="50"/>
-                        </ComboBox>
+                <!-- 拓扑 -->
+                <TextBlock Text="拓扑" FontSize="14" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" Margin="0,0,0,12"/>
+                <Border Background="{ui:ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="0">
+                    <StackPanel>
+                        <!-- 虚拟机 SMT -->
+                        <Grid Margin="24,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="{x:Static properties:Resources.VirtualMachineSmt}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
+                                <TextBlock Text="{x:Static properties:Resources.VirtualMachineSmtDescription}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                            </StackPanel>
+                            <ui:ToggleSwitch Grid.Column="1" Style="{StaticResource ShutdownRequiredToggleStyle}"
+                                             IsChecked="{Binding SelectedVm.Processor.SmtMode, Converter={StaticResource SmtModeToBooleanConverter}}" 
+                                             IsEnabled="{Binding SelectedVm.IsRunning, Converter={StaticResource InverseBooleanConverter}}" 
+                                             Command="{Binding ApplyChangesCommand}"/>
+                        </Grid>
+                        <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
+
+                        <!-- CPU 绑定 -->
+                        <Grid Margin="24,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="{x:Static properties:Resources.CpuBinding}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
+                                <TextBlock Text="配置虚拟机与物理核心的亲和性" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                            </StackPanel>
+                            <ui:Button Grid.Column="1" Content="配置亲和性" Icon="BranchFork24" Padding="16,6" Command="{Binding OpenVmCpuAffinityCommand}"/>
+                        </Grid>
                     </StackPanel>
-
-                    <StackPanel Grid.Column="4">
-                        <TextBlock Text="{x:Static properties:Resources.LimitPercentage}" FontSize="13" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" Margin="0,0,0,8"/>
-                        <ComboBox IsEditable="True" HorizontalAlignment="Stretch" Padding="10,6"
-                                  Text="{Binding SelectedVm.Processor.Maximum, UpdateSourceTrigger=PropertyChanged}">
-                            <ComboBoxItem Content="100"/>
-                            <ComboBoxItem Content="75"/>
-                            <ComboBoxItem Content="50"/>
-                            <ComboBoxItem Content="25"/>
-                        </ComboBox>
-                    </StackPanel>
-
-                    <StackPanel Grid.Column="6">
-                        <TextBlock Text="{x:Static properties:Resources.Weight}" FontSize="13" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" Margin="0,0,0,8"/>
-                        <ComboBox IsEditable="True" HorizontalAlignment="Stretch" Padding="10,6"
-                                  Text="{Binding SelectedVm.Processor.RelativeWeight, UpdateSourceTrigger=PropertyChanged}">
-                            <ComboBoxItem Content="50"/>
-                            <ComboBoxItem Content="100"/>
-                            <ComboBoxItem Content="150"/>
-                            <ComboBoxItem Content="200"/>
-                        </ComboBox>
-                    </StackPanel>
-
-                    <!-- 按钮增加高度 -->
-                    <ui:Button Grid.Column="8" Content="{x:Static properties:Resources.Apply}" 
-                               Appearance="Primary" VerticalAlignment="Bottom" Padding="24,7" Margin="0,0,0,1"
-                               Command="{Binding DataContext.ApplyChangesCommand, RelativeSource={RelativeSource AncestorType=Page}}"/>
-                </Grid>
-            </Border>
-
-            <!-- 3. 高级特性 (恢复内部 Margin) -->
-            <TextBlock Text="{x:Static properties:Resources.AdvancedFeatures}" FontSize="14" 
-                       Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" Margin="0,0,0,12"/>
-
-            <Border Background="{ui:ThemeResource CardBackgroundFillColorDefaultBrush}" 
-                    BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" 
-                    CornerRadius="8" Padding="0" Margin="0,0,0,32">
-                <StackPanel>
-
-                    <Grid Margin="24,16">
-                        <!-- 恢复 Margin="24,16" -->
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <StackPanel VerticalAlignment="Center">
-                            <TextBlock Text="{x:Static properties:Resources.NestedVirtualization}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
-                            <TextBlock Text="{x:Static properties:Resources.NestedVirtualizationDescription}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
-                        </StackPanel>
-                        <ui:ToggleSwitch Grid.Column="1" IsChecked="{Binding SelectedVm.Processor.ExposeVirtualizationExtensions}" />
-                    </Grid>
-
-                    <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
-
-                    <Grid Margin="24,16">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <StackPanel VerticalAlignment="Center">
-                            <TextBlock Text="{x:Static properties:Resources.HostResourceProtection}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
-                            <TextBlock Text="{x:Static properties:Resources.LimitVmBusCommunicationFrequency}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
-                        </StackPanel>
-                        <ui:ToggleSwitch Grid.Column="1" IsChecked="{Binding SelectedVm.Processor.EnableHostResourceProtection}" />
-                    </Grid>
-
-                    <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
-
-                    <Grid Margin="24,16">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <StackPanel VerticalAlignment="Center">
-                            <TextBlock Text="{x:Static properties:Resources.MigrationCompatibility}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
-                            <TextBlock Text="{x:Static properties:Resources.MigrationCompatibilityDescription}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
-                        </StackPanel>
-                        <ui:ToggleSwitch Grid.Column="1" IsChecked="{Binding SelectedVm.Processor.CompatibilityForMigrationEnabled}" />
-                    </Grid>
-
-                    <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
-
-                    <Grid Margin="24,16">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <StackPanel VerticalAlignment="Center">
-                            <TextBlock Text="{x:Static properties:Resources.LegacySystemCompatibility}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
-                            <TextBlock Text="{x:Static properties:Resources.LegacySystemCompatibilityDescription}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
-                        </StackPanel>
-                        <ui:ToggleSwitch Grid.Column="1" IsChecked="{Binding SelectedVm.Processor.CompatibilityForOlderOperatingSystemsEnabled}" />
-                    </Grid>
-                </StackPanel>
-            </Border>
-
-            <!-- 4. 拓扑与绑定 -->
-            <TextBlock Text="拓扑" FontSize="14" 
-                       Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" Margin="0,0,0,12"/>
-
-            <Border Background="{ui:ThemeResource CardBackgroundFillColorDefaultBrush}" 
-                    BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" 
-                    CornerRadius="8" Padding="0">
-                <StackPanel>
-                    <Grid Margin="24,16">
-                        <!-- 恢复 Margin="24,16" -->
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <StackPanel VerticalAlignment="Center">
-                            <TextBlock Text="{x:Static properties:Resources.VirtualMachineSmt}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
-                            <TextBlock Text="{x:Static properties:Resources.VirtualMachineSmtDescription}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
-                        </StackPanel>
-                        <ComboBox Grid.Column="1" Width="140" Padding="10,6"
-                                  SelectedValue="{Binding SelectedVm.Processor.SmtMode, Mode=TwoWay}" 
-                                  SelectedValuePath="Tag">
-                            <ComboBoxItem Content="{x:Static properties:Resources.FollowHost}" Tag="{x:Static vm:SmtMode.Inherit}"/>
-                            <ComboBoxItem Content="{x:Static properties:Resources.On}" Tag="{x:Static vm:SmtMode.MultiThread}"/>
-                            <ComboBoxItem Content="{x:Static properties:Resources.Close}" Tag="{x:Static vm:SmtMode.SingleThread}"/>
-                        </ComboBox>
-                    </Grid>
-
-                    <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
-
-                    <Grid Margin="24,16">
-                        <!-- 恢复 Margin="24,16" -->
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <StackPanel VerticalAlignment="Center">
-                            <TextBlock Text="{x:Static properties:Resources.CpuBinding}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
-                            <TextBlock Text="配置虚拟机与物理核心的亲和性" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
-                        </StackPanel>
-                        <ui:Button Grid.Column="1" Content="配置亲和性" Icon="BranchFork24" Padding="16,6"
-                                   Command="{Binding DataContext.OpenVmCpuAffinityCommand, RelativeSource={RelativeSource AncestorType=Page}}"/>
-                    </Grid>
-                </StackPanel>
-            </Border>
-
-        </StackPanel>
-    </ScrollViewer>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
 </UserControl>

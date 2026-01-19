@@ -7,7 +7,7 @@
         xmlns:pages="clr-namespace:ExHyperV.Views.Pages"
         xmlns:properties="clr-namespace:ExHyperV.Properties"
         mc:Ignorable="d"
-        Title="ExHyperV" Height="800" Width="1300"
+        Title="ExHyperV" Height="800" Width="1100"
         xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
         WindowStartupLocation="CenterScreen">
     <Grid>
@@ -108,27 +108,6 @@
                 </ui:NavigationViewItem>
 
                 <ui:NavigationViewItem
-                    x:Name="CPU"
-                    Content="{x:Static properties:Resources.Cpu}"
-                    TargetPageType="{x:Type pages:CpuPage}"
-                    NavigationCacheMode="Enabled"
-                    Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"
-                    >
-                    <ui:NavigationViewItem.Icon>
-                        <ui:FontIcon FontSize="16" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xF58E;" RenderTransformOrigin="0.5,0.5">
-                            <ui:FontIcon.RenderTransform>
-                                <TransformGroup>
-                                    <ScaleTransform/>
-                                    <SkewTransform/>
-                                    <RotateTransform Angle="90"/>
-                                    <TranslateTransform/>
-                                </TransformGroup>
-                            </ui:FontIcon.RenderTransform>
-                        </ui:FontIcon>
-                    </ui:NavigationViewItem.Icon>
-                </ui:NavigationViewItem>
-
-                <ui:NavigationViewItem
                     x:Name="Storage"
                     Content="{x:Static properties:Resources.Storage}"
                     NavigationCacheMode="Enabled"
@@ -156,7 +135,6 @@
 
         </ui:NavigationView>
         
-        <!-- 弹窗提示，跨越两个格子，居中显示，定义在DDAcs里面 -->
         <ContentPresenter Grid.Row="1" Grid.RowSpan="2" Grid.ColumnSpan="2" x:Name="ContentPresenterForDialogs"/>
         <ui:SnackbarPresenter Grid.Row="2" Grid.Column="1" VerticalAlignment="Bottom" x:Name="SnackbarPresenter"/>
         

@@ -1,135 +1,107 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using ExHyperV.Models;
+﻿using ExHyperV.Models;
 using ExHyperV.Tools;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace ExHyperV.Services
 {
     public class InstancesService
     {
-        public Task<List<VMInfo>> GetVmListAsync()
+        public async Task<List<VmInstanceInfo>> GetVmListAsync()
         {
-            return Task.Run(() =>
-            {
-                var vmList = new List<VMInfo>();
-                string script = @"
-                    Get-VM | ForEach-Object {
-                        $vhd = Get-VMHardDiskDrive -VMName $_.Name | Select-Object -First 1
-                        $vhdSize = 0
-                        if ($vhd -and $vhd.Path) {
-                            try {
-                                $vhdInfo = Get-VHD -Path $vhd.Path -ErrorAction SilentlyContinue
-                                if ($vhdInfo) { $vhdSize = $vhdInfo.Size }
-                            } catch {}
-                        }
-                        # 修改：直接获取 Ticks
-                        $upTicks = $_.Uptime.Ticks
-                        
-                        [PSCustomObject]@{
-                            Name = $_.Name
-                            State = $_.State
-                            Notes = $_.Notes
-                            Generation = $_.Generation
-                            CPU = $_.ProcessorCount
-                            RAM = [Math]::Round($_.MemoryStartup / 1GB, 1)
-                            Disk = [Math]::Round($vhdSize / 1GB, 0)
-                            UptimeTicks = $upTicks
-                        }
-                    }";
+            var vmList = new List<VmInstanceInfo>();
+            string script = @"
+                Get-VM | ForEach-Object {
+                    $vhd = Get-VMHardDiskDrive -VMName $_.Name | Select-Object -First 1
+                    $vhdSize = 0
+                    if ($vhd -and $vhd.Path) {
+                        try {
+                            $vhdInfo = Get-VHD -Path $vhd.Path -ErrorAction SilentlyContinue
+                            if ($vhdInfo) { $vhdSize = $vhdInfo.Size }
+                        } catch {}
+                    }
+                    [PSCustomObject]@{
+                        Id = $_.Id
+                        Name = $_.Name
+                        State = $_.State
+                        Notes = $_.Notes
+                        Generation = $_.Generation
+                        CPU = $_.ProcessorCount
+                        RAM = [Math]::Round($_.MemoryStartup / 1GB, 1)
+                        Disk = [Math]::Round($vhdSize / 1GB, 0)
+                        UptimeTicks = $_.Uptime.Ticks
+                    }
+                }";
 
-                var results = Utils.Run(script);
+            try
+            {
+                var results = await Task.Run(() => Utils.Run(script));
                 if (results != null)
                 {
                     foreach (var vm in results)
                     {
-                        string name = vm.Members["Name"]?.Value?.ToString() ?? "Unknown";
-                        string stateRaw = vm.Members["State"]?.Value?.ToString() ?? "Off";
-                        string notes = vm.Members["Notes"]?.Value?.ToString() ?? "";
-                        int gen = int.Parse(vm.Members["Generation"]?.Value?.ToString() ?? "0");
-                        int cpu = int.Parse(vm.Members["CPU"]?.Value?.ToString() ?? "0");
-                        double ram = double.Parse(vm.Members["RAM"]?.Value?.ToString() ?? "0");
-                        double diskSize = double.Parse(vm.Members["Disk"]?.Value?.ToString() ?? "0");
-
-                        // 修改：解析 Ticks
-                        long ticks = 0;
-                        if (vm.Members["UptimeTicks"]?.Value != null)
+                        if (vm == null || vm.Members == null) continue;
+                        Guid id = Guid.TryParse(GetProp(vm, "Id"), out var g) ? g : Guid.Empty;
+                        string name = GetProp(vm, "Name") ?? "Unknown";
+                        long.TryParse(GetProp(vm, "UptimeTicks"), out long ticks);
+                        var info = new VmInstanceInfo(id, name)
                         {
-                            long.TryParse(vm.Members["UptimeTicks"].Value.ToString(), out ticks);
-                        }
-                        TimeSpan uptime = TimeSpan.FromTicks(ticks);
-
-                        var info = new VMInfo(name, "", "", "", null, gen, stateRaw == "Running", notes, MapStateToText(stateRaw), cpu, ram, $"{diskSize}G", uptime);
+                            Generation = int.Parse(GetProp(vm, "Generation") ?? "0"),
+                            Notes = GetProp(vm, "Notes") ?? "",
+                            State = MapStateToText(GetProp(vm, "State")),
+                            CpuCount = int.Parse(GetProp(vm, "CPU") ?? "0"),
+                            MemoryGb = double.Parse(GetProp(vm, "RAM") ?? "0"),
+                            DiskSize = GetProp(vm, "Disk") + "G",
+                            RawUptime = TimeSpan.FromTicks(ticks)
+                        };
                         vmList.Add(info);
                     }
                 }
-                return vmList;
-            });
+            }
+            catch { }
+            return vmList;
         }
 
-        // 修改：返回值元组改为 (string State, TimeSpan Uptime)
-        public Task<(string State, TimeSpan Uptime)> GetVmDynamicInfoAsync(string vmName)
+        public async Task<string> GetVmSingleStateAsync(string vmName)
         {
-            return Task.Run(() =>
+            try
             {
-                // 获取 Uptime.Ticks
-                var result = Utils.Run($"(Get-VM -Name '{vmName}') | Select-Object State, @{{N='UpTicks';E={{$_.Uptime.Ticks}}}}");
-                if (result != null && result.Count > 0)
-                {
-                    string state = MapStateToText(result[0].Members["State"]?.Value?.ToString());
-
-                    long ticks = 0;
-                    if (result[0].Members["UpTicks"]?.Value != null)
-                    {
-                        long.TryParse(result[0].Members["UpTicks"].Value.ToString(), out ticks);
-                    }
-                    return (state, TimeSpan.FromTicks(ticks));
-                }
-                return ("未知", TimeSpan.Zero);
-            });
+                var res = await Task.Run(() => Utils.Run($"Get-VM -Name '{vmName.Replace("'", "''")}' | Select-Object -ExpandProperty State"));
+                return MapStateToText(res?.FirstOrDefault()?.ToString());
+            }
+            catch { return "已关机"; }
         }
+
+        public async Task ExecuteControlActionAsync(string vmName, string action)
+        {
+            var safeName = vmName.Replace("'", "''");
+            string cmd = action switch
+            {
+                "Start" => $"Start-VM -Name '{safeName}'",
+                "Stop" => $"Stop-VM -Name '{safeName}' -ErrorAction Stop",
+                "TurnOff" => $"Stop-VM -Name '{safeName}' -TurnOff -Force",
+                "Suspend" => $"Suspend-VM -Name '{safeName}'",
+                "Save" => $"Save-VM -Name '{safeName}'",
+                "Restart" => $"Restart-VM -Name '{safeName}' -Force -Confirm:$false",
+                _ => ""
+            };
+            if (!string.IsNullOrEmpty(cmd)) await Task.Run(() => Utils.Run(cmd));
+        }
+
+        private string GetProp(System.Management.Automation.PSObject obj, string propName) => obj.Members[propName]?.Value?.ToString();
 
         private static string MapStateToText(string state) => state switch
         {
             "Running" => "运行中",
             "Off" => "已关机",
             "Paused" => "已暂停",
-            "ShuttingDown" => "正在关闭",
-            "Stopping" => "正在关闭",
+            "ShuttingDown" or "Stopping" => "正在关闭",
             "Starting" => "正在启动",
             "Saving" => "正在保存",
             "Saved" => "已保存",
-            _ => state
+            _ => state ?? "已关机"
         };
-
-        public Task ExecuteControlActionAsync(string vmName, string action)
-        {
-            return Task.Run(() =>
-            {
-                string cmd = action switch
-                {
-                    "Start" => $"Start-VM -Name '{vmName}'",
-                    "Stop" => $"Stop-VM -Name '{vmName}'",
-                    "TurnOff" => $"Stop-VM -Name '{vmName}' -TurnOff",
-                    "Suspend" => $"Suspend-VM -Name '{vmName}'",
-                    "Save" => $"Save-VM -Name '{vmName}'",
-                    "Restart" => $"Restart-VM -Name '{vmName}' -Force",
-                    _ => null
-                };
-                if (!string.IsNullOrEmpty(cmd)) Utils.Run(cmd);
-            });
-        }
-
-        public Task UpdateOsTypeNoteAsync(string vmName, string osType)
-        {
-            return Task.Run(() =>
-            {
-                string script = $@"
-                    $vm = Get-VM -Name '{vmName}';
-                    $cleaned = $vm.Notes -replace '\[OSType:[^\]]+\]', '';
-                    Set-VM -VM $vm -Notes ($cleaned.Trim() + ' [OSType:{osType.ToLower()}]').Trim()";
-                Utils.Run(script);
-            });
-        }
     }
 }

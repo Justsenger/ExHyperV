@@ -18,7 +18,6 @@
         <converters:VmNameToIconConverter x:Key="VmNameToIconConverter" />
         <converters:OsTypeToImageConverter x:Key="OsTypeToImageConverter" />
 
-        <!-- 列表项模板 -->
         <DataTemplate x:Key="VmListItemTemplate">
             <Grid Margin="2,6">
                 <Grid.ColumnDefinitions>
@@ -48,40 +47,14 @@
             </Grid>
         </DataTemplate>
 
-        <!-- 加载中模板 -->
-        <DataTemplate x:Key="VmLoadingTemplate">
-            <Grid>
-                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                    <ui:ProgressRing IsIndeterminate="True" Width="40" Height="40" Margin="0,0,0,16"/>
-                    <TextBlock Text="{x:Static properties:Resources.DataLoading}" 
-                               Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
-                </StackPanel>
-            </Grid>
-        </DataTemplate>
-
-        <!-- 选择提示模板 -->
-        <DataTemplate x:Key="VmSelectPromptTemplate">
-            <Grid>
-                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Opacity="0.5">
-                    <ui:SymbolIcon Symbol="Desktop24" FontSize="64" Margin="0,0,0,16"/>
-                    <TextBlock Text="{x:Static properties:Resources.Instances_SelectVmPrompt}" FontSize="16"/>
-                </StackPanel>
-            </Grid>
-        </DataTemplate>
-
-        <!-- 核心详情页模板 -->
         <DataTemplate x:Key="VmDetailTemplate">
-            <Grid>
+            <Grid x:Name="DetailRootGrid">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
-                    <!-- Hero Header (公共) -->
                     <RowDefinition Height="Auto"/>
-                    <!-- Divider -->
                     <RowDefinition Height="*"/>
-                    <!-- Content (动态加载) -->
                 </Grid.RowDefinitions>
 
-                <!-- 1. 顶部 Hero Header (始终显示) -->
                 <Border Grid.Row="0" Margin="24,24,24,0" 
                         Background="{ui:ThemeResource ControlFillColorSecondaryBrush}" 
                         BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" 
@@ -94,12 +67,10 @@
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
 
-                        <!-- Icon -->
                         <Image Grid.Column="0" Source="{Binding OsType, Converter={StaticResource OsTypeToImageConverter}}" 
                                RenderOptions.BitmapScalingMode="HighQuality" 
                                Width="100" Height="100" VerticalAlignment="Center"/>
 
-                        <!-- Info -->
                         <StackPanel Grid.Column="2" VerticalAlignment="Center">
                             <TextBlock Text="{Binding Name}" FontSize="28" 
                                        Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,8"/>
@@ -136,79 +107,102 @@
                             </StackPanel>
                         </StackPanel>
 
-                        <!-- Buttons Area -->
                         <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Top">
-
                             <Border CornerRadius="8" ClipToBounds="True">
                                 <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                    </Grid.ColumnDefinitions>
+                                    <Grid Visibility="Hidden" IsHitTestVisible="False">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
 
-                                    <!-- 启动按钮 (关机时显示) -->
-                                    <ui:Button Grid.Column="0" Content="启动" Icon="Play24" Appearance="Primary" 
-                                               Padding="40,6" Height="36" CornerRadius="8" BorderThickness="0"
-                                               Visibility="{Binding IsRunning, Converter={StaticResource InverseBooleanConverter}}"
-                                               Command="{Binding DataContext.ControlCommand, RelativeSource={RelativeSource AncestorType=Page}}" 
-                                               CommandParameter="Start" Grid.ColumnSpan="2"/>
+                                        <ui:Button Grid.Column="0" Content="关机" Icon="Stop24" Appearance="Danger" 
+                                                   Padding="24,6" Height="36" BorderThickness="0" Margin="0"/>
 
-                                    <!-- 关机 + 下拉 (开机时显示) -->
-                                    <!-- 左侧：主关机 -->
-                                    <ui:Button Grid.Column="0" Content="关机" Icon="Stop24" Appearance="Danger" 
-                                               Padding="24,6" Height="36" CornerRadius="8,0,0,8" BorderThickness="0" Margin="0"
-                                               Visibility="{Binding IsRunning, Converter={StaticResource BoolToVis}}"
-                                               Command="{Binding DataContext.ControlCommand, RelativeSource={RelativeSource AncestorType=Page}}" 
-                                               CommandParameter="Stop"/>
+                                        <ui:DropDownButton Grid.Column="1" Icon="ChevronDown24" Appearance="Danger" 
+                                                           Padding="8,6" Height="36" BorderThickness="0" Margin="0"/>
+                                    </Grid>
 
-                                    <!-- 右侧：下拉菜单 -->
-                                    <ui:DropDownButton Grid.Column="1" Icon="ChevronDown24" Appearance="Danger" 
-                                                       Padding="8,6" Height="36" CornerRadius="0,8,8,0" BorderThickness="0" Margin="0"
-                                                       Visibility="{Binding IsRunning, Converter={StaticResource BoolToVis}}">
-                                        <ui:DropDownButton.Flyout>
-                                            <ContextMenu>
-                                                <MenuItem Header="重启" Icon="{ui:SymbolIcon ArrowCounterclockwise24}"
-                                                          Command="{Binding DataContext.ControlCommand, RelativeSource={RelativeSource AncestorType=Page}}" CommandParameter="Restart"/>
-                                                <MenuItem Header="暂停" Icon="{ui:SymbolIcon Pause24}"
-                                                          Command="{Binding DataContext.ControlCommand, RelativeSource={RelativeSource AncestorType=Page}}" CommandParameter="Suspend"/>
-                                                <Separator/>
-                                                <MenuItem Header="保存状态" Icon="{ui:SymbolIcon Save24}"
-                                                          Command="{Binding DataContext.ControlCommand, RelativeSource={RelativeSource AncestorType=Page}}" CommandParameter="Save"/>
-                                                <MenuItem Header="断电 (强制关闭)" Icon="{ui:SymbolIcon Power24}" Foreground="#E81123"
-                                                          Command="{Binding DataContext.ControlCommand, RelativeSource={RelativeSource AncestorType=Page}}" CommandParameter="TurnOff"/>
-                                            </ContextMenu>
-                                        </ui:DropDownButton.Flyout>
-                                    </ui:DropDownButton>
+                                    <ui:Button Content="启动" Icon="Play24" Appearance="Primary" 
+                                               Padding="0,6" Height="36" CornerRadius="8" BorderThickness="0"
+                                               HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                                               Command="{Binding ControlCommand}" 
+                                               CommandParameter="Start">
+                                        <ui:Button.Style>
+                                            <Style TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsRunning}" Value="False">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </ui:Button.Style>
+                                    </ui:Button>
+
+                                    <Grid>
+                                        <Grid.Style>
+                                            <Style TargetType="Grid">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsRunning}" Value="True">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Grid.Style>
+
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <ui:Button Grid.Column="0" Content="关机" Icon="Stop24" Appearance="Danger" 
+                                                   Padding="24,6" Height="36" CornerRadius="8,0,0,8" BorderThickness="0" Margin="0"
+                                                   Command="{Binding ControlCommand}" 
+                                                   CommandParameter="Stop"/>
+
+                                        <ui:DropDownButton Grid.Column="1" Icon="ChevronDown24" Appearance="Danger" 
+                                                           Padding="8,6" Height="36" CornerRadius="0,8,8,0" BorderThickness="0" Margin="0">
+                                            <ui:DropDownButton.Flyout>
+                                                <ContextMenu>
+                                                    <MenuItem Header="重启" Icon="{ui:SymbolIcon ArrowCounterclockwise24}"
+                                                              Command="{Binding PlacementTarget.DataContext.ControlCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" 
+                                                              CommandParameter="Restart"/>
+                                                    <MenuItem Header="暂停" Icon="{ui:SymbolIcon Pause24}"
+                                                              Command="{Binding PlacementTarget.DataContext.ControlCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" 
+                                                              CommandParameter="Suspend"/>
+                                                    <Separator/>
+                                                    <MenuItem Header="保存状态" Icon="{ui:SymbolIcon Save24}"
+                                                              Command="{Binding PlacementTarget.DataContext.ControlCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" 
+                                                              CommandParameter="Save"/>
+                                                    <MenuItem Header="断电 (强制关闭)" Icon="{ui:SymbolIcon Power24}" Foreground="#E81123"
+                                                              Command="{Binding PlacementTarget.DataContext.ControlCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" 
+                                                              CommandParameter="TurnOff"/>
+                                                </ContextMenu>
+                                            </ui:DropDownButton.Flyout>
+                                        </ui:DropDownButton>
+                                    </Grid>
                                 </Grid>
                             </Border>
-
                         </StackPanel>
                     </Grid>
                 </Border>
 
-                <!-- Divider -->
                 <Rectangle Grid.Row="1" Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,24,24,0" Opacity="0.5"/>
 
-                <!-- 2. 动态内容区域 (ContentControl) -->
-                <!-- 根据 ViewModel 的 CurrentViewType 属性来切换显示 Dashboard 或 Settings -->
-                <ContentControl Grid.Row="2" Content="{Binding DataContext.CurrentViewType, RelativeSource={RelativeSource AncestorType=Page}}">
+                <ContentControl Grid.Row="2" 
+                                Content="{Binding DataContext, RelativeSource={RelativeSource AncestorType=Page}}">
                     <ContentControl.Style>
                         <Style TargetType="ContentControl">
+                            <Setter Property="ContentTemplate">
+                                <Setter.Value>
+                                    <DataTemplate>
+                                        <components:VmDashboardView/>
+                                    </DataTemplate>
+                                </Setter.Value>
+                            </Setter>
                             <Style.Triggers>
-
-                                <!-- 状态: Dashboard -->
-                                <DataTrigger Binding="{Binding DataContext.CurrentViewType, RelativeSource={RelativeSource AncestorType=Page}}" 
-                                             Value="Dashboard">
-                                    <Setter Property="ContentTemplate">
-                                        <Setter.Value>
-                                            <DataTemplate>
-                                                <components:VmDashboardView/>
-                                            </DataTemplate>
-                                        </Setter.Value>
-                                    </Setter>
-                                </DataTrigger>
-
-                                <!-- 状态: CpuSettings -->
                                 <DataTrigger Binding="{Binding DataContext.CurrentViewType, RelativeSource={RelativeSource AncestorType=Page}}" 
                                              Value="CpuSettings">
                                     <Setter Property="ContentTemplate">
@@ -219,82 +213,68 @@
                                         </Setter.Value>
                                     </Setter>
                                 </DataTrigger>
-
+                                <DataTrigger Binding="{Binding DataContext.CurrentViewType, RelativeSource={RelativeSource AncestorType=Page}}" 
+                                             Value="CpuAffinity">
+                                    <Setter Property="ContentTemplate">
+                                        <Setter.Value>
+                                            <DataTemplate>
+                                                <components:VmCpuAffinityView/>
+                                            </DataTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </DataTrigger>
                             </Style.Triggers>
                         </Style>
                     </ContentControl.Style>
                 </ContentControl>
+
+                <Grid Grid.Row="0" Grid.RowSpan="3" Panel.ZIndex="100"
+                      Background="{ui:ThemeResource ApplicationBackgroundBrush}" 
+                      Visibility="{Binding DataContext.IsLoading, RelativeSource={RelativeSource AncestorType=Page}, Converter={StaticResource BoolToVis}}">
+                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                        <ui:ProgressRing IsIndeterminate="True" Width="40" Height="40" Margin="0,0,0,16"/>
+                        <TextBlock Text="{x:Static properties:Resources.DataLoading}" 
+                                   Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"
+                                   HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </Grid>
+
             </Grid>
         </DataTemplate>
-
     </Page.Resources>
 
     <Grid Margin="12">
-        <Grid IsEnabled="{Binding IsLoading, Converter={StaticResource InverseBooleanConverter}}">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="220" MinWidth="160" MaxWidth="300"/>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="220" MinWidth="160" MaxWidth="300"/>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
 
-            <Border Grid.Column="0" Background="{ui:ThemeResource ControlFillColorDefaultBrush}" 
-                    BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                    </Grid.RowDefinitions>
-
-                    <Grid Grid.Row="0" Margin="8">
-                        <ui:TextBox PlaceholderText="搜索虚拟机"
-                                    ClearButtonEnabled="True"
-                                    Padding="10,0,32,0"
-                                    Text="{Binding SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                        <ui:SymbolIcon Symbol="Search24" 
-                                       HorizontalAlignment="Right" 
-                                       Margin="0,0,10,0" 
-                                       Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"
-                                       IsHitTestVisible="False"/>
-                    </Grid>
-
-                    <ui:ListView Grid.Row="1" 
-                                 ItemsSource="{Binding VmList}" 
-                                 SelectedItem="{Binding SelectedVm, Mode=TwoWay}" 
-                                 ScrollViewer.VerticalScrollBarVisibility="Auto" 
-                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                                 ItemTemplate="{StaticResource VmListItemTemplate}"
-                                 Margin="4,0,4,4"/>
+        <Border Grid.Column="0" Background="{ui:ThemeResource ControlFillColorDefaultBrush}" 
+                BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <Grid Grid.Row="0" Margin="8">
+                    <ui:TextBox PlaceholderText="搜索虚拟机"
+                                ClearButtonEnabled="True"
+                                Padding="10,0,32,0"
+                                Text="{Binding SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                    <ui:SymbolIcon Symbol="Search24" HorizontalAlignment="Right" Margin="0,0,10,0" 
+                                   Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" IsHitTestVisible="False"/>
                 </Grid>
-            </Border>
+                <ui:ListView Grid.Row="1" ItemsSource="{Binding VmList}" SelectedItem="{Binding SelectedVm, Mode=TwoWay}" 
+                             ItemTemplate="{StaticResource VmListItemTemplate}" Margin="4,0,4,4"/>
+            </Grid>
+        </Border>
 
-            <GridSplitter Grid.Column="1" Width="12" HorizontalAlignment="Stretch" Background="Transparent"/>
+        <GridSplitter Grid.Column="1" Width="12" HorizontalAlignment="Stretch" Background="Transparent"/>
 
-            <Border Grid.Column="2" Background="{ui:ThemeResource LayerFillColorDefaultBrush}"
-                    BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" ClipToBounds="True">
-                <ContentControl Content="{Binding SelectedVm}">
-                    <ContentControl.Style>
-                        <Style TargetType="ContentControl">
-                            <Setter Property="ContentTemplate" Value="{StaticResource VmDetailTemplate}"/>
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding IsLoading}" Value="True">
-                                    <Setter Property="ContentTemplate" Value="{StaticResource VmLoadingTemplate}"/>
-                                </DataTrigger>
-                                <MultiDataTrigger>
-                                    <MultiDataTrigger.Conditions>
-                                        <Condition Binding="{Binding SelectedVm}" Value="{x:Null}"/>
-                                        <Condition Binding="{Binding IsLoading}" Value="False"/>
-                                    </MultiDataTrigger.Conditions>
-                                    <Setter Property="ContentTemplate" Value="{StaticResource VmSelectPromptTemplate}"/>
-                                </MultiDataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </ContentControl.Style>
-                </ContentControl>
-            </Border>
-        </Grid>
-
-        <ProgressBar VerticalAlignment="Top" Height="2" IsIndeterminate="True" 
-                     Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}" 
-                     Background="Transparent" BorderThickness="0"/>
+        <Border Grid.Column="2" Background="{ui:ThemeResource LayerFillColorDefaultBrush}"
+                BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" ClipToBounds="True">
+            <ContentControl Content="{Binding SelectedVm}" ContentTemplate="{StaticResource VmDetailTemplate}"/>
+        </Border>
     </Grid>
 </Page>
