@@ -56,7 +56,6 @@ namespace ExHyperV.Models
     {
         [ObservableProperty] private Guid _id;
         [ObservableProperty] private string _name;
-        [ObservableProperty] private string _state;
         [ObservableProperty] private string _notes;
         [ObservableProperty] private int _generation;
         [ObservableProperty] private int _cpuCount;
@@ -68,99 +67,138 @@ namespace ExHyperV.Models
         [ObservableProperty] private string _guestControlled;
         [ObservableProperty] private Dictionary<string, string> _gPUs = new();
         [ObservableProperty] private double _averageUsage;
-        [ObservableProperty] private string _uptime;
 
-        public IAsyncRelayCommand<string> ControlCommand { get; set; }
+        [ObservableProperty] private string _state;
+        [ObservableProperty] private string _uptime = "00:00:00";
+        [ObservableProperty] private bool _isRunning;
 
-        private TimeSpan _rawUptime;
-        public TimeSpan RawUptime
-        {
-            get => _rawUptime;
-            set
-            {
-                if (SetProperty(ref _rawUptime, value))
-                {
-                    if (IsRunning)
-                    {
-                        BootTime = DateTime.Now - value;
-                        UpdateUptimeDisplay();
-                    }
-                    else
-                    {
-                        Uptime = FormatUptime(value);
-                    }
-                }
-            }
-        }
-
-        public DateTime BootTime { get; private set; }
-
-        public ObservableCollection<VmCoreModel> Cores { get; } = new();
+        [ObservableProperty] private VmProcessorSettings _processor;
         [ObservableProperty] private int _columns = 2;
         [ObservableProperty] private int _rows = 1;
-        [ObservableProperty] private VmProcessorSettings _processor;
 
+        public ObservableCollection<VmCoreModel> Cores { get; } = new();
+        public IAsyncRelayCommand<string> ControlCommand { get; set; }
         public string ConfigSummary => $"{CpuCount} Cores / {MemoryGb:N1}GB RAM / {DiskSize}";
 
-        public bool IsRunning => State == "运行中" || State == "Running" || State == "正在启动" || State == "Starting" || State == "正在关闭" || State == "Stopping" || State == "正在重启" || State == "正在保存";
+        private TimeSpan _anchorUptime;
+        private DateTime _anchorLocalTime;
+
+        // --- 移除了 _transientLife 计数器 ---
+        private string _transientState;
+        private string _backendState;
+
+        public TimeSpan RawUptime => _anchorUptime;
 
         public VmInstanceInfo(Guid id, string name)
         {
-            _id = id; _name = name;
+            _id = id;
+            _name = name;
         }
 
         public VmInstanceInfo(Guid id, string name, string state, string osType, int cpu, double ram, string disk, TimeSpan uptime)
         {
-            _id = id; _name = name; _state = state; _osType = osType;
+            _id = id; _name = name; _osType = osType;
             _cpuCount = cpu; _memoryGb = ram; _diskSize = disk;
-            _rawUptime = uptime;
-
-            if (IsRunning)
-            {
-                BootTime = DateTime.Now - uptime;
-                UpdateUptimeDisplay();
-            }
-            else
-            {
-                _uptime = FormatUptime(uptime);
-            }
+            SyncBackendData(state, uptime);
         }
 
-        public void UpdateUptimeDisplay()
+        public void SetTransientState(string optimisticText)
         {
-            if (IsRunning && BootTime != DateTime.MinValue)
-            {
-                var ts = DateTime.Now - BootTime;
-                Uptime = FormatUptime(ts);
-            }
-            else
-            {
-                Uptime = "00:00:00";
-            }
+            _transientState = optimisticText;
+            // 不再设置倒计时，一直等到后端状态改变为止
+            RefreshStateDisplay();
         }
 
-        private string FormatUptime(TimeSpan ts)
+        public void ClearTransientState()
         {
-            if (ts <= TimeSpan.Zero || ts.TotalDays > 10000) return "00:00:00";
-            if (ts.TotalDays >= 1)
-            {
-                return string.Format("{0}.{1:D2}:{2:D2}:{3:D2}", (int)ts.TotalDays, ts.Hours, ts.Minutes, ts.Seconds);
-            }
-            return string.Format("{0:D2}:{1:D2}:{2:D2}", ts.Hours, ts.Minutes, ts.Seconds);
+            _transientState = null;
+            RefreshStateDisplay();
         }
 
-        partial void OnCpuCountChanged(int value) => OnPropertyChanged(nameof(ConfigSummary));
-        partial void OnMemoryGbChanged(double value) => OnPropertyChanged(nameof(ConfigSummary));
-
-        partial void OnStateChanged(string value)
+        public void SyncBackendData(string realState, TimeSpan realUptime)
         {
-            OnPropertyChanged(nameof(IsRunning));
+            _backendState = realState;
+            _anchorUptime = realUptime;
+            _anchorLocalTime = DateTime.Now;
+
+            if (_transientState != null)
+            {
+                // 只有当后端状态真的达到了预期，或者变成了明确的终止态，才清除
+                // 否则就一直保持 TransientState (例如保持 "正在关闭")
+                if (ShouldClearTransientState(realState))
+                {
+                    _transientState = null;
+                }
+            }
+
+            RefreshStateDisplay();
+            TickUptime();
+        }
+
+        public void TickUptime()
+        {
             if (!IsRunning)
             {
-                RawUptime = TimeSpan.Zero;
                 Uptime = "00:00:00";
-                BootTime = DateTime.MinValue;
+                return;
             }
+
+            var delta = DateTime.Now - _anchorLocalTime;
+            var currentTotal = _anchorUptime + delta;
+
+            if (currentTotal.TotalDays >= 1)
+                Uptime = $"{(int)currentTotal.TotalDays}.{currentTotal.Hours:D2}:{currentTotal.Minutes:D2}:{currentTotal.Seconds:D2}";
+            else
+                Uptime = $"{currentTotal.Hours:D2}:{currentTotal.Minutes:D2}:{currentTotal.Seconds:D2}";
+        }
+
+        private void RefreshStateDisplay()
+        {
+            State = _transientState ?? _backendState;
+            IsRunning = CheckIfRunning(State);
+        }
+
+        private bool CheckIfRunning(string s)
+        {
+            if (string.IsNullOrEmpty(s)) return false;
+            return s != "已关机" && s != "Off" &&
+                   s != "已暂停" && s != "Paused" &&
+                   s != "已保存" && s != "Saved";
+        }
+
+        private bool ShouldClearTransientState(string backend)
+        {
+            // 1. 启动类
+            if (_transientState == "正在启动" || _transientState == "正在重启")
+            {
+                if (backend == "运行中" || backend == "Running") return true;
+                // 如果是重启，变成了关机，可能还没起得来，先不清除，等它变成运行
+                // 但如果重启变关机时间太久卡住... 
+                // 实际上 Restart-VM 命令完成后通常已经起来了。
+                // 如果是 WMI 捕获到了中间的“已关机”态，保持“正在重启”是合理的。
+                return false;
+            }
+
+            // 2. 停止/保存类
+            if (_transientState == "正在关闭" || _transientState == "正在保存")
+            {
+                if (backend == "已关机" || backend == "Off" ||
+                    backend == "已保存" || backend == "Saved" ||
+                    backend == "已暂停" || backend == "Paused")
+                    return true;
+                return false;
+            }
+
+            // 3. 暂停类
+            if (_transientState == "正在暂停")
+            {
+                if (backend == "已暂停" || backend == "Paused" ||
+                    backend == "已保存" || backend == "Saved")
+                    return true;
+                return false;
+            }
+
+            return false;
         }
     }
 }

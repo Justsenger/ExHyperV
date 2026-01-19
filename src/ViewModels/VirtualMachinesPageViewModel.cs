@@ -8,7 +8,6 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Linq;
-using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -20,18 +19,21 @@ using Wpf.Ui.Controls;
 namespace ExHyperV.ViewModels
 {
     public enum VmDetailViewType { Dashboard, CpuSettings, CpuAffinity }
+
     public partial class VirtualMachinesPageViewModel : ObservableObject, IDisposable
     {
         private readonly InstancesService _instancesService;
         private readonly IVmProcessorService _vmProcessorService;
         private readonly CpuAffinityService _cpuAffinityService;
+
         private CpuMonitorService _cpuService;
         private CancellationTokenSource _monitoringCts;
-        private Task _monitoringTask;
+        private Task _cpuTask;
+        private Task _stateTask;
+
         private const int MaxHistoryLength = 60;
         private readonly Dictionary<string, LinkedList<double>> _historyCache = new();
         private VmProcessorSettings _originalSettingsCache;
-        private bool _isSystemInfoCached = false;
         private DispatcherTimer _uiTimer;
 
         [ObservableProperty] private bool _isLoading = true;
@@ -40,9 +42,7 @@ namespace ExHyperV.ViewModels
         [ObservableProperty] private ObservableCollection<VmInstanceInfo> _vmList = new();
         [ObservableProperty] private VmInstanceInfo _selectedVm;
         [ObservableProperty] private VmDetailViewType _currentViewType = VmDetailViewType.Dashboard;
-        [ObservableProperty] private ObservableCollection<VmCoreModel> _affinityHostCores;
-        [ObservableProperty] private int _affinityColumns;
-        [ObservableProperty] private int _affinityRows;
+
         public ObservableCollection<int> PossibleVCpuCounts { get; private set; }
 
         public VirtualMachinesPageViewModel(InstancesService instancesService)
@@ -51,16 +51,21 @@ namespace ExHyperV.ViewModels
             _vmProcessorService = new VmProcessorService();
             _cpuAffinityService = new CpuAffinityService();
             InitPossibleCpuCounts();
+
             _uiTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
-            _uiTimer.Tick += (s, e) => UpdateVmTimes();
+            _uiTimer.Tick += (s, e) =>
+            {
+                // 注意：这里使用的是新的 TickUptime 方法
+                foreach (var vm in VmList) vm.TickUptime();
+            };
             _uiTimer.Start();
+
             Task.Run(async () => {
                 await Task.Delay(300);
                 Application.Current.Dispatcher.Invoke(() => LoadVmsCommand.Execute(null));
             });
         }
 
-        private void UpdateVmTimes() { foreach (var vm in VmList) { if (vm.IsRunning) vm.UpdateUptimeDisplay(); } }
         private void InitPossibleCpuCounts()
         {
             var options = new HashSet<int>();
@@ -98,27 +103,35 @@ namespace ExHyperV.ViewModels
                     {
                         string notes = vm.Notes ?? "";
                         string osType = notes.Contains("linux", StringComparison.OrdinalIgnoreCase) ? "linux" : "windows";
-                        var instance = new VmInstanceInfo(vm.Id, vm.Name, vm.State, osType, vm.CpuCount, vm.MemoryGb, vm.DiskSize, vm.RawUptime) { Notes = vm.Notes, Generation = vm.Generation };
+
+                        // 这里调用 vm.RawUptime 需要 Model 里有 Getter
+                        var instance = new VmInstanceInfo(vm.Id, vm.Name, vm.State, osType, vm.CpuCount, vm.MemoryGb, vm.DiskSize, vm.RawUptime)
+                        {
+                            Notes = vm.Notes,
+                            Generation = vm.Generation
+                        };
+
                         instance.ControlCommand = new AsyncRelayCommand<string>(async (action) => {
+                            string optimisticText = GetOptimisticText(action);
+                            instance.SetTransientState(optimisticText);
+
                             try
                             {
-                                Application.Current.Dispatcher.Invoke(() => UpdateOptimisticState(instance, action));
                                 await _instancesService.ExecuteControlActionAsync(instance.Name, action);
-                                await Task.Delay(1000);
-                                string finalState = await _instancesService.GetVmSingleStateAsync(instance.Name);
-                                Application.Current.Dispatcher.Invoke(() => {
-                                    instance.State = finalState;
-                                    if (!instance.IsRunning) instance.RawUptime = TimeSpan.Zero;
-                                });
+                                // 成功后同步状态
+                                await SyncSingleVmStateAsync(instance);
                             }
                             catch (Exception ex)
                             {
+                                // --- 修复关键点：捕获异常后，立即清除临时状态 ---
+                                Application.Current.Dispatcher.Invoke(() => instance.ClearTransientState());
+
                                 ShowSnackbar("操作失败", ex.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
-                                string refresh = await _instancesService.GetVmSingleStateAsync(instance.Name);
-                                Application.Current.Dispatcher.Invoke(() => instance.State = refresh);
+
+                                // 即使失败也刷新一次真实状态，以防万一
+                                await SyncSingleVmStateAsync(instance);
                             }
-                        });
-                        list.Add(instance);
+                        }); list.Add(instance);
                     }
                     return list;
                 });
@@ -130,15 +143,33 @@ namespace ExHyperV.ViewModels
             finally { IsLoading = false; }
         }
 
-        private void UpdateOptimisticState(VmInstanceInfo vm, string action)
+        private string GetOptimisticText(string action)
         {
             switch (action)
             {
-                case "Start": case "Restart": vm.State = "正在启动"; break;
-                case "Stop": case "TurnOff": vm.State = "正在关闭"; break;
-                case "Save": vm.State = "正在保存"; break;
-                case "Suspend": vm.State = "正在暂停"; break;
+                case "Start": return "正在启动";
+                case "Restart": return "正在重启";
+                case "Stop": case "TurnOff": return "正在关闭";
+                case "Save": return "正在保存";
+                case "Suspend": return "正在暂停";
+                default: return "处理中...";
             }
+        }
+
+        private async Task SyncSingleVmStateAsync(VmInstanceInfo vm)
+        {
+            try
+            {
+                var allVms = await _instancesService.GetVmListAsync();
+                var freshData = allVms.FirstOrDefault(x => x.Name == vm.Name);
+                if (freshData != null)
+                {
+                    Application.Current.Dispatcher.Invoke(() => {
+                        vm.SyncBackendData(freshData.State, freshData.RawUptime);
+                    });
+                }
+            }
+            catch { }
         }
 
         [RelayCommand]
@@ -177,8 +208,15 @@ namespace ExHyperV.ViewModels
             if (view != null) { view.Filter = item => (item is VmInstanceInfo vm) && (string.IsNullOrEmpty(value) || vm.Name.Contains(value, StringComparison.OrdinalIgnoreCase)); view.Refresh(); }
         }
 
-        private void StartMonitoring() { if (_monitoringTask != null) return; _monitoringCts = new CancellationTokenSource(); _monitoringTask = Task.Run(() => MonitorLoop(_monitoringCts.Token)); }
-        private async Task MonitorLoop(CancellationToken token)
+        private void StartMonitoring()
+        {
+            if (_monitoringCts != null) return;
+            _monitoringCts = new CancellationTokenSource();
+            _cpuTask = Task.Run(() => MonitorCpuLoop(_monitoringCts.Token));
+            _stateTask = Task.Run(() => MonitorStateLoop(_monitoringCts.Token));
+        }
+
+        private async Task MonitorCpuLoop(CancellationToken token)
         {
             try { _cpuService = new CpuMonitorService(); } catch { return; }
             while (!token.IsCancellationRequested)
@@ -186,7 +224,7 @@ namespace ExHyperV.ViewModels
                 try
                 {
                     var rawData = _cpuService.GetCpuUsage();
-                    Application.Current.Dispatcher.Invoke(() => ProcessAndApplyUpdates(rawData));
+                    Application.Current.Dispatcher.Invoke(() => ProcessAndApplyCpuUpdates(rawData));
                     await Task.Delay(1000, token);
                 }
                 catch (TaskCanceledException) { break; }
@@ -195,7 +233,28 @@ namespace ExHyperV.ViewModels
             _cpuService?.Dispose();
         }
 
-        private void ProcessAndApplyUpdates(List<CpuCoreMetric> rawData)
+        private async Task MonitorStateLoop(CancellationToken token)
+        {
+            while (!token.IsCancellationRequested)
+            {
+                try
+                {
+                    var updates = await _instancesService.GetVmListAsync();
+                    Application.Current.Dispatcher.Invoke(() => {
+                        foreach (var update in updates)
+                        {
+                            var vm = VmList.FirstOrDefault(v => v.Name == update.Name);
+                            vm?.SyncBackendData(update.State, update.RawUptime);
+                        }
+                    });
+                    await Task.Delay(3000, token);
+                }
+                catch (TaskCanceledException) { break; }
+                catch { await Task.Delay(3000, token); }
+            }
+        }
+
+        private void ProcessAndApplyCpuUpdates(List<CpuCoreMetric> rawData)
         {
             var grouped = rawData.GroupBy(x => x.VmName);
             foreach (var group in grouped)
@@ -246,6 +305,11 @@ namespace ExHyperV.ViewModels
             points.Add(new Point(w, h)); points.Freeze(); return points;
         }
 
-        public void Dispose() { _monitoringCts?.Cancel(); _cpuService?.Dispose(); _uiTimer?.Stop(); }
+        public void Dispose()
+        {
+            _monitoringCts?.Cancel();
+            _cpuService?.Dispose();
+            _uiTimer?.Stop();
+        }
     }
 }
