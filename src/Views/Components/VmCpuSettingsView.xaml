@@ -217,7 +217,7 @@
                                 <TextBlock Text="{x:Static properties:Resources.CpuBinding}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
                                 <TextBlock Text="配置虚拟机与物理核心的亲和性" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
                             </StackPanel>
-                            <ui:Button Grid.Column="1" Content="配置亲和性" Icon="BranchFork24" Padding="16,6" Command="{Binding OpenVmCpuAffinityCommand}"/>
+                            <ui:Button Grid.Column="1" Content="配置亲和性" Icon="BranchFork24" Padding="16,6" Command="{Binding GoToCpuAffinityCommand}"/>
                         </Grid>
                     </StackPanel>
                 </Border>

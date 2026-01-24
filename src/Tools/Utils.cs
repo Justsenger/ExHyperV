@@ -7,6 +7,7 @@ using System.Windows;
 using System.Windows.Media;
 using Wpf.Ui.Controls;
 using System.Text.RegularExpressions;
+using System.Management;
 
 namespace ExHyperV.Tools;
 
@@ -466,6 +467,72 @@ public class Utils
         string format = (unitIndex == 0) ? "F0" : "F2";
 
         return $"{number.ToString(format)} {units[unitIndex]}";
+    }
+
+
+    public static class Wmi
+    {
+        private const string ScopePath = @"\\.\root\virtualization\v2";
+
+        /// <summary>
+        /// 通用 WMI 查询
+        /// </summary>
+        /// <typeparam name="T">返回的对象类型</typeparam>
+        /// <param name="queryStr">WQL 查询语句</param>
+        /// <param name="mapper">将 ManagementObject 映射为 T 的函数</param>
+        public static List<T> Query<T>(string queryStr, Func<ManagementObject, T> mapper)
+        {
+            var result = new List<T>();
+            try
+            {
+                var scope = new ManagementScope(ScopePath);
+                scope.Connect();
+
+                using var searcher = new ManagementObjectSearcher(scope, new ObjectQuery(queryStr));
+                using var collection = searcher.Get();
+
+                foreach (ManagementObject obj in collection)
+                {
+                    result.Add(mapper(obj));
+                }
+            }
+            catch
+            {
+                // 记录日志或忽略，根据需求决定
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// 专用：请求更改虚拟机状态
+        /// </summary>
+        public static void RequestStateChange(string vmName, int targetState)
+        {
+            try
+            {
+                var scope = new ManagementScope(ScopePath);
+                scope.Connect();
+
+                // 防止 WQL 注入
+                string safeName = vmName.Replace("'", "\\'");
+                string queryStr = $"SELECT * FROM Msvm_ComputerSystem WHERE ElementName = '{safeName}'";
+
+                using var searcher = new ManagementObjectSearcher(scope, new ObjectQuery(queryStr));
+                using var instances = searcher.Get();
+
+                foreach (ManagementObject vm in instances)
+                {
+                    using var inParams = vm.GetMethodParameters("RequestStateChange");
+                    inParams["RequestedState"] = targetState;
+
+                    using var outParams = vm.InvokeMethod("RequestStateChange", inParams, null);
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"WMI Action Error: {ex.Message}");
+            }
+        }
     }
 
     public static string Version => "V1.3.2-Beta";

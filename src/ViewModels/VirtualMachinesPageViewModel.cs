@@ -22,7 +22,8 @@ namespace ExHyperV.ViewModels
 
     public partial class VirtualMachinesPageViewModel : ObservableObject, IDisposable
     {
-        private readonly InstancesService _instancesService;
+        private readonly VmQueryService _queryService;
+        private readonly VmPowerService _powerService;
         private readonly IVmProcessorService _vmProcessorService;
         private readonly CpuAffinityService _cpuAffinityService;
 
@@ -45,9 +46,10 @@ namespace ExHyperV.ViewModels
 
         public ObservableCollection<int> PossibleVCpuCounts { get; private set; }
 
-        public VirtualMachinesPageViewModel(InstancesService instancesService)
+        public VirtualMachinesPageViewModel(VmQueryService queryService, VmPowerService powerService)
         {
-            _instancesService = instancesService;
+            _queryService = queryService;
+            _powerService = powerService;
             _vmProcessorService = new VmProcessorService();
             _cpuAffinityService = new CpuAffinityService();
             InitPossibleCpuCounts();
@@ -55,7 +57,6 @@ namespace ExHyperV.ViewModels
             _uiTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
             _uiTimer.Tick += (s, e) =>
             {
-                // 注意：这里使用的是新的 TickUptime 方法
                 foreach (var vm in VmList) vm.TickUptime();
             };
             _uiTimer.Start();
@@ -96,7 +97,7 @@ namespace ExHyperV.ViewModels
             try
             {
                 var finalCollection = await Task.Run(async () => {
-                    var vms = await _instancesService.GetVmListAsync();
+                    var vms = await _queryService.GetVmListAsync();
                     var sortedVms = vms.OrderBy(v => v.State == "已关机" ? 1 : 0).ThenBy(v => v.Name);
                     var list = new ObservableCollection<VmInstanceInfo>();
                     foreach (var vm in sortedVms)
@@ -104,7 +105,6 @@ namespace ExHyperV.ViewModels
                         string notes = vm.Notes ?? "";
                         string osType = notes.Contains("linux", StringComparison.OrdinalIgnoreCase) ? "linux" : "windows";
 
-                        // 这里调用 vm.RawUptime 需要 Model 里有 Getter
                         var instance = new VmInstanceInfo(vm.Id, vm.Name, vm.State, osType, vm.CpuCount, vm.MemoryGb, vm.DiskSize, vm.RawUptime)
                         {
                             Notes = vm.Notes,
@@ -117,21 +117,17 @@ namespace ExHyperV.ViewModels
 
                             try
                             {
-                                await _instancesService.ExecuteControlActionAsync(instance.Name, action);
-                                // 成功后同步状态
+                                await _powerService.ExecuteControlActionAsync(instance.Name, action);
                                 await SyncSingleVmStateAsync(instance);
                             }
                             catch (Exception ex)
                             {
-                                // --- 修复关键点：捕获异常后，立即清除临时状态 ---
                                 Application.Current.Dispatcher.Invoke(() => instance.ClearTransientState());
-
                                 ShowSnackbar("操作失败", ex.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
-
-                                // 即使失败也刷新一次真实状态，以防万一
                                 await SyncSingleVmStateAsync(instance);
                             }
-                        }); list.Add(instance);
+                        });
+                        list.Add(instance);
                     }
                     return list;
                 });
@@ -149,7 +145,8 @@ namespace ExHyperV.ViewModels
             {
                 case "Start": return "正在启动";
                 case "Restart": return "正在重启";
-                case "Stop": case "TurnOff": return "正在关闭";
+                case "Stop": return "正在关闭";
+                case "TurnOff": return "已关机";
                 case "Save": return "正在保存";
                 case "Suspend": return "正在暂停";
                 default: return "处理中...";
@@ -160,7 +157,7 @@ namespace ExHyperV.ViewModels
         {
             try
             {
-                var allVms = await _instancesService.GetVmListAsync();
+                var allVms = await _queryService.GetVmListAsync();
                 var freshData = allVms.FirstOrDefault(x => x.Name == vm.Name);
                 if (freshData != null)
                 {
@@ -187,6 +184,104 @@ namespace ExHyperV.ViewModels
             finally { IsLoadingSettings = false; }
         }
 
+
+
+        // =========================================================
+        // ↓↓↓↓↓↓ 补充的 CPU 亲和性相关属性与方法 ↓↓↓↓↓↓
+        // =========================================================
+
+        [ObservableProperty] private ObservableCollection<VmCoreModel> _affinityHostCores;
+        [ObservableProperty] private int _affinityColumns = 8;
+        [ObservableProperty] private int _affinityRows = 1;
+        /// <summary>
+        /// 进入 CPU 亲和性设置视图，加载数据
+        /// </summary>
+        [RelayCommand]
+        private async Task GoToCpuAffinity()
+        {
+            if (SelectedVm == null) return;
+
+            CurrentViewType = VmDetailViewType.CpuAffinity;
+            IsLoadingSettings = true;
+
+            try
+            {
+                int totalCores = Environment.ProcessorCount;
+
+                var currentAffinity = await _cpuAffinityService.GetCpuAffinityAsync(SelectedVm.Id);
+
+                var coresList = new List<VmCoreModel>();
+                for (int i = 0; i < totalCores; i++)
+                {
+                    coresList.Add(new VmCoreModel
+                    {
+                        CoreId = i,
+                        IsSelected = currentAffinity.Contains(i),
+                        // 此时 CpuMonitorService 返回的就是 Models.CoreType，直接赋值即可
+                        CoreType = CpuMonitorService.GetCoreType(i)
+                    });
+                }
+
+                AffinityHostCores = new ObservableCollection<VmCoreModel>(coresList);
+                AffinityColumns = 8;
+                AffinityRows = (int)Math.Ceiling((double)totalCores / AffinityColumns);
+            }
+            catch (Exception ex)
+            {
+                ShowSnackbar("加载亲和性失败", ex.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                GoToCpuSettings();
+            }
+            finally
+            {
+                IsLoadingSettings = false;
+            }
+        }
+        /// <summary>
+        /// 保存 CPU 亲和性设置，并返回上一级
+        /// </summary>
+        [RelayCommand]
+        private async Task SaveAffinity()
+        {
+            if (SelectedVm == null || AffinityHostCores == null) return;
+
+            IsLoadingSettings = true;
+            try
+            {
+                // 1. 获取所有被选中的核心 ID
+                var selectedIndices = AffinityHostCores
+                    .Where(c => c.IsSelected)
+                    .Select(c => c.CoreId)
+                    .ToList();
+
+                // 验证：至少需要选择一个核心
+                if (selectedIndices.Count == 0)
+                {
+                    ShowSnackbar("提示", "必须至少绑定一个 CPU 核心", ControlAppearance.Caution, SymbolRegular.Warning24);
+                    return;
+                }
+
+                // 2. 调用 Service 保存 (现在 Service 已经有了这个方法)
+                bool success = await _cpuAffinityService.SetCpuAffinityAsync(SelectedVm.Id, selectedIndices);
+
+                if (success)
+                {
+                    ShowSnackbar("成功", "CPU 绑定设置已更新", ControlAppearance.Success, SymbolRegular.CheckmarkCircle24);
+                    GoToCpuSettings();
+                }
+                else
+                {
+                    ShowSnackbar("保存失败", "无法应用亲和性设置，请检查 HCS 权限", ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowSnackbar("错误", ex.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+            }
+            finally
+            {
+                IsLoadingSettings = false;
+            }
+        }
         [RelayCommand]
         private async Task ApplyChangesAsync()
         {
@@ -239,7 +334,7 @@ namespace ExHyperV.ViewModels
             {
                 try
                 {
-                    var updates = await _instancesService.GetVmListAsync();
+                    var updates = await _queryService.GetVmListAsync();
                     Application.Current.Dispatcher.Invoke(() => {
                         foreach (var update in updates)
                         {

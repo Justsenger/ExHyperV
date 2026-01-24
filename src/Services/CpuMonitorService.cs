@@ -2,15 +2,12 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
-using ExHyperV.Models;
+using ExHyperV.Models; // 引用 Models 命名空间
 using ExHyperV.Tools;
 
 namespace ExHyperV.Services
 {
-    public enum CoreType
-    {
-        Performance, Efficient, Unknown
-    }
+    // 【关键修改】删除了这里的 public enum CoreType 定义，直接复用 ExHyperV.Models.CoreType
 
     public class CpuMonitorService : IDisposable
     {
