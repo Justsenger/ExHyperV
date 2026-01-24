@@ -376,7 +376,7 @@ namespace ExHyperV.ViewModels
                 }
                 core.Usage = metric.Usage; UpdateHistory(vm.Name, core);
             }
-            vm.Columns = vm.Cores.Count <= 4 ? 2 : (int)Math.Ceiling(Math.Sqrt(vm.Cores.Count));
+            vm.Columns = LayoutHelper.CalculateOptimalColumns(vm.Cores.Count);
             vm.Rows = (vm.Cores.Count > 0) ? (int)Math.Ceiling((double)vm.Cores.Count / vm.Columns) : 1;
         }
 
