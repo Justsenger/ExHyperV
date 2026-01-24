@@ -54,7 +54,7 @@
                             </ui:FontIcon>
                             <StackPanel VerticalAlignment="Center">
                                 <TextBlock Text="处理器" FontSize="16" FontWeight="SemiBold"/>
-                                <TextBlock Text="虚拟处理器监控与设置" FontSize="12" Opacity="0.6" Margin="0,2,0,0" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                                <TextBlock Text="虚拟机处理器的监控与设置" FontSize="12" Opacity="0.6" Margin="0,2,0,0" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
                             </StackPanel>
                         </StackPanel>
                         <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
