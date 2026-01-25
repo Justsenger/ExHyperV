@@ -138,7 +138,7 @@
                             <StackPanel Grid.Column="4" Style="{StaticResource DynamicDependencyStyle}">
                                 <Grid Margin="0,0,0,8">
                                     <TextBlock Text="内存缓冲区 (%)" FontSize="13" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
-                                    <TextBlock Text="{Binding SelectedVm.MemorySettings.Buffer, StringFormat='{}{0}%'}" FontSize="13" HorizontalAlignment="Right"/>
+                                    <TextBlock Text="{Binding SelectedVm.MemorySettings.Buffer, StringFormat='{}{0}%'}" FontSize="13" HorizontalAlignment="Right" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
                                 </Grid>
                                 <Slider Minimum="5" Maximum="200" Value="{Binding SelectedVm.MemorySettings.Buffer, UpdateSourceTrigger=PropertyChanged}"/>
                             </StackPanel>
