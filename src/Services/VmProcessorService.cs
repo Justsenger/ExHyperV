@@ -2,6 +2,7 @@
 using ExHyperV.Tools;
 using System;
 using System.Linq;
+using System.Management;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -16,41 +17,72 @@ namespace ExHyperV.Services
 
     public class VmProcessorService : IVmProcessorService
     {
+        // Hyper-V WMI 命名空间
+        private const string Namespace = @"root\virtualization\v2";
+
         public async Task<VmProcessorSettings?> GetVmProcessorAsync(string vmName)
         {
-            try
+            return await Task.Run(() =>
             {
-                var safeVmName = vmName.Replace("'", "''");
-                var script = $"Get-VM -Name '{safeVmName}' -ErrorAction Stop | Get-VMProcessor | Select-Object Count, Reservation, Maximum, RelativeWeight, ExposeVirtualizationExtensions, EnableHostResourceProtection, CompatibilityForMigrationEnabled, CompatibilityForOlderOperatingSystemsEnabled, HwThreadCountPerCore";
-
-                var results = await Utils.Run2(script);
-                var psObj = results.FirstOrDefault();
-
-                if (psObj == null) return null;
-
-                dynamic data = psObj;
-
-                // ★★★ 重点修改：增加了 (int) 强转 ★★★
-                return new VmProcessorSettings
+                try
                 {
-                    Count = (int)GetLong(data.Count),
-                    Reserve = (int)GetLong(data.Reservation),
-                    Maximum = (int)GetLong(data.Maximum),
-                    RelativeWeight = (int)GetLong(data.RelativeWeight),
+                    // 1. 定位虚拟机对象
+                    using var vmSearcher = new ManagementObjectSearcher(Namespace,
+                        $"SELECT * FROM Msvm_ComputerSystem WHERE ElementName = '{vmName.Replace("'", "''")}'");
 
-                    ExposeVirtualizationExtensions = GetBool(data.ExposeVirtualizationExtensions),
-                    EnableHostResourceProtection = GetBool(data.EnableHostResourceProtection),
-                    CompatibilityForMigrationEnabled = GetBool(data.CompatibilityForMigrationEnabled),
-                    CompatibilityForOlderOperatingSystemsEnabled = GetBool(data.CompatibilityForOlderOperatingSystemsEnabled),
-                    SmtMode = ConvertHwThreadsToSmtMode((uint)GetLong(data.HwThreadCountPerCore))
-                };
-            }
-            catch
-            {
-                return null;
-            }
+                    using var vmEntry = vmSearcher.Get().Cast<ManagementObject>().FirstOrDefault();
+                    if (vmEntry == null) return null;
+
+                    // 2. 获取当前生效的设置外壳 (Realized SettingData)
+                    using var settingsSearcher = new ManagementObjectSearcher(Namespace,
+                        $"ASSOCIATORS OF {{{vmEntry.Path.Path}}} WHERE ResultClass = Msvm_VirtualSystemSettingData");
+
+                    using var settingData = settingsSearcher.Get().Cast<ManagementObject>()
+                        .FirstOrDefault(s => s["VirtualSystemType"].ToString() == "Microsoft:Hyper-V:System:Realized");
+
+                    if (settingData == null) return null;
+
+                    // 3. 定位到具体的处理器设置组件 (ProcessorSettingData)
+                    using var procSearcher = new ManagementObjectSearcher(Namespace,
+                        $"ASSOCIATORS OF {{{settingData.Path.Path}}} WHERE ResultClass = Msvm_ProcessorSettingData");
+
+                    using var procData = procSearcher.Get().Cast<ManagementObject>().FirstOrDefault();
+                    if (procData == null) return null;
+
+                    // 4. 从 WMI 对象映射到你的模型
+                    return new VmProcessorSettings
+                    {
+                        // 核心数
+                        Count = Convert.ToInt32(procData["VirtualQuantity"]),
+
+                        // 预留与限制：WMI 内部以 100,000 为 100%，需除以 1000 还原为 0-100 整数
+                        Reserve = Convert.ToInt32(procData["Reservation"]) / 1000,
+                        Maximum = Convert.ToInt32(procData["Limit"]) / 1000,
+
+                        // 权重
+                        RelativeWeight = Convert.ToInt32(procData["Weight"]),
+
+                        // 开关项
+                        ExposeVirtualizationExtensions = Convert.ToBoolean(procData["ExposeVirtualizationExtensions"]),
+                        EnableHostResourceProtection = Convert.ToBoolean(procData["EnableHostResourceProtection"]),
+
+                        // 兼容性项 (根据 WMI 映射)
+                        CompatibilityForMigrationEnabled = Convert.ToBoolean(procData["LimitProcessorFeatures"]),
+                        CompatibilityForOlderOperatingSystemsEnabled = Convert.ToBoolean(procData["LimitCPUID"]),
+
+                        // SMT 模式 
+                        // ★ 修正：根据你的 WMI 截图，属性名确定为 HwThreadsPerCore ★
+                        SmtMode = ConvertHwThreadsToSmtMode(Convert.ToUInt32(procData["HwThreadsPerCore"]))
+                    };
+                }
+                catch (Exception ex)
+                {
+                    // 调试用，生产环境下建议记录日志
+                    System.Diagnostics.Debug.WriteLine($"WMI 读取失败 [{vmName}]: {ex.Message}");
+                    return null;
+                }
+            });
         }
-
         public async Task<(bool Success, string Message)> SetVmProcessorAsync(string vmName, VmProcessorSettings processorSettings)
         {
             try
@@ -82,17 +114,17 @@ namespace ExHyperV.Services
             }
         }
 
-        private ExHyperV.Models.SmtMode ConvertHwThreadsToSmtMode(uint hwThreads) => hwThreads switch
+        private SmtMode ConvertHwThreadsToSmtMode(uint hwThreads) => hwThreads switch
         {
-            1 => ExHyperV.Models.SmtMode.SingleThread,
-            2 => ExHyperV.Models.SmtMode.MultiThread,
-            _ => ExHyperV.Models.SmtMode.Inherit
+            1 => SmtMode.SingleThread,
+            2 => SmtMode.MultiThread,
+            _ => SmtMode.Inherit
         };
 
-        private uint ConvertSmtModeToHwThreads(ExHyperV.Models.SmtMode smtMode) => smtMode switch
+        private uint ConvertSmtModeToHwThreads(SmtMode smtMode) => smtMode switch
         {
-            ExHyperV.Models.SmtMode.SingleThread => 1,
-            ExHyperV.Models.SmtMode.MultiThread => 2,
+            SmtMode.SingleThread => 1,
+            SmtMode.MultiThread => 2,
             _ => 0
         };
 

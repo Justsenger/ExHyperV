@@ -1,0 +1,262 @@
+﻿<UserControl x:Class="ExHyperV.Views.Components.VmRAMSettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+             xmlns:vm="clr-namespace:ExHyperV.ViewModels"
+             xmlns:properties="clr-namespace:ExHyperV.Properties"
+             xmlns:converters="clr-namespace:ExHyperV.Converters"
+             xmlns:sys="clr-namespace:System;assembly=mscorlib"
+             mc:Ignorable="d" 
+             d:DesignHeight="850" d:DesignWidth="1000">
+
+    <UserControl.Resources>
+        <converters:InverseBooleanConverter x:Key="InverseBooleanConverter"/>
+        <converters:BooleanToVisibilityConverter x:Key="BoolToVis" />
+
+        <!-- 关机提示样式 -->
+        <Style x:Key="ShutdownRequiredToggleStyle" TargetType="ui:ToggleSwitch" BasedOn="{StaticResource {x:Type ui:ToggleSwitch}}">
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="ToolTipService.InitialShowDelay" Value="50"/>
+            <Setter Property="ToolTipService.ShowDuration" Value="10000"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding SelectedVm.IsRunning}" Value="True">
+                    <Setter Property="ToolTip" Value="此设置项要求虚拟机处于关机状态"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- 动态内存依赖项样式 -->
+        <Style x:Key="DynamicDependencyStyle" TargetType="FrameworkElement">
+            <Setter Property="Opacity" Value="1.0"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding SelectedVm.MemorySettings.DynamicMemoryEnabled}" Value="False">
+                    <Setter Property="Opacity" Value="0.4"/>
+                    <Setter Property="IsEnabled" Value="False"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- 通用内存数值列表模板 -->
+        <x:Array x:Key="CommonMemoryValues" Type="sys:String">
+            <sys:String>512</sys:String>
+            <sys:String>1024</sys:String>
+            <sys:String>2048</sys:String>
+            <sys:String>4096</sys:String>
+            <sys:String>8192</sys:String>
+            <sys:String>16384</sys:String>
+            <sys:String>32768</sys:String>
+        </x:Array>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- 1. 顶部标题栏 -->
+        <Grid Grid.Row="0" Margin="24,16,24,12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="内存设置" FontSize="20" FontWeight="Regular" VerticalAlignment="Center" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+            <ui:Button Grid.Column="1" Appearance="Transparent" Padding="8" Command="{Binding GoBackToDashboardCommand}">
+                <ui:SymbolIcon Symbol="ArrowLeft24" FontSize="18"/>
+            </ui:Button>
+        </Grid>
+
+        <!-- 2. 加载进度条 -->
+        <ProgressBar Grid.Row="1" IsIndeterminate="True" VerticalAlignment="Top" Height="2" Margin="0,-2,0,0"
+                     Visibility="{Binding IsLoadingSettings, Converter={StaticResource BoolToVis}}"/>
+
+        <!-- 3. 内容滚动区 -->
+        <ScrollViewer Grid.Row="2" Padding="24,12,24,24" VerticalScrollBarVisibility="Auto"
+                      IsEnabled="{Binding IsLoadingSettings, Converter={StaticResource InverseBooleanConverter}}">
+            <StackPanel>
+
+                <!-- ==================== 卡片 1: 计算资源 ==================== -->
+                <TextBlock Text="计算资源" FontSize="14" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" Margin="0,0,0,12"/>
+                <Border Background="{ui:ThemeResource CardBackgroundFillColorDefaultBrush}" 
+                        BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" 
+                        BorderThickness="1" CornerRadius="8" Padding="0" Margin="0,0,0,32">
+                    <StackPanel>
+
+                        <!-- Row 1: 启动内存 & 权重 -->
+                        <Grid Margin="24,20">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="24"/>
+                                <ColumnDefinition Width="1.5*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="启动内存 (MB)" FontSize="13" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" Margin="0,0,0,8"/>
+                                <ComboBox IsEditable="True" 
+                                          ItemsSource="{StaticResource CommonMemoryValues}"
+                                          Text="{Binding SelectedVm.MemorySettings.Startup, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="2">
+                                <Grid Margin="0,0,0,8">
+                                    <TextBlock Text="内存权重 (%)" FontSize="13" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{Binding SelectedVm.MemorySettings.Priority}" FontSize="13" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" HorizontalAlignment="Right"/>
+                                </Grid>
+                                <Grid Margin="0,6,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="低" FontSize="12" Foreground="{ui:ThemeResource TextFillColorTertiaryBrush}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                    <Slider Grid.Column="1" Minimum="0" Maximum="100" TickFrequency="10" IsSnapToTickEnabled="False"
+                                            Value="{Binding SelectedVm.MemorySettings.Priority, UpdateSourceTrigger=PropertyChanged}"/>
+                                    <TextBlock Grid.Column="2" Text="高" FontSize="12" Foreground="{ui:ThemeResource TextFillColorTertiaryBrush}" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                                </Grid>
+                            </StackPanel>
+                        </Grid>
+
+                        <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
+
+                        <!-- Row 2: 动态内存总开关 -->
+                        <Grid Margin="24,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="启用动态内存" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
+                                <TextBlock Text="允许 Hyper-V 根据负载在最小和最大值之间调整" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                            </StackPanel>
+                            <ui:ToggleSwitch Grid.Column="1" Style="{StaticResource ShutdownRequiredToggleStyle}"
+                                             IsChecked="{Binding SelectedVm.MemorySettings.DynamicMemoryEnabled}" />
+                        </Grid>
+
+                        <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
+
+                        <!-- Row 3: 最小/最大内存, 缓冲区, 和 应用按钮 -->
+                        <Grid Margin="24,16" >
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="24"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="24"/>
+                                <ColumnDefinition Width="1.5*"/>
+                                <ColumnDefinition Width="24"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0" Style="{StaticResource DynamicDependencyStyle}">
+                                <TextBlock Text="最小内存 (MB)" FontSize="13" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" Margin="0,0,0,8"/>
+                                <ComboBox IsEditable="True" 
+                                          ItemsSource="{StaticResource CommonMemoryValues}"
+                                          Text="{Binding SelectedVm.MemorySettings.Minimum, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="2" Style="{StaticResource DynamicDependencyStyle}">
+                                <TextBlock Text="最大内存 (MB)" FontSize="13" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" Margin="0,0,0,8"/>
+                                <ComboBox IsEditable="True" 
+                                          ItemsSource="{StaticResource CommonMemoryValues}"
+                                          Text="{Binding SelectedVm.MemorySettings.Maximum, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="4" Style="{StaticResource DynamicDependencyStyle}">
+                                <Grid Margin="0,0,0,8">
+                                    <TextBlock Text="内存缓冲区 (%)" FontSize="13" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{Binding SelectedVm.MemorySettings.Buffer, StringFormat='{}{0}%'}" FontSize="13" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                </Grid>
+                                <Slider Margin="0,6,0,0" Minimum="5" Maximum="200" TickFrequency="5" IsSnapToTickEnabled="True" 
+                                        Value="{Binding SelectedVm.MemorySettings.Buffer, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+
+                            <!-- 【已修改】应用按钮放在这里 -->
+                            <ui:Button Grid.Column="6" VerticalAlignment="Bottom" Content="应用" Appearance="Primary" Padding="24,6" Margin="0,0,0,1"
+                                       Command="{Binding ApplyMemorySettingsCommand}"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- ==================== 卡片 2: 高级功能 (最终修正版) ==================== -->
+                <TextBlock Text="高级功能" FontSize="14" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" Margin="0,0,0,12"/>
+                <!-- ==================== 卡片 2: 高级功能 ==================== -->
+                <TextBlock Text="高级功能" FontSize="14" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" Margin="0,0,0,12"/>
+                <Border Background="{ui:ThemeResource CardBackgroundFillColorDefaultBrush}" 
+        BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" 
+        BorderThickness="1" CornerRadius="8" Padding="0" Margin="0,0,0,32">
+                    <StackPanel>
+
+                        <!-- 1. EnableEpf (启发式缺页) -->
+                        <Grid Margin="24,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="启发式缺页错误" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
+                                <TextBlock Text="减少处理页面错误所需的上下文切换次数和整体延迟" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                            </StackPanel>
+                            <ui:ToggleSwitch Grid.Column="1" 
+                             Style="{StaticResource ShutdownRequiredToggleStyle}"
+                             IsChecked="{Binding SelectedVm.MemorySettings.EnableEpf, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        </Grid>
+
+                        <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
+
+                        <!-- 2. HugePagesEnabled (大页内存) -->
+                        <Grid Margin="24,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="使用大页内存" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
+                                <TextBlock Text="开启后将强制使用静态内存模式并预留 1TB 架构对齐上限" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                            </StackPanel>
+                            <ui:ToggleSwitch Grid.Column="1" 
+                             Style="{StaticResource ShutdownRequiredToggleStyle}"
+                             IsChecked="{Binding SelectedVm.MemorySettings.HugePagesEnabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        </Grid>
+
+                        <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
+
+                        <!-- 3. EnableHotHint (活跃内存保护) -->
+                        <Grid Margin="24,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="活跃内存保护" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
+                                <TextBlock Text="允许虚拟机标识高频访问内存，优化内存性能" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                            </StackPanel>
+                            <ui:ToggleSwitch Grid.Column="1" 
+                             Style="{StaticResource ShutdownRequiredToggleStyle}"
+                             IsChecked="{Binding SelectedVm.MemorySettings.EnableHotHint, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        </Grid>
+
+                        <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
+
+                        <!-- 4. EnableColdHint (闲置内存回收) -->
+                        <Grid Margin="24,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="闲置内存回收" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
+                                <TextBlock Text="允许虚拟机标识低频访问内存，优化内存性能" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                            </StackPanel>
+                            <ui:ToggleSwitch Grid.Column="1" 
+                             Style="{StaticResource ShutdownRequiredToggleStyle}"
+                             IsChecked="{Binding SelectedVm.MemorySettings.EnableColdHint, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        </Grid>
+
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

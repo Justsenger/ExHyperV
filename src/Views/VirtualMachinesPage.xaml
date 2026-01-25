@@ -195,6 +195,7 @@
                                 Content="{Binding DataContext, RelativeSource={RelativeSource AncestorType=Page}}">
                     <ContentControl.Style>
                         <Style TargetType="ContentControl">
+                            <!-- 默认显示 Dashboard -->
                             <Setter Property="ContentTemplate">
                                 <Setter.Value>
                                     <DataTemplate>
@@ -203,6 +204,7 @@
                                 </Setter.Value>
                             </Setter>
                             <Style.Triggers>
+                                <!-- CPU 设置 -->
                                 <DataTrigger Binding="{Binding DataContext.CurrentViewType, RelativeSource={RelativeSource AncestorType=Page}}" 
                                              Value="CpuSettings">
                                     <Setter Property="ContentTemplate">
@@ -213,6 +215,8 @@
                                         </Setter.Value>
                                     </Setter>
                                 </DataTrigger>
+
+                                <!-- CPU 亲和性 -->
                                 <DataTrigger Binding="{Binding DataContext.CurrentViewType, RelativeSource={RelativeSource AncestorType=Page}}" 
                                              Value="CpuAffinity">
                                     <Setter Property="ContentTemplate">
@@ -223,11 +227,24 @@
                                         </Setter.Value>
                                     </Setter>
                                 </DataTrigger>
+
+                                <!-- 【新增】内存设置 -->
+                                <DataTrigger Binding="{Binding DataContext.CurrentViewType, RelativeSource={RelativeSource AncestorType=Page}}" 
+                                             Value="MemorySettings">
+                                    <Setter Property="ContentTemplate">
+                                        <Setter.Value>
+                                            <DataTemplate>
+                                                <components:VmRAMSettingsView/>
+                                            </DataTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </DataTrigger>
+
                             </Style.Triggers>
                         </Style>
                     </ContentControl.Style>
                 </ContentControl>
-
+                
                 <Grid Grid.Row="0" Grid.RowSpan="3" Panel.ZIndex="100"
                       Background="{ui:ThemeResource ApplicationBackgroundBrush}" 
                       Visibility="{Binding DataContext.IsLoading, RelativeSource={RelativeSource AncestorType=Page}, Converter={StaticResource BoolToVis}}">

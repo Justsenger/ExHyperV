@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Management;
 using System.Threading.Tasks;
 
 //查询服务
@@ -13,6 +14,13 @@ namespace ExHyperV.Services
 {
     public class VmQueryService
     {
+        public struct VmDynamicMemoryData
+        {
+            public long AssignedMb;      // MemoryUsage
+            public int AvailablePercent; // MemoryAvailable
+        }
+
+
         // WQL 常量
         private const string QuerySummary = "SELECT Name, ElementName, EnabledState, UpTime, NumberOfProcessors, MemoryUsage, Notes FROM Msvm_SummaryInformation";
         private const string QueryMemSettings = "SELECT InstanceID, VirtualQuantity FROM Msvm_MemorySettingData WHERE ResourceType = 4";
@@ -94,6 +102,53 @@ namespace ExHyperV.Services
 
                 return resultList.OrderByDescending(x => x.State == "运行中").ThenBy(x => x.Name).ToList();
             });
+        }
+
+        /// <summary>
+        /// 获取所有虚拟机的实时内存数据
+        /// </summary>
+        public Dictionary<string, VmDynamicMemoryData> GetVmRuntimeMemoryData()
+        {
+            var map = new Dictionary<string, VmDynamicMemoryData>();
+            try
+            {
+                var scope = new ManagementScope(@"root\virtualization\v2");
+                // 同时查询 MemoryUsage (分配量) 和 MemoryAvailable (可用百分比)
+                var query = new SelectQuery("SELECT Name, MemoryUsage, MemoryAvailable FROM Msvm_SummaryInformation");
+
+                using var searcher = new ManagementObjectSearcher(scope, query);
+                using var collection = searcher.Get();
+
+                foreach (var item in collection)
+                {
+                    var vmId = item["Name"]?.ToString();
+                    var usageObj = item["MemoryUsage"];
+                    var availObj = item["MemoryAvailable"]; // 这是一个整数百分比 (例如 17)
+
+                    if (vmId != null && usageObj != null)
+                    {
+                        long assigned = Convert.ToInt64(usageObj);
+
+                        // 如果虚拟机刚启动或没装集成服务，Available 可能是 null
+                        int available = 0;
+                        if (availObj != null)
+                        {
+                            available = Convert.ToInt32(availObj);
+                        }
+
+                        map[vmId] = new VmDynamicMemoryData
+                        {
+                            AssignedMb = assigned,
+                            AvailablePercent = available
+                        };
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"WMI Memory Query Error: {ex.Message}");
+            }
+            return map;
         }
     }
 }

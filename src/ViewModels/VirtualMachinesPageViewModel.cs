@@ -18,7 +18,7 @@ using Wpf.Ui.Controls;
 
 namespace ExHyperV.ViewModels
 {
-    public enum VmDetailViewType { Dashboard, CpuSettings, CpuAffinity }
+    public enum VmDetailViewType { Dashboard, CpuSettings, CpuAffinity, MemorySettings }
 
     public partial class VirtualMachinesPageViewModel : ObservableObject, IDisposable
     {
@@ -26,6 +26,8 @@ namespace ExHyperV.ViewModels
         private readonly VmPowerService _powerService;
         private readonly IVmProcessorService _vmProcessorService;
         private readonly CpuAffinityService _cpuAffinityService;
+        private readonly IVmMemoryService _vmMemoryService;
+
 
         private CpuMonitorService _cpuService;
         private CancellationTokenSource _monitoringCts;
@@ -52,6 +54,7 @@ namespace ExHyperV.ViewModels
             _powerService = powerService;
             _vmProcessorService = new VmProcessorService();
             _cpuAffinityService = new CpuAffinityService();
+            _vmMemoryService = new VmMemoryService();
             InitPossibleCpuCounts();
 
             _uiTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
@@ -236,8 +239,9 @@ namespace ExHyperV.ViewModels
                 IsLoadingSettings = false;
             }
         }
+
         /// <summary>
-        /// 保存 CPU 亲和性设置，并返回上一级
+        /// 保存 CPU 亲和性设置，如果列表为空则取消绑定
         /// </summary>
         [RelayCommand]
         private async Task SaveAffinity()
@@ -247,25 +251,19 @@ namespace ExHyperV.ViewModels
             IsLoadingSettings = true;
             try
             {
-                // 1. 获取所有被选中的核心 ID
+                // 获取选中的核心 ID 列表
                 var selectedIndices = AffinityHostCores
                     .Where(c => c.IsSelected)
                     .Select(c => c.CoreId)
                     .ToList();
 
-                // 验证：至少需要选择一个核心
-                if (selectedIndices.Count == 0)
-                {
-                    ShowSnackbar("提示", "必须至少绑定一个 CPU 核心", ControlAppearance.Caution, SymbolRegular.Warning24);
-                    return;
-                }
-
-                // 2. 调用 Service 保存 (现在 Service 已经有了这个方法)
+                // 调用 Service。如果 selectedIndices 为空，Service 内部应处理为解除绑定
                 bool success = await _cpuAffinityService.SetCpuAffinityAsync(SelectedVm.Id, selectedIndices);
 
                 if (success)
                 {
-                    ShowSnackbar("成功", "CPU 绑定设置已更新", ControlAppearance.Success, SymbolRegular.CheckmarkCircle24);
+                    string msg = selectedIndices.Count > 0 ? "CPU 绑定设置已更新" : "CPU 绑定已解除";
+                    ShowSnackbar("成功", msg, ControlAppearance.Success, SymbolRegular.CheckmarkCircle24);
                     GoToCpuSettings();
                 }
                 else
@@ -282,6 +280,109 @@ namespace ExHyperV.ViewModels
                 IsLoadingSettings = false;
             }
         }
+
+
+        [RelayCommand]
+        private async Task GoToMemorySettings()
+        {
+            if (SelectedVm == null) return;
+
+            CurrentViewType = VmDetailViewType.MemorySettings;
+            IsLoadingSettings = true;
+
+            try
+            {
+                var settings = await _vmMemoryService.GetVmMemorySettingsAsync(SelectedVm.Name);
+                if (settings != null)
+                {
+                    // 先解除旧的订阅（防止重复触发）
+                    if (SelectedVm.MemorySettings != null)
+                        SelectedVm.MemorySettings.PropertyChanged -= MemorySettings_PropertyChanged;
+
+                    SelectedVm.MemorySettings = settings;
+
+                    // ★ 核心：订阅属性变更事件
+                    SelectedVm.MemorySettings.PropertyChanged += MemorySettings_PropertyChanged;
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowSnackbar("错误", $"加载失败: {ex.Message}", ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+            }
+            finally { IsLoadingSettings = false; }
+        }
+
+        // 处理“拨动即生效”的逻辑
+        private async void MemorySettings_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            // 定义哪些属性需要“点一下就改”
+            var fastTrackProps = new[] {
+        nameof(VmMemorySettings.EnableEpf),
+        nameof(VmMemorySettings.HugePagesEnabled),
+        nameof(VmMemorySettings.EnableHotHint),
+        nameof(VmMemorySettings.EnableColdHint),
+        nameof(VmMemorySettings.DynamicMemoryEnabled) // 动态内存开关也点一下就改
+    };
+
+            if (fastTrackProps.Contains(e.PropertyName))
+            {
+                // 如果正在加载数据，不触发保存
+                if (IsLoadingSettings || SelectedVm?.MemorySettings == null) return;
+
+                // 这里不弹出 Snackbar，静默修改，只在失败时报错
+                var result = await _vmMemoryService.SetVmMemorySettingsAsync(SelectedVm.Name, SelectedVm.MemorySettings);
+
+                if (!result.Success)
+                {
+                    ShowSnackbar("自动应用失败", result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                    // 失败了重新加载一次，把 UI 拨回去
+                    await GoToMemorySettings();
+                }
+                else
+                {
+                    // 成功后手动触发一次 UI 刷新，因为 HugePages 开启会联动修改 Limit 等
+                    OnPropertyChanged(nameof(SelectedVm));
+                }
+            }
+        }
+
+        /// <summary>
+        /// 保存内存设置
+        /// </summary>
+        [RelayCommand]
+        private async Task ApplyMemorySettings()
+        {
+            if (SelectedVm == null || SelectedVm.MemorySettings == null) return;
+
+            IsLoadingSettings = true;
+            try
+            {
+                // 调用 Service 保存
+                var result = await _vmMemoryService.SetVmMemorySettingsAsync(SelectedVm.Name, SelectedVm.MemorySettings);
+
+                if (result.Success)
+                {
+                    ShowSnackbar("成功", result.Message, ControlAppearance.Success, SymbolRegular.CheckmarkCircle24);
+
+                    var temp = SelectedVm.MemorySettings;
+                    SelectedVm.MemorySettings = null;
+                    SelectedVm.MemorySettings = temp;
+                }
+                else
+                {
+                    ShowSnackbar("保存失败", result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowSnackbar("异常", $"保存内存设置时发生异常: {ex.Message}", ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+            }
+            finally
+            {
+                IsLoadingSettings = false;
+            }
+        }
+
         [RelayCommand]
         private async Task ApplyChangesAsync()
         {
@@ -334,21 +435,52 @@ namespace ExHyperV.ViewModels
             {
                 try
                 {
+                    // 1. 获取基本状态列表
                     var updates = await _queryService.GetVmListAsync();
+
+                    // 2. 获取包含 Assigned 和 Available 的内存数据
+                    // 字典 Key 是 string 类型 (WMI Name)
+                    var memoryMap = await Task.Run(() => _queryService.GetVmRuntimeMemoryData());
+
                     Application.Current.Dispatcher.Invoke(() => {
                         foreach (var update in updates)
                         {
                             var vm = VmList.FirstOrDefault(v => v.Name == update.Name);
-                            vm?.SyncBackendData(update.State, update.RawUptime);
+                            if (vm != null)
+                            {
+                                vm.SyncBackendData(update.State, update.RawUptime);
+
+                                // 【已修复】vm.Id 是 Guid，需要转换为 string 才能在字典中查询
+                                // 注意：如果 WMI 返回的是大写 GUID，这里可能需要 .ToString().ToUpper()
+                                // 但通常先试 .ToString()
+                                if (memoryMap.TryGetValue(vm.Id.ToString(), out var memData))
+                                {
+                                    // 传入分配量(MB) 和 可用率(%)
+                                    vm.UpdateMemoryStatus(memData.AssignedMb, memData.AvailablePercent);
+                                }
+                                else
+                                {
+                                    // 尝试大写匹配 (防止 WMI 返回大写 GUID 而 C# ToString 默认小写导致匹配失败)
+                                    if (memoryMap.TryGetValue(vm.Id.ToString().ToUpper(), out var memDataUpper))
+                                    {
+                                        vm.UpdateMemoryStatus(memDataUpper.AssignedMb, memDataUpper.AvailablePercent);
+                                    }
+                                    else
+                                    {
+                                        // 关机或无数据状态，归零
+                                        vm.UpdateMemoryStatus(0, 0);
+                                    }
+                                }
+                            }
                         }
                     });
+
                     await Task.Delay(3000, token);
                 }
                 catch (TaskCanceledException) { break; }
                 catch { await Task.Delay(3000, token); }
             }
         }
-
         private void ProcessAndApplyCpuUpdates(List<CpuCoreMetric> rawData)
         {
             var grouped = rawData.GroupBy(x => x.VmName);
