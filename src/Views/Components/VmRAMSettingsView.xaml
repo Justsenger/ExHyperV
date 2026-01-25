@@ -170,22 +170,8 @@
                 <TextBlock Text="高级功能" FontSize="14" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" Margin="0,0,0,12"/>
                 <Border Background="{ui:ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="0" Margin="0,0,0,32">
                     <StackPanel>
-                        <!-- 1. Epf -->
-                        <Grid Margin="24,16">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-                            <StackPanel VerticalAlignment="Center">
-                                <TextBlock Text="启发式缺页错误" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
-                                <TextBlock Text="减少处理页面错误所需的上下文切换次数和整体延迟" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
-                            </StackPanel>
-                            <ui:ToggleSwitch Grid.Column="1" Style="{StaticResource ShutdownRequiredToggleStyle}" 
-                                             Tag="{Binding SelectedVm.MemorySettings.IsEpfSupported}"
-                                             IsChecked="{Binding SelectedVm.MemorySettings.EnableEpf, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                        </Grid>
-                        <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
-                        <!-- 2. HugePages -->
+
+                        <!-- 1. HugePages -->
                         <Grid Margin="24,16">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
@@ -193,42 +179,14 @@
                             </Grid.ColumnDefinitions>
                             <StackPanel VerticalAlignment="Center">
                                 <TextBlock Text="使用大页内存" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
-                                <TextBlock Text="开启后将强制使用静态内存模式并预留 1TB 架构对齐上限" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                                <TextBlock Text="允许虚拟机使用更大的内存页以提升 TLB 效率" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
                             </StackPanel>
                             <ui:ToggleSwitch Grid.Column="1" Style="{StaticResource ShutdownRequiredToggleStyle}" 
                                              Tag="{Binding SelectedVm.MemorySettings.IsHugePagesSupported}"
                                              IsChecked="{Binding SelectedVm.MemorySettings.HugePagesEnabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                         </Grid>
                         <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
-                        <!-- 3. HotHint -->
-                        <Grid Margin="24,16">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-                            <StackPanel VerticalAlignment="Center">
-                                <TextBlock Text="活跃内存保护" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
-                                <TextBlock Text="允许虚拟机标识高频访问内存，优化内存性能" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
-                            </StackPanel>
-                            <ui:ToggleSwitch Grid.Column="1" Style="{StaticResource ShutdownRequiredToggleStyle}" 
-                                             Tag="{Binding SelectedVm.MemorySettings.IsHotHintSupported}"
-                                             IsChecked="{Binding SelectedVm.MemorySettings.EnableHotHint, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                        </Grid>
-                        <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
-                        <!-- 4. ColdHint -->
-                        <Grid Margin="24,16">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-                            <StackPanel VerticalAlignment="Center">
-                                <TextBlock Text="闲置内存回收" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
-                                <TextBlock Text="允许虚拟机标识低频访问内存，优化内存性能" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
-                            </StackPanel>
-                            <ui:ToggleSwitch Grid.Column="1" Style="{StaticResource ShutdownRequiredToggleStyle}" 
-                                             Tag="{Binding SelectedVm.MemorySettings.IsColdHintSupported}"
-                                             IsChecked="{Binding SelectedVm.MemorySettings.EnableColdHint, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                        </Grid>
+                        
                     </StackPanel>
                 </Border>
             </StackPanel>

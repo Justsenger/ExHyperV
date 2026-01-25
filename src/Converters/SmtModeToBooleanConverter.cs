@@ -11,19 +11,20 @@ namespace ExHyperV.Converters
         {
             if (value is SmtMode mode)
             {
-                // 只有明确设置为 MultiThread 才显示为“开”
-                return mode == SmtMode.MultiThread;
+                // 只有显式为 SingleThread 时开关才是关闭状态
+                return mode != SmtMode.SingleThread;
             }
-            return false;
+            return true;
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            if (value is bool isChecked && isChecked)
+            if (value is bool isChecked)
             {
-                return SmtMode.MultiThread;
+                // 开关打开 -> 2线程 (Multi)，开关关闭 -> 1线程 (Single)
+                return isChecked ? SmtMode.MultiThread : SmtMode.SingleThread;
             }
-            return SmtMode.SingleThread;
+            return SmtMode.MultiThread;
         }
     }
 }

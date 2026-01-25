@@ -7,9 +7,6 @@ using System.Linq;
 using System.Management;
 using System.Threading.Tasks;
 
-//查询服务
-
-
 namespace ExHyperV.Services
 {
     public class VmQueryService
@@ -19,7 +16,6 @@ namespace ExHyperV.Services
             public long AssignedMb;      // MemoryUsage
             public int AvailablePercent; // MemoryAvailable
         }
-
 
         // WQL 常量
         private const string QuerySummary = "SELECT Name, ElementName, EnabledState, UpTime, NumberOfProcessors, MemoryUsage, Notes FROM Msvm_SummaryInformation";
@@ -39,7 +35,7 @@ namespace ExHyperV.Services
                     Cpu = Convert.ToInt32(obj["NumberOfProcessors"] ?? 1),
                     MemUsage = Convert.ToDouble(obj["MemoryUsage"] ?? 0),
                     Uptime = (ulong)(obj["UpTime"] ?? 0),
-                    Notes = VmMapper.ParseNotes(obj["Notes"]) // 调用 Mapper
+                    Notes = VmMapper.ParseNotes(obj["Notes"])
                 });
 
                 var memSettings = Utils.Wmi.Query(QueryMemSettings, obj => new {
@@ -68,7 +64,7 @@ namespace ExHyperV.Services
                         if (conf != null) finalRam = conf.StartupRam;
                     }
 
-                    // 计算 Disk (取第一个 VHD 的物理大小)
+                    // 计算 Disk
                     string diskStr = "N/A";
                     var vmDisk = diskSettings.FirstOrDefault(d => d.FullId?.Contains(s.Id) == true);
                     if (vmDisk?.Paths?.Length > 0)
@@ -84,36 +80,38 @@ namespace ExHyperV.Services
                         catch { }
                     }
 
-                    // 构造模型
-                    resultList.Add(new VmInstanceInfo(
-                        vmId,
-                        s.Name,
-                        VmMapper.MapStateCodeToText(s.State), // 调用 Mapper
-                        VmMapper.ParseOsTypeFromNotes(s.Notes), // 调用 Mapper
-                        s.Cpu,
-                        Math.Round(finalRam / 1024.0, 1),
-                        diskStr,
-                        TimeSpan.FromMilliseconds(s.Uptime))
+                    // --- 修复构造函数报错 ---
+                    // 使用 2 参数构造函数 + 对象初始化器
+                    var vmInfo = new VmInstanceInfo(vmId, s.Name)
                     {
+                        OsType = VmMapper.ParseOsTypeFromNotes(s.Notes),
+                        CpuCount = s.Cpu,
+                        MemoryGb = Math.Round(finalRam / 1024.0, 1),
+                        AssignedMemoryGb = Math.Round(finalRam / 1024.0, 1),
+                        DiskSize = diskStr,
                         Notes = s.Notes,
                         Generation = 0
-                    });
+                    };
+
+                    // 同步后端状态和运行时间锚点
+                    vmInfo.SyncBackendData(
+                        VmMapper.MapStateCodeToText(s.State),
+                        TimeSpan.FromMilliseconds(s.Uptime)
+                    );
+
+                    resultList.Add(vmInfo);
                 }
 
                 return resultList.OrderByDescending(x => x.State == "运行中").ThenBy(x => x.Name).ToList();
             });
         }
 
-        /// <summary>
-        /// 获取所有虚拟机的实时内存数据
-        /// </summary>
         public Dictionary<string, VmDynamicMemoryData> GetVmRuntimeMemoryData()
         {
             var map = new Dictionary<string, VmDynamicMemoryData>();
             try
             {
                 var scope = new ManagementScope(@"root\virtualization\v2");
-                // 同时查询 MemoryUsage (分配量) 和 MemoryAvailable (可用百分比)
                 var query = new SelectQuery("SELECT Name, MemoryUsage, MemoryAvailable FROM Msvm_SummaryInformation");
 
                 using var searcher = new ManagementObjectSearcher(scope, query);
@@ -123,23 +121,14 @@ namespace ExHyperV.Services
                 {
                     var vmId = item["Name"]?.ToString();
                     var usageObj = item["MemoryUsage"];
-                    var availObj = item["MemoryAvailable"]; // 这是一个整数百分比 (例如 17)
+                    var availObj = item["MemoryAvailable"];
 
                     if (vmId != null && usageObj != null)
                     {
-                        long assigned = Convert.ToInt64(usageObj);
-
-                        // 如果虚拟机刚启动或没装集成服务，Available 可能是 null
-                        int available = 0;
-                        if (availObj != null)
-                        {
-                            available = Convert.ToInt32(availObj);
-                        }
-
                         map[vmId] = new VmDynamicMemoryData
                         {
-                            AssignedMb = assigned,
-                            AvailablePercent = available
+                            AssignedMb = Convert.ToInt64(usageObj),
+                            AvailablePercent = availObj != null ? Convert.ToInt32(availObj) : 0
                         };
                     }
                 }

@@ -21,10 +21,7 @@ namespace ExHyperV.Models
     }
 
     // ==========================================
-    // ↓↓↓ 内存设置模型 ↓↓↓
-    // ==========================================
-    // ==========================================
-    // ↓↓↓ 内存设置模型 ↓↓↓
+    // ↓↓↓ 内存设置模型 (已清理) ↓↓↓
     // ==========================================
     public partial class VmMemorySettings : ObservableObject
     {
@@ -35,17 +32,9 @@ namespace ExHyperV.Models
         [ObservableProperty] private int _buffer;
         [ObservableProperty] private int _priority;
 
-        // 属性值
-        [ObservableProperty] private bool _enableEpf;
+        // 仅保留大页内存设置
         [ObservableProperty] private bool _hugePagesEnabled;
-        [ObservableProperty] private bool _enableHotHint;
-        [ObservableProperty] private bool _enableColdHint;
-
-        // 支持位 (用于 UI 禁用/启用)
-        [ObservableProperty] private bool _isEpfSupported = true;
         [ObservableProperty] private bool _isHugePagesSupported = true;
-        [ObservableProperty] private bool _isHotHintSupported = true;
-        [ObservableProperty] private bool _isColdHintSupported = true;
 
         public VmMemorySettings Clone() => (VmMemorySettings)this.MemberwiseClone();
 
@@ -58,21 +47,15 @@ namespace ExHyperV.Models
             Maximum = other.Maximum;
             Buffer = other.Buffer;
             Priority = other.Priority;
-            EnableEpf = other.EnableEpf;
-            HugePagesEnabled = other.HugePagesEnabled;
-            EnableHotHint = other.EnableHotHint;
-            EnableColdHint = other.EnableColdHint;
 
-            // 同步支持位
-            IsEpfSupported = other.IsEpfSupported;
+            // 同步大页内存状态
+            HugePagesEnabled = other.HugePagesEnabled;
             IsHugePagesSupported = other.IsHugePagesSupported;
-            IsHotHintSupported = other.IsHotHintSupported;
-            IsColdHintSupported = other.IsColdHintSupported;
         }
     }
 
     // ==========================================
-    // ↓↓↓ 处理器设置模型 ↓↓↓
+    // ↓↓↓ 处理器设置模型 (已添加高级功能) ↓↓↓
     // ==========================================
     public partial class VmProcessorSettings : ObservableObject
     {
@@ -86,16 +69,33 @@ namespace ExHyperV.Models
         [ObservableProperty] private bool _compatibilityForOlderOperatingSystemsEnabled;
         [ObservableProperty] private SmtMode _smtMode;
 
+        // --- 新增高级 CPU 功能 ---
+        [ObservableProperty] private bool _disableSpeculationControls;       // 禁用推测执行保护
+        [ObservableProperty] private bool _hideHypervisorPresent;            // 隐藏虚拟化标识
+        [ObservableProperty] private bool _enablePerfmonArchPmu;             // 暴露硬件性能计数器
+        [ObservableProperty] private bool _enablePerfmonIpt;                 // 暴露处理器追踪 (IPT)
+        [ObservableProperty] private bool _allowAcountMcount;                // 允许访问 ACOUNT/MCOUNT
+
         public VmProcessorSettings Clone() => (VmProcessorSettings)this.MemberwiseClone();
         public void Restore(VmProcessorSettings other)
         {
             if (other == null) return;
-            Count = other.Count; Reserve = other.Reserve; Maximum = other.Maximum; RelativeWeight = other.RelativeWeight;
+            Count = other.Count;
+            Reserve = other.Reserve;
+            Maximum = other.Maximum;
+            RelativeWeight = other.RelativeWeight;
             ExposeVirtualizationExtensions = other.ExposeVirtualizationExtensions;
             EnableHostResourceProtection = other.EnableHostResourceProtection;
             CompatibilityForMigrationEnabled = other.CompatibilityForMigrationEnabled;
             CompatibilityForOlderOperatingSystemsEnabled = other.CompatibilityForOlderOperatingSystemsEnabled;
             SmtMode = other.SmtMode;
+
+            // 同步新增高级属性
+            DisableSpeculationControls = other.DisableSpeculationControls;
+            HideHypervisorPresent = other.HideHypervisorPresent;
+            EnablePerfmonArchPmu = other.EnablePerfmonArchPmu;
+            EnablePerfmonIpt = other.EnablePerfmonIpt;
+            AllowAcountMcount = other.AllowAcountMcount;
         }
     }
 
@@ -122,9 +122,7 @@ namespace ExHyperV.Models
         [ObservableProperty] private int _generation;
         [ObservableProperty] private int _cpuCount;
 
-        // 静态配置的内存 (用于列表初始化显示)
         [ObservableProperty] private double _memoryGb;
-
         [ObservableProperty] private string _diskSize;
         [ObservableProperty] private string _osType;
         [ObservableProperty] private string _lowMMIO;
@@ -140,38 +138,22 @@ namespace ExHyperV.Models
         [ObservableProperty] private VmProcessorSettings _processor;
         [ObservableProperty] private VmMemorySettings _memorySettings;
 
-        // ==========================================
-        // ↓↓↓ 实时内存监控属性与图表 ↓↓↓
-        // ==========================================
-
-        // 1. 已分配内存 (Assigned) - 对应 WMI MemoryUsage
+        // 监控属性
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(MemoryUsageString))]
         [NotifyPropertyChangedFor(nameof(MemoryLimitString))]
         private double _assignedMemoryGb;
 
-        // 2. 内存需求 (Demand) - 计算得出: Assigned * (1 - Buffer%)
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(MemoryDemandString))]
         private double _demandMemoryGb;
 
-        // 3. 可用缓冲百分比 - 对应 WMI MemoryAvailable
-        [ObservableProperty]
-        private int _availableMemoryPercent;
+        [ObservableProperty] private int _availableMemoryPercent;
+        [ObservableProperty] private int _memoryPressure;
+        [ObservableProperty] private PointCollection _memoryHistoryPoints;
 
-        // 4. 【已修复】内存压力 (0-100)，用于显示 UI 上的大数字
-        [ObservableProperty]
-        private int _memoryPressure;
-
-        // 5. 内存历史曲线数据 (绑定给 Polyline/Polygon)
-        [ObservableProperty]
-        private PointCollection _memoryHistoryPoints;
-
-        // 内部历史记录队列
         private readonly LinkedList<double> _memoryUsageHistory = new();
-        private const int MaxHistoryLength = 60; // 保持 60 个点
-
-        // --- Dashboard 字符串绑定 ---
+        private const int MaxHistoryLength = 60;
 
         public string MemoryUsageString => AssignedMemoryGb.ToString("N1");
         public string MemoryDemandString => DemandMemoryGb.ToString("N1");
@@ -189,93 +171,50 @@ namespace ExHyperV.Models
             }
         }
 
-        /// <summary>
-        /// 核心方法：根据 WMI 实时数据更新内存状态
-        /// </summary>
         public void UpdateMemoryStatus(long assignedMb, int availablePercent)
         {
-            // 0. 【关键修复】如果没开机，或者分配量为0，直接归零
             if (!IsRunning || assignedMb == 0)
             {
-                AssignedMemoryGb = 0;
-                DemandMemoryGb = 0;
-                AvailableMemoryPercent = 0;
-                MemoryPressure = 0;
-                UpdateHistoryPoints(0); // 图表走直线 0
-                return;
+                AssignedMemoryGb = 0; DemandMemoryGb = 0; AvailableMemoryPercent = 0; MemoryPressure = 0;
+                UpdateHistoryPoints(0); return;
             }
 
-            // 1. 更新已分配
             double newAssignedGb = assignedMb / 1024.0;
-
-            // 2. 计算需求
             double usedPercentage = (100 - availablePercent) / 100.0;
             double newDemandGb = newAssignedGb * usedPercentage;
-
-            // 3. 计算压力值
             int pressure = 100 - availablePercent;
 
-            // 4. 赋值
-            if (Math.Abs(AssignedMemoryGb - newAssignedGb) > 0.01 ||
-                Math.Abs(DemandMemoryGb - newDemandGb) > 0.01 ||
-                AvailableMemoryPercent != availablePercent)
-            {
-                AssignedMemoryGb = newAssignedGb;
-                DemandMemoryGb = newDemandGb;
-                AvailableMemoryPercent = availablePercent;
-                MemoryPressure = pressure;
-            }
+            AssignedMemoryGb = newAssignedGb;
+            DemandMemoryGb = newDemandGb;
+            AvailableMemoryPercent = availablePercent;
+            MemoryPressure = pressure;
 
-            // 5. 更新历史曲线
             UpdateHistoryPoints(pressure);
         }
+
         private void UpdateHistoryPoints(double pressurePercent)
         {
-            // 1. 限制范围 0-100
             pressurePercent = Math.Max(0, Math.Min(100, pressurePercent));
-
-            // 2. 存入历史队列
             _memoryUsageHistory.AddLast(pressurePercent);
-            if (_memoryUsageHistory.Count > MaxHistoryLength)
-                _memoryUsageHistory.RemoveFirst();
+            if (_memoryUsageHistory.Count > MaxHistoryLength) _memoryUsageHistory.RemoveFirst();
 
             var points = new PointCollection();
-
-            // =========================================================
-            //  右对齐逻辑：数据不足60个时，紧贴右边显示
-            // =========================================================
-
             int count = _memoryUsageHistory.Count;
-            int offset = MaxHistoryLength - count; // 计算向右偏移量
+            int offset = MaxHistoryLength - count;
 
-            // 起始点
             points.Add(new Point(offset, 100));
-
             int i = 0;
             foreach (var val in _memoryUsageHistory)
             {
-                // X 坐标 = 偏移量 + 当前索引
-                double x = offset + i;
-                // Y 坐标 = 100 - 百分比
-                points.Add(new Point(x, 100 - val));
+                points.Add(new Point(offset + i, 100 - val));
                 i++;
             }
-
-            // 结束点：右下角
             points.Add(new Point(MaxHistoryLength - 1, 100));
-
             points.Freeze();
             MemoryHistoryPoints = points;
         }
 
-        partial void OnMemorySettingsChanged(VmMemorySettings value)
-        {
-            OnPropertyChanged(nameof(MemoryLimitString));
-        }
-
-        // ==========================================
-        // ↓↓↓ UI 布局与状态逻辑 ↓↓↓
-        // ==========================================
+        partial void OnMemorySettingsChanged(VmMemorySettings value) => OnPropertyChanged(nameof(MemoryLimitString));
 
         [ObservableProperty] private int _columns = 2;
         [ObservableProperty] private int _rows = 1;
@@ -291,44 +230,17 @@ namespace ExHyperV.Models
 
         public TimeSpan RawUptime => _anchorUptime;
 
-        public VmInstanceInfo(Guid id, string name)
-        {
-            _id = id;
-            _name = name;
-        }
+        public VmInstanceInfo(Guid id, string name) { _id = id; _name = name; }
 
-        public VmInstanceInfo(Guid id, string name, string state, string osType, int cpu, double ram, string disk, TimeSpan uptime)
-        {
-            _id = id; _name = name; _osType = osType;
-            _cpuCount = cpu; _memoryGb = ram; _diskSize = disk;
-            _assignedMemoryGb = ram;
-            SyncBackendData(state, uptime);
-        }
-
-        public void SetTransientState(string optimisticText)
-        {
-            _transientState = optimisticText;
-            RefreshStateDisplay();
-        }
-
-        public void ClearTransientState()
-        {
-            _transientState = null;
-            RefreshStateDisplay();
-        }
+        public void SetTransientState(string optimisticText) { _transientState = optimisticText; RefreshStateDisplay(); }
+        public void ClearTransientState() { _transientState = null; RefreshStateDisplay(); }
 
         public void SyncBackendData(string realState, TimeSpan realUptime)
         {
             _backendState = realState;
             _anchorUptime = realUptime;
             _anchorLocalTime = DateTime.Now;
-            if (_transientState != null)
-            {
-                if (ShouldClearTransientState(realState))
-                {
-                    _transientState = null;
-                }
-            }
+            if (_transientState != null && ShouldClearTransientState(realState)) _transientState = null;
             RefreshStateDisplay();
             TickUptime();
         }
@@ -336,50 +248,26 @@ namespace ExHyperV.Models
         public void TickUptime()
         {
             if (!IsRunning) { Uptime = "00:00:00"; return; }
-            var delta = DateTime.Now - _anchorLocalTime;
-            var currentTotal = _anchorUptime + delta;
-            if (currentTotal.TotalDays >= 1)
-                Uptime = $"{(int)currentTotal.TotalDays}.{currentTotal.Hours:D2}:{currentTotal.Minutes:D2}:{currentTotal.Seconds:D2}";
-            else
-                Uptime = $"{currentTotal.Hours:D2}:{currentTotal.Minutes:D2}:{currentTotal.Seconds:D2}";
+            var currentTotal = _anchorUptime + (DateTime.Now - _anchorLocalTime);
+            Uptime = currentTotal.TotalDays >= 1
+                ? $"{(int)currentTotal.TotalDays}.{currentTotal.Hours:D2}:{currentTotal.Minutes:D2}:{currentTotal.Seconds:D2}"
+                : $"{currentTotal.Hours:D2}:{currentTotal.Minutes:D2}:{currentTotal.Seconds:D2}";
         }
 
         private void RefreshStateDisplay()
         {
             State = _transientState ?? _backendState;
             IsRunning = CheckIfRunning(State);
-            if (!IsRunning)
-            {
-                UpdateMemoryStatus(0, 0);
-            }
+            if (!IsRunning) UpdateMemoryStatus(0, 0);
         }
 
-        private bool CheckIfRunning(string s)
-        {
-            if (string.IsNullOrEmpty(s)) return false;
-            return s != "已关机" && s != "Off" &&
-                   s != "已暂停" && s != "Paused" &&
-                   s != "已保存" && s != "Saved";
-        }
+        private bool CheckIfRunning(string s) => !string.IsNullOrEmpty(s) && s != "已关机" && s != "Off" && s != "已暂停" && s != "Paused" && s != "已保存" && s != "Saved";
 
         private bool ShouldClearTransientState(string backend)
         {
-            if (_transientState == "正在启动" || _transientState == "正在重启")
-            {
-                if (backend == "运行中" || backend == "Running") return true;
-                return false;
-            }
-            if (_transientState == "正在关闭" || _transientState == "正在保存")
-            {
-                if (backend == "已关机" || backend == "Off" || backend == "已保存" || backend == "Saved" || backend == "已暂停" || backend == "Paused") return true;
-                return false;
-            }
-            if (_transientState == "正在暂停")
-            {
-                if (backend == "已暂停" || backend == "Paused" || backend == "已保存" || backend == "Saved") return true;
-                return false;
-            }
-            return false;
+            if ((_transientState == "正在启动" || _transientState == "正在重启") && (backend == "运行中" || backend == "Running")) return true;
+            if ((_transientState == "正在关闭" || _transientState == "正在保存") && (backend == "已关机" || backend == "Off" || backend == "已保存" || backend == "Saved" || backend == "已暂停" || backend == "Paused")) return true;
+            return _transientState == "正在暂停" && (backend == "已暂停" || backend == "Paused" || backend == "已保存" || backend == "Saved");
         }
     }
 }

@@ -103,11 +103,32 @@ namespace ExHyperV.ViewModels
                     {
                         string notes = vm.Notes ?? "";
                         string osType = notes.Contains("linux", StringComparison.OrdinalIgnoreCase) ? "linux" : "windows";
-                        var instance = new VmInstanceInfo(vm.Id, vm.Name, vm.State, osType, vm.CpuCount, vm.MemoryGb, vm.DiskSize, vm.RawUptime) { Notes = vm.Notes, Generation = vm.Generation };
+
+                        var instance = new VmInstanceInfo(vm.Id, vm.Name)
+                        {
+                            OsType = osType,
+                            CpuCount = vm.CpuCount,
+                            MemoryGb = vm.MemoryGb,
+                            DiskSize = vm.DiskSize,
+                            Notes = vm.Notes,
+                            Generation = vm.Generation
+                        };
+
+                        instance.SyncBackendData(vm.State, vm.RawUptime);
+
                         instance.ControlCommand = new AsyncRelayCommand<string>(async (action) => {
                             instance.SetTransientState(GetOptimisticText(action));
-                            try { await _powerService.ExecuteControlActionAsync(instance.Name, action); await SyncSingleVmStateAsync(instance); }
-                            catch (Exception ex) { Application.Current.Dispatcher.Invoke(() => instance.ClearTransientState()); ShowSnackbar("操作失败", ex.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24); await SyncSingleVmStateAsync(instance); }
+                            try
+                            {
+                                await _powerService.ExecuteControlActionAsync(instance.Name, action);
+                                await SyncSingleVmStateAsync(instance);
+                            }
+                            catch (Exception ex)
+                            {
+                                Application.Current.Dispatcher.Invoke(() => instance.ClearTransientState());
+                                ShowSnackbar("操作失败", ex.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                                await SyncSingleVmStateAsync(instance);
+                            }
                         });
                         list.Add(instance);
                     }
@@ -125,19 +146,151 @@ namespace ExHyperV.ViewModels
 
         private async Task SyncSingleVmStateAsync(VmInstanceInfo vm)
         {
-            try { var allVms = await _queryService.GetVmListAsync(); var freshData = allVms.FirstOrDefault(x => x.Name == vm.Name); if (freshData != null) Application.Current.Dispatcher.Invoke(() => vm.SyncBackendData(freshData.State, freshData.RawUptime)); }
+            try
+            {
+                var allVms = await _queryService.GetVmListAsync();
+                var freshData = allVms.FirstOrDefault(x => x.Name == vm.Name);
+                if (freshData != null)
+                    Application.Current.Dispatcher.Invoke(() => vm.SyncBackendData(freshData.State, freshData.RawUptime));
+            }
             catch { }
         }
+
+        // ==========================================
+        // ↓↓↓ 处理器设置 (带失败回滚逻辑) ↓↓↓
+        // ==========================================
 
         [RelayCommand]
         private async Task GoToCpuSettings()
         {
             if (SelectedVm == null) return;
-            CurrentViewType = VmDetailViewType.CpuSettings; IsLoadingSettings = true;
-            try { var settings = await Task.Run(() => _vmProcessorService.GetVmProcessorAsync(SelectedVm.Name)); if (settings != null) { SelectedVm.Processor = settings; _originalSettingsCache = settings.Clone(); } }
+            CurrentViewType = VmDetailViewType.CpuSettings;
+            IsLoadingSettings = true;
+            try
+            {
+                var settings = await _vmProcessorService.GetVmProcessorAsync(SelectedVm.Name);
+                if (settings != null)
+                {
+                    SelectedVm.Processor = settings;
+                    _originalSettingsCache = settings.Clone();
+                }
+            }
             catch (Exception ex) { ShowSnackbar("加载失败", ex.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24); }
+            finally
+            {
+                await Task.Delay(200);
+                IsLoadingSettings = false;
+            }
+        }
+
+        [RelayCommand]
+        private async Task ApplyChangesAsync()
+        {
+            if (IsLoadingSettings || SelectedVm?.Processor == null) return;
+
+            IsLoadingSettings = true; // 开始加载动画，并禁用 UI
+            try
+            {
+                var result = await Task.Run(() => _vmProcessorService.SetVmProcessorAsync(SelectedVm.Name, SelectedVm.Processor));
+                if (result.Success)
+                {
+                    _originalSettingsCache = SelectedVm.Processor.Clone();
+                    ShowSnackbar("成功", "设置已应用", ControlAppearance.Success, SymbolRegular.CheckmarkCircle24);
+                }
+                else
+                {
+                    ShowSnackbar("应用失败", result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                    // 失败了，立刻重新从 WMI 读一次，强制覆盖掉 UI 上的错误状态
+                    await GoToCpuSettings();
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowSnackbar("系统异常", ex.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                await GoToCpuSettings();
+            }
+            finally
+            {
+                IsLoadingSettings = false; // 结束加载
+            }
+        }
+
+        // ==========================================
+        // ↓↓↓ 内存设置 (拨动即生效) ↓↓↓
+        // ==========================================
+
+        [RelayCommand]
+        private async Task GoToMemorySettings()
+        {
+            if (SelectedVm == null) return;
+            CurrentViewType = VmDetailViewType.MemorySettings;
+            IsLoadingSettings = true;
+
+            try
+            {
+                var settings = await _vmMemoryService.GetVmMemorySettingsAsync(SelectedVm.Name);
+                if (settings != null)
+                {
+                    if (SelectedVm.MemorySettings != null)
+                        SelectedVm.MemorySettings.PropertyChanged -= MemorySettings_PropertyChanged;
+
+                    SelectedVm.MemorySettings = settings;
+                    SelectedVm.MemorySettings.PropertyChanged += MemorySettings_PropertyChanged;
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowSnackbar("错误", $"加载失败: {ex.Message}", ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+            }
+            finally
+            {
+                await Task.Delay(200);
+                IsLoadingSettings = false;
+            }
+        }
+
+        private async void MemorySettings_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            var fastTrackProps = new[] {
+                nameof(VmMemorySettings.HugePagesEnabled),
+                nameof(VmMemorySettings.DynamicMemoryEnabled)
+            };
+
+            if (fastTrackProps.Contains(e.PropertyName))
+            {
+                if (IsLoadingSettings || SelectedVm == null || SelectedVm.IsRunning || SelectedVm.MemorySettings == null) return;
+
+                var result = await _vmMemoryService.SetVmMemorySettingsAsync(SelectedVm.Name, SelectedVm.MemorySettings);
+
+                if (!result.Success)
+                {
+                    ShowSnackbar("自动应用失败", result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                    await GoToMemorySettings();
+                }
+                else
+                {
+                    OnPropertyChanged(nameof(SelectedVm));
+                }
+            }
+        }
+
+        [RelayCommand]
+        private async Task ApplyMemorySettings()
+        {
+            if (SelectedVm?.MemorySettings == null) return;
+            IsLoadingSettings = true;
+            try
+            {
+                var result = await _vmMemoryService.SetVmMemorySettingsAsync(SelectedVm.Name, SelectedVm.MemorySettings);
+                if (result.Success) ShowSnackbar("成功", result.Message, ControlAppearance.Success, SymbolRegular.CheckmarkCircle24);
+                else ShowSnackbar("保存失败", result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                await GoToMemorySettings();
+            }
+            catch (Exception ex) { ShowSnackbar("异常", ex.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24); }
             finally { IsLoadingSettings = false; }
         }
+
+        // --- 其他 UI 控制与监控方法 (保持不变) ---
 
         [ObservableProperty] private ObservableCollection<VmCoreModel> _affinityHostCores;
         [ObservableProperty] private int _affinityColumns = 8;
@@ -174,99 +327,6 @@ namespace ExHyperV.ViewModels
             }
             catch (Exception ex) { ShowSnackbar("错误", ex.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24); }
             finally { IsLoadingSettings = false; }
-        }
-
-        // VirtualMachinesPageViewModel.cs 关键方法更新
-
-        [RelayCommand]
-        private async Task GoToMemorySettings()
-        {
-            if (SelectedVm == null) return;
-
-            CurrentViewType = VmDetailViewType.MemorySettings;
-
-            // 1. 开启加载锁
-            IsLoadingSettings = true;
-
-            try
-            {
-                var settings = await _vmMemoryService.GetVmMemorySettingsAsync(SelectedVm.Name);
-                if (settings != null)
-                {
-                    // 2. 解除并重新挂载事件，防止数据初始化触发保存
-                    if (SelectedVm.MemorySettings != null)
-                        SelectedVm.MemorySettings.PropertyChanged -= MemorySettings_PropertyChanged;
-
-                    SelectedVm.MemorySettings = settings;
-                    SelectedVm.MemorySettings.PropertyChanged += MemorySettings_PropertyChanged;
-                }
-            }
-            catch (Exception ex)
-            {
-                ShowSnackbar("错误", $"加载失败: {ex.Message}", ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
-            }
-            finally
-            {
-                // 3. 延迟关闭加载锁，给 UI 渲染和绑定留出缓冲时间
-                await Task.Delay(200);
-                IsLoadingSettings = false;
-            }
-        }
-
-        // 处理“拨动即生效”的逻辑
-        private async void MemorySettings_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
-        {
-            var fastTrackProps = new[] {
-        nameof(VmMemorySettings.EnableEpf),
-        nameof(VmMemorySettings.HugePagesEnabled),
-        nameof(VmMemorySettings.EnableHotHint),
-        nameof(VmMemorySettings.EnableColdHint),
-        nameof(VmMemorySettings.DynamicMemoryEnabled)
-    };
-
-            if (fastTrackProps.Contains(e.PropertyName))
-            {
-                // 核心保护：加载中、VM运行中、或者没有设置对象，坚决不保存
-                if (IsLoadingSettings || SelectedVm == null || SelectedVm.IsRunning || SelectedVm.MemorySettings == null) return;
-
-                var result = await _vmMemoryService.SetVmMemorySettingsAsync(SelectedVm.Name, SelectedVm.MemorySettings);
-
-                if (!result.Success)
-                {
-                    ShowSnackbar("自动应用失败", result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
-                    // 失败后刷新数据把 UI 拨回去
-                    await GoToMemorySettings();
-                }
-                else
-                {
-                    // 成功后强制更新一次 UI（比如大页开启会联动导致 Reservation 等数值变动）
-                    OnPropertyChanged(nameof(SelectedVm));
-                }
-            }
-        }
-
-        [RelayCommand]
-        private async Task ApplyMemorySettings()
-        {
-            if (SelectedVm?.MemorySettings == null) return;
-            IsLoadingSettings = true;
-            try
-            {
-                var result = await _vmMemoryService.SetVmMemorySettingsAsync(SelectedVm.Name, SelectedVm.MemorySettings);
-                if (result.Success) ShowSnackbar("成功", result.Message, ControlAppearance.Success, SymbolRegular.CheckmarkCircle24);
-                else ShowSnackbar("保存失败", result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
-                await GoToMemorySettings();
-            }
-            catch (Exception ex) { ShowSnackbar("异常", ex.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24); }
-            finally { IsLoadingSettings = false; }
-        }
-
-        [RelayCommand]
-        private async Task ApplyChangesAsync()
-        {
-            if (SelectedVm?.Processor == null) return;
-            try { var result = await Task.Run(() => _vmProcessorService.SetVmProcessorAsync(SelectedVm.Name, SelectedVm.Processor)); if (result.Success) { _originalSettingsCache = SelectedVm.Processor.Clone(); SelectedVm.CpuCount = SelectedVm.Processor.Count; } else ShowSnackbar("保存失败", result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24); }
-            catch (Exception ex) { ShowSnackbar("异常", ex.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24); }
         }
 
         [RelayCommand] private void GoBackToDashboard() => CurrentViewType = VmDetailViewType.Dashboard;

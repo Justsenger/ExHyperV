@@ -1,10 +1,10 @@
 ﻿using ExHyperV.Models;
 using ExHyperV.Tools;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Management;
 using System.Text;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace ExHyperV.Services
@@ -17,96 +17,230 @@ namespace ExHyperV.Services
 
     public class VmProcessorService : IVmProcessorService
     {
-        // Hyper-V WMI 命名空间
-        private const string Namespace = @"root\virtualization\v2";
+        private const string NamespacePath = @"\\.\root\virtualization\v2";
 
+        private ManagementScope GetConnectedScope()
+        {
+            var options = new ConnectionOptions
+            {
+                Impersonation = ImpersonationLevel.Impersonate,
+                Authentication = AuthenticationLevel.PacketPrivacy,
+                EnablePrivileges = true
+            };
+            var scope = new ManagementScope(NamespacePath, options);
+            scope.Connect();
+            return scope;
+        }
+
+        // 1. 读取部分
         public async Task<VmProcessorSettings?> GetVmProcessorAsync(string vmName)
         {
             return await Task.Run(() =>
             {
                 try
                 {
-                    // 1. 定位虚拟机对象
-                    using var vmSearcher = new ManagementObjectSearcher(Namespace,
-                        $"SELECT * FROM Msvm_ComputerSystem WHERE ElementName = '{vmName.Replace("'", "''")}'");
-
+                    var scope = GetConnectedScope();
+                    using var vmSearcher = new ManagementObjectSearcher(scope, new SelectQuery("Msvm_ComputerSystem", $"ElementName = '{vmName.Replace("'", "''")}'"));
                     using var vmEntry = vmSearcher.Get().Cast<ManagementObject>().FirstOrDefault();
                     if (vmEntry == null) return null;
 
-                    // 2. 获取当前生效的设置外壳 (Realized SettingData)
-                    using var settingsSearcher = new ManagementObjectSearcher(Namespace,
-                        $"ASSOCIATORS OF {{{vmEntry.Path.Path}}} WHERE ResultClass = Msvm_VirtualSystemSettingData");
-
-                    using var settingData = settingsSearcher.Get().Cast<ManagementObject>()
-                        .FirstOrDefault(s => s["VirtualSystemType"].ToString() == "Microsoft:Hyper-V:System:Realized");
+                    var allSettings = vmEntry.GetRelated("Msvm_VirtualSystemSettingData").Cast<ManagementObject>().ToList();
+                    using var settingData = allSettings.FirstOrDefault(s => s["VirtualSystemType"]?.ToString() == "Microsoft:Hyper-V:System:Realized")
+                                         ?? allSettings.FirstOrDefault(s => s["VirtualSystemType"]?.ToString() == "Microsoft:Hyper-V:System:Definition");
 
                     if (settingData == null) return null;
 
-                    // 3. 定位到具体的处理器设置组件 (ProcessorSettingData)
-                    using var procSearcher = new ManagementObjectSearcher(Namespace,
-                        $"ASSOCIATORS OF {{{settingData.Path.Path}}} WHERE ResultClass = Msvm_ProcessorSettingData");
-
-                    using var procData = procSearcher.Get().Cast<ManagementObject>().FirstOrDefault();
+                    using var procData = settingData.GetRelated("Msvm_ProcessorSettingData").Cast<ManagementObject>().FirstOrDefault();
                     if (procData == null) return null;
 
-                    // 4. 从 WMI 对象映射到你的模型
                     return new VmProcessorSettings
                     {
-                        // 核心数
                         Count = Convert.ToInt32(procData["VirtualQuantity"]),
-
-                        // 预留与限制：WMI 内部以 100,000 为 100%，需除以 1000 还原为 0-100 整数
                         Reserve = Convert.ToInt32(procData["Reservation"]) / 1000,
                         Maximum = Convert.ToInt32(procData["Limit"]) / 1000,
-
-                        // 权重
                         RelativeWeight = Convert.ToInt32(procData["Weight"]),
 
-                        // 开关项
-                        ExposeVirtualizationExtensions = Convert.ToBoolean(procData["ExposeVirtualizationExtensions"]),
-                        EnableHostResourceProtection = Convert.ToBoolean(procData["EnableHostResourceProtection"]),
+                        ExposeVirtualizationExtensions = GetBoolProperty(procData, "ExposeVirtualizationExtensions"),
+                        EnableHostResourceProtection = GetBoolProperty(procData, "EnableHostResourceProtection"),
+                        CompatibilityForMigrationEnabled = GetBoolProperty(procData, "LimitProcessorFeatures"),
+                        CompatibilityForOlderOperatingSystemsEnabled = GetBoolProperty(procData, "LimitCPUID"),
+                        SmtMode = ConvertHwThreadsToSmtMode(Convert.ToUInt32(procData["HwThreadsPerCore"])),
 
-                        // 兼容性项 (根据 WMI 映射)
-                        CompatibilityForMigrationEnabled = Convert.ToBoolean(procData["LimitProcessorFeatures"]),
-                        CompatibilityForOlderOperatingSystemsEnabled = Convert.ToBoolean(procData["LimitCPUID"]),
-
-                        // SMT 模式 
-                        // ★ 修正：根据你的 WMI 截图，属性名确定为 HwThreadsPerCore ★
-                        SmtMode = ConvertHwThreadsToSmtMode(Convert.ToUInt32(procData["HwThreadsPerCore"]))
+                        // 新增高级功能读取
+                        DisableSpeculationControls = GetBoolProperty(procData, "DisableSpeculationControls"),
+                        HideHypervisorPresent = GetBoolProperty(procData, "HideHypervisorPresent"),
+                        EnablePerfmonArchPmu = GetBoolProperty(procData, "EnablePerfmonArchPmu"),
+                        EnablePerfmonIpt = GetBoolProperty(procData, "EnablePerfmonIpt"),
+                        AllowAcountMcount = GetBoolProperty(procData, "AllowAcountMcount")
+                        // 已移除 EnableHierarchicalVirtualization
                     };
+                }
+                catch { return null; }
+            });
+        }
+
+        // 2. 修改逻辑
+        public async Task<(bool Success, string Message)> SetVmProcessorAsync(string vmName, VmProcessorSettings newSettings)
+        {
+            var current = await GetVmProcessorAsync(vmName);
+            if (current == null) return (false, "找不到虚拟机处理器设置。");
+
+            // 【主机资源保护修复】单独优先处理
+            // 原因：此选项支持热修改，但如果与 Count/Reserve 等参数混在一个命令里，
+            // 可能会因触发生效检查（即便 Count 没变）而导致在运行时修改失败。
+            if (current.EnableHostResourceProtection != newSettings.EnableHostResourceProtection)
+            {
+                try
+                {
+                    var safeName = vmName.Replace("'", "''");
+                    var value = newSettings.EnableHostResourceProtection ? "$true" : "$false";
+                    // 单独执行这条命令，不带其他参数
+                    await Utils.Run2($"Set-VMProcessor -VMName '{safeName}' -EnableHostResourceProtection {value}");
+
+                    // 关键：修改成功后，更新 current 对象的内存状态
+                    // 这样后续的逻辑（PowerShell 或 WMI）对比时，会认为此项“未变更”，从而不再重复处理
+                    current.EnableHostResourceProtection = newSettings.EnableHostResourceProtection;
                 }
                 catch (Exception ex)
                 {
-                    // 调试用，生产环境下建议记录日志
-                    System.Diagnostics.Debug.WriteLine($"WMI 读取失败 [{vmName}]: {ex.Message}");
-                    return null;
+                    return (false, $"设置主机资源保护失败: {ex.Message}");
                 }
-            });
+            }
+
+            // 2. 判定是否需要走 WMI 高级修改流程
+            bool isAdvancedChanged =
+                current.SmtMode != newSettings.SmtMode ||
+                current.DisableSpeculationControls != newSettings.DisableSpeculationControls ||
+                current.HideHypervisorPresent != newSettings.HideHypervisorPresent ||
+                current.EnablePerfmonArchPmu != newSettings.EnablePerfmonArchPmu ||
+                current.EnablePerfmonIpt != newSettings.EnablePerfmonIpt ||
+                current.AllowAcountMcount != newSettings.AllowAcountMcount;
+            // 已移除 EnableHierarchicalVirtualization 的判断
+
+            if (isAdvancedChanged)
+            {
+                // 走 WMI 流程 (处理 SMT、嵌套虚拟化等)
+                return await SetVmProcessorWmiAsync(vmName, newSettings);
+            }
+            else
+            {
+                // 走常规 PowerShell 流程 (处理 Count, Reserve, Weight 等)
+                return await SetVmProcessorPowerShellAsync(vmName, newSettings);
+            }
         }
-        public async Task<(bool Success, string Message)> SetVmProcessorAsync(string vmName, VmProcessorSettings processorSettings)
+
+        #region WMI Implementation (核心修改逻辑)
+
+        private async Task<(bool Success, string Message)> SetVmProcessorWmiAsync(string vmName, VmProcessorSettings processorSettings)
         {
             try
             {
-                var safeVmName = vmName.Replace("'", "''");
-                var hwThreadCount = ConvertSmtModeToHwThreads(processorSettings.SmtMode);
+                var scope = GetConnectedScope();
+
+                using var vmSearcher = new ManagementObjectSearcher(scope, new SelectQuery("Msvm_ComputerSystem", $"ElementName = '{vmName.Replace("'", "''")}'"));
+                using var vmObject = vmSearcher.Get().Cast<ManagementObject>().FirstOrDefault();
+                if (vmObject == null) return (false, "找不到虚拟机");
+
+                using var classVsms = new ManagementClass(scope, new ManagementPath("Msvm_VirtualSystemManagementService"), null);
+                using var vsms = classVsms.GetInstances().Cast<ManagementObject>().FirstOrDefault();
+                if (vsms == null) return (false, "找不到Hyper-V管理服务。");
+
+                var allSettings = vmObject.GetRelated("Msvm_VirtualSystemSettingData").Cast<ManagementObject>().ToList();
+                using var settingData = allSettings.FirstOrDefault(s => s["VirtualSystemType"]?.ToString() == "Microsoft:Hyper-V:System:Realized")
+                                     ?? allSettings.FirstOrDefault(s => s["VirtualSystemType"]?.ToString() == "Microsoft:Hyper-V:System:Definition");
+                if (settingData == null) return (false, "找不到虚拟机配置。");
+
+                using var rawProcData = settingData.GetRelated("Msvm_ProcessorSettingData").Cast<ManagementObject>().FirstOrDefault();
+                if (rawProcData == null) return (false, "找不到处理器配置。");
+
+                using var procData = new ManagementObject(scope, rawProcData.Path, null);
+                procData.Get();
+
+                // 应用属性映射
+                ApplyProcessorSettingsToWmiObject(procData, processorSettings);
+
+                string xml = procData.GetText(TextFormat.CimDtd20);
+                using var inParams = vsms.GetMethodParameters("ModifyResourceSettings");
+                inParams["ResourceSettings"] = new string[] { xml };
+
+                using var outParams = vsms.InvokeMethod("ModifyResourceSettings", inParams, null);
+                uint ret = (uint)outParams["ReturnValue"];
+
+                if (ret == 0) return (true, "处理器设置已成功应用");
+                if (ret == 4096) return await WaitForJobAsync(outParams, scope);
+
+                return (false, $"修改失败(错误码: {ret})");
+            }
+            catch (Exception ex)
+            {
+                return (false, $"WMI 异常: {ex.Message}");
+            }
+        }
+
+        private void ApplyProcessorSettingsToWmiObject(ManagementObject procData, VmProcessorSettings settings)
+        {
+            // 检查这个配置对象是否属于“运行中”的虚拟机
+            bool isRealized = procData.Path.Path.Contains("Realized");
+
+            // 如果是运行中的虚拟机，严禁写入核心数(VirtualQuantity)
+            if (!isRealized)
+            {
+                procData["VirtualQuantity"] = (ulong)settings.Count;
+            }
+
+            // 支持运行时热修改的属性
+            procData["Reservation"] = (ulong)(settings.Reserve * 1000);
+            procData["Limit"] = (ulong)(settings.Maximum * 1000);
+            procData["Weight"] = (uint)settings.RelativeWeight;
+
+            // 基础开关
+            procData["ExposeVirtualizationExtensions"] = settings.ExposeVirtualizationExtensions;
+            procData["EnableHostResourceProtection"] = settings.EnableHostResourceProtection;
+            procData["LimitProcessorFeatures"] = settings.CompatibilityForMigrationEnabled;
+            procData["LimitCPUID"] = settings.CompatibilityForOlderOperatingSystemsEnabled;
+
+            // SMT 模式
+            procData["HwThreadsPerCore"] = (ulong)ConvertSmtModeToHwThreads(settings.SmtMode);
+
+            // 高级功能写入
+            TrySetProperty(procData, "DisableSpeculationControls", settings.DisableSpeculationControls);
+            TrySetProperty(procData, "HideHypervisorPresent", settings.HideHypervisorPresent);
+            TrySetProperty(procData, "EnablePerfmonArchPmu", settings.EnablePerfmonArchPmu);
+            TrySetProperty(procData, "EnablePerfmonIpt", settings.EnablePerfmonIpt);
+            TrySetProperty(procData, "AllowAcountMcount", settings.AllowAcountMcount);
+            // 已移除 EnableHierarchicalVirtualization 的写入
+        }
+        #endregion
+
+        private async Task<(bool Success, string Message)> SetVmProcessorPowerShellAsync(string vmName, VmProcessorSettings settings)
+        {
+            try
+            {
+                // 1. 获取当前线上数据进行对比
+                var current = await GetVmProcessorAsync(vmName);
+                if (current == null) return (false, "无法获取当前配置。");
 
                 var sb = new StringBuilder();
-                sb.Append($"$vm = Get-VM -Name '{safeVmName}' -ErrorAction Stop; ");
-                sb.Append("Set-VMProcessor -VM $vm ");
-                sb.Append($"-Count {processorSettings.Count} ");
-                sb.Append($"-Reserve {processorSettings.Reserve} ");
-                sb.Append($"-Maximum {processorSettings.Maximum} ");
-                sb.Append($"-RelativeWeight {processorSettings.RelativeWeight} ");
-                sb.Append($"-ExposeVirtualizationExtensions {ToPsBool(processorSettings.ExposeVirtualizationExtensions)} ");
-                sb.Append($"-EnableHostResourceProtection {ToPsBool(processorSettings.EnableHostResourceProtection)} ");
-                sb.Append($"-CompatibilityForMigrationEnabled {ToPsBool(processorSettings.CompatibilityForMigrationEnabled)} ");
-                sb.Append($"-CompatibilityForOlderOperatingSystemsEnabled {ToPsBool(processorSettings.CompatibilityForOlderOperatingSystemsEnabled)} ");
-                sb.Append($"-HwThreadCountPerCore {hwThreadCount} ");
-                sb.Append("-ErrorAction Stop");
+                var safeVmName = vmName.Replace("'", "''");
+                sb.Append($"Set-VMProcessor -VMName '{safeVmName}' ");
+
+                bool hasChange = false;
+
+                // 2. 只有值变了，才把参数拼接到命令里
+                if (current.Count != settings.Count) { sb.Append($"-Count {settings.Count} "); hasChange = true; }
+                if (current.Reserve != settings.Reserve) { sb.Append($"-Reserve {settings.Reserve} "); hasChange = true; }
+                if (current.Maximum != settings.Maximum) { sb.Append($"-Maximum {settings.Maximum} "); hasChange = true; }
+                if (current.RelativeWeight != settings.RelativeWeight) { sb.Append($"-RelativeWeight {settings.RelativeWeight} "); hasChange = true; }
+
+                // 基础开关
+                // 注意：如果上层的 EnableHostResourceProtection 已经单独处理过，这里实际上不会触发，是安全的
+                if (current.EnableHostResourceProtection != settings.EnableHostResourceProtection)
+                { sb.Append($"-EnableHostResourceProtection {(settings.EnableHostResourceProtection ? "$true" : "$false")} "); hasChange = true; }
+
+                if (!hasChange) return (true, "配置无变动。");
 
                 await Utils.Run2(sb.ToString());
-
-                return (true, Properties.Resources.SettingsSavedSuccessfully);
+                return (true, "设置已成功应用");
             }
             catch (Exception ex)
             {
@@ -114,22 +248,37 @@ namespace ExHyperV.Services
             }
         }
 
-        private SmtMode ConvertHwThreadsToSmtMode(uint hwThreads) => hwThreads switch
+        #region Helpers & Converters
+        private async Task<(bool Success, string Message)> WaitForJobAsync(ManagementBaseObject outParams, ManagementScope scope)
         {
-            1 => SmtMode.SingleThread,
-            2 => SmtMode.MultiThread,
-            _ => SmtMode.Inherit
-        };
+            if (outParams["Job"] == null) return (true, "完成");
+            string jobPath = outParams["Job"].ToString();
+            return await Task.Run(() =>
+            {
+                using var job = new ManagementObject(scope, new ManagementPath(jobPath), null);
+                job.Get();
+                var watch = System.Diagnostics.Stopwatch.StartNew();
+                while ((ushort)job["JobState"] == 4 || (ushort)job["JobState"] == 3)
+                {
+                    if (watch.ElapsedMilliseconds > 30000) return (false, "任务超时");
+                    System.Threading.Thread.Sleep(500);
+                    job.Get();
+                }
+                if ((ushort)job["JobState"] == 7) return (true, "设置已成功应用");
+                return (false, job["ErrorDescription"]?.ToString() ?? "任务失败");
+            });
+        }
 
-        private uint ConvertSmtModeToHwThreads(SmtMode smtMode) => smtMode switch
+        private SmtMode ConvertHwThreadsToSmtMode(uint hwThreads) => hwThreads == 1 ? SmtMode.SingleThread : SmtMode.MultiThread;
+        private uint ConvertSmtModeToHwThreads(SmtMode smtMode) => smtMode == SmtMode.SingleThread ? 1u : 2u;
+
+        private bool HasProperty(ManagementObject obj, string propName) => obj.Properties.Cast<PropertyData>().Any(p => p.Name.Equals(propName, StringComparison.OrdinalIgnoreCase));
+        private void TrySetProperty(ManagementObject obj, string propName, object value) { if (HasProperty(obj, propName)) { try { obj[propName] = value; } catch { } } }
+        private bool GetBoolProperty(ManagementObject obj, string propName)
         {
-            SmtMode.SingleThread => 1,
-            SmtMode.MultiThread => 2,
-            _ => 0
-        };
-
-        private string ToPsBool(bool value) => value ? "$true" : "$false";
-        private long GetLong(object value) { try { return Convert.ToInt64(value); } catch { return 0; } }
-        private bool GetBool(object value) { try { return Convert.ToBoolean(value); } catch { return false; } }
+            if (!HasProperty(obj, propName) || obj[propName] == null) return false;
+            try { return Convert.ToBoolean(obj[propName]); } catch { return false; }
+        }
+        #endregion
     }
 }

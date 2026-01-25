@@ -83,8 +83,15 @@
                         </Grid.ColumnDefinitions>
                         <StackPanel Grid.Column="0">
                             <TextBlock Text="{x:Static properties:Resources.VCpuCount}" FontSize="13" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" Margin="0,0,0,8"/>
-                            <ComboBox IsEditable="True" HorizontalAlignment="Stretch" Padding="10,6" Text="{Binding SelectedVm.Processor.Count, UpdateSourceTrigger=PropertyChanged}" ItemsSource="{Binding PossibleVCpuCounts}"/>
+                            <!-- 添加 IsEnabled 绑定，关机才可用 -->
+                            <ComboBox IsEditable="True" 
+              HorizontalAlignment="Stretch" 
+              Padding="10,6" 
+              Text="{Binding SelectedVm.Processor.Count, UpdateSourceTrigger=PropertyChanged}" 
+              ItemsSource="{Binding PossibleVCpuCounts}"
+              IsEnabled="{Binding SelectedVm.IsRunning, Converter={StaticResource InverseBooleanConverter}}"/>
                         </StackPanel>
+                        
                         <StackPanel Grid.Column="2">
                             <TextBlock Text="{x:Static properties:Resources.ReservePercentage}" FontSize="13" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" Margin="0,0,0,8"/>
                             <ComboBox IsEditable="True" HorizontalAlignment="Stretch" Padding="10,6" Text="{Binding SelectedVm.Processor.Reserve, UpdateSourceTrigger=PropertyChanged}">
@@ -116,7 +123,7 @@
                     </Grid>
                 </Border>
 
-                <!-- 高级功能 -->
+               <!-- 高级功能 -->
                 <TextBlock Text="{x:Static properties:Resources.AdvancedFeatures}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" Margin="0,0,0,12"/>
                 <Border Background="{ui:ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="0" Margin="0,0,0,32">
                     <StackPanel>
@@ -145,9 +152,9 @@
                                 <TextBlock Text="{x:Static properties:Resources.NestedVirtualizationDescription}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
                             </StackPanel>
                             <ui:ToggleSwitch Grid.Column="1" Style="{StaticResource ShutdownRequiredToggleStyle}"
-                                             IsChecked="{Binding SelectedVm.Processor.ExposeVirtualizationExtensions}" 
-                                             IsEnabled="{Binding SelectedVm.IsRunning, Converter={StaticResource InverseBooleanConverter}}" 
-                                             Command="{Binding ApplyChangesCommand}"/>
+                             IsChecked="{Binding SelectedVm.Processor.ExposeVirtualizationExtensions}" 
+                             IsEnabled="{Binding SelectedVm.IsRunning, Converter={StaticResource InverseBooleanConverter}}" 
+                             Command="{Binding ApplyChangesCommand}"/>
                         </Grid>
                         <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
 
@@ -162,9 +169,9 @@
                                 <TextBlock Text="{x:Static properties:Resources.MigrationCompatibilityDescription}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
                             </StackPanel>
                             <ui:ToggleSwitch Grid.Column="1" Style="{StaticResource ShutdownRequiredToggleStyle}"
-                                             IsChecked="{Binding SelectedVm.Processor.CompatibilityForMigrationEnabled}" 
-                                             IsEnabled="{Binding SelectedVm.IsRunning, Converter={StaticResource InverseBooleanConverter}}" 
-                                             Command="{Binding ApplyChangesCommand}"/>
+                             IsChecked="{Binding SelectedVm.Processor.CompatibilityForMigrationEnabled}" 
+                             IsEnabled="{Binding SelectedVm.IsRunning, Converter={StaticResource InverseBooleanConverter}}" 
+                             Command="{Binding ApplyChangesCommand}"/>
                         </Grid>
                         <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
 
@@ -179,17 +186,12 @@
                                 <TextBlock Text="{x:Static properties:Resources.LegacySystemCompatibilityDescription}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
                             </StackPanel>
                             <ui:ToggleSwitch Grid.Column="1" Style="{StaticResource ShutdownRequiredToggleStyle}"
-                                             IsChecked="{Binding SelectedVm.Processor.CompatibilityForOlderOperatingSystemsEnabled}" 
-                                             IsEnabled="{Binding SelectedVm.IsRunning, Converter={StaticResource InverseBooleanConverter}}" 
-                                             Command="{Binding ApplyChangesCommand}"/>
+                             IsChecked="{Binding SelectedVm.Processor.CompatibilityForOlderOperatingSystemsEnabled}" 
+                             IsEnabled="{Binding SelectedVm.IsRunning, Converter={StaticResource InverseBooleanConverter}}" 
+                             Command="{Binding ApplyChangesCommand}"/>
                         </Grid>
-                    </StackPanel>
-                </Border>
+                        <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
 
-                <!-- 拓扑 -->
-                <TextBlock Text="拓扑" FontSize="14" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" Margin="0,0,0,12"/>
-                <Border Background="{ui:ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="0">
-                    <StackPanel>
                         <!-- 虚拟机 SMT -->
                         <Grid Margin="24,16">
                             <Grid.ColumnDefinitions>
@@ -201,11 +203,102 @@
                                 <TextBlock Text="{x:Static properties:Resources.VirtualMachineSmtDescription}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
                             </StackPanel>
                             <ui:ToggleSwitch Grid.Column="1" Style="{StaticResource ShutdownRequiredToggleStyle}"
-                                             IsChecked="{Binding SelectedVm.Processor.SmtMode, Converter={StaticResource SmtModeToBooleanConverter}}" 
-                                             IsEnabled="{Binding SelectedVm.IsRunning, Converter={StaticResource InverseBooleanConverter}}" 
-                                             Command="{Binding ApplyChangesCommand}"/>
+                             IsChecked="{Binding SelectedVm.Processor.SmtMode, Converter={StaticResource SmtModeToBooleanConverter}}" 
+                             IsEnabled="{Binding SelectedVm.IsRunning, Converter={StaticResource InverseBooleanConverter}}" 
+                             Command="{Binding ApplyChangesCommand}"/>
                         </Grid>
                         <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
+
+                        <!-- 隐藏 Hypervisor 标识 -->
+                        <Grid Margin="24,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="隐藏 Hypervisor 标识" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
+                                <TextBlock Text="为虚拟机系统隐藏虚拟化标识符，可能有助于绕过软件检测" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                            </StackPanel>
+                            <ui:ToggleSwitch Grid.Column="1" Style="{StaticResource ShutdownRequiredToggleStyle}"
+            IsChecked="{Binding SelectedVm.Processor.HideHypervisorPresent}" 
+            IsEnabled="{Binding SelectedVm.IsRunning, Converter={StaticResource InverseBooleanConverter}}" 
+            Command="{Binding ApplyChangesCommand}"/>
+                        </Grid>
+                        <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
+
+                        <!-- 暴露架构性能监控单元 -->
+                        <Grid Margin="24,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="暴露架构性能监控单元 (PMU)" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
+                                <TextBlock Text="允许虚拟机使用硬件性能计数器进行性能分析" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                            </StackPanel>
+                            <ui:ToggleSwitch Grid.Column="1" Style="{StaticResource ShutdownRequiredToggleStyle}"
+            IsChecked="{Binding SelectedVm.Processor.EnablePerfmonArchPmu}" 
+            IsEnabled="{Binding SelectedVm.IsRunning, Converter={StaticResource InverseBooleanConverter}}" 
+            Command="{Binding ApplyChangesCommand}"/>
+                        </Grid>
+                        <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
+
+                        <!-- 暴露英特尔处理器追踪 -->
+                        <Grid Margin="24,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="暴露英特尔处理器追踪 (Intel PT)" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
+                                <TextBlock Text="允许虚拟机使用硬件级控制流追踪功能" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                            </StackPanel>
+                            <ui:ToggleSwitch Grid.Column="1" Style="{StaticResource ShutdownRequiredToggleStyle}"
+            IsChecked="{Binding SelectedVm.Processor.EnablePerfmonIpt}" 
+            IsEnabled="{Binding SelectedVm.IsRunning, Converter={StaticResource InverseBooleanConverter}}" 
+            Command="{Binding ApplyChangesCommand}"/>
+                        </Grid>
+                        <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
+
+                        <!-- 暴露频率监视寄存器 -->
+                        <Grid Margin="24,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="暴露频率监视寄存器 (MPERF/APERF)" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
+                                <TextBlock Text="允许虚拟机读取 ACOUNT/MCOUNT 以精确计算真实频率" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                            </StackPanel>
+                            <ui:ToggleSwitch Grid.Column="1" Style="{StaticResource ShutdownRequiredToggleStyle}"
+            IsChecked="{Binding SelectedVm.Processor.AllowAcountMcount}" 
+            IsEnabled="{Binding SelectedVm.IsRunning, Converter={StaticResource InverseBooleanConverter}}" 
+            Command="{Binding ApplyChangesCommand}"/>
+                        </Grid>
+                        <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
+
+                        <!-- 禁用侧信道攻击缓解 -->
+                        <Grid Margin="24,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="禁用侧信道攻击缓解" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
+                                <TextBlock Text="禁用 Spectre/Meltdown 补丁。显著提升性能，但降低安全性" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                            </StackPanel>
+                            <ui:ToggleSwitch Grid.Column="1" Style="{StaticResource ShutdownRequiredToggleStyle}"
+            IsChecked="{Binding SelectedVm.Processor.DisableSpeculationControls}" 
+            IsEnabled="{Binding SelectedVm.IsRunning, Converter={StaticResource InverseBooleanConverter}}" 
+            Command="{Binding ApplyChangesCommand}"/>
+                        </Grid>
+                    </StackPanel>
+                    
+                </Border>
+                <!-- 实验功能 -->
+                <TextBlock Text="实验功能" FontSize="14" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" Margin="0,0,0,12"/>
+                <Border Background="{ui:ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="0">
+                    <StackPanel>
 
                         <!-- CPU 绑定 -->
                         <Grid Margin="24,16">

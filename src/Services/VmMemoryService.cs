@@ -5,7 +5,6 @@ using System.Linq;
 using System.Management;
 using System.Text;
 using System.Threading.Tasks;
-// 确保你的 Utils 类所在的命名空间被正确引用
 using ExHyperV.Tools;
 
 namespace ExHyperV.Services
@@ -33,7 +32,7 @@ namespace ExHyperV.Services
             return scope;
         }
 
-        // 读取部分: 保持 WMI 不变
+        // 读取部分: 获取内存基础配置和大页支持状态
         public async Task<VmMemorySettings?> GetVmMemorySettingsAsync(string vmName)
         {
             return await Task.Run(() =>
@@ -54,7 +53,7 @@ namespace ExHyperV.Services
                     using var memData = settingData.GetRelated("Msvm_MemorySettingData").Cast<ManagementObject>().FirstOrDefault();
                     if (memData == null) return null;
 
-                    var settings = new VmMemorySettings
+                    return new VmMemorySettings
                     {
                         Startup = Convert.ToInt64(memData["VirtualQuantity"]),
                         Minimum = Convert.ToInt64(memData["Reservation"]),
@@ -63,22 +62,16 @@ namespace ExHyperV.Services
                         DynamicMemoryEnabled = Convert.ToBoolean(memData["DynamicMemoryEnabled"]),
                         Buffer = memData["TargetMemoryBuffer"] != null ? Convert.ToInt32(memData["TargetMemoryBuffer"]) : 20,
 
-                        EnableEpf = GetBoolProperty(memData, "EnableEpf"),
-                        IsEpfSupported = HasProperty(memData, "EnableEpf"),
+                        // 仅保留大页内存支持
                         HugePagesEnabled = GetBoolProperty(memData, "HugePagesEnabled"),
-                        IsHugePagesSupported = HasProperty(memData, "HugePagesEnabled"),
-                        EnableHotHint = GetBoolProperty(memData, "EnableHotHint"),
-                        IsHotHintSupported = HasProperty(memData, "EnableHotHint"),
-                        EnableColdHint = GetBoolProperty(memData, "EnableColdHint"),
-                        IsColdHintSupported = HasProperty(memData, "EnableColdHint")
+                        IsHugePagesSupported = HasProperty(memData, "HugePagesEnabled")
                     };
-                    return settings;
                 }
                 catch { return null; }
             });
         }
 
-        // 修改部分: 优先使用 PowerShell
+        // 修改逻辑：基础属性走 PowerShell (稳定)，高级属性(大页)走 WMI
         public async Task<(bool Success, string Message)> SetVmMemorySettingsAsync(string vmName, VmMemorySettings newSettings)
         {
             var currentSettings = await GetVmMemorySettingsAsync(vmName);
@@ -87,31 +80,26 @@ namespace ExHyperV.Services
                 return (false, "找不到虚拟机或其内存设置。");
             }
 
-            // 检查是否有 PowerShell 不支持的高级属性被修改
-            bool advancedPropertyChanged =
-                currentSettings.EnableEpf != newSettings.EnableEpf ||
-                currentSettings.HugePagesEnabled != newSettings.HugePagesEnabled ||
-                currentSettings.EnableHotHint != newSettings.EnableHotHint ||
-                currentSettings.EnableColdHint != newSettings.EnableColdHint;
+            // 检查大页内存开关是否改变
+            bool advancedPropertyChanged = currentSettings.HugePagesEnabled != newSettings.HugePagesEnabled;
 
             if (advancedPropertyChanged)
             {
-                // 如果修改了高级属性, 则回退到 WMI 方法 (已修复)
+                // 如果涉及大页内存修改，必须走 WMI 流程
                 return await SetVmMemorySettingsWmiAsync(vmName, newSettings);
             }
             else
             {
-                // 否则, 使用更稳定简洁的 PowerShell 方法
+                // 标准修改走更简洁的 PowerShell 流程
                 return await SetVmMemorySettingsPowerShellAsync(vmName, newSettings);
             }
         }
 
-        #region PowerShell Implementation
+        #region PowerShell Implementation (标准内存设置)
         private async Task<(bool Success, string Message)> SetVmMemorySettingsPowerShellAsync(string vmName, VmMemorySettings memorySettings)
         {
             try
             {
-                // 参数校验
                 if (memorySettings.DynamicMemoryEnabled)
                 {
                     if (memorySettings.Minimum > memorySettings.Startup)
@@ -121,7 +109,6 @@ namespace ExHyperV.Services
                 }
 
                 var scriptBuilder = new StringBuilder();
-                // 使用单引号防止注入, 并正确处理包含空格的名称
                 var sanitizedVmName = vmName.Replace("'", "''");
 
                 scriptBuilder.Append($"Set-VMMemory -VMName '{sanitizedVmName}' ");
@@ -136,15 +123,12 @@ namespace ExHyperV.Services
                     scriptBuilder.Append($"-Buffer {memorySettings.Buffer} ");
                 }
 
-                // 使用你提供的 Utils.Run2 方法执行脚本
                 await Utils.Run2(scriptBuilder.ToString());
-
                 return (true, "设置已成功应用");
             }
             catch (PowerShellScriptException ex)
             {
-                // 捕获由 Run2 抛出的特定异常
-                return (false, $"PowerShell 执行失败: {ex.Message}");
+                return (false, $"执行失败: {ex.Message}");
             }
             catch (Exception ex)
             {
@@ -153,7 +137,7 @@ namespace ExHyperV.Services
         }
         #endregion
 
-        #region WMI Implementation (Fallback with Job Waiting Fix)
+        #region WMI Implementation (处理大页内存等高级逻辑)
 
         private async Task<(bool Success, string Message)> SetVmMemorySettingsWmiAsync(string vmName, VmMemorySettings memorySettings)
         {
@@ -180,7 +164,6 @@ namespace ExHyperV.Services
                 using var memData = new ManagementObject(scope, rawMemData.Path, null);
                 memData.Get();
 
-                // 应用所有修改（标准 + 高级）
                 ApplyMemorySettingsToWmiObject(memData, memorySettings);
 
                 string xml = memData.GetText(TextFormat.CimDtd20);
@@ -190,15 +173,8 @@ namespace ExHyperV.Services
                 using var outParams = vsms.InvokeMethod("ModifyResourceSettings", inParams, null);
                 uint ret = (uint)outParams["ReturnValue"];
 
-                if (ret == 0) // 同步完成
-                {
-                    return (true, "设置已成功应用");
-                }
-                if (ret == 4096) // 异步任务已启动
-                {
-                    // [关键修复] 等待WMI Job完成
-                    return await WaitForJobAsync(outParams, scope);
-                }
+                if (ret == 0) return (true, "设置已成功应用");
+                if (ret == 4096) return await WaitForJobAsync(outParams, scope);
 
                 return (false, $"修改失败(错误码: {ret})");
             }
@@ -214,15 +190,13 @@ namespace ExHyperV.Services
             memData["VirtualQuantity"] = startup;
             memData["Weight"] = memorySettings.Priority * 100;
 
-            // 应用高级属性
-            TrySetProperty(memData, "EnableEpf", memorySettings.EnableEpf);
-            TrySetProperty(memData, "EnableHotHint", memorySettings.EnableHotHint);
-            TrySetProperty(memData, "EnableColdHint", memorySettings.EnableColdHint);
+            // 仅保留 HugePagesEnabled 逻辑
             TrySetProperty(memData, "HugePagesEnabled", memorySettings.HugePagesEnabled);
 
             const long SafeMaxAlignLimit = 1048576; // 1TB
             if (memorySettings.HugePagesEnabled && HasProperty(memData, "HugePagesEnabled"))
             {
+                // 开启大页时，强制静态内存，且对齐 NUMA 节点限制
                 memData["DynamicMemoryEnabled"] = false;
                 memData["Reservation"] = startup;
                 memData["Limit"] = startup;
@@ -254,43 +228,29 @@ namespace ExHyperV.Services
 
         private async Task<(bool Success, string Message)> WaitForJobAsync(ManagementBaseObject outParams, ManagementScope scope)
         {
-            if (outParams["Job"] == null)
-                return (true, "操作成功完成 (无任务)");
+            if (outParams["Job"] == null) return (true, "操作成功完成");
 
             string jobPath = outParams["Job"].ToString();
-
             return await Task.Run(() =>
             {
                 using var job = new ManagementObject(scope, new ManagementPath(jobPath), null);
                 job.Get();
 
-                // 等待任务完成，设置一个超时，例如30秒
                 var watch = System.Diagnostics.Stopwatch.StartNew();
-                while ((ushort)job["JobState"] == 4 /* Running */ || (ushort)job["JobState"] == 3 /* Starting */)
+                while ((ushort)job["JobState"] == 4 || (ushort)job["JobState"] == 3)
                 {
-                    if (watch.ElapsedMilliseconds > 30000)
-                    {
-                        return (false, "应用设置超时。");
-                    }
+                    if (watch.ElapsedMilliseconds > 30000) return (false, "应用设置超时。");
                     System.Threading.Thread.Sleep(500);
                     job.Get();
                 }
                 watch.Stop();
 
-                ushort finalState = (ushort)job["JobState"];
-                if (finalState == 7) // Completed
-                {
-                    return (true, "设置已成功应用");
-                }
-                else
-                {
-                    string errorDesc = job["ErrorDescription"]?.ToString() ?? "未知错误";
-                    ushort errorCode = (ushort)(job["ErrorCode"] ?? 0);
-                    return (false, $"应用设置失败: {errorDesc} (代码: {errorCode})");
-                }
+                if ((ushort)job["JobState"] == 7) return (true, "设置已成功应用");
+
+                string errorDesc = job["ErrorDescription"]?.ToString() ?? "未知错误";
+                return (false, $"应用失败: {errorDesc}");
             });
         }
-
         #endregion
 
         #region WMI Helpers
