@@ -73,7 +73,6 @@ namespace ExHyperV.Models
         [ObservableProperty] private bool _disableSpeculationControls;       // 禁用推测执行保护
         [ObservableProperty] private bool _hideHypervisorPresent;            // 隐藏虚拟化标识
         [ObservableProperty] private bool _enablePerfmonArchPmu;             // 暴露硬件性能计数器
-        [ObservableProperty] private bool _enablePerfmonIpt;                 // 暴露处理器追踪 (IPT)
         [ObservableProperty] private bool _allowAcountMcount;                // 允许访问 ACOUNT/MCOUNT
 
         public VmProcessorSettings Clone() => (VmProcessorSettings)this.MemberwiseClone();
@@ -94,7 +93,6 @@ namespace ExHyperV.Models
             DisableSpeculationControls = other.DisableSpeculationControls;
             HideHypervisorPresent = other.HideHypervisorPresent;
             EnablePerfmonArchPmu = other.EnablePerfmonArchPmu;
-            EnablePerfmonIpt = other.EnablePerfmonIpt;
             AllowAcountMcount = other.AllowAcountMcount;
         }
     }

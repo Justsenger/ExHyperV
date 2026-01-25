@@ -70,9 +70,8 @@ namespace ExHyperV.Services
                         DisableSpeculationControls = GetBoolProperty(procData, "DisableSpeculationControls"),
                         HideHypervisorPresent = GetBoolProperty(procData, "HideHypervisorPresent"),
                         EnablePerfmonArchPmu = GetBoolProperty(procData, "EnablePerfmonArchPmu"),
-                        EnablePerfmonIpt = GetBoolProperty(procData, "EnablePerfmonIpt"),
+                        // 已移除 EnablePerfmonIpt (Intel 处理器追踪)
                         AllowAcountMcount = GetBoolProperty(procData, "AllowAcountMcount")
-                        // 已移除 EnableHierarchicalVirtualization
                     };
                 }
                 catch { return null; }
@@ -86,19 +85,13 @@ namespace ExHyperV.Services
             if (current == null) return (false, "找不到虚拟机处理器设置。");
 
             // 【主机资源保护修复】单独优先处理
-            // 原因：此选项支持热修改，但如果与 Count/Reserve 等参数混在一个命令里，
-            // 可能会因触发生效检查（即便 Count 没变）而导致在运行时修改失败。
             if (current.EnableHostResourceProtection != newSettings.EnableHostResourceProtection)
             {
                 try
                 {
                     var safeName = vmName.Replace("'", "''");
                     var value = newSettings.EnableHostResourceProtection ? "$true" : "$false";
-                    // 单独执行这条命令，不带其他参数
                     await Utils.Run2($"Set-VMProcessor -VMName '{safeName}' -EnableHostResourceProtection {value}");
-
-                    // 关键：修改成功后，更新 current 对象的内存状态
-                    // 这样后续的逻辑（PowerShell 或 WMI）对比时，会认为此项“未变更”，从而不再重复处理
                     current.EnableHostResourceProtection = newSettings.EnableHostResourceProtection;
                 }
                 catch (Exception ex)
@@ -113,18 +106,17 @@ namespace ExHyperV.Services
                 current.DisableSpeculationControls != newSettings.DisableSpeculationControls ||
                 current.HideHypervisorPresent != newSettings.HideHypervisorPresent ||
                 current.EnablePerfmonArchPmu != newSettings.EnablePerfmonArchPmu ||
-                current.EnablePerfmonIpt != newSettings.EnablePerfmonIpt ||
+                // 已移除 EnablePerfmonIpt 判断
                 current.AllowAcountMcount != newSettings.AllowAcountMcount;
-            // 已移除 EnableHierarchicalVirtualization 的判断
 
             if (isAdvancedChanged)
             {
-                // 走 WMI 流程 (处理 SMT、嵌套虚拟化等)
+                // 走 WMI 流程
                 return await SetVmProcessorWmiAsync(vmName, newSettings);
             }
             else
             {
-                // 走常规 PowerShell 流程 (处理 Count, Reserve, Weight 等)
+                // 走常规 PowerShell 流程
                 return await SetVmProcessorPowerShellAsync(vmName, newSettings);
             }
         }
@@ -206,9 +198,8 @@ namespace ExHyperV.Services
             TrySetProperty(procData, "DisableSpeculationControls", settings.DisableSpeculationControls);
             TrySetProperty(procData, "HideHypervisorPresent", settings.HideHypervisorPresent);
             TrySetProperty(procData, "EnablePerfmonArchPmu", settings.EnablePerfmonArchPmu);
-            TrySetProperty(procData, "EnablePerfmonIpt", settings.EnablePerfmonIpt);
+            // 已移除 EnablePerfmonIpt 的写入
             TrySetProperty(procData, "AllowAcountMcount", settings.AllowAcountMcount);
-            // 已移除 EnableHierarchicalVirtualization 的写入
         }
         #endregion
 
@@ -233,7 +224,6 @@ namespace ExHyperV.Services
                 if (current.RelativeWeight != settings.RelativeWeight) { sb.Append($"-RelativeWeight {settings.RelativeWeight} "); hasChange = true; }
 
                 // 基础开关
-                // 注意：如果上层的 EnableHostResourceProtection 已经单独处理过，这里实际上不会触发，是安全的
                 if (current.EnableHostResourceProtection != settings.EnableHostResourceProtection)
                 { sb.Append($"-EnableHostResourceProtection {(settings.EnableHostResourceProtection ? "$true" : "$false")} "); hasChange = true; }
 
