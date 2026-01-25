@@ -23,6 +23,9 @@ namespace ExHyperV.Models
     // ==========================================
     // ↓↓↓ 内存设置模型 ↓↓↓
     // ==========================================
+    // ==========================================
+    // ↓↓↓ 内存设置模型 ↓↓↓
+    // ==========================================
     public partial class VmMemorySettings : ObservableObject
     {
         [ObservableProperty] private long _startup;
@@ -32,17 +35,17 @@ namespace ExHyperV.Models
         [ObservableProperty] private int _buffer;
         [ObservableProperty] private int _priority;
 
-        // 启发式缺页错误 (EnableEpf)
+        // 属性值
         [ObservableProperty] private bool _enableEpf;
-
-        // 大页内存 (HugePagesEnabled)
         [ObservableProperty] private bool _hugePagesEnabled;
-
-        // 活跃内存保护 (EnableHotHint)
         [ObservableProperty] private bool _enableHotHint;
-
-        // 闲置内存回收 (EnableColdHint)
         [ObservableProperty] private bool _enableColdHint;
+
+        // 支持位 (用于 UI 禁用/启用)
+        [ObservableProperty] private bool _isEpfSupported = true;
+        [ObservableProperty] private bool _isHugePagesSupported = true;
+        [ObservableProperty] private bool _isHotHintSupported = true;
+        [ObservableProperty] private bool _isColdHintSupported = true;
 
         public VmMemorySettings Clone() => (VmMemorySettings)this.MemberwiseClone();
 
@@ -59,6 +62,12 @@ namespace ExHyperV.Models
             HugePagesEnabled = other.HugePagesEnabled;
             EnableHotHint = other.EnableHotHint;
             EnableColdHint = other.EnableColdHint;
+
+            // 同步支持位
+            IsEpfSupported = other.IsEpfSupported;
+            IsHugePagesSupported = other.IsHugePagesSupported;
+            IsHotHintSupported = other.IsHotHintSupported;
+            IsColdHintSupported = other.IsColdHintSupported;
         }
     }
 
