@@ -92,7 +92,27 @@
                             <StackPanel Grid.Column="0">
                                 <TextBlock Text="启动内存 (MB)" FontSize="13" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" Margin="0,0,0,8"/>
                                 <ComboBox IsEditable="True" ItemsSource="{StaticResource CommonMemoryValues}"
-              Text="{Binding SelectedVm.MemorySettings.Startup, UpdateSourceTrigger=PropertyChanged}"/>
+              Text="{Binding SelectedVm.MemorySettings.Startup, UpdateSourceTrigger=PropertyChanged}">
+                                    <ComboBox.Style>
+                                        <Style TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
+                                            <!-- 默认启用 -->
+                                            <Setter Property="IsEnabled" Value="True"/>
+                                            <Style.Triggers>
+                                                <!-- 【核心逻辑】当两个条件同时满足时，触发禁用 -->
+                                                <MultiDataTrigger>
+                                                    <MultiDataTrigger.Conditions>
+                                                        <Condition Binding="{Binding SelectedVm.IsRunning}" Value="True" />
+                                                        <Condition Binding="{Binding SelectedVm.MemorySettings.DynamicMemoryEnabled}" Value="True" />
+                                                    </MultiDataTrigger.Conditions>
+                                                    <MultiDataTrigger.Setters>
+                                                        <Setter Property="IsEnabled" Value="False"/>
+                                                        <Setter Property="ToolTip" Value="启用动态内存时，无法在虚拟机运行时修改启动内存。"/>
+                                                    </MultiDataTrigger.Setters>
+                                                </MultiDataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </ComboBox.Style>
+                                </ComboBox>
                             </StackPanel>
                             <StackPanel Grid.Column="2">
                                 <Grid Margin="0,0,0,8">
