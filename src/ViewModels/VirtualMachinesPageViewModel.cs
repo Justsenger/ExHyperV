@@ -176,40 +176,72 @@ namespace ExHyperV.ViewModels
             finally { IsLoadingSettings = false; }
         }
 
+        // VirtualMachinesPageViewModel.cs 关键方法更新
+
         [RelayCommand]
         private async Task GoToMemorySettings()
         {
             if (SelectedVm == null) return;
+
             CurrentViewType = VmDetailViewType.MemorySettings;
-            IsLoadingSettings = true; // 开启加载标志，锁死自动保存
+
+            // 1. 开启加载锁
+            IsLoadingSettings = true;
+
             try
             {
                 var settings = await _vmMemoryService.GetVmMemorySettingsAsync(SelectedVm.Name);
                 if (settings != null)
                 {
-                    if (SelectedVm.MemorySettings != null) SelectedVm.MemorySettings.PropertyChanged -= MemorySettings_PropertyChanged;
+                    // 2. 解除并重新挂载事件，防止数据初始化触发保存
+                    if (SelectedVm.MemorySettings != null)
+                        SelectedVm.MemorySettings.PropertyChanged -= MemorySettings_PropertyChanged;
+
                     SelectedVm.MemorySettings = settings;
                     SelectedVm.MemorySettings.PropertyChanged += MemorySettings_PropertyChanged;
                 }
             }
-            catch (Exception ex) { ShowSnackbar("错误", $"加载失败: {ex.Message}", ControlAppearance.Danger, SymbolRegular.ErrorCircle24); }
+            catch (Exception ex)
+            {
+                ShowSnackbar("错误", $"加载失败: {ex.Message}", ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+            }
             finally
             {
-                await Task.Delay(100); // 确保绑定完成
+                // 3. 延迟关闭加载锁，给 UI 渲染和绑定留出缓冲时间
+                await Task.Delay(200);
                 IsLoadingSettings = false;
             }
         }
 
+        // 处理“拨动即生效”的逻辑
         private async void MemorySettings_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
-            var fastTrackProps = new[] { nameof(VmMemorySettings.EnableEpf), nameof(VmMemorySettings.HugePagesEnabled), nameof(VmMemorySettings.EnableHotHint), nameof(VmMemorySettings.EnableColdHint), nameof(VmMemorySettings.DynamicMemoryEnabled) };
+            var fastTrackProps = new[] {
+        nameof(VmMemorySettings.EnableEpf),
+        nameof(VmMemorySettings.HugePagesEnabled),
+        nameof(VmMemorySettings.EnableHotHint),
+        nameof(VmMemorySettings.EnableColdHint),
+        nameof(VmMemorySettings.DynamicMemoryEnabled)
+    };
+
             if (fastTrackProps.Contains(e.PropertyName))
             {
-                // 核心拦截逻辑：加载中或运行中禁止后台保存
-                if (IsLoadingSettings || SelectedVm == null || SelectedVm.IsRunning) return;
+                // 核心保护：加载中、VM运行中、或者没有设置对象，坚决不保存
+                if (IsLoadingSettings || SelectedVm == null || SelectedVm.IsRunning || SelectedVm.MemorySettings == null) return;
+
                 var result = await _vmMemoryService.SetVmMemorySettingsAsync(SelectedVm.Name, SelectedVm.MemorySettings);
-                if (!result.Success) { ShowSnackbar("应用失败", result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24); await GoToMemorySettings(); }
-                else OnPropertyChanged(nameof(SelectedVm));
+
+                if (!result.Success)
+                {
+                    ShowSnackbar("自动应用失败", result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                    // 失败后刷新数据把 UI 拨回去
+                    await GoToMemorySettings();
+                }
+                else
+                {
+                    // 成功后强制更新一次 UI（比如大页开启会联动导致 Reservation 等数值变动）
+                    OnPropertyChanged(nameof(SelectedVm));
+                }
             }
         }
 
