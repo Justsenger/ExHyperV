@@ -234,7 +234,7 @@
                             </Grid.ColumnDefinitions>
                             <StackPanel VerticalAlignment="Center">
                                 <TextBlock Text="暴露架构性能监控单元 (PMU)" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
-                                <TextBlock Text="允许虚拟机使用硬件性能计数器进行性能分析" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                                <TextBlock Text="允许虚拟机使用硬件性能计数器" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
                             </StackPanel>
                             <ui:ToggleSwitch Grid.Column="1" Style="{StaticResource ShutdownRequiredToggleStyle}"
             IsChecked="{Binding SelectedVm.Processor.EnablePerfmonArchPmu}" 
@@ -250,7 +250,7 @@
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
                             <StackPanel VerticalAlignment="Center">
-                                <TextBlock Text="暴露频率监视寄存器 (MPERF/APERF)" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
+                                <TextBlock Text="暴露频率监视寄存器" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
                                 <TextBlock Text="允许虚拟机读取处理器真实频率" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
                             </StackPanel>
                             <ui:ToggleSwitch Grid.Column="1" Style="{StaticResource ShutdownRequiredToggleStyle}"
@@ -287,8 +287,8 @@
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
                             <StackPanel VerticalAlignment="Center">
-                                <TextBlock Text="启用插槽拓扑 (Socket Topology)" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
-                                <TextBlock Text="启用后向虚拟机公开物理插槽结构，有助于系统识别 L1/L2/L3 缓存" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                                <TextBlock Text="启用插槽拓扑" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
+                                <TextBlock Text="启用物理插槽拓扑结构的映射" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
                             </StackPanel>
                             <ui:ToggleSwitch Grid.Column="1" Style="{StaticResource ShutdownRequiredToggleStyle}"
                      IsChecked="{Binding SelectedVm.Processor.EnableSocketTopology}" 
