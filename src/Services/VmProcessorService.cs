@@ -71,7 +71,8 @@ namespace ExHyperV.Services
                         HideHypervisorPresent = GetBoolProperty(procData, "HideHypervisorPresent"),
                         EnablePerfmonArchPmu = GetBoolProperty(procData, "EnablePerfmonArchPmu"),
                         // 已移除 EnablePerfmonIpt (Intel 处理器追踪)
-                        AllowAcountMcount = GetBoolProperty(procData, "AllowAcountMcount")
+                        AllowAcountMcount = GetBoolProperty(procData, "AllowAcountMcount"),
+                        EnableSocketTopology = GetBoolProperty(procData, "EnableSocketTopology")
                     };
                 }
                 catch { return null; }
@@ -106,8 +107,9 @@ namespace ExHyperV.Services
                 current.DisableSpeculationControls != newSettings.DisableSpeculationControls ||
                 current.HideHypervisorPresent != newSettings.HideHypervisorPresent ||
                 current.EnablePerfmonArchPmu != newSettings.EnablePerfmonArchPmu ||
-                // 已移除 EnablePerfmonIpt 判断
-                current.AllowAcountMcount != newSettings.AllowAcountMcount;
+// 已移除 EnablePerfmonIpt 判断
+                current.AllowAcountMcount != newSettings.AllowAcountMcount ||
+                current.EnableSocketTopology != newSettings.EnableSocketTopology; // 新增检测
 
             if (isAdvancedChanged)
             {
@@ -200,6 +202,7 @@ namespace ExHyperV.Services
             TrySetProperty(procData, "EnablePerfmonArchPmu", settings.EnablePerfmonArchPmu);
             // 已移除 EnablePerfmonIpt 的写入
             TrySetProperty(procData, "AllowAcountMcount", settings.AllowAcountMcount);
+            TrySetProperty(procData, "EnableSocketTopology", settings.EnableSocketTopology);
         }
         #endregion
 

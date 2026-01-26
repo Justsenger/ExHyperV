@@ -275,6 +275,26 @@
             IsEnabled="{Binding SelectedVm.IsRunning, Converter={StaticResource InverseBooleanConverter}}" 
             Command="{Binding ApplyChangesCommand}"/>
                         </Grid>
+
+                        <!-- 在 VmCpuSettingsView.xaml 的高级功能 StackPanel 内部添加 -->
+
+                        <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
+
+                        <!-- 启用插槽拓扑 (EnableSocketTopology) -->
+                        <Grid Margin="24,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="启用插槽拓扑 (Socket Topology)" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
+                                <TextBlock Text="启用后向虚拟机公开物理插槽结构，有助于系统识别 L1/L2/L3 缓存" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                            </StackPanel>
+                            <ui:ToggleSwitch Grid.Column="1" Style="{StaticResource ShutdownRequiredToggleStyle}"
+                     IsChecked="{Binding SelectedVm.Processor.EnableSocketTopology}" 
+                     IsEnabled="{Binding SelectedVm.IsRunning, Converter={StaticResource InverseBooleanConverter}}" 
+                     Command="{Binding ApplyChangesCommand}"/>
+                        </Grid>
                     </StackPanel>
                     
                 </Border>

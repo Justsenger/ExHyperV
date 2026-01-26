@@ -23,6 +23,9 @@ namespace ExHyperV.Models
     // ==========================================
     // ↓↓↓ 内存设置模型 (已清理) ↓↓↓
     // ==========================================
+    // ==========================================
+    // ↓↓↓ 内存设置模型 (已更新：添加内存加密支持) ↓↓↓
+    // ==========================================
     public partial class VmMemorySettings : ObservableObject
     {
         [ObservableProperty] private long _startup;
@@ -32,9 +35,15 @@ namespace ExHyperV.Models
         [ObservableProperty] private int _buffer;
         [ObservableProperty] private int _priority;
 
-        // 仅保留大页内存设置
+        // 大页内存设置
         [ObservableProperty] private bool _hugePagesEnabled;
         [ObservableProperty] private bool _isHugePagesSupported = true;
+
+        // --- 新增：内存加密策略 ---
+        // 0: Disabled, 1: EnabledIfSupported
+        [ObservableProperty] private byte _memoryEncryptionPolicy;
+        [ObservableProperty] private bool _isMemoryEncryptionSupported = true;
+
 
         public VmMemorySettings Clone() => (VmMemorySettings)this.MemberwiseClone();
 
@@ -51,9 +60,12 @@ namespace ExHyperV.Models
             // 同步大页内存状态
             HugePagesEnabled = other.HugePagesEnabled;
             IsHugePagesSupported = other.IsHugePagesSupported;
+
+            // --- 同步内存加密状态 ---
+            MemoryEncryptionPolicy = other.MemoryEncryptionPolicy;
+            IsMemoryEncryptionSupported = other.IsMemoryEncryptionSupported;
         }
     }
-
     // ==========================================
     // ↓↓↓ 处理器设置模型 (已添加高级功能) ↓↓↓
     // ==========================================
@@ -74,6 +86,7 @@ namespace ExHyperV.Models
         [ObservableProperty] private bool _hideHypervisorPresent;            // 隐藏虚拟化标识
         [ObservableProperty] private bool _enablePerfmonArchPmu;             // 暴露硬件性能计数器
         [ObservableProperty] private bool _allowAcountMcount;                // 允许访问 ACOUNT/MCOUNT
+        [ObservableProperty] private bool _enableSocketTopology; // 新增：启用插槽拓扑映射
 
         public VmProcessorSettings Clone() => (VmProcessorSettings)this.MemberwiseClone();
         public void Restore(VmProcessorSettings other)
@@ -94,6 +107,7 @@ namespace ExHyperV.Models
             HideHypervisorPresent = other.HideHypervisorPresent;
             EnablePerfmonArchPmu = other.EnablePerfmonArchPmu;
             AllowAcountMcount = other.AllowAcountMcount;
+            EnableSocketTopology = other.EnableSocketTopology;
         }
     }
 

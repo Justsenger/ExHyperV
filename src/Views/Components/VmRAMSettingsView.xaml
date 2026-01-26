@@ -11,21 +11,18 @@
              d:DesignHeight="850" d:DesignWidth="1000">
 
     <UserControl.Resources>
+        <converters:ByteToBooleanConverter x:Key="ByteToBoolConverter"/>
         <converters:InverseBooleanConverter x:Key="InverseBooleanConverter"/>
         <converters:BooleanToVisibilityConverter x:Key="BoolToVis" />
 
-        <!-- 【核心修正】高级功能开关样式：处理 (硬件支持 AND 关机) 逻辑 -->
         <Style x:Key="ShutdownRequiredToggleStyle" TargetType="ui:ToggleSwitch" BasedOn="{StaticResource {x:Type ui:ToggleSwitch}}">
             <Setter Property="VerticalAlignment" Value="Center"/>
-            <!-- 默认状态跟随 Tag (Tag 里存的是 IsSupported) -->
             <Setter Property="IsEnabled" Value="{Binding RelativeSource={RelativeSource Self}, Path=Tag}"/>
             <Style.Triggers>
-                <!-- 逻辑 1: 如果虚拟机正在运行 -> 强制禁用 -->
                 <DataTrigger Binding="{Binding SelectedVm.IsRunning}" Value="True">
                     <Setter Property="IsEnabled" Value="False"/>
                     <Setter Property="ToolTip" Value="此设置项要求虚拟机处于关机状态"/>
                 </DataTrigger>
-                <!-- 逻辑 2: 如果硬件不支持 -> 强制禁用 -->
                 <Trigger Property="IsEnabled" Value="False">
                     <Setter Property="Opacity" Value="0.5"/>
                 </Trigger>
@@ -79,7 +76,6 @@
         <ScrollViewer Grid.Row="2" Padding="24,12,24,24" VerticalScrollBarVisibility="Auto"
                       IsEnabled="{Binding IsLoadingSettings, Converter={StaticResource InverseBooleanConverter}}">
             <StackPanel>
-                <!-- 卡片 1: 计算资源 -->
                 <TextBlock Text="计算资源" FontSize="14" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" Margin="0,0,0,12"/>
                 <Border Background="{ui:ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Margin="0,0,0,32">
                     <StackPanel>
@@ -92,13 +88,11 @@
                             <StackPanel Grid.Column="0">
                                 <TextBlock Text="启动内存 (MB)" FontSize="13" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" Margin="0,0,0,8"/>
                                 <ComboBox IsEditable="True" ItemsSource="{StaticResource CommonMemoryValues}"
-              Text="{Binding SelectedVm.MemorySettings.Startup, UpdateSourceTrigger=PropertyChanged}">
+                                          Text="{Binding SelectedVm.MemorySettings.Startup, UpdateSourceTrigger=PropertyChanged}">
                                     <ComboBox.Style>
                                         <Style TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
-                                            <!-- 默认启用 -->
                                             <Setter Property="IsEnabled" Value="True"/>
                                             <Style.Triggers>
-                                                <!-- 【核心逻辑】当两个条件同时满足时，触发禁用 -->
                                                 <MultiDataTrigger>
                                                     <MultiDataTrigger.Conditions>
                                                         <Condition Binding="{Binding SelectedVm.IsRunning}" Value="True" />
@@ -166,12 +160,9 @@
                     </StackPanel>
                 </Border>
 
-                <!-- 卡片 2: 高级功能 -->
                 <TextBlock Text="高级功能" FontSize="14" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" Margin="0,0,0,12"/>
                 <Border Background="{ui:ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="0" Margin="0,0,0,32">
                     <StackPanel>
-
-                        <!-- 1. HugePages -->
                         <Grid Margin="24,16">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
@@ -179,14 +170,31 @@
                             </Grid.ColumnDefinitions>
                             <StackPanel VerticalAlignment="Center">
                                 <TextBlock Text="使用大页内存" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
-                                <TextBlock Text="允许虚拟机使用更大的内存页以提升 TLB 效率" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                                <TextBlock Text="允许虚拟机使用更大的内存页" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
                             </StackPanel>
                             <ui:ToggleSwitch Grid.Column="1" Style="{StaticResource ShutdownRequiredToggleStyle}" 
                                              Tag="{Binding SelectedVm.MemorySettings.IsHugePagesSupported}"
-                                             IsChecked="{Binding SelectedVm.MemorySettings.HugePagesEnabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                             IsChecked="{Binding SelectedVm.MemorySettings.HugePagesEnabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                             Command="{Binding ApplyMemorySettingsCommand}"/>
                         </Grid>
+
                         <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
-                        
+
+                        <Grid Margin="24,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="内存加密" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
+                                <TextBlock Text="启用硬件支持的内存隔离与加密" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                            </StackPanel>
+                            <ui:ToggleSwitch Grid.Column="1" 
+                                             Style="{StaticResource ShutdownRequiredToggleStyle}" 
+                                             Tag="{Binding SelectedVm.MemorySettings.IsMemoryEncryptionSupported}"
+                                             IsChecked="{Binding SelectedVm.MemorySettings.MemoryEncryptionPolicy, Converter={StaticResource ByteToBoolConverter}, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                             Command="{Binding ApplyMemorySettingsCommand}"/>
+                        </Grid>
                     </StackPanel>
                 </Border>
             </StackPanel>
