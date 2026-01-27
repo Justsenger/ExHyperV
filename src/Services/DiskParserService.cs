@@ -1,4 +1,4 @@
-﻿using System.IO;
+using System.IO;
 
 namespace ExHyperV.Services
 {
@@ -7,6 +7,24 @@ namespace ExHyperV.Services
         private static readonly Guid WindowsBasicDataGuid = new Guid("EBD0A0A2-B9E5-4433-87C0-68B6B72699C7");
         private static readonly Guid LinuxFileSystemGuid = new Guid("0FC63DAF-8483-4772-8E79-3D69D8477DE4");
         private static readonly Guid LinuxLvmGuid = new Guid("E6D6D379-F507-44C2-A23C-238F2A3DF928");
+        
+        // btrfs 专用分区类型 GUID（Arch Linux 等常用）
+        private static readonly Guid BtrfsGuid = new Guid("3B8F8425-20E0-4F3B-907F-1A25A76F98E9");
+        
+        // Linux root 分区 (x86-64) - systemd-boot/discoverable partitions spec
+        private static readonly Guid LinuxRootX64Guid = new Guid("4F68BCE3-E8CD-4DB1-96E7-FBCAF984B709");
+        
+        // Linux home 分区
+        private static readonly Guid LinuxHomeGuid = new Guid("933AC7E1-2EB4-4F13-B844-0E14E2AEF915");
+        
+        // Linux /usr 分区 (x86-64)
+        private static readonly Guid LinuxUsrX64Guid = new Guid("8484680C-9521-48C6-9C11-B0720656F69E");
+        
+        // Linux /var 分区
+        private static readonly Guid LinuxVarGuid = new Guid("4D21B016-B534-45C2-A9FB-5C16E091FD2D");
+        
+        // Linux swap 分区
+        private static readonly Guid LinuxSwapGuid = new Guid("0657FD6D-A4AB-43C4-84E5-0933C84B4F4F");
 
         /// <summary>
         /// 解析磁盘分区
@@ -204,7 +222,19 @@ namespace ExHyperV.Services
         {
             if (typeGuid == WindowsBasicDataGuid) return (OperatingSystemType.Windows, "Windows");
             if (typeGuid == LinuxFileSystemGuid) return (OperatingSystemType.Linux, "Linux");
-            if (typeGuid == LinuxLvmGuid) return (OperatingSystemType.Linux, "Linux");
+            if (typeGuid == LinuxLvmGuid) return (OperatingSystemType.Linux, "Linux LVM");
+            
+            // btrfs 专用分区（Arch Linux 等常用）
+            if (typeGuid == BtrfsGuid) return (OperatingSystemType.Linux, "Linux (btrfs)");
+            
+            // Discoverable Partitions Specification (systemd-boot)
+            if (typeGuid == LinuxRootX64Guid) return (OperatingSystemType.Linux, "Linux Root (x86-64)");
+            if (typeGuid == LinuxHomeGuid) return (OperatingSystemType.Linux, "Linux Home");
+            if (typeGuid == LinuxUsrX64Guid) return (OperatingSystemType.Linux, "Linux /usr (x86-64)");
+            if (typeGuid == LinuxVarGuid) return (OperatingSystemType.Linux, "Linux /var");
+            
+            // Linux swap 分区标记为 Other，不用于驱动注入
+            if (typeGuid == LinuxSwapGuid) return (OperatingSystemType.Other, "Linux Swap");
 
             return (OperatingSystemType.Other, "Other");
         }

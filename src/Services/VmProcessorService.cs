@@ -1,4 +1,4 @@
-﻿using ExHyperV.Models;
+using ExHyperV.Models;
 using ExHyperV.Tools;
 using System;
 using System.Collections.Generic;
@@ -229,6 +229,17 @@ namespace ExHyperV.Services
                 // 基础开关
                 if (current.EnableHostResourceProtection != settings.EnableHostResourceProtection)
                 { sb.Append($"-EnableHostResourceProtection {(settings.EnableHostResourceProtection ? "$true" : "$false")} "); hasChange = true; }
+
+                // 嵌套虚拟化
+                if (current.ExposeVirtualizationExtensions != settings.ExposeVirtualizationExtensions)
+                { sb.Append($"-ExposeVirtualizationExtensions {(settings.ExposeVirtualizationExtensions ? "$true" : "$false")} "); hasChange = true; }
+
+                // 兼容性设置
+                if (current.CompatibilityForMigrationEnabled != settings.CompatibilityForMigrationEnabled)
+                { sb.Append($"-CompatibilityForMigrationEnabled {(settings.CompatibilityForMigrationEnabled ? "$true" : "$false")} "); hasChange = true; }
+
+                if (current.CompatibilityForOlderOperatingSystemsEnabled != settings.CompatibilityForOlderOperatingSystemsEnabled)
+                { sb.Append($"-CompatibilityForOlderOperatingSystemsEnabled {(settings.CompatibilityForOlderOperatingSystemsEnabled ? "$true" : "$false")} "); hasChange = true; }
 
                 if (!hasChange) return (true, "配置无变动。");
 
