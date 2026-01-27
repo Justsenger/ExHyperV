@@ -1,24 +1,20 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
-using ExHyperV.Models;
+using ExHyperV.Models; // 必须引用这个
 using ExHyperV.Services;
+using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Linq;
 
 namespace ExHyperV.ViewModels.Dialogs
 {
     public partial class CpuAffinityDialogViewModel : ObservableObject
     {
-        [ObservableProperty]
-        private int _columns;
-
-        [ObservableProperty]
-        private int _rows;
-
-        [ObservableProperty]
-        private string _statusText;
-
-        [ObservableProperty]
-        private string _statusEmoji;
+        [ObservableProperty] private int _columns;
+        [ObservableProperty] private int _rows;
+        [ObservableProperty] private string _statusText;
+        [ObservableProperty] private string _statusEmoji;
 
         private readonly int _assignedCoreCount;
         public ObservableCollection<SelectableCoreViewModel> Cores { get; } = new();
@@ -27,10 +23,11 @@ namespace ExHyperV.ViewModels.Dialogs
         private readonly Dictionary<int, int> _cpuSiblingMap;
         private bool _isUpdatingFromLogic = false;
 
+        // 注意：hostCores 类型已改为 ObservableCollection<VmCoreModel>
         public CpuAffinityDialogViewModel(
             string vmName,
             int assignedCoreCount,
-            ObservableCollection<UiCoreModel> hostCores,
+            ObservableCollection<VmCoreModel> hostCores, // 注意这里接收的是 VmCoreModel
             HyperVSchedulerType schedulerType,
             Dictionary<int, int> cpuSiblingMap)
         {
@@ -45,6 +42,7 @@ namespace ExHyperV.ViewModels.Dialogs
                 var selectableCore = new SelectableCoreViewModel();
                 selectableCore.CoreId = core.CoreId;
                 selectableCore.CoreType = core.CoreType;
+                selectableCore.IsSelected = core.IsSelected;
 
                 selectableCore.PropertyChanged += OnCoreSelectionChanged;
                 Cores.Add(selectableCore);
@@ -52,7 +50,6 @@ namespace ExHyperV.ViewModels.Dialogs
 
             UpdateStatusText();
         }
-
         private void OnCoreSelectionChanged(object sender, PropertyChangedEventArgs e)
         {
             if (e.PropertyName == nameof(SelectableCoreViewModel.IsSelected))
@@ -80,31 +77,31 @@ namespace ExHyperV.ViewModels.Dialogs
                 }
             }
         }
+
         private void UpdateStatusText()
         {
             int selectedCount = Cores.Count(c => c.IsSelected);
-
             string countStr = $"({selectedCount} / {_assignedCoreCount})";
 
             if (selectedCount == 0)
             {
                 StatusEmoji = "🔄";
-                StatusText = ExHyperV.Properties.Resources.SystemAutomaticallyScheduled;
+                StatusText = Properties.Resources.SystemAutomaticallyScheduled;
             }
             else if (selectedCount < _assignedCoreCount)
             {
                 StatusEmoji = "⚠️";
-                StatusText = string.Format(ExHyperV.Properties.Resources.PerformanceLimited, countStr);
+                StatusText = string.Format(Properties.Resources.PerformanceLimited, countStr);
             }
             else if (selectedCount > _assignedCoreCount)
             {
                 StatusEmoji = "💨";
-                StatusText = string.Format(ExHyperV.Properties.Resources.RandomlyDriftWithinSelectedCoreGroup, countStr);
+                StatusText = string.Format(Properties.Resources.RandomlyDriftWithinSelectedCoreGroup, countStr);
             }
             else
             {
                 StatusEmoji = "🎯";
-                StatusText = string.Format(ExHyperV.Properties.Resources.Perfect, countStr);
+                StatusText = string.Format(Properties.Resources.Perfect, countStr);
             }
         }
 
@@ -126,5 +123,13 @@ namespace ExHyperV.ViewModels.Dialogs
             }
             return (int)Math.Ceiling(sqrt);
         }
+    }
+
+    // 简单的辅助类，用于弹窗内的 CheckBox
+    public partial class SelectableCoreViewModel : ObservableObject
+    {
+        [ObservableProperty] private int _coreId;
+        [ObservableProperty] private bool _isSelected;
+        [ObservableProperty] private ExHyperV.Models.CoreType _coreType;
     }
 }

@@ -13,9 +13,9 @@ namespace ExHyperV.ViewModels
     {
         public static StoragePageViewModel Instance { get; } = new StoragePageViewModel();
         private readonly IStorageService _storageService;
-        public ObservableCollection<VMInfo> VmList { get; } = new();
+        public ObservableCollection<VmInstanceInfo> VmList { get; } = new();
         [ObservableProperty] private ObservableCollection<UiDriveModel> _allDrives = new();
-        [ObservableProperty] private VMInfo? _selectedVm;
+        [ObservableProperty] private VmInstanceInfo? _selectedVm;
         [ObservableProperty] private bool _isLoading;
 
         public StoragePageViewModel()
@@ -24,7 +24,7 @@ namespace ExHyperV.ViewModels
             _ = InitializeVmListAsync();
         }
 
-        async partial void OnSelectedVmChanged(VMInfo? value)
+        async partial void OnSelectedVmChanged(VmInstanceInfo? value)
         {
             if (value != null) await RefreshVmStorageAsync();
             else AllDrives.Clear();
@@ -39,14 +39,17 @@ namespace ExHyperV.ViewModels
                 {
                     using (var ps = System.Management.Automation.PowerShell.Create())
                     {
-                        ps.AddScript("Get-VM | Select-Object Name, State, Generation");
+                        ps.AddScript("Get-VM | Select-Object Name, Id, State, Generation");
                         var results = ps.Invoke();
-                        return results.Select(r => new VMInfo(
-                            r.Properties["Name"].Value?.ToString() ?? "",
-                            "", "", "", new Dictionary<string, string>(),
-                            r.Properties["Generation"].Value != null ? Convert.ToInt32(r.Properties["Generation"].Value) : 0,
-                            r.Properties["State"].Value?.ToString() == "Running"
-                        )).OrderByDescending(vm => vm.IsRunning).ThenBy(vm => vm.Name).ToList();
+                        return results.Select(r => {
+                            Guid id = Guid.TryParse(r.Properties["Id"].Value?.ToString(), out var g) ? g : Guid.Empty;
+                            string name = r.Properties["Name"].Value?.ToString() ?? "";
+                            return new VmInstanceInfo(id, name)
+                            {
+                                Generation = r.Properties["Generation"].Value != null ? Convert.ToInt32(r.Properties["Generation"].Value) : 0,
+                                State = r.Properties["State"].Value?.ToString() ?? "Off"
+                            };
+                        }).OrderByDescending(vm => vm.IsRunning).ThenBy(vm => vm.Name).ToList();
                     }
                 });
                 VmList.Clear();

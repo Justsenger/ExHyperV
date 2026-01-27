@@ -2,15 +2,12 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
-using ExHyperV.Models;
+using ExHyperV.Models; // 引用 Models 命名空间
 using ExHyperV.Tools;
 
 namespace ExHyperV.Services
 {
-    public enum CoreType
-    {
-        Performance, Efficient, Unknown
-    }
+    // 【关键修改】删除了这里的 public enum CoreType 定义，直接复用 ExHyperV.Models.CoreType
 
     public class CpuMonitorService : IDisposable
     {
@@ -114,82 +111,6 @@ namespace ExHyperV.Services
                 counter.Dispose();
             }
             _counters.Clear();
-        }
-
-        public List<CpuCoreMetric> GetCpuUsage()
-        {
-            var results = new List<CpuCoreMetric>();
-            var activeVmNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-            var currentCounters = _counters.ToArray();
-
-            foreach (var kvp in currentCounters)
-            {
-                string instanceName = kvp.Key;
-                PerformanceCounter counter = kvp.Value;
-
-                try
-                {
-                    float value = counter.NextValue();
-
-                    if (instanceName.StartsWith("Host_"))
-                    {
-                        if (int.TryParse(instanceName.Substring(5), out int coreId))
-                        {
-                            results.Add(new CpuCoreMetric
-                            {
-                                VmName = "Host",
-                                CoreId = coreId,
-                                Usage = value,
-                                IsRunning = true
-                            });
-                        }
-                    }
-                    else
-                    {
-                        int colonIndex = instanceName.LastIndexOf(':');
-                        if (colonIndex > 0)
-                        {
-                            string vmName = instanceName.Substring(0, colonIndex);
-                            string suffix = instanceName.Substring(colonIndex + 1);
-
-                            var match = Regex.Match(suffix, @"Hv VP (\d+)");
-                            if (match.Success)
-                            {
-                                int vCpuId = int.Parse(match.Groups[1].Value);
-                                activeVmNames.Add(vmName);
-                                results.Add(new CpuCoreMetric
-                                {
-                                    VmName = vmName,
-                                    CoreId = vCpuId,
-                                    Usage = value,
-                                    IsRunning = true
-                                });
-                            }
-                        }
-                    }
-                }
-                catch
-                {
-                }
-            }
-
-            foreach (var kvp in _vmCoreCounts)
-            {
-                string vmName = kvp.Key;
-                if (vmName == "Host") continue;
-
-                if (!activeVmNames.Contains(vmName))
-                {
-                    int count = kvp.Value;
-                    for (int i = 0; i < count; i++)
-                    {
-                        results.Add(new CpuCoreMetric { VmName = vmName, CoreId = i, IsRunning = false });
-                    }
-                }
-            }
-
-            return results;
         }
 
         private async Task MaintainCountersLoop(CancellationToken token)
@@ -319,6 +240,85 @@ namespace ExHyperV.Services
             {
                 Debug.WriteLine($"[CpuMonitor] PowerShell update failed: {ex.Message}");
             }
+
+
+        }
+        public List<CpuCoreMetric> GetCpuUsage()
+        {
+            var results = new List<CpuCoreMetric>();
+            var activeVmNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            var currentCounters = _counters.ToArray();
+
+            foreach (var kvp in currentCounters)
+            {
+                string instanceName = kvp.Key;
+                PerformanceCounter counter = kvp.Value;
+
+                try
+                {
+                    float value = counter.NextValue();
+
+                    if (instanceName.StartsWith("Host_"))
+                    {
+                        if (int.TryParse(instanceName.Substring(5), out int coreId))
+                        {
+                            results.Add(new CpuCoreMetric
+                            {
+                                VmName = "Host",
+                                CoreId = coreId,
+                                Usage = value,
+                                IsRunning = true
+                            });
+                        }
+                    }
+                    else
+                    {
+                        int colonIndex = instanceName.LastIndexOf(':');
+                        if (colonIndex > 0)
+                        {
+                            string vmName = instanceName.Substring(0, colonIndex);
+                            string suffix = instanceName.Substring(colonIndex + 1);
+
+                            var match = Regex.Match(suffix, @"Hv VP (\d+)");
+                            if (match.Success)
+                            {
+                                int vCpuId = int.Parse(match.Groups[1].Value);
+                                activeVmNames.Add(vmName);
+                                results.Add(new CpuCoreMetric
+                                {
+                                    VmName = vmName,
+                                    CoreId = vCpuId,
+                                    Usage = value,
+                                    IsRunning = true
+                                });
+                            }
+                        }
+                    }
+                }
+                catch
+                {
+                    // 忽略读取计数器时的临时错误
+                }
+            }
+
+            // 为未运行的 VM 添加占位数据（显示为关机状态）
+            foreach (var kvp in _vmCoreCounts)
+            {
+                string vmName = kvp.Key;
+                if (vmName == "Host") continue;
+
+                if (!activeVmNames.Contains(vmName))
+                {
+                    int count = kvp.Value;
+                    for (int i = 0; i < count; i++)
+                    {
+                        results.Add(new CpuCoreMetric { VmName = vmName, CoreId = i, IsRunning = false });
+                    }
+                }
+            }
+
+            return results;
         }
     }
 }
