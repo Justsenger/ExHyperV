@@ -162,6 +162,7 @@ namespace ExHyperV.Models
         [ObservableProperty] private string _name;
         [ObservableProperty] private string _notes;
         [ObservableProperty] private int _generation;
+        [ObservableProperty] private string _version;
         [ObservableProperty] private int _cpuCount;
         [ObservableProperty]
         private List<long> _diskSizeRaw = new();

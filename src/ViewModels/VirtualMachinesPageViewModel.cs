@@ -109,7 +109,8 @@ namespace ExHyperV.ViewModels
                             MemoryGb = vm.MemoryGb,
                             DiskSizeRaw = vm.DiskSizeRaw,
                             Notes = vm.Notes,
-                            Generation = vm.Generation
+                            Generation = vm.Generation,
+                            Version = vm.Version
                         };
                         instance.SyncBackendData(vm.State, vm.RawUptime);
                         instance.ControlCommand = new AsyncRelayCommand<string>(async (action) => {
@@ -176,6 +177,8 @@ namespace ExHyperV.ViewModels
                     Application.Current.Dispatcher.Invoke(() => {
                         vm.SyncBackendData(freshData.State, freshData.RawUptime);
                         vm.DiskSizeRaw = freshData.DiskSizeRaw;
+                        vm.Generation = freshData.Generation;
+                        vm.Version = freshData.Version;
                     });
                 }
             }
