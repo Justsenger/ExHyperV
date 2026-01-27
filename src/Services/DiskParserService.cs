@@ -1,12 +1,23 @@
-﻿using System.IO;
+using System.IO;
 
 namespace ExHyperV.Services
 {
     public class DiskParserService
     {
+        // Windows 分区类型
         private static readonly Guid WindowsBasicDataGuid = new Guid("EBD0A0A2-B9E5-4433-87C0-68B6B72699C7");
+        
+        // Linux 通用分区类型
         private static readonly Guid LinuxFileSystemGuid = new Guid("0FC63DAF-8483-4772-8E79-3D69D8477DE4");
         private static readonly Guid LinuxLvmGuid = new Guid("E6D6D379-F507-44C2-A23C-238F2A3DF928");
+        
+        // Linux systemd discoverable partitions (支持 btrfs 等现代发行版)
+        private static readonly Guid LinuxRootX64Guid = new Guid("4F68BCE3-E8CD-4DB1-96E7-FBCAF984B709");
+        private static readonly Guid LinuxRootArm64Guid = new Guid("B921B045-1DF0-41C3-AF44-4C6F280D3FAE");
+        private static readonly Guid LinuxHomeGuid = new Guid("933AC7E1-2EB4-4F13-B844-0E14E2AEF915");
+        private static readonly Guid LinuxSrvGuid = new Guid("3B8F8425-20E0-4F3B-907F-1A25A76F98E8");
+        private static readonly Guid LinuxVarGuid = new Guid("4D21B016-B534-45C2-A9FB-5C16E091FD2D");
+        private static readonly Guid LinuxUsrX64Guid = new Guid("8484680C-9521-48C6-9C11-B0720656F69E");
 
         /// <summary>
         /// 解析磁盘分区
@@ -203,8 +214,18 @@ namespace ExHyperV.Services
         private (OperatingSystemType, string) GetOsTypeFromGptGuid(Guid typeGuid)
         {
             if (typeGuid == WindowsBasicDataGuid) return (OperatingSystemType.Windows, "Windows");
+            
+            // Linux 通用分区类型
             if (typeGuid == LinuxFileSystemGuid) return (OperatingSystemType.Linux, "Linux");
-            if (typeGuid == LinuxLvmGuid) return (OperatingSystemType.Linux, "Linux");
+            if (typeGuid == LinuxLvmGuid) return (OperatingSystemType.Linux, "Linux LVM");
+            
+            // Linux systemd discoverable partitions (支持 btrfs 等现代发行版)
+            if (typeGuid == LinuxRootX64Guid) return (OperatingSystemType.Linux, "Linux Root (x86-64)");
+            if (typeGuid == LinuxRootArm64Guid) return (OperatingSystemType.Linux, "Linux Root (ARM64)");
+            if (typeGuid == LinuxHomeGuid) return (OperatingSystemType.Linux, "Linux Home");
+            if (typeGuid == LinuxSrvGuid) return (OperatingSystemType.Linux, "Linux Srv");
+            if (typeGuid == LinuxVarGuid) return (OperatingSystemType.Linux, "Linux Var");
+            if (typeGuid == LinuxUsrX64Guid) return (OperatingSystemType.Linux, "Linux Usr (x86-64)");
 
             return (OperatingSystemType.Other, "Other");
         }
