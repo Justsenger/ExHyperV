@@ -57,12 +57,13 @@ namespace ExHyperV.Services
                         Startup = Convert.ToInt64(memData["VirtualQuantity"]),
                         Minimum = Convert.ToInt64(memData["Reservation"]),
                         Maximum = Convert.ToInt64(memData["Limit"]),
-                        Priority = Convert.ToInt32(memData["Weight"]) / 100,
+                        Priority = memData["Weight"] != null ? Convert.ToInt32(memData["Weight"]) / 100 : 50, // 增加健壮性
                         DynamicMemoryEnabled = Convert.ToBoolean(memData["DynamicMemoryEnabled"]),
                         Buffer = memData["TargetMemoryBuffer"] != null ? Convert.ToInt32(memData["TargetMemoryBuffer"]) : 20,
 
-                        HugePagesEnabled = GetBoolProperty(memData, "HugePagesEnabled"),
-                        IsHugePagesSupported = HasProperty(memData, "HugePagesEnabled"),
+                        // --- 升级：使用 BackingPageSize ---
+                        BackingPageSize = memData["BackingPageSize"] != null ? Convert.ToByte(memData["BackingPageSize"]) : (byte)0,
+                        IsPageSizeSelectionSupported = HasProperty(memData, "BackingPageSize"),
 
                         MemoryEncryptionPolicy = memData["MemoryEncryptionPolicy"] != null ? Convert.ToByte(memData["MemoryEncryptionPolicy"]) : (byte)0,
                         IsMemoryEncryptionSupported = HasProperty(memData, "MemoryEncryptionPolicy")
@@ -80,18 +81,19 @@ namespace ExHyperV.Services
 
         public async Task<(bool Success, string Message)> SetVmMemorySettingsAsync(string vmName, VmMemorySettings newSettings)
         {
-            // 获取当前物理机上的实际值进行对比
             var currentSettings = await GetVmMemorySettingsAsync(vmName);
             if (currentSettings == null)
                 return (false, "无法获取虚拟机实时配置，请检查虚拟机是否存在。");
 
-            // 检查是否修改了高级属性 (大页或加密策略)
+            // --- 升级：检查高级属性的修改 ---
+            // 现在 BackingPageSize 和 MemoryEncryptionPolicy 都是高级属性
             bool advancedPropertyChanged =
-                currentSettings.HugePagesEnabled != newSettings.HugePagesEnabled ||
+                currentSettings.BackingPageSize != newSettings.BackingPageSize ||
                 currentSettings.MemoryEncryptionPolicy != newSettings.MemoryEncryptionPolicy;
 
-            // 如果修改了高级属性，必须走 WMI 路径
-            if (advancedPropertyChanged)
+            // 只要修改了高级属性，或者动态内存的开关状态发生变化，就必须走 WMI 路径
+            // 因为 PowerShell 不支持在禁用动态内存的同时修改 StartupBytes
+            if (advancedPropertyChanged || currentSettings.DynamicMemoryEnabled != newSettings.DynamicMemoryEnabled)
             {
                 return await SetVmMemorySettingsWmiAsync(vmName, newSettings);
             }
@@ -106,33 +108,26 @@ namespace ExHyperV.Services
             {
                 var scope = GetConnectedScope();
 
-                // 1. 定位虚拟机
                 using var vmSearcher = new ManagementObjectSearcher(scope, new SelectQuery("Msvm_ComputerSystem", $"ElementName = '{vmName.Replace("'", "''")}'"));
                 using var vmObject = vmSearcher.Get().Cast<ManagementObject>().FirstOrDefault();
                 if (vmObject == null) return (false, "找不到虚拟机实例。");
 
-                // 2. 获取管理服务
                 using var vsms = new ManagementClass(scope, new ManagementPath("Msvm_VirtualSystemManagementService"), null)
                     .GetInstances().Cast<ManagementObject>().FirstOrDefault();
                 if (vsms == null) return (false, "Hyper-V 管理服务不可用。");
 
-                // 3. 获取配置数据 (SettingData)
                 var allSettings = vmObject.GetRelated("Msvm_VirtualSystemSettingData").Cast<ManagementObject>().ToList();
                 using var settingData = allSettings.FirstOrDefault(s => s["VirtualSystemType"]?.ToString() == "Microsoft:Hyper-V:System:Realized")
                                      ?? allSettings.FirstOrDefault(s => s["VirtualSystemType"]?.ToString() == "Microsoft:Hyper-V:System:Definition");
 
-                // 4. 获取内存配置项 (MemorySettingData)
                 using var rawMemData = settingData.GetRelated("Msvm_MemorySettingData").Cast<ManagementObject>().FirstOrDefault();
                 if (rawMemData == null) return (false, "无法定位内存配置对象。");
 
-                // 必须重新通过路径加载对象以确保其可写入性
                 using var memData = new ManagementObject(scope, rawMemData.Path, null);
                 memData.Get();
 
-                // 5. 应用新值
                 ApplyMemorySettingsToWmiObject(memData, memorySettings);
 
-                // 6. 调用 WMI 修改方法
                 string xml = memData.GetText(TextFormat.CimDtd20);
                 using var inParams = vsms.GetMethodParameters("ModifyResourceSettings");
                 inParams["ResourceSettings"] = new string[] { xml };
@@ -140,7 +135,7 @@ namespace ExHyperV.Services
                 using var outParams = vsms.InvokeMethod("ModifyResourceSettings", inParams, null);
                 uint ret = (uint)outParams["ReturnValue"];
 
-                if (ret == 0) return (true, "设置已保存。");
+                if (ret == 0) return (true, "高级内存设置已应用。");
                 if (ret == 4096) return await WaitForJobAsync(outParams, scope);
 
                 return (false, $"WMI 错误代码: {ret}");
@@ -153,33 +148,64 @@ namespace ExHyperV.Services
 
         private void ApplyMemorySettingsToWmiObject(ManagementObject memData, VmMemorySettings memorySettings)
         {
-            // 基础属性
-            memData["VirtualQuantity"] = (ulong)memorySettings.Startup;
+            // 默认对齐大小为 1MB (标准页模式下无特殊要求，但设为1以防万一)
+            long alignment = 1;
+
+            // --- 升级：写入 BackingPageSize 并确定对齐要求 ---
+            if (HasProperty(memData, "BackingPageSize"))
+            {
+                byte pageSize = memorySettings.BackingPageSize;
+                memData["BackingPageSize"] = pageSize;
+
+                if (pageSize == 1) // 大页
+                {
+                    alignment = 2; // 必须是 2MB 的倍数
+                }
+                else if (pageSize == 2) // 巨页
+                {
+                    alignment = 1024; // 必须是 1GB (1024MB) 的倍数
+                }
+            }
+
+            // --- 核心修正：对齐 VirtualQuantity (启动内存) ---
+            long originalStartup = memorySettings.Startup;
+            // 使用 (value + alignment - 1) / alignment * alignment 技巧进行向上取整
+            long alignedStartup = (originalStartup + alignment - 1) / alignment * alignment;
+            memData["VirtualQuantity"] = (ulong)alignedStartup;
+
             memData["Weight"] = (uint)(memorySettings.Priority * 100);
 
-            // 内存加密 (UInt8)
             if (HasProperty(memData, "MemoryEncryptionPolicy"))
             {
-                // 显式转换为 byte 以匹配 WMI UInt8
                 memData["MemoryEncryptionPolicy"] = (byte)memorySettings.MemoryEncryptionPolicy;
             }
 
-            // 大页内存 (Boolean)
-            if (HasProperty(memData, "HugePagesEnabled"))
+            // --- 核心修正：读取并对齐 MaxMemoryBlocksPerNumaNode ---
+            if (HasProperty(memData, "MaxMemoryBlocksPerNumaNode"))
             {
-                memData["HugePagesEnabled"] = memorySettings.HugePagesEnabled;
+                // 只有在大页模式下才需要关心对齐
+                if (alignment > 1)
+                {
+                    // 读取当前的 NUMA 设置值
+                    long currentNumaNodeSize = Convert.ToInt64(memData["MaxMemoryBlocksPerNumaNode"]);
+                    // 对其进行向上取整
+                    long alignedNumaNodeSize = (currentNumaNodeSize + alignment - 1) / alignment * alignment;
+                    memData["MaxMemoryBlocksPerNumaNode"] = (ulong)alignedNumaNodeSize;
+                }
+                // 如果是标准页 (alignment=1)，我们不主动修改这个值，保留用户或系统的默认设置
             }
 
-            // 动态内存逻辑处理
-            if (memorySettings.HugePagesEnabled)
+            // --- 升级：动态内存逻辑处理 ---
+            if (memorySettings.BackingPageSize > 0)
             {
-                // 开启大页时，Hyper-V 强制要求禁用动态内存
+                // 开启大页/巨页时，强制禁用动态内存，并将 Reservation/Limit 设为对齐后的启动内存
                 memData["DynamicMemoryEnabled"] = false;
-                memData["Reservation"] = (ulong)memorySettings.Startup;
-                memData["Limit"] = (ulong)memorySettings.Startup;
+                memData["Reservation"] = (ulong)alignedStartup;
+                memData["Limit"] = (ulong)alignedStartup;
             }
             else
             {
+                // 标准页(4KB)模式下，才允许启用动态内存
                 memData["DynamicMemoryEnabled"] = memorySettings.DynamicMemoryEnabled;
                 if (memorySettings.DynamicMemoryEnabled)
                 {
@@ -190,13 +216,13 @@ namespace ExHyperV.Services
                 }
                 else
                 {
-                    memData["Reservation"] = (ulong)memorySettings.Startup;
-                    memData["Limit"] = (ulong)memorySettings.Startup;
+                    // 禁用动态内存时，Reservation/Limit 应等于原始（未对齐的）启动内存
+                    memData["Reservation"] = (ulong)originalStartup;
+                    memData["Limit"] = (ulong)originalStartup;
                 }
             }
         }
-
-        #region Helpers & Standard Implementations (保持原样但增加健壮性)
+        #region Helpers & Standard Implementations
 
         private async Task<(bool Success, string Message)> SetVmMemorySettingsPowerShellAsync(string vmName, VmMemorySettings memorySettings)
         {
@@ -204,13 +230,10 @@ namespace ExHyperV.Services
             {
                 var script = new StringBuilder();
                 var name = vmName.Replace("'", "''");
+                // PowerShell 只处理动态内存开启时的基础设置调整
                 script.Append($"Set-VMMemory -VMName '{name}' -StartupBytes {memorySettings.Startup}MB -Priority {memorySettings.Priority} ");
-                script.Append($"-DynamicMemoryEnabled ${(memorySettings.DynamicMemoryEnabled ? "true" : "false")} ");
-
-                if (memorySettings.DynamicMemoryEnabled)
-                {
-                    script.Append($"-MinimumBytes {memorySettings.Minimum}MB -MaximumBytes {memorySettings.Maximum}MB -Buffer {memorySettings.Buffer}");
-                }
+                script.Append($"-DynamicMemoryEnabled ${true} "); // 走到这里一定是 true
+                script.Append($"-MinimumBytes {memorySettings.Minimum}MB -MaximumBytes {memorySettings.Maximum}MB -Buffer {memorySettings.Buffer}");
 
                 await Utils.Run2(script.ToString());
                 return (true, "基础内存设置已应用。");
@@ -244,11 +267,6 @@ namespace ExHyperV.Services
         private bool HasProperty(ManagementObject obj, string propName) =>
             obj.Properties.Cast<PropertyData>().Any(p => p.Name.Equals(propName, StringComparison.OrdinalIgnoreCase));
 
-        private bool GetBoolProperty(ManagementObject obj, string propName)
-        {
-            if (!HasProperty(obj, propName) || obj[propName] == null) return false;
-            return Convert.ToBoolean(obj[propName]);
-        }
         #endregion
     }
 }

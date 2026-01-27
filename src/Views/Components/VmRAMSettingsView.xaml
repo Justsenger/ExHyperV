@@ -163,20 +163,44 @@
                 <TextBlock Text="高级功能" FontSize="14" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" Margin="0,0,0,12"/>
                 <Border Background="{ui:ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="0" Margin="0,0,0,32">
                     <StackPanel>
+                        <!-- ===== START: 这是修改的部分 ===== -->
                         <Grid Margin="24,16">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="200"/>
+                                <!-- 给 ComboBox 一个固定宽度 -->
                             </Grid.ColumnDefinitions>
+
                             <StackPanel VerticalAlignment="Center">
-                                <TextBlock Text="使用大页内存" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
-                                <TextBlock Text="允许虚拟机使用更大的内存页" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                                <TextBlock Text="内存页大小" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
+                                <TextBlock Text="选择用于支持虚拟机内存的物理页大小" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
                             </StackPanel>
-                            <ui:ToggleSwitch Grid.Column="1" Style="{StaticResource ShutdownRequiredToggleStyle}" 
-                                             Tag="{Binding SelectedVm.MemorySettings.IsHugePagesSupported}"
-                                             IsChecked="{Binding SelectedVm.MemorySettings.HugePagesEnabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                             Command="{Binding ApplyMemorySettingsCommand}"/>
+
+                            <ComboBox Grid.Column="1"
+                                      ItemsSource="{Binding SelectedVm.MemorySettings.AvailablePageSizes}"
+                                      SelectedValue="{Binding SelectedVm.MemorySettings.BackingPageSize, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                      SelectedValuePath="Value"
+                                      DisplayMemberPath="Description"
+                                      IsEnabled="{Binding SelectedVm.MemorySettings.IsPageSizeSelectionSupported}" Margin="50,0,0,0">
+                                <ComboBox.Style>
+                                    <Style TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding SelectedVm.IsRunning}" Value="True">
+                                                <Setter Property="IsEnabled" Value="False"/>
+                                                <Setter Property="ToolTip" Value="此设置项要求虚拟机处于关机状态"/>
+                                            </DataTrigger>
+                                            <Trigger Property="IsEnabled" Value="False">
+                                                <Setter Property="Opacity" Value="0.5"/>
+                                            </Trigger>
+                                            <DataTrigger Binding="{Binding SelectedVm.MemorySettings.IsPageSizeSelectionSupported}" Value="False">
+                                                <Setter Property="ToolTip" Value="当前宿主机环境不支持自定义内存页大小"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </ComboBox.Style>
+                            </ComboBox>
                         </Grid>
+                        <!-- ===== END: 修改结束 ===== -->
 
                         <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
 

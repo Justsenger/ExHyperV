@@ -20,6 +20,12 @@ namespace ExHyperV.Models
         public bool IsRunning { get; set; }
     }
 
+    public class PageSizeItem
+    {
+        public string Description { get; set; } = string.Empty; // 显示给用户的文字，例如 "大页 (2MB)"
+        public byte Value { get; set; }                          // 对应的 WMI 值，例如 1
+    }
+
     // ==========================================
     // ↓↓↓ 内存设置模型 (已清理) ↓↓↓
     // ==========================================
@@ -35,9 +41,19 @@ namespace ExHyperV.Models
         [ObservableProperty] private int _buffer;
         [ObservableProperty] private int _priority;
 
-        // 大页内存设置
-        [ObservableProperty] private bool _hugePagesEnabled;
-        [ObservableProperty] private bool _isHugePagesSupported = true;
+        // --- 新增：内存页大小设置 ---
+        [ObservableProperty]
+        private byte _backingPageSize; // 0: Small, 1: Large, 2: Huge
+
+        [ObservableProperty]
+        private bool _isPageSizeSelectionSupported = true; // 用于控制 UI 是否可用
+        public List<PageSizeItem> AvailablePageSizes { get; } = new List<PageSizeItem>
+        {
+            new PageSizeItem { Description = "标准 (4KB)", Value = 0 },
+            new PageSizeItem { Description = "大页 (2MB)", Value = 1 },
+            new PageSizeItem { Description = "巨页 (1GB)", Value = 2 }
+        };
+
 
         // --- 新增：内存加密策略 ---
         // 0: Disabled, 1: EnabledIfSupported
@@ -57,9 +73,9 @@ namespace ExHyperV.Models
             Buffer = other.Buffer;
             Priority = other.Priority;
 
-            // 同步大页内存状态
-            HugePagesEnabled = other.HugePagesEnabled;
-            IsHugePagesSupported = other.IsHugePagesSupported;
+            // --- 同步新的内存页大小状态 ---
+            BackingPageSize = other.BackingPageSize;
+            IsPageSizeSelectionSupported = other.IsPageSizeSelectionSupported;
 
             // --- 同步内存加密状态 ---
             MemoryEncryptionPolicy = other.MemoryEncryptionPolicy;

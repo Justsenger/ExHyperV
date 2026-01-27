@@ -256,20 +256,45 @@ namespace ExHyperV.ViewModels
 
         private async void MemorySettings_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
-            var fastTrackProps = new[] { nameof(VmMemorySettings.HugePagesEnabled), nameof(VmMemorySettings.DynamicMemoryEnabled) };
+            // --- 升级：定义需要自动保存的属性列表 ---
+            var fastTrackProps = new[]
+            {
+                nameof(VmMemorySettings.BackingPageSize),         // 内存页大小下拉框
+                nameof(VmMemorySettings.DynamicMemoryEnabled),    // 动态内存开关
+                nameof(VmMemorySettings.MemoryEncryptionPolicy)   // 内存加密开关 (你的UI里是通过Converter绑定的)
+            };
+
             if (fastTrackProps.Contains(e.PropertyName))
             {
-                if (IsLoadingSettings || SelectedVm == null || SelectedVm.IsRunning || SelectedVm.MemorySettings == null) return;
-                var result = await _vmMemoryService.SetVmMemorySettingsAsync(SelectedVm.Name, SelectedVm.MemorySettings);
-                if (!result.Success)
+                // 如果正在加载或VM正在运行，则不自动保存
+                if (IsLoadingSettings || SelectedVm == null || SelectedVm.IsRunning || SelectedVm.MemorySettings == null)
+                    return;
+
+                // 显示一个加载指示器
+                IsLoadingSettings = true;
+                try
                 {
-                    ShowSnackbar("自动应用失败", result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
-                    await GoToMemorySettings();
+                    var result = await _vmMemoryService.SetVmMemorySettingsAsync(SelectedVm.Name, SelectedVm.MemorySettings);
+                    if (!result.Success)
+                    {
+                        ShowSnackbar("自动应用失败", result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                        // 失败后重新加载设置以回滚UI
+                        await GoToMemorySettings();
+                    }
+                    else
+                    {
+                        // 成功后，可能需要刷新依赖属性，比如内存限制字符串
+                        OnPropertyChanged(nameof(SelectedVm));
+                    }
                 }
-                else { OnPropertyChanged(nameof(SelectedVm)); }
+                finally
+                {
+                    // 稍微延迟一下，避免UI闪烁
+                    await Task.Delay(200);
+                    IsLoadingSettings = false;
+                }
             }
         }
-
         [RelayCommand]
         private async Task ApplyMemorySettings()
         {
