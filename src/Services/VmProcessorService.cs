@@ -68,11 +68,19 @@ namespace ExHyperV.Services
 
                         // 新增高级功能读取
                         DisableSpeculationControls = GetBoolProperty(procData, "DisableSpeculationControls"),
+                        IsDisableSpeculationSupported = HasProperty(procData, "DisableSpeculationControls"),
+
                         HideHypervisorPresent = GetBoolProperty(procData, "HideHypervisorPresent"),
+                        IsHideHypervisorSupported = HasProperty(procData, "HideHypervisorPresent"),
+
                         EnablePerfmonArchPmu = GetBoolProperty(procData, "EnablePerfmonArchPmu"),
-                        // 已移除 EnablePerfmonIpt (Intel 处理器追踪)
+                        IsPerfmonArchPmuSupported = HasProperty(procData, "EnablePerfmonArchPmu"),
+
                         AllowAcountMcount = GetBoolProperty(procData, "AllowAcountMcount"),
-                        EnableSocketTopology = GetBoolProperty(procData, "EnableSocketTopology")
+                        IsAcountMcountSupported = HasProperty(procData, "AllowAcountMcount"),
+
+                        EnableSocketTopology = GetBoolProperty(procData, "EnableSocketTopology"),
+                        IsSocketTopologySupported = HasProperty(procData, "EnableSocketTopology")
                     };
                 }
                 catch { return null; }

@@ -82,11 +82,20 @@ namespace ExHyperV.Models
         [ObservableProperty] private SmtMode _smtMode;
 
         // --- 新增高级 CPU 功能 ---
-        [ObservableProperty] private bool _disableSpeculationControls;       // 禁用推测执行保护
-        [ObservableProperty] private bool _hideHypervisorPresent;            // 隐藏虚拟化标识
-        [ObservableProperty] private bool _enablePerfmonArchPmu;             // 暴露硬件性能计数器
-        [ObservableProperty] private bool _allowAcountMcount;                // 允许访问 ACOUNT/MCOUNT
-        [ObservableProperty] private bool _enableSocketTopology; // 新增：启用插槽拓扑映射
+        [ObservableProperty] private bool _disableSpeculationControls;
+        [ObservableProperty] private bool _isDisableSpeculationSupported; // 新增
+
+        [ObservableProperty] private bool _hideHypervisorPresent;
+        [ObservableProperty] private bool _isHideHypervisorSupported; // 新增
+
+        [ObservableProperty] private bool _enablePerfmonArchPmu;
+        [ObservableProperty] private bool _isPerfmonArchPmuSupported; // 新增
+
+        [ObservableProperty] private bool _allowAcountMcount;
+        [ObservableProperty] private bool _isAcountMcountSupported; // 新增
+
+        [ObservableProperty] private bool _enableSocketTopology;
+        [ObservableProperty] private bool _isSocketTopologySupported; // 新增
 
         public VmProcessorSettings Clone() => (VmProcessorSettings)this.MemberwiseClone();
         public void Restore(VmProcessorSettings other)
@@ -108,6 +117,11 @@ namespace ExHyperV.Models
             EnablePerfmonArchPmu = other.EnablePerfmonArchPmu;
             AllowAcountMcount = other.AllowAcountMcount;
             EnableSocketTopology = other.EnableSocketTopology;
+            IsDisableSpeculationSupported = other.IsDisableSpeculationSupported;
+            IsHideHypervisorSupported = other.IsHideHypervisorSupported;
+            IsPerfmonArchPmuSupported = other.IsPerfmonArchPmuSupported;
+            IsAcountMcountSupported = other.IsAcountMcountSupported;
+            IsSocketTopologySupported = other.IsSocketTopologySupported;
         }
     }
 
@@ -133,6 +147,8 @@ namespace ExHyperV.Models
         [ObservableProperty] private string _notes;
         [ObservableProperty] private int _generation;
         [ObservableProperty] private int _cpuCount;
+        [ObservableProperty]
+        private List<long> _diskSizeRaw = new();
 
         [ObservableProperty] private double _memoryGb;
         [ObservableProperty] private string _diskSize;
@@ -233,7 +249,29 @@ namespace ExHyperV.Models
 
         public ObservableCollection<VmCoreModel> Cores { get; } = new();
         public IAsyncRelayCommand<string> ControlCommand { get; set; }
-        public string ConfigSummary => $"{CpuCount} Cores / {MemoryGb:N1}GB RAM / {DiskSize}";
+        public string ConfigSummary
+        {
+            get
+            {
+                string diskPart;
+                if (DiskSizeRaw == null || DiskSizeRaw.Count == 0)
+                {
+                    diskPart = "无硬盘";
+                }
+                else
+                {
+                    // 按照从大到小排序，并格式化数字
+                    diskPart = string.Join(" + ", DiskSizeRaw
+                        .Select(bytes => bytes / 1073741824.0)
+                        .OrderByDescending(g => g)
+                        .Select(g => g >= 1 ? $"{g:0.#}G" : $"{g * 1024:0}M"));
+                }
+                return $"{CpuCount} Cores / {MemoryGb:0.#}GB RAM / {diskPart}";
+            }
+        }
+        partial void OnCpuCountChanged(int value) => OnPropertyChanged(nameof(ConfigSummary));
+        partial void OnMemoryGbChanged(double value) => OnPropertyChanged(nameof(ConfigSummary));
+        partial void OnDiskSizeRawChanged(List<long> value) => OnPropertyChanged(nameof(ConfigSummary));
 
         private TimeSpan _anchorUptime;
         private DateTime _anchorLocalTime;

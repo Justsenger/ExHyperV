@@ -1,41 +1,42 @@
 ﻿using ExHyperV.Models;
 using ExHyperV.Tools;
-using System;
-using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Management;
-using System.Threading.Tasks;
+using DiscUtils;
+using DiscUtils.Streams; // 必须引用这个以获得 Ownership 枚举
 
 namespace ExHyperV.Services
 {
     public class VmQueryService
     {
-        public struct VmDynamicMemoryData
-        {
-            public long AssignedMb;      // MemoryUsage
-            public int AvailablePercent; // MemoryAvailable
-        }
+        public struct VmDynamicMemoryData { public long AssignedMb; public int AvailablePercent; }
 
-        // WQL 常量
         private const string QuerySummary = "SELECT Name, ElementName, EnabledState, UpTime, NumberOfProcessors, MemoryUsage, Notes FROM Msvm_SummaryInformation";
         private const string QueryMemSettings = "SELECT InstanceID, VirtualQuantity FROM Msvm_MemorySettingData WHERE ResourceType = 4";
-        private const string QueryDiskSettings = "SELECT InstanceID, HostResource FROM Msvm_StorageAllocationSettingData WHERE ResourceType = 31";
+        private const string QueryDiskAllocations = "SELECT InstanceID, Parent, HostResource FROM Msvm_StorageAllocationSettingData WHERE ResourceType = 31";
+
+        private static readonly Dictionary<string, long> _diskSizeCache = new();
 
         public async Task<List<VmInstanceInfo>> GetVmListAsync()
         {
             return await Task.Run(() =>
             {
-                // 1. 并行查询基础数据
-                var summaries = Utils.Wmi.Query(QuerySummary, obj => new
-                {
+                Debug.WriteLine("\n========== [Storage Sync Start] ==========");
+                var allDiskAllocations = Utils.Wmi.Query(QueryDiskAllocations, obj => new {
+                    InstanceID = obj["InstanceID"]?.ToString() ?? "",
+                    Parent = obj["Parent"]?.ToString() ?? "",
+                    Paths = obj["HostResource"] as string[]
+                });
+
+                var summaries = Utils.Wmi.Query(QuerySummary, obj => new {
                     Id = obj["Name"]?.ToString(),
                     Name = obj["ElementName"]?.ToString(),
                     State = (ushort)(obj["EnabledState"] ?? 0),
                     Cpu = Convert.ToInt32(obj["NumberOfProcessors"] ?? 1),
                     MemUsage = Convert.ToDouble(obj["MemoryUsage"] ?? 0),
                     Uptime = (ulong)(obj["UpTime"] ?? 0),
-                    Notes = VmMapper.ParseNotes(obj["Notes"])
+                    Notes = obj["Notes"]?.ToString() ?? string.Empty
                 });
 
                 var memSettings = Utils.Wmi.Query(QueryMemSettings, obj => new {
@@ -43,66 +44,110 @@ namespace ExHyperV.Services
                     StartupRam = Convert.ToDouble(obj["VirtualQuantity"] ?? 0)
                 });
 
-                var diskSettings = Utils.Wmi.Query(QueryDiskSettings, obj => new {
-                    FullId = obj["InstanceID"]?.ToString(),
-                    Paths = (string[])obj["HostResource"]
-                });
-
-                // 2. 聚合
                 var resultList = new List<VmInstanceInfo>();
                 foreach (var s in summaries)
                 {
                     Guid.TryParse(s.Id, out var vmId);
+                    string vmGuid = s.Id.ToUpper();
+                    var vmDiskSizes = new List<long>();
 
-                    // 计算 RAM
-                    double finalRam = 0;
-                    if (VmMapper.IsRunning(s.State) && s.MemUsage > 0)
-                        finalRam = s.MemUsage;
-                    else
-                    {
-                        var conf = memSettings.FirstOrDefault(m => m.FullId?.Contains(s.Id) == true);
-                        if (conf != null) finalRam = conf.StartupRam;
-                    }
+                    var myDisks = allDiskAllocations.Where(d =>
+                        d.Parent.ToUpper().Contains(vmGuid) ||
+                        d.InstanceID.ToUpper().Contains(vmGuid)).ToList();
 
-                    // 计算 Disk
-                    string diskStr = "N/A";
-                    var vmDisk = diskSettings.FirstOrDefault(d => d.FullId?.Contains(s.Id) == true);
-                    if (vmDisk?.Paths?.Length > 0)
+                    foreach (var d in myDisks)
                     {
-                        try
+                        if (d.Paths != null && d.Paths.Length > 0)
                         {
-                            if (File.Exists(vmDisk.Paths[0]))
-                            {
-                                long len = new FileInfo(vmDisk.Paths[0]).Length;
-                                diskStr = $"{Math.Round(len / 1073741824.0, 0)}G";
-                            }
+                            string path = d.Paths[0].Replace("\"", "").Trim();
+                            if (path.EndsWith(".iso", StringComparison.OrdinalIgnoreCase)) continue;
+
+                            long size = GetDiskCapacityWithDiscUtils(path, s.Name);
+                            if (size > 0) vmDiskSizes.Add(size);
                         }
-                        catch { }
                     }
 
-                    // --- 修复构造函数报错 ---
-                    // 使用 2 参数构造函数 + 对象初始化器
+                    double finalRam = VmMapper.IsRunning(s.State) && s.MemUsage > 0 ? s.MemUsage : (memSettings.FirstOrDefault(m => m.FullId?.Contains(s.Id, StringComparison.OrdinalIgnoreCase) == true)?.StartupRam ?? 0);
+
                     var vmInfo = new VmInstanceInfo(vmId, s.Name)
                     {
-                        OsType = VmMapper.ParseOsTypeFromNotes(s.Notes),
+                        OsType = Utils.GetTagValue(s.Notes, "OSType") ?? "Windows",
                         CpuCount = s.Cpu,
                         MemoryGb = Math.Round(finalRam / 1024.0, 1),
                         AssignedMemoryGb = Math.Round(finalRam / 1024.0, 1),
-                        DiskSize = diskStr,
-                        Notes = s.Notes,
-                        Generation = 0
+                        DiskSizeRaw = vmDiskSizes,
+                        Notes = s.Notes
                     };
-
-                    // 同步后端状态和运行时间锚点
-                    vmInfo.SyncBackendData(
-                        VmMapper.MapStateCodeToText(s.State),
-                        TimeSpan.FromMilliseconds(s.Uptime)
-                    );
-
+                    vmInfo.SyncBackendData(VmMapper.MapStateCodeToText(s.State), TimeSpan.FromMilliseconds(s.Uptime));
                     resultList.Add(vmInfo);
                 }
-
+                Debug.WriteLine("========== [Storage Sync End] ==========\n");
                 return resultList.OrderByDescending(x => x.State == "运行中").ThenBy(x => x.Name).ToList();
+            });
+        }
+
+        private long GetDiskCapacityWithDiscUtils(string path, string vmName)
+        {
+            if (string.IsNullOrEmpty(path)) return 0;
+            if (_diskSizeCache.TryGetValue(path, out long cached)) return cached;
+
+            try
+            {
+                if (!File.Exists(path)) return 0;
+
+                // 显式以共享读写模式打开，防止文件被 Hyper-V 锁死
+                using (var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                {
+                    VirtualDisk disk = null;
+
+                    // 根据扩展名手动分发构造函数
+                    if (path.EndsWith(".vhdx", StringComparison.OrdinalIgnoreCase) || path.EndsWith(".avhdx", StringComparison.OrdinalIgnoreCase))
+                    {
+                        disk = new DiscUtils.Vhdx.Disk(fs, Ownership.None);
+                    }
+                    else if (path.EndsWith(".vhd", StringComparison.OrdinalIgnoreCase) || path.EndsWith(".avhd", StringComparison.OrdinalIgnoreCase))
+                    {
+                        disk = new DiscUtils.Vhd.Disk(fs, Ownership.None);
+                    }
+
+                    if (disk != null)
+                    {
+                        using (disk)
+                        {
+                            long cap = disk.Capacity;
+                            Debug.WriteLine($"[DiscUtils] {vmName} -> {Path.GetFileName(path)} | 设定容量: {cap / 1073741824.0:N2} GB");
+                            _diskSizeCache[path] = cap;
+                            return cap;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[DiscUtils Error] 处理 {path} 失败: {ex.Message}");
+            }
+
+            // 兜底：如果 DiscUtils 无法识别，返回物理大小
+            try { return new FileInfo(path).Length; } catch { return 0; }
+        }
+
+        public async Task<bool> SetVmOsTypeAsync(string vmName, string osType)
+        {
+            return await Task.Run(() => {
+                try
+                {
+                    using (var ps = System.Management.Automation.PowerShell.Create())
+                    {
+                        ps.AddScript($"(Get-VM -Name '{vmName}').Notes");
+                        var r = ps.Invoke();
+                        string n = r.FirstOrDefault()?.ToString() ?? string.Empty;
+                        ps.Commands.Clear();
+                        string un = Utils.UpdateTagValue(n, "OSType", osType);
+                        ps.AddCommand("Set-VM").AddParameter("Name", vmName).AddParameter("Notes", un).Invoke();
+                        return !ps.HadErrors;
+                    }
+                }
+                catch { return false; }
             });
         }
 
@@ -112,31 +157,15 @@ namespace ExHyperV.Services
             try
             {
                 var scope = new ManagementScope(@"root\virtualization\v2");
-                var query = new SelectQuery("SELECT Name, MemoryUsage, MemoryAvailable FROM Msvm_SummaryInformation");
-
-                using var searcher = new ManagementObjectSearcher(scope, query);
+                using var searcher = new ManagementObjectSearcher(scope, new SelectQuery("SELECT Name, MemoryUsage, MemoryAvailable FROM Msvm_SummaryInformation"));
                 using var collection = searcher.Get();
-
                 foreach (var item in collection)
                 {
-                    var vmId = item["Name"]?.ToString();
-                    var usageObj = item["MemoryUsage"];
-                    var availObj = item["MemoryAvailable"];
-
-                    if (vmId != null && usageObj != null)
-                    {
-                        map[vmId] = new VmDynamicMemoryData
-                        {
-                            AssignedMb = Convert.ToInt64(usageObj),
-                            AvailablePercent = availObj != null ? Convert.ToInt32(availObj) : 0
-                        };
-                    }
+                    var id = item["Name"]?.ToString();
+                    if (id != null) map[id] = new VmDynamicMemoryData { AssignedMb = Convert.ToInt64(item["MemoryUsage"] ?? 0), AvailablePercent = Convert.ToInt32(item["MemoryAvailable"] ?? 0) };
                 }
             }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"WMI Memory Query Error: {ex.Message}");
-            }
+            catch { }
             return map;
         }
     }

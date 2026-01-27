@@ -10,7 +10,9 @@
     xmlns:tools="clr-namespace:ExHyperV.Tools"
     xmlns:components="clr-namespace:ExHyperV.Views.Components"
     Title="VirtualMachinesPage" mc:Ignorable="d" d:DesignHeight="750" d:DesignWidth="1100"
-    tools:ScrollHelper.LockParentScroll="True">
+    tools:ScrollHelper.LockParentScroll="True"
+    x:Name="RootPage">
+    <!-- 1. 在这里添加 x:Name -->
 
     <Page.Resources>
         <converters:BooleanToVisibilityConverter x:Key="BoolToVis" />
@@ -18,6 +20,7 @@
         <converters:VmNameToIconConverter x:Key="VmNameToIconConverter" />
         <converters:OsTypeToImageConverter x:Key="OsTypeToImageConverter" />
 
+        <!-- 侧边栏列表项模板 -->
         <DataTemplate x:Key="VmListItemTemplate">
             <Grid Margin="2,6">
                 <Grid.ColumnDefinitions>
@@ -47,6 +50,7 @@
             </Grid>
         </DataTemplate>
 
+        <!-- 详情页主模板 -->
         <DataTemplate x:Key="VmDetailTemplate">
             <Grid x:Name="DetailRootGrid">
                 <Grid.RowDefinitions>
@@ -67,6 +71,7 @@
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
 
+                        <!-- 大图标：会随 OsType 自动更新 -->
                         <Image Grid.Column="0" Source="{Binding OsType, Converter={StaticResource OsTypeToImageConverter}}" 
                                RenderOptions.BitmapScalingMode="HighQuality" 
                                Width="100" Height="100" VerticalAlignment="Center"/>
@@ -75,6 +80,7 @@
                             <TextBlock Text="{Binding Name}" FontSize="28" 
                                        Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,8"/>
 
+                            <!-- 状态与运行时间 -->
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
                                 <ui:SymbolIcon Symbol="Pulse24" FontSize="16" Margin="0,1,6,0" 
                                                Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
@@ -87,42 +93,67 @@
                                            Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
                             </StackPanel>
 
+                            <!-- 底部标签栏 -->
                             <StackPanel Orientation="Horizontal">
+                                <!-- 配置摘要 -->
                                 <Border Background="{ui:ThemeResource ControlFillColorTertiaryBrush}" CornerRadius="4" Padding="10,6" Margin="0,0,8,0">
                                     <StackPanel Orientation="Horizontal">
-                                        <ui:SymbolIcon Symbol="Settings24" FontSize="14" Margin="0,1,8,0" 
-                                                       Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                                        <ui:FontIcon Glyph="&#xE81E;" 
+             FontSize="14" 
+             FontFamily="{DynamicResource SegoeFluentIcons}" 
+             Margin="0,1,8,0" 
+             Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
                                         <TextBlock Text="{Binding ConfigSummary}" FontSize="13" 
                                                    Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
                                     </StackPanel>
                                 </Border>
-                                <Border Background="{ui:ThemeResource ControlFillColorTertiaryBrush}" CornerRadius="4" Padding="10,6">
-                                    <StackPanel Orientation="Horizontal">
-                                        <ui:SymbolIcon Symbol="Laptop24" FontSize="14" Margin="0,1,8,0" 
-                                                       Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
-                                        <TextBlock Text="{Binding OsType}" FontSize="13" 
-                                                   Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
-                                    </StackPanel>
-                                </Border>
+
+                                <!-- OS 选择下拉按钮 -->
+                                <ui:DropDownButton Appearance="Secondary" Padding="10,6" CornerRadius="4">
+                                    <ui:DropDownButton.Content>
+                                        <StackPanel Orientation="Horizontal">
+                                            <ui:FontIcon Glyph="&#xE74C;" 
+             FontSize="14" 
+             FontFamily="{DynamicResource SegoeFluentIcons}" 
+             Margin="0,1,8,0" 
+             Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                                            <TextBlock Text="{Binding OsType}" FontSize="13" 
+                                                       Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                                        </StackPanel>
+                                    </ui:DropDownButton.Content>
+
+                                    <ui:DropDownButton.Flyout>
+                                        <!-- 使用 Source={x:Reference RootPage} 确保能找到 ViewModel -->
+                                        <ContextMenu ItemsSource="{Binding DataContext.AvailableOsTypes, Source={x:Reference RootPage}}">
+                                            <ContextMenu.ItemContainerStyle>
+                                                <Style TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
+                                                    <Setter Property="Header" Value="{Binding}" />
+                                                    <Setter Property="Command" Value="{Binding DataContext.ChangeOsTypeCommand, Source={x:Reference RootPage}}" />
+                                                    <Setter Property="CommandParameter" Value="{Binding}" />
+                                                    <Setter Property="Icon" Value="{x:Null}"/>
+                                                </Style>
+                                            </ContextMenu.ItemContainerStyle>
+                                        </ContextMenu>
+                                    </ui:DropDownButton.Flyout>
+                                </ui:DropDownButton>
                             </StackPanel>
                         </StackPanel>
 
+                        <!-- 电源控制按钮组 -->
                         <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Top">
                             <Border CornerRadius="8" ClipToBounds="True">
                                 <Grid>
+                                    <!-- 占位 Grid -->
                                     <Grid Visibility="Hidden" IsHitTestVisible="False">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="Auto"/>
                                             <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
-
-                                        <ui:Button Grid.Column="0" Content="关机" Icon="Stop24" Appearance="Danger" 
-                                                   Padding="24,6" Height="36" BorderThickness="0" Margin="0"/>
-
-                                        <ui:DropDownButton Grid.Column="1" Icon="ChevronDown24" Appearance="Danger" 
-                                                           Padding="8,6" Height="36" BorderThickness="0" Margin="0"/>
+                                        <ui:Button Grid.Column="0" Content="关机" Icon="Stop24" Appearance="Danger" Padding="24,6" Height="36" BorderThickness="0" Margin="0"/>
+                                        <ui:DropDownButton Grid.Column="1" Icon="ChevronDown24" Appearance="Danger" Padding="8,6" Height="36" BorderThickness="0" Margin="0"/>
                                     </Grid>
 
+                                    <!-- 启动按钮 -->
                                     <ui:Button Content="启动" Icon="Play24" Appearance="Primary" 
                                                Padding="0,6" Height="36" CornerRadius="8" BorderThickness="0"
                                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
@@ -140,6 +171,7 @@
                                         </ui:Button.Style>
                                     </ui:Button>
 
+                                    <!-- 运行中控制组 -->
                                     <Grid>
                                         <Grid.Style>
                                             <Style TargetType="Grid">
@@ -191,11 +223,11 @@
 
                 <Rectangle Grid.Row="1" Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,24,24,0" Opacity="0.5"/>
 
+                <!-- 子视图切换区域 -->
                 <ContentControl Grid.Row="2" 
                                 Content="{Binding DataContext, RelativeSource={RelativeSource AncestorType=Page}}">
                     <ContentControl.Style>
                         <Style TargetType="ContentControl">
-                            <!-- 默认显示 Dashboard -->
                             <Setter Property="ContentTemplate">
                                 <Setter.Value>
                                     <DataTemplate>
@@ -204,9 +236,7 @@
                                 </Setter.Value>
                             </Setter>
                             <Style.Triggers>
-                                <!-- CPU 设置 -->
-                                <DataTrigger Binding="{Binding DataContext.CurrentViewType, RelativeSource={RelativeSource AncestorType=Page}}" 
-                                             Value="CpuSettings">
+                                <DataTrigger Binding="{Binding DataContext.CurrentViewType, RelativeSource={RelativeSource AncestorType=Page}}" Value="CpuSettings">
                                     <Setter Property="ContentTemplate">
                                         <Setter.Value>
                                             <DataTemplate>
@@ -215,10 +245,7 @@
                                         </Setter.Value>
                                     </Setter>
                                 </DataTrigger>
-
-                                <!-- CPU 亲和性 -->
-                                <DataTrigger Binding="{Binding DataContext.CurrentViewType, RelativeSource={RelativeSource AncestorType=Page}}" 
-                                             Value="CpuAffinity">
+                                <DataTrigger Binding="{Binding DataContext.CurrentViewType, RelativeSource={RelativeSource AncestorType=Page}}" Value="CpuAffinity">
                                     <Setter Property="ContentTemplate">
                                         <Setter.Value>
                                             <DataTemplate>
@@ -227,10 +254,7 @@
                                         </Setter.Value>
                                     </Setter>
                                 </DataTrigger>
-
-                                <!-- 【新增】内存设置 -->
-                                <DataTrigger Binding="{Binding DataContext.CurrentViewType, RelativeSource={RelativeSource AncestorType=Page}}" 
-                                             Value="MemorySettings">
+                                <DataTrigger Binding="{Binding DataContext.CurrentViewType, RelativeSource={RelativeSource AncestorType=Page}}" Value="MemorySettings">
                                     <Setter Property="ContentTemplate">
                                         <Setter.Value>
                                             <DataTemplate>
@@ -239,12 +263,12 @@
                                         </Setter.Value>
                                     </Setter>
                                 </DataTrigger>
-
                             </Style.Triggers>
                         </Style>
                     </ContentControl.Style>
                 </ContentControl>
-                
+
+                <!-- 加载遮罩层 -->
                 <Grid Grid.Row="0" Grid.RowSpan="3" Panel.ZIndex="100"
                       Background="{ui:ThemeResource ApplicationBackgroundBrush}" 
                       Visibility="{Binding DataContext.IsLoading, RelativeSource={RelativeSource AncestorType=Page}, Converter={StaticResource BoolToVis}}">
@@ -255,11 +279,11 @@
                                    HorizontalAlignment="Center"/>
                     </StackPanel>
                 </Grid>
-
             </Grid>
         </DataTemplate>
     </Page.Resources>
 
+    <!-- 页面主体布局 -->
     <Grid Margin="12">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="220" MinWidth="160" MaxWidth="300"/>
@@ -267,6 +291,7 @@
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
 
+        <!-- 左侧列表 -->
         <Border Grid.Column="0" Background="{ui:ThemeResource ControlFillColorDefaultBrush}" 
                 BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
             <Grid>
@@ -275,9 +300,7 @@
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
                 <Grid Grid.Row="0" Margin="8">
-                    <ui:TextBox PlaceholderText="搜索虚拟机"
-                                ClearButtonEnabled="True"
-                                Padding="10,0,32,0"
+                    <ui:TextBox PlaceholderText="搜索虚拟机" ClearButtonEnabled="True" Padding="10,0,32,0"
                                 Text="{Binding SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                     <ui:SymbolIcon Symbol="Search24" HorizontalAlignment="Right" Margin="0,0,10,0" 
                                    Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" IsHitTestVisible="False"/>
@@ -289,6 +312,7 @@
 
         <GridSplitter Grid.Column="1" Width="12" HorizontalAlignment="Stretch" Background="Transparent"/>
 
+        <!-- 右侧详情 -->
         <Border Grid.Column="2" Background="{ui:ThemeResource LayerFillColorDefaultBrush}"
                 BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" ClipToBounds="True">
             <ContentControl Content="{Binding SelectedVm}" ContentTemplate="{StaticResource VmDetailTemplate}"/>

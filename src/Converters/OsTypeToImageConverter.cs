@@ -1,49 +1,30 @@
 ﻿using System;
-using System.Globalization;
 using System.Windows.Data;
 using System.Windows.Media.Imaging;
+using ExHyperV.Tools;
 
+// 必须添加这个命名空间包裹，且名称必须与 XAML 中的 clr-namespace 一致
 namespace ExHyperV.Converters
 {
     public class OsTypeToImageConverter : IValueConverter
     {
-        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
         {
-            // 统一转为小写
-            string osType = value?.ToString()?.ToLower() ?? "default";
+            // 调用 Utils 获取图片名称
+            string imageName = Utils.GetOsImageName(value?.ToString());
 
-            string imageName = osType switch
+            try
             {
-                // Windows (对应 microsoft.png)
-                "windows" => "microsoft.png",
-
-                // Linux 发行版
-                "linux" => "linux.png",
-                "android" => "android.png",
-                "chromeos" => "chromeos.png",
-                "fydeos" => "fydeos.png",
-
-                // Apple
-                "macos" => "macos.png",
-
-                // BSD
-                "freebsd" => "freebsd.png",
-                "openbsd" => "openbsd.png",
-
-                // 软路由/NAS
-                "openwrt" => "openwrt.png",
-                "fnos" => "fnos.png",
-
-                // 默认
-                _ => "default.png"
-            };
-
-            return new BitmapImage(new Uri($"pack://application:,,,/Assets/{imageName}"));
+                return new BitmapImage(new Uri($"pack://application:,,,/Assets/{imageName}"));
+            }
+            catch
+            {
+                // 如果图片路径报错的回退方案
+                return new BitmapImage(new Uri("pack://application:,,,/Assets/microsoft.png"));
+            }
         }
 
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-        {
-            throw new NotImplementedException();
-        }
+        public object ConvertBack(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+            => throw new NotImplementedException();
     }
 }

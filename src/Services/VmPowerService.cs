@@ -1,52 +1,40 @@
 ﻿using ExHyperV.Tools;
 using System.Threading.Tasks;
 
-//电源服务
-
 namespace ExHyperV.Services
 {
     public class VmPowerService
     {
+        /// <summary>
+        /// 已重构：所有电源操作统一使用 PowerShell，以确保错误能够被正确抛出和捕获。
+        /// </summary>
         public async Task ExecuteControlActionAsync(string vmName, string action)
         {
-            // 1. 复杂/慢速操作 -> 走 PowerShell
-            if (action == "Stop" || action == "Restart" || action == "Save" || action == "Suspend")
+            string cmd = BuildPsCommand(vmName, action);
+            if (!string.IsNullOrEmpty(cmd))
             {
-                string cmd = BuildPsCommand(vmName, action);
-                if (!string.IsNullOrEmpty(cmd))
-                {
-                    await Task.Run(() => Utils.Run(cmd));
-                }
-                return;
+                // Task.Run 在这里是正确的用法，因为它执行的是一个外部进程 (powershell.exe)
+                await Task.Run(() => Utils.Run(cmd));
             }
-
-            // 2. 瞬时/底层操作 -> 走 WMI
-            await Task.Run(() =>
-            {
-                int targetState = action switch
-                {
-                    "Start" => 2,   // Enabled
-                    "TurnOff" => 3, // Disabled
-                    _ => -1
-                };
-
-                if (targetState != -1)
-                {
-                    Utils.Wmi.RequestStateChange(vmName, targetState);
-                }
-            });
         }
 
         private string BuildPsCommand(string vmName, string action)
         {
-            // 防止 PS 注入
+            // 防止 PS 注入，这是个好习惯
             var safeName = vmName.Replace("'", "''");
+
             return action switch
             {
-                "Restart" => $"Restart-VM -Name '{safeName}' -Force -Confirm:$false",
-                "Stop" => $"Stop-VM -Name '{safeName}' -ErrorAction Stop",
-                "Save" => $"Save-VM -Name '{safeName}'",
-                "Suspend" => $"Suspend-VM -Name '{safeName}'",
+                // --- 已将 Start 和 TurnOff 移至此处 ---
+                "Start" => $"Start-VM -Name '{safeName}' -ErrorAction Stop",
+                "TurnOff" => $"Stop-VM -Name '{safeName}' -TurnOff -Force -Confirm:$false -ErrorAction Stop",
+
+                // --- 原有的 PowerShell 命令 ---
+                "Restart" => $"Restart-VM -Name '{safeName}' -Force -Confirm:$false -ErrorAction Stop",
+                "Stop" => $"Stop-VM -Name '{safeName}' -ErrorAction Stop", // 这是优雅关机
+                "Save" => $"Save-VM -Name '{safeName}' -ErrorAction Stop",
+                "Suspend" => $"Suspend-VM -Name '{safeName}' -ErrorAction Stop",
+
                 _ => ""
             };
         }

@@ -447,6 +447,34 @@ public class Utils
         var parts = cleanMsg.Split(new[] { '。', '.' }, StringSplitOptions.RemoveEmptyEntries).Select(s => s.Trim()).Where(s => !string.IsNullOrWhiteSpace(s)).ToList();
         return (parts.Count >= 2 && parts.Last().Length > 2) ? parts.Last() + "。" : cleanMsg;
     }
+
+    public static string GetFriendlyErrorMessages(string rawMessage)
+    {
+        if (string.IsNullOrWhiteSpace(rawMessage))
+        {
+            return string.Empty;
+        }
+
+        string message = rawMessage;
+
+        const string psErrorPrefix = "The running command stopped because the preference variable \"ErrorActionPreference\" or common parameter is set to Stop: ";
+        message = message.Replace(psErrorPrefix, "");
+
+        var guidInParensRegex = new Regex(@"\s*[\(（].*?[a-fA-F0-9]{8}-(?:[a-fA-F0-9]{4}-){3}[a-fA-F0-9]{12}.*?[\)）]");
+
+        string[] lines = message.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.RemoveEmptyEntries);
+
+        var distinctLines = lines
+            .Select(line => guidInParensRegex.Replace(line, ""))
+            .Select(line => line.Trim().Trim('"', '“', '”').TrimEnd('.', '。'))
+            .Where(line => !string.IsNullOrWhiteSpace(line))
+            .Distinct(StringComparer.Ordinal);
+
+        string finalMessage = string.Join(Environment.NewLine, distinctLines);
+
+        return string.IsNullOrWhiteSpace(finalMessage) ? rawMessage.Trim() : finalMessage;
+    }
+
     public static string FormatBytes(long bytes)
     {
         if (bytes < 0)
@@ -535,7 +563,57 @@ public class Utils
         }
     }
 
-    public static string Version => "V1.3.2-Beta";
+    public static readonly List<string> SupportedOsTypes = new()
+        {
+            "Windows", "Linux", "Android", "ChromeOS", "FydeOS",
+            "macOS", "FreeBSD", "OpenWrt", "fNOS"
+        };
+
+    public static string GetOsImageName(string osType)
+    {
+        if (string.IsNullOrWhiteSpace(osType)) return "microsoft.png";
+
+        string lower = osType.ToLower();
+
+        if (lower == "windows") return "microsoft.png";
+        if (SupportedOsTypes.Any(t => t.Equals(lower, StringComparison.OrdinalIgnoreCase)))
+        {
+            return $"{lower}.png";
+        }
+        return "microsoft.png";
+    }
+
+    public static string GetTagValue(string text, string tagName)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return string.Empty;
+        string prefix = $"[{tagName}:";
+        int start = text.IndexOf(prefix, StringComparison.OrdinalIgnoreCase);
+        if (start == -1) return string.Empty;
+
+        start += prefix.Length;
+        int end = text.IndexOf("]", start);
+        return end == -1 ? string.Empty : text.Substring(start, end - start);
+    }
+
+    public static string UpdateTagValue(string text, string tagName, string newValue)
+    {
+        text = text ?? string.Empty;
+        string tagPrefix = $"[{tagName}:";
+        string newTag = $"[{tagName}:{newValue}]";
+
+        int startIndex = text.IndexOf(tagPrefix, StringComparison.OrdinalIgnoreCase);
+        if (startIndex != -1)
+        {
+            int endIndex = text.IndexOf("]", startIndex);
+            if (endIndex != -1)
+            {
+                return text.Remove(startIndex, endIndex - startIndex + 1).Insert(startIndex, newTag);
+            }
+        }
+        return string.IsNullOrWhiteSpace(text) ? newTag : $"{text.Trim()} {newTag}";
+    }
+
+    public static string Version => "V1.4.0-Beta";
     public static string Author => "Saniye";
 
 }
