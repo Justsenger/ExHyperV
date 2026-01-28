@@ -30,29 +30,22 @@ namespace ExHyperV.Services
         {
             return await Task.Run(() =>
             {
-                // 1. 基础数据采集 (保持原样)
                 var allDiskAllocations = Utils.Wmi.Query(QueryDiskAllocations, obj => new {
                     InstanceID = obj["InstanceID"]?.ToString() ?? "",
                     Parent = obj["Parent"]?.ToString() ?? "",
                     Paths = obj["HostResource"] as string[]
                 });
 
-                // 寻找 GetVmListAsync 内部的 summaries 定义处
                 var summaries = Utils.Wmi.Query(QuerySummary, obj => {
-                    // 核心修正：先获取原始值
                     long rawMem = Convert.ToInt64(obj["MemoryUsage"] ?? 0);
-
-                    // 校验：如果内存使用量小于 0，或者大于一个极其离谱的值（比如 1TB），则判定为无效
-                    // 1024 * 1024 MB = 1TB
-                    double validMem = (rawMem < 0 || rawMem > 1024 * 1024) ? 0 : (double)rawMem;
-
+                    double validMem = (rawMem <= 0 || rawMem > 1048576) ? 0 : (double)rawMem;
                     return new
                     {
                         Id = obj["Name"]?.ToString(),
                         Name = obj["ElementName"]?.ToString(),
                         State = (ushort)(obj["EnabledState"] ?? 0),
                         Cpu = Convert.ToInt32(obj["NumberOfProcessors"] ?? 1),
-                        MemUsage = validMem, // 使用校验后的值
+                        MemUsage = validMem,
                         Uptime = (ulong)(obj["UpTime"] ?? 0),
                         Notes = obj["Notes"]?.ToString() ?? string.Empty
                     };
@@ -75,9 +68,6 @@ namespace ExHyperV.Services
                 .GroupBy(x => x.VmGuid)
                 .ToDictionary(g => g.Key, g => new { g.First().Gen, g.First().Ver });
 
-                // ==========================================
-                // 2. GPU-PV 解析逻辑 (保持原样)
-                // ==========================================
                 var gpuMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
                 try
                 {
@@ -127,11 +117,8 @@ namespace ExHyperV.Services
                         }
                     }
                 }
-                catch (Exception ex) { Debug.WriteLine($"GPU Logic Error: {ex.Message}"); }
+                catch (Exception ex) { Debug.WriteLine(ex.Message); }
 
-                // ==========================================
-                // 3. 数据组装 (保持原样)
-                // ==========================================
                 var resultList = new List<VmInstanceInfo>();
                 foreach (var s in summaries)
                 {
@@ -155,25 +142,25 @@ namespace ExHyperV.Services
                     }
                     catch { }
 
-                    double finalRam = VmMapper.IsRunning(s.State) && s.MemUsage > 0
-                        ? s.MemUsage
-                        : (memSettings.FirstOrDefault(m => m.FullId?.Contains(s.Id, StringComparison.OrdinalIgnoreCase) == true)?.StartupRam ?? 0);
+                    double startupRam = memSettings.FirstOrDefault(m => m.FullId?.Contains(s.Id, StringComparison.OrdinalIgnoreCase) == true)?.StartupRam ?? 0;
+                    bool isRunning = VmMapper.IsRunning(s.State);
+                    bool hasValidRealtimeMem = s.MemUsage > 0;
+
+                    double usageRam = (isRunning && hasValidRealtimeMem) ? s.MemUsage : 0;
+                    double assignedRam = (isRunning && hasValidRealtimeMem) ? s.MemUsage : startupRam;
 
                     int genValue = 0; string verValue = "0.0";
                     if (vmGuid != null && configMap.TryGetValue(vmGuid, out var config)) { genValue = config.Gen; verValue = config.Ver; }
 
                     string gpuName = null;
-                    if (vmGuid != null && gpuMap.ContainsKey(vmGuid))
-                    {
-                        gpuName = gpuMap[vmGuid];
-                    }
+                    if (vmGuid != null && gpuMap.ContainsKey(vmGuid)) gpuName = gpuMap[vmGuid];
 
                     var vmInfo = new VmInstanceInfo(vmId, s.Name)
                     {
                         OsType = Utils.GetTagValue(s.Notes, "OSType") ?? "Windows",
                         CpuCount = s.Cpu,
-                        MemoryGb = Math.Round(finalRam / 1024.0, 1),
-                        AssignedMemoryGb = Math.Round(finalRam / 1024.0, 1),
+                        MemoryGb = Math.Round(usageRam / 1024.0, 1),
+                        AssignedMemoryGb = Math.Round(assignedRam / 1024.0, 1),
                         DiskSizeRaw = vmDiskSizes,
                         Notes = s.Notes,
                         Generation = genValue,
@@ -188,7 +175,6 @@ namespace ExHyperV.Services
                 return resultList.OrderByDescending(x => x.State == "运行中").ThenBy(x => x.Name).ToList();
             });
         }
-
         // ==========================================
         // 1. 修改 OS 类型的方法
         // ==========================================
