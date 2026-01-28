@@ -159,7 +159,7 @@ namespace ExHyperV.Services
                     {
                         OsType = Utils.GetTagValue(s.Notes, "OSType") ?? "Windows",
                         CpuCount = s.Cpu,
-                        MemoryGb = Math.Round(usageRam / 1024.0, 1),
+                        MemoryGb = Math.Round(startupRam / 1024.0, 1),
                         AssignedMemoryGb = Math.Round(assignedRam / 1024.0, 1),
                         DiskSizeRaw = vmDiskSizes,
                         Notes = s.Notes,
