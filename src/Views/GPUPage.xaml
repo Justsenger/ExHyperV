@@ -1,4 +1,4 @@
-﻿<Page
+<Page
     x:Class="ExHyperV.Views.Pages.GPUPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -96,6 +96,83 @@
                     <ui:Button Grid.Column="1" Content="{x:Static properties:Resources.refresh}" Margin="0,0,30,0" Command="{Binding LoadDataCommand}" IsEnabled="{Binding IsLoading, Converter={StaticResource InverseBooleanConverter}}"/>
                 </Grid>
             </ui:Card>
+
+            <ItemsControl ItemsSource="{Binding VirtualMachines}" Margin="30,0,10,0">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="{x:Type viewmodels:VirtualMachineViewModel}">
+                        <ui:CardExpander Margin="0,5,0,0" Padding="8">
+                            <ui:CardExpander.Header>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <ui:FontIcon Grid.Column="0" FontSize="24" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="16" VerticalAlignment="Center"/>
+                                    <ui:Button Grid.Column="2" Content="添加 GPU" Margin="10,0,0,0" Command="{Binding DataContext.AddGpuCommand, RelativeSource={RelativeSource AncestorType=Page}}" CommandParameter="{Binding}" IsEnabled="{Binding DataContext.IsLoading, RelativeSource={RelativeSource AncestorType=Page}, Converter={StaticResource InverseBooleanConverter}}"/>
+                                </Grid>
+                            </ui:CardExpander.Header>
+                            <StackPanel Margin="50,0,0,0">
+                                <ItemsControl ItemsSource="{Binding AssignedGpus}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate DataType="{x:Type viewmodels:AssignedGpuViewModel}">
+                                            <ui:Card Margin="0,5,0,0" Padding="8">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="Auto" MinWidth="125"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <Grid.RowDefinitions>
+                                                        <RowDefinition Height="32"/>
+                                                        <RowDefinition Height="32"/>
+                                                        <RowDefinition Height="32"/>
+                                                    </Grid.RowDefinitions>
+                                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="GPU 名称" FontSize="16" VerticalAlignment="Center"/>
+                                                    <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding ParentGpuName}" FontSize="16" VerticalAlignment="Center"/>
+                                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="制造商" FontSize="16" VerticalAlignment="Center"/>
+                                                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding ParentGpuManu}" FontSize="16" VerticalAlignment="Center"/>
+                                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="实例路径" FontSize="16" VerticalAlignment="Center"/>
+                                                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding InstancePath}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" FontSize="16" VerticalAlignment="Center"/>
+                                                    <ui:Button Grid.Row="0" Grid.Column="2" Grid.RowSpan="3" Content="移除" Margin="10,0,0,0" VerticalAlignment="Center"
+                                                               Command="{Binding DataContext.RemoveGpuCommand, RelativeSource={RelativeSource AncestorType=Page}}">
+                                                        <ui:Button.CommandParameter>
+                                                            <MultiBinding Converter="{StaticResource CommandParameterConverter}">
+                                                                <Binding Path="DataContext" RelativeSource="{RelativeSource AncestorType=ui:CardExpander}"/>
+                                                                <Binding/>
+                                                            </MultiBinding>
+                                                        </ui:Button.CommandParameter>
+                                                        <ui:Button.IsEnabled>
+                                                            <Binding Path="DataContext.IsLoading" RelativeSource="{RelativeSource AncestorType=Page}">
+                                                                <Binding.Converter>
+                                                                    <converters:InverseBooleanConverter/>
+                                                                </Binding.Converter>
+                                                            </Binding>
+                                                        </ui:Button.IsEnabled>
+                                                    </ui:Button>
+                                                </Grid>
+                                            </ui:Card>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <TextBlock Text="未分配 GPU" FontSize="14" Foreground="{ui:ThemeResource TextFillColorTertiaryBrush}" Margin="0,10,0,0">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding AssignedGpus.Count}" Value="0">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </StackPanel>
+                        </ui:CardExpander>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
 
         </StackPanel>
         <ProgressBar Panel.ZIndex="1" VerticalAlignment="Top" Height="4"
