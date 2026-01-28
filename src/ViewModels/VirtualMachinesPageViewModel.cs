@@ -57,10 +57,12 @@ namespace ExHyperV.ViewModels
             _vmMemoryService = new VmMemoryService();
             InitPossibleCpuCounts();
 
+            // UI 计时器用于每秒更新运行时间文本
             _uiTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
             _uiTimer.Tick += (s, e) => { foreach (var vm in VmList) vm.TickUptime(); };
             _uiTimer.Start();
 
+            // 延迟加载列表，避免阻塞 UI 初始化
             Task.Run(async () => {
                 await Task.Delay(300);
                 Application.Current.Dispatcher.Invoke(() => LoadVmsCommand.Execute(null));
@@ -110,9 +112,12 @@ namespace ExHyperV.ViewModels
                             DiskSizeRaw = vm.DiskSizeRaw,
                             Notes = vm.Notes,
                             Generation = vm.Generation,
-                            Version = vm.Version
+                            Version = vm.Version,
+                            GpuName = vm.GpuName // === 关键点：初始化时赋值显卡名称 ===
                         };
                         instance.SyncBackendData(vm.State, vm.RawUptime);
+
+                        // 设置控制命令
                         instance.ControlCommand = new AsyncRelayCommand<string>(async (action) => {
                             instance.SetTransientState(GetOptimisticText(action));
                             try
@@ -179,6 +184,7 @@ namespace ExHyperV.ViewModels
                         vm.DiskSizeRaw = freshData.DiskSizeRaw;
                         vm.Generation = freshData.Generation;
                         vm.Version = freshData.Version;
+                        vm.GpuName = freshData.GpuName; // === 单个 VM 操作后同步 GPU 状态 ===
                     });
                 }
             }
@@ -259,21 +265,18 @@ namespace ExHyperV.ViewModels
 
         private async void MemorySettings_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
-            // --- 升级：定义需要自动保存的属性列表 ---
             var fastTrackProps = new[]
             {
-                nameof(VmMemorySettings.BackingPageSize),         // 内存页大小下拉框
-                nameof(VmMemorySettings.DynamicMemoryEnabled),    // 动态内存开关
-                nameof(VmMemorySettings.MemoryEncryptionPolicy)   // 内存加密开关 (你的UI里是通过Converter绑定的)
+                nameof(VmMemorySettings.BackingPageSize),
+                nameof(VmMemorySettings.DynamicMemoryEnabled),
+                nameof(VmMemorySettings.MemoryEncryptionPolicy)
             };
 
             if (fastTrackProps.Contains(e.PropertyName))
             {
-                // 如果正在加载或VM正在运行，则不自动保存
                 if (IsLoadingSettings || SelectedVm == null || SelectedVm.IsRunning || SelectedVm.MemorySettings == null)
                     return;
 
-                // 显示一个加载指示器
                 IsLoadingSettings = true;
                 try
                 {
@@ -281,23 +284,21 @@ namespace ExHyperV.ViewModels
                     if (!result.Success)
                     {
                         ShowSnackbar("自动应用失败", result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
-                        // 失败后重新加载设置以回滚UI
                         await GoToMemorySettings();
                     }
                     else
                     {
-                        // 成功后，可能需要刷新依赖属性，比如内存限制字符串
                         OnPropertyChanged(nameof(SelectedVm));
                     }
                 }
                 finally
                 {
-                    // 稍微延迟一下，避免UI闪烁
                     await Task.Delay(200);
                     IsLoadingSettings = false;
                 }
             }
         }
+
         [RelayCommand]
         private async Task ApplyMemorySettings()
         {
@@ -355,8 +356,60 @@ namespace ExHyperV.ViewModels
         partial void OnSearchTextChanged(string value) { var view = CollectionViewSource.GetDefaultView(VmList); if (view != null) { view.Filter = item => (item is VmInstanceInfo vm) && (string.IsNullOrEmpty(value) || vm.Name.Contains(value, StringComparison.OrdinalIgnoreCase)); view.Refresh(); } }
 
         private void StartMonitoring() { if (_monitoringCts != null) return; _monitoringCts = new CancellationTokenSource(); _cpuTask = Task.Run(() => MonitorCpuLoop(_monitoringCts.Token)); _stateTask = Task.Run(() => MonitorStateLoop(_monitoringCts.Token)); }
-        private async Task MonitorCpuLoop(CancellationToken token) { try { _cpuService = new CpuMonitorService(); } catch { return; } while (!token.IsCancellationRequested) { try { var rawData = _cpuService.GetCpuUsage(); Application.Current.Dispatcher.Invoke(() => ProcessAndApplyCpuUpdates(rawData)); await Task.Delay(1000, token); } catch (TaskCanceledException) { break; } catch { await Task.Delay(5000, token); } } _cpuService?.Dispose(); }
-        private async Task MonitorStateLoop(CancellationToken token) { while (!token.IsCancellationRequested) { try { var updates = await _queryService.GetVmListAsync(); var memoryMap = await Task.Run(() => _queryService.GetVmRuntimeMemoryData()); Application.Current.Dispatcher.Invoke(() => { foreach (var update in updates) { var vm = VmList.FirstOrDefault(v => v.Name == update.Name); if (vm != null) { vm.SyncBackendData(update.State, update.RawUptime); vm.DiskSizeRaw = update.DiskSizeRaw ?? new List<long>(); if (memoryMap.TryGetValue(vm.Id.ToString(), out var memData)) vm.UpdateMemoryStatus(memData.AssignedMb, memData.AvailablePercent); else if (memoryMap.TryGetValue(vm.Id.ToString().ToUpper(), out var memDataUpper)) vm.UpdateMemoryStatus(memDataUpper.AssignedMb, memDataUpper.AvailablePercent); else vm.UpdateMemoryStatus(0, 0); } } }); await Task.Delay(3000, token); } catch (TaskCanceledException) { break; } catch { await Task.Delay(3000, token); } } }
+
+        private async Task MonitorCpuLoop(CancellationToken token)
+        {
+            try { _cpuService = new CpuMonitorService(); } catch { return; }
+            while (!token.IsCancellationRequested)
+            {
+                try
+                {
+                    var rawData = _cpuService.GetCpuUsage();
+                    Application.Current.Dispatcher.Invoke(() => ProcessAndApplyCpuUpdates(rawData));
+                    await Task.Delay(1000, token);
+                }
+                catch (TaskCanceledException) { break; }
+                catch { await Task.Delay(5000, token); }
+            }
+            _cpuService?.Dispose();
+        }
+
+        private async Task MonitorStateLoop(CancellationToken token)
+        {
+            while (!token.IsCancellationRequested)
+            {
+                try
+                {
+                    var updates = await _queryService.GetVmListAsync();
+                    var memoryMap = await Task.Run(() => _queryService.GetVmRuntimeMemoryData());
+
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        foreach (var update in updates)
+                        {
+                            var vm = VmList.FirstOrDefault(v => v.Name == update.Name);
+                            if (vm != null)
+                            {
+                                vm.SyncBackendData(update.State, update.RawUptime);
+                                vm.DiskSizeRaw = update.DiskSizeRaw ?? new List<long>();
+                                vm.GpuName = update.GpuName; // === 后台监控中同步 GPU 状态 ===
+
+                                if (memoryMap.TryGetValue(vm.Id.ToString(), out var memData))
+                                    vm.UpdateMemoryStatus(memData.AssignedMb, memData.AvailablePercent);
+                                else if (memoryMap.TryGetValue(vm.Id.ToString().ToUpper(), out var memDataUpper))
+                                    vm.UpdateMemoryStatus(memDataUpper.AssignedMb, memDataUpper.AvailablePercent);
+                                else
+                                    vm.UpdateMemoryStatus(0, 0);
+                            }
+                        }
+                    });
+                    await Task.Delay(3000, token);
+                }
+                catch (TaskCanceledException) { break; }
+                catch { await Task.Delay(3000, token); }
+            }
+        }
+
         private void ProcessAndApplyCpuUpdates(List<CpuCoreMetric> rawData) { var grouped = rawData.GroupBy(x => x.VmName); foreach (var group in grouped) { var vm = VmList.FirstOrDefault(v => v.Name == group.Key); if (vm == null) continue; vm.AverageUsage = vm.IsRunning ? group.Average(x => x.Usage) : 0; UpdateVmCores(vm, group.ToList()); } }
         private void UpdateVmCores(VmInstanceInfo vm, List<CpuCoreMetric> metrics) { var metricIds = metrics.Select(m => m.CoreId).ToHashSet(); vm.Cores.Where(c => !metricIds.Contains(c.CoreId)).ToList().ForEach(r => vm.Cores.Remove(r)); foreach (var metric in metrics) { var core = vm.Cores.FirstOrDefault(c => c.CoreId == metric.CoreId); if (core == null) { core = new VmCoreModel { CoreId = metric.CoreId }; int idx = 0; while (idx < vm.Cores.Count && vm.Cores[idx].CoreId < metric.CoreId) idx++; vm.Cores.Insert(idx, core); } core.Usage = metric.Usage; UpdateHistory(vm.Name, core); } vm.Columns = LayoutHelper.CalculateOptimalColumns(vm.Cores.Count); vm.Rows = (vm.Cores.Count > 0) ? (int)Math.Ceiling((double)vm.Cores.Count / vm.Columns) : 1; }
         private void UpdateHistory(string vmName, VmCoreModel core) { string key = $"{vmName}_{core.CoreId}"; if (!_historyCache.TryGetValue(key, out var history)) { history = new LinkedList<double>(); for (int k = 0; k < MaxHistoryLength; k++) history.AddLast(0); _historyCache[key] = history; } history.AddLast(core.Usage); if (history.Count > MaxHistoryLength) history.RemoveFirst(); core.HistoryPoints = CalculatePoints(history); }

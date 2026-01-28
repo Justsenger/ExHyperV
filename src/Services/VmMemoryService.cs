@@ -52,33 +52,47 @@ namespace ExHyperV.Services
                     using var memData = settingData.GetRelated("Msvm_MemorySettingData").Cast<ManagementObject>().FirstOrDefault();
                     if (memData == null) return null;
 
-                    var settings = new VmMemorySettings
+                    // --- 最终修正：必须先用 HasProperty 检查，再访问值 ---
+                    var settings = new VmMemorySettings();
+
+                    // 基础属性（通常都存在，但为了极致安全也做检查）
+                    settings.Startup = HasProperty(memData, "VirtualQuantity") ? Convert.ToInt64(memData["VirtualQuantity"] ?? 0) : 0;
+                    settings.Minimum = HasProperty(memData, "Reservation") ? Convert.ToInt64(memData["Reservation"] ?? 0) : 0;
+                    settings.Maximum = HasProperty(memData, "Limit") ? Convert.ToInt64(memData["Limit"] ?? 0) : 0;
+                    settings.Priority = HasProperty(memData, "Weight") && memData["Weight"] != null ? Convert.ToInt32(memData["Weight"]) / 100 : 50;
+                    settings.DynamicMemoryEnabled = HasProperty(memData, "DynamicMemoryEnabled") ? Convert.ToBoolean(memData["DynamicMemoryEnabled"] ?? false) : false;
+                    settings.Buffer = HasProperty(memData, "TargetMemoryBuffer") && memData["TargetMemoryBuffer"] != null ? Convert.ToInt32(memData["TargetMemoryBuffer"]) : 20;
+
+                    // 高级属性（很可能不存在，必须严格检查）
+                    settings.IsPageSizeSelectionSupported = HasProperty(memData, "BackingPageSize");
+                    if (settings.IsPageSizeSelectionSupported)
                     {
-                        Startup = Convert.ToInt64(memData["VirtualQuantity"]),
-                        Minimum = Convert.ToInt64(memData["Reservation"]),
-                        Maximum = Convert.ToInt64(memData["Limit"]),
-                        Priority = memData["Weight"] != null ? Convert.ToInt32(memData["Weight"]) / 100 : 50, // 增加健壮性
-                        DynamicMemoryEnabled = Convert.ToBoolean(memData["DynamicMemoryEnabled"]),
-                        Buffer = memData["TargetMemoryBuffer"] != null ? Convert.ToInt32(memData["TargetMemoryBuffer"]) : 20,
+                        settings.BackingPageSize = memData["BackingPageSiz_e"] != null ? Convert.ToByte(memData["BackingPageSize"]) : (byte)0;
+                    }
+                    else
+                    {
+                        settings.BackingPageSize = 0; // 默认值
+                    }
 
-                        // --- 升级：使用 BackingPageSize ---
-                        BackingPageSize = memData["BackingPageSize"] != null ? Convert.ToByte(memData["BackingPageSize"]) : (byte)0,
-                        IsPageSizeSelectionSupported = HasProperty(memData, "BackingPageSize"),
-
-                        MemoryEncryptionPolicy = memData["MemoryEncryptionPolicy"] != null ? Convert.ToByte(memData["MemoryEncryptionPolicy"]) : (byte)0,
-                        IsMemoryEncryptionSupported = HasProperty(memData, "MemoryEncryptionPolicy")
-                    };
+                    settings.IsMemoryEncryptionSupported = HasProperty(memData, "MemoryEncryptionPolicy");
+                    if (settings.IsMemoryEncryptionSupported)
+                    {
+                        settings.MemoryEncryptionPolicy = memData["MemoryEncryptionPolicy"] != null ? Convert.ToByte(memData["MemoryEncryptionPolicy"]) : (byte)0;
+                    }
+                    else
+                    {
+                        settings.MemoryEncryptionPolicy = 0; // 默认值
+                    }
 
                     return settings;
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"读取内存配置异常: {ex.Message}");
+                    System.Diagnostics.Debug.WriteLine($"读取内存配置时发生严重异常: {ex.ToString()}");
                     return null;
                 }
             });
         }
-
         public async Task<(bool Success, string Message)> SetVmMemorySettingsAsync(string vmName, VmMemorySettings newSettings)
         {
             var currentSettings = await GetVmMemorySettingsAsync(vmName);

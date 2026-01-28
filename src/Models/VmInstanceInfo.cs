@@ -22,16 +22,10 @@ namespace ExHyperV.Models
 
     public class PageSizeItem
     {
-        public string Description { get; set; } = string.Empty; // 显示给用户的文字，例如 "大页 (2MB)"
-        public byte Value { get; set; }                          // 对应的 WMI 值，例如 1
+        public string Description { get; set; } = string.Empty;
+        public byte Value { get; set; }
     }
 
-    // ==========================================
-    // ↓↓↓ 内存设置模型 (已清理) ↓↓↓
-    // ==========================================
-    // ==========================================
-    // ↓↓↓ 内存设置模型 (已更新：添加内存加密支持) ↓↓↓
-    // ==========================================
     public partial class VmMemorySettings : ObservableObject
     {
         [ObservableProperty] private long _startup;
@@ -41,12 +35,9 @@ namespace ExHyperV.Models
         [ObservableProperty] private int _buffer;
         [ObservableProperty] private int _priority;
 
-        // --- 新增：内存页大小设置 ---
-        [ObservableProperty]
-        private byte _backingPageSize; // 0: Small, 1: Large, 2: Huge
+        [ObservableProperty] private byte _backingPageSize;
+        [ObservableProperty] private bool _isPageSizeSelectionSupported = true;
 
-        [ObservableProperty]
-        private bool _isPageSizeSelectionSupported = true; // 用于控制 UI 是否可用
         public List<PageSizeItem> AvailablePageSizes { get; } = new List<PageSizeItem>
         {
             new PageSizeItem { Description = "标准 (4KB)", Value = 0 },
@@ -54,12 +45,8 @@ namespace ExHyperV.Models
             new PageSizeItem { Description = "巨页 (1GB)", Value = 2 }
         };
 
-
-        // --- 新增：内存加密策略 ---
-        // 0: Disabled, 1: EnabledIfSupported
         [ObservableProperty] private byte _memoryEncryptionPolicy;
         [ObservableProperty] private bool _isMemoryEncryptionSupported = true;
-
 
         public VmMemorySettings Clone() => (VmMemorySettings)this.MemberwiseClone();
 
@@ -72,19 +59,13 @@ namespace ExHyperV.Models
             Maximum = other.Maximum;
             Buffer = other.Buffer;
             Priority = other.Priority;
-
-            // --- 同步新的内存页大小状态 ---
             BackingPageSize = other.BackingPageSize;
             IsPageSizeSelectionSupported = other.IsPageSizeSelectionSupported;
-
-            // --- 同步内存加密状态 ---
             MemoryEncryptionPolicy = other.MemoryEncryptionPolicy;
             IsMemoryEncryptionSupported = other.IsMemoryEncryptionSupported;
         }
     }
-    // ==========================================
-    // ↓↓↓ 处理器设置模型 (已添加高级功能) ↓↓↓
-    // ==========================================
+
     public partial class VmProcessorSettings : ObservableObject
     {
         [ObservableProperty] private int _count;
@@ -97,21 +78,16 @@ namespace ExHyperV.Models
         [ObservableProperty] private bool _compatibilityForOlderOperatingSystemsEnabled;
         [ObservableProperty] private SmtMode _smtMode;
 
-        // --- 新增高级 CPU 功能 ---
         [ObservableProperty] private bool _disableSpeculationControls;
-        [ObservableProperty] private bool _isDisableSpeculationSupported; // 新增
-
+        [ObservableProperty] private bool _isDisableSpeculationSupported;
         [ObservableProperty] private bool _hideHypervisorPresent;
-        [ObservableProperty] private bool _isHideHypervisorSupported; // 新增
-
+        [ObservableProperty] private bool _isHideHypervisorSupported;
         [ObservableProperty] private bool _enablePerfmonArchPmu;
-        [ObservableProperty] private bool _isPerfmonArchPmuSupported; // 新增
-
+        [ObservableProperty] private bool _isPerfmonArchPmuSupported;
         [ObservableProperty] private bool _allowAcountMcount;
-        [ObservableProperty] private bool _isAcountMcountSupported; // 新增
-
+        [ObservableProperty] private bool _isAcountMcountSupported;
         [ObservableProperty] private bool _enableSocketTopology;
-        [ObservableProperty] private bool _isSocketTopologySupported; // 新增
+        [ObservableProperty] private bool _isSocketTopologySupported;
 
         public VmProcessorSettings Clone() => (VmProcessorSettings)this.MemberwiseClone();
         public void Restore(VmProcessorSettings other)
@@ -127,7 +103,6 @@ namespace ExHyperV.Models
             CompatibilityForOlderOperatingSystemsEnabled = other.CompatibilityForOlderOperatingSystemsEnabled;
             SmtMode = other.SmtMode;
 
-            // 同步新增高级属性
             DisableSpeculationControls = other.DisableSpeculationControls;
             HideHypervisorPresent = other.HideHypervisorPresent;
             EnablePerfmonArchPmu = other.EnablePerfmonArchPmu;
@@ -141,9 +116,6 @@ namespace ExHyperV.Models
         }
     }
 
-    // ==========================================
-    // ↓↓↓ 核心 UI 模型 ↓↓↓
-    // ==========================================
     public partial class VmCoreModel : ObservableObject
     {
         [ObservableProperty] private int _coreId;
@@ -164,8 +136,7 @@ namespace ExHyperV.Models
         [ObservableProperty] private int _generation;
         [ObservableProperty] private string _version;
         [ObservableProperty] private int _cpuCount;
-        [ObservableProperty]
-        private List<long> _diskSizeRaw = new();
+        [ObservableProperty] private List<long> _diskSizeRaw = new();
 
         [ObservableProperty] private double _memoryGb;
         [ObservableProperty] private string _diskSize;
@@ -173,6 +144,18 @@ namespace ExHyperV.Models
         [ObservableProperty] private string _lowMMIO;
         [ObservableProperty] private string _highMMIO;
         [ObservableProperty] private string _guestControlled;
+
+        // === GPU-PV 支持 ===
+        // 存储 GPU 名称，例如 "NVIDIA GeForce RTX 3060"
+        [ObservableProperty] private string _gpuName;
+
+        // 用于前端控制 UI 显示/隐藏
+        public bool HasGpu => !string.IsNullOrEmpty(GpuName);
+
+        // 当 GpuName 变化时，自动通知 HasGpu 属性更新
+        partial void OnGpuNameChanged(string value) => OnPropertyChanged(nameof(HasGpu));
+        // ==================
+
         [ObservableProperty] private Dictionary<string, string> _gPUs = new();
         [ObservableProperty] private double _averageUsage;
 
@@ -266,6 +249,7 @@ namespace ExHyperV.Models
 
         public ObservableCollection<VmCoreModel> Cores { get; } = new();
         public IAsyncRelayCommand<string> ControlCommand { get; set; }
+
         public string ConfigSummary
         {
             get
@@ -277,7 +261,6 @@ namespace ExHyperV.Models
                 }
                 else
                 {
-                    // 按照从大到小排序，并格式化数字
                     diskPart = string.Join(" + ", DiskSizeRaw
                         .Select(bytes => bytes / 1073741824.0)
                         .OrderByDescending(g => g)

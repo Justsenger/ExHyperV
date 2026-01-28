@@ -132,6 +132,35 @@
                                         </ContextMenu>
                                     </ui:DropDownButton.Flyout>
                                 </ui:DropDownButton>
+
+                                <!-- ======== 修改后的 GPU 标签代码 ======== -->
+                                <Border Margin="8,0,0,0" VerticalAlignment="Center" 
+        Background="{ui:ThemeResource ControlFillColorTertiaryBrush}" 
+        CornerRadius="4" Padding="10,6">
+
+                                    <StackPanel Orientation="Horizontal">
+                                        <ui:FontIcon Glyph="&#xF211;" FontSize="14" FontFamily="{DynamicResource SegoeFluentIcons}" Margin="0,1,8,0" 
+                     Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+
+                                        <TextBlock FontSize="13">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <!-- 默认情况：显示显卡名称，颜色为主要文本色 -->
+                                                    <Setter Property="Text" Value="{Binding GpuName}"/>
+                                                    <Setter Property="Foreground" Value="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding HasGpu}" Value="False">
+                                                            <Setter Property="Text" Value="无"/>
+                                                            <Setter Property="Foreground" Value="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </StackPanel>
+                                </Border>
+                                <!-- ===================================== -->
                             </StackPanel>
                         </StackPanel>
 
