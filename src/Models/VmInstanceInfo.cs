@@ -1,4 +1,4 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System;
 using System.Collections.Generic;
@@ -223,6 +223,10 @@ namespace ExHyperV.Models
                 AssignedMemoryGb = 0; DemandMemoryGb = 0; AvailableMemoryPercent = 0; MemoryPressure = 0;
                 UpdateHistoryPoints(0); return;
             }
+
+            // 确保可用百分比在 0-100 之间，避免异常数据导致巨大负数/正数
+            if (availablePercent < 0) availablePercent = 0;
+            if (availablePercent > 100) availablePercent = 100;
 
             double newAssignedGb = assignedMb / 1024.0;
             double usedPercentage = (100 - availablePercent) / 100.0;

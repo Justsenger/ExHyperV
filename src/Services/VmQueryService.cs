@@ -1,4 +1,4 @@
-﻿using ExHyperV.Models;
+using ExHyperV.Models;
 using ExHyperV.Tools;
 using System;
 using System.Collections.Generic;
@@ -193,7 +193,43 @@ namespace ExHyperV.Services
                 foreach (var item in collection)
                 {
                     var id = item["Name"]?.ToString();
-                    if (id != null) map[id] = new VmDynamicMemoryData { AssignedMb = Convert.ToInt64(item["MemoryUsage"] ?? 0), AvailablePercent = Convert.ToInt32(item["MemoryAvailable"] ?? 0) };
+                    if (id == null) continue;
+
+                    // MemoryUsage: 通常为“已分配内存(MB)”
+                    long assignedMb = Convert.ToInt64(item["MemoryUsage"] ?? 0);
+
+                    // MemoryAvailable：不同系统/版本可能返回“可用百分比(0-100)”或“可用内存(MB)”
+                    long availableRaw = Convert.ToInt64(item["MemoryAvailable"] ?? 0);
+                    int availablePercent;
+
+                    // Windows XP / 老集成服务环境下，MemoryAvailable 可能返回 int.MaxValue 之类的哨兵值表示“不可用”
+                    // 如果把它当作 MB/百分比会导致 UI 显示为 0 或出现离谱数值。
+                    if (availableRaw >= int.MaxValue - 1)
+                    {
+                        // 无法获取可用百分比：回退为 0（表示“未知/不可用”，避免显示成 0 使用）
+                        availablePercent = 0;
+                    }
+                    else if (availableRaw >= 0 && availableRaw <= 100)
+                    {
+                        // 视为百分比
+                        availablePercent = (int)availableRaw;
+                    }
+                    else
+                    {
+                        // 视为“可用 MB”，按已分配 MB 反算百分比
+                        if (assignedMb > 0)
+                        {
+                            double pct = availableRaw * 100.0 / assignedMb;
+                            // 兜底：把异常值钳制到 0-100，避免出现巨大负数/正数
+                            availablePercent = (int)Math.Round(Math.Max(0, Math.Min(100, pct)));
+                        }
+                        else
+                        {
+                            availablePercent = 0;
+                        }
+                    }
+
+                    map[id] = new VmDynamicMemoryData { AssignedMb = assignedMb, AvailablePercent = availablePercent };
                 }
             }
             catch { }
