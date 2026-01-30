@@ -238,7 +238,7 @@ namespace ExHyperV.Services
         private string ExtractPciId(string input)
         {
             if (string.IsNullOrEmpty(input)) return null;
-            var match = Regex.Match(input, @"(VEN_[0-9A-F]{4}&DEV_[0-9A-F]{4})", RegexOptions.IgnoreCase);
+            var match = Regex.Match(input, @"(VEN_[0-9A-Z]{4}&DEV_[0-9A-Z]{4})", RegexOptions.IgnoreCase);
             return match.Success ? match.Value.ToUpper() : null;
         }
 

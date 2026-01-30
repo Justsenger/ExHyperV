@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Management;
+using System.Threading.Tasks;
 
 namespace ExHyperV.Services
 {
@@ -31,10 +32,10 @@ namespace ExHyperV.Services
                     Maximum = Convert.ToInt32(procData["Limit"]) / 1000,
                     RelativeWeight = Convert.ToInt32(procData["Weight"]),
 
-                    ExposeVirtualizationExtensions = GetBoolProperty(procData, "ExposeVirtualizationExtensions"),
-                    EnableHostResourceProtection = GetBoolProperty(procData, "EnableHostResourceProtection"),
-                    CompatibilityForMigrationEnabled = GetBoolProperty(procData, "LimitProcessorFeatures"),
-                    CompatibilityForOlderOperatingSystemsEnabled = GetBoolProperty(procData, "LimitCPUID"),
+                    ExposeVirtualizationExtensions = GetNullableBoolProperty(procData, "ExposeVirtualizationExtensions") ?? false,
+                    EnableHostResourceProtection = GetNullableBoolProperty(procData, "EnableHostResourceProtection") ?? false,
+                    CompatibilityForMigrationEnabled = GetNullableBoolProperty(procData, "LimitProcessorFeatures") ?? false,
+                    CompatibilityForOlderOperatingSystemsEnabled = GetNullableBoolProperty(procData, "LimitCPUID") ?? false,
                     SmtMode = ConvertHwThreadsToSmtMode(Convert.ToUInt32(procData["HwThreadsPerCore"])),
 
                     DisableSpeculationControls = GetNullableBoolProperty(procData, "DisableSpeculationControls"),
@@ -65,9 +66,7 @@ namespace ExHyperV.Services
                     using var procData = settingData.GetRelated("Msvm_ProcessorSettingData").Cast<ManagementObject>().FirstOrDefault();
                     if (procData == null) return null;
 
-                    bool isRealized = procData.Path.Path.Contains("Realized");
-
-                    if (!isRealized)
+                    if (!procData.Path.Path.Contains("Realized"))
                     {
                         procData["VirtualQuantity"] = (ulong)newSettings.Count;
                     }
@@ -99,13 +98,11 @@ namespace ExHyperV.Services
                     { "ResourceSettings", new string[] { xml } }
                 };
 
-                var result = await WmiTools.ExecuteMethodAsync(
+                return await WmiTools.ExecuteMethodAsync(
                     "SELECT * FROM Msvm_VirtualSystemManagementService",
                     "ModifyResourceSettings",
                     inParams
                 );
-
-                return result;
             }
             catch (Exception ex)
             {
@@ -128,16 +125,9 @@ namespace ExHyperV.Services
             }
         }
 
-        private static bool GetBoolProperty(ManagementObject obj, string propName)
-        {
-            if (!HasProperty(obj, propName) || obj[propName] == null) return false;
-            try { return Convert.ToBoolean(obj[propName]); } catch { return false; }
-        }
-
         private static bool? GetNullableBoolProperty(ManagementObject obj, string propName)
         {
-            if (!HasProperty(obj, propName)) return null;
-            if (obj[propName] == null) return null;
+            if (!HasProperty(obj, propName) || obj[propName] == null) return null;
             try { return Convert.ToBoolean(obj[propName]); } catch { return null; }
         }
     }
