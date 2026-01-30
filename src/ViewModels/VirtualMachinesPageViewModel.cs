@@ -18,7 +18,7 @@ namespace ExHyperV.ViewModels
     {
         private readonly VmQueryService _queryService;
         private readonly VmPowerService _powerService;
-        private readonly IVmProcessorService _vmProcessorService;
+        private readonly VmProcessorService _vmProcessorService;
         private readonly CpuAffinityService _cpuAffinityService;
         private readonly VmMemoryService _vmMemoryService;
 
