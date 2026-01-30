@@ -7,7 +7,6 @@ namespace ExHyperV.Services;
 
 public class VmMemoryService
 {
-    //读取虚拟机的内存配置
     public async Task<VmMemorySettings?> GetVmMemorySettingsAsync(string vmName)
     {
         try
@@ -29,17 +28,8 @@ public class VmMemoryService
                 s.DynamicMemoryEnabled = Convert.ToBoolean(obj["DynamicMemoryEnabled"] ?? false);
                 s.Buffer = obj["TargetMemoryBuffer"] != null ? Convert.ToInt32(obj["TargetMemoryBuffer"]) : 20;
 
-                s.IsPageSizeSelectionSupported = HasProperty(obj, "BackingPageSize");
-                if (s.IsPageSizeSelectionSupported)
-                    s.BackingPageSize = obj["BackingPageSize"] != null ? Convert.ToByte(obj["BackingPageSize"]) : (byte)0;
-                else
-                    s.BackingPageSize = 0;
-
-                s.IsMemoryEncryptionSupported = HasProperty(obj, "MemoryEncryptionPolicy");
-                if (s.IsMemoryEncryptionSupported)
-                    s.MemoryEncryptionPolicy = obj["MemoryEncryptionPolicy"] != null ? Convert.ToByte(obj["MemoryEncryptionPolicy"]) : (byte)0;
-                else
-                    s.MemoryEncryptionPolicy = 0;
+                s.BackingPageSize = GetNullableByteProperty(obj, "BackingPageSize");
+                s.MemoryEncryptionPolicy = GetNullableByteProperty(obj, "MemoryEncryptionPolicy");
 
                 return s;
             });
@@ -66,7 +56,6 @@ public class VmMemoryService
 
                 string memWql = $"SELECT * FROM Msvm_MemorySettingData WHERE InstanceID LIKE 'Microsoft:{vmId}%' AND ResourceType = 4";
 
-                // 使用原生 Searcher 获取对象以便修改
                 using var searcher = new ManagementObjectSearcher(WmiTools.HyperVScope, memWql);
                 using var collection = searcher.Get();
                 using var memObj = collection.Cast<ManagementObject>().FirstOrDefault();
@@ -79,15 +68,18 @@ public class VmMemoryService
 
                 string serviceWql = "SELECT * FROM Msvm_VirtualSystemManagementService";
                 var parameters = new Dictionary<string, object>
+            {
+                { "ResourceSettings", new string[] { xml } }
+            };
+
+                var result = await WmiTools.ExecuteMethodAsync(serviceWql, "ModifyResourceSettings", parameters);
+
+                if (!result.Success)
                 {
-                    { "ResourceSettings", new string[] { xml } }
-                };
+                    return (false, $"修改失败: {result.Message}");
+                }
 
-                bool success = await WmiTools.ExecuteMethodAsync(serviceWql, "ModifyResourceSettings", parameters);
-
-                return success
-                    ? (true, "内存设置已应用。")
-                    : (false, "Hyper-V 任务执行失败。");
+                return (true, "内存设置已应用。");
             }
             catch (Exception ex)
             {
@@ -95,14 +87,13 @@ public class VmMemoryService
             }
         });
     }
-
     private void ApplyMemorySettingsToWmiObject(ManagementObject memData, VmMemorySettings memorySettings)
     {
         long alignment = 1;
 
-        if (HasProperty(memData, "BackingPageSize"))
+        if (memorySettings.BackingPageSize.HasValue && HasProperty(memData, "BackingPageSize"))
         {
-            byte pageSize = memorySettings.BackingPageSize;
+            byte pageSize = memorySettings.BackingPageSize.Value;
             memData["BackingPageSize"] = pageSize;
 
             if (pageSize == 1) alignment = 2;
@@ -115,9 +106,9 @@ public class VmMemoryService
 
         memData["Weight"] = (uint)(memorySettings.Priority * 100);
 
-        if (HasProperty(memData, "MemoryEncryptionPolicy"))
+        if (memorySettings.MemoryEncryptionPolicy.HasValue && HasProperty(memData, "MemoryEncryptionPolicy"))
         {
-            memData["MemoryEncryptionPolicy"] = (byte)memorySettings.MemoryEncryptionPolicy;
+            memData["MemoryEncryptionPolicy"] = memorySettings.MemoryEncryptionPolicy.Value;
         }
 
         if (HasProperty(memData, "MaxMemoryBlocksPerNumaNode"))
@@ -154,6 +145,13 @@ public class VmMemoryService
         }
     }
 
-    private bool HasProperty(ManagementObject obj, string propName) =>
+    private static bool HasProperty(ManagementObject obj, string propName) =>
         obj.Properties.Cast<PropertyData>().Any(p => p.Name.Equals(propName, StringComparison.OrdinalIgnoreCase));
+
+    private static byte? GetNullableByteProperty(ManagementObject obj, string propName)
+    {
+        if (!HasProperty(obj, propName)) return null;
+        var val = obj[propName];
+        return val == null ? null : Convert.ToByte(val);
+    }
 }

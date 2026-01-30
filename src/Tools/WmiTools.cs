@@ -42,7 +42,7 @@ public static class WmiTools
         });
     }
 
-    public static async Task<bool> ExecuteMethodAsync(string wqlFilter, string methodName, Dictionary<string, object>? inParameters = null, string scope = HyperVScope)
+    public static async Task<(bool Success, string Message)> ExecuteMethodAsync(string wqlFilter, string methodName, Dictionary<string, object>? inParameters = null, string scope = HyperVScope)
     {
         return await Task.Run(() =>
         {
@@ -52,44 +52,34 @@ public static class WmiTools
                 using var collection = searcher.Get();
                 using var targetObj = collection.Cast<ManagementObject>().FirstOrDefault();
 
-                if (targetObj == null)
-                {
-                    Debug.WriteLine("WMI 错误: 未找到目标对象。");
-                    return false;
-                }
+                if (targetObj == null) return (false, "未找到 WMI 目标对象。");
 
                 using var methodParams = targetObj.GetMethodParameters(methodName);
                 if (inParameters != null)
                 {
-                    foreach (var kvp in inParameters)
-                    {
-                        methodParams[kvp.Key] = kvp.Value;
-                    }
+                    foreach (var kvp in inParameters) methodParams[kvp.Key] = kvp.Value;
                 }
 
                 using var outParams = targetObj.InvokeMethod(methodName, methodParams, null);
-
                 int returnValue = Convert.ToInt32(outParams["ReturnValue"]);
 
-                if (returnValue == 0) return true;
+                if (returnValue == 0) return (true, "成功");
                 if (returnValue == 4096)
                 {
                     string jobPath = (string)outParams["Job"];
                     return WaitForJob(jobPath, scope);
                 }
 
-                Debug.WriteLine($"WMI 方法 '{methodName}' 执行失败。返回值: {returnValue}");
-                return false;
+                return (false, $"WMI 错误代码: {returnValue}");
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"WMI 执行异常: {ex.Message}");
-                return false;
+                return (false, ex.Message);
             }
         });
     }
 
-    private static bool WaitForJob(string jobPath, string scopeStr)
+    private static (bool Success, string Message) WaitForJob(string jobPath, string scopeStr)
     {
         try
         {
@@ -101,12 +91,12 @@ public static class WmiTools
                 job.Get();
                 ushort jobState = (ushort)job["JobState"];
 
-                if (jobState == 7) return true;
-                if (jobState > 7 && jobState <= 10)
+                if (jobState == 7) return (true, "成功");
+                if (jobState > 7)
                 {
-                    string err = job["ErrorDescription"]?.ToString() ?? "未知错误";
-                    Debug.WriteLine($"WMI 任务失败: {err}");
-                    return false;
+                    string err = job["ErrorDescription"]?.ToString();
+                    if (string.IsNullOrEmpty(err)) err = job["Description"]?.ToString();
+                    return (false, err ?? $"任务执行失败 (状态码: {jobState})");
                 }
 
                 Thread.Sleep(500);
@@ -114,8 +104,7 @@ public static class WmiTools
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"WMI 等待任务异常: {ex.Message}");
-            return false;
+            return (false, $"等待任务时异常: {ex.Message}");
         }
     }
 }

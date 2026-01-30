@@ -1,5 +1,8 @@
 using ExHyperV.Models;
 using ExHyperV.Tools;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Management;
 
 namespace ExHyperV.Services
@@ -34,20 +37,11 @@ namespace ExHyperV.Services
                     CompatibilityForOlderOperatingSystemsEnabled = GetBoolProperty(procData, "LimitCPUID"),
                     SmtMode = ConvertHwThreadsToSmtMode(Convert.ToUInt32(procData["HwThreadsPerCore"])),
 
-                    DisableSpeculationControls = GetBoolProperty(procData, "DisableSpeculationControls"),
-                    IsDisableSpeculationSupported = HasProperty(procData, "DisableSpeculationControls"),
-
-                    HideHypervisorPresent = GetBoolProperty(procData, "HideHypervisorPresent"),
-                    IsHideHypervisorSupported = HasProperty(procData, "HideHypervisorPresent"),
-
-                    EnablePerfmonArchPmu = GetBoolProperty(procData, "EnablePerfmonArchPmu"),
-                    IsPerfmonArchPmuSupported = HasProperty(procData, "EnablePerfmonArchPmu"),
-
-                    AllowAcountMcount = GetBoolProperty(procData, "AllowAcountMcount"),
-                    IsAcountMcountSupported = HasProperty(procData, "AllowAcountMcount"),
-
-                    EnableSocketTopology = GetBoolProperty(procData, "EnableSocketTopology"),
-                    IsSocketTopologySupported = HasProperty(procData, "EnableSocketTopology")
+                    DisableSpeculationControls = GetNullableBoolProperty(procData, "DisableSpeculationControls"),
+                    HideHypervisorPresent = GetNullableBoolProperty(procData, "HideHypervisorPresent"),
+                    EnablePerfmonArchPmu = GetNullableBoolProperty(procData, "EnablePerfmonArchPmu"),
+                    AllowAcountMcount = GetNullableBoolProperty(procData, "AllowAcountMcount"),
+                    EnableSocketTopology = GetNullableBoolProperty(procData, "EnableSocketTopology")
                 };
             });
 
@@ -88,11 +82,11 @@ namespace ExHyperV.Services
                     procData["LimitCPUID"] = newSettings.CompatibilityForOlderOperatingSystemsEnabled;
                     procData["HwThreadsPerCore"] = (ulong)ConvertSmtModeToHwThreads(newSettings.SmtMode);
 
-                    TrySetProperty(procData, "DisableSpeculationControls", newSettings.DisableSpeculationControls);
-                    TrySetProperty(procData, "HideHypervisorPresent", newSettings.HideHypervisorPresent);
-                    TrySetProperty(procData, "EnablePerfmonArchPmu", newSettings.EnablePerfmonArchPmu);
-                    TrySetProperty(procData, "AllowAcountMcount", newSettings.AllowAcountMcount);
-                    TrySetProperty(procData, "EnableSocketTopology", newSettings.EnableSocketTopology);
+                    TrySetNullableProperty(procData, "DisableSpeculationControls", newSettings.DisableSpeculationControls);
+                    TrySetNullableProperty(procData, "HideHypervisorPresent", newSettings.HideHypervisorPresent);
+                    TrySetNullableProperty(procData, "EnablePerfmonArchPmu", newSettings.EnablePerfmonArchPmu);
+                    TrySetNullableProperty(procData, "AllowAcountMcount", newSettings.AllowAcountMcount);
+                    TrySetNullableProperty(procData, "EnableSocketTopology", newSettings.EnableSocketTopology);
 
                     return procData.GetText(TextFormat.CimDtd20);
                 });
@@ -105,13 +99,13 @@ namespace ExHyperV.Services
                     { "ResourceSettings", new string[] { xml } }
                 };
 
-                bool success = await WmiTools.ExecuteMethodAsync(
+                var result = await WmiTools.ExecuteMethodAsync(
                     "SELECT * FROM Msvm_VirtualSystemManagementService",
                     "ModifyResourceSettings",
                     inParams
                 );
 
-                return success ? (true, "处理器设置已成功应用") : (false, "修改失败，请查看调试日志。");
+                return result;
             }
             catch (Exception ex)
             {
@@ -126,11 +120,11 @@ namespace ExHyperV.Services
         private static bool HasProperty(ManagementObject obj, string propName) =>
             obj.Properties.Cast<PropertyData>().Any(p => p.Name.Equals(propName, StringComparison.OrdinalIgnoreCase));
 
-        private static void TrySetProperty(ManagementObject obj, string propName, object value)
+        private static void TrySetNullableProperty(ManagementObject obj, string propName, bool? value)
         {
-            if (HasProperty(obj, propName))
+            if (value.HasValue && HasProperty(obj, propName))
             {
-                try { obj[propName] = value; } catch { }
+                try { obj[propName] = value.Value; } catch { }
             }
         }
 
@@ -138,6 +132,13 @@ namespace ExHyperV.Services
         {
             if (!HasProperty(obj, propName) || obj[propName] == null) return false;
             try { return Convert.ToBoolean(obj[propName]); } catch { return false; }
+        }
+
+        private static bool? GetNullableBoolProperty(ManagementObject obj, string propName)
+        {
+            if (!HasProperty(obj, propName)) return null;
+            if (obj[propName] == null) return null;
+            try { return Convert.ToBoolean(obj[propName]); } catch { return null; }
         }
     }
 }

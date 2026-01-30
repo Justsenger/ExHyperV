@@ -1,6 +1,5 @@
 ﻿using ExHyperV.Models;
 using ExHyperV.Tools;
-using System.Diagnostics;
 using System.IO;
 using System.Management;
 using System.Text.RegularExpressions;
@@ -62,8 +61,6 @@ namespace ExHyperV.Services
             });
 
             var gpuListTask = WmiTools.QueryAsync(QueryPartitionableGpus, obj => obj["Name"]?.ToString());
-
-            // 这里的 GetHostVideoControllerMapAsync 现在也利用 WmiTools 的通用性
             var pciMapTask = GetHostVideoControllerMapAsync();
 
             await Task.WhenAll(diskTask, summaryTask, memTask, configTask, gpuPvTask, gpuListTask, pciMapTask);
@@ -168,40 +165,39 @@ namespace ExHyperV.Services
 
         public async Task<bool> SetVmOsTypeAsync(string vmName, string osType)
         {
-            return await Task.Run(async () => {
-                try
+            try
+            {
+                string safeVmName = vmName.Replace("'", "''");
+                string getSettingsWql = $"SELECT * FROM Msvm_VirtualSystemSettingData WHERE ElementName = '{safeVmName}' AND VirtualSystemType = 'Microsoft:Hyper-V:System:Realized'";
+
+                var activeSettingsList = await WmiTools.QueryAsync(getSettingsWql, obj => obj);
+                using var activeSettings = activeSettingsList.FirstOrDefault();
+
+                if (activeSettings == null) return false;
+
+                string currentNotes = "";
+                if (activeSettings["Notes"] is string[] notesArray && notesArray.Length > 0)
+                    currentNotes = string.Join("\n", notesArray);
+
+                string newNotes = Utils.UpdateTagValue(currentNotes, "OSType", osType);
+                if (currentNotes == newNotes) return true;
+
+                activeSettings["Notes"] = new string[] { newNotes };
+                string embeddedInstance = activeSettings.GetText(TextFormat.CimDtd20);
+
+                string serviceWql = "SELECT * FROM Msvm_VirtualSystemManagementService";
+                var parameters = new Dictionary<string, object>
                 {
-                    string safeVmName = vmName.Replace("'", "''");
-                    string getSettingsWql = $"SELECT * FROM Msvm_VirtualSystemSettingData WHERE ElementName = '{safeVmName}' AND VirtualSystemType = 'Microsoft:Hyper-V:System:Realized'";
+                    { "SystemSettings", embeddedInstance }
+                };
 
-                    var activeSettingsList = await WmiTools.QueryAsync(getSettingsWql, obj => obj);
-                    using var activeSettings = activeSettingsList.FirstOrDefault();
-
-                    if (activeSettings == null) return false;
-
-                    string currentNotes = "";
-                    if (activeSettings["Notes"] is string[] notesArray && notesArray.Length > 0)
-                        currentNotes = string.Join("\n", notesArray);
-
-                    string newNotes = Utils.UpdateTagValue(currentNotes, "OSType", osType);
-                    if (currentNotes == newNotes) return true;
-
-                    activeSettings["Notes"] = new string[] { newNotes };
-                    string embeddedInstance = activeSettings.GetText(TextFormat.CimDtd20);
-
-                    string serviceWql = "SELECT * FROM Msvm_VirtualSystemManagementService";
-                    var parameters = new Dictionary<string, object>
-                    {
-                        { "SystemSettings", embeddedInstance }
-                    };
-
-                    return await WmiTools.ExecuteMethodAsync(serviceWql, "ModifySystemSettings", parameters);
-                }
-                catch
-                {
-                    return false;
-                }
-            });
+                var result = await WmiTools.ExecuteMethodAsync(serviceWql, "ModifySystemSettings", parameters);
+                return result.Success;
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         public async Task<Dictionary<string, VmDynamicMemoryData>> GetVmRuntimeMemoryDataAsync()
@@ -221,13 +217,12 @@ namespace ExHyperV.Services
             return dataList.Where(x => x.Id != null).ToDictionary(x => x.Id, x => x.Data);
         }
 
-        // 修改：使用 WmiTools.CimV2Scope 查询物理机硬件
         private async Task<Dictionary<string, string>> GetHostVideoControllerMapAsync()
         {
             var result = await WmiTools.QueryAsync(
                 "SELECT Name, PNPDeviceID FROM Win32_VideoController",
                 item => new { Name = item["Name"]?.ToString(), PnpId = item["PNPDeviceID"]?.ToString() },
-                WmiTools.CimV2Scope // <--- 指定查询物理机命名空间
+                WmiTools.CimV2Scope
             );
 
             var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);

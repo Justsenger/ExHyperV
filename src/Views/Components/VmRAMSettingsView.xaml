@@ -14,21 +14,50 @@
         <converters:ByteToBooleanConverter x:Key="ByteToBoolConverter"/>
         <converters:InverseBooleanConverter x:Key="InverseBooleanConverter"/>
         <converters:BooleanToVisibilityConverter x:Key="BoolToVis" />
+        <converters:NullableToBoolIsEnabledConverter x:Key="NullableToBoolConverter" />
 
         <Style x:Key="ShutdownRequiredToggleStyle" TargetType="ui:ToggleSwitch" BasedOn="{StaticResource {x:Type ui:ToggleSwitch}}">
             <Setter Property="VerticalAlignment" Value="Center"/>
-            <Setter Property="IsEnabled" Value="{Binding RelativeSource={RelativeSource Self}, Path=Tag}"/>
+            <Setter Property="ToolTipService.ShowOnDisabled" Value="True"/>
+            <Setter Property="ToolTipService.InitialShowDelay" Value="50"/>
             <Style.Triggers>
-                <DataTrigger Binding="{Binding SelectedVm.IsRunning}" Value="True">
+                <DataTrigger Binding="{Binding RelativeSource={RelativeSource Self}, Path=Tag}" Value="{x:Null}">
+                    <Setter Property="IsEnabled" Value="False"/>
+                    <Setter Property="ToolTip" Value="当前虚拟机配置版本不支持此功能"/>
+                </DataTrigger>
+                <MultiDataTrigger>
+                    <MultiDataTrigger.Conditions>
+                        <Condition Binding="{Binding SelectedVm.IsRunning}" Value="True"/>
+                        <Condition Binding="{Binding RelativeSource={RelativeSource Self}, Path=Tag, Converter={StaticResource NullableToBoolConverter}}" Value="True"/>
+                    </MultiDataTrigger.Conditions>
                     <Setter Property="IsEnabled" Value="False"/>
                     <Setter Property="ToolTip" Value="此设置项要求虚拟机处于关机状态"/>
-                </DataTrigger>
+                </MultiDataTrigger>
                 <Trigger Property="IsEnabled" Value="False">
                     <Setter Property="Opacity" Value="0.5"/>
                 </Trigger>
-                <DataTrigger Binding="{Binding RelativeSource={RelativeSource Self}, Path=Tag}" Value="False">
-                    <Setter Property="ToolTip" Value="当前宿主机环境或硬件不支持此高级特性"/>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="ShutdownRequiredComboBoxStyle" TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
+            <Setter Property="ToolTipService.ShowOnDisabled" Value="True"/>
+            <Setter Property="ToolTipService.InitialShowDelay" Value="50"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding RelativeSource={RelativeSource Self}, Path=Tag}" Value="{x:Null}">
+                    <Setter Property="IsEnabled" Value="False"/>
+                    <Setter Property="ToolTip" Value="当前虚拟机配置版本不支持此功能"/>
                 </DataTrigger>
+                <MultiDataTrigger>
+                    <MultiDataTrigger.Conditions>
+                        <Condition Binding="{Binding SelectedVm.IsRunning}" Value="True"/>
+                        <Condition Binding="{Binding RelativeSource={RelativeSource Self}, Path=Tag, Converter={StaticResource NullableToBoolConverter}}" Value="True"/>
+                    </MultiDataTrigger.Conditions>
+                    <Setter Property="IsEnabled" Value="False"/>
+                    <Setter Property="ToolTip" Value="此设置项要求虚拟机处于关机状态"/>
+                </MultiDataTrigger>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Opacity" Value="0.5"/>
+                </Trigger>
             </Style.Triggers>
         </Style>
 
@@ -51,7 +80,6 @@
             <sys:String>16384</sys:String>
         </x:Array>
     </UserControl.Resources>
-
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -163,44 +191,24 @@
                 <TextBlock Text="高级功能" FontSize="14" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" Margin="0,0,0,12"/>
                 <Border Background="{ui:ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="0" Margin="0,0,0,32">
                     <StackPanel>
-                        <!-- ===== START: 这是修改的部分 ===== -->
                         <Grid Margin="24,16">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="200"/>
-                                <!-- 给 ComboBox 一个固定宽度 -->
                             </Grid.ColumnDefinitions>
-
                             <StackPanel VerticalAlignment="Center">
                                 <TextBlock Text="内存页大小" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
                                 <TextBlock Text="选择用于支持虚拟机内存的物理页大小" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
                             </StackPanel>
-
                             <ComboBox Grid.Column="1"
+                                      Style="{StaticResource ShutdownRequiredComboBoxStyle}"
+                                      Tag="{Binding SelectedVm.MemorySettings.BackingPageSize}"
                                       ItemsSource="{Binding SelectedVm.MemorySettings.AvailablePageSizes}"
                                       SelectedValue="{Binding SelectedVm.MemorySettings.BackingPageSize, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                       SelectedValuePath="Value"
                                       DisplayMemberPath="Description"
-                                      IsEnabled="{Binding SelectedVm.MemorySettings.IsPageSizeSelectionSupported}" Margin="50,0,0,0">
-                                <ComboBox.Style>
-                                    <Style TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding SelectedVm.IsRunning}" Value="True">
-                                                <Setter Property="IsEnabled" Value="False"/>
-                                                <Setter Property="ToolTip" Value="此设置项要求虚拟机处于关机状态"/>
-                                            </DataTrigger>
-                                            <Trigger Property="IsEnabled" Value="False">
-                                                <Setter Property="Opacity" Value="0.5"/>
-                                            </Trigger>
-                                            <DataTrigger Binding="{Binding SelectedVm.MemorySettings.IsPageSizeSelectionSupported}" Value="False">
-                                                <Setter Property="ToolTip" Value="当前宿主机环境不支持自定义内存页大小"/>
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </ComboBox.Style>
-                            </ComboBox>
+                                      Margin="50,0,0,0" />
                         </Grid>
-                        <!-- ===== END: 修改结束 ===== -->
 
                         <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
 
@@ -215,7 +223,7 @@
                             </StackPanel>
                             <ui:ToggleSwitch Grid.Column="1" 
                                              Style="{StaticResource ShutdownRequiredToggleStyle}" 
-                                             Tag="{Binding SelectedVm.MemorySettings.IsMemoryEncryptionSupported}"
+                                             Tag="{Binding SelectedVm.MemorySettings.MemoryEncryptionPolicy}"
                                              IsChecked="{Binding SelectedVm.MemorySettings.MemoryEncryptionPolicy, Converter={StaticResource ByteToBoolConverter}, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                              Command="{Binding ApplyMemorySettingsCommand}"/>
                         </Grid>

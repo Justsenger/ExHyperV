@@ -1,9 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Linq;
 using System.Windows;       // 用于 Point
 using System.Windows.Media; // 用于 PointCollection
 
@@ -35,8 +32,7 @@ namespace ExHyperV.Models
         [ObservableProperty] private int _buffer;
         [ObservableProperty] private int _priority;
 
-        [ObservableProperty] private byte _backingPageSize;
-        [ObservableProperty] private bool _isPageSizeSelectionSupported = true;
+        [ObservableProperty] private byte? _backingPageSize;
 
         public List<PageSizeItem> AvailablePageSizes { get; } = new List<PageSizeItem>
         {
@@ -45,8 +41,7 @@ namespace ExHyperV.Models
             new PageSizeItem { Description = "巨页 (1GB)", Value = 2 }
         };
 
-        [ObservableProperty] private byte _memoryEncryptionPolicy;
-        [ObservableProperty] private bool _isMemoryEncryptionSupported = true;
+        [ObservableProperty] private byte? _memoryEncryptionPolicy;
 
         public VmMemorySettings Clone() => (VmMemorySettings)this.MemberwiseClone();
 
@@ -60,9 +55,7 @@ namespace ExHyperV.Models
             Buffer = other.Buffer;
             Priority = other.Priority;
             BackingPageSize = other.BackingPageSize;
-            IsPageSizeSelectionSupported = other.IsPageSizeSelectionSupported;
             MemoryEncryptionPolicy = other.MemoryEncryptionPolicy;
-            IsMemoryEncryptionSupported = other.IsMemoryEncryptionSupported;
         }
     }
 
@@ -78,16 +71,11 @@ namespace ExHyperV.Models
         [ObservableProperty] private bool _compatibilityForOlderOperatingSystemsEnabled;
         [ObservableProperty] private SmtMode _smtMode;
 
-        [ObservableProperty] private bool _disableSpeculationControls;
-        [ObservableProperty] private bool _isDisableSpeculationSupported;
-        [ObservableProperty] private bool _hideHypervisorPresent;
-        [ObservableProperty] private bool _isHideHypervisorSupported;
-        [ObservableProperty] private bool _enablePerfmonArchPmu;
-        [ObservableProperty] private bool _isPerfmonArchPmuSupported;
-        [ObservableProperty] private bool _allowAcountMcount;
-        [ObservableProperty] private bool _isAcountMcountSupported;
-        [ObservableProperty] private bool _enableSocketTopology;
-        [ObservableProperty] private bool _isSocketTopologySupported;
+        [ObservableProperty] private bool? _disableSpeculationControls;
+        [ObservableProperty] private bool? _hideHypervisorPresent;
+        [ObservableProperty] private bool? _enablePerfmonArchPmu;
+        [ObservableProperty] private bool? _allowAcountMcount;
+        [ObservableProperty] private bool? _enableSocketTopology;
 
         public VmProcessorSettings Clone() => (VmProcessorSettings)this.MemberwiseClone();
         public void Restore(VmProcessorSettings other)
@@ -108,11 +96,6 @@ namespace ExHyperV.Models
             EnablePerfmonArchPmu = other.EnablePerfmonArchPmu;
             AllowAcountMcount = other.AllowAcountMcount;
             EnableSocketTopology = other.EnableSocketTopology;
-            IsDisableSpeculationSupported = other.IsDisableSpeculationSupported;
-            IsHideHypervisorSupported = other.IsHideHypervisorSupported;
-            IsPerfmonArchPmuSupported = other.IsPerfmonArchPmuSupported;
-            IsAcountMcountSupported = other.IsAcountMcountSupported;
-            IsSocketTopologySupported = other.IsSocketTopologySupported;
         }
     }
 
