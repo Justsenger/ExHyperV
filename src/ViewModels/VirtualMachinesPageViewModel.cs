@@ -51,12 +51,10 @@ namespace ExHyperV.ViewModels
             _vmMemoryService = new VmMemoryService();
             InitPossibleCpuCounts();
 
-            // UI 计时器用于每秒更新运行时间文本
             _uiTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
             _uiTimer.Tick += (s, e) => { foreach (var vm in VmList) vm.TickUptime(); };
             _uiTimer.Start();
 
-            // 延迟加载列表，避免阻塞 UI 初始化
             Task.Run(async () => {
                 await Task.Delay(300);
                 Application.Current.Dispatcher.Invoke(() => LoadVmsCommand.Execute(null));
@@ -103,15 +101,19 @@ namespace ExHyperV.ViewModels
                             OsType = vm.OsType,
                             CpuCount = vm.CpuCount,
                             MemoryGb = vm.MemoryGb,
-                            DiskSizeRaw = vm.DiskSizeRaw,
                             Notes = vm.Notes,
                             Generation = vm.Generation,
                             Version = vm.Version,
-                            GpuName = vm.GpuName // === 关键点：初始化时赋值显卡名称 ===
+                            GpuName = vm.GpuName
                         };
+
+                        foreach (var disk in vm.Disks)
+                        {
+                            instance.Disks.Add(disk);
+                        }
+
                         instance.SyncBackendData(vm.State, vm.RawUptime);
 
-                        // 设置控制命令
                         instance.ControlCommand = new AsyncRelayCommand<string>(async (action) => {
                             instance.SetTransientState(GetOptimisticText(action));
                             try
@@ -175,10 +177,11 @@ namespace ExHyperV.ViewModels
                 {
                     Application.Current.Dispatcher.Invoke(() => {
                         vm.SyncBackendData(freshData.State, freshData.RawUptime);
-                        vm.DiskSizeRaw = freshData.DiskSizeRaw;
+                        vm.Disks.Clear();
+                        foreach (var disk in freshData.Disks) vm.Disks.Add(disk);
                         vm.Generation = freshData.Generation;
                         vm.Version = freshData.Version;
-                        vm.GpuName = freshData.GpuName; // === 单个 VM 操作后同步 GPU 状态 ===
+                        vm.GpuName = freshData.GpuName;
                     });
                 }
             }
@@ -339,7 +342,7 @@ namespace ExHyperV.ViewModels
             {
                 var selectedIndices = AffinityHostCores.Where(c => c.IsSelected).Select(c => c.CoreId).ToList();
                 if (await _cpuAffinityService.SetCpuAffinityAsync(SelectedVm.Id, selectedIndices)) GoToCpuSettings();
-                else ShowSnackbar("保存失败", "无法应用亲和性设置，请检查 HCS 权限", ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                else ShowSnackbar("保存失败", "无法应用亲和性设置，请检查 HCS权限", ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
             }
             catch (Exception ex) { ShowSnackbar("错误", Utils.GetFriendlyErrorMessages(ex.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24); }
             finally { IsLoadingSettings = false; }
@@ -385,7 +388,8 @@ namespace ExHyperV.ViewModels
                             if (vm != null)
                             {
                                 vm.SyncBackendData(update.State, update.RawUptime);
-                                vm.DiskSizeRaw = update.DiskSizeRaw ?? new List<long>();
+                                vm.Disks.Clear();
+                                foreach (var disk in update.Disks) vm.Disks.Add(disk);
                                 vm.GpuName = update.GpuName;
                                 if (memoryMap.TryGetValue(vm.Id.ToString(), out var memData))
                                     vm.UpdateMemoryStatus(memData.AssignedMb, memData.AvailablePercent);

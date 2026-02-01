@@ -1,8 +1,9 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
-using System.Windows;       // 用于 Point
-using System.Windows.Media; // 用于 PointCollection
+using System.Windows;
+using System.Windows.Media;
+using System.Linq;
 
 namespace ExHyperV.Models
 {
@@ -23,6 +24,32 @@ namespace ExHyperV.Models
         public byte Value { get; set; }
     }
 
+    public partial class VmDiskDetails : ObservableObject
+    {
+        [ObservableProperty] private string _name;
+        [ObservableProperty] private string _path;
+        [ObservableProperty] private string _diskType;
+        [ObservableProperty] private long _currentSize;
+        [ObservableProperty] private long _maxSize;
+
+        public double UsagePercentage => MaxSize > 0 ? (double)CurrentSize / MaxSize * 100 : 0;
+        public string UsageText => $"{FormatBytes(CurrentSize)} / {FormatBytes(MaxSize)}";
+
+        private string FormatBytes(long bytes)
+        {
+            if (bytes <= 0) return "0 B";
+            string[] suffixes = { "B", "KB", "MB", "GB", "TB" };
+            int i = 0;
+            double dblSByte = bytes;
+            while (dblSByte >= 1024 && i < suffixes.Length - 1)
+            {
+                dblSByte /= 1024;
+                i++;
+            }
+            return $"{dblSByte:0.##} {suffixes[i]}";
+        }
+    }
+
     public partial class VmMemorySettings : ObservableObject
     {
         [ObservableProperty] private long _startup;
@@ -31,7 +58,6 @@ namespace ExHyperV.Models
         [ObservableProperty] private long _maximum;
         [ObservableProperty] private int _buffer;
         [ObservableProperty] private int _priority;
-
         [ObservableProperty] private byte? _backingPageSize;
 
         public List<PageSizeItem> AvailablePageSizes { get; } = new List<PageSizeItem>
@@ -70,7 +96,6 @@ namespace ExHyperV.Models
         [ObservableProperty] private bool? _compatibilityForMigrationEnabled;
         [ObservableProperty] private bool? _compatibilityForOlderOperatingSystemsEnabled;
         [ObservableProperty] private SmtMode? _smtMode;
-
         [ObservableProperty] private bool? _disableSpeculationControls;
         [ObservableProperty] private bool? _hideHypervisorPresent;
         [ObservableProperty] private bool? _enablePerfmonArchPmu;
@@ -90,7 +115,6 @@ namespace ExHyperV.Models
             CompatibilityForMigrationEnabled = other.CompatibilityForMigrationEnabled;
             CompatibilityForOlderOperatingSystemsEnabled = other.CompatibilityForOlderOperatingSystemsEnabled;
             SmtMode = other.SmtMode;
-
             DisableSpeculationControls = other.DisableSpeculationControls;
             HideHypervisorPresent = other.HideHypervisorPresent;
             EnablePerfmonArchPmu = other.EnablePerfmonArchPmu;
@@ -108,9 +132,6 @@ namespace ExHyperV.Models
         [ObservableProperty] private bool _isSelected;
     }
 
-    // ==========================================
-    // ↓↓↓ 虚拟机实例主模型 ↓↓↓
-    // ==========================================
     public partial class VmInstanceInfo : ObservableObject
     {
         [ObservableProperty] private Guid _id;
@@ -119,29 +140,25 @@ namespace ExHyperV.Models
         [ObservableProperty] private int _generation;
         [ObservableProperty] private string _version;
         [ObservableProperty] private int _cpuCount;
-        [ObservableProperty] private List<long> _diskSizeRaw = new();
+
+        public ObservableCollection<VmDiskDetails> Disks { get; } = new();
+
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(ConfigSummary))]
+        private double _totalDiskSizeGb;
 
         [ObservableProperty] private double _memoryGb;
-        [ObservableProperty] private string _diskSize;
         [ObservableProperty] private string _osType;
         [ObservableProperty] private string _lowMMIO;
         [ObservableProperty] private string _highMMIO;
         [ObservableProperty] private string _guestControlled;
-
-        // === GPU-PV 支持 ===
-        // 存储 GPU 名称，例如 "NVIDIA GeForce RTX 3060"
         [ObservableProperty] private string _gpuName;
 
-        // 用于前端控制 UI 显示/隐藏
         public bool HasGpu => !string.IsNullOrEmpty(GpuName);
-
-        // 当 GpuName 变化时，自动通知 HasGpu 属性更新
         partial void OnGpuNameChanged(string value) => OnPropertyChanged(nameof(HasGpu));
-        // ==================
 
         [ObservableProperty] private Dictionary<string, string> _gPUs = new();
         [ObservableProperty] private double _averageUsage;
-
         [ObservableProperty] private string _state;
         [ObservableProperty] private string _uptime = "00:00:00";
         [ObservableProperty] private bool _isRunning;
@@ -149,7 +166,6 @@ namespace ExHyperV.Models
         [ObservableProperty] private VmProcessorSettings _processor;
         [ObservableProperty] private VmMemorySettings _memorySettings;
 
-        // 监控属性
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(MemoryUsageString))]
         [NotifyPropertyChangedFor(nameof(MemoryLimitString))]
@@ -189,17 +205,14 @@ namespace ExHyperV.Models
                 AssignedMemoryGb = 0; DemandMemoryGb = 0; AvailableMemoryPercent = 0; MemoryPressure = 0;
                 UpdateHistoryPoints(0); return;
             }
-
             double newAssignedGb = assignedMb / 1024.0;
             double usedPercentage = (100 - availablePercent) / 100.0;
             double newDemandGb = newAssignedGb * usedPercentage;
             int pressure = 100 - availablePercent;
-
             AssignedMemoryGb = newAssignedGb;
             DemandMemoryGb = newDemandGb;
             AvailableMemoryPercent = availablePercent;
             MemoryPressure = pressure;
-
             UpdateHistoryPoints(pressure);
         }
 
@@ -208,11 +221,9 @@ namespace ExHyperV.Models
             pressurePercent = Math.Max(0, Math.Min(100, pressurePercent));
             _memoryUsageHistory.AddLast(pressurePercent);
             if (_memoryUsageHistory.Count > MaxHistoryLength) _memoryUsageHistory.RemoveFirst();
-
             var points = new PointCollection();
             int count = _memoryUsageHistory.Count;
             int offset = MaxHistoryLength - count;
-
             points.Add(new Point(offset, 100));
             int i = 0;
             foreach (var val in _memoryUsageHistory)
@@ -238,23 +249,23 @@ namespace ExHyperV.Models
             get
             {
                 string diskPart;
-                if (DiskSizeRaw == null || DiskSizeRaw.Count == 0)
+                if (Disks.Count == 0)
                 {
                     diskPart = "无硬盘";
                 }
                 else
                 {
-                    diskPart = string.Join(" + ", DiskSizeRaw
-                        .Select(bytes => bytes / 1073741824.0)
+                    diskPart = string.Join(" + ", Disks
+                        .Select(d => d.MaxSize / 1073741824.0)
                         .OrderByDescending(g => g)
                         .Select(g => g >= 1 ? $"{g:0.#}G" : $"{g * 1024:0}M"));
                 }
                 return $"{CpuCount} Cores / {MemoryGb:0.#}GB RAM / {diskPart}";
             }
         }
+
         partial void OnCpuCountChanged(int value) => OnPropertyChanged(nameof(ConfigSummary));
         partial void OnMemoryGbChanged(double value) => OnPropertyChanged(nameof(ConfigSummary));
-        partial void OnDiskSizeRawChanged(List<long> value) => OnPropertyChanged(nameof(ConfigSummary));
 
         private TimeSpan _anchorUptime;
         private DateTime _anchorLocalTime;
@@ -263,7 +274,16 @@ namespace ExHyperV.Models
 
         public TimeSpan RawUptime => _anchorUptime;
 
-        public VmInstanceInfo(Guid id, string name) { _id = id; _name = name; }
+        public VmInstanceInfo(Guid id, string name)
+        {
+            _id = id;
+            _name = name;
+            Disks.CollectionChanged += (s, e) =>
+            {
+                TotalDiskSizeGb = Disks.Sum(d => d.MaxSize) / 1073741824.0;
+                OnPropertyChanged(nameof(ConfigSummary));
+            };
+        }
 
         public void SetTransientState(string optimisticText) { _transientState = optimisticText; RefreshStateDisplay(); }
         public void ClearTransientState() { _transientState = null; RefreshStateDisplay(); }

@@ -3,7 +3,6 @@ using ExHyperV.Tools;
 using System.IO;
 using System.Management;
 using System.Text.RegularExpressions;
-using DiscUtils.Streams;
 
 namespace ExHyperV.Services
 {
@@ -18,7 +17,7 @@ namespace ExHyperV.Services
         private const string QueryGpuPvSettings = "SELECT InstanceID, HostResource FROM Msvm_GpuPartitionSettingData";
         private const string QueryPartitionableGpus = "SELECT Name FROM Msvm_PartitionableGpu";
 
-        private static readonly Dictionary<string, long> _diskSizeCache = new();
+        private static readonly Dictionary<string, (long Current, long Max, string Type)> _diskSizeCache = new();
 
         public async Task<List<VmInstanceInfo>> GetVmListAsync()
         {
@@ -90,22 +89,19 @@ namespace ExHyperV.Services
 
                 foreach (var setting in gpuSettings)
                 {
-                    string vmGuid = ExtractFirstGuid(setting.InstanceID);
-                    if (vmGuid != null && setting.HostResources?.Length > 0)
+                    string vmGuidStr = ExtractFirstGuid(setting.InstanceID);
+                    if (vmGuidStr != null && setting.HostResources?.Length > 0)
                     {
                         string assignedPath = setting.HostResources[0];
                         string finalName = "GPU-PV Device";
-                        string shortId = null;
-
-                        if (hostPathToPciIdMap.TryGetValue(assignedPath, out var id)) shortId = id;
-                        else shortId = ExtractPciId(assignedPath);
+                        string shortId = hostPathToPciIdMap.TryGetValue(assignedPath, out var id) ? id : ExtractPciId(assignedPath);
 
                         if (!string.IsNullOrEmpty(shortId))
                         {
                             if (pciToFriendlyNameMap.TryGetValue(shortId, out var friendly)) finalName = friendly;
                             else finalName = $"Unknown Device ({shortId})";
                         }
-                        gpuMap[vmGuid] = finalName;
+                        gpuMap[vmGuidStr] = finalName;
                     }
                 }
 
@@ -113,10 +109,11 @@ namespace ExHyperV.Services
                 foreach (var s in summaries)
                 {
                     Guid.TryParse(s.Id, out var vmId);
-                    string vmGuid = s.Id?.Trim('{', '}').ToUpper();
+                    string vmGuidKey = s.Id?.Trim('{', '}').ToUpper();
 
-                    var vmDiskSizes = new List<long>();
-                    var myDisks = allDiskAllocations.Where(d => d.Parent.ToUpper().Contains(vmGuid) || d.InstanceID.ToUpper().Contains(vmGuid)).ToList();
+                    var vmInfo = new VmInstanceInfo(vmId, s.Name);
+
+                    var myDisks = allDiskAllocations.Where(d => d.Parent.ToUpper().Contains(vmGuidKey) || d.InstanceID.ToUpper().Contains(vmGuidKey)).ToList();
                     foreach (var d in myDisks)
                     {
                         if (d.Paths != null && d.Paths.Length > 0)
@@ -124,8 +121,18 @@ namespace ExHyperV.Services
                             string path = d.Paths[0].Replace("\"", "").Trim();
                             if (!path.EndsWith(".iso", StringComparison.OrdinalIgnoreCase))
                             {
-                                long size = GetDiskCapacityWithDiscUtils(path, s.Name);
-                                if (size > 0) vmDiskSizes.Add(size);
+                                var (current, max, diskType) = GetDiskSizes(path);
+                                if (max > 0)
+                                {
+                                    vmInfo.Disks.Add(new VmDiskDetails
+                                    {
+                                        Name = Path.GetFileName(path),
+                                        Path = path,
+                                        CurrentSize = current,
+                                        MaxSize = max,
+                                        DiskType = diskType
+                                    });
+                                }
                             }
                         }
                     }
@@ -138,29 +145,82 @@ namespace ExHyperV.Services
                     double assignedRam = (isRunning && hasValidRealtimeMem) ? s.MemUsage : startupRam;
 
                     int genValue = 0; string verValue = "0.0";
-                    if (vmGuid != null && configMap.TryGetValue(vmGuid, out var config)) { genValue = config.Gen; verValue = config.Ver; }
+                    if (vmGuidKey != null && configMap.TryGetValue(vmGuidKey, out var config)) { genValue = config.Gen; verValue = config.Ver; }
 
-                    string gpuName = vmGuid != null && gpuMap.ContainsKey(vmGuid) ? gpuMap[vmGuid] : null;
+                    string gpuName = vmGuidKey != null && gpuMap.ContainsKey(vmGuidKey) ? gpuMap[vmGuidKey] : null;
 
-                    var vmInfo = new VmInstanceInfo(vmId, s.Name)
-                    {
-                        OsType = Utils.GetTagValue(s.Notes, "OSType") ?? "Windows",
-                        CpuCount = s.Cpu,
-                        MemoryGb = Math.Round(startupRam / 1024.0, 1),
-                        AssignedMemoryGb = Math.Round(assignedRam / 1024.0, 1),
-                        DiskSizeRaw = vmDiskSizes,
-                        Notes = s.Notes,
-                        Generation = genValue,
-                        Version = verValue,
-                        GpuName = gpuName
-                    };
+                    vmInfo.OsType = Utils.GetTagValue(s.Notes, "OSType") ?? "Windows";
+                    vmInfo.CpuCount = s.Cpu;
+                    vmInfo.MemoryGb = Math.Round(startupRam / 1024.0, 1);
+                    vmInfo.AssignedMemoryGb = Math.Round(assignedRam / 1024.0, 1);
+                    vmInfo.Notes = s.Notes;
+                    vmInfo.Generation = genValue;
+                    vmInfo.Version = verValue;
+                    vmInfo.GpuName = gpuName;
 
                     vmInfo.SyncBackendData(VmMapper.MapStateCodeToText(s.State), TimeSpan.FromMilliseconds(s.Uptime));
                     resultList.Add(vmInfo);
                 }
 
-                return resultList.OrderByDescending(x => x.State == "运行中").ThenBy(x => x.Name).ToList();
+                return resultList.OrderByDescending(x => x.IsRunning).ThenBy(x => x.Name).ToList();
             });
+        }
+
+        private (long Current, long Max, string DiskType) GetDiskSizes(string path)
+        {
+            if (string.IsNullOrEmpty(path) || !File.Exists(path)) return (0, 0, "Unknown");
+            if (_diskSizeCache.TryGetValue(path, out var cached)) return cached;
+
+            long currentSize = 0;
+            try { currentSize = new FileInfo(path).Length; } catch { }
+
+            long maxSize = 0;
+            string diskType = "Unknown";
+
+            try
+            {
+                ManagementScope scope = new ManagementScope(@"\\.\root\virtualization\v2");
+                scope.Connect();
+
+                using var searcher = new ManagementObjectSearcher(scope, new ObjectQuery("SELECT * FROM Msvm_ImageManagementService"));
+                using var serviceInstance = searcher.Get().Cast<ManagementObject>().FirstOrDefault();
+
+                if (serviceInstance != null)
+                {
+                    using var inParams = serviceInstance.GetMethodParameters("GetVirtualHardDiskSettingData");
+                    inParams["Path"] = path;
+
+                    using var outParams = serviceInstance.InvokeMethod("GetVirtualHardDiskSettingData", inParams, null);
+                    uint retVal = (uint)(outParams["ReturnValue"] ?? 1);
+
+                    if (retVal == 0)
+                    {
+                        string xmlData = outParams["SettingData"]?.ToString() ?? "";
+                        var typeMatch = Regex.Match(xmlData, @"<PROPERTY NAME=""Type"" TYPE=""uint16""><VALUE>(\d+)</VALUE>");
+                        var sizeMatch = Regex.Match(xmlData, @"<PROPERTY NAME=""MaxInternalSize"" TYPE=""uint64""><VALUE>(\d+)</VALUE>");
+
+                        if (typeMatch.Success)
+                        {
+                            diskType = typeMatch.Groups[1].Value switch
+                            {
+                                "2" => "Fixed",
+                                "3" => "Dynamic",
+                                "4" => "Differencing",
+                                _ => "Unknown"
+                            };
+                        }
+                        if (sizeMatch.Success) maxSize = long.Parse(sizeMatch.Groups[1].Value);
+                    }
+                }
+            }
+            catch { }
+
+            if (maxSize <= 0) maxSize = currentSize;
+            if (diskType == "Unknown") diskType = "Dynamic";
+
+            var result = (currentSize, maxSize, diskType);
+            _diskSizeCache[path] = result;
+            return result;
         }
 
         public async Task<bool> SetVmOsTypeAsync(string vmName, string osType)
@@ -169,10 +229,8 @@ namespace ExHyperV.Services
             {
                 string safeVmName = vmName.Replace("'", "''");
                 string getSettingsWql = $"SELECT * FROM Msvm_VirtualSystemSettingData WHERE ElementName = '{safeVmName}' AND VirtualSystemType = 'Microsoft:Hyper-V:System:Realized'";
-
                 var activeSettingsList = await WmiTools.QueryAsync(getSettingsWql, obj => obj);
                 using var activeSettings = activeSettingsList.FirstOrDefault();
-
                 if (activeSettings == null) return false;
 
                 string currentNotes = "";
@@ -184,20 +242,12 @@ namespace ExHyperV.Services
 
                 activeSettings["Notes"] = new string[] { newNotes };
                 string embeddedInstance = activeSettings.GetText(TextFormat.CimDtd20);
-
                 string serviceWql = "SELECT * FROM Msvm_VirtualSystemManagementService";
-                var parameters = new Dictionary<string, object>
-                {
-                    { "SystemSettings", embeddedInstance }
-                };
-
+                var parameters = new Dictionary<string, object> { { "SystemSettings", embeddedInstance } };
                 var result = await WmiTools.ExecuteMethodAsync(serviceWql, "ModifySystemSettings", parameters);
                 return result.Success;
             }
-            catch
-            {
-                return false;
-            }
+            catch { return false; }
         }
 
         public async Task<Dictionary<string, VmDynamicMemoryData>> GetVmRuntimeMemoryDataAsync()
@@ -207,30 +257,21 @@ namespace ExHyperV.Services
                 var id = item["Name"]?.ToString();
                 long rawUsage = Convert.ToInt64(item["MemoryUsage"] ?? 0);
                 int rawAvailable = Convert.ToInt32(item["MemoryAvailable"] ?? 0);
-
                 long finalAssignedMb = (rawUsage < 0 || rawUsage > 1048576) ? 0 : rawUsage;
                 int finalAvailablePercent = (rawAvailable < 0 || rawAvailable > 100) ? 0 : rawAvailable;
-
                 return new { Id = id, Data = new VmDynamicMemoryData { AssignedMb = finalAssignedMb, AvailablePercent = finalAvailablePercent } };
             });
-
             return dataList.Where(x => x.Id != null).ToDictionary(x => x.Id, x => x.Data);
         }
 
         private async Task<Dictionary<string, string>> GetHostVideoControllerMapAsync()
         {
-            var result = await WmiTools.QueryAsync(
-                "SELECT Name, PNPDeviceID FROM Win32_VideoController",
-                item => new { Name = item["Name"]?.ToString(), PnpId = item["PNPDeviceID"]?.ToString() },
-                WmiTools.CimV2Scope
-            );
-
+            var result = await WmiTools.QueryAsync("SELECT Name, PNPDeviceID FROM Win32_VideoController", item => new { Name = item["Name"]?.ToString(), PnpId = item["PNPDeviceID"]?.ToString() }, WmiTools.CimV2Scope);
             var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             foreach (var item in result)
             {
                 string shortId = ExtractPciId(item.PnpId);
-                if (!string.IsNullOrEmpty(shortId) && !string.IsNullOrEmpty(item.Name) && !map.ContainsKey(shortId))
-                    map[shortId] = item.Name;
+                if (!string.IsNullOrEmpty(shortId) && !string.IsNullOrEmpty(item.Name) && !map.ContainsKey(shortId)) map[shortId] = item.Name;
             }
             return map;
         }
@@ -247,29 +288,6 @@ namespace ExHyperV.Services
             if (string.IsNullOrEmpty(input)) return null;
             var match = Regex.Match(input, @"[0-9A-Fa-f]{8}-([0-9A-Fa-f]{4}-){3}[0-9A-Fa-f]{12}");
             return match.Success ? match.Value.ToUpper() : null;
-        }
-
-        private long GetDiskCapacityWithDiscUtils(string path, string vmName)
-        {
-            if (string.IsNullOrEmpty(path)) return 0;
-            if (_diskSizeCache.TryGetValue(path, out long cached)) return cached;
-            try
-            {
-                if (!File.Exists(path)) return 0;
-                using (var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-                {
-                    if (path.EndsWith(".vhdx", StringComparison.OrdinalIgnoreCase) || path.EndsWith(".avhdx", StringComparison.OrdinalIgnoreCase))
-                    {
-                        using (var disk = new DiscUtils.Vhdx.Disk(fs, Ownership.None)) { long cap = disk.Capacity; _diskSizeCache[path] = cap; return cap; }
-                    }
-                    else if (path.EndsWith(".vhd", StringComparison.OrdinalIgnoreCase) || path.EndsWith(".avhd", StringComparison.OrdinalIgnoreCase))
-                    {
-                        using (var disk = new DiscUtils.Vhd.Disk(fs, Ownership.None)) { long cap = disk.Capacity; _diskSizeCache[path] = cap; return cap; }
-                    }
-                }
-            }
-            catch { }
-            try { return new FileInfo(path).Length; } catch { return 0; }
         }
     }
 }
