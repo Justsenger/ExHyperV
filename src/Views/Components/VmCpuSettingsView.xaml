@@ -63,7 +63,7 @@
                      Visibility="{Binding IsLoadingSettings, Converter={StaticResource BoolToVis}}"/>
 
         <ScrollViewer Grid.Row="2" Padding="24,12,24,24" VerticalScrollBarVisibility="Auto"
-                      IsEnabled="{Binding IsLoadingSettings, Converter={StaticResource InverseBooleanConverter}}">
+              IsEnabled="{Binding IsLoadingSettings, Converter={StaticResource InverseBooleanConverter}}">
             <StackPanel>
                 <TextBlock Text="{x:Static properties:Resources.ComputeResources}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" Margin="0,0,0,12"/>
                 <Border Background="{ui:ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="24" Margin="0,0,0,32">
@@ -82,11 +82,11 @@
                         <StackPanel Grid.Column="0">
                             <TextBlock Text="{x:Static properties:Resources.VCpuCount}" FontSize="13" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" Margin="0,0,0,8"/>
                             <ComboBox IsEditable="True" 
-                                      HorizontalAlignment="Stretch" 
-                                      Padding="10,6" 
-                                      Text="{Binding SelectedVm.Processor.Count, UpdateSourceTrigger=PropertyChanged}" 
-                                      ItemsSource="{Binding PossibleVCpuCounts}"
-                                      IsEnabled="{Binding SelectedVm.IsRunning, Converter={StaticResource InverseBooleanConverter}}"/>
+                              HorizontalAlignment="Stretch" 
+                              Padding="10,6" 
+                              Text="{Binding SelectedVm.Processor.Count, UpdateSourceTrigger=PropertyChanged}" 
+                              ItemsSource="{Binding PossibleVCpuCounts}"
+                              IsEnabled="{Binding SelectedVm.IsRunning, Converter={StaticResource InverseBooleanConverter}}"/>
                         </StackPanel>
 
                         <StackPanel Grid.Column="2">
@@ -132,7 +132,10 @@
                                 <TextBlock Text="{x:Static properties:Resources.HostResourceProtection}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
                                 <TextBlock Text="{x:Static properties:Resources.LimitVmBusCommunicationFrequency}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
                             </StackPanel>
-                            <ui:ToggleSwitch Grid.Column="1" IsChecked="{Binding SelectedVm.Processor.EnableHostResourceProtection}" Command="{Binding ApplyChangesCommand}"/>
+                            <ui:ToggleSwitch Grid.Column="1" Style="{StaticResource ShutdownRequiredToggleStyle}"
+                                     Tag="{Binding SelectedVm.Processor.EnableHostResourceProtection}"
+                                     IsChecked="{Binding SelectedVm.Processor.EnableHostResourceProtection}" 
+                                     Command="{Binding ApplyChangesCommand}"/>
                         </Grid>
                         <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
 
@@ -145,9 +148,10 @@
                                 <TextBlock Text="{x:Static properties:Resources.NestedVirtualization}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
                                 <TextBlock Text="{x:Static properties:Resources.NestedVirtualizationDescription}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
                             </StackPanel>
-                            <ui:ToggleSwitch Grid.Column="1" Style="{StaticResource ShutdownRequiredToggleStyle}" Tag="True"
-                                             IsChecked="{Binding SelectedVm.Processor.ExposeVirtualizationExtensions}" 
-                                             Command="{Binding ApplyChangesCommand}"/>
+                            <ui:ToggleSwitch Grid.Column="1" Style="{StaticResource ShutdownRequiredToggleStyle}" 
+                                     Tag="{Binding SelectedVm.Processor.ExposeVirtualizationExtensions}"
+                                     IsChecked="{Binding SelectedVm.Processor.ExposeVirtualizationExtensions}" 
+                                     Command="{Binding ApplyChangesCommand}"/>
                         </Grid>
                         <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
 
@@ -160,9 +164,10 @@
                                 <TextBlock Text="{x:Static properties:Resources.MigrationCompatibility}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
                                 <TextBlock Text="{x:Static properties:Resources.MigrationCompatibilityDescription}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
                             </StackPanel>
-                            <ui:ToggleSwitch Grid.Column="1" Style="{StaticResource ShutdownRequiredToggleStyle}" Tag="True"
-                                             IsChecked="{Binding SelectedVm.Processor.CompatibilityForMigrationEnabled}" 
-                                             Command="{Binding ApplyChangesCommand}"/>
+                            <ui:ToggleSwitch Grid.Column="1" Style="{StaticResource ShutdownRequiredToggleStyle}" 
+                                     Tag="{Binding SelectedVm.Processor.CompatibilityForMigrationEnabled}"
+                                     IsChecked="{Binding SelectedVm.Processor.CompatibilityForMigrationEnabled}" 
+                                     Command="{Binding ApplyChangesCommand}"/>
                         </Grid>
                         <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
 
@@ -175,9 +180,10 @@
                                 <TextBlock Text="{x:Static properties:Resources.LegacySystemCompatibility}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
                                 <TextBlock Text="{x:Static properties:Resources.LegacySystemCompatibilityDescription}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
                             </StackPanel>
-                            <ui:ToggleSwitch Grid.Column="1" Style="{StaticResource ShutdownRequiredToggleStyle}" Tag="True"
-                                             IsChecked="{Binding SelectedVm.Processor.CompatibilityForOlderOperatingSystemsEnabled}" 
-                                             Command="{Binding ApplyChangesCommand}"/>
+                            <ui:ToggleSwitch Grid.Column="1" Style="{StaticResource ShutdownRequiredToggleStyle}" 
+                                     Tag="{Binding SelectedVm.Processor.CompatibilityForOlderOperatingSystemsEnabled}"
+                                     IsChecked="{Binding SelectedVm.Processor.CompatibilityForOlderOperatingSystemsEnabled}" 
+                                     Command="{Binding ApplyChangesCommand}"/>
                         </Grid>
                         <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
 
@@ -190,9 +196,10 @@
                                 <TextBlock Text="{x:Static properties:Resources.VirtualMachineSmt}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
                                 <TextBlock Text="{x:Static properties:Resources.VirtualMachineSmtDescription}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
                             </StackPanel>
-                            <ui:ToggleSwitch Grid.Column="1" Style="{StaticResource ShutdownRequiredToggleStyle}" Tag="True"
-                                             IsChecked="{Binding SelectedVm.Processor.SmtMode, Converter={StaticResource SmtModeToBooleanConverter}}" 
-                                             Command="{Binding ApplyChangesCommand}"/>
+                            <ui:ToggleSwitch Grid.Column="1" Style="{StaticResource ShutdownRequiredToggleStyle}" 
+                                     Tag="{Binding SelectedVm.Processor.SmtMode}"
+                                     IsChecked="{Binding SelectedVm.Processor.SmtMode, Converter={StaticResource SmtModeToBooleanConverter}}" 
+                                     Command="{Binding ApplyChangesCommand}"/>
                         </Grid>
                         <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
 
@@ -206,9 +213,9 @@
                                 <TextBlock Text="为虚拟机系统隐藏虚拟化标识符，可能有助于绕过软件检测" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
                             </StackPanel>
                             <ui:ToggleSwitch Grid.Column="1" Style="{StaticResource ShutdownRequiredToggleStyle}"
-                                             Tag="{Binding SelectedVm.Processor.HideHypervisorPresent}"
-                                             IsChecked="{Binding SelectedVm.Processor.HideHypervisorPresent}" 
-                                             Command="{Binding ApplyChangesCommand}"/>
+                                     Tag="{Binding SelectedVm.Processor.HideHypervisorPresent}"
+                                     IsChecked="{Binding SelectedVm.Processor.HideHypervisorPresent}" 
+                                     Command="{Binding ApplyChangesCommand}"/>
                         </Grid>
                         <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
 
@@ -222,9 +229,9 @@
                                 <TextBlock Text="允许虚拟机使用硬件性能计数器" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
                             </StackPanel>
                             <ui:ToggleSwitch Grid.Column="1" Style="{StaticResource ShutdownRequiredToggleStyle}"
-                                             Tag="{Binding SelectedVm.Processor.EnablePerfmonArchPmu}"
-                                             IsChecked="{Binding SelectedVm.Processor.EnablePerfmonArchPmu}" 
-                                             Command="{Binding ApplyChangesCommand}"/>
+                                     Tag="{Binding SelectedVm.Processor.EnablePerfmonArchPmu}"
+                                     IsChecked="{Binding SelectedVm.Processor.EnablePerfmonArchPmu}" 
+                                     Command="{Binding ApplyChangesCommand}"/>
                         </Grid>
                         <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
 
@@ -238,9 +245,9 @@
                                 <TextBlock Text="允许虚拟机读取处理器真实频率" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
                             </StackPanel>
                             <ui:ToggleSwitch Grid.Column="1" Style="{StaticResource ShutdownRequiredToggleStyle}"
-                                             Tag="{Binding SelectedVm.Processor.AllowAcountMcount}"
-                                             IsChecked="{Binding SelectedVm.Processor.AllowAcountMcount}" 
-                                             Command="{Binding ApplyChangesCommand}"/>
+                                     Tag="{Binding SelectedVm.Processor.AllowAcountMcount}"
+                                     IsChecked="{Binding SelectedVm.Processor.AllowAcountMcount}" 
+                                     Command="{Binding ApplyChangesCommand}"/>
                         </Grid>
                         <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
 
@@ -254,9 +261,9 @@
                                 <TextBlock Text="小幅提升性能，但会降低安全性" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
                             </StackPanel>
                             <ui:ToggleSwitch Grid.Column="1" Style="{StaticResource ShutdownRequiredToggleStyle}"
-                                             Tag="{Binding SelectedVm.Processor.DisableSpeculationControls}"
-                                             IsChecked="{Binding SelectedVm.Processor.DisableSpeculationControls}" 
-                                             Command="{Binding ApplyChangesCommand}"/>
+                                     Tag="{Binding SelectedVm.Processor.DisableSpeculationControls}"
+                                     IsChecked="{Binding SelectedVm.Processor.DisableSpeculationControls}" 
+                                     Command="{Binding ApplyChangesCommand}"/>
                         </Grid>
                         <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
 
@@ -270,9 +277,9 @@
                                 <TextBlock Text="启用物理插槽拓扑结构的映射" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
                             </StackPanel>
                             <ui:ToggleSwitch Grid.Column="1" Style="{StaticResource ShutdownRequiredToggleStyle}"
-                                             Tag="{Binding SelectedVm.Processor.EnableSocketTopology}"
-                                             IsChecked="{Binding SelectedVm.Processor.EnableSocketTopology}" 
-                                             Command="{Binding ApplyChangesCommand}"/>
+                                     Tag="{Binding SelectedVm.Processor.EnableSocketTopology}"
+                                     IsChecked="{Binding SelectedVm.Processor.EnableSocketTopology}" 
+                                     Command="{Binding ApplyChangesCommand}"/>
                         </Grid>
                     </StackPanel>
                 </Border>

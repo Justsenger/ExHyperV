@@ -1,10 +1,6 @@
 using ExHyperV.Models;
 using ExHyperV.Tools;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Management;
-using System.Threading.Tasks;
 
 namespace ExHyperV.Services
 {
@@ -75,11 +71,15 @@ namespace ExHyperV.Services
                     procData["Limit"] = (ulong)(newSettings.Maximum * 1000);
                     procData["Weight"] = (uint)newSettings.RelativeWeight;
 
-                    procData["ExposeVirtualizationExtensions"] = newSettings.ExposeVirtualizationExtensions;
-                    procData["EnableHostResourceProtection"] = newSettings.EnableHostResourceProtection;
-                    procData["LimitProcessorFeatures"] = newSettings.CompatibilityForMigrationEnabled;
-                    procData["LimitCPUID"] = newSettings.CompatibilityForOlderOperatingSystemsEnabled;
-                    procData["HwThreadsPerCore"] = (ulong)ConvertSmtModeToHwThreads(newSettings.SmtMode);
+                    TrySetNullableProperty(procData, "ExposeVirtualizationExtensions", newSettings.ExposeVirtualizationExtensions);
+                    TrySetNullableProperty(procData, "EnableHostResourceProtection", newSettings.EnableHostResourceProtection);
+                    TrySetNullableProperty(procData, "LimitProcessorFeatures", newSettings.CompatibilityForMigrationEnabled);
+                    TrySetNullableProperty(procData, "LimitCPUID", newSettings.CompatibilityForOlderOperatingSystemsEnabled);
+
+                    if (newSettings.SmtMode.HasValue && HasProperty(procData, "HwThreadsPerCore"))
+                    {
+                        procData["HwThreadsPerCore"] = (ulong)ConvertSmtModeToHwThreads(newSettings.SmtMode.Value);
+                    }
 
                     TrySetNullableProperty(procData, "DisableSpeculationControls", newSettings.DisableSpeculationControls);
                     TrySetNullableProperty(procData, "HideHypervisorPresent", newSettings.HideHypervisorPresent);
@@ -94,9 +94,9 @@ namespace ExHyperV.Services
                 if (string.IsNullOrEmpty(xml)) return (false, "找不到虚拟机或处理器配置。");
 
                 var inParams = new Dictionary<string, object>
-                {
-                    { "ResourceSettings", new string[] { xml } }
-                };
+            {
+                { "ResourceSettings", new string[] { xml } }
+            };
 
                 return await WmiTools.ExecuteMethodAsync(
                     "SELECT * FROM Msvm_VirtualSystemManagementService",
@@ -109,7 +109,6 @@ namespace ExHyperV.Services
                 return (false, $"异常: {ex.Message}");
             }
         }
-
         private static SmtMode ConvertHwThreadsToSmtMode(uint hwThreads) => hwThreads == 1 ? SmtMode.SingleThread : SmtMode.MultiThread;
 
         private static uint ConvertSmtModeToHwThreads(SmtMode smtMode) => smtMode == SmtMode.SingleThread ? 1u : 2u;
