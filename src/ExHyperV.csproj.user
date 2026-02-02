@@ -27,6 +27,9 @@
     <Compile Update="Views\Components\VmRAMSettingsView.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Update="Views\Components\VmStorageSettingsView.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Update="Views\CpuAffinityDialog.xaml.cs">
       <SubType>Code</SubType>
     </Compile>

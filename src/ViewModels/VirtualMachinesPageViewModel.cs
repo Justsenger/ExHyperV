@@ -12,7 +12,8 @@ using Wpf.Ui.Controls;
 
 namespace ExHyperV.ViewModels
 {
-    public enum VmDetailViewType { Dashboard, CpuSettings, CpuAffinity, MemorySettings }
+    // 1. 确保枚举中包含 StorageSettings
+    public enum VmDetailViewType { Dashboard, CpuSettings, CpuAffinity, MemorySettings, StorageSettings }
 
     public partial class VirtualMachinesPageViewModel : ObservableObject, IDisposable
     {
@@ -309,6 +310,19 @@ namespace ExHyperV.ViewModels
             }
             catch (Exception ex) { ShowSnackbar("异常", Utils.GetFriendlyErrorMessages(ex.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24); }
             finally { IsLoadingSettings = false; }
+        }
+
+        // 2. 新增：存储设置跳转命令（仅切换 UI）
+        [RelayCommand]
+        private async Task GoToStorageSettings()
+        {
+            if (SelectedVm == null) return;
+            CurrentViewType = VmDetailViewType.StorageSettings;
+
+            // 模拟一个加载过程，为了看 UI 效果
+            IsLoadingSettings = true;
+            await Task.Delay(300);
+            IsLoadingSettings = false;
         }
 
         [ObservableProperty] private ObservableCollection<VmCoreModel> _affinityHostCores;

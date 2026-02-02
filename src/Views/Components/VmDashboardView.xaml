@@ -9,7 +9,6 @@
              d:DesignHeight="450" d:DesignWidth="800">
 
     <UserControl.Resources>
-        <!-- 【已添加】从 CpuPage 复制过来的资源 -->
         <DrawingBrush x:Key="FineGridBrush" Viewport="0,0,10,10" ViewportUnits="Absolute" TileMode="Tile">
             <DrawingBrush.Drawing>
                 <GeometryDrawing>
@@ -209,7 +208,7 @@
 
                         <!-- 左侧：图标与标题 -->
                         <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                            <ui:FontIcon FontSize="22" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xE7F1;" Margin="-5,0,12,0" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                            <ui:FontIcon FontSize="22" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xEDA2;" Margin="-5,0,12,0" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
                             <StackPanel VerticalAlignment="Center">
                                 <TextBlock Text="存储" FontSize="16" FontWeight="SemiBold" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
                                 <TextBlock Text="虚拟磁盘容量与占用情况" FontSize="12" Opacity="0.6" Margin="0,2,0,0" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
