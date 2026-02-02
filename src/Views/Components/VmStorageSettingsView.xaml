@@ -1,14 +1,14 @@
 ﻿<UserControl x:Class="ExHyperV.Views.Components.VmStorageSettingsView"
-             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:vm="clr-namespace:ExHyperV.ViewModels"
-             xmlns:properties="clr-namespace:ExHyperV.Properties"
-             xmlns:converters="clr-namespace:ExHyperV.Converters"
-             mc:Ignorable="d" d:DesignHeight="800" d:DesignWidth="1000"
-             d:DataContext="{d:DesignInstance vm:VirtualMachinesPageViewModel}">
+                 xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                 xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+                 xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                 xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                 xmlns:vm="clr-namespace:ExHyperV.ViewModels"
+                 xmlns:properties="clr-namespace:ExHyperV.Properties"
+                 xmlns:converters="clr-namespace:ExHyperV.Converters"
+                 mc:Ignorable="d" d:DesignHeight="800" d:DesignWidth="1000"
+                 d:DataContext="{d:DesignInstance vm:VirtualMachinesPageViewModel}">
 
     <UserControl.Resources>
         <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
@@ -37,32 +37,32 @@
             </StackPanel>
 
             <StackPanel Grid.Column="1" Orientation="Horizontal">
-                <ui:Button Icon="{ui:SymbolIcon Symbol=Add24}" 
-           ToolTip="{x:Static properties:Resources.Storage_AddStorage}"
-           Appearance="Primary" 
-           Margin="0,0,12,0"
-           Command="{Binding GoToAddStorageCommand}" />
+                <ui:Button Icon="{ui:SymbolIcon Symbol=Add24,FontSize=20}" 
+               ToolTip="{x:Static properties:Resources.Storage_AddStorage}"
+               Appearance="Primary" 
+               Margin="0,0,12,0"
+               Command="{Binding GoToAddStorageCommand}" Width="38"/>
 
                 <ui:Button Appearance="Transparent" Padding="8" Command="{Binding GoBackToDashboardCommand}">
                     <ui:SymbolIcon Symbol="ArrowLeft24" FontSize="18"/>
                 </ui:Button>
             </StackPanel>
         </Grid>
-        
+
         <!-- 2. 加载进度条 -->
         <ProgressBar Grid.Row="1" IsIndeterminate="True" VerticalAlignment="Top" Height="2" Margin="0,-2,0,0"
-                     Visibility="{Binding IsLoadingSettings, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                         Visibility="{Binding IsLoadingSettings, Converter={StaticResource BooleanToVisibilityConverter}}"/>
 
         <!-- 3. 内容区域 -->
         <ScrollViewer Grid.Row="2" Padding="24,0,24,24" VerticalScrollBarVisibility="Auto">
             <Grid>
                 <!-- 空列表提示：只有当数量为 0 时才显示，且不占位 -->
                 <TextBlock Text="{x:Static properties:Resources.Storage_NoDevicesFound}" 
-                           HorizontalAlignment="Center" 
-                           VerticalAlignment="Center"
-                           Margin="0,100,0,0" 
-                           Opacity="0.4" 
-                           FontSize="14">
+                               HorizontalAlignment="Center" 
+                               VerticalAlignment="Center"
+                               Margin="0,100,0,0" 
+                               Opacity="0.4" 
+                               FontSize="14">
                     <TextBlock.Style>
                         <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
                             <Setter Property="Visibility" Value="Collapsed"/>
@@ -113,10 +113,12 @@
                                         </StackPanel>
 
                                         <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="0,0,12,0">
-                                            <ui:Button Content="{x:Static properties:Resources.Common_Modify}" 
-                       Appearance="Secondary" Padding="12,4" Margin="0,0,8,0"
-                       Command="{Binding DataContext.MountIsoCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                       CommandParameter="{Binding}">
+                                            <ui:Button Icon="{ui:SymbolIcon Symbol=Edit24, FontSize=18}" 
+           ToolTip="{x:Static properties:Resources.Common_Modify}"
+           Appearance="Secondary" 
+           Margin="0,0,8,0"
+           Command="{Binding DataContext.MountIsoCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+           CommandParameter="{Binding}">
                                                 <ui:Button.Style>
                                                     <Style TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
                                                         <Setter Property="Visibility" Value="Collapsed"/>
@@ -128,17 +130,15 @@
                                                     </Style>
                                                 </ui:Button.Style>
                                             </ui:Button>
-
-                                            <ui:Button Icon="{ui:SymbolIcon Symbol=Delete24}" 
-                       Appearance="Transparent" 
-                       Padding="8,4"
-                       Foreground="{ui:ThemeResource SystemFillColorCriticalBrush}"
-                       Command="{Binding DataContext.RemoveStorageItemCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                       CommandParameter="{Binding}"/>
+                                            <ui:Button Icon="{ui:SymbolIcon Symbol=Delete24,FontSize=18}" 
+                           Appearance="Secondary"
+                           Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"
+                           Command="{Binding DataContext.RemoveStorageItemCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                           CommandParameter="{Binding}"/>
                                         </StackPanel>
                                     </Grid>
                                 </ui:CardExpander.Header>
-                                
+
                                 <Border Padding="20,16" Background="{ui:ThemeResource ControlFillColorSecondaryBrush}" BorderThickness="0,1,0,0" BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}">
                                     <Grid>
                                         <Grid.ColumnDefinitions>

@@ -73,7 +73,11 @@ namespace ExHyperV.Models
 
         [ObservableProperty] private int _diskNumber;
         [ObservableProperty] private string _diskModel;
-        [ObservableProperty] private double _diskSizeGB;
+
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(SizeDisplay))] // 当 DiskSizeGB 改变时通知 SizeDisplay 更新
+        private double _diskSizeGB;
+
         [ObservableProperty] private string _serialNumber;
 
         public string DisplayName
@@ -101,10 +105,17 @@ namespace ExHyperV.Models
         {
             get
             {
-                if (_diskSizeGB <= 0) return "";
-                const long bytesPerGb = 1024L * 1024L * 1024L;
-                long totalBytes = (long)(_diskSizeGB * bytesPerGb);
-                return Utils.FormatBytes(totalBytes);
+                if (DiskSizeGB <= 0) return "unknown";
+                if (DiskSizeGB < 1.0)
+                {
+                    double sizeMB = DiskSizeGB * 1024.0;
+                    if (sizeMB < 1.0)
+                    {
+                        return $"{sizeMB * 1024.0:N0} KB";
+                    }
+                    return $"{sizeMB:N1} MB";
+                }
+                return $"{DiskSizeGB:N1} GB";
             }
         }
     }

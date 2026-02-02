@@ -12,7 +12,7 @@ namespace ExHyperV.Services
 
         private const string QuerySummary = "SELECT Name, ElementName, EnabledState, UpTime, NumberOfProcessors, MemoryUsage, Notes FROM Msvm_SummaryInformation";
         private const string QueryMemSettings = "SELECT InstanceID, VirtualQuantity FROM Msvm_MemorySettingData WHERE ResourceType = 4";
-        private const string QueryDiskAllocations = "SELECT InstanceID, Parent, HostResource FROM Msvm_StorageAllocationSettingData WHERE ResourceType = 31";
+        private const string QueryDiskAllocations = "SELECT InstanceID, Parent, HostResource, ResourceType FROM Msvm_StorageAllocationSettingData WHERE ResourceType = 31 OR ResourceType = 16";
         private const string QuerySettings = "SELECT ConfigurationID, VirtualSystemSubType, Version FROM Msvm_VirtualSystemSettingData WHERE VirtualSystemType = 'Microsoft:Hyper-V:System:Realized'";
         private const string QueryGpuPvSettings = "SELECT InstanceID, HostResource FROM Msvm_GpuPartitionSettingData";
         private const string QueryPartitionableGpus = "SELECT Name FROM Msvm_PartitionableGpu";
@@ -24,7 +24,8 @@ namespace ExHyperV.Services
             var diskTask = WmiTools.QueryAsync(QueryDiskAllocations, obj => new {
                 InstanceID = obj["InstanceID"]?.ToString() ?? "",
                 Parent = obj["Parent"]?.ToString() ?? "",
-                Paths = obj["HostResource"] as string[]
+                Paths = obj["HostResource"] as string[],
+                ResourceType = Convert.ToInt32(obj["ResourceType"] ?? 0)
             });
 
             var summaryTask = WmiTools.QueryAsync(QuerySummary, obj => {
@@ -114,12 +115,32 @@ namespace ExHyperV.Services
                     var vmInfo = new VmInstanceInfo(vmId, s.Name);
 
                     var myDisks = allDiskAllocations.Where(d => d.Parent.ToUpper().Contains(vmGuidKey) || d.InstanceID.ToUpper().Contains(vmGuidKey)).ToList();
+
                     foreach (var d in myDisks)
                     {
                         if (d.Paths != null && d.Paths.Length > 0)
                         {
                             string path = d.Paths[0].Replace("\"", "").Trim();
-                            if (!path.EndsWith(".iso", StringComparison.OrdinalIgnoreCase))
+                            bool isIso = path.EndsWith(".iso", StringComparison.OrdinalIgnoreCase);
+
+                            if (isIso || d.ResourceType == 16)
+                            {
+                                if (File.Exists(path))
+                                {
+                                    long isoSize = 0;
+                                    try { isoSize = new FileInfo(path).Length; } catch { }
+
+                                    vmInfo.Disks.Add(new VmDiskDetails
+                                    {
+                                        Name = Path.GetFileName(path),
+                                        Path = path,
+                                        CurrentSize = isoSize,
+                                        MaxSize = isoSize,
+                                        DiskType = "ISO"
+                                    });
+                                }
+                            }
+                            else
                             {
                                 var (current, max, diskType) = GetDiskSizes(path);
                                 if (max > 0)

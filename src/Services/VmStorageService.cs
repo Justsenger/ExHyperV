@@ -202,7 +202,7 @@ namespace ExHyperV.Services
                                                 {
                                                     try
                                                     {
-                                                        driveItem.DiskSizeGB = Math.Round(new FileInfo(driveItem.PathOrDiskNumber).Length / 1073741824.0, 2);
+                                                        driveItem.DiskSizeGB = new FileInfo(driveItem.PathOrDiskNumber).Length / 1073741824.0;
                                                     }
                                                     catch { }
                                                 }

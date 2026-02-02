@@ -52,7 +52,7 @@
                                 </ui:FontIcon.RenderTransform>
                             </ui:FontIcon>
                             <StackPanel VerticalAlignment="Center">
-                                <TextBlock Text="处理器" FontSize="16" FontWeight="SemiBold"/>
+                                <TextBlock Text="处理器" FontSize="16" />
                                 <TextBlock Text="虚拟机处理器的监控与设置" FontSize="12" Opacity="0.6" Margin="0,2,0,0" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
                             </StackPanel>
                         </StackPanel>
@@ -94,7 +94,7 @@
                                                 <TextBlock Text="{Binding CoreId}" FontSize="10" Opacity="0.5" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
                                             </StackPanel>
                                             <!-- 文字阴影和颜色保持原样 -->
-                                            <TextBlock x:Name="UsageText" Text="{Binding Usage, StringFormat='{}{0:N1}%'}" FontSize="18" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" Effect="{StaticResource TextShadow}" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                                            <TextBlock x:Name="UsageText" Text="{Binding Usage, StringFormat='{}{0:N1}%'}" FontSize="18"  HorizontalAlignment="Center" VerticalAlignment="Center" Effect="{StaticResource TextShadow}" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
                                             <TextBlock x:Name="OffText" Text="OFF" FontSize="24" FontWeight="Bold" Opacity="0.2" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Visibility="Collapsed"/>
                                         </Grid>
                                     </Border>
@@ -128,7 +128,7 @@
                         <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
                             <ui:FontIcon FontSize="24" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xEEA0;" Margin="-5,0,12,0"/>
                             <StackPanel VerticalAlignment="Center">
-                                <TextBlock Text="内存" FontSize="16" FontWeight="SemiBold"/>
+                                <TextBlock Text="内存" FontSize="16" />
                                 <TextBlock Text="虚拟机内存使用与动态分配情况" FontSize="12" Opacity="0.6" Margin="0,2,0,0" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
                             </StackPanel>
                         </StackPanel>
@@ -210,7 +210,7 @@
                         <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
                             <ui:FontIcon FontSize="22" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xEDA2;" Margin="-5,0,12,0" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
                             <StackPanel VerticalAlignment="Center">
-                                <TextBlock Text="存储" FontSize="16" FontWeight="SemiBold" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                                <TextBlock Text="存储" FontSize="16"  Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
                                 <TextBlock Text="虚拟磁盘容量与占用情况" FontSize="12" Opacity="0.6" Margin="0,2,0,0" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
                             </StackPanel>
                         </StackPanel>
@@ -242,22 +242,43 @@
                                             <!-- 右侧内容列 -->
                                         </Grid.ColumnDefinitions>
 
-                                        <!-- 【修改后】 添加 FontFamily -->
                                         <ui:FontIcon Grid.Column="0" 
-             Glyph="&#xEC59;" 
              FontFamily="{DynamicResource SegoeFluentIcons}"
              FontSize="28" 
              VerticalAlignment="Center" 
              Margin="0,0,16,0" 
              Opacity="0.8"
-             Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+             Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}">
+                                            <ui:FontIcon.Style>
+                                                <Style TargetType="ui:FontIcon">
+                                                    <!-- 默认图标：硬盘 (&#xEC59;) -->
+                                                    <Setter Property="Glyph" Value="&#xEC59;"/>
+                                                    <Style.Triggers>
+                                                        <!-- 对应 VmQueryService.cs 第 173 行: DiskType = "ISO" -->
+                                                        <DataTrigger Binding="{Binding DiskType}" Value="ISO">
+                                                            <Setter Property="Glyph" Value="&#xE958;"/>
+                                                        </DataTrigger>
+
+                                                        <!-- 防御性编程：如果还有旧逻辑返回 DvdDrive -->
+                                                        <DataTrigger Binding="{Binding DiskType}" Value="DvdDrive">
+                                                            <Setter Property="Glyph" Value="&#xE958;"/>
+                                                        </DataTrigger>
+
+                                                        <!-- 对应 ResourceType=16 但不是 .iso 结尾的情况 -->
+                                                        <DataTrigger Binding="{Binding DiskType}" Value="DVD">
+                                                            <Setter Property="Glyph" Value="&#xE958;"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </ui:FontIcon.Style>
+                                        </ui:FontIcon>
                                         <!-- 第 1 列：所有文本和进度条信息 -->
                                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                             <!-- 1. 顶部：名称和类型标签 -->
                                             <Grid>
                                                 <!-- 【修改】只保留名称，移除了路径和分隔符 -->
                                                 <TextBlock Text="{Binding Name}" 
-                                                           FontWeight="SemiBold" 
+                                                            
                                                            FontSize="14" 
                                                            TextTrimming="CharacterEllipsis"
                                                            VerticalAlignment="Center"
@@ -294,7 +315,7 @@
                                                 <TextBlock Grid.Column="1" 
                                                            Text="{Binding UsageText}" 
                                                            FontSize="12" 
-                                                           FontWeight="SemiBold" 
+                                                            
                                                            Margin="12,0,0,0" 
                                                            VerticalAlignment="Center"
                                                            Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
