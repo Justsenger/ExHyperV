@@ -1,9 +1,14 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.IO;
+using System.Linq;
 using System.Windows;
 using System.Windows.Media;
-using System.Linq;
+using ExHyperV.Properties;
+using ExHyperV.Tools;
 
 namespace ExHyperV.Models
 {
@@ -32,8 +37,8 @@ namespace ExHyperV.Models
         [ObservableProperty] private long _currentSize;
         [ObservableProperty] private long _maxSize;
 
-        public double UsagePercentage => MaxSize > 0 ? (double)CurrentSize / MaxSize * 100 : 0;
-        public string UsageText => $"{FormatBytes(CurrentSize)} / {FormatBytes(MaxSize)}";
+        public double UsagePercentage => _maxSize > 0 ? (double)_currentSize / _maxSize * 100 : 0;
+        public string UsageText => $"{FormatBytes(_currentSize)} / {FormatBytes(_maxSize)}";
 
         private string FormatBytes(long bytes)
         {
@@ -47,6 +52,60 @@ namespace ExHyperV.Models
                 i++;
             }
             return $"{dblSByte:0.##} {suffixes[i]}";
+        }
+    }
+
+    public class VmStorageSlot
+    {
+        public string ControllerType { get; set; } = "SCSI";
+        public int ControllerNumber { get; set; } = 0;
+        public int Location { get; set; } = 0;
+    }
+
+    public partial class VmStorageItem : ObservableObject
+    {
+        [ObservableProperty] private string _driveType;
+        [ObservableProperty] private string _diskType;
+        [ObservableProperty] private string _pathOrDiskNumber;
+        [ObservableProperty] private int _controllerLocation;
+        [ObservableProperty] private string _controllerType;
+        [ObservableProperty] private int _controllerNumber;
+
+        [ObservableProperty] private int _diskNumber;
+        [ObservableProperty] private string _diskModel;
+        [ObservableProperty] private double _diskSizeGB;
+        [ObservableProperty] private string _serialNumber;
+
+        public string DisplayName
+        {
+            get
+            {
+                if (_diskType == "Physical" && !string.IsNullOrEmpty(_diskModel))
+                    return _diskModel;
+
+                if (_diskType == "Virtual" && !string.IsNullOrEmpty(_pathOrDiskNumber))
+                {
+                    try { return Path.GetFileName(_pathOrDiskNumber); }
+                    catch { return Resources.Model_Drive_VirtualDisk; }
+                }
+
+                return _driveType == "HardDisk" ? Resources.Model_Drive_VirtualHardDisk : Resources.Model_Drive_OpticalDrive;
+            }
+        }
+
+        public string SourceTypeDisplayName => _diskType == "Physical" ? Resources.Model_Drive_SourcePhysical : Resources.Model_Drive_SourceVirtual;
+
+        public string Icon => _driveType == "HardDisk" ? "\uEDA2" : "\uE958";
+
+        public string SizeDisplay
+        {
+            get
+            {
+                if (_diskSizeGB <= 0) return "";
+                const long bytesPerGb = 1024L * 1024L * 1024L;
+                long totalBytes = (long)(_diskSizeGB * bytesPerGb);
+                return Utils.FormatBytes(totalBytes);
+            }
         }
     }
 
@@ -74,14 +133,14 @@ namespace ExHyperV.Models
         public void Restore(VmMemorySettings other)
         {
             if (other == null) return;
-            Startup = other.Startup;
-            DynamicMemoryEnabled = other.DynamicMemoryEnabled;
-            Minimum = other.Minimum;
-            Maximum = other.Maximum;
-            Buffer = other.Buffer;
-            Priority = other.Priority;
-            BackingPageSize = other.BackingPageSize;
-            MemoryEncryptionPolicy = other.MemoryEncryptionPolicy;
+            _startup = other.Startup;
+            _dynamicMemoryEnabled = other.DynamicMemoryEnabled;
+            _minimum = other.Minimum;
+            _maximum = other.Maximum;
+            _buffer = other.Buffer;
+            _priority = other.Priority;
+            _backingPageSize = other.BackingPageSize;
+            _memoryEncryptionPolicy = other.MemoryEncryptionPolicy;
         }
     }
 
@@ -106,20 +165,20 @@ namespace ExHyperV.Models
         public void Restore(VmProcessorSettings other)
         {
             if (other == null) return;
-            Count = other.Count;
-            Reserve = other.Reserve;
-            Maximum = other.Maximum;
-            RelativeWeight = other.RelativeWeight;
-            ExposeVirtualizationExtensions = other.ExposeVirtualizationExtensions;
-            EnableHostResourceProtection = other.EnableHostResourceProtection;
-            CompatibilityForMigrationEnabled = other.CompatibilityForMigrationEnabled;
-            CompatibilityForOlderOperatingSystemsEnabled = other.CompatibilityForOlderOperatingSystemsEnabled;
-            SmtMode = other.SmtMode;
-            DisableSpeculationControls = other.DisableSpeculationControls;
-            HideHypervisorPresent = other.HideHypervisorPresent;
-            EnablePerfmonArchPmu = other.EnablePerfmonArchPmu;
-            AllowAcountMcount = other.AllowAcountMcount;
-            EnableSocketTopology = other.EnableSocketTopology;
+            _count = other.Count;
+            _reserve = other.Reserve;
+            _maximum = other.Maximum;
+            _relativeWeight = other.RelativeWeight;
+            _exposeVirtualizationExtensions = other.ExposeVirtualizationExtensions;
+            _enableHostResourceProtection = other.EnableHostResourceProtection;
+            _compatibilityForMigrationEnabled = other.CompatibilityForMigrationEnabled;
+            _compatibilityForOlderOperatingSystemsEnabled = other.CompatibilityForOlderOperatingSystemsEnabled;
+            _smtMode = other.SmtMode;
+            _disableSpeculationControls = other.DisableSpeculationControls;
+            _hideHypervisorPresent = other.HideHypervisorPresent;
+            _enablePerfmonArchPmu = other.EnablePerfmonArchPmu;
+            _allowAcountMcount = other.AllowAcountMcount;
+            _enableSocketTopology = other.EnableSocketTopology;
         }
     }
 
@@ -142,6 +201,7 @@ namespace ExHyperV.Models
         [ObservableProperty] private int _cpuCount;
 
         public ObservableCollection<VmDiskDetails> Disks { get; } = new();
+        public ObservableCollection<VmStorageItem> StorageItems { get; } = new();
 
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(ConfigSummary))]
@@ -154,7 +214,7 @@ namespace ExHyperV.Models
         [ObservableProperty] private string _guestControlled;
         [ObservableProperty] private string _gpuName;
 
-        public bool HasGpu => !string.IsNullOrEmpty(GpuName);
+        public bool HasGpu => !string.IsNullOrEmpty(_gpuName);
         partial void OnGpuNameChanged(string value) => OnPropertyChanged(nameof(HasGpu));
 
         [ObservableProperty] private Dictionary<string, string> _gPUs = new();
@@ -182,25 +242,25 @@ namespace ExHyperV.Models
         private readonly LinkedList<double> _memoryUsageHistory = new();
         private const int MaxHistoryLength = 60;
 
-        public string MemoryUsageString => AssignedMemoryGb.ToString("N1");
-        public string MemoryDemandString => DemandMemoryGb.ToString("N1");
+        public string MemoryUsageString => _assignedMemoryGb.ToString("N1");
+        public string MemoryDemandString => _demandMemoryGb.ToString("N1");
 
         public string MemoryLimitString
         {
             get
             {
-                if (MemorySettings != null)
+                if (_memorySettings != null)
                 {
-                    double limitMb = MemorySettings.DynamicMemoryEnabled ? MemorySettings.Maximum : MemorySettings.Startup;
+                    double limitMb = _memorySettings.DynamicMemoryEnabled ? _memorySettings.Maximum : _memorySettings.Startup;
                     return (limitMb / 1024.0).ToString("N1");
                 }
-                return MemoryGb > 0 ? MemoryGb.ToString("N1") : "0.0";
+                return _memoryGb > 0 ? _memoryGb.ToString("N1") : "0.0";
             }
         }
 
         public void UpdateMemoryStatus(long assignedMb, int availablePercent)
         {
-            if (!IsRunning || assignedMb == 0)
+            if (!_isRunning || assignedMb == 0)
             {
                 AssignedMemoryGb = 0; DemandMemoryGb = 0; AvailableMemoryPercent = 0; MemoryPressure = 0;
                 UpdateHistoryPoints(0); return;
@@ -260,7 +320,7 @@ namespace ExHyperV.Models
                         .OrderByDescending(g => g)
                         .Select(g => g >= 1 ? $"{g:0.#}G" : $"{g * 1024:0}M"));
                 }
-                return $"{CpuCount} Cores / {MemoryGb:0.#}GB RAM / {diskPart}";
+                return $"{_cpuCount} Cores / {_memoryGb:0.#}GB RAM / {diskPart}";
             }
         }
 
@@ -300,7 +360,7 @@ namespace ExHyperV.Models
 
         public void TickUptime()
         {
-            if (!IsRunning) { Uptime = "00:00:00"; return; }
+            if (!_isRunning) { Uptime = "00:00:00"; return; }
             var currentTotal = _anchorUptime + (DateTime.Now - _anchorLocalTime);
             Uptime = currentTotal.TotalDays >= 1
                 ? $"{(int)currentTotal.TotalDays}.{currentTotal.Hours:D2}:{currentTotal.Minutes:D2}:{currentTotal.Seconds:D2}"

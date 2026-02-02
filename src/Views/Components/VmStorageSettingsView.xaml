@@ -4,111 +4,185 @@
              xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             mc:Ignorable="d" d:DesignHeight="800" d:DesignWidth="1000">
+             xmlns:vm="clr-namespace:ExHyperV.ViewModels"
+             xmlns:properties="clr-namespace:ExHyperV.Properties"
+             xmlns:converters="clr-namespace:ExHyperV.Converters"
+             mc:Ignorable="d" d:DesignHeight="800" d:DesignWidth="1000"
+             d:DataContext="{d:DesignInstance vm:VirtualMachinesPageViewModel}">
+
+    <UserControl.Resources>
+        <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        <converters:InverseBooleanConverter x:Key="InverseBooleanConverter"/>
+        <converters:EqualityConverter x:Key="EqualityConverter" />
+    </UserControl.Resources>
 
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
-            <!-- 标题 -->
+            <!-- 标题栏 -->
             <RowDefinition Height="Auto"/>
-            <!-- 加载条 -->
+            <!-- 进度条 -->
             <RowDefinition Height="*"/>
-            <!-- 内容 -->
+            <!-- 列表内容 -->
         </Grid.RowDefinitions>
 
-        <!-- 1. 顶部标题栏 -->
+        <!-- 1. 标题栏 -->
         <Grid Grid.Row="0" Margin="24,16,24,12">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
-            <TextBlock Text="存储设置" FontSize="20" FontWeight="Regular" VerticalAlignment="Center" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
-            <ui:Button Grid.Column="1" Appearance="Transparent" Padding="8" Command="{Binding GoBackToDashboardCommand}">
-                <ui:SymbolIcon Symbol="ArrowLeft24" FontSize="18"/>
-            </ui:Button>
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <TextBlock Text="{x:Static properties:Resources.Storage_Settings}" FontSize="20" FontWeight="SemiBold" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+            </StackPanel>
+
+            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                <ui:Button Icon="{ui:SymbolIcon Symbol=Add24}" 
+           ToolTip="{x:Static properties:Resources.Storage_AddStorage}"
+           Appearance="Primary" 
+           Margin="0,0,12,0"
+           Command="{Binding GoToAddStorageCommand}" />
+
+                <ui:Button Appearance="Transparent" Padding="8" Command="{Binding GoBackToDashboardCommand}">
+                    <ui:SymbolIcon Symbol="ArrowLeft24" FontSize="18"/>
+                </ui:Button>
+            </StackPanel>
         </Grid>
+        
+        <!-- 2. 加载进度条 -->
+        <ProgressBar Grid.Row="1" IsIndeterminate="True" VerticalAlignment="Top" Height="2" Margin="0,-2,0,0"
+                     Visibility="{Binding IsLoadingSettings, Converter={StaticResource BooleanToVisibilityConverter}}"/>
 
-        <!-- 2. 模拟加载进度条 -->
-        <ProgressBar Grid.Row="1" IsIndeterminate="{Binding IsLoadingSettings}" VerticalAlignment="Top" Height="2" Margin="0,-2,0,0"
-                     Visibility="Visible"/>
+        <!-- 3. 内容区域 -->
+        <ScrollViewer Grid.Row="2" Padding="24,0,24,24" VerticalScrollBarVisibility="Auto">
+            <Grid>
+                <!-- 空列表提示：只有当数量为 0 时才显示，且不占位 -->
+                <TextBlock Text="{x:Static properties:Resources.Storage_NoDevicesFound}" 
+                           HorizontalAlignment="Center" 
+                           VerticalAlignment="Center"
+                           Margin="0,100,0,0" 
+                           Opacity="0.4" 
+                           FontSize="14">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <!-- 直接通过 DataTrigger 监控集合数量 -->
+                                <DataTrigger Binding="{Binding SelectedVm.StorageItems.Count}" Value="0">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
 
-        <!-- 3. 主滚动区域 -->
-        <ScrollViewer Grid.Row="2" Padding="24,12,24,24" VerticalScrollBarVisibility="Auto">
-            <StackPanel>
-
-                <!-- 磁盘列表区域 -->
-                <TextBlock Text="已挂载的虚拟磁盘" FontSize="14" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" Margin="0,0,0,12"/>
-
-                <!-- 直接绑定你已有的 Disks 集合 -->
-                <ItemsControl ItemsSource="{Binding SelectedVm.Disks}">
+                <!-- 存储项列表 -->
+                <ItemsControl ItemsSource="{Binding SelectedVm.StorageItems}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <ui:Card Margin="0,0,0,12" Padding="16">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto"/>
-                                        <!-- 图标 -->
-                                        <ColumnDefinition Width="*"/>
-                                        <!-- 信息 -->
-                                        <ColumnDefinition Width="Auto"/>
-                                        <!-- 操作 -->
-                                    </Grid.ColumnDefinitions>
+                            <ui:CardExpander Margin="0,0,0,8" IsExpanded="True" ContentPadding="0" Padding="12,8">
+                                <ui:CardExpander.Header>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
 
-                                    <ui:FontIcon Glyph="&#xEDA2;" FontSize="28" Margin="0,0,16,0"/>
+                                        <ui:FontIcon Grid.Column="0" Glyph="{Binding Icon}" FontFamily="{StaticResource SegoeFluentIcons}" FontSize="20" VerticalAlignment="Center"/>
 
-                                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="14"/>
-                                        <Grid Margin="0,4,0,0">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="Auto"/>
-                                            </Grid.ColumnDefinitions>
-                                            <TextBox Text="{Binding Path}" IsReadOnly="True" FontSize="12" Opacity="0.7" Margin="0,0,8,0"/>
-                                            <ui:Button Grid.Column="1" Content="浏览..." Padding="12,4"/>
-                                        </Grid>
-                                        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                                            <Border Background="#10888888" CornerRadius="4" Padding="6,2">
-                                                <TextBlock Text="{Binding DiskType}" FontSize="11" Opacity="0.6"/>
-                                            </Border>
-                                            <TextBlock Text="{Binding UsageText}" FontSize="11" Margin="12,0,0,0" VerticalAlignment="Center" Opacity="0.6"/>
+                                        <!-- 修改2：文件名和容量放在同一行 -->
+                                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="16,0,0,0">
+                                            <TextBlock Text="{Binding DisplayName}" FontSize="15" FontWeight="Medium" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+
+                                            <TextBlock FontSize="12" Opacity="0.6" Margin="12,2,0,0" VerticalAlignment="Bottom">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+                                                        <Setter Property="Text" Value="{Binding SizeDisplay}"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding PathOrDiskNumber}" Value="{x:Null}">
+                                                                <Setter Property="Text" Value="{x:Static properties:Resources.Common_Empty}"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding PathOrDiskNumber}" Value="">
+                                                                <Setter Property="Text" Value="{x:Static properties:Resources.Common_Empty}"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
                                         </StackPanel>
-                                    </StackPanel>
 
-                                    <ui:Button Grid.Column="2" Appearance="Transparent" Foreground="{ui:ThemeResource SystemFillColorCriticalBrush}" 
-                                               VerticalAlignment="Top" Icon="{ui:SymbolIcon Symbol=Delete24}"/>
-                                </Grid>
-                            </ui:Card>
+                                        <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="0,0,12,0">
+                                            <ui:Button Content="{x:Static properties:Resources.Common_Modify}" 
+                       Appearance="Secondary" Padding="12,4" Margin="0,0,8,0"
+                       Command="{Binding DataContext.MountIsoCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                       CommandParameter="{Binding}">
+                                                <ui:Button.Style>
+                                                    <Style TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding DriveType}" Value="DvdDrive">
+                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </ui:Button.Style>
+                                            </ui:Button>
+
+                                            <ui:Button Icon="{ui:SymbolIcon Symbol=Delete24}" 
+                       Appearance="Transparent" 
+                       Padding="8,4"
+                       Foreground="{ui:ThemeResource SystemFillColorCriticalBrush}"
+                       Command="{Binding DataContext.RemoveStorageItemCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                       CommandParameter="{Binding}"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </ui:CardExpander.Header>
+                                
+                                <Border Padding="20,16" Background="{ui:ThemeResource ControlFillColorSecondaryBrush}" BorderThickness="0,1,0,0" BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="100"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
+
+                                        <TextBlock Grid.Row="0" Grid.Column="0" Text="{x:Static properties:Resources.Common_Type}" Margin="0,0,0,10" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                                        <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding SourceTypeDisplayName}" Margin="0,0,0,10" FontWeight="Medium"/>
+
+                                        <TextBlock Grid.Row="1" Grid.Column="0" Text="{x:Static properties:Resources.Storage_Slot}" Margin="0,0,0,10" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                                        <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Margin="0,0,0,10">
+                                            <TextBlock Text="{Binding ControllerType}" FontWeight="Medium"/>
+                                            <TextBlock Text=" 控制器 " FontWeight="Medium"/>
+                                            <TextBlock Text="{Binding ControllerNumber}" FontWeight="Medium"/>
+                                            <TextBlock Text=" - 位置 " FontWeight="Medium"/>
+                                            <TextBlock Text="{Binding ControllerLocation}" FontWeight="Medium"/>
+                                        </StackPanel>
+
+                                        <TextBlock Grid.Row="2" Grid.Column="0" Text="{x:Static properties:Resources.Common_Path}" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                                        <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding PathOrDiskNumber}" TextWrapping="Wrap" FontWeight="Medium" Opacity="0.9">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding PathOrDiskNumber}" Value="">
+                                                            <Setter Property="Text" Value="{x:Static properties:Resources.Common_Empty}"/>
+                                                            <Setter Property="Opacity" Value="0.5"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </Grid>
+                                </Border>
+                            </ui:CardExpander>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
-
-                <!-- 模拟添加磁盘按钮 -->
-                <ui:Button HorizontalAlignment="Stretch" Margin="0,4,0,32" Appearance="Secondary" Icon="{ui:SymbolIcon Symbol=Add24}" Content="添加新的虚拟磁盘驱动器"/>
-
-                <!-- 模拟全局管理设置 -->
-                <TextBlock Text="管理设置" FontSize="14" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" Margin="0,0,0,12"/>
-                <ui:Card Padding="16">
-                    <StackPanel>
-                        <TextBlock Text="智能分页文件位置" FontSize="14" FontWeight="SemiBold"/>
-                        <TextBlock Text="当内存不足以启动虚拟机时，用于存放临时分页数据的路径。" FontSize="12" Opacity="0.6" Margin="0,2,0,12"/>
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-                            <!-- 这里的 Text 先随便写一个路径，看效果用 -->
-                            <TextBox Text="C:\ProgramData\Microsoft\Windows\Hyper-V\Snapshots" IsReadOnly="True"/>
-                            <ui:Button Grid.Column="1" Margin="8,0,0,0" Content="更改位置..."/>
-                        </Grid>
-                    </StackPanel>
-                </ui:Card>
-
-                <!-- 底部操作栏 -->
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,32,0,0">
-                    <ui:Button Content="取消更改" Appearance="Transparent" Margin="0,0,12,0"/>
-                    <ui:Button Content="保存所有存储配置" Appearance="Primary" Padding="32,8"/>
-                </StackPanel>
-            </StackPanel>
+            </Grid>
         </ScrollViewer>
     </Grid>
 </UserControl>

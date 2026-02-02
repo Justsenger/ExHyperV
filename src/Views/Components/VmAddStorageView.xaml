@@ -1,0 +1,210 @@
+﻿<UserControl x:Class="ExHyperV.Views.Components.VmAddStorageView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+             xmlns:converters="clr-namespace:ExHyperV.Converters"
+             xmlns:properties="clr-namespace:ExHyperV.Properties"
+             xmlns:vm="clr-namespace:ExHyperV.ViewModels"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignHeight="800" d:DesignWidth="500"
+             d:DataContext="{d:DesignInstance vm:VirtualMachinesPageViewModel}">
+
+    <UserControl.Resources>
+        <converters:EqualityConverter x:Key="EqualityConverter" />
+        <converters:InverseBooleanConverter x:Key="InverseBooleanConverter"/>
+        <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        <converters:EqualityToVisibilityConverter x:Key="EqualityToVisibilityConverter" />
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- 1. 标题栏 -->
+        <Grid Grid.Row="0" Margin="24,16,24,12">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <ui:SymbolIcon Symbol="AddCircle24" Margin="0,0,12,0" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                <TextBlock Text="{x:Static properties:Resources.AddDisk_WindowTitle}" FontSize="20" FontWeight="SemiBold"/>
+            </StackPanel>
+        </Grid>
+
+        <!-- 2. 内容区域 -->
+        <ScrollViewer Grid.Row="1" Margin="15,0,15,0" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <ui:CardExpander Padding="15,8" Margin="0,0,0,8" IsExpanded="False" HorizontalContentAlignment="Stretch">
+                    <ui:CardExpander.Header>
+                        <Grid HorizontalAlignment="Stretch">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="{x:Static properties:Resources.AddDisk_SlotConfig}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                            <CheckBox Grid.Column="1" Content="{x:Static properties:Resources.AddDisk_AutoAssign}" IsChecked="{Binding AutoAssign}" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                        </Grid>
+                    </ui:CardExpander.Header>
+
+                    <Grid IsEnabled="{Binding AutoAssign, Converter={StaticResource InverseBooleanConverter}}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="15"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="15"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="{x:Static properties:Resources.AddDisk_Interface}" VerticalAlignment="Center" Margin="0,0,8,0" FontSize="12" Opacity="0.6"/>
+                        <ComboBox Grid.Column="1" ItemsSource="{Binding AvailableControllerTypes}" SelectedItem="{Binding SelectedControllerType}"/>
+                        <TextBlock Grid.Column="3" Text="{x:Static properties:Resources.AddDisk_Number}" VerticalAlignment="Center" Margin="0,0,8,0" FontSize="12" Opacity="0.6"/>
+                        <ComboBox Grid.Column="4" ItemsSource="{Binding AvailableControllerNumbers}" SelectedItem="{Binding SelectedControllerNumber}"/>
+                        <TextBlock Grid.Column="6" Text="{x:Static properties:Resources.AddDisk_Location}" VerticalAlignment="Center" Margin="0,0,8,0" FontSize="12" Opacity="0.6"/>
+                        <ComboBox Grid.Column="7" ItemsSource="{Binding AvailableLocations}" SelectedItem="{Binding SelectedLocation, Mode=TwoWay}"/>
+                    </Grid>
+                </ui:CardExpander>
+
+                <ui:Card Padding="15" Margin="0,0,0,8">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="{x:Static properties:Resources.AddDisk_Type}" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                            <StackPanel Orientation="Horizontal">
+                                <RadioButton Content="{x:Static properties:Resources.AddDisk_Type_HardDisk}" Margin="0,0,-12,0" IsChecked="{Binding DeviceType, Converter={StaticResource EqualityConverter}, ConverterParameter='HardDisk'}"/>
+                                <RadioButton Content="{x:Static properties:Resources.AddDisk_Type_OpticalDrive}" IsChecked="{Binding DeviceType, Converter={StaticResource EqualityConverter}, ConverterParameter='DvdDrive'}"/>
+                            </StackPanel>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1">
+                            <TextBlock Text="{x:Static properties:Resources.AddDisk_Source}" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                            <StackPanel Orientation="Horizontal">
+                                <RadioButton Content="{x:Static properties:Resources.AddDisk_Source_VirtualFile}" Margin="0,0,-12,0" IsChecked="{Binding IsPhysicalSource, Converter={StaticResource InverseBooleanConverter}}"/>
+                                <RadioButton Content="{x:Static properties:Resources.AddDisk_Source_Physical}" IsChecked="{Binding IsPhysicalSource}"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Grid>
+                </ui:Card>
+
+                <ui:Card Padding="15" Margin="0,0,0,8">
+                    <Grid MinHeight="100">
+                        <StackPanel Visibility="{Binding IsPhysicalSource, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=Inverse}">
+                            <Grid Margin="0,0,0,10">
+                                <TextBlock Text="{x:Static properties:Resources.AddDisk_MediaSelection}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                <CheckBox Content="{x:Static properties:Resources.AddDisk_New}" IsChecked="{Binding IsNewDisk}" HorizontalAlignment="Right"/>
+                            </Grid>
+                            <Grid Margin="0,0,0,10">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <ui:TextBox Text="{Binding FilePath, UpdateSourceTrigger=PropertyChanged}" PlaceholderText="选择或输入文件路径..." VerticalAlignment="Center"/>
+                                <ui:Button Grid.Column="1" Content="{x:Static properties:Resources.Common_Browse}" Margin="10,0,0,0" Width="65" Command="{Binding BrowseFileCommand}"/>
+                            </Grid>
+
+                            <StackPanel>
+                                <StackPanel.Style>
+                                    <Style TargetType="StackPanel">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                        <Style.Triggers>
+                                            <MultiDataTrigger>
+                                                <MultiDataTrigger.Conditions>
+                                                    <Condition Binding="{Binding IsNewDisk}" Value="True"/>
+                                                    <Condition Binding="{Binding DeviceType}" Value="HardDisk"/>
+                                                </MultiDataTrigger.Conditions>
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </MultiDataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </StackPanel.Style>
+                                <Grid Margin="0,0,0,10">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                                        <TextBlock Text="{x:Static properties:Resources.AddDisk_CapacityGB}" FontSize="12" Opacity="0.7" Margin="0,0,0,5"/>
+                                        <ComboBox ItemsSource="{Binding NewDiskSizePresets}" Text="{Binding NewDiskSize, Mode=TwoWay}" IsEditable="True" HorizontalAlignment="Stretch"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1">
+                                        <TextBlock Text="{x:Static properties:Resources.AddDisk_DiskType}" FontSize="12" Opacity="0.7" Margin="0,0,0,5"/>
+                                        <ComboBox SelectedValuePath="Tag" SelectedValue="{Binding SelectedVhdType}" HorizontalAlignment="Stretch">
+                                            <ComboBoxItem Content="{x:Static properties:Resources.AddDisk_VhdType_Dynamic}" Tag="Dynamic"/>
+                                            <ComboBoxItem Content="{x:Static properties:Resources.AddDisk_VhdType_Fixed}" Tag="Fixed"/>
+                                            <ComboBoxItem Content="{x:Static properties:Resources.AddDisk_VhdType_Differencing}" Tag="Differencing"/>
+                                        </ComboBox>
+                                    </StackPanel>
+                                </Grid>
+                            </StackPanel>
+
+                            <StackPanel Visibility="{Binding IsNewDisk, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <StackPanel.Style>
+                                    <Style TargetType="StackPanel">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding DeviceType}" Value="DvdDrive">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </StackPanel.Style>
+                                <TextBlock Text="{x:Static properties:Resources.AddDisk_FileContent}" FontSize="12" Opacity="0.7" Margin="0,0,0,5"/>
+                                <Grid Margin="0,0,0,10">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <ui:TextBox Text="{Binding IsoSourceFolderPath, UpdateSourceTrigger=PropertyChanged}" PlaceholderText="{x:Static properties:Resources.AddDisk_Placeholder_PackageFolder}" VerticalAlignment="Center"/>
+                                    <ui:Button Grid.Column="1" Content="{x:Static properties:Resources.Common_Select}" Margin="10,0,0,0" Command="{Binding BrowseFolderCommand}"/>
+                                </Grid>
+                                <TextBlock Text="{x:Static properties:Resources.AddDisk_VolumeLabel}" FontSize="12" Opacity="0.7" Margin="0,0,0,5"/>
+                                <ui:TextBox Text="{Binding IsoVolumeLabel, UpdateSourceTrigger=PropertyChanged}" PlaceholderText="{x:Static properties:Resources.AddDisk_Placeholder_VolumeLabel}" HorizontalAlignment="Stretch"/>
+                            </StackPanel>
+                        </StackPanel>
+
+                        <Grid Visibility="{Binding IsPhysicalSource, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            <TextBlock Text="{x:Static properties:Resources.AddDisk_NoAvailablePhysical}" HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="0.5"
+                                       Visibility="{Binding AvailableHostDisks.Count, Converter={StaticResource EqualityToVisibilityConverter}, ConverterParameter=0}"/>
+                            <Border BorderThickness="1" BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" CornerRadius="4" MaxHeight="280">
+                                <ui:ListView ItemsSource="{Binding AvailableHostDisks}" SelectedItem="{Binding SelectedPhysicalDisk}">
+                                    <ui:ListView.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid Margin="10,5">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <ui:FontIcon Glyph="&#xEDA2;" FontFamily="{StaticResource SegoeFluentIcons}" FontSize="24" VerticalAlignment="Center"/>
+                                                <StackPanel Grid.Column="1" Margin="12,0,0,0">
+                                                    <TextBlock Text="{Binding FriendlyName}" FontWeight="Medium"/>
+                                                    <StackPanel Orientation="Horizontal" Opacity="0.7">
+                                                        <TextBlock Text="{x:Static properties:Resources.Common_Disk}" Margin="0,0,2,0"/>
+                                                        <TextBlock Text="{Binding Number}"/>
+                                                        <TextBlock Text=" | "/>
+                                                        <TextBlock Text="{Binding SizeGB, StringFormat='{}{0:F2} GB'}"/>
+                                                    </StackPanel>
+                                                </StackPanel>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ui:ListView.ItemTemplate>
+                                </ui:ListView>
+                            </Border>
+                        </Grid>
+                    </Grid>
+                </ui:Card>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- 3. 底部操作栏 -->
+        <Border Grid.Row="2" Padding="24,16" Background="{ui:ThemeResource ControlFillColorSecondaryBrush}" BorderThickness="0,1,0,0" BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <ui:Button Content="{x:Static properties:Resources.sure}" Appearance="Primary" Width="100" Command="{Binding ConfirmAddStorageCommand}"/>
+                <ui:Button Content="{x:Static properties:Resources.cancel}" Width="100" Margin="12,0,0,0" Command="{Binding CancelAddStorageCommand}"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>

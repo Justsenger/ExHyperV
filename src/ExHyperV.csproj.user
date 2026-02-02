@@ -15,6 +15,9 @@
     <Compile Update="Views\ChoosePartitionWindow.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Update="Views\Components\VmAddStorageView.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Update="Views\Components\VmCpuAffinityView.xaml.cs">
       <SubType>Code</SubType>
     </Compile>

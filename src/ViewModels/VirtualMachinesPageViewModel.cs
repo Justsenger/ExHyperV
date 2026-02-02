@@ -1,19 +1,19 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
-using ExHyperV.Models;
-using ExHyperV.Services;
-using ExHyperV.Tools;
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
+using System.ServiceProcess;
 using System.Windows;
 using System.Windows.Data;
 using System.Windows.Media;
 using System.Windows.Threading;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using ExHyperV.Models;
+using ExHyperV.Services;
+using ExHyperV.Tools;
 using Wpf.Ui.Controls;
 
 namespace ExHyperV.ViewModels
 {
-    // 1. 确保枚举中包含 StorageSettings
-    public enum VmDetailViewType { Dashboard, CpuSettings, CpuAffinity, MemorySettings, StorageSettings }
+    public enum VmDetailViewType { Dashboard, CpuSettings, CpuAffinity, MemorySettings, StorageSettings, AddStorage }
 
     public partial class VirtualMachinesPageViewModel : ObservableObject, IDisposable
     {
@@ -22,6 +22,7 @@ namespace ExHyperV.ViewModels
         private readonly VmProcessorService _vmProcessorService;
         private readonly CpuAffinityService _cpuAffinityService;
         private readonly VmMemoryService _vmMemoryService;
+        private readonly VmStorageService _storageService;
 
         private CpuMonitorService _cpuService;
         private CancellationTokenSource _monitoringCts;
@@ -39,6 +40,29 @@ namespace ExHyperV.ViewModels
         [ObservableProperty] private ObservableCollection<VmInstanceInfo> _vmList = new();
         [ObservableProperty] private VmInstanceInfo _selectedVm;
         [ObservableProperty] private VmDetailViewType _currentViewType = VmDetailViewType.Dashboard;
+        [ObservableProperty] private ObservableCollection<HostDiskInfo> _availableHostDisks = new();
+
+        [ObservableProperty] private string _deviceType = "HardDisk";
+        [ObservableProperty] private bool _isPhysicalSource = false;
+        [ObservableProperty] private bool _autoAssign = true;
+        [ObservableProperty] private string _filePath = string.Empty;
+        [ObservableProperty] private bool _isNewDisk = false;
+        [ObservableProperty] private int _newDiskSize = 127;
+        [ObservableProperty] private string _selectedVhdType = "Dynamic";
+        [ObservableProperty] private string _parentPath = string.Empty;
+        [ObservableProperty] private string _sectorFormat = "Default";
+        [ObservableProperty] private string _blockSize = "Default";
+        [ObservableProperty] private string _isoSourceFolderPath = string.Empty;
+        [ObservableProperty] private string _isoVolumeLabel = "NewISO";
+        [ObservableProperty] private HostDiskInfo _selectedPhysicalDisk;
+        [ObservableProperty] private string _selectedControllerType = "SCSI";
+        [ObservableProperty] private int _selectedControllerNumber = 0;
+        [ObservableProperty] private int _selectedLocation = 0;
+
+        public List<string> AvailableControllerTypes { get; } = new() { "SCSI", "IDE" };
+        public ObservableCollection<int> AvailableControllerNumbers { get; } = new() { 0, 1, 2, 3 };
+        public ObservableCollection<int> AvailableLocations { get; } = new();
+        public List<int> NewDiskSizePresets { get; } = new() { 40, 60, 80, 127, 256, 512, 1024 };
 
         public List<string> AvailableOsTypes => Utils.SupportedOsTypes;
         public ObservableCollection<int> PossibleVCpuCounts { get; private set; }
@@ -50,7 +74,14 @@ namespace ExHyperV.ViewModels
             _vmProcessorService = new VmProcessorService();
             _cpuAffinityService = new CpuAffinityService();
             _vmMemoryService = new VmMemoryService();
+            _storageService = new VmStorageService();
+
             InitPossibleCpuCounts();
+
+            for (int i = 0; i < 64; i++)
+            {
+                AvailableLocations.Add(i);
+            }
 
             _uiTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
             _uiTimer.Tick += (s, e) => { foreach (var vm in VmList) vm.TickUptime(); };
@@ -87,8 +118,8 @@ namespace ExHyperV.ViewModels
         [RelayCommand]
         private async Task LoadVmsAsync()
         {
+            if (IsLoading && VmList.Count > 0) return;
             IsLoading = true;
-            VmList.Clear();
             try
             {
                 var finalCollection = await Task.Run(async () => {
@@ -108,10 +139,7 @@ namespace ExHyperV.ViewModels
                             GpuName = vm.GpuName
                         };
 
-                        foreach (var disk in vm.Disks)
-                        {
-                            instance.Disks.Add(disk);
-                        }
+                        foreach (var disk in vm.Disks) instance.Disks.Add(disk);
 
                         instance.SyncBackendData(vm.State, vm.RawUptime);
 
@@ -127,16 +155,21 @@ namespace ExHyperV.ViewModels
                                 Application.Current.Dispatcher.Invoke(() => instance.ClearTransientState());
                                 var realEx = ex;
                                 while (realEx.InnerException != null) { realEx = realEx.InnerException; }
-                                string friendlyMessage = Utils.GetFriendlyErrorMessages(realEx.Message);
-                                ShowSnackbar("操作失败", friendlyMessage, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                                ShowSnackbar("操作失败", Utils.GetFriendlyErrorMessages(realEx.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
                             }
                         });
                         list.Add(instance);
                     }
                     return list;
                 });
+
                 VmList = finalCollection;
-                SelectedVm = VmList.FirstOrDefault();
+
+                if (SelectedVm == null || !VmList.Any(x => x.Name == SelectedVm.Name))
+                {
+                    SelectedVm = VmList.FirstOrDefault();
+                }
+
                 StartMonitoring();
             }
             catch (Exception ex)
@@ -147,6 +180,63 @@ namespace ExHyperV.ViewModels
             {
                 IsLoading = false;
             }
+        }
+
+        [RelayCommand]
+        private void GoToAddStorage()
+        {
+            FilePath = string.Empty;
+            IsNewDisk = false;
+            IsPhysicalSource = false;
+            AutoAssign = true;
+            IsoSourceFolderPath = string.Empty;
+            CurrentViewType = VmDetailViewType.AddStorage;
+        }
+
+        [RelayCommand]
+        private async Task ConfirmAddStorage()
+        {
+            if (SelectedVm == null) return;
+            string target = IsPhysicalSource ? SelectedPhysicalDisk?.Number.ToString() : FilePath;
+            if (string.IsNullOrEmpty(target) && !IsNewDisk) return;
+
+            await AddDriveWrapperAsync(
+                DeviceType,
+                IsPhysicalSource,
+                target,
+                IsNewDisk,
+                NewDiskSize,
+                SelectedVhdType,
+                ParentPath,
+                IsoSourceFolderPath,
+                IsoVolumeLabel);
+
+            CurrentViewType = VmDetailViewType.StorageSettings;
+        }
+
+        [RelayCommand]
+        private void CancelAddStorage() => CurrentViewType = VmDetailViewType.StorageSettings;
+
+        [RelayCommand]
+        private void BrowseFile()
+        {
+            var dialog = new Microsoft.Win32.OpenFileDialog();
+            dialog.Filter = DeviceType == "HardDisk" ? "虚拟磁盘 (*.vhdx;*.vhd)|*.vhdx;*.vhd" : "镜像文件 (*.iso)|*.iso";
+            if (dialog.ShowDialog() == true) FilePath = dialog.FileName;
+        }
+
+        [RelayCommand]
+        private void BrowseFolder()
+        {
+            var dialog = new Microsoft.Win32.OpenFolderDialog();
+            if (dialog.ShowDialog() == true) IsoSourceFolderPath = dialog.FolderName;
+        }
+
+        [RelayCommand]
+        private void BrowseParentFile()
+        {
+            var dialog = new Microsoft.Win32.OpenFileDialog { Filter = "虚拟磁盘 (*.vhdx;*.vhd)|*.vhdx;*.vhd" };
+            if (dialog.ShowDialog() == true) ParentPath = dialog.FileName;
         }
 
         [RelayCommand]
@@ -263,13 +353,7 @@ namespace ExHyperV.ViewModels
 
         private async void MemorySettings_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
-            var fastTrackProps = new[]
-            {
-                nameof(VmMemorySettings.BackingPageSize),
-                nameof(VmMemorySettings.DynamicMemoryEnabled),
-                nameof(VmMemorySettings.MemoryEncryptionPolicy)
-            };
-
+            var fastTrackProps = new[] { nameof(VmMemorySettings.BackingPageSize), nameof(VmMemorySettings.DynamicMemoryEnabled), nameof(VmMemorySettings.MemoryEncryptionPolicy) };
             if (fastTrackProps.Contains(e.PropertyName))
             {
                 if (IsLoadingSettings || SelectedVm == null || SelectedVm.IsRunning || SelectedVm.MemorySettings == null)
@@ -284,10 +368,7 @@ namespace ExHyperV.ViewModels
                         ShowSnackbar("自动应用失败", result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
                         await GoToMemorySettings();
                     }
-                    else
-                    {
-                        OnPropertyChanged(nameof(SelectedVm));
-                    }
+                    else OnPropertyChanged(nameof(SelectedVm));
                 }
                 finally
                 {
@@ -312,17 +393,106 @@ namespace ExHyperV.ViewModels
             finally { IsLoadingSettings = false; }
         }
 
-        // 2. 新增：存储设置跳转命令（仅切换 UI）
         [RelayCommand]
         private async Task GoToStorageSettings()
         {
             if (SelectedVm == null) return;
             CurrentViewType = VmDetailViewType.StorageSettings;
 
-            // 模拟一个加载过程，为了看 UI 效果
+            // 关键改动：仅在存储列表为空时才加载数据
+            if (SelectedVm.StorageItems.Count == 0)
+            {
+                IsLoadingSettings = true;
+                try
+                {
+                    await _storageService.LoadVmStorageItemsAsync(SelectedVm);
+                    await LoadHostDisksAsync();
+                }
+                catch (Exception ex) { ShowSnackbar("加载存储失败", Utils.GetFriendlyErrorMessages(ex.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24); }
+                finally { IsLoadingSettings = false; }
+            }
+            // 如果数据已存在，则什么都不做，直接切换视图
+        }
+        private async Task LoadHostDisksAsync()
+        {
+            try
+            {
+                var disks = await _storageService.GetHostDisksAsync();
+                Application.Current.Dispatcher.Invoke(() => AvailableHostDisks = new ObservableCollection<HostDiskInfo>(disks));
+            }
+            catch { }
+        }
+
+        [RelayCommand]
+        private async Task RemoveStorageItem(VmStorageItem item)
+        {
+            if (SelectedVm == null || item == null) return;
             IsLoadingSettings = true;
-            await Task.Delay(300);
-            IsLoadingSettings = false;
+            try
+            {
+                var result = await _storageService.RemoveDriveAsync(SelectedVm.Name, item);
+                if (result.Success)
+                {
+                    ShowSnackbar("成功", result.Message == "Storage_Msg_Ejected" ? "光盘已弹出" : "设备已移除", ControlAppearance.Success, SymbolRegular.CheckmarkCircle24);
+                    await _storageService.LoadVmStorageItemsAsync(SelectedVm);
+                }
+                else ShowSnackbar("移除失败", result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+            }
+            catch (Exception ex) { ShowSnackbar("错误", Utils.GetFriendlyErrorMessages(ex.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24); }
+            finally { IsLoadingSettings = false; }
+        }
+
+        [RelayCommand]
+        private async Task MountIso(VmStorageItem driveItem)
+        {
+            if (SelectedVm == null || driveItem == null || driveItem.DriveType != "DvdDrive") return;
+            var openFileDialog = new Microsoft.Win32.OpenFileDialog { Filter = "Disk Images (*.iso)|*.iso|All files (*.*)|*.*" };
+            if (openFileDialog.ShowDialog() == true)
+            {
+                IsLoadingSettings = true;
+                try
+                {
+                    var result = await _storageService.ModifyDvdDrivePathAsync(SelectedVm.Name, driveItem.ControllerNumber, driveItem.ControllerLocation, openFileDialog.FileName);
+                    if (result.Success)
+                    {
+                        ShowSnackbar("挂载成功", "ISO 已挂载", ControlAppearance.Success, SymbolRegular.CheckmarkCircle24);
+                        await _storageService.LoadVmStorageItemsAsync(SelectedVm);
+                    }
+                    else ShowSnackbar("挂载失败", result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                }
+                finally { IsLoadingSettings = false; }
+            }
+        }
+
+        public async Task AddDriveWrapperAsync(string driveType, bool isPhysical, string pathOrNumber, bool isNew, int sizeGb = 127, string vhdType = "Dynamic", string parentPath = "", string isoSourcePath = null, string isoVolumeLabel = null)
+        {
+            if (SelectedVm == null) return;
+            IsLoadingSettings = true;
+            try
+            {
+                VmStorageSlot slot;
+                if (AutoAssign)
+                {
+                    var (type, number, location) = await _storageService.GetNextAvailableSlotAsync(SelectedVm.Name, driveType);
+                    slot = new VmStorageSlot { ControllerType = type, ControllerNumber = number, Location = location };
+                }
+                else
+                {
+                    slot = new VmStorageSlot { ControllerType = SelectedControllerType, ControllerNumber = SelectedControllerNumber, Location = SelectedLocation };
+                }
+                if (isPhysical && int.TryParse(pathOrNumber, out int diskNum)) await _storageService.SetDiskOfflineStatusAsync(diskNum, true);
+
+                var result = await _storageService.AddDriveAsync(SelectedVm.Name, slot.ControllerType, slot.ControllerNumber, slot.Location, driveType, pathOrNumber, isPhysical, isNew, sizeGb, vhdType, parentPath, isoSourcePath, isoVolumeLabel);
+
+                if (result.Success)
+                {
+                    ShowSnackbar("添加成功", $"设备已连接到 {result.ActualType} {result.ActualNumber}:{result.ActualLocation}", ControlAppearance.Success, SymbolRegular.CheckmarkCircle24);
+                    await _storageService.LoadVmStorageItemsAsync(SelectedVm);
+                }
+                else ShowSnackbar("添加失败", result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+            }
+            catch (Exception ex) { ShowSnackbar("异常", Utils.GetFriendlyErrorMessages(ex.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24); }
+            finally { IsLoadingSettings = false; }
         }
 
         [ObservableProperty] private ObservableCollection<VmCoreModel> _affinityHostCores;
@@ -363,7 +533,9 @@ namespace ExHyperV.ViewModels
         }
 
         [RelayCommand] private void GoBackToDashboard() => CurrentViewType = VmDetailViewType.Dashboard;
-        partial void OnSelectedVmChanged(VmInstanceInfo value) { CurrentViewType = VmDetailViewType.Dashboard; _originalSettingsCache = null; }
+
+        partial void OnSelectedVmChanged(VmInstanceInfo value) { CurrentViewType = VmDetailViewType.Dashboard; _originalSettingsCache = null; AvailableHostDisks.Clear(); }
+
         partial void OnSearchTextChanged(string value) { var view = CollectionViewSource.GetDefaultView(VmList); if (view != null) { view.Filter = item => (item is VmInstanceInfo vm) && (string.IsNullOrEmpty(value) || vm.Name.Contains(value, StringComparison.OrdinalIgnoreCase)); view.Refresh(); } }
 
         private void StartMonitoring() { if (_monitoringCts != null) return; _monitoringCts = new CancellationTokenSource(); _cpuTask = Task.Run(() => MonitorCpuLoop(_monitoringCts.Token)); _stateTask = Task.Run(() => MonitorStateLoop(_monitoringCts.Token)); }
@@ -373,12 +545,7 @@ namespace ExHyperV.ViewModels
             try { _cpuService = new CpuMonitorService(); } catch { return; }
             while (!token.IsCancellationRequested)
             {
-                try
-                {
-                    var rawData = _cpuService.GetCpuUsage();
-                    Application.Current.Dispatcher.Invoke(() => ProcessAndApplyCpuUpdates(rawData));
-                    await Task.Delay(1000, token);
-                }
+                try { var rawData = _cpuService.GetCpuUsage(); Application.Current.Dispatcher.Invoke(() => ProcessAndApplyCpuUpdates(rawData)); await Task.Delay(1000, token); }
                 catch (TaskCanceledException) { break; }
                 catch { await Task.Delay(5000, token); }
             }
@@ -393,9 +560,7 @@ namespace ExHyperV.ViewModels
                 {
                     var updates = await _queryService.GetVmListAsync();
                     var memoryMap = await _queryService.GetVmRuntimeMemoryDataAsync();
-
-                    Application.Current.Dispatcher.Invoke(() =>
-                    {
+                    Application.Current.Dispatcher.Invoke(() => {
                         foreach (var update in updates)
                         {
                             var vm = VmList.FirstOrDefault(v => v.Name == update.Name);
@@ -405,12 +570,9 @@ namespace ExHyperV.ViewModels
                                 vm.Disks.Clear();
                                 foreach (var disk in update.Disks) vm.Disks.Add(disk);
                                 vm.GpuName = update.GpuName;
-                                if (memoryMap.TryGetValue(vm.Id.ToString(), out var memData))
-                                    vm.UpdateMemoryStatus(memData.AssignedMb, memData.AvailablePercent);
-                                else if (memoryMap.TryGetValue(vm.Id.ToString().ToUpper(), out var memDataUpper))
-                                    vm.UpdateMemoryStatus(memDataUpper.AssignedMb, memDataUpper.AvailablePercent);
-                                else
-                                    vm.UpdateMemoryStatus(0, 0);
+                                if (memoryMap.TryGetValue(vm.Id.ToString(), out var memData)) vm.UpdateMemoryStatus(memData.AssignedMb, memData.AvailablePercent);
+                                else if (memoryMap.TryGetValue(vm.Id.ToString().ToUpper(), out var memDataUpper)) vm.UpdateMemoryStatus(memDataUpper.AssignedMb, memDataUpper.AvailablePercent);
+                                else vm.UpdateMemoryStatus(0, 0);
                             }
                         }
                     });
