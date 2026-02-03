@@ -121,7 +121,7 @@ namespace ExHyperV.Models
 
         public string SourceTypeDisplayName => _diskType == "Physical" ? Resources.Model_Drive_SourcePhysical : Resources.Model_Drive_SourceVirtual;
 
-        public string Icon => _driveType == "HardDisk" ? "\uEDA2" : "\uE958";
+        public string Icon => _driveType == "HardDisk" ? "\uEC59" : "\uE958";
 
         public string SizeDisplay
         {

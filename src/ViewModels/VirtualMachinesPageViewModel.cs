@@ -150,7 +150,37 @@ namespace ExHyperV.ViewModels
             });
         }
 
+
         [RelayCommand]
+        private void OpenFolder(string path)
+        {
+            if (string.IsNullOrWhiteSpace(path)) return;
+
+            try
+            {
+                // 如果是物理磁盘（通常表现为数字），则不执行
+                if (int.TryParse(path, out _)) return;
+
+                if (System.IO.File.Exists(path) || System.IO.Directory.Exists(path))
+                {
+                    // 使用 /select 可以在打开文件夹的同时选中该文件
+                    System.Diagnostics.Process.Start("explorer.exe", $"/select,\"{path}\"");
+                }
+                else
+                {
+                    // 如果文件不存在，尝试只打开父目录
+                    string directory = System.IO.Path.GetDirectoryName(path);
+                    if (System.IO.Directory.Exists(directory))
+                    {
+                        System.Diagnostics.Process.Start("explorer.exe", directory);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+            }
+        }
+            [RelayCommand]
         private async Task LoadVmsAsync()
         {
             if (IsLoading && VmList.Count > 0) return;
@@ -690,6 +720,7 @@ namespace ExHyperV.ViewModels
                 catch { await Task.Delay(3000, token); }
             }
         }
+
         private void ProcessAndApplyCpuUpdates(List<CpuCoreMetric> rawData) { var grouped = rawData.GroupBy(x => x.VmName); foreach (var group in grouped) { var vm = VmList.FirstOrDefault(v => v.Name == group.Key); if (vm == null) continue; vm.AverageUsage = vm.IsRunning ? group.Average(x => x.Usage) : 0; UpdateVmCores(vm, group.ToList()); } }
         private void UpdateVmCores(VmInstanceInfo vm, List<CpuCoreMetric> metrics) { var metricIds = metrics.Select(m => m.CoreId).ToHashSet(); vm.Cores.Where(c => !metricIds.Contains(c.CoreId)).ToList().ForEach(r => vm.Cores.Remove(r)); foreach (var metric in metrics) { var core = vm.Cores.FirstOrDefault(c => c.CoreId == metric.CoreId); if (core == null) { core = new VmCoreModel { CoreId = metric.CoreId }; int idx = 0; while (idx < vm.Cores.Count && vm.Cores[idx].CoreId < metric.CoreId) idx++; vm.Cores.Insert(idx, core); } core.Usage = metric.Usage; UpdateHistory(vm.Name, core); } vm.Columns = LayoutHelper.CalculateOptimalColumns(vm.Cores.Count); vm.Rows = (vm.Cores.Count > 0) ? (int)Math.Ceiling((double)vm.Cores.Count / vm.Columns) : 1; }
         private void UpdateHistory(string vmName, VmCoreModel core) { string key = $"{vmName}_{core.CoreId}"; if (!_historyCache.TryGetValue(key, out var history)) { history = new LinkedList<double>(); for (int k = 0; k < MaxHistoryLength; k++) history.AddLast(0); _historyCache[key] = history; } history.AddLast(core.Usage); if (history.Count > MaxHistoryLength) history.RemoveFirst(); core.HistoryPoints = CalculatePoints(history); }

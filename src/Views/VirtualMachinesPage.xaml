@@ -240,6 +240,7 @@
 
                 <Rectangle Grid.Row="1" Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,12,24,0" Opacity="0.5"/>
 
+                <!-- 找到 VirtualMachinesPage.xaml 中的 ContentControl 部分 -->
                 <ContentControl Grid.Row="2" Content="{Binding DataContext, RelativeSource={RelativeSource AncestorType=Page}}">
                     <ContentControl.Style>
                         <Style TargetType="ContentControl">
@@ -251,6 +252,7 @@
                                 </Setter.Value>
                             </Setter>
                             <Style.Triggers>
+                                <!-- 已有的 CPU 设置触发器 -->
                                 <DataTrigger Binding="{Binding DataContext.CurrentViewType, RelativeSource={RelativeSource AncestorType=Page}}" Value="CpuSettings">
                                     <Setter Property="ContentTemplate">
                                         <Setter.Value>
@@ -260,6 +262,8 @@
                                         </Setter.Value>
                                     </Setter>
                                 </DataTrigger>
+
+                                <!-- 已有的 CPU 亲和性触发器 -->
                                 <DataTrigger Binding="{Binding DataContext.CurrentViewType, RelativeSource={RelativeSource AncestorType=Page}}" Value="CpuAffinity">
                                     <Setter Property="ContentTemplate">
                                         <Setter.Value>
@@ -269,6 +273,8 @@
                                         </Setter.Value>
                                     </Setter>
                                 </DataTrigger>
+
+                                <!-- 已有的内存设置触发器 -->
                                 <DataTrigger Binding="{Binding DataContext.CurrentViewType, RelativeSource={RelativeSource AncestorType=Page}}" Value="MemorySettings">
                                     <Setter Property="ContentTemplate">
                                         <Setter.Value>
@@ -278,11 +284,35 @@
                                         </Setter.Value>
                                     </Setter>
                                 </DataTrigger>
+
+                                <!-- 【新增】存储设置列表触发器 -->
+                                <DataTrigger Binding="{Binding DataContext.CurrentViewType, RelativeSource={RelativeSource AncestorType=Page}}" Value="StorageSettings">
+                                    <Setter Property="ContentTemplate">
+                                        <Setter.Value>
+                                            <DataTemplate>
+                                                <components:VmStorageSettingsView/>
+                                            </DataTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </DataTrigger>
+
+                                <!-- 【新增】添加存储界面触发器 (如果有对应的 View) -->
+                                <DataTrigger Binding="{Binding DataContext.CurrentViewType, RelativeSource={RelativeSource AncestorType=Page}}" Value="AddStorage">
+                                    <Setter Property="ContentTemplate">
+                                        <Setter.Value>
+                                            <DataTemplate>
+                                                <!-- 假设你的添加视图组件名为 VmAddStorageView -->
+                                                <components:VmAddStorageView/>
+                                            </DataTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </DataTrigger>
+
                             </Style.Triggers>
                         </Style>
                     </ContentControl.Style>
                 </ContentControl>
-
+                
                 <Grid Grid.Row="0" Grid.RowSpan="3" Panel.ZIndex="100"
                       Background="{ui:ThemeResource ApplicationBackgroundBrush}" 
                       Visibility="{Binding DataContext.IsLoading, RelativeSource={RelativeSource AncestorType=Page}, Converter={StaticResource BoolToVis}}">

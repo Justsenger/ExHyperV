@@ -33,7 +33,7 @@
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                <TextBlock Text="{x:Static properties:Resources.Storage_Settings}" FontSize="20" FontWeight="SemiBold" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                <TextBlock Text="{x:Static properties:Resources.Storage_Settings}" FontSize="20"  Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
             </StackPanel>
 
             <StackPanel Grid.Column="1" Orientation="Horizontal">
@@ -56,25 +56,6 @@
         <!-- 3. 内容区域 -->
         <ScrollViewer Grid.Row="2" Padding="24,0,24,24" VerticalScrollBarVisibility="Auto">
             <Grid>
-                <!-- 空列表提示：只有当数量为 0 时才显示，且不占位 -->
-                <TextBlock Text="{x:Static properties:Resources.Storage_NoDevicesFound}" 
-                               HorizontalAlignment="Center" 
-                               VerticalAlignment="Center"
-                               Margin="0,100,0,0" 
-                               Opacity="0.4" 
-                               FontSize="14">
-                    <TextBlock.Style>
-                        <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
-                            <Setter Property="Visibility" Value="Collapsed"/>
-                            <Style.Triggers>
-                                <!-- 直接通过 DataTrigger 监控集合数量 -->
-                                <DataTrigger Binding="{Binding SelectedVm.StorageItems.Count}" Value="0">
-                                    <Setter Property="Visibility" Value="Visible"/>
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </TextBlock.Style>
-                </TextBlock>
 
                 <!-- 存储项列表 -->
                 <ItemsControl ItemsSource="{Binding SelectedVm.StorageItems}">
@@ -113,6 +94,29 @@
                                         </StackPanel>
 
                                         <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="0,0,12,0">
+                                            <!-- 新增：打开文件夹按钮 -->
+                                            <ui:Button Icon="{ui:SymbolIcon Symbol=Share24, FontSize=18}" 
+               ToolTip="打开所在文件夹"
+               Appearance="Secondary" 
+               Margin="0,0,8,0"
+               Command="{Binding DataContext.OpenFolderCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+               CommandParameter="{Binding PathOrDiskNumber}">
+                                                <ui:Button.Style>
+                                                    <Style TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                        <Style.Triggers>
+                                                            <!-- 如果路径为空或 null，则不显示该按钮 -->
+                                                            <DataTrigger Binding="{Binding PathOrDiskNumber}" Value="">
+                                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding PathOrDiskNumber}" Value="{x:Null}">
+                                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </ui:Button.Style>
+                                            </ui:Button>
+                                            
                                             <ui:Button Icon="{ui:SymbolIcon Symbol=Edit24, FontSize=18}" 
            ToolTip="{x:Static properties:Resources.Common_Modify}"
            Appearance="Secondary" 
