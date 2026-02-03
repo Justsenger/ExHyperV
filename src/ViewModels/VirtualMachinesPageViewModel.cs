@@ -1038,5 +1038,25 @@ namespace ExHyperV.ViewModels
             }
         }
 
+        [RelayCommand]
+        private void OpenNativeConnect()
+        {
+            if (SelectedVm == null) return;
+
+            try
+            {
+                // 调用系统自带的 vmconnect.exe
+                // 参数1: localhost (宿主机)
+                // 参数2: 虚拟机名称 (建议加引号防止空格导致解析失败)
+                System.Diagnostics.Process.Start("vmconnect.exe", $"localhost \"{SelectedVm.Name}\"");
+            }
+            catch (Exception ex)
+            {
+                ShowSnackbar("启动失败", "无法打开官方连接工具，请确保已安装 Hyper-V 管理组件。",
+                    Wpf.Ui.Controls.ControlAppearance.Danger,
+                    Wpf.Ui.Controls.SymbolRegular.ErrorCircle24);
+            }
+        }
+
     }
 }

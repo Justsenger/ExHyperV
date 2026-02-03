@@ -203,6 +203,14 @@
                         </StackPanel>
 
                         <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Top" HorizontalAlignment="Right">
+                            <ui:Button Content="连接" 
+               Icon="Display24" 
+               Appearance="Secondary" 
+               Padding="16,6" 
+               Height="36" 
+               Margin="0,0,8,0"
+               CornerRadius="8"
+               Command="{Binding DataContext.OpenNativeConnectCommand, RelativeSource={RelativeSource AncestorType=Page}}" />
                             <Border CornerRadius="8" ClipToBounds="True">
                                 <Grid>
                                     <Grid Visibility="Hidden" IsHitTestVisible="False">
