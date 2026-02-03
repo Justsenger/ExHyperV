@@ -388,9 +388,28 @@
                     </Grid>
                 </Border>
 
-                <Grid Margin="0,0,0,0">
-                    <ui:Button Content="{x:Static properties:Resources.sure}" Appearance="Primary" Width="120" HorizontalAlignment="Right"
-                               Command="{Binding ConfirmAddStorageCommand}"/>
+                <Grid Margin="0,24,0,0">
+                    <!-- 左侧：警告提示（仅在插槽无效时显示） -->
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center" 
+                Visibility="{Binding SlotWarningVisibility}">
+                        <ui:SymbolIcon Symbol="Warning24" Foreground="Red" VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding SlotWarningMessage}" 
+                   Foreground="Red" 
+                   FontSize="12" 
+                   Margin="8,0,0,0"
+                   VerticalAlignment="Center"
+                   TextWrapping="Wrap"
+                   MaxWidth="400"/>
+                    </StackPanel>
+
+                    <!-- 右侧：确定按钮 -->
+                    <ui:Button Content="{x:Static properties:Resources.sure}" 
+               Appearance="Primary" 
+               Width="120" 
+               HorizontalAlignment="Right"
+               VerticalAlignment="Center"
+               IsEnabled="{Binding IsSlotValid}"
+               Command="{Binding ConfirmAddStorageCommand}"/>
                 </Grid>
 
             </StackPanel>

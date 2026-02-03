@@ -264,30 +264,38 @@ namespace ExHyperV.Services
         public async Task<(string ControllerType, int ControllerNumber, int Location)> GetNextAvailableSlotAsync(string vmName, string driveType)
         {
             string script = $@"
-    $v = Get-VM -Name '{vmName}'; $ctype = 'IDE'; $cnum = 0; $loc = 0; $found = $false
-    if ($v.Generation -eq 2 -or ($v.Generation -eq 1 -and $v.State -eq 'Running')) {{
-        $ctype = 'SCSI'; $controllers = Get-VMScsiController -VMName '{vmName}' | Sort-Object ControllerNumber
+    $v = Get-VM -Name '{vmName}'; $ctype = 'NONE'; $cnum = -1; $loc = -1; $found = $false
+    # 1代机且没开机时优先 IDE
+    if ($v.Generation -eq 1 -and $v.State -ne 'Running') {{
+        for ($c=0; $c -lt 2; $c++) {{ 
+            $h_loc = @((Get-VMHardDiskDrive -VMName '{vmName}' -ControllerType IDE -ControllerNumber $c).ControllerLocation)
+            $d_loc = @((Get-VMDvdDrive -VMName '{vmName}' -ControllerNumber $c).ControllerLocation)
+            $used = $h_loc + $d_loc
+            for ($i=0; $i -lt 2; $i++) {{ if ($used -notcontains $i) {{ $ctype='IDE'; $cnum=$c; $loc=$i; $found=$true; break }} }} 
+            if ($found) {{ break }} 
+        }}
+    }}
+    # 如果 IDE 满了或者是一代开机状态/二代机，尝试 SCSI
+    if (-not $found) {{
+        $controllers = Get-VMScsiController -VMName '{vmName}' | Sort-Object ControllerNumber
         foreach ($ctrl in $controllers) {{
             $cn = $ctrl.ControllerNumber
             $h_loc = @((Get-VMHardDiskDrive -VMName '{vmName}' -ControllerType SCSI -ControllerNumber $cn).ControllerLocation)
             $d_loc = @((Get-VMDvdDrive -VMName '{vmName}' -ControllerNumber $cn).ControllerLocation)
             $used = $h_loc + $d_loc
-            for ($i=0; $i -lt 64; $i++) {{ if ($used -notcontains $i) {{ $cnum = $cn; $loc = $i; $found = $true; break }} }}
+            for ($i=0; $i -lt 64; $i++) {{ if ($used -notcontains $i) {{ $ctype='SCSI'; $cnum = $cn; $loc = $i; $found = $true; break }} }}
             if ($found) {{ break }}
         }}
-    }} else {{
-        $ctype = 'IDE'; for ($c=0; $c -lt 2; $c++) {{ 
-            $h_loc = @((Get-VMHardDiskDrive -VMName '{vmName}' -ControllerType IDE -ControllerNumber $c).ControllerLocation)
-            $d_loc = @((Get-VMDvdDrive -VMName '{vmName}' -ControllerNumber $c).ControllerLocation)
-            $used = $h_loc + $d_loc
-            for ($i=0; $i -lt 2; $i++) {{ if ($used -notcontains $i) {{ $cnum=$c; $loc=$i; $found=$true; break }} }} 
-            if ($found) {{ break }} 
-        }}
-    }} ""$ctype,$cnum,$loc""";
-            var res = await ExecutePowerShellAsync(script); var parts = res.Trim().Split(',');
-            return parts.Length == 3 ? (parts[0], int.Parse(parts[1]), int.Parse(parts[2])) : ("SCSI", 0, 0);
-        }
+    }}
+    ""$ctype,$cnum,$loc""";
 
+            var res = await ExecutePowerShellAsync(script);
+            var parts = res.Trim().Split(',');
+            if (parts.Length == 3 && parts[0] != "NONE")
+                return (parts[0], int.Parse(parts[1]), int.Parse(parts[2]));
+
+            return ("NONE", -1, -1); // 明确表示没有位置了
+        }
 
         //添加硬盘或光盘
         public async Task<(bool Success, string Message, string ActualType, int ActualNumber, int ActualLocation)> AddDriveAsync(
@@ -307,6 +315,12 @@ namespace ExHyperV.Services
             string script = $@"
                 $ErrorActionPreference = 'Stop'
                 $vmName = '{vmName}'; $v = Get-VM -Name $vmName
+    $targetDisk = Get-VMHardDiskDrive -VMName $vmName -ControllerType '{controllerType}' -ControllerNumber {controllerNumber} -ControllerLocation {location} -ErrorAction SilentlyContinue
+    $targetDvd = Get-VMDvdDrive -VMName $vmName -ControllerNumber {controllerNumber} -ControllerLocation {location} | Where-Object {{ $_.ControllerType -eq '{controllerType}' }}
+    if ($targetDisk -or $targetDvd) {{
+        throw 'Storage_Error_SlotOccupied'
+    }}
+
                 $oldDisk = Get-VMHardDiskDrive -VMName $vmName -ControllerType '{controllerType}' -ControllerNumber {controllerNumber} -ControllerLocation {location} -ErrorAction SilentlyContinue
                 $oldDvd = Get-VMDvdDrive -VMName $vmName -ControllerNumber {controllerNumber} -ControllerLocation {location} | Where-Object {{ $_.ControllerType -eq '{controllerType}' }}
 

@@ -68,7 +68,15 @@ namespace ExHyperV.ViewModels
         [ObservableProperty] private int _selectedControllerNumber = 0;
         [ObservableProperty] private int _selectedLocation = 0;
 
-        public List<string> AvailableControllerTypes { get; } = new() { "SCSI", "IDE" };
+        [ObservableProperty] private string _slotWarningMessage = string.Empty;
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(SlotWarningVisibility))]
+        private bool _isSlotValid = true;
+
+        public Visibility SlotWarningVisibility => IsSlotValid ? Visibility.Collapsed : Visibility.Visible;
+
+
+        public ObservableCollection<string> AvailableControllerTypes { get; } = new();
         public ObservableCollection<int> AvailableControllerNumbers { get; } = new() { 0, 1, 2, 3 };
         public ObservableCollection<int> AvailableLocations { get; } = new();
         public List<int> NewDiskSizePresets { get; } = new() { 32, 64, 128, 256, 512, 1024 };
@@ -78,55 +86,88 @@ namespace ExHyperV.ViewModels
             if (value == "DvdDrive") IsNewDisk = false;
             FilePath = string.Empty;
 
-            // [调试日志 1] UI 线程触发
-            var currentVm = SelectedVm;
-            System.Diagnostics.Debug.WriteLine($"[DEBUG_UI] OnDeviceTypeChanged 触发. 当前类型: {value}. SelectedVm是否为空: {currentVm == null}");
+            // 1. 先根据新设备类型刷新可选控制器
+            RefreshControllerOptions();
 
-            if (currentVm != null)
+            // 2. 再计算插槽
+            if (AutoAssign)
             {
-                System.Diagnostics.Debug.WriteLine($"[DEBUG_UI] SelectedVm.Name: '{currentVm.Name}'");
-            }
-
-            if (AutoAssign && currentVm != null && !string.IsNullOrWhiteSpace(currentVm.Name))
-            {
-                // 关键：在进入 Task 之前捕获变量
-                string targetVmName = currentVm.Name;
-                System.Diagnostics.Debug.WriteLine($"[DEBUG_UI] 准备启动 Task, 捕获到的名称: '{targetVmName}'");
-
-                Task.Run(async () => {
-                    // [调试日志 2] 后台线程开始
-                    System.Diagnostics.Debug.WriteLine($"[DEBUG_TASK] 线程启动. 使用的名称: '{targetVmName}'");
-
-                    try
-                    {
-                        var slot = await _storageService.GetNextAvailableSlotAsync(targetVmName, value);
-
-                        System.Diagnostics.Debug.WriteLine($"[DEBUG_TASK] 获取结果: {slot.ControllerType} {slot.ControllerNumber}:{slot.Location}");
-
-                        Application.Current.Dispatcher.Invoke(() => {
-                            // [调试日志 3] 回到 UI 线程更新
-                            if (SelectedVm?.Name == targetVmName)
-                            {
-                                SelectedControllerType = slot.ControllerType;
-                                SelectedControllerNumber = slot.ControllerNumber;
-                                SelectedLocation = slot.Location;
-                            }
-                            else
-                            {
-                                System.Diagnostics.Debug.WriteLine($"[DEBUG_UI] 警告: 界面已切换 (当前: {SelectedVm?.Name}, 预期: {targetVmName})，放弃更新 UI");
-                            }
-                        });
-                    }
-                    catch (Exception ex)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"[DEBUG_ERROR] Task 内部异常: {ex}");
-                    }
-                });
+                CalculateBestSlot();
             }
             else
             {
-                System.Diagnostics.Debug.WriteLine("[DEBUG_UI] 不满足自动分配条件 (AutoAssign关闭 或 Name为空)");
+                UpdateAvailableLocations();
             }
+        }
+        // 2. 新增一个统一的 C# 逻辑计算最佳插槽，不再依赖后端脚本
+        private void CalculateBestSlot()
+        {
+            if (SelectedVm == null) return;
+
+            bool isGen1 = SelectedVm.Generation == 1;
+            bool isDvd = DeviceType == "DvdDrive";
+
+            // 1代机尝试 IDE
+            if (isGen1)
+            {
+                // 注意：IDE 控制器通常是固定的(2个)，无论是否关机都可以尝试找空位
+                // 但只有关机状态才能“添加”新的驱动器硬件
+                for (int c = 0; c < 2; c++)
+                {
+                    for (int l = 0; l < 2; l++)
+                    {
+                        if (!IsSlotOccupied("IDE", c, l))
+                        {
+                            SetSlot("IDE", c, l);
+                            return;
+                        }
+                    }
+                }
+
+                // 核心修正：如果是 1 代机的光驱，IDE 满了就直接报错，不再向下尝试 SCSI
+                if (isDvd)
+                {
+                    IsSlotValid = false;
+                    SlotWarningMessage = "第 1 代虚拟机的 IDE 控制器已满，无法添加光驱。";
+                    return;
+                }
+            }
+
+            // 尝试寻找 SCSI (2代机全部，或1代机的硬盘)
+            for (int c = 0; c < 4; c++)
+            {
+                for (int l = 0; l < 64; l++)
+                {
+                    if (!IsSlotOccupied("SCSI", c, l))
+                    {
+                        SetSlot("SCSI", c, l);
+                        return;
+                    }
+                }
+            }
+
+            IsSlotValid = false;
+            SlotWarningMessage = "该虚拟机没有可用的存储插槽。";
+        }
+        private bool IsSlotOccupied(string type, int ctrlNum, int loc)
+        {
+            return SelectedVm.StorageItems.Any(i =>
+                i.ControllerType == type &&
+                i.ControllerNumber == ctrlNum &&
+                i.ControllerLocation == loc);
+        }
+
+        private void SetSlot(string type, int ctrlNum, int loc)
+        {
+            // 暂时解除 SelectedControllerType 变化的监听，防止触发 UpdateAvailableLocations
+            _selectedControllerType = type;
+            OnPropertyChanged(nameof(SelectedControllerType));
+
+            SelectedControllerNumber = ctrlNum;
+            SelectedLocation = loc;
+
+            IsSlotValid = true;
+            SlotWarningMessage = string.Empty;
         }
         public string FilePathPlaceholder => DeviceType == "HardDisk"
             ? "选择或输入 .vhdx / .vhd 文件路径"
@@ -140,43 +181,71 @@ namespace ExHyperV.ViewModels
             FilePath = string.Empty; // 切换状态时清空路径，防止混淆
         }
 
+        // 当手动切换控制器类型时
         partial void OnSelectedControllerTypeChanged(string value)
         {
-            // 更新可用位置 (现有逻辑)
-            AvailableLocations.Clear();
-            int maxLocation = (value == "IDE") ? 2 : 64;
-            for (int i = 0; i < maxLocation; i++)
-            {
-                AvailableLocations.Add(i);
-            }
-            SelectedLocation = 0;
+            if (value == null) return;
 
-            // --- 新增的修正逻辑 ---
-            // 根据控制器类型，动态更新可用的控制器编号
+            // 1. 更新控制器编号列表
             AvailableControllerNumbers.Clear();
-            if (value == "IDE")
+            int maxCtrl = (value == "IDE") ? 2 : 4;
+            for (int i = 0; i < maxCtrl; i++) AvailableControllerNumbers.Add(i);
+
+            // 2. 触发位置列表更新
+            UpdateAvailableLocations();
+        }
+
+        // 必须增加：当手动切换控制器编号时
+        partial void OnSelectedControllerNumberChanged(int value)
+        {
+            UpdateAvailableLocations();
+        }
+
+        // 核心：根据已存在的设备过滤可用位置
+        private void UpdateAvailableLocations()
+        {
+            if (SelectedVm == null || string.IsNullOrEmpty(SelectedControllerType)) return;
+            if (AutoAssign) return; // 自动模式不走这个逻辑
+
+            var usedLocations = SelectedVm.StorageItems
+                .Where(i => i.ControllerType == SelectedControllerType && i.ControllerNumber == SelectedControllerNumber)
+                .Select(i => i.ControllerLocation)
+                .ToHashSet();
+
+            int maxLoc = (SelectedControllerType == "IDE") ? 2 : 64;
+
+            AvailableLocations.Clear();
+            for (int i = 0; i < maxLoc; i++)
             {
-                // IDE 控制器只有 0 和 1
-                AvailableControllerNumbers.Add(0);
-                AvailableControllerNumbers.Add(1);
+                if (!usedLocations.Contains(i))
+                {
+                    AvailableLocations.Add(i);
+                }
             }
-            else // 默认为 SCSI
+
+            if (AvailableLocations.Count == 0)
             {
-                // SCSI 控制器有 0, 1, 2, 3
-                AvailableControllerNumbers.Add(0);
-                AvailableControllerNumbers.Add(1);
-                AvailableControllerNumbers.Add(2);
-                AvailableControllerNumbers.Add(3);
+                IsSlotValid = false;
+                SlotWarningMessage = $"控制器 {SelectedControllerType} #{SelectedControllerNumber} 已满";
             }
-            // 重置选中的控制器编号为 0，防止索引越界
-            SelectedControllerNumber = 0;
-            // --- 修正逻辑结束 ---
+            else
+            {
+                // 校验当前选中的 Location 是否有效
+                bool currentlyOccupied = usedLocations.Contains(SelectedLocation);
+                IsSlotValid = !currentlyOccupied;
+                SlotWarningMessage = currentlyOccupied ? "此插槽已被占用" : string.Empty;
+
+                // 如果当前位置无效且列表里有位置，不自动跳转，让用户看清楚
+            }
         }
         public List<string> AvailableOsTypes => Utils.SupportedOsTypes;
         public ObservableCollection<int> PossibleVCpuCounts { get; private set; }
 
         public VirtualMachinesPageViewModel(VmQueryService queryService, VmPowerService powerService)
         {
+            AvailableControllerTypes.Add("SCSI");
+            AvailableControllerTypes.Add("IDE");
+
             _queryService = queryService;
             _powerService = powerService;
             _vmProcessorService = new VmProcessorService();
@@ -324,38 +393,41 @@ namespace ExHyperV.ViewModels
         [RelayCommand]
         private async Task GoToAddStorage()
         {
-            if (SelectedVm == null || string.IsNullOrWhiteSpace(SelectedVm.Name)) return;
+            if (SelectedVm == null) return;
 
-            FilePath = string.Empty;
-            IsNewDisk = false;
-            IsPhysicalSource = false;
-            AutoAssign = true;
-            IsoSourceFolderPath = string.Empty;
-
+            IsLoadingSettings = true;
             try
             {
-                IsLoadingSettings = true;
-                string vmName = SelectedVm.Name;
-                var slot = await _storageService.GetNextAvailableSlotAsync(vmName, DeviceType);
+                await _storageService.LoadVmStorageItemsAsync(SelectedVm);
 
-                SelectedControllerType = slot.ControllerType;
-                SelectedControllerNumber = slot.ControllerNumber;
-                SelectedLocation = slot.Location;
-            }
-            catch
-            {
+                // 刷新控制器选项（根据 Gen 和默认的 HardDisk 类型）
+                RefreshControllerOptions();
+
+                if (AutoAssign) CalculateBestSlot();
+                else UpdateAvailableLocations();
+
+                CurrentViewType = VmDetailViewType.AddStorage;
             }
             finally
             {
                 IsLoadingSettings = false;
             }
-
-            CurrentViewType = VmDetailViewType.AddStorage;
         }
         [RelayCommand]
         private async Task ConfirmAddStorage()
         {
             if (SelectedVm == null) return;
+            // 二次检查：防止在手动模式下用户输入了不存在的地址
+            bool collision = SelectedVm.StorageItems.Any(i =>
+                i.ControllerType == SelectedControllerType &&
+                i.ControllerNumber == SelectedControllerNumber &&
+                i.ControllerLocation == SelectedLocation);
+            if (collision)
+            {
+                ShowSnackbar("位置冲突", "该插槽已被占用，请选择其他位置。", ControlAppearance.Danger, SymbolRegular.Warning24);
+                return;
+            }
+
             string target = IsPhysicalSource ? SelectedPhysicalDisk?.Number.ToString() : FilePath;
             if (string.IsNullOrEmpty(target) && !IsNewDisk) return;
 
@@ -868,5 +940,35 @@ namespace ExHyperV.ViewModels
         private void UpdateHistory(string vmName, VmCoreModel core) { string key = $"{vmName}_{core.CoreId}"; if (!_historyCache.TryGetValue(key, out var history)) { history = new LinkedList<double>(); for (int k = 0; k < MaxHistoryLength; k++) history.AddLast(0); _historyCache[key] = history; } history.AddLast(core.Usage); if (history.Count > MaxHistoryLength) history.RemoveFirst(); core.HistoryPoints = CalculatePoints(history); }
         private PointCollection CalculatePoints(LinkedList<double> history) { double w = 100.0, h = 100.0, step = w / (MaxHistoryLength - 1); var points = new PointCollection(MaxHistoryLength + 2) { new Point(0, h) }; int i = 0; foreach (var val in history) points.Add(new Point(i++ * step, h - (val * h / 100.0))); points.Add(new Point(w, h)); points.Freeze(); return points; }
         public void Dispose() { _monitoringCts?.Cancel(); _cpuService?.Dispose(); _uiTimer?.Stop(); }
+
+        private void RefreshControllerOptions()
+        {
+            if (SelectedVm == null) return;
+
+            AvailableControllerTypes.Clear();
+
+            // 第 2 代虚拟机：始终只有 SCSI
+            if (SelectedVm.Generation == 2)
+            {
+                AvailableControllerTypes.Add("SCSI");
+            }
+            // 第 1 代虚拟机
+            else
+            {
+                AvailableControllerTypes.Add("IDE");
+                // 关键约束：1 代机只有硬盘可以挂在 SCSI 上，光驱必须在 IDE
+                if (DeviceType == "HardDisk")
+                {
+                    AvailableControllerTypes.Add("SCSI");
+                }
+            }
+
+            // 如果当前选中的控制器类型不再可用列表中（例如从硬盘切到光驱时），重置选中项
+            if (!AvailableControllerTypes.Contains(SelectedControllerType))
+            {
+                SelectedControllerType = AvailableControllerTypes.FirstOrDefault() ?? "IDE";
+            }
+        }
+
     }
 }
