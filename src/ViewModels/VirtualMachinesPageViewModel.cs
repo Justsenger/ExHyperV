@@ -142,15 +142,36 @@ namespace ExHyperV.ViewModels
 
         partial void OnSelectedControllerTypeChanged(string value)
         {
+            // 更新可用位置 (现有逻辑)
             AvailableLocations.Clear();
-            int maxLocation = (value == "IDE") ? 2 : 64; // IDE 每个通道只有 2 个位置，SCSI 有 64 个
+            int maxLocation = (value == "IDE") ? 2 : 64;
             for (int i = 0; i < maxLocation; i++)
             {
                 AvailableLocations.Add(i);
             }
             SelectedLocation = 0;
-        }
 
+            // --- 新增的修正逻辑 ---
+            // 根据控制器类型，动态更新可用的控制器编号
+            AvailableControllerNumbers.Clear();
+            if (value == "IDE")
+            {
+                // IDE 控制器只有 0 和 1
+                AvailableControllerNumbers.Add(0);
+                AvailableControllerNumbers.Add(1);
+            }
+            else // 默认为 SCSI
+            {
+                // SCSI 控制器有 0, 1, 2, 3
+                AvailableControllerNumbers.Add(0);
+                AvailableControllerNumbers.Add(1);
+                AvailableControllerNumbers.Add(2);
+                AvailableControllerNumbers.Add(3);
+            }
+            // 重置选中的控制器编号为 0，防止索引越界
+            SelectedControllerNumber = 0;
+            // --- 修正逻辑结束 ---
+        }
         public List<string> AvailableOsTypes => Utils.SupportedOsTypes;
         public ObservableCollection<int> PossibleVCpuCounts { get; private set; }
 

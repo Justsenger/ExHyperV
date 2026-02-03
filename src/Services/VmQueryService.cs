@@ -193,7 +193,6 @@ namespace ExHyperV.Services
         {
             try
             {
-                // 1. 从 root\cimv2 异步抓取最新的性能数据快照
                 var perfData = await WmiTools.QueryAsync(QueryDiskPerf, obj => new
                 {
                     WmiInstanceName = obj["Name"]?.ToString() ?? "",
@@ -205,7 +204,6 @@ namespace ExHyperV.Services
 
                 foreach (var vm in vms)
                 {
-                    // 只有运行中的虚拟机才有性能数据
                     if (!vm.IsRunning)
                     {
                         foreach (var d in vm.Disks) { d.ReadSpeedBps = 0; d.WriteSpeedBps = 0; }
@@ -216,10 +214,7 @@ namespace ExHyperV.Services
                     {
                         if (!string.IsNullOrEmpty(disk.Path))
                         {
-                            // A. 虚拟磁盘 (VHDX) 匹配逻辑
                             string fileName = Path.GetFileName(disk.Path);
-
-                            // 模糊匹配：查找 WMI 实例名称中包含磁盘文件名的项
                             var match = perfData.FirstOrDefault(p =>
                                 p.WmiInstanceName.Contains(fileName, StringComparison.OrdinalIgnoreCase));
 
@@ -236,8 +231,6 @@ namespace ExHyperV.Services
                         }
                         else
                         {
-                            // B. 直通盘 (Passthrough) 匹配逻辑 (备用方案)
-                            // 直通盘没有 Path，但 WMI Name 中通常包含虚拟机名和控制器 ID
                             var match = perfData.FirstOrDefault(p =>
                                 p.WmiInstanceName.Contains(vm.Name, StringComparison.OrdinalIgnoreCase) &&
                                 p.WmiInstanceName.Contains("Virtual Drive", StringComparison.OrdinalIgnoreCase));
@@ -253,7 +246,6 @@ namespace ExHyperV.Services
             }
             catch (Exception ex)
             {
-                // 记录错误或输出到调试控制台
                 System.Diagnostics.Debug.WriteLine($"UpdateDiskPerformance Error: {ex.Message}");
             }
         }

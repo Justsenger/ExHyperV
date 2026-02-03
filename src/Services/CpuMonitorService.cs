@@ -2,13 +2,11 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
-using ExHyperV.Models; // 引用 Models 命名空间
+using ExHyperV.Models;
 using ExHyperV.Tools;
 
 namespace ExHyperV.Services
 {
-    // 【关键修改】删除了这里的 public enum CoreType 定义，直接复用 ExHyperV.Models.CoreType
-
     public class CpuMonitorService : IDisposable
     {
         private static readonly Dictionary<int, CoreType> _coreTypeCache = new Dictionary<int, CoreType>();
@@ -298,11 +296,8 @@ namespace ExHyperV.Services
                 }
                 catch
                 {
-                    // 忽略读取计数器时的临时错误
                 }
             }
-
-            // 为未运行的 VM 添加占位数据（显示为关机状态）
             foreach (var kvp in _vmCoreCounts)
             {
                 string vmName = kvp.Key;

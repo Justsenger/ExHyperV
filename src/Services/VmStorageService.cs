@@ -1,14 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Management; // 用于 GetVhdSizeGbAsync
+﻿using System.IO;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 using DiscUtils.Iso9660;
 using ExHyperV.Models;
 using ExHyperV.Tools;
-using Microsoft.Management.Infrastructure; // 用于 CimSession
+using Microsoft.Management.Infrastructure;
 
 namespace ExHyperV.Services
 {
@@ -18,11 +13,8 @@ namespace ExHyperV.Services
         private const string NamespaceCimV2 = @"root\cimv2";
         private const string NamespaceStorage = @"Root\Microsoft\Windows\Storage";
 
-        #region 1. 核心查询逻辑 (WMI/CIM)
 
-        /// <summary>
-        /// 全量加载虚拟机的存储架构并映射到 VmInstanceInfo.StorageItems
-        /// </summary>
+        //查询虚拟机下的控制器和存储设备
         public async Task LoadVmStorageItemsAsync(VmInstanceInfo vm)
         {
             if (vm == null) return;
@@ -47,7 +39,6 @@ namespace ExHyperV.Services
 
                         if (settings == null) return resultList;
 
-                        // 获取资源分配设置 (RASD) 和 存储分配设置 (SASD)
                         var rasd = session.EnumerateAssociatedInstances(NamespaceV2, settings, "Msvm_VirtualSystemSettingDataComponent", "Msvm_ResourceAllocationSettingData", "GroupComponent", "PartComponent").ToList();
                         var sasd = session.EnumerateAssociatedInstances(NamespaceV2, settings, "Msvm_VirtualSystemSettingDataComponent", "Msvm_StorageAllocationSettingData", "GroupComponent", "PartComponent").ToList();
 
@@ -55,13 +46,11 @@ namespace ExHyperV.Services
                         allResources.AddRange(rasd);
                         allResources.AddRange(sasd);
 
-                        // 筛选控制器 (5=IDE, 6=SCSI)
                         var controllers = allResources.Where(res => {
                             int rt = Convert.ToInt32(res.CimInstanceProperties["ResourceType"]?.Value ?? 0);
                             return rt == 5 || rt == 6;
                         }).OrderBy(c => c.CimInstanceProperties["ResourceType"]?.Value).ToList();
 
-                        // 构建父子关系映射
                         var childrenMap = new Dictionary<string, List<CimInstance>>();
                         var parentRegex = new Regex("InstanceID=\"([^\"]+)\"", RegexOptions.Compiled);
 
@@ -95,16 +84,12 @@ namespace ExHyperV.Services
                             {
                                 foreach (var slot in childrenMap[ctrlId])
                                 {
-                                    // 16=DVD, 17=Disk Controller connection point? 通常这里直接看挂载的驱动器
-                                    // 实际上 Hyper-V 中驱动器本身也是 Resource，挂在控制器下
                                     int resType = Convert.ToInt32(slot.CimInstanceProperties["ResourceType"]?.Value);
                                     if (resType != 16 && resType != 17) continue;
 
                                     string address = slot.CimInstanceProperties["AddressOnParent"]?.Value?.ToString() ?? "0";
                                     int location = int.TryParse(address, out int loc) ? loc : 0;
 
-                                    // 查找实际的媒体 (Media)
-                                    // 31=Virtual Hard Disk, 16=Logical Disk (ISO/DVD), 22=Physical Disk
                                     CimInstance? media = null;
                                     string slotId = slot.CimInstanceProperties["InstanceID"]?.Value?.ToString() ?? "";
                                     if (childrenMap.ContainsKey(slotId))
@@ -124,7 +109,6 @@ namespace ExHyperV.Services
                                         DiskType = "Empty"
                                     };
 
-                                    // 如果没有子节点媒体，检查插槽本身是否有 HostResource (通常用于物理直通或 ISO)
                                     var slotHostRes = slot.CimInstanceProperties["HostResource"]?.Value as string[];
                                     var effectiveMedia = media ?? ((slotHostRes != null && slotHostRes.Length > 0) ? slot : null);
 
@@ -135,11 +119,9 @@ namespace ExHyperV.Services
 
                                         if (!string.IsNullOrWhiteSpace(rawPath))
                                         {
-                                            // 判定物理硬盘
                                             bool isPhysicalHardDisk = rawPath.Contains("Msvm_DiskDrive", StringComparison.OrdinalIgnoreCase) ||
                                                                       rawPath.ToUpper().Contains("PHYSICALDRIVE");
 
-                                            // [修复] 判定物理光驱 (被遗漏的逻辑)
                                             bool isPhysicalCdRom = rawPath.Contains("CDROM", StringComparison.OrdinalIgnoreCase) ||
                                                                    rawPath.Contains("Msvm_OpticalDrive", StringComparison.OrdinalIgnoreCase);
 
@@ -148,7 +130,6 @@ namespace ExHyperV.Services
                                                 driveItem.DiskType = "Physical";
                                                 try
                                                 {
-                                                    // 延迟加载主机磁盘映射缓存
                                                     if (hvDiskMap == null)
                                                     {
                                                         hvDiskMap = session.QueryInstances(NamespaceV2, "WQL", "SELECT DeviceID, DriveNumber FROM Msvm_DiskDrive")
@@ -175,7 +156,7 @@ namespace ExHyperV.Services
                                                     if (dNum != -1)
                                                     {
                                                         driveItem.DiskNumber = dNum;
-                                                        driveItem.PathOrDiskNumber = $"PhysicalDrive{dNum}";
+                                                        driveItem.PathOrDiskNumber = $"PhysicalDisk{dNum}";
                                                         if (osDiskMap != null && osDiskMap.TryGetValue(dNum, out var hostInfo))
                                                         {
                                                             driveItem.DiskModel = hostInfo.Model;
@@ -188,14 +169,12 @@ namespace ExHyperV.Services
                                             }
                                             else if (isPhysicalCdRom)
                                             {
-                                                // [修复] 物理光驱直通处理
                                                 driveItem.DiskType = "Physical";
-                                                driveItem.PathOrDiskNumber = rawPath; // 通常显示为 CDROM0 等
+                                                driveItem.PathOrDiskNumber = rawPath;
                                                 driveItem.DiskModel = "Passthrough Optical Drive";
                                             }
                                             else
                                             {
-                                                // 虚拟文件 (VHD/VHDX/ISO)
                                                 driveItem.DiskType = "Virtual";
                                                 driveItem.PathOrDiskNumber = rawPath.Trim('"');
                                                 if (File.Exists(driveItem.PathOrDiskNumber))
@@ -217,13 +196,11 @@ namespace ExHyperV.Services
                 }
                 catch (Exception ex)
                 {
-                    // 记录日志或处理异常
                     System.Diagnostics.Debug.WriteLine($"Error loading storage: {ex.Message}");
                 }
                 return resultList;
             });
 
-            // 回到 UI 线程更新集合
             System.Windows.Application.Current.Dispatcher.Invoke(() =>
             {
                 vm.StorageItems.Clear();
@@ -232,9 +209,7 @@ namespace ExHyperV.Services
             });
         }
 
-        /// <summary>
-        /// 获取主机可用于直通的物理磁盘列表
-        /// </summary>
+        //查询主机可用的直通硬盘
         public async Task<List<HostDiskInfo>> GetHostDisksAsync()
         {
             return await Task.Run(() =>
@@ -280,29 +255,55 @@ namespace ExHyperV.Services
             });
         }
 
-        #endregion
-
-        #region 2. 存储操作逻辑 (PowerShell)
-
+        //将指定的直通硬盘脱机
         public async Task<(bool Success, string Message)> SetDiskOfflineStatusAsync(int diskNumber, bool isOffline)
             => await RunCommandAsync($"Set-Disk -Number {diskNumber} -IsOffline ${isOffline.ToString().ToLower()}");
 
+
+        //检测存储设备第一个可用的空位
+        public async Task<(string ControllerType, int ControllerNumber, int Location)> GetNextAvailableSlotAsync(string vmName, string driveType)
+        {
+            string script = $@"
+    $v = Get-VM -Name '{vmName}'; $ctype = 'IDE'; $cnum = 0; $loc = 0; $found = $false
+    if ($v.Generation -eq 2 -or ($v.Generation -eq 1 -and $v.State -eq 'Running')) {{
+        $ctype = 'SCSI'; $controllers = Get-VMScsiController -VMName '{vmName}' | Sort-Object ControllerNumber
+        foreach ($ctrl in $controllers) {{
+            $cn = $ctrl.ControllerNumber
+            $h_loc = @((Get-VMHardDiskDrive -VMName '{vmName}' -ControllerType SCSI -ControllerNumber $cn).ControllerLocation)
+            $d_loc = @((Get-VMDvdDrive -VMName '{vmName}' -ControllerNumber $cn).ControllerLocation)
+            $used = $h_loc + $d_loc
+            for ($i=0; $i -lt 64; $i++) {{ if ($used -notcontains $i) {{ $cnum = $cn; $loc = $i; $found = $true; break }} }}
+            if ($found) {{ break }}
+        }}
+    }} else {{
+        $ctype = 'IDE'; for ($c=0; $c -lt 2; $c++) {{ 
+            $h_loc = @((Get-VMHardDiskDrive -VMName '{vmName}' -ControllerType IDE -ControllerNumber $c).ControllerLocation)
+            $d_loc = @((Get-VMDvdDrive -VMName '{vmName}' -ControllerNumber $c).ControllerLocation)
+            $used = $h_loc + $d_loc
+            for ($i=0; $i -lt 2; $i++) {{ if ($used -notcontains $i) {{ $cnum=$c; $loc=$i; $found=$true; break }} }} 
+            if ($found) {{ break }} 
+        }}
+    }} ""$ctype,$cnum,$loc""";
+            var res = await ExecutePowerShellAsync(script); var parts = res.Trim().Split(',');
+            return parts.Length == 3 ? (parts[0], int.Parse(parts[1]), int.Parse(parts[2])) : ("SCSI", 0, 0);
+        }
+
+
+        //添加硬盘或光盘
         public async Task<(bool Success, string Message, string ActualType, int ActualNumber, int ActualLocation)> AddDriveAsync(
-            string vmName, string controllerType, int controllerNumber, int location, string driveType,
-            string pathOrNumber, bool isPhysical, bool isNew = false, int sizeGb = 256,
-            string vhdType = "Dynamic", string parentPath = "", string sectorFormat = "Default",
-            string blockSize = "Default", string isoSourcePath = null, string isoVolumeLabel = null)
+    string vmName, string controllerType, int controllerNumber, int location, string driveType,
+    string pathOrNumber, bool isPhysical, bool isNew = false, int sizeGb = 256,
+    string vhdType = "Dynamic", string parentPath = "", string sectorFormat = "Default",
+    string blockSize = "Default", string isoSourcePath = null, string isoVolumeLabel = null)
         {
             string psPath = string.IsNullOrWhiteSpace(pathOrNumber) ? "$null" : $"'{pathOrNumber}'";
 
-            // [修复] ISO 制作前置校验
             if (driveType == "DvdDrive" && isNew && !string.IsNullOrWhiteSpace(isoSourcePath))
             {
                 var createResult = await CreateIsoFromDirectoryAsync(isoSourcePath, pathOrNumber, isoVolumeLabel);
                 if (!createResult.Success) return (false, createResult.Message, controllerType, controllerNumber, location);
             }
 
-            // [修复] 使用 B 代码更健壮的脚本逻辑
             string script = $@"
                 $ErrorActionPreference = 'Stop'
                 $vmName = '{vmName}'; $v = Get-VM -Name $vmName
@@ -356,9 +357,9 @@ namespace ExHyperV.Services
             catch (Exception ex) { return (false, Utils.GetFriendlyErrorMessage(ex.Message), controllerType, controllerNumber, location); }
         }
 
+        //移除存储设备
         public async Task<(bool Success, string Message)> RemoveDriveAsync(string vmName, VmStorageItem drive)
         {
-            // [修复] 增加物理硬盘 DiskNumber 检查，区分 Removed 和 Ejected 状态
             string script = $@"
                 $ErrorActionPreference = 'Stop'
                 $vmName = '{vmName}'; $cnum = {drive.ControllerNumber}; $loc = {drive.ControllerLocation}; $ctype = '{drive.ControllerType}'
@@ -381,7 +382,6 @@ namespace ExHyperV.Services
                     if (-not $disk) {{ throw 'Storage_Error_DiskNotFound' }}
                     $disk | Remove-VMHardDiskDrive -ErrorAction Stop
                     
-                    # Safety check for physical disk
                     if ('{drive.DiskType}' -eq 'Physical' -and {drive.DiskNumber} -gt -1) {{ 
                         Start-Sleep -Milliseconds 500
                         Set-Disk -Number {drive.DiskNumber} -IsOffline $false -ErrorAction SilentlyContinue 
@@ -396,9 +396,11 @@ namespace ExHyperV.Services
             catch (Exception ex) { return (false, Utils.GetFriendlyErrorMessage(ex.Message)); }
         }
 
+        //修改光盘路径
         public async Task<(bool Success, string Message)> ModifyDvdDrivePathAsync(string vmName, int controllerNumber, int controllerLocation, string newIsoPath)
             => await RunCommandAsync($"Set-VMDvdDrive -VMName '{vmName}' -ControllerNumber {controllerNumber} -ControllerLocation {controllerLocation} -Path {(string.IsNullOrWhiteSpace(newIsoPath) ? "$null" : $"'{newIsoPath}'")} -ErrorAction Stop");
 
+        //修改硬盘路径
         public async Task<(bool Success, string Message)> ModifyHardDrivePathAsync(string vmName, string controllerType, int controllerNumber, int controllerLocation, string newPath)
         {
             string psPath = string.IsNullOrWhiteSpace(newPath) ? "$null" : $"'{newPath}'";
@@ -409,170 +411,24 @@ namespace ExHyperV.Services
             return await RunCommandAsync(script);
         }
 
-        #endregion
-
-        #region 3. 辅助功能 (VHD查询/插槽计算/ISO制作)
-
-        public async Task<double> GetVhdSizeGbAsync(string path)
-        {
-            return await Task.Run(() => {
-                try
-                {
-                    using (var searcher = new ManagementObjectSearcher(new ManagementScope(NamespaceV2), new ObjectQuery("SELECT * FROM Msvm_ImageManagementService")))
-                    {
-                        var service = searcher.Get().OfType<ManagementObject>().FirstOrDefault();
-                        if (service == null) return 0;
-                        using (var inParams = service.GetMethodParameters("GetVirtualHardDiskSettingData"))
-                        {
-                            inParams["Path"] = path;
-                            using (var outParams = service.InvokeMethod("GetVirtualHardDiskSettingData", inParams, null))
-                            {
-                                var vhdSetting = new ManagementClass("Msvm_VirtualHardDiskSettingData") { ["text"] = outParams["SettingData"].ToString() };
-                                return Math.Round((ulong)vhdSetting.GetPropertyValue("MaxInternalSize") / 1073741824.0, 2);
-                            }
-                        }
-                    }
-                }
-                catch { return 0; }
-            });
-        }
-
-        public async Task<(string ControllerType, int ControllerNumber, int Location)> GetNextAvailableSlotAsync(string vmName, string driveType)
-        {
-            // 1. C# 层的防御
-            if (string.IsNullOrWhiteSpace(vmName))
-            {
-                System.Diagnostics.Debug.WriteLine("[PS_Storage] [Warning] vmName 为空，跳过。");
-                return ("SCSI", 0, 0);
-            }
-
-            // 2. [关键修复] 转义单引号，防止名称如 "User's VM" 导致 PowerShell 语法崩溃
-            string safeVmName = vmName.Replace("'", "''");
-
-            // 3. 脚本逻辑：移除 ErrorAction Stop，改用内部捕获
-            string script = $@"
-$ErrorActionPreference = 'Continue'
-$vmName = '{safeVmName}' 
-
-try {{
-    # 尝试获取虚拟机对象
-    $v = Get-VM -Name $vmName -ErrorAction Stop
-    
-    if ($null -eq $v) {{ 
-        Write-Output ""RESULT:SCSI,0,0""
-        return
-    }}
-
-    $ctype = 'IDE'
-    $cnum = 0
-    $loc = 0
-    $found = $false
-
-    # 这里的逻辑保持不变：Gen2 或 运行中的 Gen1 使用 SCSI
-    if ($v.Generation -eq 2 -or ($v.Generation -eq 1 -and $v.State -eq 'Running')) {{
-        $ctype = 'SCSI'
-        $controllers = Get-VMScsiController -VMName $vmName | Sort-Object ControllerNumber
-        
-        foreach ($ctrl in $controllers) {{
-            $cn = $ctrl.ControllerNumber
-            # 强制数组化 @() 避免单对象问题
-            $hdds = @(Get-VMHardDiskDrive -VMName $vmName -ControllerType SCSI -ControllerNumber $cn)
-            $dvds = @(Get-VMDvdDrive -VMName $vmName -ControllerType SCSI -ControllerNumber $cn)
-            $used = $hdds.ControllerLocation + $dvds.ControllerLocation
-            
-            for ($i=0; $i -lt 64; $i++) {{ 
-                if ($used -notcontains $i) {{ 
-                    $cnum = $cn; $loc = $i; $found = $true; break 
-                }} 
-            }}
-            if ($found) {{ break }}
-        }}
-
-        if (-not $found) {{ 
-            $last = $controllers | Select-Object -Last 1
-            $cnum = if ($last) {{ $last.ControllerNumber + 1 }} else {{ 0 }}
-            $loc = 0 
-        }}
-    }} else {{
-        $ctype = 'IDE'
-        for ($c=0; $c -lt 2; $c++) {{ 
-            $hdds = @(Get-VMHardDiskDrive -VMName $vmName -ControllerType IDE -ControllerNumber $c)
-            $dvds = @(Get-VMDvdDrive -VMName $vmName -ControllerType IDE -ControllerNumber $c)
-            $used = $hdds.ControllerLocation + $dvds.ControllerLocation
-            
-            for ($i=0; $i -lt 2; $i++) {{ 
-                if ($used -notcontains $i) {{ $cnum=$c; $loc=$i; $found=$true; break }} 
-            }} 
-            if ($found) {{ break }} 
-        }}
-    }}
-
-    Write-Output ""RESULT:$ctype,$cnum,$loc""
-
-}} catch {{
-    # 捕获 PowerShell 内部错误，输出以便 C# 调试
-    Write-Output ""DEBUG_LOG: [ScriptError] $($_.Exception.Message)""
-    Write-Output ""RESULT:SCSI,0,0""
-}}";
-
-            try
-            {
-                var outputRaw = await ExecutePowerShellAsync(script);
-
-                string finalResult = null;
-                if (!string.IsNullOrEmpty(outputRaw))
-                {
-                    var lines = outputRaw.Split(new[] { Environment.NewLine, "\n", "\r" }, StringSplitOptions.RemoveEmptyEntries);
-                    foreach (var line in lines)
-                    {
-                        if (line.StartsWith("DEBUG_LOG:"))
-                        {
-                            // 在 VS 输出窗口显示脚本内部错误
-                            System.Diagnostics.Debug.WriteLine($"[PS_Storage] {line.Substring(10).Trim()}");
-                        }
-                        else if (line.StartsWith("RESULT:"))
-                        {
-                            finalResult = line.Substring(7).Trim();
-                        }
-                    }
-                }
-
-                if (!string.IsNullOrEmpty(finalResult))
-                {
-                    var parts = finalResult.Split(',');
-                    if (parts.Length == 3)
-                        return (parts[0], int.Parse(parts[1]), int.Parse(parts[2]));
-                }
-            }
-            catch (Exception ex)
-            {
-                // [关键修复] 打印完整异常信息，包括 InnerException (通常包含 PowerShell 的真实报错)
-                System.Diagnostics.Debug.WriteLine($"[PS_Storage] [C# Crash] {ex}");
-            }
-
-            // 发生任何错误时的默认回退
-            return ("SCSI", 0, 0);
-        }
+        //从执行结果解析字符串
         private async Task<string> ExecutePowerShellAsync(string script)
         {
             try
             {
                 var res = await Utils.Run2(script);
-                // 建议使用 NewLine 拼接，方便后续按行 Split
                 return res == null ? "" : string.Join(Environment.NewLine, res.Select(r => r?.ToString() ?? ""));
             }
-            catch
-            {
-                return "";
-            }
+            catch { return ""; }
         }
+
+        //创建ISO 9660标准
         private async Task<(bool Success, string Message)> CreateIsoFromDirectoryAsync(string sourceDirectory, string targetIsoPath, string volumeLabel)
         {
-            // [修复] 完整的 ISO 9660 限制检查
             var sourceDirInfo = new DirectoryInfo(sourceDirectory);
             if (!sourceDirInfo.Exists) return (false, "Iso_Error_SourceDirNotFound");
 
-            const long MaxFileSize = 4294967295; // 4GB - 1 byte
+            const long MaxFileSize = 4294967295;
             const int MaxFileNameLength = 64;
             const int MaxPathLength = 240;
             const int MaxDirectoryDepth = 8;
@@ -584,7 +440,6 @@ try {{
             return await Task.Run(() => {
                 try
                 {
-                    // 1. 预检查循环
                     foreach (var item in sourceDirInfo.EnumerateFileSystemInfos("*", SearchOption.AllDirectories))
                     {
                         string relativePath = Path.GetRelativePath(sourceDirInfo.FullName, item.FullName);
@@ -592,19 +447,17 @@ try {{
                         if (relativePath.Length > MaxPathLength) return (false, "Iso_Error_PathTooLong");
 
                         int depth = relativePath.Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries).Length;
-                        if (item is FileInfo)
+                        if (item is FileInfo fileInfo)
                         {
                             if (depth - 1 >= MaxDirectoryDepth) return (false, "Iso_Error_FileDepthTooDeep");
-                            if (((FileInfo)item).Length >= MaxFileSize) return (false, "Iso_Error_FileTooLarge");
+                            if (fileInfo.Length >= MaxFileSize) return (false, "Iso_Error_FileTooLarge");
                         }
                         else if (depth > MaxDirectoryDepth) return (false, "Iso_Error_DirectoryDepthTooDeep");
                     }
 
-                    // 2. 创建目录
                     var targetDir = Path.GetDirectoryName(targetIsoPath);
                     if (!string.IsNullOrEmpty(targetDir) && !Directory.Exists(targetDir)) Directory.CreateDirectory(targetDir);
 
-                    // 3. 构建 ISO
                     var builder = new CDBuilder { UseJoliet = true, VolumeIdentifier = finalVolumeLabel };
                     foreach (var file in Directory.GetFiles(sourceDirectory, "*", SearchOption.AllDirectories))
                         builder.AddFile(Path.GetRelativePath(sourceDirectory, file), file);
@@ -616,9 +469,19 @@ try {{
             });
         }
 
-        private async Task<(bool Success, string Message)> RunCommandAsync(string script) { try { await Utils.Run2(script); return (true, "Storage_Msg_Success"); } catch (Exception ex) { return (false, Utils.GetFriendlyErrorMessage(ex.Message)); } }
-        private class HostDiskInfoCache { public string? Model { get; set; } public string? SerialNumber { get; set; } public double SizeGB { get; set; } }
+        //包装器，勿动
+        private async Task<(bool Success, string Message)> RunCommandAsync(string script)
+        {
+            try { await Utils.Run2(script); return (true, "Storage_Msg_Success"); }
+            catch (Exception ex) { return (false, Utils.GetFriendlyErrorMessage(ex.Message)); }
+        }
 
-        #endregion
+        //辅助类，勿动
+        private class HostDiskInfoCache
+        {
+            public string? Model { get; set; }
+            public string? SerialNumber { get; set; }
+            public double SizeGB { get; set; }
+        }
     }
 }
