@@ -130,20 +130,54 @@ namespace ExHyperV.Services
                                                 driveItem.DiskType = "Physical";
                                                 try
                                                 {
+                                                    // [核心逻辑] 物理磁盘双表映射
                                                     if (hvDiskMap == null)
                                                     {
-                                                        hvDiskMap = session.QueryInstances(NamespaceV2, "WQL", "SELECT DeviceID, DriveNumber FROM Msvm_DiskDrive")
-                                                            .ToDictionary(d => d.CimInstanceProperties["DeviceID"].Value.ToString().Replace("\\\\", "\\"), d => Convert.ToInt32(d.CimInstanceProperties["DriveNumber"].Value));
-
-                                                        osDiskMap = session.QueryInstances(NamespaceCimV2, "WQL", "SELECT Index, Model, Size, SerialNumber FROM Win32_DiskDrive")
-                                                            .ToDictionary(d => Convert.ToInt32(d.CimInstanceProperties["Index"].Value), d => new HostDiskInfoCache
+                                                        // A表：HV 内部映射 (DeviceID -> DriveNumber)
+                                                        // 修复：不使用 ToDictionary，改用循环以防止空值崩溃或键值重复崩溃
+                                                        hvDiskMap = new Dictionary<string, int>();
+                                                        var allHvDisks = session.QueryInstances(NamespaceV2, "WQL", "SELECT DeviceID, DriveNumber FROM Msvm_DiskDrive");
+                                                        foreach (var d in allHvDisks)
+                                                        {
+                                                            // 安全获取 DeviceID，处理可能的 Null 值
+                                                            string did = d.CimInstanceProperties["DeviceID"]?.Value?.ToString() ?? "";
+                                                            // 只有当 DeviceID 和 DriveNumber 都有效时才添加
+                                                            if (!string.IsNullOrEmpty(did) && d.CimInstanceProperties["DriveNumber"]?.Value != null)
                                                             {
-                                                                Model = d.CimInstanceProperties["Model"]?.Value?.ToString(),
-                                                                SerialNumber = d.CimInstanceProperties["SerialNumber"]?.Value?.ToString()?.Trim(),
-                                                                SizeGB = Math.Round(Convert.ToInt64(d.CimInstanceProperties["Size"].Value) / 1073741824.0, 2)
-                                                            });
-                                                    }
+                                                                // 统一反斜杠格式
+                                                                did = did.Replace("\\\\", "\\");
+                                                                int dnum = Convert.ToInt32(d.CimInstanceProperties["DriveNumber"].Value);
+                                                                // 使用索引器赋值，防止重复键报错 (Last wins)
+                                                                hvDiskMap[did] = dnum;
+                                                            }
+                                                        }
 
+                                                        // B表：宿主机物理信息 (Index -> Info)
+                                                        // 修复：同样改回循环处理，增加安全性
+                                                        osDiskMap = new Dictionary<int, HostDiskInfoCache>();
+                                                        var allOsDisks = session.QueryInstances(NamespaceCimV2, "WQL", "SELECT Index, Model, Size, SerialNumber FROM Win32_DiskDrive");
+                                                        foreach (var d in allOsDisks)
+                                                        {
+                                                            if (d.CimInstanceProperties["Index"]?.Value != null)
+                                                            {
+                                                                int idx = Convert.ToInt32(d.CimInstanceProperties["Index"].Value);
+
+                                                                // 安全获取大小，防止转换错误
+                                                                long sizeBytes = 0;
+                                                                if (d.CimInstanceProperties["Size"]?.Value != null)
+                                                                {
+                                                                    long.TryParse(d.CimInstanceProperties["Size"].Value.ToString(), out sizeBytes);
+                                                                }
+
+                                                                osDiskMap[idx] = new HostDiskInfoCache
+                                                                {
+                                                                    Model = d.CimInstanceProperties["Model"]?.Value?.ToString(),
+                                                                    SerialNumber = d.CimInstanceProperties["SerialNumber"]?.Value?.ToString()?.Trim(),
+                                                                    SizeGB = Math.Round(sizeBytes / 1073741824.0, 2)
+                                                                };
+                                                            }
+                                                        }
+                                                    }
                                                     var devMatch = deviceIdRegex.Match(rawPath);
                                                     int dNum = -1;
                                                     if (devMatch.Success) hvDiskMap.TryGetValue(devMatch.Groups[1].Value.Replace("\\\\", "\\"), out dNum);

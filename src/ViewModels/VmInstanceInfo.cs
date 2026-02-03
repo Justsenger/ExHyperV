@@ -7,6 +7,8 @@ using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Media;
+using System.Windows.Media.Imaging; // 引用 BitmapSource
+using System.Windows.Threading;     // 引用 DispatcherTimer
 using ExHyperV.Properties;
 using ExHyperV.Tools;
 
@@ -226,6 +228,15 @@ namespace ExHyperV.Models
 
     public partial class VmInstanceInfo : ObservableObject
     {
+        // ================== 新增代码开始 ==================
+
+        [ObservableProperty]
+        private BitmapSource? _thumbnail;
+
+        private DispatcherTimer? _thumbnailTimer;
+
+        // =================== 新增代码结束 ===================
+
         [ObservableProperty] private Guid _id;
         [ObservableProperty] private string _name;
         [ObservableProperty] private string _notes;
@@ -381,6 +392,8 @@ namespace ExHyperV.Models
         public void SetTransientState(string optimisticText) { _transientState = optimisticText; RefreshStateDisplay(); }
         public void ClearTransientState() { _transientState = null; RefreshStateDisplay(); }
 
+
+        // SyncBackendData 恢复原样，不需要在这里启动 Timer
         public void SyncBackendData(string realState, TimeSpan realUptime)
         {
             _backendState = realState;

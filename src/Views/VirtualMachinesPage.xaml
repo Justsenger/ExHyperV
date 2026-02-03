@@ -67,10 +67,49 @@
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
 
-                        <Image Grid.Column="0" Source="{Binding OsType, Converter={StaticResource OsTypeToImageConverter}}" 
-                               RenderOptions.BitmapScalingMode="HighQuality" 
-                               Width="100" Height="100" VerticalAlignment="Center"/>
+                        <!-- ==================== 新的监视器/图标容器 ==================== -->
+                        <Grid Grid.Column="0" Width="120" Height="100" VerticalAlignment="Center">
 
+                            <!-- 1. 默认 OS 图标 (关机时显示) -->
+                            <Image RenderOptions.BitmapScalingMode="HighQuality"
+           Width="100" Height="100" HorizontalAlignment="Center" VerticalAlignment="Center"
+           Source="{Binding OsType, Converter={StaticResource OsTypeToImageConverter}}">
+                                <Image.Style>
+                                    <Style TargetType="Image">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                        <Style.Triggers>
+                                            <!-- 当虚拟机运行时，隐藏图标 -->
+                                            <DataTrigger Binding="{Binding IsRunning}" Value="True">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Image.Style>
+                            </Image>
+
+                            <!-- 2. 实时监视器 (运行时显示) -->
+                            <Border Background="Black" BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" 
+            BorderThickness="4,4,4,8" CornerRadius="2" ClipToBounds="True">
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                        <Style.Triggers>
+                                            <!-- 当虚拟机运行时，显示监视器 -->
+                                            <DataTrigger Binding="{Binding IsRunning}" Value="True">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+
+                                <!-- 图像绑定到 ViewModel 新增的 Thumbnail 属性 -->
+                                <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" RenderOptions.BitmapScalingMode="HighQuality" />
+
+                            </Border>
+
+                        </Grid>
+                        <!-- =============================================================== -->
+                        
                         <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="0,0,0,0">
                             <TextBlock Text="{Binding Name}" FontSize="28" 
                                        Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,8"/>

@@ -2,6 +2,7 @@
 using System.Windows;
 using System.Windows.Data;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -47,6 +48,11 @@ namespace ExHyperV.ViewModels
         [ObservableProperty] private string _filePath = string.Empty;
         [ObservableProperty] private bool _isNewDisk = false;
         [ObservableProperty] private string _newDiskSize = "128";
+
+        [ObservableProperty]
+        private BitmapSource? _thumbnail;
+        private DispatcherTimer? _thumbnailTimer;
+
         public int NewDiskSizeInt => int.TryParse(NewDiskSize, out int size) && size > 0 ? size : 128;
         partial void OnNewDiskSizeChanged(string value)
         {
@@ -293,24 +299,31 @@ namespace ExHyperV.ViewModels
         }
 
 
-        [RelayCommand]
+        private bool CanOpenFolder(string path)
+        {
+            // 如果为空、是纯数字、或以 PhysicalDisk 开头，则禁用按钮
+            if (string.IsNullOrWhiteSpace(path)) return false;
+            if (int.TryParse(path, out _)) return false;
+            if (path.StartsWith("PhysicalDisk", StringComparison.OrdinalIgnoreCase)) return false;
+            return true;
+        }
+
+        [RelayCommand(CanExecute = nameof(CanOpenFolder))]
         private void OpenFolder(string path)
         {
             if (string.IsNullOrWhiteSpace(path)) return;
 
             try
             {
-                // 如果是物理磁盘（通常表现为数字），则不执行
-                if (int.TryParse(path, out _)) return;
+                // 双重检查：如果是物理磁盘格式，直接返回
+                if (int.TryParse(path, out _) || path.StartsWith("PhysicalDisk", StringComparison.OrdinalIgnoreCase)) return;
 
                 if (System.IO.File.Exists(path) || System.IO.Directory.Exists(path))
                 {
-                    // 使用 /select 可以在打开文件夹的同时选中该文件
                     System.Diagnostics.Process.Start("explorer.exe", $"/select,\"{path}\"");
                 }
                 else
                 {
-                    // 如果文件不存在，尝试只打开父目录
                     string directory = System.IO.Path.GetDirectoryName(path);
                     if (System.IO.Directory.Exists(directory))
                     {
@@ -318,10 +331,13 @@ namespace ExHyperV.ViewModels
                     }
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
+                // 忽略打开资源管理器时的错误
             }
         }
+        
+        
         [RelayCommand]
         private async Task LoadVmsAsync()
         {
@@ -701,10 +717,23 @@ namespace ExHyperV.ViewModels
             finally { IsLoadingSettings = false; }
         }
 
-        [RelayCommand]
+        private bool CanEditStorage(VmStorageItem item)
+        {
+            // 只有非物理设备才允许编辑路径
+            return item != null && item.DiskType != "Physical";
+        }
+
+        [RelayCommand(CanExecute = nameof(CanEditStorage))]
         private async Task EditStoragePath(VmStorageItem driveItem)
         {
             if (SelectedVm == null || driveItem == null) return;
+
+            // 双重拦截：如果是物理磁盘，提示并退出
+            if (driveItem.DiskType == "Physical")
+            {
+                ShowSnackbar("操作受限", "物理直通磁盘无法修改路径，请移除后重新添加。", ControlAppearance.Danger, SymbolRegular.Warning24);
+                return;
+            }
 
             // 安全检查：如果是虚拟硬盘且虚拟机正在运行，通常 Hyper-V 不允许更换路径
             if (driveItem.DriveType == "HardDisk" && SelectedVm.IsRunning)
@@ -729,7 +758,6 @@ namespace ExHyperV.ViewModels
                 IsLoadingSettings = true;
                 try
                 {
-                    // 修复 CS0246: 使用元组接收返回值
                     (bool Success, string Message) result;
 
                     if (driveItem.DriveType == "DvdDrive")
@@ -742,10 +770,9 @@ namespace ExHyperV.ViewModels
                     }
                     else
                     {
-                        // 修复 CS7036: 补齐第二个参数 driveItem.ControllerType
                         result = await _storageService.ModifyHardDrivePathAsync(
                             SelectedVm.Name,
-                            driveItem.ControllerType, // 之前漏掉了这个
+                            driveItem.ControllerType,
                             driveItem.ControllerNumber,
                             driveItem.ControllerLocation,
                             openFileDialog.FileName);
@@ -771,6 +798,7 @@ namespace ExHyperV.ViewModels
                 }
             }
         }
+
         public async Task AddDriveWrapperAsync(string driveType, bool isPhysical, string pathOrNumber, bool isNew, int sizeGb = 128, string vhdType = "Dynamic", string parentPath = "", string isoSourcePath = null, string isoVolumeLabel = null)
         {
             if (SelectedVm == null) return;
@@ -909,8 +937,11 @@ namespace ExHyperV.ViewModels
             {
                 try
                 {
+                    // 1. 获取所有虚拟机的基础状态和内存数据
                     var updates = await _queryService.GetVmListAsync();
                     var memoryMap = await _queryService.GetVmRuntimeMemoryDataAsync();
+
+                    // 2. 在 UI 线程同步所有虚拟机的列表状态
                     Application.Current.Dispatcher.Invoke(() => {
                         foreach (var update in updates)
                         {
@@ -921,20 +952,57 @@ namespace ExHyperV.ViewModels
                                 vm.Disks.Clear();
                                 foreach (var disk in update.Disks) vm.Disks.Add(disk);
                                 vm.GpuName = update.GpuName;
-                                if (memoryMap.TryGetValue(vm.Id.ToString(), out var memData)) vm.UpdateMemoryStatus(memData.AssignedMb, memData.AvailablePercent);
-                                else if (memoryMap.TryGetValue(vm.Id.ToString().ToUpper(), out var memDataUpper)) vm.UpdateMemoryStatus(memDataUpper.AssignedMb, memDataUpper.AvailablePercent);
-                                else vm.UpdateMemoryStatus(0, 0);
+
+                                // 内存状态更新
+                                if (memoryMap.TryGetValue(vm.Id.ToString(), out var memData))
+                                    vm.UpdateMemoryStatus(memData.AssignedMb, memData.AvailablePercent);
+                                else if (memoryMap.TryGetValue(vm.Id.ToString().ToUpper(), out var memDataUpper))
+                                    vm.UpdateMemoryStatus(memDataUpper.AssignedMb, memDataUpper.AvailablePercent);
+                                else
+                                    vm.UpdateMemoryStatus(0, 0);
                             }
                         }
                     });
+
+                    // 3. 【新增】缩略图刷新逻辑：仅针对当前选中的虚拟机
+                    if (SelectedVm != null)
+                    {
+                        if (SelectedVm.IsRunning)
+                        {
+                            // 异步调用工具类获取截图
+                            // 注意：这里的 160, 120 是请求的分辨率，可以根据 UI 需要调整
+                            var img = await VmThumbnailProvider.GetThumbnailAsync(SelectedVm.Name, 400, 300);
+
+                            if (img != null)
+                            {
+                                // 回到 UI 线程赋值以触发界面更新
+                                Application.Current.Dispatcher.Invoke(() => SelectedVm.Thumbnail = img);
+                            }
+                        }
+                        else
+                        {
+                            // 如果虚拟机不在运行，确保 Thumbnail 为空，从而触发 XAML 显示图标
+                            if (SelectedVm.Thumbnail != null)
+                            {
+                                Application.Current.Dispatcher.Invoke(() => SelectedVm.Thumbnail = null);
+                            }
+                        }
+                    }
+
+                    // 4. 更新磁盘 I/O 性能数据
                     await _queryService.UpdateDiskPerformanceAsync(VmList);
+
+                    // 5. 等待 2 秒进行下一次循环
                     await Task.Delay(2000, token);
                 }
                 catch (TaskCanceledException) { break; }
-                catch { await Task.Delay(3000, token); }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[MonitorLoop Error] {ex.Message}");
+                    await Task.Delay(3000, token);
+                }
             }
         }
-
         private void ProcessAndApplyCpuUpdates(List<CpuCoreMetric> rawData) { var grouped = rawData.GroupBy(x => x.VmName); foreach (var group in grouped) { var vm = VmList.FirstOrDefault(v => v.Name == group.Key); if (vm == null) continue; vm.AverageUsage = vm.IsRunning ? group.Average(x => x.Usage) : 0; UpdateVmCores(vm, group.ToList()); } }
         private void UpdateVmCores(VmInstanceInfo vm, List<CpuCoreMetric> metrics) { var metricIds = metrics.Select(m => m.CoreId).ToHashSet(); vm.Cores.Where(c => !metricIds.Contains(c.CoreId)).ToList().ForEach(r => vm.Cores.Remove(r)); foreach (var metric in metrics) { var core = vm.Cores.FirstOrDefault(c => c.CoreId == metric.CoreId); if (core == null) { core = new VmCoreModel { CoreId = metric.CoreId }; int idx = 0; while (idx < vm.Cores.Count && vm.Cores[idx].CoreId < metric.CoreId) idx++; vm.Cores.Insert(idx, core); } core.Usage = metric.Usage; UpdateHistory(vm.Name, core); } vm.Columns = LayoutHelper.CalculateOptimalColumns(vm.Cores.Count); vm.Rows = (vm.Cores.Count > 0) ? (int)Math.Ceiling((double)vm.Cores.Count / vm.Columns) : 1; }
         private void UpdateHistory(string vmName, VmCoreModel core) { string key = $"{vmName}_{core.CoreId}"; if (!_historyCache.TryGetValue(key, out var history)) { history = new LinkedList<double>(); for (int k = 0; k < MaxHistoryLength; k++) history.AddLast(0); _historyCache[key] = history; } history.AddLast(core.Usage); if (history.Count > MaxHistoryLength) history.RemoveFirst(); core.HistoryPoints = CalculatePoints(history); }
