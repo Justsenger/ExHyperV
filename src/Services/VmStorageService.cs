@@ -191,7 +191,7 @@ namespace ExHyperV.Services
                                                 // [修复] 物理光驱直通处理
                                                 driveItem.DiskType = "Physical";
                                                 driveItem.PathOrDiskNumber = rawPath; // 通常显示为 CDROM0 等
-                                                driveItem.DiskModel = "Host Optical Drive";
+                                                driveItem.DiskModel = "Passthrough Optical Drive";
                                             }
                                             else
                                             {
@@ -340,7 +340,7 @@ namespace ExHyperV.Services
                     if ($oldDvd) {{ Set-VMDvdDrive -VMName $vmName -ControllerNumber {controllerNumber} -ControllerLocation {location} -Path {psPath} -ErrorAction Stop }}
                     else {{ Add-VMDvdDrive -VMName $vmName -ControllerNumber {controllerNumber} -ControllerLocation {location} -Path {psPath} -ErrorAction Stop }}
                 }}
-                ""RESULT:{controllerType},{controllerNumber},{location}""";
+                Write-Output ""RESULT:{controllerType},{controllerNumber},{location}""";
 
             try
             {
@@ -349,9 +349,9 @@ namespace ExHyperV.Services
                 if (last.StartsWith("RESULT:"))
                 {
                     var parts = last.Substring(7).Split(',');
-                    return (true, "Success", parts[0], int.Parse(parts[1]), int.Parse(parts[2]));
+                    return (true, "Storage_Msg_Success", parts[0], int.Parse(parts[1]), int.Parse(parts[2]));
                 }
-                return (true, "Success", controllerType, controllerNumber, location);
+                return (true, "Storage_Msg_Success", controllerType, controllerNumber, location);
             }
             catch (Exception ex) { return (false, Utils.GetFriendlyErrorMessage(ex.Message), controllerType, controllerNumber, location); }
         }
@@ -399,6 +399,16 @@ namespace ExHyperV.Services
         public async Task<(bool Success, string Message)> ModifyDvdDrivePathAsync(string vmName, int controllerNumber, int controllerLocation, string newIsoPath)
             => await RunCommandAsync($"Set-VMDvdDrive -VMName '{vmName}' -ControllerNumber {controllerNumber} -ControllerLocation {controllerLocation} -Path {(string.IsNullOrWhiteSpace(newIsoPath) ? "$null" : $"'{newIsoPath}'")} -ErrorAction Stop");
 
+        public async Task<(bool Success, string Message)> ModifyHardDrivePathAsync(string vmName, string controllerType, int controllerNumber, int controllerLocation, string newPath)
+        {
+            string psPath = string.IsNullOrWhiteSpace(newPath) ? "$null" : $"'{newPath}'";
+            string script = $@"
+        $ErrorActionPreference = 'Stop'
+        Set-VMHardDiskDrive -VMName '{vmName}' -ControllerType '{controllerType}' -ControllerNumber {controllerNumber} -ControllerLocation {controllerLocation} -Path {psPath} -ErrorAction Stop";
+
+            return await RunCommandAsync(script);
+        }
+
         #endregion
 
         #region 3. 辅助功能 (VHD查询/插槽计算/ISO制作)
@@ -429,24 +439,133 @@ namespace ExHyperV.Services
 
         public async Task<(string ControllerType, int ControllerNumber, int Location)> GetNextAvailableSlotAsync(string vmName, string driveType)
         {
-            string script = $@"
-                $v = Get-VM -Name '{vmName}'; $ctype = 'IDE'; $cnum = 0; $loc = 0; $found = $false
-                if ($v.Generation -eq 2 -or ($v.Generation -eq 1 -and $v.State -eq 'Running')) {{
-                    $ctype = 'SCSI'; $controllers = Get-VMScsiController -VMName '{vmName}' | Sort-Object ControllerNumber
-                    foreach ($ctrl in $controllers) {{
-                        $cn = $ctrl.ControllerNumber; $used = (Get-VMHardDiskDrive -VMName '{vmName}' -ControllerType SCSI -ControllerNumber $cn).ControllerLocation + (Get-VMDvdDrive -VMName '{vmName}' -ControllerNumber $cn).ControllerLocation
-                        for ($i=0; $i -lt 64; $i++) {{ if ($used -notcontains $i) {{ $cnum = $cn; $loc = $i; $found = $true; break }} }}
-                        if ($found) {{ break }}
-                    }}
-                    if (-not $found) {{ $cnum = if ($controllers) {{ ($controllers | Select-Object -Last 1).ControllerNumber + 1 }} else {{ 0 }}; $loc = 0; }}
-                }} else {{
-                    $ctype = 'IDE'; for ($c=0; $c -lt 2; $c++) {{ $used = (Get-VMHardDiskDrive -VMName '{vmName}' -ControllerType IDE -ControllerNumber $c).ControllerLocation + (Get-VMDvdDrive -VMName '{vmName}' -ControllerNumber $c).ControllerLocation; for ($i=0; $i -lt 2; $i++) {{ if ($used -notcontains $i) {{ $cnum=$c; $loc=$i; $found=$true; break }} }} if ($found) {{ break }} }}
-                }} ""$ctype,$cnum,$loc""";
-            var res = await ExecutePowerShellAsync(script);
-            var parts = res.Trim().Split(',');
-            return parts.Length == 3 ? (parts[0], int.Parse(parts[1]), int.Parse(parts[2])) : ("SCSI", 0, 0);
-        }
+            // 1. C# 层的防御
+            if (string.IsNullOrWhiteSpace(vmName))
+            {
+                System.Diagnostics.Debug.WriteLine("[PS_Storage] [Warning] vmName 为空，跳过。");
+                return ("SCSI", 0, 0);
+            }
 
+            // 2. [关键修复] 转义单引号，防止名称如 "User's VM" 导致 PowerShell 语法崩溃
+            string safeVmName = vmName.Replace("'", "''");
+
+            // 3. 脚本逻辑：移除 ErrorAction Stop，改用内部捕获
+            string script = $@"
+$ErrorActionPreference = 'Continue'
+$vmName = '{safeVmName}' 
+
+try {{
+    # 尝试获取虚拟机对象
+    $v = Get-VM -Name $vmName -ErrorAction Stop
+    
+    if ($null -eq $v) {{ 
+        Write-Output ""RESULT:SCSI,0,0""
+        return
+    }}
+
+    $ctype = 'IDE'
+    $cnum = 0
+    $loc = 0
+    $found = $false
+
+    # 这里的逻辑保持不变：Gen2 或 运行中的 Gen1 使用 SCSI
+    if ($v.Generation -eq 2 -or ($v.Generation -eq 1 -and $v.State -eq 'Running')) {{
+        $ctype = 'SCSI'
+        $controllers = Get-VMScsiController -VMName $vmName | Sort-Object ControllerNumber
+        
+        foreach ($ctrl in $controllers) {{
+            $cn = $ctrl.ControllerNumber
+            # 强制数组化 @() 避免单对象问题
+            $hdds = @(Get-VMHardDiskDrive -VMName $vmName -ControllerType SCSI -ControllerNumber $cn)
+            $dvds = @(Get-VMDvdDrive -VMName $vmName -ControllerType SCSI -ControllerNumber $cn)
+            $used = $hdds.ControllerLocation + $dvds.ControllerLocation
+            
+            for ($i=0; $i -lt 64; $i++) {{ 
+                if ($used -notcontains $i) {{ 
+                    $cnum = $cn; $loc = $i; $found = $true; break 
+                }} 
+            }}
+            if ($found) {{ break }}
+        }}
+
+        if (-not $found) {{ 
+            $last = $controllers | Select-Object -Last 1
+            $cnum = if ($last) {{ $last.ControllerNumber + 1 }} else {{ 0 }}
+            $loc = 0 
+        }}
+    }} else {{
+        $ctype = 'IDE'
+        for ($c=0; $c -lt 2; $c++) {{ 
+            $hdds = @(Get-VMHardDiskDrive -VMName $vmName -ControllerType IDE -ControllerNumber $c)
+            $dvds = @(Get-VMDvdDrive -VMName $vmName -ControllerType IDE -ControllerNumber $c)
+            $used = $hdds.ControllerLocation + $dvds.ControllerLocation
+            
+            for ($i=0; $i -lt 2; $i++) {{ 
+                if ($used -notcontains $i) {{ $cnum=$c; $loc=$i; $found=$true; break }} 
+            }} 
+            if ($found) {{ break }} 
+        }}
+    }}
+
+    Write-Output ""RESULT:$ctype,$cnum,$loc""
+
+}} catch {{
+    # 捕获 PowerShell 内部错误，输出以便 C# 调试
+    Write-Output ""DEBUG_LOG: [ScriptError] $($_.Exception.Message)""
+    Write-Output ""RESULT:SCSI,0,0""
+}}";
+
+            try
+            {
+                var outputRaw = await ExecutePowerShellAsync(script);
+
+                string finalResult = null;
+                if (!string.IsNullOrEmpty(outputRaw))
+                {
+                    var lines = outputRaw.Split(new[] { Environment.NewLine, "\n", "\r" }, StringSplitOptions.RemoveEmptyEntries);
+                    foreach (var line in lines)
+                    {
+                        if (line.StartsWith("DEBUG_LOG:"))
+                        {
+                            // 在 VS 输出窗口显示脚本内部错误
+                            System.Diagnostics.Debug.WriteLine($"[PS_Storage] {line.Substring(10).Trim()}");
+                        }
+                        else if (line.StartsWith("RESULT:"))
+                        {
+                            finalResult = line.Substring(7).Trim();
+                        }
+                    }
+                }
+
+                if (!string.IsNullOrEmpty(finalResult))
+                {
+                    var parts = finalResult.Split(',');
+                    if (parts.Length == 3)
+                        return (parts[0], int.Parse(parts[1]), int.Parse(parts[2]));
+                }
+            }
+            catch (Exception ex)
+            {
+                // [关键修复] 打印完整异常信息，包括 InnerException (通常包含 PowerShell 的真实报错)
+                System.Diagnostics.Debug.WriteLine($"[PS_Storage] [C# Crash] {ex}");
+            }
+
+            // 发生任何错误时的默认回退
+            return ("SCSI", 0, 0);
+        }
+        private async Task<string> ExecutePowerShellAsync(string script)
+        {
+            try
+            {
+                var res = await Utils.Run2(script);
+                // 建议使用 NewLine 拼接，方便后续按行 Split
+                return res == null ? "" : string.Join(Environment.NewLine, res.Select(r => r?.ToString() ?? ""));
+            }
+            catch
+            {
+                return "";
+            }
+        }
         private async Task<(bool Success, string Message)> CreateIsoFromDirectoryAsync(string sourceDirectory, string targetIsoPath, string volumeLabel)
         {
             // [修复] 完整的 ISO 9660 限制检查
@@ -497,8 +616,7 @@ namespace ExHyperV.Services
             });
         }
 
-        private async Task<string> ExecutePowerShellAsync(string script) { try { var res = await Utils.Run2(script); return string.Join("", res); } catch { return ""; } }
-        private async Task<(bool Success, string Message)> RunCommandAsync(string script) { try { await Utils.Run2(script); return (true, "Success"); } catch (Exception ex) { return (false, Utils.GetFriendlyErrorMessage(ex.Message)); } }
+        private async Task<(bool Success, string Message)> RunCommandAsync(string script) { try { await Utils.Run2(script); return (true, "Storage_Msg_Success"); } catch (Exception ex) { return (false, Utils.GetFriendlyErrorMessage(ex.Message)); } }
         private class HostDiskInfoCache { public string? Model { get; set; } public string? SerialNumber { get; set; } public double SizeGB { get; set; } }
 
         #endregion

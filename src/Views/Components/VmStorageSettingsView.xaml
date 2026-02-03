@@ -116,20 +116,30 @@
                                                     </Style>
                                                 </ui:Button.Style>
                                             </ui:Button>
-                                            
+
                                             <ui:Button Icon="{ui:SymbolIcon Symbol=Edit24, FontSize=18}" 
            ToolTip="{x:Static properties:Resources.Common_Modify}"
            Appearance="Secondary" 
            Margin="0,0,8,0"
-           Command="{Binding DataContext.MountIsoCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+           Command="{Binding DataContext.EditStoragePathCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
            CommandParameter="{Binding}">
                                                 <ui:Button.Style>
                                                     <Style TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
                                                         <Setter Property="Visibility" Value="Collapsed"/>
                                                         <Style.Triggers>
+                                                            <!-- 1. 当类型为 DvdDrive (ISO) 时显示 -->
                                                             <DataTrigger Binding="{Binding DriveType}" Value="DvdDrive">
                                                                 <Setter Property="Visibility" Value="Visible"/>
                                                             </DataTrigger>
+
+                                                            <!-- 2. 当类型为 HardDisk (注意不是 HardDrive) 且不是物理磁盘时显示 -->
+                                                            <MultiDataTrigger>
+                                                                <MultiDataTrigger.Conditions>
+                                                                    <Condition Binding="{Binding DriveType}" Value="HardDisk"/>
+                                                                    <Condition Binding="{Binding DiskType}" Value="Virtual"/>
+                                                                </MultiDataTrigger.Conditions>
+                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                            </MultiDataTrigger>
                                                         </Style.Triggers>
                                                     </Style>
                                                 </ui:Button.Style>

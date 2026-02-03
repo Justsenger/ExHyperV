@@ -46,7 +46,17 @@ namespace ExHyperV.ViewModels
         [ObservableProperty] private bool _autoAssign = true;
         [ObservableProperty] private string _filePath = string.Empty;
         [ObservableProperty] private bool _isNewDisk = false;
-        [ObservableProperty] private int _newDiskSize = 128;
+        [ObservableProperty] private string _newDiskSize = "128";
+        public int NewDiskSizeInt => int.TryParse(NewDiskSize, out int size) && size > 0 ? size : 128;
+        partial void OnNewDiskSizeChanged(string value)
+        {
+            // 尝试解析，如果输入的是 0 或负数，重置为 "128"
+            if (int.TryParse(value, out int size) && size <= 0)
+            {
+                NewDiskSize = "128";
+            }
+        }
+
         [ObservableProperty] private string _selectedVhdType = "Dynamic";
         [ObservableProperty] private string _parentPath = string.Empty;
         [ObservableProperty] private string _sectorFormat = "Default";
@@ -65,17 +75,59 @@ namespace ExHyperV.ViewModels
 
         partial void OnDeviceTypeChanged(string value)
         {
-            // 如果切换到光驱，自动取消“新建”勾选（通常不新建 ISO）
-            if (value == "DvdDrive")
+            if (value == "DvdDrive") IsNewDisk = false;
+            FilePath = string.Empty;
+
+            // [调试日志 1] UI 线程触发
+            var currentVm = SelectedVm;
+            System.Diagnostics.Debug.WriteLine($"[DEBUG_UI] OnDeviceTypeChanged 触发. 当前类型: {value}. SelectedVm是否为空: {currentVm == null}");
+
+            if (currentVm != null)
             {
-                IsNewDisk = false;
+                System.Diagnostics.Debug.WriteLine($"[DEBUG_UI] SelectedVm.Name: '{currentVm.Name}'");
             }
 
-            // 清空当前路径，避免逻辑混乱
-            FilePath = string.Empty;
-        }
+            if (AutoAssign && currentVm != null && !string.IsNullOrWhiteSpace(currentVm.Name))
+            {
+                // 关键：在进入 Task 之前捕获变量
+                string targetVmName = currentVm.Name;
+                System.Diagnostics.Debug.WriteLine($"[DEBUG_UI] 准备启动 Task, 捕获到的名称: '{targetVmName}'");
 
-        // 定义路径输入框的占位符文字
+                Task.Run(async () => {
+                    // [调试日志 2] 后台线程开始
+                    System.Diagnostics.Debug.WriteLine($"[DEBUG_TASK] 线程启动. 使用的名称: '{targetVmName}'");
+
+                    try
+                    {
+                        var slot = await _storageService.GetNextAvailableSlotAsync(targetVmName, value);
+
+                        System.Diagnostics.Debug.WriteLine($"[DEBUG_TASK] 获取结果: {slot.ControllerType} {slot.ControllerNumber}:{slot.Location}");
+
+                        Application.Current.Dispatcher.Invoke(() => {
+                            // [调试日志 3] 回到 UI 线程更新
+                            if (SelectedVm?.Name == targetVmName)
+                            {
+                                SelectedControllerType = slot.ControllerType;
+                                SelectedControllerNumber = slot.ControllerNumber;
+                                SelectedLocation = slot.Location;
+                            }
+                            else
+                            {
+                                System.Diagnostics.Debug.WriteLine($"[DEBUG_UI] 警告: 界面已切换 (当前: {SelectedVm?.Name}, 预期: {targetVmName})，放弃更新 UI");
+                            }
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[DEBUG_ERROR] Task 内部异常: {ex}");
+                    }
+                });
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine("[DEBUG_UI] 不满足自动分配条件 (AutoAssign关闭 或 Name为空)");
+            }
+        }
         public string FilePathPlaceholder => DeviceType == "HardDisk"
             ? "选择或输入 .vhdx / .vhd 文件路径"
             : "选择或输入 .iso 镜像文件路径";
@@ -180,7 +232,7 @@ namespace ExHyperV.ViewModels
             {
             }
         }
-            [RelayCommand]
+        [RelayCommand]
         private async Task LoadVmsAsync()
         {
             if (IsLoading && VmList.Count > 0) return;
@@ -193,6 +245,8 @@ namespace ExHyperV.ViewModels
                     var list = new ObservableCollection<VmInstanceInfo>();
                     foreach (var vm in sortedVms)
                     {
+                        if (string.IsNullOrWhiteSpace(vm.Name)) continue;
+
                         var instance = new VmInstanceInfo(vm.Id, vm.Name)
                         {
                             OsType = vm.OsType,
@@ -246,18 +300,37 @@ namespace ExHyperV.ViewModels
                 IsLoading = false;
             }
         }
-
         [RelayCommand]
-        private void GoToAddStorage()
+        private async Task GoToAddStorage()
         {
+            if (SelectedVm == null || string.IsNullOrWhiteSpace(SelectedVm.Name)) return;
+
             FilePath = string.Empty;
             IsNewDisk = false;
             IsPhysicalSource = false;
             AutoAssign = true;
             IsoSourceFolderPath = string.Empty;
+
+            try
+            {
+                IsLoadingSettings = true;
+                string vmName = SelectedVm.Name;
+                var slot = await _storageService.GetNextAvailableSlotAsync(vmName, DeviceType);
+
+                SelectedControllerType = slot.ControllerType;
+                SelectedControllerNumber = slot.ControllerNumber;
+                SelectedLocation = slot.Location;
+            }
+            catch
+            {
+            }
+            finally
+            {
+                IsLoadingSettings = false;
+            }
+
             CurrentViewType = VmDetailViewType.AddStorage;
         }
-
         [RelayCommand]
         private async Task ConfirmAddStorage()
         {
@@ -270,7 +343,7 @@ namespace ExHyperV.ViewModels
                 IsPhysicalSource,
                 target,
                 IsNewDisk,
-                NewDiskSize,
+                NewDiskSizeInt, // <--- 使用转换后的 Int 属性
                 SelectedVhdType,
                 ParentPath,
                 IsoSourceFolderPath,
@@ -278,7 +351,6 @@ namespace ExHyperV.ViewModels
 
             CurrentViewType = VmDetailViewType.StorageSettings;
         }
-
         [RelayCommand]
         private void CancelAddStorage() => CurrentViewType = VmDetailViewType.StorageSettings;
 
@@ -537,24 +609,73 @@ namespace ExHyperV.ViewModels
         }
 
         [RelayCommand]
-        private async Task MountIso(VmStorageItem driveItem)
+        private async Task EditStoragePath(VmStorageItem driveItem)
         {
-            if (SelectedVm == null || driveItem == null || driveItem.DriveType != "DvdDrive") return;
-            var openFileDialog = new Microsoft.Win32.OpenFileDialog { Filter = "Disk Images (*.iso)|*.iso|All files (*.*)|*.*" };
+            if (SelectedVm == null || driveItem == null) return;
+
+            // 安全检查：如果是虚拟硬盘且虚拟机正在运行，通常 Hyper-V 不允许更换路径
+            if (driveItem.DriveType == "HardDisk" && SelectedVm.IsRunning)
+            {
+                ShowSnackbar("操作受限", "无法在虚拟机运行时更换虚拟硬盘文件，请先关机。", ControlAppearance.Danger, SymbolRegular.Warning24);
+                return;
+            }
+
+            // 根据驱动器类型设置文件过滤器
+            string filter = driveItem.DriveType == "DvdDrive"
+                ? "镜像文件 (*.iso)|*.iso|所有文件 (*.*)|*.*"
+                : "虚拟磁盘 (*.vhdx;*.vhd)|*.vhdx;*.vhd|所有文件 (*.*)|*.*";
+
+            var openFileDialog = new Microsoft.Win32.OpenFileDialog
+            {
+                Title = driveItem.DriveType == "DvdDrive" ? "选择 ISO 镜像" : "选择虚拟磁盘文件",
+                Filter = filter
+            };
+
             if (openFileDialog.ShowDialog() == true)
             {
                 IsLoadingSettings = true;
                 try
                 {
-                    var result = await _storageService.ModifyDvdDrivePathAsync(SelectedVm.Name, driveItem.ControllerNumber, driveItem.ControllerLocation, openFileDialog.FileName);
+                    // 修复 CS0246: 使用元组接收返回值
+                    (bool Success, string Message) result;
+
+                    if (driveItem.DriveType == "DvdDrive")
+                    {
+                        result = await _storageService.ModifyDvdDrivePathAsync(
+                            SelectedVm.Name,
+                            driveItem.ControllerNumber,
+                            driveItem.ControllerLocation,
+                            openFileDialog.FileName);
+                    }
+                    else
+                    {
+                        // 修复 CS7036: 补齐第二个参数 driveItem.ControllerType
+                        result = await _storageService.ModifyHardDrivePathAsync(
+                            SelectedVm.Name,
+                            driveItem.ControllerType, // 之前漏掉了这个
+                            driveItem.ControllerNumber,
+                            driveItem.ControllerLocation,
+                            openFileDialog.FileName);
+                    }
+
                     if (result.Success)
                     {
-                        ShowSnackbar("挂载成功", "ISO 已挂载", ControlAppearance.Success, SymbolRegular.CheckmarkCircle24);
+                        ShowSnackbar("修改成功", "存储路径已更新", ControlAppearance.Success, SymbolRegular.CheckmarkCircle24);
                         await _storageService.LoadVmStorageItemsAsync(SelectedVm);
                     }
-                    else ShowSnackbar("挂载失败", result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                    else
+                    {
+                        ShowSnackbar("修改失败", result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                    }
                 }
-                finally { IsLoadingSettings = false; }
+                catch (Exception ex)
+                {
+                    ShowSnackbar("错误", Utils.GetFriendlyErrorMessages(ex.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                }
+                finally
+                {
+                    IsLoadingSettings = false;
+                }
             }
         }
         public async Task AddDriveWrapperAsync(string driveType, bool isPhysical, string pathOrNumber, bool isNew, int sizeGb = 128, string vhdType = "Dynamic", string parentPath = "", string isoSourcePath = null, string isoVolumeLabel = null)
