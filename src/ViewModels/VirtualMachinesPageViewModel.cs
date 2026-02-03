@@ -527,8 +527,6 @@ namespace ExHyperV.ViewModels
                 finally { IsLoadingSettings = false; }
             }
         }
-
-        // 修改 VirtualMachinesPageViewModel.cs 中的这个方法
         public async Task AddDriveWrapperAsync(string driveType, bool isPhysical, string pathOrNumber, bool isNew, int sizeGb = 128, string vhdType = "Dynamic", string parentPath = "", string isoSourcePath = null, string isoVolumeLabel = null)
         {
             if (SelectedVm == null) return;

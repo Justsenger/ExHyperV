@@ -65,14 +65,13 @@
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="24"/>
                             <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
 
                         <Image Grid.Column="0" Source="{Binding OsType, Converter={StaticResource OsTypeToImageConverter}}" 
                                RenderOptions.BitmapScalingMode="HighQuality" 
                                Width="100" Height="100" VerticalAlignment="Center"/>
 
-                        <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                        <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="0,0,0,0">
                             <TextBlock Text="{Binding Name}" FontSize="28" 
                                        Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,8"/>
 
@@ -92,7 +91,7 @@
                                 <Border Background="{ui:ThemeResource ControlFillColorTertiaryBrush}" CornerRadius="4" Padding="10,6" Margin="0,0,8,0">
                                     <StackPanel Orientation="Horizontal">
                                         <ui:FontIcon Glyph="&#xE81E;" FontSize="14" FontFamily="{DynamicResource SegoeFluentIcons}" Margin="0,1,8,0" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
-                                        <TextBlock Text="{Binding ConfigSummary}" FontSize="13" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                                        <TextBlock Text="{Binding ConfigSummary}" TextTrimming="CharacterEllipsis" FontSize="13" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
                                     </StackPanel>
                                 </Border>
 
@@ -142,7 +141,7 @@
                                         <ui:FontIcon Glyph="&#xF211;" FontSize="14" FontFamily="{DynamicResource SegoeFluentIcons}" Margin="0,1,8,0" 
                      Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
 
-                                        <TextBlock FontSize="13">
+                                        <TextBlock FontSize="13" TextTrimming="CharacterEllipsis">
                                             <TextBlock.Style>
                                                 <Style TargetType="TextBlock">
                                                     <!-- 默认情况：显示显卡名称，颜色为主要文本色 -->
@@ -164,7 +163,7 @@
                             </StackPanel>
                         </StackPanel>
 
-                        <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Top">
+                        <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Top" HorizontalAlignment="Right">
                             <Border CornerRadius="8" ClipToBounds="True">
                                 <Grid>
                                     <Grid Visibility="Hidden" IsHitTestVisible="False">

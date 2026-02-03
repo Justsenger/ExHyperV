@@ -66,7 +66,7 @@
                     </Grid>
                 </ui:CardExpander.Header>
 
-                <Grid Margin="0">
+                <Grid Margin="-5">
                     <ItemsControl ItemsSource="{Binding SelectedVm.Cores}">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
@@ -156,27 +156,15 @@
                     </Grid>
                 </ui:CardExpander.Header>
 
-                <!-- 展开后的内容区 -->
-                <!-- Margin="0"：消除表格和外框的大间隙，让它撑满 -->
-                <Grid Margin="0" Height="100">
+                <Grid Margin="-5" Height="100">
                     <Border CornerRadius="6" BorderThickness="1" BorderBrush="#1A888888" Background="#05FFFFFF" ClipToBounds="True">
                         <Grid>
                             <!-- 1. 背景网格 -->
                             <Rectangle Fill="{StaticResource FineGridBrush}" Opacity="0.3"/>
 
                             <!-- 2. 波形图 -->
-                            <!-- Stretch="Fill" 强行拉伸填满 -->
                             <Viewbox Stretch="Fill">
-                                <!-- 
-                   【关键修复】：Width="59" 
-                   C#代码里最后一个点的X坐标是59 (MaxHistoryLength - 1)。
-                   这里设为59，Viewbox就会把第59个像素拉伸到最右边，消除右侧缝隙。
-                -->
                                 <Grid Width="59" Height="100">
-                                    <!-- 
-                       1. Fill="#FF54C7FC"：你要的纯亮蓝色
-                       2. 去掉所有描边属性
-                    -->
                                     <Polygon Points="{Binding SelectedVm.MemoryHistoryPoints}" 
                              Fill="#FF54C7FC"/>
                                 </Grid>
@@ -228,7 +216,7 @@
                     </Grid>
                 </ui:CardExpander.Header>
 
-                <Grid Margin="0">
+                <Grid Margin="-5">
                     <!-- 存储 (Storage) 折叠卡片内部的 ItemsControl -->
                     <ItemsControl ItemsSource="{Binding SelectedVm.Disks}">
                         <ItemsControl.ItemTemplate>
