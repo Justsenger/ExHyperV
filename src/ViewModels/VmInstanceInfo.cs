@@ -36,9 +36,19 @@ namespace ExHyperV.Models
         [ObservableProperty] private string _diskType;
         [ObservableProperty] private long _currentSize;
         [ObservableProperty] private long _maxSize;
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(IoSpeedText))]
+        private long _readSpeedBps; // 字节每秒
+
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(IoSpeedText))]
+        private long _writeSpeedBps; // 字节每秒
+
+        public string IoSpeedText => $"↓ {FormatIoSpeed(_readSpeedBps)}   ↑ {FormatIoSpeed(_writeSpeedBps)}";
 
         public double UsagePercentage => _maxSize > 0 ? (double)_currentSize / _maxSize * 100 : 0;
         public string UsageText => $"{FormatBytes(_currentSize)} / {FormatBytes(_maxSize)}";
+
 
         private string FormatBytes(long bytes)
         {
@@ -52,6 +62,18 @@ namespace ExHyperV.Models
                 i++;
             }
             return $"{dblSByte:0.##} {suffixes[i]}";
+        }
+        private string FormatIoSpeed(long bps)
+        {
+            string[] suffixes = { "B/s", "KB/s", "MB/s", "GB/s" };
+            int i = 0;
+            double dblSpeed = bps;
+            while (dblSpeed >= 1024 && i < suffixes.Length - 1)
+            {
+                dblSpeed /= 1024;
+                i++;
+            }
+            return $"{dblSpeed:0.#} {suffixes[i]}";
         }
     }
 

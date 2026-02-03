@@ -56,7 +56,7 @@
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
 
-                <Border Grid.Row="0" Margin="24,24,24,0" 
+                <Border Grid.Row="0" Margin="24,12,24,0" 
                         Background="{ui:ThemeResource ControlFillColorSecondaryBrush}" 
                         BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" 
                         CornerRadius="8" Padding="24" MinHeight="160">
@@ -133,17 +133,22 @@
                                     </ui:DropDownButton.Flyout>
                                 </ui:DropDownButton>
 
+                                <!-- ======== 修改后的 GPU 标签代码 ======== -->
                                 <Border Margin="8,0,0,0" VerticalAlignment="Center" 
-                                        Background="{ui:ThemeResource ControlFillColorTertiaryBrush}" 
-                                        CornerRadius="4" Padding="10,6">
+        Background="{ui:ThemeResource ControlFillColorTertiaryBrush}" 
+        CornerRadius="4" Padding="10,6">
+
                                     <StackPanel Orientation="Horizontal">
                                         <ui:FontIcon Glyph="&#xF211;" FontSize="14" FontFamily="{DynamicResource SegoeFluentIcons}" Margin="0,1,8,0" 
-                                                     Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                     Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+
                                         <TextBlock FontSize="13">
                                             <TextBlock.Style>
                                                 <Style TargetType="TextBlock">
+                                                    <!-- 默认情况：显示显卡名称，颜色为主要文本色 -->
                                                     <Setter Property="Text" Value="{Binding GpuName}"/>
                                                     <Setter Property="Foreground" Value="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+
                                                     <Style.Triggers>
                                                         <DataTrigger Binding="{Binding HasGpu}" Value="False">
                                                             <Setter Property="Text" Value="无"/>
@@ -155,6 +160,7 @@
                                         </TextBlock>
                                     </StackPanel>
                                 </Border>
+                                <!-- ===================================== -->
                             </StackPanel>
                         </StackPanel>
 
@@ -233,7 +239,7 @@
                     </Grid>
                 </Border>
 
-                <Rectangle Grid.Row="1" Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,24,24,0" Opacity="0.5"/>
+                <Rectangle Grid.Row="1" Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,12,24,0" Opacity="0.5"/>
 
                 <ContentControl Grid.Row="2" Content="{Binding DataContext, RelativeSource={RelativeSource AncestorType=Page}}">
                     <ContentControl.Style>
@@ -269,24 +275,6 @@
                                         <Setter.Value>
                                             <DataTemplate>
                                                 <components:VmRAMSettingsView/>
-                                            </DataTemplate>
-                                        </Setter.Value>
-                                    </Setter>
-                                </DataTrigger>
-                                <DataTrigger Binding="{Binding DataContext.CurrentViewType, RelativeSource={RelativeSource AncestorType=Page}}" Value="StorageSettings">
-                                    <Setter Property="ContentTemplate">
-                                        <Setter.Value>
-                                            <DataTemplate>
-                                                <components:VmStorageSettingsView/>
-                                            </DataTemplate>
-                                        </Setter.Value>
-                                    </Setter>
-                                </DataTrigger>
-                                <DataTrigger Binding="{Binding DataContext.CurrentViewType, RelativeSource={RelativeSource AncestorType=Page}}" Value="AddStorage">
-                                    <Setter Property="ContentTemplate">
-                                        <Setter.Value>
-                                            <DataTemplate>
-                                                <components:VmAddStorageView/>
                                             </DataTemplate>
                                         </Setter.Value>
                                     </Setter>

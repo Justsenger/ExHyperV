@@ -229,11 +229,11 @@
                 </ui:CardExpander.Header>
 
                 <Grid Margin="0">
+                    <!-- 存储 (Storage) 折叠卡片内部的 ItemsControl -->
                     <ItemsControl ItemsSource="{Binding SelectedVm.Disks}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
                                 <Border Margin="0,0,0,6" CornerRadius="4" BorderThickness="1" BorderBrush="#1A888888" Background="#05FFFFFF">
-                                    <!-- 【修改】主布局变为左右两列 -->
                                     <Grid Margin="12,10">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="Auto"/>
@@ -242,29 +242,23 @@
                                             <!-- 右侧内容列 -->
                                         </Grid.ColumnDefinitions>
 
+                                        <!-- 磁盘图标部分保持不变 -->
                                         <ui:FontIcon Grid.Column="0" 
-             FontFamily="{DynamicResource SegoeFluentIcons}"
-             FontSize="28" 
-             VerticalAlignment="Center" 
-             Margin="0,0,16,0" 
-             Opacity="0.8"
-             Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}">
+                                 FontFamily="{DynamicResource SegoeFluentIcons}"
+                                 FontSize="28" 
+                                 VerticalAlignment="Center" 
+                                 Margin="0,0,16,0" 
+                                 Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}">
                                             <ui:FontIcon.Style>
                                                 <Style TargetType="ui:FontIcon">
-                                                    <!-- 默认图标：硬盘 (&#xEC59;) -->
                                                     <Setter Property="Glyph" Value="&#xEC59;"/>
                                                     <Style.Triggers>
-                                                        <!-- 对应 VmQueryService.cs 第 173 行: DiskType = "ISO" -->
                                                         <DataTrigger Binding="{Binding DiskType}" Value="ISO">
                                                             <Setter Property="Glyph" Value="&#xE958;"/>
                                                         </DataTrigger>
-
-                                                        <!-- 防御性编程：如果还有旧逻辑返回 DvdDrive -->
                                                         <DataTrigger Binding="{Binding DiskType}" Value="DvdDrive">
                                                             <Setter Property="Glyph" Value="&#xE958;"/>
                                                         </DataTrigger>
-
-                                                        <!-- 对应 ResourceType=16 但不是 .iso 结尾的情况 -->
                                                         <DataTrigger Binding="{Binding DiskType}" Value="DVD">
                                                             <Setter Property="Glyph" Value="&#xE958;"/>
                                                         </DataTrigger>
@@ -272,53 +266,72 @@
                                                 </Style>
                                             </ui:FontIcon.Style>
                                         </ui:FontIcon>
-                                        <!-- 第 1 列：所有文本和进度条信息 -->
-                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                            <!-- 1. 顶部：名称和类型标签 -->
-                                            <Grid>
-                                                <!-- 【修改】只保留名称，移除了路径和分隔符 -->
-                                                <TextBlock Text="{Binding Name}" 
-                                                            
-                                                           FontSize="14" 
-                                                           TextTrimming="CharacterEllipsis"
-                                                           VerticalAlignment="Center"
-                                                           Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
 
-                                                <!-- 右上角类型标签 (保持不变) -->
-                                                <Border HorizontalAlignment="Right" Background="#10FFFFFF" CornerRadius="3" Padding="5,1">
-                                                    <TextBlock Text="{Binding DiskType}" 
-                                                               FontSize="10" 
-                                                               Opacity="0.6" 
-                                                               Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
-                                                </Border>
+                                        <!-- 右侧信息栏 -->
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                            <!-- 1. 顶部：名称、读写速率和类型标签 -->
+                                            <Grid>
+                                                <!-- 左侧：磁盘名称 -->
+                                                <TextBlock Text="{Binding Name}" 
+                                       FontSize="14" 
+                                       TextTrimming="CharacterEllipsis"
+                                       VerticalAlignment="Center"
+                                       Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+
+                                                <!-- 右侧容器：包含读写速率和磁盘类型 -->
+                                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+
+                                                    <!-- 【新增】实时读写速率 -->
+                                                    <!-- 在存储卡片的 DataTemplate 中找到速率 TextBlock -->
+                                                    <TextBlock Text="{Binding IoSpeedText}" 
+           FontSize="11" 
+           Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"
+           Opacity="0.8"
+           Margin="0,0,12,0"
+           VerticalAlignment="Center"
+           FontFamily="Segoe UI, Microsoft YaHei"> <!-- 确保字体支持箭头 -->
+                                                        <TextBlock.Style>
+                                                            <Style TargetType="TextBlock">
+                                                                <Style.Triggers>
+                                                                    <!-- 依然保持仅在运行时显示的逻辑 -->
+                                                                    <DataTrigger Binding="{Binding DataContext.SelectedVm.IsRunning, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="False">
+                                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </TextBlock.Style>
+                                                    </TextBlock>
+                                                    <!-- 原有的类型标签 -->
+                                                    <Border Background="#10FFFFFF" CornerRadius="3" Padding="5,1">
+                                                        <TextBlock Text="{Binding DiskType}" 
+                                               FontSize="10" 
+                                               Opacity="0.6" 
+                                               Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                                                    </Border>
+                                                </StackPanel>
                                             </Grid>
 
-                                            <!-- 2. 【修改】中部：进度条和容量文本放在同一行 -->
+                                            <!-- 2. 中部：进度条和容量文本 (保持不变) -->
                                             <Grid Margin="0,8,0,0">
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="*"/>
-                                                    <!-- 进度条占满剩余空间 -->
                                                     <ColumnDefinition Width="Auto"/>
-                                                    <!-- 容量文本自动宽度 -->
                                                 </Grid.ColumnDefinitions>
 
-                                                <!-- 【修改】进度条加粗 -->
                                                 <ProgressBar Grid.Column="0" 
-                                                             Value="{Binding UsagePercentage, Mode=OneWay}" 
-                                                             Maximum="100" 
-                                                             Height="8" 
-                                                             VerticalAlignment="Center" 
-                                                             Background="#1A888888" 
-                                                             Foreground="#FF54C7FC"/>
+                                         Value="{Binding UsagePercentage, Mode=OneWay}" 
+                                         Maximum="100" 
+                                         Height="8" 
+                                         VerticalAlignment="Center" 
+                                         Background="#1A888888" 
+                                         Foreground="#FF54C7FC"/>
 
-                                                <!-- 【修改】容量文本放在进度条右侧 -->
                                                 <TextBlock Grid.Column="1" 
-                                                           Text="{Binding UsageText}" 
-                                                           FontSize="12" 
-                                                            
-                                                           Margin="12,0,0,0" 
-                                                           VerticalAlignment="Center"
-                                                           Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                                       Text="{Binding UsageText}" 
+                                       FontSize="12" 
+                                       Margin="12,0,0,0" 
+                                       VerticalAlignment="Center"
+                                       Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
                                             </Grid>
                                         </StackPanel>
                                     </Grid>
@@ -326,7 +339,6 @@
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
-
                     <!-- 空状态 (保持不变) -->
                     <TextBlock Text="未挂载虚拟磁盘" HorizontalAlignment="Center" Opacity="0.4" Margin="20" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}">
                         <TextBlock.Style>

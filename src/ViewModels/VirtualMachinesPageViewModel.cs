@@ -654,7 +654,7 @@ namespace ExHyperV.ViewModels
             try { _cpuService = new CpuMonitorService(); } catch { return; }
             while (!token.IsCancellationRequested)
             {
-                try { var rawData = _cpuService.GetCpuUsage(); Application.Current.Dispatcher.Invoke(() => ProcessAndApplyCpuUpdates(rawData)); await Task.Delay(1000, token); }
+                try { var rawData = _cpuService.GetCpuUsage(); Application.Current.Dispatcher.Invoke(() => ProcessAndApplyCpuUpdates(rawData));  await Task.Delay(1000, token); }
                 catch (TaskCanceledException) { break; }
                 catch { await Task.Delay(5000, token); }
             }
@@ -685,7 +685,8 @@ namespace ExHyperV.ViewModels
                             }
                         }
                     });
-                    await Task.Delay(3000, token);
+                    await _queryService.UpdateDiskPerformanceAsync(VmList);
+                    await Task.Delay(2000, token);
                 }
                 catch (TaskCanceledException) { break; }
                 catch { await Task.Delay(3000, token); }
