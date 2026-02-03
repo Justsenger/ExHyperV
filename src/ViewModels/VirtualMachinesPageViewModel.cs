@@ -853,24 +853,83 @@ namespace ExHyperV.ViewModels
         [ObservableProperty] private int _affinityColumns = 8;
         [ObservableProperty] private int _affinityRows = 1;
 
+
         [RelayCommand]
         private async Task GoToCpuAffinity()
         {
             if (SelectedVm == null) return;
-            CurrentViewType = VmDetailViewType.CpuAffinity; IsLoadingSettings = true;
+            CurrentViewType = VmDetailViewType.CpuAffinity;
+            IsLoadingSettings = true;
+
             try
             {
+                // 1. 获取基础数据
                 int totalCores = Environment.ProcessorCount;
                 var currentAffinity = await _cpuAffinityService.GetCpuAffinityAsync(SelectedVm.Id);
-                var coresList = new List<VmCoreModel>();
-                for (int i = 0; i < totalCores; i++) coresList.Add(new VmCoreModel { CoreId = i, IsSelected = currentAffinity.Contains(i), CoreType = CpuMonitorService.GetCoreType(i) });
-                AffinityHostCores = new ObservableCollection<VmCoreModel>(coresList);
-                AffinityColumns = 8; AffinityRows = (int)Math.Ceiling((double)totalCores / AffinityColumns);
-            }
-            catch (Exception ex) { ShowSnackbar("加载亲和性失败", Utils.GetFriendlyErrorMessages(ex.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24); }
-            finally { IsLoadingSettings = false; }
-        }
 
+                // 2. 构建模型列表
+                var coresList = new List<VmCoreModel>();
+                for (int i = 0; i < totalCores; i++)
+                {
+                    coresList.Add(new VmCoreModel
+                    {
+                        CoreId = i,
+                        IsSelected = currentAffinity.Contains(i),
+                        CoreType = CpuMonitorService.GetCoreType(i)
+                    });
+                }
+                AffinityHostCores = new ObservableCollection<VmCoreModel>(coresList);
+
+                // 3. 布局算法：寻找最美观的行列组合
+                int bestCols = 4;
+
+                if (totalCores <= 4)
+                {
+                    bestCols = totalCores;
+                }
+                else
+                {
+                    double minPenalty = double.MaxValue;
+
+                    // 遍历所有可能的列数 (4 到 10 列是 UI 视觉舒适区)
+                    for (int c = 4; c <= 10; c++)
+                    {
+                        int r = (int)Math.Ceiling((double)totalCores / c);
+
+                        // 惩罚项 1: 留白空位 (最后一行空得越多，惩罚越高)
+                        // 例如 12核排 5列，最后一行剩 2个，空 3个。
+                        int remainder = (c - (totalCores % c)) % c;
+                        double wasteScore = (double)remainder / c;
+
+                        // 惩罚项 2: 长宽比例 (我们希望比例接近 1.5:1 的长方形)
+                        double aspect = (double)c / r;
+                        double aspectScore = Math.Abs(aspect - 1.5);
+
+                        // 综合评分：权重分配 2.0(整齐度) + 1.0(比例)
+                        // 分数越低说明越整齐美观
+                        double totalPenalty = (wasteScore * 2.0) + aspectScore;
+
+                        if (totalPenalty < minPenalty)
+                        {
+                            minPenalty = totalPenalty;
+                            bestCols = c;
+                        }
+                    }
+                }
+
+                AffinityColumns = bestCols;
+                AffinityRows = (int)Math.Ceiling((double)totalCores / AffinityColumns);
+            }
+            catch (Exception ex)
+            {
+                ShowSnackbar("加载亲和性失败", Utils.GetFriendlyErrorMessages(ex.Message),
+                    ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+            }
+            finally
+            {
+                IsLoadingSettings = false;
+            }
+        }
         [RelayCommand]
         private async Task SaveAffinity()
         {
@@ -1045,9 +1104,6 @@ namespace ExHyperV.ViewModels
 
             try
             {
-                // 调用系统自带的 vmconnect.exe
-                // 参数1: localhost (宿主机)
-                // 参数2: 虚拟机名称 (建议加引号防止空格导致解析失败)
                 System.Diagnostics.Process.Start("vmconnect.exe", $"localhost \"{SelectedVm.Name}\"");
             }
             catch (Exception ex)

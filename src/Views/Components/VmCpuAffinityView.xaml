@@ -6,6 +6,7 @@
              xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
              xmlns:vm="clr-namespace:ExHyperV.ViewModels"
              xmlns:converters="clr-namespace:ExHyperV.Converters"
+             xmlns:tools="clr-namespace:ExHyperV.Tools" 
              mc:Ignorable="d" 
              d:DesignHeight="600" d:DesignWidth="800">
 
@@ -16,8 +17,8 @@
             <Setter Property="Margin" Value="4"/>
             <Setter Property="HorizontalContentAlignment" Value="Center"/>
             <Setter Property="VerticalContentAlignment" Value="Center"/>
-            <!-- 新增：设置最小高度，防止塌缩 -->
-            <Setter Property="MinHeight" Value="45"/>
+            <!-- 重要：StretchUniformGrid 会参考这个最小高度来决定行高 -->
+            <Setter Property="MinHeight" Value="48"/>
             <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
             <Setter Property="Template">
                 <Setter.Value>
@@ -81,6 +82,7 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
+        <!-- 标题栏 -->
         <Grid Grid.Row="0" Margin="24,20,24,18">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
@@ -99,33 +101,36 @@
         <ProgressBar Grid.Row="1" IsIndeterminate="True" VerticalAlignment="Top" Height="2" Margin="0,-2,0,0"
                      Visibility="{Binding IsLoadingSettings, Converter={StaticResource BoolToVis}}"/>
 
-        <Border Grid.Row="2" Padding="24,0,24,0">
-            <!-- 修复：移除了 VerticalAlignment="Top"，让网格自动撑满区域 -->
-            <ItemsControl x:Name="CoresItemsControl"
-                          ItemsSource="{Binding AffinityHostCores}"
-                          Background="Transparent"
-                          PreviewMouseLeftButtonDown="ItemsControl_PreviewMouseLeftButtonDown"
-                          PreviewMouseMove="ItemsControl_PreviewMouseMove"
-                          PreviewMouseLeftButtonUp="ItemsControl_PreviewMouseLeftButtonUp">
+        <!-- 核心显示区域 -->
+        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
+            <Border Padding="24,0,24,0">
+                <ItemsControl x:Name="CoresItemsControl"
+                              ItemsSource="{Binding AffinityHostCores}"
+                              Background="Transparent"
+                              PreviewMouseLeftButtonDown="ItemsControl_PreviewMouseLeftButtonDown"
+                              PreviewMouseMove="ItemsControl_PreviewMouseMove"
+                              PreviewMouseLeftButtonUp="ItemsControl_PreviewMouseLeftButtonUp">
 
-                <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <UniformGrid Columns="{Binding AffinityColumns}" 
-                                     Rows="{Binding AffinityRows}"
-                                     FirstColumn="0"/>
-                    </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <!-- 【已修改】使用自定义的 StretchUniformGrid 替换原生 UniformGrid -->
+                            <tools:StretchUniformGrid Columns="{Binding AffinityColumns}" 
+                                                      Rows="{Binding AffinityRows}"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
 
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate>
-                        <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" 
-                                  Style="{StaticResource SelectableCoreBoxStyle}"
-                                  IsHitTestVisible="False"/>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
-        </Border>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" 
+                                      Style="{StaticResource SelectableCoreBoxStyle}"
+                                      IsHitTestVisible="False"/>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </Border>
+        </ScrollViewer>
 
+        <!-- 底部操作栏 -->
         <Border Grid.Row="3" Padding="24,16,24,24">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                 <ui:Button Content="应用" Appearance="Primary" Icon="Checkmark24"
