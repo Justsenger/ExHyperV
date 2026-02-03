@@ -33,9 +33,6 @@
     <Compile Update="Views\Components\VmStorageSettingsView.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Update="Views\CpuAffinityDialog.xaml.cs">
-      <SubType>Code</SubType>
-    </Compile>
     <Compile Update="Views\ProgressWindow.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
