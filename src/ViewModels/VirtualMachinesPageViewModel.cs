@@ -529,6 +529,24 @@ namespace ExHyperV.ViewModels
             catch (Exception) { }
         }
 
+
+        partial void OnAutoAssignChanged(bool value)
+        {
+            if (value)
+            {
+                // 开启自动分配：计算最佳位置
+                CalculateBestSlot();
+            }
+            else
+            {
+                // 关闭自动分配：
+                // 此时，选择的控制器和位置都是 CalculateBestSlot 计算好的。
+                // 我们只需调用一次 UpdateAvailableLocations，它会根据当前值
+                // 正确填充列表并刷新验证状态，而不会清空已有选择。
+                UpdateAvailableLocations();
+            }
+        }
+
         // ----------------------------------------------------------------------------------
         // 存储管理 - 添加新设备 (向导相关属性与逻辑)
         // ----------------------------------------------------------------------------------
@@ -599,13 +617,38 @@ namespace ExHyperV.ViewModels
             else UpdateAvailableLocations();
         }
 
+        // (位于 VirtualMachinesPageViewModel.cs)
+
         partial void OnSelectedControllerTypeChanged(string value)
         {
             if (value == null) return;
+
+            // 1. 在清空列表前，先保存当前选中的控制器编号
+            int currentNumber = SelectedControllerNumber;
+
             AvailableControllerNumbers.Clear();
             int maxCtrl = (value == "IDE") ? 2 : 4;
             for (int i = 0; i < maxCtrl; i++) AvailableControllerNumbers.Add(i);
-            UpdateAvailableLocations();
+
+            // 2. 重新填充列表后，检查旧的选项是否还在
+            if (AvailableControllerNumbers.Contains(currentNumber))
+            {
+                // 如果还在，就恢复它
+                SelectedControllerNumber = currentNumber;
+            }
+            else
+            {
+                // 如果不在了（例如从SCSI切换到IDE），就自动选择第一个有效的选项
+                SelectedControllerNumber = AvailableControllerNumbers.FirstOrDefault();
+            }
+
+            // 3. 确保位置列表也被刷新
+            // 如果上面的逻辑导致编号未变，则需要手动触发位置更新
+            if (SelectedControllerNumber == currentNumber)
+            {
+                UpdateAvailableLocations();
+            }
+            // 如果编号变了，则会自动触发 OnSelectedControllerNumberChanged，无需手动调用
         }
 
         partial void OnSelectedControllerNumberChanged(int value)
@@ -833,10 +876,14 @@ namespace ExHyperV.ViewModels
             SlotWarningMessage = string.Empty;
         }
 
+        // (位于 VirtualMachinesPageViewModel.cs)
+
         private void UpdateAvailableLocations()
         {
             if (SelectedVm == null || string.IsNullOrEmpty(SelectedControllerType)) return;
-            if (AutoAssign) return;
+
+            // 关键：在清空列表前，保存当前选择的位置
+            int currentLocation = SelectedLocation;
 
             var usedLocations = SelectedVm.StorageItems
                 .Where(i => i.ControllerType == SelectedControllerType && i.ControllerNumber == SelectedControllerNumber)
@@ -848,25 +895,47 @@ namespace ExHyperV.ViewModels
             AvailableLocations.Clear();
             for (int i = 0; i < maxLoc; i++)
             {
+                // 我们只把“没被占用”的位置加入到可选列表
                 if (!usedLocations.Contains(i))
                 {
                     AvailableLocations.Add(i);
                 }
             }
 
-            if (AvailableLocations.Count == 0)
+            // 重新填充列表后，尝试恢复之前的选择
+            if (AvailableLocations.Contains(currentLocation))
             {
-                IsSlotValid = false;
-                SlotWarningMessage = $"控制器 {SelectedControllerType} #{SelectedControllerNumber} 已满";
+                SelectedLocation = currentLocation;
             }
             else
             {
-                bool currentlyOccupied = usedLocations.Contains(SelectedLocation);
-                IsSlotValid = !currentlyOccupied;
-                SlotWarningMessage = currentlyOccupied ? "此插槽已被占用" : string.Empty;
+                // 如果无法恢复（比如那个位置现在不可选了），则自动选择第一个可用的位置
+                SelectedLocation = AvailableLocations.FirstOrDefault();
+            }
+
+            // 最后，根据最终状态更新验证信息和警告
+            if (!AutoAssign)
+            {
+                if (AvailableLocations.Count == 0)
+                {
+                    IsSlotValid = false;
+                    SlotWarningMessage = $"控制器 {SelectedControllerType} #{SelectedControllerNumber} 已满";
+                }
+                else
+                {
+                    // 因为我们的逻辑确保了 SelectedLocation 永远是列表中的有效项，
+                    // 所以只要列表不为空，手动模式就是有效的。
+                    IsSlotValid = true;
+                    SlotWarningMessage = string.Empty;
+                }
+            }
+            else
+            {
+                // 自动模式下，UI上不应显示错误
+                IsSlotValid = true;
+                SlotWarningMessage = string.Empty;
             }
         }
-
         private void RefreshControllerOptions()
         {
             if (SelectedVm == null) return;

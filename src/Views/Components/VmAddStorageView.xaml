@@ -48,12 +48,13 @@
             <StackPanel>
 
                 <!-- 插槽配置 -->
+                <!-- 插槽配置 -->
                 <TextBlock Text="{x:Static properties:Resources.AddDisk_SlotConfig}" 
-                           FontSize="14" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" Margin="0,0,0,8"/>
+           FontSize="14" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" Margin="0,0,0,8"/>
 
                 <Border Background="{ui:ThemeResource CardBackgroundFillColorDefaultBrush}" 
-                        BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" 
-                        BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,0,24">
+        BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" 
+        BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,0,24">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
@@ -64,13 +65,17 @@
                         <!-- 左侧：标题 -->
                         <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,16,0">
                             <TextBlock Text="{x:Static properties:Resources.AddDisk_AutoAssign}" 
-                                       FontSize="14" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                       FontSize="14" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
                             <TextBlock Text="自动选择可用位置" 
-                                       FontSize="12" Foreground="{ui:ThemeResource TextFillColorTertiaryBrush}" Margin="0,2,0,0"/>
+                       FontSize="12" Foreground="{ui:ThemeResource TextFillColorTertiaryBrush}" Margin="0,2,0,0"/>
                         </StackPanel>
 
-                        <!-- 中间：三个下拉列表 -->
+                        <!-- 中间：三个下拉列表及标签 -->
                         <Grid Grid.Column="1" Margin="8,0" IsEnabled="{Binding AutoAssign, Converter={StaticResource InverseBooleanConverter}}">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="8" />
@@ -79,27 +84,35 @@
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
 
-                            <ComboBox Grid.Column="0" ItemsSource="{Binding AvailableControllerTypes}" SelectedItem="{Binding SelectedControllerType}" 
-                                      HorizontalAlignment="Stretch" ToolTip="{x:Static properties:Resources.AddDisk_Interface}"/>
+                            <!-- 第一行：标签 -->
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="{x:Static properties:Resources.AddDisk_Interface}" 
+                       FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" Margin="0,0,0,4"/>
+                            <TextBlock Grid.Row="0" Grid.Column="2" Text="{x:Static properties:Resources.AddDisk_Number}" 
+                       FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" Margin="0,0,0,4"/>
+                            <TextBlock Grid.Row="0" Grid.Column="4" Text="{x:Static properties:Resources.AddDisk_Location}" 
+                       FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" Margin="0,0,0,4"/>
 
-                            <ComboBox Grid.Column="2" ItemsSource="{Binding AvailableControllerNumbers}" SelectedItem="{Binding SelectedControllerNumber}" 
-                                      HorizontalAlignment="Stretch" ToolTip="{x:Static properties:Resources.AddDisk_Number}"/>
+                            <!-- 第二行：下拉列表 -->
+                            <ComboBox Grid.Row="1" Grid.Column="0" ItemsSource="{Binding AvailableControllerTypes}" SelectedItem="{Binding SelectedControllerType}" 
+                      HorizontalAlignment="Stretch" />
 
-                            <ComboBox Grid.Column="4" ItemsSource="{Binding AvailableLocations}" SelectedItem="{Binding SelectedLocation, Mode=TwoWay}" 
-                                      HorizontalAlignment="Stretch" ToolTip="{x:Static properties:Resources.AddDisk_Location}"/>
+                            <ComboBox Grid.Row="1" Grid.Column="2" ItemsSource="{Binding AvailableControllerNumbers}" SelectedItem="{Binding SelectedControllerNumber}" 
+                      HorizontalAlignment="Stretch" />
+
+                            <ComboBox Grid.Row="1" Grid.Column="4" ItemsSource="{Binding AvailableLocations}" SelectedItem="{Binding SelectedLocation, Mode=TwoWay}" 
+                      HorizontalAlignment="Stretch" />
                         </Grid>
 
                         <!-- 右侧：开关 -->
-                        <ui:ToggleSwitch Grid.Column="2" IsChecked="{Binding AutoAssign}" Margin="16,0,0,0"/>
+                        <ui:ToggleSwitch Grid.Column="2" IsChecked="{Binding AutoAssign}" Margin="16,0,0,0" VerticalAlignment="Center"/>
                     </Grid>
                 </Border>
-
                 <!-- 媒体设置 -->
                 <TextBlock Text="媒体设置" FontSize="14" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" Margin="0,0,0,8"/>
 
                 <Border Background="{ui:ThemeResource CardBackgroundFillColorDefaultBrush}" 
                         BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" 
-                        BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,0,24">
+                        BorderThickness="1" CornerRadius="8" Padding="16">
                     <StackPanel>
 
                         <!-- 第一行：来源、类型、新建开关 -->
