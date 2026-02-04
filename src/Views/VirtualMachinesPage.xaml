@@ -89,12 +89,12 @@
 
                             <!-- 2. 实时监视器 (运行时显示) -->
                             <Border Background="Black" BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" 
-            BorderThickness="4,4,4,8" CornerRadius="2" ClipToBounds="True">
+        BorderThickness="4,4,4,8" CornerRadius="2" ClipToBounds="True"
+        ToolTip="双击以连接">
                                 <Border.Style>
                                     <Style TargetType="Border">
                                         <Setter Property="Visibility" Value="Collapsed"/>
                                         <Style.Triggers>
-                                            <!-- 当虚拟机运行时，显示监视器 -->
                                             <DataTrigger Binding="{Binding IsRunning}" Value="True">
                                                 <Setter Property="Visibility" Value="Visible"/>
                                             </DataTrigger>
@@ -102,11 +102,25 @@
                                     </Style>
                                 </Border.Style>
 
-                                <!-- 图像绑定到 ViewModel 新增的 Thumbnail 属性 -->
-                                <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" RenderOptions.BitmapScalingMode="HighQuality" />
+                                <!-- ==================== 新增的双击绑定 ==================== -->
+                                <Border.InputBindings>
+                                    <!-- 
+            当鼠标左键被双击时 (LeftDoubleClick)，
+            执行指定的命令。
+        -->
+                                    <MouseBinding Gesture="LeftDoubleClick"
+                      Command="{Binding DataContext.OpenNativeConnectCommand, RelativeSource={RelativeSource AncestorType=Page}}" />
+                                </Border.InputBindings>
+                                <!-- ========================================================== -->
+
+                                <Viewbox Stretch="Uniform">
+                                    <Image Source="{Binding Thumbnail}" 
+               Width="320" 
+               Height="240" 
+               RenderOptions.BitmapScalingMode="HighQuality" />
+                                </Viewbox>
 
                             </Border>
-
                         </Grid>
                         <!-- =============================================================== -->
                         
