@@ -96,17 +96,6 @@
                     </ui:NavigationViewItem.Icon>
                 </ui:NavigationViewItem>
 
-                <ui:NavigationViewItem
-                    x:Name="Storage"
-                    Content="{x:Static properties:Resources.Storage}"
-                    NavigationCacheMode="Enabled"
-                    Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"
-                    TargetPageType="{x:Type pages:StoragePage}">
-                    <ui:NavigationViewItem.Icon>
-                        <ui:FontIcon FontSize="16" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xEDA2;"/>
-                    </ui:NavigationViewItem.Icon>
-                </ui:NavigationViewItem>
-
             </ui:NavigationView.MenuItems>
 
             <ui:NavigationView.FooterMenuItems>

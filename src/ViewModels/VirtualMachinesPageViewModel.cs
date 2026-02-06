@@ -50,10 +50,6 @@ namespace ExHyperV.ViewModels
             _vmMemoryService = new VmMemoryService();
             _storageService = new VmStorageService();
 
-            // 初始化下拉列表默认值
-            AvailableControllerTypes.Add("SCSI");
-            AvailableControllerTypes.Add("IDE");
-
             InitPossibleCpuCounts();
 
             for (int i = 0; i < 64; i++)
@@ -534,16 +530,7 @@ namespace ExHyperV.ViewModels
         {
             if (value)
             {
-                // 开启自动分配：计算最佳位置
                 CalculateBestSlot();
-            }
-            else
-            {
-                // 关闭自动分配：
-                // 此时，选择的控制器和位置都是 CalculateBestSlot 计算好的。
-                // 我们只需调用一次 UpdateAvailableLocations，它会根据当前值
-                // 正确填充列表并刷新验证状态，而不会清空已有选择。
-                UpdateAvailableLocations();
             }
         }
 
@@ -581,7 +568,7 @@ namespace ExHyperV.ViewModels
 
         // 只读集合
         public ObservableCollection<string> AvailableControllerTypes { get; } = new();
-        public ObservableCollection<int> AvailableControllerNumbers { get; } = new() { 0, 1, 2, 3 };
+        public ObservableCollection<int> AvailableControllerNumbers { get; } = new();
         public ObservableCollection<int> AvailableLocations { get; } = new();
         public List<int> NewDiskSizePresets { get; } = new() { 32, 64, 128, 256, 512, 1024 };
 
@@ -617,40 +604,32 @@ namespace ExHyperV.ViewModels
             else UpdateAvailableLocations();
         }
 
-        // (位于 VirtualMachinesPageViewModel.cs)
-
+ 
         partial void OnSelectedControllerTypeChanged(string value)
         {
             if (value == null) return;
 
-            // 1. 在清空列表前，先保存当前选中的控制器编号
             int currentNumber = SelectedControllerNumber;
 
             AvailableControllerNumbers.Clear();
             int maxCtrl = (value == "IDE") ? 2 : 4;
-            for (int i = 0; i < maxCtrl; i++) AvailableControllerNumbers.Add(i);
+            for (int i = 0; i < maxCtrl; i++)
+                AvailableControllerNumbers.Add(i);
 
-            // 2. 重新填充列表后，检查旧的选项是否还在
             if (AvailableControllerNumbers.Contains(currentNumber))
             {
-                // 如果还在，就恢复它
                 SelectedControllerNumber = currentNumber;
             }
             else
             {
-                // 如果不在了（例如从SCSI切换到IDE），就自动选择第一个有效的选项
                 SelectedControllerNumber = AvailableControllerNumbers.FirstOrDefault();
             }
 
-            // 3. 确保位置列表也被刷新
-            // 如果上面的逻辑导致编号未变，则需要手动触发位置更新
             if (SelectedControllerNumber == currentNumber)
             {
                 UpdateAvailableLocations();
             }
-            // 如果编号变了，则会自动触发 OnSelectedControllerNumberChanged，无需手动调用
         }
-
         partial void OnSelectedControllerNumberChanged(int value)
         {
             UpdateAvailableLocations();
@@ -866,8 +845,7 @@ namespace ExHyperV.ViewModels
 
         private void SetSlot(string type, int ctrlNum, int loc)
         {
-            _selectedControllerType = type;
-            OnPropertyChanged(nameof(SelectedControllerType));
+            SelectedControllerType = type;
 
             SelectedControllerNumber = ctrlNum;
             SelectedLocation = loc;
@@ -876,17 +854,15 @@ namespace ExHyperV.ViewModels
             SlotWarningMessage = string.Empty;
         }
 
-        // (位于 VirtualMachinesPageViewModel.cs)
-
         private void UpdateAvailableLocations()
         {
             if (SelectedVm == null || string.IsNullOrEmpty(SelectedControllerType)) return;
 
-            // 关键：在清空列表前，保存当前选择的位置
             int currentLocation = SelectedLocation;
 
             var usedLocations = SelectedVm.StorageItems
-                .Where(i => i.ControllerType == SelectedControllerType && i.ControllerNumber == SelectedControllerNumber)
+                .Where(i => i.ControllerType == SelectedControllerType &&
+                            i.ControllerNumber == SelectedControllerNumber)
                 .Select(i => i.ControllerLocation)
                 .ToHashSet();
 
@@ -895,25 +871,44 @@ namespace ExHyperV.ViewModels
             AvailableLocations.Clear();
             for (int i = 0; i < maxLoc; i++)
             {
-                // 我们只把“没被占用”的位置加入到可选列表
                 if (!usedLocations.Contains(i))
                 {
                     AvailableLocations.Add(i);
                 }
             }
 
-            // 重新填充列表后，尝试恢复之前的选择
+            // 如果当前编号下没有可用位置，自动切换到下一个有位置的编号
+            if (!AutoAssign && AvailableLocations.Count == 0)
+            {
+                foreach (int num in AvailableControllerNumbers)
+                {
+                    if (num == SelectedControllerNumber) continue;
+
+                    var testUsedLocs = SelectedVm.StorageItems
+                        .Where(i => i.ControllerType == SelectedControllerType &&
+                                    i.ControllerNumber == num)
+                        .Select(i => i.ControllerLocation)
+                        .ToHashSet();
+
+                    if (testUsedLocs.Count < maxLoc)
+                    {
+                        SelectedControllerNumber = num;
+                        return;
+                    }
+                }
+            }
+
+            // 恢复位置选择
             if (AvailableLocations.Contains(currentLocation))
             {
                 SelectedLocation = currentLocation;
             }
-            else
+            else if (AvailableLocations.Count > 0)
             {
-                // 如果无法恢复（比如那个位置现在不可选了），则自动选择第一个可用的位置
-                SelectedLocation = AvailableLocations.FirstOrDefault();
+                SelectedLocation = AvailableLocations[0];
             }
 
-            // 最后，根据最终状态更新验证信息和警告
+            // 更新验证状态
             if (!AutoAssign)
             {
                 if (AvailableLocations.Count == 0)
@@ -923,15 +918,12 @@ namespace ExHyperV.ViewModels
                 }
                 else
                 {
-                    // 因为我们的逻辑确保了 SelectedLocation 永远是列表中的有效项，
-                    // 所以只要列表不为空，手动模式就是有效的。
                     IsSlotValid = true;
                     SlotWarningMessage = string.Empty;
                 }
             }
             else
             {
-                // 自动模式下，UI上不应显示错误
                 IsSlotValid = true;
                 SlotWarningMessage = string.Empty;
             }
@@ -940,6 +932,7 @@ namespace ExHyperV.ViewModels
         {
             if (SelectedVm == null) return;
 
+            // 只负责填充控制器类型列表
             AvailableControllerTypes.Clear();
 
             if (SelectedVm.Generation == 2)
@@ -955,13 +948,18 @@ namespace ExHyperV.ViewModels
                 }
             }
 
+            // 选择合适的控制器类型（这会触发 OnSelectedControllerTypeChanged）
             if (!AvailableControllerTypes.Contains(SelectedControllerType))
             {
-                SelectedControllerType = AvailableControllerTypes.FirstOrDefault() ?? "IDE";
+                SelectedControllerType = AvailableControllerTypes.FirstOrDefault() ?? "SCSI";
             }
-        }
-
-        // ----------------------------------------------------------------------------------
+            else
+            {
+                // ✅ 关键：即使类型没变，也要手动触发一次类型变更逻辑
+                // 以确保编号和位置列表被正确初始化
+                OnSelectedControllerTypeChanged(SelectedControllerType);
+            }
+        }        // ----------------------------------------------------------------------------------
         // CPU 亲和性部分
         // ----------------------------------------------------------------------------------
         [ObservableProperty] private ObservableCollection<VmCoreModel> _affinityHostCores;
