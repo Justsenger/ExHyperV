@@ -1,5 +1,6 @@
 ﻿using ExHyperV.Models;
 using ExHyperV.Tools;
+using System.Diagnostics;
 using System.IO;
 using System.Management;
 using System.Text.RegularExpressions;
@@ -372,6 +373,151 @@ namespace ExHyperV.Services
             if (string.IsNullOrEmpty(input)) return null;
             var match = Regex.Match(input, @"[0-9A-Fa-f]{8}-([0-9A-Fa-f]{4}-){3}[0-9A-Fa-f]{12}");
             return match.Success ? match.Value.ToUpper() : null;
+        }
+
+
+        public struct GpuUsageData
+        {
+            public double Gpu3d;
+            public double GpuCopy;
+            public double GpuEncode;
+            public double GpuDecode;
+
+            public override string ToString() => $"3D: {Gpu3d:F1}, Copy: {GpuCopy:F1}, Enc: {GpuEncode:F1}, Dec: {GpuDecode:F1}";
+        }
+
+        private static Dictionary<Guid, int> _vmProcessIdCache = new();
+        private static DateTime _processIdCacheTimestamp = DateTime.MinValue;
+        private PerformanceCounterCategory? _gpuCategory;
+        private List<PerformanceCounter> _gpuCounters = new();
+        private static readonly Regex GpuInstanceRegex = new Regex(@"pid_(\d+).*engtype_([a-zA-Z0-9]+)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+        public async Task<Dictionary<Guid, GpuUsageData>> GetGpuPerformanceAsync(IEnumerable<VmInstanceInfo> vms)
+        {
+            Debug.WriteLine("\n--- [GetGpuPerformanceAsync V3] Cycle Start ---");
+            var results = new Dictionary<Guid, GpuUsageData>();
+            var runningGpuVms = vms.Where(vm => vm.IsRunning && vm.HasGpu).ToList();
+
+            if (runningGpuVms.Count == 0)
+            {
+                Debug.WriteLine("[GPU Perf V3] No running VMs with GPU detected. Exiting.");
+                return results;
+            }
+            Debug.WriteLine($"[GPU Perf V3] Found {runningGpuVms.Count} running VM(s) with GPU: {string.Join(", ", runningGpuVms.Select(vm => vm.Name))}");
+
+            try
+            {
+                // 1. 【新逻辑】如果缓存过期，则刷新虚拟机进程的 PID
+                if ((DateTime.Now - _processIdCacheTimestamp).TotalSeconds > 5)
+                {
+                    Debug.WriteLine("[GPU Perf V3] PID cache expired. Refreshing with new logic...");
+                    _vmProcessIdCache.Clear();
+
+                    var processList = await WmiTools.QueryAsync(
+                        "SELECT ProcessId, CommandLine FROM Win32_Process WHERE Name = 'vmwp.exe'",
+                        obj => new {
+                            Pid = Convert.ToInt32(obj["ProcessId"]),
+                            Cmd = obj["CommandLine"]?.ToString() ?? ""
+                        },
+                        WmiTools.CimV2Scope
+                    );
+
+                    if (processList.Count > 0)
+                    {
+                        // 将正在运行的虚拟机的 GUID 转换为字符串形式以进行匹配
+                        var runningVmGuids = runningGpuVms.Select(vm => vm.Id.ToString()).ToHashSet();
+
+                        foreach (var proc in processList)
+                        {
+                            // 直接在命令行字符串中查找匹配的 GUID
+                            foreach (var vmGuidStr in runningVmGuids)
+                            {
+                                if (!string.IsNullOrEmpty(proc.Cmd) && proc.Cmd.Contains(vmGuidStr, StringComparison.OrdinalIgnoreCase))
+                                {
+                                    if (Guid.TryParse(vmGuidStr, out Guid vmGuid))
+                                    {
+                                        _vmProcessIdCache[vmGuid] = proc.Pid;
+                                        Debug.WriteLine($"  -> SUCCESS: Matched PID {proc.Pid} to VM GUID {vmGuidStr}");
+                                        // 找到后可以跳出内层循环，继续下一个进程
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    _processIdCacheTimestamp = DateTime.Now;
+                    Debug.WriteLine($"[GPU Perf V3] PID cache refreshed. Found {_vmProcessIdCache.Count} mapped vmwp processes.");
+                }
+
+                // 如果经过新逻辑仍然找不到任何映射，则提前退出
+                if (_vmProcessIdCache.Count == 0)
+                {
+                    Debug.WriteLine("[GPU Perf V3] After refresh, still failed to map any vmwp.exe PID to a running VM.");
+                    return results;
+                }
+
+                // 2. 初始化性能计数器 (逻辑不变)
+                if (_gpuCategory == null && PerformanceCounterCategory.Exists("GPU Engine"))
+                {
+                    Debug.WriteLine("[GPU Perf V3] First run: Initializing Performance Counters for 'GPU Engine'.");
+                    _gpuCategory = new PerformanceCounterCategory("GPU Engine");
+                    var instanceNames = _gpuCategory.GetInstanceNames();
+                    _gpuCounters = instanceNames
+                        .Where(name => name.Contains("pid_"))
+                        .Select(name => new PerformanceCounter("GPU Engine", "Utilization Percentage", name, readOnly: true))
+                        .ToList();
+                    _gpuCounters.ForEach(c => c.NextValue());
+                    await Task.Delay(100);
+                }
+
+                if (_gpuCounters.Count == 0) return results;
+
+                // 3. 读取计数器数据 (逻辑不变)
+                var usageByPid = new Dictionary<int, GpuUsageData>();
+                foreach (var counter in _gpuCounters)
+                {
+                    var match = GpuInstanceRegex.Match(counter.InstanceName);
+                    if (match.Success && int.TryParse(match.Groups[1].Value, out int pid))
+                    {
+                        if (!usageByPid.ContainsKey(pid)) usageByPid[pid] = new GpuUsageData();
+
+                        string type = match.Groups[2].Value.ToUpper();
+                        var currentData = usageByPid[pid];
+                        float value = counter.NextValue();
+                        switch (type)
+                        {
+                            case "3D": currentData.Gpu3d += value; break;
+                            case "COPY": currentData.GpuCopy += value; break;
+                            case "VIDEOENCODE": currentData.GpuEncode += value; break;
+                            case "VIDEODECODE": currentData.GpuDecode += value; break;
+                        }
+                        usageByPid[pid] = currentData;
+                    }
+                }
+
+                // 4. 将结果映射回 VM (逻辑不变)
+                Debug.WriteLine("[GPU Perf V3] Mapping PID data back to VM GUIDs...");
+                foreach (var vm in runningGpuVms)
+                {
+                    if (_vmProcessIdCache.TryGetValue(vm.Id, out int pid) && usageByPid.TryGetValue(pid, out var usage))
+                    {
+                        results[vm.Id] = usage;
+                        Debug.WriteLine($"  -> Mapped data for VM '{vm.Name}' (PID: {pid}): {usage}");
+                    }
+                    else
+                    {
+                        results[vm.Id] = new GpuUsageData();
+                        Debug.WriteLine($"  -> No data found for VM '{vm.Name}'. Setting to zero.");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[GPU Perf V3] FATAL ERROR in GetGpuPerformanceAsync: {ex.Message}");
+                Debug.WriteLine(ex.StackTrace);
+            }
+            Debug.WriteLine("--- [GetGpuPerformanceAsync V3] Cycle End ---\n");
+            return results;
         }
     }
 }

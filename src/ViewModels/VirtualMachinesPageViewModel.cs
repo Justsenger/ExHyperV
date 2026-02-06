@@ -13,7 +13,7 @@ using Wpf.Ui.Controls;
 
 namespace ExHyperV.ViewModels
 {
-    public enum VmDetailViewType { Dashboard, CpuSettings, CpuAffinity, MemorySettings, StorageSettings, AddStorage }
+    public enum VmDetailViewType { Dashboard, CpuSettings, CpuAffinity, MemorySettings, StorageSettings, AddStorage, GpuSettings }
 
     public partial class VirtualMachinesPageViewModel : ObservableObject, IDisposable
     {
@@ -1061,6 +1061,7 @@ namespace ExHyperV.ViewModels
             _cpuService?.Dispose();
         }
 
+
         private async Task MonitorStateLoop(CancellationToken token)
         {
             while (!token.IsCancellationRequested)
@@ -1069,6 +1070,10 @@ namespace ExHyperV.ViewModels
                 {
                     var updates = await _queryService.GetVmListAsync();
                     var memoryMap = await _queryService.GetVmRuntimeMemoryDataAsync();
+
+                    await _queryService.UpdateDiskPerformanceAsync(VmList);
+                    var gpuUsageMap = await _queryService.GetGpuPerformanceAsync(VmList);
+
 
                     Application.Current.Dispatcher.Invoke(() => {
                         foreach (var update in updates)
@@ -1089,6 +1094,19 @@ namespace ExHyperV.ViewModels
                                     vm.UpdateMemoryStatus(0, 0);
                             }
                         }
+
+                        if (gpuUsageMap.Count > 0)
+                        {
+                            foreach (var vm in VmList)
+                            {
+                                if (gpuUsageMap.TryGetValue(vm.Id, out var gpuData))
+                                {
+                                    vm.UpdateGpuStats(gpuData);
+                                }
+                                // 如果 VM 正在运行但 map 中没有它，其状态会在下次同步时被 IsRunning 属性清零
+                            }
+                        }
+
                     });
 
                     if (SelectedVm != null)
@@ -1109,8 +1127,6 @@ namespace ExHyperV.ViewModels
                             }
                         }
                     }
-
-                    await _queryService.UpdateDiskPerformanceAsync(VmList);
                     await Task.Delay(2000, token);
                 }
                 catch (TaskCanceledException) { break; }
@@ -1164,5 +1180,17 @@ namespace ExHyperV.ViewModels
         }
 
         private string GetOptimisticText(string action) => action switch { "Start" => "正在启动", "Restart" => "正在重启", "Stop" => "正在关闭", "TurnOff" => "已关机", "Save" => "正在保存", "Suspend" => "正在暂停", _ => "处理中..." };
+
+
+        //GPU部分
+        [RelayCommand]
+        private void GoToGpuSettings()
+        {
+            // 目前仅作为占位符，后续可以实现具体页面
+            ShowSnackbar("功能待定", "GPU 相关设置功能正在规划中。", ControlAppearance.Info, SymbolRegular.Info24);
+        }
+
+
+
     }
 }

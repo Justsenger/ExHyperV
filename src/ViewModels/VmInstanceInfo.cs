@@ -11,6 +11,7 @@ using System.Windows.Media.Imaging; // 引用 BitmapSource
 using System.Windows.Threading;     // 引用 DispatcherTimer
 using ExHyperV.Properties;
 using ExHyperV.Tools;
+using ExHyperV.Services;
 
 namespace ExHyperV.Models
 {
@@ -382,6 +383,7 @@ namespace ExHyperV.Models
         {
             _id = id;
             _name = name;
+            InitializeGpuHistory(); // <--- 必须调用初始化
             Disks.CollectionChanged += (s, e) =>
             {
                 TotalDiskSizeGb = Disks.Sum(d => d.MaxSize) / 1073741824.0;
@@ -428,5 +430,105 @@ namespace ExHyperV.Models
             if ((_transientState == "正在关闭" || _transientState == "正在保存") && (backend == "已关机" || backend == "Off" || backend == "已保存" || backend == "Saved" || backend == "已暂停" || backend == "Paused")) return true;
             return _transientState == "正在暂停" && (backend == "已暂停" || backend == "Paused" || backend == "已保存" || backend == "Saved");
         }
-    }
+
+        //GPU部分
+
+// --- 请替换 VmInstanceInfo.cs 中对应的 GPU 逻辑部分 ---
+
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(GpuMaxUsage))] 
+        private double _gpu3dUsage;
+
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(GpuMaxUsage))]
+        private double _gpuCopyUsage;
+
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(GpuMaxUsage))]
+        private double _gpuEncodeUsage;
+
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(GpuMaxUsage))]
+        private double _gpuDecodeUsage;
+
+        // 【修正】取四个引擎利用率中的最大值（峰值）
+        public double GpuMaxUsage => Math.Max(Math.Max(Gpu3dUsage, GpuCopyUsage), Math.Max(GpuEncodeUsage, GpuDecodeUsage));
+
+        [ObservableProperty] private PointCollection _gpu3dHistoryPoints;
+        [ObservableProperty] private PointCollection _gpuCopyHistoryPoints;
+        [ObservableProperty] private PointCollection _gpuEncodeHistoryPoints;
+        [ObservableProperty] private PointCollection _gpuDecodeHistoryPoints;
+
+        private readonly LinkedList<double> _gpu3dHistory = new();
+        private readonly LinkedList<double> _gpuCopyHistory = new();
+        private readonly LinkedList<double> _gpuEncodeHistory = new();
+        private readonly LinkedList<double> _gpuDecodeHistory = new();
+
+        // 【新增】初始化方法：请在 VmInstanceInfo 的构造函数中调用此方法
+        private void InitializeGpuHistory()
+        {
+            for (int i = 0; i < MaxHistoryLength; i++)
+            {
+                _gpu3dHistory.AddLast(0.0);
+                _gpuCopyHistory.AddLast(0.0);
+                _gpuEncodeHistory.AddLast(0.0);
+                _gpuDecodeHistory.AddLast(0.0);
+            }
+            // 初始生成全 0 的底线
+            Gpu3dHistoryPoints = CalculatePointsForChart(_gpu3dHistory);
+            GpuCopyHistoryPoints = CalculatePointsForChart(_gpuCopyHistory);
+            GpuEncodeHistoryPoints = CalculatePointsForChart(_gpuEncodeHistory);
+            GpuDecodeHistoryPoints = CalculatePointsForChart(_gpuDecodeHistory);
+        }
+
+
+        public void UpdateGpuStats(VmQueryService.GpuUsageData data)
+        {
+            if (!IsRunning)
+            {
+                Gpu3dUsage = 0; GpuCopyUsage = 0; GpuEncodeUsage = 0; GpuDecodeUsage = 0;
+            }
+            else
+            {
+                Gpu3dUsage = data.Gpu3d;
+                GpuCopyUsage = data.GpuCopy;
+                GpuEncodeUsage = data.GpuEncode;
+                GpuDecodeUsage = data.GpuDecode;
+            }
+
+            // 更新历史记录并同步生成点集
+            Gpu3dHistoryPoints = UpdateSingleHistoryAndGetPoints(_gpu3dHistory, Gpu3dUsage);
+            GpuCopyHistoryPoints = UpdateSingleHistoryAndGetPoints(_gpuCopyHistory, GpuCopyUsage);
+            GpuEncodeHistoryPoints = UpdateSingleHistoryAndGetPoints(_gpuEncodeHistory, GpuEncodeUsage);
+            GpuDecodeHistoryPoints = UpdateSingleHistoryAndGetPoints(_gpuDecodeHistory, GpuDecodeUsage);
+
+            // 显式通知最大值已更改
+            OnPropertyChanged(nameof(GpuMaxUsage));
+        }
+
+        private PointCollection UpdateSingleHistoryAndGetPoints(LinkedList<double> history, double value)
+        {
+            value = Math.Max(0, Math.Min(100, value));
+            history.AddLast(value);
+            if (history.Count > MaxHistoryLength) history.RemoveFirst();
+            return CalculatePointsForChart(history);
+        }
+
+        private static PointCollection CalculatePointsForChart(LinkedList<double> history)
+        {
+            double w = 100.0, h = 100.0;
+            // 使用 MaxHistoryLength - 1 确保点平滑分布在 0-100 宽度内
+            double step = w / (MaxHistoryLength - 1);
+            var points = new PointCollection(MaxHistoryLength + 2) { new Point(0, h) };
+            
+            int i = 0;
+            foreach (var val in history)
+            {
+                // y 坐标 = 总高度 - (利用率 * 总高度 / 100)
+                points.Add(new Point(i++ * step, h - val));
+            }
+            points.Add(new Point(w, h)); 
+            points.Freeze();
+            return points;
+        }    }
 }
