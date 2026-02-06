@@ -369,6 +369,17 @@
                                     </Setter>
                                 </DataTrigger>
 
+                                <!-- 【新增】显卡详细设置触发器 -->
+                                <DataTrigger Binding="{Binding DataContext.CurrentViewType, RelativeSource={RelativeSource AncestorType=Page}}" Value="GpuSettings">
+                                    <Setter Property="ContentTemplate">
+                                        <Setter.Value>
+                                            <DataTemplate>
+                                                <components:VmGPUSettingsView/>
+                                            </DataTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </DataTrigger>
+
                             </Style.Triggers>
                         </Style>
                     </ContentControl.Style>

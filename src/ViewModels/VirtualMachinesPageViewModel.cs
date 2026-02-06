@@ -26,6 +26,7 @@ namespace ExHyperV.ViewModels
         private readonly CpuAffinityService _cpuAffinityService;
         private readonly VmMemoryService _vmMemoryService;
         private readonly VmStorageService _storageService;
+        private readonly VmGPUService _vmGpuService;
 
         private CpuMonitorService _cpuService;
         private CancellationTokenSource _monitoringCts;
@@ -49,6 +50,7 @@ namespace ExHyperV.ViewModels
             _cpuAffinityService = new CpuAffinityService();
             _vmMemoryService = new VmMemoryService();
             _storageService = new VmStorageService();
+            _vmGpuService = new VmGPUService(); // 初始化 GPU 服务
 
             InitPossibleCpuCounts();
 
@@ -102,6 +104,7 @@ namespace ExHyperV.ViewModels
                 case VmDetailViewType.AddStorage:
                     CurrentViewType = VmDetailViewType.StorageSettings;
                     break;
+                case VmDetailViewType.GpuSettings:
                 case VmDetailViewType.CpuSettings:
                 case VmDetailViewType.CpuAffinity:
                 case VmDetailViewType.MemorySettings:
@@ -1184,13 +1187,81 @@ namespace ExHyperV.ViewModels
 
         //GPU部分
         [RelayCommand]
-        private void GoToGpuSettings()
+        private async Task GoToGpuSettings()
         {
-            // 目前仅作为占位符，后续可以实现具体页面
-            ShowSnackbar("功能待定", "GPU 相关设置功能正在规划中。", ControlAppearance.Info, SymbolRegular.Info24);
+            if (SelectedVm == null) return;
+
+            CurrentViewType = VmDetailViewType.GpuSettings;
+            IsLoadingSettings = true;
+            try
+            {
+                // 可选：在此处强制刷新一次最新的 GPU 分配状态
+                // await RefreshCurrentVmGpuAssignments();
+                await Task.Delay(200); // 短暂延迟以确保 UI 切换动画平滑
+            }
+            catch (Exception ex)
+            {
+                ShowSnackbar("加载失败", "无法读取 GPU 配置信息: " + ex.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+            }
+            finally
+            {
+                IsLoadingSettings = false;
+            }
         }
 
+        /// <summary>
+        /// 移除指定 ID 的 GPU 分区
+        /// </summary>
+        [RelayCommand]
+        private async Task RemoveGpu(string adapterId)
+        {
+            if (SelectedVm == null || string.IsNullOrEmpty(adapterId)) return;
 
+            IsLoadingSettings = true;
+            try
+            {
+                bool success = await _vmGpuService.RemoveGpuPartitionAsync(SelectedVm.Name, adapterId);
+                if (success)
+                {
+                    ShowSnackbar("成功", "GPU 分区已移除。", ControlAppearance.Success, SymbolRegular.Checkmark24);
+                    // 刷新当前虚拟机的 GPU 列表
+                    await RefreshCurrentVmGpuAssignments();
+                }
+                else
+                {
+                    ShowSnackbar("移除失败", "未能成功移除 GPU 分区。", ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowSnackbar("操作异常", ex.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+            }
+            finally
+            {
+                IsLoadingSettings = false;
+            }
+        }
+
+        /// <summary>
+        /// 导航至添加新 GPU 的向导页面（预留）
+        /// </summary>
+        [RelayCommand]
+        private void GoToAddGpu()
+        {
+            // TODO: 这里将来可以切换到 VmDetailViewType.AddGpu
+            ShowSnackbar("功能待定", "添加新显卡的向导正在开发中。", ControlAppearance.Info, SymbolRegular.Info24);
+        }
+
+        /// <summary>
+        /// 刷新当前选中虚拟机的 GPU 分配信息
+        /// </summary>
+        private async Task RefreshCurrentVmGpuAssignments()
+        {
+            if (SelectedVm == null) return;
+            // 这是一个假设的方法，具体实现需要依赖你的 VmGPUService
+            // var gpuAssignments = await _vmGpuService.GetGpuAssignmentsForVmAsync(SelectedVm.Name);
+            // SelectedVm.GPUs = new Dictionary<string, string>(gpuAssignments);
+        }
 
     }
 }

@@ -229,44 +229,37 @@ namespace ExHyperV.Models
 
     public partial class VmInstanceInfo : ObservableObject
     {
-        // ================== 新增代码开始 ==================
-
-        [ObservableProperty]
-        private BitmapSource? _thumbnail;
-
-        private DispatcherTimer? _thumbnailTimer;
-
-        // =================== 新增代码结束 ===================
-
+        // ----------------------------------------------------------------------------------
+        // 基础信息与状态 (已找回丢失的 OsType 和 RawUptime)
+        // ----------------------------------------------------------------------------------
         [ObservableProperty] private Guid _id;
         [ObservableProperty] private string _name;
         [ObservableProperty] private string _notes;
         [ObservableProperty] private int _generation;
         [ObservableProperty] private string _version;
-        [ObservableProperty] private int _cpuCount;
-
-        public ObservableCollection<VmDiskDetails> Disks { get; } = new();
-        public ObservableCollection<VmStorageItem> StorageItems { get; } = new();
-
-        [ObservableProperty]
-        [NotifyPropertyChangedFor(nameof(ConfigSummary))]
-        private double _totalDiskSizeGb;
-
-        [ObservableProperty] private double _memoryGb;
-        [ObservableProperty] private string _osType;
-        [ObservableProperty] private string _lowMMIO;
-        [ObservableProperty] private string _highMMIO;
-        [ObservableProperty] private string _guestControlled;
-        [ObservableProperty] private string _gpuName;
-
-        public bool HasGpu => !string.IsNullOrEmpty(_gpuName);
-        partial void OnGpuNameChanged(string value) => OnPropertyChanged(nameof(HasGpu));
-
-        [ObservableProperty] private Dictionary<string, string> _gPUs = new();
-        [ObservableProperty] private double _averageUsage;
+        [ObservableProperty] private string _osType;           // <-- 找回
         [ObservableProperty] private string _state;
         [ObservableProperty] private string _uptime = "00:00:00";
         [ObservableProperty] private bool _isRunning;
+        [ObservableProperty] private BitmapSource? _thumbnail;
+
+        private TimeSpan _anchorUptime;                         // 内部计时基准
+        public TimeSpan RawUptime => _anchorUptime;             // <-- 找回逻辑，修复 CS1061
+
+        // ----------------------------------------------------------------------------------
+        // 处理器 (CPU) 与 内存
+        // ----------------------------------------------------------------------------------
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(ConfigSummary))] // <--- 关键
+        private int _cpuCount;
+        [ObservableProperty] private double _averageUsage;
+        [ObservableProperty] private int _columns = 2;
+        [ObservableProperty] private int _rows = 1;
+        public ObservableCollection<VmCoreModel> Cores { get; } = new();
+
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(ConfigSummary))] // <--- 关键
+        private double _memoryGb;
 
         [ObservableProperty] private VmProcessorSettings _processor;
         [ObservableProperty] private VmMemorySettings _memorySettings;
@@ -287,6 +280,90 @@ namespace ExHyperV.Models
         private readonly LinkedList<double> _memoryUsageHistory = new();
         private const int MaxHistoryLength = 60;
 
+        // ----------------------------------------------------------------------------------
+        // 存储 (Storage)
+        // ----------------------------------------------------------------------------------
+        public ObservableCollection<VmDiskDetails> Disks { get; } = new();
+        public ObservableCollection<VmStorageItem> StorageItems { get; } = new();
+
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(ConfigSummary))]
+        private double _totalDiskSizeGb;
+
+        // ----------------------------------------------------------------------------------
+        // 显卡 (GPU) 分区与资源配置 (修复 XLS0432)
+        // ----------------------------------------------------------------------------------
+        [ObservableProperty] private string _gpuName;            // 显卡友好名称
+        [ObservableProperty] private string _gpuVendor;          // 制造商
+        [ObservableProperty] private string _physicalGpuId;      // 宿主物理实例 ID
+        [ObservableProperty] private string _hostDriverVersion;  // 宿主驱动版本
+
+        // 显卡分区字典: Key = AdapterID, Value = InstancePath
+        [ObservableProperty] private Dictionary<string, string> _gPUs = new();
+
+        public bool HasGpu => !string.IsNullOrEmpty(_gpuName) || (GPUs != null && GPUs.Count > 0);
+        partial void OnGpuNameChanged(string value) => OnPropertyChanged(nameof(HasGpu));
+
+        // MMIO 地址空间配置
+        [ObservableProperty] private string _lowMMIO;
+        [ObservableProperty] private string _highMMIO;
+        [ObservableProperty] private string _highMMIOBase;       // <-- 修复 XAML 报错
+        [ObservableProperty] private string _guestControlled;
+
+        // GPU 实时监控数据
+        [ObservableProperty][NotifyPropertyChangedFor(nameof(GpuMaxUsage))] private double _gpu3dUsage;
+        [ObservableProperty][NotifyPropertyChangedFor(nameof(GpuMaxUsage))] private double _gpuCopyUsage;
+        [ObservableProperty][NotifyPropertyChangedFor(nameof(GpuMaxUsage))] private double _gpuEncodeUsage;
+        [ObservableProperty][NotifyPropertyChangedFor(nameof(GpuMaxUsage))] private double _gpuDecodeUsage;
+
+        public double GpuMaxUsage => Math.Max(Math.Max(Gpu3dUsage, GpuCopyUsage), Math.Max(GpuEncodeUsage, GpuDecodeUsage));
+
+        // GPU 波形图数据点
+        [ObservableProperty] private PointCollection _gpu3dHistoryPoints;
+        [ObservableProperty] private PointCollection _gpuCopyHistoryPoints;
+        [ObservableProperty] private PointCollection _gpuEncodeHistoryPoints;
+        [ObservableProperty] private PointCollection _gpuDecodeHistoryPoints;
+
+        private readonly LinkedList<double> _gpu3dHistory = new();
+        private readonly LinkedList<double> _gpuCopyHistory = new();
+        private readonly LinkedList<double> _gpuEncodeHistory = new();
+        private readonly LinkedList<double> _gpuDecodeHistory = new();
+
+        // ----------------------------------------------------------------------------------
+        // 构造函数与初始化
+        // ----------------------------------------------------------------------------------
+        public VmInstanceInfo(Guid id, string name)
+        {
+            _id = id;
+            _name = name;
+
+            InitializeGpuHistory(); // 初始化 GPU 队列实现平滑滚动
+
+            Disks.CollectionChanged += (s, e) =>
+            {
+                TotalDiskSizeGb = Disks.Sum(d => d.MaxSize) / 1073741824.0;
+                OnPropertyChanged(nameof(ConfigSummary));
+            };
+        }
+
+        private void InitializeGpuHistory()
+        {
+            _gpu3dHistory.Clear(); _gpuCopyHistory.Clear();
+            _gpuEncodeHistory.Clear(); _gpuDecodeHistory.Clear();
+
+            for (int i = 0; i < MaxHistoryLength; i++)
+            {
+                _gpu3dHistory.AddLast(0.0);
+                _gpuCopyHistory.AddLast(0.0);
+                _gpuEncodeHistory.AddLast(0.0);
+                _gpuDecodeHistory.AddLast(0.0);
+            }
+            RefreshGpuPoints();
+        }
+
+        // ----------------------------------------------------------------------------------
+        // 业务逻辑方法 (内存、GPU、状态更新)
+        // ----------------------------------------------------------------------------------
         public string MemoryUsageString => _assignedMemoryGb.ToString("N1");
         public string MemoryDemandString => _demandMemoryGb.ToString("N1");
 
@@ -307,18 +384,12 @@ namespace ExHyperV.Models
         {
             if (!_isRunning || assignedMb == 0)
             {
-                AssignedMemoryGb = 0; DemandMemoryGb = 0; AvailableMemoryPercent = 0; MemoryPressure = 0;
-                UpdateHistoryPoints(0); return;
+                AssignedMemoryGb = 0; DemandMemoryGb = 0; UpdateHistoryPoints(0); return;
             }
-            double newAssignedGb = assignedMb / 1024.0;
+            AssignedMemoryGb = assignedMb / 1024.0;
             double usedPercentage = (100 - availablePercent) / 100.0;
-            double newDemandGb = newAssignedGb * usedPercentage;
-            int pressure = 100 - availablePercent;
-            AssignedMemoryGb = newAssignedGb;
-            DemandMemoryGb = newDemandGb;
-            AvailableMemoryPercent = availablePercent;
-            MemoryPressure = pressure;
-            UpdateHistoryPoints(pressure);
+            DemandMemoryGb = AssignedMemoryGb * usedPercentage;
+            UpdateHistoryPoints(100 - availablePercent);
         }
 
         private void UpdateHistoryPoints(double pressurePercent)
@@ -330,6 +401,7 @@ namespace ExHyperV.Models
             int count = _memoryUsageHistory.Count;
             int offset = MaxHistoryLength - count;
             points.Add(new Point(offset, 100));
+
             int i = 0;
             foreach (var val in _memoryUsageHistory)
             {
@@ -337,17 +409,56 @@ namespace ExHyperV.Models
                 i++;
             }
             points.Add(new Point(MaxHistoryLength - 1, 100));
+
             points.Freeze();
             MemoryHistoryPoints = points;
         }
+        public void UpdateGpuStats(VmQueryService.GpuUsageData data)
+        {
+            if (!IsRunning)
+            {
+                Gpu3dUsage = 0; GpuCopyUsage = 0; GpuEncodeUsage = 0; GpuDecodeUsage = 0;
+            }
+            else
+            {
+                Gpu3dUsage = data.Gpu3d; GpuCopyUsage = data.GpuCopy;
+                GpuEncodeUsage = data.GpuEncode; GpuDecodeUsage = data.GpuDecode;
+            }
 
-        partial void OnMemorySettingsChanged(VmMemorySettings value) => OnPropertyChanged(nameof(MemoryLimitString));
+            UpdateSingleGpuHistory(_gpu3dHistory, Gpu3dUsage);
+            UpdateSingleGpuHistory(_gpuCopyHistory, GpuCopyUsage);
+            UpdateSingleGpuHistory(_gpuEncodeHistory, GpuEncodeUsage);
+            UpdateSingleGpuHistory(_gpuDecodeHistory, GpuDecodeUsage);
 
-        [ObservableProperty] private int _columns = 2;
-        [ObservableProperty] private int _rows = 1;
+            RefreshGpuPoints();
+            OnPropertyChanged(nameof(GpuMaxUsage));
+        }
 
-        public ObservableCollection<VmCoreModel> Cores { get; } = new();
-        public IAsyncRelayCommand<string> ControlCommand { get; set; }
+        private void UpdateSingleGpuHistory(LinkedList<double> history, double value)
+        {
+            history.AddLast(Math.Max(0, Math.Min(100, value)));
+            if (history.Count > MaxHistoryLength) history.RemoveFirst();
+        }
+
+        private void RefreshGpuPoints()
+        {
+            Gpu3dHistoryPoints = CalculateGpuPoints(_gpu3dHistory);
+            GpuCopyHistoryPoints = CalculateGpuPoints(_gpuCopyHistory);
+            GpuEncodeHistoryPoints = CalculateGpuPoints(_gpuEncodeHistory);
+            GpuDecodeHistoryPoints = CalculateGpuPoints(_gpuDecodeHistory);
+        }
+
+        private static PointCollection CalculateGpuPoints(LinkedList<double> history)
+        {
+            double w = 100.0, h = 100.0;
+            double step = w / (MaxHistoryLength - 1);
+            var points = new PointCollection(MaxHistoryLength + 2) { new Point(0, h) };
+            int i = 0;
+            foreach (var val in history) points.Add(new Point(i++ * step, h - val));
+            points.Add(new Point(w, h));
+            points.Freeze();
+            return points;
+        }
 
         public string ConfigSummary
         {
@@ -368,39 +479,9 @@ namespace ExHyperV.Models
                 return $"{_cpuCount} Cores / {_memoryGb:0.#}GB RAM / {diskPart}";
             }
         }
-
-        partial void OnCpuCountChanged(int value) => OnPropertyChanged(nameof(ConfigSummary));
-        partial void OnMemoryGbChanged(double value) => OnPropertyChanged(nameof(ConfigSummary));
-
-        private TimeSpan _anchorUptime;
-        private DateTime _anchorLocalTime;
-        private string _transientState;
-        private string _backendState;
-
-        public TimeSpan RawUptime => _anchorUptime;
-
-        public VmInstanceInfo(Guid id, string name)
-        {
-            _id = id;
-            _name = name;
-            InitializeGpuHistory(); // <--- 必须调用初始化
-            Disks.CollectionChanged += (s, e) =>
-            {
-                TotalDiskSizeGb = Disks.Sum(d => d.MaxSize) / 1073741824.0;
-                OnPropertyChanged(nameof(ConfigSummary));
-            };
-        }
-
-        public void SetTransientState(string optimisticText) { _transientState = optimisticText; RefreshStateDisplay(); }
-        public void ClearTransientState() { _transientState = null; RefreshStateDisplay(); }
-
-
-        // SyncBackendData 恢复原样，不需要在这里启动 Timer
         public void SyncBackendData(string realState, TimeSpan realUptime)
         {
-            _backendState = realState;
-            _anchorUptime = realUptime;
-            _anchorLocalTime = DateTime.Now;
+            _backendState = realState; _anchorUptime = realUptime; _anchorLocalTime = DateTime.Now;
             if (_transientState != null && ShouldClearTransientState(realState)) _transientState = null;
             RefreshStateDisplay();
             TickUptime();
@@ -418,117 +499,23 @@ namespace ExHyperV.Models
         private void RefreshStateDisplay()
         {
             State = _transientState ?? _backendState;
-            IsRunning = CheckIfRunning(State);
+            IsRunning = !string.IsNullOrEmpty(State) && !new[] { "已关机", "Off", "已暂停", "Paused", "已保存", "Saved" }.Contains(State);
             if (!IsRunning) UpdateMemoryStatus(0, 0);
         }
-
-        private bool CheckIfRunning(string s) => !string.IsNullOrEmpty(s) && s != "已关机" && s != "Off" && s != "已暂停" && s != "Paused" && s != "已保存" && s != "Saved";
 
         private bool ShouldClearTransientState(string backend)
         {
             if ((_transientState == "正在启动" || _transientState == "正在重启") && (backend == "运行中" || backend == "Running")) return true;
             if ((_transientState == "正在关闭" || _transientState == "正在保存") && (backend == "已关机" || backend == "Off" || backend == "已保存" || backend == "Saved" || backend == "已暂停" || backend == "Paused")) return true;
-            return _transientState == "正在暂停" && (backend == "已暂停" || backend == "Paused" || backend == "已保存" || backend == "Saved");
+            if (_transientState == "正在暂停" && (backend == "已暂停" || backend == "Paused" || backend == "已保存" || backend == "Saved")) return true;
+            return false;
         }
 
-        //GPU部分
+        public void SetTransientState(string text) { _transientState = text; RefreshStateDisplay(); }
+        public void ClearTransientState() { _transientState = null; RefreshStateDisplay(); }
 
-// --- 请替换 VmInstanceInfo.cs 中对应的 GPU 逻辑部分 ---
-
-        [ObservableProperty]
-        [NotifyPropertyChangedFor(nameof(GpuMaxUsage))] 
-        private double _gpu3dUsage;
-
-        [ObservableProperty]
-        [NotifyPropertyChangedFor(nameof(GpuMaxUsage))]
-        private double _gpuCopyUsage;
-
-        [ObservableProperty]
-        [NotifyPropertyChangedFor(nameof(GpuMaxUsage))]
-        private double _gpuEncodeUsage;
-
-        [ObservableProperty]
-        [NotifyPropertyChangedFor(nameof(GpuMaxUsage))]
-        private double _gpuDecodeUsage;
-
-        // 【修正】取四个引擎利用率中的最大值（峰值）
-        public double GpuMaxUsage => Math.Max(Math.Max(Gpu3dUsage, GpuCopyUsage), Math.Max(GpuEncodeUsage, GpuDecodeUsage));
-
-        [ObservableProperty] private PointCollection _gpu3dHistoryPoints;
-        [ObservableProperty] private PointCollection _gpuCopyHistoryPoints;
-        [ObservableProperty] private PointCollection _gpuEncodeHistoryPoints;
-        [ObservableProperty] private PointCollection _gpuDecodeHistoryPoints;
-
-        private readonly LinkedList<double> _gpu3dHistory = new();
-        private readonly LinkedList<double> _gpuCopyHistory = new();
-        private readonly LinkedList<double> _gpuEncodeHistory = new();
-        private readonly LinkedList<double> _gpuDecodeHistory = new();
-
-        // 【新增】初始化方法：请在 VmInstanceInfo 的构造函数中调用此方法
-        private void InitializeGpuHistory()
-        {
-            for (int i = 0; i < MaxHistoryLength; i++)
-            {
-                _gpu3dHistory.AddLast(0.0);
-                _gpuCopyHistory.AddLast(0.0);
-                _gpuEncodeHistory.AddLast(0.0);
-                _gpuDecodeHistory.AddLast(0.0);
-            }
-            // 初始生成全 0 的底线
-            Gpu3dHistoryPoints = CalculatePointsForChart(_gpu3dHistory);
-            GpuCopyHistoryPoints = CalculatePointsForChart(_gpuCopyHistory);
-            GpuEncodeHistoryPoints = CalculatePointsForChart(_gpuEncodeHistory);
-            GpuDecodeHistoryPoints = CalculatePointsForChart(_gpuDecodeHistory);
-        }
-
-
-        public void UpdateGpuStats(VmQueryService.GpuUsageData data)
-        {
-            if (!IsRunning)
-            {
-                Gpu3dUsage = 0; GpuCopyUsage = 0; GpuEncodeUsage = 0; GpuDecodeUsage = 0;
-            }
-            else
-            {
-                Gpu3dUsage = data.Gpu3d;
-                GpuCopyUsage = data.GpuCopy;
-                GpuEncodeUsage = data.GpuEncode;
-                GpuDecodeUsage = data.GpuDecode;
-            }
-
-            // 更新历史记录并同步生成点集
-            Gpu3dHistoryPoints = UpdateSingleHistoryAndGetPoints(_gpu3dHistory, Gpu3dUsage);
-            GpuCopyHistoryPoints = UpdateSingleHistoryAndGetPoints(_gpuCopyHistory, GpuCopyUsage);
-            GpuEncodeHistoryPoints = UpdateSingleHistoryAndGetPoints(_gpuEncodeHistory, GpuEncodeUsage);
-            GpuDecodeHistoryPoints = UpdateSingleHistoryAndGetPoints(_gpuDecodeHistory, GpuDecodeUsage);
-
-            // 显式通知最大值已更改
-            OnPropertyChanged(nameof(GpuMaxUsage));
-        }
-
-        private PointCollection UpdateSingleHistoryAndGetPoints(LinkedList<double> history, double value)
-        {
-            value = Math.Max(0, Math.Min(100, value));
-            history.AddLast(value);
-            if (history.Count > MaxHistoryLength) history.RemoveFirst();
-            return CalculatePointsForChart(history);
-        }
-
-        private static PointCollection CalculatePointsForChart(LinkedList<double> history)
-        {
-            double w = 100.0, h = 100.0;
-            // 使用 MaxHistoryLength - 1 确保点平滑分布在 0-100 宽度内
-            double step = w / (MaxHistoryLength - 1);
-            var points = new PointCollection(MaxHistoryLength + 2) { new Point(0, h) };
-            
-            int i = 0;
-            foreach (var val in history)
-            {
-                // y 坐标 = 总高度 - (利用率 * 总高度 / 100)
-                points.Add(new Point(i++ * step, h - val));
-            }
-            points.Add(new Point(w, h)); 
-            points.Freeze();
-            return points;
-        }    }
+        private DateTime _anchorLocalTime;
+        private string _transientState, _backendState;
+        public IAsyncRelayCommand<string> ControlCommand { get; set; }
+    }
 }
