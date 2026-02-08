@@ -6,81 +6,294 @@
              xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
              xmlns:vm="clr-namespace:ExHyperV.ViewModels"
              xmlns:models="clr-namespace:ExHyperV.Models"
+             xmlns:converters="clr-namespace:ExHyperV.Converters"
+             xmlns:properties="clr-namespace:ExHyperV.Properties"
              mc:Ignorable="d" 
-             d:DesignHeight="600" d:DesignWidth="800"
+             d:DesignHeight="850" d:DesignWidth="1000"
+             UseLayoutRounding="True"
              d:DataContext="{d:DesignInstance vm:VirtualMachinesPageViewModel}">
 
-    <Grid Margin="40">
+    <UserControl.Resources>
+        <converters:BooleanToVisibilityConverter x:Key="BoolToVis" />
+    </UserControl.Resources>
+
+    <Grid Margin="24">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <TextBlock Text="正在执行配置..." FontSize="24" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,0,0,30"/>
+        <!-- 1. 顶部标题栏 -->
+        <Grid Grid.Row="0" Margin="0,0,0,12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="配置进度" FontSize="20" VerticalAlignment="Center" 
+                       Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+            <ui:Button Grid.Column="1" Appearance="Transparent" Padding="8" Command="{Binding CancelAddGpuCommand}">
+                <ui:SymbolIcon Symbol="ArrowLeft24" FontSize="18"/>
+            </ui:Button>
+        </Grid>
 
-        <!-- 任务列表 -->
-        <ItemsControl Grid.Row="1" ItemsSource="{Binding GpuTasks}" MaxWidth="600">
-            <ItemsControl.ItemTemplate>
-                <DataTemplate DataType="{x:Type models:TaskItem}">
-                    <Border Margin="0,0,0,16" Padding="16" CornerRadius="8" Background="{ui:ThemeResource ControlFillColorDefaultBrush}" 
-                            BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
+        <!-- 2. 主滚动区域 -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <StackPanel Margin="0,0,12,0">
 
-                            <!-- 状态图标 -->
-                            <ContentControl Grid.Column="0" VerticalAlignment="Top" Margin="0,2,16,0">
-                                <ContentControl.Style>
-                                    <Style TargetType="ContentControl">
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding Status}" Value="Pending">
-                                                <Setter Property="Content">
-                                                    <Setter.Value>
-                                                        <ui:SymbolIcon Symbol="Circle24" Foreground="{ui:ThemeResource TextFillColorDisabledBrush}"/>
-                                                    </Setter.Value>
-                                                </Setter>
-                                            </DataTrigger>
-                                            <DataTrigger Binding="{Binding Status}" Value="Running">
-                                                <Setter Property="Content">
-                                                    <Setter.Value>
-                                                        <ui:ProgressRing IsIndeterminate="True" Width="20" Height="20"/>
-                                                    </Setter.Value>
-                                                </Setter>
-                                            </DataTrigger>
-                                            <DataTrigger Binding="{Binding Status}" Value="Success">
-                                                <Setter Property="Content">
-                                                    <Setter.Value>
-                                                        <ui:SymbolIcon Symbol="CheckmarkCircle24" Foreground="{ui:ThemeResource SystemFillColorSuccessBrush}"/>
-                                                    </Setter.Value>
-                                                </Setter>
-                                            </DataTrigger>
-                                            <DataTrigger Binding="{Binding Status}" Value="Failed">
-                                                <Setter Property="Content">
-                                                    <Setter.Value>
-                                                        <ui:SymbolIcon Symbol="DismissCircle24" Foreground="{ui:ThemeResource SystemFillColorCriticalBrush}"/>
-                                                    </Setter.Value>
-                                                </Setter>
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </ContentControl.Style>
-                            </ContentControl>
+                <!-- ✅ 交互层：分区选择/SSH 面板 -->
+                <ui:Card Margin="0,0,0,24" Padding="0" 
+         Visibility="{Binding ShowPartitionSelector, Converter={StaticResource BoolToVis}}">
+                    <Grid>
+                        <!-- 1. 分区列表界面 -->
+                        <Grid x:Name="PartitionListGrid">
+                            <Grid.Style>
+                                <Style TargetType="Grid">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                    <Style.Triggers>
+                                        <!-- 当显示表单时，隐藏列表 -->
+                                        <DataTrigger Binding="{Binding ShowSshForm}" Value="True">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Grid.Style>
 
-                            <StackPanel Grid.Column="1">
-                                <TextBlock Text="{Binding Name}" FontSize="16" FontWeight="Medium"/>
-                                <TextBlock Text="{Binding Description}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" Margin="0,4,0,0"/>
-                            </StackPanel>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+
+                            <Border Padding="16,12" Background="{ui:ThemeResource ControlFillColorTertiaryBrush}" CornerRadius="8,8,0,0">
+                                <TextBlock Text="请选择要安装驱动的分区" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                            </Border>
+
+                            <ui:ListView Grid.Row="1" ItemsSource="{Binding DetectedPartitions}" Padding="8">
+                                <ui:ListView.ItemTemplate>
+                                    <DataTemplate DataType="{x:Type models:PartitionInfo}">
+                                        <Grid Margin="4,8">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="48"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <Image Source="{Binding IconPath}" Width="24" Height="24" RenderOptions.BitmapScalingMode="HighQuality"/>
+                                            <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding DisplayName}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                                                <TextBlock Text="{Binding TypeDescription}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                                            </StackPanel>
+                                            <ui:Button Grid.Column="2" Content="开始" Appearance="Secondary" 
+                                       Command="{Binding DataContext.SelectPartitionAndContinueCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                       CommandParameter="{Binding}"/>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ui:ListView.ItemTemplate>
+                            </ui:ListView>
                         </Grid>
-                    </Border>
-                </DataTemplate>
-            </ItemsControl.ItemTemplate>
-        </ItemsControl>
 
-        <!-- 返回按钮 (仅演示用，实际等完成后才显示) -->
-        <ui:Button Grid.Row="2" Content="取消/返回" HorizontalAlignment="Center" Margin="0,20,0,0"
-                   Command="{Binding CancelAddGpuCommand}" Appearance="Secondary"/>
+                        <!-- 2. SSH 凭据表单界面 - 100% 还原旧版字段与多语言支持 -->
+                        <Border x:Name="SshFormBorder" Padding="24">
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ShowSshForm}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+
+                            <StackPanel>
+                                <!-- 标题: 连接到 Linux 虚拟机 -->
+                                <TextBlock Text="{x:Static properties:Resources.Label_ConnectToLinuxVm}" 
+                   FontSize="20" FontWeight="SemiBold" Margin="0,0,0,15" 
+                   Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+
+                                <!-- 主机 IP 与 端口 -->
+                                <Grid Margin="0,0,0,15">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="2*" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                                        <TextBlock Text="{x:Static properties:Resources.Label_HostIpAddress}" Margin="0,0,0,5" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                                        <ui:TextBox Text="{Binding SshHost, UpdateSourceTrigger=PropertyChanged}" 
+                            PlaceholderText="{x:Static properties:Resources.Placeholder_IpAddressExample}"/>
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Column="1" Margin="10,0,0,0">
+                                        <TextBlock Text="{x:Static properties:Resources.Label_Port}" Margin="0,0,0,5" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                                        <ui:TextBox Text="{Binding SshPort, UpdateSourceTrigger=PropertyChanged}" 
+                            PlaceholderText="22"/>
+                                    </StackPanel>
+                                </Grid>
+
+                                <!-- 用户名 -->
+                                <TextBlock Text="{x:Static properties:Resources.Label_Username}" Margin="0,0,0,5" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                                <ui:TextBox Text="{Binding SshUsername, UpdateSourceTrigger=PropertyChanged}" 
+                    PlaceholderText="{x:Static properties:Resources.Placeholder_UsernameExample}" Margin="0,0,0,15"/>
+
+                                <!-- 密码 (口令) -->
+                                <TextBlock Text="{x:Static properties:Resources.Label_Password}" Margin="0,0,0,5" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                                <ui:PasswordBox Password="{Binding SshPassword, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                        Margin="0,0,0,10"/>
+
+                                <!-- 图形驱动选项 -->
+                                <CheckBox Content="{x:Static properties:Resources.CheckBox_InstallGraphicsDrivers}" 
+                  IsChecked="{Binding InstallGraphics}" Margin="0,0,0,20"
+                  Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+
+                                <!-- HTTP 代理 (可选) 区域 -->
+                                <Border Padding="12" Background="{ui:ThemeResource ControlFillColorTertiaryBrush}" CornerRadius="8" Margin="0,0,0,25">
+                                    <StackPanel>
+                                        <TextBlock Text="{x:Static properties:Resources.GroupBox_HttpProxyOptional}" FontWeight="Medium" Margin="0,0,0,5"/>
+                                        <TextBlock Text="{x:Static properties:Resources.Info_UseProxyForGitHub}" 
+                           FontSize="11" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" 
+                           Margin="0,0,0,15" TextWrapping="Wrap"/>
+
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="2*" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                                                <TextBlock Text="{x:Static properties:Resources.Label_ProxyIpAddress}" Margin="0,0,0,5" FontSize="12"/>
+                                                <ui:TextBox Text="{Binding SshProxyHost, UpdateSourceTrigger=PropertyChanged}" 
+                                    PlaceholderText="{x:Static properties:Resources.Placeholder_IpAddressExample}"/>
+                                            </StackPanel>
+
+                                            <StackPanel Grid.Column="1" Margin="10,0,0,0">
+                                                <TextBlock Text="{x:Static properties:Resources.Label_Port}" Margin="0,0,0,5" FontSize="12"/>
+                                                <ui:TextBox Text="{Binding SshProxyPort, UpdateSourceTrigger=PropertyChanged}" 
+                                    PlaceholderText="7890"/>
+                                            </StackPanel>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- 底部按钮 -->
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <ui:Button Grid.Column="0" Content="{x:Static properties:Resources.Button_Cancel}" 
+                       Margin="0,0,5,0" HorizontalAlignment="Stretch"
+                       Command="{Binding GoBackToPartitionListCommand}" />
+                                    <ui:Button Grid.Column="1" Content="{x:Static properties:Resources.Button_Connect}" 
+                       Margin="5,0,0,0" Appearance="Primary" HorizontalAlignment="Stretch"
+                       Command="{Binding StartLinuxDeployCommand}"/>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </ui:Card>
+                
+                <!-- 任务清单 -->
+                <ItemsControl ItemsSource="{Binding GpuTasks}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type models:TaskItem}">
+                            <Border x:Name="TaskBorder" Margin="0,0,0,8" Padding="16,12" CornerRadius="8" 
+                                    Background="{ui:ThemeResource ControlFillColorDefaultBrush}" 
+                                    BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" 
+                                    BorderThickness="1">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="42"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <Grid Grid.Column="0" VerticalAlignment="Center" HorizontalAlignment="Left">
+                                        <ui:FontIcon x:Name="IconPending" Glyph="&#xEA3A;" FontSize="18" FontFamily="{DynamicResource SegoeFluentIcons}" Foreground="{ui:ThemeResource TextFillColorDisabledBrush}" Visibility="Collapsed"/>
+                                        <ui:ProgressRing x:Name="IconRunning" IsIndeterminate="True" Width="18" Height="18" Visibility="Collapsed"/>
+                                        <ui:FontIcon x:Name="IconSuccess" Glyph="&#xEC61;" FontSize="20" FontFamily="{DynamicResource SegoeFluentIcons}" Foreground="#FF008A17" Visibility="Collapsed"/>
+                                        <ui:FontIcon x:Name="IconFailed" Glyph="&#xEB90;" FontSize="20" FontFamily="{DynamicResource SegoeFluentIcons}" Foreground="Red" Visibility="Collapsed"/>
+                                    </Grid>
+
+                                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="2,0,0,0">
+                                        <TextBlock x:Name="NameTxt" Text="{Binding Name}" FontSize="15" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                                        <TextBlock x:Name="DescTxt" Text="{Binding Description}" FontSize="12" Margin="0,4,0,0" TextWrapping="Wrap" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+
+                            <DataTemplate.Triggers>
+                                <DataTrigger Binding="{Binding Status}" Value="Pending">
+                                    <Setter TargetName="IconPending" Property="Visibility" Value="Visible"/>
+                                    <Setter TargetName="NameTxt" Property="Foreground" Value="{ui:ThemeResource TextFillColorDisabledBrush}"/>
+                                    <Setter TargetName="DescTxt" Property="Foreground" Value="{ui:ThemeResource TextFillColorDisabledBrush}"/>
+                                    <Setter TargetName="TaskBorder" Property="Opacity" Value="0.6"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding Status}" Value="Running">
+                                    <Setter TargetName="IconRunning" Property="Visibility" Value="Visible"/>
+                                    <Setter TargetName="TaskBorder" Property="Background" Value="{ui:ThemeResource ControlFillColorSecondaryBrush}"/>
+                                    <Setter TargetName="TaskBorder" Property="BorderBrush" Value="{ui:ThemeResource ControlStrongFillColorDefaultBrush}"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding Status}" Value="Success">
+                                    <Setter TargetName="IconSuccess" Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding Status}" Value="Failed">
+                                    <Setter TargetName="IconFailed" Property="Visibility" Value="Visible"/>
+                                    <Setter TargetName="DescTxt" Property="Foreground" Value="#C42B1C"/>
+                                </DataTrigger>
+                            </DataTemplate.Triggers>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+
+                <!-- 3. 配置日志控制台 -->
+                <ui:Card Margin="0,16,0,0" Padding="0" VerticalAlignment="Stretch"
+         Visibility="{Binding ShowLogConsole, Converter={StaticResource BoolToVis}}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="250"/>
+                            <!-- 这里可以根据需要调整高度 -->
+                        </Grid.RowDefinitions>
+
+                        <!-- 日志头部 (Row 0) -->
+                        <Border Grid.Row="0" Padding="12,8" Background="{ui:ThemeResource ControlFillColorTertiaryBrush}" CornerRadius="8,8,0,0">
+                            <Grid>
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <ui:SymbolIcon Symbol="Document24" Margin="0,0,8,0" Filled="True"/>
+                                    <TextBlock Text="配置日志" FontWeight="Medium" VerticalAlignment="Center" 
+                               Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                                </StackPanel>
+
+                                <ui:Button Content="复制日志" 
+                           Icon="Copy24"
+                           Appearance="Transparent" 
+                           HorizontalAlignment="Right"
+                           Padding="8,4"
+                           Command="{Binding CopyLogCommand}"/>
+                            </Grid>
+                        </Border>
+
+                        <!-- 日志内容区域 (Row 1) -->
+                        <Border Grid.Row="1" Background="#0C0C0C" CornerRadius="0,0,8,8">
+                            <TextBox x:Name="LogTextBox" 
+                     Text="{Binding GpuDeploymentLog, Mode=OneWay}"
+                     IsReadOnly="True"
+                     AcceptsReturn="True"
+                     TextWrapping="Wrap"
+                     BorderThickness="0"
+                     Background="Transparent"
+                     Foreground="#D0D0D0"
+                     FontFamily="Consolas, Monospace"
+                     FontSize="12"
+                     Padding="12"
+                     VerticalScrollBarVisibility="Auto"
+                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                     TextChanged="LogTextBox_TextChanged">
+                                <!-- 这是一个干净的控制台窗口 -->
+                            </TextBox>
+                        </Border>
+                    </Grid>
+                </ui:Card>
+            </StackPanel>
+        </ScrollViewer>
     </Grid>
 </UserControl>

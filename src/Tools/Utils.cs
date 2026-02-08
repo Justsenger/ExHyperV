@@ -547,6 +547,33 @@ public class Utils
         return string.IsNullOrWhiteSpace(text) ? newTag : $"{text.Trim()} {newTag}";
     }
 
+    // 读取宿主中的代理设置
+    public static (string Host, string Port) GetWindowsSystemProxy()
+    {
+        try
+        {
+
+            using var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Internet Settings");
+            if (key != null)
+            {
+                var proxyEnable = key.GetValue("ProxyEnable");
+                if (proxyEnable != null && (int)proxyEnable == 1)
+                {
+                    var proxyServer = key.GetValue("ProxyServer")?.ToString();
+                    if (!string.IsNullOrEmpty(proxyServer))
+                    {
+                        var match = System.Text.RegularExpressions.Regex.Match(proxyServer, @"(?:.*=)?(?<host>[^:]+):(?<port>\d+)");
+                        if (match.Success)
+                        {
+                            return (match.Groups["host"].Value, match.Groups["port"].Value);
+                        }
+                    }
+                }
+            }
+        }
+        catch { }
+        return (string.Empty, string.Empty);
+    }
     public static string Version => "V1.4.0-Beta";
     public static string Author => "Saniye";
 

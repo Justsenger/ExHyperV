@@ -521,6 +521,7 @@ install_dkms() {
 
     echo ""
     echo "✓ DKMS module installed successfully"
+    return 0
 }
 
 all() {

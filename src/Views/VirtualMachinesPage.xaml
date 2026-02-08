@@ -184,11 +184,12 @@
                                         </ContextMenu>
                                     </ui:DropDownButton.Flyout>
                                 </ui:DropDownButton>
-
                                 <!-- ======== 修改后的 GPU 标签代码 ======== -->
                                 <Border Margin="8,0,0,0" VerticalAlignment="Center" 
         Background="{ui:ThemeResource ControlFillColorTertiaryBrush}" 
-        CornerRadius="4" Padding="10,6">
+        CornerRadius="4" Padding="10,6"
+        ToolTip="{Binding GpuDisplayLabel}">
+                                    <!-- 💡 增加悬停提示，可以看到完整信息 -->
 
                                     <StackPanel Orientation="Horizontal">
                                         <ui:FontIcon Glyph="&#xF211;" FontSize="14" FontFamily="{DynamicResource SegoeFluentIcons}" Margin="0,1,8,0" 
@@ -197,14 +198,15 @@
                                         <TextBlock FontSize="13" TextTrimming="CharacterEllipsis">
                                             <TextBlock.Style>
                                                 <Style TargetType="TextBlock">
-                                                    <!-- 默认情况：显示显卡名称，颜色为主要文本色 -->
-                                                    <Setter Property="Text" Value="{Binding GpuName}"/>
+                                                    <!-- ✅ 核心修改：将原来的 GpuName 更改为 GpuDisplayLabel -->
+                                                    <Setter Property="Text" Value="{Binding GpuDisplayLabel}"/>
                                                     <Setter Property="Foreground" Value="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
 
                                                     <Style.Triggers>
+                                                        <!-- 当 HasGpu 为 False 时，逻辑已经在 Model 层处理，
+                             这里的 Trigger 主要是为了视觉保底 -->
                                                         <DataTrigger Binding="{Binding HasGpu}" Value="False">
                                                             <Setter Property="Text" Value="无"/>
-                                                            <Setter Property="Foreground" Value="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
                                                         </DataTrigger>
                                                     </Style.Triggers>
                                                 </Style>
@@ -212,7 +214,6 @@
                                         </TextBlock>
                                     </StackPanel>
                                 </Border>
-                                <!-- ===================================== -->
                             </StackPanel>
                         </StackPanel>
 

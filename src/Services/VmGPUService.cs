@@ -9,7 +9,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using ExHyperV.Models;
-using ExHyperV.Tools; // 假设 Utils 在这里
+using ExHyperV.Tools; 
 using Renci.SshNet;
 
 namespace ExHyperV.Services
@@ -92,17 +92,6 @@ namespace ExHyperV.Services
                 return result;
             });
         }
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -405,135 +394,123 @@ namespace ExHyperV.Services
             });
         }
 
-        private async Task<string> InjectWindowsDriversAsync(string vmName, string harddiskpath, PartitionInfo partition, string gpuManu, string gpuInstancePath)
+        // ----------------------------------------------------------------------------------
+        // 核心注入逻辑：挂载 -> 定位 -> Robocopy(带进度) -> 注册表 -> 卸载
+        // ----------------------------------------------------------------------------------
+        private async Task<string> InjectWindowsDriversAsync(
+            string vmName,
+            string harddiskpath,
+            PartitionInfo partition,
+            string gpuManu,
+            string gpuInstancePath,
+            Action<string> progressCallback = null)
         {
             string assignedDriveLetter = null;
+            void Log(string msg) => progressCallback?.Invoke(msg);
 
             try
             {
-                // 1. 挂载分区
+                // --- 1. 挂载分区 ---
+                Log("正在挂载虚拟硬盘系统分区...");
                 char suggestedLetter = GetFreeDriveLetter();
                 var mountScript = $@"
             $diskImage = Mount-DiskImage -ImagePath '{harddiskpath}' -PassThru | Get-Disk;
             $partitionToMount = Get-Partition -DiskNumber $diskImage.Number | Where-Object {{ $_.PartitionNumber -eq {partition.PartitionNumber} }};
-            
             if ($partitionToMount.DriveLetter) {{ return $partitionToMount.DriveLetter }}
-            
             try {{
                 $partitionToMount | Set-Partition -NewDriveLetter '{suggestedLetter}' -ErrorAction Stop;
                 return '{suggestedLetter}'
             }} catch {{
                 return ($partitionToMount | Get-Partition).DriveLetter
-            }}
-        ";
+            }}";
 
                 var letterResult = Utils.Run(mountScript);
+                if (letterResult == null || letterResult.Count == 0) return "无法挂载虚拟磁盘。";
+                assignedDriveLetter = letterResult[0].ToString().TrimEnd(':') + ":";
 
-                if (letterResult == null || letterResult.Count == 0 || string.IsNullOrEmpty(letterResult[0].ToString()))
-                {
-                    return string.Format(Properties.Resources.Error_FailedToFindSystemPartition, harddiskpath);
-                }
-
-                string actualLetter = letterResult[0].ToString();
-                assignedDriveLetter = actualLetter.EndsWith(":") ? actualLetter : $"{actualLetter}:";
-
-                // 2. 验证系统路径
+                // --- 2. 路径准备 ---
                 string system32Path = Path.Combine(assignedDriveLetter, "Windows", "System32");
-                if (!Directory.Exists(system32Path))
-                {
-                    return string.Format(Properties.Resources.Error_InvalidWindowsPartition, partition.PartitionNumber, assignedDriveLetter, system32Path);
-                }
-
-                string letter = assignedDriveLetter.TrimEnd(':');
-                string driverStoreBase = @"C:\Windows\System32\DriverStore\FileRepository";
+                if (!Directory.Exists(system32Path)) return "挂载的分区不是有效的 Windows 系统分区。";
 
                 string sourceFolder = FindGpuDriverSourcePath(gpuInstancePath);
-
-                // 逻辑判定：如果找到了驱动文件夹，就只复制那个文件夹；如果没找到，回退到全量复制
-                bool isFullCopy = false;
-                if (string.IsNullOrEmpty(sourceFolder))
-                {
-                    sourceFolder = driverStoreBase;
-                    isFullCopy = true;
-                }
-                string destinationBase = letter + @":\Windows\System32\HostDriverStore\FileRepository";
-                string destinationFolder;
-
+                bool isFullCopy = string.IsNullOrEmpty(sourceFolder);
                 if (isFullCopy)
                 {
-                    destinationFolder = destinationBase;
-                }
-                else
-                {
-                    // 精准复制模式
-                    string folderName = new DirectoryInfo(sourceFolder).Name;
-                    destinationFolder = Path.Combine(destinationBase, folderName);
+                    Log("未找到精准驱动路径，准备全量同步 DriverStore...");
+                    sourceFolder = @"C:\Windows\System32\DriverStore\FileRepository";
                 }
 
-                // 创建目录结构
+                string destinationBase = Path.Combine(assignedDriveLetter, "Windows", "System32", "HostDriverStore", "FileRepository");
+                string destinationFolder = isFullCopy ? destinationBase : Path.Combine(destinationBase, new DirectoryInfo(sourceFolder).Name);
+
                 if (!Directory.Exists(destinationBase)) Directory.CreateDirectory(destinationBase);
                 if (!Directory.Exists(destinationFolder)) Directory.CreateDirectory(destinationFolder);
 
-                // 处理只读属性
-                if (Directory.Exists(destinationFolder))
-                {
-                    try { RemoveReadOnlyAttribute(destinationFolder); }
-                    catch (Exception ex) { return string.Format(Properties.Resources.Error_RemoveOldDriverFolderReadOnlyFailed, ex.Message); }
-                }
-
-                // 执行 Robocopy
+                // --- 3. 执行 Robocopy 并监控进度 ---
+                Log("准备同步文件...");
                 Process robocopyProcess = new()
                 {
                     StartInfo = {
                 FileName = "robocopy",
-                Arguments = $"\"{sourceFolder}\" \"{destinationFolder}\" /E /R:2 /W:5 /NP /NJH /NFL /NDL",
+                // /E: 递归, /MT:16: 16线程, /R:2: 重试2次, /W:5: 等待5秒, /NJH /NJS: 不显示任务头尾
+                Arguments = $"\"{sourceFolder}\" \"\"{destinationFolder}\"\" /E /R:2 /W:5 /MT:16 /NJH /NJS",
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
                 CreateNoWindow = true
             }
                 };
+
+                robocopyProcess.OutputDataReceived += (s, e) =>
+                {
+                    if (string.IsNullOrEmpty(e.Data)) return;
+
+                    // 匹配百分比，例如 "  12.5% "
+                    var match = Regex.Match(e.Data, @"(\d+(\.\d+)?%)");
+                    if (match.Success)
+                    {
+                        Log($"正在同步驱动文件: {match.Value}");
+                    }
+                    else if (e.Data.Contains(@"\"))
+                    {
+                        // 如果输出包含路径，显示当前处理的子目录名
+                        string fileName = Path.GetFileName(e.Data.Trim().TrimEnd('\\'));
+                        if (!string.IsNullOrEmpty(fileName)) Log($"正在同步: {fileName}...");
+                    }
+                };
+
                 robocopyProcess.Start();
+                robocopyProcess.BeginOutputReadLine();
                 await robocopyProcess.WaitForExitAsync();
 
-                if (robocopyProcess.ExitCode >= 8)
-                {
-                    return string.Format(Properties.Resources.Error_RobocopyDriverCopyFailed, robocopyProcess.ExitCode);
-                }
+                if (robocopyProcess.ExitCode >= 8) return $"同步过程出错，Robocopy 代码: {robocopyProcess.ExitCode}";
 
+                // 设置只读
                 SetFolderReadOnly(destinationFolder);
 
-                // 3. 注册表注入
-                if (gpuManu.Contains("NVIDIA"))
+                // --- 4. NVIDIA 注册表注入 ---
+                if (gpuManu.Contains("NVIDIA", StringComparison.OrdinalIgnoreCase))
                 {
-                    string regResult = NvidiaReg(letter + ":");
-                    if (regResult != "OK")
-                    {
-                        return regResult;
-                    }
+                    Log("检测到 NVIDIA 显卡，正在注入注册表项...");
+                    string regRes = NvidiaReg(assignedDriveLetter);
+                    if (regRes != "OK") return regRes;
                 }
 
                 return "OK";
             }
+            catch (Exception ex)
+            {
+                return $"注入失败: {ex.Message}";
+            }
             finally
             {
+                // --- 5. 卸载清理 ---
                 if (!string.IsNullOrEmpty(harddiskpath))
                 {
-                    var cleanupScript = $@"
-                $diskImage = Get-DiskImage -ImagePath '{harddiskpath}';
-                if ($diskImage -and $diskImage.Attached) {{
-                    if ('{assignedDriveLetter}') {{
-                         try {{
-                            Remove-PartitionAccessPath -DiskNumber $diskImage.Number -PartitionNumber {partition.PartitionNumber} -AccessPath '{assignedDriveLetter}\' -ErrorAction SilentlyContinue;
-                         }} catch {{}}
-                    }}
-                    Dismount-DiskImage -ImagePath '{harddiskpath}' -ErrorAction SilentlyContinue;
-                }}
-            ";
-                    Utils.Run(cleanupScript);
+                    Log("正在卸载虚拟磁盘...");
+                    Utils.Run($"Dismount-DiskImage -ImagePath '{harddiskpath}' -ErrorAction SilentlyContinue");
                 }
             }
         }
-
         // 重构：添加了 credentials, progressCallback, cancellationToken 以替代UI交互
         public Task<string> AddGpuPartitionAsync(string vmName, string gpuInstancePath, string gpuManu, PartitionInfo selectedPartition, string id, SshCredentials credentials = null, Action<string> progressCallback = null, CancellationToken cancellationToken = default)
         {
@@ -932,7 +909,7 @@ namespace ExHyperV.Services
 
         private string NvidiaReg(string letter)
         {
-            // 为NVIDIA显卡注入注册表信息。
+            // 为NVIDIA显卡注入注册表信息
             string tempRegFile = Path.Combine(Path.GetTempPath(), $"nvlddmkm_{Guid.NewGuid()}.reg");
             string systemHiveFile = $@"{letter}\Windows\System32\Config\SYSTEM";
 
@@ -1100,6 +1077,363 @@ namespace ExHyperV.Services
             }
             catch { }
             return sourceFolder;
+        }
+
+
+
+        // ----------------------------------------------------------------------------------
+        // 重构方法 1：系统环境准备
+        // 职责：应用宿主机 GPU 分区策略和注册表修复
+        // ----------------------------------------------------------------------------------
+        public Task PrepareHostEnvironmentAsync()
+        {
+            return Task.Run(() =>
+            {
+                // 对应旧逻辑中的环境修复
+                Utils.AddGpuAssignmentStrategyReg();
+                Utils.ApplyGpuPartitionStrictModeFix();
+            });
+        }
+
+        // ----------------------------------------------------------------------------------
+        // 重构方法 2：虚拟机电源状态检查
+        // 职责：验证虚拟机是否已关闭
+        // ----------------------------------------------------------------------------------
+        public Task<(bool IsOff, string CurrentState)> IsVmPoweredOffAsync(string vmName)
+        {
+            return Task.Run(() =>
+            {
+                var result = Utils.Run($"(Get-VM -Name '{vmName}').State");
+                string state = result != null && result.Count > 0 ? result[0].ToString() : "Unknown";
+
+                // Hyper-V 的 Off 状态通常返回 "Off"
+                bool isOff = state.Equals("Off", StringComparison.OrdinalIgnoreCase);
+                return (isOff, state);
+            });
+        }
+
+        // ----------------------------------------------------------------------------------
+        // 重构方法 3：配置系统优化 (MMIO)
+        // 职责：在分配硬件前，先配置大容量内存映射空间和缓存策略
+        // ----------------------------------------------------------------------------------
+        public Task<bool> OptimizeVmForGpuAsync(string vmName)
+        {
+            return Task.Run(() =>
+            {
+                try
+                {
+                    // 对应旧逻辑中的 MMIO 设置
+                    string vmConfigScript = $@"
+                Set-VM -GuestControlledCacheTypes $true -VMName '{vmName}';
+                Set-VM -HighMemoryMappedIoSpace 64GB –VMName '{vmName}';
+                Set-VM -LowMemoryMappedIoSpace 1GB -VMName '{vmName}';
+            ";
+                    Utils.Run(vmConfigScript);
+                    return true;
+                }
+                catch
+                {
+                    return false;
+                }
+            });
+        }
+
+        // ----------------------------------------------------------------------------------
+        // 步骤4：分配显卡资源 - 真正执行创建 GPU 分区的命令
+        // 职责：处理 Windows 10 兼容性逻辑并执行 Add-VMGpuPartitionAdapter
+        // ----------------------------------------------------------------------------------
+
+        public Task<(bool Success, string Message)> AssignGpuPartitionAsync(string vmName, string gpuInstancePath)
+        {
+            return Task.Run(async () =>
+            {
+                bool isWin10 = !IsWindows11OrGreater();
+                var disabledGpuInstanceIds = new List<string>();
+
+                string NormalizeForComparison(string deviceId)
+                {
+                    if (string.IsNullOrWhiteSpace(deviceId)) return string.Empty;
+                    var normalizedId = deviceId.Replace('#', '\\').ToUpper();
+                    if (normalizedId.StartsWith(@"\\?\")) normalizedId = normalizedId.Substring(4);
+                    int suffixIndex = normalizedId.IndexOf('{');
+                    if (suffixIndex != -1)
+                    {
+                        int lastSeparatorIndex = normalizedId.LastIndexOf('\\', suffixIndex);
+                        if (lastSeparatorIndex != -1) normalizedId = normalizedId.Substring(0, lastSeparatorIndex);
+                    }
+                    return normalizedId;
+                }
+
+                try
+                {
+                    // 1. Win10 兼容性处理 (禁用非目标显卡)
+                    if (isWin10)
+                    {
+                        var allHostGpus = await GetHostGpusAsync();
+                        string normalizedSelectedGpuId = NormalizeForComparison(gpuInstancePath);
+
+                        foreach (var gpu in allHostGpus)
+                        {
+                            if (!gpu.InstanceId.ToUpper().StartsWith("PCI\\")) continue;
+                            string normalizedCurrentGpuId = NormalizeForComparison(gpu.InstanceId);
+                            if (!string.Equals(normalizedCurrentGpuId, normalizedSelectedGpuId, StringComparison.OrdinalIgnoreCase))
+                            {
+                                disabledGpuInstanceIds.Add(gpu.InstanceId);
+                            }
+                        }
+
+                        if (disabledGpuInstanceIds.Any())
+                        {
+                            foreach (var disabledId in disabledGpuInstanceIds)
+                            {
+                                Utils.Run($"Disable-PnpDevice -InstanceId '{disabledId}' -Confirm:$false");
+                            }
+                            await Task.Delay(2000);
+                        }
+                    }
+
+                    // 2. 执行分配命令
+                    string addGpuCommand = isWin10
+                        ? $"Add-VMGpuPartitionAdapter -VMName '{vmName}'"
+                        : $"Add-VMGpuPartitionAdapter -VMName '{vmName}' -InstancePath '{gpuInstancePath}'";
+
+                    Utils.Run(addGpuCommand);
+
+                    // ✅ 3. 【关键增强：双重验证】
+                    // 立即反查虚拟机当前的 GPU 分区适配器列表
+                    var verifyResult = Utils.Run($"Get-VMGpuPartitionAdapter -VMName '{vmName}'");
+
+                    // 如果返回列表为空，说明分配动作虽然没崩溃，但由于权限、驱动或内核原因失败了
+                    if (verifyResult == null || verifyResult.Count == 0)
+                    {
+                        return (false, "PowerShell 命令已执行但未产生分区。请检查宿主机 GPU 是否支持分区，以及是否以管理员权限运行。");
+                    }
+
+                    // 4. 写入标签并返回成功
+                    string gpuTag = $"[AssignedGPU:{gpuInstancePath}]";
+                    string updateNotesScript = $@"
+                $vm = Get-VM -Name '{vmName}';
+                $currentNotes = $vm.Notes;
+                $cleanedNotes = $currentNotes -replace '\[AssignedGPU:[^\]]+\]', '';
+                $newNotes = ($cleanedNotes.Trim() + ' ' + '{gpuTag}').Trim();
+                Set-VM -VM $vm -Notes $newNotes;
+            ";
+                    Utils.Run(updateNotesScript);
+
+                    return (true, "OK");
+                }
+                catch (Exception ex)
+                {
+                    return (false, ex.Message);
+                }
+                finally
+                {
+                    if (disabledGpuInstanceIds.Any())
+                    {
+                        await Task.Delay(1000);
+                        foreach (var instanceId in disabledGpuInstanceIds)
+                        {
+                            Utils.Run($"Enable-PnpDevice -InstanceId '{instanceId}' -Confirm:$false");
+                        }
+                    }
+                }
+            });
+        }
+        // ----------------------------------------------------------------------------------
+        // 步骤5：驱动程序同步 (Windows) - 自动化注入宿主机驱动
+        // 职责：驱动 Windows 离线注入流程的入口方法
+        // ----------------------------------------------------------------------------------
+        public async Task<(bool Success, string Message)> SyncWindowsDriversAsync(
+            string vmName,
+            string gpuInstancePath,
+            string gpuManu,
+            PartitionInfo selectedPartition,
+            Action<string> progressCallback = null)
+        {
+            // 1. 基础校验
+            if (selectedPartition == null || selectedPartition.OsType != OperatingSystemType.Windows)
+            {
+                return (false, "未选择有效的 Windows 分区。");
+            }
+
+            try
+            {
+                // 2. 获取虚拟机第一个虚拟硬盘路径
+                var harddiskPathResult = Utils.Run($"(Get-VMHardDiskDrive -vmname '{vmName}')[0].Path");
+                if (harddiskPathResult == null || harddiskPathResult.Count == 0)
+                    return (false, "未能获取虚拟机硬盘文件路径。");
+
+                string harddiskpath = harddiskPathResult[0].ToString();
+
+                // 3. 调用核心注入逻辑
+                string result = await InjectWindowsDriversAsync(vmName, harddiskpath, selectedPartition, gpuManu, gpuInstancePath, progressCallback);
+
+                return result == "OK" ? (true, "OK") : (false, result);
+            }
+            catch (Exception ex)
+            {
+                return (false, $"驱动程序同步异常: {ex.Message}");
+            }
+        }
+
+        // ----------------------------------------------------------------------------------
+        // 步骤6：Linux 驱动配置 (在线模式)
+        // 职责：开机 -> SSH连接 -> 传输文件 -> 编译内核模块 -> 重启
+        // ----------------------------------------------------------------------------------
+        public Task<string> ProvisionLinuxGpuAsync(string vmName, string gpuInstancePath, SshCredentials credentials, Action<string> progressCallback, CancellationToken cancellationToken)
+        {
+            return Task.Run(async () =>
+            {
+                // 辅助函数：输出日志
+                void Log(string message) => progressCallback?.Invoke(message);
+
+                // 辅助函数：Sudo 命令包装
+                Func<string, string> withSudo = (cmd) =>
+                {
+                    if (cmd.Trim().StartsWith("sudo ")) cmd = cmd.Trim().Substring(5);
+                    string escapedPassword = credentials.Password.Replace("'", "'\\''");
+                    return $"echo '{escapedPassword}' | sudo -S -E -p '' {cmd}";
+                };
+
+                var sshService = new SshService();
+
+                try
+                {
+                    // 1. 确保虚拟机已启动
+                    var currentState = await GetVmStateAsync(vmName);
+                    if (currentState != "Running")
+                    {
+                        Log("正在启动虚拟机以进行 Linux 配置...");
+                        Utils.Run($"Start-VM -Name '{vmName}'");
+                        await Task.Delay(5000); // 等待 BIOS/UEFI 初始化
+                    }
+
+                    // 2. 获取 IP 地址
+                    Log("正在等待虚拟机网络就绪并获取 IP...");
+                    string getMacScript = $"(Get-VMNetworkAdapter -VMName '{vmName}').MacAddress | Select-Object -First 1";
+                    var macResult = await Utils.Run2(getMacScript);
+                    if (macResult == null || macResult.Count == 0) return string.Format(Properties.Resources.Error_GetVmMacAddressFailed, vmName);
+
+                    string macAddress = System.Text.RegularExpressions.Regex.Replace(macResult[0].ToString(), "(.{2})", "$1:").TrimEnd(':');
+                    string vmIpAddress = await Utils.GetVmIpAddressAsync(vmName, macAddress);
+
+                    string targetIp = vmIpAddress.Split(',')
+                        .Select(ip => ip.Trim())
+                        .FirstOrDefault(ip => System.Net.IPAddress.TryParse(ip, out var addr) && addr.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork);
+
+                    if (string.IsNullOrEmpty(targetIp)) return Properties.Resources.Error_NoValidIpv4AddressFound;
+
+                    credentials.Host = targetIp;
+                    Log($"虚拟机 IP 已获取: {targetIp}，正在建立 SSH 连接...");
+
+                    // 3. 等待 SSH 端口响应
+                    if (!await WaitForVmToBeResponsiveAsync(credentials.Host, credentials.Port, cancellationToken))
+                    {
+                        return "SSH 连接超时，请检查虚拟机网络设置。";
+                    }
+
+                    // 4. 初始化远程环境
+                    string homeDirectory;
+                    string remoteTempDir;
+                    using (var client = new SshClient(credentials.Host, credentials.Port, credentials.Username, credentials.Password))
+                    {
+                        client.Connect();
+                        homeDirectory = client.RunCommand("pwd").Result.Trim();
+                        remoteTempDir = $"{homeDirectory}/exhyperv_deploy";
+                        client.RunCommand($"mkdir -p {remoteTempDir}/drivers {remoteTempDir}/lib");
+                        client.Disconnect();
+                    }
+                    Log($"远程环境初始化完成，临时目录: {remoteTempDir}");
+
+                    // 5. 配置代理 (如果有)
+                    if (!string.IsNullOrEmpty(credentials.ProxyHost) && credentials.ProxyPort.HasValue)
+                    {
+                        Log($"配置 APT 和环境变量代理 ({credentials.ProxyHost}:{credentials.ProxyPort})...");
+                        string proxyUrl = $"http://{credentials.ProxyHost}:{credentials.ProxyPort}";
+                        string aptContent = $"Acquire::http::Proxy \"{proxyUrl}\";\nAcquire::https::Proxy \"{proxyUrl}\";\n";
+                        string envContent = $"\nexport http_proxy=\"{proxyUrl}\"\nexport https_proxy=\"{proxyUrl}\"\nexport no_proxy=\"localhost,127.0.0.1\"\n";
+
+                        await sshService.WriteTextFileAsync(credentials, aptContent, $"{homeDirectory}/99proxy");
+                        await sshService.WriteTextFileAsync(credentials, envContent, $"{homeDirectory}/proxy_env");
+
+                        await sshService.ExecuteSingleCommandAsync(credentials, $"sudo mv {homeDirectory}/99proxy /etc/apt/apt.conf.d/99proxy", Log);
+                        await sshService.ExecuteSingleCommandAsync(credentials, $"sudo sh -c 'cat {homeDirectory}/proxy_env >> /etc/environment'", Log);
+                    }
+
+                    // 6. 上传宿主机驱动文件
+                    Log("正在定位并上传宿主机 GPU 驱动...");
+                    string sourceDriverPath = FindGpuDriverSourcePath(gpuInstancePath); // 调用类中原有的私有方法
+                    if (string.IsNullOrEmpty(sourceDriverPath))
+                    {
+                        Log("警告：无法精确定位驱动，使用全量 DriverStore (速度较慢)...");
+                        sourceDriverPath = @"C:\Windows\System32\DriverStore\FileRepository";
+                    }
+
+                    string sourceFolderName = new DirectoryInfo(sourceDriverPath).Name;
+                    await sshService.UploadDirectoryAsync(credentials, sourceDriverPath, $"{remoteTempDir}/drivers/{sourceFolderName}");
+
+                    // 7. 上传 WSL 库文件
+                    Log("正在上传 WSL 依赖库...");
+                    await UploadLocalFilesAsync(sshService, credentials, $"{remoteTempDir}/lib"); // 调用类中原有的私有方法
+
+                    // 8. 下载并执行配置脚本
+                    Log("正在下载配置脚本...");
+                    var scripts = new List<string> { "install_dxgkrnl.sh", "configure_system.sh" };
+                    if (credentials.InstallGraphics) scripts.Add("setup_graphics.sh");
+
+                    foreach (var script in scripts)
+                    {
+                        string cmd = $"wget -O {remoteTempDir}/{script} {ScriptBaseUrl}{script}";
+                        await sshService.ExecuteSingleCommandAsync(credentials, cmd, Log);
+                    }
+                    await sshService.ExecuteSingleCommandAsync(credentials, $"chmod +x {remoteTempDir}/*.sh", Log);
+
+                    // 9. 编译 dxgkrnl
+                    Log("正在编译安装 dxgkrnl 内核模块 (这可能需要一些时间)...");
+                    var dxgResult = await sshService.ExecuteCommandAndCaptureOutputAsync(credentials, withSudo($"{remoteTempDir}/install_dxgkrnl.sh"), Log, TimeSpan.FromMinutes(60));
+
+                    if (dxgResult.Output.Contains("STATUS: REBOOT_REQUIRED"))
+                    {
+                        Log("内核已更新，正在重启虚拟机以应用更改...");
+                        try { await sshService.ExecuteSingleCommandAsync(credentials, withSudo("reboot"), Log); } catch { }
+
+                        // 这里返回特殊状态，由上层决定是否等待重启后再次调用本方法继续后续步骤，
+                        // 或者在这里写循环等待逻辑（原代码是写在一起的）。
+                        // 建议：为了保持方法纯粹，返回状态让上层处理重连比较好，但为了兼容原逻辑的"一键式"，这里可以抛出异常或返回特定字符串。
+                        return "REBOOT_REQUIRED";
+                    }
+
+                    if (!dxgResult.Output.Contains("STATUS: SUCCESS"))
+                    {
+                        throw new Exception("dxgkrnl 编译脚本执行失败，请检查日志。");
+                    }
+
+                    // 10. 配置图形和系统
+                    if (credentials.InstallGraphics)
+                    {
+                        Log("正在配置 Mesa 3D...");
+                        await sshService.ExecuteSingleCommandAsync(credentials, withSudo($"{remoteTempDir}/setup_graphics.sh"), Log, TimeSpan.FromMinutes(20));
+                    }
+
+                    Log("正在完成系统最终配置...");
+                    string configArgs = credentials.InstallGraphics ? "enable_graphics" : "no_graphics";
+                    await sshService.ExecuteSingleCommandAsync(credentials, withSudo($"{remoteTempDir}/configure_system.sh {configArgs}"), Log);
+
+                    // 11. 最终重启
+                    Log("配置完成，正在重启虚拟机...");
+                    try { await sshService.ExecuteSingleCommandAsync(credentials, withSudo("reboot"), Log); } catch { }
+
+                    return "OK";
+                }
+                catch (OperationCanceledException)
+                {
+                    return "Operation Cancelled";
+                }
+                catch (Exception ex)
+                {
+                    return $"Linux 配置失败: {ex.Message}";
+                }
+            });
         }
     }
 }

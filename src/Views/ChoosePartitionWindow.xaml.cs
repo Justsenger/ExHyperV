@@ -1,6 +1,7 @@
 ﻿using System.Windows;
 using System.Windows.Controls;
-using Wpf.Ui.Controls; 
+using Wpf.Ui.Controls;
+using ExHyperV.Models;
 
 namespace ExHyperV.Views
 {

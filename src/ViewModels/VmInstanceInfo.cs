@@ -293,14 +293,55 @@ namespace ExHyperV.Models
         // ----------------------------------------------------------------------------------
         // 显卡 (GPU) 分区与资源配置 (修复 XLS0432)
         // ----------------------------------------------------------------------------------
-        [ObservableProperty] private string _gpuName;            // 显卡友好名称
+
         [ObservableProperty] private string _gpuVendor;          // 制造商
         [ObservableProperty] private string _physicalGpuId;      // 宿主物理实例 ID
         [ObservableProperty] private string _hostDriverVersion;  // 宿主驱动版本
 
         [ObservableProperty]
-        [NotifyPropertyChangedFor(nameof(HasGpu))] // ✅ 关键：列表变了，HasGpu 也要重新计算
+        [NotifyPropertyChangedFor(nameof(HasGpu))]
+        [NotifyPropertyChangedFor(nameof(GpuDisplayLabel))] // ✅ 关键：当 GpuName 改变时，通知标签刷新
+        private string _gpuName;
+
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(HasGpu))]
+        [NotifyPropertyChangedFor(nameof(GpuDisplayLabel))]
         private ObservableCollection<VmGpuAssignment> _assignedGpus = new();
+
+        // ✅ 完美的智能标签：支持详细列表和摘要字符串的回退
+        public string GpuDisplayLabel
+        {
+            get
+            {
+                // 情况 1：如果详细列表已经加载了，执行“工业感”逻辑
+                if (AssignedGpus != null && AssignedGpus.Count > 0)
+                {
+                    var groups = AssignedGpus.GroupBy(g => g.Name).ToList();
+                    var mainGroup = groups[0];
+                    string mainName = mainGroup.Key;
+                    int mainCount = mainGroup.Count();
+
+                    string result = mainName;
+                    if (mainCount > 1) result += $" *{mainCount}";
+                    if (groups.Count > 1) result += " +";
+                    return result;
+                }
+
+                // 情况 2：如果详细列表为空（初始状态），回退使用摘要字符串
+                if (!string.IsNullOrEmpty(GpuName))
+                {
+                    return GpuName;
+                }
+
+                return "无";
+            }
+        }
+        // ✅ 辅助：手动触发更新的方法（供 ViewModel 调用）
+        public void RefreshGpuSummary()
+        {
+            OnPropertyChanged(nameof(GpuDisplayLabel));
+        }
+
 
         public bool HasGpu => (AssignedGpus != null && AssignedGpus.Count > 0) || !string.IsNullOrEmpty(GpuName);
         partial void OnGpuNameChanged(string value) => OnPropertyChanged(nameof(HasGpu));
