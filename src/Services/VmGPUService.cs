@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Management;
 using System.Net.Sockets;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -15,6 +16,99 @@ namespace ExHyperV.Services
 {
     public class VmGPUService
     {
+        public Task<List<(string Id, string InstancePath)>> GetVmGpuAdaptersAsync(string vmName)
+        {
+            return Task.Run(() =>
+            {
+                var result = new List<(string Id, string InstancePath)>();
+                string scopePath = @"\\.\root\virtualization\v2";
+
+                try
+                {
+                    // 1. 找到对应的虚拟机 (Msvm_ComputerSystem)
+                    string query = $"SELECT * FROM Msvm_ComputerSystem WHERE ElementName = '{vmName}'";
+                    using var searcher = new ManagementObjectSearcher(scopePath, query);
+                    using var vmCollection = searcher.Get();
+
+                    var computerSystem = vmCollection.Cast<ManagementObject>().FirstOrDefault();
+                    if (computerSystem == null) return result;
+
+                    // 2. 获取 VM 的系统设置 (Msvm_VirtualSystemSettingData)
+                    using var relatedSettings = computerSystem.GetRelated(
+                        "Msvm_VirtualSystemSettingData",
+                        "Msvm_SettingsDefineState",
+                        null, null, null, null, false, null);
+
+                    var virtualSystemSetting = relatedSettings.Cast<ManagementObject>().FirstOrDefault();
+                    if (virtualSystemSetting == null) return result;
+
+                    // 3. 获取 GPU 分区配置组件 (Msvm_GpuPartitionSettingData)
+                    using var gpuSettingsCollection = virtualSystemSetting.GetRelated(
+                        "Msvm_GpuPartitionSettingData",
+                        "Msvm_VirtualSystemSettingDataComponent",
+                        null, null, null, null, false, null);
+
+                    foreach (var gpuSetting in gpuSettingsCollection.Cast<ManagementObject>())
+                    {
+                        // 获取 Adapter ID (对应 PowerShell 的 Id)
+                        string adapterId = gpuSetting["InstanceID"]?.ToString();
+                        string instancePath = string.Empty;
+
+                        // 获取 HostResource (这是一个字符串数组，包含指向 Msvm_PartitionableGpu 的 WMI 路径)
+                        string[] hostResources = (string[])gpuSetting["HostResource"];
+
+                        if (hostResources != null && hostResources.Length > 0)
+                        {
+                            // 4. 解析 HostResource，获取物理 GPU 对象
+                            try
+                            {
+                                // 直接使用路径实例化 ManagementObject
+                                using var partitionableGpu = new ManagementObject(hostResources[0]);
+                                partitionableGpu.Get(); // 强制加载属性
+
+                                // 关键修正：读取 Msvm_PartitionableGpu 的 "Name" 属性
+                                // 你的截图显示 Name 属性包含 \\?\PCI#VEN... 
+                                instancePath = partitionableGpu["Name"]?.ToString();
+                            }
+                            catch (Exception)
+                            {
+                                // 如果无法解析物理路径（例如驱动已卸载），保留为空或填入原始路径
+                                instancePath = "Unknown/Unresolved Device";
+                            }
+                        }
+
+                        if (!string.IsNullOrEmpty(adapterId))
+                        {
+                            result.Add((adapterId, instancePath));
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // 记录日志或处理错误
+                    System.Diagnostics.Debug.WriteLine($"WMI Query Error: {ex.Message}");
+                }
+
+                return result;
+            });
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         private const string ScriptBaseUrl = "https://raw.githubusercontent.com/Justsenger/ExHyperV/main/src/Linux/script/";
         private bool IsWindows11OrGreater() => Environment.OSVersion.Version.Build >= 22000;
 
@@ -157,7 +251,7 @@ namespace ExHyperV.Services
             });
         }
 
-        private string NormalizeDeviceId(string deviceId)
+        public string NormalizeDeviceId(string deviceId)
         {
             if (string.IsNullOrWhiteSpace(deviceId))
             {
@@ -293,7 +387,6 @@ namespace ExHyperV.Services
                         {
                             HighMMIO = highmmio,
                             GuestControlled = guest,
-                            GPUs = gpulist,
                             Notes = notes
                         };
 

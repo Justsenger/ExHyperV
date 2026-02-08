@@ -13,8 +13,13 @@ using Wpf.Ui.Controls;
 
 namespace ExHyperV.ViewModels
 {
-    public enum VmDetailViewType { Dashboard, CpuSettings, CpuAffinity, MemorySettings, StorageSettings, AddStorage, GpuSettings }
-
+    public enum VmDetailViewType
+    {
+        Dashboard, CpuSettings, CpuAffinity, MemorySettings, StorageSettings, AddStorage,
+        GpuSettings,
+        AddGpuSelect,  
+        AddGpuProgress  
+    }
     public partial class VirtualMachinesPageViewModel : ObservableObject, IDisposable
     {
         // ----------------------------------------------------------------------------------
@@ -1186,6 +1191,15 @@ namespace ExHyperV.ViewModels
 
 
         //GPU部分
+        // --- 添加显卡相关属性 ---
+        [ObservableProperty] private ObservableCollection<GPUInfo> _hostGpus = new();
+        [ObservableProperty]
+        [NotifyCanExecuteChangedFor(nameof(ConfirmAddGpuCommand))] // ✅ 关键：选择变化时通知命令刷新
+        private GPUInfo _selectedHostGpu;
+        [ObservableProperty] private bool _autoInstallDrivers = true;
+        [ObservableProperty] private ObservableCollection<TaskItem> _gpuTasks = new();
+
+
         [RelayCommand]
         private async Task GoToGpuSettings()
         {
@@ -1195,9 +1209,9 @@ namespace ExHyperV.ViewModels
             IsLoadingSettings = true;
             try
             {
-                // 可选：在此处强制刷新一次最新的 GPU 分配状态
-                // await RefreshCurrentVmGpuAssignments();
-                await Task.Delay(200); // 短暂延迟以确保 UI 切换动画平滑
+                // ✅ 1. 必须取消注释这一行，否则不会加载数据
+                await RefreshCurrentVmGpuAssignments();
+                // await Task.Delay(200); // 这一行可以留着也可以去掉
             }
             catch (Exception ex)
             {
@@ -1209,9 +1223,97 @@ namespace ExHyperV.ViewModels
             }
         }
 
-        /// <summary>
-        /// 移除指定 ID 的 GPU 分区
-        /// </summary>
+
+        private async Task RefreshCurrentVmGpuAssignments()
+        {
+            if (SelectedVm == null) return;
+            try
+            {
+                var vmAdapters = await _vmGpuService.GetVmGpuAdaptersAsync(SelectedVm.Name);
+                var hostGpus = await _vmGpuService.GetHostGpusAsync();
+
+                // 1. 准备新数据列表
+                var tempList = new List<VmGpuAssignment>();
+                string detectedBrand = "Generic";
+
+                foreach (var adapter in vmAdapters)
+                {
+                    var matchedHostGpu = hostGpus.FirstOrDefault(h =>
+                        !string.IsNullOrEmpty(h.InstanceId) &&
+                        !string.IsNullOrEmpty(adapter.InstancePath) &&
+                        (adapter.InstancePath.Contains(h.InstanceId, StringComparison.OrdinalIgnoreCase) ||
+                         NormalizeDeviceId(h.InstanceId) == NormalizeDeviceId(adapter.InstancePath)));
+
+                    var assignment = new VmGpuAssignment { AdapterId = adapter.Id, InstanceId = adapter.InstancePath };
+
+                    if (matchedHostGpu != null)
+                    {
+                        assignment.Name = matchedHostGpu.Name;
+                        assignment.Manu = matchedHostGpu.Manu;
+                        assignment.Vendor = matchedHostGpu.Vendor;
+                        assignment.DriverVersion = matchedHostGpu.DriverVersion;
+                        assignment.Ram = matchedHostGpu.Ram;
+                        assignment.PName = matchedHostGpu.Pname;
+                        assignment.InstanceId = matchedHostGpu.InstanceId;
+
+                        if (assignment.Manu.Contains("NVIDIA", StringComparison.OrdinalIgnoreCase))
+                            detectedBrand = "NVIDIA";
+                    }
+                    else
+                    {
+                        assignment.Name = "Unknown Device";
+                        assignment.Manu = "Default";
+                        assignment.Vendor = "Unknown";
+                        assignment.PName = adapter.InstancePath;
+                    }
+                    tempList.Add(assignment);
+                }
+
+                // 2. ✅ 增量更新集合，避免 UI 整个闪烁
+                Application.Current.Dispatcher.Invoke(() => {
+                    // 检查 ID 列表是否完全一致（硬件没变）
+                    bool isHardwareSame = SelectedVm.AssignedGpus.Count == tempList.Count &&
+                                         SelectedVm.AssignedGpus.Select(x => x.AdapterId)
+                                                      .SequenceEqual(tempList.Select(x => x.AdapterId));
+
+                    if (isHardwareSame)
+                    {
+                        // 硬件没变，只更新现有对象的属性，这样 UI 实例不会重建，动画也就不会触发
+                        for (int i = 0; i < tempList.Count; i++)
+                        {
+                            var target = SelectedVm.AssignedGpus[i];
+                            var source = tempList[i];
+
+                            target.Name = source.Name;
+                            target.Manu = source.Manu;
+                            target.Vendor = source.Vendor;
+                            target.DriverVersion = source.DriverVersion;
+                            target.Ram = source.Ram;
+                            target.PName = source.PName;
+                            target.InstanceId = source.InstanceId;
+                        }
+                    }
+                    else
+                    {
+                        // 只有在硬件数量或 ID 变动时（比如新添加或移除显卡），才执行清空重建
+                        SelectedVm.AssignedGpus.Clear();
+                        foreach (var item in tempList) SelectedVm.AssignedGpus.Add(item);
+                    }
+
+                    // 更新 GpuName
+                    if (string.IsNullOrEmpty(SelectedVm.GpuName) || SelectedVm.GpuName == "无")
+                    {
+                        SelectedVm.GpuName = tempList.Count > 0 ? (tempList[0].Manu.Contains("NVIDIA") ? "NVIDIA" : tempList[0].Name) : string.Empty;
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                ShowSnackbar("刷新显卡列表失败", ex.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+            }
+        }        /// <summary>
+                 /// 移除指定 ID 的 GPU 分区
+                 /// </summary>
         [RelayCommand]
         private async Task RemoveGpu(string adapterId)
         {
@@ -1246,22 +1348,90 @@ namespace ExHyperV.ViewModels
         /// 导航至添加新 GPU 的向导页面（预留）
         /// </summary>
         [RelayCommand]
-        private void GoToAddGpu()
-        {
-            // TODO: 这里将来可以切换到 VmDetailViewType.AddGpu
-            ShowSnackbar("功能待定", "添加新显卡的向导正在开发中。", ControlAppearance.Info, SymbolRegular.Info24);
-        }
-
-        /// <summary>
-        /// 刷新当前选中虚拟机的 GPU 分配信息
-        /// </summary>
-        private async Task RefreshCurrentVmGpuAssignments()
+        private async Task GoToAddGpu()
         {
             if (SelectedVm == null) return;
-            // 这是一个假设的方法，具体实现需要依赖你的 VmGPUService
-            // var gpuAssignments = await _vmGpuService.GetGpuAssignmentsForVmAsync(SelectedVm.Name);
-            // SelectedVm.GPUs = new Dictionary<string, string>(gpuAssignments);
+
+            IsLoadingSettings = true;
+            try
+            {
+                var gpus = await _vmGpuService.GetHostGpusAsync();
+                HostGpus = new ObservableCollection<GPUInfo>(gpus);
+
+                // ✅ 修复：不再默认选中第一个，让列表初始为空
+                SelectedHostGpu = null;
+
+                CurrentViewType = VmDetailViewType.AddGpuSelect;
+            }
+            catch (Exception ex)
+            {
+                ShowSnackbar("错误", "无法加载宿主机显卡: " + ex.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+            }
+            finally
+            {
+                IsLoadingSettings = false;
+            }
+        }
+        // 2. 从选择页 -> 跳转到进度页 (确认添加)
+
+
+        [RelayCommand(CanExecute = nameof(CanConfirmAddGpu))]
+        private void ConfirmAddGpu()
+        {
+            if (SelectedHostGpu == null) return;
+
+            // 切换视图
+            CurrentViewType = VmDetailViewType.AddGpuProgress;
+
+            // 初始化演示任务
+            GpuTasks.Clear();
+
+            // 注意这里：加上 ExHyperV.Models. 前缀
+            GpuTasks.Add(new TaskItem
+            {
+                Name = "环境检查",
+                Description = "正在检查虚拟机电源状态...",
+                Status = ExHyperV.Models.TaskStatus.Running
+            });
+
+            GpuTasks.Add(new TaskItem
+            {
+                Name = "分配硬件",
+                Description = "等待执行...",
+                Status = ExHyperV.Models.TaskStatus.Pending
+            });
+
+            if (AutoInstallDrivers)
+            {
+                GpuTasks.Add(new TaskItem
+                {
+                    Name = "驱动注入",
+                    Description = "等待执行...",
+                    Status = ExHyperV.Models.TaskStatus.Pending
+                });
+            }
+        }
+        // 3. 取消/返回 -> 回到显卡设置列表页
+        [RelayCommand]
+        private void CancelAddGpu()
+        {
+            CurrentViewType = VmDetailViewType.GpuSettings;
+            GpuTasks.Clear();
         }
 
+        private bool CanConfirmAddGpu() => SelectedHostGpu != null;
+
+        // 辅助方法：标准化设备ID用于比较 (需要复制 VmGPUService 中的逻辑到 ViewModel 或者在 Service 中公开)
+        // 建议：由于这是纯逻辑，可以在 ViewModel 中简单实现一个，或者将 Service 中的逻辑改为 public static
+        private string NormalizeDeviceId(string deviceId)
+        {
+            if (string.IsNullOrWhiteSpace(deviceId)) return string.Empty;
+            var normalizedId = deviceId.ToUpper();
+            if (normalizedId.StartsWith(@"\\?\")) normalizedId = normalizedId.Substring(4);
+            int suffixIndex = normalizedId.IndexOf("#{"); // 去掉 GUID 后缀
+            if (suffixIndex != -1) normalizedId = normalizedId.Substring(0, suffixIndex);
+            // 统一斜杠
+            return normalizedId.Replace('\\', '#').Replace("#", "");
+        }
     }
 }

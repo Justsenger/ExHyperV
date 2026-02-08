@@ -369,7 +369,7 @@
                                     </Setter>
                                 </DataTrigger>
 
-                                <!-- 【新增】显卡详细设置触发器 -->
+                                <!-- 【新增】显卡详细设置触发器 (原有) -->
                                 <DataTrigger Binding="{Binding DataContext.CurrentViewType, RelativeSource={RelativeSource AncestorType=Page}}" Value="GpuSettings">
                                     <Setter Property="ContentTemplate">
                                         <Setter.Value>
@@ -379,6 +379,30 @@
                                         </Setter.Value>
                                     </Setter>
                                 </DataTrigger>
+
+                                <!-- 【新增】显卡添加 - 选择界面触发器 -->
+                                <DataTrigger Binding="{Binding DataContext.CurrentViewType, RelativeSource={RelativeSource AncestorType=Page}}" Value="AddGpuSelect">
+                                    <Setter Property="ContentTemplate">
+                                        <Setter.Value>
+                                            <DataTemplate>
+                                                <components:VmAddGpuSelectView/>
+                                            </DataTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </DataTrigger>
+
+                                <!-- 【新增】显卡添加 - 进度界面触发器 -->
+                                <DataTrigger Binding="{Binding DataContext.CurrentViewType, RelativeSource={RelativeSource AncestorType=Page}}" Value="AddGpuProgress">
+                                    <Setter Property="ContentTemplate">
+                                        <Setter.Value>
+                                            <DataTemplate>
+                                                <components:VmAddGpuProgressView/>
+                                            </DataTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </DataTrigger>
+
+
 
                             </Style.Triggers>
                         </Style>

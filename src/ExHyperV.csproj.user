@@ -12,6 +12,12 @@
     <Compile Update="Views\ChoosePartitionWindow.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Update="Views\Components\VmAddGpuProgressView.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="Views\Components\VmAddGpuSelectView.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Update="Views\Components\VmAddStorageView.xaml.cs">
       <SubType>Code</SubType>
     </Compile>

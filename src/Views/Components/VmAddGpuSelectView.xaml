@@ -1,0 +1,112 @@
+﻿<UserControl x:Class="ExHyperV.Views.Components.VmAddGpuSelectView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+             xmlns:vm="clr-namespace:ExHyperV.ViewModels"
+             xmlns:models="clr-namespace:ExHyperV.Models"
+             xmlns:converters="clr-namespace:ExHyperV.Converters"
+             mc:Ignorable="d" 
+             d:DesignHeight="850" d:DesignWidth="1000"
+             UseLayoutRounding="True"
+             d:DataContext="{d:DesignInstance vm:VirtualMachinesPageViewModel}">
+
+    <UserControl.Resources>
+        <converters:GpuImagePathConverter x:Key="GpuImagePathConverter"/>
+    </UserControl.Resources>
+
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- 1. 顶部标题栏：已移除左侧标志图标 -->
+        <Grid Grid.Row="0" Margin="0,0,0,8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <!-- 原有的 FontIcon 已删除 -->
+                <TextBlock Text="可用物理显卡" FontSize="20" VerticalAlignment="Center" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+            </StackPanel>
+
+            <ui:Button Grid.Column="1" Content="下一步" Appearance="Primary" Margin="0,0,8,0" Padding="16,6" 
+                       Command="{Binding ConfirmAddGpuCommand}"/>
+
+            <ui:Button Grid.Column="2" Appearance="Transparent" Padding="8" 
+                       Command="{Binding CancelAddGpuCommand}">
+                <ui:SymbolIcon Symbol="ArrowLeft24" FontSize="18"/>
+            </ui:Button>
+        </Grid>
+
+        <!-- 2. 内容区域 -->
+        <Grid Grid.Row="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- 显卡列表：禁用横向滚动是实现自动换行的前提 -->
+            <ui:ListView Grid.Row="0" 
+                         ItemsSource="{Binding HostGpus}" 
+                         SelectedItem="{Binding SelectedHostGpu}" 
+                         HorizontalContentAlignment="Stretch"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                <ui:ListView.ItemTemplate>
+                    <DataTemplate DataType="{x:Type models:GPUInfo}">
+                        <Grid Margin="0,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+
+                            <!-- 2. 图标间距：增加到 24，解决过于紧凑的问题 -->
+                            <Image Grid.Column="0" Height="64" Width="64" Margin="8,0,12,0" 
+                                   VerticalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality">
+                                <Image.Source>
+                                    <MultiBinding Converter="{StaticResource GpuImagePathConverter}">
+                                        <Binding Path="Manu"/>
+                                        <Binding Path="Name"/>
+                                    </MultiBinding>
+                                </Image.Source>
+                            </Image>
+
+                            <!-- 1 & 4. 文本区域：增加两行之间的间距 -->
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding Name}" FontSize="16" FontWeight="Normal"
+                                           Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+
+                                <!-- 3. 换行修复：TextWrapping="Wrap" 配合外层 Disabled 滚动条 -->
+                                <TextBlock Text="{Binding PathDisplay, Mode=OneWay}" 
+                                           FontSize="13" 
+                                           Margin="0,12,0,0" 
+                                           TextWrapping="Wrap"
+                                           Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                            </StackPanel>
+                        </Grid>
+                    </DataTemplate>
+                </ui:ListView.ItemTemplate>
+            </ui:ListView>
+
+            <!-- 驱动安装选项 -->
+            <Border Grid.Row="1" Margin="0,16,0,0" Padding="16" CornerRadius="8"
+                    Background="{ui:ThemeResource ControlFillColorDefaultBrush}"
+                    BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="安装驱动" FontSize="14" VerticalAlignment="Center"
+                               Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                    <ui:ToggleSwitch Grid.Column="1" IsChecked="{Binding AutoInstallDrivers}"/>
+                </Grid>
+            </Border>
+        </Grid>
+    </Grid>
+</UserControl>

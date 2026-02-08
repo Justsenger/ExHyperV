@@ -298,10 +298,11 @@ namespace ExHyperV.Models
         [ObservableProperty] private string _physicalGpuId;      // 宿主物理实例 ID
         [ObservableProperty] private string _hostDriverVersion;  // 宿主驱动版本
 
-        // 显卡分区字典: Key = AdapterID, Value = InstancePath
-        [ObservableProperty] private Dictionary<string, string> _gPUs = new();
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(HasGpu))] // ✅ 关键：列表变了，HasGpu 也要重新计算
+        private ObservableCollection<VmGpuAssignment> _assignedGpus = new();
 
-        public bool HasGpu => !string.IsNullOrEmpty(_gpuName) || (GPUs != null && GPUs.Count > 0);
+        public bool HasGpu => (AssignedGpus != null && AssignedGpus.Count > 0) || !string.IsNullOrEmpty(GpuName);
         partial void OnGpuNameChanged(string value) => OnPropertyChanged(nameof(HasGpu));
 
         // MMIO 地址空间配置

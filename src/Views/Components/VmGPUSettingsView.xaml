@@ -5,108 +5,115 @@
              xmlns:properties="clr-namespace:ExHyperV.Properties"
              xmlns:converters="clr-namespace:ExHyperV.Converters"
              xmlns:vm="clr-namespace:ExHyperV.ViewModels"
+             xmlns:models="clr-namespace:ExHyperV.Models"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d" d:DesignHeight="850" d:DesignWidth="1000"
+             UseLayoutRounding="True"
              d:DataContext="{d:DesignInstance vm:VirtualMachinesPageViewModel}">
 
     <UserControl.Resources>
         <converters:EqualityToVisibilityConverter x:Key="EqualityToVisibilityConverter" />
-        <converters:InverseBooleanConverter x:Key="InverseBooleanConverter"/>
-
-        <!-- 品牌高亮样式 -->
-        <Style x:Key="GpuBrandTextStyle" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
-            <Style.Triggers>
-                <DataTrigger Binding="{Binding DataContext.SelectedVm.GpuName, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource EqualityToVisibilityConverter}, ConverterParameter=NVIDIA}" Value="Visible">
-                    <Setter Property="Foreground" Value="#76B900"/>
-                </DataTrigger>
-            </Style.Triggers>
-        </Style>
+        <converters:GpuImagePathConverter x:Key="GpuImagePathConverter"/>
     </UserControl.Resources>
 
     <Grid Margin="24">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
-            <!-- 标题栏 -->
             <RowDefinition Height="*"/>
-            <!-- 列表区 -->
         </Grid.RowDefinitions>
 
-        <!-- 1. 顶部标题栏 -->
-        <Grid Grid.Row="0" Margin="0,0,0,24">
+        <!-- 1. 顶部标题栏：下边距从 24 减小到 8，使卡片上移 -->
+        <Grid Grid.Row="0" Margin="0,0,0,8">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
-
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                <ui:FontIcon Glyph="&#xF211;" FontFamily="{DynamicResource SegoeFluentIcons}" FontSize="24" Margin="0,0,12,0" 
-                             Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
-                <TextBlock Text="显卡设置" FontSize="20" VerticalAlignment="Center" 
-                           Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                <ui:FontIcon Glyph="&#xF211;" FontFamily="{DynamicResource SegoeFluentIcons}" FontSize="24" Margin="0,0,12,0" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                <TextBlock Text="显卡设置" FontSize="20" VerticalAlignment="Center" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
             </StackPanel>
-
-            <ui:Button Grid.Column="1" Content="添加显卡" Icon="{ui:SymbolIcon Symbol=Add24}" 
-                       Appearance="Primary" Margin="0,0,8,0" Padding="16,6"
-                       Command="{Binding GoToAddGpuCommand}"/>
-
+            <ui:Button Grid.Column="1" Content="添加" Icon="{ui:SymbolIcon Symbol=Add24}" Appearance="Primary" Margin="0,0,8,0" Padding="16,6" Command="{Binding GoToAddGpuCommand}"/>
             <ui:Button Grid.Column="2" Appearance="Transparent" Padding="8" Command="{Binding GoBackCommand}">
                 <ui:SymbolIcon Symbol="ArrowLeft24" FontSize="18"/>
             </ui:Button>
         </Grid>
 
-        <!-- 2. 显卡列表区域 (直接放置卡片) -->
+        <!-- 2. 显卡列表区域 -->
         <Grid Grid.Row="1">
             <ScrollViewer VerticalScrollBarVisibility="Auto">
                 <StackPanel>
-                    <ItemsControl ItemsSource="{Binding SelectedVm.GPUs}">
+                    <ItemsControl ItemsSource="{Binding SelectedVm.AssignedGpus}">
                         <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <!-- 每一项都是一个独立的独立卡片 -->
-                                <ui:Card Margin="0,0,0,12" Padding="16">
-                                    <Grid>
+                            <DataTemplate DataType="{x:Type models:VmGpuAssignment}">
+                                <ui:CardExpander Margin="0,5,0,0" Padding="8" IsExpanded="True">
+                                    <ui:CardExpander.Header>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+
+                                            <!-- 图标匹配 -->
+                                            <Image Height="64" Width="64" Margin="0,0,10,0" VerticalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality">
+                                                <Image.Source>
+                                                    <MultiBinding Converter="{StaticResource GpuImagePathConverter}">
+                                                        <Binding Path="Manu"/>
+                                                        <Binding Path="Name"/>
+                                                    </MultiBinding>
+                                                </Image.Source>
+                                            </Image>
+
+                                            <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="16" VerticalAlignment="Center"/>
+
+                                            <!-- ✅ 卸载按钮：增加右边距 Margin="0,0,28,0" 以避开右侧自带的展开箭头图标 -->
+                                            <ui:Button Grid.Column="2" 
+                                                       Content="卸载" 
+                                                       Appearance="Secondary" 
+                                                       Padding="16,6"
+                                                       Margin="0,0,28,0"
+                                                       Command="{Binding DataContext.RemoveGpuCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                       CommandParameter="{Binding AdapterId}"/>
+                                        </Grid>
+                                    </ui:CardExpander.Header>
+
+                                    <!-- 内容布局：间距50，行高32，字号16 -->
+                                    <Grid Margin="50,0,0,0">
                                         <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="Auto" MinWidth="125"/>
                                             <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="32"/>
+                                            <RowDefinition Height="32"/>
+                                            <RowDefinition Height="32"/>
+                                            <RowDefinition Height="32"/>
+                                            <RowDefinition Height="32"/>
+                                        </Grid.RowDefinitions>
 
-                                        <ui:FontIcon Grid.Column="0" Glyph="&#xF211;" FontFamily="{DynamicResource SegoeFluentIcons}" 
-                                                     FontSize="22" Margin="4,0,20,0" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                                        <TextBlock Grid.Row="0" Grid.Column="0" Text="制造商" FontSize="16" VerticalAlignment="Center" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                                        <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding Vendor}" FontSize="16" VerticalAlignment="Center"/>
 
-                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                            <!-- 实例路径 -->
-                                            <TextBlock Text="{Binding Value}" FontSize="14" FontWeight="Medium" 
-                                                       Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Grid.Row="1" Grid.Column="0" Text="显存" FontSize="16" VerticalAlignment="Center" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                                        <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding RamDisplay}" FontSize="16" VerticalAlignment="Center"/>
 
-                                            <StackPanel Orientation="Horizontal" Margin="0,4,0,0" Opacity="0.7">
-                                                <TextBlock Text="ID: " FontSize="11" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
-                                                <TextBlock Text="{Binding Key}" FontSize="11" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" Margin="0,0,16,0"/>
+                                        <TextBlock Grid.Row="2" Grid.Column="0" Text="驱动程序版本" FontSize="16" VerticalAlignment="Center" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                                        <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding DriverVersion}" FontSize="16" VerticalAlignment="Center"/>
+                                        
+                                        <TextBlock Grid.Row="3" Grid.Column="0" Text="GPU分区ID" FontSize="16" VerticalAlignment="Center" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                                        <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding AdapterId}" FontSize="16" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
 
-                                                <TextBlock Text="物理型号: " FontSize="11" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
-                                                <TextBlock Text="{Binding DataContext.SelectedVm.GpuName, RelativeSource={RelativeSource AncestorType=UserControl}}" 
-                                                           FontSize="11" Style="{StaticResource GpuBrandTextStyle}"/>
-                                            </StackPanel>
-                                        </StackPanel>
+                                        <TextBlock Grid.Row="4" Grid.Column="0" Text="GPU分区路径" FontSize="16" VerticalAlignment="Center" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                                        <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding PName}" FontSize="16" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
 
-                                        <ui:Button Grid.Column="2" Content="移除" Appearance="Danger" 
-                                                   Icon="{ui:SymbolIcon Symbol=Delete24}" Padding="12,6"
-                                                   Command="{Binding DataContext.RemoveGpuCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                   CommandParameter="{Binding Key}"/>
+
                                     </Grid>
-                                </ui:Card>
+                                </ui:CardExpander>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
-
-                    <!-- 空状态提示 -->
-                    <StackPanel Visibility="{Binding SelectedVm.GPUs.Count, Converter={StaticResource EqualityToVisibilityConverter}, ConverterParameter=0}"
-                                HorizontalAlignment="Center" Margin="0,100,0,0">
-                        <TextBlock Text="无" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" 
-                                   Opacity="0.4" FontSize="14" HorizontalAlignment="Center"/>
-                    </StackPanel>
                 </StackPanel>
             </ScrollViewer>
         </Grid>
