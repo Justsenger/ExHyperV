@@ -485,7 +485,7 @@ install_dkms() {
     
     echo ""
     echo "Installing module..."
-    dkms -k ${TARGET_KERNEL_VERSION} install dxgkrnl/$VERSION || true
+    dkms -k ${TARGET_KERNEL_VERSION} install dxgkrnl/$VERSION --force || true
 
     # Check for module in both possible locations (Arch uses /usr/lib/modules, others use /lib/modules)
     MODULE_FOUND=false
@@ -521,7 +521,6 @@ install_dkms() {
 
     echo ""
     echo "✓ DKMS module installed successfully"
-    return 0
 }
 
 all() {
