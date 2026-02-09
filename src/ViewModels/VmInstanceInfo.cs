@@ -239,7 +239,39 @@ namespace ExHyperV.Models
         [ObservableProperty] private bool _isRunning;
         [ObservableProperty] private BitmapSource? _thumbnail;
         // ---  IP 和 MAC 属性 ---
-        [ObservableProperty] private string _ipAddress = "---";
+        [ObservableProperty]
+        private string _ipAddress = "---";
+
+        // 2. 新增：显示用数据 (只存 IPv4)
+        [ObservableProperty]
+        private string _ipAddressDisplay = "---";
+
+        // 3. 钩子方法：当 IpAddress 被赋值时自动触发 (CommunityToolkit 特性)
+        partial void OnIpAddressChanged(string value)
+        {
+            if (string.IsNullOrEmpty(value) || value == "---")
+            {
+                IpAddressDisplay = value;
+                return;
+            }
+
+            // 分割字符串 (假设 IP 之间用逗号或分号分隔)
+            var ips = value.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries);
+
+            // 优先找 IPv4 (有点号且没冒号)
+            var ipv4 = ips.FirstOrDefault(ip => ip.Contains(".") && !ip.Contains(":"));
+
+            if (!string.IsNullOrWhiteSpace(ipv4))
+            {
+                IpAddressDisplay = ipv4.Trim();
+            }
+            else
+            {
+                // 如果全是 IPv6，为了不显示为空，还是显示第一个 IP
+                IpAddressDisplay = ips.FirstOrDefault()?.Trim() ?? value;
+            }
+        }
+
         [ObservableProperty] private string _macAddress = "00:00:00:00:00:00";
 
 

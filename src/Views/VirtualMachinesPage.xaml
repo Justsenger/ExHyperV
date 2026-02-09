@@ -162,18 +162,6 @@
                                     </StackPanel>
                                 </Border>
 
-                                <Border Background="{ui:ThemeResource ControlFillColorTertiaryBrush}" CornerRadius="4" Padding="10,6" Margin="8,0,0,0"
-         ToolTip="点击复制 MAC 地址">
-                                    <Border.InputBindings>
-                                        <MouseBinding Gesture="LeftClick" 
-                      Command="{Binding DataContext.CopyToClipboardCommand, RelativeSource={RelativeSource AncestorType=Page}}" 
-                      CommandParameter="{Binding MacAddress}"/>
-                                    </Border.InputBindings>
-                                    <StackPanel Orientation="Horizontal">
-                                        <ui:FontIcon Glyph="&#xE774;" FontSize="14" FontFamily="{DynamicResource SegoeFluentIcons}" Margin="0,1,8,0" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
-                                        <TextBlock Text="{Binding MacAddress}" FontSize="13" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
-                                    </StackPanel>
-                                </Border>
                             </StackPanel>
 
                             <StackPanel Orientation="Horizontal">
@@ -228,21 +216,29 @@
                                     </StackPanel>
                                 </Border>
                                 <!-- IP 地址 (移至第二行末尾) -->
+                                <!-- IP 地址部分 -->
                                 <Border Margin="8,0,0,0" VerticalAlignment="Center" 
         Background="{ui:ThemeResource ControlFillColorTertiaryBrush}" 
         CornerRadius="4" Padding="10,6"
-         ToolTip="点击复制 IP 地址">
+        ToolTip="点击复制完整 IP 地址">
+                                    <!-- ToolTip 可以改简单点 -->
+
                                     <Border.InputBindings>
+                                        <!-- ✅ 保持绑定 IpAddress，这样复制走的是完整包含 IPv6 的数据 -->
                                         <MouseBinding Gesture="LeftClick" 
                       Command="{Binding DataContext.CopyToClipboardCommand, RelativeSource={RelativeSource AncestorType=Page}}" 
                       CommandParameter="{Binding IpAddress}"/>
                                     </Border.InputBindings>
+
                                     <StackPanel Orientation="Horizontal">
                                         <ui:FontIcon Glyph="&#xE839;" FontSize="14" FontFamily="{DynamicResource SegoeFluentIcons}" Margin="0,1,8,0" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
-                                        <TextBlock Text="{Binding IpAddress}" FontSize="13" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+
+                                        <!-- ✅ 修改这里：绑定到 IpAddressDisplay (只显示 IPv4) -->
+                                        <TextBlock Text="{Binding IpAddressDisplay}" 
+                   FontSize="13" 
+                   Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
                                     </StackPanel>
                                 </Border>
-
                             </StackPanel>
                         </StackPanel>
 
