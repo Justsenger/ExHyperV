@@ -44,6 +44,8 @@ namespace ExHyperV.ViewModels
         private DispatcherTimer _uiTimer;
         private DispatcherTimer? _thumbnailTimer;
 
+        private Snackbar? _activeSnackbar; // 用于追踪当前显示的通知
+
         // ----------------------------------------------------------------------------------
         // 构造函数与初始化
         // ----------------------------------------------------------------------------------
