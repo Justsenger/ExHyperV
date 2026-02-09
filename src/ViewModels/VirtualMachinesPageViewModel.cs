@@ -1090,8 +1090,36 @@ namespace ExHyperV.ViewModels
                             if (vm != null)
                             {
                                 vm.SyncBackendData(update.State, update.RawUptime);
-                                vm.Disks.Clear();
-                                foreach (var disk in update.Disks) vm.Disks.Add(disk);
+
+                                // --- 开始修复：增量更新磁盘列表，防止速率数据被 Clear 掉 ---
+                                var updatePaths = update.Disks.Select(d => d.Path).ToHashSet();
+
+                                // 1. 移除已不存在的磁盘
+                                for (int i = vm.Disks.Count - 1; i >= 0; i--)
+                                {
+                                    if (!updatePaths.Contains(vm.Disks[i].Path))
+                                        vm.Disks.RemoveAt(i);
+                                }
+
+                                // 2. 更新已有磁盘或添加新磁盘
+                                foreach (var newDiskData in update.Disks)
+                                {
+                                    var existingDisk = vm.Disks.FirstOrDefault(d => d.Path == newDiskData.Path);
+                                    if (existingDisk != null)
+                                    {
+                                        // 只同步元数据，不要覆盖 ReadSpeedBps 和 WriteSpeedBps
+                                        existingDisk.Name = newDiskData.Name;
+                                        existingDisk.CurrentSize = newDiskData.CurrentSize;
+                                        existingDisk.MaxSize = newDiskData.MaxSize;
+                                        existingDisk.DiskType = newDiskData.DiskType;
+                                    }
+                                    else
+                                    {
+                                        vm.Disks.Add(newDiskData);
+                                    }
+                                }
+                                // --- 修复结束 ---
+
                                 vm.GpuName = update.GpuName;
 
                                 if (memoryMap.TryGetValue(vm.Id.ToString(), out var memData))
@@ -1145,7 +1173,6 @@ namespace ExHyperV.ViewModels
                 }
             }
         }
-
         private async Task SyncSingleVmStateAsync(VmInstanceInfo vm)
         {
             try

@@ -75,17 +75,6 @@
                 </ui:NavigationViewItem>
 
                 <ui:NavigationViewItem
-                    x:Name="gpupv"
-                    Content="{x:Static properties:Resources.gpupvv}"
-                    NavigationCacheMode="Enabled"
-                    Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"
-                    TargetPageType="{x:Type pages:GPUPage}">
-                    <ui:NavigationViewItem.Icon>
-                        <ui:FontIcon FontSize="16" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xF211;"/>
-                    </ui:NavigationViewItem.Icon>
-                </ui:NavigationViewItem>
-
-                <ui:NavigationViewItem
                     x:Name="VMnet"
                     Content="{x:Static properties:Resources.Title_VirtualSwitch}"
                     NavigationCacheMode="Enabled"

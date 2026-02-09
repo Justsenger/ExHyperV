@@ -9,9 +9,6 @@
     </ApplicationDefinition>
   </ItemGroup>
   <ItemGroup>
-    <Compile Update="Views\ChoosePartitionWindow.xaml.cs">
-      <SubType>Code</SubType>
-    </Compile>
     <Compile Update="Views\Components\VmAddGpuProgressView.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
@@ -37,15 +34,6 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Update="Views\Components\VmStorageSettingsView.xaml.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Update="Views\ProgressWindow.xaml.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Update="Views\ShutdownConfirmationDialog.xaml.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Update="Views\SshLoginWindow.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
   </ItemGroup>

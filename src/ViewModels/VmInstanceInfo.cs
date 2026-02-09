@@ -47,7 +47,7 @@ namespace ExHyperV.Models
         [NotifyPropertyChangedFor(nameof(IoSpeedText))]
         private long _writeSpeedBps; // 字节每秒
 
-        public string IoSpeedText => $"↓ {FormatIoSpeed(_readSpeedBps)}   ↑ {FormatIoSpeed(_writeSpeedBps)}";
+        public string IoSpeedText => $"↑ {FormatIoSpeed(_writeSpeedBps)}   ↓ {FormatIoSpeed(_readSpeedBps)}";
 
         public double UsagePercentage => _maxSize > 0 ? (double)_currentSize / _maxSize * 100 : 0;
         public string UsageText => $"{FormatBytes(_currentSize)} / {FormatBytes(_maxSize)}";
