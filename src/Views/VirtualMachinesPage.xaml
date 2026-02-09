@@ -161,6 +161,19 @@
                                         <TextBlock Text="{Binding Version, StringFormat='{}配置版本 {0}'}" FontSize="13" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
                                     </StackPanel>
                                 </Border>
+
+                                <Border Background="{ui:ThemeResource ControlFillColorTertiaryBrush}" CornerRadius="4" Padding="10,6" Margin="8,0,0,0"
+         ToolTip="点击复制 MAC 地址">
+                                    <Border.InputBindings>
+                                        <MouseBinding Gesture="LeftClick" 
+                      Command="{Binding DataContext.CopyToClipboardCommand, RelativeSource={RelativeSource AncestorType=Page}}" 
+                      CommandParameter="{Binding MacAddress}"/>
+                                    </Border.InputBindings>
+                                    <StackPanel Orientation="Horizontal">
+                                        <ui:FontIcon Glyph="&#xE774;" FontSize="14" FontFamily="{DynamicResource SegoeFluentIcons}" Margin="0,1,8,0" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                                        <TextBlock Text="{Binding MacAddress}" FontSize="13" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                                    </StackPanel>
+                                </Border>
                             </StackPanel>
 
                             <StackPanel Orientation="Horizontal">
@@ -214,6 +227,22 @@
                                         </TextBlock>
                                     </StackPanel>
                                 </Border>
+                                <!-- IP 地址 (移至第二行末尾) -->
+                                <Border Margin="8,0,0,0" VerticalAlignment="Center" 
+        Background="{ui:ThemeResource ControlFillColorTertiaryBrush}" 
+        CornerRadius="4" Padding="10,6"
+         ToolTip="点击复制 IP 地址">
+                                    <Border.InputBindings>
+                                        <MouseBinding Gesture="LeftClick" 
+                      Command="{Binding DataContext.CopyToClipboardCommand, RelativeSource={RelativeSource AncestorType=Page}}" 
+                      CommandParameter="{Binding IpAddress}"/>
+                                    </Border.InputBindings>
+                                    <StackPanel Orientation="Horizontal">
+                                        <ui:FontIcon Glyph="&#xE839;" FontSize="14" FontFamily="{DynamicResource SegoeFluentIcons}" Margin="0,1,8,0" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                                        <TextBlock Text="{Binding IpAddress}" FontSize="13" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                                    </StackPanel>
+                                </Border>
+
                             </StackPanel>
                         </StackPanel>
 

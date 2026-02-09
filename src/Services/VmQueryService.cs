@@ -18,7 +18,7 @@ namespace ExHyperV.Services
         private const string QueryGpuPvSettings = "SELECT InstanceID, HostResource FROM Msvm_GpuPartitionSettingData";
         private const string QueryPartitionableGpus = "SELECT Name FROM Msvm_PartitionableGpu";
         private const string QueryDiskPerf = "SELECT Name, ReadBytesPersec, WriteBytesPersec FROM Win32_PerfFormattedData_Counters_HyperVVirtualStorageDevice";
-
+        private const string QueryNetwork = "SELECT InstanceID, Address FROM Msvm_SyntheticEthernetPortSettingData";
 
         private static readonly Dictionary<string, (long Current, long Max, string Type)> _diskSizeCache = new();
 
@@ -66,7 +66,14 @@ namespace ExHyperV.Services
             var gpuListTask = WmiTools.QueryAsync(QueryPartitionableGpus, obj => obj["Name"]?.ToString());
             var pciMapTask = GetHostVideoControllerMapAsync();
 
-            await Task.WhenAll(diskTask, summaryTask, memTask, configTask, gpuPvTask, gpuListTask, pciMapTask);
+            // 添加网卡任务
+            var netTask = WmiTools.QueryAsync(QueryNetwork, obj => new {
+                VmGuid = ExtractFirstGuid(obj["InstanceID"]?.ToString()),
+                Mac = obj["Address"]?.ToString()
+            });
+
+
+            await Task.WhenAll(diskTask, summaryTask, memTask, configTask, gpuPvTask, gpuListTask, pciMapTask, netTask);
 
             return await Task.Run(() =>
             {
@@ -108,6 +115,12 @@ namespace ExHyperV.Services
                         gpuMap[vmGuidStr] = finalName;
                     }
                 }
+                // 处理网卡 MAC 映射
+                var macMap = netTask.Result
+                    .Where(x => !string.IsNullOrEmpty(x.VmGuid))
+                    .GroupBy(x => x.VmGuid.ToUpper())
+                    .ToDictionary(g => g.Key, g => g.First().Mac);
+
 
                 var resultList = new List<VmInstanceInfo>();
                 foreach (var s in summaries)
@@ -116,6 +129,13 @@ namespace ExHyperV.Services
                     string vmGuidKey = s.Id?.Trim('{', '}').ToUpper();
 
                     var vmInfo = new VmInstanceInfo(vmId, s.Name);
+
+                    // --- 注入 MAC 地址 ---
+                    if (vmGuidKey != null && macMap.TryGetValue(vmGuidKey, out var rawMac))
+                    {
+                        // 格式化 00155D... 为 00:15:5D:...
+                        vmInfo.MacAddress = Regex.Replace(rawMac, ".{2}", "$0-").TrimEnd('-');
+                    }
 
                     var myDisks = allDiskAllocations.Where(d => d.Parent.ToUpper().Contains(vmGuidKey) || d.InstanceID.ToUpper().Contains(vmGuidKey)).ToList();
 

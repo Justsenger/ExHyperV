@@ -1091,6 +1091,28 @@ namespace ExHyperV.ViewModels
                             {
                                 vm.SyncBackendData(update.State, update.RawUptime);
 
+                                vm.MacAddress = update.MacAddress;
+                                if (vm.IsRunning)
+                                {
+                                    // IP 获取涉及 PowerShell，比较耗时，开启后台任务异步更新
+                                    _ = Task.Run(async () => {
+                                        try
+                                        {
+                                            var ip = await Utils.GetVmIpAddressAsync(vm.Name, vm.MacAddress);
+                                            if (!string.IsNullOrEmpty(ip) && vm.IpAddress != ip)
+                                            {
+                                                Application.Current.Dispatcher.Invoke(() => vm.IpAddress = ip);
+                                            }
+                                        }
+                                        catch { /* 忽略 IP 嗅探过程中的异常 */ }
+                                    });
+                                }
+                                else
+                                {
+                                    vm.IpAddress = "---";
+                                }
+
+
                                 // --- 开始修复：增量更新磁盘列表，防止速率数据被 Clear 掉 ---
                                 var updatePaths = update.Disks.Select(d => d.Path).ToHashSet();
 
@@ -1803,5 +1825,16 @@ namespace ExHyperV.ViewModels
             }
         }
 
+
+        [RelayCommand]
+        private void CopyToClipboard(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text) || text == "---" || text == "00-00-00-00-00-00") return;
+
+            Clipboard.SetText(text);
+
+            // 调用你已有的通知方法，给用户反馈
+            ShowSnackbar("已复制", text, ControlAppearance.Success, SymbolRegular.Copy24);
+        }
     }
 }

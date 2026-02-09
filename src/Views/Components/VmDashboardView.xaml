@@ -307,13 +307,13 @@
                                                 </Grid.ColumnDefinitions>
 
                                                 <ProgressBar Grid.Column="0" 
-                                         Value="{Binding UsagePercentage, Mode=OneWay}" 
-                                         Maximum="100" 
-                                         Height="8" 
-                                         VerticalAlignment="Center" 
-                                         Background="#1A888888" 
-                                         Foreground="#FF54C7FC"/>
-
+             Value="{Binding UsagePercentage, Mode=OneWay}" 
+             Maximum="100" 
+             Height="12" 
+             VerticalAlignment="Center" 
+             Background="#1A888888" 
+             Foreground="#FF54C7FC"/>
+                                                <!-- 如果使用 Wpf.Ui，可以尝试添加此属性优化外观 -->
                                                 <TextBlock Grid.Column="1" 
                                        Text="{Binding UsageText}" 
                                        FontSize="12" 

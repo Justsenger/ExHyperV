@@ -362,7 +362,7 @@ public class Utils
         }
 
         // 1. 尝试直接从Hyper-V获取IP
-        string macAddressWithoutColons = macAddressWithColons.Replace(":", "");
+        string macAddressWithoutColons = macAddressWithColons.Replace(":", "").Replace("-", "");
         // 注意: Get-VMNetworkAdapter 返回的 IPAddresses 是一个字符串数组
         string directIpScript = $"@(Get-VMNetworkAdapter -VMName '{vmName}' | Where-Object {{ $_.MacAddress -eq '{macAddressWithoutColons}' }}).IPAddresses";
 
@@ -401,7 +401,8 @@ public class Utils
     /// <returns>找到的IP地址，如果未找到则为空字符串。</returns>
     private static async Task<string> GetIpFromArpCacheByMacAsync(string macWithColons)
     {
-        string formattedMacForArp = macWithColons.Replace(':', '-');
+        string cleanMac = macWithColons.Replace(":", "").Replace("-", "");
+        string formattedMacForArp = System.Text.RegularExpressions.Regex.Replace(cleanMac, ".{2}", "$0-").TrimEnd('-');
         string script = $"Get-NetNeighbor -AddressFamily IPv4 | Where-Object {{ $_.LinkLayerAddress -eq '{formattedMacForArp}' -and $_.State -ne 'Incomplete' }} | Select-Object -ExpandProperty IPAddress -First 1 -ErrorAction SilentlyContinue";
 
         try

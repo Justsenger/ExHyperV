@@ -1,14 +1,10 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
-using System.Linq;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging; // 引用 BitmapSource
-using System.Windows.Threading;     // 引用 DispatcherTimer
 using ExHyperV.Properties;
 using ExHyperV.Tools;
 using ExHyperV.Services;
@@ -230,18 +226,22 @@ namespace ExHyperV.Models
     public partial class VmInstanceInfo : ObservableObject
     {
         // ----------------------------------------------------------------------------------
-        // 基础信息与状态 (已找回丢失的 OsType 和 RawUptime)
+        // 基础信息与状态
         // ----------------------------------------------------------------------------------
         [ObservableProperty] private Guid _id;
         [ObservableProperty] private string _name;
         [ObservableProperty] private string _notes;
         [ObservableProperty] private int _generation;
         [ObservableProperty] private string _version;
-        [ObservableProperty] private string _osType;           // <-- 找回
+        [ObservableProperty] private string _osType;          
         [ObservableProperty] private string _state;
         [ObservableProperty] private string _uptime = "00:00:00";
         [ObservableProperty] private bool _isRunning;
         [ObservableProperty] private BitmapSource? _thumbnail;
+        // ---  IP 和 MAC 属性 ---
+        [ObservableProperty] private string _ipAddress = "---";
+        [ObservableProperty] private string _macAddress = "00:00:00:00:00:00";
+
 
         private TimeSpan _anchorUptime;                         // 内部计时基准
         public TimeSpan RawUptime => _anchorUptime;             // <-- 找回逻辑，修复 CS1061
