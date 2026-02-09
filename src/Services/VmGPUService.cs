@@ -199,36 +199,42 @@ namespace ExHyperV.Services
             return Task.Run(() =>
             {
                 string harddiskpath = null;
-                int? diskNumber = null;
-
                 try
                 {
+                    // 1. 获取硬盘路径
                     var harddiskPathResult = Utils.Run($"(Get-VMHardDiskDrive -vmname '{vmName}')[0].Path");
-                    if (harddiskPathResult == null || harddiskPathResult.Count == 0)
+                    if (harddiskPathResult == null || harddiskPathResult.Count == 0 || harddiskPathResult[0] == null)
                     {
                         throw new FileNotFoundException(string.Format(Properties.Resources.Error_VmHardDiskNotFound, vmName));
                     }
                     harddiskpath = harddiskPathResult[0].ToString();
 
+                    // ✅ 【新增】防御性卸载：防止上次残留导致挂载失败
+                    Utils.Run($"Dismount-DiskImage -ImagePath '{harddiskpath}' -ErrorAction SilentlyContinue");
+                    // 稍微等待系统释放句柄
+                    Thread.Sleep(500);
+
+                    // 2. 挂载并获取磁盘编号
                     var mountScript = $@"
                 $diskImage = Mount-DiskImage -ImagePath '{harddiskpath}' -NoDriveLetter -PassThru;
-                ($diskImage | Get-Disk).Number;
+                if ($diskImage) {{ ($diskImage | Get-Disk).Number }}
             ";
                     var mountResult = Utils.Run(mountScript);
 
-                    if (mountResult == null || mountResult.Count == 0 || !int.TryParse(mountResult[0].ToString(), out int num))
+                    if (mountResult == null || mountResult.Count == 0 || mountResult[0] == null || !int.TryParse(mountResult[0].ToString(), out int num))
                     {
                         throw new InvalidOperationException(ExHyperV.Properties.Resources.Error_MountVhdOrGetDiskNumberFailed);
                     }
-                    diskNumber = num;
-                    string devicePath = $@"\\.\PhysicalDrive{diskNumber}";
+
+                    string devicePath = $@"\\.\PhysicalDrive{num}";
                     var diskParser = new DiskParserService();
-                    List<PartitionInfo> initialPartitions = diskParser.GetPartitions(devicePath);
-                    return initialPartitions;
+                    return diskParser.GetPartitions(devicePath);
                 }
-                catch (UnauthorizedAccessException)
+                catch (Exception ex)
                 {
-                    throw new UnauthorizedAccessException(ExHyperV.Properties.Resources.Error_AdminRequiredForPartitionInfo);
+                    // 捕获所有可能的异常并记录详细信息，防止 NullReference 向上蔓延
+                    Debug.WriteLine($"分区获取失败: {ex.Message}");
+                    throw;
                 }
                 finally
                 {
@@ -239,7 +245,6 @@ namespace ExHyperV.Services
                 }
             });
         }
-
         public string NormalizeDeviceId(string deviceId)
         {
             if (string.IsNullOrWhiteSpace(deviceId))
@@ -406,12 +411,26 @@ namespace ExHyperV.Services
             Action<string> progressCallback = null)
         {
             string assignedDriveLetter = null;
-            void Log(string msg) => progressCallback?.Invoke(msg);
+            DateTime lastLogTime = DateTime.MinValue;
+            void Log(string msg, bool force = false)
+            {
+                if (progressCallback == null) return;
+                if (force || (DateTime.Now - lastLogTime).TotalMilliseconds > 150)
+                {
+                    progressCallback.Invoke(msg);
+                    lastLogTime = DateTime.Now;
+                }
+            }
 
             try
             {
+                // ✅ 【新增】防御性卸载：确保开始前磁盘是干净的
+                Log("正在初始化磁盘环境...", true);
+                Utils.Run($"Dismount-DiskImage -ImagePath '{harddiskpath}' -ErrorAction SilentlyContinue");
+                await Task.Delay(800);
+
                 // --- 1. 挂载分区 ---
-                Log("正在挂载虚拟硬盘系统分区...");
+                Log("正在挂载虚拟硬盘系统分区...", true);
                 char suggestedLetter = GetFreeDriveLetter();
                 var mountScript = $@"
             $diskImage = Mount-DiskImage -ImagePath '{harddiskpath}' -PassThru | Get-Disk;
@@ -425,93 +444,83 @@ namespace ExHyperV.Services
             }}";
 
                 var letterResult = Utils.Run(mountScript);
-                if (letterResult == null || letterResult.Count == 0) return "无法挂载虚拟磁盘。";
+                if (letterResult == null || letterResult.Count == 0 || letterResult[0] == null) return "无法挂载虚拟磁盘：挂载命令未返回结果。";
                 assignedDriveLetter = letterResult[0].ToString().TrimEnd(':') + ":";
 
                 // --- 2. 路径准备 ---
                 string system32Path = Path.Combine(assignedDriveLetter, "Windows", "System32");
-                if (!Directory.Exists(system32Path)) return "挂载的分区不是有效的 Windows 系统分区。";
+                if (!Directory.Exists(system32Path)) return "挂载失败：未在目标分区找到 System32 目录。";
 
                 string sourceFolder = FindGpuDriverSourcePath(gpuInstancePath);
-                bool isFullCopy = string.IsNullOrEmpty(sourceFolder);
-                if (isFullCopy)
-                {
-                    Log("未找到精准驱动路径，准备全量同步 DriverStore...");
-                    sourceFolder = @"C:\Windows\System32\DriverStore\FileRepository";
-                }
+                if (string.IsNullOrEmpty(sourceFolder)) sourceFolder = @"C:\Windows\System32\DriverStore\FileRepository";
 
                 string destinationBase = Path.Combine(assignedDriveLetter, "Windows", "System32", "HostDriverStore", "FileRepository");
-                string destinationFolder = isFullCopy ? destinationBase : Path.Combine(destinationBase, new DirectoryInfo(sourceFolder).Name);
+                string destinationFolder = sourceFolder.EndsWith("FileRepository") ? destinationBase : Path.Combine(destinationBase, new DirectoryInfo(sourceFolder).Name);
 
                 if (!Directory.Exists(destinationBase)) Directory.CreateDirectory(destinationBase);
-                if (!Directory.Exists(destinationFolder)) Directory.CreateDirectory(destinationFolder);
 
-                // --- 3. 执行 Robocopy 并监控进度 ---
-                Log("准备同步文件...");
+                // --- 3. [优化] 预计算总数以实现整体进度 ---
+                Log("正在分析同步任务...", true);
+                int totalFiles = 0;
+                await Task.Run(() => {
+                    totalFiles = Directory.EnumerateFiles(sourceFolder, "*.*", SearchOption.AllDirectories).Count();
+                });
+
+                // --- 4. [优化] 执行 Robocopy 并通过行数计算整体百分比 ---
+                Log($"开始同步驱动 ({totalFiles} 个文件)...", true);
                 Process robocopyProcess = new()
                 {
                     StartInfo = {
                 FileName = "robocopy",
-                // /E: 递归, /MT:16: 16线程, /R:2: 重试2次, /W:5: 等待5秒, /NJH /NJS: 不显示任务头尾
-                Arguments = $"\"{sourceFolder}\" \"\"{destinationFolder}\"\" /E /R:2 /W:5 /MT:16 /NJH /NJS",
+                // 使用 /MT:32 开启32线程，/NDL /NJH /NJS 隐藏冗余信息
+                Arguments = $"\"{sourceFolder}\" \"\"{destinationFolder}\"\" /E /R:1 /W:1 /MT:32 /NDL /NJH /NJS /NC /NS",
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
                 CreateNoWindow = true
             }
                 };
 
+                int processedFiles = 0;
                 robocopyProcess.OutputDataReceived += (s, e) =>
                 {
-                    if (string.IsNullOrEmpty(e.Data)) return;
+                    if (string.IsNullOrWhiteSpace(e.Data)) return;
+                    Interlocked.Increment(ref processedFiles);
 
-                    // 匹配百分比，例如 "  12.5% "
-                    var match = Regex.Match(e.Data, @"(\d+(\.\d+)?%)");
-                    if (match.Success)
-                    {
-                        Log($"正在同步驱动文件: {match.Value}");
-                    }
-                    else if (e.Data.Contains(@"\"))
-                    {
-                        // 如果输出包含路径，显示当前处理的子目录名
-                        string fileName = Path.GetFileName(e.Data.Trim().TrimEnd('\\'));
-                        if (!string.IsNullOrEmpty(fileName)) Log($"正在同步: {fileName}...");
-                    }
+                    // 计算整体进度
+                    double percent = (double)processedFiles / Math.Max(1, totalFiles) * 100.0;
+                    if (percent > 100) percent = 100;
+                    Log($"进度: {percent:F1}% ({processedFiles}/{totalFiles})");
                 };
 
                 robocopyProcess.Start();
                 robocopyProcess.BeginOutputReadLine();
                 await robocopyProcess.WaitForExitAsync();
 
-                if (robocopyProcess.ExitCode >= 8) return $"同步过程出错，Robocopy 代码: {robocopyProcess.ExitCode}";
+                if (robocopyProcess.ExitCode >= 8) return $"Robocopy 错误，代码: {robocopyProcess.ExitCode}";
 
-                // 设置只读
-                SetFolderReadOnly(destinationFolder);
-
-                // --- 4. NVIDIA 注册表注入 ---
+                // --- 5. NVIDIA 注册表注入 ---
                 if (gpuManu.Contains("NVIDIA", StringComparison.OrdinalIgnoreCase))
                 {
-                    Log("检测到 NVIDIA 显卡，正在注入注册表项...");
-                    string regRes = NvidiaReg(assignedDriveLetter);
-                    if (regRes != "OK") return regRes;
+                    Log("正在注入 NVIDIA 驱动注册表项...", true);
+                    NvidiaReg(assignedDriveLetter);
                 }
 
                 return "OK";
             }
             catch (Exception ex)
             {
-                return $"注入失败: {ex.Message}";
+                return $"驱动安装失败: {ex.Message}";
             }
             finally
             {
-                // --- 5. 卸载清理 ---
                 if (!string.IsNullOrEmpty(harddiskpath))
                 {
-                    Log("正在卸载虚拟磁盘...");
+                    Log("正在卸载虚拟磁盘并清理环境...", true);
                     Utils.Run($"Dismount-DiskImage -ImagePath '{harddiskpath}' -ErrorAction SilentlyContinue");
                 }
             }
         }
-        // 重构：添加了 credentials, progressCallback, cancellationToken 以替代UI交互
+
         public Task<string> AddGpuPartitionAsync(string vmName, string gpuInstancePath, string gpuManu, PartitionInfo selectedPartition, string id, SshCredentials credentials = null, Action<string> progressCallback = null, CancellationToken cancellationToken = default)
         {
             return Task.Run(async () =>

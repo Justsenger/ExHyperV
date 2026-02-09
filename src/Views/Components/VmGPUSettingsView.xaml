@@ -57,7 +57,7 @@
                                             </Grid.ColumnDefinitions>
 
                                             <!-- 图标匹配 -->
-                                            <Image Height="64" Width="64" Margin="0,0,10,0" VerticalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality">
+                                            <Image Height="64" Width="64" Margin="4,2,10,0" VerticalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality">
                                                 <Image.Source>
                                                     <MultiBinding Converter="{StaticResource GpuImagePathConverter}">
                                                         <Binding Path="Manu"/>
