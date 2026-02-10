@@ -509,10 +509,10 @@
 
                         <!-- 左侧：图标与标题 -->
                         <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                            <ui:FontIcon FontSize="22" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xE968;" Margin="-5,0,12,0" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                            <ui:FontIcon FontSize="22" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xE774;" Margin="-5,0,12,0" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
                             <StackPanel VerticalAlignment="Center">
                                 <TextBlock Text="网络" FontSize="16" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
-                                <TextBlock Text="网络适配器与连接状态" FontSize="12" Opacity="0.6" Margin="0,2,0,0" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                                <TextBlock Text="网络设置与连接状态" FontSize="12" Opacity="0.6" Margin="0,2,0,0" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
                             </StackPanel>
                         </StackPanel>
 

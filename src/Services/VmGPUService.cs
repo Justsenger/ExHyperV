@@ -16,6 +16,13 @@ namespace ExHyperV.Services
 {
     public class VmGPUService
     {
+        private class VmDiskTarget
+        {
+            public bool IsPhysical { get; set; }
+            public string Path { get; set; }        // 如果是虚拟盘，存 VHDX 路径
+            public int PhysicalDiskNumber { get; set; } // 如果是物理盘，存 Disk Number (e.g. 0, 1, 2)
+        }
+
         public Task<List<(string Id, string InstancePath)>> GetVmGpuAdaptersAsync(string vmName)
         {
             return Task.Run(() =>
@@ -198,49 +205,87 @@ namespace ExHyperV.Services
         {
             return Task.Run(() =>
             {
-                string harddiskpath = null;
+                VmDiskTarget diskTarget = null;
                 try
                 {
-                    // 1. 获取硬盘路径
-                    var harddiskPathResult = Utils.Run($"(Get-VMHardDiskDrive -vmname '{vmName}')[0].Path");
-                    if (harddiskPathResult == null || harddiskPathResult.Count == 0 || harddiskPathResult[0] == null)
+                    // 步骤 1: 准确识别磁盘类型
+                    var diskTask = GetVmBootDiskInfoAsync(vmName);
+                    diskTask.Wait();
+                    diskTarget = diskTask.Result;
+
+                    if (diskTarget == null) throw new FileNotFoundException($"无法找到虚拟机 '{vmName}' 的启动磁盘。");
+
+                    string devicePath;
+
+                    if (diskTarget.IsPhysical)
                     {
-                        throw new FileNotFoundException(string.Format(Properties.Resources.Error_VmHardDiskNotFound, vmName));
+                        // [物理盘逻辑] 联机以供读取
+                        var setupScript = $@"
+                            $ErrorActionPreference = 'Stop'
+                            Set-Disk -Number {diskTarget.PhysicalDiskNumber} -IsOffline $false
+                            Set-Disk -Number {diskTarget.PhysicalDiskNumber} -IsReadOnly $true
+                            
+                            # 验证循环：等待磁盘联机
+                            for ($i=0; $i -lt 10; $i++) {{
+                                if ((Get-Disk -Number {diskTarget.PhysicalDiskNumber}).IsOffline -eq $false) {{ return 'OK' }}
+                                Start-Sleep -Milliseconds 500
+                            }}
+                            throw 'Disk {diskTarget.PhysicalDiskNumber} failed to come online.'
+                        ";
+                        Utils.Run(setupScript);
+                        devicePath = $@"\\.\PhysicalDrive{diskTarget.PhysicalDiskNumber}";
                     }
-                    harddiskpath = harddiskPathResult[0].ToString();
-
-                    // ✅ 【新增】防御性卸载：防止上次残留导致挂载失败
-                    Utils.Run($"Dismount-DiskImage -ImagePath '{harddiskpath}' -ErrorAction SilentlyContinue");
-                    // 稍微等待系统释放句柄
-                    Thread.Sleep(500);
-
-                    // 2. 挂载并获取磁盘编号
-                    var mountScript = $@"
-                $diskImage = Mount-DiskImage -ImagePath '{harddiskpath}' -NoDriveLetter -PassThru;
-                if ($diskImage) {{ ($diskImage | Get-Disk).Number }}
-            ";
-                    var mountResult = Utils.Run(mountScript);
-
-                    if (mountResult == null || mountResult.Count == 0 || mountResult[0] == null || !int.TryParse(mountResult[0].ToString(), out int num))
+                    else
                     {
-                        throw new InvalidOperationException(ExHyperV.Properties.Resources.Error_MountVhdOrGetDiskNumberFailed);
+                        // [虚拟盘逻辑] 挂载并处理文件锁
+                        var mountScript = $@"
+                            $path = '{diskTarget.Path}'
+                            Dismount-DiskImage -ImagePath $path -ErrorAction SilentlyContinue
+                            for ($i=0; $i -lt 5; $i++) {{
+                                try {{
+                                    $img = Mount-DiskImage -ImagePath $path -NoDriveLetter -PassThru -ErrorAction Stop
+                                    if ($img) {{ return ($img | Get-Disk).Number }}
+                                }} catch {{ Start-Sleep -Seconds 1 }}
+                            }}
+                            throw 'Failed to mount VHDX after 5 retries, file may be locked.'
+                        ";
+                        var mountResult = Utils.Run(mountScript);
+                        if (mountResult == null || mountResult.Count == 0 || !int.TryParse(mountResult[0].ToString(), out int num))
+                        {
+                            throw new InvalidOperationException("无法挂载虚拟磁盘，文件可能仍被占用。");
+                        }
+                        devicePath = $@"\\.\PhysicalDrive{num}";
                     }
 
-                    string devicePath = $@"\\.\PhysicalDrive{num}";
+                    // 步骤 2: 解析分区
                     var diskParser = new DiskParserService();
                     return diskParser.GetPartitions(devicePath);
                 }
                 catch (Exception ex)
                 {
-                    // 捕获所有可能的异常并记录详细信息，防止 NullReference 向上蔓延
+                    // 将底层 PowerShell 异常传递给上层
                     Debug.WriteLine($"分区获取失败: {ex.Message}");
                     throw;
                 }
                 finally
                 {
-                    if (!string.IsNullOrEmpty(harddiskpath))
+                    // 步骤 3: 严格清理
+                    if (diskTarget != null)
                     {
-                        Utils.Run($"Dismount-DiskImage -ImagePath '{harddiskpath}' -ErrorAction SilentlyContinue");
+                        if (diskTarget.IsPhysical)
+                        {
+                            // ------------------------------------------------------------------
+                            // [关键修复] 将无效的组合命令拆分为两个独立的有效命令
+                            // ------------------------------------------------------------------
+                            // 1. 先移除只读属性
+                            Utils.Run($"Set-Disk -Number {diskTarget.PhysicalDiskNumber} -IsReadOnly $false -ErrorAction SilentlyContinue");
+                            // 2. 再将磁盘设为脱机，供虚拟机使用
+                            Utils.Run($"Set-Disk -Number {diskTarget.PhysicalDiskNumber} -IsOffline $true -ErrorAction SilentlyContinue");
+                        }
+                        else if (!string.IsNullOrEmpty(diskTarget.Path))
+                        {
+                            Utils.Run($"Dismount-DiskImage -ImagePath '{diskTarget.Path}' -ErrorAction SilentlyContinue");
+                        }
                     }
                 }
             });
@@ -402,16 +447,18 @@ namespace ExHyperV.Services
         // ----------------------------------------------------------------------------------
         // 核心注入逻辑：挂载 -> 定位 -> Robocopy(带进度) -> 注册表 -> 卸载
         // ----------------------------------------------------------------------------------
+        // [重构] 驱动注入核心逻辑
         private async Task<string> InjectWindowsDriversAsync(
-            string vmName,
-            string harddiskpath,
-            PartitionInfo partition,
-            string gpuManu,
-            string gpuInstancePath,
-            Action<string> progressCallback = null)
+                            string vmName,
+                            VmDiskTarget diskTarget,
+                            PartitionInfo partition,
+                            string gpuManu,
+                            string gpuInstancePath,
+                            Action<string> progressCallback = null)
         {
             string assignedDriveLetter = null;
             DateTime lastLogTime = DateTime.MinValue;
+
             void Log(string msg, bool force = false)
             {
                 if (progressCallback == null) return;
@@ -422,86 +469,115 @@ namespace ExHyperV.Services
                 }
             }
 
+            int diskNumber = -1;
+            // 关键：用于存储磁盘在虚拟机内的挂载位置，以便最后强制刷新
+            string ctrlType = string.Empty;
+            int ctrlNum = -1;
+            int ctrlLoc = -1;
+
             try
             {
-                // ✅ 【新增】防御性卸载：确保开始前磁盘是干净的
-                Log("正在初始化磁盘环境...", true);
-                Utils.Run($"Dismount-DiskImage -ImagePath '{harddiskpath}' -ErrorAction SilentlyContinue");
-                await Task.Delay(800);
+                // --- 步骤 0: (仅物理盘) 获取控制器位置，为最终修复做准备 ---
+                if (diskTarget.IsPhysical)
+                {
+                    Log("正在分析物理磁盘挂载点...", true);
+                    var hddInfoScript = $@"
+                        $d = Get-VMHardDiskDrive -VMName '{vmName}' | Where-Object {{ $_.DiskNumber -eq {diskTarget.PhysicalDiskNumber} }} | Select-Object -First 1
+                        if ($d) {{ ""$($d.ControllerType),$($d.ControllerNumber),$($d.ControllerLocation)"" }}
+                    ";
+                    var hddInfoResult = Utils.Run(hddInfoScript);
+                    if (hddInfoResult != null && hddInfoResult.Count > 0 && hddInfoResult[0] != null)
+                    {
+                        var parts = hddInfoResult[0].ToString().Split(',');
+                        if (parts.Length == 3)
+                        {
+                            ctrlType = parts[0];
+                            ctrlNum = int.Parse(parts[1]);
+                            ctrlLoc = int.Parse(parts[2]);
+                        }
+                    }
+                }
 
-                // --- 1. 挂载分区 ---
-                Log("正在挂载虚拟硬盘系统分区...", true);
+                // --- 步骤 1: 准备磁盘环境 (联机) ---
+                if (diskTarget.IsPhysical)
+                {
+                    Log($"[物理盘] 准备磁盘 {diskTarget.PhysicalDiskNumber}...", true);
+                    diskNumber = diskTarget.PhysicalDiskNumber;
+                    var setupScript = $@"
+                        $ErrorActionPreference = 'Stop'
+                        $n = {diskNumber}
+                        Set-Disk -Number $n -IsOffline $false
+                        Set-Disk -Number $n -IsReadOnly $false
+                        for ($i=0; $i -lt 10; $i++) {{
+                            $d = Get-Disk -Number $n
+                            if ($d.IsOffline -eq $false -and $d.IsReadOnly -eq $false) {{ return 'OK' }}
+                            Start-Sleep -Milliseconds 500
+                        }}
+                        throw 'Disk failed to become online.'
+                    ";
+                    Utils.Run(setupScript);
+                }
+                else
+                {
+                    Log($"[虚拟盘] 挂载 {Path.GetFileName(diskTarget.Path)}...", true);
+                    var mountScript = $@"
+                        $path = '{diskTarget.Path}'
+                        Dismount-DiskImage -ImagePath $path -ErrorAction SilentlyContinue
+                        for ($i=0; $i -lt 5; $i++) {{
+                            try {{
+                                $img = Mount-DiskImage -ImagePath $path -NoDriveLetter -PassThru -ErrorAction Stop
+                                if ($img) {{ return ($img | Get-Disk).Number }}
+                            }} catch {{ Start-Sleep -Seconds 1 }}
+                        }}
+                        return $null
+                    ";
+                    var res = Utils.Run(mountScript);
+                    if (res == null || res.Count == 0 || !int.TryParse(res[0].ToString(), out diskNumber))
+                        return "无法挂载虚拟磁盘（文件可能被 Hyper-V 锁定）。";
+                }
+
+                // --- 步骤 2: 分配盘符 ---
+                Log($"正在为分区 {partition.PartitionNumber} 分配临时盘符...", true);
                 char suggestedLetter = GetFreeDriveLetter();
-                var mountScript = $@"
-            $diskImage = Mount-DiskImage -ImagePath '{harddiskpath}' -PassThru | Get-Disk;
-            $partitionToMount = Get-Partition -DiskNumber $diskImage.Number | Where-Object {{ $_.PartitionNumber -eq {partition.PartitionNumber} }};
-            if ($partitionToMount.DriveLetter) {{ return $partitionToMount.DriveLetter }}
-            try {{
-                $partitionToMount | Set-Partition -NewDriveLetter '{suggestedLetter}' -ErrorAction Stop;
-                return '{suggestedLetter}'
-            }} catch {{
-                return ($partitionToMount | Get-Partition).DriveLetter
-            }}";
+                var assignScript = $@"
+                    $p = Get-Partition -DiskNumber {diskNumber} | Where-Object PartitionNumber -eq {partition.PartitionNumber}
+                    if (-not $p) {{ return $null }}
+                    if ($p.DriveLetter) {{ return $p.DriveLetter }}
+                    try {{
+                        Set-Partition -InputObject $p -NewDriveLetter '{suggestedLetter}' -ErrorAction Stop
+                        return '{suggestedLetter}'
+                    }} catch {{ return (Get-Partition -DiskNumber {diskNumber} | Where-Object PartitionNumber -eq {partition.PartitionNumber}).DriveLetter }}
+                ";
+                var letterRes = Utils.Run(assignScript);
+                if (letterRes == null || letterRes.Count == 0 || letterRes[0] == null)
+                    return "无法分配临时盘符。";
+                assignedDriveLetter = letterRes[0].ToString().TrimEnd(':') + ":";
 
-                var letterResult = Utils.Run(mountScript);
-                if (letterResult == null || letterResult.Count == 0 || letterResult[0] == null) return "无法挂载虚拟磁盘：挂载命令未返回结果。";
-                assignedDriveLetter = letterResult[0].ToString().TrimEnd(':') + ":";
-
-                // --- 2. 路径准备 ---
+                // --- 步骤 3: 同步驱动文件 ---
                 string system32Path = Path.Combine(assignedDriveLetter, "Windows", "System32");
-                if (!Directory.Exists(system32Path)) return "挂载失败：未在目标分区找到 System32 目录。";
+                if (!Directory.Exists(system32Path)) return "未在分区中找到 Windows 目录。";
 
+                Log("开始同步驱动文件...", true);
                 string sourceFolder = FindGpuDriverSourcePath(gpuInstancePath);
                 if (string.IsNullOrEmpty(sourceFolder)) sourceFolder = @"C:\Windows\System32\DriverStore\FileRepository";
+                string destinationFolder = Path.Combine(assignedDriveLetter, "Windows", "System32", "HostDriverStore", "FileRepository", new DirectoryInfo(sourceFolder).Name);
+                if (!Directory.Exists(Path.GetDirectoryName(destinationFolder))) Directory.CreateDirectory(Path.GetDirectoryName(destinationFolder));
 
-                string destinationBase = Path.Combine(assignedDriveLetter, "Windows", "System32", "HostDriverStore", "FileRepository");
-                string destinationFolder = sourceFolder.EndsWith("FileRepository") ? destinationBase : Path.Combine(destinationBase, new DirectoryInfo(sourceFolder).Name);
-
-                if (!Directory.Exists(destinationBase)) Directory.CreateDirectory(destinationBase);
-
-                // --- 3. [优化] 预计算总数以实现整体进度 ---
-                Log("正在分析同步任务...", true);
-                int totalFiles = 0;
-                await Task.Run(() => {
-                    totalFiles = Directory.EnumerateFiles(sourceFolder, "*.*", SearchOption.AllDirectories).Count();
-                });
-
-                // --- 4. [优化] 执行 Robocopy 并通过行数计算整体百分比 ---
-                Log($"开始同步驱动 ({totalFiles} 个文件)...", true);
                 Process robocopyProcess = new()
                 {
                     StartInfo = {
-                FileName = "robocopy",
-                // 使用 /MT:32 开启32线程，/NDL /NJH /NJS 隐藏冗余信息
-                Arguments = $"\"{sourceFolder}\" \"\"{destinationFolder}\"\" /E /R:1 /W:1 /MT:32 /NDL /NJH /NJS /NC /NS",
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                CreateNoWindow = true
-            }
+                        FileName = "robocopy",
+                        Arguments = $"\"{sourceFolder}\" \"{destinationFolder}\" /E /R:1 /W:1 /MT:32 /NDL /NJH /NJS /NC /NS",
+                        UseShellExecute = false, RedirectStandardOutput = true, CreateNoWindow = true
+                    }
                 };
-
-                int processedFiles = 0;
-                robocopyProcess.OutputDataReceived += (s, e) =>
-                {
-                    if (string.IsNullOrWhiteSpace(e.Data)) return;
-                    Interlocked.Increment(ref processedFiles);
-
-                    // 计算整体进度
-                    double percent = (double)processedFiles / Math.Max(1, totalFiles) * 100.0;
-                    if (percent > 100) percent = 100;
-                    Log($"进度: {percent:F1}% ({processedFiles}/{totalFiles})");
-                };
-
                 robocopyProcess.Start();
-                robocopyProcess.BeginOutputReadLine();
                 await robocopyProcess.WaitForExitAsync();
 
-                if (robocopyProcess.ExitCode >= 8) return $"Robocopy 错误，代码: {robocopyProcess.ExitCode}";
-
-                // --- 5. NVIDIA 注册表注入 ---
+                // --- 步骤 4: 注册表注入 ---
                 if (gpuManu.Contains("NVIDIA", StringComparison.OrdinalIgnoreCase))
                 {
-                    Log("正在注入 NVIDIA 驱动注册表项...", true);
+                    Log("注入 NVIDIA 注册表...", true);
                     NvidiaReg(assignedDriveLetter);
                 }
 
@@ -509,18 +585,55 @@ namespace ExHyperV.Services
             }
             catch (Exception ex)
             {
-                return $"驱动安装失败: {ex.Message}";
+                return $"错误: {ex.Message}";
             }
             finally
             {
-                if (!string.IsNullOrEmpty(harddiskpath))
+                Log("正在清理环境并强制刷新物理磁盘挂载...", true);
+
+                // 1. 移除临时盘符
+                if (!string.IsNullOrEmpty(assignedDriveLetter) && diskNumber != -1)
                 {
-                    Log("正在卸载虚拟磁盘并清理环境...", true);
-                    Utils.Run($"Dismount-DiskImage -ImagePath '{harddiskpath}' -ErrorAction SilentlyContinue");
+                    Utils.Run($"Get-Partition -DiskNumber {diskNumber} | Where-Object DriveLetter -eq '{assignedDriveLetter.TrimEnd(':')}' | Remove-PartitionAccessPath -AccessPath '{assignedDriveLetter}' -ErrorAction SilentlyContinue");
+                }
+
+                if (diskTarget.IsPhysical && diskNumber != -1)
+                {
+                    // 2. 强制清除宿主机可能留下的属性并脱机
+                    // 这里的顺序很重要：先去只读 -> 刷洗缓存 -> 再脱机
+                    string recoveryScript = $@"
+            $n = {diskNumber}
+            Set-Disk -Number $n -IsReadOnly $false -ErrorAction SilentlyContinue
+            Clear-Disk -Number $n -RemoveData -RemoveOEM -Confirm:$false -ErrorAction SilentlyContinue # 注意：此行仅在极端情况使用，此处建议仅用下方的刷新
+            Update-HostStorageCache
+            Set-Disk -Number $n -IsOffline $true -Confirm:$false
+        ";
+                    Utils.Run(recoveryScript);
+
+                    // 3. 【核心修复】重新向虚拟机申明该物理磁盘
+                    // 即使配置没变，重新执行 Set-VMHardDiskDrive 会触发 Hyper-V 重新查询物理设备的 PnP 路径
+                    if (!string.IsNullOrEmpty(ctrlType))
+                    {
+                        Thread.Sleep(2000); // 必须等待，给系统释放句柄的时间
+                        var refreshScript = $@"
+                $vmName = '{vmName}'
+                $drive = Get-VMHardDiskDrive -VMName $vmName | Where-Object {{ $_.ControllerType -eq '{ctrlType}' -and $_.ControllerNumber -eq {ctrlNum} -and $_.ControllerLocation -eq {ctrlLoc} }}
+                if ($drive) {{
+                    # 通过重新设置 DiskNumber，迫使 Hyper-V 刷新底层的底层物理路径引用
+                    Set-VMHardDiskDrive -VMName $vmName -ControllerType '{ctrlType}' -ControllerNumber {ctrlNum} -ControllerLocation {ctrlLoc} -DiskNumber {diskNumber}
+                }}
+            ";
+                        Utils.Run(refreshScript);
+                        Log("物理磁盘引用已强制刷新，现在可以安全启动。", true);
+                    }
+                }
+                else if (!string.IsNullOrEmpty(diskTarget.Path))
+                {
+                    Utils.Run($"Dismount-DiskImage -ImagePath '{diskTarget.Path}' -ErrorAction SilentlyContinue");
                 }
             }
-        }
-
+        }        // 简单的等待辅助
+        private void StartSleep(int ms) => Thread.Sleep(ms);
         public Task<string> AddGpuPartitionAsync(string vmName, string gpuInstancePath, string gpuManu, PartitionInfo selectedPartition, string id, SshCredentials credentials = null, Action<string> progressCallback = null, CancellationToken cancellationToken = default)
         {
             return Task.Run(async () =>
@@ -546,7 +659,6 @@ namespace ExHyperV.Services
                     return normalizedId;
                 }
 
-                // 替代原有的 ShowMessageOnUIThread
                 void Log(string message)
                 {
                     progressCallback?.Invoke(message);
@@ -630,13 +742,18 @@ namespace ExHyperV.Services
                     {
                         if (selectedPartition.OsType == OperatingSystemType.Windows)
                         {
-                            var harddiskPathResult = Utils.Run($"(Get-VMHardDiskDrive -vmname '{vmName}')[0].Path");
-                            if (harddiskPathResult == null || harddiskPathResult.Count == 0)
+                            // [修复 CS1503]
+                            // 不再获取字符串路径，而是获取 VmDiskTarget 对象
+                            Log("正在识别虚拟机启动磁盘...");
+                            var diskTarget = await GetVmBootDiskInfoAsync(vmName);
+                            if (diskTarget == null)
                             {
                                 return ExHyperV.Properties.Resources.Error_GetVmHardDiskPathFailed;
                             }
-                            string harddiskpath = harddiskPathResult[0].ToString();
-                            string injectionResult = await InjectWindowsDriversAsync(vmName, harddiskpath, selectedPartition, gpuManu, id);
+
+                            // 传入 diskTarget 对象 (修复了参数类型不匹配)
+                            string injectionResult = await InjectWindowsDriversAsync(vmName, diskTarget, selectedPartition, gpuManu, id, Log);
+
                             if (injectionResult != "OK")
                             {
                                 return injectionResult;
@@ -644,222 +761,9 @@ namespace ExHyperV.Services
                         }
                         else if (selectedPartition.OsType == OperatingSystemType.Linux)
                         {
-                            var sshService = new SshService();
-
-                            Func<string, string> withSudo = (cmd) =>
-                            {
-                                // 移除命令开头可能存在的 sudo，以防重复
-                                if (cmd.Trim().StartsWith("sudo "))
-                                {
-                                    cmd = cmd.Trim().Substring(5);
-                                }
-                                // 对密码中的单引号进行转义，防止shell注入
-                                string escapedPassword = credentials.Password.Replace("'", "'\\''");
-                                return $"echo '{escapedPassword}' | sudo -S -E -p '' {cmd}";
-                            };
-
-                            try
-                            {
-                                var currentState = await GetVmStateAsync(vmName);
-                                if (currentState != "Running")
-                                {
-                                    Utils.Run($"Start-VM -Name '{vmName}'");
-                                }
-                                string getMacScript = $"(Get-VMNetworkAdapter -VMName '{vmName}').MacAddress | Select-Object -First 1";
-                                var macResult = await Utils.Run2(getMacScript);
-                                if (macResult == null || macResult.Count == 0 || string.IsNullOrEmpty(macResult[0]?.ToString()))
-                                {
-                                    return string.Format(Properties.Resources.Error_GetVmMacAddressFailed, vmName);
-                                }
-                                string macAddressWithoutColons = macResult[0].ToString();
-                                string macAddressWithColons = System.Text.RegularExpressions.Regex.Replace(macAddressWithoutColons, "(.{2})", "$1:").TrimEnd(':');
-
-                                string vmIpAddress = string.Empty;
-                                var stopwatch = Stopwatch.StartNew();
-                                vmIpAddress = await Utils.GetVmIpAddressAsync(vmName, macAddressWithColons);
-                                stopwatch.Stop();
-
-                                string targetIp = vmIpAddress.Split(',').Select(ip => ip.Trim()).FirstOrDefault(ip => System.Net.IPAddress.TryParse(ip, out var addr) && addr.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork);
-
-                                // 重构：不再弹出登录框，而是检查传入的 credentials
-                                if (credentials == null)
-                                {
-                                    return "SSH credentials not provided for Linux VM.";
-                                }
-
-                                if (!string.IsNullOrEmpty(targetIp))
-                                {
-                                    credentials.Host = targetIp;
-                                }
-                                if (string.IsNullOrEmpty(credentials.Host))
-                                {
-                                    return string.Format(Properties.Resources.Error_NoValidIpv4AddressFound, "Unknown");
-                                }
-
-                            }
-                            catch (Exception ex)
-                            {
-                                Log(string.Format(Properties.Resources.Error_PreparationFailed, ex.Message));
-                                return string.Format(Properties.Resources.Error_PreparationFailed, ex.Message);
-                            }
-
-                            // 重构：移除 ExecutionProgressWindow 逻辑，使用 Log 回调
-
-                            // 部署循环，原代码支持 Retry，现在改为单次执行，如有异常直接返回错误
-                            try
-                            {
-                                if (cancellationToken.IsCancellationRequested) throw new OperationCanceledException();
-
-                                Log(ExHyperV.Properties.Resources.LinuxDeploy_Step1);
-                                string homeDirectory;
-                                string remoteTempDir;
-
-                                using (var client = new SshClient(credentials.Host, credentials.Port, credentials.Username, credentials.Password))
-                                {
-                                    client.Connect();
-                                    Log(ExHyperV.Properties.Resources.Log_SshConnectionSuccess);
-                                    var pwdResult = client.RunCommand("pwd");
-                                    homeDirectory = pwdResult.Result.Trim();
-                                    if (string.IsNullOrEmpty(homeDirectory))
-                                    {
-                                        throw new Exception(ExHyperV.Properties.Resources.Error_GetLinuxHomeDirectoryFailed);
-                                    }
-                                    Log(string.Format(Properties.Resources.Log_LinuxHomeDirectoryFound, homeDirectory));
-
-                                    remoteTempDir = $"{homeDirectory}/exhyperv_deploy";
-                                    client.RunCommand($"mkdir -p {remoteTempDir}/drivers {remoteTempDir}/lib");
-                                    Log(string.Format(Properties.Resources.Log_TempDeployDirectoryCreated, remoteTempDir));
-                                    client.Disconnect();
-                                }
-                                Log(ExHyperV.Properties.Resources.Log_RemoteEnvInitializationComplete);
-
-                                if (!string.IsNullOrEmpty(credentials.ProxyHost) && credentials.ProxyPort.HasValue)
-                                {
-                                    Log(ExHyperV.Properties.Resources.LinuxDeploy_Step2);
-                                    Log(string.Format(Properties.Resources.Log_ProxyServerInfo, credentials.ProxyHost, credentials.ProxyPort));
-                                    string proxyUrl = $"http://{credentials.ProxyHost}:{credentials.ProxyPort}";
-                                    string aptProxyContent = $"Acquire::http::Proxy \"{proxyUrl}\";\nAcquire::https::Proxy \"{proxyUrl}\";\n";
-                                    string envProxyContent = $"\nexport http_proxy=\"{proxyUrl}\"\nexport https_proxy=\"{proxyUrl}\"\nexport no_proxy=\"localhost,127.0.0.1\"\n";
-                                    string remoteAptProxyFile = $"{homeDirectory}/99proxy";
-                                    string remoteEnvProxyFile = $"{homeDirectory}/proxy_env";
-                                    await sshService.WriteTextFileAsync(credentials, aptProxyContent, remoteAptProxyFile);
-                                    await sshService.WriteTextFileAsync(credentials, envProxyContent, remoteEnvProxyFile);
-                                    var proxyCommands = new List<string>
-                                    {
-                                        $"sudo mv {remoteAptProxyFile} /etc/apt/apt.conf.d/99proxy",
-                                        $"sudo sh -c 'cat {remoteEnvProxyFile} >> /etc/environment'",
-                                        $"rm {remoteEnvProxyFile}",
-                                        $"export http_proxy={proxyUrl}",
-                                        $"export https_proxy={proxyUrl}"
-                                    };
-                                    foreach (var cmd in proxyCommands)
-                                    {
-                                        await sshService.ExecuteSingleCommandAsync(credentials, cmd, Log, TimeSpan.FromSeconds(30));
-                                    }
-                                    Log(ExHyperV.Properties.Resources.Log_ProxyConfigurationComplete);
-                                }
-
-                                Log(ExHyperV.Properties.Resources.LinuxDeploy_Step3);
-                                string driverStoreBase = @"C:\Windows\System32\DriverStore\FileRepository";
-                                string preciseDriverPath = FindGpuDriverSourcePath(id);
-                                string sourceDriverPath = preciseDriverPath; // 默认为精准路径
-
-                                if (string.IsNullOrEmpty(preciseDriverPath))
-                                {
-                                    Log(ExHyperV.Properties.Resources.Log_GpuDriverNotFoundFallback);
-                                    sourceDriverPath = driverStoreBase; // 回退到全量拷贝
-                                }
-                                else
-                                {
-                                    Log(string.Format(Properties.Resources.Log_PreciseDriverPathLocated, new DirectoryInfo(preciseDriverPath).Name));
-                                }
-
-                                Log(ExHyperV.Properties.Resources.LinuxDeploy_Step3_Status_Import);
-                                string sourceFolderName = new DirectoryInfo(sourceDriverPath).Name;
-                                string remoteDestinationPath = $"{remoteTempDir}/drivers/{sourceFolderName}";
-                                await sshService.UploadDirectoryAsync(credentials, sourceDriverPath, remoteDestinationPath);
-                                Log(ExHyperV.Properties.Resources.Log_HostDriverImportComplete);
-                                await UploadLocalFilesAsync(sshService, credentials, $"{remoteTempDir}/lib");
-                                Log(ExHyperV.Properties.Resources.Log_LocalLibrariesCheckComplete);
-
-                                Log(ExHyperV.Properties.Resources.LinuxDeploy_Step4);
-
-                                var commandsToExecute = new List<Tuple<string, TimeSpan?>>();
-                                bool enableGraphics = credentials.InstallGraphics;
-
-                                // 1. 下载脚本
-                                var scriptsToDownload = new List<string>
-                                {
-                                    $"wget -O {remoteTempDir}/install_dxgkrnl.sh {ScriptBaseUrl}install_dxgkrnl.sh",
-                                    enableGraphics ? $"wget -O {remoteTempDir}/setup_graphics.sh {ScriptBaseUrl}setup_graphics.sh" : null,
-                                    $"wget -O {remoteTempDir}/configure_system.sh {ScriptBaseUrl}configure_system.sh"
-                                }.Where(s => s != null).ToList();
-
-                                foreach (var scriptCmd in scriptsToDownload)
-                                {
-                                    await sshService.ExecuteSingleCommandAsync(credentials, scriptCmd, Log, TimeSpan.FromMinutes(2));
-                                }
-                                await sshService.ExecuteSingleCommandAsync(credentials, $"chmod +x {remoteTempDir}/*.sh", Log, TimeSpan.FromSeconds(10));
-                                Log(ExHyperV.Properties.Resources.Log_DxgkrnlModuleCompiling);
-                                string dxgkrnlCommand = withSudo($"{remoteTempDir}/install_dxgkrnl.sh");
-                                var dxgkrnlResult = await sshService.ExecuteCommandAndCaptureOutputAsync(credentials, dxgkrnlCommand, Log, TimeSpan.FromMinutes(60));
-                                if (dxgkrnlResult.Output.Contains("STATUS: REBOOT_REQUIRED"))
-                                {
-                                    Log(ExHyperV.Properties.Resources.Log_KernelUpdateRebootRequired);
-                                    Log(ExHyperV.Properties.Resources.Status_RebootingVm);
-
-                                    try
-                                    {
-                                        await sshService.ExecuteSingleCommandAsync(credentials, withSudo("reboot"), Log, TimeSpan.FromSeconds(10));
-                                    }
-                                    catch (Exception) { }
-                                    Log(ExHyperV.Properties.Resources.Log_WaitingForVmToComeOnline);
-                                    bool isVmUp = await WaitForVmToBeResponsiveAsync(credentials.Host, credentials.Port, cancellationToken);
-                                    if (!isVmUp) throw new Exception(ExHyperV.Properties.Resources.Error_VmDidNotComeBackOnline);
-
-                                    Log(ExHyperV.Properties.Resources.Log_VmReconnectedRestartingDeploy);
-                                    // 注意：这里移除了 continue 循环结构。
-                                    // 实际场景下，如果需要重启后继续，调用方需要根据返回状态再次调用此方法，或者在这里递归调用。
-                                    // 为保持代码简单，这里抛出特定异常或建议重试。
-                                    return "REBOOT_REQUIRED_RETRY";
-                                }
-
-                                if (!dxgkrnlResult.Output.Contains("STATUS: SUCCESS"))
-                                {
-                                    throw new Exception(ExHyperV.Properties.Resources.Error_KernelModuleScriptFailed);
-                                }
-
-                                Log(ExHyperV.Properties.Resources.Log_KernelModuleInstallSuccess);
-
-                                if (enableGraphics)
-                                {
-                                    Log(ExHyperV.Properties.Resources.Log_ConfiguringMesa);
-                                    await sshService.ExecuteSingleCommandAsync(credentials, withSudo($"{remoteTempDir}/setup_graphics.sh"), Log, TimeSpan.FromMinutes(20));
-                                }
-
-                                Log(ExHyperV.Properties.Resources.Log_ConfiguringSystem);
-                                string configArgs = enableGraphics ? "enable_graphics" : "no_graphics";
-                                await sshService.ExecuteSingleCommandAsync(credentials, withSudo($"{remoteTempDir}/configure_system.sh {configArgs}"), Log, TimeSpan.FromMinutes(5));
-
-                                Log(ExHyperV.Properties.Resources.LinuxDeploy_Step5);
-                                try
-                                {
-                                    await sshService.ExecuteSingleCommandAsync(credentials, "sudo reboot", Log, TimeSpan.FromSeconds(5));
-                                }
-                                catch { }
-
-                                return "OK";
-                            }
-                            catch (OperationCanceledException)
-                            {
-                                return ExHyperV.Properties.Resources.Info_OperationCancelled;
-                            }
-                            catch (Exception ex)
-                            {
-                                string errorMsg = string.Format(Properties.Resources.Error_DeploymentFailed, ex.Message);
-                                Log(string.Format(Properties.Resources.Log_ErrorBlockHeader, errorMsg));
-                                return errorMsg;
-                            }
+                            // Linux 逻辑保持不变，调用我们之前定义好的方法
+                            // 注意：Linux 是通过网络 SSH 传输，不需要挂载物理磁盘，所以不受 VmDiskTarget 影响
+                            return await ProvisionLinuxGpuAsync(vmName, id, credentials, Log, cancellationToken);
                         }
                     }
 
@@ -886,8 +790,6 @@ namespace ExHyperV.Services
                     }
                     if (isWin10 && partitionableGpuCount > 1)
                     {
-                        // 移除了UI弹窗：Utils.Show(Properties.Resources.Warning_Win10GpuAssignmentNotPersistent);
-                        // 可以选择记录日志
                         Log(Properties.Resources.Warning_Win10GpuAssignmentNotPersistent);
                     }
                 }
@@ -1252,6 +1154,49 @@ namespace ExHyperV.Services
         // 步骤5：驱动程序同步 (Windows) - 自动化注入宿主机驱动
         // 职责：驱动 Windows 离线注入流程的入口方法
         // ----------------------------------------------------------------------------------
+        private Task<VmDiskTarget> GetVmBootDiskInfoAsync(string vmName)
+        {
+            return Task.Run(() =>
+            {
+                // [关键修正] PowerShell 脚本现在直接检查 DiskNumber 属性，而不是脆弱的 Path 字符串
+                var script = $@"
+                    $drive = Get-VMHardDiskDrive -VMName '{vmName}' | Sort-Object ControllerNumber, ControllerLocation | Select-Object -First 1
+                    if ($drive -eq $null) {{ return 'NONE' }}
+                    
+                    # 物理直通盘的核心特征是 .DiskNumber 属性有值
+                    if ($drive.DiskNumber -ne $null) {{
+                        return 'PHYSICAL:' + $drive.DiskNumber
+                    }} 
+                    # 虚拟盘的特征是 .Path 属性是一个文件路径
+                    elseif (-not [string]::IsNullOrWhiteSpace($drive.Path)) {{
+                        return 'VHD:' + $drive.Path
+                    }}
+                    
+                    return 'UNKNOWN'
+                ";
+
+                var result = Utils.Run(script);
+                if (result == null || result.Count == 0 || result[0] == null) return null;
+
+                string raw = result[0].ToString();
+
+                if (raw.StartsWith("PHYSICAL:"))
+                {
+                    if (int.TryParse(raw.Substring(9), out int num))
+                    {
+                        return new VmDiskTarget { IsPhysical = true, PhysicalDiskNumber = num };
+                    }
+                }
+                else if (raw.StartsWith("VHD:"))
+                {
+                    return new VmDiskTarget { IsPhysical = false, Path = raw.Substring(4) };
+                }
+
+                return null;
+            });
+        }
+
+
         public async Task<(bool Success, string Message)> SyncWindowsDriversAsync(
             string vmName,
             string gpuInstancePath,
@@ -1272,11 +1217,14 @@ namespace ExHyperV.Services
                 if (harddiskPathResult == null || harddiskPathResult.Count == 0)
                     return (false, "未能获取虚拟机硬盘文件路径。");
 
-                string harddiskpath = harddiskPathResult[0].ToString();
+                var diskTarget = await GetVmBootDiskInfoAsync(vmName);
 
-                // 3. 调用核心注入逻辑
-                string result = await InjectWindowsDriversAsync(vmName, harddiskpath, selectedPartition, gpuManu, gpuInstancePath, progressCallback);
+                if (diskTarget == null)
+                    return (false, "未能获取虚拟机硬盘信息 (可能是未挂载硬盘)。");
 
+                // [修复 CS1503] 这里的参数现在匹配了
+                string result = await InjectWindowsDriversAsync(vmName, diskTarget, selectedPartition, gpuManu, gpuInstancePath, progressCallback);
+                
                 return result == "OK" ? (true, "OK") : (false, result);
             }
             catch (Exception ex)
