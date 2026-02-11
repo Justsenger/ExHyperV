@@ -448,191 +448,176 @@ namespace ExHyperV.Services
         // 核心注入逻辑：挂载 -> 定位 -> Robocopy(带进度) -> 注册表 -> 卸载
         // ----------------------------------------------------------------------------------
         // [重构] 驱动注入核心逻辑
+        /// <summary>
+        /// 核心注入逻辑：支持虚拟磁盘(VHDX)与物理直通硬盘
+        /// 采用安全剥离与原路找回机制，确保物理磁盘注入的稳定性
+        /// </summary>
         private async Task<string> InjectWindowsDriversAsync(
-                            string vmName,
-                            VmDiskTarget diskTarget,
-                            PartitionInfo partition,
-                            string gpuManu,
-                            string gpuInstancePath,
-                            Action<string> progressCallback = null)
+            string vmName,
+            VmDiskTarget diskTarget,
+            PartitionInfo partition,
+            string gpuManu,
+            string gpuInstancePath,
+            Action<string> progressCallback = null)
         {
             string assignedDriveLetter = null;
-            DateTime lastLogTime = DateTime.MinValue;
+            int hostDiskNumber = -1;
 
-            void Log(string msg, bool force = false)
-            {
-                if (progressCallback == null) return;
-                if (force || (DateTime.Now - lastLogTime).TotalMilliseconds > 150)
-                {
-                    progressCallback.Invoke(msg);
-                    lastLogTime = DateTime.Now;
-                }
-            }
+            // 用于物理磁盘还原的坐标快照
+            string savedCtrlType = "SCSI";
+            int savedCtrlNum = 0;
+            int savedCtrlLoc = 0;
+            bool isPhysical = diskTarget.IsPhysical;
 
-            int diskNumber = -1;
-            // 关键：用于存储磁盘在虚拟机内的挂载位置，以便最后强制刷新
-            string ctrlType = string.Empty;
-            int ctrlNum = -1;
-            int ctrlLoc = -1;
+            // 日志辅助
+            void Log(string msg, bool force = false) => progressCallback?.Invoke(msg);
 
             try
             {
-                // --- 步骤 0: (仅物理盘) 获取控制器位置，为最终修复做准备 ---
-                if (diskTarget.IsPhysical)
+                // --- 阶段 1：环境准备与磁盘剥离 ---
+                if (isPhysical)
                 {
-                    Log("正在分析物理磁盘挂载点...", true);
-                    var hddInfoScript = $@"
-                        $d = Get-VMHardDiskDrive -VMName '{vmName}' | Where-Object {{ $_.DiskNumber -eq {diskTarget.PhysicalDiskNumber} }} | Select-Object -First 1
-                        if ($d) {{ ""$($d.ControllerType),$($d.ControllerNumber),$($d.ControllerLocation)"" }}
-                    ";
-                    var hddInfoResult = Utils.Run(hddInfoScript);
-                    if (hddInfoResult != null && hddInfoResult.Count > 0 && hddInfoResult[0] != null)
-                    {
-                        var parts = hddInfoResult[0].ToString().Split(',');
-                        if (parts.Length == 3)
-                        {
-                            ctrlType = parts[0];
-                            ctrlNum = int.Parse(parts[1]);
-                            ctrlLoc = int.Parse(parts[2]);
-                        }
-                    }
-                }
+                    Log($"[物理磁盘] 正在锁定并安全剥离磁盘 {diskTarget.PhysicalDiskNumber}...", true);
+                    hostDiskNumber = diskTarget.PhysicalDiskNumber;
 
-                // --- 步骤 1: 准备磁盘环境 (联机) ---
-                if (diskTarget.IsPhysical)
-                {
-                    Log($"[物理盘] 准备磁盘 {diskTarget.PhysicalDiskNumber}...", true);
-                    diskNumber = diskTarget.PhysicalDiskNumber;
-                    var setupScript = $@"
-                        $ErrorActionPreference = 'Stop'
-                        $n = {diskNumber}
-                        Set-Disk -Number $n -IsOffline $false
-                        Set-Disk -Number $n -IsReadOnly $false
-                        for ($i=0; $i -lt 10; $i++) {{
-                            $d = Get-Disk -Number $n
-                            if ($d.IsOffline -eq $false -and $d.IsReadOnly -eq $false) {{ return 'OK' }}
-                            Start-Sleep -Milliseconds 500
-                        }}
-                        throw 'Disk failed to become online.'
-                    ";
-                    Utils.Run(setupScript);
+                    // 记录坐标并从 VM 中移除（解决句柄占用核心步骤）
+                    var detachScript = $@"
+                $ErrorActionPreference = 'Stop'
+                $vmDisk = Get-VMHardDiskDrive -VMName '{vmName}' | Where-Object {{ $_.DiskNumber -eq {hostDiskNumber} }}
+                if ($vmDisk) {{
+                    $out = ""$($vmDisk.ControllerType),$($vmDisk.ControllerNumber),$($vmDisk.ControllerLocation)""
+                    Remove-VMHardDiskDrive -VMHardDiskDrive $vmDisk
+                    return $out
+                }}
+                throw '在虚拟机中未找到该物理磁盘，可能已被手动移除或离线。'";
+
+                    var detachRes = Utils.Run(detachScript);
+                    if (detachRes == null || detachRes.Count == 0) return "无法剥离物理磁盘：坐标捕获失败。";
+
+                    var parts = detachRes[0].ToString().Split(',');
+                    savedCtrlType = parts[0];
+                    savedCtrlNum = int.Parse(parts[1]);
+                    savedCtrlLoc = int.Parse(parts[2]);
+
+                    // 宿主机强制联机
+                    Utils.Run($@"
+                Set-Disk -Number {hostDiskNumber} -IsOffline $false -ErrorAction Stop
+                Set-Disk -Number {hostDiskNumber} -IsReadOnly $false -ErrorAction Stop
+                Update-HostStorageCache");
                 }
                 else
                 {
-                    Log($"[虚拟盘] 挂载 {Path.GetFileName(diskTarget.Path)}...", true);
+                    Log($"[虚拟磁盘] 正在挂载镜像: {Path.GetFileName(diskTarget.Path)}...", true);
+                    // 虚拟磁盘处理逻辑：先尝试卸载残留，再重新挂载
                     var mountScript = $@"
-                        $path = '{diskTarget.Path}'
-                        Dismount-DiskImage -ImagePath $path -ErrorAction SilentlyContinue
-                        for ($i=0; $i -lt 5; $i++) {{
-                            try {{
-                                $img = Mount-DiskImage -ImagePath $path -NoDriveLetter -PassThru -ErrorAction Stop
-                                if ($img) {{ return ($img | Get-Disk).Number }}
-                            }} catch {{ Start-Sleep -Seconds 1 }}
-                        }}
-                        return $null
-                    ";
-                    var res = Utils.Run(mountScript);
-                    if (res == null || res.Count == 0 || !int.TryParse(res[0].ToString(), out diskNumber))
-                        return "无法挂载虚拟磁盘（文件可能被 Hyper-V 锁定）。";
+                $path = '{diskTarget.Path}'
+                Dismount-DiskImage -ImagePath $path -ErrorAction SilentlyContinue
+                $img = Mount-DiskImage -ImagePath $path -NoDriveLetter -PassThru -ErrorAction Stop
+                ($img | Get-Disk).Number";
+
+                    var mountRes = Utils.Run(mountScript);
+                    if (mountRes == null || mountRes.Count == 0 || !int.TryParse(mountRes[0].ToString(), out hostDiskNumber))
+                        return "挂载虚拟磁盘失败，请检查文件是否被锁定。";
                 }
 
-                // --- 步骤 2: 分配盘符 ---
-                Log($"正在为分区 {partition.PartitionNumber} 分配临时盘符...", true);
+                // --- 阶段 2：分区挂载与盘符分配 ---
+                Log($"正在为分区 {partition.PartitionNumber} 分配宿主机盘符...", true);
                 char suggestedLetter = GetFreeDriveLetter();
-                var assignScript = $@"
-                    $p = Get-Partition -DiskNumber {diskNumber} | Where-Object PartitionNumber -eq {partition.PartitionNumber}
-                    if (-not $p) {{ return $null }}
-                    if ($p.DriveLetter) {{ return $p.DriveLetter }}
-                    try {{
-                        Set-Partition -InputObject $p -NewDriveLetter '{suggestedLetter}' -ErrorAction Stop
-                        return '{suggestedLetter}'
-                    }} catch {{ return (Get-Partition -DiskNumber {diskNumber} | Where-Object PartitionNumber -eq {partition.PartitionNumber}).DriveLetter }}
-                ";
-                var letterRes = Utils.Run(assignScript);
-                if (letterRes == null || letterRes.Count == 0 || letterRes[0] == null)
-                    return "无法分配临时盘符。";
+                var assignLetterScript = $@"
+            $p = Get-Partition -DiskNumber {hostDiskNumber} | Where-Object PartitionNumber -eq {partition.PartitionNumber}
+            if (-not $p) {{ throw '找不到指定分区' }}
+            if ($p.DriveLetter) {{ return $p.DriveLetter }}
+            Set-Partition -InputObject $p -NewDriveLetter '{suggestedLetter}' -ErrorAction Stop
+            return '{suggestedLetter}'";
+
+                var letterRes = Utils.Run(assignLetterScript);
+                if (letterRes == null || letterRes.Count == 0) return "无法分配驱动器盘符。";
                 assignedDriveLetter = letterRes[0].ToString().TrimEnd(':') + ":";
 
-                // --- 步骤 3: 同步驱动文件 ---
-                string system32Path = Path.Combine(assignedDriveLetter, "Windows", "System32");
-                if (!Directory.Exists(system32Path)) return "未在分区中找到 Windows 目录。";
-
-                Log("开始同步驱动文件...", true);
+                // --- 阶段 3：驱动程序同步 (Robocopy) ---
                 string sourceFolder = FindGpuDriverSourcePath(gpuInstancePath);
                 if (string.IsNullOrEmpty(sourceFolder)) sourceFolder = @"C:\Windows\System32\DriverStore\FileRepository";
-                string destinationFolder = Path.Combine(assignedDriveLetter, "Windows", "System32", "HostDriverStore", "FileRepository", new DirectoryInfo(sourceFolder).Name);
-                if (!Directory.Exists(Path.GetDirectoryName(destinationFolder))) Directory.CreateDirectory(Path.GetDirectoryName(destinationFolder));
 
-                Process robocopyProcess = new()
-                {
-                    StartInfo = {
-                        FileName = "robocopy",
-                        Arguments = $"\"{sourceFolder}\" \"{destinationFolder}\" /E /R:1 /W:1 /MT:32 /NDL /NJH /NJS /NC /NS",
-                        UseShellExecute = false, RedirectStandardOutput = true, CreateNoWindow = true
-                    }
-                };
-                robocopyProcess.Start();
-                await robocopyProcess.WaitForExitAsync();
+                string destBase = Path.Combine(assignedDriveLetter, "Windows", "System32", "HostDriverStore", "FileRepository");
+                string destFolder = Path.Combine(destBase, new DirectoryInfo(sourceFolder).Name);
 
-                // --- 步骤 4: 注册表注入 ---
-                if (gpuManu.Contains("NVIDIA", StringComparison.OrdinalIgnoreCase))
+                if (!Directory.Exists(destBase)) Directory.CreateDirectory(destBase);
+
+                Log($"正在同步驱动文件: {new DirectoryInfo(sourceFolder).Name}...", true);
+                using (Process p = new Process())
                 {
-                    Log("注入 NVIDIA 注册表...", true);
-                    NvidiaReg(assignedDriveLetter);
+                    p.StartInfo = new ProcessStartInfo
+                    {
+                        FileName = "robocopy.exe",
+                        Arguments = $"\"{sourceFolder}\" \"{destFolder}\" /E /R:1 /W:1 /MT:32 /NDL /NJH /NJS /NC /NS",
+                        CreateNoWindow = true,
+                        UseShellExecute = false
+                    };
+                    p.Start();
+                    await p.WaitForExitAsync();
+                    // Robocopy 退出码 0-7 均视为成功
+                    if (p.ExitCode >= 8) return $"文件同步失败，Robocopy 错误码: {p.ExitCode}";
                 }
 
+                // --- 阶段 4：注册表处理 ---
+                if (gpuManu.Contains("NVIDIA", StringComparison.OrdinalIgnoreCase))
+                {
+                    Log("正在应用 NVIDIA 注册表优化...", true);
+                    string regRes = NvidiaReg(assignedDriveLetter);
+                    if (regRes != "OK") return regRes;
+                }
+
+                Log("注入流程已完成，准备清理环境...", true);
                 return "OK";
             }
             catch (Exception ex)
             {
-                return $"错误: {ex.Message}";
+                return $"注入过程中发生异常: {ex.Message}";
             }
             finally
             {
-                Log("正在清理环境并强制刷新物理磁盘挂载...", true);
+                // --- 阶段 5：环境还原与清理 ---
 
-                // 1. 移除临时盘符
-                if (!string.IsNullOrEmpty(assignedDriveLetter) && diskNumber != -1)
+                // 1. 移除宿主机盘符
+                if (!string.IsNullOrEmpty(assignedDriveLetter) && hostDiskNumber != -1)
                 {
-                    Utils.Run($"Get-Partition -DiskNumber {diskNumber} | Where-Object DriveLetter -eq '{assignedDriveLetter.TrimEnd(':')}' | Remove-PartitionAccessPath -AccessPath '{assignedDriveLetter}' -ErrorAction SilentlyContinue");
+                    Utils.Run($"Get-Partition -DiskNumber {hostDiskNumber} | Where-Object DriveLetter -eq '{assignedDriveLetter[0]}' | Remove-PartitionAccessPath -AccessPath '{assignedDriveLetter}' -ErrorAction SilentlyContinue");
                 }
 
-                if (diskTarget.IsPhysical && diskNumber != -1)
+                if (isPhysical)
                 {
-                    // 2. 强制清除宿主机可能留下的属性并脱机
-                    // 这里的顺序很重要：先去只读 -> 刷洗缓存 -> 再脱机
-                    string recoveryScript = $@"
-            $n = {diskNumber}
-            Set-Disk -Number $n -IsReadOnly $false -ErrorAction SilentlyContinue
-            Clear-Disk -Number $n -RemoveData -RemoveOEM -Confirm:$false -ErrorAction SilentlyContinue # 注意：此行仅在极端情况使用，此处建议仅用下方的刷新
-            Update-HostStorageCache
-            Set-Disk -Number $n -IsOffline $true -Confirm:$false
-        ";
-                    Utils.Run(recoveryScript);
+                    Log("正在将物理磁盘归还给虚拟机...", true);
+                    // 宿主机脱机
+                    Utils.Run($@"
+                Set-Disk -Number {hostDiskNumber} -IsOffline $true -Confirm:$false -ErrorAction SilentlyContinue
+                Update-HostStorageCache");
 
-                    // 3. 【核心修复】重新向虚拟机申明该物理磁盘
-                    // 即使配置没变，重新执行 Set-VMHardDiskDrive 会触发 Hyper-V 重新查询物理设备的 PnP 路径
-                    if (!string.IsNullOrEmpty(ctrlType))
+                    Thread.Sleep(1500); // 给系统 1.5 秒缓冲时间刷新 PnP 状态
+
+                    // 原路找回坐标挂回 VM
+                    var reattachScript = $@"
+                Add-VMHardDiskDrive -VMName '{vmName}' `
+                                    -ControllerType '{savedCtrlType}' `
+                                    -ControllerNumber {savedCtrlNum} `
+                                    -ControllerLocation {savedCtrlLoc} `
+                                    -DiskNumber {hostDiskNumber} `
+                                    -ErrorAction Stop";
+                    try
                     {
-                        Thread.Sleep(2000); // 必须等待，给系统释放句柄的时间
-                        var refreshScript = $@"
-                $vmName = '{vmName}'
-                $drive = Get-VMHardDiskDrive -VMName $vmName | Where-Object {{ $_.ControllerType -eq '{ctrlType}' -and $_.ControllerNumber -eq {ctrlNum} -and $_.ControllerLocation -eq {ctrlLoc} }}
-                if ($drive) {{
-                    # 通过重新设置 DiskNumber，迫使 Hyper-V 刷新底层的底层物理路径引用
-                    Set-VMHardDiskDrive -VMName $vmName -ControllerType '{ctrlType}' -ControllerNumber {ctrlNum} -ControllerLocation {ctrlLoc} -DiskNumber {diskNumber}
-                }}
-            ";
-                        Utils.Run(refreshScript);
-                        Log("物理磁盘引用已强制刷新，现在可以安全启动。", true);
+                        Utils.Run(reattachScript);
+                    }
+                    catch (Exception ex)
+                    {
+                        Log($"[严重警告] 磁盘未能自动挂回 VM，请手动添加物理磁盘 {hostDiskNumber} 到 {savedCtrlType} 控制器。错误: {ex.Message}", true);
                     }
                 }
                 else if (!string.IsNullOrEmpty(diskTarget.Path))
                 {
+                    Log("卸载虚拟磁盘镜像...", true);
                     Utils.Run($"Dismount-DiskImage -ImagePath '{diskTarget.Path}' -ErrorAction SilentlyContinue");
                 }
             }
-        }        // 简单的等待辅助
+        }
         private void StartSleep(int ms) => Thread.Sleep(ms);
         public Task<string> AddGpuPartitionAsync(string vmName, string gpuInstancePath, string gpuManu, PartitionInfo selectedPartition, string id, SshCredentials credentials = null, Action<string> progressCallback = null, CancellationToken cancellationToken = default)
         {
