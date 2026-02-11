@@ -15,29 +15,53 @@ jobs:
       - name: Install dependencies
         run: sudo apt-get install -y jq curl
 
-      - name: Generate JSON with URLs
+      - name: Generate JSON with URLs (High Speed)
         run: |
+          # 1. 伪造 quickemu 依赖，消除报错
+          touch quickemu && chmod +x quickemu
+          export PATH=$PATH:.
+          
+          # 下载脚本
           curl -LO https://raw.githubusercontent.com/quickemu-project/quickemu/master/quickget
           chmod +x quickget
           
-          # 1. 先获取基础列表 (CSV格式方便处理)
+          # 2. 获取基础列表
           ./quickget --list-csv > raw.csv
-          
-          # 2. 遍历列表，尝试获取每一个系统的 URL (这一步可能需要 5-10 分钟)
           echo "Display Name,OS,Release,Option,DownloadURL,PNG" > final.csv
           
-          # 跳过第一行标题，读取后面的数据
-          tail -n +2 raw.csv | while IFS=, read -r name os rel opt dl png svg; do
-            echo "Processing $name $rel $opt..."
-            # 使用 quickget 的 --url 功能获取地址
-            # 注意：Windows/macOS 会返回动态地址，在 JSON 里仅作参考
-            URL=$(./quickget "$os" "$rel" "$opt" --url 2>/dev/null | head -n 1 || echo "")
-            echo "$name,$os,$rel,$opt,$URL,$png" >> final.csv
-          done
+          # 3. 高并发获取 URL (每批 20 个)
+          MAX_JOBS=20
+          COUNT=0
+          
+          # 临时函数：获取单个 URL
+          get_url() {
+            local name="$1" os="$2" rel="$3" opt="$4" png="$5"
+            # 跳过 windows 和 macos 的预抓取，因为链接会过期
+            if [[ "$os" == "windows"* ]] || [[ "$os" == "macos" ]]; then
+              echo "$name,$os,$rel,$opt,DYNAMIC_LINK,$png" >> final.csv
+            else
+              URL=$(./quickget "$os" "$rel" "$opt" --url 2>/dev/null | head -n 1 || echo "")
+              echo "$name,$os,$rel,$opt,$URL,$png" >> final.csv
+            fi
+          }
 
-          # 3. 将 CSV 转换为 JSON
+          # 读取 CSV 并启动并发任务
+          while IFS=, read -r name os rel opt dl png svg; do
+            if [[ "$name" == "Display Name" ]]; then continue; fi
+            
+            get_url "$name" "$os" "$rel" "$opt" "$png" &
+            
+            ((COUNT++))
+            if (( COUNT % MAX_JOBS == 0 )); then
+              wait # 每 20 个任务等待一次，防止被封 IP
+              echo "Processed $COUNT items..."
+            fi
+          done < raw.csv
+          wait
+
+          # 4. 转换为 JSON
           jq -R -s '
-            split("\n") | .[1:-1] | map(split(",")) | map({
+            split("\n") | .[1:-1] | map(split(",")) | map(select(length >= 6)) | map({
               "DisplayName": .[0],
               "OS": .[1],
               "Release": .[2],
