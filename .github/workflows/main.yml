@@ -17,7 +17,7 @@ jobs:
 
       - name: Setup Environment
         run: |
-          # 1. 强力伪造 quickemu
+          # 1. 强力伪造并安装 quickemu 到 PATH
           echo '#!/bin/bash' | sudo tee /usr/local/bin/quickemu
           echo 'echo "4.9.6"' | sudo tee -a /usr/local/bin/quickemu
           sudo chmod +x /usr/local/bin/quickemu
@@ -26,45 +26,39 @@ jobs:
           curl -LO https://raw.githubusercontent.com/quickemu-project/quickemu/master/quickget
           chmod +x quickget
 
-      - name: Generate JSON with URLs (Parallel Version)
+      - name: Generate JSON with Real URLs
         run: |
-          # 获取基础列表并去掉标题
+          # 获取基础列表
           ./quickget --list-csv | tail -n +2 > raw.csv
           
-          # 定义抓取函数并导出给 xargs 使用
-          export_func() {
-            process_line() {
-              line=$1
-              name=$(echo "$line" | cut -d',' -f1)
-              os=$(echo "$line" | cut -d',' -f2)
-              rel=$(echo "$line" | cut -d',' -f3)
-              opt=$(echo "$line" | cut -d',' -f4)
-              png=$(echo "$line" | cut -d',' -f6)
+          # 定义并行抓取核心函数
+          process_line() {
+            IFS=',' read -r name os rel opt dl png svg <<< "$1"
+            
+            # 处理 Windows 和 macOS (保持 DYNAMIC 标识)
+            if [[ "$os" == "windows"* ]] || [[ "$os" == "macos" ]]; then
+              echo "$name,$os,$rel,$opt,DYNAMIC_LINK,$png" >> results.tmp
+            else
+              # 【核心修复】：使用 OPERATION=show 环境变量强制脚本吐出 URL
+              # 并使用 grep 提取 http/https 开头的字符串
+              RAW_OUT=$(OPERATION=show ./quickget "$os" "$rel" "$opt" 2>/dev/null)
+              URL=$(echo "$RAW_OUT" | grep -oE 'https?://[^ ]+' | head -n 1)
               
-              if [[ "$os" == "windows"* ]] || [[ "$os" == "macos" ]]; then
-                url="DYNAMIC_LINK"
-              else
-                # 尝试获取 URL，设置 15 秒超时
-                url=$(timeout 15s ./quickget "$os" "$rel" "$opt" --url 2>/dev/null | grep -E '^https?://' | head -n 1 || echo "MANUAL_CHECK")
-              fi
-              
-              # 将结果写入临时文件，防止并发写入冲突
-              echo "$name,$os,$rel,$opt,$url,$png" >> results_tmp.csv
-              echo "Finished: $name $rel"
-            }
-            export -f process_line
+              if [ -z "$URL" ]; then URL="MANUAL_CHECK"; fi
+              echo "$name,$os,$rel,$opt,$URL,$png" >> results.tmp
+            fi
+            echo "Done: $name $rel"
           }
+          export -f process_line
           
-          export_func
-          
-          # 使用 xargs 同时开启 15 个并发进程
-          # 如果想测试前 50 个，把下面 raw.csv 改成 <(head -n 50 raw.csv)
+          # 使用 xargs 并发 15 线程抓取 (大约需要 5-8 分钟跑完 1000 条)
           cat raw.csv | xargs -I {} -P 15 bash -c 'process_line "{}"'
-
-          # 汇总结果并转为 JSON
-          echo "DisplayName,OS,Release,Option,DownloadURL,Logo" > final.csv
-          cat results_tmp.csv >> final.csv
           
+          # 汇总
+          echo "DisplayName,OS,Release,Option,DownloadURL,Logo" > final.csv
+          cat results.tmp >> final.csv
+
+          # 转换为 JSON
           jq -R -s '
             split("\n") | .[1:-1] | map(split(",")) | map(select(length >= 6)) | map({
               "DisplayName": .[0],
@@ -76,10 +70,37 @@ jobs:
             })
           ' final.csv > images.json
 
+      - name: Append Custom OS (FnOS, iStoreOS, etc.)
+        run: |
+          # 在这里手动添加 quickget 没覆盖到的系统
+          cat <<EOF > custom.json
+          [
+            {
+              "DisplayName": "iStoreOS",
+              "OS": "istoreos",
+              "Release": "2.2.12",
+              "Option": "x86_64",
+              "DownloadURL": "https://fw.koolcenter.com/iStoreOS/x86_64/istoreos-2.2.12-2024052410-x86-64-squashfs-combined.img.gz",
+              "Logo": "https://cdn.jsdelivr.net/gh/istoreos/istoreos@master/logo.png"
+            },
+            {
+              "DisplayName": "FnOS",
+              "OS": "fnos",
+              "Release": "0.9.1",
+              "Option": "stable",
+              "DownloadURL": "https://archive.fnas.com/iso/fnos-0.9.1.iso",
+              "Logo": "https://www.fnas.com/logo.png"
+            }
+          ]
+          EOF
+          # 合并
+          jq -s '.[0] + .[1]' images.json custom.json > combined.json
+          mv combined.json images.json
+
       - name: Commit and Push
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add images.json
-          git commit -m "Update images.json with Parallel URLs" || exit 0
+          git commit -m "Update images.json with working URLs" || exit 0
           git push
