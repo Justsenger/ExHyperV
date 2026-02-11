@@ -32,6 +32,7 @@ namespace ExHyperV.ViewModels
         private readonly VmMemoryService _vmMemoryService;
         private readonly VmStorageService _storageService;
         private readonly VmGPUService _vmGpuService;
+        private readonly VmNetworkService _vmNetworkService;
 
         private CpuMonitorService _cpuService;
         private CancellationTokenSource _monitoringCts;
@@ -58,6 +59,7 @@ namespace ExHyperV.ViewModels
             _vmMemoryService = new VmMemoryService();
             _storageService = new VmStorageService();
             _vmGpuService = new VmGPUService(); // 初始化 GPU 服务
+            _vmNetworkService = new VmNetworkService();
 
             InitPossibleCpuCounts();
 
@@ -143,77 +145,19 @@ namespace ExHyperV.ViewModels
 
             try
             {
-                // =========================================================
-                // MOCK DATA (模拟数据) - 用于预览 UI 效果
-                // =========================================================
+                // 1. 获取宿主机所有可用的虚拟交换机
+                var switches = await _vmNetworkService.GetAvailableSwitchesAsync();
+                AvailableSwitchNames = new ObservableCollection<string>(switches);
 
-                // 1. 模拟宿主机的虚拟交换机列表
-                AvailableSwitchNames.Clear();
-                AvailableSwitchNames.Add("Default Switch");
-                AvailableSwitchNames.Add("WSL (Hyper-V Firewall)");
-                AvailableSwitchNames.Add("External Wi-Fi Bridge");
-                AvailableSwitchNames.Add("Internal Private Network");
+                // 2. 获取当前虚拟机的所有网络适配器配置
+                var adapters = await _vmNetworkService.GetNetworkAdaptersAsync(SelectedVm.Name);
 
-                // 2. 模拟当前虚拟机的网卡列表
-                // 注意：先确保你在 VmInstanceInfo 中添加了 NetworkAdapters 属性 (上一步修复的)
+                // 3. 更新到 UI
                 SelectedVm.NetworkAdapters.Clear();
-
-                // --- 模拟网卡 1: 正常连接的业务网卡 ---
-                SelectedVm.NetworkAdapters.Add(new VmNetworkAdapter
+                foreach (var adapter in adapters.OrderBy(a => a.Name))
                 {
-                    Id = Guid.NewGuid().ToString(),
-                    Name = "Network Adapter",
-                    MacAddress = "00:15:5D:01:0A:03",
-                    IsConnected = true,
-                    SwitchName = "Default Switch",
-                    IsStaticMac = false,
-
-                    // 模拟 Guest OS 内部 IP
-                    IpAddresses = new List<string> { "192.168.1.105", "fe80::215:5dff:fe01:a03" },
-
-                    // 安全设置
-                    MacSpoofingAllowed = true, // 模拟开启了 MAC 欺骗
-                    DhcpGuardEnabled = false,
-
-                    // 硬件加速
-                    VmqEnabled = true,
-                    SriovEnabled = false,
-
-                    // 带宽
-                    BandwidthLimit = 0, // 0 = 无限制
-                    BandwidthReservation = 0,
-
-                    VlanMode = VlanOperationMode.Access
-                });
-
-                // --- 模拟网卡 2: 用于隔离测试的网卡 (VLAN 20) ---
-                SelectedVm.NetworkAdapters.Add(new VmNetworkAdapter
-                {
-                    Id = Guid.NewGuid().ToString(),
-                    Name = "Isolation Adapter",
-                    MacAddress = "00:15:5D:88:99:AA",
-                    IsConnected = false, // 未连接状态
-                    SwitchName = null,
-                    IsStaticMac = true,
-
-                    // 未连接自然没有 IP
-                    IpAddresses = new List<string>(),
-
-                    // 模拟配置了 VLAN
-                    VlanMode = VlanOperationMode.Access,
-                    AccessVlanId = 20,
-
-                    // 模拟开启了一些高级功能
-                    DeviceNamingEnabled = true,
-                    TeamingAllowed = true
-                });
-
-                // 模拟加载耗时
-                await Task.Delay(500);
-
-                // =========================================================
-                // END MOCK
-                // =========================================================
+                    SelectedVm.NetworkAdapters.Add(adapter);
+                }
             }
             catch (Exception ex)
             {
@@ -224,6 +168,7 @@ namespace ExHyperV.ViewModels
                 IsLoadingSettings = false;
             }
         }
+
         [RelayCommand]
         private async Task AddNetworkAdapter()
         {
@@ -231,19 +176,22 @@ namespace ExHyperV.ViewModels
             IsLoadingSettings = true;
             try
             {
-                // 执行 PowerShell 添加网卡
-                await Task.Run(() => Utils.Run($"Add-VMNetworkAdapter -VMName '{SelectedVm.Name}'"));
+                var result = await _vmNetworkService.AddNetworkAdapterAsync(SelectedVm.Name);
 
-                ShowSnackbar("添加成功", "已添加新的网络适配器", ControlAppearance.Success, SymbolRegular.CheckmarkCircle24);
-
-                // 稍作等待以让后台监控循环捕获到新网卡，或者手动触发刷新
-                await Task.Delay(1000);
-                // 重新进入以刷新界面
-                await GoToNetworkSettings();
+                if (result.Success)
+                {
+                    ShowSnackbar("添加成功", "已添加新的网络适配器", ControlAppearance.Success, SymbolRegular.CheckmarkCircle24);
+                    // 刷新整个网络设置页面以显示新网卡
+                    await GoToNetworkSettings();
+                }
+                else
+                {
+                    ShowSnackbar("添加失败", Utils.GetFriendlyErrorMessages(result.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                }
             }
             catch (Exception ex)
             {
-                ShowSnackbar("添加失败", Utils.GetFriendlyErrorMessages(ex.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                ShowSnackbar("添加异常", Utils.GetFriendlyErrorMessages(ex.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
             }
             finally
             {
@@ -256,33 +204,24 @@ namespace ExHyperV.ViewModels
         {
             if (SelectedVm == null || string.IsNullOrEmpty(adapterId)) return;
 
-            // 为了用户体验，先在 UI 上移除 (乐观更新)
-            var adapterToRemove = SelectedVm.NetworkAdapters.FirstOrDefault(x => x.Id == adapterId);
-            if (adapterToRemove != null)
-            {
-                // 注意：这里只是为了 UI 反应快，实际还需要后端删除
-                // 如果你的 NetworkAdapters 是 ObservableCollection，可以直接 Remove
-                // SelectedVm.NetworkAdapters.Remove(adapterToRemove); 
-            }
-
             IsLoadingSettings = true;
             try
             {
-                // 使用 ID 删除网卡 (需要处理 ID 格式，WMI ID 通常较长，这里假设 Utils.Run 能处理)
-                // 更稳妥的方式是用 PowerShell 过滤器
-                // Remove-VMNetworkAdapter -VMName 'VM' | Where-Object {$_.Id -eq 'ID'}
+                var result = await _vmNetworkService.RemoveNetworkAdapterAsync(SelectedVm.Name, adapterId);
 
-                string script = $"Get-VMNetworkAdapter -VMName '{SelectedVm.Name}' | Where-Object {{ $_.Id -eq '{adapterId}' }} | Remove-VMNetworkAdapter";
-                await Task.Run(() => Utils.Run(script));
-
-                ShowSnackbar("移除成功", "网络适配器已移除", ControlAppearance.Success, SymbolRegular.Delete24);
-
-                await Task.Delay(1000);
-                await GoToNetworkSettings();
+                if (result.Success)
+                {
+                    ShowSnackbar("移除成功", "网络适配器已移除", ControlAppearance.Success, SymbolRegular.Delete24);
+                    await GoToNetworkSettings();
+                }
+                else
+                {
+                    ShowSnackbar("移除失败", Utils.GetFriendlyErrorMessages(result.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                }
             }
             catch (Exception ex)
             {
-                ShowSnackbar("移除失败", Utils.GetFriendlyErrorMessages(ex.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                ShowSnackbar("移除异常", Utils.GetFriendlyErrorMessages(ex.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
             }
             finally
             {
@@ -290,6 +229,104 @@ namespace ExHyperV.ViewModels
             }
         }
 
+        /// <summary>
+        /// 当UI上的连接开关 (ToggleSwitch) 状态改变时调用
+        /// </summary>
+        [RelayCommand]
+        private async Task UpdateAdapterConnection(VmNetworkAdapter adapter)
+        {
+            if (SelectedVm == null || adapter == null) return;
+            IsLoadingSettings = true;
+            try
+            {
+                var result = await _vmNetworkService.UpdateConnectionAsync(SelectedVm.Name, adapter);
+                if (!result.Success)
+                {
+                    ShowSnackbar("操作失败", result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                    // 失败后回滚UI状态
+                    adapter.IsConnected = !adapter.IsConnected;
+                }
+            }
+            finally
+            {
+                IsLoadingSettings = false;
+            }
+        }
+
+        /// <summary>
+        /// 应用 VLAN 设置
+        /// </summary>
+        [RelayCommand]
+        private async Task ApplyVlanSettings(VmNetworkAdapter adapter)
+        {
+            if (SelectedVm == null || adapter == null) return;
+            IsLoadingSettings = true;
+            try
+            {
+                var result = await _vmNetworkService.ApplyVlanSettingsAsync(SelectedVm.Name, adapter);
+                if (result.Success) ShowSnackbar("成功", "VLAN 设置已应用", ControlAppearance.Success, SymbolRegular.CheckmarkCircle24);
+                else ShowSnackbar("失败", result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+            }
+            finally
+            {
+                IsLoadingSettings = false;
+            }
+        }
+
+        /// <summary>
+        /// 应用 QoS (流量控制) 设置
+        /// </summary>
+        [RelayCommand]
+        private async Task ApplyQosSettings(VmNetworkAdapter adapter)
+        {
+            if (SelectedVm == null || adapter == null) return;
+            IsLoadingSettings = true;
+            try
+            {
+                var result = await _vmNetworkService.ApplyBandwidthSettingsAsync(SelectedVm.Name, adapter);
+                if (result.Success) ShowSnackbar("成功", "流量控制设置已应用", ControlAppearance.Success, SymbolRegular.CheckmarkCircle24);
+                else ShowSnackbar("失败", result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+            }
+            finally
+            {
+                IsLoadingSettings = false;
+            }
+        }
+
+        /// <summary>
+        /// 应用安全与监控设置
+        /// </summary>
+        [RelayCommand]
+        private async Task ApplySecuritySettings(VmNetworkAdapter adapter)
+        {
+            if (SelectedVm == null || adapter == null) return;
+            IsLoadingSettings = true;
+            try
+            {
+                // 注意：由于硬件加速部分也是 ToggleSwitch，它们共享一个逻辑
+                // 安全设置部分
+                var secResult = await _vmNetworkService.ApplySecuritySettingsAsync(SelectedVm.Name, adapter);
+                if (!secResult.Success)
+                {
+                    ShowSnackbar("失败", $"安全设置应用失败: {secResult.Message}", ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                    return; // 如果失败则中断
+                }
+
+                // 硬件加速设置
+                var offloadResult = await _vmNetworkService.ApplyOffloadSettingsAsync(SelectedVm.Name, adapter);
+                if (!offloadResult.Success)
+                {
+                    ShowSnackbar("失败", $"硬件加速设置应用失败: {offloadResult.Message}", ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                    return;
+                }
+
+                ShowSnackbar("成功", "所有相关设置已应用", ControlAppearance.Success, SymbolRegular.CheckmarkCircle24);
+            }
+            finally
+            {
+                IsLoadingSettings = false;
+            }
+        }
 
         // ----------------------------------------------------------------------------------
         // 虚拟机列表与核心操作 (加载/开关机/连接)
@@ -2004,6 +2041,38 @@ namespace ExHyperV.ViewModels
 
             // 调用你已有的通知方法，给用户反馈
             ShowSnackbar("已复制", text, ControlAppearance.Success, SymbolRegular.Copy24);
+        }
+
+        // --- 在 VirtualMachinesPageViewModel 中添加 ---
+
+        /// <summary>
+        /// 当硬件加速部分的任何开关切换时触发
+        /// </summary>
+        [RelayCommand]
+        private async Task ToggleOffloadSetting(VmNetworkAdapter adapter)
+        {
+            if (SelectedVm == null || adapter == null) return;
+            // 不显示全局 Loading 以免闪烁，但可以保留日志
+            var result = await _vmNetworkService.ApplyOffloadSettingsAsync(SelectedVm.Name, adapter);
+            if (!result.Success)
+            {
+                ShowSnackbar("设置应用失败", result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                // 如果失败，建议在这里根据需要通过重新加载来回滚 UI 状态
+            }
+        }
+
+        /// <summary>
+        /// 当安全防护部分的任何开关切换时触发
+        /// </summary>
+        [RelayCommand]
+        private async Task ToggleSecuritySetting(VmNetworkAdapter adapter)
+        {
+            if (SelectedVm == null || adapter == null) return;
+            var result = await _vmNetworkService.ApplySecuritySettingsAsync(SelectedVm.Name, adapter);
+            if (!result.Success)
+            {
+                ShowSnackbar("安全设置应用失败", result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+            }
         }
     }
 }
