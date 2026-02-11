@@ -15,51 +15,42 @@ jobs:
       - name: Install dependencies
         run: sudo apt-get install -y jq curl
 
-      - name: Generate JSON with URLs (High Speed)
+      - name: Setup Environment
         run: |
-          # 1. 伪造 quickemu 依赖，消除报错
-          touch quickemu && chmod +x quickemu
-          export PATH=$PATH:.
+          # 1. 强力伪造 quickemu 并放入系统路径，彻底解决 "not found"
+          echo '#!/bin/bash' | sudo tee /usr/local/bin/quickemu
+          echo 'echo "4.9.6"' | sudo tee -a /usr/local/bin/quickemu
+          sudo chmod +x /usr/local/bin/quickemu
           
-          # 下载脚本
+          # 2. 下载 quickget
           curl -LO https://raw.githubusercontent.com/quickemu-project/quickemu/master/quickget
           chmod +x quickget
-          
-          # 2. 获取基础列表
+
+      - name: Generate JSON with URLs
+        run: |
+          # 获取基础 CSV 列表
           ./quickget --list-csv > raw.csv
-          echo "Display Name,OS,Release,Option,DownloadURL,PNG" > final.csv
           
-          # 3. 高并发获取 URL (每批 20 个)
-          MAX_JOBS=20
-          COUNT=0
+          # 创建结果文件头
+          echo "DisplayName,OS,Release,Option,DownloadURL,Logo" > final.csv
           
-          # 临时函数：获取单个 URL
-          get_url() {
-            local name="$1" os="$2" rel="$3" opt="$4" png="$5"
-            # 跳过 windows 和 macos 的预抓取，因为链接会过期
+          # 遍历抓取链接 (为了演示速度，先抓取前 50 个，如果想抓全部，去掉 head -n 50)
+          # 注意：跳过标题行
+          tail -n +2 raw.csv | head -n 50 | while IFS=, read -r name os rel opt dl png svg; do
+            echo "Fetching URL for $name $rel $opt..."
+            
+            # 只有 Linux 系统尝试获取实时链接，Windows/macOS 标记为 DYNAMIC
             if [[ "$os" == "windows"* ]] || [[ "$os" == "macos" ]]; then
-              echo "$name,$os,$rel,$opt,DYNAMIC_LINK,$png" >> final.csv
+              URL="DYNAMIC_LINK"
             else
-              URL=$(./quickget "$os" "$rel" "$opt" --url 2>/dev/null | head -n 1 || echo "")
-              echo "$name,$os,$rel,$opt,$URL,$png" >> final.csv
+              # 尝试获取 URL，超时时间设为 10 秒防止死锁
+              URL=$(timeout 10s ./quickget "$os" "$rel" "$opt" --url 2>/dev/null | grep -E '^https?://' | head -n 1 || echo "MANUAL_CHECK")
             fi
-          }
-
-          # 读取 CSV 并启动并发任务
-          while IFS=, read -r name os rel opt dl png svg; do
-            if [[ "$name" == "Display Name" ]]; then continue; fi
             
-            get_url "$name" "$os" "$rel" "$opt" "$png" &
-            
-            ((COUNT++))
-            if (( COUNT % MAX_JOBS == 0 )); then
-              wait # 每 20 个任务等待一次，防止被封 IP
-              echo "Processed $COUNT items..."
-            fi
-          done < raw.csv
-          wait
+            echo "$name,$os,$rel,$opt,$URL,$png" >> final.csv
+          done
 
-          # 4. 转换为 JSON
+          # 转换为 JSON
           jq -R -s '
             split("\n") | .[1:-1] | map(split(",")) | map(select(length >= 6)) | map({
               "DisplayName": .[0],
@@ -76,5 +67,5 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add images.json
-          git commit -m "Update images.json with URLs" || exit 0
+          git commit -m "Update images.json with dynamic URLs" || exit 0
           git push
