@@ -17,7 +17,7 @@ jobs:
 
       - name: Setup Environment
         run: |
-          # 1. 强力伪造 quickemu 并放入系统路径，彻底解决 "not found"
+          # 1. 强力伪造 quickemu
           echo '#!/bin/bash' | sudo tee /usr/local/bin/quickemu
           echo 'echo "4.9.6"' | sudo tee -a /usr/local/bin/quickemu
           sudo chmod +x /usr/local/bin/quickemu
@@ -26,31 +26,45 @@ jobs:
           curl -LO https://raw.githubusercontent.com/quickemu-project/quickemu/master/quickget
           chmod +x quickget
 
-      - name: Generate JSON with URLs
+      - name: Generate JSON with URLs (Parallel Version)
         run: |
-          # 获取基础 CSV 列表
-          ./quickget --list-csv > raw.csv
+          # 获取基础列表并去掉标题
+          ./quickget --list-csv | tail -n +2 > raw.csv
           
-          # 创建结果文件头
-          echo "DisplayName,OS,Release,Option,DownloadURL,Logo" > final.csv
+          # 定义抓取函数并导出给 xargs 使用
+          export_func() {
+            process_line() {
+              line=$1
+              name=$(echo "$line" | cut -d',' -f1)
+              os=$(echo "$line" | cut -d',' -f2)
+              rel=$(echo "$line" | cut -d',' -f3)
+              opt=$(echo "$line" | cut -d',' -f4)
+              png=$(echo "$line" | cut -d',' -f6)
+              
+              if [[ "$os" == "windows"* ]] || [[ "$os" == "macos" ]]; then
+                url="DYNAMIC_LINK"
+              else
+                # 尝试获取 URL，设置 15 秒超时
+                url=$(timeout 15s ./quickget "$os" "$rel" "$opt" --url 2>/dev/null | grep -E '^https?://' | head -n 1 || echo "MANUAL_CHECK")
+              fi
+              
+              # 将结果写入临时文件，防止并发写入冲突
+              echo "$name,$os,$rel,$opt,$url,$png" >> results_tmp.csv
+              echo "Finished: $name $rel"
+            }
+            export -f process_line
+          }
           
-          # 遍历抓取链接 (为了演示速度，先抓取前 50 个，如果想抓全部，去掉 head -n 50)
-          # 注意：跳过标题行
-          tail -n +2 raw.csv | head -n 50 | while IFS=, read -r name os rel opt dl png svg; do
-            echo "Fetching URL for $name $rel $opt..."
-            
-            # 只有 Linux 系统尝试获取实时链接，Windows/macOS 标记为 DYNAMIC
-            if [[ "$os" == "windows"* ]] || [[ "$os" == "macos" ]]; then
-              URL="DYNAMIC_LINK"
-            else
-              # 尝试获取 URL，超时时间设为 10 秒防止死锁
-              URL=$(timeout 10s ./quickget "$os" "$rel" "$opt" --url 2>/dev/null | grep -E '^https?://' | head -n 1 || echo "MANUAL_CHECK")
-            fi
-            
-            echo "$name,$os,$rel,$opt,$URL,$png" >> final.csv
-          done
+          export_func
+          
+          # 使用 xargs 同时开启 15 个并发进程
+          # 如果想测试前 50 个，把下面 raw.csv 改成 <(head -n 50 raw.csv)
+          cat raw.csv | xargs -I {} -P 15 bash -c 'process_line "{}"'
 
-          # 转换为 JSON
+          # 汇总结果并转为 JSON
+          echo "DisplayName,OS,Release,Option,DownloadURL,Logo" > final.csv
+          cat results_tmp.csv >> final.csv
+          
           jq -R -s '
             split("\n") | .[1:-1] | map(split(",")) | map(select(length >= 6)) | map({
               "DisplayName": .[0],
@@ -67,5 +81,5 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add images.json
-          git commit -m "Update images.json with dynamic URLs" || exit 0
+          git commit -m "Update images.json with Parallel URLs" || exit 0
           git push
