@@ -1,0 +1,31 @@
+name: Update Image Manifest
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # 每天凌晨自动更新一次
+  workflow_dispatch:   # 允许你手动点击按钮触发更新
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: sudo apt-get install -y jq
+
+      - name: Download and Run quickget
+        run: |
+          curl -LO https://raw.githubusercontent.com/quickemu-project/quickemu/master/quickget
+          chmod +x quickget
+          ./quickget --list-json > images.json
+
+      - name: Commit and Push
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add images.json
+          # 只有当文件有变化时才提交，防止报错
+          git commit -m "Update images.json" || exit 0
+          git push
