@@ -2,8 +2,8 @@ name: Update Image Manifest
 
 on:
   schedule:
-    - cron: '0 0 * * *' # 每天凌晨自动更新一次
-  workflow_dispatch:   # 允许你手动点击按钮触发更新
+    - cron: '0 0 * * *'
+  workflow_dispatch:
 
 jobs:
   build:
@@ -13,19 +13,44 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install dependencies
-        run: sudo apt-get install -y jq
+        run: sudo apt-get install -y jq curl
 
-      - name: Download and Run quickget
+      - name: Generate JSON with URLs
         run: |
           curl -LO https://raw.githubusercontent.com/quickemu-project/quickemu/master/quickget
           chmod +x quickget
-          ./quickget --list-json > images.json
+          
+          # 1. 先获取基础列表 (CSV格式方便处理)
+          ./quickget --list-csv > raw.csv
+          
+          # 2. 遍历列表，尝试获取每一个系统的 URL (这一步可能需要 5-10 分钟)
+          echo "Display Name,OS,Release,Option,DownloadURL,PNG" > final.csv
+          
+          # 跳过第一行标题，读取后面的数据
+          tail -n +2 raw.csv | while IFS=, read -r name os rel opt dl png svg; do
+            echo "Processing $name $rel $opt..."
+            # 使用 quickget 的 --url 功能获取地址
+            # 注意：Windows/macOS 会返回动态地址，在 JSON 里仅作参考
+            URL=$(./quickget "$os" "$rel" "$opt" --url 2>/dev/null | head -n 1 || echo "")
+            echo "$name,$os,$rel,$opt,$URL,$png" >> final.csv
+          done
+
+          # 3. 将 CSV 转换为 JSON
+          jq -R -s '
+            split("\n") | .[1:-1] | map(split(",")) | map({
+              "DisplayName": .[0],
+              "OS": .[1],
+              "Release": .[2],
+              "Option": .[3],
+              "DownloadURL": .[4],
+              "Logo": .[5]
+            })
+          ' final.csv > images.json
 
       - name: Commit and Push
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add images.json
-          # 只有当文件有变化时才提交，防止报错
-          git commit -m "Update images.json" || exit 0
+          git commit -m "Update images.json with URLs" || exit 0
           git push
