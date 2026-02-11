@@ -1,5 +1,5 @@
 ﻿<Page
-    x:Class="ExHyperV.Views.Pages.VMNetPage"
+    x:Class="ExHyperV.Views.Pages.SwitchPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -10,7 +10,7 @@
     xmlns:converters="clr-namespace:ExHyperV.Converters"
     xmlns:models="clr-namespace:ExHyperV.Models"
     xmlns:tools="clr-namespace:ExHyperV.Tools"
-    Title="VMNetPage"
+    Title="SwitchPage"
     d:DataContext="{d:DesignInstance Type=viewModels:VMNetViewModel, IsDesignTimeCreatable=True}"
     mc:Ignorable="d">
 

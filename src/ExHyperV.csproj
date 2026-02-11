@@ -44,6 +44,9 @@
     <!--                       4. 自动生成文件配置                            -->
     <!-- =================================================================== -->
     <ItemGroup>
+        <Compile Update="Converters\IntListToStringConverter.cs">
+          <Generator>MSBuild:Compile</Generator>
+        </Compile>
         <Compile Update="Models\SshCredentials.cs">
           <Generator>MSBuild:Compile</Generator>
         </Compile>

@@ -1,0 +1,482 @@
+﻿<UserControl x:Class="ExHyperV.Views.Components.VmNetSettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+             xmlns:vm="clr-namespace:ExHyperV.ViewModels"
+             xmlns:models="clr-namespace:ExHyperV.Models"
+             xmlns:converters="clr-namespace:ExHyperV.Converters"
+             xmlns:sys="clr-namespace:System;assembly=mscorlib"
+             mc:Ignorable="d" 
+             d:DesignHeight="1800" d:DesignWidth="1000"
+             d:DataContext="{d:DesignInstance vm:VirtualMachinesPageViewModel}">
+
+    <UserControl.Resources>
+        <!-- ========================= 值转换器定义 ========================= -->
+        <converters:BooleanToVisibilityConverter x:Key="BoolToVis" />
+        <!-- 将整数列表转换为逗号分隔字符串 (用于 Trunk VLAN) -->
+        <converters:IntListToStringConverter x:Key="IntListConverter"/>
+        <!-- 根据 VLAN 模式显示/隐藏特定 UI 区域 -->
+        <converters:VlanModeToVisibilityConverter x:Key="VlanModeToVisibilityConverter"/>
+
+        <!-- ========================= 枚举数据源 (ComboBox 选项) ========================= -->
+        <ObjectDataProvider x:Key="VlanModes" MethodName="GetValues" ObjectType="{x:Type sys:Enum}">
+            <ObjectDataProvider.MethodParameters>
+                <x:Type TypeName="models:VlanOperationMode"/>
+            </ObjectDataProvider.MethodParameters>
+        </ObjectDataProvider>
+        <ObjectDataProvider x:Key="PvlanModes" MethodName="GetValues" ObjectType="{x:Type sys:Enum}">
+            <ObjectDataProvider.MethodParameters>
+                <x:Type TypeName="models:PvlanMode"/>
+            </ObjectDataProvider.MethodParameters>
+        </ObjectDataProvider>
+        <ObjectDataProvider x:Key="PortMonitorModes" MethodName="GetValues" ObjectType="{x:Type sys:Enum}">
+            <ObjectDataProvider.MethodParameters>
+                <x:Type TypeName="models:PortMonitorMode"/>
+            </ObjectDataProvider.MethodParameters>
+        </ObjectDataProvider>
+
+        <!-- ========================= 通用样式定义 ========================= -->
+        <!-- 1. 分区容器边框 -->
+        <Style x:Key="SectionBorderStyle" TargetType="Border">
+            <Setter Property="Background" Value="{ui:ThemeResource CardBackgroundFillColorDefaultBrush}"/>
+            <Setter Property="BorderBrush" Value="{ui:ThemeResource CardStrokeColorDefaultBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Padding" Value="24"/>
+        </Style>
+
+        <!-- 2. 分区标题文本 -->
+        <Style x:Key="SectionHeaderTextStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+            <Setter Property="Margin" Value="0,24,0,12"/>
+        </Style>
+
+        <!-- 3. 输入框上方的小标题 -->
+        <Style x:Key="LabelTextStyle" TargetType="TextBlock">
+            <Setter Property="Margin" Value="0,0,0,8"/>
+            <Setter Property="Foreground" Value="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+        </Style>
+
+        <!-- 4. 功能描述小字 -->
+        <Style x:Key="DescriptionTextStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Foreground" Value="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+        </Style>
+
+        <!-- 5. 开关列表容器 -->
+        <Style x:Key="SettingsToggleBorderStyle" TargetType="Border" BasedOn="{StaticResource SectionBorderStyle}">
+            <Setter Property="Padding" Value="0"/>
+        </Style>
+
+        <!-- 6. 开关单项 Grid -->
+        <Style x:Key="SettingsToggleGridStyle" TargetType="Grid">
+            <Setter Property="Margin" Value="24,16"/>
+        </Style>
+
+        <!-- 7. 分隔线 -->
+        <Style x:Key="SeparatorRectangleStyle" TargetType="Rectangle">
+            <Setter Property="Height" Value="1"/>
+            <Setter Property="Fill" Value="{ui:ThemeResource CardStrokeColorDefaultBrush}"/>
+            <Setter Property="Margin" Value="24,0"/>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- ========================= 1. 页面顶部标题栏 ========================= -->
+        <Grid Grid.Row="0" Margin="24,16,24,12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="网络适配器" FontSize="20" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+
+            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                <ui:Button Icon="{ui:SymbolIcon Symbol=Add24}" Content="添加网卡" Appearance="Primary" Margin="0,0,12,0" Command="{Binding AddNetworkAdapterCommand}"/>
+                <ui:Button Appearance="Transparent" Padding="8" Command="{Binding GoBackToDashboardCommand}">
+                    <ui:SymbolIcon Symbol="ArrowLeft24" FontSize="18"/>
+                </ui:Button>
+            </StackPanel>
+        </Grid>
+
+        <!-- 加载进度条 -->
+        <ProgressBar Grid.Row="1" IsIndeterminate="True" VerticalAlignment="Top" Height="2" Margin="0,-2,0,0"
+                     Visibility="{Binding IsLoadingSettings, Converter={StaticResource BoolToVis}}"/>
+
+        <!-- ========================= 2. 网卡设置列表区域 ========================= -->
+        <ScrollViewer Grid.Row="2" Padding="24,12,24,24" VerticalScrollBarVisibility="Auto">
+            <ItemsControl ItemsSource="{Binding SelectedVm.NetworkAdapters}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="{x:Type models:VmNetworkAdapter}">
+
+                        <!-- 容器：每个网卡都是一个可折叠卡片 -->
+                        <ui:CardExpander Margin="0,0,0,16" IsExpanded="True" ContentPadding="24,12,24,24" Padding="12,8">
+
+                            <!-- 卡片头部：显示图标、名称、MAC地址、连接状态 -->
+                            <ui:CardExpander.Header>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <ui:FontIcon Grid.Column="0" Glyph="&#xE839;" FontFamily="{StaticResource SegoeFluentIcons}" FontSize="24" VerticalAlignment="Center" Margin="0,0,16,0" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding Name}" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                        <TextBlock Text="{Binding MacAddress}" FontSize="13" Opacity="0.5" Margin="12,0,0,0" FontFamily="Consolas" VerticalAlignment="Center"/>
+                                        <!-- 快速连接/断开网线开关 -->
+                                        <ui:ToggleSwitch IsChecked="{Binding IsConnected, Mode=TwoWay}" Margin="16,0,0,0" MinWidth="0" VerticalAlignment="Center"/>
+                                    </StackPanel>
+
+                                    <!-- 删除网卡按钮 -->
+                                    <ui:Button Grid.Column="2" Icon="{ui:SymbolIcon Symbol=Delete24, FontSize=18}" Appearance="Secondary"
+                                               Command="{Binding DataContext.RemoveNetworkAdapterCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                               CommandParameter="{Binding Id}"/>
+                                </Grid>
+                            </ui:CardExpander.Header>
+
+                            <!-- 卡片内容：详细设置项 -->
+                            <StackPanel>
+
+                                <!-- ================= PART 1: 基础连接 ================= -->
+                                <TextBlock Text="基础连接" Style="{StaticResource SectionHeaderTextStyle}" Margin="0,0,0,12"/>
+                                <Border Style="{StaticResource SectionBorderStyle}">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="24"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <!-- 虚拟交换机选择 -->
+                                        <StackPanel Grid.Column="0">
+                                            <TextBlock Text="虚拟交换机" Style="{StaticResource LabelTextStyle}"/>
+                                            <ComboBox SelectedValue="{Binding SwitchName, Mode=TwoWay}"
+                                                      ItemsSource="{Binding DataContext.AvailableSwitchNames, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                      IsEnabled="{Binding IsConnected}" Padding="10,6"/>
+                                        </StackPanel>
+
+                                        <!-- IP 地址展示 (横向排列 + 复制按钮) -->
+                                        <StackPanel Grid.Column="2">
+                                            <Grid Margin="0,0,0,8">
+                                                <TextBlock Text="IP 地址 (Guest)" VerticalAlignment="Center" Style="{StaticResource LabelTextStyle}" Margin="0"/>
+                                                <ui:Button Grid.Column="1" Appearance="Transparent" Padding="4" Height="20" Width="20" HorizontalAlignment="Right"
+                                                           Command="{Binding DataContext.CopyToClipboardCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
+                                                           CommandParameter="{Binding IpAddresses[0]}">
+                                                    <ui:SymbolIcon Symbol="Copy24" FontSize="14"/>
+                                                </ui:Button>
+                                            </Grid>
+
+                                            <ItemsControl ItemsSource="{Binding IpAddresses}">
+                                                <!-- 使用 WrapPanel 让 IP 地址过多时自动换行 -->
+                                                <ItemsControl.ItemsPanel>
+                                                    <ItemsPanelTemplate>
+                                                        <WrapPanel/>
+                                                    </ItemsPanelTemplate>
+                                                </ItemsControl.ItemsPanel>
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Border Background="{ui:ThemeResource ControlFillColorSecondaryBrush}" BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="4" Padding="8,4" Margin="0,0,8,8">
+                                                            <TextBlock Text="{Binding}" FontFamily="Consolas" FontSize="13" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                                                        </Border>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+
+                                <!-- ================= PART 2: VLAN 与 隔离 ================= -->
+                                <TextBlock Text="VLAN 与 隔离" Style="{StaticResource SectionHeaderTextStyle}"/>
+                                <Border Style="{StaticResource SectionBorderStyle}">
+                                    <StackPanel>
+                                        <!-- 功能解释 -->
+                                        <TextBlock Text="VLAN (虚拟局域网) 技术可将一个物理网络隔离成多个逻辑网络，用于增强安全性或管理网络流量。" 
+                                                   Style="{StaticResource DescriptionTextStyle}" Margin="0,0,0,16"/>
+
+                                        <!-- Access 模式 (高密度布局 + 内联按钮) -->
+                                        <Grid Visibility="{Binding Path=VlanMode, Converter={StaticResource VlanModeToVisibilityConverter}, ConverterParameter=Access}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="24"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="24"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0">
+                                                <TextBlock Text="VLAN 模式" Style="{StaticResource LabelTextStyle}"/>
+                                                <ComboBox ItemsSource="{Binding Source={StaticResource VlanModes}}" SelectedValue="{Binding VlanMode, Mode=TwoWay}" Padding="10,6"/>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="2">
+                                                <TextBlock Text="VLAN ID" Style="{StaticResource LabelTextStyle}"/>
+                                                <ui:TextBox Text="{Binding AccessVlanId, Mode=TwoWay}" Padding="10,6"/>
+                                            </StackPanel>
+                                            <ui:Button Grid.Column="4" Content="应用 VLAN 设置" Appearance="Primary" VerticalAlignment="Bottom">
+                                                <!-- TODO: 绑定 ApplyVlanChangesCommand -->
+                                            </ui:Button>
+                                        </Grid>
+
+                                        <!-- Trunk 模式 (高密度布局 + 内联按钮) -->
+                                        <Grid Visibility="{Binding Path=VlanMode, Converter={StaticResource VlanModeToVisibilityConverter}, ConverterParameter=Trunk}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="24"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="24"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0">
+                                                <TextBlock Text="Native VLAN ID" Style="{StaticResource LabelTextStyle}"/>
+                                                <ui:TextBox Text="{Binding NativeVlanId, Mode=TwoWay}" Padding="10,6"/>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="2">
+                                                <TextBlock Text="允许的 VLAN 列表 (逗号分隔)" Style="{StaticResource LabelTextStyle}"/>
+                                                <ui:TextBox Text="{Binding TrunkAllowedVlanIds, Converter={StaticResource IntListConverter}, Mode=TwoWay}" Padding="10,6"/>
+                                            </StackPanel>
+                                            <ui:Button Grid.Column="4" Content="应用 VLAN 设置" Appearance="Primary" VerticalAlignment="Bottom">
+                                                <!-- TODO: 绑定 ApplyVlanChangesCommand -->
+                                            </ui:Button>
+                                        </Grid>
+
+                                        <!-- Private 模式 (高密度布局 + 内联按钮) -->
+                                        <Grid Visibility="{Binding Path=VlanMode, Converter={StaticResource VlanModeToVisibilityConverter}, ConverterParameter=Private}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="16"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="16"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="16"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0">
+                                                <TextBlock Text="PVLAN 模式" Style="{StaticResource LabelTextStyle}"/>
+                                                <ComboBox ItemsSource="{Binding Source={StaticResource PvlanModes}}" SelectedValue="{Binding PvlanMode, Mode=TwoWay}" Padding="10,6"/>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="2">
+                                                <TextBlock Text="主 VLAN ID" Style="{StaticResource LabelTextStyle}"/>
+                                                <ui:TextBox Text="{Binding PvlanPrimaryId, Mode=TwoWay}" Padding="10,6"/>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="4">
+                                                <TextBlock Text="辅助 VLAN ID" Style="{StaticResource LabelTextStyle}"/>
+                                                <ui:TextBox Text="{Binding PvlanSecondaryId, Mode=TwoWay}" Padding="10,6"/>
+                                            </StackPanel>
+                                            <ui:Button Grid.Column="6" Content="应用 VLAN 设置" Appearance="Primary" VerticalAlignment="Bottom">
+                                                <!-- TODO: 绑定 ApplyVlanChangesCommand -->
+                                            </ui:Button>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- ================= PART 3: 流量控制 (QoS) ================= -->
+                                <TextBlock Text="流量控制 (QoS)" Style="{StaticResource SectionHeaderTextStyle}"/>
+                                <Border Style="{StaticResource SectionBorderStyle}">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="24"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="24"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0">
+                                            <TextBlock Text="最大带宽 (bps)" Style="{StaticResource LabelTextStyle}"/>
+                                            <ui:TextBox Text="{Binding BandwidthLimit, Mode=TwoWay}" PlaceholderText="0 (无限制)" Padding="10,6"/>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="2">
+                                            <TextBlock Text="保留带宽 (bps)" Style="{StaticResource LabelTextStyle}"/>
+                                            <ui:TextBox Text="{Binding BandwidthReservation, Mode=TwoWay}" PlaceholderText="0" Padding="10,6"/>
+                                        </StackPanel>
+                                        <ui:Button Grid.Column="4" Content="应用 QoS" Appearance="Primary" VerticalAlignment="Bottom">
+                                            <!-- TODO: 绑定 ApplyQosChangesCommand -->
+                                        </ui:Button>
+                                    </Grid>
+                                </Border>
+
+                                <!-- ================= PART 4: 硬件加速 ================= -->
+                                <TextBlock Text="硬件加速" Style="{StaticResource SectionHeaderTextStyle}"/>
+                                <Border Style="{StaticResource SettingsToggleBorderStyle}">
+                                    <StackPanel>
+                                        <Grid Style="{StaticResource SettingsToggleGridStyle}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel VerticalAlignment="Center">
+                                                <TextBlock Text="单根 I/O 虚拟化 (SR-IOV)" FontWeight="SemiBold"/>
+                                                <TextBlock Text="允许虚拟机直接访问物理网卡资源，以获得最高性能和最低延迟。" Style="{StaticResource DescriptionTextStyle}"/>
+                                            </StackPanel>
+                                            <ui:ToggleSwitch Grid.Column="1" IsChecked="{Binding SriovEnabled, Mode=TwoWay}"/>
+                                        </Grid>
+                                        <Rectangle Style="{StaticResource SeparatorRectangleStyle}"/>
+                                        <Grid Style="{StaticResource SettingsToggleGridStyle}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel VerticalAlignment="Center">
+                                                <TextBlock Text="虚拟机队列 (VMQ)" FontWeight="SemiBold"/>
+                                                <TextBlock Text="使用物理网卡直接内存访问 (DMA) 将数据包传输到虚拟机内存，降低数据复制开销。" Style="{StaticResource DescriptionTextStyle}"/>
+                                            </StackPanel>
+                                            <ui:ToggleSwitch Grid.Column="1" IsChecked="{Binding VmqEnabled, Mode=TwoWay}"/>
+                                        </Grid>
+                                        <Rectangle Style="{StaticResource SeparatorRectangleStyle}"/>
+                                        <Grid Style="{StaticResource SettingsToggleGridStyle}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel VerticalAlignment="Center">
+                                                <TextBlock Text="IPsec 任务卸载" FontWeight="SemiBold"/>
+                                                <TextBlock Text="将 IPsec 的加密和解密计算从虚拟机 CPU 卸载到物理网卡，提高网络吞吐量。" Style="{StaticResource DescriptionTextStyle}"/>
+                                            </StackPanel>
+                                            <ui:ToggleSwitch Grid.Column="1" IsChecked="{Binding IpsecOffloadEnabled, Mode=TwoWay}"/>
+                                        </Grid>
+                                        <Rectangle Style="{StaticResource SeparatorRectangleStyle}"/>
+                                        <Grid Style="{StaticResource SettingsToggleGridStyle}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel VerticalAlignment="Center">
+                                                <TextBlock Text="接收端缩放 (vRSS)" FontWeight="SemiBold"/>
+                                                <TextBlock Text="在虚拟机内的多个 vCPU 之间分配网络处理负载，防止单个 vCPU 成为瓶颈。" Style="{StaticResource DescriptionTextStyle}"/>
+                                            </StackPanel>
+                                            <ui:ToggleSwitch Grid.Column="1" IsChecked="{Binding VrssEnabled, Mode=TwoWay}"/>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- ================= PART 5: 高级安全与监控 ================= -->
+                                <TextBlock Text="高级安全与监控" Style="{StaticResource SectionHeaderTextStyle}"/>
+                                <!-- 1. 开关类设置 -->
+                                <Border Style="{StaticResource SettingsToggleBorderStyle}">
+                                    <StackPanel>
+                                        <Grid Style="{StaticResource SettingsToggleGridStyle}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel VerticalAlignment="Center">
+                                                <TextBlock Text="启用 MAC 地址欺骗" FontWeight="SemiBold"/>
+                                                <TextBlock Text="允许虚拟机更改其源 MAC 地址。对于运行网络负载均衡或嵌套虚拟化等场景是必需的。" Style="{StaticResource DescriptionTextStyle}"/>
+                                            </StackPanel>
+                                            <ui:ToggleSwitch Grid.Column="1" IsChecked="{Binding MacSpoofingAllowed, Mode=TwoWay}"/>
+                                        </Grid>
+                                        <Rectangle Style="{StaticResource SeparatorRectangleStyle}"/>
+                                        <Grid Style="{StaticResource SettingsToggleGridStyle}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel VerticalAlignment="Center">
+                                                <TextBlock Text="启用 DHCP 防护" FontWeight="SemiBold"/>
+                                                <TextBlock Text="丢弃来自此虚拟机的 DHCP 服务器数据包，防止未经授权的虚拟机充当 DHCP 服务器。" Style="{StaticResource DescriptionTextStyle}"/>
+                                            </StackPanel>
+                                            <ui:ToggleSwitch Grid.Column="1" IsChecked="{Binding DhcpGuardEnabled, Mode=TwoWay}"/>
+                                        </Grid>
+                                        <Rectangle Style="{StaticResource SeparatorRectangleStyle}"/>
+                                        <Grid Style="{StaticResource SettingsToggleGridStyle}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel VerticalAlignment="Center">
+                                                <TextBlock Text="启用路由器防护" FontWeight="SemiBold"/>
+                                                <TextBlock Text="丢弃来自此虚拟机的路由器通告和重定向数据包，防止其影响网络路由。" Style="{StaticResource DescriptionTextStyle}"/>
+                                            </StackPanel>
+                                            <ui:ToggleSwitch Grid.Column="1" IsChecked="{Binding RouterGuardEnabled, Mode=TwoWay}"/>
+                                        </Grid>
+                                        <Rectangle Style="{StaticResource SeparatorRectangleStyle}"/>
+                                        <Grid Style="{StaticResource SettingsToggleGridStyle}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel VerticalAlignment="Center">
+                                                <TextBlock Text="允许网卡绑定 (Teaming)" FontWeight="SemiBold"/>
+                                                <TextBlock Text="允许在虚拟机操作系统内部将多个虚拟网卡绑定在一起，以提高带宽和冗余。" Style="{StaticResource DescriptionTextStyle}"/>
+                                            </StackPanel>
+                                            <ui:ToggleSwitch Grid.Column="1" IsChecked="{Binding TeamingAllowed, Mode=TwoWay}"/>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- 2. 端口镜像与风暴阈值 (带动态解释) -->
+                                <Border Style="{StaticResource SectionBorderStyle}" Margin="0,16,0,0">
+                                    <StackPanel>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="24"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="24"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+
+                                            <!-- 端口镜像 -->
+                                            <StackPanel Grid.Column="0">
+                                                <TextBlock Text="端口镜像模式" Style="{StaticResource LabelTextStyle}"/>
+                                                <ComboBox x:Name="MirrorModeComboBox" 
+                                                          ItemsSource="{Binding Source={StaticResource PortMonitorModes}}" 
+                                                          SelectedValue="{Binding MonitorMode, Mode=TwoWay}" 
+                                                          Padding="10,6"/>
+
+                                                <!-- 动态解释文本：根据选择变化 -->
+                                                <TextBlock Margin="0,8,0,0" FontSize="12" TextWrapping="Wrap" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding ElementName=MirrorModeComboBox, Path=SelectedValue}" Value="None">
+                                                                    <Setter Property="Text" Value="关闭镜像。此网卡正常工作，不进行流量复制。"/>
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding ElementName=MirrorModeComboBox, Path=SelectedValue}" Value="Source">
+                                                                    <Setter Property="Text" Value="角色：[被监控端]。此网卡的流量将被复制并发送给设置为“Destination”的虚拟机。"/>
+                                                                    <Setter Property="Foreground" Value="{ui:ThemeResource SystemFillColorCautionBrush}"/>
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding ElementName=MirrorModeComboBox, Path=SelectedValue}" Value="Destination">
+                                                                    <Setter Property="Text" Value="角色：[监控端]。此网卡将接收其他“Source”虚拟机的流量副本 (用于 Wireshark 等)。"/>
+                                                                    <Setter Property="Foreground" Value="{ui:ThemeResource SystemFillColorSuccessBrush}"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                            </StackPanel>
+
+                                            <!-- 风暴阈值 -->
+                                            <StackPanel Grid.Column="2" VerticalAlignment="Top">
+                                                <TextBlock Text="广播风暴防护 (包/秒)" Style="{StaticResource LabelTextStyle}"/>
+                                                <ui:TextBox Text="{Binding StormLimit, Mode=TwoWay}" PlaceholderText="0 (不限制)" Padding="10,6"/>
+                                                <TextBlock Text="限制该虚拟机每秒发送的广播/多播包数量。填 0 表示禁用限制。" 
+                                                           FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" Margin="0,8,0,0"/>
+                                            </StackPanel>
+
+                                            <!-- 监控设置的应用按钮 -->
+                                            <ui:Button Grid.Column="4" Content="应用监控" Appearance="Primary" VerticalAlignment="Top" Margin="0,29,0,0">
+                                                <!-- TODO: 绑定 ApplyMonitoringChangesCommand -->
+                                            </ui:Button>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+
+                            </StackPanel>
+                        </ui:CardExpander>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

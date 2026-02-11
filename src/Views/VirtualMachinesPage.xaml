@@ -428,7 +428,16 @@
                                     </Setter>
                                 </DataTrigger>
 
-
+                                <!-- 【新增】网络设置界面触发器 -->
+                                <DataTrigger Binding="{Binding DataContext.CurrentViewType, RelativeSource={RelativeSource AncestorType=Page}}" Value="NetworkSettings">
+                                    <Setter Property="ContentTemplate">
+                                        <Setter.Value>
+                                            <DataTemplate>
+                                                <components:VmNetSettingsView/>
+                                            </DataTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </DataTrigger>
 
                             </Style.Triggers>
                         </Style>

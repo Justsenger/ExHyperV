@@ -30,6 +30,9 @@
     <Compile Update="Views\Components\VmGPUSettingsView.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Update="Views\Components\VmNetSettingsView.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Update="Views\Components\VmRAMSettingsView.xaml.cs">
       <SubType>Code</SubType>
     </Compile>

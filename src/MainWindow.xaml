@@ -79,7 +79,7 @@
                     Content="{x:Static properties:Resources.Title_VirtualSwitch}"
                     NavigationCacheMode="Enabled"
                     Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"
-                    TargetPageType="{x:Type pages:VMNetPage}">
+                    TargetPageType="{x:Type pages:SwitchPage}">
                     <ui:NavigationViewItem.Icon>
                         <ui:FontIcon FontSize="16" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xE774;"/>
                     </ui:NavigationViewItem.Icon>

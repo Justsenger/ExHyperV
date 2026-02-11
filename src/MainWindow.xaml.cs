@@ -29,7 +29,6 @@ namespace ExHyperV
             //预加载所有子界面，多线程。
             RootNavigation.Navigate(typeof(DDAPage));
             RootNavigation.Navigate(typeof(StatusPage));
-            RootNavigation.Navigate(typeof(VMNetPage));
 
 
             RootNavigation.Navigate(typeof(MainPage));

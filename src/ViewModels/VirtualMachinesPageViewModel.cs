@@ -18,7 +18,7 @@ namespace ExHyperV.ViewModels
         Dashboard, CpuSettings, CpuAffinity, MemorySettings, StorageSettings, AddStorage,
         GpuSettings,
         AddGpuSelect,  
-        AddGpuProgress  
+        AddGpuProgress, NetworkSettings
     }
     public partial class VirtualMachinesPageViewModel : ObservableObject, IDisposable
     {
@@ -116,6 +116,7 @@ namespace ExHyperV.ViewModels
                 case VmDetailViewType.CpuAffinity:
                 case VmDetailViewType.MemorySettings:
                 case VmDetailViewType.StorageSettings:
+                case VmDetailViewType.NetworkSettings:
                     CurrentViewType = VmDetailViewType.Dashboard;
                     break;
                 default:
@@ -123,6 +124,172 @@ namespace ExHyperV.ViewModels
                     break;
             }
         }
+
+        //虚拟机网络部分
+        // ----------------------------------------------------------------------------------
+        // 网络设置部分 (Network Settings)
+        // ----------------------------------------------------------------------------------
+
+        // 供界面下拉框绑定的虚拟交换机列表
+        [ObservableProperty] private ObservableCollection<string> _availableSwitchNames = new();
+
+        [RelayCommand]
+        private async Task GoToNetworkSettings()
+        {
+            if (SelectedVm == null) return;
+
+            CurrentViewType = VmDetailViewType.NetworkSettings;
+            IsLoadingSettings = true;
+
+            try
+            {
+                // =========================================================
+                // MOCK DATA (模拟数据) - 用于预览 UI 效果
+                // =========================================================
+
+                // 1. 模拟宿主机的虚拟交换机列表
+                AvailableSwitchNames.Clear();
+                AvailableSwitchNames.Add("Default Switch");
+                AvailableSwitchNames.Add("WSL (Hyper-V Firewall)");
+                AvailableSwitchNames.Add("External Wi-Fi Bridge");
+                AvailableSwitchNames.Add("Internal Private Network");
+
+                // 2. 模拟当前虚拟机的网卡列表
+                // 注意：先确保你在 VmInstanceInfo 中添加了 NetworkAdapters 属性 (上一步修复的)
+                SelectedVm.NetworkAdapters.Clear();
+
+                // --- 模拟网卡 1: 正常连接的业务网卡 ---
+                SelectedVm.NetworkAdapters.Add(new VmNetworkAdapter
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    Name = "Network Adapter",
+                    MacAddress = "00:15:5D:01:0A:03",
+                    IsConnected = true,
+                    SwitchName = "Default Switch",
+                    IsStaticMac = false,
+
+                    // 模拟 Guest OS 内部 IP
+                    IpAddresses = new List<string> { "192.168.1.105", "fe80::215:5dff:fe01:a03" },
+
+                    // 安全设置
+                    MacSpoofingAllowed = true, // 模拟开启了 MAC 欺骗
+                    DhcpGuardEnabled = false,
+
+                    // 硬件加速
+                    VmqEnabled = true,
+                    SriovEnabled = false,
+
+                    // 带宽
+                    BandwidthLimit = 0, // 0 = 无限制
+                    BandwidthReservation = 0,
+
+                    VlanMode = VlanOperationMode.Access
+                });
+
+                // --- 模拟网卡 2: 用于隔离测试的网卡 (VLAN 20) ---
+                SelectedVm.NetworkAdapters.Add(new VmNetworkAdapter
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    Name = "Isolation Adapter",
+                    MacAddress = "00:15:5D:88:99:AA",
+                    IsConnected = false, // 未连接状态
+                    SwitchName = null,
+                    IsStaticMac = true,
+
+                    // 未连接自然没有 IP
+                    IpAddresses = new List<string>(),
+
+                    // 模拟配置了 VLAN
+                    VlanMode = VlanOperationMode.Access,
+                    AccessVlanId = 20,
+
+                    // 模拟开启了一些高级功能
+                    DeviceNamingEnabled = true,
+                    TeamingAllowed = true
+                });
+
+                // 模拟加载耗时
+                await Task.Delay(500);
+
+                // =========================================================
+                // END MOCK
+                // =========================================================
+            }
+            catch (Exception ex)
+            {
+                ShowSnackbar("加载网络配置失败", Utils.GetFriendlyErrorMessages(ex.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+            }
+            finally
+            {
+                IsLoadingSettings = false;
+            }
+        }
+        [RelayCommand]
+        private async Task AddNetworkAdapter()
+        {
+            if (SelectedVm == null) return;
+            IsLoadingSettings = true;
+            try
+            {
+                // 执行 PowerShell 添加网卡
+                await Task.Run(() => Utils.Run($"Add-VMNetworkAdapter -VMName '{SelectedVm.Name}'"));
+
+                ShowSnackbar("添加成功", "已添加新的网络适配器", ControlAppearance.Success, SymbolRegular.CheckmarkCircle24);
+
+                // 稍作等待以让后台监控循环捕获到新网卡，或者手动触发刷新
+                await Task.Delay(1000);
+                // 重新进入以刷新界面
+                await GoToNetworkSettings();
+            }
+            catch (Exception ex)
+            {
+                ShowSnackbar("添加失败", Utils.GetFriendlyErrorMessages(ex.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+            }
+            finally
+            {
+                IsLoadingSettings = false;
+            }
+        }
+
+        [RelayCommand]
+        private async Task RemoveNetworkAdapter(string adapterId)
+        {
+            if (SelectedVm == null || string.IsNullOrEmpty(adapterId)) return;
+
+            // 为了用户体验，先在 UI 上移除 (乐观更新)
+            var adapterToRemove = SelectedVm.NetworkAdapters.FirstOrDefault(x => x.Id == adapterId);
+            if (adapterToRemove != null)
+            {
+                // 注意：这里只是为了 UI 反应快，实际还需要后端删除
+                // 如果你的 NetworkAdapters 是 ObservableCollection，可以直接 Remove
+                // SelectedVm.NetworkAdapters.Remove(adapterToRemove); 
+            }
+
+            IsLoadingSettings = true;
+            try
+            {
+                // 使用 ID 删除网卡 (需要处理 ID 格式，WMI ID 通常较长，这里假设 Utils.Run 能处理)
+                // 更稳妥的方式是用 PowerShell 过滤器
+                // Remove-VMNetworkAdapter -VMName 'VM' | Where-Object {$_.Id -eq 'ID'}
+
+                string script = $"Get-VMNetworkAdapter -VMName '{SelectedVm.Name}' | Where-Object {{ $_.Id -eq '{adapterId}' }} | Remove-VMNetworkAdapter";
+                await Task.Run(() => Utils.Run(script));
+
+                ShowSnackbar("移除成功", "网络适配器已移除", ControlAppearance.Success, SymbolRegular.Delete24);
+
+                await Task.Delay(1000);
+                await GoToNetworkSettings();
+            }
+            catch (Exception ex)
+            {
+                ShowSnackbar("移除失败", Utils.GetFriendlyErrorMessages(ex.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+            }
+            finally
+            {
+                IsLoadingSettings = false;
+            }
+        }
+
 
         // ----------------------------------------------------------------------------------
         // 虚拟机列表与核心操作 (加载/开关机/连接)

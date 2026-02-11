@@ -43,7 +43,9 @@ namespace ExHyperV.Models
         [NotifyPropertyChangedFor(nameof(IoSpeedText))]
         private long _writeSpeedBps; // 字节每秒
 
-        public string IoSpeedText => $"↑ {FormatIoSpeed(_writeSpeedBps)}   ↓ {FormatIoSpeed(_readSpeedBps)}";
+        public List<VmNetworkAdapter> NetworkAdapters { get; set; } = new List<VmNetworkAdapter>();
+
+        public string IoSpeedText => $"↑ {FormatIoSpeed(_readSpeedBps)}   ↓ {FormatIoSpeed(_writeSpeedBps)} ";
 
         public double UsagePercentage => _maxSize > 0 ? (double)_currentSize / _maxSize * 100 : 0;
         public string UsageText => $"{FormatBytes(_currentSize)} / {FormatBytes(_maxSize)}";
@@ -318,6 +320,8 @@ namespace ExHyperV.Models
         public ObservableCollection<VmDiskDetails> Disks { get; } = new();
         public ObservableCollection<VmStorageItem> StorageItems { get; } = new();
 
+        public ObservableCollection<VmNetworkAdapter> NetworkAdapters { get; } = new();
+
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(ConfigSummary))]
         private double _totalDiskSizeGb;
@@ -591,5 +595,7 @@ namespace ExHyperV.Models
         private DateTime _anchorLocalTime;
         private string _transientState, _backendState;
         public IAsyncRelayCommand<string> ControlCommand { get; set; }
+
+
     }
 }

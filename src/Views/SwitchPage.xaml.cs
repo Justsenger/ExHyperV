@@ -3,9 +3,9 @@ using ExHyperV.ViewModels;
 
 namespace ExHyperV.Views.Pages
 {
-    public partial class VMNetPage : Page
+    public partial class SwitchPage : Page
     {
-        public VMNetPage()
+        public SwitchPage()
         {
             InitializeComponent();
             DataContext = new VMNetViewModel();
