@@ -447,11 +447,6 @@ namespace ExHyperV.Services
         // ----------------------------------------------------------------------------------
         // 核心注入逻辑：挂载 -> 定位 -> Robocopy(带进度) -> 注册表 -> 卸载
         // ----------------------------------------------------------------------------------
-        // [重构] 驱动注入核心逻辑
-        /// <summary>
-        /// 核心注入逻辑：支持虚拟磁盘(VHDX)与物理直通硬盘
-        /// 采用安全剥离与原路找回机制，确保物理磁盘注入的稳定性
-        /// </summary>
         private async Task<string> InjectWindowsDriversAsync(
             string vmName,
             VmDiskTarget diskTarget,
@@ -477,94 +472,118 @@ namespace ExHyperV.Services
                     Log($"[物理磁盘] 正在锁定并剥离磁盘 {diskTarget.PhysicalDiskNumber}...");
                     hostDiskNumber = diskTarget.PhysicalDiskNumber;
 
-                    // 提取坐标并移除
+                    // 获取坐标座次并从 VM 移除
                     var detachScript = $@"
                 $ErrorActionPreference = 'Stop'
                 $vmDisk = Get-VMHardDiskDrive -VMName '{vmName}' | Where-Object {{ $_.DiskNumber -eq {hostDiskNumber} }}
                 if ($vmDisk) {{
                     $out = ""$($vmDisk.ControllerType),$($vmDisk.ControllerNumber),$($vmDisk.ControllerLocation)""
-                    Remove-VMHardDiskDrive -VMHardDiskDrive $vmDisk
+                    Remove-VMHardDiskDrive -VMHardDiskDrive $vmDisk -ErrorAction Stop
                     $out
-                }} else {{ throw 'DiskNotFound' }}";
+                }} else {{ throw 'DiskNotFoundInVm' }}";
 
                     var detachRes = Utils.Run(detachScript);
-                    if (detachRes == null || detachRes.Count == 0) return "无法剥离磁盘：找不到该物理磁盘。";
+                    if (detachRes == null || detachRes.Count == 0) return "无法剥离磁盘：未在虚拟机配置中找到该磁盘。";
 
                     var parts = detachRes[0].ToString().Split(',');
                     savedCtrlType = parts[0];
                     savedCtrlNum = int.Parse(parts[1]);
                     savedCtrlLoc = int.Parse(parts[2]);
 
-                    // 联机
-                    Utils.Run($@"Set-Disk -Number {hostDiskNumber} -IsOffline $false; Set-Disk -Number {hostDiskNumber} -IsReadOnly $false");
+                    // 宿主机联机 (参考 VmStorageService 风格)
+                    Utils.Run($@"Set-Disk -Number {hostDiskNumber} -IsOffline $false -ErrorAction Stop");
+                    Utils.Run($@"Set-Disk -Number {hostDiskNumber} -IsReadOnly $false -ErrorAction Stop");
+                    Utils.Run("Update-HostStorageCache");
                 }
-                else { /* 虚拟磁盘逻辑省略，保持原样 */ }
+                else
+                {
+                    Log($"[虚拟磁盘] 正在挂载: {Path.GetFileName(diskTarget.Path)}...");
+                    var mountRes = Utils.Run($@"
+                Dismount-DiskImage -ImagePath '{diskTarget.Path}' -ErrorAction SilentlyContinue
+                $img = Mount-DiskImage -ImagePath '{diskTarget.Path}' -NoDriveLetter -PassThru -ErrorAction Stop
+                ($img | Get-Disk).Number");
 
-                // --- 阶段 2：挂载与注入 ---
+                    if (mountRes == null || !int.TryParse(mountRes[0].ToString(), out hostDiskNumber))
+                        return "虚拟磁盘挂载失败。";
+                }
+
+                // --- 阶段 2：注入驱动 ---
                 char suggestedLetter = GetFreeDriveLetter();
                 var assignRes = Utils.Run($@"
             $p = Get-Partition -DiskNumber {hostDiskNumber} | Where-Object PartitionNumber -eq {partition.PartitionNumber}
-            Set-Partition -InputObject $p -NewDriveLetter '{suggestedLetter}'
+            Set-Partition -InputObject $p -NewDriveLetter '{suggestedLetter}' -ErrorAction Stop
             '{suggestedLetter}'");
 
                 assignedDriveLetter = assignRes[0].ToString().TrimEnd(':') + ":";
 
-                // 执行 Robocopy 同步 (代码省略)
-                // 执行 NVIDIA 注册表注入 (代码省略)
+                // 同步文件 (Robocopy)
+                string sourceFolder = FindGpuDriverSourcePath(gpuInstancePath);
+                if (string.IsNullOrEmpty(sourceFolder)) sourceFolder = @"C:\Windows\System32\DriverStore\FileRepository";
+                string destFolder = Path.Combine(assignedDriveLetter, "Windows", "System32", "HostDriverStore", "FileRepository", new DirectoryInfo(sourceFolder).Name);
+
+                if (!Directory.Exists(Path.GetDirectoryName(destFolder))) Directory.CreateDirectory(Path.GetDirectoryName(destFolder));
+
+                using (Process p = Process.Start(new ProcessStartInfo
+                {
+                    FileName = "robocopy.exe",
+                    Arguments = $"\"{sourceFolder}\" \"{destFolder}\" /E /R:1 /W:1 /MT:32 /NDL /NJH /NJS /NC /NS",
+                    CreateNoWindow = true,
+                    UseShellExecute = false
+                })) { await p.WaitForExitAsync(); }
+
+                // NVIDIA 注册表注入
+                if (gpuManu.Contains("NVIDIA", StringComparison.OrdinalIgnoreCase)) NvidiaReg(assignedDriveLetter);
 
                 return "OK";
             }
-            catch (Exception ex) { return $"注入异常: {ex.Message}"; }
+            catch (Exception ex) { return $"注入失败: {ex.Message}"; }
             finally
             {
-                // --- 阶段 3：环境还原 (核心修复区域) ---
+                // --- 阶段 3：清理与归还 (修复 Confirm 参数报错) ---
 
                 if (isPhysical && hostDiskNumber != -1)
                 {
                     Log("正在执行物理磁盘安全回挂流程...");
-
-                    // 1. 强制清理所有挂载点，防止脱机被阻塞
-                    Utils.Run($@"
-                Get-Partition -DiskNumber {hostDiskNumber} | Where-Object DriveLetter -ne $null | ForEach-Object {{
-                    Remove-PartitionAccessPath -DiskNumber $_.DiskNumber -PartitionNumber $_.PartitionNumber -AccessPath ""$($_.DriveLetter):""
-                }}
-            ");
-
-                    // 2. 强制脱机并验证状态 (增加重试机制)
-                    var offlineVerificationScript = $@"
-                $ErrorActionPreference = 'Stop'
-                $n = {hostDiskNumber}
-                for($i=0; $i -lt 5; $i++) {{
-                    Set-Disk -Number $n -IsOffline $true -Confirm:$false -ErrorAction SilentlyContinue
-                    Start-Sleep -Milliseconds 500
-                    if ((Get-Disk -Number $n).IsOffline) {{ return 'OFFLINE_READY' }}
-                }}
-                throw '磁盘无法进入脱机状态，请检查是否有程序占用。'";
-
                     try
                     {
-                        Utils.Run(offlineVerificationScript);
-                        Thread.Sleep(1000); // 给系统 WMI 刷新时间
+                        // 1. 彻底移除宿主机盘符路径
+                        Utils.Run($@"
+                    Get-Partition -DiskNumber {hostDiskNumber} | Where-Object DriveLetter -ne $null | ForEach-Object {{
+                        Remove-PartitionAccessPath -DiskNumber $_.DiskNumber -PartitionNumber $_.PartitionNumber -AccessPath ""$($_.DriveLetter):"" -ErrorAction SilentlyContinue
+                    }}");
 
-                        // 3. 原路找回 (确保座次参数是严格的整数)
+                        // 2. 宿主机脱机 (去掉了会导致报错的 -Confirm 参数)
+                        var offlineScript = $@"
+                    $n = {hostDiskNumber}
+                    Set-Disk -Number $n -IsOffline $true -ErrorAction Stop
+                    for($i=0; $i -lt 10; $i++) {{
+                        if ((Get-Disk -Number $n).IsOffline) {{ return 'OK' }}
+                        Start-Sleep -Milliseconds 500
+                    }}
+                    throw '磁盘脱机超时'";
+
+                        Utils.Run(offlineScript);
+                        Thread.Sleep(1000); // 额外等待 WMI 刷新
+
+                        // 3. 原路找回 (参考 AddDriveAsync 逻辑)
                         var reattachScript = $@"
-                    $ErrorActionPreference = 'Stop'
                     Add-VMHardDiskDrive -VMName '{vmName}' `
                                         -ControllerType '{savedCtrlType}' `
                                         -ControllerNumber {savedCtrlNum} `
                                         -ControllerLocation {savedCtrlLoc} `
-                                        -DiskNumber {hostDiskNumber}";
+                                        -DiskNumber {hostDiskNumber} `
+                                        -ErrorAction Stop";
                         Utils.Run(reattachScript);
-                        Log("物理磁盘已成功挂回。");
+                        Log("物理磁盘已成功回挂至虚拟机。");
                     }
                     catch (Exception ex)
                     {
-                        Log($"[严重警告] 磁盘挂回失败: {ex.Message}");
+                        Log($"[严重警告] 物理磁盘自动回挂失败: {ex.Message}");
                     }
                 }
-                else if (!isPhysical && !string.IsNullOrEmpty(diskTarget.Path))
+                else if (!string.IsNullOrEmpty(diskTarget?.Path))
                 {
-                    Utils.Run($"Dismount-DiskImage -ImagePath '{diskTarget.Path}'");
+                    Utils.Run($"Dismount-DiskImage -ImagePath '{diskTarget.Path}' -ErrorAction SilentlyContinue");
                 }
             }
         }
