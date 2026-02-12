@@ -14,14 +14,13 @@ namespace ExHyperV.Services
         private void Log(string message) => Debug.WriteLine($"[VmNetDebug][{DateTime.Now:HH:mm:ss.fff}] {message}");
 
         // ==========================================
-        // 1. 获取网卡信息 (Read)
+        // 1. 获取网卡信息 (快速 - 仅 WMI，秒回)
         // ==========================================
         public async Task<List<VmNetworkAdapter>> GetNetworkAdaptersAsync(string vmName)
         {
-            Log($">>> 加载网卡: {vmName}");
+            Log($">>> [Fast] 加载网卡配置: {vmName}");
             var query = $"SELECT * FROM Msvm_ComputerSystem WHERE ElementName = '{vmName.Replace("'", "''")}'";
 
-            // 第一阶段：WMI 基础数据同步抓取 (解决 SelectMany 编译错误)
             var wmiResults = await WmiTools.QueryAsync(query, (vmEntry) =>
             {
                 var adapters = new List<VmNetworkAdapter>();
@@ -44,14 +43,18 @@ namespace ExHyperV.Services
                         IsStaticMac = GetBool(port, "StaticMacAddress")
                     };
 
-                    // A路径：尝试 WMI 获取 IP (集成服务)
-                    var guestConfig = port.GetRelated("Msvm_GuestNetworkAdapterConfiguration", "Msvm_SettingDataComponent", null, null, null, null, false, null)
-                                          .Cast<ManagementObject>().FirstOrDefault();
-                    if (guestConfig != null)
+                    // A路径：尝试 WMI 获取 IP (集成服务 - 速度快，保留)
+                    try
                     {
-                        var ips = guestConfig["IPAddresses"] as string[];
-                        if (ips != null) adapter.IpAddresses = ips.ToList();
+                        var guestConfig = port.GetRelated("Msvm_GuestNetworkAdapterConfiguration", "Msvm_SettingDataComponent", null, null, null, null, false, null)
+                                              .Cast<ManagementObject>().FirstOrDefault();
+                        if (guestConfig != null)
+                        {
+                            var ips = guestConfig["IPAddresses"] as string[];
+                            if (ips != null) adapter.IpAddresses = ips.ToList();
+                        }
                     }
+                    catch { /* 忽略异常 */ }
 
                     // 关联枢纽获取配置
                     using var allocation = port.GetRelated("Msvm_EthernetPortAllocationSettingData").Cast<ManagementObject>().FirstOrDefault();
@@ -72,29 +75,47 @@ namespace ExHyperV.Services
                 return adapters;
             });
 
-            var finalAdapters = wmiResults.SelectMany(x => x).ToList();
-
-            // 第二阶段：ARP 异步补充 IP (回退方案)
-            foreach (var adapter in finalAdapters)
-            {
-                if (adapter.IpAddresses.Count == 0 && !string.IsNullOrEmpty(adapter.MacAddress))
-                {
-                    Log($"  [IP回退] WMI未响应，尝试ARP嗅探: {adapter.MacAddress}");
-                    string arpIp = await Utils.GetVmIpAddressAsync(vmName, adapter.MacAddress);
-                    if (!string.IsNullOrEmpty(arpIp))
-                    {
-                        adapter.IpAddresses = arpIp.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries)
-                                                   .Select(x => x.Trim()).ToList();
-                        Log($"  [IP路经B] ARP获取成功: {arpIp}");
-                    }
-                }
-            }
-
-            return finalAdapters;
+            // 直接返回，不等待 ARP 嗅探
+            return wmiResults.SelectMany(x => x).ToList();
         }
 
         // ==========================================
-        // 2. 写入逻辑 (Apply 方法全补齐)
+        // [新增] 后台填充 IP 方法 (供 ViewModel 异步调用)
+        // ==========================================
+        public async Task FillDynamicIpsAsync(string vmName, IEnumerable<VmNetworkAdapter> adapters)
+        {
+            var targetAdapters = adapters.Where(a => (a.IpAddresses == null || a.IpAddresses.Count == 0) && !string.IsNullOrEmpty(a.MacAddress)).ToList();
+            if (targetAdapters.Count == 0) return;
+
+            Log($">>> [Background] 开始填充 IP...");
+
+            foreach (var adapter in targetAdapters)
+            {
+                // 如果其他线程已经填充了，跳过
+                if (adapter.IpAddresses != null && adapter.IpAddresses.Count > 0) continue;
+
+                try
+                {
+                    string arpIp = await Utils.GetVmIpAddressAsync(vmName, adapter.MacAddress);
+                    if (!string.IsNullOrEmpty(arpIp))
+                    {
+                        var newIps = arpIp.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries)
+                                          .Select(x => x.Trim()).ToList();
+
+                        // 更新对象属性 (由于是引用类型，ViewModel 只要通知变更即可)
+                        adapter.IpAddresses = newIps;
+                        Log($"  [IP更新] {adapter.Name} -> {arpIp}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Log($"IP获取失败: {ex.Message}");
+                }
+            }
+        }
+
+        // ==========================================
+        // 2. 写入逻辑 (Apply 方法)
         // ==========================================
 
         public async Task<(bool Success, string Message)> ApplyVlanSettingsAsync(string vmName, VmNetworkAdapter adapter)

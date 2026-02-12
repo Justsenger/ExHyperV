@@ -89,7 +89,7 @@
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
-            <TextBlock Text="网络适配器" FontSize="20" FontWeight="Normal" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+            <TextBlock Text="网络" FontSize="20" FontWeight="Normal" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
             <StackPanel Grid.Column="1" Orientation="Horizontal">
                 <ui:Button Icon="{ui:SymbolIcon Symbol=Add24}" Content="添加网卡" Appearance="Primary" Margin="0,0,12,0" Command="{Binding AddNetworkAdapterCommand}"/>
                 <ui:Button Appearance="Transparent" Command="{Binding GoBackToDashboardCommand}">

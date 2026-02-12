@@ -134,29 +134,48 @@ namespace ExHyperV.ViewModels
 
         // 供界面下拉框绑定的虚拟交换机列表
         [ObservableProperty] private ObservableCollection<string> _availableSwitchNames = new();
-
         [RelayCommand]
         private async Task GoToNetworkSettings()
         {
             if (SelectedVm == null) return;
 
             CurrentViewType = VmDetailViewType.NetworkSettings;
-            IsLoadingSettings = true;
+
+            // 只有当列表为空时才显示 Loading，避免再次进入时进度条闪烁
+            if (SelectedVm.NetworkAdapters.Count == 0)
+            {
+                IsLoadingSettings = true;
+            }
 
             try
             {
-                // 1. 获取宿主机所有可用的虚拟交换机
-                var switches = await _vmNetworkService.GetAvailableSwitchesAsync();
-                AvailableSwitchNames = new ObservableCollection<string>(switches);
+                // 1. 获取数据 (后台并发获取，不阻塞 UI)
+                var switchesTask = _vmNetworkService.GetAvailableSwitchesAsync();
+                var adaptersTask = _vmNetworkService.GetNetworkAdaptersAsync(SelectedVm.Name);
 
-                // 2. 获取当前虚拟机的所有网络适配器配置
-                var adapters = await _vmNetworkService.GetNetworkAdaptersAsync(SelectedVm.Name);
+                await Task.WhenAll(switchesTask, adaptersTask);
 
-                // 3. 更新到 UI
-                SelectedVm.NetworkAdapters.Clear();
-                foreach (var adapter in adapters.OrderBy(a => a.Name))
+                var switches = switchesTask.Result;
+                var newAdapters = adaptersTask.Result;
+
+                // 更新交换机列表
+                if (!AvailableSwitchNames.SequenceEqual(switches))
                 {
-                    SelectedVm.NetworkAdapters.Add(adapter);
+                    AvailableSwitchNames = new ObservableCollection<string>(switches);
+                }
+
+                // 2. [核心优化] 智能同步列表，消除"先清空后添加"导致的闪烁
+                SyncNetworkAdapters(SelectedVm.NetworkAdapters, newAdapters);
+
+                // 3. [后台] 启动 IP 探测
+                if (SelectedVm.IsRunning)
+                {
+                    _ = Task.Run(async () => {
+                        await _vmNetworkService.FillDynamicIpsAsync(
+                            SelectedVm.Name,
+                            SelectedVm.NetworkAdapters
+                        );
+                    });
                 }
             }
             catch (Exception ex)
@@ -168,7 +187,68 @@ namespace ExHyperV.ViewModels
                 IsLoadingSettings = false;
             }
         }
+        /// <summary>
+        /// 智能同步网卡列表，避免 UI 闪烁
+        /// </summary>
+        private void SyncNetworkAdapters(ObservableCollection<VmNetworkAdapter> currentList, List<VmNetworkAdapter> newList)
+        {
+            // 1. 移除已经不存在的网卡
+            var toRemove = currentList.Where(c => !newList.Any(n => n.Id == c.Id)).ToList();
+            foreach (var item in toRemove)
+            {
+                currentList.Remove(item);
+            }
 
+            // 2. 更新现有的 或 添加新的
+            foreach (var newItem in newList)
+            {
+                var existingItem = currentList.FirstOrDefault(c => c.Id == newItem.Id);
+                if (existingItem != null)
+                {
+                    // === 存在则更新属性 (这不会导致 UI 重绘整个卡片) ===
+
+                    // 基础信息
+                    if (existingItem.Name != newItem.Name) existingItem.Name = newItem.Name;
+                    if (existingItem.IsConnected != newItem.IsConnected) existingItem.IsConnected = newItem.IsConnected;
+                    if (existingItem.SwitchName != newItem.SwitchName) existingItem.SwitchName = newItem.SwitchName;
+                    if (existingItem.MacAddress != newItem.MacAddress) existingItem.MacAddress = newItem.MacAddress;
+
+                    // IP 地址 (如果 WMI 拿到了 IP，就更新；如果是空的，保留旧的可能是 ARP 嗅探到的)
+                    if (newItem.IpAddresses != null && newItem.IpAddresses.Count > 0)
+                    {
+                        existingItem.IpAddresses = newItem.IpAddresses;
+                    }
+
+                    // VLAN 设置
+                    existingItem.VlanMode = newItem.VlanMode;
+                    existingItem.AccessVlanId = newItem.AccessVlanId;
+                    existingItem.NativeVlanId = newItem.NativeVlanId;
+                    existingItem.TrunkAllowedVlanIds = newItem.TrunkAllowedVlanIds;
+                    existingItem.PvlanMode = newItem.PvlanMode;
+                    existingItem.PvlanPrimaryId = newItem.PvlanPrimaryId;
+                    existingItem.PvlanSecondaryId = newItem.PvlanSecondaryId;
+
+                    // 带宽与安全
+                    existingItem.BandwidthLimit = newItem.BandwidthLimit;
+                    existingItem.BandwidthReservation = newItem.BandwidthReservation;
+                    existingItem.MacSpoofingAllowed = newItem.MacSpoofingAllowed;
+                    existingItem.DhcpGuardEnabled = newItem.DhcpGuardEnabled;
+                    existingItem.RouterGuardEnabled = newItem.RouterGuardEnabled;
+                    existingItem.MonitorMode = newItem.MonitorMode;
+                    existingItem.StormLimit = newItem.StormLimit;
+
+                    // 硬件卸载
+                    existingItem.VmqEnabled = newItem.VmqEnabled;
+                    existingItem.SriovEnabled = newItem.SriovEnabled;
+                    existingItem.IpsecOffloadEnabled = newItem.IpsecOffloadEnabled;
+                }
+                else
+                {
+                    // 不存在则添加
+                    currentList.Add(newItem);
+                }
+            }
+        }
         [RelayCommand]
         private async Task AddNetworkAdapter()
         {
@@ -2040,7 +2120,7 @@ namespace ExHyperV.ViewModels
             Clipboard.SetText(text);
 
             // 调用你已有的通知方法，给用户反馈
-            ShowSnackbar("已复制", text, ControlAppearance.Success, SymbolRegular.Copy24);
+            //ShowSnackbar("已复制", text, ControlAppearance.Success, SymbolRegular.Copy24);
         }
 
         // --- 在 VirtualMachinesPageViewModel 中添加 ---

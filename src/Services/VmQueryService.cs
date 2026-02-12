@@ -19,11 +19,15 @@ namespace ExHyperV.Services
         private const string QueryPartitionableGpus = "SELECT Name FROM Msvm_PartitionableGpu";
         private const string QueryDiskPerf = "SELECT Name, ReadBytesPersec, WriteBytesPersec FROM Win32_PerfFormattedData_Counters_HyperVVirtualStorageDevice";
         private const string QueryNetwork = "SELECT InstanceID, Address FROM Msvm_SyntheticEthernetPortSettingData";
-
+        // --- 替换/新增的网络相关查询 ---
+        private const string QueryNetworkSettings = "SELECT InstanceID, ElementName, Address FROM Msvm_SyntheticEthernetPortSettingData";
+        private const string QueryNetworkAllocations = "SELECT Parent, EnabledState, HostResource FROM Msvm_EthernetPortAllocationSettingData";
+        private const string QuerySwitches = "SELECT Name, ElementName FROM Msvm_VirtualEthernetSwitch";
         private static readonly Dictionary<string, (long Current, long Max, string Type)> _diskSizeCache = new();
 
         public async Task<List<VmInstanceInfo>> GetVmListAsync()
         {
+            // 1. 基础资源查询任务
             var diskTask = WmiTools.QueryAsync(QueryDiskAllocations, obj => new {
                 InstanceID = obj["InstanceID"]?.ToString() ?? "",
                 Parent = obj["Parent"]?.ToString() ?? "",
@@ -66,150 +70,137 @@ namespace ExHyperV.Services
             var gpuListTask = WmiTools.QueryAsync(QueryPartitionableGpus, obj => obj["Name"]?.ToString());
             var pciMapTask = GetHostVideoControllerMapAsync();
 
-            // 添加网卡任务
-            var netTask = WmiTools.QueryAsync(QueryNetwork, obj => new {
+            // 2. 网络基础信息查询任务 (Dashboard 专用)
+            var netSettingsTask = WmiTools.QueryAsync(QueryNetworkSettings, obj => new {
+                Id = obj["InstanceID"]?.ToString(),
                 VmGuid = ExtractFirstGuid(obj["InstanceID"]?.ToString()),
+                Name = obj["ElementName"]?.ToString(),
                 Mac = obj["Address"]?.ToString()
             });
 
+            var netAllocTask = WmiTools.QueryAsync(QueryNetworkAllocations, obj => new {
+                PortPath = obj["Parent"]?.ToString(),
+                IsConnected = Convert.ToUInt16(obj["EnabledState"] ?? 0) == 2,
+                SwitchPath = (obj["HostResource"] as string[])?.FirstOrDefault()
+            });
 
-            await Task.WhenAll(diskTask, summaryTask, memTask, configTask, gpuPvTask, gpuListTask, pciMapTask, netTask);
+            var switchTask = WmiTools.QueryAsync(QuerySwitches, obj => new {
+                Path = obj.Path.Path,
+                Name = obj["ElementName"]?.ToString()
+            });
+
+            await Task.WhenAll(diskTask, summaryTask, memTask, configTask, gpuPvTask, gpuListTask, pciMapTask, netSettingsTask, netAllocTask, switchTask);
 
             return await Task.Run(() =>
             {
-                var allDiskAllocations = diskTask.Result;
                 var summaries = summaryTask.Result;
-                var memSettings = memTask.Result;
+
+                // 1. 防重处理：虚拟机配置映射
                 var configMap = configTask.Result
                     .Where(x => !string.IsNullOrEmpty(x.VmGuid))
                     .GroupBy(x => x.VmGuid)
-                    .ToDictionary(g => g.Key, g => new { g.First().Gen, g.First().Ver });
+                    .ToDictionary(g => g.Key, g => new { g.First().Gen, g.First().Ver }, StringComparer.OrdinalIgnoreCase);
 
-                var gpuSettings = gpuPvTask.Result;
-                var partitionableGpus = gpuListTask.Result;
-                var pciToFriendlyNameMap = pciMapTask.Result;
+                // 2. 防重处理：交换机名映射
+                var switchMap = switchTask.Result
+                    .Where(x => !string.IsNullOrEmpty(x.Path))
+                    .GroupBy(x => x.Path)
+                    .ToDictionary(g => g.Key, g => g.First().Name, StringComparer.OrdinalIgnoreCase);
 
+                // 3. 防重处理：GPU 映射
                 var gpuMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-                var hostPathToPciIdMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                var hostPathToPciIdMap = gpuListTask.Result
+                    .Where(x => !string.IsNullOrEmpty(x))
+                    .GroupBy(x => x)
+                    .ToDictionary(g => g.Key, g => ExtractPciId(g.Key), StringComparer.OrdinalIgnoreCase);
 
-                foreach (var rawPath in partitionableGpus)
-                {
-                    string shortId = ExtractPciId(rawPath);
-                    if (!string.IsNullOrEmpty(shortId)) hostPathToPciIdMap[rawPath] = shortId;
-                }
-
-                foreach (var setting in gpuSettings)
+                var pciToFriendlyNameMap = pciMapTask.Result;
+                foreach (var setting in gpuPvTask.Result)
                 {
                     string vmGuidStr = ExtractFirstGuid(setting.InstanceID);
                     if (vmGuidStr != null && setting.HostResources?.Length > 0)
                     {
-                        string assignedPath = setting.HostResources[0];
-                        string finalName = "GPU-PV Device";
-                        string shortId = hostPathToPciIdMap.TryGetValue(assignedPath, out var id) ? id : ExtractPciId(assignedPath);
-
-                        if (!string.IsNullOrEmpty(shortId))
+                        string hostPath = setting.HostResources[0];
+                        string shortId = hostPathToPciIdMap.TryGetValue(hostPath, out var id) ? id : ExtractPciId(hostPath);
+                        if (!gpuMap.ContainsKey(vmGuidStr))
                         {
-                            if (pciToFriendlyNameMap.TryGetValue(shortId, out var friendly)) finalName = friendly;
-                            else finalName = $"Unknown Device ({shortId})";
+                            gpuMap[vmGuidStr] = (shortId != null && pciToFriendlyNameMap.TryGetValue(shortId, out var friendly)) ? friendly : "GPU-PV Device";
                         }
-                        gpuMap[vmGuidStr] = finalName;
                     }
                 }
-                // 处理网卡 MAC 映射
-                var macMap = netTask.Result
-                    .Where(x => !string.IsNullOrEmpty(x.VmGuid))
-                    .GroupBy(x => x.VmGuid.ToUpper())
-                    .ToDictionary(g => g.Key, g => g.First().Mac);
 
+                // 4. 网络映射逻辑 (已自带 GroupBy，比较安全)
+                var vmNetMap = netSettingsTask.Result
+                    .Where(n => !string.IsNullOrEmpty(n.VmGuid))
+                    .GroupJoin(netAllocTask.Result,
+                        n => n.Id,
+                        a => a.PortPath,
+                        (n, allocs) => new { n.VmGuid, n.Name, n.Mac, Alloc = allocs.FirstOrDefault() })
+                    .GroupBy(x => x.VmGuid.ToUpper())
+                    .ToDictionary(g => g.Key, g => g.ToList(), StringComparer.OrdinalIgnoreCase);
 
                 var resultList = new List<VmInstanceInfo>();
                 foreach (var s in summaries)
                 {
                     Guid.TryParse(s.Id, out var vmId);
                     string vmGuidKey = s.Id?.Trim('{', '}').ToUpper();
-
                     var vmInfo = new VmInstanceInfo(vmId, s.Name);
 
-                    // --- 注入 MAC 地址 ---
-                    if (vmGuidKey != null && macMap.TryGetValue(vmGuidKey, out var rawMac))
+                    // --- 注入网卡列表 (Dashboard 卡片使用) ---
+                    if (vmGuidKey != null && vmNetMap.TryGetValue(vmGuidKey, out var netList))
                     {
-                        // 格式化 00155D... 为 00:15:5D:...
-                        vmInfo.MacAddress = Regex.Replace(rawMac, ".{2}", "$0-").TrimEnd('-');
+                        foreach (var n in netList)
+                        {
+                            var adapter = new VmNetworkAdapter
+                            {
+                                Id = n.Name, // Dashboard 仅做标识
+                                Name = n.Name,
+                                MacAddress = Regex.Replace(n.Mac ?? "", ".{2}", "$0-").TrimEnd('-'),
+                                IsConnected = n.Alloc?.IsConnected ?? false,
+                                SwitchName = (n.Alloc?.SwitchPath != null && switchMap.TryGetValue(n.Alloc.SwitchPath, out var swName)) ? swName : "未连接"
+                            };
+                            vmInfo.NetworkAdapters.Add(adapter);
+                        }
+                        // 兼容旧代码的单 IP 显示逻辑
+                        vmInfo.MacAddress = vmInfo.NetworkAdapters.FirstOrDefault()?.MacAddress ?? "00-00-00-00-00-00";
                     }
 
-                    var myDisks = allDiskAllocations.Where(d => d.Parent.ToUpper().Contains(vmGuidKey) || d.InstanceID.ToUpper().Contains(vmGuidKey)).ToList();
-
+                    // --- 处理磁盘 (保持原有逻辑) ---
+                    var myDisks = diskTask.Result.Where(d => d.Parent.ToUpper().Contains(vmGuidKey) || d.InstanceID.ToUpper().Contains(vmGuidKey)).ToList();
                     foreach (var d in myDisks)
                     {
                         if (d.Paths != null && d.Paths.Length > 0)
                         {
                             string path = d.Paths[0].Replace("\"", "").Trim();
-                            bool isIso = path.EndsWith(".iso", StringComparison.OrdinalIgnoreCase);
-
-                            if (isIso || d.ResourceType == 16)
+                            if (path.EndsWith(".iso", StringComparison.OrdinalIgnoreCase) || d.ResourceType == 16)
                             {
-                                if (File.Exists(path))
-                                {
-                                    long isoSize = 0;
-                                    try { isoSize = new FileInfo(path).Length; } catch { }
-
-                                    vmInfo.Disks.Add(new VmDiskDetails
-                                    {
-                                        Name = Path.GetFileName(path),
-                                        Path = path,
-                                        CurrentSize = isoSize,
-                                        MaxSize = isoSize,
-                                        DiskType = "ISO"
-                                    });
-                                }
+                                if (File.Exists(path)) vmInfo.Disks.Add(new VmDiskDetails { Name = Path.GetFileName(path), Path = path, CurrentSize = new FileInfo(path).Length, MaxSize = new FileInfo(path).Length, DiskType = "ISO" });
                             }
                             else
                             {
                                 var (current, max, diskType) = GetDiskSizes(path);
-                                if (max > 0)
-                                {
-                                    vmInfo.Disks.Add(new VmDiskDetails
-                                    {
-                                        Name = Path.GetFileName(path),
-                                        Path = path,
-                                        CurrentSize = current,
-                                        MaxSize = max,
-                                        DiskType = diskType
-                                    });
-                                }
+                                if (max > 0) vmInfo.Disks.Add(new VmDiskDetails { Name = Path.GetFileName(path), Path = path, CurrentSize = current, MaxSize = max, DiskType = diskType });
                             }
                         }
                     }
 
-                    double startupRam = memSettings.FirstOrDefault(m => m.FullId?.Contains(s.Id, StringComparison.OrdinalIgnoreCase) == true)?.StartupRam ?? 0;
-                    bool isRunning = VmMapper.IsRunning(s.State);
-                    bool hasValidRealtimeMem = s.MemUsage > 0;
-
-                    double usageRam = (isRunning && hasValidRealtimeMem) ? s.MemUsage : 0;
-                    double assignedRam = (isRunning && hasValidRealtimeMem) ? s.MemUsage : startupRam;
-
-                    int genValue = 0; string verValue = "0.0";
-                    if (vmGuidKey != null && configMap.TryGetValue(vmGuidKey, out var config)) { genValue = config.Gen; verValue = config.Ver; }
-
-                    string gpuName = vmGuidKey != null && gpuMap.ContainsKey(vmGuidKey) ? gpuMap[vmGuidKey] : null;
+                    // --- 基础元数据 (保持原有逻辑) ---
+                    double startupRam = memTask.Result.FirstOrDefault(m => m.FullId?.Contains(s.Id, StringComparison.OrdinalIgnoreCase) == true)?.StartupRam ?? 0;
+                    if (vmGuidKey != null && configMap.TryGetValue(vmGuidKey, out var config)) { vmInfo.Generation = config.Gen; vmInfo.Version = config.Ver; }
 
                     vmInfo.OsType = Utils.GetTagValue(s.Notes, "OSType") ?? "Windows";
                     vmInfo.CpuCount = s.Cpu;
                     vmInfo.MemoryGb = Math.Round(startupRam / 1024.0, 1);
-                    vmInfo.AssignedMemoryGb = Math.Round(assignedRam / 1024.0, 1);
+                    vmInfo.AssignedMemoryGb = Math.Round(((s.MemUsage > 0) ? s.MemUsage : startupRam) / 1024.0, 1);
                     vmInfo.Notes = s.Notes;
-                    vmInfo.Generation = genValue;
-                    vmInfo.Version = verValue;
-                    vmInfo.GpuName = gpuName;
+                    vmInfo.GpuName = vmGuidKey != null && gpuMap.ContainsKey(vmGuidKey) ? gpuMap[vmGuidKey] : null;
 
                     vmInfo.SyncBackendData(VmMapper.MapStateCodeToText(s.State), TimeSpan.FromMilliseconds(s.Uptime));
                     resultList.Add(vmInfo);
                 }
-
                 return resultList.OrderByDescending(x => x.IsRunning).ThenBy(x => x.Name).ToList();
             });
         }
-
         public async Task UpdateDiskPerformanceAsync(IEnumerable<VmInstanceInfo> vms)
         {
             try

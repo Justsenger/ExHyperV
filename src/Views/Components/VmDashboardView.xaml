@@ -533,81 +533,74 @@
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
                                 <Border Margin="0,0,0,6" CornerRadius="4" BorderThickness="1" BorderBrush="#1A888888" Background="#05FFFFFF">
-                                    <Grid Margin="12,10">
+                                    <Grid Margin="12,8">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="Auto"/>
                                             <ColumnDefinition Width="*"/>
                                         </Grid.ColumnDefinitions>
 
-                                        <!-- 图标 -->
+                                        <!-- 图标：根据连接状态变色 -->
                                         <ui:FontIcon Grid.Column="0" 
-                                                     FontFamily="{DynamicResource SegoeFluentIcons}"
-                                                     FontSize="24" 
-                                                     Glyph="&#xE839;"
-                                                     VerticalAlignment="Center" 
-                                                     Margin="0,0,16,0" 
-                                                     Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                                 FontFamily="{DynamicResource SegoeFluentIcons}"
+                                 FontSize="24" 
+                                 Glyph="&#xE839;"
+                                 VerticalAlignment="Center" 
+                                 Margin="0,0,12,0">
+                                            <ui:FontIcon.Style>
+                                                <Style TargetType="ui:FontIcon">
+                                                    <Setter Property="Foreground" Value="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsConnected}" Value="False">
+                                                            <Setter Property="Foreground" Value="{ui:ThemeResource TextFillColorDisabledBrush}"/>
+                                                            <Setter Property="Opacity" Value="0.5"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </ui:FontIcon.Style>
+                                        </ui:FontIcon>
 
-                                        <!-- 右侧详情 -->
                                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                            <!-- 第一行：名称与实时速率 -->
-                                            <Grid>
-                                                <TextBlock Text="{Binding Name}" 
-                                                           FontSize="14" 
-                                                           FontWeight="SemiBold"
-                                                           Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"
-                                                           VerticalAlignment="Center"/>
 
-                                                <!-- 实时网络速率 -->
+                                            <!-- 第一行：IP 地址 (高亮) + 速率 (右侧) -->
+                                            <Grid>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="{Binding IpAddressDisplay, FallbackValue='获取中...'}" 
+                                           FontSize="14" 
+                                           FontWeight="SemiBold"
+                                           Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                                                </StackPanel>
+
+                                                <!-- 实时速率 -->
                                                 <TextBlock Text="{Binding NetworkSpeedText}" 
-                                                           FontSize="11" 
-                                                           Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"
-                                                           Opacity="0.8"
-                                                           Margin="0,0,0,0"
-                                                           HorizontalAlignment="Right"
-                                                           VerticalAlignment="Center"
-                                                           FontFamily="Segoe UI, Microsoft YaHei">
-                                                    <TextBlock.Style>
-                                                        <Style TargetType="TextBlock">
-                                                            <Style.Triggers>
-                                                                <DataTrigger Binding="{Binding DataContext.SelectedVm.IsRunning, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="False">
-                                                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                                                </DataTrigger>
-                                                            </Style.Triggers>
-                                                        </Style>
-                                                    </TextBlock.Style>
-                                                </TextBlock>
+                                       FontSize="11" 
+                                       Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"
+                                       HorizontalAlignment="Right"
+                                       VerticalAlignment="Center"/>
                                             </Grid>
 
-                                            <!-- 第二行：连接状态与 IP -->
-                                            <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
-                                                <Border Background="#10FFFFFF" CornerRadius="3" Padding="6,1" Margin="0,0,8,0" VerticalAlignment="Center">
-                                                    <TextBlock Text="{Binding SwitchName}" FontSize="11" Opacity="0.8" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                                            <!-- 第二行：网卡名 - 交换机名 -->
+                                            <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                                                <TextBlock Text="{Binding Name}" FontSize="12" Opacity="0.8" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                                                <TextBlock Text=" - " FontSize="12" Opacity="0.5" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                                                <Border Background="#15FFFFFF" CornerRadius="3" Padding="4,0" VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding SwitchName, FallbackValue='未连接'}" 
+                                                    FontSize="11" />
+                                                    <!-- 修改此处 -->
                                                 </Border>
-
-                                                <!-- IP 地址显示 -->
-                                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                                    <ui:FontIcon Glyph="&#xE80F;" FontSize="10" Margin="0,1,4,0" Opacity="0.6" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
-                                                    <TextBlock Text="{Binding IpAddressDisplay}" 
-                                                               FontSize="12" 
-                                                               Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"
-                                                               ToolTip="{Binding IpAddressListTooltip}"/>
-                                                </StackPanel>
                                             </StackPanel>
 
-                                            <!-- 第三行：MAC 地址 (可选，颜色淡一点) -->
-                                            <TextBlock Text="{Binding MacAddress, StringFormat='MAC: {0}'}" 
-                                                       FontSize="10" 
-                                                       Margin="0,2,0,0"
-                                                       Opacity="0.5" 
-                                                       Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                                            <!-- 第三行：MAC 地址 (折叠或微弱显示) -->
+                                            <TextBlock Text="{Binding MacAddress}" 
+                                   FontSize="10" 
+                                   Opacity="0.4" 
+                                   Margin="0,2,0,0"
+                                   Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
                                         </StackPanel>
                                     </Grid>
                                 </Border>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
-
                     <!-- 空状态提示 -->
                     <TextBlock Text="未配置网络适配器" HorizontalAlignment="Center" Opacity="0.4" Margin="20" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}">
                         <TextBlock.Style>
