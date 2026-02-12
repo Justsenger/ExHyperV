@@ -3,18 +3,18 @@ using ExHyperV.Tools;
 using System.Management;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
-
 namespace ExHyperV.Services
 {
     public class VmNetworkService
     {
         private const string ServiceClass = "Msvm_VirtualSystemManagementService";
-        private const string ScopeNamespace = @"root\virtualization\v2";
-
-        private void Log(string message) => Debug.WriteLine($"[VmNetDebug][{DateTime.Now:HH:mm:ss.fff}] {message}");
+        private const string ScopeNamespace = @"root\virtualization\v2"; private void Log(string message) => Debug.WriteLine($"[VmNetDebug][{DateTime.Now:HH:mm:ss.fff}] {message}");
 
         // ==========================================
         // 1. 获取网卡信息 (快速 - 仅 WMI，秒回)
+        // ==========================================
+        // ==========================================
+        // 1. 获取网卡信息 (修复版)
         // ==========================================
         public async Task<List<VmNetworkAdapter>> GetNetworkAdaptersAsync(string vmName)
         {
@@ -24,61 +24,93 @@ namespace ExHyperV.Services
             var wmiResults = await WmiTools.QueryAsync(query, (vmEntry) =>
             {
                 var adapters = new List<VmNetworkAdapter>();
+
+                // 1. 获取虚拟机当前的设置数据 (VSSD)
                 var settingData = vmEntry.GetRelated("Msvm_VirtualSystemSettingData").Cast<ManagementObject>()
                     .OrderByDescending(s => s["VirtualSystemType"]?.ToString().Contains("Realized") == true)
                     .FirstOrDefault();
 
                 if (settingData == null) return adapters;
 
-                var portSettings = settingData.GetRelated("Msvm_SyntheticEthernetPortSettingData", "Msvm_VirtualSystemSettingDataComponent", null, null, null, null, false, null);
+                // 2. 获取所有的虚拟网卡端口 (Port Settings)
+                var portSettings = settingData.GetRelated("Msvm_SyntheticEthernetPortSettingData", "Msvm_VirtualSystemSettingDataComponent", null, null, null, null, false, null)
+                                              .Cast<ManagementObject>()
+                                              .ToList();
 
-                foreach (ManagementObject port in portSettings)
+                // 3. [关键修复] 获取所有的分配设置 (Allocation Settings)
+                // 注意：分配设置也是 VSSD 的组件，必须从 VSSD 获取，而不是从 Port 获取
+                var allAllocations = settingData.GetRelated("Msvm_EthernetPortAllocationSettingData", "Msvm_VirtualSystemSettingDataComponent", null, null, null, null, false, null)
+                                                .Cast<ManagementObject>()
+                                                .ToList();
+
+                try
                 {
-                    var rawMac = port["Address"]?.ToString() ?? "";
-                    var adapter = new VmNetworkAdapter
+                    foreach (var port in portSettings)
                     {
-                        Id = port["InstanceID"]?.ToString(),
-                        Name = port["ElementName"]?.ToString(),
-                        MacAddress = FormatMac(rawMac),
-                        IsStaticMac = GetBool(port, "StaticMacAddress")
-                    };
-
-                    // A路径：尝试 WMI 获取 IP (集成服务 - 速度快，保留)
-                    try
-                    {
-                        var guestConfig = port.GetRelated("Msvm_GuestNetworkAdapterConfiguration", "Msvm_SettingDataComponent", null, null, null, null, false, null)
-                                              .Cast<ManagementObject>().FirstOrDefault();
-                        if (guestConfig != null)
+                        var rawMac = port["Address"]?.ToString() ?? "";
+                        var adapter = new VmNetworkAdapter
                         {
-                            var ips = guestConfig["IPAddresses"] as string[];
-                            if (ips != null) adapter.IpAddresses = ips.ToList();
-                        }
-                    }
-                    catch { /* 忽略异常 */ }
+                            Id = port["InstanceID"]?.ToString(),
+                            Name = port["ElementName"]?.ToString(),
+                            MacAddress = FormatMac(rawMac),
+                            IsStaticMac = GetBool(port, "StaticMacAddress")
+                        };
 
-                    // 关联枢纽获取配置
-                    using var allocation = port.GetRelated("Msvm_EthernetPortAllocationSettingData").Cast<ManagementObject>().FirstOrDefault();
-                    if (allocation != null)
-                    {
-                        adapter.IsConnected = Convert.ToUInt16(allocation["EnabledState"]) == 2;
-                        var hostResources = (string[])allocation["HostResource"];
-                        if (hostResources != null && hostResources.Length > 0)
-                            adapter.SwitchName = GetSwitchNameFromPath(hostResources[0]);
-
-                        foreach (ManagementObject feature in allocation.GetRelated("Msvm_EthernetSwitchPortFeatureSettingData", "Msvm_EthernetPortSettingDataComponent", null, null, null, null, false, null))
+                        // 获取 IP (WMI 集成服务)
+                        try
                         {
-                            ParseFeatureSettings(adapter, feature);
+                            var guestConfig = port.GetRelated("Msvm_GuestNetworkAdapterConfiguration", "Msvm_SettingDataComponent", null, null, null, null, false, null)
+                                                  .Cast<ManagementObject>().FirstOrDefault();
+                            if (guestConfig != null)
+                            {
+                                var ips = guestConfig["IPAddresses"] as string[];
+                                if (ips != null) adapter.IpAddresses = ips.ToList();
+                            }
                         }
+                        catch { }
+
+                        // [关键修复] 手动匹配 Port 和 Allocation
+                        // 逻辑：Allocation 的 Parent 属性 == Port 的 WMI 路径
+                        var portPath = port.Path.Path;
+                        var allocation = allAllocations.FirstOrDefault(a =>
+                            string.Equals(a["Parent"]?.ToString(), portPath, StringComparison.OrdinalIgnoreCase));
+
+                        if (allocation != null)
+                        {
+                            adapter.IsConnected = Convert.ToUInt16(allocation["EnabledState"]) == 2;
+                            var hostResources = (string[])allocation["HostResource"];
+
+                            if (hostResources != null && hostResources.Length > 0)
+                                adapter.SwitchName = GetSwitchNameFromPath(hostResources[0]);
+                            else
+                                adapter.SwitchName = "未连接"; // 显式标记
+
+                            // 获取 VLAN / 带宽 / 安全项 等高级设置
+                            foreach (ManagementObject feature in allocation.GetRelated("Msvm_EthernetSwitchPortFeatureSettingData", "Msvm_EthernetPortSettingDataComponent", null, null, null, null, false, null))
+                            {
+                                ParseFeatureSettings(adapter, feature);
+                            }
+                        }
+                        else
+                        {
+                            adapter.SwitchName = "配置异常"; // 理论上不应发生，除非配置损坏
+                        }
+
+                        adapters.Add(adapter);
                     }
-                    adapters.Add(adapter);
                 }
+                finally
+                {
+                    // 清理 WMI 对象，防止内存泄漏
+                    foreach (var p in portSettings) p.Dispose();
+                    foreach (var a in allAllocations) a.Dispose();
+                }
+
                 return adapters;
             });
 
-            // 直接返回，不等待 ARP 嗅探
             return wmiResults.SelectMany(x => x).ToList();
         }
-
         // ==========================================
         // [新增] 后台填充 IP 方法 (供 ViewModel 异步调用)
         // ==========================================

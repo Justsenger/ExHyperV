@@ -18,16 +18,19 @@ namespace ExHyperV.Services
         private const string QueryGpuPvSettings = "SELECT InstanceID, HostResource FROM Msvm_GpuPartitionSettingData";
         private const string QueryPartitionableGpus = "SELECT Name FROM Msvm_PartitionableGpu";
         private const string QueryDiskPerf = "SELECT Name, ReadBytesPersec, WriteBytesPersec FROM Win32_PerfFormattedData_Counters_HyperVVirtualStorageDevice";
-        private const string QueryNetwork = "SELECT InstanceID, Address FROM Msvm_SyntheticEthernetPortSettingData";
-        // --- 替换/新增的网络相关查询 ---
+
+        // --- 网络相关查询 ---
         private const string QueryNetworkSettings = "SELECT InstanceID, ElementName, Address FROM Msvm_SyntheticEthernetPortSettingData";
         private const string QueryNetworkAllocations = "SELECT Parent, EnabledState, HostResource FROM Msvm_EthernetPortAllocationSettingData";
         private const string QuerySwitches = "SELECT Name, ElementName FROM Msvm_VirtualEthernetSwitch";
+        // [新增] 查询 Guest IP 地址
+        private const string QueryGuestNetwork = "SELECT InstanceID, IPAddresses FROM Msvm_GuestNetworkAdapterConfiguration";
+
         private static readonly Dictionary<string, (long Current, long Max, string Type)> _diskSizeCache = new();
 
         public async Task<List<VmInstanceInfo>> GetVmListAsync()
         {
-            // 1. 基础资源查询任务
+            // 1. 基础资源查询任务 (并行启动)
             var diskTask = WmiTools.QueryAsync(QueryDiskAllocations, obj => new {
                 InstanceID = obj["InstanceID"]?.ToString() ?? "",
                 Parent = obj["Parent"]?.ToString() ?? "",
@@ -70,7 +73,7 @@ namespace ExHyperV.Services
             var gpuListTask = WmiTools.QueryAsync(QueryPartitionableGpus, obj => obj["Name"]?.ToString());
             var pciMapTask = GetHostVideoControllerMapAsync();
 
-            // 2. 网络基础信息查询任务 (Dashboard 专用)
+            // 2. 网络基础信息查询任务
             var netSettingsTask = WmiTools.QueryAsync(QueryNetworkSettings, obj => new {
                 Id = obj["InstanceID"]?.ToString(),
                 VmGuid = ExtractFirstGuid(obj["InstanceID"]?.ToString()),
@@ -89,31 +92,51 @@ namespace ExHyperV.Services
                 Name = obj["ElementName"]?.ToString()
             });
 
-            await Task.WhenAll(diskTask, summaryTask, memTask, configTask, gpuPvTask, gpuListTask, pciMapTask, netSettingsTask, netAllocTask, switchTask);
+            // [新增] Guest IP 查询任务
+            var guestNetTask = WmiTools.QueryAsync(QueryGuestNetwork, obj => new {
+                InstanceID = obj["InstanceID"]?.ToString(),
+                IPAddresses = obj["IPAddresses"] as string[]
+            });
+
+            // 等待所有任务完成
+            await Task.WhenAll(diskTask, summaryTask, memTask, configTask, gpuPvTask, gpuListTask, pciMapTask, netSettingsTask, netAllocTask, switchTask, guestNetTask);
 
             return await Task.Run(() =>
             {
                 var summaries = summaryTask.Result;
 
-                // 1. 防重处理：虚拟机配置映射
+                // --- 数据准备阶段 ---
+
+                // 配置映射
                 var configMap = configTask.Result
                     .Where(x => !string.IsNullOrEmpty(x.VmGuid))
                     .GroupBy(x => x.VmGuid)
                     .ToDictionary(g => g.Key, g => new { g.First().Gen, g.First().Ver }, StringComparer.OrdinalIgnoreCase);
 
-                // 2. 防重处理：交换机名映射
+                // 交换机名映射
                 var switchMap = switchTask.Result
                     .Where(x => !string.IsNullOrEmpty(x.Path))
                     .GroupBy(x => x.Path)
                     .ToDictionary(g => g.Key, g => g.First().Name, StringComparer.OrdinalIgnoreCase);
 
-                // 3. 防重处理：GPU 映射
-                var gpuMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-                var hostPathToPciIdMap = gpuListTask.Result
-                    .Where(x => !string.IsNullOrEmpty(x))
-                    .GroupBy(x => x)
-                    .ToDictionary(g => g.Key, g => ExtractPciId(g.Key), StringComparer.OrdinalIgnoreCase);
+                // [新增] Guest IP 映射
+                // 逻辑：InstanceID 的最后一部分是设备 GUID，例如 "Microsoft:Guest...\\<GUID>"
+                // 我们提取 <GUID> 作为 Key，来匹配 Port 和 GuestConfig
+                var guestIpMap = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+                foreach (var item in guestNetTask.Result)
+                {
+                    if (string.IsNullOrEmpty(item.InstanceID) || item.IPAddresses == null || item.IPAddresses.Length == 0) continue;
+                    // 提取 ID 的最后一段 (Device GUID)
+                    string deviceKey = item.InstanceID.Split('\\').LastOrDefault();
+                    if (!string.IsNullOrEmpty(deviceKey))
+                    {
+                        guestIpMap[deviceKey] = item.IPAddresses.ToList();
+                    }
+                }
 
+                // GPU 映射
+                var gpuMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                var hostPathToPciIdMap = gpuListTask.Result.Where(x => !string.IsNullOrEmpty(x)).GroupBy(x => x).ToDictionary(g => g.Key, g => ExtractPciId(g.Key), StringComparer.OrdinalIgnoreCase);
                 var pciToFriendlyNameMap = pciMapTask.Result;
                 foreach (var setting in gpuPvTask.Result)
                 {
@@ -129,13 +152,13 @@ namespace ExHyperV.Services
                     }
                 }
 
-                // 4. 网络映射逻辑 (已自带 GroupBy，比较安全)
+                // 网络端口聚合
                 var vmNetMap = netSettingsTask.Result
                     .Where(n => !string.IsNullOrEmpty(n.VmGuid))
                     .GroupJoin(netAllocTask.Result,
                         n => n.Id,
                         a => a.PortPath,
-                        (n, allocs) => new { n.VmGuid, n.Name, n.Mac, Alloc = allocs.FirstOrDefault() })
+                        (n, allocs) => new { n.Id, n.VmGuid, n.Name, n.Mac, Alloc = allocs.FirstOrDefault() })
                     .GroupBy(x => x.VmGuid.ToUpper())
                     .ToDictionary(g => g.Key, g => g.ToList(), StringComparer.OrdinalIgnoreCase);
 
@@ -146,26 +169,43 @@ namespace ExHyperV.Services
                     string vmGuidKey = s.Id?.Trim('{', '}').ToUpper();
                     var vmInfo = new VmInstanceInfo(vmId, s.Name);
 
-                    // --- 注入网卡列表 (Dashboard 卡片使用) ---
+                    // --- [修改] 网卡与 IP 处理 ---
                     if (vmGuidKey != null && vmNetMap.TryGetValue(vmGuidKey, out var netList))
                     {
                         foreach (var n in netList)
                         {
                             var adapter = new VmNetworkAdapter
                             {
-                                Id = n.Name, // Dashboard 仅做标识
+                                Id = n.Name,
                                 Name = n.Name,
                                 MacAddress = Regex.Replace(n.Mac ?? "", ".{2}", "$0-").TrimEnd('-'),
                                 IsConnected = n.Alloc?.IsConnected ?? false,
                                 SwitchName = (n.Alloc?.SwitchPath != null && switchMap.TryGetValue(n.Alloc.SwitchPath, out var swName)) ? swName : "未连接"
                             };
+
+                            // [新增] 尝试匹配 IP
+                            // Port 的 InstanceID 格式通常为 "Microsoft:<SystemGUID>\\<DeviceGUID>"
+                            string deviceKey = n.Id.Split('\\').LastOrDefault();
+                            if (!string.IsNullOrEmpty(deviceKey) && guestIpMap.TryGetValue(deviceKey, out var ips))
+                            {
+                                adapter.IpAddresses = ips;
+                            }
+
                             vmInfo.NetworkAdapters.Add(adapter);
                         }
-                        // 兼容旧代码的单 IP 显示逻辑
+
                         vmInfo.MacAddress = vmInfo.NetworkAdapters.FirstOrDefault()?.MacAddress ?? "00-00-00-00-00-00";
+
+                        // [新增] 设置 Dashboard 简介显示的 IP (取第一个有 IP 的网卡的第一个 IP)
+                        var firstIpAdapter = vmInfo.NetworkAdapters.FirstOrDefault(a => a.IpAddresses != null && a.IpAddresses.Count > 0);
+                        if (firstIpAdapter != null)
+                        {
+                            // 将 List<string> 转换为逗号分隔字符串，或只取第一个
+                            vmInfo.IpAddress = string.Join(", ", firstIpAdapter.IpAddresses);
+                        }
                     }
 
-                    // --- 处理磁盘 (保持原有逻辑) ---
+                    // --- 磁盘处理 ---
                     var myDisks = diskTask.Result.Where(d => d.Parent.ToUpper().Contains(vmGuidKey) || d.InstanceID.ToUpper().Contains(vmGuidKey)).ToList();
                     foreach (var d in myDisks)
                     {
@@ -184,7 +224,7 @@ namespace ExHyperV.Services
                         }
                     }
 
-                    // --- 基础元数据 (保持原有逻辑) ---
+                    // --- 其他元数据 ---
                     double startupRam = memTask.Result.FirstOrDefault(m => m.FullId?.Contains(s.Id, StringComparison.OrdinalIgnoreCase) == true)?.StartupRam ?? 0;
                     if (vmGuidKey != null && configMap.TryGetValue(vmGuidKey, out var config)) { vmInfo.Generation = config.Gen; vmInfo.Version = config.Ver; }
 
