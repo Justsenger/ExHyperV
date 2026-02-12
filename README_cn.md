@@ -5,7 +5,7 @@
 
 <div align="center">
 
-**一款图形化的 Hyper-V 高级工具，能让凡人也能轻松玩转 DDA、GPU-P、虚拟交换机、内存管理等功能。**
+**一款图形化的 Hyper-V 管理工具，能让凡人也能轻松玩转Hyper-V的高级功能。**
 
 </div>
 
@@ -23,16 +23,19 @@
 
 ---
 
-ExHyperV 深入研究了微软官方文档和 [Easy-GPU-PV](https://github.com/jamesstringerparsec/Easy-GPU-PV) 项目，旨在修复和完善现有方案，为用户提供一个图形化的、易于使用的 Hyper-V 高级功能配置工具。
+ExHyperV 通过深入研究微软官方文档、[WMI](https://github.com/Justsenger/HyperV-WMI-Documentation)、[HCS](https://learn.microsoft.com/en-us/virtualization/api/hcs/overview)等，旨在为用户提供一个图形化的、易于使用的 Hyper-V 高级功能配置工具。
 
-由于个人时间和精力有限，项目可能存在未经测试的场景。如果您在使用中遇到任何软件/游戏兼容性问题，欢迎通过 [Issues](https://github.com/Justsenger/ExHyperV/issues) 提出！
+由于个人时间和精力有限，项目可能存在未经测试的场景或错误。如果您在使用中遇到任何关于硬件/软件的问题，欢迎通过 [Issues](https://github.com/Justsenger/ExHyperV/issues) 提出！
 
-## ✨ 功能概览
+各项功能将随着时间的推进逐步完善。如果您有特别希望优先添加的功能，或非常喜爱此项目，可以通过[赞赏](https://afdian.com/a/saniye)按钮提供赞助并留言！
+
+## 🎨 界面一览
+
+界面使用 [WPF-UI](https://github.com/lepoco/wpfui) 框架，提供流畅现代的用户界面体验和科幻的视觉效果。支持黑色主题和白色主题，并且会根据系统主题自动切换。
 
 ![主界面](https://github.com/Justsenger/ExHyperV/blob/main/img/01.png)
 <details>
 <summary>点击查看更多界面截图</summary>
-
 ![功能](https://github.com/Justsenger/ExHyperV/blob/main/img/02.png)
 ![功能](https://github.com/Justsenger/ExHyperV/blob/main/img/03.png)
 ![功能](https://github.com/Justsenger/ExHyperV/blob/main/img/04.png)
@@ -45,33 +48,13 @@ ExHyperV 深入研究了微软官方文档和 [Easy-GPU-PV](https://github.com/j
 
 ## 🚀 快速开始
 
-### 1. 宿主系统要求
-
-#### DDA (离散设备分配)
-- Windows Server 2019 
-- Windows Server 2022
-- Windows Server 2025
-
-#### GPU-P (GPU 分区/半虚拟化)
-- Windows 10 （Build 17134+）
-- Windows 11
-- Windows Server 2019 
-- Windows Server 2022
-- Windows Server 2025
-
-#### 虚拟交换机
-- 无特定要求
-
-#### 内存
-- 无特定要求
-
-### 2. 下载与运行
+### 1. 下载与运行
 - **下载**: 前往 [Releases 页面](https://github.com/Justsenger/ExHyperV/releases/latest)下载最新版本。
 - **运行**: 解压后直接运行 `ExHyperV.exe` 即可。
 
-### 3. 构建 (可选)
-1. 安装 [Visual Studio 2022](https://visualstudio.microsoft.com/vs/)，并确保已安装 .NET桌面开发（C# 和 WPF）工作负载。
-2. 克隆本仓库。
+### 2. 构建 (可选)
+1. 安装 [Visual Studio 2022](https://visualstudio.microsoft.com/vs/)，并确保勾选 .NET 桌面开发。
+2. 使用 GitHub Desktop 或 Git 克隆本仓库。
 3. 使用 Visual Studio 打开 `/src/ExHyperV.sln` 文件，即可编译。
 
 除此之外，您也可以直接下载[.NET SDK](https://dotnet.microsoft.com/zh-cn/download),打开项目目录：
@@ -80,30 +63,336 @@ cd src
 dotnet build
 ```
 
-## 📌 重要提示与限制
+## 📖 技术文档
 
-- 建议为虚拟机分配**固定大小**的运行内存。
-- 本工具支持**第一代**和**第二代**虚拟机。
-- GPU-PV不支持**检查点**功能。
-- 一张物理显卡在同一时间**只能用于 DDA 或 GPU-P**，不能两者共用。
-- 一个虚拟机可以**同时使用 DDA 和 GPU-P** (例如，DDA 直通一个设备，同时使用另一张卡的 GPU-P 功能)。
-- 一张物理显卡可以为**单个虚拟机**划分出多个 GPU-P 分区，但总性能不变。
-- 一个虚拟机可以同时使用来自**多张不同物理显卡**的 GPU-P 分区。
-- 建议 Windows 宿主机将系统版本更新到 `26100.4946` 及以上，以解决 `vmmem` Committed Memory内存泄露问题 [Ref to](https://github.com/jamesstringer90/Easy-GPU-PV/issues/446)
+这部分内容将长期维护，根据HyperV开发实践以及文档编写而成，可能存在谬误或缺省内容。
 
----
+### Hyper-V 简介
 
-## 核心功能详解
+Hyper-V 是基于 Type-1 （硬件 -> Hypervisor -> 虚拟机）架构的高性能虚拟机管理软件（Hypervisor），当您开启Hyper-V功能后，宿主系统将变成属于根分区的一个具有特权的虚拟机。您创建的虚拟机属于子分区，它们相互隔离，无法感知彼此的存在。
 
-### Ⅰ. DDA (离散设备分配)
+属于Type-1架构的虚拟化技术包括：Hyper-V、Proxmox (KVM)、VMware ESXi (VMkernel)、Xen 等，性能利用率大约在98%+。
 
-DDA (Discrete Device Assignment) 允许你将一个完整的 PCIe 设备（如显卡、网卡、USB 控制器）直接分配给虚拟机。
+属于Type-2架构的虚拟化技术包括：VMware Workstation、Oracle VirtualBox、Parallels Desktop等，性能利用率大约在90%~95%。
+
+基于这样的事实，您可以将虚拟机看作一个个隔离的小房间，在里面运行具有潜在威胁的程序，测试系统功能或者其他用途，而不用担心弄糟宿主系统（1.高级功能中的DDA不支持FLR等情况除外，重启会连带宿主玉石俱焚。2.具有横向渗透能力的病毒也不在此列，请注意网络安全）。
+
+您可以通过控制面板开启HyperV功能，或一行简单的命令Powershell并按Y确认（需要专业版或服务器版），重启后vmms.exe、vmcompute.exe以及vmmem等进程将在后台持续运行，同时开始菜单将出现HyperV 管理器图标。
+```
+Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V -All
+```
+
+### 调度器
+
+调度器用于协调如何将物理处理器的CPU时间分配给虚拟处理器。
+
+Hyper-V 具有三种调度器：Classic/Core/Root，分别叫经典调度器、核心调度器和根调度器。可以分为两类：手动挡（Classic、Core）和自动挡（Root）。Core可以视作Classic的变种，提高了安全性，但是会降低部分场景下的性能。
+
+Classic 经典调度器的出现时间很早，可以追溯到Windows Server 2008，是基于传统时间片轮换的公平分配原则，将虚拟机的处理器时间随机分给宿主所有可用的逻辑处理器；在宿主资源空闲的情况下，更可能分配到不同物理核心的逻辑处理器，而不是超线程，从而获取更好的性能。
+
+Core 核心调度器出现时间稍晚，自Windows Server 2016 以及 Windows 10 Build 14393推出，目的在于缓解侧信道攻击，即使是宿主资源空闲的情况下，也更倾向于分配同一个物理核心的两个线程，而不是更多物理核心。这样的策略有助于提高安全性和虚拟机隔离，但是会显著降低宿主资源空闲时虚拟机能分配到的CPU性能。从 Windows Server 2019 起，服务器版Windows Hyper-V 将默认使用核心调度器。
+
+Root 根调度器发布于Windows 10 Build 17134，这个调度器会收集工作负荷 CPU 使用情况的指标，而作出自动调度决策，对于大小核的CPU架构来说非常适合。从 Build 17134 起，专业版Windows Hyper-V 将默认使用 Root 根调度器。
+
+系统类型不会限制调度器的类型，可以在ExHyperV里面任意切换，但是根调度器的CPU相关性无法在虚拟机关机后保存，因为后端实现逻辑依靠亲和性而不是CPU组。
+
+### 处理器（vCPU）
+
+虚拟机能同时申请物理逻辑处理器的执行时间的调度能力。
+
+#### 计算资源
+
+##### 核心数
+
+通常设定为2、4、8、16的偶数。奇数可以启动但是不推荐。
+
+若虚拟机的任务是高度可并行的，增加 vCPU 会显著提升速度，但过多不必要的vCPU可能为Hypervisor带来调度压力，虚拟机的核心总数超过宿主物理逻辑核心数（超售）对于需要即时响应的应用来说很不利。
+
+##### 预留
+
+为该虚拟机提供的算力下限百分比。值=预留*核心数。
+
+##### 限制
+
+为该虚拟机提供的算力上限百分比。值=限制*核心数。
+
+##### 权重
+
+该虚拟机在CPU资源竞争中的优先级。
+
+#### 高级功能
+
+##### 主机资源保护
+
+开启后对虚拟机通过 VMBus 通信的 I/O 请求进行监测，出现中断风暴等异常行为时降低CPU时间片分配，以防止影响根分区的宿主系统。普通用户没有必要开启。
+
+##### 嵌套虚拟化
+
+开启后透传 CPU 的 VT-x/AMD-V 指令集扩展，允许在 Hyper-V 虚拟机里再运行虚拟机，俗称套娃。
+
+将略微增加 CPU 虚拟化开销。
+
+##### 迁移兼容性
+
+开启后将屏蔽 CPU 的高级指令集（如 AVX-512 等），便于在不同的物理设备上进行实时迁移。普通用户没有必要开启。
+
+##### 旧系统兼容性
+
+开启后将大幅精简 CPU 指令集，有利于运行 Windows 7 甚至更早的操作系统，不利于运行现代操作系统。
+
+##### 虚拟机 SMT
+
+开启后虚拟机能感知到它的 vCPU 是成对出现的逻辑核心，有助于虚拟机内部的操作系统内核更好地进行 L1/L2 缓存优化和进程调度。
+
+##### 隐藏 Hypervisor 标识 
+
+这是一个早期开关，功能尚不明朗。位于[Msvm_ProcessorSettingData/HideHypervisorPresent](https://github.com/Justsenger/HyperV-WMI-Documentation/blob/main/docs/Msvm_ProcessorSettingData.md)。
+
+指示 Hyper-V 是否应向嵌套客体报告存在虚拟机监控程序。
+
+##### 暴露架构性能监控单元 (PMU)
+
+开启后透传 CPU 的硬件计数器，允许虚拟机里的开发工具（如 Intel VTune, perf）直接访问物理 CPU 的性能监测硬件。
+
+##### 暴露频率监视寄存器
+
+开启后允许虚拟机操作系统读取物理处理器的真实频率，默认是开启的。
+
+##### 禁用侧信道攻击缓解 
+
+开启后关闭对 Spectre、Meltdown等漏洞的软件补丁，小幅提升性能，虚拟化安全性下降。
+
+##### 启用插槽拓扑 
+
+开启后将为虚拟机模拟多个物理插槽，未测试。
+
+##### CPU绑定
+
+实现逻辑基于CPU组（经典调度器+核心调度器）+进程亲和性（根调度器），允许您将vCPU强制锁定到指定的核心上争用CPU时间。
+
+最好的实践是4个vCPU绑定到4个核心。2个vCPU绑定到4个核心将发生随机漂移，4个vCPU绑定到2个核心将发生排队，以此类推。
+
+如果您不信任调度器的分配策略，或者对于大小核有任何顾虑，可以尝试使用此功能。
+
+### 内存
+
+虚拟机能支配运行内存的能力。Hyper-V 通过二级地址转换技术将虚拟机的物理内存请求直接映射到真实的物理内存条。
+
+#### 计算资源
+
+##### 启动内存
+
+虚拟机在开机时必须占用的物理内存量。若宿主空闲内存不够，可能会启动失败。若操作系统支持，可在运行时修改此数值从而增大或缩减内存分配量（待做，没做踢我）。
+
+##### 内存权重
+
+当宿主机物理内存不足时，多个虚拟机之间争抢内存的优先级。
+
+##### 动态内存
+
+允许 Hypervisor 根据虚拟机内部的实际需求，实时伸缩分配的内存量。
+
+最小内存不能大于启动内存。最大内存的最终实现不会超过宿主机物理内存上限。
+
+当使用 GPU-PV 或 DDA 时，启动内存必须和最小内存相同以便确定内存地址映射关系。
+
+#### 高级功能
+
+##### 内存页大小
+
+决定虚拟内存与物理内存映射时的“颗粒度”，可选4K、2M、1G。该选项从12.0配置版本的虚拟机上可用，有利于大型数据库或高性能计算任务。
+
+##### 内存加密
+
+开启后将利用硬件特性（AMD SEV 或 Intel TDX）对内存数据进行实时加密，即使是宿主机也无法读取内存数据，开启后会带来轻微的内存延迟和 CPU 负载增加。
+
+### 存储
+
+虚拟机能访问的存储介质。分为虚拟文件和物理设备。虚拟文件有vhdx、vhd和iso等格式，模拟的是一个完整的物理硬盘或物理光驱。物理设备可选择宿主机上可用的硬盘或光驱进行直通。
+
+下拉菜单可实时查看读写速率以及容量变化。左侧的数字是文件大小，右侧的数字是容量上限。
+
+#### 插槽配置
+
+Hyper-V 要求您将虚拟文件或物理设备挂载到IDE控制器或SCSI控制器上来供虚拟机访问。但是ExhyperV简化这个操作为自动分配，允许您只关心媒体来源而无需关心插槽分配。
+
+如果您尝试理解复杂的插槽逻辑，请参考以下规则：
+
+1.对于运行中的1代虚拟机，IDE控制器是无法被卸载的，但是ISO可以弹出和插入。
+
+2.对于1代虚拟机，ISO只能插入IDE控制器。1代虚拟机只能从IDE控制器的介质上启动。
+
+3.对于1代虚拟机，总共有2个IDE控制器x2+4个SCSI控制器x64=260个位置可以使用。
+
+4.对于2代虚拟机，SCSI控制器及里面的存储介质随时都可以弹出和移除，因此请小心操作。
+
+5.对于2代虚拟机，总共有4个SCSI控制器x64=256个位置可以使用。
+
+（可能有遗漏的规则，UI还没完善，忘了没做踢我）
+
+#### 媒体设置
+
+##### 来源
+
+选择虚拟文件或者可用的物理设备。部分USB存储介质由于无法脱机，不会出现在可用列表。
+
+##### 虚拟文件
+
+###### 类型为硬盘
+
+当磁盘类型为动态扩展，初始值为一个很小的值（取决于块大小和容量）而不是容量大小，会逐渐增大。
+
+当磁盘类型为固定大小，初始值即为容量大小且不会变化，读写效率更高。
+
+当磁盘类型为差分类型，需要指定一个动态扩展/固定大小的虚拟硬盘从而继承它的一切参数（实际上可以通过二进制自定义，但是意义不大）。
+
+扇区格式：512n、512e（默认）、4kn，分别是物理扇区大小和逻辑扇区大小为（512+512、4096+512和4096+4096的组合），普通用户保持默认即可。
+
+块大小：最小存储单位。块越大，读写效率越高，空间利用率越低；块越小，读写效率越低，空间利用率越高。
+
+###### 类型为光驱
+
+利用 DiscUtils 实现的ISO创建，可实现将指定文件夹快速打包并挂载的功能，文档待完善。
+
+### 显卡
+
+虚拟机能通过GPU-PV技术访问宿主机物理显卡的能力。该功能非常依赖于WDDM版本，宿主和虚拟机尽量使用最新的系统版本。
+
+GPU-PV (或称 GPU-P) 是一种半虚拟化技术，它允许多个虚拟机共享使用物理 GPU 的计算能力，而无需完整直通。
+
+- **资源限制**: 目前 Hyper-V 原生无法有效限制每个虚拟机使用的 GPU 资源。`Set-VMGpuPartitionAdapter` 中的参数并不生效 ([相关讨论](https://github.com/jamesstringerparsec/Easy-GPU-PV/issues/298))。因此，本工具暂不提供资源分配功能。
+- **驱动与兼容性**: GPU-P 创建的虚拟设备虽然能调用物理 GPU，但并未完整继承其硬件特征和驱动细节。某些依赖特定硬件ID或驱动签名的软件/游戏可能无法运行。
+
+下拉菜单可查看该虚拟机上所有GPU-PV分区的图形引擎利用率，包含四个常用引擎：3D、Copy、编码和解码。
+
+#### 系统要求
+
+宿主和虚拟机必须是如下版本才能启用此能力。
+
+- Windows 10 （Build 17134+）
+- Windows 11
+- Windows Server 2019 
+- Windows Server 2022
+- Windows Server 2025
+
+虚拟机必须是大于9.0的配置版本才能分配GPU-PV显卡。不限制是1代虚拟机或2代虚拟机。
+
+启用了GPU-PV的虚拟机不支持检查点功能。
+
+启用了GPU-PV的显卡必须存在于宿主机，不能同时用于DDA直通。
+
+从同一张显卡获取的多个GPU-PV显卡分区不能提供超过物理上限的算力。
+
+虚拟机可以获取来自不同显卡的GPU-PV显卡分区。
+
+可能存在[内存泄露问题](https://github.com/jamesstringer90/Easy-GPU-PV/issues/446)，建议将宿主机系统版本更新到 `26100.4946`以上。
+
+#### WDDM 版本与 GPU-P 功能演进
+> WDDM (Windows Display Driver Model) 版本越高，GPU-P 功能越完善。建议宿主和虚拟机都使用最新的 Windows 版本。
+
+| Windows 版本 (Build) | WDDM 版本 | 主要虚拟化功能更新 |
+| :--- | :--- | :--- |
+| 17134 | 2.4 | 首次引入基于 IOMMU 的 GPU 隔离。 |
+| 17763 | 2.5 | 优化宿主与虚拟机间的资源管理与通信。 |
+| 18362 | 2.6 | 提升显存管理效率，优先分配连续物理显存。 |
+| 19041 | 2.7 | 虚拟机设备管理器可正确识别物理显卡型号。 |
+| 20348 | 2.9 | 支持跨适配器资源扫描输出 (CASO)，降低延迟。 |
+| 22000 | 3.0 | 支持 DMA 重映射，突破 GPU 内存地址限制。 |
+| 22621 | 3.1 | UMD/KMD 内存共享，减少数据复制，提升效率。 |
+| 26100 | 3.2 | 引入 GPU 实时迁移、WDDM 功能查询等新特性。虚拟机任务管理器可查看GPU性能。 |
+
+#### GPU-PV 显卡兼容性列表 (使用Gpu Caps Viewer+DXVA Checker测试)
+
+| 品牌 | 型号 | 架构 | 识别 | DirectX 12 | OpenGL | Vulkan | Codec | CUDA/OpenCL | 备注 |
+| :--- | :--- | :--- | :--- |:--- | :--- | :--- | :--- | :--- | :--- |
+| **Nvidia** | RTX 4090 | Ada Lovelace | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | |
+| **Nvidia** | RTX 4080 Super | Ada Lovelace | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | |
+| **Nvidia** | GTX 1050 | Pascal | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | |
+| **Nvidia** | GT 210 | Tesla | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | 不支持 |
+| **Intel**| Iris Xe Graphics| Xe-LP | ⚠️ | ✅ | ✅ | ✅ | ✅ | ❌ | 硬件识别残缺| 
+| **Intel**| A380 | Xe-HPG | ⚠️ | ✅ | ✅ | ✅ | ✅ | ❌ | 硬件识别残缺|
+| **Intel**| UHD Graphics 730 | Xe-LP | ⚠️ | ✅ | ✅ | ✅ | ✅ | ❌ | 硬件识别残缺|
+| **Intel**| UHD Graphics 620 Mobile | Generation 9.5 | ⚠️ | ✅ | ✅ | ✅ | ✅ | ❌ | 硬件识别残缺|
+| **Intel**| HD Graphics 530 | Generation 9.0 | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | 不支持 |
+| **AMD** | Radeon Vega 3 | GCN 5.0 | ⚠️ | ✅ | ✅ | ✅ | ✅ | ✅ | 硬件识别残缺|
+| **AMD** | Radeon 8060S | RDNA 3.5 | ⚠️ | ✅ | ✅ | ✅ | ✅ | ❌ | 硬件识别残缺 |
+| **AMD** | Radeon 890M | RDNA 3.5 | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | 启动会导致宿主崩溃 |
+| **Moore Threads** | MTT S80 | MUSA | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | 不支持 |
+
+#### 如何从虚拟机输出画面？
+
+GPU-P 模式下，物理 GPU 作为“渲染设备”，需要搭配一个“显示设备”来输出画面。有以下三种方案：
+
+1.  **Microsoft Hyper-V 视频 (默认)**
+    - **优点**: 兼容性好，开箱即用。
+    - **缺点**: 分辨率最高 1080p，刷新率低 (约 60Hz)。
+
+2.  **间接显示驱动 + 串流 (推荐)**
+    - 安装 [虚拟显示驱动](https://github.com/VirtualDrivers/Virtual-Display-Driver) 创建一个高性能的虚拟显示器（似乎需要次新版本）。
+    - 使用 Parsec, Sunshine, 或 Moonlight 等串流软件，配对并设置好开机启动，在关闭RDP以及其他远程桌面的情况下连接，从而获得高分辨率、高刷新率的流畅体验。
+    - ![Sunshine+PV 示例](https://github.com/user-attachments/assets/e25fce26-6158-4052-9759-6d5d1ebf1c5d)
+
+3.  **USB 显卡 + GPU-PV**
+    - **思路**: 通过 DDA 直通一个 USB 控制器给虚拟机，再连接一个 USB 显卡（如基于 [DisplayLink DL-6950](https://www.synaptics.com/cn/products/displaylink-graphics/integrated-chipsets/dl-6000) 或 [Silicon Motion SM768](https://www.siliconmotion.com/product/cht/Graphics-Display-SoCs.html) 芯片的产品）作为显示设备。
+    - **状态**: 此方案与大显存显卡存在内存资源冲突问题，目前不推荐普通用户尝试。
+
+#### 配置流程
+
+##### 环境准备
+
+为宿主系统环境添加注册表，禁用安全策略等避免分配GPU-PV后无法启动虚拟机。
+
+##### 电源检查
+
+配置MMIO空间和开启写合并缓存需要关闭虚拟机电源。
+
+##### 系统优化
+
+配置MMIO空间和开启写合并缓存。
+
+##### 分配显卡
+
+将选择的显卡创建GPU-PV分区并分配到虚拟机。
+
+##### 驱动安装
+
+可选项，对于Windows虚拟机，将自动检查显卡驱动文件夹（失败则全量注入）并注入到虚拟机指定位置（可能需要手动选择分区），并添加针对Nvidia的注册表修复。
+
+对于Linux虚拟机，会执行另一套SSH相关流程进行模块编译和驱动安装，兼容列表之外的系统或内核需要更多测试。
+
+![Linux&Blender](https://github.com/Justsenger/ExHyperV/blob/main/img/Linux.png)
+
+已知兼容性：
+| 系统 | 内核版本 | Dxgkrnl | CUDA | Vulkan | OpenGL | Codec |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | 
+| Ubuntu 24.04  | 6.14.0-36-generic | ❌ | \ | \ | \ | \ |
+| Ubuntu 22.04  | 6.8.0-87-generic | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Arch Linux | 6.6.119-1-lts66 | ✅ | ✅ | 未测试 | 未测试 | 未测试 |
+| fnOS 0.9.2 | 6.12.18-trim | ❌ | \ | \ | \ | \ |
+
+
+### 网络
+
+待完善
+
+
+### DDA (离散设备分配)
+
+DDA (Discrete Device Assignment) 允许将一个完整的 PCIe 设备（如显卡、网卡、USB 控制器）从宿主机卸载并直接分配给虚拟机。
 
 - **设备兼容性**: 如果设备未显示在列表中，意味着它无法被独立分配，您需要尝试分配其更上一级的 PCIe 控制器。
 - **显卡支持**:
     - **Nvidia**: 通常工作良好。
     - **AMD/Intel**: 未经充分测试。AMD 消费级显卡可能因不支持 [Function-Level Reset (FLR)](https://www.reddit.com/r/Amd/comments/jehkey/will_big_navi_support_function_level_reset_flr/) 而存在问题。欢迎提供测试反馈！
 - **虚拟机系统**: 推荐使用 Windows，版本无特殊限制。Linux 未经测试。
+
+#### 宿主系统要求
+
+- Windows Server 2019 
+- Windows Server 2022
+- Windows Server 2025
+
+黑魔法：如果您想使用DDA功能但不想安装Server系统，可以尝试切换系统版本的开关，将标识位从WinNT变为ServerNT，从而欺骗Hypervisor。
 
 #### DDA 设备状态解析
 > 理解设备的三种状态对于排查问题至关重要。
@@ -112,7 +401,7 @@ DDA (Discrete Device Assignment) 允许你将一个完整的 PCIe 设备（如�
 2.  **卸除态 (Dismounted)**: 设备已从宿主卸载 (`Dismount-VMHostAssignableDevice`)，但未成功分配给虚拟机。此时设备在宿主设备管理器中不可用，可通过本工具重新挂载到宿主或分配给虚拟机。
 3.  **虚拟态 (Guest)**: 设备已成功挂载于虚拟机。
 
-#### DDA 显卡兼容性列表 (持续更新中)
+#### DDA 显卡兼容性列表 (持续更新)
 > 兼容性表现需要实际在虚拟机中安装驱动后才能确认。欢迎通过 [Issues](https://github.com/Justsenger/ExHyperV/issues) 分享您的测试结果！
 
 | 品牌 | 型号 | 架构 | 启动 | 功能层复位 (FLR) | 物理显示输出 |
@@ -136,130 +425,14 @@ DDA (Discrete Device Assignment) 允许你将一个完整的 PCIe 设备（如�
 - **驱动正常**: 分配到虚拟机后能否成功安装驱动并被识别。
 - **功能层复位 (FLR)**: 若不支持，重启虚拟机会导致宿主机也重启。
 - **物理显示输出**: 虚拟机能否通过显卡的物理接口（HDMI/DP）输出画面。
-
 ---
 
-### Ⅱ. GPU-P (GPU Paravirtualization / GPU 分区)
+### 虚拟交换机
 
-GPU-P (或称 GPU-PV) 是一种半虚拟化技术，它允许多个虚拟机共享使用物理 GPU 的计算能力，而无需完整直通。
-
-- **资源限制**: 目前 Hyper-V 原生无法有效限制每个虚拟机使用的 GPU 资源。`Set-VMGpuPartitionAdapter` 中的参数并不生效 ([相关讨论](https://github.com/jamesstringerparsec/Easy-GPU-PV/issues/298))。因此，本工具暂不提供资源分配功能。
-- **驱动与兼容性**: GPU-P 创建的虚拟设备虽然能调用物理 GPU，但并未完整继承其硬件特征和驱动细节。某些依赖特定硬件ID或驱动签名的软件/游戏可能无法运行。
-
-#### WDDM 版本与 GPU-P 功能演进
-> WDDM (Windows Display Driver Model) 版本越高，GPU-P 功能越完善。建议宿主和虚拟机都使用最新的 Windows 版本。
-
-| Windows 版本 (Build) | WDDM 版本 | 主要虚拟化功能更新 |
-| :--- | :--- | :--- |
-| 17134 | 2.4 | 首次引入基于 IOMMU 的 GPU 隔离。 |
-| 17763 | 2.5 | 优化宿主与虚拟机间的资源管理与通信。 |
-| 18362 | 2.6 | 提升显存管理效率，优先分配连续物理显存。 |
-| 19041 | 2.7 | 虚拟机设备管理器可正确识别物理显卡型号。 |
-| 20348 | 2.9 | 支持跨适配器资源扫描输出 (CASO)，降低延迟。 |
-| 22000 | 3.0 | 支持 DMA 重映射，突破 GPU 内存地址限制。 |
-| 22621 | 3.1 | UMD/KMD 内存共享，减少数据复制，提升效率。 |
-| 26100 | 3.2 | 引入 GPU 实时迁移、WDDM 功能查询等新特性。虚拟机任务管理器可查看GPU性能。 |
-
-#### 一、Windows作为虚拟机🪟
-
-![WDDM 架构](https://github.com/Justsenger/ExHyperV/blob/main/img/WDDM_cn.png)
-
-##### GPU-P 显卡兼容性列表 (使用Gpu Caps Viewer+DXVA Checker测试，持续更新中)
-
-| 品牌 | 型号 | 架构 | 识别 | DirectX 12 | OpenGL | Vulkan | Codec | CUDA/OpenCL | 备注 |
-| :--- | :--- | :--- | :--- |:--- | :--- | :--- | :--- | :--- | :--- |
-| **Nvidia** | RTX 4090 | Ada Lovelace | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | |
-| **Nvidia** | RTX 4080 Super | Ada Lovelace | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | |
-| **Nvidia** | GTX 1050 | Pascal | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | |
-| **Nvidia** | GT 210 | Tesla | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | 不支持 |
-| **Intel**| Iris Xe Graphics| Xe-LP | ⚠️ | ✅ | ✅ | ✅ | ✅ | ❌ | 硬件识别残缺| 
-| **Intel**| A380 | Xe-HPG | ⚠️ | ✅ | ✅ | ✅ | ✅ | ❌ | 硬件识别残缺|
-| **Intel**| UHD Graphics 730 | Xe-LP | ⚠️ | ✅ | ✅ | ✅ | ✅ | ❌ | 硬件识别残缺|
-| **Intel**| UHD Graphics 620 Mobile | Generation 9.5 | ⚠️ | ✅ | ✅ | ✅ | ✅ | ❌ | 硬件识别残缺|
-| **Intel**| HD Graphics 530 | Generation 9.0 | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | 不支持 |
-| **AMD** | Radeon Vega 3 | GCN 5.0 | ⚠️ | ✅ | ✅ | ✅ | ✅ | ✅ | 硬件识别残缺|
-| **AMD** | Radeon 8060S | RDNA 3.5 | ⚠️ | ✅ | ✅ | ✅ | ✅ | ❌ | 硬件识别残缺 |
-| **AMD** | Radeon 890M | RDNA 3.5 | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | 启动会导致宿主崩溃 |
-| **Moore Threads** | MTT S80 | MUSA | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | 不支持 |
-
-##### 如何从虚拟机输出画面？
-
-GPU-P 模式下，物理 GPU 作为“渲染设备”，需要搭配一个“显示设备”来输出画面。有以下三种方案：
-
-1.  **Microsoft Hyper-V 视频 (默认)**
-    - **优点**: 兼容性好，开箱即用。
-    - **缺点**: 分辨率最高 1080p，刷新率低 (约 62Hz)。
-
-2.  **间接显示驱动 + 串流 (推荐)**
-    - 安装 [虚拟显示驱动](https://github.com/VirtualDrivers/Virtual-Display-Driver) 创建一个高性能的虚拟显示器。
-    - 使用 Parsec, Sunshine, 或 Moonlight 等串流软件，获得高分辨率、高刷新率的流畅体验。
-    - ![Sunshine+PV 示例](https://github.com/user-attachments/assets/e25fce26-6158-4052-9759-6d5d1ebf1c5d)
-
-3.  **USB 显卡 + DDA (实验性)**
-    - **思路**: 通过 DDA 直通一个 USB 控制器给虚拟机，再连接一个 USB 显卡（如基于 [DisplayLink DL-6950](https://www.synaptics.com/cn/products/displaylink-graphics/integrated-chipsets/dl-6000) 或 [Silicon Motion SM768](https://www.siliconmotion.com/product/cht/Graphics-Display-SoCs.html) 芯片的产品）作为显示设备。
-    - **状态**: 作者正在研究此方案与大显存显卡共存时的冲突问题，目前不推荐普通用户尝试。
-
-##### ⚙️ 工作原理
-
-为了简化配置，本工具会自动执行以下操作：
-- **驱动注入**: 自动将宿主机中的 GPU 驱动 (`HostDriverStore`) 导入到虚拟机中。
-- **驱动保护**: 将导入的驱动文件设置为“只读”，防止被意外修改或删除。
-- **Nvidia 注册表修复**: 自动修改虚拟机中 Nvidia 相关的注册表项，将驱动路径指向 `HostDriverStore`，确保驱动被正确加载。
-
-#### 二、Linux作为虚拟机🐧
-<img width="800" height="450" alt="image" src="https://github.com/user-attachments/assets/0bc11e21-3670-42a0-a8cc-fec9ae4f6d0e" />
-
-![Linux&Blender](https://github.com/Justsenger/ExHyperV/blob/main/img/Linux.png)
-
-已知兼容性：
-| 系统 | 内核版本 | Dxgkrnl | CUDA | Vulkan | OpenGL | Codec |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- | 
-| Ubuntu 24.04  | 6.14.0-36-generic | ❌ | \ | \ | \ | \ |
-| Ubuntu 22.04  | 6.8.0-87-generic | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Arch Linux | 6.6.119-1-lts66 | ✅ | ✅ | 未测试 | 未测试 | 未测试 |
-| fnOS 0.9.2 | 6.12.18-trim | ❌ | \ | \ | \ | \ |
-
-### Ⅲ. 虚拟交换机
-
-虚拟交换机用于虚拟机连接外部网络或其他虚拟机。ExHyperV 参照 VMware 的网络模型，简化并重构了 Hyper-V 的经典交换机类型，对应关系如下：
-
-*   **桥接模式** = Hyper-V 外部交换机
-*   **NAT 模式** = Hyper-V 内部交换机 + ICS (Internet 连接共享)
-*   **无上游** = Hyper-V 内部交换机 / 专用交换机
-
-#### 网络模式
-
-*   **桥接模式**
-    将虚拟机直接连接到物理网络，使其成为局域网中的独立设备。
-
-*   **NAT 模式**
-    为虚拟机创建一个私有网络，并通过宿主机共享网络访问外部。
-    *   **优点**: 无需手动配置 NAT 和 DHCP，选择好上游网卡后即可开箱即用。
-    *   **限制**: 由于 Windows 的 ICS (Internet 连接共享) 被硬性限制为 1 个，因此现阶段只能创建唯一的一个 NAT 交换机，且无法自定义 NAT 和 DHCP 设置。
-
-*   **无上游**
-    创建一个仅限虚拟机之间通信的隔离网络，无法访问外部。
-
-#### 设置说明
-
-*   **上游网络**
-    为“桥接模式”或“NAT 模式”指定一个上联的物理网卡。
-
-*   **宿主连接**
-    决定是否将宿主机也连接到此虚拟交换机。在某些模式下此选项为强制开启，因此会显示为灰色不可选。
-
-#### 网络拓扑
-
-通过下方的网络拓扑图，您可以清晰地查看连接到此交换机上的所有设备，包括它们的 IP 及 MAC 地址。如果信息显示不够及时，请点击右上角的 **刷新** 按钮。
+待完善
 
 
-### Ⅳ. 内存
 
-*   **查看物理内存**：直观了解已安装的物理内存模块情况。
-*   **管理虚拟机内存**：实时监控并管理虚拟机的内存使用。
-*   **动态内存**：请注意，该功能是一把双刃剑。它提供了内存伸缩的便利，但也可能带来意想不到的问题。
-*   **内存缓冲区**：取值范围为 5% 至 2000%，用于为虚拟机预留额外内存，以应对突发的使用高峰，避免性能瓶颈。
-*   **最大内存**：此值会受到主机物理内存的上限限制，默认的 1TB 仅为理论占位符，不具备实际意义。
 
 ## 🤝 贡献
 欢迎任何形式的贡献！
