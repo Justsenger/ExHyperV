@@ -23,7 +23,7 @@
 
 ---
 
-ExHyperV 通过深入研究微软官方文档、[WMI](https://github.com/Justsenger/HyperV-WMI-Documentation)、[HCS](https://learn.microsoft.com/en-us/virtualization/api/hcs/overview)等，旨在为用户提供一个图形化的、易于使用的 Hyper-V 高级功能配置工具。
+ExHyperV 通过深入研究微软官方文档、 [WMI](https://github.com/Justsenger/HyperV-WMI-Documentation) 以及 [HCS](https://learn.microsoft.com/en-us/virtualization/api/hcs/overview) 等文档，旨在为用户提供一个图形化的、易于使用的 Hyper-V 高级功能配置工具。
 
 由于个人时间和精力有限，项目可能存在未经测试的场景或错误。如果您在使用中遇到任何关于硬件/软件的问题，欢迎通过 [Issues](https://github.com/Justsenger/ExHyperV/issues) 提出！
 
@@ -34,8 +34,10 @@ ExHyperV 通过深入研究微软官方文档、[WMI](https://github.com/Justsen
 界面使用 [WPF-UI](https://github.com/lepoco/wpfui) 框架，提供流畅现代的用户界面体验和科幻的视觉效果。支持黑色主题和白色主题，并且会根据系统主题自动切换。
 
 ![主界面](https://github.com/Justsenger/ExHyperV/blob/main/img/01.png)
+
 <details>
 <summary>点击查看更多界面截图</summary>
+  
 ![功能](https://github.com/Justsenger/ExHyperV/blob/main/img/02.png)
 ![功能](https://github.com/Justsenger/ExHyperV/blob/main/img/03.png)
 ![功能](https://github.com/Justsenger/ExHyperV/blob/main/img/04.png)
@@ -47,17 +49,17 @@ ExHyperV 通过深入研究微软官方文档、[WMI](https://github.com/Justsen
 </details>
 
 ## 🚀 快速开始
-
+---
 ### 1. 下载与运行
 - **下载**: 前往 [Releases 页面](https://github.com/Justsenger/ExHyperV/releases/latest)下载最新版本。
 - **运行**: 解压后直接运行 `ExHyperV.exe` 即可。
-
+---
 ### 2. 构建 (可选)
 1. 安装 [Visual Studio 2022](https://visualstudio.microsoft.com/vs/)，并确保勾选 .NET 桌面开发。
 2. 使用 GitHub Desktop 或 Git 克隆本仓库。
 3. 使用 Visual Studio 打开 `/src/ExHyperV.sln` 文件，即可编译。
 
-除此之外，您也可以直接下载[.NET SDK](https://dotnet.microsoft.com/zh-cn/download),打开项目目录：
+除此之外，您也可以直接下载 [.NET SDK](https://dotnet.microsoft.com/zh-cn/download) ,打开项目目录：
 ```pwsh
 cd src
 dotnet build
@@ -65,13 +67,14 @@ dotnet build
 
 ## 📖 技术文档
 
-这部分内容将长期维护，根据HyperV开发实践以及文档编写而成，可能存在谬误或缺省内容。
+这部分内容将长期维护，根据作者的HyperV开发实践以及相关文档编写而成，可能存在问题或缺省内容。
 
+---
 ### Hyper-V 简介
 
-Hyper-V 是基于 Type-1 （硬件 -> Hypervisor -> 虚拟机）架构的高性能虚拟机管理软件（Hypervisor），当您开启Hyper-V功能后，宿主系统将变成属于根分区的一个具有特权的虚拟机。您创建的虚拟机属于子分区，它们相互隔离，无法感知彼此的存在。
+Hyper-V 是基于 Type-1 架构的高性能虚拟机管理软件（Hypervisor），当您开启Hyper-V功能后，宿主系统将变成属于根分区的一个具有特权的虚拟机。创建的虚拟机属于子分区，它们相互隔离，无法感知彼此的存在。
 
-属于Type-1架构的虚拟化技术包括：Hyper-V、Proxmox (KVM)、VMware ESXi (VMkernel)、Xen 等，性能利用率大约在98%+。
+属于Type-1架构的虚拟化技术包括：Hyper-V、Proxmox (KVM)、VMware ESXi (VMkernel)、Xen 等，性能利用率大约在98%以上。
 
 属于Type-2架构的虚拟化技术包括：VMware Workstation、Oracle VirtualBox、Parallels Desktop等，性能利用率大约在90%~95%。
 
@@ -81,7 +84,7 @@ Hyper-V 是基于 Type-1 （硬件 -> Hypervisor -> 虚拟机）架构的高性�
 ```
 Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V -All
 ```
-
+---
 ### 调度器
 
 调度器用于协调如何将物理处理器的CPU时间分配给虚拟处理器。
@@ -94,19 +97,20 @@ Core 核心调度器出现时间稍晚，自Windows Server 2016 以及 Windows 1
 
 Root 根调度器发布于Windows 10 Build 17134，这个调度器会收集工作负荷 CPU 使用情况的指标，而作出自动调度决策，对于大小核的CPU架构来说非常适合。从 Build 17134 起，专业版Windows Hyper-V 将默认使用 Root 根调度器。
 
-系统类型不会限制调度器的类型，可以在ExHyperV里面任意切换，但是根调度器的CPU相关性无法在虚拟机关机后保存，因为后端实现逻辑依靠亲和性而不是CPU组。
+系统类型不会限制调度器的类型，可以在ExHyperV里面任意切换，但是根调度器的CPU相关性目前无法在虚拟机关机后保存，因为后端实现逻辑依靠进程亲和性而非CPU组。
 
+---
 ### 处理器（vCPU）
 
-虚拟机能同时申请物理逻辑处理器的执行时间的调度能力。
+虚拟机向宿主申请逻辑处理器执行时间的调度能力。
 
 #### 计算资源
 
 ##### 核心数
 
-通常设定为2、4、8、16的偶数。奇数可以启动但是不推荐。
+通常设定为2、4、8、16等偶数。奇数可以启动但是不推荐。
 
-若虚拟机的任务是高度可并行的，增加 vCPU 会显著提升速度，但过多不必要的vCPU可能为Hypervisor带来调度压力，虚拟机的核心总数超过宿主物理逻辑核心数（超售）对于需要即时响应的应用来说很不利。
+若虚拟机的任务是高度可并行的，增加 vCPU 会显著提升速度。过多不必要的vCPU可能为 Hypervisor 带来调度压力，虚拟机的核心总数超过宿主物理逻辑核心数（超售）对于需要即时响应的应用来说很不利。
 
 ##### 预留
 
@@ -174,6 +178,7 @@ Root 根调度器发布于Windows 10 Build 17134，这个调度器会收集工�
 
 如果您不信任调度器的分配策略，或者对于大小核有任何顾虑，可以尝试使用此功能。
 
+---
 ### 内存
 
 虚拟机能支配运行内存的能力。Hyper-V 通过二级地址转换技术将虚拟机的物理内存请求直接映射到真实的物理内存条。
@@ -206,6 +211,8 @@ Root 根调度器发布于Windows 10 Build 17134，这个调度器会收集工�
 
 开启后将利用硬件特性（AMD SEV 或 Intel TDX）对内存数据进行实时加密，即使是宿主机也无法读取内存数据，开启后会带来轻微的内存延迟和 CPU 负载增加。
 
+
+---
 ### 存储
 
 虚拟机能访问的存储介质。分为虚拟文件和物理设备。虚拟文件有vhdx、vhd和iso等格式，模拟的是一个完整的物理硬盘或物理光驱。物理设备可选择宿主机上可用的硬盘或光驱进行直通。
@@ -254,6 +261,7 @@ Hyper-V 要求您将虚拟文件或物理设备挂载到IDE控制器或SCSI控�
 
 利用 DiscUtils 实现的ISO创建，可实现将指定文件夹快速打包并挂载的功能，文档待完善。
 
+---
 ### 显卡
 
 虚拟机能通过GPU-PV技术访问宿主机物理显卡的能力。该功能非常依赖于WDDM版本，宿主和虚拟机尽量使用最新的系统版本。
@@ -370,21 +378,23 @@ GPU-P 模式下，物理 GPU 作为“渲染设备”，需要搭配一个“显
 | Arch Linux | 6.6.119-1-lts66 | ✅ | ✅ | 未测试 | 未测试 | 未测试 |
 | fnOS 0.9.2 | 6.12.18-trim | ❌ | \ | \ | \ | \ |
 
-
+---
 ### 网络
 
 待完善
 
-
+---
 ### DDA (离散设备分配)
 
-DDA (Discrete Device Assignment) 允许将一个完整的 PCIe 设备（如显卡、网卡、USB 控制器）从宿主机卸载并直接分配给虚拟机。
+DDA 允许将一个完整的 PCIe 设备（如显卡、网卡、声卡、USB 控制器）从宿主机卸载并直接分配给虚拟机。
 
-- **设备兼容性**: 如果设备未显示在列表中，意味着它无法被独立分配，您需要尝试分配其更上一级的 PCIe 控制器。
-- **显卡支持**:
-    - **Nvidia**: 通常工作良好。
-    - **AMD/Intel**: 未经充分测试。AMD 消费级显卡可能因不支持 [Function-Level Reset (FLR)](https://www.reddit.com/r/Amd/comments/jehkey/will_big_navi_support_function_level_reset_flr/) 而存在问题。欢迎提供测试反馈！
-- **虚拟机系统**: 推荐使用 Windows，版本无特殊限制。Linux 未经测试。
+#### 可分配设备
+
+DDA以PCIe设备为单位划分可分配设备。如果设备未显示在列表中，意味着它无法被独立分配，您需要尝试分配其更上一级的 PCIe 控制器。
+
+#### 虚拟机系统
+
+推荐使用 Windows，Linux 未经测试。
 
 #### 宿主系统要求
 
@@ -392,17 +402,16 @@ DDA (Discrete Device Assignment) 允许将一个完整的 PCIe 设备（如显�
 - Windows Server 2022
 - Windows Server 2025
 
-黑魔法：如果您想使用DDA功能但不想安装Server系统，可以尝试切换系统版本的开关，将标识位从WinNT变为ServerNT，从而欺骗Hypervisor。
+**黑魔法**：如果您想在非Server系统上使用 DDA 功能，可以尝试切换系统版本的开关，将标识位从WinNT变为ServerNT，从而欺骗Hypervisor。
 
-#### DDA 设备状态解析
-> 理解设备的三种状态对于排查问题至关重要。
+#### DDA 设备的三种状态
 
-1.  **主机态 (Host)**: 设备正常挂载于宿主系统，可被宿主使用。
-2.  **卸除态 (Dismounted)**: 设备已从宿主卸载 (`Dismount-VMHostAssignableDevice`)，但未成功分配给虚拟机。此时设备在宿主设备管理器中不可用，可通过本工具重新挂载到宿主或分配给虚拟机。
-3.  **虚拟态 (Guest)**: 设备已成功挂载于虚拟机。
+1.  **主机态 (Host)**: 设备正常挂载到宿主系统，可被宿主使用。
+2.  **卸除态 (Dismounted)**: 设备已从宿主卸载 (`Dismount-VMHostAssignableDevice`)，但未分配给虚拟机。此时设备在宿主设备管理器中不可用，可通过本工具重新挂载到宿主或分配给虚拟机。
+3.  **虚拟态 (Guest)**: 设备已成功挂载到虚拟机。
 
 #### DDA 显卡兼容性列表 (持续更新)
-> 兼容性表现需要实际在虚拟机中安装驱动后才能确认。欢迎通过 [Issues](https://github.com/Justsenger/ExHyperV/issues) 分享您的测试结果！
+> 兼容性表现需要在虚拟机中安装驱动后才能确认。欢迎通过 [Issues](https://github.com/Justsenger/ExHyperV/issues) 分享您的测试结果！
 
 | 品牌 | 型号 | 架构 | 启动 | 功能层复位 (FLR) | 物理显示输出 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -422,11 +431,10 @@ DDA (Discrete Device Assignment) 允许将一个完整的 PCIe 设备（如显�
 | **AMD** | RX 580 | GCN 4.0 | Code 43 ❌ | ✅ | ❌ |
 | **AMD** | Radeon Vega 3 | GCN 5.0 | Code 43 ❌ | ❌ | ❌ |
 
-- **驱动正常**: 分配到虚拟机后能否成功安装驱动并被识别。
-- **功能层复位 (FLR)**: 若不支持，重启虚拟机会导致宿主机也重启。
+- **启动**: 分配到虚拟机后能否成功安装驱动并被识别。代码43 说明驱动不允许显卡在虚拟机内工作。
+- **功能层复位 (FLR)**: 若不支持此功能，重启虚拟机会导致宿主机也重启。
 - **物理显示输出**: 虚拟机能否通过显卡的物理接口（HDMI/DP）输出画面。
 ---
-
 ### 虚拟交换机
 
 待完善
@@ -436,7 +444,7 @@ DDA (Discrete Device Assignment) 允许将一个完整的 PCIe 设备（如显�
 
 ## 🤝 贡献
 欢迎任何形式的贡献！
-- **测试与反馈**: 帮助我们完善兼容性列表。
+- **测试与反馈**: 帮助我们完善兼容性列表或测试潜在的Bug。
 - **报告 Bug**: 通过 [Issues](https://github.com/Justsenger/ExHyperV/issues) 提交您遇到的问题。
 - **代码贡献**: Fork 项目并提交 Pull Request。
 
