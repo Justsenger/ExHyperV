@@ -1377,26 +1377,36 @@ namespace ExHyperV.ViewModels
                             {
                                 vm.SyncBackendData(update.State, update.RawUptime);
 
-                                vm.MacAddress = update.MacAddress;
+                                // --- 新增：同步网卡列表 ---
+                                SyncNetworkAdaptersInternal(vm.NetworkAdapters, update.NetworkAdapters.ToList());
+
+                                // 处理外层 IP 显示
                                 if (vm.IsRunning)
                                 {
-                                    // IP 获取涉及 PowerShell，比较耗时，开启后台任务异步更新
-                                    _ = Task.Run(async () => {
-                                        try
-                                        {
-                                            var ip = await Utils.GetVmIpAddressAsync(vm.Name, vm.MacAddress);
-                                            if (!string.IsNullOrEmpty(ip) && vm.IpAddress != ip)
+                                    // 如果 WMI 已经拿到了 IP，直接用网卡的 IP 更新外层预览
+                                    var firstValidIp = vm.NetworkAdapters
+                                        .SelectMany(a => a.IpAddresses ?? new List<string>())
+                                        .FirstOrDefault(ip => !string.IsNullOrEmpty(ip));
+
+                                    if (!string.IsNullOrEmpty(firstValidIp))
+                                    {
+                                        vm.IpAddress = firstValidIp;
+                                    }
+                                    else
+                                    {
+                                        // 如果 WMI 还没拿到，再尝试通过 ARP 嗅探 (保持原有逻辑)
+                                        _ = Task.Run(async () => {
+                                            try
                                             {
-                                                Application.Current.Dispatcher.Invoke(() => vm.IpAddress = ip);
+                                                var ip = await Utils.GetVmIpAddressAsync(vm.Name, vm.MacAddress);
+                                                if (!string.IsNullOrEmpty(ip))
+                                                    Application.Current.Dispatcher.Invoke(() => vm.IpAddress = ip);
                                             }
-                                        }
-                                        catch { /* 忽略 IP 嗅探过程中的异常 */ }
-                                    });
+                                            catch { }
+                                        });
+                                    }
                                 }
-                                else
-                                {
-                                    vm.IpAddress = "---";
-                                }
+                                else { vm.IpAddress = "---"; }
 
 
                                 // --- 开始修复：增量更新磁盘列表，防止速率数据被 Clear 掉 ---
@@ -2152,6 +2162,35 @@ namespace ExHyperV.ViewModels
             if (!result.Success)
             {
                 ShowSnackbar("安全设置应用失败", result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+            }
+        }
+
+        private void SyncNetworkAdaptersInternal(ObservableCollection<VmNetworkAdapter> currentList, List<VmNetworkAdapter> newList)
+        {
+            // 1. 移除不存在的
+            var toRemove = currentList.Where(c => !newList.Any(n => n.Id == c.Id)).ToList();
+            foreach (var item in toRemove) currentList.Remove(item);
+
+            // 2. 更新或添加
+            foreach (var newItem in newList)
+            {
+                var existing = currentList.FirstOrDefault(c => c.Id == newItem.Id);
+                if (existing != null)
+                {
+                    existing.Name = newItem.Name;
+                    existing.IsConnected = newItem.IsConnected;
+                    existing.SwitchName = newItem.SwitchName;
+                    existing.MacAddress = newItem.MacAddress;
+                    // 重要：同步 IP
+                    if (newItem.IpAddresses != null && newItem.IpAddresses.Count > 0)
+                    {
+                        existing.IpAddresses = newItem.IpAddresses;
+                    }
+                }
+                else
+                {
+                    currentList.Add(newItem);
+                }
             }
         }
     }

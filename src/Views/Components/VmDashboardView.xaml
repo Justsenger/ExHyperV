@@ -564,10 +564,12 @@
                                             <!-- 第一行：IP 地址 (高亮) + 速率 (右侧) -->
                                             <Grid>
                                                 <StackPanel Orientation="Horizontal">
+                                                    <!-- 修改此处：从绑定 IpAddressDisplay 改为绑定 IpAddresses 并通过转换器，或者直接利用 VmNetworkAdapter 已有的展示逻辑 -->
+                                                    <!-- 如果 VmNetworkAdapter 没有 IpAddressDisplay，建议在 VmNetworkAdapter 类中添加该属性 -->
                                                     <TextBlock Text="{Binding IpAddressDisplay, FallbackValue='获取中...'}" 
-                                           FontSize="14" 
-                                           FontWeight="SemiBold"
-                                           Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                   FontSize="14" 
+                   FontWeight="SemiBold"
+                   Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
                                                 </StackPanel>
 
                                                 <!-- 实时速率 -->

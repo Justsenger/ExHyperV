@@ -176,15 +176,14 @@ namespace ExHyperV.Services
                         {
                             var adapter = new VmNetworkAdapter
                             {
-                                Id = n.Name,
+                                Id = n.Id, // 确保 ID 完整，用于匹配
                                 Name = n.Name,
-                                MacAddress = Regex.Replace(n.Mac ?? "", ".{2}", "$0-").TrimEnd('-'),
+                                MacAddress = Regex.Replace(n.Mac ?? "", ".{2}", "$0-").TrimEnd('-').ToUpper(),
                                 IsConnected = n.Alloc?.IsConnected ?? false,
                                 SwitchName = (n.Alloc?.SwitchPath != null && switchMap.TryGetValue(n.Alloc.SwitchPath, out var swName)) ? swName : "未连接"
                             };
 
-                            // [新增] 尝试匹配 IP
-                            // Port 的 InstanceID 格式通常为 "Microsoft:<SystemGUID>\\<DeviceGUID>"
+                            // 匹配 IP (从 Msvm_GuestNetworkAdapterConfiguration 来的数据)
                             string deviceKey = n.Id.Split('\\').LastOrDefault();
                             if (!string.IsNullOrEmpty(deviceKey) && guestIpMap.TryGetValue(deviceKey, out var ips))
                             {
@@ -193,7 +192,6 @@ namespace ExHyperV.Services
 
                             vmInfo.NetworkAdapters.Add(adapter);
                         }
-
                         vmInfo.MacAddress = vmInfo.NetworkAdapters.FirstOrDefault()?.MacAddress ?? "00-00-00-00-00-00";
 
                         // [新增] 设置 Dashboard 简介显示的 IP (取第一个有 IP 的网卡的第一个 IP)
