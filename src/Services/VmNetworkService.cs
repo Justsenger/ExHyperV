@@ -3,12 +3,14 @@ using ExHyperV.Tools;
 using System.Management;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
+
 namespace ExHyperV.Services
 {
     public class VmNetworkService
     {
         private const string ServiceClass = "Msvm_VirtualSystemManagementService";
-        private const string ScopeNamespace = @"root\virtualization\v2"; private void Log(string message) => Debug.WriteLine($"[VmNetDebug][{DateTime.Now:HH:mm:ss.fff}] {message}");
+        private const string ScopeNamespace = @"root\virtualization\v2";
+        private void Log(string message) => Debug.WriteLine($"[VmNetDebug][{DateTime.Now:HH:mm:ss.fff}] {message}");
 
         public async Task<List<VmNetworkAdapter>> GetNetworkAdaptersAsync(string vmName)
         {
@@ -68,10 +70,9 @@ namespace ExHyperV.Services
                     Log("  [警告] 此端口的 InstanceID 为空，跳过处理。");
                     continue;
                 }
-                Log($"  [端口信息] 完整 InstanceID: {fullPortId}");
 
+                // InstanceID 格式通常为 "Microsoft:<VmGuid>\<DeviceGuid>"
                 string deviceGuid = fullPortId.Split('\\').Last();
-                Log($"  [端口信息] 提取的 Device GUID (用于匹配): {deviceGuid}");
 
                 var adapter = new VmNetworkAdapter
                 {
@@ -80,78 +81,105 @@ namespace ExHyperV.Services
                     MacAddress = FormatMac(port["Address"]?.ToString()),
                     IsStaticMac = GetBool(port, "StaticMacAddress")
                 };
-                Log($"  [端口信息] MAC 地址: {adapter.MacAddress}, 是否静态: {adapter.IsStaticMac}");
 
                 // 核心匹配逻辑
-                Log($"  [匹配操作] 正在为 Device GUID '{deviceGuid}' 查找分配设置...");
+                // 分配设置的 InstanceID 也包含相同的 DeviceGuid
                 var allocation = allAllocs.FirstOrDefault(a =>
                     a["InstanceID"]?.ToString().Contains(deviceGuid, StringComparison.OrdinalIgnoreCase) == true);
 
                 if (allocation != null)
                 {
-                    Log("  [匹配结果] >>> 成功找到匹配的分配设置! <<<");
-                    Log($"    [分配信息] 匹配到的 InstanceID: {allocation["InstanceID"]}");
-
-                    // 解析连接状态
+                    // 1. 解析连接状态
                     string stateStr = allocation["EnabledState"]?.ToString();
-                    Log($"    [状态解析] EnabledState (原始值): {stateStr ?? "null"} (2=已连接, 3=未连接)");
                     adapter.IsConnected = (stateStr == "2");
-                    Log($"    [状态解析] IsConnected (布尔值): {adapter.IsConnected}");
 
-                    // 解析交换机名
+                    // 2. 解析交换机名
                     if (adapter.IsConnected && allocation["HostResource"] is string[] hostResources && hostResources.Length > 0)
                     {
                         string switchWmiPath = hostResources[0];
-                        Log($"    [交换机解析] HostResource 路径: {switchWmiPath}");
-
                         string swGuid = switchWmiPath.Split('"').Reverse().Skip(1).FirstOrDefault();
-                        if (!string.IsNullOrEmpty(swGuid))
-                        {
-                            Log($"    [交换机解析] 提取的交换机 GUID: {swGuid}");
-                            adapter.SwitchName = await GetSwitchNameByGuidAsync(swGuid);
-                            Log($"    [交换机解析] 查询到的交换机名称: {adapter.SwitchName}");
-                        }
-                        else
-                        {
-                            Log("    [交换机解析] [警告] 无法从 HostResource 中解析出交换机 GUID。");
-                            adapter.SwitchName = "解析失败";
-                        }
+                        adapter.SwitchName = !string.IsNullOrEmpty(swGuid)
+                            ? await GetSwitchNameByGuidAsync(swGuid)
+                            : "解析失败";
                     }
                     else
                     {
-                        Log("    [交换机解析] 网卡未连接或无 HostResource，SwitchName 设为 '未连接'。");
                         adapter.SwitchName = "未连接";
                     }
+
+                    // =========================================================
+                    // [最终修复] 手动构造相对路径关联查询
+                    // 解决 "无效的对象路径" 和 "无效查询" 的根本方案。
+                    // 直接构造 WQL 相对路径，精确控制反斜杠转义。
+                    // =========================================================
+                    try
+                    {
+                        string rawId = allocation["InstanceID"]?.ToString();
+
+                        if (!string.IsNullOrEmpty(rawId))
+                        {
+                            // 关键步骤：WQL 字符串字面量中，反斜杠必须是双反斜杠。
+                            // C# 内存字符串: "Microsoft:...\..." -> WQL 需要: "Microsoft:...\\..."
+                            string wqlSafeId = rawId.Replace(@"\", @"\\").Replace("'", "\\'");
+
+                            // 构造相对路径: ClassName.Property="Value"
+                            // 这种路径格式 WMI 引擎处理起来最稳定
+                            string relPath = $"Msvm_EthernetPortAllocationSettingData.InstanceID=\"{wqlSafeId}\"";
+
+                            string query = $"ASSOCIATORS OF {{{relPath}}} " +
+                                           $"WHERE AssocClass = Msvm_EthernetPortSettingDataComponent " +
+                                           $"ResultClass = Msvm_EthernetSwitchPortFeatureSettingData";
+
+                            using var searcher = new ManagementObjectSearcher(ScopeNamespace, query);
+                            using var features = searcher.Get();
+
+                            int featureCount = 0;
+                            foreach (var feature in features.Cast<ManagementObject>())
+                            {
+                                ParseFeatureSettings(adapter, feature);
+                                featureCount++;
+                            }
+
+                            // 记录日志以便确认
+                            if (featureCount > 0)
+                                Log($"    [高级设置] 成功读取 {featureCount} 项属性 (ID={rawId.Substring(0, 10)}...)");
+                            else
+                                Log($"    [高级设置] 未找到关联的高级设置 (ID={rawId.Substring(0, 10)}...)");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Log($"    [高级设置] 读取异常: {ex.Message}");
+                    }
+                    // =========================================================
                 }
                 else
                 {
-                    Log("  [匹配结果] >>> [失败] 未找到匹配的分配设置。将状态设为未连接。 <<<");
                     adapter.IsConnected = false;
                     adapter.SwitchName = "未连接";
                 }
 
                 resultList.Add(adapter);
-                Log($"  [添加对象] 已创建并添加 VmNetworkAdapter 对象到结果列表。最终状态: Name='{adapter.Name}', Connected={adapter.IsConnected}, Switch='{adapter.SwitchName}'");
             }
 
             Log($"\n[4/4] 所有网卡处理完毕。");
-            Log($"==============================================================");
-            Log($"最终返回 {resultList.Count} 个网络适配器对象。");
-            Log($"==============================================================");
-
             return resultList;
         }
+
         // 辅助方法：通过交换机 GUID 查找其显示名称 ElementName
         private async Task<string> GetSwitchNameByGuidAsync(string guid)
         {
             if (string.IsNullOrEmpty(guid)) return "未连接";
 
+            // 这里可以做一个简单的缓存优化，或者保持原样
             var res = await WmiTools.QueryAsync(
                 $"SELECT ElementName FROM Msvm_VirtualEthernetSwitch WHERE Name = '{guid}'",
                 (s) => s["ElementName"]?.ToString());
 
             return res.FirstOrDefault() ?? "未知交换机";
-        }        // ==========================================
+        }
+
+        // ==========================================
         // [新增] 后台填充 IP 方法 (供 ViewModel 异步调用)
         // ==========================================
         public async Task FillDynamicIpsAsync(string vmName, IEnumerable<VmNetworkAdapter> adapters)
@@ -163,7 +191,6 @@ namespace ExHyperV.Services
 
             foreach (var adapter in targetAdapters)
             {
-                // 如果其他线程已经填充了，跳过
                 if (adapter.IpAddresses != null && adapter.IpAddresses.Count > 0) continue;
 
                 try
@@ -173,10 +200,7 @@ namespace ExHyperV.Services
                     {
                         var newIps = arpIp.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries)
                                           .Select(x => x.Trim()).ToList();
-
-                        // 更新对象属性 (由于是引用类型，ViewModel 只要通知变更即可)
                         adapter.IpAddresses = newIps;
-                        Log($"  [IP更新] {adapter.Name} -> {arpIp}");
                     }
                 }
                 catch (Exception ex)
@@ -187,7 +211,7 @@ namespace ExHyperV.Services
         }
 
         // ==========================================
-        // 2. 写入逻辑 (Apply 方法)
+        // 2. 写入逻辑 (Apply 方法) - 保持不变
         // ==========================================
 
         public async Task<(bool Success, string Message)> ApplyVlanSettingsAsync(string vmName, VmNetworkAdapter adapter)
@@ -234,7 +258,7 @@ namespace ExHyperV.Services
         }
 
         // ==========================================
-        // 3. 核心机制
+        // 3. 核心机制 - 保持不变
         // ==========================================
         private async Task<(bool Success, string Message)> EnsureAndModifyFeatureAsync(string portId, string featureClass, Action<ManagementObject> updateAction)
         {
@@ -269,6 +293,7 @@ namespace ExHyperV.Services
             catch (Exception ex) { return (false, ex.Message); }
         }
 
+        // 解析功能设置 (被 GetNetworkAdaptersAsync 调用)
         private void ParseFeatureSettings(VmNetworkAdapter adapter, ManagementObject feature)
         {
             string cls = feature.ClassPath.ClassName;
@@ -305,7 +330,7 @@ namespace ExHyperV.Services
         }
 
         // ==========================================
-        // 4. 其余辅助
+        // 4. 其余辅助 - 保持不变
         // ==========================================
 
         public async Task<(bool Success, string Message)> UpdateConnectionAsync(string vmName, VmNetworkAdapter adapter)

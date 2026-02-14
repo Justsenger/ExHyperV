@@ -104,7 +104,7 @@
             <ItemsControl ItemsSource="{Binding SelectedVm.NetworkAdapters}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate DataType="{x:Type models:VmNetworkAdapter}">
-                        <ui:CardExpander Margin="0,0,0,20" IsExpanded="True" ContentPadding="20" Padding="12,8">
+                        <ui:CardExpander Margin="0,0,0,20" IsExpanded="false" ContentPadding="20" Padding="12,8">
                             <ui:CardExpander.Header>
                                 <Grid MinHeight="45">
                                     <Grid.ColumnDefinitions>

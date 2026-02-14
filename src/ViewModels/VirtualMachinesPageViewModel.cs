@@ -2182,47 +2182,65 @@ namespace ExHyperV.ViewModels
 
         private void SyncNetworkAdaptersInternal(ObservableCollection<VmNetworkAdapter> currentList, List<VmNetworkAdapter> newList)
         {
-            if (newList == null || newList.Count == 0) return;
+            if (newList == null) return;
 
+            // 1. 移除已经不存在的网卡
+            var toRemove = currentList.Where(c => !newList.Any(n => n.Id == c.Id)).ToList();
+            foreach (var item in toRemove)
+            {
+                currentList.Remove(item);
+            }
+
+            // 2. 更新现有的 或 添加新的
             foreach (var newItem in newList)
             {
-                var existing = currentList.FirstOrDefault(c => c.Id == newItem.Id);
-                if (existing != null)
+                var existingItem = currentList.FirstOrDefault(c => c.Id == newItem.Id);
+                if (existingItem != null)
                 {
-                    // 调试日志：监控每一次尝试覆盖的行为
-                    if (existing.SwitchName != newItem.SwitchName)
-                    {
-                        // 质量评估
-                        bool isNewDataTrash = string.IsNullOrWhiteSpace(newItem.SwitchName) ||
-                                             newItem.SwitchName == "未连接" ||
-                                             newItem.SwitchName.StartsWith("WMI_");
+                    // === 存在则更新属性 ===
+                    // 确保 ViewModel 里的对象能够接收到 Service 层查回来的所有新数据
 
-                        bool isOldDataValuable = !string.IsNullOrWhiteSpace(existing.SwitchName) &&
-                                                existing.SwitchName != "未连接";
+                    // 基础信息
+                    existingItem.Name = newItem.Name;
+                    existingItem.IsConnected = newItem.IsConnected;
+                    existingItem.SwitchName = newItem.SwitchName;
+                    existingItem.MacAddress = newItem.MacAddress;
+                    existingItem.IsStaticMac = newItem.IsStaticMac;
 
-                        if (isOldDataValuable && isNewDataTrash)
-                        {
-                            Debug.WriteLine($"[BLOCK_SYNC] {DateTime.Now:HH:mm:ss.fff} | 拦截了垃圾数据覆盖! 保留旧值: [{existing.SwitchName}] 拒绝新值: [{newItem.SwitchName}]");
-                            // 故意不更新 SwitchName，保护内存
-                        }
-                        else
-                        {
-                            Debug.WriteLine($"[ALLOW_SYNC] {DateTime.Now:HH:mm:ss.fff} | 更新数据: [{existing.SwitchName}] -> [{newItem.SwitchName}]");
-                            existing.SwitchName = newItem.SwitchName;
-                        }
-                    }
-
-                    // 同步其他状态
-                    if (existing.IsConnected != newItem.IsConnected) existing.IsConnected = newItem.IsConnected;
+                    // IP 地址
                     if (newItem.IpAddresses != null && newItem.IpAddresses.Count > 0)
                     {
-                        if (existing.IpAddresses == null || !existing.IpAddresses.SequenceEqual(newItem.IpAddresses))
-                            existing.IpAddresses = newItem.IpAddresses;
+                        existingItem.IpAddresses = newItem.IpAddresses;
                     }
+
+                    // [关键修复] 同步所有高级属性
+                    // VLAN 设置
+                    existingItem.VlanMode = newItem.VlanMode;
+                    existingItem.AccessVlanId = newItem.AccessVlanId;
+                    existingItem.NativeVlanId = newItem.NativeVlanId;
+                    existingItem.TrunkAllowedVlanIds = newItem.TrunkAllowedVlanIds;
+                    existingItem.PvlanMode = newItem.PvlanMode;
+                    existingItem.PvlanPrimaryId = newItem.PvlanPrimaryId;
+                    existingItem.PvlanSecondaryId = newItem.PvlanSecondaryId;
+
+                    // 带宽与安全
+                    existingItem.BandwidthLimit = newItem.BandwidthLimit;
+                    existingItem.BandwidthReservation = newItem.BandwidthReservation;
+                    existingItem.MacSpoofingAllowed = newItem.MacSpoofingAllowed;
+                    existingItem.DhcpGuardEnabled = newItem.DhcpGuardEnabled;
+                    existingItem.RouterGuardEnabled = newItem.RouterGuardEnabled;
+                    existingItem.MonitorMode = newItem.MonitorMode;
+                    existingItem.StormLimit = newItem.StormLimit;
+                    existingItem.TeamingAllowed = newItem.TeamingAllowed;
+
+                    // 硬件卸载
+                    existingItem.VmqEnabled = newItem.VmqEnabled;
+                    existingItem.SriovEnabled = newItem.SriovEnabled;
+                    existingItem.IpsecOffloadEnabled = newItem.IpsecOffloadEnabled;
                 }
                 else
                 {
-                    Debug.WriteLine($"[NEW_ADAPTER] {DateTime.Now:HH:mm:ss.fff} | 集合新增网卡: {newItem.Name}");
+                    // 不存在则添加
                     currentList.Add(newItem);
                 }
             }
