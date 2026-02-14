@@ -150,11 +150,14 @@ namespace ExHyperV.Services
                 // === 新增：精确的网络数据准备 ===
                 // ==============================================================================
 
-                // 准备1：交换机字典 (GUID -> 名称)
-                var switchGuidToNameMap = allSwitchesTask.Result
-                    .Where(s => !string.IsNullOrEmpty(s.Guid))
-                    .ToDictionary(s => s.Guid, s => s.Name, StringComparer.OrdinalIgnoreCase);
-
+                // 准备1：更新全局静态缓存，并引用它
+                foreach (var sw in allSwitchesTask.Result)
+                {
+                    if (!string.IsNullOrEmpty(sw.Guid) && !string.IsNullOrEmpty(sw.Name))
+                    {
+                        _switchNameCache[sw.Guid] = sw.Name;
+                    }
+                }
                 // 准备2：分配设置字典 (DeviceGUID -> Allocation对象)，用于快速查找
                 var allocsMap = allAllocsTask.Result
                     .Select(alloc => {
@@ -197,11 +200,21 @@ namespace ExHyperV.Services
                         {
                             // 解析交换机 GUID
                             string switchGuid = hostResources[0].Split('"').Reverse().Skip(1).FirstOrDefault();
-                            if (!string.IsNullOrEmpty(switchGuid) && switchGuidToNameMap.TryGetValue(switchGuid, out var swName))
+
+                            // === 核心逻辑修改：优先从全局静态缓存读取名字 ===
+                            if (!string.IsNullOrEmpty(switchGuid) && _switchNameCache.TryGetValue(switchGuid, out var cachedName))
                             {
-                                adapter.SwitchName = swName;
+                                adapter.SwitchName = cachedName;
                             }
-                            else { adapter.SwitchName = "未知交换机"; }
+                            else if (!string.IsNullOrEmpty(switchGuid))
+                            {
+                                // 还没进缓存，暂时显示 GUID 缩写或保底文字，避免空白
+                                adapter.SwitchName = "Switch (" + switchGuid.Substring(0, 4) + ")";
+                            }
+                            else
+                            {
+                                adapter.SwitchName = "未连接";
+                            }
                         }
                         else { adapter.SwitchName = "未连接"; }
                     }

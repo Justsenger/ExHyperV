@@ -1361,101 +1361,151 @@ namespace ExHyperV.ViewModels
                 {
                     var updates = await _queryService.GetVmListAsync();
                     var memoryMap = await _queryService.GetVmRuntimeMemoryDataAsync();
+
                     await _queryService.UpdateDiskPerformanceAsync(VmList);
                     var gpuUsageMap = await _queryService.GetGpuPerformanceAsync(VmList);
 
-                    Application.Current.Dispatcher.Invoke(() => {
-                        // === 核心保护：如果用户正在设置界面操作，后台轮询绝不修改网卡数据，防止回跳 ===
-                        if (IsLoadingSettings) return;
 
+                    Application.Current.Dispatcher.Invoke(() => {
                         foreach (var update in updates)
                         {
                             var vm = VmList.FirstOrDefault(v => v.Name == update.Name);
-                            if (vm == null) continue;
-
-                            // 1. 同步基础状态（开关机、运行时间）
-                            vm.SyncBackendData(update.State, update.RawUptime);
-
-                            // 2. 【核心修复】同步网卡列表（使用下面改进后的 Sync 方法）
-                            SyncNetworkAdaptersInternal(vm.NetworkAdapters, update.NetworkAdapters.ToList());
-
-                            // 3. 【核心修复】Dashboard IP 显示逻辑
-                            if (vm.IsRunning)
+                            if (vm != null)
                             {
-                                // 优先从已经同步好的网卡对象里找 IP（这里面包含了 WMI 拿到的和之前 ARP 探测到的）
-                                var currentValidIp = vm.NetworkAdapters
-                                                       .SelectMany(a => a.IpAddresses ?? new List<string>())
-                                                       .FirstOrDefault(ip => !string.IsNullOrEmpty(ip) && !ip.Contains(":"));
-
-                                if (!string.IsNullOrEmpty(currentValidIp))
+                                vm.SyncBackendData(update.State, update.RawUptime);
+                                if (CurrentViewType == VmDetailViewType.NetworkSettings)
                                 {
-                                    vm.IpAddress = currentValidIp;
+                                    var firstAdapterFromLoop = update.NetworkAdapters.FirstOrDefault();
+                                    System.Diagnostics.Debug.WriteLine($"[DEBUG] MonitorStateLoop SKIPPING sync. IsConnected from loop data = {firstAdapterFromLoop?.IsConnected}. CurrentView is NetworkSettings.");
                                 }
-                                else if (vm.IpAddress == "---") // 只有彻底没 IP 时才触发 ARP 嗅探
+                                else
                                 {
-                                    var targetMac = vm.NetworkAdapters.FirstOrDefault()?.MacAddress;
-                                    if (!string.IsNullOrEmpty(targetMac))
+                                    var firstAdapterFromLoop = update.NetworkAdapters.FirstOrDefault();
+                                    System.Diagnostics.Debug.WriteLine($"[DEBUG] MonitorStateLoop IS syncing. IsConnected from loop data = {firstAdapterFromLoop?.IsConnected}");
+                                    SyncNetworkAdaptersInternal(vm.NetworkAdapters, update.NetworkAdapters.ToList());
+                                }
+                                if (CurrentViewType != VmDetailViewType.NetworkSettings)
+                                {
+                                    SyncNetworkAdaptersInternal(vm.NetworkAdapters, update.NetworkAdapters.ToList());
+                                }
+
+                                // 处理外层 IP 显示
+                                // 在 MonitorStateLoop 内部的处理逻辑
+                                // 在 MonitorStateLoop 内部 foreach (var update in updates) 块中
+                                if (vm.IsRunning)
+                                {
+                                    // 1. 尝试从网卡列表获取已有 IP (可能是 WMI 给的，也可能是上次 ARP 存下的)
+                                    var allIps = vm.NetworkAdapters
+                                                   .SelectMany(a => a.IpAddresses ?? new List<string>())
+                                                   .Where(ip => !string.IsNullOrEmpty(ip) && !ip.Contains(":")) // 过滤掉 IPv6
+                                                   .ToList();
+
+                                    if (allIps.Count > 0)
                                     {
-                                        _ = Task.Run(async () => {
-                                            string arpIp = await Utils.GetVmIpAddressAsync(vm.Name, targetMac);
-                                            if (!string.IsNullOrEmpty(arpIp))
-                                            {
-                                                Application.Current.Dispatcher.Invoke(() => {
-                                                    var adapter = vm.NetworkAdapters.FirstOrDefault();
-                                                    if (adapter != null)
+                                        vm.IpAddress = allIps.First(); // 直接显示第一个有效 IP
+                                    }
+                                    else if (vm.IpAddress == "---") // 如果真的没有，才触发一次 ARP
+                                    {
+                                        var targetMac = vm.NetworkAdapters.FirstOrDefault()?.MacAddress;
+                                        if (!string.IsNullOrEmpty(targetMac))
+                                        {
+                                            _ = Task.Run(async () => {
+                                                try
+                                                {
+                                                    string arpIp = await Utils.GetVmIpAddressAsync(vm.Name, targetMac);
+                                                    if (!string.IsNullOrEmpty(arpIp))
                                                     {
-                                                        adapter.IpAddresses = new List<string> { arpIp };
-                                                        vm.IpAddress = arpIp;
+                                                        Application.Current.Dispatcher.Invoke(() => {
+                                                            // 更新具体网卡对象，这样 SyncNetworkAdaptersInternal 就会因为上面的保护逻辑而保留它
+                                                            var adapter = vm.NetworkAdapters.FirstOrDefault();
+                                                            if (adapter != null)
+                                                            {
+                                                                adapter.IpAddresses = new List<string> { arpIp };
+                                                                vm.IpAddress = arpIp;
+                                                            }
+                                                        });
                                                     }
-                                                });
-                                            }
-                                        });
+                                                }
+                                                catch { }
+                                            });
+                                        }
                                     }
                                 }
-                            }
-                            else { vm.IpAddress = "---"; }
+                                else { vm.IpAddress = "---"; }
 
-                            // 4. 同步磁盘列表（增量更新）
-                            var updatePaths = update.Disks.Select(d => d.Path).ToHashSet();
-                            for (int i = vm.Disks.Count - 1; i >= 0; i--)
-                            {
-                                if (!updatePaths.Contains(vm.Disks[i].Path)) vm.Disks.RemoveAt(i);
-                            }
-                            foreach (var newDiskData in update.Disks)
-                            {
-                                var existingDisk = vm.Disks.FirstOrDefault(d => d.Path == newDiskData.Path);
-                                if (existingDisk != null)
+
+                                // --- 开始修复：增量更新磁盘列表，防止速率数据被 Clear 掉 ---
+                                var updatePaths = update.Disks.Select(d => d.Path).ToHashSet();
+
+                                // 1. 移除已不存在的磁盘
+                                for (int i = vm.Disks.Count - 1; i >= 0; i--)
                                 {
-                                    existingDisk.Name = newDiskData.Name;
-                                    existingDisk.CurrentSize = newDiskData.CurrentSize;
-                                    existingDisk.MaxSize = newDiskData.MaxSize;
+                                    if (!updatePaths.Contains(vm.Disks[i].Path))
+                                        vm.Disks.RemoveAt(i);
                                 }
-                                else { vm.Disks.Add(newDiskData); }
-                            }
 
-                            // 5. GPU 和 内存
-                            vm.GpuName = update.GpuName;
-                            if (memoryMap.TryGetValue(vm.Id.ToString(), out var memData))
-                                vm.UpdateMemoryStatus(memData.AssignedMb, memData.AvailablePercent);
+                                // 2. 更新已有磁盘或添加新磁盘
+                                foreach (var newDiskData in update.Disks)
+                                {
+                                    var existingDisk = vm.Disks.FirstOrDefault(d => d.Path == newDiskData.Path);
+                                    if (existingDisk != null)
+                                    {
+                                        // 只同步元数据，不要覆盖 ReadSpeedBps 和 WriteSpeedBps
+                                        existingDisk.Name = newDiskData.Name;
+                                        existingDisk.CurrentSize = newDiskData.CurrentSize;
+                                        existingDisk.MaxSize = newDiskData.MaxSize;
+                                        existingDisk.DiskType = newDiskData.DiskType;
+                                    }
+                                    else
+                                    {
+                                        vm.Disks.Add(newDiskData);
+                                    }
+                                }
+                                // --- 修复结束 ---
+
+                                vm.GpuName = update.GpuName;
+
+                                if (memoryMap.TryGetValue(vm.Id.ToString(), out var memData))
+                                    vm.UpdateMemoryStatus(memData.AssignedMb, memData.AvailablePercent);
+                                else if (memoryMap.TryGetValue(vm.Id.ToString().ToUpper(), out var memDataUpper))
+                                    vm.UpdateMemoryStatus(memDataUpper.AssignedMb, memDataUpper.AvailablePercent);
+                                else
+                                    vm.UpdateMemoryStatus(0, 0);
+                            }
                         }
 
-                        // 全局 GPU 占用更新
                         if (gpuUsageMap.Count > 0)
                         {
                             foreach (var vm in VmList)
                             {
-                                if (gpuUsageMap.TryGetValue(vm.Id, out var gpuData)) vm.UpdateGpuStats(gpuData);
+                                if (gpuUsageMap.TryGetValue(vm.Id, out var gpuData))
+                                {
+                                    vm.UpdateGpuStats(gpuData);
+                                }
+                                // 如果 VM 正在运行但 map 中没有它，其状态会在下次同步时被 IsRunning 属性清零
                             }
                         }
+
                     });
 
-                    // 缩略图更新
-                    if (SelectedVm != null && SelectedVm.IsRunning)
+                    if (SelectedVm != null)
                     {
-                        var img = await VmThumbnailProvider.GetThumbnailAsync(SelectedVm.Name, 320, 240);
-                        if (img != null) Application.Current.Dispatcher.Invoke(() => SelectedVm.Thumbnail = img);
+                        if (SelectedVm.IsRunning)
+                        {
+                            var img = await VmThumbnailProvider.GetThumbnailAsync(SelectedVm.Name, 320, 240);
+                            if (img != null)
+                            {
+                                Application.Current.Dispatcher.Invoke(() => SelectedVm.Thumbnail = img);
+                            }
+                        }
+                        else
+                        {
+                            if (SelectedVm.Thumbnail != null)
+                            {
+                                Application.Current.Dispatcher.Invoke(() => SelectedVm.Thumbnail = null);
+                            }
+                        }
                     }
-
                     await Task.Delay(2000, token);
                 }
                 catch (TaskCanceledException) { break; }
