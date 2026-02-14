@@ -140,56 +140,50 @@ namespace ExHyperV.ViewModels
             if (SelectedVm == null) return;
 
             CurrentViewType = VmDetailViewType.NetworkSettings;
-
-            // 只有当列表为空时才显示 Loading，避免再次进入时进度条闪烁
-            if (SelectedVm.NetworkAdapters.Count == 0)
-            {
-                IsLoadingSettings = true;
-            }
+            IsLoadingSettings = true; // 开启全局锁，这会直接屏蔽 MonitorStateLoop 的网卡同步
 
             try
             {
-                // 1. 获取数据 (后台并发获取，不阻塞 UI)
+                // 并发获取基础数据
                 var switchesTask = _vmNetworkService.GetAvailableSwitchesAsync();
                 var adaptersTask = _vmNetworkService.GetNetworkAdaptersAsync(SelectedVm.Name);
 
                 await Task.WhenAll(switchesTask, adaptersTask);
 
-                var switches = switchesTask.Result;
-                var newAdapters = adaptersTask.Result;
-
                 // 更新交换机列表
-                if (!AvailableSwitchNames.SequenceEqual(switches))
+                if (!AvailableSwitchNames.SequenceEqual(switchesTask.Result))
                 {
-                    AvailableSwitchNames = new ObservableCollection<string>(switches);
+                    AvailableSwitchNames = new ObservableCollection<string>(switchesTask.Result);
                 }
 
-                // 2. [核心优化] 智能同步列表，消除"先清空后添加"导致的闪烁
-                SyncNetworkAdapters(SelectedVm.NetworkAdapters, newAdapters);
+                var firstAdapter = adaptersTask.Result.FirstOrDefault();
+                System.Diagnostics.Debug.WriteLine($"[DEBUG] GoToNetworkSettings is syncing. IsConnected = {firstAdapter?.IsConnected}");
+                SyncNetworkAdaptersInternal(SelectedVm.NetworkAdapters, adaptersTask.Result);
 
-                // 3. [后台] 启动 IP 探测
+                // 使用统一的智能同步逻辑
+                SyncNetworkAdaptersInternal(SelectedVm.NetworkAdapters, adaptersTask.Result);
+
+                // IP 探测：仅在没拿到 IP 的情况下跑一次
                 if (SelectedVm.IsRunning)
                 {
                     _ = Task.Run(async () => {
-                        await _vmNetworkService.FillDynamicIpsAsync(
-                            SelectedVm.Name,
-                            SelectedVm.NetworkAdapters
-                        );
+                        await _vmNetworkService.FillDynamicIpsAsync(SelectedVm.Name, SelectedVm.NetworkAdapters);
                     });
                 }
             }
             catch (Exception ex)
             {
-                ShowSnackbar("加载网络配置失败", Utils.GetFriendlyErrorMessages(ex.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                ShowSnackbar("加载失败", ex.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
             }
             finally
             {
+                // 关键：不要立即解锁，给 WPF 渲染留一点点时间缓冲，彻底消除第二次跳动
+                await Task.Delay(300);
                 IsLoadingSettings = false;
             }
-        }
-        /// <summary>
-        /// 智能同步网卡列表，避免 UI 闪烁
-        /// </summary>
+        }        /// <summary>
+                 /// 智能同步网卡列表，避免 UI 闪烁
+                 /// </summary>
         private void SyncNetworkAdapters(ObservableCollection<VmNetworkAdapter> currentList, List<VmNetworkAdapter> newList)
         {
             // 1. 移除已经不存在的网卡
@@ -309,33 +303,28 @@ namespace ExHyperV.ViewModels
             }
         }
 
-        /// <summary>
-        /// 当UI上的连接开关 (ToggleSwitch) 状态改变时调用
-        /// </summary>
         [RelayCommand]
         private async Task UpdateAdapterConnection(VmNetworkAdapter adapter)
         {
             if (SelectedVm == null || adapter == null) return;
-            IsLoadingSettings = true;
+            IsLoadingSettings = true; // 开启防横跳锁
             try
             {
                 var result = await _vmNetworkService.UpdateConnectionAsync(SelectedVm.Name, adapter);
                 if (!result.Success)
                 {
                     ShowSnackbar("操作失败", result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
-                    // 失败后回滚UI状态
-                    adapter.IsConnected = !adapter.IsConnected;
+                    adapter.IsConnected = !adapter.IsConnected; // 只有失败才回滚
                 }
+                // 注意：这里不需要手动同步，下一次 MonitorStateLoop (2秒内) 会自动带回最新状态
             }
             finally
             {
-                IsLoadingSettings = false;
+                IsLoadingSettings = false; // 释放锁
             }
-        }
-
-        /// <summary>
-        /// 应用 VLAN 设置
-        /// </summary>
+        }        /// <summary>
+                 /// 应用 VLAN 设置
+                 /// </summary>
         [RelayCommand]
         private async Task ApplyVlanSettings(VmNetworkAdapter adapter)
         {
@@ -469,6 +458,14 @@ namespace ExHyperV.ViewModels
                                 ShowSnackbar("操作失败", Utils.GetFriendlyErrorMessages(realEx.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
                             }
                         });
+                        if (vm.NetworkAdapters != null)
+                        {
+                            foreach (var net in vm.NetworkAdapters) instance.NetworkAdapters.Add(net);
+                        }
+
+                        // 初始 IP 赋值
+                        instance.IpAddress = vm.IpAddress;
+
                         list.Add(instance);
                     }
                     return list;
@@ -1364,123 +1361,101 @@ namespace ExHyperV.ViewModels
                 {
                     var updates = await _queryService.GetVmListAsync();
                     var memoryMap = await _queryService.GetVmRuntimeMemoryDataAsync();
-
                     await _queryService.UpdateDiskPerformanceAsync(VmList);
                     var gpuUsageMap = await _queryService.GetGpuPerformanceAsync(VmList);
 
-
                     Application.Current.Dispatcher.Invoke(() => {
+                        // === 核心保护：如果用户正在设置界面操作，后台轮询绝不修改网卡数据，防止回跳 ===
+                        if (IsLoadingSettings) return;
+
                         foreach (var update in updates)
                         {
                             var vm = VmList.FirstOrDefault(v => v.Name == update.Name);
-                            if (vm != null)
+                            if (vm == null) continue;
+
+                            // 1. 同步基础状态（开关机、运行时间）
+                            vm.SyncBackendData(update.State, update.RawUptime);
+
+                            // 2. 【核心修复】同步网卡列表（使用下面改进后的 Sync 方法）
+                            SyncNetworkAdaptersInternal(vm.NetworkAdapters, update.NetworkAdapters.ToList());
+
+                            // 3. 【核心修复】Dashboard IP 显示逻辑
+                            if (vm.IsRunning)
                             {
-                                vm.SyncBackendData(update.State, update.RawUptime);
+                                // 优先从已经同步好的网卡对象里找 IP（这里面包含了 WMI 拿到的和之前 ARP 探测到的）
+                                var currentValidIp = vm.NetworkAdapters
+                                                       .SelectMany(a => a.IpAddresses ?? new List<string>())
+                                                       .FirstOrDefault(ip => !string.IsNullOrEmpty(ip) && !ip.Contains(":"));
 
-                                // --- 新增：同步网卡列表 ---
-                                SyncNetworkAdaptersInternal(vm.NetworkAdapters, update.NetworkAdapters.ToList());
-
-                                // 处理外层 IP 显示
-                                if (vm.IsRunning)
+                                if (!string.IsNullOrEmpty(currentValidIp))
                                 {
-                                    // 如果 WMI 已经拿到了 IP，直接用网卡的 IP 更新外层预览
-                                    var firstValidIp = vm.NetworkAdapters
-                                        .SelectMany(a => a.IpAddresses ?? new List<string>())
-                                        .FirstOrDefault(ip => !string.IsNullOrEmpty(ip));
-
-                                    if (!string.IsNullOrEmpty(firstValidIp))
+                                    vm.IpAddress = currentValidIp;
+                                }
+                                else if (vm.IpAddress == "---") // 只有彻底没 IP 时才触发 ARP 嗅探
+                                {
+                                    var targetMac = vm.NetworkAdapters.FirstOrDefault()?.MacAddress;
+                                    if (!string.IsNullOrEmpty(targetMac))
                                     {
-                                        vm.IpAddress = firstValidIp;
-                                    }
-                                    else
-                                    {
-                                        // 如果 WMI 还没拿到，再尝试通过 ARP 嗅探 (保持原有逻辑)
                                         _ = Task.Run(async () => {
-                                            try
+                                            string arpIp = await Utils.GetVmIpAddressAsync(vm.Name, targetMac);
+                                            if (!string.IsNullOrEmpty(arpIp))
                                             {
-                                                var ip = await Utils.GetVmIpAddressAsync(vm.Name, vm.MacAddress);
-                                                if (!string.IsNullOrEmpty(ip))
-                                                    Application.Current.Dispatcher.Invoke(() => vm.IpAddress = ip);
+                                                Application.Current.Dispatcher.Invoke(() => {
+                                                    var adapter = vm.NetworkAdapters.FirstOrDefault();
+                                                    if (adapter != null)
+                                                    {
+                                                        adapter.IpAddresses = new List<string> { arpIp };
+                                                        vm.IpAddress = arpIp;
+                                                    }
+                                                });
                                             }
-                                            catch { }
                                         });
                                     }
                                 }
-                                else { vm.IpAddress = "---"; }
-
-
-                                // --- 开始修复：增量更新磁盘列表，防止速率数据被 Clear 掉 ---
-                                var updatePaths = update.Disks.Select(d => d.Path).ToHashSet();
-
-                                // 1. 移除已不存在的磁盘
-                                for (int i = vm.Disks.Count - 1; i >= 0; i--)
-                                {
-                                    if (!updatePaths.Contains(vm.Disks[i].Path))
-                                        vm.Disks.RemoveAt(i);
-                                }
-
-                                // 2. 更新已有磁盘或添加新磁盘
-                                foreach (var newDiskData in update.Disks)
-                                {
-                                    var existingDisk = vm.Disks.FirstOrDefault(d => d.Path == newDiskData.Path);
-                                    if (existingDisk != null)
-                                    {
-                                        // 只同步元数据，不要覆盖 ReadSpeedBps 和 WriteSpeedBps
-                                        existingDisk.Name = newDiskData.Name;
-                                        existingDisk.CurrentSize = newDiskData.CurrentSize;
-                                        existingDisk.MaxSize = newDiskData.MaxSize;
-                                        existingDisk.DiskType = newDiskData.DiskType;
-                                    }
-                                    else
-                                    {
-                                        vm.Disks.Add(newDiskData);
-                                    }
-                                }
-                                // --- 修复结束 ---
-
-                                vm.GpuName = update.GpuName;
-
-                                if (memoryMap.TryGetValue(vm.Id.ToString(), out var memData))
-                                    vm.UpdateMemoryStatus(memData.AssignedMb, memData.AvailablePercent);
-                                else if (memoryMap.TryGetValue(vm.Id.ToString().ToUpper(), out var memDataUpper))
-                                    vm.UpdateMemoryStatus(memDataUpper.AssignedMb, memDataUpper.AvailablePercent);
-                                else
-                                    vm.UpdateMemoryStatus(0, 0);
                             }
+                            else { vm.IpAddress = "---"; }
+
+                            // 4. 同步磁盘列表（增量更新）
+                            var updatePaths = update.Disks.Select(d => d.Path).ToHashSet();
+                            for (int i = vm.Disks.Count - 1; i >= 0; i--)
+                            {
+                                if (!updatePaths.Contains(vm.Disks[i].Path)) vm.Disks.RemoveAt(i);
+                            }
+                            foreach (var newDiskData in update.Disks)
+                            {
+                                var existingDisk = vm.Disks.FirstOrDefault(d => d.Path == newDiskData.Path);
+                                if (existingDisk != null)
+                                {
+                                    existingDisk.Name = newDiskData.Name;
+                                    existingDisk.CurrentSize = newDiskData.CurrentSize;
+                                    existingDisk.MaxSize = newDiskData.MaxSize;
+                                }
+                                else { vm.Disks.Add(newDiskData); }
+                            }
+
+                            // 5. GPU 和 内存
+                            vm.GpuName = update.GpuName;
+                            if (memoryMap.TryGetValue(vm.Id.ToString(), out var memData))
+                                vm.UpdateMemoryStatus(memData.AssignedMb, memData.AvailablePercent);
                         }
 
+                        // 全局 GPU 占用更新
                         if (gpuUsageMap.Count > 0)
                         {
                             foreach (var vm in VmList)
                             {
-                                if (gpuUsageMap.TryGetValue(vm.Id, out var gpuData))
-                                {
-                                    vm.UpdateGpuStats(gpuData);
-                                }
-                                // 如果 VM 正在运行但 map 中没有它，其状态会在下次同步时被 IsRunning 属性清零
+                                if (gpuUsageMap.TryGetValue(vm.Id, out var gpuData)) vm.UpdateGpuStats(gpuData);
                             }
                         }
-
                     });
 
-                    if (SelectedVm != null)
+                    // 缩略图更新
+                    if (SelectedVm != null && SelectedVm.IsRunning)
                     {
-                        if (SelectedVm.IsRunning)
-                        {
-                            var img = await VmThumbnailProvider.GetThumbnailAsync(SelectedVm.Name, 320, 240);
-                            if (img != null)
-                            {
-                                Application.Current.Dispatcher.Invoke(() => SelectedVm.Thumbnail = img);
-                            }
-                        }
-                        else
-                        {
-                            if (SelectedVm.Thumbnail != null)
-                            {
-                                Application.Current.Dispatcher.Invoke(() => SelectedVm.Thumbnail = null);
-                            }
-                        }
+                        var img = await VmThumbnailProvider.GetThumbnailAsync(SelectedVm.Name, 320, 240);
+                        if (img != null) Application.Current.Dispatcher.Invoke(() => SelectedVm.Thumbnail = img);
                     }
+
                     await Task.Delay(2000, token);
                 }
                 catch (TaskCanceledException) { break; }
@@ -2167,7 +2142,10 @@ namespace ExHyperV.ViewModels
 
         private void SyncNetworkAdaptersInternal(ObservableCollection<VmNetworkAdapter> currentList, List<VmNetworkAdapter> newList)
         {
-            // 1. 移除不存在的
+            // 如果后台轮询返回的是空列表，说明 WMI 可能暂时没响应，我们保留旧数据，直接返回
+            if (newList == null || newList.Count == 0) return;
+
+            // 1. 移除已经不存在的网卡 (只有当新列表确实有网卡时才进行比对移除)
             var toRemove = currentList.Where(c => !newList.Any(n => n.Id == c.Id)).ToList();
             foreach (var item in toRemove) currentList.Remove(item);
 
@@ -2177,14 +2155,26 @@ namespace ExHyperV.ViewModels
                 var existing = currentList.FirstOrDefault(c => c.Id == newItem.Id);
                 if (existing != null)
                 {
-                    existing.Name = newItem.Name;
-                    existing.IsConnected = newItem.IsConnected;
-                    existing.SwitchName = newItem.SwitchName;
-                    existing.MacAddress = newItem.MacAddress;
-                    // 重要：同步 IP
+                    // --- 属性同步 ---
+                    if (existing.Name != newItem.Name) existing.Name = newItem.Name;
+                    if (existing.IsConnected != newItem.IsConnected) existing.IsConnected = newItem.IsConnected;
+
+                    // 交换机名称同步：只有新数据有值时才覆盖，防止闪烁
+                    if (!string.IsNullOrEmpty(newItem.SwitchName) && newItem.SwitchName != "未连接")
+                        existing.SwitchName = newItem.SwitchName;
+
+                    // MAC 地址同步
+                    if (existing.MacAddress != newItem.MacAddress) existing.MacAddress = newItem.MacAddress;
+
+                    // --- 核心修复：IP 地址保护 ---
+                    // 只有当新数据拿到了 IP，我们才更新。
+                    // 如果新数据是空的，保留旧数据（可能是之前的 ARP 探测结果）。
                     if (newItem.IpAddresses != null && newItem.IpAddresses.Count > 0)
                     {
-                        existing.IpAddresses = newItem.IpAddresses;
+                        if (existing.IpAddresses == null || !existing.IpAddresses.SequenceEqual(newItem.IpAddresses))
+                        {
+                            existing.IpAddresses = newItem.IpAddresses;
+                        }
                     }
                 }
                 else

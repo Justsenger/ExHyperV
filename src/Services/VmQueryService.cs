@@ -10,6 +10,7 @@ namespace ExHyperV.Services
     public class VmQueryService
     {
         public struct VmDynamicMemoryData { public long AssignedMb; public int AvailablePercent; }
+        private static readonly Dictionary<string, string> _switchNameCache = new(StringComparer.OrdinalIgnoreCase);
 
         private const string QuerySummary = "SELECT Name, ElementName, EnabledState, UpTime, NumberOfProcessors, MemoryUsage, Notes FROM Msvm_SummaryInformation";
         private const string QueryMemSettings = "SELECT InstanceID, VirtualQuantity FROM Msvm_MemorySettingData WHERE ResourceType = 4";
@@ -73,33 +74,32 @@ namespace ExHyperV.Services
             var gpuListTask = WmiTools.QueryAsync(QueryPartitionableGpus, obj => obj["Name"]?.ToString());
             var pciMapTask = GetHostVideoControllerMapAsync();
 
-            // 2. 网络基础信息查询任务
-            var netSettingsTask = WmiTools.QueryAsync(QueryNetworkSettings, obj => new {
-                Id = obj["InstanceID"]?.ToString(),
-                VmGuid = ExtractFirstGuid(obj["InstanceID"]?.ToString()),
-                Name = obj["ElementName"]?.ToString(),
-                Mac = obj["Address"]?.ToString()
-            });
+            // a. 并发获取所有网卡端口、分配设置、交换机信息和Guest IP信息
+            var allPortsTask = WmiTools.QueryAsync(
+                "SELECT ElementName, InstanceID, Address FROM Msvm_SyntheticEthernetPortSettingData",
+                (o) => (ManagementObject)o);
 
-            var netAllocTask = WmiTools.QueryAsync(QueryNetworkAllocations, obj => new {
-                PortPath = obj["Parent"]?.ToString(),
-                IsConnected = Convert.ToUInt16(obj["EnabledState"] ?? 0) == 2,
-                SwitchPath = (obj["HostResource"] as string[])?.FirstOrDefault()
-            });
+            var allAllocsTask = WmiTools.QueryAsync(
+                "SELECT EnabledState, InstanceID, HostResource FROM Msvm_EthernetPortAllocationSettingData",
+                (o) => (ManagementObject)o);
 
-            var switchTask = WmiTools.QueryAsync(QuerySwitches, obj => new {
-                Path = obj.Path.Path,
-                Name = obj["ElementName"]?.ToString()
-            });
+            var allSwitchesTask = WmiTools.QueryAsync(
+                "SELECT Name, ElementName FROM Msvm_VirtualEthernetSwitch",
+                (o) => new { Guid = o["Name"]?.ToString(), Name = o["ElementName"]?.ToString() });
 
-            // [新增] Guest IP 查询任务
             var guestNetTask = WmiTools.QueryAsync(QueryGuestNetwork, obj => new {
                 InstanceID = obj["InstanceID"]?.ToString(),
                 IPAddresses = obj["IPAddresses"] as string[]
             });
 
+
+
             // 等待所有任务完成
-            await Task.WhenAll(diskTask, summaryTask, memTask, configTask, gpuPvTask, gpuListTask, pciMapTask, netSettingsTask, netAllocTask, switchTask, guestNetTask);
+            await Task.WhenAll(
+                diskTask, summaryTask, memTask, configTask, gpuPvTask, gpuListTask, pciMapTask,
+                allPortsTask, allAllocsTask, allSwitchesTask, guestNetTask // 等待新的网络任务
+            );
+
 
             return await Task.Run(() =>
             {
@@ -108,16 +108,9 @@ namespace ExHyperV.Services
                 // --- 数据准备阶段 ---
 
                 // 配置映射
-                var configMap = configTask.Result
-                    .Where(x => !string.IsNullOrEmpty(x.VmGuid))
-                    .GroupBy(x => x.VmGuid)
-                    .ToDictionary(g => g.Key, g => new { g.First().Gen, g.First().Ver }, StringComparer.OrdinalIgnoreCase);
-
-                // 交换机名映射
-                var switchMap = switchTask.Result
-                    .Where(x => !string.IsNullOrEmpty(x.Path))
-                    .GroupBy(x => x.Path)
-                    .ToDictionary(g => g.Key, g => g.First().Name, StringComparer.OrdinalIgnoreCase);
+                var configMap = configTask.Result.Where(x => !string.IsNullOrEmpty(x.VmGuid)).ToDictionary(x => x.VmGuid, x => new { x.Gen, x.Ver }, StringComparer.OrdinalIgnoreCase);
+                
+                
 
                 // [新增] Guest IP 映射
                 // 逻辑：InstanceID 的最后一部分是设备 GUID，例如 "Microsoft:Guest...\\<GUID>"
@@ -152,15 +145,87 @@ namespace ExHyperV.Services
                     }
                 }
 
-                // 网络端口聚合
-                var vmNetMap = netSettingsTask.Result
-                    .Where(n => !string.IsNullOrEmpty(n.VmGuid))
-                    .GroupJoin(netAllocTask.Result,
-                        n => n.Id,
-                        a => a.PortPath,
-                        (n, allocs) => new { n.Id, n.VmGuid, n.Name, n.Mac, Alloc = allocs.FirstOrDefault() })
-                    .GroupBy(x => x.VmGuid.ToUpper())
-                    .ToDictionary(g => g.Key, g => g.ToList(), StringComparer.OrdinalIgnoreCase);
+
+                // ==============================================================================
+                // === 新增：精确的网络数据准备 ===
+                // ==============================================================================
+
+                // 准备1：交换机字典 (GUID -> 名称)
+                var switchGuidToNameMap = allSwitchesTask.Result
+                    .Where(s => !string.IsNullOrEmpty(s.Guid))
+                    .ToDictionary(s => s.Guid, s => s.Name, StringComparer.OrdinalIgnoreCase);
+
+                // 准备2：分配设置字典 (DeviceGUID -> Allocation对象)，用于快速查找
+                var allocsMap = allAllocsTask.Result
+                    .Select(alloc => {
+                        string fullId = alloc["InstanceID"]?.ToString() ?? "";
+                        int lastSlash = fullId.LastIndexOf('\\');
+                        // 提取去掉 \C 之后的部分
+                        string matchKey = lastSlash > 0 ? fullId.Substring(0, lastSlash) : fullId;
+                        return new { Alloc = alloc, MatchKey = matchKey };
+                    })
+                    .Where(x => !string.IsNullOrEmpty(x.MatchKey))
+                    // 加上 GroupBy 再 ToDictionary 是为了防止 WMI 返回重复数据导致的崩溃
+                    .GroupBy(x => x.MatchKey, StringComparer.OrdinalIgnoreCase)
+                    .ToDictionary(g => g.Key, g => g.First().Alloc, StringComparer.OrdinalIgnoreCase);
+
+                // 准备3：最终结果字典 (VM_GUID -> 网卡列表)
+                var vmAdaptersMap = new Dictionary<string, List<VmNetworkAdapter>>(StringComparer.OrdinalIgnoreCase);
+
+                foreach (var port in allPortsTask.Result)
+                {
+                    string fullPortId = port["InstanceID"]?.ToString() ?? ""; // 例如 "Microsoft:VM-GUID\DEVICE-GUID"
+                    string vmGuid = ExtractFirstGuid(fullPortId);
+                    if (string.IsNullOrEmpty(vmGuid)) continue;
+
+                    // 获取用于 IP 匹配的 DeviceGuid (这是最后一段)
+                    string deviceGuidForIp = fullPortId.Split('\\').LastOrDefault();
+
+                    var adapter = new VmNetworkAdapter
+                    {
+                        Id = fullPortId,
+                        Name = port["ElementName"]?.ToString(),
+                        MacAddress = FormatMac(port["Address"]?.ToString()),
+                    };
+
+                    // --- 核心匹配逻辑：直接用 Port 的完整 InstanceID 去 allocsMap 里找 ---
+                    if (allocsMap.TryGetValue(fullPortId, out var allocation))
+                    {
+                        adapter.IsConnected = allocation["EnabledState"]?.ToString() == "2";
+
+                        if (adapter.IsConnected && allocation["HostResource"] is string[] hostResources && hostResources.Length > 0)
+                        {
+                            // 解析交换机 GUID
+                            string switchGuid = hostResources[0].Split('"').Reverse().Skip(1).FirstOrDefault();
+                            if (!string.IsNullOrEmpty(switchGuid) && switchGuidToNameMap.TryGetValue(switchGuid, out var swName))
+                            {
+                                adapter.SwitchName = swName;
+                            }
+                            else { adapter.SwitchName = "未知交换机"; }
+                        }
+                        else { adapter.SwitchName = "未连接"; }
+                    }
+                    else
+                    {
+                        adapter.IsConnected = false;
+                        adapter.SwitchName = "未连接";
+                    }
+
+                    // 匹配 Guest IP (使用最后一段 DEVICE-GUID)
+                    if (!string.IsNullOrEmpty(deviceGuidForIp) && guestIpMap.TryGetValue(deviceGuidForIp, out var ips))
+                    {
+                        adapter.IpAddresses = ips;
+                    }
+
+                    if (!vmAdaptersMap.TryGetValue(vmGuid, out var adapterList))
+                    {
+                        adapterList = new List<VmNetworkAdapter>();
+                        vmAdaptersMap[vmGuid] = adapterList;
+                    }
+                    adapterList.Add(adapter);
+                }
+
+
 
                 var resultList = new List<VmInstanceInfo>();
                 foreach (var s in summaries)
@@ -169,39 +234,20 @@ namespace ExHyperV.Services
                     string vmGuidKey = s.Id?.Trim('{', '}').ToUpper();
                     var vmInfo = new VmInstanceInfo(vmId, s.Name);
 
-                    // --- [修改] 网卡与 IP 处理 ---
-                    if (vmGuidKey != null && vmNetMap.TryGetValue(vmGuidKey, out var netList))
+                    // --- 添加这个新的网卡处理块 ---
+                    if (vmGuidKey != null && vmAdaptersMap.TryGetValue(vmGuidKey, out var adapters))
                     {
-                        foreach (var n in netList)
+                        foreach (var adapter in adapters)
                         {
-                            var adapter = new VmNetworkAdapter
-                            {
-                                Id = n.Id, // 确保 ID 完整，用于匹配
-                                Name = n.Name,
-                                MacAddress = Regex.Replace(n.Mac ?? "", ".{2}", "$0-").TrimEnd('-').ToUpper(),
-                                IsConnected = n.Alloc?.IsConnected ?? false,
-                                SwitchName = (n.Alloc?.SwitchPath != null && switchMap.TryGetValue(n.Alloc.SwitchPath, out var swName)) ? swName : "未连接"
-                            };
-
-                            // 匹配 IP (从 Msvm_GuestNetworkAdapterConfiguration 来的数据)
-                            string deviceKey = n.Id.Split('\\').LastOrDefault();
-                            if (!string.IsNullOrEmpty(deviceKey) && guestIpMap.TryGetValue(deviceKey, out var ips))
-                            {
-                                adapter.IpAddresses = ips;
-                            }
-
                             vmInfo.NetworkAdapters.Add(adapter);
                         }
-                        vmInfo.MacAddress = vmInfo.NetworkAdapters.FirstOrDefault()?.MacAddress ?? "00-00-00-00-00-00";
-
-                        // [新增] 设置 Dashboard 简介显示的 IP (取第一个有 IP 的网卡的第一个 IP)
-                        var firstIpAdapter = vmInfo.NetworkAdapters.FirstOrDefault(a => a.IpAddresses != null && a.IpAddresses.Count > 0);
-                        if (firstIpAdapter != null)
-                        {
-                            // 将 List<string> 转换为逗号分隔字符串，或只取第一个
-                            vmInfo.IpAddress = string.Join(", ", firstIpAdapter.IpAddresses);
-                        }
                     }
+
+                    // 更新 Dashboard 显示的 Mac 和 IP
+                    vmInfo.MacAddress = vmInfo.NetworkAdapters.FirstOrDefault()?.MacAddress ?? "00-00-00-00-00-00";
+                    vmInfo.IpAddress = vmInfo.NetworkAdapters
+                                             .SelectMany(a => a.IpAddresses ?? Enumerable.Empty<string>())
+                                             .FirstOrDefault(ip => !string.IsNullOrWhiteSpace(ip) && !ip.Contains(':')) ?? "---";
 
                     // --- 磁盘处理 ---
                     var myDisks = diskTask.Result.Where(d => d.Parent.ToUpper().Contains(vmGuidKey) || d.InstanceID.ToUpper().Contains(vmGuidKey)).ToList();
@@ -572,5 +618,10 @@ namespace ExHyperV.Services
             catch { }
         }
 
+        private static string FormatMac(string rawMac)
+        {
+            if (string.IsNullOrEmpty(rawMac)) return string.Empty;
+            return Regex.Replace(rawMac.Replace(":", "").Replace("-", ""), "(.{2})", "$1-").TrimEnd('-').ToUpperInvariant();
+        }
     }
 }

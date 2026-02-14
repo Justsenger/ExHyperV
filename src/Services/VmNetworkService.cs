@@ -10,108 +10,148 @@ namespace ExHyperV.Services
         private const string ServiceClass = "Msvm_VirtualSystemManagementService";
         private const string ScopeNamespace = @"root\virtualization\v2"; private void Log(string message) => Debug.WriteLine($"[VmNetDebug][{DateTime.Now:HH:mm:ss.fff}] {message}");
 
-        // ==========================================
-        // 1. 获取网卡信息 (快速 - 仅 WMI，秒回)
-        // ==========================================
-        // ==========================================
-        // 1. 获取网卡信息 (修复版)
-        // ==========================================
         public async Task<List<VmNetworkAdapter>> GetNetworkAdaptersAsync(string vmName)
         {
-            Log($">>> [Fast] 加载网卡配置: {vmName}");
-            var query = $"SELECT * FROM Msvm_ComputerSystem WHERE ElementName = '{vmName.Replace("'", "''")}'";
+            Log($"==============================================================");
+            Log($"开始为虚拟机 '{vmName}' 获取网卡信息...");
 
-            var wmiResults = await WmiTools.QueryAsync(query, (vmEntry) =>
+            var resultList = new List<VmNetworkAdapter>();
+            if (string.IsNullOrEmpty(vmName))
             {
-                var adapters = new List<VmNetworkAdapter>();
+                Log("[错误] 传入的 vmName 为空，操作中止。");
+                return resultList;
+            }
 
-                // 1. 获取虚拟机当前的设置数据 (VSSD)
-                var settingData = vmEntry.GetRelated("Msvm_VirtualSystemSettingData").Cast<ManagementObject>()
-                    .OrderByDescending(s => s["VirtualSystemType"]?.ToString().Contains("Realized") == true)
-                    .FirstOrDefault();
+            // 步骤 1: 获取 VM 的系统 GUID (在 WMI 中为 'Name' 属性)
+            Log($"[1/4] 正在查询虚拟机 '{vmName}' 的 GUID...");
+            var vmQueryResult = await WmiTools.QueryAsync(
+                $"SELECT Name FROM Msvm_ComputerSystem WHERE ElementName = '{vmName.Replace("'", "''")}'",
+                (vm) => vm["Name"]?.ToString());
 
-                if (settingData == null) return adapters;
+            string vmGuid = vmQueryResult.FirstOrDefault();
+            if (string.IsNullOrEmpty(vmGuid))
+            {
+                Log($"[错误] 找不到名为 '{vmName}' 的虚拟机。请检查虚拟机名称是否正确。");
+                return resultList;
+            }
+            Log($"[成功] 获取到 VM GUID: {vmGuid}");
 
-                // 2. 获取所有的虚拟网卡端口 (Port Settings)
-                var portSettings = settingData.GetRelated("Msvm_SyntheticEthernetPortSettingData", "Msvm_VirtualSystemSettingDataComponent", null, null, null, null, false, null)
-                                              .Cast<ManagementObject>()
-                                              .ToList();
+            // 步骤 2: 并发查询该 VM 的所有网卡端口设置和端口分配设置
+            Log($"[2/4] 正在并发查询属于 GUID '{vmGuid}' 的网卡端口和分配设置...");
+            var portsTask = WmiTools.QueryAsync(
+                $"SELECT ElementName, InstanceID, Address, StaticMacAddress FROM Msvm_SyntheticEthernetPortSettingData WHERE InstanceID LIKE 'Microsoft:{vmGuid}%'",
+                (o) => (ManagementObject)o);
 
-                // 3. [关键修复] 获取所有的分配设置 (Allocation Settings)
-                // 注意：分配设置也是 VSSD 的组件，必须从 VSSD 获取，而不是从 Port 获取
-                var allAllocations = settingData.GetRelated("Msvm_EthernetPortAllocationSettingData", "Msvm_VirtualSystemSettingDataComponent", null, null, null, null, false, null)
-                                                .Cast<ManagementObject>()
-                                                .ToList();
+            var allocsTask = WmiTools.QueryAsync(
+                $"SELECT EnabledState, InstanceID, HostResource FROM Msvm_EthernetPortAllocationSettingData WHERE InstanceID LIKE 'Microsoft:{vmGuid}%'",
+                (o) => (ManagementObject)o);
 
-                try
+            await Task.WhenAll(portsTask, allocsTask);
+
+            var allPorts = portsTask.Result;
+            var allAllocs = allocsTask.Result;
+            Log($"[成功] 查询完成: 找到 {allPorts.Count} 个网卡端口, {allAllocs.Count} 个分配设置。");
+            Log($"--------------------------------------------------------------");
+
+            // 步骤 3: 遍历网卡端口，并匹配其对应的分配设置
+            Log($"[3/4] 开始遍历和匹配每个网卡...");
+            int counter = 0;
+            foreach (var port in allPorts)
+            {
+                counter++;
+                string elementName = port["ElementName"]?.ToString() ?? "（无名称）";
+                Log($"\n--- [处理第 {counter}/{allPorts.Count} 个网卡: '{elementName}'] ---");
+
+                string fullPortId = port["InstanceID"]?.ToString() ?? string.Empty;
+                if (string.IsNullOrEmpty(fullPortId))
                 {
-                    foreach (var port in portSettings)
+                    Log("  [警告] 此端口的 InstanceID 为空，跳过处理。");
+                    continue;
+                }
+                Log($"  [端口信息] 完整 InstanceID: {fullPortId}");
+
+                string deviceGuid = fullPortId.Split('\\').Last();
+                Log($"  [端口信息] 提取的 Device GUID (用于匹配): {deviceGuid}");
+
+                var adapter = new VmNetworkAdapter
+                {
+                    Id = fullPortId,
+                    Name = elementName,
+                    MacAddress = FormatMac(port["Address"]?.ToString()),
+                    IsStaticMac = GetBool(port, "StaticMacAddress")
+                };
+                Log($"  [端口信息] MAC 地址: {adapter.MacAddress}, 是否静态: {adapter.IsStaticMac}");
+
+                // 核心匹配逻辑
+                Log($"  [匹配操作] 正在为 Device GUID '{deviceGuid}' 查找分配设置...");
+                var allocation = allAllocs.FirstOrDefault(a =>
+                    a["InstanceID"]?.ToString().Contains(deviceGuid, StringComparison.OrdinalIgnoreCase) == true);
+
+                if (allocation != null)
+                {
+                    Log("  [匹配结果] >>> 成功找到匹配的分配设置! <<<");
+                    Log($"    [分配信息] 匹配到的 InstanceID: {allocation["InstanceID"]}");
+
+                    // 解析连接状态
+                    string stateStr = allocation["EnabledState"]?.ToString();
+                    Log($"    [状态解析] EnabledState (原始值): {stateStr ?? "null"} (2=已连接, 3=未连接)");
+                    adapter.IsConnected = (stateStr == "2");
+                    Log($"    [状态解析] IsConnected (布尔值): {adapter.IsConnected}");
+
+                    // 解析交换机名
+                    if (adapter.IsConnected && allocation["HostResource"] is string[] hostResources && hostResources.Length > 0)
                     {
-                        var rawMac = port["Address"]?.ToString() ?? "";
-                        var adapter = new VmNetworkAdapter
+                        string switchWmiPath = hostResources[0];
+                        Log($"    [交换机解析] HostResource 路径: {switchWmiPath}");
+
+                        string swGuid = switchWmiPath.Split('"').Reverse().Skip(1).FirstOrDefault();
+                        if (!string.IsNullOrEmpty(swGuid))
                         {
-                            Id = port["InstanceID"]?.ToString(),
-                            Name = port["ElementName"]?.ToString(),
-                            MacAddress = FormatMac(rawMac),
-                            IsStaticMac = GetBool(port, "StaticMacAddress")
-                        };
-
-                        // 获取 IP (WMI 集成服务)
-                        try
-                        {
-                            var guestConfig = port.GetRelated("Msvm_GuestNetworkAdapterConfiguration", "Msvm_SettingDataComponent", null, null, null, null, false, null)
-                                                  .Cast<ManagementObject>().FirstOrDefault();
-                            if (guestConfig != null)
-                            {
-                                var ips = guestConfig["IPAddresses"] as string[];
-                                if (ips != null) adapter.IpAddresses = ips.ToList();
-                            }
-                        }
-                        catch { }
-
-                        // [关键修复] 手动匹配 Port 和 Allocation
-                        // 逻辑：Allocation 的 Parent 属性 == Port 的 WMI 路径
-                        var portPath = port.Path.Path;
-                        var allocation = allAllocations.FirstOrDefault(a =>
-                            string.Equals(a["Parent"]?.ToString(), portPath, StringComparison.OrdinalIgnoreCase));
-
-                        if (allocation != null)
-                        {
-                            adapter.IsConnected = Convert.ToUInt16(allocation["EnabledState"]) == 2;
-                            var hostResources = (string[])allocation["HostResource"];
-
-                            if (hostResources != null && hostResources.Length > 0)
-                                adapter.SwitchName = GetSwitchNameFromPath(hostResources[0]);
-                            else
-                                adapter.SwitchName = "未连接"; // 显式标记
-
-                            // 获取 VLAN / 带宽 / 安全项 等高级设置
-                            foreach (ManagementObject feature in allocation.GetRelated("Msvm_EthernetSwitchPortFeatureSettingData", "Msvm_EthernetPortSettingDataComponent", null, null, null, null, false, null))
-                            {
-                                ParseFeatureSettings(adapter, feature);
-                            }
+                            Log($"    [交换机解析] 提取的交换机 GUID: {swGuid}");
+                            adapter.SwitchName = await GetSwitchNameByGuidAsync(swGuid);
+                            Log($"    [交换机解析] 查询到的交换机名称: {adapter.SwitchName}");
                         }
                         else
                         {
-                            adapter.SwitchName = "配置异常"; // 理论上不应发生，除非配置损坏
+                            Log("    [交换机解析] [警告] 无法从 HostResource 中解析出交换机 GUID。");
+                            adapter.SwitchName = "解析失败";
                         }
-
-                        adapters.Add(adapter);
+                    }
+                    else
+                    {
+                        Log("    [交换机解析] 网卡未连接或无 HostResource，SwitchName 设为 '未连接'。");
+                        adapter.SwitchName = "未连接";
                     }
                 }
-                finally
+                else
                 {
-                    // 清理 WMI 对象，防止内存泄漏
-                    foreach (var p in portSettings) p.Dispose();
-                    foreach (var a in allAllocations) a.Dispose();
+                    Log("  [匹配结果] >>> [失败] 未找到匹配的分配设置。将状态设为未连接。 <<<");
+                    adapter.IsConnected = false;
+                    adapter.SwitchName = "未连接";
                 }
 
-                return adapters;
-            });
+                resultList.Add(adapter);
+                Log($"  [添加对象] 已创建并添加 VmNetworkAdapter 对象到结果列表。最终状态: Name='{adapter.Name}', Connected={adapter.IsConnected}, Switch='{adapter.SwitchName}'");
+            }
 
-            return wmiResults.SelectMany(x => x).ToList();
+            Log($"\n[4/4] 所有网卡处理完毕。");
+            Log($"==============================================================");
+            Log($"最终返回 {resultList.Count} 个网络适配器对象。");
+            Log($"==============================================================");
+
+            return resultList;
         }
-        // ==========================================
+        // 辅助方法：通过交换机 GUID 查找其显示名称 ElementName
+        private async Task<string> GetSwitchNameByGuidAsync(string guid)
+        {
+            if (string.IsNullOrEmpty(guid)) return "未连接";
+
+            var res = await WmiTools.QueryAsync(
+                $"SELECT ElementName FROM Msvm_VirtualEthernetSwitch WHERE Name = '{guid}'",
+                (s) => s["ElementName"]?.ToString());
+
+            return res.FirstOrDefault() ?? "未知交换机";
+        }        // ==========================================
         // [新增] 后台填充 IP 方法 (供 ViewModel 异步调用)
         // ==========================================
         public async Task FillDynamicIpsAsync(string vmName, IEnumerable<VmNetworkAdapter> adapters)
