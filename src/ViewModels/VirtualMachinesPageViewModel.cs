@@ -10,6 +10,7 @@ using ExHyperV.Models;
 using ExHyperV.Services;
 using ExHyperV.Tools;
 using Wpf.Ui.Controls;
+using System.Diagnostics;
 
 namespace ExHyperV.ViewModels
 {
@@ -2183,48 +2184,45 @@ namespace ExHyperV.ViewModels
         {
             if (newList == null || newList.Count == 0) return;
 
-            // 1. 移除已删除的网卡
-            var toRemove = currentList.Where(c => !newList.Any(n => n.Id == c.Id)).ToList();
-            foreach (var item in toRemove) currentList.Remove(item);
-
-            // 2. 同步数据
             foreach (var newItem in newList)
             {
                 var existing = currentList.FirstOrDefault(c => c.Id == newItem.Id);
                 if (existing != null)
                 {
-                    // --- 核心修复：粘性更新属性 ---
-
-                    // 交换机名称保护：只有当新值不为空，且不是“读取中”或“未连接”时才更新
-                    // 如果后台返回了空，我们保留内存中现有的名称
-                    if (!string.IsNullOrWhiteSpace(newItem.SwitchName) &&
-                        newItem.SwitchName != "未连接" &&
-                        newItem.SwitchName != "读取中...")
+                    // 调试日志：监控每一次尝试覆盖的行为
+                    if (existing.SwitchName != newItem.SwitchName)
                     {
-                        if (existing.SwitchName != newItem.SwitchName)
+                        // 质量评估
+                        bool isNewDataTrash = string.IsNullOrWhiteSpace(newItem.SwitchName) ||
+                                             newItem.SwitchName == "未连接" ||
+                                             newItem.SwitchName.StartsWith("WMI_");
+
+                        bool isOldDataValuable = !string.IsNullOrWhiteSpace(existing.SwitchName) &&
+                                                existing.SwitchName != "未连接";
+
+                        if (isOldDataValuable && isNewDataTrash)
+                        {
+                            Debug.WriteLine($"[BLOCK_SYNC] {DateTime.Now:HH:mm:ss.fff} | 拦截了垃圾数据覆盖! 保留旧值: [{existing.SwitchName}] 拒绝新值: [{newItem.SwitchName}]");
+                            // 故意不更新 SwitchName，保护内存
+                        }
+                        else
+                        {
+                            Debug.WriteLine($"[ALLOW_SYNC] {DateTime.Now:HH:mm:ss.fff} | 更新数据: [{existing.SwitchName}] -> [{newItem.SwitchName}]");
                             existing.SwitchName = newItem.SwitchName;
+                        }
                     }
 
-                    // 连接状态同步
-                    if (existing.IsConnected != newItem.IsConnected)
-                        existing.IsConnected = newItem.IsConnected;
-
-                    // IP 地址保护：只有拿到新 IP 才更新，否则保留（防止 ARP 探测到的 IP 丢失）
+                    // 同步其他状态
+                    if (existing.IsConnected != newItem.IsConnected) existing.IsConnected = newItem.IsConnected;
                     if (newItem.IpAddresses != null && newItem.IpAddresses.Count > 0)
                     {
                         if (existing.IpAddresses == null || !existing.IpAddresses.SequenceEqual(newItem.IpAddresses))
                             existing.IpAddresses = newItem.IpAddresses;
                     }
-
-                    // MAC 地址通常不变，但也同步一下
-                    if (existing.MacAddress != newItem.MacAddress)
-                        existing.MacAddress = newItem.MacAddress;
                 }
                 else
                 {
-                    // 新网卡：如果新网卡没有名字，赋予一个保底值，防止 UI 出现空标签
-                    if (string.IsNullOrWhiteSpace(newItem.SwitchName))
-                        newItem.SwitchName = "未连接";
+                    Debug.WriteLine($"[NEW_ADAPTER] {DateTime.Now:HH:mm:ss.fff} | 集合新增网卡: {newItem.Name}");
                     currentList.Add(newItem);
                 }
             }

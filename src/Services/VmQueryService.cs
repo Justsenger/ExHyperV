@@ -196,32 +196,34 @@ namespace ExHyperV.Services
                     if (allocsMap.TryGetValue(fullPortId, out var allocation))
                     {
                         adapter.IsConnected = allocation["EnabledState"]?.ToString() == "2";
-
                         if (adapter.IsConnected && allocation["HostResource"] is string[] hostResources && hostResources.Length > 0)
                         {
                             string switchGuid = hostResources[0].Split('"').Reverse().Skip(1).FirstOrDefault();
-
-                            // 优先尝试从全局缓存读，如果缓存也没有，保留“读取中”状态，而不是空
                             if (!string.IsNullOrEmpty(switchGuid) && _switchNameCache.TryGetValue(switchGuid, out var cachedName))
                             {
                                 adapter.SwitchName = cachedName;
                             }
-                            else if (!string.IsNullOrEmpty(switchGuid))
+                            else
                             {
-                                adapter.SwitchName = "Switch (" + switchGuid.Substring(0, 4) + ")";
+                                adapter.SwitchName = "WMI_MAP_MISSING"; // 追踪点：WMI 查到了连接但缓存没命中
                             }
-                            else { adapter.SwitchName = "未连接"; }
                         }
-                        else { adapter.SwitchName = "未连接"; }
+                        else { adapter.SwitchName = "WMI_NO_HOST_RESOURCE"; } // 追踪点：WMI 认为连接了但没找到交换机路径
                     }
                     else
                     {
+                        // [修改] 如果没找到分配信息，不要给它赋值 WMI_ALLOC_NOT_FOUND
+                        // 而是赋 null。结合我们在模型层做的保护，null 会被直接无视，从而保留内存中的旧值。
+                        adapter.SwitchName = null;
                         adapter.IsConnected = false;
-                        adapter.SwitchName = "未连接"; // 确保不为 null
                     }
 
-                    // 匹配 Guest IP (使用最后一段 DEVICE-GUID)
-                    if (!string.IsNullOrEmpty(deviceGuidForIp) && guestIpMap.TryGetValue(deviceGuidForIp, out var ips))
+                    Debug.WriteLine($"[QUERY_SOURCE] {DateTime.Now:HH:mm:ss.fff} | VM: {vmGuid} | Port: {fullPortId.Substring(0, 8)}... | Name: {adapter.Name} | Switch: {adapter.SwitchName}");
+                
+
+
+                // 匹配 Guest IP (使用最后一段 DEVICE-GUID)
+                if (!string.IsNullOrEmpty(deviceGuidForIp) && guestIpMap.TryGetValue(deviceGuidForIp, out var ips))
                     {
                         adapter.IpAddresses = ips;
                     }

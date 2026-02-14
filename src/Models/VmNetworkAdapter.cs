@@ -83,8 +83,30 @@ namespace ExHyperV.Models
         /// 当前连接的虚拟交换机的名称。
         /// WMI: Msvm_EthernetPortAllocationSettingData.HostResource
         /// </summary>
-        [ObservableProperty]
-        private string _switchName;
+        private string _switchName = "未连接";
+        public string SwitchName
+        {
+            get => _switchName;
+            set
+            {
+                // 核心铁律：如果内存里已经是真实的交换机名，绝对拒绝“空值”或“错误占位符”的覆盖
+                if (!string.IsNullOrEmpty(_switchName) && _switchName != "未连接")
+                {
+                    // 如果新值是空的、未连接、或者带 WMI_ 前缀的错误，直接丢弃，保留旧值
+                    if (string.IsNullOrWhiteSpace(value) || value == "未连接" || value.StartsWith("WMI_"))
+                    {
+                        return;
+                    }
+                }
+
+                // 只有数据质量更高时，才触发 SetProperty (即触发 UI 更新)
+                if (_switchName != value)
+                {
+                    _switchName = value;
+                    OnPropertyChanged(nameof(SwitchName));
+                }
+            }
+        }
 
         /// <summary>
         /// 网卡的 MAC 地址。
