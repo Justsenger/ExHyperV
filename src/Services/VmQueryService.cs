@@ -192,36 +192,32 @@ namespace ExHyperV.Services
                     };
 
                     // --- 核心匹配逻辑：直接用 Port 的完整 InstanceID 去 allocsMap 里找 ---
+                    // 在 VmQueryService.cs 的 foreach (var port in allPortsTask.Result) 循环内
                     if (allocsMap.TryGetValue(fullPortId, out var allocation))
                     {
                         adapter.IsConnected = allocation["EnabledState"]?.ToString() == "2";
 
                         if (adapter.IsConnected && allocation["HostResource"] is string[] hostResources && hostResources.Length > 0)
                         {
-                            // 解析交换机 GUID
                             string switchGuid = hostResources[0].Split('"').Reverse().Skip(1).FirstOrDefault();
 
-                            // === 核心逻辑修改：优先从全局静态缓存读取名字 ===
+                            // 优先尝试从全局缓存读，如果缓存也没有，保留“读取中”状态，而不是空
                             if (!string.IsNullOrEmpty(switchGuid) && _switchNameCache.TryGetValue(switchGuid, out var cachedName))
                             {
                                 adapter.SwitchName = cachedName;
                             }
                             else if (!string.IsNullOrEmpty(switchGuid))
                             {
-                                // 还没进缓存，暂时显示 GUID 缩写或保底文字，避免空白
                                 adapter.SwitchName = "Switch (" + switchGuid.Substring(0, 4) + ")";
                             }
-                            else
-                            {
-                                adapter.SwitchName = "未连接";
-                            }
+                            else { adapter.SwitchName = "未连接"; }
                         }
                         else { adapter.SwitchName = "未连接"; }
                     }
                     else
                     {
                         adapter.IsConnected = false;
-                        adapter.SwitchName = "未连接";
+                        adapter.SwitchName = "未连接"; // 确保不为 null
                     }
 
                     // 匹配 Guest IP (使用最后一段 DEVICE-GUID)

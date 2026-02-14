@@ -1373,18 +1373,7 @@ namespace ExHyperV.ViewModels
                             if (vm != null)
                             {
                                 vm.SyncBackendData(update.State, update.RawUptime);
-                                if (CurrentViewType == VmDetailViewType.NetworkSettings)
-                                {
-                                    var firstAdapterFromLoop = update.NetworkAdapters.FirstOrDefault();
-                                    System.Diagnostics.Debug.WriteLine($"[DEBUG] MonitorStateLoop SKIPPING sync. IsConnected from loop data = {firstAdapterFromLoop?.IsConnected}. CurrentView is NetworkSettings.");
-                                }
-                                else
-                                {
-                                    var firstAdapterFromLoop = update.NetworkAdapters.FirstOrDefault();
-                                    System.Diagnostics.Debug.WriteLine($"[DEBUG] MonitorStateLoop IS syncing. IsConnected from loop data = {firstAdapterFromLoop?.IsConnected}");
-                                    SyncNetworkAdaptersInternal(vm.NetworkAdapters, update.NetworkAdapters.ToList());
-                                }
-                                if (CurrentViewType != VmDetailViewType.NetworkSettings)
+                                if (CurrentViewType != VmDetailViewType.NetworkSettings && !IsLoadingSettings)
                                 {
                                     SyncNetworkAdaptersInternal(vm.NetworkAdapters, update.NetworkAdapters.ToList());
                                 }
@@ -2192,43 +2181,50 @@ namespace ExHyperV.ViewModels
 
         private void SyncNetworkAdaptersInternal(ObservableCollection<VmNetworkAdapter> currentList, List<VmNetworkAdapter> newList)
         {
-            // 如果后台轮询返回的是空列表，说明 WMI 可能暂时没响应，我们保留旧数据，直接返回
             if (newList == null || newList.Count == 0) return;
 
-            // 1. 移除已经不存在的网卡 (只有当新列表确实有网卡时才进行比对移除)
+            // 1. 移除已删除的网卡
             var toRemove = currentList.Where(c => !newList.Any(n => n.Id == c.Id)).ToList();
             foreach (var item in toRemove) currentList.Remove(item);
 
-            // 2. 更新或添加
+            // 2. 同步数据
             foreach (var newItem in newList)
             {
                 var existing = currentList.FirstOrDefault(c => c.Id == newItem.Id);
                 if (existing != null)
                 {
-                    // --- 属性同步 ---
-                    if (existing.Name != newItem.Name) existing.Name = newItem.Name;
-                    if (existing.IsConnected != newItem.IsConnected) existing.IsConnected = newItem.IsConnected;
+                    // --- 核心修复：粘性更新属性 ---
 
-                    // 交换机名称同步：只有新数据有值时才覆盖，防止闪烁
-                    if (!string.IsNullOrEmpty(newItem.SwitchName) && newItem.SwitchName != "未连接")
-                        existing.SwitchName = newItem.SwitchName;
+                    // 交换机名称保护：只有当新值不为空，且不是“读取中”或“未连接”时才更新
+                    // 如果后台返回了空，我们保留内存中现有的名称
+                    if (!string.IsNullOrWhiteSpace(newItem.SwitchName) &&
+                        newItem.SwitchName != "未连接" &&
+                        newItem.SwitchName != "读取中...")
+                    {
+                        if (existing.SwitchName != newItem.SwitchName)
+                            existing.SwitchName = newItem.SwitchName;
+                    }
 
-                    // MAC 地址同步
-                    if (existing.MacAddress != newItem.MacAddress) existing.MacAddress = newItem.MacAddress;
+                    // 连接状态同步
+                    if (existing.IsConnected != newItem.IsConnected)
+                        existing.IsConnected = newItem.IsConnected;
 
-                    // --- 核心修复：IP 地址保护 ---
-                    // 只有当新数据拿到了 IP，我们才更新。
-                    // 如果新数据是空的，保留旧数据（可能是之前的 ARP 探测结果）。
+                    // IP 地址保护：只有拿到新 IP 才更新，否则保留（防止 ARP 探测到的 IP 丢失）
                     if (newItem.IpAddresses != null && newItem.IpAddresses.Count > 0)
                     {
                         if (existing.IpAddresses == null || !existing.IpAddresses.SequenceEqual(newItem.IpAddresses))
-                        {
                             existing.IpAddresses = newItem.IpAddresses;
-                        }
                     }
+
+                    // MAC 地址通常不变，但也同步一下
+                    if (existing.MacAddress != newItem.MacAddress)
+                        existing.MacAddress = newItem.MacAddress;
                 }
                 else
                 {
+                    // 新网卡：如果新网卡没有名字，赋予一个保底值，防止 UI 出现空标签
+                    if (string.IsNullOrWhiteSpace(newItem.SwitchName))
+                        newItem.SwitchName = "未连接";
                     currentList.Add(newItem);
                 }
             }
