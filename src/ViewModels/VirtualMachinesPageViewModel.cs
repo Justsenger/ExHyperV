@@ -11,6 +11,7 @@ using ExHyperV.Services;
 using ExHyperV.Tools;
 using Wpf.Ui.Controls;
 using System.Diagnostics;
+using System.ComponentModel;
 
 namespace ExHyperV.ViewModels
 {
@@ -99,7 +100,10 @@ namespace ExHyperV.ViewModels
             var view = CollectionViewSource.GetDefaultView(VmList);
             if (view != null)
             {
+                // 过滤逻辑
                 view.Filter = item => (item is VmInstanceInfo vm) && (string.IsNullOrEmpty(value) || vm.Name.Contains(value, StringComparison.OrdinalIgnoreCase));
+
+                // 确保排序规则依然存在（通常设置一次即可，但 Refresh 是必须的）
                 view.Refresh();
             }
         }
@@ -423,9 +427,8 @@ namespace ExHyperV.ViewModels
             {
                 var finalCollection = await Task.Run(async () => {
                     var vms = await _queryService.GetVmListAsync();
-                    var sortedVms = vms.OrderBy(v => v.State == "已关机" ? 1 : 0).ThenBy(v => v.Name);
                     var list = new ObservableCollection<VmInstanceInfo>();
-                    foreach (var vm in sortedVms)
+                    foreach (var vm in vms)
                     {
                         if (string.IsNullOrWhiteSpace(vm.Name)) continue;
 
@@ -459,20 +462,37 @@ namespace ExHyperV.ViewModels
                                 ShowSnackbar("操作失败", Utils.GetFriendlyErrorMessages(realEx.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
                             }
                         });
+
                         if (vm.NetworkAdapters != null)
                         {
                             foreach (var net in vm.NetworkAdapters) instance.NetworkAdapters.Add(net);
                         }
 
-                        // 初始 IP 赋值
                         instance.IpAddress = vm.IpAddress;
-
                         list.Add(instance);
                     }
                     return list;
                 });
 
                 VmList = finalCollection;
+
+                // --- 设置排序规则 ---
+                var view = CollectionViewSource.GetDefaultView(VmList);
+                view.SortDescriptions.Clear();
+                view.SortDescriptions.Add(new SortDescription(nameof(VmInstanceInfo.IsRunning), ListSortDirection.Descending));
+                view.SortDescriptions.Add(new SortDescription(nameof(VmInstanceInfo.Name), ListSortDirection.Ascending));
+
+                // === 关键修改：开启实时排序 ===
+                if (view is System.ComponentModel.ICollectionViewLiveShaping liveView)
+                {
+                    // 开启实时排序功能
+                    liveView.IsLiveSorting = true;
+
+                    // 告诉 WPF 监视哪个属性的变化来触发重排
+                    liveView.LiveSortingProperties.Add(nameof(VmInstanceInfo.IsRunning));
+                    // 如果名字也会动态变化，可以加上 Name
+                    // liveView.LiveSortingProperties.Add(nameof(VmInstanceInfo.Name)); 
+                }
 
                 if (SelectedVm == null || !VmList.Any(x => x.Name == SelectedVm.Name))
                 {
@@ -490,7 +510,6 @@ namespace ExHyperV.ViewModels
                 IsLoading = false;
             }
         }
-
         [RelayCommand]
         private void OpenNativeConnect()
         {
@@ -1366,26 +1385,36 @@ namespace ExHyperV.ViewModels
                     await _queryService.UpdateDiskPerformanceAsync(VmList);
                     var gpuUsageMap = await _queryService.GetGpuPerformanceAsync(VmList);
 
-
                     Application.Current.Dispatcher.Invoke(() => {
+                        bool needsResort = false;
+
                         foreach (var update in updates)
                         {
                             var vm = VmList.FirstOrDefault(v => v.Name == update.Name);
                             if (vm != null)
                             {
+                                // 记录更新前的状态
+                                bool wasRunning = vm.IsRunning;
+
                                 vm.SyncBackendData(update.State, update.RawUptime);
+
+                                // 如果运行状态发生了切换，标记需要重新排序
+                                if (wasRunning != vm.IsRunning)
+                                {
+                                    needsResort = true;
+                                }
+
                                 if (CurrentViewType != VmDetailViewType.NetworkSettings && !IsLoadingSettings)
                                 {
                                     SyncNetworkAdaptersInternal(vm.NetworkAdapters, update.NetworkAdapters.ToList());
                                 }
 
-                                // --- 在 MonitorStateLoop 内部的处理逻辑 ---
+                                // --- IP 处理逻辑 ---
                                 if (vm.IsRunning)
                                 {
-                                    // 1. 先尝试从同步回来的网卡数据中提取有效 IP (WMI 获取的)
                                     var allIps = vm.NetworkAdapters
                                                    .SelectMany(a => a.IpAddresses ?? new List<string>())
-                                                   .Where(ip => !string.IsNullOrEmpty(ip) && !ip.Contains(":")) // 过滤掉 IPv6
+                                                   .Where(ip => !string.IsNullOrEmpty(ip) && !ip.Contains(":"))
                                                    .ToList();
 
                                     if (allIps.Count > 0)
@@ -1393,13 +1422,10 @@ namespace ExHyperV.ViewModels
                                         vm.IpAddress = allIps.First();
                                     }
 
-                                    // 2. 核心修复：遍历所有网卡，如果某个网卡有 MAC 但没 IP，则后台触发 ARP 嗅探
                                     foreach (var adapter in vm.NetworkAdapters)
                                     {
-                                        // 如果网卡正在运行、有 MAC 地址，但目前 IP 列表为空
                                         if (!string.IsNullOrEmpty(adapter.MacAddress) && (adapter.IpAddresses == null || adapter.IpAddresses.Count == 0))
                                         {
-                                            // 异步执行 ARP 嗅探，不阻塞监控主循环
                                             _ = Task.Run(async () => {
                                                 try
                                                 {
@@ -1407,11 +1433,7 @@ namespace ExHyperV.ViewModels
                                                     if (!string.IsNullOrEmpty(arpIp))
                                                     {
                                                         Application.Current.Dispatcher.Invoke(() => {
-                                                            // 更新具体网卡对象的 IP 列表
-                                                            // 由于 SyncNetworkAdaptersInternal 有保护逻辑，这里手动填入的值不会被空的 WMI 结果覆盖
                                                             adapter.IpAddresses = new List<string> { arpIp };
-
-                                                            // 如果 VM 的全局 IP 还是占位符，顺便把它也更新了
                                                             if (vm.IpAddress == "---" || string.IsNullOrWhiteSpace(vm.IpAddress) || vm.IpAddress.Contains("获取"))
                                                             {
                                                                 vm.IpAddress = arpIp;
@@ -1419,7 +1441,7 @@ namespace ExHyperV.ViewModels
                                                         });
                                                     }
                                                 }
-                                                catch { /* 忽略网络探测异常 */ }
+                                                catch { }
                                             });
                                         }
                                     }
@@ -1429,23 +1451,18 @@ namespace ExHyperV.ViewModels
                                     vm.IpAddress = "---";
                                 }
 
-                                // --- 开始修复：增量更新磁盘列表，防止速率数据被 Clear 掉 ---
+                                // --- 增量更新磁盘列表 ---
                                 var updatePaths = update.Disks.Select(d => d.Path).ToHashSet();
-
-                                // 1. 移除已不存在的磁盘
                                 for (int i = vm.Disks.Count - 1; i >= 0; i--)
                                 {
                                     if (!updatePaths.Contains(vm.Disks[i].Path))
                                         vm.Disks.RemoveAt(i);
                                 }
-
-                                // 2. 更新已有磁盘或添加新磁盘
                                 foreach (var newDiskData in update.Disks)
                                 {
                                     var existingDisk = vm.Disks.FirstOrDefault(d => d.Path == newDiskData.Path);
                                     if (existingDisk != null)
                                     {
-                                        // 只同步元数据，不要覆盖 ReadSpeedBps 和 WriteSpeedBps
                                         existingDisk.Name = newDiskData.Name;
                                         existingDisk.CurrentSize = newDiskData.CurrentSize;
                                         existingDisk.MaxSize = newDiskData.MaxSize;
@@ -1456,7 +1473,6 @@ namespace ExHyperV.ViewModels
                                         vm.Disks.Add(newDiskData);
                                     }
                                 }
-                                // --- 修复结束 ---
 
                                 vm.GpuName = update.GpuName;
 
@@ -1469,6 +1485,8 @@ namespace ExHyperV.ViewModels
                             }
                         }
 
+
+
                         if (gpuUsageMap.Count > 0)
                         {
                             foreach (var vm in VmList)
@@ -1477,10 +1495,12 @@ namespace ExHyperV.ViewModels
                                 {
                                     vm.UpdateGpuStats(gpuData);
                                 }
-                                // 如果 VM 正在运行但 map 中没有它，其状态会在下次同步时被 IsRunning 属性清零
                             }
                         }
-
+                        if (needsResort)
+                        {
+                            CollectionViewSource.GetDefaultView(VmList).Refresh();
+                        }
                     });
 
                     if (SelectedVm != null)

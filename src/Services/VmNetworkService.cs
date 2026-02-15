@@ -24,7 +24,7 @@ namespace ExHyperV.Services
                 return resultList;
             }
 
-            // 步骤 1: 获取 VM 的系统 GUID (在 WMI 中为 'Name' 属性)
+            // 步骤 1: 获取 VM 的系统 GUID
             Log($"[1/4] 正在查询虚拟机 '{vmName}' 的 GUID...");
             var vmQueryResult = await WmiTools.QueryAsync(
                 $"SELECT Name FROM Msvm_ComputerSystem WHERE ElementName = '{vmName.Replace("'", "''")}'",
@@ -71,7 +71,6 @@ namespace ExHyperV.Services
                     continue;
                 }
 
-                // InstanceID 格式通常为 "Microsoft:<VmGuid>\<DeviceGuid>"
                 string deviceGuid = fullPortId.Split('\\').Last();
 
                 var adapter = new VmNetworkAdapter
@@ -83,34 +82,29 @@ namespace ExHyperV.Services
                 };
 
                 // 核心匹配逻辑
-                // 分配设置的 InstanceID 也包含相同的 DeviceGuid
                 var allocation = allAllocs.FirstOrDefault(a =>
                     a["InstanceID"]?.ToString().Contains(deviceGuid, StringComparison.OrdinalIgnoreCase) == true);
 
                 if (allocation != null)
                 {
-                    // 1. 解析连接状态
                     string stateStr = allocation["EnabledState"]?.ToString();
                     adapter.IsConnected = (stateStr == "2");
 
-                    // 2. 解析交换机名
-                    if (adapter.IsConnected && allocation["HostResource"] is string[] hostResources && hostResources.Length > 0)
+                    // 无论是否连接，都去尝试读取 HostResource
+                    if (allocation["HostResource"] is string[] hostResources && hostResources.Length > 0)
                     {
                         string switchWmiPath = hostResources[0];
                         string swGuid = switchWmiPath.Split('"').Reverse().Skip(1).FirstOrDefault();
-                        adapter.SwitchName = !string.IsNullOrEmpty(swGuid)
-                            ? await GetSwitchNameByGuidAsync(swGuid)
-                            : "解析失败";
+                        adapter.SwitchName = await GetSwitchNameByGuidAsync(swGuid);
                     }
                     else
                     {
-                        adapter.SwitchName = "未连接";
+                        adapter.SwitchName = null;
                     }
 
                     // =========================================================
-                    // [最终修复] 手动构造相对路径关联查询
-                    // 解决 "无效的对象路径" 和 "无效查询" 的根本方案。
-                    // 直接构造 WQL 相对路径，精确控制反斜杠转义。
+                    // [修复] 找回丢失的高级属性读取逻辑
+                    // 无论网卡是否连接，分配设置(Allocation)中都包含高级特性(FeatureSettings)
                     // =========================================================
                     try
                     {
@@ -118,14 +112,13 @@ namespace ExHyperV.Services
 
                         if (!string.IsNullOrEmpty(rawId))
                         {
-                            // 关键步骤：WQL 字符串字面量中，反斜杠必须是双反斜杠。
-                            // C# 内存字符串: "Microsoft:...\..." -> WQL 需要: "Microsoft:...\\..."
+                            // 关键步骤：WQL 字符串字面量中，反斜杠必须是双反斜杠
                             string wqlSafeId = rawId.Replace(@"\", @"\\").Replace("'", "\\'");
 
                             // 构造相对路径: ClassName.Property="Value"
-                            // 这种路径格式 WMI 引擎处理起来最稳定
                             string relPath = $"Msvm_EthernetPortAllocationSettingData.InstanceID=\"{wqlSafeId}\"";
 
+                            // 查询关联的 FeatureSettings (VLAN, Security, Bandwidth etc.)
                             string query = $"ASSOCIATORS OF {{{relPath}}} " +
                                            $"WHERE AssocClass = Msvm_EthernetPortSettingDataComponent " +
                                            $"ResultClass = Msvm_EthernetSwitchPortFeatureSettingData";
@@ -136,15 +129,12 @@ namespace ExHyperV.Services
                             int featureCount = 0;
                             foreach (var feature in features.Cast<ManagementObject>())
                             {
-                                ParseFeatureSettings(adapter, feature);
+                                ParseFeatureSettings(adapter, feature); // <--- 调用解析方法
                                 featureCount++;
                             }
 
-                            // 记录日志以便确认
-                            if (featureCount > 0)
-                                Log($"    [高级设置] 成功读取 {featureCount} 项属性 (ID={rawId.Substring(0, 10)}...)");
-                            else
-                                Log($"    [高级设置] 未找到关联的高级设置 (ID={rawId.Substring(0, 10)}...)");
+                            if (featureCount == 0)
+                                Log($"    [高级设置] 未找到关联设置，将使用默认值。");
                         }
                     }
                     catch (Exception ex)
@@ -170,18 +160,12 @@ namespace ExHyperV.Services
         private async Task<string> GetSwitchNameByGuidAsync(string guid)
         {
             if (string.IsNullOrEmpty(guid)) return "未连接";
-
-            // 这里可以做一个简单的缓存优化，或者保持原样
             var res = await WmiTools.QueryAsync(
                 $"SELECT ElementName FROM Msvm_VirtualEthernetSwitch WHERE Name = '{guid}'",
                 (s) => s["ElementName"]?.ToString());
-
             return res.FirstOrDefault() ?? "未知交换机";
         }
 
-        // ==========================================
-        // [新增] 后台填充 IP 方法 (供 ViewModel 异步调用)
-        // ==========================================
         public async Task FillDynamicIpsAsync(string vmName, IEnumerable<VmNetworkAdapter> adapters)
         {
             var targetAdapters = adapters.Where(a => (a.IpAddresses == null || a.IpAddresses.Count == 0) && !string.IsNullOrEmpty(a.MacAddress)).ToList();
@@ -211,7 +195,7 @@ namespace ExHyperV.Services
         }
 
         // ==========================================
-        // 2. 写入逻辑 (Apply 方法) - 保持不变
+        // 2. 写入逻辑 (Apply 方法)
         // ==========================================
 
         public async Task<(bool Success, string Message)> ApplyVlanSettingsAsync(string vmName, VmNetworkAdapter adapter)
@@ -258,7 +242,7 @@ namespace ExHyperV.Services
         }
 
         // ==========================================
-        // 3. 核心机制 - 保持不变
+        // 3. 核心机制
         // ==========================================
         private async Task<(bool Success, string Message)> EnsureAndModifyFeatureAsync(string portId, string featureClass, Action<ManagementObject> updateAction)
         {
@@ -330,7 +314,7 @@ namespace ExHyperV.Services
         }
 
         // ==========================================
-        // 4. 其余辅助 - 保持不变
+        // 4. 其余辅助
         // ==========================================
 
         public async Task<(bool Success, string Message)> UpdateConnectionAsync(string vmName, VmNetworkAdapter adapter)

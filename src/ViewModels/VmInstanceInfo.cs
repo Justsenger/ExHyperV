@@ -559,12 +559,27 @@ namespace ExHyperV.Models
         }
         public void SyncBackendData(string realState, TimeSpan realUptime)
         {
-            _backendState = realState; _anchorUptime = realUptime; _anchorLocalTime = DateTime.Now;
-            if (_transientState != null && ShouldClearTransientState(realState)) _transientState = null;
+            // 记录旧状态
+            bool wasRunning = this.IsRunning;
+
+            _backendState = realState;
+            _anchorUptime = realUptime;
+            _anchorLocalTime = DateTime.Now;
+
+            if (_transientState != null && ShouldClearTransientState(realState))
+                _transientState = null;
+
             RefreshStateDisplay();
+
+            // 如果运行状态发生了变化，确保触发 PropertyChanged
+            // 开启了 IsLiveSorting 后，这一行会直接触发 CollectionView 自动重排
+            if (wasRunning != this.IsRunning)
+            {
+                OnPropertyChanged(nameof(IsRunning));
+            }
+
             TickUptime();
         }
-
         public void TickUptime()
         {
             if (!_isRunning) { Uptime = "00:00:00"; return; }
