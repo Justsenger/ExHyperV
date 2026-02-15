@@ -545,7 +545,7 @@ namespace ExHyperV.Models
                 string diskPart;
                 if (Disks.Count == 0)
                 {
-                    diskPart = "无硬盘";
+                    diskPart = "无";
                 }
                 else
                 {

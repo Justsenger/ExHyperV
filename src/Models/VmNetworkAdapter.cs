@@ -58,7 +58,7 @@ namespace ExHyperV.Models
         /// </summary>
         public string IpAddressDisplay => (IpAddresses != null && IpAddresses.Count > 0)
             ? IpAddresses.FirstOrDefault(ip => ip.Contains(".") && !ip.Contains(":")) ?? IpAddresses[0]
-            : "正在获取...";
+            : "---";
 
         /// <summary>
         /// WMI 实例的唯一标识符 (InstanceID)。

@@ -1379,12 +1379,10 @@ namespace ExHyperV.ViewModels
                                     SyncNetworkAdaptersInternal(vm.NetworkAdapters, update.NetworkAdapters.ToList());
                                 }
 
-                                // 处理外层 IP 显示
-                                // 在 MonitorStateLoop 内部的处理逻辑
-                                // 在 MonitorStateLoop 内部 foreach (var update in updates) 块中
+                                // --- 在 MonitorStateLoop 内部的处理逻辑 ---
                                 if (vm.IsRunning)
                                 {
-                                    // 1. 尝试从网卡列表获取已有 IP (可能是 WMI 给的，也可能是上次 ARP 存下的)
+                                    // 1. 先尝试从同步回来的网卡数据中提取有效 IP (WMI 获取的)
                                     var allIps = vm.NetworkAdapters
                                                    .SelectMany(a => a.IpAddresses ?? new List<string>())
                                                    .Where(ip => !string.IsNullOrEmpty(ip) && !ip.Contains(":")) // 过滤掉 IPv6
@@ -1392,37 +1390,44 @@ namespace ExHyperV.ViewModels
 
                                     if (allIps.Count > 0)
                                     {
-                                        vm.IpAddress = allIps.First(); // 直接显示第一个有效 IP
+                                        vm.IpAddress = allIps.First();
                                     }
-                                    else if (vm.IpAddress == "---") // 如果真的没有，才触发一次 ARP
+
+                                    // 2. 核心修复：遍历所有网卡，如果某个网卡有 MAC 但没 IP，则后台触发 ARP 嗅探
+                                    foreach (var adapter in vm.NetworkAdapters)
                                     {
-                                        var targetMac = vm.NetworkAdapters.FirstOrDefault()?.MacAddress;
-                                        if (!string.IsNullOrEmpty(targetMac))
+                                        // 如果网卡正在运行、有 MAC 地址，但目前 IP 列表为空
+                                        if (!string.IsNullOrEmpty(adapter.MacAddress) && (adapter.IpAddresses == null || adapter.IpAddresses.Count == 0))
                                         {
+                                            // 异步执行 ARP 嗅探，不阻塞监控主循环
                                             _ = Task.Run(async () => {
                                                 try
                                                 {
-                                                    string arpIp = await Utils.GetVmIpAddressAsync(vm.Name, targetMac);
+                                                    string arpIp = await Utils.GetVmIpAddressAsync(vm.Name, adapter.MacAddress);
                                                     if (!string.IsNullOrEmpty(arpIp))
                                                     {
                                                         Application.Current.Dispatcher.Invoke(() => {
-                                                            // 更新具体网卡对象，这样 SyncNetworkAdaptersInternal 就会因为上面的保护逻辑而保留它
-                                                            var adapter = vm.NetworkAdapters.FirstOrDefault();
-                                                            if (adapter != null)
+                                                            // 更新具体网卡对象的 IP 列表
+                                                            // 由于 SyncNetworkAdaptersInternal 有保护逻辑，这里手动填入的值不会被空的 WMI 结果覆盖
+                                                            adapter.IpAddresses = new List<string> { arpIp };
+
+                                                            // 如果 VM 的全局 IP 还是占位符，顺便把它也更新了
+                                                            if (vm.IpAddress == "---" || string.IsNullOrWhiteSpace(vm.IpAddress) || vm.IpAddress.Contains("获取"))
                                                             {
-                                                                adapter.IpAddresses = new List<string> { arpIp };
                                                                 vm.IpAddress = arpIp;
                                                             }
                                                         });
                                                     }
                                                 }
-                                                catch { }
+                                                catch { /* 忽略网络探测异常 */ }
                                             });
                                         }
                                     }
                                 }
-                                else { vm.IpAddress = "---"; }
-
+                                else
+                                {
+                                    vm.IpAddress = "---";
+                                }
 
                                 // --- 开始修复：增量更新磁盘列表，防止速率数据被 Clear 掉 ---
                                 var updatePaths = update.Disks.Select(d => d.Path).ToHashSet();

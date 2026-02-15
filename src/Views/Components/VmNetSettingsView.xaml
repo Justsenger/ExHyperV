@@ -104,7 +104,7 @@
             <ItemsControl ItemsSource="{Binding SelectedVm.NetworkAdapters}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate DataType="{x:Type models:VmNetworkAdapter}">
-                        <ui:CardExpander Margin="0,0,0,20" IsExpanded="false" ContentPadding="20" Padding="12,8">
+                        <ui:CardExpander Margin="0,0,0,6" IsExpanded="false" ContentPadding="12" Padding="12,8">
                             <ui:CardExpander.Header>
                                 <Grid MinHeight="45">
                                     <Grid.ColumnDefinitions>
@@ -119,9 +119,12 @@
                                                          Command="{Binding DataContext.UpdateAdapterConnectionCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                          CommandParameter="{Binding}"/>
                                     </StackPanel>
-                                    <ui:Button Grid.Column="2" Icon="{ui:SymbolIcon Symbol=Delete24}" Appearance="Secondary"
-                                               Command="{Binding DataContext.RemoveNetworkAdapterCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                               CommandParameter="{Binding Id}"/>
+                                    <ui:Button Grid.Column="2" 
+                                   Icon="{ui:SymbolIcon Symbol=Delete24}" 
+                                   Appearance="Secondary"
+                                   Margin="0,0,16,0" 
+                                   Command="{Binding DataContext.RemoveNetworkAdapterCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                   CommandParameter="{Binding Id}"/>
                                 </Grid>
                             </ui:CardExpander.Header>
 
@@ -237,7 +240,7 @@
                                 </Border>
 
                                 <!-- 4. 硬件加速 (自动保存) -->
-                                <TextBlock Text="硬件加速 (切换即保存)" Style="{StaticResource SectionHeaderTextStyle}"/>
+                                <TextBlock Text="硬件加速" Style="{StaticResource SectionHeaderTextStyle}"/>
                                 <Border Style="{StaticResource SectionBorderStyle}" Padding="0">
                                     <StackPanel>
                                         <Grid Margin="20,12">
