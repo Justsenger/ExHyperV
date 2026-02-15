@@ -43,6 +43,8 @@ namespace ExHyperV.Models
         [NotifyPropertyChangedFor(nameof(IoSpeedText))]
         private long _writeSpeedBps; // 字节每秒
 
+        public string PnpDeviceId { get; set; } // << [新增] 用于存储物理硬盘的PNPDeviceID
+
         public List<VmNetworkAdapter> NetworkAdapters { get; set; } = new List<VmNetworkAdapter>();
 
         public string IoSpeedText => $"↑ {FormatIoSpeed(_readSpeedBps)}   ↓ {FormatIoSpeed(_writeSpeedBps)} ";
