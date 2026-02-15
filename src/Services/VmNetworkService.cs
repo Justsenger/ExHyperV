@@ -375,12 +375,6 @@ namespace ExHyperV.Services
             return res.Where(s => !string.IsNullOrEmpty(s)).OrderBy(s => s).ToList();
         }
 
-        private string GetSwitchNameFromPath(string path)
-        {
-            try { using var obj = new ManagementObject(path); return obj["ElementName"]?.ToString(); }
-            catch { return "未连接"; }
-        }
-
         private static string FormatMac(string rawMac) => string.IsNullOrEmpty(rawMac) ? "00-15-5D-00-00-00" : Regex.Replace(rawMac.Replace(":", "").Replace("-", ""), ".{2}", "$0-").TrimEnd('-').ToUpperInvariant();
         private static bool HasProperty(ManagementObject obj, string name) => obj.Properties.Cast<PropertyData>().Any(p => p.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
         private static bool GetBool(ManagementObject obj, string name) => HasProperty(obj, name) && obj[name] != null && Convert.ToBoolean(obj[name]);
