@@ -12,6 +12,7 @@ using ExHyperV.Tools;
 using Wpf.Ui.Controls;
 using System.Diagnostics;
 using System.ComponentModel;
+using System.IO;
 
 namespace ExHyperV.ViewModels
 {
@@ -862,6 +863,7 @@ namespace ExHyperV.ViewModels
         [ObservableProperty] private string _blockSize = "Default";
         [ObservableProperty] private string _isoSourceFolderPath = string.Empty;
         [ObservableProperty] private string _isoVolumeLabel = "NewISO";
+        [ObservableProperty] private string _isoOutputPath = string.Empty;
 
         // 选中的物理磁盘与控制器
         [ObservableProperty] private HostDiskInfo _selectedPhysicalDisk;
@@ -908,6 +910,11 @@ namespace ExHyperV.ViewModels
         partial void OnDeviceTypeChanged(string value)
         {
             FilePath = string.Empty;
+            IsoOutputPath = string.Empty;
+
+            // ★ 重要：通知 UI FilePathPlaceholder 已改变（从硬盘切换到光驱或反之）
+            OnPropertyChanged(nameof(FilePathPlaceholder));
+            OnPropertyChanged(nameof(BrowseButtonText));
 
             RefreshControllerOptions();
 
@@ -973,18 +980,70 @@ namespace ExHyperV.ViewModels
         private async Task ConfirmAddStorage()
         {
             if (SelectedVm == null) return;
+
+            // 检查插槽冲突
             bool collision = SelectedVm.StorageItems.Any(i =>
                 i.ControllerType == SelectedControllerType &&
                 i.ControllerNumber == SelectedControllerNumber &&
                 i.ControllerLocation == SelectedLocation);
+
             if (collision)
             {
                 ShowSnackbar("位置冲突", "该插槽已被占用，请选择其他位置。", ControlAppearance.Danger, SymbolRegular.Warning24);
                 return;
             }
 
+            // 根据设备类型和新建标志验证路径
             string target = IsPhysicalSource ? SelectedPhysicalDisk?.Number.ToString() : FilePath;
-            if (string.IsNullOrEmpty(target) && !IsNewDisk) return;
+
+            if (string.IsNullOrEmpty(target) && !IsNewDisk)
+            {
+                ShowSnackbar("缺少参数", "请选择存储设备或文件。", ControlAppearance.Caution, SymbolRegular.Warning24);
+                return;
+            }
+
+            // ★ 新增：验证 ISO 创建参数
+            if (DeviceType == "DvdDrive" && IsNewDisk)
+            {
+                // 必须有源文件夹
+                if (string.IsNullOrWhiteSpace(IsoSourceFolderPath))
+                {
+                    ShowSnackbar("缺少参数", "创建 ISO 时必须指定源文件夹。", ControlAppearance.Caution, SymbolRegular.Warning24);
+                    return;
+                }
+
+                // 必须有输出路径
+                if (string.IsNullOrWhiteSpace(IsoOutputPath))
+                {
+                    ShowSnackbar("缺少参数", "创建 ISO 时必须指定保存路径。", ControlAppearance.Caution, SymbolRegular.Warning24);
+                    return;
+                }
+
+                // 使用 ISO 输出路径作为 target
+                target = IsoOutputPath;
+
+                // 验证输出目录存在或可以创建
+                var outputDir = Path.GetDirectoryName(IsoOutputPath);
+                if (!string.IsNullOrEmpty(outputDir) && !Directory.Exists(outputDir))
+                {
+                    try
+                    {
+                        Directory.CreateDirectory(outputDir);
+                    }
+                    catch (Exception ex)
+                    {
+                        ShowSnackbar("错误", $"无法创建输出目录: {ex.Message}", ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                        return;
+                    }
+                }
+
+                // 验证源文件夹存在
+                if (!Directory.Exists(IsoSourceFolderPath))
+                {
+                    ShowSnackbar("错误", "源文件夹不存在。", ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                    return;
+                }
+            }
 
             await AddDriveWrapperAsync(
                 DeviceType,
@@ -1050,6 +1109,23 @@ namespace ExHyperV.ViewModels
         {
             var dialog = new Microsoft.Win32.OpenFileDialog { Filter = "虚拟磁盘 (*.vhdx;*.vhd)|*.vhdx;*.vhd" };
             if (dialog.ShowDialog() == true) ParentPath = dialog.FileName;
+        }
+
+        [RelayCommand]
+        private void BrowseSaveIso()
+        {
+            var saveDialog = new Microsoft.Win32.SaveFileDialog
+            {
+                Title = "保存 ISO 镜像文件",
+                Filter = "ISO 镜像 (*.iso)|*.iso",
+                DefaultExt = ".iso",
+                FileName = $"{IsoVolumeLabel}.iso"
+            };
+
+            if (saveDialog.ShowDialog() == true)
+            {
+                IsoOutputPath = saveDialog.FileName;
+            }
         }
 
         public async Task AddDriveWrapperAsync(string driveType, bool isPhysical, string pathOrNumber, bool isNew, int sizeGb = 128, string vhdType = "Dynamic", string parentPath = "", string isoSourcePath = null, string isoVolumeLabel = null)

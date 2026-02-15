@@ -171,7 +171,7 @@
                             </StackPanel>
                         </Grid>
 
-                        <!-- 虚拟文件路径选择 (IsPhysicalSource = False) -->
+                        <!-- 虚拟文件路径选择 (IsPhysicalSource = False 且 NOT (New ISO from Directory)) -->
                         <StackPanel Margin="0,16,0,0">
                             <StackPanel.Style>
                                 <Style TargetType="StackPanel">
@@ -180,6 +180,14 @@
                                         <DataTrigger Binding="{Binding IsPhysicalSource}" Value="False">
                                             <Setter Property="Visibility" Value="Visible"/>
                                         </DataTrigger>
+                                        <!-- 隐藏：新建 ISO 的情况 -->
+                                        <MultiDataTrigger>
+                                            <MultiDataTrigger.Conditions>
+                                                <Condition Binding="{Binding IsNewDisk}" Value="True"/>
+                                                <Condition Binding="{Binding DeviceType}" Value="DvdDrive"/>
+                                            </MultiDataTrigger.Conditions>
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </MultiDataTrigger>
                                     </Style.Triggers>
                                 </Style>
                             </StackPanel.Style>
@@ -189,11 +197,11 @@
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
-                                <ui:TextBox Text="{Binding FilePath, UpdateSourceTrigger=PropertyChanged}" 
+                                <ui:TextBox Text="{Binding FilePath, UpdateSourceTrigger=PropertyChanged}"
                                             PlaceholderText="{Binding FilePathPlaceholder}" VerticalAlignment="Center"/>
-                                <ui:Button Grid.Column="1" 
-                                           Content="{Binding BrowseButtonText}" 
-                                           Margin="8,0,0,0" Width="80" 
+                                <ui:Button Grid.Column="1"
+                                           Content="{Binding BrowseButtonText}"
+                                           Margin="8,0,0,0" Width="80"
                                            Command="{Binding BrowseFileCommand}"/>
                             </Grid>
 
@@ -318,35 +326,56 @@
                                     <ui:Button Grid.Column="1" Content="{x:Static properties:Resources.Common_Browse}" Margin="8,0,0,0" Width="80" Command="{Binding BrowseParentFileCommand}"/>
                                 </Grid>
                             </StackPanel>
+                        </StackPanel>
 
-                            <!-- ISO 内容配置 (仅 New=True 且 Type=DvdDrive) -->
-                            <StackPanel>
-                                <StackPanel.Style>
-                                    <Style TargetType="StackPanel">
-                                        <Setter Property="Visibility" Value="Collapsed"/>
-                                        <Style.Triggers>
-                                            <MultiDataTrigger>
-                                                <MultiDataTrigger.Conditions>
-                                                    <Condition Binding="{Binding IsNewDisk}" Value="True"/>
-                                                    <Condition Binding="{Binding DeviceType}" Value="DvdDrive"/>
-                                                </MultiDataTrigger.Conditions>
-                                                <Setter Property="Visibility" Value="Visible"/>
-                                            </MultiDataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </StackPanel.Style>
+                        <!-- ISO 内容配置 (仅 New=True 且 Type=DvdDrive) - 移至外层StackPanel外 -->
+                        <StackPanel Margin="0,16,0,0">
+                            <StackPanel.Style>
+                                <Style TargetType="StackPanel">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <MultiDataTrigger>
+                                            <MultiDataTrigger.Conditions>
+                                                <Condition Binding="{Binding IsNewDisk}" Value="True"/>
+                                                <Condition Binding="{Binding DeviceType}" Value="DvdDrive"/>
+                                            </MultiDataTrigger.Conditions>
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </MultiDataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </StackPanel.Style>
 
-                                <Grid Margin="0,16,0,0">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                    </Grid.ColumnDefinitions>
-                                    <ui:TextBox Text="{Binding IsoSourceFolderPath, UpdateSourceTrigger=PropertyChanged}" PlaceholderText="{x:Static properties:Resources.AddDisk_Placeholder_PackageFolder}" VerticalAlignment="Center"/>
-                                    <ui:Button Grid.Column="1" Content="{x:Static properties:Resources.Common_Select}" Margin="8,0,0,0" Width="80" Command="{Binding BrowseFolderCommand}"/>
-                                </Grid>
+                            <TextBlock Text="源文件夹" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" Margin="0,0,0,4"/>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <ui:TextBox Text="{Binding IsoSourceFolderPath, UpdateSourceTrigger=PropertyChanged}" PlaceholderText="{x:Static properties:Resources.AddDisk_Placeholder_PackageFolder}" VerticalAlignment="Center"/>
+                                <ui:Button Grid.Column="1" Content="{x:Static properties:Resources.Common_Select}" Margin="8,0,0,0" Width="80" Command="{Binding BrowseFolderCommand}"/>
+                            </Grid>
 
-                                <ui:TextBox Margin="0,12,0,0" Text="{Binding IsoVolumeLabel, UpdateSourceTrigger=PropertyChanged}" PlaceholderText="{x:Static properties:Resources.AddDisk_Placeholder_VolumeLabel}" HorizontalAlignment="Stretch"/>
-                            </StackPanel>
+                            <TextBlock Margin="0,12,0,4" Text="卷标签" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                            <ui:TextBox Text="{Binding IsoVolumeLabel, UpdateSourceTrigger=PropertyChanged}" PlaceholderText="{x:Static properties:Resources.AddDisk_Placeholder_VolumeLabel}" HorizontalAlignment="Stretch"/>
+
+                            <TextBlock Margin="0,12,0,4" Text="ISO 保存路径" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <ui:TextBox Grid.Column="0"
+                                            Text="{Binding IsoOutputPath, UpdateSourceTrigger=PropertyChanged}"
+                                            PlaceholderText="选择 ISO 文件保存位置"
+                                            VerticalAlignment="Center"/>
+
+                                <ui:Button Grid.Column="1"
+                                           Content="保存为..."
+                                           Margin="8,0,0,0"
+                                           Width="80"
+                                           Command="{Binding BrowseSaveIsoCommand}"/>
+                            </Grid>
                         </StackPanel>
 
                         <!-- 物理磁盘列表 (IsPhysicalSource = True) -->
