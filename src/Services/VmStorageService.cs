@@ -470,50 +470,102 @@ namespace ExHyperV.Services
             catch { return ""; }
         }
 
-        //创建ISO 9660标准
+        //创建ISO 9660标准，带完整验证
         private async Task<(bool Success, string Message)> CreateIsoFromDirectoryAsync(string sourceDirectory, string targetIsoPath, string volumeLabel)
         {
             var sourceDirInfo = new DirectoryInfo(sourceDirectory);
             if (!sourceDirInfo.Exists) return (false, "Iso_Error_SourceDirNotFound");
 
+            // 增强的验证常量
             const long MaxFileSize = 4294967295;
             const int MaxFileNameLength = 64;
             const int MaxPathLength = 240;
             const int MaxDirectoryDepth = 8;
             const int MaxVolumeLabelLength = 16;
+            const long MaxTotalSize = 4700000000;  // DVD 大小
 
-            string finalVolumeLabel = string.IsNullOrWhiteSpace(volumeLabel) ? sourceDirInfo.Name : volumeLabel;
-            if (finalVolumeLabel.Length > MaxVolumeLabelLength) return (false, "Iso_Error_VolumeLabelTooLong");
+            // 验证卷标
+            string finalVolumeLabel = string.IsNullOrWhiteSpace(volumeLabel)
+                ? sourceDirInfo.Name
+                : volumeLabel;
+
+            if (finalVolumeLabel.Length > MaxVolumeLabelLength)
+                return (false, "Iso_Error_VolumeLabelTooLong");
+
+            // 为 ISO9660 转义卷标
+            finalVolumeLabel = Regex.Replace(finalVolumeLabel, @"[^A-Za-z0-9_\- ]", "_");
+            if (string.IsNullOrEmpty(finalVolumeLabel))
+                finalVolumeLabel = "NewISO";
 
             return await Task.Run(() => {
                 try
                 {
-                    foreach (var item in sourceDirInfo.EnumerateFileSystemInfos("*", SearchOption.AllDirectories))
+                    // 验证源文件夹内容
+                    var allItems = Directory.EnumerateFileSystemEntries(sourceDirectory, "*", SearchOption.AllDirectories).ToList();
+
+                    if (allItems.Count == 0)
+                        return (false, "Iso_Error_SourceDirEmpty");
+
+                    long totalSize = 0;
+
+                    foreach (var item in allItems)
                     {
-                        string relativePath = Path.GetRelativePath(sourceDirInfo.FullName, item.FullName);
-                        if (item.Name.Length > MaxFileNameLength) return (false, "Iso_Error_FileNameTooLong");
-                        if (relativePath.Length > MaxPathLength) return (false, "Iso_Error_PathTooLong");
+                        string relativePath = Path.GetRelativePath(sourceDirInfo.FullName, item);
+                        string fileName = Path.GetFileName(item);
+
+                        if (fileName.Length > MaxFileNameLength)
+                            return (false, $"Iso_Error_FileNameTooLong");
+
+                        if (relativePath.Length > MaxPathLength)
+                            return (false, $"Iso_Error_PathTooLong");
 
                         int depth = relativePath.Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries).Length;
-                        if (item is FileInfo fileInfo)
+
+                        if (File.Exists(item))
                         {
-                            if (depth - 1 >= MaxDirectoryDepth) return (false, "Iso_Error_FileDepthTooDeep");
-                            if (fileInfo.Length >= MaxFileSize) return (false, "Iso_Error_FileTooLarge");
+                            var fileInfo = new FileInfo(item);
+                            if (depth - 1 >= MaxDirectoryDepth)
+                                return (false, "Iso_Error_FileDepthTooDeep");
+                            if (fileInfo.Length >= MaxFileSize)
+                                return (false, "Iso_Error_FileTooLarge");
+
+                            totalSize += fileInfo.Length;
+                            if (totalSize >= MaxTotalSize)
+                                return (false, "Iso_Error_TotalSizeTooLarge");
                         }
-                        else if (depth > MaxDirectoryDepth) return (false, "Iso_Error_DirectoryDepthTooDeep");
+                        else if (Directory.Exists(item))
+                        {
+                            if (depth > MaxDirectoryDepth)
+                                return (false, "Iso_Error_DirectoryDepthTooDeep");
+                        }
                     }
 
+                    // 确保输出目录存在
                     var targetDir = Path.GetDirectoryName(targetIsoPath);
-                    if (!string.IsNullOrEmpty(targetDir) && !Directory.Exists(targetDir)) Directory.CreateDirectory(targetDir);
+                    if (!string.IsNullOrEmpty(targetDir) && !Directory.Exists(targetDir))
+                    {
+                        Directory.CreateDirectory(targetDir);
+                    }
 
-                    var builder = new CDBuilder { UseJoliet = true, VolumeIdentifier = finalVolumeLabel };
+                    // 创建 ISO
+                    var builder = new CDBuilder
+                    {
+                        UseJoliet = true,
+                        VolumeIdentifier = finalVolumeLabel
+                    };
+
                     foreach (var file in Directory.GetFiles(sourceDirectory, "*", SearchOption.AllDirectories))
+                    {
                         builder.AddFile(Path.GetRelativePath(sourceDirectory, file), file);
+                    }
 
                     builder.Build(targetIsoPath);
                     return (true, "Iso_Msg_CreateSuccess");
                 }
-                catch (Exception ex) { return (false, $"Iso_Error_BuildFailed: {ex.Message}"); }
+                catch (Exception ex)
+                {
+                    return (false, $"Iso_Error_BuildFailed: {ex.Message}");
+                }
             });
         }
 
