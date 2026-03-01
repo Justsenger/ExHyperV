@@ -80,21 +80,9 @@ fi
 echo " -> Creating late-load script..."
 sudo tee /usr/local/bin/load_dxg_driver.sh > /dev/null << 'EOF'
 #!/bin/bash
-set -e
-
-# Retry because early-boot timing may delay module availability.
-for _ in $(seq 1 10); do
-    if modprobe dxgkrnl 2>/dev/null; then
-        break
-    fi
-    sleep 1
-done
-
+modprobe dxgkrnl
 if [ -e /dev/dxg ]; then
     chmod 666 /dev/dxg
-else
-    echo "load_dxg_driver: /dev/dxg not found after modprobe" >&2
-    exit 1
 fi
 EOF
 sudo chmod +x /usr/local/bin/load_dxg_driver.sh
@@ -107,21 +95,37 @@ Description=Late load dxgkrnl
 After=multi-user.target
 
 [Service]
-Type=oneshot
+Type=simple
 User=root
 ExecStart=/usr/local/bin/load_dxg_driver.sh
-RemainAfterExit=yes
 
 [Install]
 WantedBy=multi-user.target
 EOF
 
 # 6. 启用服务
-if command -v systemctl >/dev/null 2>&1; then
-    sudo systemctl daemon-reload
-    sudo systemctl enable --now load-dxg-late.service
-else
-    echo "WARNING: systemctl not found. load-dxg-late.service was not enabled."
+sudo systemctl daemon-reload
+sudo systemctl enable --now load-dxg-late.service
+
+# ==========================================================
+
+# Arch + Hyper-V: force Xorg to use card1 when present to avoid SDDM startup failure.
+if [[ "$LINUX_DISTRO" == *"arch"* ]] && command -v Xorg >/dev/null 2>&1; then
+    sudo mkdir -p /etc/X11/xorg.conf.d
+    if [ -e /dev/dri/card1 ]; then
+        echo " -> Writing Xorg fallback config (modesetting, kmsdev=/dev/dri/card1)..."
+        sudo tee /etc/X11/xorg.conf.d/20-exhyperv-modesetting.conf > /dev/null <<EOF
+Section "Device"
+    Identifier "ExHyperV Modesetting"
+    Driver "modesetting"
+    Option "PrimaryGPU" "true"
+    Option "kmsdev" "/dev/dri/card1"
+EndSection
+EOF
+    else
+        echo " -> /dev/dri/card1 not found. Removing forced kmsdev config."
+        sudo rm -f /etc/X11/xorg.conf.d/20-exhyperv-modesetting.conf
+    fi
 fi
 
 # ==========================================================
@@ -137,8 +141,7 @@ if [ "$ENABLE_GRAPHICS" == "enable_graphics" ]; then
     # Clean old from .bashrc (可选，保持清洁)
     sudo sed -i '/LIBVA_DRIVER_NAME/d' ~/.bashrc
     
-    # 【关键修改】写入全局 /etc/environment
-    # 这样所有用户、所有会话（包括桌面环境）都能生效
+    # 写入全局 /etc/environment
     echo "GALLIUM_DRIVERS=d3d12" | sudo tee -a /etc/environment
     echo "DRI_PRIME=1" | sudo tee -a /etc/environment
     echo "LIBVA_DRIVER_NAME=d3d12" | sudo tee -a /etc/environment
@@ -153,7 +156,11 @@ EOF
     
     sudo usermod -a -G video,render $USER
     sudo chmod 666 /dev/dri/* || true
-    sudo ln -sf /dev/dri/card1 /dev/dri/card0
+    # Do not overwrite an existing DRM primary node. Forcing card1 -> card0 can
+    # break local display manager startup on some Arch/Hyper-V setups.
+    if [ -e /dev/dri/card1 ] && [ ! -e /dev/dri/card0 ]; then
+        sudo ln -sf /dev/dri/card1 /dev/dri/card0
+    fi
 fi
 
 echo "[+] Cleaning up..."
