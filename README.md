@@ -582,8 +582,7 @@ A huge thank you to our sponsors! Your generous support is the driving force beh
 ---
 
 ### 🏅 Expert Tier
-![](https://img.shields.io/badge/EXPERT-Your--Name--Here-24292e?style=for-the-badge&logo=expertsexchange&logoColor=FFBF00&labelColor=24292e&color=FFBF00)
-
+![](https://img.shields.io/badge/EXPERT-User--6b017-24292e?style=for-the-badge&logo=expertsexchange&logoColor=FFBF00&labelColor=24292e&color=FFBF00)
 ---
 
 ### 🔹 Beginner Tier
@@ -591,3 +590,4 @@ A huge thank you to our sponsors! Your generous support is the driving force beh
 ![](https://img.shields.io/badge/BEGINNER-User--FaTM-0078D4?style=flat-square&logo=hyperledger&logoColor=white) 
 <a href="mailto:miooiio@outlook.jp"><img src="https://img.shields.io/badge/BEGINNER-User--53EDF-0078D4?style=flat-square&logo=hyperledger&logoColor=white" /></a> 
 ![](https://img.shields.io/badge/BEGINNER-User--56652-0078D4?style=flat-square&logo=hyperledger&logoColor=white)
+![](https://img.shields.io/badge/BEGINNER-User--2b965-0078D4?style=flat-square&logo=hyperledger&logoColor=white) 
