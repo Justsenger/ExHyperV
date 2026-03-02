@@ -109,12 +109,15 @@ sudo systemctl enable --now load-dxg-late.service
 
 # ==========================================================
 
-# Arch + Hyper-V: force Xorg to use card1 when present to avoid SDDM startup failure.
-if [[ "$LINUX_DISTRO" == *"arch"* ]] && command -v Xorg >/dev/null 2>&1; then
-    sudo mkdir -p /etc/X11/xorg.conf.d
-    if [ -e /dev/dri/card1 ]; then
-        echo " -> Writing Xorg fallback config (modesetting, kmsdev=/dev/dri/card1)..."
-        sudo tee /etc/X11/xorg.conf.d/20-exhyperv-modesetting.conf > /dev/null <<EOF
+if [ "$ENABLE_GRAPHICS" == "enable_graphics" ]; then
+    echo "[+] Configuring environment variables for Graphics..."
+
+    # Arch + Hyper-V: force Xorg to use card1 when present to avoid SDDM startup failure.
+    if [[ "$LINUX_DISTRO" == *"arch"* ]] && command -v Xorg >/dev/null 2>&1; then
+        sudo mkdir -p /etc/X11/xorg.conf.d
+        if [ -e /dev/dri/card1 ]; then
+            echo " -> Writing Xorg fallback config (modesetting, kmsdev=/dev/dri/card1)..."
+            sudo tee /etc/X11/xorg.conf.d/20-exhyperv-modesetting.conf > /dev/null <<EOF
 Section "Device"
     Identifier "ExHyperV Modesetting"
     Driver "modesetting"
@@ -122,16 +125,11 @@ Section "Device"
     Option "kmsdev" "/dev/dri/card1"
 EndSection
 EOF
-    else
-        echo " -> /dev/dri/card1 not found. Removing forced kmsdev config."
-        sudo rm -f /etc/X11/xorg.conf.d/20-exhyperv-modesetting.conf
+        else
+            echo " -> /dev/dri/card1 not found. Removing forced kmsdev config."
+            sudo rm -f /etc/X11/xorg.conf.d/20-exhyperv-modesetting.conf
+        fi
     fi
-fi
-
-# ==========================================================
-
-if [ "$ENABLE_GRAPHICS" == "enable_graphics" ]; then
-    echo "[+] Configuring environment variables for Graphics..."
     
     # Clean old from /etc/environment
     sudo sed -i '/GALLIUM_DRIVER/d' /etc/environment

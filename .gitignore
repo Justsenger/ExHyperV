@@ -6,6 +6,14 @@
 # dotenv files
 .env
 
+# Local tool homes / temporary sandbox artifacts
+.dotnet/
+.dotnet_home/
+
+# Patch / merge leftovers
+*.orig
+*.rej
+
 # User-specific files
 *.rsuser
 *.suo

@@ -1202,6 +1202,14 @@ return 'OK'
                     Log(Properties.Resources.Msg_Gpu_LinuxDownloadingScripts);
                     var scripts = new List<string> { "install_dxgkrnl.sh", "configure_system.sh" };
                     if (credentials.InstallGraphics) scripts.Add("setup_graphics.sh");
+                    if (credentials.InstallGraphics)
+                    {
+                        Log("[Info] OpenGL/Vulkan option enabled: setup_graphics.sh will be executed.");
+                    }
+                    else
+                    {
+                        Log("[Info] OpenGL/Vulkan option disabled: setup_graphics.sh will be skipped.");
+                    }
 
                     foreach (var script in scripts)
                     {
