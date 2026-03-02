@@ -151,8 +151,9 @@
                                         <TextBlock Text="{x:Static properties:Resources.Info_UseProxyForGitHub}" 
                            FontSize="11" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" 
                            Margin="0,0,0,15" TextWrapping="Wrap"/>
+                                        <ui:ToggleSwitch Content="使用代理" IsChecked="{Binding UseSshProxy}" Margin="0,0,0,10"/>
 
-                                        <Grid>
+                                        <Grid IsEnabled="{Binding UseSshProxy}">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="2*" />
                                                 <ColumnDefinition Width="*" />
@@ -172,6 +173,11 @@
                                     PlaceholderText="7890"/>
                                             </StackPanel>
                                         </Grid>
+                                        <CheckBox Content="保留全局代理设置（写入 /etc/environment）"
+                                                  IsChecked="{Binding KeepGlobalProxySetting}"
+                                                  Visibility="{Binding UseSshProxy, Converter={StaticResource BoolToVis}}"
+                                                  Margin="0,10,0,0"
+                                                  Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
                                     </StackPanel>
                                 </Border>
 

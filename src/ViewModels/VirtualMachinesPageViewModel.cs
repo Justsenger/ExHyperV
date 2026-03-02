@@ -146,6 +146,8 @@ namespace ExHyperV.ViewModels
         [ObservableProperty] private string _sshPassword = "";
         [ObservableProperty] private int _sshPort = 22;
         [ObservableProperty] private bool _installGraphics = true;
+        [ObservableProperty] private bool _useSshProxy = false;
+        [ObservableProperty] private bool _keepGlobalProxySetting = false;
         [ObservableProperty] private string _sshProxyHost = "";
         [ObservableProperty] private string _sshProxyPort = "";
 
@@ -2998,6 +3000,8 @@ namespace ExHyperV.ViewModels
                 try
                 {
                     // Keep proxy fields empty by default; users can opt-in manually.
+                    UseSshProxy = false;
+                    KeepGlobalProxySetting = false;
                     SshProxyHost = string.Empty;
                     SshProxyPort = string.Empty;
                     var status = await _vmGpuService.IsVmPoweredOffAsync(SelectedVm.Name);
@@ -3072,10 +3076,38 @@ namespace ExHyperV.ViewModels
                 ShowSnackbar(Properties.Resources.Error_Common_Verify, Properties.Resources.Error_Gpu_IpEmpty, ControlAppearance.Danger, SymbolRegular.Warning24);
                 return;
             }
+            int? proxyPort = null;
+            string proxyHost = string.Empty;
+            if (UseSshProxy)
+            {
+                proxyHost = SshProxyHost?.Trim() ?? string.Empty;
+                bool hasPort = int.TryParse(SshProxyPort, out int parsedProxyPort);
+                if (string.IsNullOrWhiteSpace(proxyHost) || !hasPort)
+                {
+                    ShowSnackbar(Properties.Resources.Error_Common_Verify, Properties.Resources.Validation_ProxyIpAndPortMismatch, ControlAppearance.Danger, SymbolRegular.Warning24);
+                    return;
+                }
+                if (parsedProxyPort < 1 || parsedProxyPort > 65535)
+                {
+                    ShowSnackbar(Properties.Resources.Error_Common_Verify, Properties.Resources.Validation_InvalidProxyPort, ControlAppearance.Danger, SymbolRegular.Warning24);
+                    return;
+                }
+                proxyPort = parsedProxyPort;
+            }
 
             AppendLog(Properties.Resources.Msg_Gpu_DeployStart);
             AppendLog(string.Format(Properties.Resources.Msg_Gpu_SshInfo, SshHost, SshPort, SshUsername));
-            if (!string.IsNullOrEmpty(SshProxyHost)) AppendLog(string.Format(Properties.Resources.Msg_Gpu_UsingProxy, SshProxyHost, SshProxyPort));
+            if (UseSshProxy && !string.IsNullOrEmpty(proxyHost) && proxyPort.HasValue)
+            {
+                AppendLog(string.Format(Properties.Resources.Msg_Gpu_UsingProxy, proxyHost, proxyPort.Value));
+                AppendLog(KeepGlobalProxySetting
+                    ? "[Info] Keep global proxy setting: enabled"
+                    : "[Info] Keep global proxy setting: disabled");
+            }
+            else
+            {
+                AppendLog("[Info] Proxy disabled for this deployment");
+            }
             ShowPartitionSelector = false;
             ShowSshForm = false;
 
@@ -3087,8 +3119,10 @@ namespace ExHyperV.ViewModels
                 Port = SshPort,
                 Username = SshUsername,
                 Password = SshPassword,
-                ProxyHost = SshProxyHost,
-                ProxyPort = int.TryParse(SshProxyPort, out int pp) ? pp : null,
+                UseProxy = this.UseSshProxy,
+                KeepGlobalProxySetting = this.KeepGlobalProxySetting,
+                ProxyHost = proxyHost,
+                ProxyPort = proxyPort,
                 InstallGraphics = InstallGraphics
             };
 
@@ -3123,6 +3157,14 @@ namespace ExHyperV.ViewModels
                 driveTask.Description = result;
                 AppendLog(string.Format(Properties.Resources.Error_Gpu_DeployFatal, result));
             }
+        }
+
+        partial void OnUseSshProxyChanged(bool value)
+        {
+            if (value) return;
+            SshProxyHost = string.Empty;
+            SshProxyPort = string.Empty;
+            KeepGlobalProxySetting = false;
         }
 
         // 返回分区选择列表
