@@ -15,6 +15,7 @@
         <DebugType Condition=" '$(Configuration)' == 'Release' ">none</DebugType>
         <DebugSymbols Condition=" '$(Configuration)' == 'Release' ">false</DebugSymbols>
         <ApplicationManifest>app.manifest</ApplicationManifest>
+        <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     </PropertyGroup>
 
     <!-- =================================================================== -->
