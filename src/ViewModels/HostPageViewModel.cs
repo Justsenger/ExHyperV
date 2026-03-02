@@ -4,7 +4,9 @@ using ExHyperV.Services;
 using ExHyperV.Tools;
 using Microsoft.Win32;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Management;
 using System.Security.Principal;
 using System.Threading.Tasks;
 using System.Windows;
@@ -78,9 +80,19 @@ namespace ExHyperV.ViewModels
         {
             var hTask = Task.Run(() => HyperVEnvironmentService.IsHypervisorPresent());
             var vTask = Task.Run(() => HyperVEnvironmentService.GetVmmsStatus());
-            await Task.WhenAll(hTask, vTask);
-            HyperVStatus.IsInstalled = (vTask.Result != 0);
-            HyperVStatus.IsSuccess = hTask.Result && (vTask.Result == 1);
+            var moduleTask = Task.Run(IsHyperVPowerShellModuleAvailable);
+            var wmiTask = Task.Run(IsHyperVWmiNamespaceAvailable);
+
+            await Task.WhenAll(hTask, vTask, moduleTask, wmiTask);
+
+            bool hypervisor = hTask.Result;
+            int vmms = vTask.Result;
+            bool moduleReady = moduleTask.Result;
+            bool wmiReady = wmiTask.Result;
+
+            HyperVStatus.IsInstalled = (vmms != 0);
+            HyperVStatus.IsSuccess = hypervisor && (vmms == 1) && moduleReady && wmiReady;
+            HyperVStatus.StatusText = BuildHyperVStatusText(hypervisor, vmms, moduleReady, wmiReady);
             HyperVStatus.IsChecking = false;
         }
 
@@ -180,10 +192,94 @@ namespace ExHyperV.ViewModels
         {
             if (AdminStatus.IsSuccess != true) return;
             ShowSnackbar(Translate("Status_Title_Info"), ExHyperV.Properties.Resources.Msg_Host_EnableHyperV, ControlAppearance.Info, SymbolRegular.Settings24);
-            bool ok = await Task.Run(() => {
-                try { Utils.Run("Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V, Microsoft-Hyper-V-Management-PowerShell, Microsoft-Hyper-V-Management-Clients -All -NoRestart"); return true; } catch { return false; }
-            });
-            if (ok) ShowRestartPrompt(ExHyperV.Properties.Resources.Msg_Host_EnableSuccess);
+
+            bool ok = false;
+            try
+            {
+                string script = @"
+$ErrorActionPreference = 'Stop'
+$features = @(
+  'Microsoft-Hyper-V-All',
+  'Microsoft-Hyper-V',
+  'Microsoft-Hyper-V-Services',
+  'Microsoft-Hyper-V-Management-PowerShell',
+  'Microsoft-Hyper-V-Management-Clients'
+)
+foreach ($f in $features) {
+  $feat = Get-WindowsOptionalFeature -Online -FeatureName $f -ErrorAction SilentlyContinue
+  if ($null -ne $feat -and $feat.State -ne 'Enabled') {
+    Enable-WindowsOptionalFeature -Online -FeatureName $f -All -NoRestart -ErrorAction Stop | Out-Null
+  }
+}
+'OK'
+";
+                var result = await Utils.Run2(script);
+                ok = result.Count > 0 && string.Equals(result[0].ToString(), "OK", StringComparison.OrdinalIgnoreCase);
+            }
+            catch
+            {
+                ok = false;
+            }
+
+            if (!ok)
+            {
+                ShowSnackbar(Translate("Status_Title_Error"), ExHyperV.Properties.Resources.Error_Host_EnableFail, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                return;
+            }
+
+            await CheckHyperVInfoAsync();
+            if (HyperVEnvironmentService.GetVmmsStatus() == 0)
+            {
+                ShowSnackbar(Translate("Status_Title_Error"), "Hyper-V 启用后仍缺少 vmms 服务，请检查系统版本或功能组件是否完整。", ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                return;
+            }
+
+            ShowRestartPrompt(ExHyperV.Properties.Resources.Msg_Host_EnableSuccess);
+        }
+
+        private static bool IsHyperVPowerShellModuleAvailable()
+        {
+            try
+            {
+                return Utils.Run("Get-Module -ListAvailable -Name Hyper-V | Select-Object -First 1 Name").Count > 0;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private static bool IsHyperVWmiNamespaceAvailable()
+        {
+            try
+            {
+                var scope = new ManagementScope(@"\\.\root\virtualization\v2");
+                scope.Connect();
+                using var searcher = new ManagementObjectSearcher(scope, new ObjectQuery("SELECT * FROM Msvm_VirtualSystemManagementService"));
+                using var collection = searcher.Get();
+                return collection.Count > 0;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private static string BuildHyperVStatusText(bool hypervisor, int vmmsStatus, bool moduleReady, bool wmiReady)
+        {
+            if (hypervisor && vmmsStatus == 1 && moduleReady && wmiReady)
+            {
+                return "状态正常（vmms / Hyper-V 模块 / WMI 已就绪）";
+            }
+
+            var missing = new List<string>();
+            if (!hypervisor) missing.Add("Hypervisor 未激活");
+            if (vmmsStatus == 0) missing.Add("vmms 服务缺失");
+            else if (vmmsStatus != 1) missing.Add("vmms 未运行");
+            if (!moduleReady) missing.Add("缺少 Hyper-V PowerShell 模块");
+            if (!wmiReady) missing.Add(@"缺少 WMI 命名空间 root\virtualization\v2");
+
+            return missing.Count > 0 ? $"缺失组件：{string.Join("；", missing)}" : "Hyper-V 状态未知";
         }
 
         private void CheckGpuStrategyReg()
