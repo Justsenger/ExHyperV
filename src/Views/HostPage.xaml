@@ -92,7 +92,10 @@
                         </StackPanel>
 
                         <!-- 文字 -->
-                        <TextBlock Grid.Column="1" Text="{x:Static properties:Resources.Menu_HyperVService}" VerticalAlignment="Center" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                            <TextBlock Text="{x:Static properties:Resources.Menu_HyperVService}" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                            <TextBlock Text="{Binding HyperVStatus.StatusText}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                        </StackPanel>
 
                         <ui:Button Grid.Column="2" 
                    Content="{x:Static properties:Resources.Button_Enable}" 

@@ -1149,7 +1149,15 @@ return 'OK'
                     Log(string.Format(Properties.Resources.Msg_Gpu_LinuxRemoteInit, remoteTempDir));
 
                     string runtimeProxyEnvPrefix = string.Empty;
-                    if (!string.IsNullOrEmpty(credentials.ProxyHost) && credentials.ProxyPort.HasValue)
+                    bool useProxy = credentials.UseProxy && !string.IsNullOrEmpty(credentials.ProxyHost) && credentials.ProxyPort.HasValue;
+                    bool keepGlobalProxy = useProxy && credentials.KeepGlobalProxySetting;
+
+                    // Always clean stale persistent proxy settings first to avoid duplicated/stacked entries.
+                    await sshService.ExecuteSingleCommandAsync(credentials,
+                        withSudo("rm -f /etc/apt/apt.conf.d/99proxy; touch /etc/environment; sed -i -E '/^[[:space:]]*(export[[:space:]]+)?(http_proxy|https_proxy|HTTP_PROXY|HTTPS_PROXY|no_proxy|NO_PROXY)=/d' /etc/environment"),
+                        Log);
+
+                    if (useProxy)
                     {
                         Log(string.Format(Properties.Resources.Msg_Gpu_LinuxProxy, credentials.ProxyHost, credentials.ProxyPort));
                         string proxyUrl = $"http://{credentials.ProxyHost}:{credentials.ProxyPort}";
@@ -1158,19 +1166,31 @@ return 'OK'
                         string escapedNoProxyValue = EscapeForSingleQuotedShell(noProxyValue);
                         runtimeProxyEnvPrefix = $"http_proxy='{escapedProxyUrl}' https_proxy='{escapedProxyUrl}' HTTP_PROXY='{escapedProxyUrl}' HTTPS_PROXY='{escapedProxyUrl}' no_proxy='{escapedNoProxyValue}' NO_PROXY='{escapedNoProxyValue}'";
 
-                        string aptContent = $"Acquire::http::Proxy \"{proxyUrl}\";\nAcquire::https::Proxy \"{proxyUrl}\";\n";
-                        string envContent = $"\nhttp_proxy=\"{proxyUrl}\"\nhttps_proxy=\"{proxyUrl}\"\nHTTP_PROXY=\"{proxyUrl}\"\nHTTPS_PROXY=\"{proxyUrl}\"\nno_proxy=\"{noProxyValue}\"\nNO_PROXY=\"{noProxyValue}\"\n";
+                        if (keepGlobalProxy)
+                        {
+                            Log("[Info] Persisting proxy settings globally in guest.");
+                            string aptContent = $"Acquire::http::Proxy \"{proxyUrl}\";\nAcquire::https::Proxy \"{proxyUrl}\";\n";
+                            string envContent = $"\nhttp_proxy=\"{proxyUrl}\"\nhttps_proxy=\"{proxyUrl}\"\nHTTP_PROXY=\"{proxyUrl}\"\nHTTPS_PROXY=\"{proxyUrl}\"\nno_proxy=\"{noProxyValue}\"\nNO_PROXY=\"{noProxyValue}\"\n";
 
-                        await sshService.WriteTextFileAsync(credentials, aptContent, $"{homeDirectory}/99proxy");
-                        await sshService.WriteTextFileAsync(credentials, envContent, $"{homeDirectory}/proxy_env");
+                            await sshService.WriteTextFileAsync(credentials, aptContent, $"{homeDirectory}/99proxy");
+                            await sshService.WriteTextFileAsync(credentials, envContent, $"{homeDirectory}/proxy_env");
 
-                        await sshService.ExecuteSingleCommandAsync(credentials,
-                            withSudo($"if [ -d /etc/apt/apt.conf.d ]; then mv '{homeDirectory}/99proxy' /etc/apt/apt.conf.d/99proxy; else rm -f '{homeDirectory}/99proxy'; fi"),
-                            Log);
+                            await sshService.ExecuteSingleCommandAsync(credentials,
+                                withSudo($"if [ -d /etc/apt/apt.conf.d ]; then mv '{homeDirectory}/99proxy' /etc/apt/apt.conf.d/99proxy; else rm -f '{homeDirectory}/99proxy'; fi"),
+                                Log);
 
-                        await sshService.ExecuteSingleCommandAsync(credentials,
-                            withSudo($"touch /etc/environment && grep -vE '^(http_proxy|https_proxy|HTTP_PROXY|HTTPS_PROXY|no_proxy|NO_PROXY)=' /etc/environment > /tmp/exhyperv_environment && cat '{homeDirectory}/proxy_env' >> /tmp/exhyperv_environment && mv /tmp/exhyperv_environment /etc/environment"),
-                            Log);
+                            await sshService.ExecuteSingleCommandAsync(credentials,
+                                withSudo($"touch /etc/environment && grep -vE '^[[:space:]]*(export[[:space:]]+)?(http_proxy|https_proxy|HTTP_PROXY|HTTPS_PROXY|no_proxy|NO_PROXY)=' /etc/environment > /tmp/exhyperv_environment && cat '{homeDirectory}/proxy_env' >> /tmp/exhyperv_environment && mv /tmp/exhyperv_environment /etc/environment"),
+                                Log);
+                        }
+                        else
+                        {
+                            Log("[Info] Proxy will be used only during this deployment. Global proxy settings are not kept.");
+                        }
+                    }
+                    else
+                    {
+                        Log("[Info] Proxy is disabled. Cleared stale global proxy settings in guest.");
                     }
 
                     Log(Properties.Resources.Msg_Gpu_LinuxUploadingDriver);
@@ -1202,6 +1222,14 @@ return 'OK'
                     Log(Properties.Resources.Msg_Gpu_LinuxDownloadingScripts);
                     var scripts = new List<string> { "install_dxgkrnl.sh", "configure_system.sh" };
                     if (credentials.InstallGraphics) scripts.Add("setup_graphics.sh");
+                    if (credentials.InstallGraphics)
+                    {
+                        Log("[Info] OpenGL/Vulkan option enabled: setup_graphics.sh will be executed.");
+                    }
+                    else
+                    {
+                        Log("[Info] OpenGL/Vulkan option disabled: setup_graphics.sh will be skipped.");
+                    }
 
                     foreach (var script in scripts)
                     {
