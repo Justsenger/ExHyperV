@@ -134,6 +134,7 @@ if [ "$ENABLE_GRAPHICS" == "enable_graphics" ]; then
     echo "[+] Configuring environment variables for Graphics..."
     
     # Clean old from /etc/environment
+    sudo sed -i '/GALLIUM_DRIVER/d' /etc/environment
     sudo sed -i '/GALLIUM_DRIVERS/d' /etc/environment
     sudo sed -i '/DRI_PRIME/d' /etc/environment
     sudo sed -i '/LIBVA_DRIVER_NAME/d' /etc/environment
@@ -142,6 +143,7 @@ if [ "$ENABLE_GRAPHICS" == "enable_graphics" ]; then
     sudo sed -i '/LIBVA_DRIVER_NAME/d' ~/.bashrc
     
     # 写入全局 /etc/environment
+    echo "GALLIUM_DRIVER=d3d12" | sudo tee -a /etc/environment
     echo "GALLIUM_DRIVERS=d3d12" | sudo tee -a /etc/environment
     echo "DRI_PRIME=1" | sudo tee -a /etc/environment
     echo "LIBVA_DRIVER_NAME=d3d12" | sudo tee -a /etc/environment
@@ -149,6 +151,7 @@ if [ "$ENABLE_GRAPHICS" == "enable_graphics" ]; then
     # 依然保留写入 .bashrc 作为双重保险 (可选)
     cat >> ~/.bashrc <<EOF
 # GPU-PV Configuration
+export GALLIUM_DRIVER=d3d12
 export GALLIUM_DRIVERS=d3d12
 export DRI_PRIME=1
 export LIBVA_DRIVER_NAME=d3d12
