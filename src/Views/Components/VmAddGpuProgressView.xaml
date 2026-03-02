@@ -161,12 +161,14 @@
                                             <StackPanel Grid.Column="0" Margin="0,0,10,0">
                                                 <TextBlock Text="{x:Static properties:Resources.Label_ProxyIpAddress}" Margin="0,0,0,5" FontSize="12"/>
                                                 <ui:TextBox Text="{Binding SshProxyHost, UpdateSourceTrigger=PropertyChanged}" 
+                                    Background="{ui:ThemeResource ControlFillColorSecondaryBrush}"
                                     PlaceholderText="{x:Static properties:Resources.Placeholder_IpAddressExample}"/>
                                             </StackPanel>
 
                                             <StackPanel Grid.Column="1" Margin="10,0,0,0">
                                                 <TextBlock Text="{x:Static properties:Resources.Label_Port}" Margin="0,0,0,5" FontSize="12"/>
                                                 <ui:TextBox Text="{Binding SshProxyPort, UpdateSourceTrigger=PropertyChanged}" 
+                                    Background="{ui:ThemeResource ControlFillColorSecondaryBrush}"
                                     PlaceholderText="7890"/>
                                             </StackPanel>
                                         </Grid>

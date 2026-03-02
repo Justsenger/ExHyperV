@@ -2997,10 +2997,9 @@ namespace ExHyperV.ViewModels
                 AppendLog(string.Format(Properties.Resources.Msg_Gpu_LinuxRemoteInit, partition.DisplayName));
                 try
                 {
-                    var (pHost, pPort) = Utils.GetWindowsSystemProxy();
-                    SshProxyHost = pHost;
-                    SshProxyPort = pPort;
-                    if (!string.IsNullOrEmpty(pHost)) AppendLog(string.Format(Properties.Resources.Msg_Gpu_ProxyOk, pHost, pPort));
+                    // Keep proxy fields empty by default; users can opt-in manually.
+                    SshProxyHost = string.Empty;
+                    SshProxyPort = string.Empty;
                     var status = await _vmGpuService.IsVmPoweredOffAsync(SelectedVm.Name);
                     if (status.IsOff)
                     {
