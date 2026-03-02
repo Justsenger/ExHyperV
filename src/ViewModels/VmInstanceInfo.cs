@@ -534,7 +534,12 @@ namespace ExHyperV.Models
                 GpuEncodeUsage = Math.Clamp(data.GpuEncode, 0, 100);
                 GpuDecodeUsage = Math.Clamp(data.GpuDecode, 0, 100);
 
-                IsGpuActive = data.IsDriverBound;
+                bool hasEngineUsage = Gpu3dUsage > 0 || GpuCopyUsage > 0 || GpuEncodeUsage > 0 || GpuDecodeUsage > 0;
+                bool isLinuxGuest = !string.IsNullOrWhiteSpace(OsType) && OsType.Contains("linux", StringComparison.OrdinalIgnoreCase);
+
+                // For Linux guests, Windows "GPU Engine" counters can be missing even when GPU-P is working.
+                // Keep panel active to show detailed metrics instead of forcing "driver not ready".
+                IsGpuActive = data.IsDriverBound || hasEngineUsage || (HasGpu && isLinuxGuest);
             }
             UpdateSingleGpuHistory(_gpu3dHistory, Gpu3dUsage);
             UpdateSingleGpuHistory(_gpuCopyHistory, GpuCopyUsage);
