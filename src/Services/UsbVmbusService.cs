@@ -92,14 +92,12 @@ namespace ExHyperV.Services
 
         public async Task StartTunnelAsync(Guid vmId, string busId, CancellationToken ct)
         {
-            // 保持你的 P/Invoke Socket 创建方式
             IntPtr handle = socket(AF_HYPERV, SOCK_STREAM, HV_PROTOCOL_RAW);
             if (handle == (IntPtr)(-1)) throw new SocketException(Marshal.GetLastWin32Error());
 
             var safeHandle = new System.Net.Sockets.SafeSocketHandle(handle, true);
             Socket hv = new Socket(safeHandle);
 
-            // 这是一个信号，用于监控 Pump 线程是否结束
             var completion = new TaskCompletionSource<bool>();
             ct.Register(() => {
                 try { hv.Close(); } catch { }
@@ -109,14 +107,21 @@ namespace ExHyperV.Services
             try
             {
                 Log($"Tunnel: Connecting VMBus {vmId}...");
-                // 核心修复：在 P/Invoke 句柄上必须使用同步 Connect 配合 Task.Run，否则会报“无效参数”
                 await Task.Run(() => hv.Connect(new HyperVEndPoint(vmId, ServiceId)), ct);
 
                 hv.Blocking = true;
-                hv.Send(Encoding.ASCII.GetBytes(busId + "\0"));
+
+                // 【修正1】完全复刻 C++ 逻辑，不要发送 "\0"
+                // C++: send(..., busId.length(), 0) -> 不包含结束符
+                hv.Send(Encoding.ASCII.GetBytes(busId));
 
                 Socket tcp = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+
+                // 【修正2】复刻 C++ 的 setsockopt SO_SNDBUF/SO_RCVBUF = 0
+                // 这告诉 Windows 内核不要缓冲数据，直接发出去，对 SSD 至关重要
                 tcp.NoDelay = true;
+                tcp.SendBufferSize = 0;
+                tcp.ReceiveBufferSize = 0;
 
                 Log("Tunnel: Connecting Local TCP 3240...");
                 bool tcpOk = false;
@@ -132,7 +137,6 @@ namespace ExHyperV.Services
                 StartHighPriorityPump(tcp, hv, "TCP_TO_VMBUS", () => completion.TrySetResult(false), ct);
 
                 Log("Tunnel: Established.");
-                // 关键：此处必须阻塞，直到任务被取消或 Pump 线程报错断开
                 await completion.Task;
             }
             finally
@@ -141,34 +145,53 @@ namespace ExHyperV.Services
             }
         }
 
-        private void StartHighPriorityPump(Socket sIn, Socket sOut, string label, Action onFault, CancellationToken ct)
+        // 【修正3】使用 unsafe 指针实现 4KB (4096) 内存对齐
+        // C++: _aligned_malloc(PROXY_BUF_SIZE, 4096)
+        // C# 原版: GC.AllocateArray (无法保证 4096 对齐，导致内核发生额外拷贝)
+        private unsafe void StartHighPriorityPump(Socket sIn, Socket sOut, string label, Action onFault, CancellationToken ct)
         {
             new Thread(() =>
             {
-                Thread.CurrentThread.Priority = ThreadPriority.Highest;
-                byte[] buffer = GC.AllocateArray<byte>(ProxyBufSize, pinned: true);
+                Thread.CurrentThread.Priority = ThreadPriority.Highest; // 保持最高优先级
+
+                // 申请非托管的、4KB 对齐的内存
+                // 必须引入 System.Runtime.InteropServices
+                void* bufferPtr = NativeMemory.AlignedAlloc(ProxyBufSize, 4096);
+
                 try
                 {
+                    // 使用 Span 包装原生指针，避免 C# 数组的开销
+                    Span<byte> buffer = new Span<byte>(bufferPtr, ProxyBufSize);
+
                     while (!ct.IsCancellationRequested)
                     {
-                        int n = sIn.Receive(buffer, 0, buffer.Length, SocketFlags.None);
+                        // 直接读入对齐内存
+                        int n = sIn.Receive(buffer, SocketFlags.None);
                         if (n <= 0) break;
 
                         int sent = 0;
                         while (sent < n)
                         {
-                            int count = sOut.Send(buffer, sent, n - sent, SocketFlags.None);
+                            // 直接从对齐内存发出
+                            int count = sOut.Send(buffer.Slice(sent, n - sent), SocketFlags.None);
                             if (count <= 0) break;
                             sent += count;
                         }
                     }
                 }
-                catch { }
-                finally { onFault?.Invoke(); }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"[{label}] Error: {ex.Message}");
+                }
+                finally
+                {
+                    // 必须手动释放非托管内存
+                    NativeMemory.AlignedFree(bufferPtr);
+                    onFault?.Invoke();
+                }
             })
             { IsBackground = true, Name = $"Pump_{label}" }.Start();
         }
-
         public async Task WatchdogLoopAsync(CancellationToken globalCt)
         {
             while (!globalCt.IsCancellationRequested)
