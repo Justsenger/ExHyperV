@@ -227,13 +227,6 @@ foreach ($f in $features) {
                 return;
             }
 
-            await CheckHyperVInfoAsync();
-            if (HyperVEnvironmentService.GetVmmsStatus() == 0)
-            {
-                ShowSnackbar(Translate("Status_Title_Error"), "Hyper-V 启用后仍缺少 vmms 服务，请检查系统版本或功能组件是否完整。", ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
-                return;
-            }
-
             ShowRestartPrompt(ExHyperV.Properties.Resources.Msg_Host_EnableSuccess);
         }
 
