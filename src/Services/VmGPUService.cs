@@ -273,10 +273,16 @@ namespace ExHyperV.Services
         {
             if (string.IsNullOrWhiteSpace(deviceId)) return string.Empty;
             var normalizedId = deviceId.ToUpper();
+
+            // 1. 只去除开头的设备路径前缀，不破坏中间的井号
             if (normalizedId.StartsWith(@"\\?\")) normalizedId = normalizedId.Substring(4);
-            int suffixIndex = normalizedId.IndexOf("#{");
+
+            // 2. 截掉 GUID 及其之后的内容
+            int suffixIndex = normalizedId.IndexOf("{");
             if (suffixIndex != -1) normalizedId = normalizedId.Substring(0, suffixIndex);
-            return normalizedId.Replace('\\', '#');
+
+            // 3. 将所有反斜杠统一换成井号，并清理末尾
+            return normalizedId.Replace('\\', '#').TrimEnd('#');
         }
 
         public Task<List<GPUInfo>> GetHostGpusAsync()
@@ -297,7 +303,7 @@ namespace ExHyperV.Services
                         string manu = gpu.Members["AdapterCompatibility"]?.Value.ToString();
                         string driverVersion = gpu.Members["DriverVersion"]?.Value.ToString();
                         string vendor = pciInfoProvider.GetVendorFromInstanceId(instanceId);
-                        if (instanceId != null && !instanceId.ToUpper().StartsWith("PCI\\")) continue;
+                        if (instanceId != null && !instanceId.ToUpper().StartsWith("PCI\\") && !instanceId.ToUpper().Contains("ACPI")) continue;
                         gpuList.Add(new GPUInfo(name, "True", manu, instanceId, null, null, driverVersion, vendor));
                     }
                 }
@@ -312,8 +318,10 @@ namespace ExHyperV.Services
                     {
                         var matchedGpu = gpuram.FirstOrDefault(g =>
                         {
-                            string id = g.Members["MatchingDeviceId"]?.Value?.ToString().ToUpper().Substring(0, 21);
-                            return !string.IsNullOrEmpty(id) && existingGpu.InstanceId.Contains(id);
+                            string rawId = g.Members["MatchingDeviceId"]?.Value?.ToString().ToUpper();
+                            if (string.IsNullOrEmpty(rawId)) return false;
+                            // 查找核心硬件 ID 字段，不依赖固定长度
+                            return existingGpu.InstanceId.ToUpper().Contains(rawId);
                         });
 
                         string preram = matchedGpu?.Members["MemorySize"]?.Value?.ToString() ?? "0";
