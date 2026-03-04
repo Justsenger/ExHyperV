@@ -1460,36 +1460,34 @@ namespace ExHyperV.ViewModels
         private async void MemorySettings_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
             var fastTrackProps = new[] { nameof(VmMemorySettings.BackingPageSize), nameof(VmMemorySettings.DynamicMemoryEnabled), nameof(VmMemorySettings.MemoryEncryptionPolicy) };
-
             if (fastTrackProps.Contains(e.PropertyName))
             {
-                if (IsLoadingSettings || SelectedVm == null || SelectedVm.MemorySettings == null)
+                if (IsLoadingSettings || SelectedVm == null || SelectedVm.IsRunning || SelectedVm.MemorySettings == null)
                     return;
 
-                // --- 调试信息：显示哪个属性触发了自动保存 ---
-                ShowSnackbar("Debug: Auto-Trigger", $"Property '{e.PropertyName}' changed, calling auto-apply...", ControlAppearance.Secondary, SymbolRegular.Flash24);
-
+                IsLoadingSettings = true;
                 try
                 {
                     var result = await _vmMemoryService.SetVmMemorySettingsAsync(
-                        SelectedVm.Name,
-                        SelectedVm.MemorySettings,
-                        SelectedVm.IsRunning
-                    );
-
+    SelectedVm.Name,
+    SelectedVm.MemorySettings,
+    SelectedVm.IsRunning // 传入当前运行状态
+);
                     if (!result.Success)
                     {
-                        ShowSnackbar("Debug: Auto-Apply Failed", result.Message, ControlAppearance.Caution, SymbolRegular.Warning24);
-                        // 这里暂时注释掉回滚，看看手动应用是否能成功
-                        // await GoToMemorySettings();
+                        ShowSnackbar(Properties.Resources.Error_Memory_AutoApply, result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                        await GoToMemorySettings();
                     }
+                    else OnPropertyChanged(nameof(SelectedVm));
                 }
-                catch (Exception ex)
+                finally
                 {
-                    Debug.WriteLine($"Auto-Apply Exception: {ex.Message}");
+                    await Task.Delay(200);
+                    IsLoadingSettings = false;
                 }
             }
         }
+
         // 手动应用内存设置
         [RelayCommand]
         private async Task ApplyMemorySettings()
@@ -1498,40 +1496,14 @@ namespace ExHyperV.ViewModels
             IsLoadingSettings = true;
             try
             {
-                // --- 调试信息：弹窗显示当前准备发送的参数 ---
-                var debugInfo = $"Target: {SelectedVm.Name}\n" +
-                                $"Dyn: {SelectedVm.MemorySettings.DynamicMemoryEnabled}\n" +
-                                $"Min: {SelectedVm.MemorySettings.Minimum}MB\n" +
-                                $"Max: {SelectedVm.MemorySettings.Maximum}MB\n" +
-                                $"Startup: {SelectedVm.MemorySettings.Startup}MB";
-
-                ShowSnackbar("Debug: Sending Params", debugInfo, ControlAppearance.Info, SymbolRegular.Info24);
-
                 var result = await _vmMemoryService.SetVmMemorySettingsAsync(
                     SelectedVm.Name,
                     SelectedVm.MemorySettings,
-                    SelectedVm.IsRunning
-                );
-
-                if (!result.Success)
-                {
-                    // --- 核心调试：显示最原始的报错信息 ---
-                    ShowSnackbar("ERROR: Set-VMMemory Failed",
-                                 $"Msg: {result.Message}\nCheck: Is Startup between Min and Max?",
-                                 ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
-
-                    // 失败时依然触发回滚，以便观察后端真实状态
-                    await GoToMemorySettings();
-                }
-                else
-                {
-                    ShowSnackbar("Debug: Success", "Backend updated successfully.", ControlAppearance.Success, SymbolRegular.CheckmarkCircle24);
-                }
+                    SelectedVm.IsRunning // 传入当前运行状态
+                ); if (!result.Success) ShowSnackbar(Properties.Resources.Error_Common_SaveFail, Utils.GetFriendlyErrorMessages(result.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                await GoToMemorySettings();
             }
-            catch (Exception ex)
-            {
-                ShowSnackbar("Debug: Exception", ex.ToString(), ControlAppearance.Danger, SymbolRegular.Bug24);
-            }
+            catch (Exception ex) { ShowSnackbar(Properties.Resources.Common_ExceptionLabel, Utils.GetFriendlyErrorMessages(ex.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24); }
             finally { IsLoadingSettings = false; }
         }
 
