@@ -12,6 +12,24 @@ namespace ExHyperV.Services
 {
     public class UsbVmbusService
     {
+        [DllImport("ws2_32.dll", SetLastError = true)]
+        private static extern unsafe int recv(IntPtr s, void* buf, int len, int flags);
+
+        [DllImport("ws2_32.dll", SetLastError = true)]
+        private static extern unsafe int send(IntPtr s, void* buf, int len, int flags);
+
+        [DllImport("ws2_32.dll", SetLastError = true)]
+        private static extern int closesocket(IntPtr s);
+
+        [DllImport("ws2_32.dll", SetLastError = true)]
+        private static extern int setsockopt(IntPtr s, int level, int optname, ref int optval, int optlen);
+
+        private const int IPPROTO_TCP = 6;
+        private const int TCP_NODELAY = 0x0001;
+        private const int SOL_SOCKET = 0xFFFF;
+        private const int SO_SNDBUF = 0x1001;
+        private const int SO_RCVBUF = 0x1002;
+
         // 全局活动连接记录表 (BusId -> VMName)
         public static ConcurrentDictionary<string, string> ActiveTunnels { get; } = new ConcurrentDictionary<string, string>();
 
@@ -92,15 +110,18 @@ namespace ExHyperV.Services
 
         public async Task StartTunnelAsync(Guid vmId, string busId, CancellationToken ct)
         {
-            IntPtr handle = socket(AF_HYPERV, SOCK_STREAM, HV_PROTOCOL_RAW);
-            if (handle == (IntPtr)(-1)) throw new SocketException(Marshal.GetLastWin32Error());
+            // 1. 创建 VMBus 原生句柄
+            IntPtr hvHandle = socket(AF_HYPERV, SOCK_STREAM, HV_PROTOCOL_RAW);
+            if (hvHandle == (IntPtr)(-1)) throw new SocketException(Marshal.GetLastWin32Error());
 
-            var safeHandle = new System.Net.Sockets.SafeSocketHandle(handle, true);
-            Socket hv = new Socket(safeHandle);
+            // 仅为了方便调用 Connect()，套一层外壳，但核心收发绝不使用它
+            var hv = new Socket(new System.Net.Sockets.SafeSocketHandle(hvHandle, true));
+            Socket tcp = null;
 
             var completion = new TaskCompletionSource<bool>();
             ct.Register(() => {
-                try { hv.Close(); } catch { }
+                closesocket(hvHandle);
+                if (tcp != null) closesocket(tcp.SafeHandle.DangerousGetHandle());
                 completion.TrySetResult(true);
             });
 
@@ -109,19 +130,11 @@ namespace ExHyperV.Services
                 Log($"Tunnel: Connecting VMBus {vmId}...");
                 await Task.Run(() => hv.Connect(new HyperVEndPoint(vmId, ServiceId)), ct);
 
+                // 阻塞模式
                 hv.Blocking = true;
-
-                // 【修正1】完全复刻 C++ 逻辑，不要发送 "\0"
-                // C++: send(..., busId.length(), 0) -> 不包含结束符
                 hv.Send(Encoding.ASCII.GetBytes(busId));
 
-                Socket tcp = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-
-                // 【修正2】复刻 C++ 的 setsockopt SO_SNDBUF/SO_RCVBUF = 0
-                // 这告诉 Windows 内核不要缓冲数据，直接发出去，对 SSD 至关重要
-                tcp.NoDelay = true;
-                tcp.SendBufferSize = 0;
-                tcp.ReceiveBufferSize = 0;
+                tcp = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 
                 Log("Tunnel: Connecting Local TCP 3240...");
                 bool tcpOk = false;
@@ -132,66 +145,69 @@ namespace ExHyperV.Services
                 }
                 if (!tcpOk) throw new Exception("usbipd service unreachable");
 
-                // 启动泵线程
-                StartHighPriorityPump(hv, tcp, "VMBUS_TO_TCP", () => completion.TrySetResult(false), ct);
-                StartHighPriorityPump(tcp, hv, "TCP_TO_VMBUS", () => completion.TrySetResult(false), ct);
+                // 核心差异：提取 TCP 的原生句柄
+                IntPtr tcpHandle = tcp.SafeHandle.DangerousGetHandle();
 
-                Log("Tunnel: Established.");
+                // 核心差异：抛弃 C# 的 tcp.NoDelay，使用原汁原味的 C++ setsockopt 下发内核！
+                int opt1 = 1; int opt0 = 0;
+                setsockopt(tcpHandle, IPPROTO_TCP, TCP_NODELAY, ref opt1, 4);
+                setsockopt(tcpHandle, SOL_SOCKET, SO_SNDBUF, ref opt0, 4);
+                setsockopt(tcpHandle, SOL_SOCKET, SO_RCVBUF, ref opt0, 4);
+
+                // 启动纯 Native 泵 (传入 IntPtr 而不是 Socket)
+                StartNativePump(hvHandle, tcpHandle, "VMBUS_TO_TCP", () => completion.TrySetResult(false), ct);
+                StartNativePump(tcpHandle, hvHandle, "TCP_TO_VMBUS", () => completion.TrySetResult(false), ct);
+
+                Log("Tunnel: Established (Native Mode).");
                 await completion.Task;
             }
             finally
             {
-                try { hv.Dispose(); } catch { }
+                // 交给 closesocket 处理，抑制 C# 的 Dispose 异常
+                try { hv?.Dispose(); } catch { }
+                try { tcp?.Dispose(); } catch { }
             }
         }
 
-        // 【修正3】使用 unsafe 指针实现 4KB (4096) 内存对齐
-        // C++: _aligned_malloc(PROXY_BUF_SIZE, 4096)
-        // C# 原版: GC.AllocateArray (无法保证 4096 对齐，导致内核发生额外拷贝)
-        private unsafe void StartHighPriorityPump(Socket sIn, Socket sOut, string label, Action onFault, CancellationToken ct)
+        // 核心差异：直接使用 IntPtr 和 unsafe void* 绕开 C# CLR 托管层！
+        private unsafe void StartNativePump(IntPtr sIn, IntPtr sOut, string label, Action onFault, CancellationToken ct)
         {
             new Thread(() =>
             {
-                Thread.CurrentThread.Priority = ThreadPriority.Highest; // 保持最高优先级
-
-                // 申请非托管的、4KB 对齐的内存
-                // 必须引入 System.Runtime.InteropServices
+                Thread.CurrentThread.Priority = ThreadPriority.Highest;
                 void* bufferPtr = NativeMemory.AlignedAlloc(ProxyBufSize, 4096);
 
                 try
                 {
-                    // 使用 Span 包装原生指针，避免 C# 数组的开销
-                    Span<byte> buffer = new Span<byte>(bufferPtr, ProxyBufSize);
-
                     while (!ct.IsCancellationRequested)
                     {
-                        // 直接读入对齐内存
-                        int n = sIn.Receive(buffer, SocketFlags.None);
-                        if (n <= 0) break;
+                        // 完美复刻 C++: int b = recv(sIn, buffer, PROXY_BUF_SIZE, 0);
+                        int b = recv(sIn, bufferPtr, ProxyBufSize, 0);
+                        if (b <= 0) break; // <--- C++ 怎么写，这里就怎么写！
 
-                        int sent = 0;
-                        while (sent < n)
-                        {
-                            // 直接从对齐内存发出
-                            int count = sOut.Send(buffer.Slice(sent, n - sent), SocketFlags.None);
-                            if (count <= 0) break;
-                            sent += count;
-                        }
+                        // 完美复刻 C++: if (send(sOut, buffer, b, 0) <= 0) break;
+                        if (send(sOut, bufferPtr, b, 0) <= 0) break;
                     }
                 }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine($"[{label}] Error: {ex.Message}");
+                    Debug.WriteLine($"[{label}] Native Pump 断开: {ex.Message}");
                 }
                 finally
                 {
-                    // 必须手动释放非托管内存
                     NativeMemory.AlignedFree(bufferPtr);
+
+                    // 完美复刻 C++: closesocket(sIn); closesocket(sOut);
+                    // 这里暴力切断原生句柄，直接物理级解决死锁
+                    closesocket(sIn);
+                    closesocket(sOut);
+
                     onFault?.Invoke();
                 }
             })
-            { IsBackground = true, Name = $"Pump_{label}" }.Start();
+            { IsBackground = true, Name = $"NativePump_{label}" }.Start();
         }
+
         public async Task WatchdogLoopAsync(CancellationToken globalCt)
         {
             while (!globalCt.IsCancellationRequested)
