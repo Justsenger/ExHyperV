@@ -91,7 +91,7 @@ public class VmMemoryService
     {
         long alignment = 1;
 
-        // 1. 确定对齐基数 (2MB 或 1024MB)
+        // 1. 确定对齐基数 (只有在关机状态下才允许修改 BackingPageSize)
         if (memorySettings.BackingPageSize.HasValue && HasProperty(memData, "BackingPageSize"))
         {
             byte pageSize = memorySettings.BackingPageSize.Value;
@@ -100,76 +100,68 @@ public class VmMemoryService
                 memData["BackingPageSize"] = pageSize;
             }
 
-            if (pageSize == 1) alignment = 2;      // 2MB 模式
+            if (pageSize == 1) alignment = 2;         // 2MB 模式
             else if (pageSize == 2) alignment = 1024; // 1GB 巨页模式
         }
 
-        // 2. 计算对齐后的启动内存
-        long originalStartup = memorySettings.Startup;
-        long alignedStartup = (originalStartup + alignment - 1) / alignment * alignment;
-
-        // 设置基础内存值
-        memData["VirtualQuantity"] = (ulong)alignedStartup;
-        memData["Weight"] = (uint)(memorySettings.Priority * 100);
-
-        // 处理加密策略
-        if (!isVmRunning && memorySettings.MemoryEncryptionPolicy.HasValue && HasProperty(memData, "MemoryEncryptionPolicy"))
+        // 安全对齐函数：增加溢出保护 (防止 long.MaxValue 溢出)
+        ulong Align(long value, long alg)
         {
-            memData["MemoryEncryptionPolicy"] = memorySettings.MemoryEncryptionPolicy.Value;
+            if (value <= 0) return (ulong)alg;
+            if (value > (long.MaxValue - alg)) return (ulong)value; // 接近上限不再处理
+            return (ulong)((value + alg - 1) / alg * alg);
         }
 
-        // --- 核心修复部分 ---
+        // 2. 计算并设置启动内存 (VirtualQuantity)
+        ulong alignedStartup = Align(memorySettings.Startup, alignment);
+        memData["VirtualQuantity"] = alignedStartup;
+        memData["Weight"] = (uint)(memorySettings.Priority * 100);
 
+        // 3. 处理关机状态下的独占修改 (代号：安全护卫)
         if (!isVmRunning)
         {
-            // 如果开启了巨页 (1GB 或 2MB)
-            if (memorySettings.BackingPageSize > 0)
+            // 处理加密策略
+            if (memorySettings.MemoryEncryptionPolicy.HasValue && HasProperty(memData, "MemoryEncryptionPolicy"))
             {
-                // 巨页模式必须禁用动态内存
-                memData["DynamicMemoryEnabled"] = false;
-                memData["Reservation"] = (ulong)alignedStartup;
-                memData["Limit"] = (ulong)alignedStartup;
+                memData["MemoryEncryptionPolicy"] = memorySettings.MemoryEncryptionPolicy.Value;
+            }
 
-                // 【关键修复】：修正 MaxMemoryBlocksPerNumaNode 对齐
-                // 很多时候 6962 报错就是因为这个值不是 1024 的倍数
-                if (HasProperty(memData, "MaxMemoryBlocksPerNumaNode"))
-                {
-                    ulong currentMaxNuma = (ulong)memData["MaxMemoryBlocksPerNumaNode"];
+            // --- 核心修复点：移除人为拦截，尊重用户意图 ---
+            // 逻辑：直接透传用户开关。如果 WMI 真的不接受（如某些特殊环境），ModifyResourceSettings 会报错。
+            memData["DynamicMemoryEnabled"] = memorySettings.DynamicMemoryEnabled;
 
-                    // 执行向下对齐：(6962 / 1024) * 1024 = 6144
-                    ulong correctedMaxNuma = (currentMaxNuma / (ulong)alignment) * (ulong)alignment;
-
-                    // 确保对齐后的值不为 0 (至少应等于对齐基数)
-                    if (correctedMaxNuma == 0) correctedMaxNuma = (ulong)alignment;
-
-                    memData["MaxMemoryBlocksPerNumaNode"] = correctedMaxNuma;
-                }
+            if (memorySettings.DynamicMemoryEnabled)
+            {
+                memData["Reservation"] = Align(memorySettings.Minimum, alignment);
+                memData["Limit"] = Align(memorySettings.Maximum, alignment);
+                if (HasProperty(memData, "TargetMemoryBuffer"))
+                    memData["TargetMemoryBuffer"] = (uint)memorySettings.Buffer;
             }
             else
             {
-                // 非巨页模式：正常动态内存逻辑
-                memData["DynamicMemoryEnabled"] = memorySettings.DynamicMemoryEnabled;
-                if (memorySettings.DynamicMemoryEnabled)
-                {
-                    memData["Reservation"] = (ulong)memorySettings.Minimum;
-                    memData["Limit"] = (ulong)memorySettings.Maximum;
-                    if (HasProperty(memData, "TargetMemoryBuffer"))
-                        memData["TargetMemoryBuffer"] = (uint)memorySettings.Buffer;
-                }
-                else
-                {
-                    memData["Reservation"] = (ulong)alignedStartup;
-                    memData["Limit"] = (ulong)alignedStartup;
-                }
+                // 静态模式：Min/Max 强制对齐 Startup
+                memData["Reservation"] = alignedStartup;
+                memData["Limit"] = alignedStartup;
+            }
+
+            // --- 针对 NUMA 对齐的增强修复 (解决 6962 错误) ---
+            // 恢复 Version A 逻辑：只要开启了大页(1)或巨页(2)，都执行 NUMA 对齐修正
+            if (memorySettings.BackingPageSize > 0 && HasProperty(memData, "MaxMemoryBlocksPerNumaNode"))
+            {
+                ulong currentMaxNuma = (ulong)memData["MaxMemoryBlocksPerNumaNode"];
+                // 执行向下对齐，确保 NUMA 节点内存块是 alignment 的整数倍
+                ulong correctedMaxNuma = (currentMaxNuma / (ulong)alignment) * (ulong)alignment;
+                if (correctedMaxNuma == 0) correctedMaxNuma = (ulong)alignment;
+                memData["MaxMemoryBlocksPerNumaNode"] = correctedMaxNuma;
             }
         }
         else
         {
-            // 运行时热调整（热调整通常不涉及 BackingPageSize 的改变）
+            // 4. 运行时热调整 (仅允许在已开启 DM 的情况下修改数值)
             if (memorySettings.DynamicMemoryEnabled)
             {
-                memData["Reservation"] = (ulong)memorySettings.Minimum;
-                memData["Limit"] = (ulong)memorySettings.Maximum;
+                memData["Reservation"] = Align(memorySettings.Minimum, alignment);
+                memData["Limit"] = Align(memorySettings.Maximum, alignment);
                 if (HasProperty(memData, "TargetMemoryBuffer"))
                     memData["TargetMemoryBuffer"] = (uint)memorySettings.Buffer;
             }
