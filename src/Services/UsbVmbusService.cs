@@ -24,6 +24,12 @@ namespace ExHyperV.Services
         [DllImport("ws2_32.dll", SetLastError = true)]
         private static extern int setsockopt(IntPtr s, int level, int optname, ref int optval, int optlen);
 
+        [DllImport("ws2_32.dll", SetLastError = true)]
+        private static extern int WSAIoctl(IntPtr s, uint dwIoControlCode, ref int lpvInBuffer, uint cbInBuffer, IntPtr lpvOutBuffer, uint cbOutBuffer, out uint lpcbBytesReturned, IntPtr lpOverlapped, IntPtr lpCompletionRoutine);
+
+        private const uint SIO_TCP_SET_ACK_FREQUENCY = 0x98000017;
+
+
         private const int IPPROTO_TCP = 6;
         private const int TCP_NODELAY = 0x0001;
         private const int SOL_SOCKET = 0xFFFF;
@@ -149,10 +155,16 @@ namespace ExHyperV.Services
                 IntPtr tcpHandle = tcp.SafeHandle.DangerousGetHandle();
 
                 // 核心差异：抛弃 C# 的 tcp.NoDelay，使用原汁原味的 C++ setsockopt 下发内核！
-                int opt1 = 1; int opt0 = 0;
+                int opt1 = 1;
+                int optSmall = 8192; 
+                int opt0 = 0;
+                int ackFreq = 1;
+                uint bytesReturned;
+                WSAIoctl(tcpHandle, SIO_TCP_SET_ACK_FREQUENCY, ref ackFreq, 4, IntPtr.Zero, 0, out bytesReturned, IntPtr.Zero, IntPtr.Zero);
+
                 setsockopt(tcpHandle, IPPROTO_TCP, TCP_NODELAY, ref opt1, 4);
-                setsockopt(tcpHandle, SOL_SOCKET, SO_SNDBUF, ref opt0, 4);
-                setsockopt(tcpHandle, SOL_SOCKET, SO_RCVBUF, ref opt0, 4);
+                setsockopt(tcpHandle, SOL_SOCKET, SO_SNDBUF, ref optSmall, 4);
+                setsockopt(tcpHandle, SOL_SOCKET, SO_RCVBUF, ref optSmall, 4);
 
                 // 启动纯 Native 泵 (传入 IntPtr 而不是 Socket)
                 StartNativePump(hvHandle, tcpHandle, "VMBUS_TO_TCP", () => completion.TrySetResult(false), ct);
