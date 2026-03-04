@@ -28,18 +28,13 @@ namespace ExHyperV.Services
         private static extern int WSAIoctl(IntPtr s, uint dwIoControlCode, ref int lpvInBuffer, uint cbInBuffer, IntPtr lpvOutBuffer, uint cbOutBuffer, out uint lpcbBytesReturned, IntPtr lpOverlapped, IntPtr lpCompletionRoutine);
 
         private const uint SIO_TCP_SET_ACK_FREQUENCY = 0x98000017;
-
-
         private const int IPPROTO_TCP = 6;
         private const int TCP_NODELAY = 0x0001;
         private const int SOL_SOCKET = 0xFFFF;
         private const int SO_SNDBUF = 0x1001;
         private const int SO_RCVBUF = 0x1002;
 
-        // 全局活动连接记录表 (BusId -> VMName)
         public static ConcurrentDictionary<string, string> ActiveTunnels { get; } = new ConcurrentDictionary<string, string>();
-
-        // 运行中的任务控制
         private static readonly ConcurrentDictionary<string, CancellationTokenSource> _activeCts = new();
 
         [DllImport("ws2_32.dll", SetLastError = true)]
@@ -59,46 +54,31 @@ namespace ExHyperV.Services
 
         private void Log(string msg) => Debug.WriteLine($"[ExHyperV-USB] [{DateTime.Now:HH:mm:ss.fff}] {msg}");
 
-        // 停止隧道任务
         public async Task StopTunnelAsync(string busId)
         {
-            // 1. 取消信号并移除记录
             if (_activeCts.TryRemove(busId, out var cts))
             {
                 cts.Cancel();
                 cts.Dispose();
                 Log($"[StopTunnel] 正在停止旧隧道: {busId}");
             }
-
-            // 2. 显式等待 unbind 完成，确保宿主机重新获得控制权
             Log($"[StopTunnel] 强制执行 unbind: {busId}");
             await RunUsbIpCommand($"unbind --busid {busId}");
-
-            // 给系统一点反应时间（usbipd 驱动释放需要时间）
             await Task.Delay(500);
         }
 
-        // 自动恢复隧道 (由 Watchdog 调用)
         public async Task AutoRecoverTunnel(string busId, string vmName)
         {
-            // 如果已经有任务在跑，需要判断目标是否一致（或者为了保险，切换时直接重建）
-            if (_activeCts.ContainsKey(busId))
-            {
-                // 如果你的逻辑允许直接切换，这里需要先调用 Stop
-                await StopTunnelAsync(busId);
-            }
+            if (_activeCts.ContainsKey(busId)) await StopTunnelAsync(busId);
 
             var cts = new CancellationTokenSource();
             if (!_activeCts.TryAdd(busId, cts)) return;
 
             try
             {
-                // 关键：在 bind 之前确保环境干净
                 await RunUsbIpCommand($"unbind --busid {busId}");
-
                 bool bound = await RunUsbIpCommand($"bind --busid {busId}");
                 if (!bound) bound = await RunUsbIpCommand($"bind --busid {busId} --force");
-
                 if (!bound) throw new Exception("usbipd bind failed");
 
                 var vms = await GetRunningVMsAsync();
@@ -116,11 +96,9 @@ namespace ExHyperV.Services
 
         public async Task StartTunnelAsync(Guid vmId, string busId, CancellationToken ct)
         {
-            // 1. 创建 VMBus 原生句柄
             IntPtr hvHandle = socket(AF_HYPERV, SOCK_STREAM, HV_PROTOCOL_RAW);
             if (hvHandle == (IntPtr)(-1)) throw new SocketException(Marshal.GetLastWin32Error());
 
-            // 仅为了方便调用 Connect()，套一层外壳，但核心收发绝不使用它
             var hv = new Socket(new System.Net.Sockets.SafeSocketHandle(hvHandle, true));
             Socket tcp = null;
 
@@ -136,7 +114,6 @@ namespace ExHyperV.Services
                 Log($"Tunnel: Connecting VMBus {vmId}...");
                 await Task.Run(() => hv.Connect(new HyperVEndPoint(vmId, ServiceId)), ct);
 
-                // 阻塞模式
                 hv.Blocking = true;
                 hv.Send(Encoding.ASCII.GetBytes(busId));
 
@@ -151,22 +128,25 @@ namespace ExHyperV.Services
                 }
                 if (!tcpOk) throw new Exception("usbipd service unreachable");
 
-                // 核心差异：提取 TCP 的原生句柄
+                // 【重要】强制恢复阻塞模式
+                tcp.Blocking = true;
+
                 IntPtr tcpHandle = tcp.SafeHandle.DangerousGetHandle();
 
-                // 核心差异：抛弃 C# 的 tcp.NoDelay，使用原汁原味的 C++ setsockopt 下发内核！
+                // 【配置同步】
                 int opt1 = 1;
-                int optSmall = 8192; 
-                int opt0 = 0;
+                int optSmall = 8192;  // 黄金 8KB，千万别改了
                 int ackFreq = 1;
                 uint bytesReturned;
-                WSAIoctl(tcpHandle, SIO_TCP_SET_ACK_FREQUENCY, ref ackFreq, 4, IntPtr.Zero, 0, out bytesReturned, IntPtr.Zero, IntPtr.Zero);
 
+                // 1. 设置 ACK 频率
+                WSAIoctl(tcpHandle, SIO_TCP_SET_ACK_FREQUENCY, ref ackFreq, 4, IntPtr.Zero, 0, out bytesReturned, IntPtr.Zero, IntPtr.Zero);
+                // 2. 禁用 Nagle
                 setsockopt(tcpHandle, IPPROTO_TCP, TCP_NODELAY, ref opt1, 4);
+                // 3. 设置微型缓冲区
                 setsockopt(tcpHandle, SOL_SOCKET, SO_SNDBUF, ref optSmall, 4);
                 setsockopt(tcpHandle, SOL_SOCKET, SO_RCVBUF, ref optSmall, 4);
 
-                // 启动纯 Native 泵 (传入 IntPtr 而不是 Socket)
                 StartNativePump(hvHandle, tcpHandle, "VMBUS_TO_TCP", () => completion.TrySetResult(false), ct);
                 StartNativePump(tcpHandle, hvHandle, "TCP_TO_VMBUS", () => completion.TrySetResult(false), ct);
 
@@ -175,13 +155,11 @@ namespace ExHyperV.Services
             }
             finally
             {
-                // 交给 closesocket 处理，抑制 C# 的 Dispose 异常
                 try { hv?.Dispose(); } catch { }
                 try { tcp?.Dispose(); } catch { }
             }
         }
 
-        // 核心差异：直接使用 IntPtr 和 unsafe void* 绕开 C# CLR 托管层！
         private unsafe void StartNativePump(IntPtr sIn, IntPtr sOut, string label, Action onFault, CancellationToken ct)
         {
             new Thread(() =>
@@ -193,27 +171,17 @@ namespace ExHyperV.Services
                 {
                     while (!ct.IsCancellationRequested)
                     {
-                        // 完美复刻 C++: int b = recv(sIn, buffer, PROXY_BUF_SIZE, 0);
                         int b = recv(sIn, bufferPtr, ProxyBufSize, 0);
-                        if (b <= 0) break; // <--- C++ 怎么写，这里就怎么写！
-
-                        // 完美复刻 C++: if (send(sOut, buffer, b, 0) <= 0) break;
+                        if (b <= 0) break;
                         if (send(sOut, bufferPtr, b, 0) <= 0) break;
                     }
                 }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine($"[{label}] Native Pump 断开: {ex.Message}");
-                }
+                catch (Exception ex) { Debug.WriteLine($"[{label}] Error: {ex.Message}"); }
                 finally
                 {
                     NativeMemory.AlignedFree(bufferPtr);
-
-                    // 完美复刻 C++: closesocket(sIn); closesocket(sOut);
-                    // 这里暴力切断原生句柄，直接物理级解决死锁
                     closesocket(sIn);
                     closesocket(sOut);
-
                     onFault?.Invoke();
                 }
             })
@@ -257,34 +225,19 @@ namespace ExHyperV.Services
             var list = new List<VmInfo>();
             try
             {
-                // 直接运行原生命令，不需要拼字符串，直接返回对象
                 string script = "Get-VM | Where-Object {$_.State -eq 'Running'} | Select-Object Name, Id";
-
-                // 使用你的 Utils.Run2
                 var results = await Utils.Run2(script);
-
                 foreach (var psObj in results)
                 {
-                    // 直接从属性中提取值，SDK 会自动处理类型转换
-                    // Name 是 String，Id 是 Guid (在 PowerShell 中实际上是个对象)
                     var name = psObj.Properties["Name"]?.Value?.ToString();
                     var idValue = psObj.Properties["Id"]?.Value;
-
                     if (!string.IsNullOrEmpty(name) && idValue != null)
                     {
-                        list.Add(new VmInfo
-                        {
-                            Name = name,
-                            // 处理可能出现的不同 ID 类型包装
-                            Id = idValue is Guid guid ? guid : Guid.Parse(idValue.ToString())
-                        });
+                        list.Add(new VmInfo { Name = name, Id = idValue is Guid guid ? guid : Guid.Parse(idValue.ToString()) });
                     }
                 }
             }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"[ExHyperV-USB] 获取虚拟机列表失败: {ex.Message}");
-            }
+            catch (Exception ex) { Debug.WriteLine($"[ExHyperV-USB] 获取VM失败: {ex.Message}"); }
             return list;
         }
 
