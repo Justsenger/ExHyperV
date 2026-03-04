@@ -512,6 +512,10 @@ return 'OK'
                     NvidiaReg(assignedDriveLetter);
                     PromoteNvidiaFiles(assignedDriveLetter);
                 }
+                else if (gpuManu.Contains("Intel", StringComparison.OrdinalIgnoreCase))
+                {
+                    PromoteIntelGpuFiles(assignedDriveLetter);
+                }
 
                 return "OK";
             }
@@ -620,6 +624,31 @@ return 'OK'
                 Debug.WriteLine($"NVIDIA Promotion error: {ex.Message}");
             }
         }
+
+        private void PromoteIntelGpuFiles(string assignedDriveLetter)
+        {
+            // 1. Vulkan 核心 (必须重命名，去掉 -64)
+            LinkSingleFile(assignedDriveLetter, "vulkan-1-64.dll", "vulkan-1.dll", "System32");
+            LinkSingleFile(assignedDriveLetter, "vulkan-1-64.dll", "vulkan-1-999-0-0-0.dll", "System32");
+            LinkSingleFile(assignedDriveLetter, "vulkaninfo-64.exe", "vulkaninfo.exe", "System32");
+
+            // 2. 视频加速核心 (Intel Media SDK / VPL)
+            LinkSingleFile(assignedDriveLetter, "mfx_loader_dll_hw64.dll", "libmfxhw64.dll", "System32");
+            LinkSingleFile(assignedDriveLetter, "vpl_dispatcher_64.dll", "libvpl.dll", "System32");
+            LinkSingleFile(assignedDriveLetter, "mfxplugin64_hw.dll", "mfxplugin64_hw.dll", "System32");
+
+            // 3. 计算接口 (OneAPI / Level Zero)
+            LinkSingleFile(assignedDriveLetter, "ze_loader.dll", "ze_loader.dll", "System32");
+            LinkSingleFile(assignedDriveLetter, "ze_intel_gpu_raytracing.dll", "ze_intel_gpu_raytracing.dll", "System32");
+            LinkSingleFile(assignedDriveLetter, "ze_tracing_layer.dll", "ze_tracing_layer.dll", "System32");
+            LinkSingleFile(assignedDriveLetter, "ze_validation_layer.dll", "ze_validation_layer.dll", "System32");
+
+            // 4. Intel 显卡专用 API 接口
+            LinkSingleFile(assignedDriveLetter, "intel_gfx_api-x64.dll", "intel_gfx_api-x64.dll", "System32");
+            LinkSingleFile(assignedDriveLetter, "ControlLib.dll", "ControlLib.dll", "System32");
+        }
+
+
         private void ProcessPromotionRegistryKey(Microsoft.Win32.RegistryKey adapterKey, string subKeyName, string assignedDriveLetter, string targetSubDir)
         {
             using var promotionKey = adapterKey.OpenSubKey(subKeyName);
