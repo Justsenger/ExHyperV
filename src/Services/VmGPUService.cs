@@ -1120,7 +1120,19 @@ return 'OK'
                     string userProvidedIp = Utils.SelectBestIpv4Address(credentials.Host);
                     string targetIp = !string.IsNullOrWhiteSpace(userProvidedIp) ? userProvidedIp : detectedIp;
 
-                    if (string.IsNullOrEmpty(targetIp)) return Properties.Resources.Error_NoValidIpv4AddressFound;
+                    if (string.IsNullOrEmpty(targetIp))
+                    {
+                        if (string.IsNullOrWhiteSpace(credentials.Host) && string.IsNullOrWhiteSpace(vmIpAddress))
+                        {
+                            return "未能从虚拟机获取到任何IP地址，请检查集成服务是否开启或网络是否正常。";
+                        }
+                        else
+                        {
+                            // 如果获取到了字符串但无法解析（例如是 IPv6 或 乱码）
+                            string input = !string.IsNullOrWhiteSpace(credentials.Host) ? credentials.Host : vmIpAddress;
+                            return string.Format(Properties.Resources.Error_NoValidIpv4AddressFound, input);
+                        }
+                    }
 
                     credentials.Host = targetIp;
                     Log(string.Format(Properties.Resources.Msg_Gpu_LinuxIpObtained, targetIp));
