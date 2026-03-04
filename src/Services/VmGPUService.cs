@@ -575,6 +575,7 @@ return 'OK'
                     var provider = subKey?.GetValue("ProviderName")?.ToString();
                     if (provider != null && provider.Contains("NVIDIA", StringComparison.OrdinalIgnoreCase))
                     {
+                        // 1. 处理注册表中定义的标准同步项 (CopyToVm...)
                         ProcessPromotionRegistryKey(subKey, "CopyToVmWhenNewer", assignedDriveLetter, "System32");
                         ProcessPromotionRegistryKey(subKey, "CopyToVmOverwrite", assignedDriveLetter, "System32");
 
@@ -583,14 +584,42 @@ return 'OK'
                             ProcessPromotionRegistryKey(subKey, "CopyToVmWhenNewerWow64", assignedDriveLetter, "SysWOW64");
                             ProcessPromotionRegistryKey(subKey, "CopyToVmOverwriteWow64", assignedDriveLetter, "SysWOW64");
                         }
+
+                        // 2. 强制手动链接核心组件（解决改名、MD5匹配及特定 API 缺失问题）
+
+                        // --- 管理与基础 ---
                         LinkSingleFile(assignedDriveLetter, "nvidia-smi.exe", "nvidia-smi.exe", "System32");
+                        LinkSingleFile(assignedDriveLetter, "nvml_loader.dll", "nvml.dll", "System32");
+                        LinkSingleFile(assignedDriveLetter, "nvapi64.dll", "nvapi64.dll", "System32");
+                        LinkSingleFile(assignedDriveLetter, "nvcpl.dll", "nvcpl.dll", "System32");
+
+                        // --- 计算接口 (CUDA / OpenCL) ---
+                        LinkSingleFile(assignedDriveLetter, "nvcuda_loader64.dll", "nvcuda.dll", "System32");
+                        LinkSingleFile(assignedDriveLetter, "nvcudadebugger.dll", "nvcudadebugger.dll", "System32");
+                        LinkSingleFile(assignedDriveLetter, "OpenCL64.dll", "OpenCL.dll", "System32");
+
+                        // --- 视频与光流 (NVOF / NVENC / NVDEC) ---
+                        LinkSingleFile(assignedDriveLetter, "nvofapi64.dll", "nvofapi64.dll", "System32");
+                        LinkSingleFile(assignedDriveLetter, "nvEncodeAPI64.dll", "nvEncodeAPI64.dll", "System32");
+                        LinkSingleFile(assignedDriveLetter, "nvcuvid64.dll", "nvcuvid.dll", "System32");
+
+                        // --- 图形增强 (Vulkan / DLSS / FBC) ---
+                        LinkSingleFile(assignedDriveLetter, "vulkan-1-x64.dll", "vulkan-1.dll", "System32");
+                        LinkSingleFile(assignedDriveLetter, "vulkan-1-x64.dll", "vulkan-1-999-0-0-0.dll", "System32");
+                        LinkSingleFile(assignedDriveLetter, "vulkaninfo-x64.exe", "vulkaninfo.exe", "System32");
+                        LinkSingleFile(assignedDriveLetter, "_nvngx.dll", "_nvngx.dll", "System32"); // DLSS 核心
+                        LinkSingleFile(assignedDriveLetter, "NvFBC64.dll", "NvFBC64.dll", "System32");
+                        LinkSingleFile(assignedDriveLetter, "NvIFR64.dll", "NvIFR64.dll", "System32");
+
                         break;
                     }
                 }
             }
-            catch (Exception ex) { Debug.WriteLine($"NVIDIA Promotion error: {ex.Message}"); }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"NVIDIA Promotion error: {ex.Message}");
+            }
         }
-
         private void ProcessPromotionRegistryKey(Microsoft.Win32.RegistryKey adapterKey, string subKeyName, string assignedDriveLetter, string targetSubDir)
         {
             using var promotionKey = adapterKey.OpenSubKey(subKeyName);
