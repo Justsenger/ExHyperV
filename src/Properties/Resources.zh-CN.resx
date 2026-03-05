@@ -2368,7 +2368,7 @@
     <value>切换系统为服务器版本</value>
   </data>
   <data name="Desc_SwitchServer" xml:space="preserve">
-    <value>黑魔法，专业版/家庭版/企业版需要先切换系统 SKU 版本，该功能才能正常生效</value>
+    <value>黑魔法，专业版/家庭版/企业版无法使用此功能</value>
   </data>
   <data name="Menu_VMManagement" xml:space="preserve">
     <value>虚拟机管理</value>

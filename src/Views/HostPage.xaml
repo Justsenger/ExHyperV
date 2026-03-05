@@ -217,7 +217,7 @@
                     <ui:CardControl.Header>
                         <StackPanel>
                             <TextBlock Text="系统 SKU 切换" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
-                            <TextBlock Text="修改主机的 SKU 版本，切换后需要重新激活 Windows。" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                            <TextBlock Text="重启后生效。切换后需要重新激活 Windows" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
                         </StackPanel>
                     </ui:CardControl.Header>
                     <ComboBox Width="250" 

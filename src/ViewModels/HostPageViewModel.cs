@@ -27,7 +27,6 @@ namespace ExHyperV.ViewModels
             new WindowsSku("专业工作站版", "ProfessionalWorkstation", "DXG7C-N36C4-C4HTG-X4T3X-2YV77"),
             new WindowsSku("专业版", "Professional", "VK7JG-NPHTM-C97JM-9MPGT-3V66T"),
             new WindowsSku("企业版", "Enterprise", "XGVPP-NMH47-7TTHJ-W3FW7-8HV2C"),
-            new WindowsSku("企业 LTSC 版", "EnterpriseS", "M7XTQ-FN8P6-TTKYV-9D4CC-J462D"),
             new WindowsSku("家庭版", "Core", "YTMG3-N6DKC-DKB77-7M9GH-8HVX7"),
             new WindowsSku("教育版", "Education", "YNMGQ-8RYV3-4PGQ3-C8XTP-7CFBY")
         };
@@ -40,10 +39,11 @@ namespace ExHyperV.ViewModels
             // _isInitialized 确保在程序启动加载初始值时不触发切换
             if (!_isInitialized || value == null) return;
 
-            _ = Task.Run(() => {
+            // 注意：这里改成了 async Task，以便使用 await Task.Delay
+            _ = Task.Run(async () => {
                 try
                 {
-                    // 关键：调用系统 changepk.exe 配合通用密钥触发版本升级/转换
+                    // 1. 启动 changepk.exe 进行版本转换
                     var processInfo = new System.Diagnostics.ProcessStartInfo
                     {
                         FileName = "changepk.exe",
@@ -54,15 +54,20 @@ namespace ExHyperV.ViewModels
 
                     System.Diagnostics.Process.Start(processInfo);
 
-                    // 注意：changepk 是异步弹窗，它自己会提示用户重启。
-                    // 这里我们还是弹个提示告知用户后续操作。
+                    // 2. 延迟 5 秒
+                    // 理由：给系统一点时间处理证书，同时也避免立刻弹窗遮挡了系统的“准备升级”窗口
+                    await Task.Delay(5000);
+
+                    // 3. 调用你已有的 ShowRestartPrompt 方法，弹出带按钮的提示
                     Application.Current.Dispatcher.Invoke(() => {
-                        ShowSnackbar("SKU 切换已启动", "请按照系统弹出的窗口指示完成版本转换。", ControlAppearance.Info, SymbolRegular.Checkmark24);
+                        ShowRestartPrompt($"系统 SKU 已申请切换为 {value.Name}。为了确保底层组件挂载成功，建议立即重启电脑。");
                     });
                 }
                 catch (Exception ex)
                 {
-                    ShowSnackbar("切换失败", ex.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                    Application.Current.Dispatcher.Invoke(() => {
+                        ShowSnackbar("切换失败", ex.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                    });
                 }
             });
         }
