@@ -16,8 +16,57 @@ namespace ExHyperV.ViewModels
 {
     public record SchedulerMode(string Name, HyperVSchedulerType Type);
 
+    public record WindowsSku(string Name, string EditionId, string ProductKey);
+
+
     public partial class HostPageViewModel : ObservableObject
     {
+        // 1. 系统 SKU 列表（使用通用安装密钥）
+        public ObservableCollection<WindowsSku> SkuList { get; } = new()
+        {
+            new WindowsSku("专业工作站版", "ProfessionalWorkstation", "DXG7C-N36C4-C4HTG-X4T3X-2YV77"),
+            new WindowsSku("专业版", "Professional", "VK7JG-NPHTM-C97JM-9MPGT-3V66T"),
+            new WindowsSku("企业版", "Enterprise", "XGVPP-NMH47-7TTHJ-W3FW7-8HV2C"),
+            new WindowsSku("企业 LTSC 版", "EnterpriseS", "M7XTQ-FN8P6-TTKYV-9D4CC-J462D"),
+            new WindowsSku("家庭版", "Core", "YTMG3-N6DKC-DKB77-7M9GH-8HVX7"),
+            new WindowsSku("教育版", "Education", "YNMGQ-8RYV3-4PGQ3-C8XTP-7CFBY")
+        };
+
+        [ObservableProperty] private WindowsSku _selectedSku;
+
+        // 2. 处理 SKU 切换 (使用 changepk 执行官方转换流程)
+        partial void OnSelectedSkuChanged(WindowsSku value)
+        {
+            // _isInitialized 确保在程序启动加载初始值时不触发切换
+            if (!_isInitialized || value == null) return;
+
+            _ = Task.Run(() => {
+                try
+                {
+                    // 关键：调用系统 changepk.exe 配合通用密钥触发版本升级/转换
+                    var processInfo = new System.Diagnostics.ProcessStartInfo
+                    {
+                        FileName = "changepk.exe",
+                        Arguments = $"/ProductKey {value.ProductKey}",
+                        UseShellExecute = true,
+                        Verb = "runas" // 必须管理员权限
+                    };
+
+                    System.Diagnostics.Process.Start(processInfo);
+
+                    // 注意：changepk 是异步弹窗，它自己会提示用户重启。
+                    // 这里我们还是弹个提示告知用户后续操作。
+                    Application.Current.Dispatcher.Invoke(() => {
+                        ShowSnackbar("SKU 切换已启动", "请按照系统弹出的窗口指示完成版本转换。", ControlAppearance.Info, SymbolRegular.Checkmark24);
+                    });
+                }
+                catch (Exception ex)
+                {
+                    ShowSnackbar("切换失败", ex.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                }
+            });
+        }
+
         private bool _isInitialized = false;
 
         public CheckStatusViewModel SystemStatus { get; } = new("");
@@ -47,8 +96,39 @@ namespace ExHyperV.ViewModels
         private async Task LoadInitialStatusAsync()
         {
             await Task.WhenAll(CheckSystemInfoAsync(), CheckCpuInfoAsync(), CheckHyperVInfoAsync(), CheckServerInfoAsync(), CheckIommuAsync());
+            InitializeCurrentSku();
             await CheckAdminInfoAsync();
             _isInitialized = true;
+        }
+
+        private void InitializeCurrentSku()
+        {
+            try
+            {
+                // 1. 从注册表读取真实的 EditionID
+                string currentId = Microsoft.Win32.Registry.GetValue(
+                    @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion",
+                    "EditionID",
+                    "Unknown")?.ToString();
+
+                // 2. 在现有列表中查找匹配项
+                var match = SkuList.FirstOrDefault(x => x.EditionId.Equals(currentId, StringComparison.OrdinalIgnoreCase));
+
+                if (match != null)
+                {
+                    SelectedSku = match;
+                }
+                else
+                {
+                    var customSku = new WindowsSku($"{currentId}", currentId, "");
+                    SkuList.Insert(0, customSku); // 插到第一条
+                    SelectedSku = customSku;
+                }
+            }
+            catch
+            {
+                // 降级处理
+            }
         }
 
         private async Task CheckSystemInfoAsync() => await Task.Run(() => {
@@ -110,16 +190,35 @@ namespace ExHyperV.ViewModels
             });
             AdminStatus.IsSuccess = isAdmin;
             AdminStatus.IsChecking = false;
+
             if (isAdmin)
             {
                 CheckGpuStrategyReg();
                 InitializeProductType();
                 await LoadAdvancedConfigAsync();
                 IsGpuStrategyToggleEnabled = true;
-                IsSystemSwitchEnabled = true;
+
+                // --- 修改开始：增加 SKU 限制逻辑 ---
+                string currentId = Microsoft.Win32.Registry.GetValue(
+                    @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion",
+                    "EditionID", "")?.ToString() ?? "";
+
+                // 定义禁用的关键字/ID列表
+                var forbiddenSkus = new List<string> {
+            "Professional",        // 专业版
+            "Core",                // 家庭版
+            "Enterprise",          // 企业版
+            "CoreSingleLanguage",  // 家庭单语言版
+            "CoreCountrySpecific"  // 家庭中文版
+        };
+
+                // 检查：如果在禁用列表中，或者是服务器版(以Server开头)，则禁用按钮
+                bool isUnsupported = forbiddenSkus.Contains(currentId) || currentId.StartsWith("Server", StringComparison.OrdinalIgnoreCase);
+
+                IsSystemSwitchEnabled = !isUnsupported;
+                // --- 修改结束 ---
             }
         }
-
         private async Task CheckServerInfoAsync()
         {
             // 调用统一逻辑
