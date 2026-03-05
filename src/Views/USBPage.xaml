@@ -21,13 +21,44 @@
 
     <Grid>
         <StackPanel Margin="10,0,10,10">
+
+            <ui:Card Margin="0,0,0,10" Padding="12" Background="{ui:ThemeResource SystemFillColorCautionBackgroundBrush}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <!-- 左侧图标 -->
+                    <ui:SymbolIcon Grid.Column="0" Symbol="Info24" FontSize="20" Margin="0,0,12,0" Foreground="{ui:ThemeResource SystemFillColorCautionBrush}"/>
+
+                    <!-- 中间文字内容：使用 Run 让标题和正文同排 -->
+                    <TextBlock Grid.Column="1" VerticalAlignment="Center" TextWrapping="Wrap">
+            <Run Text="使用须知：" FontSize="16" />
+            <Run Text=" 目前 USB 直通功能需要预先手动安装驱动和代理程序。请务必阅读配置文档。" 
+                 FontSize="16" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                    </TextBlock>
+
+                    <!-- 右侧操作按钮 -->
+                    <ui:Button Grid.Column="2" 
+                   Content="查看指南" 
+                   Appearance="Secondary"
+                   Icon="{ui:SymbolIcon Link24}"
+                   VerticalAlignment="Center"
+                   Margin="12,0,0,0"
+                   Command="{Binding OpenUrlCommand}"
+                   CommandParameter="https://github.com/Justsenger/ExHyperV/issues/123" />
+                </Grid>
+            </ui:Card>
+            
             <!-- Header -->
             <Grid Margin="0,5,0,0">
                 <ui:Card BorderThickness="1" Padding="10">
                     <Grid>
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                             <ui:FontIcon Glyph="&#xE88E;" FontSize="24" FontFamily="{DynamicResource SegoeFluentIcons}"/>
-                            <TextBlock Text="USB 直通" FontSize="16" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                            <TextBlock Text="可分配设备" FontSize="16" VerticalAlignment="Center" Margin="10,0,0,0"/>
                         </StackPanel>
                         <ui:Button HorizontalAlignment="Right"
                                    Content="刷新" 

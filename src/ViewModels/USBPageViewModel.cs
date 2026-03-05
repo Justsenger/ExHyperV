@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ExHyperV.Models;
 using ExHyperV.Services;
+using System.Diagnostics;
 
 namespace ExHyperV.ViewModels
 {
@@ -121,6 +122,30 @@ namespace ExHyperV.ViewModels
                 }
             }
             finally { IsUiEnabled = true; }
+        }
+        /// <summary>
+        /// 跳转到指定的 URL 网页
+        /// </summary>
+        [RelayCommand]
+        private void OpenUrl(string url)
+        {
+            if (string.IsNullOrWhiteSpace(url)) return;
+
+            try
+            {
+                // 在 .NET Core / .NET 5+ 中，需要设置 UseShellExecute 为 true 才能直接打开 URL
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = url,
+                    UseShellExecute = true
+                });
+            }
+            catch (Exception ex)
+            {
+                // 这里可以记录日志，防止由于系统环境问题导致崩溃
+                Debug.WriteLine($"无法打开网页: {ex.Message}");
+            }
+
         }
     }
 }
