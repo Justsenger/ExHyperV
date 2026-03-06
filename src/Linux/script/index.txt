@@ -1,4 +1,0 @@
-Ubuntu-22.04-Official.sh
-configure_system.sh
-install_dxgkrnl.sh
-setup_graphics.sh
