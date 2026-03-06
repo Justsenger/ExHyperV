@@ -1,15 +1,15 @@
 #!/bin/bash
 # @Name: Ubuntu-22.04-Official
-# @Description: Õë¶Ô Ubuntu 22.04 µÄ¹Ù·½ÍÆ¼ö²¿Êğ½Å±¾¡£°üº¬ÄÚºË²¹¶¡¡¢Mesa Ëø¶¨ÓëÇı¶¯×Ô¶¯ÅäÖÃ¡£
+# @Description: é’ˆå¯¹ Ubuntu 22.04 çš„å®˜æ–¹æ¨èéƒ¨ç½²è„šæœ¬ã€‚åŒ…å«å†…æ ¸è¡¥ä¸ã€Mesa é”å®šä¸é©±åŠ¨è‡ªåŠ¨é…ç½®ã€‚
 # @Author: Justsenger
 # @Version: 1.0.1
 
 set -e
 
 # ==========================================================
-# 0. ¸¨Öúº¯Êı¶¨Òå
+# 0. è¾…åŠ©å‡½æ•°å®šä¹‰
 # ==========================================================
-# °²È«¸üĞÂ /etc/environment
+# å®‰å…¨æ›´æ–° /etc/environment
 update_env() {
     local key=$1
     local val=$2
@@ -19,7 +19,7 @@ update_env() {
 }
 
 # ==========================================================
-# 1. ³õÊ¼»¯Óë²ÎÊı½âÎö
+# 1. åˆå§‹åŒ–ä¸å‚æ•°è§£æ
 # ==========================================================
 ACTION=${1:-"deploy"}
 ENABLE_GRAPHICS=${2:-"true"}
@@ -30,7 +30,7 @@ LIB_DIR="$DEPLOY_DIR/lib"
 PATCH_BASE_URL="https://raw.githubusercontent.com/Justsenger/ExHyperV/main/src/Linux/script/patches"
 GITHUB_LIB_URL="https://raw.githubusercontent.com/Justsenger/ExHyperV/main/src/Linux/lib"
 
-# ÅäÖÃ´úÀí»·¾³
+# é…ç½®ä»£ç†ç¯å¢ƒ
 if [ -n "$PROXY_URL" ]; then
     export http_proxy="$PROXY_URL"
     export https_proxy="$PROXY_URL"
@@ -38,14 +38,14 @@ if [ -n "$PROXY_URL" ]; then
 fi
 
 # ==========================================================
-# 2. ÒÀÀµ°²×°
+# 2. ä¾èµ–å®‰è£…
 # ==========================================================
 echo "[STEP: Installing basic dependencies...]"
 sudo apt-get update -qq
 sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq git curl dkms wget build-essential software-properties-common
 
 # ==========================================================
-# 3. ÄÚºË¼ì²éÓëÍ·ÎÄ¼ş
+# 3. å†…æ ¸æ£€æŸ¥ä¸å¤´æ–‡ä»¶
 # ==========================================================
 echo "[STEP: Checking Kernel Headers...]"
 TARGET_KERNEL_VERSION=$(uname -r)
@@ -64,7 +64,7 @@ if [ ! -e "/lib/modules/$TARGET_KERNEL_VERSION/build" ]; then
 fi
 
 # ==========================================================
-# 4. dxgkrnl Ä£¿é±àÒëÓëÑéÖ¤
+# 4. dxgkrnl æ¨¡å—ç¼–è¯‘ä¸éªŒè¯
 # ==========================================================
 if lsmod | grep -q "dxgkrnl" || dkms status | grep -q "dxgkrnl"; then
     echo " -> dxgkrnl is already installed or loaded."
@@ -122,7 +122,7 @@ if ! sudo modprobe dxgkrnl; then
 fi
 
 # ==========================================================
-# 5. Í¼ĞÎÕ»ÅäÖÃ (Kisak PPA & Pinning)
+# 5. å›¾å½¢æ ˆé…ç½® (Kisak PPA & Pinning)
 # ==========================================================
 if [ "$ENABLE_GRAPHICS" == "true" ]; then
     echo "[STEP: Configuring Graphics Stack (Kisak PPA)...]"
@@ -131,7 +131,7 @@ if [ "$ENABLE_GRAPHICS" == "true" ]; then
     sudo ppa-purge -y ppa:kisak/kisak-mesa || true
     sudo rm -f /etc/apt/preferences.d/99-mesa-pinning /etc/apt/preferences.d/00-mesa-hold-gl
 
-    # Ëø¶¨ OpenGL ¼æÈİĞÔ
+    # é”å®š OpenGL å…¼å®¹æ€§
     sudo bash -c 'cat > /etc/apt/preferences.d/00-mesa-hold-gl <<EOF
 Package: libgl1-mesa-dri libglapi-mesa libglx-mesa0 libgbm1
 Pin: release o=Ubuntu
@@ -139,7 +139,7 @@ Pin-Priority: 1001
 EOF'
     sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --allow-downgrades libgl1-mesa-dri libglapi-mesa libglx-mesa0 libgbm1
 
-    # ÅäÖÃ Kisak Vulkan
+    # é…ç½® Kisak Vulkan
     sudo add-apt-repository ppa:kisak/turtle -y
     sudo apt-get update -qq
     sudo bash -c 'cat > /etc/apt/preferences.d/99-mesa-pinning <<EOF
@@ -151,7 +151,7 @@ EOF'
 fi
 
 # ==========================================================
-# 6. ÏµÍ³ÅäÖÃÓë WSL ¿â²¿Êğ
+# 6. ç³»ç»Ÿé…ç½®ä¸ WSL åº“éƒ¨ç½²
 # ==========================================================
 echo "[STEP: Deploying WSL Core Libraries...]"
 LIBS=("libd3d12.so" "libd3d12core.so" "libdxcore.so")
@@ -179,7 +179,7 @@ echo "/usr/lib/wsl/lib" | sudo tee /etc/ld.so.conf.d/ld.wsl.conf > /dev/null
 sudo ldconfig
 
 # ==========================================================
-# 7. ÄÚºËÄ£¿éÑÓ³Ù¼ÓÔØ²ßÂÔ
+# 7. å†…æ ¸æ¨¡å—å»¶è¿ŸåŠ è½½ç­–ç•¥
 # ==========================================================
 echo "[STEP: Configuring systemd late-loader...]"
 echo "vgem" | sudo tee /etc/modules-load.d/vgem.conf > /dev/null
@@ -209,7 +209,7 @@ sudo systemctl daemon-reload
 sudo systemctl enable load-dxg-late.service
 
 # ==========================================================
-# 8. »·¾³±äÁ¿ÓëÈ¨ÏŞ
+# 8. ç¯å¢ƒå˜é‡ä¸æƒé™
 # ==========================================================
 if [ "$ENABLE_GRAPHICS" == "true" ]; then
     echo "[STEP: Finalizing environment variables...]"
@@ -222,7 +222,7 @@ if [ "$ENABLE_GRAPHICS" == "true" ]; then
 fi
 
 # ==========================================================
-# 9. ÇåÀí²¢ÍË³ö
+# 9. æ¸…ç†å¹¶é€€å‡º
 # ==========================================================
 echo "[STEP: Cleaning up deployment files...]"
 sudo rm -rf "$DEPLOY_DIR"
