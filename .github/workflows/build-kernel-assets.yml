@@ -9,56 +9,62 @@ permissions:
   contents: write
 
 jobs:
-  build-and-patch:
+  build-and-release:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        include:
-          - branch: "linux-msft-wsl-5.15.y"
-            short_ver: "5.15"
-          - branch: "linux-msft-wsl-6.6.y"
-            short_ver: "6.6"
-
     steps:
       - name: 检出 ExHyperV 仓库
         uses: actions/checkout@v4
 
-      - name: 稀疏克隆微软内核源码
+      - name: 构建驱动压缩包
         run: |
-          mkdir ms-kernel
-          cd ms-kernel
-          git init
-          git remote add origin https://github.com/microsoft/WSL2-Linux-Kernel.git
-          git config core.sparseCheckout true
-          echo "drivers/hv/dxgkrnl/*" >> .git/info/sparse-checkout
-          echo "include/*" >> .git/info/sparse-checkout
-          git pull --depth 1 origin ${{ matrix.branch }}
-          cd ..
+          # 定义需要处理的分支版本
+          VERSIONS=("linux-msft-wsl-5.15.y:5.15" "linux-msft-wsl-6.6.y:6.6")
+          
+          for item in "${VERSIONS[@]}"; do
+            BRANCH=${item%%:*}
+            SHORT_VER=${item#*:}
+            
+            echo ">>> 正在处理版本: $BRANCH"
+            
+            # 1. 稀疏克隆微软源码 (只克隆驱动和头文件目录)
+            mkdir ms-kernel && cd ms-kernel
+            git init -q
+            git remote add origin https://github.com/microsoft/WSL2-Linux-Kernel.git
+            git config core.sparseCheckout true
+            echo "drivers/hv/dxgkrnl/*" >> .git/info/sparse-checkout
+            echo "include/*" >> .git/info/sparse-checkout
+            git pull --depth 1 origin $BRANCH -q
+            cd ..
+            
+            # 2. 应用补丁 (修复了之前报错的目录路径问题)
+            PATCH_DIR="src/Linux/script/patches/$BRANCH"
+            if [ -d "$PATCH_DIR" ]; then
+              for patch_file in "$PATCH_DIR"/*.patch; do
+                echo "正在应用补丁: $(basename $patch_file)"
+                patch -p1 -d ms-kernel < "$patch_file"
+              done
+            fi
+            
+            # 3. 整理目录结构并打包
+            BUILD_DIR="dxgkrnl-${SHORT_VER}-patched"
+            mkdir -p "$BUILD_DIR"
+            cp -r ms-kernel/drivers/hv/dxgkrnl/* "$BUILD_DIR/"
+            cp -r ms-kernel/include "$BUILD_DIR/include"
+            tar -czf "${BUILD_DIR}.tar.gz" "$BUILD_DIR"
+            
+            # 4. 清理当前版本目录，准备处理下一个版本
+            rm -rf "$BUILD_DIR" ms-kernel
+          done
 
-      - name: 应用内核补丁
-        run: |
-          SRC_DIR="ms-kernel"
-          PATCH_DIR="src/Linux/script/patches/${{ matrix.branch }}"
-          if [ -d "$PATCH_DIR" ]; then
-            for patch_file in "$PATCH_DIR"/*.patch; do
-              patch -p1 -d "$SRC_ROOT" < "$patch_file"
-            done
-          fi
-
-      - name: 创建压缩包
-        run: |
-          BUILD_DIR="dxgkrnl-${{ matrix.short_ver }}-patched"
-          mkdir -p "$BUILD_DIR"
-          cp -r ms-kernel/drivers/hv/dxgkrnl/* "$BUILD_DIR/"
-          cp -r ms-kernel/include "$BUILD_DIR/include"
-          tar -czf "${BUILD_DIR}.tar.gz" "$BUILD_DIR"
-
-      - name: 发布资源文件
+      - name: 上传到 GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: kernel-assets
-          files: dxgkrnl-${{ matrix.short_ver }}-patched.tar.gz
-          name: "WSL2 内核驱动预制件"
-          body: "这是自动构建的已打补丁驱动源码。更新时间：$(date +'%Y-%m-%d %H:%M:%S')"
+          files: |
+            dxgkrnl-5.15-patched.tar.gz
+            dxgkrnl-6.6-patched.tar.gz
+          name: "WSL2 内核驱动预制组件"
+          body: "此 Release 包含自动构建的已打补丁驱动源码。更新时间：$(date +'%Y-%m-%d %H:%M:%S')"
+          overwrite: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
