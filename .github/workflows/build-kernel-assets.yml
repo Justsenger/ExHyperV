@@ -65,6 +65,5 @@ jobs:
             dxgkrnl-6.6-patched.tar.gz
           name: "WSL2 内核驱动预制组件"
           body: "此 Release 包含自动构建的已打补丁驱动源码。更新时间：$(date +'%Y-%m-%d %H:%M:%S')"
-          overwrite: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
