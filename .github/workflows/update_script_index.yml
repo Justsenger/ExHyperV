@@ -18,8 +18,8 @@ jobs:
       - name: Generate JSON
         run: |
           cd src/Linux/script
-          export LANG=C.UTF-8
-          export LC_ALL=C.UTF-8
+          export LANG=en_US.UTF-8
+          export LC_ALL=en_US.UTF-8
           echo "[]" > index.json
           
           for f in *.sh; do
@@ -27,18 +27,23 @@ jobs:
               continue
             fi
             
-            NAME=$(sed -n 's/^# @Name:[[:space:]]*//p' "$f" | tr -d '\r')
-            DESC=$(sed -n 's/^# @Description:[[:space:]]*//p' "$f" | tr -d '\r')
-            AUTH=$(sed -n 's/^# @Author:[[:space:]]*//p' "$f" | tr -d '\r')
-            VERS=$(sed -n 's/^# @Version:[[:space:]]*//p' "$f" | tr -d '\r')
+            NAME=$(perl -ne 'if(/@Name:\s*(.*)/){$v=$1;$v=~s/\r//g;$v=~s/^\s+|\s+$//g;print $v}' "$f")
+            DESC=$(perl -ne 'if(/@Description:\s*(.*)/){$v=$1;$v=~s/\r//g;$v=~s/^\s+|\s+$//g;print $v}' "$f")
+            AUTH=$(perl -ne 'if(/@Author:\s*(.*)/){$v=$1;$v=~s/\r//g;$v=~s/^\s+|\s+$//g;print $v}' "$f")
+            VERS=$(perl -ne 'if(/@Version:\s*(.*)/){$v=$1;$v=~s/\r//g;$v=~s/^\s+|\s+$//g;print $v}' "$f")
             
             jq --arg fn "$f" \
-               --arg nm "${NAME:-$f}" \
-               --arg ds "${DESC:-}" \
-               --arg au "${AUTH:-Justsenger}" \
-               --arg ve "${VERS:-1.0.0}" \
-               '. += [{FileName: $fn, Name: $nm, Description: $ds, Author: $au, Version: $ve}]' \
-               index.json > index.tmp.json && mv index.tmp.json index.json
+               --arg nm "$NAME" \
+               --arg ds "$DESC" \
+               --arg au "$AUTH" \
+               --arg ve "$VERS" \
+               '. += [{
+                 FileName: $fn, 
+                 Name: (if $nm == "" then $fn else $nm end), 
+                 Description: $ds, 
+                 Author: (if $au == "" then "Justsenger" else $au end), 
+                 Version: (if $ve == "" then "1.0.0" else $ve end)
+               }]' index.json > index.tmp.json && mv index.tmp.json index.json
           done
 
       - name: Commit and Push
