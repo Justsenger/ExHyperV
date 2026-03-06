@@ -2,8 +2,8 @@
   {
     "FileName": "Ubuntu-22.04-Official.sh",
     "Name": "Ubuntu-22.04-Official",
-    "Description": "针对 Ubuntu 22.04 的官方推荐部署脚本。包含内核补丁、Mesa 锁定与驱动自动配置。",
+    "Description": "针对 Ubuntu 22.04 的官方推荐部署脚本。",
     "Author": "Justsenger",
-    "Version": "1.0.1"
+    "Version": "1.0.6"
   }
 ]
