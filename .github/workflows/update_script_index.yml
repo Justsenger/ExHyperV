@@ -18,35 +18,28 @@ jobs:
       - name: Generate JSON
         run: |
           cd src/Linux/script
-          echo "[" > index.json
-          FIRST=true
           export LANG=C.UTF-8
+          export LC_ALL=C.UTF-8
+          echo "[]" > index.json
           
           for f in *.sh; do
             if [ ! -f "$f" ] || [ "$f" == "index.json" ] || ! grep -q "@Name:" "$f"; then
               continue
             fi
             
-            if [ "$FIRST" = true ]; then
-              FIRST=false
-            else
-              echo "," >> index.json
-            fi
+            NAME=$(sed -n 's/^# @Name:[[:space:]]*//p' "$f" | tr -d '\r')
+            DESC=$(sed -n 's/^# @Description:[[:space:]]*//p' "$f" | tr -d '\r')
+            AUTH=$(sed -n 's/^# @Author:[[:space:]]*//p' "$f" | tr -d '\r')
+            VERS=$(sed -n 's/^# @Version:[[:space:]]*//p' "$f" | tr -d '\r')
             
-            NAME=$(grep -a "@Name:" "$f" | head -n 1 | sed 's/.*@Name:[[:space:]]*//' | tr -d '\r' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | sed 's/"/\\"/g')
-            DESC=$(grep -a "@Description:" "$f" | head -n 1 | sed 's/.*@Description:[[:space:]]*//' | tr -d '\r' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | sed 's/"/\\"/g')
-            AUTH=$(grep -a "@Author:" "$f" | head -n 1 | sed 's/.*@Author:[[:space:]]*//' | tr -d '\r' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | sed 's/"/\\"/g')
-            VERS=$(grep -a "@Version:" "$f" | head -n 1 | sed 's/.*@Version:[[:space:]]*//' | tr -d '\r' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | sed 's/"/\\"/g')
-            
-            echo "  {" >> index.json
-            echo "    \"FileName\": \"$f\"," >> index.json
-            echo "    \"Name\": \"${NAME:-$f}\"," >> index.json
-            echo "    \"Description\": \"${DESC:-}\"," >> index.json
-            echo "    \"Author\": \"${AUTH:-Justsenger}\"," >> index.json
-            echo "    \"Version\": \"${VERS:-1.0.0}\"" >> index.json
-            echo "  }" >> index.json
+            jq --arg fn "$f" \
+               --arg nm "${NAME:-$f}" \
+               --arg ds "${DESC:-}" \
+               --arg au "${AUTH:-Justsenger}" \
+               --arg ve "${VERS:-1.0.0}" \
+               '. += [{FileName: $fn, Name: $nm, Description: $ds, Author: $au, Version: $ve}]' \
+               index.json > index.tmp.json && mv index.tmp.json index.json
           done
-          echo "]" >> index.json
 
       - name: Commit and Push
         run: |
