@@ -158,7 +158,11 @@ LIBS=("libd3d12.so" "libd3d12core.so" "libdxcore.so")
 mkdir -p "$LIB_DIR"
 for lib in "${LIBS[@]}"; do
     if [ ! -f "$LIB_DIR/$lib" ]; then
-        wget -q -c "$GITHUB_LIB_URL/$lib" -O "$LIB_DIR/$lib"
+        echo " -> $lib not found locally, attempting download..."
+        if ! wget --timeout=15 -q -c "$GITHUB_LIB_URL/$lib" -O "$LIB_DIR/$lib"; then
+            echo " -> [ERROR] Failed to download $lib. Please check network."
+            exit 1
+        fi
     fi
 done
 
