@@ -20,6 +20,8 @@ jobs:
           cd src/Linux/script
           echo "[" > index.json
           FIRST=true
+          export LANG=C.UTF-8
+          
           for f in *.sh; do
             if [ ! -f "$f" ] || [ "$f" == "index.json" ] || ! grep -q "@Name:" "$f"; then
               continue
@@ -31,10 +33,10 @@ jobs:
               echo "," >> index.json
             fi
             
-            NAME=$(grep "@Name:" "$f" | head -n 1 | cut -d':' -f2- | tr -d '\r' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | sed 's/"/\\"/g')
-            DESC=$(grep "@Description:" "$f" | head -n 1 | cut -d':' -f2- | tr -d '\r' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | sed 's/"/\\"/g')
-            AUTH=$(grep "@Author:" "$f" | head -n 1 | cut -d':' -f2- | tr -d '\r' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | sed 's/"/\\"/g')
-            VERS=$(grep "@Version:" "$f" | head -n 1 | cut -d':' -f2- | tr -d '\r' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | sed 's/"/\\"/g')
+            NAME=$(grep -a "@Name:" "$f" | head -n 1 | sed 's/.*@Name:[[:space:]]*//' | tr -d '\r' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | sed 's/"/\\"/g')
+            DESC=$(grep -a "@Description:" "$f" | head -n 1 | sed 's/.*@Description:[[:space:]]*//' | tr -d '\r' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | sed 's/"/\\"/g')
+            AUTH=$(grep -a "@Author:" "$f" | head -n 1 | sed 's/.*@Author:[[:space:]]*//' | tr -d '\r' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | sed 's/"/\\"/g')
+            VERS=$(grep -a "@Version:" "$f" | head -n 1 | sed 's/.*@Version:[[:space:]]*//' | tr -d '\r' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | sed 's/"/\\"/g')
             
             echo "  {" >> index.json
             echo "    \"FileName\": \"$f\"," >> index.json
