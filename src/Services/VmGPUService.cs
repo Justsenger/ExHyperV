@@ -127,10 +127,11 @@ namespace ExHyperV.Services
                 {
                     foreach (var gpu in gpulinked)
                     {
-                        string name = gpu.Members["name"]?.Value.ToString();
-                        string instanceId = gpu.Members["PNPDeviceID"]?.Value.ToString();
-                        string manu = gpu.Members["AdapterCompatibility"]?.Value.ToString();
-                        string driverVersion = gpu.Members["DriverVersion"]?.Value.ToString();
+                        string name = gpu.Members["name"]?.Value?.ToString();
+                        string instanceId = gpu.Members["PNPDeviceID"]?.Value?.ToString();
+                        string manu = gpu.Members["AdapterCompatibility"]?.Value?.ToString();
+                        string driverVersion = gpu.Members["DriverVersion"]?.Value?.ToString();
+                        if (name == null || instanceId == null || manu == null || driverVersion == null) continue;
                         string vendor = pciInfoProvider.GetVendorFromInstanceId(instanceId);
                         if (instanceId != null && !instanceId.ToUpper().StartsWith("PCI\\") && !instanceId.ToUpper().Contains("ACPI")) continue;
                         gpuList.Add(new GPUInfo(name, "True", manu, instanceId, null, null, driverVersion, vendor));
