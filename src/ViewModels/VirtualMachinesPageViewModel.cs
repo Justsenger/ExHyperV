@@ -2890,28 +2890,39 @@ namespace ExHyperV.ViewModels
 
                                 // 计算涉及到的物理磁盘数量
                                 var distinctDisks = allPartitions.Select(p => p.DiskPath).Distinct().Count();
-                                AppendLog(string.Format(Properties.Resources.Msg_Gpu_ScanOk, allPartitions.Count, distinctDisks));
-                                // 自动注入逻辑
-                                if (distinctDisks == 1 && allPartitions.Count == 1 && allPartitions[0].OsType == OperatingSystemType.Windows)
+                                if (distinctDisks == 1 && allPartitions.Count == 1)
                                 {
-                                    task.Description = Properties.Resources.Msg_Gpu_DetectWin;
-                                    var syncRes = await _vmGpuService.SyncWindowsDriversAsync(
-                                        SelectedVm.Name,
-                                        SelectedHostGpu.Pname,
-                                        SelectedHostGpu.Manu,
-                                        allPartitions[0],
-                                        msg =>
-                                        {
-                                            task.Description = msg;
-                                            AppendLog(msg);
-                                        });
+                                    var singlePart = allPartitions[0];
 
-                                    if (!syncRes.Success) throw new Exception(syncRes.Message);
-                                    task.Description = Properties.Resources.Msg_Gpu_DriverOk;
+                                    if (singlePart.OsType == OperatingSystemType.Windows)
+                                    {
+                                        // 1. 如果是 Windows 且单一，执行原有自动注入逻辑
+                                        task.Description = Properties.Resources.Msg_Gpu_DetectWin;
+                                        var syncRes = await _vmGpuService.SyncWindowsDriversAsync(
+                                            SelectedVm.Name,
+                                            SelectedHostGpu.Pname,
+                                            SelectedHostGpu.Manu,
+                                            singlePart,
+                                            msg => { task.Description = msg; AppendLog(msg); });
+
+                                        if (!syncRes.Success) throw new Exception(syncRes.Message);
+                                        task.Description = Properties.Resources.Msg_Gpu_DriverOk;
+                                    }
+                                    else if (singlePart.OsType == OperatingSystemType.Linux)
+                                    {
+                                        // 2. [新增] 如果是 Linux 且单一，直接触发 SelectPartition 流程（嗅探 IP 并显示 SSH 表单）
+                                        task.Description = "Detecting Linux system, jumping to SSH setup..."; // 建议放入资源文件
+                                        AppendLog("Detected single Linux partition. Automating environment preparation...");
+
+                                        // 异步启动 Linux 准备工作流（即你点击列表项时触发的逻辑）
+                                        _ = Task.Run(async () => await SelectPartitionAndContinueCommand.ExecuteAsync(singlePart));
+
+                                        return; // 退出当前循环，由 SelectPartitionAndContinue 接管后续逻辑
+                                    }
                                 }
                                 else
                                 {
-                                    // 如果有多个硬盘或多个分区，显示选择器让用户挑
+                                    // 3. 多分区情况，保持现状，显示列表让用户选择
                                     Application.Current.Dispatcher.Invoke(() =>
                                     {
                                         DetectedPartitions = new ObservableCollection<PartitionInfo>(allPartitions);
@@ -2920,8 +2931,6 @@ namespace ExHyperV.ViewModels
                                     });
                                     task.Description = Properties.Resources.Msg_Gpu_ManualSelect;
                                     AppendLog(task.Description);
-
-                                    // 停止当前循环工作流，等待用户点击 UI
                                     return;
                                 }
                             }
