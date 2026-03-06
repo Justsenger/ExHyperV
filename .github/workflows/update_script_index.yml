@@ -1,0 +1,25 @@
+name: Generate Script Index
+on:
+  push:
+    paths:
+      - 'src/Linux/script/*.sh' # 只有当脚本目录变动时才运行
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Create Index File
+        run: |
+          cd src/Linux/script
+          # 扫描当前目录下所有 .sh 文件，生成一个简单的文件名列表
+          ls *.sh > index.txt 
+
+      - name: Commit and Push
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add src/Linux/script/index.txt
+          git commit -m "Auto-update script index" || exit 0
+          git push
