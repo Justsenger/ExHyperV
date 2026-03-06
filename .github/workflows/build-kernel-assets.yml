@@ -52,5 +52,5 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add .
           git commit -m "自动更新预制驱动组件 $(date +'%Y-%m-%d %H:%M:%S')"
-          # 强制推送，确保分支永远只有一次提交，不会随时间积累体积
-          git push "https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" HEAD:kernel-assets --force
+          # 明确推送到 refs/heads/ 命名空间，强制 GitHub 识别为分支
+          git push "https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" HEAD:refs/heads/kernel-assets --force
