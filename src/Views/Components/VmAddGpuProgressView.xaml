@@ -90,7 +90,7 @@
                             </ui:ListView>
                         </Grid>
 
-                        <!-- 2. SSH 凭据表单界面 - 100% 还原旧版字段与多语言支持 -->
+                        <!-- 2. SSH 凭据表单界面 - 深度优化脚本选择体验版 -->
                         <Border x:Name="SshFormBorder" Padding="24">
                             <Border.Style>
                                 <Style TargetType="Border">
@@ -104,16 +104,57 @@
                             </Border.Style>
 
                             <StackPanel>
-                                <!-- 标题: 连接到 Linux 虚拟机 -->
+                                <!-- 标题 -->
                                 <TextBlock Text="{x:Static properties:Resources.Label_ConnectToLinuxVm}" 
-                   FontSize="20" FontWeight="SemiBold" Margin="0,0,0,15" 
+                   FontSize="20" FontWeight="SemiBold" Margin="0,0,0,20" 
                    Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
 
-                                <ui:CardControl Header="部署脚本" Icon="Document24">
-                                    <ComboBox ItemsSource="{Binding AvailableLinuxScripts}" 
-              SelectedItem="{Binding SelectedLinuxScript}" 
-              DisplayMemberPath="Name" />
-                                </ui:CardControl>
+                                <!-- ✅ 优雅的脚本选择器卡片 -->
+                                <ui:Card Padding="16" Margin="0,0,0,20" Background="{ui:ThemeResource ControlFillColorDefaultBrush}">
+                                    <StackPanel>
+                                        <Grid Margin="0,0,0,10">
+                                            <StackPanel Orientation="Horizontal">
+                                                <ui:SymbolIcon Symbol="Code24" Margin="0,0,8,0" Foreground="{ui:ThemeResource SystemAccentColorPrimaryBrush}"/>
+                                                <TextBlock Text="选择部署方案" FontWeight="Medium" VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                            <TextBlock Text="{Binding SelectedLinuxScript.Version, StringFormat='v{0}'}" 
+                               HorizontalAlignment="Right" VerticalAlignment="Center" 
+                               FontSize="11" Opacity="0.5"/>
+                                        </Grid>
+
+                                        <ComboBox ItemsSource="{Binding AvailableLinuxScripts}" 
+                          SelectedItem="{Binding SelectedLinuxScript}" 
+                          HorizontalAlignment="Stretch">
+                                            <ComboBox.ItemTemplate>
+                                                <DataTemplate DataType="{x:Type models:LinuxScriptItem}">
+                                                    <Grid Margin="0,2">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <!-- 根据本地还是远程显示图标 -->
+                                                        <ui:SymbolIcon Symbol="Document24" Margin="0,0,10,0" FontSize="14" Opacity="0.7"/>
+                                                        <TextBlock Grid.Column="1" Text="{Binding Name}" VerticalAlignment="Center"/>
+                                                    </Grid>
+                                                </DataTemplate>
+                                            </ComboBox.ItemTemplate>
+                                        </ComboBox>
+
+                                        <!-- 脚本详情描述（动态显示） -->
+                                        <Border Margin="0,10,0,0" Padding="12,10" CornerRadius="4" 
+                        Background="{ui:ThemeResource ControlFillColorSecondaryBrush}">
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding SelectedLinuxScript.Description}" 
+                                   FontSize="12" TextWrapping="Wrap" 
+                                   Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Opacity="0.9"/>
+                                                <StackPanel Orientation="Horizontal" Margin="0,5,0,0" Opacity="0.6">
+                                                    <ui:SymbolIcon Symbol="Person24" FontSize="10" Margin="0,0,5,0"/>
+                                                    <TextBlock Text="{Binding SelectedLinuxScript.Author}" FontSize="11"/>
+                                                </StackPanel>
+                                            </StackPanel>
+                                        </Border>
+                                    </StackPanel>
+                                </ui:Card>
 
                                 <!-- 主机 IP 与 端口 -->
                                 <Grid Margin="0,0,0,15">
@@ -123,27 +164,27 @@
                                     </Grid.ColumnDefinitions>
 
                                     <StackPanel Grid.Column="0" Margin="0,0,10,0">
-                                        <TextBlock Text="{x:Static properties:Resources.Label_HostIpAddress}" Margin="0,0,0,5" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                                        <TextBlock Text="{x:Static properties:Resources.Label_HostIpAddress}" Margin="0,2,0,5" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
                                         <ui:TextBox Text="{Binding SshHost, UpdateSourceTrigger=PropertyChanged}" 
                             PlaceholderText="{x:Static properties:Resources.Placeholder_IpAddressExample}"/>
                                     </StackPanel>
 
                                     <StackPanel Grid.Column="1" Margin="10,0,0,0">
-                                        <TextBlock Text="{x:Static properties:Resources.Label_Port}" Margin="0,0,0,5" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                                        <TextBlock Text="{x:Static properties:Resources.Label_Port}" Margin="0,2,0,5" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
                                         <ui:TextBox Text="{Binding SshPort, UpdateSourceTrigger=PropertyChanged}" 
                             PlaceholderText="22"/>
                                     </StackPanel>
                                 </Grid>
 
                                 <!-- 用户名 -->
-                                <TextBlock Text="{x:Static properties:Resources.Label_Username}" Margin="0,0,0,5" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                                <TextBlock Text="{x:Static properties:Resources.Label_Username}" Margin="0,0,0,5" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
                                 <ui:TextBox Text="{Binding SshUsername, UpdateSourceTrigger=PropertyChanged}" 
                     PlaceholderText="{x:Static properties:Resources.Placeholder_UsernameExample}" Margin="0,0,0,15"/>
 
                                 <!-- 密码 (口令) -->
-                                <TextBlock Text="{x:Static properties:Resources.Label_Password}" Margin="0,0,0,5" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                                <TextBlock Text="{x:Static properties:Resources.Label_Password}" Margin="0,0,0,5" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
                                 <ui:PasswordBox Password="{Binding SshPassword, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
-                        Margin="0,0,0,10"/>
+                        Margin="0,0,0,15"/>
 
                                 <!-- 图形驱动选项 -->
                                 <CheckBox Content="{x:Static properties:Resources.CheckBox_InstallGraphicsDrivers}" 
@@ -180,10 +221,10 @@
                                             </StackPanel>
                                         </Grid>
                                         <CheckBox Content="保留全局代理设置（写入 /etc/environment）"
-                                                  IsChecked="{Binding KeepGlobalProxySetting}"
-                                                  Visibility="{Binding UseSshProxy, Converter={StaticResource BoolToVis}}"
-                                                  Margin="0,10,0,0"
-                                                  Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                          IsChecked="{Binding KeepGlobalProxySetting}"
+                          Visibility="{Binding UseSshProxy, Converter={StaticResource BoolToVis}}"
+                          Margin="0,10,0,0"
+                          Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
                                     </StackPanel>
                                 </Border>
 
