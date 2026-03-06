@@ -43,11 +43,6 @@
       <None Remove="UserScripts\configure_system.sh" />
       <None Remove="UserScripts\Ubuntu-22.04-Official.sh" />
     </ItemGroup>
-    <ItemGroup>
-      <Content Include="UserScripts\Ubuntu-22.04-Official.sh">
-        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-      </Content>
-    </ItemGroup>
 
     <!-- =================================================================== -->
     <!--                       4. 自动生成文件配置                            -->
@@ -68,6 +63,9 @@
             <Generator>PublicResXFileCodeGenerator</Generator>
             <LastGenOutput>Resources.Designer.cs</LastGenOutput>
         </EmbeddedResource>
+    </ItemGroup>
+    <ItemGroup>
+      <Folder Include="UserScripts\" />
     </ItemGroup>
 
     <!-- ========================================================================================= -->
