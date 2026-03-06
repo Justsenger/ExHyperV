@@ -21,19 +21,20 @@ jobs:
           echo "[" > index.json
           FIRST=true
           for f in *.sh; do
-            if ! grep -q "@Name:" "$f"; then
+            if [ "$f" == "index.json" ] || ! grep -q "@Name:" "$f"; then
               continue
             fi
+            
             if [ "$FIRST" = true ]; then
               FIRST=false
             else
               echo "," >> index.json
             fi
             
-            NAME=$(grep "@Name:" "$f" | sed 's/.*@Name:[[:space:]]*//' | sed 's/"/\\"/g' | xargs)
-            DESC=$(grep "@Description:" "$f" | sed 's/.*@Description:[[:space:]]*//' | sed 's/"/\\"/g' | xargs)
-            AUTH=$(grep "@Author:" "$f" | sed 's/.*@Author:[[:space:]]*//' | sed 's/"/\\"/g' | xargs)
-            VERS=$(grep "@Version:" "$f" | sed 's/.*@Version:[[:space:]]*//' | sed 's/"/\\"/g' | xargs)
+            NAME=$(grep "@Name:" "$f" | head -n 1 | cut -d':' -f2- | xargs | sed 's/"/\\"/g')
+            DESC=$(grep "@Description:" "$f" | head -n 1 | cut -d':' -f2- | xargs | sed 's/"/\\"/g')
+            AUTH=$(grep "@Author:" "$f" | head -n 1 | cut -d':' -f2- | xargs | sed 's/"/\\"/g')
+            VERS=$(grep "@Version:" "$f" | head -n 1 | cut -d':' -f2- | xargs | sed 's/"/\\"/g')
             
             echo "  {" >> index.json
             echo "    \"FileName\": \"$f\"," >> index.json
