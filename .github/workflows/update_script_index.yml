@@ -11,7 +11,9 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Generate JSON
         run: |
@@ -22,24 +24,23 @@ jobs:
             if ! grep -q "@Name:" "$f"; then
               continue
             fi
-
             if [ "$FIRST" = true ]; then
               FIRST=false
             else
               echo "," >> index.json
             fi
             
-            NAME=$(grep "@Name:" "$f" | cut -d':' -f2- | xargs | sed 's/"/\\"/g')
-            DESC=$(grep "@Description:" "$f" | cut -d':' -f2- | xargs | sed 's/"/\\"/g')
-            AUTH=$(grep "@Author:" "$f" | cut -d':' -f2- | xargs | sed 's/"/\\"/g')
-            VERS=$(grep "@Version:" "$f" | cut -d':' -f2- | xargs | sed 's/"/\\"/g')
+            NAME=$(grep "@Name:" "$f" | sed 's/.*@Name:[[:space:]]*//' | sed 's/"/\\"/g' | xargs)
+            DESC=$(grep "@Description:" "$f" | sed 's/.*@Description:[[:space:]]*//' | sed 's/"/\\"/g' | xargs)
+            AUTH=$(grep "@Author:" "$f" | sed 's/.*@Author:[[:space:]]*//' | sed 's/"/\\"/g' | xargs)
+            VERS=$(grep "@Version:" "$f" | sed 's/.*@Version:[[:space:]]*//' | sed 's/"/\\"/g' | xargs)
             
             echo "  {" >> index.json
             echo "    \"FileName\": \"$f\"," >> index.json
-            echo "    \"Name\": \"$NAME\"," >> index.json
-            echo "    \"Description\": \"$DESC\"," >> index.json
+            echo "    \"Name\": \"${NAME:-$f}\"," >> index.json
+            echo "    \"Description\": \"${DESC:-}\"," >> index.json
             echo "    \"Author\": \"${AUTH:-Justsenger}\"," >> index.json
-            echo "    \"Version\": \"${VERS:-1.0}\"" >> index.json
+            echo "    \"Version\": \"${VERS:-1.0.0}\"" >> index.json
             echo "  }" >> index.json
           done
           echo "]" >> index.json
@@ -48,6 +49,7 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add index.json
+          git add src/Linux/script/index.json
           git commit -m "Auto-update script index.json" || exit 0
-          git push
+          git pull --rebase origin main
+          git push origin main
