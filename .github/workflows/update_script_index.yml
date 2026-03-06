@@ -3,6 +3,7 @@ on:
   push:
     paths:
       - 'src/Linux/script/*.sh' # 只有当脚本目录变动时才运行
+  workflow_dispatch:
 
 jobs:
   build:
