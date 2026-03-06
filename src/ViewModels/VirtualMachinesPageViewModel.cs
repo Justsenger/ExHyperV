@@ -3299,5 +3299,38 @@ namespace ExHyperV.ViewModels
             if (string.IsNullOrWhiteSpace(text) || text == "---" || text == "00-00-00-00-00-00") return;
             Clipboard.SetText(text);
         }
+        // ✅ 增加重置/重试命令逻辑
+        [RelayCommand]
+        private async Task ResetGpuDeployment()
+        {
+            // 1. 如果当前有正在处理的分区 ID（说明已经分配但未成功），先执行回滚
+            if (!string.IsNullOrEmpty(_currentProcessingGpuAdapterId))
+            {
+                AppendLog("[User Reset] 检测到未完成的分区分配，正在回滚...");
+                try
+                {
+                    await _vmGpuService.RemoveGpuPartitionAsync(SelectedVm.Name, _currentProcessingGpuAdapterId);
+                    _currentProcessingGpuAdapterId = null;
+                    AppendLog("[User Reset] 分区已成功移除。");
+                }
+                catch (Exception ex)
+                {
+                    AppendLog($"[User Reset] 回滚失败: {ex.Message}");
+                }
+            }
+
+            // 2. 重置 UI 状态
+            GpuTasks.Clear();                // 清空任务清单
+            GpuDeploymentLog = string.Empty; // 清空日志
+            ShowPartitionSelector = false;   // 隐藏分区选择
+            ShowSshForm = false;             // 隐藏 SSH 表单
+            ShowLogConsole = false;          // 隐藏日志控制台
+
+            // 3. 重新初始化数据并跳转回选择界面
+            // 这步会重新扫描宿主机 GPU 和部署脚本，确保环境是最新的
+            await GoToAddGpu();
+
+            ShowSnackbar("流程已重置", "您可以重新选择显卡或修改配置参数", Wpf.Ui.Controls.ControlAppearance.Info, Wpf.Ui.Controls.SymbolRegular.ArrowCounterclockwise24);
+        }
     }
 }
