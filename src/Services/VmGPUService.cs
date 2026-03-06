@@ -1130,6 +1130,8 @@ return 'OK'
                     string content = await File.ReadAllTextAsync(file);
                     var item = ParseScriptHeader(content);
                     item.IsLocal = true;
+                    // 【修改点】：添加“本地”标识
+                    item.Name = $"[本地] {item.Name}";
                     item.SourcePathOrUrl = file;
                     item.FileName = Path.GetFileName(file);
                     allScripts.Add(item);
@@ -1141,12 +1143,11 @@ return 'OK'
             try
             {
                 using var httpClient = new HttpClient();
-                httpClient.Timeout = TimeSpan.FromSeconds(5); // 避免由于网络问题导致 UI 长期卡顿
+                httpClient.Timeout = TimeSpan.FromSeconds(5);
 
                 string jsonUrl = $"{ScriptBaseUrl}index.json";
                 var jsonString = await httpClient.GetStringAsync(jsonUrl);
 
-                // 直接反序列化到 LinuxScriptItem 列表
                 var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
                 var remoteScripts = JsonSerializer.Deserialize<List<LinuxScriptItem>>(jsonString, options);
 
@@ -1155,7 +1156,8 @@ return 'OK'
                     foreach (var item in remoteScripts)
                     {
                         item.IsLocal = false;
-                        // 拼接完整的 Raw 下载地址
+                        // 【修改点】：添加“在线”标识
+                        item.Name = $"[在线] {item.Name}";
                         item.SourcePathOrUrl = $"{ScriptBaseUrl}{item.FileName}";
                         allScripts.Add(item);
                     }
@@ -1166,12 +1168,13 @@ return 'OK'
                 Debug.WriteLine($"Remote script index fetch failed: {ex.Message}");
             }
 
-            // --- 3. 排序逻辑：本地脚本在前 (true > false)，同组内按名称升序 ---
+            // 排序保持不变：本地优先，同类按名称排序
             return allScripts
                 .OrderByDescending(x => x.IsLocal)
                 .ThenBy(x => x.Name)
                 .ToList();
         }
+
         private LinuxScriptItem ParseScriptHeader(string content)
         {
             var item = new LinuxScriptItem();

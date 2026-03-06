@@ -1,7 +1,7 @@
 #!/bin/bash
-# @Name: Ubuntu-22.04-Official
-# @Description: 针对 Ubuntu 22.04 的官方推荐部署脚本。
-# @Author: Justsenger
+# @Name: Ubuntu-22.04-Official-Optimized
+# @Description: 针对 Ubuntu 22.04 的官方推荐部署脚本。引入 Aria2 多线程下载器，专治恶劣网络环境。
+# @Author: Justsenger (Aria2-Edition)
 # @Version: 1.0.6
 
 set -e

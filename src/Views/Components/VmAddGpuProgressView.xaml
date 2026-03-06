@@ -234,12 +234,6 @@
                                             </StackPanel>
                                         </Grid>
 
-                                        <!-- 4. 持久化选项 -->
-                                        <CheckBox Grid.Row="3" Content="为 Linux 保留代理设置"
-                  IsChecked="{Binding KeepGlobalProxySetting}"
-                  Visibility="{Binding UseSshProxy, Converter={StaticResource BoolToVis}}"
-                  Margin="0,12,0,0"
-                  Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
                                     </Grid>
                                 </Border>
                                 

@@ -11,7 +11,6 @@
         public string ProxyHost { get; set; } 
         public int? ProxyPort { get; set; }   
         public bool UseProxy { get; set; }
-        public bool KeepGlobalProxySetting { get; set; }
 
         public bool InstallGraphics { get; set; } = true;
 

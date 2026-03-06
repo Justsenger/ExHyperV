@@ -147,7 +147,6 @@ namespace ExHyperV.ViewModels
         [ObservableProperty] private int _sshPort = 22;
         [ObservableProperty] private bool _installGraphics = true;
         [ObservableProperty] private bool _useSshProxy = false;
-        [ObservableProperty] private bool _keepGlobalProxySetting = false;
         [ObservableProperty] private string _sshProxyHost = "";
         [ObservableProperty] private string _sshProxyPort = "";
 
@@ -2965,7 +2964,8 @@ namespace ExHyperV.ViewModels
         }
 
         // 选择分区并继续驱动安装
-        [RelayCommand]
+        // 选择分区并继续驱动安装
+        [RelayCommand] // 确保有这个特性
         private async Task SelectPartitionAndContinue(PartitionInfo partition)
         {
             var driveTask = GpuTasks.FirstOrDefault(t => t.Name == Properties.Resources.Task_Gpu_Driver);
@@ -3012,18 +3012,29 @@ namespace ExHyperV.ViewModels
                 SelectedPartition = partition;
                 IsLoadingSettings = true;
 
-                ShowPartitionSelector = false;
+                // UI 状态转换：保持卡片开启，但切换到 SSH 表单 Grid
+                ShowPartitionSelector = true;
                 ShowSshForm = true;
 
                 driveTask.Description = Properties.Resources.Msg_Gpu_LinuxVm;
                 AppendLog(string.Format(Properties.Resources.Msg_Gpu_LinuxRemoteInit, partition.DisplayName));
                 try
                 {
-                    // Keep proxy fields empty by default; users can opt-in manually.
-                    UseSshProxy = false;
-                    KeepGlobalProxySetting = false;
-                    SshProxyHost = string.Empty;
-                    SshProxyPort = string.Empty;
+                    // --- 自动探测宿主代理 (不修改全局变量) ---
+                    UseSshProxy = false; // 默认关闭开关
+                    try
+                    {
+                        var systemProxy = System.Net.WebRequest.DefaultWebProxy;
+                        var proxyUri = systemProxy.GetProxy(new Uri("https://github.com"));
+                        if (proxyUri != null && !proxyUri.Host.Equals("github.com", StringComparison.OrdinalIgnoreCase))
+                        {
+                            SshProxyHost = proxyUri.Host;
+                            SshProxyPort = proxyUri.Port.ToString();
+                        }
+                    }
+                    catch { /* 静默失败 */ }
+
+                    // 检查虚拟机电源状态
                     var status = await _vmGpuService.IsVmPoweredOffAsync(SelectedVm.Name);
                     if (status.IsOff)
                     {
@@ -3036,17 +3047,15 @@ namespace ExHyperV.ViewModels
                     driveTask.Description = Properties.Resources.Msg_Gpu_IpScanning;
                     AppendLog(driveTask.Description);
 
+                    // 扫描 IP
                     string vmIp = await Task.Run(async () =>
                     {
                         string getMacScript = $"(Get-VMNetworkAdapter -VMName '{SelectedVm.Name}').MacAddress | Select-Object -First 1";
                         var macResult = Utils.Run(getMacScript);
-
                         if (macResult != null && macResult.Count > 0)
                         {
                             string rawMac = macResult[0].ToString();
                             string formattedMac = System.Text.RegularExpressions.Regex.Replace(rawMac, "(.{2})", "$1:").TrimEnd(':');
-                            AppendLog(string.Format(Properties.Resources.Msg_Gpu_MacOk, formattedMac));
-
                             for (int i = 0; i < 3; i++)
                             {
                                 var ip = await Utils.GetVmIpAddressAsync(SelectedVm.Name, formattedMac);
@@ -3067,87 +3076,60 @@ namespace ExHyperV.ViewModels
                         AppendLog(Properties.Resources.Error_Gpu_IpManual);
                     }
 
-                    ShowSshForm = true;
                     driveTask.Description = Properties.Resources.Msg_Gpu_SshConfirm;
                 }
                 catch (Exception ex)
                 {
                     ShowSnackbar(Properties.Resources.Error_Gpu_EnvFail, ex.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
                     AppendLog(string.Format(Properties.Resources.Warn_Gpu_EnvExc, ex.Message));
-                    ShowSshForm = true;
                 }
                 finally
                 {
                     IsLoadingSettings = false;
-                    ShowPartitionSelector = true;
                 }
             }
         }
-
         // 开始 Linux 部署
-        [RelayCommand]
+        // 开始 Linux 部署
+        [RelayCommand] // 之前缺失这个特性，导致按钮无效
         private async Task StartLinuxDeploy()
         {
             // 1. 定位驱动安装任务项
             var driveTask = GpuTasks.FirstOrDefault(t => t.TaskType == GpuTaskType.Driver);
             if (driveTask == null) return;
 
-            // 2. 基础验证：必须选择一个部署脚本
-            if (SelectedLinuxScript == null)
+            // 2. 验证
+            if (SelectedLinuxScript == null || string.IsNullOrWhiteSpace(SshHost))
             {
-                ShowSnackbar(Properties.Resources.Common_Error, "请选择一个部署脚本 (Please select a script)", ControlAppearance.Caution, SymbolRegular.Warning24);
+                ShowSnackbar(Properties.Resources.Error_Common_Verify, "请检查部署方案及主机IP (Please check script and Host IP)", ControlAppearance.Caution, SymbolRegular.Warning24);
                 return;
             }
 
-            // 3. 基础验证：SSH 主机地址
-            if (string.IsNullOrWhiteSpace(SshHost))
-            {
-                ShowSnackbar(Properties.Resources.Error_Common_Verify, Properties.Resources.Error_Gpu_IpEmpty, ControlAppearance.Danger, SymbolRegular.Warning24);
-                return;
-            }
-
-            // 4. 代理参数解析与验证
+            // 3. 代理参数解析
             int? proxyPort = null;
             string proxyHost = string.Empty;
             if (UseSshProxy)
             {
                 proxyHost = SshProxyHost?.Trim() ?? string.Empty;
-                bool hasPort = int.TryParse(SshProxyPort, out int parsedProxyPort);
-                if (string.IsNullOrWhiteSpace(proxyHost) || !hasPort)
+                if (!int.TryParse(SshProxyPort, out int port) || string.IsNullOrWhiteSpace(proxyHost))
                 {
                     ShowSnackbar(Properties.Resources.Error_Common_Verify, Properties.Resources.Validation_ProxyIpAndPortMismatch, ControlAppearance.Danger, SymbolRegular.Warning24);
                     return;
                 }
-                if (parsedProxyPort < 1 || parsedProxyPort > 65535)
-                {
-                    ShowSnackbar(Properties.Resources.Error_Common_Verify, Properties.Resources.Validation_InvalidProxyPort, ControlAppearance.Danger, SymbolRegular.Warning24);
-                    return;
-                }
-                proxyPort = parsedProxyPort;
+                proxyPort = port;
             }
 
-            // 5. 准备部署日志与 UI 状态
-            AppendLog(Properties.Resources.Msg_Gpu_DeployStart);
-            AppendLog($"[Info] Selected Script: {SelectedLinuxScript.Name} (v{SelectedLinuxScript.Version})");
-            AppendLog(string.Format(Properties.Resources.Msg_Gpu_SshInfo, SshHost, SshPort, SshUsername));
-
-            if (UseSshProxy && !string.IsNullOrEmpty(proxyHost) && proxyPort.HasValue)
-            {
-                AppendLog(string.Format(Properties.Resources.Msg_Gpu_UsingProxy, proxyHost, proxyPort.Value));
-                AppendLog(KeepGlobalProxySetting
-                    ? "[Info] Global proxy persistence: enabled"
-                    : "[Info] Global proxy persistence: disabled");
-            }
-            else
-            {
-                AppendLog("[Info] Proxy disabled for this session");
-            }
-
+            // 4. UI 切换：隐藏卡片，显示控制台
             ShowPartitionSelector = false;
             ShowSshForm = false;
+            ShowLogConsole = true;
             driveTask.Status = ExHyperV.Models.TaskStatus.Running;
 
-            // 6. 组装凭据对象
+            AppendLog(Properties.Resources.Msg_Gpu_DeployStart);
+            AppendLog($"[Info] Selected Script: {SelectedLinuxScript.Name}");
+            if (UseSshProxy) AppendLog(string.Format(Properties.Resources.Msg_Gpu_UsingProxy, proxyHost, proxyPort));
+
+            // 5. 组装凭据 (强制 KeepGlobalProxySetting 为 false)
             var creds = new SshCredentials
             {
                 Host = SshHost,
@@ -3155,63 +3137,48 @@ namespace ExHyperV.ViewModels
                 Username = SshUsername,
                 Password = SshPassword,
                 UseProxy = this.UseSshProxy,
-                KeepGlobalProxySetting = this.KeepGlobalProxySetting,
-                ProxyHost = proxyHost,
-                ProxyPort = proxyPort,
+                ProxyHost = this.UseSshProxy ? proxyHost : null,
+                ProxyPort = this.UseSshProxy ? proxyPort : null,
                 InstallGraphics = InstallGraphics
             };
 
-            // 7. 执行部署流程（调用重构后的状态机 Service）
-            // 注意：此处传递的是 SelectedLinuxScript 对象而不是 ID
+            // 6. 执行部署
             string result = await _vmGpuService.ProvisionLinuxGpuAsync(
                 SelectedVm.Name,
                 SelectedLinuxScript,
                 creds,
                 msg => {
-                    // 核心反馈逻辑：实时捕获脚本中的 [STEP: ...] 标志
                     if (msg.Contains("[STEP:"))
                     {
                         var match = System.Text.RegularExpressions.Regex.Match(msg, @"\[STEP:\s*(.*?)\]");
                         if (match.Success)
                         {
-                            // 将提取的步骤名称更新到 UI 任务项的描述文字中
                             Application.Current.Dispatcher.Invoke(() => {
                                 driveTask.Description = match.Groups[1].Value;
                             });
                         }
                     }
-
-                    // 将所有输出推送到日志控制台
                     AppendLog(msg);
                 },
                 CancellationToken.None
             );
 
-            // 8. 流程结束判定
+            // 7. 流程结束判定
             if (result == "OK" || (result.Contains("successfully") && result.Contains("signing")))
             {
                 driveTask.Status = ExHyperV.Models.TaskStatus.Success;
                 driveTask.Description = Properties.Resources.Msg_Gpu_LinuxDeployDone;
-                _currentProcessingGpuAdapterId = null; // 部署成功，不再标记为待清理
-
+                _currentProcessingGpuAdapterId = null;
                 AppendLog(Properties.Resources.Msg_Gpu_LinuxDeployDone);
                 await FinishWorkflowAsync();
             }
             else
             {
-                // 9. 失败回滚逻辑：如果分配了 GPU 且部署失败，则移除该分区防止残留
+                // 失败回滚
                 if (!string.IsNullOrEmpty(_currentProcessingGpuAdapterId))
                 {
                     AppendLog(Properties.Resources.Error_Gpu_LinuxRollback);
-                    try
-                    {
-                        await _vmGpuService.RemoveGpuPartitionAsync(SelectedVm.Name, _currentProcessingGpuAdapterId);
-                        AppendLog(Properties.Resources.Msg_Gpu_PartitionRemoved);
-                    }
-                    catch (Exception rbEx)
-                    {
-                        AppendLog($"[Warning] Rollback failed: {rbEx.Message}");
-                    }
+                    await _vmGpuService.RemoveGpuPartitionAsync(SelectedVm.Name, _currentProcessingGpuAdapterId);
                     _currentProcessingGpuAdapterId = null;
                 }
 
@@ -3220,14 +3187,6 @@ namespace ExHyperV.ViewModels
                 AppendLog(string.Format(Properties.Resources.Error_Gpu_DeployFatal, result));
             }
         }
-        partial void OnUseSshProxyChanged(bool value)
-        {
-            if (value) return;
-            SshProxyHost = string.Empty;
-            SshProxyPort = string.Empty;
-            KeepGlobalProxySetting = false;
-        }
-
         // 返回分区选择列表
         [RelayCommand]
         private void GoBackToPartitionList()
