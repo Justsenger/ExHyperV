@@ -1513,7 +1513,7 @@ return 'OK'
             scripts.Add(new LinuxScriptItem
             {
                 Name = "Ubuntu-22.04-Official (Remote)",
-                Description = "官方推荐的远程部署脚本",
+                Description = "官方部署脚本",
                 Author = "Justsenger",
                 IsLocal = false,
                 SourcePathOrUrl = "https://raw.githubusercontent.com/Justsenger/ExHyperV/main/src/Linux/script/Ubuntu-22.04-Official.sh",
