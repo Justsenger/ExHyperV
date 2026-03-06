@@ -220,7 +220,7 @@
                                     PlaceholderText="7890"/>
                                             </StackPanel>
                                         </Grid>
-                                        <CheckBox Content="保留全局代理设置（写入 /etc/environment）"
+                                        <CheckBox Content="为 Linux 保留代理设置"
                           IsChecked="{Binding KeepGlobalProxySetting}"
                           Visibility="{Binding UseSshProxy, Converter={StaticResource BoolToVis}}"
                           Margin="0,10,0,0"
