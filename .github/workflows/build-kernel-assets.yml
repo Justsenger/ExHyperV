@@ -9,19 +9,16 @@ permissions:
   contents: write
 
 jobs:
-  build-and-release:
+  build-and-deploy-to-branch:
     runs-on: ubuntu-latest
     steps:
       - name: 检出 ExHyperV 仓库
         uses: actions/checkout@v4
 
-      - name: 生成构建时间
-        id: date
-        run: echo "now=$(date +'%Y-%m-%d %H:%M:%S')" >> $GITHUB_OUTPUT
-
       - name: 构建驱动压缩包
         run: |
           VERSIONS=("linux-msft-wsl-5.15.y:5.15" "linux-msft-wsl-6.6.y:6.6")
+          mkdir -p output
           for item in "${VERSIONS[@]}"; do
             BRANCH=${item%%:*}
             SHORT_VER=${item#*:}
@@ -43,20 +40,17 @@ jobs:
             mkdir -p "$BUILD_DIR"
             cp -r ms-kernel/drivers/hv/dxgkrnl/* "$BUILD_DIR/"
             cp -r ms-kernel/include "$BUILD_DIR/include"
-            tar -czf "${BUILD_DIR}.tar.gz" "$BUILD_DIR"
+            tar -czf "output/${BUILD_DIR}.tar.gz" "$BUILD_DIR"
             rm -rf "$BUILD_DIR" ms-kernel
           done
 
-      - name: 发布资源文件
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: kernel-assets
-          files: |
-            dxgkrnl-5.15-patched.tar.gz
-            dxgkrnl-6.6-patched.tar.gz
-          name: "WSL2 内核驱动预制组件 (自动构建)"
-          body: "此 Release 仅供脚本下载使用。构建时间：${{ steps.date.outputs.now }}"
-          prerelease: true
-          make_latest: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: 强制推送到独立资源分支
+        run: |
+          cd output
+          git init
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -m "自动更新预制驱动组件 $(date +'%Y-%m-%d %H:%M:%S')"
+          # 强制推送，确保分支永远只有一次提交，不会随时间积累体积
+          git push "https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" HEAD:kernel-assets --force
