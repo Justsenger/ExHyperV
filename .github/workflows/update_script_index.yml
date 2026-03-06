@@ -2,25 +2,49 @@ name: Generate Script Index
 on:
   push:
     paths:
-      - 'src/Linux/script/*.sh' # 只有当脚本目录变动时才运行
+      - 'src/Linux/script/*.sh'
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v3
 
-      - name: Create Index File
+      - name: Generate JSON
         run: |
           cd src/Linux/script
-          # 扫描当前目录下所有 .sh 文件，生成一个简单的文件名列表
-          ls *.sh > index.txt 
+          echo "[" > index.json
+          FIRST=true
+          for f in *.sh; do
+            if [ "$f" = "index.json" ]; then continue; fi
+            if [ "$FIRST" = true ]; then
+              FIRST=false
+            else
+              echo "," >> index.json
+            fi
+            
+            NAME=$(grep "@Name:" "$f" | sed 's/.*@Name://' | sed 's/"/\\"/g' | xargs)
+            DESC=$(grep "@Description:" "$f" | sed 's/.*@Description://' | sed 's/"/\\"/g' | xargs)
+            AUTH=$(grep "@Author:" "$f" | sed 's/.*@Author://' | sed 's/"/\\"/g' | xargs)
+            VERS=$(grep "@Version:" "$f" | sed 's/.*@Version://' | sed 's/"/\\"/g' | xargs)
+            
+            echo "  {" >> index.json
+            echo "    \"FileName\": \"$f\"," >> index.json
+            echo "    \"Name\": \"${NAME:-$f}\"," >> index.json
+            echo "    \"Description\": \"${DESC:-}\"," >> index.json
+            echo "    \"Author\": \"${AUTH:-Justsenger}\"," >> index.json
+            echo "    \"Version\": \"${VERS:-1.0}\"" >> index.json
+            echo "  }" >> index.json
+          done
+          echo "]" >> index.json
 
       - name: Commit and Push
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add src/Linux/script/index.txt
-          git commit -m "Auto-update script index" || exit 0
+          git add src/Linux/script/index.json
+          git commit -m "Auto-update script index.json" || exit 0
           git push
