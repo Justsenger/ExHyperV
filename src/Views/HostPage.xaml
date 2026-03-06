@@ -210,6 +210,24 @@
                                      IsEnabled="{Binding IsGpuStrategyToggleEnabled}"/>
                 </ui:CardControl>
 
+                <ui:CardControl Margin="0,0,0,8" Padding="12">
+                    <ui:CardControl.Icon>
+                        <ui:FontIcon FontSize="22" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xE7EF;"/>
+                    </ui:CardControl.Icon>
+                    <ui:CardControl.Header>
+                        <StackPanel>
+                            <TextBlock Text="系统 SKU 切换" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                            <TextBlock Text="重启后生效。切换后需要重新激活 Windows" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                        </StackPanel>
+                    </ui:CardControl.Header>
+                    <ComboBox Width="250" 
+              ItemsSource="{Binding SkuList}"
+              DisplayMemberPath="Name"
+              SelectedItem="{Binding SelectedSku, Mode=TwoWay}"
+              />
+                </ui:CardControl>
+
+
                 <!-- 系统切换 -->
                 <ui:CardControl Margin="0,0,0,8" Padding="12">
                     <ui:CardControl.Icon>
@@ -224,6 +242,7 @@
                     <ui:ToggleSwitch IsChecked="{Binding IsServerSystem, Mode=TwoWay}"
                                      IsEnabled="{Binding IsSystemSwitchEnabled}"/>
                 </ui:CardControl>
+            
             </StackPanel>
         </StackPanel>
     </Grid>

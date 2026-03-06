@@ -11,43 +11,31 @@ KERNEL_5_15_NEWER_REGEX="^(5\.1[5-9]+\.|6\.[0-5]\.)"
 
 install_dependencies() {
     NEED_TO_INSTALL=""
-    append_pkg() {
-        NEED_TO_INSTALL="$NEED_TO_INSTALL $1"
-    }
-
     if [ ! -e "/bin/git" ] && [ ! -e "/usr/bin/git" ]; then
-        append_pkg git
+        NEED_TO_INSTALL="git"; 
     fi
     if [ ! -e "/usr/bin/curl" ] && [ ! -e "/bin/curl" ]; then
-        append_pkg curl
+        NEED_TO_INSTALL="$NEED_TO_INSTALL curl"
     fi
     if [ ! -e "/sbin/dkms" ] && [ ! -e "/bin/dkms" ] && [ ! -e "/usr/bin/dkms" ]; then
-        append_pkg dkms
-    fi
-    if [ ! -e "/usr/bin/wget" ] && [ ! -e "/bin/wget" ]; then
-        append_pkg wget
+        NEED_TO_INSTALL="$NEED_TO_INSTALL dkms"
     fi
 
-    if [[ "$LINUX_DISTRO" == *"arch"* ]]; then
-        # DKMS compile chain on Arch depends on base-devel.
-        append_pkg base-devel
-    fi
-
-    if [[ ! -z "${NEED_TO_INSTALL// /}" ]]; then
-        echo "Installing basic dependencies:$NEED_TO_INSTALL"
+    if [[ ! -z "$NEED_TO_INSTALL" ]]; then
+        echo "Installing basic dependencies: $NEED_TO_INSTALL"
         if [[ "$LINUX_DISTRO" == *"debian"* || "$LINUX_DISTRO" == *"ubuntu"* ]]; then
             apt update;
             apt install -y $NEED_TO_INSTALL;
         elif [[ "$LINUX_DISTRO" == *"fedora"* ]]; then
             yum -y install $NEED_TO_INSTALL;
         elif [[ "$LINUX_DISTRO" == *"arch"* ]]; then
-            pacman -Sy --noconfirm --needed $NEED_TO_INSTALL;
+            pacman -Sy --noconfirm $NEED_TO_INSTALL;
         else
             echo "Fatal: The system distro is unsupported";
             exit 1;
         fi
     else
-        echo "Basic dependencies are already installed."
+        echo "Basic dependencies (git, curl, dkms) are already installed."
     fi
 }
 
