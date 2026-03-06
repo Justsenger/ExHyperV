@@ -109,6 +109,12 @@
                    FontSize="20" FontWeight="SemiBold" Margin="0,0,0,15" 
                    Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
 
+                                <ui:CardControl Header="部署脚本" Icon="Document24">
+                                    <ComboBox ItemsSource="{Binding AvailableLinuxScripts}" 
+              SelectedItem="{Binding SelectedLinuxScript}" 
+              DisplayMemberPath="Name" />
+                                </ui:CardControl>
+
                                 <!-- 主机 IP 与 端口 -->
                                 <Grid Margin="0,0,0,15">
                                     <Grid.ColumnDefinitions>

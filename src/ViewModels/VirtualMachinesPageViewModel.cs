@@ -159,6 +159,11 @@ namespace ExHyperV.ViewModels
         // 构造函数与资源释放
         // ----------------------------------------------------------------------------------
 
+        // Linux 部署字段
+
+        [ObservableProperty] private ObservableCollection<LinuxScriptItem> _availableLinuxScripts = new();
+        [ObservableProperty] private LinuxScriptItem _selectedLinuxScript;
+
         public VirtualMachinesPageViewModel(VmQueryService queryService, VmPowerService powerService)
         {
             _queryService = queryService;
@@ -2688,15 +2693,21 @@ namespace ExHyperV.ViewModels
             IsLoadingSettings = true;
             try
             {
+                // 1. 加载 GPU 列表
                 var gpus = await _vmGpuService.GetHostGpusAsync();
                 HostGpus = new ObservableCollection<GPUInfo>(gpus);
                 SelectedHostGpu = null;
+
+                // 2. 加载 Linux 脚本列表 (重写部分)
+                var scripts = await _vmGpuService.GetAvailableScriptsAsync();
+                AvailableLinuxScripts = new ObservableCollection<LinuxScriptItem>(scripts);
+                SelectedLinuxScript = AvailableLinuxScripts.FirstOrDefault(); // 默认选中第一个（通常是本地脚本）
 
                 CurrentViewType = VmDetailViewType.AddGpuSelect;
             }
             catch (Exception ex)
             {
-                ShowSnackbar(Properties.Resources.Common_Error, Properties.Resources.Error_Gpu_LoadHost + ex.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                ShowSnackbar(Properties.Resources.Common_Error, "Failed to load GPU or Scripts: " + ex.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
             }
             finally
             {
@@ -3068,14 +3079,25 @@ namespace ExHyperV.ViewModels
         [RelayCommand]
         private async Task StartLinuxDeploy()
         {
-            var driveTask = GpuTasks.FirstOrDefault(t => t.Name == Properties.Resources.Task_Gpu_Driver);
+            // 1. 定位驱动安装任务项
+            var driveTask = GpuTasks.FirstOrDefault(t => t.TaskType == GpuTaskType.Driver);
             if (driveTask == null) return;
 
+            // 2. 基础验证：必须选择一个部署脚本
+            if (SelectedLinuxScript == null)
+            {
+                ShowSnackbar(Properties.Resources.Common_Error, "请选择一个部署脚本 (Please select a script)", ControlAppearance.Caution, SymbolRegular.Warning24);
+                return;
+            }
+
+            // 3. 基础验证：SSH 主机地址
             if (string.IsNullOrWhiteSpace(SshHost))
             {
                 ShowSnackbar(Properties.Resources.Error_Common_Verify, Properties.Resources.Error_Gpu_IpEmpty, ControlAppearance.Danger, SymbolRegular.Warning24);
                 return;
             }
+
+            // 4. 代理参数解析与验证
             int? proxyPort = null;
             string proxyHost = string.Empty;
             if (UseSshProxy)
@@ -3095,24 +3117,28 @@ namespace ExHyperV.ViewModels
                 proxyPort = parsedProxyPort;
             }
 
+            // 5. 准备部署日志与 UI 状态
             AppendLog(Properties.Resources.Msg_Gpu_DeployStart);
+            AppendLog($"[Info] Selected Script: {SelectedLinuxScript.Name} (v{SelectedLinuxScript.Version})");
             AppendLog(string.Format(Properties.Resources.Msg_Gpu_SshInfo, SshHost, SshPort, SshUsername));
+
             if (UseSshProxy && !string.IsNullOrEmpty(proxyHost) && proxyPort.HasValue)
             {
                 AppendLog(string.Format(Properties.Resources.Msg_Gpu_UsingProxy, proxyHost, proxyPort.Value));
                 AppendLog(KeepGlobalProxySetting
-                    ? "[Info] Keep global proxy setting: enabled"
-                    : "[Info] Keep global proxy setting: disabled");
+                    ? "[Info] Global proxy persistence: enabled"
+                    : "[Info] Global proxy persistence: disabled");
             }
             else
             {
-                AppendLog("[Info] Proxy disabled for this deployment");
+                AppendLog("[Info] Proxy disabled for this session");
             }
+
             ShowPartitionSelector = false;
             ShowSshForm = false;
-
             driveTask.Status = ExHyperV.Models.TaskStatus.Running;
 
+            // 6. 组装凭据对象
             var creds = new SshCredentials
             {
                 Host = SshHost,
@@ -3126,30 +3152,57 @@ namespace ExHyperV.ViewModels
                 InstallGraphics = InstallGraphics
             };
 
+            // 7. 执行部署流程（调用重构后的状态机 Service）
+            // 注意：此处传递的是 SelectedLinuxScript 对象而不是 ID
             string result = await _vmGpuService.ProvisionLinuxGpuAsync(
                 SelectedVm.Name,
-                SelectedHostGpu.InstanceId,
+                SelectedLinuxScript,
                 creds,
                 msg => {
-                    driveTask.Description = msg;
+                    // 核心反馈逻辑：实时捕获脚本中的 [STEP: ...] 标志
+                    if (msg.Contains("[STEP:"))
+                    {
+                        var match = System.Text.RegularExpressions.Regex.Match(msg, @"\[STEP:\s*(.*?)\]");
+                        if (match.Success)
+                        {
+                            // 将提取的步骤名称更新到 UI 任务项的描述文字中
+                            Application.Current.Dispatcher.Invoke(() => {
+                                driveTask.Description = match.Groups[1].Value;
+                            });
+                        }
+                    }
+
+                    // 将所有输出推送到日志控制台
                     AppendLog(msg);
                 },
                 CancellationToken.None
             );
 
+            // 8. 流程结束判定
             if (result == "OK" || (result.Contains("successfully") && result.Contains("signing")))
             {
                 driveTask.Status = ExHyperV.Models.TaskStatus.Success;
-                _currentProcessingGpuAdapterId = null;
+                driveTask.Description = Properties.Resources.Msg_Gpu_LinuxDeployDone;
+                _currentProcessingGpuAdapterId = null; // 部署成功，不再标记为待清理
+
                 AppendLog(Properties.Resources.Msg_Gpu_LinuxDeployDone);
                 await FinishWorkflowAsync();
             }
             else
             {
+                // 9. 失败回滚逻辑：如果分配了 GPU 且部署失败，则移除该分区防止残留
                 if (!string.IsNullOrEmpty(_currentProcessingGpuAdapterId))
                 {
                     AppendLog(Properties.Resources.Error_Gpu_LinuxRollback);
-                    await _vmGpuService.RemoveGpuPartitionAsync(SelectedVm.Name, _currentProcessingGpuAdapterId);
+                    try
+                    {
+                        await _vmGpuService.RemoveGpuPartitionAsync(SelectedVm.Name, _currentProcessingGpuAdapterId);
+                        AppendLog(Properties.Resources.Msg_Gpu_PartitionRemoved);
+                    }
+                    catch (Exception rbEx)
+                    {
+                        AppendLog($"[Warning] Rollback failed: {rbEx.Message}");
+                    }
                     _currentProcessingGpuAdapterId = null;
                 }
 
@@ -3158,7 +3211,6 @@ namespace ExHyperV.ViewModels
                 AppendLog(string.Format(Properties.Resources.Error_Gpu_DeployFatal, result));
             }
         }
-
         partial void OnUseSshProxyChanged(bool value)
         {
             if (value) return;

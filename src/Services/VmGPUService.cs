@@ -22,6 +22,7 @@ namespace ExHyperV.Services
             public string Path { get; set; }        // 如果是虚拟盘，存 VHDX 路径
             public int PhysicalDiskNumber { get; set; } // 如果是物理盘，存 Disk Number (e.g. 0, 1, 2)
         }
+        private const string RemoteScriptsIndexUrl = "https://raw.githubusercontent.com/Justsenger/ExHyperV/main/src/Linux/script/index.json"; // Linux 脚本索引
 
         public Task<List<(string Id, string InstancePath)>> GetVmGpuAdaptersAsync(string vmName)
         {
@@ -516,6 +517,12 @@ return 'OK'
                 {
                     PromoteIntelGpuFiles(assignedDriveLetter);
                 }
+                else if (gpuManu.Contains("AMD", StringComparison.OrdinalIgnoreCase) ||
+         gpuManu.Contains("Advanced", StringComparison.OrdinalIgnoreCase))
+                {
+                    PromoteAmdGpuFiles(assignedDriveLetter);
+                }
+
 
                 return "OK";
             }
@@ -648,6 +655,39 @@ return 'OK'
             LinkSingleFile(assignedDriveLetter, "ControlLib.dll", "ControlLib.dll", "System32");
         }
 
+        private void PromoteAmdGpuFiles(string assignedDriveLetter)
+        {
+            // --- 1. 基础渲染与计算核心 (AMD 通用) ---
+            // 这些是 3D 应用和视频解码必须的
+            LinkSingleFile(assignedDriveLetter, "atidxx64.dll", "atidxx64.dll", "System32");
+            LinkSingleFile(assignedDriveLetter, "atig6txx.dll", "atig6txx.dll", "System32");
+            LinkSingleFile(assignedDriveLetter, "atig6dev.dll", "atig6dev.dll", "System32");
+            LinkSingleFile(assignedDriveLetter, "amdxx64.dll", "amdxx64.dll", "System32");
+            LinkSingleFile(assignedDriveLetter, "amdihk64.dll", "amdihk64.dll", "System32");
+
+            // --- 2. 你扫描出的匹配项 (System32 根目录) ---
+            LinkSingleFile(assignedDriveLetter, "atimuixx.dll", "atimuixx.dll", "System32");
+            LinkSingleFile(assignedDriveLetter, "atisamu64.dll", "atisamu64.dll", "System32");
+            LinkSingleFile(assignedDriveLetter, "ativvsva.dat", "ativvsva.dat", "System32");
+            LinkSingleFile(assignedDriveLetter, "ativvsvl.dat", "ativvsvl.dat", "System32");
+            LinkSingleFile(assignedDriveLetter, "EEURestart.exe", "EEURestart.exe", "System32");
+            LinkSingleFile(assignedDriveLetter, "GameManager64.dll", "GameManager64.dll", "System32");
+
+            // --- 3. 特殊重命名项 ---
+            // 根据扫描结果：detoured64.dll -> detoured.dll
+            LinkSingleFile(assignedDriveLetter, "detoured64.dll", "detoured.dll", "System32");
+
+            // --- 4. AMD 专用子目录组件 (amdkmpfd) ---
+            // 这些文件位于 System32\AMD\amdkmpfd\
+            string amdSubDir = Path.Combine("System32", "AMD", "amdkmpfd");
+            LinkSingleFile(assignedDriveLetter, "amdkmpfd.ctz", "amdkmpfd.ctz", amdSubDir);
+            LinkSingleFile(assignedDriveLetter, "amdkmpfd.itz", "amdkmpfd.itz", amdSubDir);
+            LinkSingleFile(assignedDriveLetter, "amdkmpfd.stz", "amdkmpfd.stz", amdSubDir);
+
+            // --- 5. Vulkan 支持 ---
+            LinkSingleFile(assignedDriveLetter, "amdvlk64.dll", "amdvlk64.dll", "System32");
+            LinkSingleFile(assignedDriveLetter, "amdvlk64.dll", "vulkan-1.dll", "System32");
+        }
 
         private void ProcessPromotionRegistryKey(Microsoft.Win32.RegistryKey adapterKey, string subKeyName, string assignedDriveLetter, string targetSubDir)
         {
@@ -684,6 +724,12 @@ return 'OK'
                 string guestRepo = Path.Combine(assignedDriveLetter, "Windows", "System32", "HostDriverStore", "FileRepository");
                 string hostDestDir = Path.Combine(assignedDriveLetter, "Windows", targetSubDir);
 
+                // 如果目标子目录不存在（例如 System32\AMD\amdkmpfd），先创建它
+                if (!Directory.Exists(hostDestDir))
+                {
+                    Directory.CreateDirectory(hostDestDir);
+                }
+
                 var foundFiles = new DirectoryInfo(guestRepo)
                                     .GetFiles(sourceName, SearchOption.AllDirectories)
                                     .OrderByDescending(f => f.LastWriteTime)
@@ -692,13 +738,19 @@ return 'OK'
                 if (foundFiles.Count == 0) return;
 
                 string hostSourceFile = foundFiles[0].FullName;
+                // 关键：mklink 需要虚拟机内部的绝对路径，即 C:\Windows\...
                 string guestInternalTarget = hostSourceFile.Replace(assignedDriveLetter, "C:");
                 string hostLinkPath = Path.Combine(hostDestDir, targetName);
 
                 if (File.Exists(hostLinkPath)) File.Delete(hostLinkPath);
+
+                // 执行 mklink
                 ExecuteCommand($"cmd /c mklink \"{hostLinkPath}\" \"{guestInternalTarget}\"");
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Link error for {sourceName}: {ex.Message}");
+            }
         }
 
         public Task<string> AddGpuPartitionAsync(string vmName, string gpuInstancePath, string gpuManu, PartitionInfo selectedPartition, string id, SshCredentials credentials = null, Action<string> progressCallback = null, CancellationToken cancellationToken = default)
@@ -1431,5 +1483,175 @@ return 'OK'
                 }
             });
         }
+
+
+
+        public async Task<List<LinuxScriptItem>> GetAvailableScriptsAsync()
+        {
+            var scripts = new List<LinuxScriptItem>();
+
+            // 1. 扫描本地文件夹
+            string localFolder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "UserScripts");
+            if (!Directory.Exists(localFolder)) Directory.CreateDirectory(localFolder);
+
+            try
+            {
+                var files = Directory.GetFiles(localFolder, "*.sh");
+                foreach (var file in files)
+                {
+                    string content = await File.ReadAllTextAsync(file);
+                    var item = ParseScriptHeader(content);
+                    item.IsLocal = true;
+                    item.SourcePathOrUrl = file;
+                    item.FileName = Path.GetFileName(file);
+                    scripts.Add(item);
+                }
+            }
+            catch (Exception ex) { Debug.WriteLine($"Local script scan error: {ex.Message}"); }
+
+            // 2. 远程脚本发现 (此处演示直接添加官方 Raw 链接，你也可以解析 GitHub API)
+            scripts.Add(new LinuxScriptItem
+            {
+                Name = "Ubuntu-22.04-Official (Remote)",
+                Description = "官方推荐的远程部署脚本",
+                Author = "Justsenger",
+                IsLocal = false,
+                SourcePathOrUrl = "https://raw.githubusercontent.com/Justsenger/ExHyperV/main/src/Linux/script/Ubuntu-22.04-Official.sh",
+                FileName = "Ubuntu-22.04-Official.sh"
+            });
+
+            return scripts.OrderByDescending(x => x.IsLocal).ToList();
+        }
+
+        private LinuxScriptItem ParseScriptHeader(string content)
+        {
+            var item = new LinuxScriptItem();
+            item.Name = Regex.Match(content, @"# @Name:\s*(.*)").Groups[1].Value.Trim();
+            item.Description = Regex.Match(content, @"# @Description:\s*(.*)").Groups[1].Value.Trim();
+            item.Author = Regex.Match(content, @"# @Author:\s*(.*)").Groups[1].Value.Trim();
+            item.Version = Regex.Match(content, @"# @Version:\s*(.*)").Groups[1].Value.Trim();
+
+            if (string.IsNullOrEmpty(item.Name)) item.Name = "Unknown Script";
+            return item;
+        }
+
+        // 核心重构：支持重启循环的部署函数
+        public Task<string> ProvisionLinuxGpuAsync(
+            string vmName,
+            LinuxScriptItem script,
+            SshCredentials credentials,
+            Action<string> progressCallback,
+            CancellationToken ct)
+        {
+            return Task.Run(async () =>
+            {
+                void Log(string msg) => progressCallback?.Invoke(msg);
+                var sshService = new SshService();
+
+                try
+                {
+                    // --- 阶段 1: 准备工作 (IP 嗅探与连接) ---
+                    var currentState = await GetVmStateAsync(vmName);
+                    if (currentState != "Running")
+                    {
+                        Log("[ExHyperV] Starting VM...");
+                        Utils.Run($"Start-VM -Name '{vmName}'");
+                        await Task.Delay(5000);
+                    }
+
+                    Log(Properties.Resources.Msg_Gpu_LinuxWaitingIp);
+                    string getMacScript = $"(Get-VMNetworkAdapter -VMName '{vmName}').MacAddress | Select-Object -First 1";
+                    var macResult = await Utils.Run2(getMacScript);
+                    if (macResult == null || macResult.Count == 0) return "Failed to get VM MAC Address";
+
+                    string macAddress = Regex.Replace(macResult[0].ToString(), "(.{2})", "$1:").TrimEnd(':');
+                    string vmIpAddress = await Utils.GetVmIpAddressAsync(vmName, macAddress);
+                    string targetIp = Utils.SelectBestIpv4Address(!string.IsNullOrWhiteSpace(credentials.Host) ? credentials.Host : vmIpAddress);
+
+                    if (string.IsNullOrEmpty(targetIp)) return "No valid IPv4 address found.";
+                    credentials.Host = targetIp;
+
+                    if (!await WaitForVmToBeResponsiveAsync(credentials.Host, credentials.Port, ct))
+                        return Properties.Resources.Error_Gpu_SshTimeout;
+
+                    // --- 阶段 2: 文件上传 (驱动与 WSL 库) ---
+                    string remoteTempDir = "/tmp/exhyperv_deploy";
+                    using (var client = new SshClient(credentials.Host, credentials.Port, credentials.Username, credentials.Password))
+                    {
+                        client.Connect();
+                        client.RunCommand($"mkdir -p {remoteTempDir}/drivers {remoteTempDir}/lib");
+                        client.Disconnect();
+                    }
+
+                    Log("Uploading Driver and WSL Libraries...");
+                    string sourceDriverPath = FindGpuDriverSourcePath(string.Empty);
+                    await sshService.UploadDirectoryAsync(credentials, sourceDriverPath, $"{remoteTempDir}/drivers");
+                    await UploadLocalFilesAsync(sshService, credentials, $"{remoteTempDir}/lib");
+
+                    // --- 阶段 3: 处理自选脚本 ---
+                    string remoteScriptPath = $"{remoteTempDir}/{script.FileName}";
+                    if (script.IsLocal)
+                    {
+                        Log($"Uploading local script: {script.Name}");
+                        await sshService.UploadFileAsync(credentials, script.SourcePathOrUrl, remoteScriptPath);
+                    }
+                    else
+                    {
+                        Log($"Downloading remote script: {script.Name}");
+                        string downloadCmd = $"wget -O {remoteScriptPath} {script.SourcePathOrUrl} || curl -fL {script.SourcePathOrUrl} -o {remoteScriptPath}";
+                        await sshService.ExecuteSingleCommandAsync(credentials, downloadCmd, Log);
+                    }
+                    await sshService.ExecuteSingleCommandAsync(credentials, $"chmod +x {remoteScriptPath}", Log);
+
+                    // --- 阶段 4: 状态机执行循环 ---
+                    bool isSuccess = false;
+                    int maxAttempts = 3;
+
+                    for (int attempt = 1; attempt <= maxAttempts; attempt++)
+                    {
+                        if (ct.IsCancellationRequested) return "Cancelled";
+
+                        bool rebootNeeded = false;
+                        string graphicsArg = credentials.InstallGraphics ? "true" : "false";
+                        string proxyArg = credentials.UseProxy ? $"\"http://{credentials.ProxyHost}:{credentials.ProxyPort}\"" : "\"\"";
+
+                        // 使用 sudo -E 保证代理变量能传递给 apt
+                        string execCmd = $"echo '{credentials.Password.Replace("'", "'\\''")}' | sudo -S -E -p '' bash {remoteScriptPath} deploy {graphicsArg} {proxyArg}";
+
+                        Log($"[Attempt {attempt}] Executing script...");
+
+                        await sshService.ExecuteCommandAndCaptureOutputAsync(credentials, execCmd, line =>
+                        {
+                            Log(line);
+                            if (line.Contains("[STATUS: SUCCESS]")) isSuccess = true;
+                            if (line.Contains("[STATUS: REBOOT_REQUIRED]")) rebootNeeded = true;
+                        }, TimeSpan.FromMinutes(60));
+
+                        if (isSuccess) break;
+
+                        if (rebootNeeded)
+                        {
+                            Log("!!! VM Reboot required. Restarting now...");
+                            Utils.Run($"Restart-VM -Name '{vmName}' -Force");
+                            await Task.Delay(10000); // 等待开始关机
+                            if (!await WaitForVmToBeResponsiveAsync(credentials.Host, credentials.Port, ct))
+                                return "VM failed to come back online after reboot.";
+
+                            Log("VM is back online. Resuming deployment...");
+                            continue; // 重新进入循环执行同一脚本
+                        }
+
+                        // 如果既没成功也没重启信号，通常是脚本内部报错 set -e 触发了
+                        if (!isSuccess) return "Script execution failed (no success signal).";
+                    }
+
+                    return isSuccess ? "OK" : "Maximum reboot attempts reached.";
+
+                }
+                catch (Exception ex) { return $"Error: {ex.Message}"; }
+            });
+        }
+
+
     }
 }
