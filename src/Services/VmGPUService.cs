@@ -1590,6 +1590,16 @@ return 'OK'
 
                     // --- 阶段 3: 处理自选脚本 ---
                     string remoteScriptPath = $"{remoteTempDir}/{script.FileName}";
+
+                    // 1. 重新计算代理前缀（你重构的方法里漏掉了这块）
+                    string proxyEnv = string.Empty;
+                    if (credentials.UseProxy && !string.IsNullOrEmpty(credentials.ProxyHost))
+                    {
+                        string proxyUrl = $"http://{credentials.ProxyHost}:{credentials.ProxyPort}";
+                        // 注入常用的环境变量，强制 wget/curl 走代理
+                        proxyEnv = $"http_proxy='{proxyUrl}' https_proxy='{proxyUrl}' HTTP_PROXY='{proxyUrl}' HTTPS_PROXY='{proxyUrl}' ";
+                    }
+
                     if (script.IsLocal)
                     {
                         Log($"Uploading local script: {script.Name}");
@@ -1597,12 +1607,14 @@ return 'OK'
                     }
                     else
                     {
-                        Log($"Downloading remote script: {script.Name}");
-                        string downloadCmd = $"wget -O {remoteScriptPath} {script.SourcePathOrUrl} || curl -fL {script.SourcePathOrUrl} -o {remoteScriptPath}";
+                        Log($"Downloading remote script inside VM: {script.Name}");
+                        // 修复重点：必须把 proxyEnv 拼在命令最前面！
+                        // 并且使用 sh -c 包裹，确保环境变量对后面的命令生效
+                        string downloadCmd = $"{proxyEnv}sh -c \"wget -q -O {remoteScriptPath} {script.SourcePathOrUrl} || curl -fL {script.SourcePathOrUrl} -o {remoteScriptPath}\"";
+
                         await sshService.ExecuteSingleCommandAsync(credentials, downloadCmd, Log);
                     }
                     await sshService.ExecuteSingleCommandAsync(credentials, $"chmod +x {remoteScriptPath}", Log);
-
                     // --- 阶段 4: 状态机执行循环 ---
                     bool isSuccess = false;
                     int maxAttempts = 3;
