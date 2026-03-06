@@ -1,0 +1,33 @@
+[
+  {
+    "FileName": "Ubuntu-22.04-Official.sh",
+    "Name": "Ubuntu-22.04-Official",
+    "Description": "",
+    "Author": "Justsenger",
+    "Version": "1.0.1"
+  }
+,
+  {
+    "FileName": "configure_system.sh",
+    "Name": "configure_system.sh",
+    "Description": "",
+    "Author": "Justsenger",
+    "Version": "1.0"
+  }
+,
+  {
+    "FileName": "install_dxgkrnl.sh",
+    "Name": "install_dxgkrnl.sh",
+    "Description": "",
+    "Author": "Justsenger",
+    "Version": "1.0"
+  }
+,
+  {
+    "FileName": "setup_graphics.sh",
+    "Name": "setup_graphics.sh",
+    "Description": "",
+    "Author": "Justsenger",
+    "Version": "1.0"
+  }
+]
