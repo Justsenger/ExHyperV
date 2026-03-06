@@ -184,46 +184,65 @@
                                 <!-- 图形驱动选项 -->
                                 <CheckBox Content="{x:Static properties:Resources.CheckBox_InstallGraphicsDrivers}" IsChecked="{Binding InstallGraphics}" Margin="0,0,0,20"/>
 
-                                <!-- ✅ HTTP 代理：开关与内容合并到同一栏 -->
+                                <!-- HTTP 代理 (可选) 区域 -->
                                 <Border Padding="16" Background="{ui:ThemeResource ControlFillColorTertiaryBrush}" CornerRadius="8" Margin="0,0,0,25">
-                                    <StackPanel>
-                                        <TextBlock Text="{x:Static properties:Resources.GroupBox_HttpProxyOptional}" FontWeight="Medium" Margin="0,0,0,5"/>
-                                        <TextBlock Text="{x:Static properties:Resources.Info_UseProxyForGitHub}" FontSize="11" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" Margin="0,0,0,15" TextWrapping="Wrap"/>
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <!-- 第一行：标题和开关 -->
+                                            <RowDefinition Height="Auto"/>
+                                            <!-- 第二行：提示文字 -->
+                                            <RowDefinition Height="Auto"/>
+                                            <!-- 第三行：输入框 -->
+                                            <RowDefinition Height="Auto"/>
+                                            <!-- 第四行：持久化勾选 -->
+                                        </Grid.RowDefinitions>
 
-                                        <!-- 三列布局：开关 | IP地址 | 端口 -->
-                                        <Grid>
+                                        <!-- 1. 顶部行：标题在左，开关在右 -->
+                                        <DockPanel Grid.Row="0" LastChildFill="False" Margin="0,0,0,8">
+                                            <TextBlock Text="{x:Static properties:Resources.GroupBox_HttpProxyOptional}" 
+                       FontWeight="Medium" VerticalAlignment="Center" DockPanel.Dock="Left"/>
+
+                                            <!-- 开关挪到了右上角 -->
+                                            <ui:ToggleSwitch IsChecked="{Binding UseSshProxy}" 
+                             DockPanel.Dock="Right" 
+                             VerticalAlignment="Center"/>
+                                        </DockPanel>
+
+                                        <!-- 2. 提示文字 -->
+                                        <TextBlock Grid.Row="1" Text="{x:Static properties:Resources.Info_UseProxyForGitHub}" 
+                   FontSize="11" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" 
+                   Margin="0,0,0,15" TextWrapping="Wrap"/>
+
+                                        <!-- 3. 输入框区域 (仅在开关开启时可用) -->
+                                        <Grid Grid.Row="2" IsEnabled="{Binding UseSshProxy}">
                                             <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="Auto" />
                                                 <ColumnDefinition Width="2*" />
                                                 <ColumnDefinition Width="*" />
                                             </Grid.ColumnDefinitions>
 
-                                            <!-- 开关：紧凑排列 -->
-                                            <ui:ToggleSwitch IsChecked="{Binding UseSshProxy}" VerticalAlignment="Bottom" Margin="0,0,15,5"/>
-
-                                            <!-- IP 地址 -->
-                                            <StackPanel Grid.Column="1" Margin="0,0,10,0" IsEnabled="{Binding UseSshProxy}">
+                                            <StackPanel Grid.Column="0" Margin="0,0,10,0">
                                                 <TextBlock Text="{x:Static properties:Resources.Label_ProxyIpAddress}" Margin="0,0,0,5" FontSize="12"/>
                                                 <ui:TextBox Text="{Binding SshProxyHost, UpdateSourceTrigger=PropertyChanged}" 
-                                                            PlaceholderText="172.20.144.1"/>
+                            PlaceholderText="172.20.144.1"/>
                                             </StackPanel>
 
-                                            <!-- 端口 -->
-                                            <StackPanel Grid.Column="2" Margin="10,0,0,0" IsEnabled="{Binding UseSshProxy}">
+                                            <StackPanel Grid.Column="1" Margin="10,0,0,0">
                                                 <TextBlock Text="{x:Static properties:Resources.Label_Port}" Margin="0,0,0,5" FontSize="12"/>
                                                 <ui:TextBox Text="{Binding SshProxyPort, UpdateSourceTrigger=PropertyChanged}" 
-                                                            PlaceholderText="7890"/>
+                            PlaceholderText="7890"/>
                                             </StackPanel>
                                         </Grid>
 
-                                        <CheckBox Content="为 Linux 保留代理设置"
-                                                  IsChecked="{Binding KeepGlobalProxySetting}"
-                                                  Visibility="{Binding UseSshProxy, Converter={StaticResource BoolToVis}}"
-                                                  Margin="0,12,0,0"
-                                                  Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
-                                    </StackPanel>
+                                        <!-- 4. 持久化选项 -->
+                                        <CheckBox Grid.Row="3" Content="为 Linux 保留代理设置"
+                  IsChecked="{Binding KeepGlobalProxySetting}"
+                  Visibility="{Binding UseSshProxy, Converter={StaticResource BoolToVis}}"
+                  Margin="0,12,0,0"
+                  Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                                    </Grid>
                                 </Border>
-
+                                
                                 <!-- 底部按钮 -->
                                 <Grid>
                                     <Grid.ColumnDefinitions>
