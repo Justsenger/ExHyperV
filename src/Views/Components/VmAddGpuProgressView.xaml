@@ -31,9 +31,19 @@
             </Grid.ColumnDefinitions>
             <TextBlock Text="{x:Static properties:Resources.Label_Progress}" FontSize="20" VerticalAlignment="Center" 
                        Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
-            <ui:Button Grid.Column="1" Appearance="Transparent" Padding="8" Command="{Binding CancelAddGpuCommand}">
-                <ui:SymbolIcon Symbol="ArrowLeft24" FontSize="18"/>
-            </ui:Button>
+
+            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                <!-- ✅ 重置/重试按钮：随时重置整个流程 -->
+                <ui:Button Appearance="Transparent" Padding="8" Margin="0,0,4,0"
+                           ToolTip="重置部署流程 (回到初始状态)"
+                           Command="{Binding ResetGpuDeploymentCommand}">
+                    <ui:SymbolIcon Symbol="ArrowCounterclockwise24" FontSize="18" Foreground="{ui:ThemeResource SystemAccentColorPrimaryBrush}"/>
+                </ui:Button>
+
+                <ui:Button Appearance="Transparent" Padding="8" Command="{Binding CancelAddGpuCommand}">
+                    <ui:SymbolIcon Symbol="ArrowLeft24" FontSize="18"/>
+                </ui:Button>
+            </StackPanel>
         </Grid>
 
         <!-- 2. 主滚动区域 -->
@@ -42,7 +52,7 @@
 
                 <!-- ✅ 交互层：分区选择/SSH 面板 -->
                 <ui:Card Margin="0,0,0,24" Padding="0" 
-         Visibility="{Binding ShowPartitionSelector, Converter={StaticResource BoolToVis}}">
+                         Visibility="{Binding ShowPartitionSelector, Converter={StaticResource BoolToVis}}">
                     <Grid>
                         <!-- 1. 分区列表界面 -->
                         <Grid x:Name="PartitionListGrid">
@@ -50,7 +60,6 @@
                                 <Style TargetType="Grid">
                                     <Setter Property="Visibility" Value="Visible"/>
                                     <Style.Triggers>
-                                        <!-- 当显示表单时，隐藏列表 -->
                                         <DataTrigger Binding="{Binding ShowSshForm}" Value="True">
                                             <Setter Property="Visibility" Value="Collapsed"/>
                                         </DataTrigger>
@@ -68,12 +77,11 @@
                             </Border>
 
                             <ui:ListView Grid.Row="1" 
-             ItemsSource="{Binding DetectedPartitions}" 
-             SelectedItem="{Binding SelectedPartition}" 
-             Padding="8">
+                                         ItemsSource="{Binding DetectedPartitions}" 
+                                         SelectedItem="{Binding SelectedPartition}" 
+                                         Padding="8">
                                 <ui:ListView.ItemTemplate>
                                     <DataTemplate DataType="{x:Type models:PartitionInfo}">
-                                        <!-- 回归最原始的布局，没有任何按钮干扰 -->
                                         <Grid Margin="4,8">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="48"/>
@@ -90,7 +98,7 @@
                             </ui:ListView>
                         </Grid>
 
-                        <!-- 2. SSH 凭据表单界面 - 深度优化脚本选择体验版 -->
+                        <!-- 2. SSH 凭据表单界面 -->
                         <Border x:Name="SshFormBorder" Padding="24">
                             <Border.Style>
                                 <Style TargetType="Border">
@@ -104,12 +112,11 @@
                             </Border.Style>
 
                             <StackPanel>
-                                <!-- 标题 -->
                                 <TextBlock Text="{x:Static properties:Resources.Label_ConnectToLinuxVm}" 
-                   FontSize="20" FontWeight="SemiBold" Margin="0,0,0,20" 
-                   Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                                           FontSize="20" FontWeight="SemiBold" Margin="0,0,0,20" 
+                                           Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
 
-                                <!-- ✅ 优雅的脚本选择器卡片 -->
+                                <!-- 方案选择 -->
                                 <ui:Card Padding="16" Margin="0,0,0,20" Background="{ui:ThemeResource ControlFillColorDefaultBrush}">
                                     <StackPanel>
                                         <Grid Margin="0,0,0,10">
@@ -117,14 +124,11 @@
                                                 <ui:SymbolIcon Symbol="Code24" Margin="0,0,8,0" Foreground="{ui:ThemeResource SystemAccentColorPrimaryBrush}"/>
                                                 <TextBlock Text="选择部署方案" FontWeight="Medium" VerticalAlignment="Center"/>
                                             </StackPanel>
-                                            <TextBlock Text="{Binding SelectedLinuxScript.Version, StringFormat='v{0}'}" 
-                               HorizontalAlignment="Right" VerticalAlignment="Center" 
-                               FontSize="11" Opacity="0.5"/>
                                         </Grid>
 
                                         <ComboBox ItemsSource="{Binding AvailableLinuxScripts}" 
-                          SelectedItem="{Binding SelectedLinuxScript}" 
-                          HorizontalAlignment="Stretch">
+                                                  SelectedItem="{Binding SelectedLinuxScript}" 
+                                                  HorizontalAlignment="Stretch">
                                             <ComboBox.ItemTemplate>
                                                 <DataTemplate DataType="{x:Type models:LinuxScriptItem}">
                                                     <Grid Margin="0,2">
@@ -132,7 +136,6 @@
                                                             <ColumnDefinition Width="Auto"/>
                                                             <ColumnDefinition Width="*"/>
                                                         </Grid.ColumnDefinitions>
-                                                        <!-- 根据本地还是远程显示图标 -->
                                                         <ui:SymbolIcon Symbol="Document24" Margin="0,0,10,0" FontSize="14" Opacity="0.7"/>
                                                         <TextBlock Grid.Column="1" Text="{Binding Name}" VerticalAlignment="Center"/>
                                                     </Grid>
@@ -140,13 +143,12 @@
                                             </ComboBox.ItemTemplate>
                                         </ComboBox>
 
-                                        <!-- 脚本详情描述（动态显示） -->
                                         <Border Margin="0,10,0,0" Padding="12,10" CornerRadius="4" 
-                        Background="{ui:ThemeResource ControlFillColorSecondaryBrush}">
+                                                Background="{ui:ThemeResource ControlFillColorSecondaryBrush}">
                                             <StackPanel>
                                                 <TextBlock Text="{Binding SelectedLinuxScript.Description}" 
-                                   FontSize="12" TextWrapping="Wrap" 
-                                   Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Opacity="0.9"/>
+                                                           FontSize="12" TextWrapping="Wrap" 
+                                                           Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Opacity="0.9"/>
                                                 <StackPanel Orientation="Horizontal" Margin="0,5,0,0" Opacity="0.6">
                                                     <ui:SymbolIcon Symbol="Person24" FontSize="10" Margin="0,0,5,0"/>
                                                     <TextBlock Text="{Binding SelectedLinuxScript.Author}" FontSize="11"/>
@@ -162,69 +164,63 @@
                                         <ColumnDefinition Width="2*" />
                                         <ColumnDefinition Width="*" />
                                     </Grid.ColumnDefinitions>
-
                                     <StackPanel Grid.Column="0" Margin="0,0,10,0">
                                         <TextBlock Text="{x:Static properties:Resources.Label_HostIpAddress}" Margin="0,2,0,5" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
-                                        <ui:TextBox Text="{Binding SshHost, UpdateSourceTrigger=PropertyChanged}" 
-                            PlaceholderText="{x:Static properties:Resources.Placeholder_IpAddressExample}"/>
+                                        <ui:TextBox Text="{Binding SshHost, UpdateSourceTrigger=PropertyChanged}" PlaceholderText="{x:Static properties:Resources.Placeholder_IpAddressExample}"/>
                                     </StackPanel>
-
                                     <StackPanel Grid.Column="1" Margin="10,0,0,0">
                                         <TextBlock Text="{x:Static properties:Resources.Label_Port}" Margin="0,2,0,5" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
-                                        <ui:TextBox Text="{Binding SshPort, UpdateSourceTrigger=PropertyChanged}" 
-                            PlaceholderText="22"/>
+                                        <ui:TextBox Text="{Binding SshPort, UpdateSourceTrigger=PropertyChanged}" PlaceholderText="22"/>
                                     </StackPanel>
                                 </Grid>
 
-                                <!-- 用户名 -->
+                                <!-- 用户名与密码 -->
                                 <TextBlock Text="{x:Static properties:Resources.Label_Username}" Margin="0,0,0,5" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
-                                <ui:TextBox Text="{Binding SshUsername, UpdateSourceTrigger=PropertyChanged}" 
-                    PlaceholderText="{x:Static properties:Resources.Placeholder_UsernameExample}" Margin="0,0,0,15"/>
+                                <ui:TextBox Text="{Binding SshUsername, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,15"/>
 
-                                <!-- 密码 (口令) -->
                                 <TextBlock Text="{x:Static properties:Resources.Label_Password}" Margin="0,0,0,5" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
-                                <ui:PasswordBox Password="{Binding SshPassword, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
-                        Margin="0,0,0,15"/>
+                                <ui:PasswordBox Password="{Binding SshPassword, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,15"/>
 
                                 <!-- 图形驱动选项 -->
-                                <CheckBox Content="{x:Static properties:Resources.CheckBox_InstallGraphicsDrivers}" 
-                  IsChecked="{Binding InstallGraphics}" Margin="0,0,0,20"
-                  Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                                <CheckBox Content="{x:Static properties:Resources.CheckBox_InstallGraphicsDrivers}" IsChecked="{Binding InstallGraphics}" Margin="0,0,0,20"/>
 
-                                <!-- HTTP 代理 (可选) 区域 -->
-                                <Border Padding="12" Background="{ui:ThemeResource ControlFillColorTertiaryBrush}" CornerRadius="8" Margin="0,0,0,25">
+                                <!-- ✅ HTTP 代理：开关与内容合并到同一栏 -->
+                                <Border Padding="16" Background="{ui:ThemeResource ControlFillColorTertiaryBrush}" CornerRadius="8" Margin="0,0,0,25">
                                     <StackPanel>
                                         <TextBlock Text="{x:Static properties:Resources.GroupBox_HttpProxyOptional}" FontWeight="Medium" Margin="0,0,0,5"/>
-                                        <TextBlock Text="{x:Static properties:Resources.Info_UseProxyForGitHub}" 
-                           FontSize="11" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" 
-                           Margin="0,0,0,15" TextWrapping="Wrap"/>
-                                        <ui:ToggleSwitch Content="使用代理" IsChecked="{Binding UseSshProxy}" Margin="0,0,0,10"/>
+                                        <TextBlock Text="{x:Static properties:Resources.Info_UseProxyForGitHub}" FontSize="11" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" Margin="0,0,0,15" TextWrapping="Wrap"/>
 
-                                        <Grid IsEnabled="{Binding UseSshProxy}">
+                                        <!-- 三列布局：开关 | IP地址 | 端口 -->
+                                        <Grid>
                                             <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
                                                 <ColumnDefinition Width="2*" />
                                                 <ColumnDefinition Width="*" />
                                             </Grid.ColumnDefinitions>
 
-                                            <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                                            <!-- 开关：紧凑排列 -->
+                                            <ui:ToggleSwitch IsChecked="{Binding UseSshProxy}" VerticalAlignment="Bottom" Margin="0,0,15,5"/>
+
+                                            <!-- IP 地址 -->
+                                            <StackPanel Grid.Column="1" Margin="0,0,10,0" IsEnabled="{Binding UseSshProxy}">
                                                 <TextBlock Text="{x:Static properties:Resources.Label_ProxyIpAddress}" Margin="0,0,0,5" FontSize="12"/>
                                                 <ui:TextBox Text="{Binding SshProxyHost, UpdateSourceTrigger=PropertyChanged}" 
-                                    Background="{ui:ThemeResource ControlFillColorSecondaryBrush}"
-                                    PlaceholderText="{x:Static properties:Resources.Placeholder_IpAddressExample}"/>
+                                                            PlaceholderText="172.20.144.1"/>
                                             </StackPanel>
 
-                                            <StackPanel Grid.Column="1" Margin="10,0,0,0">
+                                            <!-- 端口 -->
+                                            <StackPanel Grid.Column="2" Margin="10,0,0,0" IsEnabled="{Binding UseSshProxy}">
                                                 <TextBlock Text="{x:Static properties:Resources.Label_Port}" Margin="0,0,0,5" FontSize="12"/>
                                                 <ui:TextBox Text="{Binding SshProxyPort, UpdateSourceTrigger=PropertyChanged}" 
-                                    Background="{ui:ThemeResource ControlFillColorSecondaryBrush}"
-                                    PlaceholderText="7890"/>
+                                                            PlaceholderText="7890"/>
                                             </StackPanel>
                                         </Grid>
+
                                         <CheckBox Content="为 Linux 保留代理设置"
-                          IsChecked="{Binding KeepGlobalProxySetting}"
-                          Visibility="{Binding UseSshProxy, Converter={StaticResource BoolToVis}}"
-                          Margin="0,10,0,0"
-                          Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                                                  IsChecked="{Binding KeepGlobalProxySetting}"
+                                                  Visibility="{Binding UseSshProxy, Converter={StaticResource BoolToVis}}"
+                                                  Margin="0,12,0,0"
+                                                  Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
                                     </StackPanel>
                                 </Border>
 
@@ -234,20 +230,17 @@
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
-                                    <ui:Button Grid.Column="0" Content="{x:Static properties:Resources.Button_Cancel}" 
-                       Margin="0,0,5,0" HorizontalAlignment="Stretch"
-                       Command="{Binding GoBackToPartitionListCommand}" />
-                                    <ui:Button Grid.Column="1" Content="{x:Static properties:Resources.Button_Connect}" 
-                       Margin="5,0,0,0" Appearance="Primary" HorizontalAlignment="Stretch"
-                       Command="{Binding StartLinuxDeployCommand}"/>
+                                    <ui:Button Grid.Column="0" Content="{x:Static properties:Resources.Button_Cancel}" Margin="0,0,5,0" HorizontalAlignment="Stretch" Command="{Binding GoBackToPartitionListCommand}" />
+                                    <ui:Button Grid.Column="1" Content="{x:Static properties:Resources.Button_Connect}" Margin="5,0,0,0" Appearance="Primary" HorizontalAlignment="Stretch" Command="{Binding StartLinuxDeployCommand}"/>
                                 </Grid>
                             </StackPanel>
                         </Border>
                     </Grid>
                 </ui:Card>
-                
-                <!-- 任务清单 -->
+
+                <!-- 任务清单 (保持不变) -->
                 <ItemsControl ItemsSource="{Binding GpuTasks}">
+                    <!-- ... DataTemplate 内容保持不变 ... -->
                     <ItemsControl.ItemTemplate>
                         <DataTemplate DataType="{x:Type models:TaskItem}">
                             <Border x:Name="TaskBorder" Margin="0,0,0,8" Padding="16,12" CornerRadius="8" 
@@ -299,57 +292,40 @@
                 </ItemsControl>
 
 
-                <!-- 3. 配置日志控制台 -->
+                <!-- 3. 配置日志控制台 (保持不变) -->
                 <ui:Card Margin="0,16,0,0" Padding="0" VerticalAlignment="Stretch"
-         Visibility="{Binding ShowLogConsole, Converter={StaticResource BoolToVis}}">
+                         Visibility="{Binding ShowLogConsole, Converter={StaticResource BoolToVis}}">
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="250"/>
-                            <!-- 这里可以根据需要调整高度 -->
                         </Grid.RowDefinitions>
 
-                        <!-- 日志头部 (Row 0) -->
                         <Border Grid.Row="0" Padding="12,8" Background="{ui:ThemeResource ControlFillColorTertiaryBrush}" CornerRadius="8,8,0,0">
                             <Grid>
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                     <ui:SymbolIcon Symbol="Document24" Margin="0,0,8,0" Filled="True"/>
-                                    <TextBlock Text="{x:Static properties:Resources.Label_ConfigLog}" FontWeight="Medium" VerticalAlignment="Center" 
-                               Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                                    <TextBlock Text="{x:Static properties:Resources.Label_ConfigLog}" FontWeight="Medium" VerticalAlignment="Center" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
                                 </StackPanel>
-
-                                <ui:Button Content="{x:Static properties:Resources.Button_CopyLog}" 
-                           Icon="Copy24"
-                           Appearance="Transparent" 
-                           HorizontalAlignment="Right"
-                           Padding="8,4"
-                           Command="{Binding CopyLogCommand}"/>
+                                <ui:Button Content="{x:Static properties:Resources.Button_CopyLog}" Icon="Copy24" Appearance="Transparent" HorizontalAlignment="Right" Padding="8,4" Command="{Binding CopyLogCommand}"/>
                             </Grid>
                         </Border>
 
-                        <!-- 日志内容区域 (Row 1) -->
                         <Border Grid.Row="1" Background="#0C0C0C" CornerRadius="0,0,8,8">
                             <TextBox x:Name="LogTextBox" 
-         Text="{Binding GpuDeploymentLog, Mode=OneWay}"
-         IsReadOnly="True"
-         AcceptsReturn="True"
-         TextWrapping="Wrap"
-         Style="{x:Null}"
-         Background="#0C0C0C"
-         Foreground="#D0D0D0"
-         BorderThickness="0"
-         SelectionBrush="#0078D7"
-         SelectionOpacity="0.4"
-         CaretBrush="White"
-         FontFamily="Consolas, Monospace"
-         FontSize="12"
-         Padding="12"
-         VerticalScrollBarVisibility="Auto"
-         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-         TextChanged="LogTextBox_TextChanged">
-                                <TextBox.Resources>
-                                    <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightBrushKey}" Color="#330078D7"/>
-                                </TextBox.Resources>
+                                     Text="{Binding GpuDeploymentLog, Mode=OneWay}"
+                                     IsReadOnly="True"
+                                     AcceptsReturn="True"
+                                     TextWrapping="Wrap"
+                                     Style="{x:Null}"
+                                     Background="#0C0C0C"
+                                     Foreground="#D0D0D0"
+                                     BorderThickness="0"
+                                     FontFamily="Consolas, Monospace"
+                                     FontSize="12"
+                                     Padding="12"
+                                     VerticalScrollBarVisibility="Auto"
+                                     TextChanged="LogTextBox_TextChanged">
                             </TextBox>
                         </Border>
                     </Grid>
