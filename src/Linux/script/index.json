@@ -1,9 +1,9 @@
 [
   {
     "FileName": "Ubuntu-22.04-Official.sh",
-    "Name": "Ubuntu-22.04-Official",
+    "Name": "Ubuntu-22.04-0fficial",
     "Description": "针对 Ubuntu 22.04 的官方推荐部署脚本。",
     "Author": "Justsenger",
-    "Version": "1.0.6"
+    "Version": "1.0.7"
   }
 ]
