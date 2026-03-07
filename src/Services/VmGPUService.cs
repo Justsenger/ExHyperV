@@ -1128,11 +1128,13 @@ return 'OK'
                 var files = Directory.GetFiles(localFolder, "*.sh");
                 foreach (var file in files)
                 {
+                    if (string.Equals(Path.GetFileName(file), "test.sh", StringComparison.OrdinalIgnoreCase))
+                        continue;
+
                     string content = await File.ReadAllTextAsync(file);
                     var item = ParseScriptHeader(content);
                     item.IsLocal = true;
-                    // 【修改点】：添加“本地”标识
-                    item.Name = $"[本地] {item.Name}";
+                    item.Name = $"[Local] {item.Name}";
                     item.SourcePathOrUrl = file;
                     item.FileName = Path.GetFileName(file);
                     allScripts.Add(item);
@@ -1157,8 +1159,7 @@ return 'OK'
                     foreach (var item in remoteScripts)
                     {
                         item.IsLocal = false;
-                        // 【修改点】：添加“在线”标识
-                        item.Name = $"[在线] {item.Name}";
+                        item.Name = $"[Online] {item.Name}";
                         item.SourcePathOrUrl = $"{ScriptBaseUrl}{item.FileName}";
                         allScripts.Add(item);
                     }
@@ -1233,6 +1234,7 @@ return 'OK'
 
                     Log("Uploading Driver and WSL Libraries...");
                     string sourceDriverPath = FindGpuDriverSourcePath(string.Empty);
+                    Log($"Driver source path: {sourceDriverPath}");
                     await sshService.UploadDirectoryAsync(credentials, sourceDriverPath, $"{remoteTempDir}/drivers");
                     await UploadLocalFilesAsync(sshService, credentials, $"{remoteTempDir}/lib");
 
@@ -1251,7 +1253,10 @@ return 'OK'
                     if (script.IsLocal)
                     {
                         Log($"Uploading local script: {script.Name}");
-                        await sshService.UploadFileAsync(credentials, script.SourcePathOrUrl, remoteScriptPath);
+                        string localScriptContent = await File.ReadAllTextAsync(script.SourcePathOrUrl);
+                        localScriptContent = localScriptContent.TrimStart('\uFEFF');
+                        localScriptContent = localScriptContent.Replace("\r\n", "\n").Replace("\r", "\n");
+                        await sshService.WriteTextFileAsync(credentials, localScriptContent, remoteScriptPath);
                     }
                     else
                     {
@@ -1273,9 +1278,10 @@ return 'OK'
                         bool rebootNeeded = false;
                         string graphicsArg = credentials.InstallGraphics ? "true" : "false";
                         string proxyArg = credentials.UseProxy ? $"\"http://{credentials.ProxyHost}:{credentials.ProxyPort}\"" : "\"\"";
+                        string vendorArg = $"\"{(credentials.GpuManufacturer ?? string.Empty).Replace("\"", "\\\"")}\"";
 
                         // 使用 sudo -E 保证代理变量能传递给 apt
-                        string execCmd = $"echo '{credentials.Password.Replace("'", "'\\''")}' | sudo -S -E -p '' bash {remoteScriptPath} deploy {graphicsArg} {proxyArg}";
+                        string execCmd = $"echo '{credentials.Password.Replace("'", "'\\''")}' | sudo -S -E -p '' bash {remoteScriptPath} deploy {graphicsArg} {proxyArg} {vendorArg}";
 
                         Log($"[Attempt {attempt}] Executing script...");
 

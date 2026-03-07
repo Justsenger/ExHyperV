@@ -14,6 +14,8 @@
 
         public bool InstallGraphics { get; set; } = true;
 
+        public string GpuManufacturer { get; set; } = string.Empty;
+
 
     }
 }

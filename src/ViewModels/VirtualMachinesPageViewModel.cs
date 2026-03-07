@@ -3139,7 +3139,8 @@ namespace ExHyperV.ViewModels
                 UseProxy = this.UseSshProxy,
                 ProxyHost = this.UseSshProxy ? proxyHost : null,
                 ProxyPort = this.UseSshProxy ? proxyPort : null,
-                InstallGraphics = InstallGraphics
+                InstallGraphics = InstallGraphics,
+                GpuManufacturer = SelectedHostGpu?.Manu ?? string.Empty
             };
 
             // 6. 执行部署
@@ -3204,7 +3205,7 @@ namespace ExHyperV.ViewModels
         {
             await Task.Delay(1000);
             await RefreshCurrentVmGpuAssignments();
-            CurrentViewType = VmDetailViewType.GpuSettings;
+            ShowLogConsole = true;
             ShowSnackbar(Properties.Resources.Msg_Common_ConfigSuccess, string.Format(Properties.Resources.Msg_Gpu_Ready, SelectedHostGpu.Name), ControlAppearance.Success, SymbolRegular.CheckmarkCircle24);
         }
 

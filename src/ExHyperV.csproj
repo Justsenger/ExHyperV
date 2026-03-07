@@ -41,13 +41,11 @@
     </ItemGroup>
     <ItemGroup>
       <None Remove="UserScripts\configure_system.sh" />
-      <None Remove="UserScripts\test.sh" />
-      <None Remove="UserScripts\Ubuntu-22.04-Official.sh" />
     </ItemGroup>
     <ItemGroup>
-      <Content Include="UserScripts\test.sh">
-        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-      </Content>
+      <None Update="UserScripts\Ubuntu-22.04-Micro-ATP.sh">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
     </ItemGroup>
 
     <!-- =================================================================== -->
