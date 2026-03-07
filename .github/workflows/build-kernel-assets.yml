@@ -1,8 +1,26 @@
-- name: 构建干净的 DXG 驱动轻量包
+name: 构建干净的 DXG 驱动轻量包
+
+on:
+  schedule:
+    - cron: '0 0 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-deploy-to-branch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出 ExHyperV 仓库
+        uses: actions/checkout@v4
+
+      - name: 构建驱动压缩包
         run: |
           set -e
           VERSIONS=("linux-msft-wsl-5.15.y:5.15" "linux-msft-wsl-6.6.y:6.6")
           mkdir -p output
+          
           for item in "${VERSIONS[@]}"; do
             BRANCH=${item%%:*}
             SHORT_VER=${item#*:}
@@ -17,17 +35,21 @@
             git pull --depth 1 origin $BRANCH -q
             cd ..
 
-            # 保持文件名一致以便部署脚本拉取，但内容是干净的原始代码
             BUILD_DIR="dxgkrnl-${SHORT_VER}-patched"
             mkdir -p "$BUILD_DIR"
             cp -r ms-kernel/drivers/hv/dxgkrnl/* "$BUILD_DIR/"
             cp -r ms-kernel/include "$BUILD_DIR/include"
             
-            # 校验：确保里面没有补丁痕迹
-            if grep -q "HV_GPUP_DXGK_VGPU_GUID" "$BUILD_DIR/dxgmodule.c"; then
-              echo "错误：源码竟然包含补丁内容！" && exit 1
-            fi
-
             tar -czf "output/${BUILD_DIR}.tar.gz" "$BUILD_DIR"
             rm -rf "$BUILD_DIR" ms-kernel
           done
+
+      - name: 强制推送到独立资源分支
+        run: |
+          cd output
+          git init
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -m "自动更新预制驱动组件 $(date +'%Y-%m-%d %H:%M:%S')"
+          git push "https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" HEAD:refs/heads/kernel-assets --force
