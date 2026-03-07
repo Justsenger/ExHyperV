@@ -1,4 +1,4 @@
-name: 构建已打补丁的 DXG 内核组件
+name: 构建干净的 DXG 驱动轻量包
 
 on:
   schedule:
@@ -17,29 +17,29 @@ jobs:
 
       - name: 构建驱动压缩包
         run: |
+          set -e
           VERSIONS=("linux-msft-wsl-5.15.y:5.15" "linux-msft-wsl-6.6.y:6.6")
           mkdir -p output
+          
           for item in "${VERSIONS[@]}"; do
             BRANCH=${item%%:*}
             SHORT_VER=${item#*:}
-            mkdir ms-kernel && cd ms-kernel
+            echo ">>> 提取干净源码: $BRANCH"
+            
+            rm -rf ms-kernel && mkdir ms-kernel && cd ms-kernel
             git init -q
             git remote add origin https://github.com/microsoft/WSL2-Linux-Kernel.git
             git config core.sparseCheckout true
-            echo "drivers/hv/dxgkrnl/*" >> .git/info/sparse-checkout
-            echo "include/*" >> .git/info/sparse-checkout
+            echo "drivers/hv/dxgkrnl/" >> .git/info/sparse-checkout
+            echo "include/" >> .git/info/sparse-checkout
             git pull --depth 1 origin $BRANCH -q
             cd ..
-            PATCH_DIR="src/Linux/script/patches/$BRANCH"
-            if [ -d "$PATCH_DIR" ]; then
-              for patch_file in "$PATCH_DIR"/*.patch; do
-                patch -p1 -d ms-kernel < "$patch_file"
-              done
-            fi
+
             BUILD_DIR="dxgkrnl-${SHORT_VER}-patched"
             mkdir -p "$BUILD_DIR"
             cp -r ms-kernel/drivers/hv/dxgkrnl/* "$BUILD_DIR/"
             cp -r ms-kernel/include "$BUILD_DIR/include"
+            
             tar -czf "output/${BUILD_DIR}.tar.gz" "$BUILD_DIR"
             rm -rf "$BUILD_DIR" ms-kernel
           done
@@ -52,5 +52,4 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add .
           git commit -m "自动更新预制驱动组件 $(date +'%Y-%m-%d %H:%M:%S')"
-          # 明确推送到 refs/heads/ 命名空间，强制 GitHub 识别为分支
           git push "https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" HEAD:refs/heads/kernel-assets --force
