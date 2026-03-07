@@ -259,31 +259,56 @@ sudo ldconfig
 # ==========================================================
 # 7. 内核模块延迟加载策略
 # [说明]: 
-# 1. 禁用启动时的自动加载以防由于驱动冲突崩溃。
-# 2. 通过 Systemd 服务在系统就绪后（Late Load）加载 dxgkrnl。
+# 1. vgem 标准加载。
+# 2. dxgkrnl 加入黑名单并在 initramfs 更新，防止开机自动加载。
+# 3. 创建辅助脚本 load_dxg_driver.sh。
+# 4. 创建 Systemd 服务在图形界面就绪后调用该脚本。
 # ==========================================================
+echo "[STEP: Configuring Kernel Modules Strategy (vgem & dxgkrnl)...]"
+
+# 1. vgem 依然使用标准方式自动加载
+echo "vgem" | sudo tee /etc/modules-load.d/vgem.conf > /dev/null
+sudo modprobe vgem
+
+# 2. dxgkrnl 加入黑名单，防止系统启动时自动加载
+echo "blacklist dxgkrnl" | sudo tee /etc/modprobe.d/blacklist-dxgkrnl.conf > /dev/null
+
+# 3. 更新 initramfs 以应用黑名单
+echo " -> Updating initramfs (this may take a while)..."
+# Ubuntu/Debian 专用命令
+sudo update-initramfs -u
+
+# 4. 创建延迟加载脚本
+echo " -> Creating late-load script..."
+sudo tee /usr/local/bin/load_dxg_driver.sh > /dev/null << 'EOF'
+#!/bin/bash
+modprobe dxgkrnl
+if [ -e /dev/dxg ]; then
+    chmod 666 /dev/dxg
+fi
+EOF
+sudo chmod +x /usr/local/bin/load_dxg_driver.sh
+
+# 5. 创建 systemd 服务
+echo " -> Creating systemd service for late loading..."
 sudo tee /etc/systemd/system/load-dxg-late.service > /dev/null << 'EOF'
 [Unit]
-Description=Late load dxgkrnl for ExHyperV
-# 确保在图形界面准备好之后
+Description=Late load dxgkrnl
 After=graphical.target
-# 如果你有桌面环境，确保在显示管理器之后
-After=display-manager.service
 
 [Service]
-# 改为 oneshot 模式，更适合这种执行一次就结束的任务
-Type=oneshot
+Type=simple
+User=root
 ExecStart=/usr/local/bin/load_dxg_driver.sh
-# 即使脚本退出了，也认为服务是运行成功的
-RemainAfterExit=yes
 
 [Install]
-# 关键修正：统一为 graphical.target
 WantedBy=graphical.target
 EOF
 
+# 6. 启用服务
 sudo systemctl daemon-reload
 sudo systemctl enable load-dxg-late.service
+
 
 # ==========================================================
 # 8. 环境变量与权限
@@ -295,14 +320,31 @@ if [ "$ENABLE_GRAPHICS" == "true" ]; then
     update_env "DRI_PRIME" "1"
     update_env "LIBVA_DRIVER_NAME" "d3d12"
     
+    if ! grep -q "GALLIUM_DRIVERS=d3d12" ~/.bashrc; then
+        cat >> ~/.bashrc <<EOF
+# GPU-PV Configuration
+export GALLIUM_DRIVERS=d3d12
+export DRI_PRIME=1
+export LIBVA_DRIVER_NAME=d3d12
+EOF
+    fi
+    
     # 授予当前用户渲染权限
     sudo usermod -a -G video,render $USER
+    
+    # Hyper-V 的虚拟显卡通常是 card1，但很多旧程序只认 card0
+    echo " -> Fix permissions and symlinks for /dev/dri..."
+    sudo chmod 666 /dev/dri/* || true
+    if [ -e /dev/dri/card1 ]; then
+        sudo ln -sf /dev/dri/card1 /dev/dri/card0
+    fi
 fi
 
 # ==========================================================
 # 9. 清理并退出
 # ==========================================================
 echo "[STEP: Cleaning up deployment files...]"
+cd /
 sudo rm -rf "$DEPLOY_DIR"
 
 echo "[STATUS: SUCCESS]"
