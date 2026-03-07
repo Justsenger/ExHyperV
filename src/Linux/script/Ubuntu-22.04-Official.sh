@@ -258,27 +258,21 @@ sudo ldconfig
 
 # ==========================================================
 # 7. 内核模块延迟加载策略
-# [说明]: 
-# 1. vgem 标准加载。
-# 2. dxgkrnl 加入黑名单并在 initramfs 更新，防止开机自动加载。
-# 3. 创建辅助脚本 load_dxg_driver.sh。
-# 4. 创建 Systemd 服务在图形界面就绪后调用该脚本。
 # ==========================================================
 echo "[STEP: Configuring Kernel Modules Strategy (vgem & dxgkrnl)...]"
 
-# 1. vgem 依然使用标准方式自动加载
+# 1. 配置 vgem 自动加载
 echo "vgem" | sudo tee /etc/modules-load.d/vgem.conf > /dev/null
 sudo modprobe vgem
 
-# 2. dxgkrnl 加入黑名单，防止系统启动时自动加载
+# 2. 将 dxgkrnl 加入黑名单防止启动冲突
 echo "blacklist dxgkrnl" | sudo tee /etc/modprobe.d/blacklist-dxgkrnl.conf > /dev/null
 
-# 3. 更新 initramfs 以应用黑名单
-echo " -> Updating initramfs (this may take a while)..."
-# Ubuntu/Debian 专用命令
+# 3. 更新 initramfs
+echo " -> Updating initramfs..."
 sudo update-initramfs -u
 
-# 4. 创建延迟加载脚本
+# 4. 创建加载脚本
 echo " -> Creating late-load script..."
 sudo tee /usr/local/bin/load_dxg_driver.sh > /dev/null << 'EOF'
 #!/bin/bash
@@ -289,8 +283,13 @@ fi
 EOF
 sudo chmod +x /usr/local/bin/load_dxg_driver.sh
 
-# 5. 创建 systemd 服务
-echo " -> Creating systemd service for late loading..."
+# 5. 创建 Systemd 服务
+echo " -> Creating systemd service..."
+# 清理旧状态确保写入成功
+sudo systemctl stop load-dxg-late.service 2>/dev/null || true
+sudo systemctl unmask load-dxg-late.service 2>/dev/null || true
+sudo rm -f /etc/systemd/system/load-dxg-late.service
+
 sudo tee /etc/systemd/system/load-dxg-late.service > /dev/null << 'EOF'
 [Unit]
 Description=Late load dxgkrnl
@@ -300,6 +299,8 @@ After=graphical.target
 Type=simple
 User=root
 ExecStart=/usr/local/bin/load_dxg_driver.sh
+Restart=on-failure
+RestartSec=5
 
 [Install]
 WantedBy=graphical.target

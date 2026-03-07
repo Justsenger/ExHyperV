@@ -1,4 +1,5 @@
-﻿using System.Management;
+﻿using System.Collections.Concurrent;
+using System.Management;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 
@@ -7,9 +8,12 @@ namespace ExHyperV.Tools
     public static class VmThumbnailProvider
     {
         private const string HyperVScopePath = @"root\virtualization\v2";
-
         private static ManagementScope? _scope;
         private static ManagementObject? _managementService;
+
+        // 缓存：VM名称 -> Settings对象的WMI路径字符串
+        // 这样可以避免每次都执行 "SELECT * FROM..." 和 "GetRelated"
+        private static readonly ConcurrentDictionary<string, string> _vmSettingsPathCache = new();
 
         private static void InitializeWmi()
         {
@@ -26,17 +30,8 @@ namespace ExHyperV.Tools
             }
         }
 
-        /// <summary>
-        /// 异步获取指定尺寸的虚拟机缩略图。
-        /// Hyper-V 会自动处理宽高比，通过添加黑边来确保画面完整性，防止裁剪。
-        /// </summary>
-        /// <param name="vmName">虚拟机名称。</param>
-        /// <param name="desiredWidth">期望的缩略图宽度。</param>
-        /// <param name="desiredHeight">期望的缩略图高度。</param>
-        /// <returns>一个可以跨线程使用的 BitmapSource，如果失败则返回 null。</returns>
         public static async Task<BitmapSource?> GetThumbnailAsync(string vmName, int desiredWidth, int desiredHeight)
         {
-            // 确保传入有效的尺寸
             if (desiredWidth <= 0 || desiredHeight <= 0) return null;
 
             return await Task.Run(() =>
@@ -44,41 +39,59 @@ namespace ExHyperV.Tools
                 try
                 {
                     InitializeWmi();
-
                     if (_scope == null || _managementService == null) return null;
 
-                    var vmQuery = $"SELECT * FROM Msvm_ComputerSystem WHERE ElementName = '{vmName}'";
-                    using var vmSearcher = new ManagementObjectSearcher(_scope, new ObjectQuery(vmQuery));
-                    using var vm = vmSearcher.Get().Cast<ManagementObject>().FirstOrDefault();
-                    if (vm == null) return null;
+                    string targetPath;
 
-                    using var settingsCollection = vm.GetRelated("Msvm_VirtualSystemSettingData");
-                    using var settingData = settingsCollection.Cast<ManagementObject>().FirstOrDefault();
-                    if (settingData == null) return null;
+                    // 1. 尝试从缓存获取路径
+                    if (!_vmSettingsPathCache.TryGetValue(vmName, out targetPath))
+                    {
+                        // 2. 缓存未命中：执行昂贵的查询操作
+                        var vmQuery = $"SELECT * FROM Msvm_ComputerSystem WHERE ElementName = '{vmName}'";
+                        using var vmSearcher = new ManagementObjectSearcher(_scope, new ObjectQuery(vmQuery));
+                        using var vm = vmSearcher.Get().Cast<ManagementObject>().FirstOrDefault();
 
-                    // 直接使用传入的宽高参数调用 WMI 方法
+                        if (vm == null) return null;
+
+                        using var settingsCollection = vm.GetRelated("Msvm_VirtualSystemSettingData");
+                        using var settingData = settingsCollection.Cast<ManagementObject>().FirstOrDefault();
+
+                        if (settingData == null) return null;
+
+                        targetPath = settingData.Path.Path;
+
+                        // 存入缓存
+                        _vmSettingsPathCache[vmName] = targetPath;
+                    }
+
+                    // 3. 直接调用方法 (这是最耗时的一步，无法避免，但前置步骤被优化了)
                     using var inParams = _managementService.GetMethodParameters("GetVirtualSystemThumbnailImage");
-                    inParams["TargetSystem"] = settingData.Path.Path;
+                    inParams["TargetSystem"] = targetPath; // 直接传入路径字符串
                     inParams["WidthPixels"] = (ushort)desiredWidth;
                     inParams["HeightPixels"] = (ushort)desiredHeight;
 
                     using var outParams = _managementService.InvokeMethod("GetVirtualSystemThumbnailImage", inParams, null);
-                    if (outParams == null) return null;
 
-                    if ((uint)outParams["ReturnValue"] != 0) return null;
+                    if (outParams == null || (uint)outParams["ReturnValue"] != 0)
+                    {
+                        // 如果失败（例如路径失效），移除缓存，下次重试查询
+                        _vmSettingsPathCache.TryRemove(vmName, out _);
+                        return null;
+                    }
 
                     var rawBytes = (byte[])outParams["ImageData"];
                     if (rawBytes == null || rawBytes.Length == 0) return null;
 
-                    // 使用请求的尺寸创建位图
                     return CreateBitmapFromRgb565(rawBytes, desiredWidth, desiredHeight);
                 }
                 catch (Exception ex)
                 {
                     System.Diagnostics.Debug.WriteLine($"[Thumbnail Error] {ex.Message}");
+                    // 发生异常时清空服务对象以便下次重连，并清除当前VM的缓存
                     _managementService?.Dispose();
                     _managementService = null;
                     _scope = null;
+                    _vmSettingsPathCache.TryRemove(vmName, out _);
                     return null;
                 }
             });
@@ -88,7 +101,7 @@ namespace ExHyperV.Tools
         {
             try
             {
-                int stride = width * 2; // Bgr565 is 2 bytes per pixel
+                int stride = width * 2;
                 if (data.Length < stride * height) return null;
 
                 var bitmap = BitmapSource.Create(
@@ -99,14 +112,10 @@ namespace ExHyperV.Tools
                     data,
                     stride);
 
-                bitmap.Freeze(); // Freeze for cross-thread access
+                bitmap.Freeze();
                 return bitmap;
             }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"[CreateBitmapFromRgb565 Error] {ex.Message}");
-                return null;
-            }
+            catch { return null; }
         }
     }
 }

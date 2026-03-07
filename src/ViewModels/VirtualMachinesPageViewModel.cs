@@ -936,7 +936,15 @@ namespace ExHyperV.ViewModels
         // ----------------------------------------------------------------------------------
 
         // 启动后台监控线程
-        private void StartMonitoring() { if (_monitoringCts != null) return; _monitoringCts = new CancellationTokenSource(); _cpuTask = Task.Run(() => MonitorCpuLoop(_monitoringCts.Token)); _stateTask = Task.Run(() => MonitorStateLoop(_monitoringCts.Token)); }
+        private void StartMonitoring()
+        {
+            if (_monitoringCts != null) return;
+            _monitoringCts = new CancellationTokenSource();
+            _cpuTask = Task.Run(() => MonitorCpuLoop(_monitoringCts.Token));
+            _stateTask = Task.Run(() => MonitorStateLoop(_monitoringCts.Token));
+            // 新增：独立的缩略图任务，避免阻塞状态同步
+            _ = Task.Run(() => MonitorThumbnailLoop(_monitoringCts.Token));
+        }
 
         // CPU 使用率监控循环
         private async Task MonitorCpuLoop(CancellationToken token)
@@ -1146,20 +1154,6 @@ namespace ExHyperV.ViewModels
                             CollectionViewSource.GetDefaultView(VmList)?.Refresh();
                         }
                     });
-
-                    // 缩略图更新
-                    if (SelectedVm != null)
-                    {
-                        if (SelectedVm.IsRunning)
-                        {
-                            var img = await VmThumbnailProvider.GetThumbnailAsync(SelectedVm.Name, 320, 240);
-                            if (img != null) Application.Current.Dispatcher.Invoke(() => SelectedVm.Thumbnail = img);
-                        }
-                        else
-                        {
-                            if (SelectedVm.Thumbnail != null) Application.Current.Dispatcher.Invoke(() => SelectedVm.Thumbnail = null);
-                        }
-                    }
 
                     if (SelectedVm != null && SelectedVm.IsRunning)
                     {
@@ -3299,6 +3293,28 @@ namespace ExHyperV.ViewModels
             await GoToAddGpu();
 
             ShowSnackbar("流程已重置", "您可以重新选择显卡或修改配置参数", Wpf.Ui.Controls.ControlAppearance.Info, Wpf.Ui.Controls.SymbolRegular.ArrowCounterclockwise24);
+        }
+        private async Task MonitorThumbnailLoop(CancellationToken token)
+        {
+            while (!token.IsCancellationRequested)
+            {
+                // 只有当选中且运行时才更新
+                if (SelectedVm != null && SelectedVm.IsRunning)
+                {
+                    var img = await VmThumbnailProvider.GetThumbnailAsync(SelectedVm.Name, 320, 240);
+                    if (img != null)
+                    {
+                        Application.Current.Dispatcher.Invoke(() => SelectedVm.Thumbnail = img);
+                    }
+                }
+                else if (SelectedVm != null && !SelectedVm.IsRunning && SelectedVm.Thumbnail != null)
+                {
+                    Application.Current.Dispatcher.Invoke(() => SelectedVm.Thumbnail = null);
+                }
+
+                // 缩略图不需要太高的刷新率，1.5秒或2秒一次即可，避免占用过多WMI资源
+                await Task.Delay(1500, token);
+            }
         }
     }
 }
