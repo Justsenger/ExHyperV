@@ -116,48 +116,61 @@
                                            FontSize="20" FontWeight="SemiBold" Margin="0,0,0,20" 
                                            Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
 
-                                <!-- 方案选择 -->
+                                <!-- 方案选择容器 -->
                                 <ui:Card Padding="16" Margin="0,0,0,20" Background="{ui:ThemeResource ControlFillColorDefaultBrush}">
                                     <StackPanel>
-                                        <Grid Margin="0,0,0,10">
-                                            <StackPanel Orientation="Horizontal">
-                                                <ui:SymbolIcon Symbol="Code24" Margin="0,0,8,0" Foreground="{ui:ThemeResource SystemAccentColorPrimaryBrush}"/>
+                                        <!-- 1. 标题与下拉列表（移除图标） -->
+                                        <Grid Margin="0,0,0,12">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+
+                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,16,0">
+                                                <!-- 原 Code24 图标已删除 -->
                                                 <TextBlock Text="选择部署方案" FontWeight="Medium" VerticalAlignment="Center"/>
                                             </StackPanel>
+
+                                            <ComboBox Grid.Column="1" 
+                      ItemsSource="{Binding AvailableLinuxScripts}" 
+                      SelectedItem="{Binding SelectedLinuxScript}" 
+                      HorizontalAlignment="Stretch">
+                                                <ComboBox.ItemTemplate>
+                                                    <DataTemplate DataType="{x:Type models:LinuxScriptItem}">
+                                                        <Grid Margin="0,2">
+                                                            <!-- 原 Document24 图标已删除 -->
+                                                            <TextBlock Text="{Binding Name}" VerticalAlignment="Center"/>
+                                                        </Grid>
+                                                    </DataTemplate>
+                                                </ComboBox.ItemTemplate>
+                                            </ComboBox>
                                         </Grid>
 
-                                        <ComboBox ItemsSource="{Binding AvailableLinuxScripts}" 
-                                                  SelectedItem="{Binding SelectedLinuxScript}" 
-                                                  HorizontalAlignment="Stretch">
-                                            <ComboBox.ItemTemplate>
-                                                <DataTemplate DataType="{x:Type models:LinuxScriptItem}">
-                                                    <Grid Margin="0,2">
-                                                        <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="Auto"/>
-                                                            <ColumnDefinition Width="*"/>
-                                                        </Grid.ColumnDefinitions>
-                                                        <ui:SymbolIcon Symbol="Document24" Margin="0,0,10,0" FontSize="14" Opacity="0.7"/>
-                                                        <TextBlock Grid.Column="1" Text="{Binding Name}" VerticalAlignment="Center"/>
-                                                    </Grid>
-                                                </DataTemplate>
-                                            </ComboBox.ItemTemplate>
-                                        </ComboBox>
+                                        <!-- 2. 描述区域：作者信息放在描述左边 -->
+                                        <Border Padding="12,10" CornerRadius="4" Background="{ui:ThemeResource ControlFillColorSecondaryBrush}">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
 
-                                        <Border Margin="0,10,0,0" Padding="12,10" CornerRadius="4" 
-                                                Background="{ui:ThemeResource ControlFillColorSecondaryBrush}">
-                                            <StackPanel>
-                                                <TextBlock Text="{Binding SelectedLinuxScript.Description}" 
-                                                           FontSize="12" TextWrapping="Wrap" 
-                                                           Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Opacity="0.9"/>
-                                                <StackPanel Orientation="Horizontal" Margin="0,5,0,0" Opacity="0.6">
-                                                    <ui:SymbolIcon Symbol="Person24" FontSize="10" Margin="0,0,5,0"/>
-                                                    <TextBlock Text="{Binding SelectedLinuxScript.Author}" FontSize="11"/>
+                                                <!-- 左侧作者信息（移除图标） -->
+                                                <StackPanel Orientation="Horizontal" VerticalAlignment="Top" Margin="0,0,12,0" Opacity="0.7">
+                                                    <TextBlock Text="{Binding SelectedLinuxScript.Author}" FontSize="12" FontWeight="Medium" VerticalAlignment="Center"/>
+                                                    <TextBlock Text=":" FontSize="12" VerticalAlignment="Center" Margin="2,0,0,0"/>
                                                 </StackPanel>
-                                            </StackPanel>
+
+                                                <!-- 右侧描述文字 -->
+                                                <TextBlock Grid.Column="1" 
+                           Text="{Binding SelectedLinuxScript.Description}" 
+                           FontSize="12" TextWrapping="Wrap" 
+                           Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" 
+                           Opacity="0.9" VerticalAlignment="Center"/>
+                                            </Grid>
                                         </Border>
                                     </StackPanel>
                                 </ui:Card>
-
+                                
                                 <!-- 主机 IP 与 端口 -->
                                 <Grid Margin="0,0,0,15">
                                     <Grid.ColumnDefinitions>
@@ -174,13 +187,24 @@
                                     </StackPanel>
                                 </Grid>
 
-                                <!-- 用户名与密码 -->
-                                <TextBlock Text="{x:Static properties:Resources.Label_Username}" Margin="0,0,0,5" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
-                                <ui:TextBox Text="{Binding SshUsername, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,15"/>
+                                <!-- 用户名与密码：合并到一行 -->
+                                <Grid Margin="0,0,0,15">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
 
-                                <TextBlock Text="{x:Static properties:Resources.Label_Password}" Margin="0,0,0,5" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
-                                <ui:PasswordBox Password="{Binding SshPassword, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,15"/>
+                                    <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                                        <TextBlock Text="{x:Static properties:Resources.Label_Username}" Margin="0,2,0,5" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                                        <ui:TextBox Text="{Binding SshUsername, UpdateSourceTrigger=PropertyChanged}"/>
+                                    </StackPanel>
 
+                                    <StackPanel Grid.Column="1" Margin="10,0,0,0">
+                                        <TextBlock Text="{x:Static properties:Resources.Label_Password}" Margin="0,2,0,5" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                                        <ui:PasswordBox Password="{Binding SshPassword, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                                    </StackPanel>
+                                </Grid>
+                                
                                 <!-- 图形驱动选项 -->
                                 <CheckBox Content="{x:Static properties:Resources.CheckBox_InstallGraphicsDrivers}" IsChecked="{Binding InstallGraphics}" Margin="0,0,0,20"/>
 
