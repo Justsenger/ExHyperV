@@ -3,12 +3,9 @@ using CommunityToolkit.Mvvm.Input;
 using ExHyperV.Services;
 using ExHyperV.Tools;
 using Microsoft.Win32;
-using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Management;
 using System.Security.Principal;
-using System.Threading.Tasks;
 using System.Windows;
 using Wpf.Ui.Controls;
 
@@ -16,103 +13,15 @@ namespace ExHyperV.ViewModels
 {
     public record SchedulerMode(string Name, HyperVSchedulerType Type);
 
-    public record WindowsSku(string Name, string EditionId, string ProductKey);
-
 
     public partial class HostPageViewModel : ObservableObject
     {
-        // 1. 系统 SKU 列表（使用通用安装密钥）
-        public ObservableCollection<WindowsSku> SkuList { get; } = new()
-        {
-            new WindowsSku("专业工作站版", "ProfessionalWorkstation", "DXG7C-N36C4-C4HTG-X4T3X-2YV77"),
-            new WindowsSku("专业版", "Professional", "VK7JG-NPHTM-C97JM-9MPGT-3V66T"),
-            new WindowsSku("企业版", "Enterprise", "XGVPP-NMH47-7TTHJ-W3FW7-8HV2C"),
-            new WindowsSku("家庭版", "Core", "YTMG3-N6DKC-DKB77-7M9GH-8HVX7"),
-            new WindowsSku("教育版", "Education", "YNMGQ-8RYV3-4PGQ3-C8XTP-7CFBY")
-        };
-
-        [ObservableProperty] private WindowsSku _selectedSku;
-
-        // 2. 处理 SKU 切换 (真正完美的内核级转换)
-        partial void OnSelectedSkuChanged(WindowsSku value)
-        {
-            if (!_isInitialized || value == null) return;
-
-            _ = Task.Run(async () => {
-                try
-                {
-                    Application.Current.Dispatcher.Invoke(() => {
-                        ShowSnackbar("深度转换中", $"正在重构系统组件库至 {value.Name}，此过程可能需要 1-2 分钟...", ControlAppearance.Info, SymbolRegular.LocalLanguage24);
-                    });
-
-                    // --- 步骤 1: 预欺骗注册表 ---
-                    // 必须先让系统认为自己已经是目标版本，否则 DISM 可能会拒绝降级指令
-                    using (var key = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows NT\CurrentVersion", true))
-                    {
-                        key.SetValue("EditionID", value.EditionId);
-                        key.SetValue("ProductName", $"Windows 10 {value.Name}");
-                        key.SetValue("CompositionEditionID", value.EditionId);
-                    }
-
-                    // --- 步骤 2: 注入密钥 (slmgr) ---
-                    string slmgrCmd = $"cscript //nologo C:\\Windows\\System32\\slmgr.vbs /ipk {value.ProductKey}";
-                    var slmgrInfo = new System.Diagnostics.ProcessStartInfo
-                    {
-                        FileName = "cmd.exe",
-                        Arguments = $"/c {slmgrCmd}",
-                        WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden,
-                        Verb = "runas"
-                    };
-                    System.Diagnostics.Process.Start(slmgrInfo)?.WaitForExit();
-
-                    // --- 步骤 3: 【关键】调用 DISM 进行组件库深度重构 ---
-                    // 这是为了让“控制面板-启用或关闭 Windows 功能”里的列表重新对齐
-                    // /Set-Edition 虽然官方说只支持升级，但在手动修改注册表后，它可以强制系统刷新功能树
-                    string dismArgs = $"/Online /Set-Edition:{value.EditionId} /ProductKey:{value.ProductKey} /AcceptEula /NoRestart";
-
-                    var dismProcess = new System.Diagnostics.Process
-                    {
-                        StartInfo = new System.Diagnostics.ProcessStartInfo
-                        {
-                            FileName = "dism.exe",
-                            Arguments = dismArgs,
-                            UseShellExecute = false,
-                            CreateNoWindow = true,
-                            Verb = "runas"
-                        }
-                    };
-
-                    dismProcess.Start();
-                    await dismProcess.WaitForExitAsync();
-
-                    // --- 步骤 4: 刷新授权缓存 ---
-                    // 确保 ClipSVC 重新读取新的许可证策略
-                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-                    {
-                        FileName = "cmd.exe",
-                        Arguments = "/c clipup -v -o",
-                        WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden
-                    })?.WaitForExit();
-
-                    Application.Current.Dispatcher.Invoke(() => {
-                        ShowRestartPrompt($"系统已深度重构为 {value.Name}。重启后，Hyper-V 等高级组件将根据家庭版策略被正式屏蔽。");
-                    });
-                }
-                catch (Exception ex)
-                {
-                    Application.Current.Dispatcher.Invoke(() => {
-                        ShowSnackbar("转换异常", ex.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
-                    });
-                }
-            });
-        }
 
         private bool _isInitialized = false;
 
         public CheckStatusViewModel SystemStatus { get; } = new("");
         public CheckStatusViewModel CpuStatus { get; } = new("");
         public CheckStatusViewModel HyperVStatus { get; } = new("");
-        public CheckStatusViewModel AdminStatus { get; } = new("");
         public CheckStatusViewModel VersionStatus { get; } = new("");
         public CheckStatusViewModel IommuStatus { get; } = new("");
 
@@ -136,39 +45,9 @@ namespace ExHyperV.ViewModels
         private async Task LoadInitialStatusAsync()
         {
             await Task.WhenAll(CheckSystemInfoAsync(), CheckCpuInfoAsync(), CheckHyperVInfoAsync(), CheckServerInfoAsync(), CheckIommuAsync());
-            InitializeCurrentSku();
-            await CheckAdminInfoAsync();
+            
+            await InitializeVersionPolicyAsync();
             _isInitialized = true;
-        }
-
-        private void InitializeCurrentSku()
-        {
-            try
-            {
-                // 1. 从注册表读取真实的 EditionID
-                string currentId = Microsoft.Win32.Registry.GetValue(
-                    @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion",
-                    "EditionID",
-                    "Unknown")?.ToString();
-
-                // 2. 在现有列表中查找匹配项
-                var match = SkuList.FirstOrDefault(x => x.EditionId.Equals(currentId, StringComparison.OrdinalIgnoreCase));
-
-                if (match != null)
-                {
-                    SelectedSku = match;
-                }
-                else
-                {
-                    var customSku = new WindowsSku($"{currentId}", currentId, "");
-                    SkuList.Insert(0, customSku); // 插到第一条
-                    SelectedSku = customSku;
-                }
-            }
-            catch
-            {
-                // 降级处理
-            }
         }
 
         private async Task CheckSystemInfoAsync() => await Task.Run(() => {
@@ -222,43 +101,29 @@ namespace ExHyperV.ViewModels
             IommuStatus.IsChecking = false;
         }
 
-        private async Task CheckAdminInfoAsync()
+        private async Task InitializeVersionPolicyAsync()
         {
-            bool isAdmin = await Task.Run(() => {
-                using var id = WindowsIdentity.GetCurrent();
-                return new WindowsPrincipal(id).IsInRole(WindowsBuiltInRole.Administrator);
-            });
-            AdminStatus.IsSuccess = isAdmin;
-            AdminStatus.IsChecking = false;
 
-            if (isAdmin)
+            CheckGpuStrategyReg();
+            InitializeProductType();
+            await LoadAdvancedConfigAsync();
+            IsGpuStrategyToggleEnabled = true;
+
+            string currentId = Microsoft.Win32.Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion", "EditionID", "")?.ToString() ?? "";
+
+            bool isServer = currentId.StartsWith("Server", StringComparison.OrdinalIgnoreCase);
+
+            if (isServer)
             {
-                CheckGpuStrategyReg();
-                InitializeProductType();
-                await LoadAdvancedConfigAsync();
-                IsGpuStrategyToggleEnabled = true;
-
-                // --- 修改开始：增加 SKU 限制逻辑 ---
-                string currentId = Microsoft.Win32.Registry.GetValue(
-                    @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion",
-                    "EditionID", "")?.ToString() ?? "";
-
-                // 定义禁用的关键字/ID列表
-                var forbiddenSkus = new List<string> {
-            "Professional",        // 专业版
-            "Core",                // 家庭版
-            "Enterprise",          // 企业版
-            "CoreSingleLanguage",  // 家庭单语言版
-            "CoreCountrySpecific"  // 家庭中文版
-        };
-
-                // 检查：如果在禁用列表中，或者是服务器版(以Server开头)，则禁用按钮
-                bool isUnsupported = forbiddenSkus.Contains(currentId) || currentId.StartsWith("Server", StringComparison.OrdinalIgnoreCase);
-
-                IsSystemSwitchEnabled = !isUnsupported;
-                // --- 修改结束 ---
+                IsSystemSwitchEnabled = false;
+            }
+            else
+            {
+                var restricted = new List<string> { "Professional", "Core", "Enterprise" };
+                IsSystemSwitchEnabled = !restricted.Contains(currentId);
             }
         }
+
         private async Task CheckServerInfoAsync()
         {
             // 调用统一逻辑
@@ -326,10 +191,60 @@ namespace ExHyperV.ViewModels
             SwitchSystemVersion(value);
         }
 
+
+        // 禁用 Hyper-V
+        [RelayCommand]
+        private async Task DisableHyperVAsync()
+        {
+            // 1. 发送提示
+            ShowSnackbar(Translate("Status_Title_Info"), "正在禁用 Hyper-V 组件...", ControlAppearance.Info, SymbolRegular.Settings24);
+
+            bool ok = false;
+            try
+            {
+                string script = @"
+$ErrorActionPreference = 'Stop'
+$features = @(
+  'Microsoft-Hyper-V-All',
+  'Microsoft-Hyper-V',
+  'Microsoft-Hyper-V-Services',
+  'Microsoft-Hyper-V-Management-PowerShell',
+  'Microsoft-Hyper-V-Management-Clients'
+)
+foreach ($f in $features) {
+  $feat = Get-WindowsOptionalFeature -Online -FeatureName $f -ErrorAction SilentlyContinue
+  if ($null -ne $feat -and $feat.State -eq 'Enabled') {
+    Disable-WindowsOptionalFeature -Online -FeatureName $f -NoRestart -Remove -ErrorAction SilentlyContinue | Out-Null
+  }
+}
+'OK'
+";
+                var result = await Utils.Run2(script);
+                ok = result.Count > 0 && string.Equals(result[0].ToString(), "OK", StringComparison.OrdinalIgnoreCase);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Disable Error: {ex.Message}");
+                ok = false;
+            }
+
+            // 2. 结果判定
+            if (!ok)
+            {
+                ShowSnackbar(Translate("Status_Title_Error"), "禁用失败，请尝试手动执行或检查权限。", ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                return;
+            }
+
+            // 3. 提示重启
+            ShowRestartPrompt("Hyper-V 已成功禁用，需要重启电脑生效。");
+        }
+
+        // 启用 Hyper-V
+
         [RelayCommand]
         private async Task EnableHyperVAsync()
         {
-            if (AdminStatus.IsSuccess != true) return;
+            // 1. 发送提示：正在开启
             ShowSnackbar(Translate("Status_Title_Info"), ExHyperV.Properties.Resources.Msg_Host_EnableHyperV, ControlAppearance.Info, SymbolRegular.Settings24);
 
             bool ok = false;
@@ -352,27 +267,35 @@ foreach ($f in $features) {
 }
 'OK'
 ";
+                // 调用你项目里的 Utils 执行脚本
                 var result = await Utils.Run2(script);
+
+                // 检查脚本最后是否输出了 "OK"
                 ok = result.Count > 0 && string.Equals(result[0].ToString(), "OK", StringComparison.OrdinalIgnoreCase);
             }
-            catch
+            catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"Enable Error: {ex.Message}");
                 ok = false;
             }
 
+            // 2. 结果判定
             if (!ok)
             {
                 ShowSnackbar(Translate("Status_Title_Error"), ExHyperV.Properties.Resources.Error_Host_EnableFail, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
                 return;
             }
 
+            // 3. 提示重启
             ShowRestartPrompt(ExHyperV.Properties.Resources.Msg_Host_EnableSuccess);
         }
-
+        
+        // 检查 PowerShell 模块是否真的装上了
         private static bool IsHyperVPowerShellModuleAvailable()
         {
             try
             {
+                // 如果能查到模块名，说明管理工具（Management-PowerShell）已就绪
                 return Utils.Run("Get-Module -ListAvailable -Name Hyper-V | Select-Object -First 1 Name").Count > 0;
             }
             catch
@@ -381,10 +304,12 @@ foreach ($f in $features) {
             }
         }
 
+        // 检查 WMI 命名空间
         private static bool IsHyperVWmiNamespaceAvailable()
         {
             try
             {
+                // 尝试连接并查询 Hyper-V 管理服务实例
                 var scope = new ManagementScope(@"\\.\root\virtualization\v2");
                 scope.Connect();
                 using var searcher = new ManagementObjectSearcher(scope, new ObjectQuery("SELECT * FROM Msvm_VirtualSystemManagementService"));
@@ -460,14 +385,69 @@ foreach ($f in $features) {
         {
             Application.Current.Dispatcher.Invoke(() => {
                 if (Application.Current.MainWindow?.FindName("SnackbarPresenter") is not SnackbarPresenter p) return;
+
                 var grid = new System.Windows.Controls.Grid();
-                grid.ColumnDefinitions.Add(new System.Windows.Controls.ColumnDefinition());
+                grid.VerticalAlignment = VerticalAlignment.Center;
                 grid.ColumnDefinitions.Add(new System.Windows.Controls.ColumnDefinition { Width = System.Windows.GridLength.Auto });
-                var txt = new Wpf.Ui.Controls.TextBlock { Text = message, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 12, 0), TextWrapping = TextWrapping.Wrap };
-                var btn = new Wpf.Ui.Controls.Button { Content = Translate("Global_Restart"), Appearance = ControlAppearance.Primary };
+                grid.ColumnDefinitions.Add(new System.Windows.Controls.ColumnDefinition { Width = new System.Windows.GridLength(1, System.Windows.GridUnitType.Star) });
+                grid.ColumnDefinitions.Add(new System.Windows.Controls.ColumnDefinition { Width = System.Windows.GridLength.Auto });
+
+                var icon = new SymbolIcon(SymbolRegular.CheckmarkCircle24)
+                {
+                    FontSize = 24,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Margin = new Thickness(0, 0, 12, 0)
+                };
+
+                var textStack = new System.Windows.Controls.StackPanel
+                {
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Margin = new Thickness(0, 0, 8, 0)
+                };
+
+                var titleTxt = new Wpf.Ui.Controls.TextBlock
+                {
+                    Text = Translate("Status_Title_Success"),
+                    FontWeight = FontWeights.Bold,
+                    FontSize = 14,
+                    Margin = new Thickness(0)
+                };
+
+                var msgTxt = new Wpf.Ui.Controls.TextBlock
+                {
+                    Text = message,
+                    FontSize = 12,
+                    Margin = new Thickness(0, -2, 0, 0)
+                };
+
+                textStack.Children.Add(titleTxt);
+                textStack.Children.Add(msgTxt);
+
+                var btn = new Wpf.Ui.Controls.Button
+                {
+                    Content = Translate("Global_Restart"),
+                    Appearance = ControlAppearance.Primary,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Margin = new Thickness(12, 0, 10, 0)
+                };
                 btn.Click += (s, e) => System.Diagnostics.Process.Start("shutdown", "-r -t 0");
-                System.Windows.Controls.Grid.SetColumn(btn, 1); grid.Children.Add(txt); grid.Children.Add(btn);
-                new Snackbar(p) { Title = Translate("Status_Title_Success"), Content = grid, Appearance = ControlAppearance.Success, Icon = new SymbolIcon(SymbolRegular.CheckmarkCircle24), Timeout = TimeSpan.FromSeconds(15) }.Show();
+
+                System.Windows.Controls.Grid.SetColumn(icon, 0);
+                System.Windows.Controls.Grid.SetColumn(textStack, 1);
+                System.Windows.Controls.Grid.SetColumn(btn, 2);
+
+                grid.Children.Add(icon);
+                grid.Children.Add(textStack);
+                grid.Children.Add(btn);
+
+                var snackbar = new Snackbar(p)
+                {
+                    Content = grid,
+                    Appearance = ControlAppearance.Success,
+                    Timeout = TimeSpan.FromSeconds(15)
+                };
+
+                snackbar.Show();
             });
         }
     }

@@ -97,11 +97,22 @@
                             <TextBlock Text="{Binding HyperVStatus.StatusText}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
                         </StackPanel>
 
-                        <ui:Button Grid.Column="2" 
-                   Content="{x:Static properties:Resources.Button_Enable}" 
-                   Appearance="Primary"
-                   Visibility="{Binding HyperVStatus.IsInstalled, Converter={StaticResource BoolToVis}, ConverterParameter=Invert}"
-                   Command="{Binding EnableHyperVCommand}"/>
+                        <!-- 按钮容器 -->
+                        <StackPanel Grid.Column="2" Orientation="Horizontal">
+                            <!-- 启用/修复按钮：只要状态不是 Success (绿勾)，就显示 -->
+                            <ui:Button 
+        Content="{x:Static properties:Resources.Button_Enable}" 
+        Appearance="Primary"
+        Visibility="{Binding HyperVStatus.IsSuccess, Converter={StaticResource BoolToVis}, ConverterParameter=Invert}"
+        Command="{Binding EnableHyperVCommand}"/>
+
+                            <!-- 禁用按钮：只有当状态完全正常 (Success) 时，才显示 -->
+                            <ui:Button 
+        Content="禁用" 
+        Appearance="Secondary"
+        Visibility="{Binding HyperVStatus.IsSuccess, Converter={StaticResource BoolToVis}}"
+        Command="{Binding DisableHyperVCommand}"/>
+                        </StackPanel>
                     </Grid>
                 </ui:Card>
 
@@ -210,25 +221,7 @@
                                      IsEnabled="{Binding IsGpuStrategyToggleEnabled}"/>
                 </ui:CardControl>
 
-                <ui:CardControl Margin="0,0,0,8" Padding="12">
-                    <ui:CardControl.Icon>
-                        <ui:FontIcon FontSize="22" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xE7EF;"/>
-                    </ui:CardControl.Icon>
-                    <ui:CardControl.Header>
-                        <StackPanel>
-                            <TextBlock Text="系统 SKU 切换" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
-                            <TextBlock Text="重启后生效。切换后需要重新激活 Windows" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
-                        </StackPanel>
-                    </ui:CardControl.Header>
-                    <ComboBox Width="250" 
-              ItemsSource="{Binding SkuList}"
-              DisplayMemberPath="Name"
-              SelectedItem="{Binding SelectedSku, Mode=TwoWay}"
-              />
-                </ui:CardControl>
-
-
-                <!-- 系统切换 -->
+                <!-- 系统切换 (服务器版本切换) Card -->
                 <ui:CardControl Margin="0,0,0,8" Padding="12">
                     <ui:CardControl.Icon>
                         <ui:FontIcon FontSize="22" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xE8D7;"/>
@@ -239,10 +232,12 @@
                             <TextBlock Text="{x:Static properties:Resources.Desc_SwitchServer}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
                         </StackPanel>
                     </ui:CardControl.Header>
+
+                 
                     <ui:ToggleSwitch IsChecked="{Binding IsServerSystem, Mode=TwoWay}"
-                                     IsEnabled="{Binding IsSystemSwitchEnabled}"/>
+                     IsEnabled="{Binding IsSystemSwitchEnabled}"/>
                 </ui:CardControl>
-            
+                
             </StackPanel>
         </StackPanel>
     </Grid>

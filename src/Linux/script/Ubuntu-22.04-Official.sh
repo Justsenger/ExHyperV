@@ -272,7 +272,7 @@ sudo chmod +x /usr/local/bin/load_dxg_driver.sh
 sudo tee /etc/systemd/system/load-dxg-late.service > /dev/null << 'EOF'
 [Unit]
 Description=Late load dxgkrnl for ExHyperV
-After=multi-user.target
+After=graphical.target
 
 [Service]
 Type=simple
@@ -291,7 +291,7 @@ sudo systemctl enable load-dxg-late.service
 if [ "$ENABLE_GRAPHICS" == "true" ]; then
     echo "[STEP: Finalizing environment variables...]"
     # Gallium D3D12 后端配置
-    update_env "GALLIUM_DRIVER" "d3d12"
+    update_env "GALLIUM_DRIVERS" "d3d12"
     update_env "DRI_PRIME" "1"
     update_env "LIBVA_DRIVER_NAME" "d3d12"
     
