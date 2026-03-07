@@ -2733,18 +2733,19 @@ namespace ExHyperV.ViewModels
             GpuTasks.Clear();
         }
 
+        // 修改为这样：
         partial void OnSelectedPartitionChanged(PartitionInfo? value)
         {
             if (value == null) return;
 
-            // 只负责把界面显示出来，不要在这里面 await 命令
+            // 仅仅负责清理选中状态，不要在这里执行任何 Command！
             Application.Current.Dispatcher.BeginInvoke(new Action(() =>
             {
-                // 仅仅清空选中状态，保持 UI 干净即可
                 _selectedPartition = null;
                 OnPropertyChanged(nameof(SelectedPartition));
             }), System.Windows.Threading.DispatcherPriority.Input);
         }
+        
         // 检查是否可以确认添加
         private bool CanConfirmAddGpu() => SelectedHostGpu != null;
 
@@ -3028,11 +3029,19 @@ namespace ExHyperV.ViewModels
 
                     // 检查虚拟机电源状态
                     var status = await _vmGpuService.IsVmPoweredOffAsync(SelectedVm.Name);
+                    // 在 SelectPartitionAndContinue 方法内部：
                     if (status.IsOff)
                     {
                         driveTask.Description = Properties.Resources.Msg_Gpu_IpSniff;
                         AppendLog(driveTask.Description);
-                        await Task.Delay(3000);
+
+                        // 1. 执行开机
+                        await _powerService.ExecuteControlActionAsync(SelectedVm.Name, "Start");
+
+                        // 2. 【新增】立刻强制同步一次 UI 状态，不等后台循环
+                        await SyncSingleVmStateAsync(SelectedVm);
+
+                        await Task.Delay(3000); // 给系统一点反应时间
                     }
 
                     driveTask.Description = Properties.Resources.Msg_Gpu_IpScanning;
