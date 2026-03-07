@@ -2737,21 +2737,13 @@ namespace ExHyperV.ViewModels
         {
             if (value == null) return;
 
-            // 关键：不要在这里同步执行，而是推送到下一个 UI 渲染周期
-            Application.Current.Dispatcher.BeginInvoke(new Action(async () =>
+            // 只负责把界面显示出来，不要在这里面 await 命令
+            Application.Current.Dispatcher.BeginInvoke(new Action(() =>
             {
-                // 使用 ExecuteAsync 异步启动（如果使用的是 AsyncRelayCommand）
-                if (SelectPartitionAndContinueCommand.CanExecute(value))
-                {
-                    await SelectPartitionAndContinueCommand.ExecuteAsync(value);
-                }
-
-                // 清除选中状态以保持 UI 干净
+                // 仅仅清空选中状态，保持 UI 干净即可
                 _selectedPartition = null;
                 OnPropertyChanged(nameof(SelectedPartition));
-
             }), System.Windows.Threading.DispatcherPriority.Input);
-            // 使用 Input 优先级，它比 Background 高，能更快响应点击但又不会阻塞当前渲染
         }
         // 检查是否可以确认添加
         private bool CanConfirmAddGpu() => SelectedHostGpu != null;
@@ -3040,7 +3032,6 @@ namespace ExHyperV.ViewModels
                     {
                         driveTask.Description = Properties.Resources.Msg_Gpu_IpSniff;
                         AppendLog(driveTask.Description);
-                        await _powerService.ExecuteControlActionAsync(SelectedVm.Name, "Start");
                         await Task.Delay(3000);
                     }
 
