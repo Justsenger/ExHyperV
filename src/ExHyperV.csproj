@@ -41,7 +41,13 @@
     </ItemGroup>
     <ItemGroup>
       <None Remove="UserScripts\configure_system.sh" />
+      <None Remove="UserScripts\test.sh" />
       <None Remove="UserScripts\Ubuntu-22.04-Official.sh" />
+    </ItemGroup>
+    <ItemGroup>
+      <Content Include="UserScripts\test.sh">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </Content>
     </ItemGroup>
 
     <!-- =================================================================== -->
@@ -63,9 +69,6 @@
             <Generator>PublicResXFileCodeGenerator</Generator>
             <LastGenOutput>Resources.Designer.cs</LastGenOutput>
         </EmbeddedResource>
-    </ItemGroup>
-    <ItemGroup>
-      <Folder Include="UserScripts\" />
     </ItemGroup>
 
     <!-- ========================================================================================= -->

@@ -1,5 +1,5 @@
 #!/bin/bash
-# @Name: Ubuntu-22.04-0fficial
+# @Name: Ubuntu-22.04-Official
 # @Description: 针对 Ubuntu 22.04 的官方推荐部署脚本。
 # @Author: Justsenger
 # @Version: 1.0.7
@@ -9,7 +9,6 @@ set -e
 # ==========================================================
 # 0. 辅助函数定义
 # ==========================================================
-# 更新 /etc/environment 环境变量
 update_env() {
     local key=$1
     local val=$2
@@ -18,7 +17,6 @@ update_env() {
     echo "$key=$val" | sudo tee -a /etc/environment > /dev/null
 }
 
-# 带有重试机制的命令执行器（应对不稳定的网络）
 retry_cmd() {
     local n=1
     local max=5
@@ -48,7 +46,6 @@ PROXY_URL=${3:-""}
 
 DEPLOY_DIR="$(dirname $(realpath $0))"
 LIB_DIR="$DEPLOY_DIR/lib"
-# 补丁与库文件的远程仓库基准地址
 PATCH_BASE_URL="https://raw.githubusercontent.com/Justsenger/ExHyperV/main/src/Linux/script/patches"
 GITHUB_LIB_URL="https://raw.githubusercontent.com/Justsenger/ExHyperV/main/src/Linux/lib"
 
@@ -60,8 +57,6 @@ fi
 
 # ==========================================================
 # 2. 依赖安装
-# [适配建议]: 若修改为其他发行版，请替换 apt-get 指令。
-# 必须依赖: git, curl, dkms, wget, build-essential(或 gcc/make), unzip, aria2
 # ==========================================================
 echo "[STEP: Installing basic dependencies...]"
 sudo apt-get update -qq
@@ -69,10 +64,6 @@ sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq git curl dkms wget bu
 
 # ==========================================================
 # 3. 内核检查与头文件
-# [适配建议]: 不同发行版的内核头文件包名不同。
-# Ubuntu: linux-headers-$(uname -r)
-# CentOS/Fedora: kernel-devel-$(uname -r)
-# Arch: linux-headers
 # ==========================================================
 echo "[STEP: Checking Kernel Headers...]"
 TARGET_KERNEL_VERSION=$(uname -r)
@@ -81,7 +72,6 @@ if [ ! -e "/lib/modules/$TARGET_KERNEL_VERSION/build" ]; then
     echo " -> Kernel headers not found for $TARGET_KERNEL_VERSION. Attempting installation..."
     if ! sudo apt-get install -y -qq "linux-headers-$TARGET_KERNEL_VERSION"; then
         echo " -> Failed to find headers for current kernel. Installing a standard generic kernel instead..."
-        # 兜底逻辑：若无法匹配当前微版本，尝试安装最新通用版内核及对应头文件
         NEW_KERNEL_IMAGE=$(apt-cache search "^linux-image-[0-9]" | awk '{print $1}' | grep -E "generic$" | sort -V | tail -1)
         NEW_KERNEL_VERSION=$(echo "$NEW_KERNEL_IMAGE" | sed 's/linux-image-//')
         NEW_KERNEL_HEADERS="linux-headers-$NEW_KERNEL_VERSION"
@@ -92,17 +82,12 @@ if [ ! -e "/lib/modules/$TARGET_KERNEL_VERSION/build" ]; then
 fi
 
 # ==========================================================
-# 4. dxgkrnl 模块编译与验证 (核心逻辑)
-# [说明]: 
-# 1. 下载云端提取好的轻量源码包。
-# 2. 人工重建内核源码目录结构以便完美兼容官方补丁 (-p1 参数)。
-# 3. 本地应用驱动补丁。
+# 4. dxgkrnl 模块编译与验证
 # ==========================================================
 if lsmod | grep -q "dxgkrnl" || dkms status | grep -q "dxgkrnl"; then
     echo " -> dxgkrnl is already installed or loaded."
 else
     echo "[STEP: Preparing Source & Patching...]"
-    # 获取内核大版本号以选择分支 (5.15 或 6.6)
     KERNEL_MAJOR=$(echo $TARGET_KERNEL_VERSION | cut -d. -f1)
     KERNEL_MINOR=$(echo $TARGET_KERNEL_VERSION | cut -d. -f2)
     
@@ -112,10 +97,10 @@ else
         TARGET_BRANCH="linux-msft-wsl-5.15.y"
     fi
 
-    # 清理旧工作空间
+    # 清理旧文件
     rm -rf /tmp/dxg-src /tmp/kernel_src.tar.gz /tmp/extract-tmp
     
-    # 获取远程轻量包名称
+    # 下载轻量包
     PKG="dxgkrnl-${TARGET_BRANCH#linux-msft-wsl-}"
     PKG="${PKG%.y}-patched"
     echo " -> Downloading Lightweight Kernel Source using Aria2..."
@@ -123,23 +108,24 @@ else
     
     retry_cmd aria2c -x 4 -s 4 --dir=/tmp --out=kernel_src.tar.gz "$ZIP_URL" --allow-overwrite
     
-    # 重建目录结构：使 patch -p1 和 Makefile 寻找 include 的逻辑与 WSL2 源码树完全一致
-    echo " -> Recreating Kernel Tree Structure..."
+    echo " -> Recreating 1:1 Kernel Tree Structure..."
     mkdir -p /tmp/extract-tmp
     tar -xzf /tmp/kernel_src.tar.gz -C /tmp/extract-tmp --strip-components=1
     
+    # 【核心修正】：人工重建 1.0.6 的目录结构，确保 patch -p1 和 cp -r 逻辑一丝不差
     mkdir -p /tmp/dxg-src/drivers/hv/dxgkrnl
     mv /tmp/extract-tmp/include /tmp/dxg-src/include
+    # 将其余所有驱动文件移入深层目录
     cp -r /tmp/extract-tmp/* /tmp/dxg-src/drivers/hv/dxgkrnl/
     
     cd /tmp/dxg-src
     VERSION="custom"
 
-    # 打补丁函数：匹配远程 Patch 仓库
     apply_patch() {
         local patch_url=$1
         local patch_file=$(basename "$patch_url")
         retry_cmd curl -fsSL --retry 3 "$patch_url" -o "$patch_file"
+        # 此时在 /tmp/dxg-src 下，-p1 正好匹配 drivers/hv/dxgkrnl/...
         patch -p1 < "$patch_file"
     }
 
@@ -150,28 +136,24 @@ else
         apply_patch "$PATCH_BASE_URL/linux-msft-wsl-5.15.y/0002-Add-a-multiple-kernel-version-support.patch"
         apply_patch "$PATCH_BASE_URL/linux-msft-wsl-5.15.y/0003-Fix-gpadl-has-incomplete-type-error.patch"
     else
-        # 6.6 分支修复
         retry_cmd curl -fsSL --retry 3 "$PATCH_BASE_URL/linux-msft-wsl-6.6.y/0002-Fix-eventfd_signal.patch" -o patch_6.6.patch
         patch -p1 --ignore-whitespace < patch_6.6.patch
     fi
 
     echo "[STEP: Compiling and Installing DXG Module...]"
-    # 将打好补丁的源码移至 /usr/src 下供 DKMS 使用
+    # 这里的命令现在和 1.0.6 完全一模一样了
     sudo cp -r ./drivers/hv/dxgkrnl /usr/src/dxgkrnl-$VERSION
     sudo cp -r ./include /usr/src/dxgkrnl-$VERSION/include
     DXGMODULE_FILE="/usr/src/dxgkrnl-$VERSION/dxgmodule.c"
     
-    # 针对 6.8+ 内核的 API 变更自动热修复
     if grep -q "eventfd_signal.*struct eventfd_ctx.*__u64" /lib/modules/$TARGET_KERNEL_VERSION/build/include/linux/eventfd.h 2>/dev/null; then
         sed -i 's/eventfd_signal(event->cpu_event);/eventfd_signal(event->cpu_event, 1);/g' "$DXGMODULE_FILE"
     fi
 
-    # 配置独立编译 Makefile
     echo "Configuring Makefile..."
     sudo sed -i 's/\$(CONFIG_DXGKRNL)/m/' /usr/src/dxgkrnl-$VERSION/Makefile
     echo "EXTRA_CFLAGS=-I\$(PWD)/include -D_MAIN_KERNEL_" | sudo tee -a /usr/src/dxgkrnl-$VERSION/Makefile
     
-    # 生成 DKMS 配置文件
     sudo tee /usr/src/dxgkrnl-$VERSION/dkms.conf > /dev/null <<EOF
 PACKAGE_NAME="dxgkrnl"
 PACKAGE_VERSION="$VERSION"
@@ -180,7 +162,6 @@ DEST_MODULE_LOCATION="/kernel/drivers/hv/dxgkrnl/"
 AUTOINSTALL="yes"
 EOF
 
-    # DKMS 构建流程
     sudo dkms add dxgkrnl/$VERSION
     sudo dkms build dxgkrnl/$VERSION
     sudo dkms install dxgkrnl/$VERSION --force
@@ -188,17 +169,15 @@ fi
 
 echo "[STEP: Testing module load...]"
 if ! sudo modprobe dxgkrnl; then
-    echo " -> [WARNING] dxgkrnl could not be loaded. Check Secure Boot status."
+    echo " -> [WARNING] dxgkrnl could not be loaded. This is usually caused by Secure Boot."
+    echo " -> Please disable Secure Boot in Hyper-V settings or sign the module manually."
 fi
 
 # ==========================================================
-# 5. 图形栈配置
-# [适配建议]: 该步骤在 Ubuntu 上依赖 Kisak PPA 获取最新 Mesa。
-# 其他发行版（如 Arch/Fedora）通常官方源已是最新，只需安装相应的驱动包即可。
+# 5. 图形栈配置 (1:1 还原 1.0.6)
 # ==========================================================
 if [ "$ENABLE_GRAPHICS" == "true" ]; then
-    echo "[STEP: Configuring Graphics Stack...]"
-    # Ubuntu 专有逻辑：清理冲突 PPA 并锁定原生 GL 库
+    echo "[STEP: Configuring Graphics Stack (Kisak PPA)...]"
     sudo apt-get install -y -qq ppa-purge
     sudo ppa-purge -y ppa:kisak/turtle || true
     sudo ppa-purge -y ppa:kisak/kisak-mesa || true
@@ -211,7 +190,6 @@ Pin-Priority: 1001
 EOF'
     sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --allow-downgrades libgl1-mesa-dri libglapi-mesa libglx-mesa0 libgbm1
 
-    # 安装 Mesa-D3D12 支持包
     sudo add-apt-repository ppa:kisak/turtle -y
     sudo apt-get update -qq
     sudo bash -c 'cat > /etc/apt/preferences.d/99-mesa-pinning <<EOF
@@ -223,17 +201,16 @@ EOF'
 fi
 
 # ==========================================================
-# 6. 系统配置与 WSL 库部署
-# [说明]: 将 D3D12/DXCore 用户态库映射到 WSL 标准路径，以便 3D 应用加载。
+# 6. 系统配置与 WSL 库部署 (1:1 还原 1.0.6)
 # ==========================================================
 echo "[STEP: Deploying WSL Core Libraries...]"
 LIBS=("libd3d12.so" "libd3d12core.so" "libdxcore.so")
 mkdir -p "$LIB_DIR"
 for lib in "${LIBS[@]}"; do
     if [ ! -f "$LIB_DIR/$lib" ]; then
-        echo " -> $lib not found locally, downloading..."
-        if ! retry_cmd aria2c -x 4 -s 4 --dir="$LIB_DIR" --out="$lib" "$GITHUB_LIB_URL/$lib" --allow-overwrite; then
-            echo " -> [ERROR] Failed to download $lib."
+        echo " -> $lib not found locally, attempting download..."
+        if ! retry_cmd aria2c -x 4 -s 4 --dir="$LIB_DIR" --out="$lib" "$GITHUB_LIB_URL/$lib"; then
+            echo " -> [ERROR] Failed to download $lib. Please check network."
             exit 1
         fi
     fi
@@ -252,10 +229,7 @@ echo "/usr/lib/wsl/lib" | sudo tee /etc/ld.so.conf.d/ld.wsl.conf > /dev/null
 sudo ldconfig
 
 # ==========================================================
-# 7. 内核模块延迟加载策略
-# [说明]: 
-# 1. 禁用启动时的自动加载以防由于驱动冲突崩溃。
-# 2. 通过 Systemd 服务在系统就绪后（Late Load）加载 dxgkrnl。
+# 7. 内核模块延迟加载策略 (1:1 还原 1.0.6)
 # ==========================================================
 echo "[STEP: Configuring systemd late-loader...]"
 echo "vgem" | sudo tee /etc/modules-load.d/vgem.conf > /dev/null
@@ -286,21 +260,18 @@ sudo systemctl daemon-reload
 sudo systemctl enable load-dxg-late.service
 
 # ==========================================================
-# 8. 环境变量与权限
+# 8. 环境变量与权限 (1:1 还原 1.0.6)
 # ==========================================================
 if [ "$ENABLE_GRAPHICS" == "true" ]; then
     echo "[STEP: Finalizing environment variables...]"
-    # Gallium D3D12 后端配置
     update_env "GALLIUM_DRIVER" "d3d12"
     update_env "DRI_PRIME" "1"
     update_env "LIBVA_DRIVER_NAME" "d3d12"
-    
-    # 授予当前用户渲染权限
     sudo usermod -a -G video,render $USER
 fi
 
 # ==========================================================
-# 9. 清理并退出
+# 9. 清理并退出 (1:1 还原 1.0.6)
 # ==========================================================
 echo "[STEP: Cleaning up deployment files...]"
 sudo rm -rf "$DEPLOY_DIR"

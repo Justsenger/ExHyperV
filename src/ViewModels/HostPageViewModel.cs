@@ -33,40 +33,75 @@ namespace ExHyperV.ViewModels
 
         [ObservableProperty] private WindowsSku _selectedSku;
 
-        // 2. 处理 SKU 切换 (使用 changepk 执行官方转换流程)
+        // 2. 处理 SKU 切换 (真正完美的内核级转换)
         partial void OnSelectedSkuChanged(WindowsSku value)
         {
-            // _isInitialized 确保在程序启动加载初始值时不触发切换
             if (!_isInitialized || value == null) return;
 
-            // 注意：这里改成了 async Task，以便使用 await Task.Delay
             _ = Task.Run(async () => {
                 try
                 {
-                    // 1. 启动 changepk.exe 进行版本转换
-                    var processInfo = new System.Diagnostics.ProcessStartInfo
+                    Application.Current.Dispatcher.Invoke(() => {
+                        ShowSnackbar("深度转换中", $"正在重构系统组件库至 {value.Name}，此过程可能需要 1-2 分钟...", ControlAppearance.Info, SymbolRegular.LocalLanguage24);
+                    });
+
+                    // --- 步骤 1: 预欺骗注册表 ---
+                    // 必须先让系统认为自己已经是目标版本，否则 DISM 可能会拒绝降级指令
+                    using (var key = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows NT\CurrentVersion", true))
                     {
-                        FileName = "changepk.exe",
-                        Arguments = $"/ProductKey {value.ProductKey}",
-                        UseShellExecute = true,
-                        Verb = "runas" // 必须管理员权限
+                        key.SetValue("EditionID", value.EditionId);
+                        key.SetValue("ProductName", $"Windows 10 {value.Name}");
+                        key.SetValue("CompositionEditionID", value.EditionId);
+                    }
+
+                    // --- 步骤 2: 注入密钥 (slmgr) ---
+                    string slmgrCmd = $"cscript //nologo C:\\Windows\\System32\\slmgr.vbs /ipk {value.ProductKey}";
+                    var slmgrInfo = new System.Diagnostics.ProcessStartInfo
+                    {
+                        FileName = "cmd.exe",
+                        Arguments = $"/c {slmgrCmd}",
+                        WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden,
+                        Verb = "runas"
+                    };
+                    System.Diagnostics.Process.Start(slmgrInfo)?.WaitForExit();
+
+                    // --- 步骤 3: 【关键】调用 DISM 进行组件库深度重构 ---
+                    // 这是为了让“控制面板-启用或关闭 Windows 功能”里的列表重新对齐
+                    // /Set-Edition 虽然官方说只支持升级，但在手动修改注册表后，它可以强制系统刷新功能树
+                    string dismArgs = $"/Online /Set-Edition:{value.EditionId} /ProductKey:{value.ProductKey} /AcceptEula /NoRestart";
+
+                    var dismProcess = new System.Diagnostics.Process
+                    {
+                        StartInfo = new System.Diagnostics.ProcessStartInfo
+                        {
+                            FileName = "dism.exe",
+                            Arguments = dismArgs,
+                            UseShellExecute = false,
+                            CreateNoWindow = true,
+                            Verb = "runas"
+                        }
                     };
 
-                    System.Diagnostics.Process.Start(processInfo);
+                    dismProcess.Start();
+                    await dismProcess.WaitForExitAsync();
 
-                    // 2. 延迟 5 秒
-                    // 理由：给系统一点时间处理证书，同时也避免立刻弹窗遮挡了系统的“准备升级”窗口
-                    await Task.Delay(5000);
+                    // --- 步骤 4: 刷新授权缓存 ---
+                    // 确保 ClipSVC 重新读取新的许可证策略
+                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                    {
+                        FileName = "cmd.exe",
+                        Arguments = "/c clipup -v -o",
+                        WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden
+                    })?.WaitForExit();
 
-                    // 3. 调用你已有的 ShowRestartPrompt 方法，弹出带按钮的提示
                     Application.Current.Dispatcher.Invoke(() => {
-                        ShowRestartPrompt($"系统 SKU 已申请切换为 {value.Name}。为了确保底层组件挂载成功，建议立即重启电脑。");
+                        ShowRestartPrompt($"系统已深度重构为 {value.Name}。重启后，Hyper-V 等高级组件将根据家庭版策略被正式屏蔽。");
                     });
                 }
                 catch (Exception ex)
                 {
                     Application.Current.Dispatcher.Invoke(() => {
-                        ShowSnackbar("切换失败", ex.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                        ShowSnackbar("转换异常", ex.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
                     });
                 }
             });
