@@ -1,95 +1,33 @@
-name: 构建已打补丁的 DXG 内核组件
-
-on:
-  schedule:
-    - cron: '0 0 * * 1'
-  workflow_dispatch:
-
-permissions:
-  contents: write
-
-jobs:
-  build-and-deploy-to-branch:
-    runs-on: ubuntu-latest
-    steps:
-      - name: 检出 ExHyperV 仓库
-        uses: actions/checkout@v4
-
-      - name: 构建驱动压缩包
+- name: 构建干净的 DXG 驱动轻量包
         run: |
-          set -e  # 一旦出错立刻停止执行
-          
+          set -e
           VERSIONS=("linux-msft-wsl-5.15.y:5.15" "linux-msft-wsl-6.6.y:6.6")
           mkdir -p output
-          
           for item in "${VERSIONS[@]}"; do
             BRANCH=${item%%:*}
             SHORT_VER=${item#*:}
-            echo ">>> 开始处理版本: $SHORT_VER (分支: $BRANCH)"
+            echo ">>> 提取干净源码: $BRANCH"
             
-            # 1. 准备干净的工作目录
-            rm -rf ms-kernel
-            mkdir ms-kernel && cd ms-kernel
+            rm -rf ms-kernel && mkdir ms-kernel && cd ms-kernel
             git init -q
             git remote add origin https://github.com/microsoft/WSL2-Linux-Kernel.git
-            
-            # 2. 设置 Sparse Checkout (注意目录名后不要带 *)
             git config core.sparseCheckout true
             echo "drivers/hv/dxgkrnl/" >> .git/info/sparse-checkout
             echo "include/" >> .git/info/sparse-checkout
-            
-            # 3. 拉取源码
             git pull --depth 1 origin $BRANCH -q
             cd ..
-            
-            # 4. 应用 Patch (严格校验结果)
-            PATCH_DIR="src/Linux/script/patches/$BRANCH"
-            if [ -d "$PATCH_DIR" ]; then
-              # 按照文件名排序应用补丁
-              for patch_file in $(ls "$PATCH_DIR"/*.patch | sort); do
-                echo "Applying patch: $patch_file"
-                # -f 强制尝试，--no-backup-if-mismatch 不产生冗余文件
-                patch -p1 -d ms-kernel < "$patch_file" || {
-                  echo "!!! [错误] 补丁 $patch_file 应用失败，请检查 Patch 内容与源码版本是否匹配"
-                  exit 1
-                }
-              done
-            else
-              echo "!!! [警告] 补丁目录 $PATCH_DIR 不存在"
-            fi
-            
-            # 5. 组装最终产品
+
+            # 保持文件名一致以便部署脚本拉取，但内容是干净的原始代码
             BUILD_DIR="dxgkrnl-${SHORT_VER}-patched"
             mkdir -p "$BUILD_DIR"
-            
-            # 拷贝驱动源码
             cp -r ms-kernel/drivers/hv/dxgkrnl/* "$BUILD_DIR/"
-            # 拷贝配套头文件
             cp -r ms-kernel/include "$BUILD_DIR/include"
             
-            # 校验一下 patch 后的结果 (捉鬼环节)
-            echo ">>> 检查 $BUILD_DIR/dxgmodule.c 是否包含 GUID 定义:"
+            # 校验：确保里面没有补丁痕迹
             if grep -q "HV_GPUP_DXGK_VGPU_GUID" "$BUILD_DIR/dxgmodule.c"; then
-              echo "[成功] 补丁内容已存在于源文件中"
-            else
-              echo "[致命错误] 补丁逻辑未生效，源文件中未找到 GUID 定义"
-              exit 1
+              echo "错误：源码竟然包含补丁内容！" && exit 1
             fi
-            
-            # 6. 压缩打包
-            tar -czf "output/${BUILD_DIR}.tar.gz" "$BUILD_DIR"
-            
-            # 7. 清理现场
-            rm -rf "$BUILD_DIR" ms-kernel
-            echo ">>> 版本 $SHORT_VER 处理完成"
-          done
 
-      - name: 强制推送到独立资源分支
-        run: |
-          cd output
-          git init
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add .
-          git commit -m "自动更新预制驱动组件 $(date +'%Y-%m-%d %H:%M:%S')"
-          git push "https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" HEAD:refs/heads/kernel-assets --force
+            tar -czf "output/${BUILD_DIR}.tar.gz" "$BUILD_DIR"
+            rm -rf "$BUILD_DIR" ms-kernel
+          done
