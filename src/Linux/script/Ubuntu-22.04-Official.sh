@@ -262,29 +262,24 @@ sudo ldconfig
 # 1. 禁用启动时的自动加载以防由于驱动冲突崩溃。
 # 2. 通过 Systemd 服务在系统就绪后（Late Load）加载 dxgkrnl。
 # ==========================================================
-echo "[STEP: Configuring systemd late-loader...]"
-echo "vgem" | sudo tee /etc/modules-load.d/vgem.conf > /dev/null
-echo "blacklist dxgkrnl" | sudo tee /etc/modprobe.d/blacklist-dxgkrnl.conf > /dev/null
-sudo update-initramfs -u
-
-sudo tee /usr/local/bin/load_dxg_driver.sh > /dev/null << 'EOF'
-#!/bin/bash
-modprobe dxgkrnl
-if [ -e /dev/dxg ]; then chmod 666 /dev/dxg; fi
-EOF
-sudo chmod +x /usr/local/bin/load_dxg_driver.sh
-
 sudo tee /etc/systemd/system/load-dxg-late.service > /dev/null << 'EOF'
 [Unit]
 Description=Late load dxgkrnl for ExHyperV
+# 确保在图形界面准备好之后
 After=graphical.target
+# 如果你有桌面环境，确保在显示管理器之后
+After=display-manager.service
 
 [Service]
-Type=simple
+# 改为 oneshot 模式，更适合这种执行一次就结束的任务
+Type=oneshot
 ExecStart=/usr/local/bin/load_dxg_driver.sh
+# 即使脚本退出了，也认为服务是运行成功的
+RemainAfterExit=yes
 
 [Install]
-WantedBy=multi-user.target
+# 关键修正：统一为 graphical.target
+WantedBy=graphical.target
 EOF
 
 sudo systemctl daemon-reload
