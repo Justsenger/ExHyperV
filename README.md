@@ -591,3 +591,5 @@ A huge thank you to our sponsors! Your generous support is the driving force beh
 <a href="mailto:miooiio@outlook.jp"><img src="https://img.shields.io/badge/BEGINNER-User--53EDF-0078D4?style=flat-square&logo=hyperledger&logoColor=white" /></a> 
 ![](https://img.shields.io/badge/BEGINNER-User--56652-0078D4?style=flat-square&logo=hyperledger&logoColor=white)
 ![](https://img.shields.io/badge/BEGINNER-User--2b965-0078D4?style=flat-square&logo=hyperledger&logoColor=white) 
+![](https://img.shields.io/badge/BEGINNER-苏芸晴或i-0078D4?style=flat-square&logo=hyperledger&logoColor=white) 
+![](https://img.shields.io/badge/BEGINNER-tiwatezhanshen-0078D4?style=flat-square&logo=hyperledger&logoColor=white) 
