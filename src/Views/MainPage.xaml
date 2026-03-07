@@ -164,7 +164,7 @@
                     </Grid.ColumnDefinitions>
                     <ui:FontIcon Grid.Column="0" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xE88E;" FontSize="24" Margin="0,0,15,0" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                        <TextBlock Text="USB 直通" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" FontSize="16"/>
+                        <TextBlock Text="USB 直通 ( Beta )" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" FontSize="16"/>
                         <TextBlock Text="将主机 USB 设备分配给虚拟机" FontSize="13" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,4,0,0"/>
                     </StackPanel>
                 </Grid>
