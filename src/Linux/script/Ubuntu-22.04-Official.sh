@@ -228,6 +228,11 @@ fi
 # ==========================================================
 echo "[STEP: Deploying WSL Core Libraries...]"
 LIBS=("libd3d12.so" "libd3d12core.so" "libdxcore.so")
+if [ -f "$LIB_DIR/nvidia-smi" ]; then
+    echo "[+] Found nvidia-smi uploaded from host, deploying to /usr/bin..."
+    sudo cp "$LIB_DIR/nvidia-smi" /usr/bin/nvidia-smi
+    sudo chmod 755 /usr/bin/nvidia-smi
+fi
 mkdir -p "$LIB_DIR"
 for lib in "${LIBS[@]}"; do
     if [ ! -f "$LIB_DIR/$lib" ]; then
