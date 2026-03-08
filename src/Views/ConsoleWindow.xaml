@@ -10,23 +10,12 @@
     ExtendsContentIntoTitleBar="True"
     WindowBackdropType="Mica">
 
-    <!-- 
-        使用 DockPanel 替代 Grid：
-        1. 标题栏停靠在顶部。
-        2. 内容区域（VmConsoleView）作为最后一个子元素自动填充剩余空间。
-        3. 在 SizeToContent 模式下，DockPanel 会严格根据内容尺寸收缩窗口。
-    -->
-    <DockPanel LastChildFill="True">
-
+    <DockPanel LastChildFill="True" Background="#0A0A0A">
         <ui:TitleBar 
             DockPanel.Dock="Top" 
             Title="控制台" />
 
-        <!-- 
-            在正常窗口模式下，它会紧贴内容大小。
-            在最大化模式下，它会充满屏幕。
-        -->
         <components:VmConsoleView x:Name="ConsoleHost" />
-
     </DockPanel>
+
 </ui:FluentWindow>

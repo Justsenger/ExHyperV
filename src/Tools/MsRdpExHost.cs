@@ -88,15 +88,53 @@ namespace ExHyperV.Tools
         {
             if (_parentWindow == null) return;
 
-            Debug.WriteLine($"[RDP-STATE] 窗口状态变为: {_parentWindow.WindowState}");
-
-            // 当从最大化还原时
-            if (_parentWindow.WindowState == WindowState.Normal)
+            if (_parentWindow.WindowState == WindowState.Maximized)
             {
-                Debug.WriteLine("[RDP-STATE] 检测到窗口还原，准备强制重置外壳尺寸...");
-                // 即使像素没变，也要调用一次以触发 SizeToContent 重置
-                UpdateLayoutByPixels("【窗口状态还原校准】", _lastPixelW, _lastPixelH, true);
+                // 1. 最大化时，必须关闭自动适配，否则会产生布局回环或渲染空洞
+                _parentWindow.SizeToContent = SizeToContent.Manual;
+                Debug.WriteLine("[RDP-STATE] 最大化：关闭 SizeToContent");
             }
+            else if (_parentWindow.WindowState == WindowState.Normal)
+            {
+                // 2. 还原时，重新开启自动适配并强制刷新
+                Debug.WriteLine("[RDP-STATE] 还原：重新开启 SizeToContent");
+                UpdateLayoutByPixels("【窗口还原校准】", _lastPixelW, _lastPixelH, true);
+            }
+        }
+
+        private void UpdateLayoutByPixels(string reason, int pixelWidth, int pixelHeight, bool forceRefresh = false)
+        {
+            if (pixelWidth <= 0 || pixelHeight <= 0) return;
+            if (!forceRefresh && pixelWidth == _lastPixelW && pixelHeight == _lastPixelH) return;
+
+            Dispatcher.Invoke(() =>
+            {
+                var source = PresentationSource.FromVisual(this);
+                if (source?.CompositionTarget == null) return;
+
+                double dpiX = source.CompositionTarget.TransformToDevice.M11;
+                double dpiY = source.CompositionTarget.TransformToDevice.M22;
+
+                _lastPixelW = pixelWidth;
+                _lastPixelH = pixelHeight;
+
+                this.Width = pixelWidth / dpiX;
+                this.Height = pixelHeight / dpiY;
+
+                if (_parentWindow != null && _parentWindow.WindowState == WindowState.Normal)
+                {
+                    Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        // 还原时：先设为 0 彻底打破 Windows 的恢复边界约束
+                        _parentWindow.Width = 0;
+                        _parentWindow.Height = 0;
+
+                        // 重新进入 WidthAndHeight 模式，它会重新根据 Host 的新 Width/Height 撑开窗口
+                        _parentWindow.SizeToContent = SizeToContent.WidthAndHeight;
+                        _parentWindow.UpdateLayout();
+                    }), DispatcherPriority.Background);
+                }
+            });
         }
 
         private void StartFastSniffer()
@@ -125,65 +163,6 @@ namespace ExHyperV.Tools
                 }
             };
             _fastResizeTimer.Start();
-        }
-
-        private void UpdateLayoutByPixels(string reason, int pixelWidth, int pixelHeight, bool forceRefresh = false)
-        {
-            if (pixelWidth <= 0 || pixelHeight <= 0) return;
-            // 如果尺寸没变且不是强制刷新，则跳过
-            if (!forceRefresh && pixelWidth == _lastPixelW && pixelHeight == _lastPixelH) return;
-
-            Dispatcher.Invoke(() =>
-            {
-                var source = PresentationSource.FromVisual(this);
-                if (source?.CompositionTarget == null) return;
-
-                double dpiX = source.CompositionTarget.TransformToDevice.M11;
-                double dpiY = source.CompositionTarget.TransformToDevice.M22;
-
-                _lastPixelW = pixelWidth;
-                _lastPixelH = pixelHeight;
-
-                double wpfW = pixelWidth / dpiX;
-                double wpfH = pixelHeight / dpiY;
-
-                Debug.WriteLine($">>>>> [RDP-SYNC-START] 原因: {reason}");
-                Debug.WriteLine($"      目标物理像素: {pixelWidth}x{pixelHeight}");
-                Debug.WriteLine($"      计算WPF尺寸: {wpfW}x{wpfH}");
-
-                // 1. 设置 Host 尺寸
-                this.Width = wpfW;
-                this.Height = wpfH;
-
-                if (_parentWindow != null)
-                {
-                    // 如果正在 Normal 模式下，强制执行外壳收缩
-                    if (_parentWindow.WindowState == WindowState.Normal)
-                    {
-                        // 使用 Background 优先级，确保在还原动画完成后执行
-                        Dispatcher.BeginInvoke(new Action(() =>
-                        {
-                            Debug.WriteLine($"[RDP-SYNC-SHELL] 执行窗口自适应。当前窗口尺寸: {_parentWindow.ActualWidth}x{_parentWindow.ActualHeight}");
-
-                            // 关键修复：清除可能被系统锁定的硬性尺寸
-                            _parentWindow.Width = double.NaN;
-                            _parentWindow.Height = double.NaN;
-
-                            // 抖动 SizeToContent
-                            var currentMode = _parentWindow.SizeToContent;
-                            _parentWindow.SizeToContent = SizeToContent.Manual;
-                            _parentWindow.SizeToContent = currentMode;
-
-                            _parentWindow.UpdateLayout();
-                            Debug.WriteLine($"[RDP-SYNC-SHELL] 完成。新窗口尺寸: {_parentWindow.ActualWidth}x{_parentWindow.ActualHeight}");
-                        }), DispatcherPriority.Background);
-                    }
-                    else
-                    {
-                        Debug.WriteLine($"[RDP-SYNC-SHELL] 窗口处于 {_parentWindow.WindowState} 状态，跳过外壳收缩，仅保持内部居中。");
-                    }
-                }
-            });
         }
 
         private void StopFastSniffer() { _fastResizeTimer?.Stop(); _fastResizeTimer = null; }

@@ -5,20 +5,20 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
              xmlns:tools="clr-namespace:ExHyperV.Tools"
+             xmlns:converters="clr-namespace:ExHyperV.Converters"
              mc:Ignorable="d" 
              d:DesignHeight="768" d:DesignWidth="1024">
 
+    <UserControl.Resources>
+        <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+    </UserControl.Resources>
+
     <Grid Background="#0A0A0A">
-        <!-- 
-            重点 1：HorizontalAlignment 和 VerticalAlignment 设为 Center 
-            当窗口最大化时，Host 控件将保持在 Grid 中央，四周显示黑色背景（黑边）
-        -->
         <tools:MsRdpExHost x:Name="RdpHost" 
                            VmId="{Binding VmId}" 
                            HorizontalAlignment="Center" 
                            VerticalAlignment="Center" />
 
-        <!-- 加载遮罩层 -->
         <Grid Visibility="{Binding IsLoading, Converter={StaticResource BooleanToVisibilityConverter}, FallbackValue=Collapsed}" 
               Background="#111111" 
               Panel.ZIndex="100">
