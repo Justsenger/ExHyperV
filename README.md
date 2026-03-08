@@ -344,7 +344,9 @@ Host and VM must be the following versions to enable this capability.
 | **AMD** | Radeon Vega 3 | GCN 5.0 | ⚠️ | ✅ | ✅ | ✅ | ✅ | ✅ | Incomplete HW ID|
 | **AMD** | Radeon 8060S | RDNA 3.5 | ⚠️ | ✅ | ✅ | ✅ | ✅ | ❌ | Incomplete HW ID |
 | **AMD** | Radeon 890M | RDNA 3.5 | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | Boot crashes host |
+| **Qualcomm** | Qualcomm(R) Adreno(TM) X1-85 GPU | Adreno X1 | ⚠️ | ✅ | ✅ | ✅ | ✅ | ✅ | Incomplete HW ID|
 | **Moore Threads** | MTT S80 | MUSA | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | Not supported |
+
 
 #### How to output video from the VM?
 
@@ -534,6 +536,8 @@ Usually use Windows 10/11 or higher. Linux requires further testing.
 | **Intel**| HD Graphics 530 | Generation 9.0 | Fails ❌ | ❌ | ❌ | ❌ |
 | **AMD** | RX 580 | GCN 4.0 | Code 43 ❌ | ✅ | ❌ |
 | **AMD** | Radeon Vega 3 | GCN 5.0 | Code 43 ❌ | ❌ | ❌ |
+| **Qualcomm** | Qualcomm(R) Adreno(TM) X1-85 GPU | Adreno X1 | Not supported❌ | ❌ | ❌ |
+
 
 - **Boot**: Whether the driver can be successfully installed and recognized after assignment to the VM. Code 43 indicates the driver level does not allow the card to work inside a VM.
 - **Function Level Reset (FLR)**: If not supported, restarting the VM will also restart the host.
