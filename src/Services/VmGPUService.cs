@@ -832,6 +832,10 @@ return 'OK'
                 {
                     PromoteAmdGpuFiles(assignedDriveLetter);
                 }
+                else if (gpuManu.Contains("Qualcomm", StringComparison.OrdinalIgnoreCase) || gpuManu.Contains("QCOM", StringComparison.OrdinalIgnoreCase))
+                {
+                    PromoteQualcommGpuFiles(assignedDriveLetter);
+                }
 
 
                 return "OK";
@@ -912,87 +916,227 @@ return 'OK'
 
         private void PromoteNvidiaFiles(string assignedDriveLetter)
         {
-                        // --- 管理与基础 ---
-                        LinkSingleFile(assignedDriveLetter, "nvidia-smi.exe", "nvidia-smi.exe", "System32");
-                        LinkSingleFile(assignedDriveLetter, "nvml_loader.dll", "nvml.dll", "System32");
-                        LinkSingleFile(assignedDriveLetter, "nvapi64.dll", "nvapi64.dll", "System32");
-                        LinkSingleFile(assignedDriveLetter, "nvcpl.dll", "nvcpl.dll", "System32");
+            // --- 1. System32 (64位核心) ---
+            string s32 = "System32";
+            LinkSingleFile(assignedDriveLetter, "MCU.exe", "MCU.exe", s32);
+            LinkSingleFile(assignedDriveLetter, "nvapi64.dll", "nvapi64.dll", s32);
+            LinkSingleFile(assignedDriveLetter, "nvcpl.dll", "nvcpl.dll", s32);
+            LinkSingleFile(assignedDriveLetter, "nvcuda_loader64.dll", "nvcuda.dll", s32);
+            LinkSingleFile(assignedDriveLetter, "nvcudadebugger.dll", "nvcudadebugger.dll", s32);
+            LinkSingleFile(assignedDriveLetter, "nvcuvid64.dll", "nvcuvid.dll", s32);
+            LinkSingleFile(assignedDriveLetter, "nvdebugdump.exe", "nvdebugdump.exe", s32);
+            LinkSingleFile(assignedDriveLetter, "nvEncodeAPI64.dll", "nvEncodeAPI64.dll", s32);
+            LinkSingleFile(assignedDriveLetter, "NvFBC64.dll", "NvFBC64.dll", s32);
+            LinkSingleFile(assignedDriveLetter, "nvidia-pcc.exe", "nvidia-pcc.exe", s32);
+            LinkSingleFile(assignedDriveLetter, "nvidia-smi.exe", "nvidia-smi.exe", s32);
+            LinkSingleFile(assignedDriveLetter, "NvIFR64.dll", "NvIFR64.dll", s32);
+            LinkSingleFile(assignedDriveLetter, "nvinfo.pb", "nvinfo.pb", s32);
+            LinkSingleFile(assignedDriveLetter, "nvml_loader.dll", "nvml.dll", s32);
+            LinkSingleFile(assignedDriveLetter, "nvofapi64.dll", "nvofapi64.dll", s32);
+            LinkSingleFile(assignedDriveLetter, "OpenCL64.dll", "OpenCL.dll", s32);
+            LinkSingleFile(assignedDriveLetter, "vulkan-1-x64.dll", "vulkan-1.dll", s32);
+            LinkSingleFile(assignedDriveLetter, "vulkan-1-x64.dll", "vulkan-1-999-0-0-0.dll", s32);
+            LinkSingleFile(assignedDriveLetter, "vulkaninfo-x64.exe", "vulkaninfo.exe", s32);
+            LinkSingleFile(assignedDriveLetter, "NV_DISP.CAT", "oem25.cat", @"System32\CatRoot\{F750E6C3-38EE-11D1-85E5-00C04FC295EE}");
 
-                        // --- 计算接口 (CUDA / OpenCL) ---
-                        LinkSingleFile(assignedDriveLetter, "nvcuda_loader64.dll", "nvcuda.dll", "System32");
-                        LinkSingleFile(assignedDriveLetter, "nvcudadebugger.dll", "nvcudadebugger.dll", "System32");
-                        LinkSingleFile(assignedDriveLetter, "OpenCL64.dll", "OpenCL.dll", "System32");
+            // --- 2. System32 特殊子目录 ---
+            LinkSingleFile(assignedDriveLetter, "license.txt", "license.txt", @"System32\drivers\NVIDIA Corporation");
+            LinkSingleFile(assignedDriveLetter, "dbInstaller.exe", "dbInstaller.exe", @"System32\drivers\NVIDIA Corporation\Drs");
+            LinkSingleFile(assignedDriveLetter, "nvdrsdb.bin", "nvdrsdb.bin", @"System32\drivers\NVIDIA Corporation\Drs");
 
-                        // --- 视频与光流 (NVOF / NVENC / NVDEC) ---
-                        LinkSingleFile(assignedDriveLetter, "nvofapi64.dll", "nvofapi64.dll", "System32");
-                        LinkSingleFile(assignedDriveLetter, "nvEncodeAPI64.dll", "nvEncodeAPI64.dll", "System32");
-                        LinkSingleFile(assignedDriveLetter, "nvcuvid64.dll", "nvcuvid.dll", "System32");
+            // --- 3. lxss (WSL Linux 支持) ---
+            string lxssPath = @"System32\lxss\lib";
+            LinkSingleFile(assignedDriveLetter, "libcuda_loader.so", "libcuda.so", lxssPath);
+            LinkSingleFile(assignedDriveLetter, "libcuda_loader.so", "libcuda.so.1", lxssPath);
+            LinkSingleFile(assignedDriveLetter, "libcuda_loader.so", "libcuda.so.1.1", lxssPath);
+            LinkSingleFile(assignedDriveLetter, "libcudadebugger.so.1", "libcudadebugger.so.1", lxssPath);
+            LinkSingleFile(assignedDriveLetter, "libnvcuvid.so.1", "libnvcuvid.so", lxssPath);
+            LinkSingleFile(assignedDriveLetter, "libnvcuvid.so.1", "libnvcuvid.so.1", lxssPath);
+            LinkSingleFile(assignedDriveLetter, "libnvdxdlkernels.so", "libnvdxdlkernels.so", lxssPath);
+            LinkSingleFile(assignedDriveLetter, "libnvidia-encode.so.1", "libnvidia-encode.so", lxssPath);
+            LinkSingleFile(assignedDriveLetter, "libnvidia-encode.so.1", "libnvidia-encode.so.1", lxssPath);
+            LinkSingleFile(assignedDriveLetter, "libnvidia-ml_loader.so", "libnvidia-ml.so.1", lxssPath);
+            LinkSingleFile(assignedDriveLetter, "libnvidia-ngx.so.1", "libnvidia-ngx.so.1", lxssPath);
+            LinkSingleFile(assignedDriveLetter, "libnvidia-opticalflow.so.1", "libnvidia-opticalflow.so", lxssPath);
+            LinkSingleFile(assignedDriveLetter, "libnvidia-opticalflow.so.1", "libnvidia-opticalflow.so.1", lxssPath);
+            LinkSingleFile(assignedDriveLetter, "libnvoptix_loader.so.1", "libnvoptix.so.1", lxssPath);
+            LinkSingleFile(assignedDriveLetter, "libnvwgf2umx.so", "libnvwgf2umx.so", lxssPath);
+            LinkSingleFile(assignedDriveLetter, "nvidia-ngx-updater", "nvidia-ngx-updater", lxssPath);
+            LinkSingleFile(assignedDriveLetter, "nvidia-smi", "nvidia-smi", lxssPath);
 
-                        // --- 图形增强 (Vulkan / DLSS / FBC) ---
-                        LinkSingleFile(assignedDriveLetter, "vulkan-1-x64.dll", "vulkan-1.dll", "System32");
-                        LinkSingleFile(assignedDriveLetter, "vulkan-1-x64.dll", "vulkan-1-999-0-0-0.dll", "System32");
-                        LinkSingleFile(assignedDriveLetter, "vulkaninfo-x64.exe", "vulkaninfo.exe", "System32");
-                        LinkSingleFile(assignedDriveLetter, "_nvngx.dll", "_nvngx.dll", "System32"); // DLSS 核心
-                        LinkSingleFile(assignedDriveLetter, "NvFBC64.dll", "NvFBC64.dll", "System32");
-                        LinkSingleFile(assignedDriveLetter, "NvIFR64.dll", "NvIFR64.dll", "System32");
-            
+            // --- 4. SysWOW64 (32位兼容层) ---
+            string sw64 = "SysWOW64";
+            LinkSingleFile(assignedDriveLetter, "nvapi.dll", "nvapi.dll", sw64);
+            LinkSingleFile(assignedDriveLetter, "nvcuda_loader32.dll", "nvcuda.dll", sw64);
+            LinkSingleFile(assignedDriveLetter, "nvcuvid32.dll", "nvcuvid.dll", sw64);
+            LinkSingleFile(assignedDriveLetter, "nvEncodeAPI.dll", "nvEncodeAPI.dll", sw64);
+            LinkSingleFile(assignedDriveLetter, "NvFBC.dll", "NvFBC.dll", sw64);
+            LinkSingleFile(assignedDriveLetter, "NvIFR.dll", "NvIFR.dll", sw64);
+            LinkSingleFile(assignedDriveLetter, "nvofapi.dll", "nvofapi.dll", sw64);
+            LinkSingleFile(assignedDriveLetter, "OpenCL32.dll", "OpenCL.dll", sw64);
+            LinkSingleFile(assignedDriveLetter, "vulkan-1-x86.dll", "vulkan-1.dll", sw64);
+            LinkSingleFile(assignedDriveLetter, "vulkan-1-x86.dll", "vulkan-1-999-0-0-0.dll", sw64);
+            LinkSingleFile(assignedDriveLetter, "vulkaninfo-x86.exe", "vulkaninfo.exe", sw64);
         }
-
         private void PromoteIntelGpuFiles(string assignedDriveLetter)
         {
-            // 1. Vulkan 核心 (必须重命名，去掉 -64)
-            LinkSingleFile(assignedDriveLetter, "vulkan-1-64.dll", "vulkan-1.dll", "System32");
-            LinkSingleFile(assignedDriveLetter, "vulkan-1-64.dll", "vulkan-1-999-0-0-0.dll", "System32");
-            LinkSingleFile(assignedDriveLetter, "vulkaninfo-64.exe", "vulkaninfo.exe", "System32");
+            string s32 = "System32";
+            string sw64 = "SysWOW64";
+            string catPath = @"System32\CatRoot\{F750E6C3-38EE-11D1-85E5-00C04FC295EE}";
 
-            // 2. 视频加速核心 (Intel Media SDK / VPL)
-            LinkSingleFile(assignedDriveLetter, "mfx_loader_dll_hw64.dll", "libmfxhw64.dll", "System32");
-            LinkSingleFile(assignedDriveLetter, "vpl_dispatcher_64.dll", "libvpl.dll", "System32");
-            LinkSingleFile(assignedDriveLetter, "mfxplugin64_hw.dll", "mfxplugin64_hw.dll", "System32");
+            // --- 1. System32 (64位原生组件) ---
+            // 基础管理与 API
+            LinkSingleFile(assignedDriveLetter, "ControlLib.dll", "ControlLib.dll", s32);
+            LinkSingleFile(assignedDriveLetter, "intel_gfx_api-x64.dll", "intel_gfx_api-x64.dll", s32);
 
-            // 3. 计算接口 (OneAPI / Level Zero)
-            LinkSingleFile(assignedDriveLetter, "ze_loader.dll", "ze_loader.dll", "System32");
-            LinkSingleFile(assignedDriveLetter, "ze_intel_gpu_raytracing.dll", "ze_intel_gpu_raytracing.dll", "System32");
-            LinkSingleFile(assignedDriveLetter, "ze_tracing_layer.dll", "ze_tracing_layer.dll", "System32");
-            LinkSingleFile(assignedDriveLetter, "ze_validation_layer.dll", "ze_validation_layer.dll", "System32");
+            // 视频加速核心 (Intel Media SDK / VPL)
+            LinkSingleFile(assignedDriveLetter, "mfx_loader_dll_hw64.dll", "libmfxhw64.dll", s32);
+            LinkSingleFile(assignedDriveLetter, "vpl_dispatcher_64.dll", "libvpl.dll", s32);
+            LinkSingleFile(assignedDriveLetter, "mfxplugin64_hw.dll", "mfxplugin64_hw.dll", s32);
 
-            // 4. Intel 显卡专用 API 接口
-            LinkSingleFile(assignedDriveLetter, "intel_gfx_api-x64.dll", "intel_gfx_api-x64.dll", "System32");
-            LinkSingleFile(assignedDriveLetter, "ControlLib.dll", "ControlLib.dll", "System32");
+            // Vulkan 核心 
+            LinkSingleFile(assignedDriveLetter, "vulkan-1-64.dll", "vulkan-1.dll", s32);
+            LinkSingleFile(assignedDriveLetter, "vulkan-1-64.dll", "vulkan-1-999-0-0-0.dll", s32);
+            LinkSingleFile(assignedDriveLetter, "vulkaninfo-64.exe", "vulkaninfo.exe", s32);
+            LinkSingleFile(assignedDriveLetter, "vulkaninfo-64.exe", "vulkaninfo-1-999-0-0-0.exe", s32);
+
+            // 计算接口 (OneAPI / Level Zero)
+            LinkSingleFile(assignedDriveLetter, "ze_intel_gpu_raytracing.dll", "ze_intel_gpu_raytracing.dll", s32);
+            LinkSingleFile(assignedDriveLetter, "ze_loader.dll", "ze_loader.dll", s32);
+            LinkSingleFile(assignedDriveLetter, "ze_tracing_layer.dll", "ze_tracing_layer.dll", s32);
+            LinkSingleFile(assignedDriveLetter, "ze_validation_layer.dll", "ze_validation_layer.dll", s32);
+
+            // 驱动证书映射 (CatRoot)
+            LinkSingleFile(assignedDriveLetter, "igdlh.cat", "oem95.cat", catPath);
+            LinkSingleFile(assignedDriveLetter, "igdlh.cat", "oem108.cat", catPath);
+
+
+            // --- 2. SysWOW64 (32位兼容组件) ---
+            // 基础管理
+            LinkSingleFile(assignedDriveLetter, "ControlLib32.dll", "ControlLib32.dll", sw64);
+            LinkSingleFile(assignedDriveLetter, "IntelControlLib32.dll", "IntelControlLib32.dll", sw64);
+            LinkSingleFile(assignedDriveLetter, "intel_gfx_api-x86.dll", "intel_gfx_api-x86.dll", sw64);
+
+            // 32位视频加速
+            LinkSingleFile(assignedDriveLetter, "mfx_loader_dll_hw32.dll", "libmfxhw32.dll", sw64);
+            LinkSingleFile(assignedDriveLetter, "vpl_dispatcher_32.dll", "libvpl.dll", sw64);
+            LinkSingleFile(assignedDriveLetter, "mfxplugin32_hw.dll", "mfxplugin32_hw.dll", sw64);
+
+            // 32位 Vulkan
+            LinkSingleFile(assignedDriveLetter, "vulkan-1-32.dll", "vulkan-1.dll", sw64);
+            LinkSingleFile(assignedDriveLetter, "vulkan-1-32.dll", "vulkan-1-999-0-0-0.dll", sw64);
+            LinkSingleFile(assignedDriveLetter, "vulkaninfo-32.exe", "vulkaninfo.exe", sw64);
+            LinkSingleFile(assignedDriveLetter, "vulkaninfo-32.exe", "vulkaninfo-1-999-0-0-0.exe", sw64);
         }
-
         private void PromoteAmdGpuFiles(string assignedDriveLetter)
         {
-            // --- 1. 基础渲染与计算核心 (AMD 通用) ---
-            // 这些是 3D 应用和视频解码必须的
-            LinkSingleFile(assignedDriveLetter, "atidxx64.dll", "atidxx64.dll", "System32");
-            LinkSingleFile(assignedDriveLetter, "atig6txx.dll", "atig6txx.dll", "System32");
-            LinkSingleFile(assignedDriveLetter, "atig6dev.dll", "atig6dev.dll", "System32");
-            LinkSingleFile(assignedDriveLetter, "amdxx64.dll", "amdxx64.dll", "System32");
-            LinkSingleFile(assignedDriveLetter, "amdihk64.dll", "amdihk64.dll", "System32");
+            string s32 = "System32";
+            string sw64 = "SysWOW64";
+            string catPath = @"System32\CatRoot\{F750E6C3-38EE-11D1-85E5-00C04FC295EE}";
 
-            // --- 2. 扫描出的匹配项 (System32 根目录) ---
-            LinkSingleFile(assignedDriveLetter, "atimuixx.dll", "atimuixx.dll", "System32");
-            LinkSingleFile(assignedDriveLetter, "atisamu64.dll", "atisamu64.dll", "System32");
-            LinkSingleFile(assignedDriveLetter, "ativvsva.dat", "ativvsva.dat", "System32");
-            LinkSingleFile(assignedDriveLetter, "ativvsvl.dat", "ativvsvl.dat", "System32");
-            LinkSingleFile(assignedDriveLetter, "EEURestart.exe", "EEURestart.exe", "System32");
-            LinkSingleFile(assignedDriveLetter, "GameManager64.dll", "GameManager64.dll", "System32");
+            // --- 1. System32 (64位原生组件) ---
+            // 核心渲染与 API 
+            LinkSingleFile(assignedDriveLetter, "atidxxstub64.dll", "atidxx64.dll", s32);
+            LinkSingleFile(assignedDriveLetter, "amdxcstub64.dll", "amdxc64.dll", s32);
+            LinkSingleFile(assignedDriveLetter, "amdxc64.so", "amdxc64.so", s32); // WSL支持
 
-            // --- 3. 特殊重命名项 ---
-            LinkSingleFile(assignedDriveLetter, "detoured64.dll", "detoured.dll", "System32");
+            // 基础管理库
+            LinkSingleFile(assignedDriveLetter, "amdadlx64.dll", "amdadlx64.dll", s32);
+            LinkSingleFile(assignedDriveLetter, "amdave64.dll", "amdave64.dll", s32);
+            LinkSingleFile(assignedDriveLetter, "amdgfxinfo64.dll", "amdgfxinfo64.dll", s32);
+            LinkSingleFile(assignedDriveLetter, "amdlvr64.dll", "amdlvr64.dll", s32);
+            LinkSingleFile(assignedDriveLetter, "amdpcom64.dll", "amdpcom64.dll", s32);
+            LinkSingleFile(assignedDriveLetter, "amfrt64.dll", "amfrt64.dll", s32);
+            LinkSingleFile(assignedDriveLetter, "atiadlxx.dll", "atiadlxx.dll", s32);
+            LinkSingleFile(assignedDriveLetter, "atimpc64.dll", "atimpc64.dll", s32);
+            LinkSingleFile(assignedDriveLetter, "atisamu64.dll", "atisamu64.dll", s32);
 
-            // --- 4. AMD 专用子目录组件 (amdkmpfd) ---
-            string amdSubDir = Path.Combine("System32", "AMD", "amdkmpfd");
+            // 服务与工具
+            LinkSingleFile(assignedDriveLetter, "amdsasrv64.dll", "amdsasrv64.dll", s32);
+            LinkSingleFile(assignedDriveLetter, "amdsacli64.dll", "amdsacli64.dll", s32);
+            LinkSingleFile(assignedDriveLetter, "atieclxx.exe", "atieclxx.exe", s32);
+            LinkSingleFile(assignedDriveLetter, "atieah64.exe", "atieah64.exe", s32);
+            LinkSingleFile(assignedDriveLetter, "EEURestart.exe", "EEURestart.exe", s32);
+            LinkSingleFile(assignedDriveLetter, "GameManager64.dll", "GameManager64.dll", s32);
+
+            // 资源与数据
+            LinkSingleFile(assignedDriveLetter, "atiapfxx.blb", "atiapfxx.blb", s32);
+            LinkSingleFile(assignedDriveLetter, "ativvsva.dat", "ativvsva.dat", s32);
+            LinkSingleFile(assignedDriveLetter, "ativvsvl.dat", "ativvsvl.dat", s32);
+            LinkSingleFile(assignedDriveLetter, "AMDKernelEvents.mc", "AMDKernelEvents.man", s32); 
+            LinkSingleFile(assignedDriveLetter, "detoured64.dll", "detoured.dll", s32);
+
+            // 特殊子目录 (amdkmpfd)
+            string amdSubDir = @"System32\AMD\amdkmpfd";
             LinkSingleFile(assignedDriveLetter, "amdkmpfd.ctz", "amdkmpfd.ctz", amdSubDir);
             LinkSingleFile(assignedDriveLetter, "amdkmpfd.itz", "amdkmpfd.itz", amdSubDir);
             LinkSingleFile(assignedDriveLetter, "amdkmpfd.stz", "amdkmpfd.stz", amdSubDir);
 
-            // --- 5. Vulkan 支持 ---
-            LinkSingleFile(assignedDriveLetter, "amdvlk64.dll", "amdvlk64.dll", "System32");
-            LinkSingleFile(assignedDriveLetter, "amdvlk64.dll", "vulkan-1.dll", "System32");
-        }
+            // 驱动证书映射
+            LinkSingleFile(assignedDriveLetter, "u0418637.cat", "oem43.cat", catPath);
 
+
+            // --- 2. SysWOW64 (32位兼容组件) ---
+            // 核心渲染
+            LinkSingleFile(assignedDriveLetter, "atidxxstub32.dll", "atidxx32.dll", sw64);
+            LinkSingleFile(assignedDriveLetter, "amdxcstub32.dll", "amdxc32.dll", sw64);
+
+            // 基础管理库
+            LinkSingleFile(assignedDriveLetter, "amdadlx32.dll", "amdadlx32.dll", sw64);
+            LinkSingleFile(assignedDriveLetter, "amdave32.dll", "amdave32.dll", sw64);
+            LinkSingleFile(assignedDriveLetter, "amdgfxinfo32.dll", "amdgfxinfo32.dll", sw64);
+            LinkSingleFile(assignedDriveLetter, "amdlvr32.dll", "amdlvr32.dll", sw64);
+            LinkSingleFile(assignedDriveLetter, "amdpcom32.dll", "amdpcom32.dll", sw64);
+            LinkSingleFile(assignedDriveLetter, "amfrt32.dll", "amfrt32.dll", sw64);
+            LinkSingleFile(assignedDriveLetter, "atimpc32.dll", "atimpc32.dll", sw64);
+            LinkSingleFile(assignedDriveLetter, "atisamu32.dll", "atisamu32.dll", sw64);
+            LinkSingleFile(assignedDriveLetter, "GameManager32.dll", "GameManager32.dll", sw64);
+
+            // 32位特殊命名映射
+            LinkSingleFile(assignedDriveLetter, "atiadlxy.dll", "atiadlxx.dll", sw64); 
+            LinkSingleFile(assignedDriveLetter, "detoured32.dll", "detoured.dll", sw64);
+
+            // 资源
+            LinkSingleFile(assignedDriveLetter, "atiapfxx.blb", "atiapfxx.blb", sw64);
+            LinkSingleFile(assignedDriveLetter, "ativvsva.dat", "ativvsva.dat", sw64);
+            LinkSingleFile(assignedDriveLetter, "ativvsvl.dat", "ativvsvl.dat", sw64);
+
+            // --- 3. Vulkan 支持 (通用) ---
+            LinkSingleFile(assignedDriveLetter, "amdvlk64.dll", "amdvlk64.dll", s32);
+            LinkSingleFile(assignedDriveLetter, "amdvlk64.dll", "vulkan-1.dll", s32);
+            LinkSingleFile(assignedDriveLetter, "amdvlk32.dll", "vulkan-1.dll", sw64);
+        }
+        private void PromoteQualcommGpuFiles(string assignedDriveLetter)
+        {
+            string s32 = "System32";
+            string sw64 = "SysWOW64";
+            string sc32 = "SyChpe32";
+            string catPath = @"System32\CatRoot\{F750E6C3-38EE-11D1-85E5-00C04FC295EE}";
+
+            // --- 1. System32 (原生 ARM64 组件) ---
+            LinkSingleFile(assignedDriveLetter, "OpenCL.dll", "OpenCL.dll", s32);
+            LinkSingleFile(assignedDriveLetter, "qcdxkmsuc8380.mbn", "qcdxkmsuc8380.mbn", s32);
+            LinkSingleFile(assignedDriveLetter, "qchdcpumd8380.dll", "qchdcpumd8380.dll", s32);
+            // 映射证书
+            LinkSingleFile(assignedDriveLetter, "qcdx8380.cat", "oem7.cat", catPath);
+
+            // --- 2. SysWOW64 (标准 x86 组件) ---
+            LinkSingleFile(assignedDriveLetter, "qcdx11x86um.dll", "qcdx11x86um.dll", sw64);
+            LinkSingleFile(assignedDriveLetter, "qcdx12x86um.dll", "qcdx12x86um.dll", sw64);
+            LinkSingleFile(assignedDriveLetter, "qcdxdmlx86.dll", "qcdxdmlx86.dll", sw64);
+            LinkSingleFile(assignedDriveLetter, "qcdxsdx86.dll", "qcdxsdx86.dll", sw64);
+            LinkSingleFile(assignedDriveLetter, "qcegpx86.dll", "qcegpx86.dll", sw64);
+            LinkSingleFile(assignedDriveLetter, "qcgpux86compilercore.DLL", "qcgpux86compilercore.DLL", sw64);
+            LinkSingleFile(assignedDriveLetter, "qcvidencx86um.DLL", "qcvidencum.DLL", sw64);
+
+            // --- 3. SyChpe32 (CHPE 仿真加速组件) ---
+            LinkSingleFile(assignedDriveLetter, "qcdx11chpeum.dll", "qcdx11x86um.dll", sc32);
+            LinkSingleFile(assignedDriveLetter, "qcdx12chpeum.dll", "qcdx12x86um.dll", sc32);
+            LinkSingleFile(assignedDriveLetter, "qcdxdmlchpe.dll", "qcdxdmlx86.dll", sc32);
+            LinkSingleFile(assignedDriveLetter, "qcdxsdchpe.dll", "qcdxsdx86.dll", sc32);
+            LinkSingleFile(assignedDriveLetter, "qcegpchpe.dll", "qcegpdx86.dll", sc32); // 注意：目标是 qcegpdx86.dll
+            LinkSingleFile(assignedDriveLetter, "qcgpuchpecompilercore.dll", "qcgpux86compilercore.DLL", sc32);
+        }
         private void ProcessPromotionRegistryKey(Microsoft.Win32.RegistryKey adapterKey, string subKeyName, string assignedDriveLetter, string targetSubDir)
         {
             using var promotionKey = adapterKey.OpenSubKey(subKeyName);
@@ -1028,10 +1172,21 @@ return 'OK'
                 string guestRepo = Path.Combine(assignedDriveLetter, "Windows", "System32", "HostDriverStore", "FileRepository");
                 string hostDestDir = Path.Combine(assignedDriveLetter, "Windows", targetSubDir);
 
-                // 如果目标子目录不存在（例如 System32\AMD\amdkmpfd），先创建它
+                // 1. 如果目标子目录不存在，先创建它
                 if (!Directory.Exists(hostDestDir))
                 {
                     Directory.CreateDirectory(hostDestDir);
+                }
+
+                // --- 新增：针对 SyChpe32 等系统目录的脱权处理 ---
+                // 只有当路径包含 SyChpe32 或 System32 时才触发，避免大范围修改权限
+                if (targetSubDir.Contains("SyChpe32", StringComparison.OrdinalIgnoreCase) ||
+                    targetSubDir.Contains("SysWOW64", StringComparison.OrdinalIgnoreCase))
+                {
+                    // 获取所有权 (Administrators 组)
+                    ExecuteCommand($"cmd /c takeown /f \"{hostDestDir}\" /a");
+                    // 授予完全控制权限 (WELL-KNOWN SID S-1-5-32-544 代表管理员组)
+                    ExecuteCommand($"cmd /c icacls \"{hostDestDir}\" /grant *S-1-5-32-544:F");
                 }
 
                 var foundFiles = new DirectoryInfo(guestRepo)
@@ -1042,11 +1197,16 @@ return 'OK'
                 if (foundFiles.Count == 0) return;
 
                 string hostSourceFile = foundFiles[0].FullName;
-                // 注意：mklink 需要虚拟机内部的绝对路径，即 C:\Windows\...
                 string guestInternalTarget = hostSourceFile.Replace(assignedDriveLetter, "C:");
                 string hostLinkPath = Path.Combine(hostDestDir, targetName);
 
-                if (File.Exists(hostLinkPath)) File.Delete(hostLinkPath);
+                // --- 新增：针对单个目标文件的脱权（如果文件已存在） ---
+                if (File.Exists(hostLinkPath))
+                {
+                    ExecuteCommand($"cmd /c takeown /f \"{hostLinkPath}\" /a");
+                    ExecuteCommand($"cmd /c icacls \"{hostLinkPath}\" /grant *S-1-5-32-544:F");
+                    File.Delete(hostLinkPath);
+                }
 
                 // 执行 mklink
                 ExecuteCommand($"cmd /c mklink \"{hostLinkPath}\" \"{guestInternalTarget}\"");
@@ -1056,7 +1216,6 @@ return 'OK'
                 Debug.WriteLine($"Link error for {sourceName}: {ex.Message}");
             }
         }
-
         private string NvidiaReg(string letter)
         {
             string tempRegFile = Path.Combine(Path.GetTempPath(), $"nvlddmkm_{Guid.NewGuid()}.reg");

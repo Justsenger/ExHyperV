@@ -1,0 +1,47 @@
+﻿<UserControl x:Class="ExHyperV.Views.Components.VmConsoleView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+             xmlns:tools="clr-namespace:ExHyperV.Tools"
+             xmlns:converters="clr-namespace:ExHyperV.Converters"
+             mc:Ignorable="d" 
+             d:DesignHeight="450" d:DesignWidth="800">
+
+    <UserControl.Resources>
+        <!-- 引入你项目中的布尔/可见性转换器 -->
+        <converters:BooleanToVisibilityConverter x:Key="BoolToVis" />
+    </UserControl.Resources>
+
+    <Grid Background="Black">
+        <!-- 渲染核心：MsRdpExHost -->
+        <!-- 设置为 Stretch 确保它填满整个独立窗口 -->
+        <tools:MsRdpExHost x:Name="RdpHost" 
+                           VmId="{Binding VmId}" 
+                           HorizontalAlignment="Stretch" 
+                           VerticalAlignment="Stretch" />
+
+        <!-- 加载覆盖层 -->
+        <!-- 当连接成功后，ViewModel 的 IsLoading 会变为 false，从而隐藏此 Grid -->
+        <!-- 注意：ZIndex 设为高值，但在某些机器上 ActiveX 仍可能穿透显示 -->
+        <Grid Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}" 
+              Background="#111111" 
+              Panel.ZIndex="100">
+            <StackPanel VerticalAlignment="Center">
+                <ui:ProgressRing IsIndeterminate="True" 
+                                 Width="60" Height="60" 
+                                 Margin="0,0,0,20"/>
+                <TextBlock Text="正在建立 Hyper-V 安全会话..." 
+                           Foreground="Gray" 
+                           FontSize="16"
+                           HorizontalAlignment="Center"/>
+                <TextBlock Text="请确保虚拟机已启动且允许增强会话连接" 
+                           Foreground="#444444" 
+                           FontSize="12"
+                           Margin="0,10,0,0"
+                           HorizontalAlignment="Center"/>
+            </StackPanel>
+        </Grid>
+    </Grid>
+</UserControl>

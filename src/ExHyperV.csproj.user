@@ -42,6 +42,12 @@
     <Compile Update="Views\Components\VmStorageSettingsView.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Update="Views\Components\VmConsoleView.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="Views\ConsoleWindow.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Update="Views\USBPage.xaml.cs">
       <SubType>Code</SubType>
     </Compile>

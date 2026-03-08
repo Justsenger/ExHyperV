@@ -6,10 +6,11 @@
         <OutputType>WinExe</OutputType>
         <TargetFramework>net8.0-windows</TargetFramework>
         <UseWPF>true</UseWPF>
+		<UseWindowsForms>true</UseWindowsForms>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <ApplicationIcon>applicationIcon.ico</ApplicationIcon>
-        <Version>1.0.8</Version>
+        <Version>1.4.2</Version>
         <WpfUiGenerateDiagnosticMessages>False</WpfUiGenerateDiagnosticMessages>
         <SatelliteResourceLanguages>en;zh-Hans</SatelliteResourceLanguages>
         <DebugType Condition=" '$(Configuration)' == 'Release' ">none</DebugType>
@@ -28,9 +29,12 @@
         <PackageReference Include="DiscUtils.Streams" Version="0.16.13" />
         <PackageReference Include="Microsoft.PowerShell.SDK" Version="7.4.0" />
         <PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.135" />
+        <PackageReference Include="RoyalApps.Community.Rdp.WinForms" Version="1.4.0" />
         <PackageReference Include="SSH.NET" Version="2025.1.0" />
         <PackageReference Include="WPF-UI" Version="4.0.3" />
     </ItemGroup>
+	
+	
 
     <!-- =================================================================== -->
     <!--                       3. 资源文件定义                               -->
@@ -88,7 +92,7 @@
         <!-- 清理多余的 runtimes 文件夹，仅保留 win 和 win-x64 -->
         <ItemGroup>
             <AllRuntimeDirs Include="$([System.IO.Directory]::GetDirectories('$(PublishDir)runtimes'))" />
-            <RuntimeDirsToDelete Include="@(AllRuntimeDirs)" Condition=" '%(Filename)' != 'win' AND '%(Filename)' != 'win-x64' " />
+			<RuntimeDirsToDelete Include="@(AllRuntimeDirs)" Condition=" '%(Filename)' != 'win' AND '%(Filename)' != '$(RuntimeIdentifier)' " />
         </ItemGroup>
         <RemoveDir Directories="@(RuntimeDirsToDelete)" />
         <RemoveDir Directories="$(PublishDir)zh-Hans" />
