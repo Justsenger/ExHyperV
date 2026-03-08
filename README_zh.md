@@ -349,6 +349,7 @@ GPU-PV 是一种半虚拟化技术，它允许多个虚拟机共享使用物理 
 | **AMD** | Radeon 8060S | RDNA 3.5 | ⚠️ | ✅ | ✅ | ✅ | ✅ | ❌ | 硬件识别残缺 |
 | **AMD** | Radeon 890M | RDNA 3.5 | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | 启动会导致宿主崩溃 |
 | **Moore Threads** | MTT S80 | MUSA | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | 不支持 |
+| **Qualcomm** | Qualcomm(R) Adreno(TM) X1-85 GPU | Adreno X1 | ⚠️ | ✅ | ✅ | ✅ | ✅ | ✅ | 硬件识别残缺|
 
 #### 如何从虚拟机输出画面？
 
@@ -539,6 +540,7 @@ PCIe 直通以 PCIe 设备为单位查找可分配设备。如果设备未显示
 | **Intel**| HD Graphics 530 | Generation 9.0 | 无法直通❌ | ❌ | ❌ | ❌ |
 | **AMD** | RX 580 | GCN 4.0 | Code 43 ❌ | ✅ | ❌ |
 | **AMD** | Radeon Vega 3 | GCN 5.0 | Code 43 ❌ | ❌ | ❌ |
+| **Qualcomm** | Qualcomm(R) Adreno(TM) X1-85 GPU | Adreno X1 | 不支持❌ | ❌ | ❌ |
 
 - **启动**: 分配到虚拟机后能否成功安装驱动并被识别。代码 43 说明驱动层面不允许显卡在虚拟机内工作。
 - **功能层复位 (FLR)**: 若不支持，重启虚拟机会连带宿主机重启。
