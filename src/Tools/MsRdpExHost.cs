@@ -70,7 +70,24 @@ namespace ExHyperV.Tools
             this.Loaded += (s, e) =>
             {
                 _parentWindow = Window.GetWindow(this);
+                if (_parentWindow != null)
+                {
+                    // 监听窗口的状态改变（最大化 <-> 窗口化）
+                    _parentWindow.StateChanged += ParentWindow_StateChanged;
+                }
             };
+        }
+        private void ParentWindow_StateChanged(object? sender, EventArgs e)
+        {
+            if (_parentWindow == null) return;
+
+            if (_parentWindow.WindowState == WindowState.Normal)
+            {
+                Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    UpdateLayoutByPixels("STATE_RESTORE", _lastPixelW, _lastPixelH, forceRefresh: true);
+                }), DispatcherPriority.Loaded);
+            }
         }
 
         private void UpdateLayoutByPixels(string reason, int pixelWidth, int pixelHeight, bool forceRefresh = false)
