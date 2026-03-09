@@ -189,6 +189,10 @@ namespace ExHyperV.Tools
                     config.Display.ColorDepth = RdpColorDepth.ColorDepth32Bpp;
                     config.Display.AutoScaling = false;
 
+                    config.Redirection.RedirectClipboard = true;    // 开启剪贴板共享（文字、图片）
+                    config.Redirection.RedirectDrives = true;       // 开启驱动器重定向（文件拷贝的核心）
+                    config.Redirection.RedirectDevices = true;      // 开启即插即用设备重定向
+
                     if (targetEnh && _targetW > 0)
                     {
                         config.Display.DesktopWidth = _targetW;
