@@ -7,7 +7,7 @@
              xmlns:tools="clr-namespace:ExHyperV.Tools"
              xmlns:converters="clr-namespace:ExHyperV.Converters"
              mc:Ignorable="d" 
-             d:DesignHeight="768" d:DesignWidth="1024">
+             d:DesignHeight="600" d:DesignWidth="800">
 
     <UserControl.Resources>
         <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />

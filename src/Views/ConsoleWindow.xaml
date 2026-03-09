@@ -11,10 +11,59 @@
     WindowBackdropType="Mica">
 
     <DockPanel LastChildFill="True" Background="#0A0A0A">
+        <!-- 标题栏：高度稍作收紧，视觉更干练 -->
         <ui:TitleBar 
             DockPanel.Dock="Top" 
-            Title="控制台" />
+            Height="38" 
+            Padding="0">
+            <ui:TitleBar.Header>
+                <!-- 使用 DockPanel：左侧固定，剩余空间右侧填充，且不强制扩充 -->
+                <DockPanel LastChildFill="True" Margin="12,0,145,0">
 
+                    <!-- 1. 标题 (左侧固定) -->
+                    <TextBlock DockPanel.Dock="Left" 
+                               Text="控制台" 
+                               FontSize="13"
+                               FontWeight="SemiBold"
+                               Foreground="#EEEEEE"
+                               VerticalAlignment="Center" 
+                               Margin="0,0,16,0"/>
+
+                    <!-- 2. 工具按钮组 (左侧固定) -->
+                    <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center">
+                        <ui:Button Width="32" Height="32" Margin="0,0,4,0" Padding="0" Appearance="Transparent" ToolTip="启动">
+                            <ui:SymbolIcon Symbol="Play24" FontSize="16"/>
+                        </ui:Button>
+                        <ui:Button Width="32" Height="32" Margin="0,0,4,0" Padding="0" Appearance="Transparent" ToolTip="重启">
+                            <ui:SymbolIcon Symbol="ArrowSync24" FontSize="16"/>
+                        </ui:Button>
+                        <ui:Button Width="32" Height="32" Padding="0" Appearance="Transparent" ToolTip="发送 Ctrl+Alt+Del">
+                            <ui:SymbolIcon Symbol="Keyboard24" FontSize="16"/>
+                        </ui:Button>
+                    </StackPanel>
+
+                    <!-- 3. 状态信息栏 (靠右对齐) -->
+                    <!-- 通过 HorizontalAlignment="Right" 让它不占用中间多余空间 -->
+                    <Border HorizontalAlignment="Right"
+                            Background="#1AFFFFFF" 
+                            CornerRadius="5" 
+                            Padding="10,3" 
+                            VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal">
+                            <ui:SymbolIcon Symbol="Desktop24" FontSize="12" Margin="0,0,6,0" Foreground="#888888"/>
+                            <TextBlock Text="1920 x 1080 | 增强会话" 
+                                       FontSize="11" 
+                                       Foreground="#AAAAAA" 
+                                       VerticalAlignment="Center"
+                                       TextTrimming="CharacterEllipsis"/>
+                            <!-- 极其关键：宽度不足时自动缩略，不撑开窗口 -->
+                        </StackPanel>
+                    </Border>
+                </DockPanel>
+            </ui:TitleBar.Header>
+        </ui:TitleBar>
+
+        <!-- 虚拟机容器 -->
         <components:VmConsoleView x:Name="ConsoleHost" />
     </DockPanel>
 
