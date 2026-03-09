@@ -13,18 +13,20 @@
         <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
     </UserControl.Resources>
 
-    <Grid Background="#0A0A0A">
+    <Grid Background="Black">
         <tools:MsRdpExHost x:Name="RdpHost" 
    VmId="{Binding VmId}" 
-   IsEnhancedMode="{Binding IsEnhancedMode, Mode=OneWay}" 
+   IsEnhancedMode="{Binding IsEnhancedMode}" 
    ActualPixelsWidth="{Binding CurrentWidth, Mode=OneWayToSource}"
    ActualPixelsHeight="{Binding CurrentHeight, Mode=OneWayToSource}"
+   RequestWidth="{Binding RequestWidth, Mode=TwoWay}"
+   RequestHeight="{Binding RequestHeight, Mode=TwoWay}"
    HorizontalAlignment="Center" 
    VerticalAlignment="Center">
         </tools:MsRdpExHost>
         
         <Grid Visibility="{Binding IsLoading, Converter={StaticResource BooleanToVisibilityConverter}, FallbackValue=Collapsed}" 
-              Background="#111111" 
+              Background="Black" 
               Panel.ZIndex="100">
             <StackPanel VerticalAlignment="Center">
                 <ui:ProgressRing IsIndeterminate="True" Width="60" Height="60" Margin="0,0,0,20"/>

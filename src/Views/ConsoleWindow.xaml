@@ -38,24 +38,27 @@
                     <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
                         <!-- 分辨率下拉 -->
                         <ui:DropDownButton 
-                            Content="{Binding SelectedResolution}" 
-                            Icon="{ui:SymbolIcon Symbol=Desktop24}"
-                            Appearance="Transparent"
-                            FontSize="11"
-                            Padding="8,4"
-                            IsEnabled="{Binding CanChangeResolution}">
+    Content="{Binding SelectedResolution}" 
+    Icon="{ui:SymbolIcon Symbol=Desktop24}"
+    Appearance="Transparent"
+    FontSize="11"
+    Padding="8,4"
+    IsEnabled="{Binding CanChangeResolution}">
                             <ui:DropDownButton.Flyout>
                                 <ContextMenu ItemsSource="{Binding Resolutions}">
                                     <ContextMenu.ItemContainerStyle>
-                                        <Style TargetType="MenuItem">
+                                        <Style TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
                                             <Setter Property="Header" Value="{Binding}" />
-                                            <!-- 此处可根据需要绑定分辨率修改命令 -->
+                                            <!-- 绑定到 ViewModel 的 ChangeResolutionCommand -->
+                                            <!-- 因为 ContextMenu 的 DataContext 默认是 String，所以要用 RelativeSource 找 Window -->
+                                            <Setter Property="Command" Value="{Binding DataContext.ChangeResolutionCommand, RelativeSource={RelativeSource AncestorType=ui:FluentWindow}}" />
+                                            <Setter Property="CommandParameter" Value="{Binding}" />
                                         </Style>
                                     </ContextMenu.ItemContainerStyle>
                                 </ContextMenu>
                             </ui:DropDownButton.Flyout>
                         </ui:DropDownButton>
-
+                        
                         <Rectangle Width="1" Height="14" Fill="#33FFFFFF" Margin="6,0"/>
 
                         <!-- 会话模式下拉：修复此处 -->
