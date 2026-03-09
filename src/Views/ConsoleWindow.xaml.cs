@@ -1,7 +1,6 @@
 ﻿using System.Windows;
 using Wpf.Ui.Controls;
 using ExHyperV.ViewModels;
-using ExHyperV.Tools;
 
 namespace ExHyperV.Views
 {
@@ -9,19 +8,20 @@ namespace ExHyperV.Views
     {
         public ConsoleWindow(string vmId, string vmName)
         {
-            var vm = new ConsoleViewModel { VmId = vmId, VmName = vmName };
-            this.DataContext = vm;
-            InitializeComponent();
-            this.Title = vmName;
-
-            // 窗口关闭时，强行让 Host 释放资源
-            this.Closed += (s, e) =>
+            // 1. 准备数据
+            var vm = new ConsoleViewModel
             {
-                if (ConsoleHost.FindName("RdpHost") is MsRdpExHost host)
-                {
-                    host.Disconnect();
-                }
+                VmId = vmId,
+                VmName = vmName
             };
+
+            // 2. 核心：必须在加载 UI 前绑定，否则 Host 控件拿不到初始 ID
+            this.DataContext = vm;
+
+            // 3. 初始化组件
+            InitializeComponent();
+
+            this.Title = vmName;
         }
     }
 }

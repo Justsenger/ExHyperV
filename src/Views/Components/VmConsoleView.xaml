@@ -15,10 +15,14 @@
 
     <Grid Background="#0A0A0A">
         <tools:MsRdpExHost x:Name="RdpHost" 
-                           VmId="{Binding VmId}" 
-                           HorizontalAlignment="Center" 
-                           VerticalAlignment="Center" />
-
+   VmId="{Binding VmId}" 
+   IsEnhancedMode="{Binding IsEnhancedMode, Mode=OneWay}" 
+   ActualPixelsWidth="{Binding CurrentWidth, Mode=OneWayToSource}"
+   ActualPixelsHeight="{Binding CurrentHeight, Mode=OneWayToSource}"
+   HorizontalAlignment="Center" 
+   VerticalAlignment="Center">
+        </tools:MsRdpExHost>
+        
         <Grid Visibility="{Binding IsLoading, Converter={StaticResource BooleanToVisibilityConverter}, FallbackValue=Collapsed}" 
               Background="#111111" 
               Panel.ZIndex="100">

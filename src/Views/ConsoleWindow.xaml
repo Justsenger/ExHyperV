@@ -4,67 +4,96 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
     xmlns:components="clr-namespace:ExHyperV.Views.Components"
-    Title="虚拟机控制台"
-    SizeToContent="WidthAndHeight" 
+    Title="{Binding VmName}"
+    MinWidth="720" 
     WindowStartupLocation="CenterScreen"
     ExtendsContentIntoTitleBar="True"
     WindowBackdropType="Mica">
 
     <DockPanel LastChildFill="True" Background="#0A0A0A">
-        <!-- 标题栏：高度稍作收紧，视觉更干练 -->
-        <ui:TitleBar 
-            DockPanel.Dock="Top" 
-            Height="38" 
-            Padding="0">
+        <ui:TitleBar DockPanel.Dock="Top" Height="42" Padding="0">
             <ui:TitleBar.Header>
-                <!-- 使用 DockPanel：左侧固定，剩余空间右侧填充，且不强制扩充 -->
-                <DockPanel LastChildFill="True" Margin="12,0,145,0">
+                <Grid Margin="12,0,140,0" HorizontalAlignment="Stretch">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" MinWidth="180"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
 
-                    <!-- 1. 标题 (左侧固定) -->
-                    <TextBlock DockPanel.Dock="Left" 
-                               Text="控制台" 
-                               FontSize="13"
-                               FontWeight="SemiBold"
-                               Foreground="#EEEEEE"
-                               VerticalAlignment="Center" 
-                               Margin="0,0,16,0"/>
-
-                    <!-- 2. 工具按钮组 (左侧固定) -->
-                    <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center">
-                        <ui:Button Width="32" Height="32" Margin="0,0,4,0" Padding="0" Appearance="Transparent" ToolTip="启动">
+                    <!-- 1. 左侧：控制组 -->
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="控制台" FontSize="12" FontWeight="SemiBold" Foreground="#EEEEEE" Margin="0,0,12,0" VerticalAlignment="Center"/>
+                        <ui:Button Appearance="Transparent" Padding="6" Margin="0,0,2,0" ToolTip="启动">
                             <ui:SymbolIcon Symbol="Play24" FontSize="16"/>
                         </ui:Button>
-                        <ui:Button Width="32" Height="32" Margin="0,0,4,0" Padding="0" Appearance="Transparent" ToolTip="重启">
+                        <ui:Button Appearance="Transparent" Padding="6" Margin="0,0,2,0" ToolTip="重启">
                             <ui:SymbolIcon Symbol="ArrowSync24" FontSize="16"/>
                         </ui:Button>
-                        <ui:Button Width="32" Height="32" Padding="0" Appearance="Transparent" ToolTip="发送 Ctrl+Alt+Del">
+                        <ui:Button Appearance="Transparent" Padding="6" ToolTip="发送 Ctrl+Alt+Del">
                             <ui:SymbolIcon Symbol="Keyboard24" FontSize="16"/>
                         </ui:Button>
                     </StackPanel>
 
-                    <!-- 3. 状态信息栏 (靠右对齐) -->
-                    <!-- 通过 HorizontalAlignment="Right" 让它不占用中间多余空间 -->
-                    <Border HorizontalAlignment="Right"
-                            Background="#1AFFFFFF" 
-                            CornerRadius="5" 
-                            Padding="10,3" 
-                            VerticalAlignment="Center">
-                        <StackPanel Orientation="Horizontal">
-                            <ui:SymbolIcon Symbol="Desktop24" FontSize="12" Margin="0,0,6,0" Foreground="#888888"/>
-                            <TextBlock Text="1920 x 1080 | 增强会话" 
-                                       FontSize="11" 
-                                       Foreground="#AAAAAA" 
-                                       VerticalAlignment="Center"
-                                       TextTrimming="CharacterEllipsis"/>
-                            <!-- 极其关键：宽度不足时自动缩略，不撑开窗口 -->
-                        </StackPanel>
-                    </Border>
-                </DockPanel>
+                    <!-- 2. 右侧：参数切换组 -->
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                        <!-- 分辨率下拉 -->
+                        <ui:DropDownButton 
+                            Content="{Binding SelectedResolution}" 
+                            Icon="{ui:SymbolIcon Symbol=Desktop24}"
+                            Appearance="Transparent"
+                            FontSize="11"
+                            Padding="8,4"
+                            IsEnabled="{Binding CanChangeResolution}">
+                            <ui:DropDownButton.Flyout>
+                                <ContextMenu ItemsSource="{Binding Resolutions}">
+                                    <ContextMenu.ItemContainerStyle>
+                                        <Style TargetType="MenuItem">
+                                            <Setter Property="Header" Value="{Binding}" />
+                                            <!-- 此处可根据需要绑定分辨率修改命令 -->
+                                        </Style>
+                                    </ContextMenu.ItemContainerStyle>
+                                </ContextMenu>
+                            </ui:DropDownButton.Flyout>
+                        </ui:DropDownButton>
+
+                        <Rectangle Width="1" Height="14" Fill="#33FFFFFF" Margin="6,0"/>
+
+                        <!-- 会话模式下拉：修复此处 -->
+                        <ui:DropDownButton 
+                            Content="{Binding SelectedSessionMode}"
+                            Appearance="Transparent"
+                            FontSize="11"
+                            Padding="8,4">
+                            <ui:DropDownButton.Icon>
+                                <ui:SymbolIcon Symbol="{Binding SelectedSessionIcon}" FontSize="14">
+                                    <ui:SymbolIcon.Style>
+                                        <Style TargetType="ui:SymbolIcon">
+                                            <Setter Property="Foreground" Value="Gray" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsEnhancedMode}" Value="True">
+                                                    <Setter Property="Foreground" Value="#FFCC00" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </ui:SymbolIcon.Style>
+                                </ui:SymbolIcon>
+                            </ui:DropDownButton.Icon>
+                            <ui:DropDownButton.Flyout>
+                                <ContextMenu>
+                                    <MenuItem Header="基本会话" 
+                                              Command="{Binding SwitchSessionModeCommand}" 
+                                              CommandParameter="基本会话" />
+                                    <MenuItem Header="增强会话" 
+                                              Command="{Binding SwitchSessionModeCommand}" 
+                                              CommandParameter="增强会话" />
+                                </ContextMenu>
+                            </ui:DropDownButton.Flyout>
+                        </ui:DropDownButton>
+                    </StackPanel>
+                </Grid>
             </ui:TitleBar.Header>
         </ui:TitleBar>
 
-        <!-- 虚拟机容器 -->
         <components:VmConsoleView x:Name="ConsoleHost" />
     </DockPanel>
-
 </ui:FluentWindow>
