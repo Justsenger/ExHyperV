@@ -10,6 +10,7 @@ using AxMSTSCLib;
 using System.Runtime.InteropServices;
 using System.Diagnostics;
 using System.Threading.Tasks;
+using MSTSCLib;
 
 namespace ExHyperV.Tools
 {
@@ -317,5 +318,34 @@ namespace ExHyperV.Tools
         private void Log(string msg) => Debug.WriteLine($"[MsRdpEx] {msg}");
 
         public void Disconnect() { StopFastSniffer(); _layoutStabilizeTimer.Stop(); _lastConnectedId = null; try { _rdpControl?.Disconnect(); } catch { } }
+
+        public void SendCtrlAltDel()
+        {
+            try
+            {
+                if (_rdpControl.RdpClient is AxMsRdpClient9NotSafeForScripting ax)
+                {
+                    // RDP ActiveX 控件发送 Ctrl+Alt+Del 有专门的接口
+                    // 0x11 = Ctrl, 0x12 = Alt, 0x2E = Del
+                    // 这种方式是通过控制台发送 SAS (Secure Attention Sequence) 信号
+                    var nonScriptable = (IMsRdpClientNonScriptable5)ax.GetOcx();
+
+                    // 定义按键数组
+                    bool[] states = { true, true, true }; // 三个键都按下
+                    int[] keys = { 0x11, 0x12, 0x2E };    // Ctrl, Alt, Del
+
+                    // 注意：ActiveX 的 SendKeys 参数传递比较特殊
+                    // 这里我们用一种最稳妥的动态调用或直接转换
+                    nonScriptable.SendKeys(3, ref states[0], ref keys[0]);
+
+                    Debug.WriteLine("[MsRdpEx] 已发送 Ctrl+Alt+Del 信号");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[MsRdpEx] 发送 CAD 失败: {ex.Message}");
+            }
+        }
+
     }
 }

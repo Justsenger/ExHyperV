@@ -13,5 +13,12 @@ namespace ExHyperV.Views.Components
                     vm.IsLoading = false;
             };
         }
+
+        // --- 新增这个方法 ---
+        public void SendCtrlAltDel()
+        {
+            // 调用内部 RdpHost 控件的方法
+            RdpHost.SendCtrlAltDel();
+        }
     }
 }
