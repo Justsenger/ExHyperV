@@ -914,7 +914,7 @@ namespace ExHyperV.ViewModels
                 );
 
                 // 2. 设置所有者为当前主窗口（这样主窗口关闭时，控制台也会跟着关，且弹出位置更准确）
-                consoleWin.Owner = Application.Current.MainWindow;
+                //consoleWin.Owner = Application.Current.MainWindow;
 
                 // 3. 显示窗口
                 consoleWin.Show();
