@@ -14,14 +14,12 @@
     <ui:FluentWindow.Resources>
         <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
     </ui:FluentWindow.Resources>
-    
+
     <DockPanel LastChildFill="True" Background="#0A0A0A">
         <ui:TitleBar DockPanel.Dock="Top" Height="42" Padding="0">
             <ui:TitleBar.Header>
                 <Grid Margin="12,0,140,0" HorizontalAlignment="Stretch">
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-
-                        <!-- 1. 虚拟机名称 (替换了之前的“控制台”文字) -->
                         <TextBlock Text="{Binding VmName}"
                            VerticalAlignment="Center"
                            Margin="0,0,16,0"
@@ -29,9 +27,7 @@
                            FontWeight="SemiBold"
                            Foreground="#CCFFFFFF"/>
 
-                        <!-- 2. 电源控制组 (解决了偏移问题) -->
                         <Grid VerticalAlignment="Center">
-                            <!-- 状态 A: 未启动 (宽度 60) -->
                             <ui:Button Icon="{ui:SymbolIcon Symbol=Play24}"
                                Appearance="Transparent"
                                Width="60" 
@@ -41,10 +37,8 @@
                                ToolTip="启动虚拟机"
                                Visibility="{Binding IsRunning, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=Invert}"/>
 
-                            <!-- 状态 B: 运行时 (缝合怪布局) -->
                             <StackPanel Orientation="Horizontal"
                                 Visibility="{Binding IsRunning, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                <!-- 关机按钮: 只有左边有圆角 -->
                                 <ui:Button Icon="{ui:SymbolIcon Symbol=Power24}"
                                    Appearance="Transparent"
                                    Width="36"
@@ -54,14 +48,14 @@
                                    Command="{Binding ShutdownVmCommand}"
                                    ToolTip="正常关机" />
 
-                                <!-- 下拉按钮: 只有右边有圆角，解决偏移感 -->
                                 <ui:DropDownButton Appearance="Transparent"
                                            Width="24"
                                            Height="32"
-                                           Padding="0"
+                                           Padding="0,0,8,0"
                                            Margin="0"
                                            CornerRadius="0,4,4,0"
-                                           HorizontalContentAlignment="Center">
+                                           HorizontalContentAlignment="Center"
+                                           IsEnabled="{Binding IsNotBusy}">
                                     <ui:DropDownButton.Flyout>
                                         <ContextMenu>
                                             <MenuItem Header="重启" Command="{Binding ResetVmCommand}">
@@ -88,14 +82,24 @@
                                         </ContextMenu>
                                     </ui:DropDownButton.Flyout>
                                 </ui:DropDownButton>
+
+                                <ui:Button Appearance="Transparent" 
+                           Width="38"
+                           Height="32"
+                           Padding="0"
+                           Margin="8,0,0,0"
+                           Command="{Binding SendCadCommand}"
+                           ToolTip="发送 Ctrl+Alt+Del">
+                                    <ui:SymbolIcon Symbol="Keyboard24" FontSize="16" />
+                                </ui:Button>
+
                             </StackPanel>
                         </Grid>
 
-                        <!-- 3. 分辨率切换 -->
                         <ui:DropDownButton Content="{Binding SelectedResolution}" 
                                    Icon="{ui:SymbolIcon Symbol=Desktop24}" 
                                    Appearance="Transparent" 
-                                   FontSize="11" 
+                                   FontSize="16" 
                                    Height="32"
                                    Padding="8,0" 
                                    Margin="8,0,0,0"
@@ -113,7 +117,6 @@
                             </ui:DropDownButton.Flyout>
                         </ui:DropDownButton>
 
-                        <!-- 4. 模式切换 -->
                         <ui:DropDownButton Content="{Binding SelectedSessionMode}" 
                                    Appearance="Transparent" 
                                    FontSize="11" 
@@ -141,17 +144,6 @@
                                 </ContextMenu>
                             </ui:DropDownButton.Flyout>
                         </ui:DropDownButton>
-
-                        <!-- 5. 键盘按钮 (CAD) -->
-                        <ui:Button Appearance="Transparent" 
-                           Width="38"
-                           Height="32"
-                           Padding="0"
-                           Margin="8,0,0,0"
-                           Command="{Binding SendCadCommand}"
-                           ToolTip="发送 Ctrl+Alt+Del">
-                            <ui:SymbolIcon Symbol="Keyboard24" FontSize="16" />
-                        </ui:Button>
 
                     </StackPanel>
                 </Grid>

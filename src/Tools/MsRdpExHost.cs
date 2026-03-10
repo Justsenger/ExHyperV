@@ -208,8 +208,8 @@ namespace ExHyperV.Tools
             finally
             {
                 _isConnecting = false;
-                // 兜底：800ms后如果还没对齐分辨率，强制揭开幕布
-                await Task.Delay(800);
+                // 兜底：2000ms后如果还没对齐分辨率，强制揭开幕布
+                await Task.Delay(2000);
                 if (_isTransitioning)
                 {
                     _isTransitioning = false;
