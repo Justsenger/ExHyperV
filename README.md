@@ -587,7 +587,11 @@ A huge thank you to our sponsors! Your generous support is the driving force beh
 
 ### 🏅 Expert Tier
 ![](https://img.shields.io/badge/EXPERT-User--6b017-24292e?style=for-the-badge&logo=expertsexchange&logoColor=FFBF00&labelColor=24292e&color=FFBF00)
+![](https://img.shields.io/badge/EXPERT-死都不怕还怕活着？-24292e?style=for-the-badge&logo=expertsexchange&logoColor=FFBF00&labelColor=24292e&color=FFBF00)
 ---
+
+
+
 
 ### 🔹 Beginner Tier
 ![](https://img.shields.io/badge/BEGINNER-激进娘-0078D4?style=flat-square&logo=hyperledger&logoColor=white) 
