@@ -25,6 +25,7 @@
                            Margin="0,0,16,0"
                            FontSize="12"
                            FontWeight="SemiBold"
+                           MouseLeftButtonDown="OnHeaderMouseLeftButtonDown"
                            Foreground="#CCFFFFFF"/>
 
                         <Grid VerticalAlignment="Center">
@@ -118,25 +119,11 @@
                         </ui:DropDownButton>
 
                         <ui:DropDownButton Content="{Binding SelectedSessionMode}" 
-                                   Appearance="Transparent" 
-                                   FontSize="11" 
-                                   Height="32"
-                                   Padding="8,0"
-                                   Margin="8,0,0,0">
-                            <ui:DropDownButton.Icon>
-                                <ui:SymbolIcon Symbol="{Binding SelectedSessionIcon}" FontSize="14">
-                                    <ui:SymbolIcon.Style>
-                                        <Style TargetType="ui:SymbolIcon">
-                                            <Setter Property="Foreground" Value="Gray" />
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding IsEnhancedMode}" Value="True">
-                                                    <Setter Property="Foreground" Value="#FFCC00" />
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </ui:SymbolIcon.Style>
-                                </ui:SymbolIcon>
-                            </ui:DropDownButton.Icon>
+                   Appearance="Transparent" 
+                   FontSize="11" 
+                   Height="32"
+                   Padding="8,0"
+                   Margin="8,0,0,0">
                             <ui:DropDownButton.Flyout>
                                 <ContextMenu>
                                     <MenuItem Header="基本会话" Command="{Binding SwitchSessionModeCommand}" CommandParameter="基本会话" />
@@ -144,7 +131,6 @@
                                 </ContextMenu>
                             </ui:DropDownButton.Flyout>
                         </ui:DropDownButton>
-
                     </StackPanel>
                 </Grid>
             </ui:TitleBar.Header>

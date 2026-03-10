@@ -133,6 +133,29 @@ namespace ExHyperV.Tools
             this.Loaded += (s, e) => _parentWindow = Window.GetWindow(this);
         }
 
+
+        public static readonly DependencyProperty IsVmRunningProperty =
+    DependencyProperty.Register(nameof(IsVmRunning), typeof(bool), typeof(MsRdpExHost),
+        new PropertyMetadata(false, OnIsVmRunningChanged));
+
+        public bool IsVmRunning
+        {
+            get => (bool)GetValue(IsVmRunningProperty);
+            set => SetValue(IsVmRunningProperty, value);
+        }
+
+        private static void OnIsVmRunningChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is MsRdpExHost host && (bool)e.NewValue == true)
+            {
+                // 当虚拟机状态变为 Running 时，如果当前未连接，则触发连接
+                host.Log("VM 状态变为运行中，尝试重连...");
+                host._configDebounceTimer.Stop();
+                host._configDebounceTimer.Start();
+            }
+        }
+
+
         private static void OnConfigChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             if (d is MsRdpExHost host)
@@ -144,15 +167,31 @@ namespace ExHyperV.Tools
 
         private async Task TriggerConnectAsync()
         {
-            if (string.IsNullOrEmpty(this.VmId)) return;
-            // 注意：不能检查 !this.IsVisible，因为隐藏时也需要后台准备
-            if (!this.IsLoaded) return;
+            // 基础条件检查
+            if (string.IsNullOrEmpty(this.VmId) || !this.IsLoaded || !IsVmRunning)
+            {
+                // 如果虚拟机没运行，或者 VmId 为空，可以先断开并拉上幕布
+                if (!IsVmRunning && _rdpControl.RdpClient?.ConnectionState != RoyalApps.Community.Rdp.WinForms.Controls.ConnectionState.Disconnected)
+                {
+                    _rdpControl.Disconnect();
+                    _curtain.Visible = true;
+                }
+                return;
+            }
 
             if (_isConnecting) return;
+
+            // 检查是否真的需要连接（如果已经连接且 ID 匹配，就不重复连接）
+            bool isConnected = _rdpControl.RdpClient?.ConnectionState == RoyalApps.Community.Rdp.WinForms.Controls.ConnectionState.Connected;
+            bool configChanged = _lastConnectedId != this.VmId ||
+                                 _lastEnhancedMode != IsEnhancedMode ||
+                                 _lastReqW != RequestWidth ||
+                                 _lastReqH != RequestHeight;
+
+            if (isConnected && !configChanged) return;
+
             _isConnecting = true;
             _isTransitioning = true;
-
-            // 【动作】拉上幕布
             _curtain.Visible = true;
             _curtain.BringToFront();
 
@@ -208,8 +247,8 @@ namespace ExHyperV.Tools
             finally
             {
                 _isConnecting = false;
-                // 兜底：2000ms后如果还没对齐分辨率，强制揭开幕布
-                await Task.Delay(2000);
+                // 兜底：1000ms后如果还没对齐分辨率，强制揭开幕布
+                await Task.Delay(1000);
                 if (_isTransitioning)
                 {
                     _isTransitioning = false;

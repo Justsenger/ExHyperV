@@ -21,7 +21,7 @@ namespace ExHyperV.ViewModels
         [ObservableProperty] private string _vmName;
         [ObservableProperty] private bool _isLoading = true;
         [ObservableProperty] private bool _isRunning;
-
+        
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(IsNotBusy))]
         [NotifyCanExecuteChangedFor(nameof(StartVmCommand))]
@@ -64,12 +64,12 @@ namespace ExHyperV.ViewModels
 
                 if (currentVm != null)
                 {
-                    if (currentVm.IsRunning != IsRunning)
-                    {
-                        IsRunning = currentVm.IsRunning;
-                        IsBusy = false;
-                    }
+                    // 更新运行状态
+                    IsRunning = currentVm.IsRunning;
+
+                    // 更新名称
                     if (VmName != currentVm.Name) VmName = currentVm.Name;
+
                     IsLoading = false;
                 }
             }
@@ -78,7 +78,6 @@ namespace ExHyperV.ViewModels
                 Debug.WriteLine(ex.Message);
             }
         }
-
         private bool CanExecutePowerAction() => !IsBusy;
 
         [RelayCommand(CanExecute = nameof(CanExecutePowerAction))]
@@ -105,11 +104,15 @@ namespace ExHyperV.ViewModels
             {
                 IsBusy = true;
                 await _powerService.ExecuteControlActionAsync(VmName, action);
-                await SyncVmStateAsync();
             }
             catch (Exception ex)
             {
-                Debug.WriteLine(ex.Message);
+                Debug.WriteLine($"操作失败: {ex.Message}");
+            }
+            finally
+            {
+                // 关键：无论成功还是失败，操作完成后都要同步一次状态并关闭 Busy 状态
+                await SyncVmStateAsync();
                 IsBusy = false;
             }
         }
@@ -126,8 +129,14 @@ namespace ExHyperV.ViewModels
 
         private void UpdateResolutionString()
         {
-            if (CurrentWidth > 0 && CurrentHeight > 0)
+            if (CurrentWidth > 0 && CurrentHeight > 0 && IsRunning)
+            {
                 SelectedResolution = $"{CurrentWidth} x {CurrentHeight}";
+            }
+            else
+            {
+                SelectedResolution = "-";
+            }
         }
 
         public ObservableCollection<string> Resolutions { get; } = new()
@@ -140,7 +149,6 @@ namespace ExHyperV.ViewModels
 
         [ObservableProperty] private string _selectedSessionMode = "基本会话";
         [ObservableProperty] private bool _isEnhancedMode = false;
-        [ObservableProperty] private SymbolRegular _selectedSessionIcon = SymbolRegular.Broom24;
 
         [RelayCommand]
         private void SwitchSessionMode(string mode) => SelectedSessionMode = mode;
@@ -148,7 +156,6 @@ namespace ExHyperV.ViewModels
         partial void OnSelectedSessionModeChanged(string value)
         {
             IsEnhancedMode = (value == "增强会话");
-            SelectedSessionIcon = IsEnhancedMode ? SymbolRegular.Flash24 : SymbolRegular.Broom24;
             OnPropertyChanged(nameof(CanChangeResolution));
         }
 
@@ -156,6 +163,23 @@ namespace ExHyperV.ViewModels
 
         [ObservableProperty] private int _requestWidth;
         [ObservableProperty] private int _requestHeight;
+
+        partial void OnIsRunningChanged(bool value)
+        {
+            // 如果虚拟机停止运行
+            if (!value)
+            {
+                // 重置宽高
+                _currentWidth = 0;
+                _currentHeight = 0;
+                // 直接设置字符串为 "-"
+                SelectedResolution = "-";
+
+                // 通知 UI 宽高已更改（如果 UI 有绑定这两个值）
+                OnPropertyChanged(nameof(CurrentWidth));
+                OnPropertyChanged(nameof(CurrentHeight));
+            }
+        }
 
         [RelayCommand]
         private void ChangeResolution(string resolutionText)

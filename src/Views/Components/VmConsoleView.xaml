@@ -15,6 +15,7 @@
 
     <Grid Background="Black">
         <tools:MsRdpExHost x:Name="RdpHost" 
+        IsVmRunning="{Binding IsRunning}" 
    VmId="{Binding VmId}" 
    IsEnhancedMode="{Binding IsEnhancedMode}" 
    ActualPixelsWidth="{Binding CurrentWidth, Mode=OneWayToSource}"

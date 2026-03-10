@@ -2,6 +2,7 @@
 using System.Windows;
 using Wpf.Ui.Controls;
 using ExHyperV.ViewModels;
+using System.Windows.Input;
 
 namespace ExHyperV.Views
 {
@@ -50,6 +51,13 @@ namespace ExHyperV.Views
 
             // 停止 ViewModel 内部的轮询 Timer
             _viewModel.Dispose();
+        }
+        private void OnHeaderMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.ChangedButton == MouseButton.Left)
+            {
+                this.DragMove();
+            }
         }
     }
 }
