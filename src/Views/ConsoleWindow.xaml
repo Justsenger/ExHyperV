@@ -100,15 +100,6 @@
                                     </ui:DropDownButton.Flyout>
                                 </ui:DropDownButton>
 
-                                <ui:Button Appearance="Transparent" 
-                                   Width="38"
-                                   Height="32"
-                                   Padding="0"
-                                   Margin="8,0,0,0"
-                                   Command="{Binding SendCadCommand}"
-                                   ToolTip="发送 Ctrl+Alt+Del">
-                                    <ui:SymbolIcon Symbol="Keyboard24" FontSize="16" />
-                                </ui:Button>
                             </StackPanel>
                         </Grid>
 
@@ -147,6 +138,17 @@
                             </ui:DropDownButton.Flyout>
                         </ui:DropDownButton>
 
+                        <ui:Button Appearance="Transparent" 
+                                   Width="38"
+                                   Height="32"
+                                   Padding="0"
+                                   Margin="8,0,0,0"
+                                   Command="{Binding SendCadCommand}"
+                                   ToolTip="发送 Ctrl+Alt+Del">
+                            <ui:SymbolIcon Symbol="Keyboard24" FontSize="16" />
+                        </ui:Button>
+
+                        
                         <!-- 全屏切换按钮 -->
                         <ui:Button Icon="{ui:SymbolIcon Symbol=FullScreenMaximize24}"
                                    Appearance="Transparent"
