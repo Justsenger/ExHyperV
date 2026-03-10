@@ -13,10 +13,24 @@
 
     <ui:FluentWindow.Resources>
         <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
-    </ui:FluentWindow.Resources>
+        <converters:FullScreenToStyleConverter x:Key="FullScreenToStyleConverter" />
+        <converters:FullScreenToStateConverter x:Key="FullScreenToStateConverter" />
 
+        <Style TargetType="ui:FluentWindow" BasedOn="{StaticResource {x:Type ui:FluentWindow}}">
+            <!-- 核心修复：添加 Mode=OneWay -->
+            <Setter Property="WindowStyle" Value="{Binding IsFullScreen, Converter={StaticResource FullScreenToStyleConverter}, Mode=OneWay}" />
+            <Setter Property="WindowState" Value="{Binding IsFullScreen, Converter={StaticResource FullScreenToStateConverter}, Mode=OneWay}" />
+            <Setter Property="Topmost" Value="{Binding IsFullScreen, Mode=OneWay}" />
+        </Style>
+    </ui:FluentWindow.Resources>
+    
     <DockPanel LastChildFill="True" Background="#0A0A0A">
-        <ui:TitleBar DockPanel.Dock="Top" Height="42" Padding="0">
+        <!-- 全屏时，Visibility 会变为 Collapsed，释放顶部 42 像素空间 -->
+        <ui:TitleBar 
+            DockPanel.Dock="Top" 
+            Height="42" 
+            Padding="0"
+            Visibility="{Binding IsFullScreen, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=Invert}">
             <ui:TitleBar.Header>
                 <Grid Margin="12,0,140,0" HorizontalAlignment="Stretch">
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
@@ -29,6 +43,7 @@
                            Foreground="#CCFFFFFF"/>
 
                         <Grid VerticalAlignment="Center">
+                            <!-- 启动按钮 -->
                             <ui:Button Icon="{ui:SymbolIcon Symbol=Play24}"
                                Appearance="Transparent"
                                Width="60" 
@@ -38,6 +53,7 @@
                                ToolTip="启动虚拟机"
                                Visibility="{Binding IsRunning, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=Invert}"/>
 
+                            <!-- 运行状态按钮组 -->
                             <StackPanel Orientation="Horizontal"
                                 Visibility="{Binding IsRunning, Converter={StaticResource BooleanToVisibilityConverter}}">
                                 <ui:Button Icon="{ui:SymbolIcon Symbol=Power24}"
@@ -85,15 +101,14 @@
                                 </ui:DropDownButton>
 
                                 <ui:Button Appearance="Transparent" 
-                           Width="38"
-                           Height="32"
-                           Padding="0"
-                           Margin="8,0,0,0"
-                           Command="{Binding SendCadCommand}"
-                           ToolTip="发送 Ctrl+Alt+Del">
+                                   Width="38"
+                                   Height="32"
+                                   Padding="0"
+                                   Margin="8,0,0,0"
+                                   Command="{Binding SendCadCommand}"
+                                   ToolTip="发送 Ctrl+Alt+Del">
                                     <ui:SymbolIcon Symbol="Keyboard24" FontSize="16" />
                                 </ui:Button>
-
                             </StackPanel>
                         </Grid>
 
@@ -119,11 +134,11 @@
                         </ui:DropDownButton>
 
                         <ui:DropDownButton Content="{Binding SelectedSessionMode}" 
-                   Appearance="Transparent" 
-                   FontSize="11" 
-                   Height="32"
-                   Padding="8,0"
-                   Margin="8,0,0,0">
+                           Appearance="Transparent" 
+                           FontSize="11" 
+                           Height="32"
+                           Padding="8,0"
+                           Margin="8,0,0,0">
                             <ui:DropDownButton.Flyout>
                                 <ContextMenu>
                                     <MenuItem Header="基本会话" Command="{Binding SwitchSessionModeCommand}" CommandParameter="基本会话" />
@@ -131,10 +146,21 @@
                                 </ContextMenu>
                             </ui:DropDownButton.Flyout>
                         </ui:DropDownButton>
+
+                        <!-- 全屏切换按钮 -->
+                        <ui:Button Icon="{ui:SymbolIcon Symbol=FullScreenMaximize24}"
+                                   Appearance="Transparent"
+                                   Height="32"
+                                   Padding="8,0"
+                                   Margin="8,0,0,0"
+                                   Command="{Binding ToggleFullScreenCommand}"
+                                   ToolTip="全屏模式 (Ctrl+Alt+Enter)" />
                     </StackPanel>
                 </Grid>
             </ui:TitleBar.Header>
         </ui:TitleBar>
+
+        <!-- 虚拟机画面容器 -->
         <components:VmConsoleView x:Name="ConsoleHost" />
     </DockPanel>
 </ui:FluentWindow>

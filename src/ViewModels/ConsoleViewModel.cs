@@ -42,6 +42,14 @@ namespace ExHyperV.ViewModels
             VmName = vmName;
             StartStatusPolling();
         }
+        [ObservableProperty] private bool _isFullScreen = false;
+        [RelayCommand]
+        private void ToggleFullScreen()
+        {
+            IsFullScreen = !IsFullScreen;
+            // 如果进入全屏，可以顺便给用户一个简单提示（可选）
+            // Debug.WriteLine("进入全屏模式，按 Ctrl+Alt+Break 退出");
+        }
 
         public ConsoleViewModel() { }
 
