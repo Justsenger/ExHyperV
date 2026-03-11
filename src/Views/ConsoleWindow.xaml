@@ -156,7 +156,7 @@
                                    Padding="8,0"
                                    Margin="8,0,0,0"
                                    Command="{Binding ToggleFullScreenCommand}"
-                                   ToolTip="全屏模式 (Ctrl+Alt+Enter)" />
+                                   ToolTip="全屏模式 (Ctrl+Alt+Space)" />
                     </StackPanel>
                 </Grid>
             </ui:TitleBar.Header>
