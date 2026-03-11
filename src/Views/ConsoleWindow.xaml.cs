@@ -1,6 +1,4 @@
-﻿using System;
-using System.Windows;
-using Wpf.Ui.Controls;
+﻿using Wpf.Ui.Controls;
 using ExHyperV.ViewModels;
 using System.Windows.Input;
 
@@ -12,16 +10,9 @@ namespace ExHyperV.Views
 
         public ConsoleWindow(string vmId, string vmName)
         {
-            // 1. 准备数据：使用我们完善后的构造函数
             _viewModel = new ConsoleViewModel(vmId, vmName);
-
-            // 2. 核心：在加载 UI 前绑定，确保子控件能够通过继承获取 DataContext
             this.DataContext = _viewModel;
-
-            // 3. 初始化组件
             InitializeComponent();
-
-            // 4. 设置窗口标题
             this.Title = vmName;
         }
 
@@ -30,8 +21,6 @@ namespace ExHyperV.Views
         /// </summary>
         private void OnSendCadRequested(object? sender, EventArgs e)
         {
-            // ConsoleHost 是 XAML 中指定的 <components:VmConsoleView x:Name="ConsoleHost" />
-            // 调用该组件内部封装好的发送 CAD 方法
             ConsoleHost?.SendCtrlAltDel();
         }
 
