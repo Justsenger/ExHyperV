@@ -11,6 +11,7 @@ using System.Diagnostics;
 using System.Threading.Tasks;
 using AxMSTSCLib;
 using MSTSCLib;
+using System.Management; // 必须添加
 
 namespace ExHyperV.Tools
 {
@@ -216,41 +217,90 @@ namespace ExHyperV.Tools
 
         public void SendCtrlAltDel()
         {
-            try
+            // 1. 在 UI 线程一次性捕获所有依赖属性，避免跨线程异常
+            string targetVmId = this.VmId;
+            bool isEnhanced = this.IsEnhancedMode;
+
+            if (string.IsNullOrEmpty(targetVmId))
             {
-                if (_rdpControl.RdpClient == null || _rdpControl.RdpClient.ConnectionState != RoyalApps.Community.Rdp.WinForms.Controls.ConnectionState.Connected)
-                    return;
+                Log("[MsRdpEx] 发送失败：没有有效的 VmId");
+                return;
+            }
 
-                // 1. 物理聚焦渲染窗口 (必不可少，否则注入会被忽略)
-                IntPtr opHandle = GetOutputPresenterHandle(_rdpControl.Handle);
-                if (opHandle != IntPtr.Zero) SetFocus(opHandle);
-
-                if (_rdpControl.RdpClient is AxMsRdpClient9NotSafeForScripting ax)
+            // 2. 根据模式主动分流逻辑
+            if (isEnhanced)
+            {
+                object ocx = _rdpControl.RdpClient.GetOcx();
+                if (ocx is IMsRdpClientNonScriptable5 nonScriptable)
                 {
-                    var nonScriptable = (IMsRdpClientNonScriptable5)ax.GetOcx();
+                    // 使用 PS/2 第一套扫描码 (Scan Code Set 1)
+                    // Ctrl = 0x1D, Alt = 0x38, End = 0x4F
+                    int[] scanCodes = { 0x1D, 0x38, 0x4F };
 
-                    // 关键逻辑：在 RDP 中，发送 Ctrl(0x11) + Alt(0x12) + End(0x23) 
-                    // 远程计算机会将其视为 Ctrl+Alt+Del
-                    int VK_CONTROL = 0x11;
-                    int VK_MENU = 0x12; // Alt
-                    int VK_END = 0x23;  // 用 End 代替 Del
+                    // pbArrayKeyUp: false 表示按下 (Down)，true 表示抬起 (Up)
+                    bool[] downStates = { false, false, false };
+                    bool[] upStates = { true, true, true };
 
-                    // 定义序列：按下 Ctrl, 按下 Alt, 按下 End
-                    int[] keys = { VK_CONTROL, VK_MENU, VK_END };
-                    bool[] down = { true, true, true };
-                    bool[] up = { false, false, false };
+                    Log("[MsRdpEx] 正在通过扫描码注入 Ctrl+Alt+End...");
 
-                    // 发送按下
-                    nonScriptable.SendKeys(3, ref down[0], ref keys[0]);
-                    // 发送弹起
-                    nonScriptable.SendKeys(3, ref up[0], ref keys[0]);
+                    // 1. 物理聚焦渲染窗口（这依然是必须的）
+                    IntPtr opHandle = GetOutputPresenterHandle(_rdpControl.Handle);
+                    if (opHandle != IntPtr.Zero) SetFocus(opHandle);
 
-                    Log("通过模拟 Ctrl+Alt+End 发送了 SAS 信号");
+                    // 2. 发送按下序列 (Ctrl Down -> Alt Down -> End Down)
+                    nonScriptable.SendKeys(3, ref downStates[0], ref scanCodes[0]);
+
+                    // 微小延迟模拟真实物理动作
+                    System.Threading.Thread.Sleep(20);
+
+                    // 3. 发送抬起序列 (End Up -> Alt Up -> Ctrl Up)
+                    // 注意：抬起序列建议倒序，或者至少保证 End 先抬起
+                    int[] releaseCodes = { 0x4F, 0x38, 0x1D };
+                    nonScriptable.SendKeys(3, ref upStates[0], ref releaseCodes[0]);
+
+                    Log("[MsRdpEx] 扫描码序列发送完毕");
+                }
+
+                // --- 增强模式路径：直接操作 RDP 控件 ---
+                Log("[MsRdpEx] 检测到增强模式，使用 RDP 语义指令 (Action 6)");
+                try
+                {
+                    // RDP 控件操作必须在 UI 线程
+                    if (_rdpControl.RdpClient != null &&
+                        _rdpControl.RdpClient.ConnectionState == RoyalApps.Community.Rdp.WinForms.Controls.ConnectionState.Connected)
+                    {
+                        // 强制物理聚焦，确保指令接收
+                        IntPtr opHandle = GetOutputPresenterHandle(_rdpControl.Handle);
+                        if (opHandle != IntPtr.Zero) SetFocus(opHandle);
+
+                        // 在增强模式下，Action 6 是打开任务管理器的捷径
+                        _rdpControl.RdpClient.SendRemoteAction((RemoteSessionActionType)6);
+                        Log("[MsRdpEx] RDP Action 6 已发送");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Log($"[MsRdpEx] RDP 指令发送异常: {ex.Message}");
                 }
             }
-            catch (Exception ex)
+            else
             {
-                Log($"CAD 注入失败: {ex.Message}");
+                // --- 基本模式路径：走 WMI 硬件注入 ---
+                Log($"[MsRdpEx] 检测到基本模式，执行 WMI 硬件注入: {targetVmId}");
+
+                Task.Run(async () =>
+                {
+                    try
+                    {
+                        // VmInputTool 内部已经封装了 WMI 逻辑
+                        bool success = await VmInputTool.SendCtrlAltDelAsync(targetVmId);
+                        Log(success ? "[MsRdpEx] WMI 硬件级 CAD 发送成功" : "[MsRdpEx] WMI 硬件级 CAD 发送失败");
+                    }
+                    catch (Exception ex)
+                    {
+                        Log($"[MsRdpEx] WMI 异步执行异常: {ex.Message}");
+                    }
+                });
             }
         }
     }
