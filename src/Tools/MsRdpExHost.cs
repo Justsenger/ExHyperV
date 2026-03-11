@@ -34,6 +34,13 @@ namespace ExHyperV.Tools
         private bool _isTransitioning = false;
         private int _targetW, _targetH;
 
+
+        [DllImport("user32.dll")]
+        private static extern bool PostMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
+
+        private const uint WM_KEYDOWN = 0x0100;
+        private const uint WM_KEYUP = 0x0101;
+
         [DllImport("user32.dll")]
         private static extern bool GetClientRect(IntPtr hWnd, out RECT lpRect);
         [StructLayout(LayoutKind.Sequential)]
@@ -148,8 +155,8 @@ namespace ExHyperV.Tools
                     config.Display.ColorDepth = RdpColorDepth.ColorDepth32Bpp;
                     config.Display.AutoScaling = false;
                     config.Redirection.RedirectClipboard = true;
-                    config.Redirection.RedirectDrives = true;
-                    config.Redirection.RedirectDevices = true;
+                    //config.Redirection.RedirectDrives = true;
+                    //config.Redirection.RedirectDevices = true;
 
                     if (IsEnhancedMode && _targetW > 0) { config.Display.DesktopWidth = _targetW; config.Display.DesktopHeight = _targetH; }
                     _rdpControl.Connect(); await Task.Delay(10);
@@ -217,7 +224,7 @@ namespace ExHyperV.Tools
 
         public void SendCtrlAltDel()
         {
-            // 1. 在 UI 线程一次性捕获所有依赖属性，避免跨线程异常
+            // 1. 在 UI 线程捕获依赖属性，防止跨线程 InvalidOperationException
             string targetVmId = this.VmId;
             bool isEnhanced = this.IsEnhancedMode;
 
@@ -227,74 +234,60 @@ namespace ExHyperV.Tools
                 return;
             }
 
-            // 2. 根据模式主动分流逻辑
+            // 2. 逻辑分流
             if (isEnhanced)
             {
-                object ocx = _rdpControl.RdpClient.GetOcx();
-                if (ocx is IMsRdpClientNonScriptable5 nonScriptable)
-                {
-                    // 使用 PS/2 第一套扫描码 (Scan Code Set 1)
-                    // Ctrl = 0x1D, Alt = 0x38, End = 0x4F
-                    int[] scanCodes = { 0x1D, 0x38, 0x4F };
+                Log("[MsRdpEx] 增强模式：执行暴力冗余 SendKeys 注入...");
 
-                    // pbArrayKeyUp: false 表示按下 (Down)，true 表示抬起 (Up)
-                    bool[] downStates = { false, false, false };
-                    bool[] upStates = { true, true, true };
-
-                    Log("[MsRdpEx] 正在通过扫描码注入 Ctrl+Alt+End...");
-
-                    // 1. 物理聚焦渲染窗口（这依然是必须的）
-                    IntPtr opHandle = GetOutputPresenterHandle(_rdpControl.Handle);
-                    if (opHandle != IntPtr.Zero) SetFocus(opHandle);
-
-                    // 2. 发送按下序列 (Ctrl Down -> Alt Down -> End Down)
-                    nonScriptable.SendKeys(3, ref downStates[0], ref scanCodes[0]);
-
-                    // 微小延迟模拟真实物理动作
-                    System.Threading.Thread.Sleep(20);
-
-                    // 3. 发送抬起序列 (End Up -> Alt Up -> Ctrl Up)
-                    // 注意：抬起序列建议倒序，或者至少保证 End 先抬起
-                    int[] releaseCodes = { 0x4F, 0x38, 0x1D };
-                    nonScriptable.SendKeys(3, ref upStates[0], ref releaseCodes[0]);
-
-                    Log("[MsRdpEx] 扫描码序列发送完毕");
-                }
-
-                // --- 增强模式路径：直接操作 RDP 控件 ---
-                Log("[MsRdpEx] 检测到增强模式，使用 RDP 语义指令 (Action 6)");
                 try
                 {
-                    // RDP 控件操作必须在 UI 线程
-                    if (_rdpControl.RdpClient != null &&
-                        _rdpControl.RdpClient.ConnectionState == RoyalApps.Community.Rdp.WinForms.Controls.ConnectionState.Connected)
+                    object ocx = _rdpControl.RdpClient?.GetOcx();
+                    if (ocx is IMsRdpClientNonScriptable5 nonScriptable)
                     {
-                        // 强制物理聚焦，确保指令接收
+                        // 强制物理聚焦
                         IntPtr opHandle = GetOutputPresenterHandle(_rdpControl.Handle);
                         if (opHandle != IntPtr.Zero) SetFocus(opHandle);
 
-                        // 在增强模式下，Action 6 是打开任务管理器的捷径
-                        _rdpControl.RdpClient.SendRemoteAction((RemoteSessionActionType)6);
-                        Log("[MsRdpEx] RDP Action 6 已发送");
+                        // 定义纯净扫描码 (PS/2 Set 1)
+                        int SC_CTRL = 0x1D;
+                        int SC_ALT = 0x38;
+                        int SC_DEL_EXT = 0x53 | 0x100; // 独立 Delete 键扩展标志
+
+                        int[] codes = { SC_CTRL, SC_ALT, SC_DEL_EXT };
+                        bool[] down = { false, false, false }; // 按下
+                        bool[] up = { true, true, true };    // 抬起
+
+                        // --- 暴力冗余逻辑：执行 10 次原子注入 ---
+                        // 理由：通过高频率连发，抢在 RDP 控件插入 NumLock 同步信号之前，
+                        // 让至少一个“纯净”的 CAD 序列抵达虚拟机内核。
+                        for (int i = 1; i <= 10; i++)
+                        {
+                            nonScriptable.SendKeys(3, ref down[0], ref codes[0]);
+                            System.Threading.Thread.Sleep(10); // 极短按住时间
+                            nonScriptable.SendKeys(3, ref up[0], ref codes[0]);
+
+                            // 每次连发之间微小的喘息，增加命中不同时间窗口的概率
+                            System.Threading.Thread.Sleep(30);
+                        }
+
+                        Log("[MsRdpEx] 10次冗余注入已完成");
                     }
                 }
                 catch (Exception ex)
                 {
-                    Log($"[MsRdpEx] RDP 指令发送异常: {ex.Message}");
+                    Log($"[MsRdpEx] 增强模式注入异常: {ex.Message}");
                 }
             }
             else
             {
-                // --- 基本模式路径：走 WMI 硬件注入 ---
-                Log($"[MsRdpEx] 检测到基本模式，执行 WMI 硬件注入: {targetVmId}");
-
+                // --- 基本模式：走 WMI 硬件路径（上帝模式） ---
+                Log($"[MsRdpEx] 基本模式：调用 VmInputTool WMI 注入: {targetVmId}");
                 Task.Run(async () =>
                 {
                     try
                     {
-                        // VmInputTool 内部已经封装了 WMI 逻辑
                         bool success = await VmInputTool.SendCtrlAltDelAsync(targetVmId);
-                        Log(success ? "[MsRdpEx] WMI 硬件级 CAD 发送成功" : "[MsRdpEx] WMI 硬件级 CAD 发送失败");
+                        Log(success ? "[MsRdpEx] WMI CAD 发送成功" : "[MsRdpEx] WMI CAD 失败");
                     }
                     catch (Exception ex)
                     {
