@@ -126,7 +126,11 @@ namespace ExHyperV.ViewModels
         }
 
         [RelayCommand]
-        private void SendCad() => SendCadRequested?.Invoke(this, EventArgs.Empty);
+        private void SendCad()
+        {
+            Debug.WriteLine("[VM] SendCadCommand 激活，准备触发事件...");
+            SendCadRequested?.Invoke(this, EventArgs.Empty);
+        }
 
         [ObservableProperty] private string _selectedResolution = "-";
         [ObservableProperty] private int _currentWidth;

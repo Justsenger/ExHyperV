@@ -23,10 +23,6 @@ namespace ExHyperV.Views
 
             // 4. 设置窗口标题
             this.Title = vmName;
-
-            // 5. 核心：订阅 CAD 请求事件
-            // 当用户点击顶栏的键盘按钮时，ViewModel 会触发此事件
-            _viewModel.SendCadRequested += OnSendCadRequested;
         }
 
         /// <summary>

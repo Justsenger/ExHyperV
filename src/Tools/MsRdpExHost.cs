@@ -211,31 +211,46 @@ namespace ExHyperV.Tools
         }
         private void Log(string msg) => Debug.WriteLine($"[MsRdpEx] {msg}");
         public void Disconnect() { StopFastSniffer(); _layoutStabilizeTimer.Stop(); _lastConnectedId = null; try { _rdpControl?.Disconnect(); } catch { } }
+        [DllImport("user32.dll")]
+        private static extern IntPtr SetFocus(IntPtr hWnd);
+
         public void SendCtrlAltDel()
         {
             try
             {
-                // 关键点 1：必须确保 RDP 控件此时拥有焦点
-                _rdpControl.Focus();
+                if (_rdpControl.RdpClient == null || _rdpControl.RdpClient.ConnectionState != RoyalApps.Community.Rdp.WinForms.Controls.ConnectionState.Connected)
+                    return;
+
+                // 1. 物理聚焦渲染窗口 (必不可少，否则注入会被忽略)
+                IntPtr opHandle = GetOutputPresenterHandle(_rdpControl.Handle);
+                if (opHandle != IntPtr.Zero) SetFocus(opHandle);
 
                 if (_rdpControl.RdpClient is AxMsRdpClient9NotSafeForScripting ax)
                 {
-                    // 获取非脚本接口 (SAS 序列必须通过此接口发送)
                     var nonScriptable = (IMsRdpClientNonScriptable5)ax.GetOcx();
 
-                    // 定义 Ctrl, Alt, Del 的按下状态
-                    bool[] states = { true, true, true };
-                    int[] keys = { 0x11, 0x12, 0x2E };    // 0x11:Ctrl, 0x12:Alt, 0x2E:Del
+                    // 关键逻辑：在 RDP 中，发送 Ctrl(0x11) + Alt(0x12) + End(0x23) 
+                    // 远程计算机会将其视为 Ctrl+Alt+Del
+                    int VK_CONTROL = 0x11;
+                    int VK_MENU = 0x12; // Alt
+                    int VK_END = 0x23;  // 用 End 代替 Del
 
-                    // 关键点 2：调用底层 SAS 发送指令
-                    nonScriptable.SendKeys(3, ref states[0], ref keys[0]);
+                    // 定义序列：按下 Ctrl, 按下 Alt, 按下 End
+                    int[] keys = { VK_CONTROL, VK_MENU, VK_END };
+                    bool[] down = { true, true, true };
+                    bool[] up = { false, false, false };
 
-                    Log("已尝试通过底层接口发送 SAS (Ctrl+Alt+Del) 信号");
+                    // 发送按下
+                    nonScriptable.SendKeys(3, ref down[0], ref keys[0]);
+                    // 发送弹起
+                    nonScriptable.SendKeys(3, ref up[0], ref keys[0]);
+
+                    Log("通过模拟 Ctrl+Alt+End 发送了 SAS 信号");
                 }
             }
             catch (Exception ex)
             {
-                Log($"发送 CAD 失败: {ex.Message}");
+                Log($"CAD 注入失败: {ex.Message}");
             }
         }
     }
