@@ -91,7 +91,7 @@
                                                 </MenuItem.Icon>
                                             </MenuItem>
                                             <Separator />
-                                            <MenuItem Header="强制关闭" Command="{Binding TurnOffVmCommand}">
+                                            <MenuItem Header="强制关闭" Foreground="#FF4D4F" Command="{Binding TurnOffVmCommand}">
                                                 <MenuItem.Icon>
                                                     <ui:SymbolIcon Symbol="Power24" Foreground="#FF4D4F"/>
                                                 </MenuItem.Icon>
