@@ -240,20 +240,27 @@
 
                                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                             <Grid>
-                                                <TextBlock Text="{Binding Name}" 
-                                                           FontSize="14" 
-                                                           TextTrimming="CharacterEllipsis"
-                                                           VerticalAlignment="Center"
-                                                           Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
 
-                                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                                <TextBlock Grid.Column="0"
+               Text="{Binding Name}" 
+               FontSize="14" 
+               TextTrimming="CharacterEllipsis"
+               VerticalAlignment="Center"
+               Margin="0,0,12,0"
+               Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+
+                                                <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                                                     <TextBlock Text="{Binding IoSpeedText}" 
-                                                               FontSize="11" 
-                                                               Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"
-                                                               Opacity="0.8"
-                                                               Margin="0,0,12,0"
-                                                               VerticalAlignment="Center"
-                                                               FontFamily="Segoe UI, Microsoft YaHei">
+                   FontSize="11" 
+                   Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"
+                   Opacity="0.8"
+                   Margin="0,0,12,0"
+                   VerticalAlignment="Center"
+                   FontFamily="Segoe UI, Microsoft YaHei">
                                                         <TextBlock.Style>
                                                             <Style TargetType="TextBlock">
                                                                 <Style.Triggers>
@@ -264,21 +271,20 @@
                                                             </Style>
                                                         </TextBlock.Style>
                                                     </TextBlock>
-                                                    
+
                                                     <Border Background="{ui:ThemeResource ControlFillColorTertiaryBrush}" 
-        BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" 
-        BorderThickness="1" 
-        CornerRadius="3" 
-        Padding="5,1">
+                BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" 
+                BorderThickness="1" 
+                CornerRadius="3" 
+                Padding="5,1">
                                                         <TextBlock Text="{Binding DiskType, Converter={StaticResource DiskTypeToTextConverter}}" 
-               FontSize="12" 
-               Opacity="0.8" 
-               FontWeight="Medium"
-               Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                       FontSize="12" 
+                       Opacity="0.8" 
+                       FontWeight="Medium"
+                       Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
                                                     </Border>
                                                 </StackPanel>
                                             </Grid>
-
                                             <Grid Margin="0,8,0,0">
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="*"/>
