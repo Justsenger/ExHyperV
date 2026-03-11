@@ -1,5 +1,4 @@
-﻿using System;
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Forms.Integration;
 using System.Windows.Threading;
 using RoyalApps.Community.Rdp.WinForms.Controls;
@@ -7,7 +6,6 @@ using RoyalApps.Community.Rdp.WinForms.Configuration;
 using RdpColorDepth = RoyalApps.Community.Rdp.WinForms.Configuration.ColorDepth;
 using System.Runtime.InteropServices;
 using MSTSCLib;
-using System.Threading.Tasks;
 
 namespace ExHyperV.Tools
 {
@@ -19,7 +17,7 @@ namespace ExHyperV.Tools
 
         private string? _lastConnectedId;
         private bool? _lastEnhancedMode;
-        private bool? _lastRelativeMouse; // 新增：用于判定模式切换
+        private bool? _lastRelativeMouse; // 用于判定模式切换
         private int _lastReqW, _lastReqH;
         private DispatcherTimer? _fastResizeTimer;
         private DispatcherTimer? _layoutStabilizeTimer;
@@ -44,6 +42,8 @@ namespace ExHyperV.Tools
         [DllImport("user32.dll")]
         private static extern bool ClipCursor(IntPtr lpRect);
         [DllImport("user32.dll")]
+        private static extern short GetAsyncKeyState(int vKey);
+
         private static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
         #endregion
 
@@ -91,8 +91,14 @@ namespace ExHyperV.Tools
             _configDebounceTimer.Tick += (s, e) => { _configDebounceTimer.Stop(); _ = TriggerConnectAsync(); };
 
             _layoutStabilizeTimer = new DispatcherTimer(DispatcherPriority.Render) { Interval = TimeSpan.FromMilliseconds(10) };
-            _layoutStabilizeTimer.Tick += (s, e) => { _layoutStabilizeTimer.Stop(); ExecutePhysicalLayout(_pendingW, _pendingH); };
+            _layoutStabilizeTimer.Tick += (s, e) => {
+                // 如果检测到鼠标左键仍处于按下状态，说明用户可能正在拖动标题栏
+                // 此时不执行布局调整，让 Timer 继续跳动，直到用户松开鼠标
+                if ((GetAsyncKeyState(0x01) & 0x8000) != 0) return;
 
+                _layoutStabilizeTimer.Stop();
+                ExecutePhysicalLayout(_pendingW, _pendingH);
+            };
             // 核心交互：点击画面即尝试捕获鼠标
             _rdpControl.OnClientAreaClicked += (s, e) => {
                 if (IsRelativeMouseMode) TrapMouse();
