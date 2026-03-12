@@ -44,7 +44,7 @@ namespace ExHyperV.Services
                     string errorContent = await response.Content.ReadAsStringAsync();
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
             }
 
@@ -54,7 +54,7 @@ namespace ExHyperV.Services
                 {
                     latestVersionTag = (await _httpClient.GetStringAsync(FallbackUrl))?.Trim();
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                     throw new Exception(ExHyperV.Properties.Resources.Error_CheckForUpdateFailed);
                 }
