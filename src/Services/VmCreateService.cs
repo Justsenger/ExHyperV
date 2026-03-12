@@ -103,10 +103,8 @@ namespace ExHyperV.Services
                             Utils.Run($"Set-VMKeyProtector -VMName '{finalVmName}' -NewLocalKeyProtector -ErrorAction Stop");
                             Utils.Run($"Enable-VMTPM -VMName '{finalVmName}' -ErrorAction Stop");
                         }
-                        if (p.EnableSecureBoot)
-                        {
-                            Utils.Run($"Set-VMFirmware -VMName '{finalVmName}' -EnableSecureBoot On -ErrorAction Stop");
-                        }
+                        string secureBootState = p.EnableSecureBoot ? "On" : "Off";
+                        Utils.Run($"Set-VMFirmware -VMName '{finalVmName}' -EnableSecureBoot {secureBootState} -ErrorAction Stop");
                     }
 
                     if (!string.IsNullOrWhiteSpace(p.IsoPath) && File.Exists(p.IsoPath))
