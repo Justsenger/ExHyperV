@@ -470,19 +470,33 @@ namespace ExHyperV.ViewModels
                 // --- 7. 加载虚拟交换机列表 ---
                 var switches = await _vmNetworkService.GetAvailableSwitchesAsync();
 
-                // 创建一个新的列表，第一项为“未连接”
-                var switchList = new List<string> { Properties.Resources.none }; // 使用资源文件中的“未连接”
+                // 创建一个临时的列表，第一项放“未连接”
+                string noneText = Properties.Resources.none; // “未连接”的文本
+                var switchList = new List<string> { noneText };
                 if (switches != null) switchList.AddRange(switches);
 
                 AvailableSwitchNames = new ObservableCollection<string>(switchList);
 
-                // 自动选择逻辑：
-                // 优先找“Default”，如果没有，则默认选中“未连接”（即列表第一项）
+                // --- 改进后的自动选择逻辑 ---
+
+                // 1. 尝试寻找包含 "Default" 的交换机
                 var defaultSwitch = AvailableSwitchNames.FirstOrDefault(s =>
                     s.Contains("Default", StringComparison.OrdinalIgnoreCase) ||
                     s.Contains(Properties.Resources.VmPage_Default, StringComparison.OrdinalIgnoreCase));
 
-                NewVmSelectedSwitch = defaultSwitch ?? AvailableSwitchNames.FirstOrDefault();
+                if (defaultSwitch != null)
+                {
+                    NewVmSelectedSwitch = defaultSwitch;
+                }
+                else
+                {
+                    // 2. 如果没找到 Default，尝试寻找第一个“非未连接”的真实交换机
+                    var firstRealSwitch = AvailableSwitchNames.FirstOrDefault(s => s != noneText);
+
+                    // 3. 如果找到了真实交换机就选它，否则（即列表里只有“未连接”）才选“未连接”
+                    NewVmSelectedSwitch = firstRealSwitch ?? noneText;
+                }
+
             }
             catch (Exception ex)
             {
