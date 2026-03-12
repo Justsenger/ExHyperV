@@ -10,7 +10,7 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <ApplicationIcon>applicationIcon.ico</ApplicationIcon>
-        <Version>1.4.2</Version>
+        <Version>1.4.1</Version>
         <WpfUiGenerateDiagnosticMessages>False</WpfUiGenerateDiagnosticMessages>
         <SatelliteResourceLanguages>en;zh-Hans</SatelliteResourceLanguages>
         <DebugType Condition=" '$(Configuration)' == 'Release' ">none</DebugType>
@@ -18,8 +18,6 @@
         <ApplicationManifest>app.manifest</ApplicationManifest>
         <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     </PropertyGroup>
-
-	<!-- 构建测试142-->
 
 	<!-- =================================================================== -->
     <!--                       2. NuGet 包引用                               -->
