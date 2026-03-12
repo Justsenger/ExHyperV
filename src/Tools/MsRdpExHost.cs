@@ -142,9 +142,12 @@ namespace ExHyperV.Tools
             if (string.IsNullOrEmpty(VmId) || !this.IsLoaded || !IsVmRunning) return;
             if (_isConnecting) return;
 
+            double hostDpi = 1.0;
+            var source = PresentationSource.FromVisual(this);
+            if (source?.CompositionTarget != null) hostDpi = source.CompositionTarget.TransformToDevice.M11;
+
             bool isConnected = _rdpControl.RdpClient?.ConnectionState == RoyalApps.Community.Rdp.WinForms.Controls.ConnectionState.Connected;
 
-            // 判定条件增加 IsRelativeMouseMode
             if (isConnected && _lastConnectedId == VmId && _lastEnhancedMode == IsEnhancedMode &&
                 _lastRelativeMouse == IsRelativeMouseMode && _lastReqW == RequestWidth && _lastReqH == RequestHeight) return;
 
@@ -154,8 +157,16 @@ namespace ExHyperV.Tools
                 while (_lastConnectedId != VmId || _lastEnhancedMode != IsEnhancedMode ||
                        _lastRelativeMouse != IsRelativeMouseMode || _lastReqW != RequestWidth || _lastReqH != RequestHeight)
                 {
-                    _targetW = RequestWidth; _targetH = RequestHeight;
-                    if (IsEnhancedMode && _targetW > 0) { ActualPixelsWidth = _targetW; ActualPixelsHeight = _targetH; }
+                    _targetW = RequestWidth;
+                    _targetH = RequestHeight;
+
+                    System.Diagnostics.Debug.WriteLine($"[RDP_LOG] === 准备发起连接/切换 ---");
+                    System.Diagnostics.Debug.WriteLine($"[RDP_LOG] 宿主DPI: {hostDpi:F2}, 增强模式: {IsEnhancedMode}");
+                    System.Diagnostics.Debug.WriteLine($"[RDP_LOG] 目标分辨率设定: {_targetW}x{_targetH}");
+
+                    // 【关键点】删掉了这行：ActualPixelsWidth = _targetW; 
+                    // 理由：不能在连接前就假定分辨率已经改变，否则会误导 Sniffer 的“From”逻辑
+
                     if (_lastConnectedId != null || (_rdpControl.RdpClient != null && (short)_rdpControl.RdpClient.ConnectionState != 0))
                     {
                         try { _rdpControl.Disconnect(); } catch { }
@@ -166,12 +177,9 @@ namespace ExHyperV.Tools
 
                     var config = _rdpControl.RdpConfiguration;
                     config.Input.KeyboardHookMode = true;
-                    config.Input.KeyboardHookToggleShortcutEnabled = true; // Ctrl+Alt+Space
-
-                    // 应用相对模式配置
+                    config.Input.KeyboardHookToggleShortcutEnabled = true;
                     config.Input.RelativeMouseMode = IsRelativeMouseMode;
-                    config.Input.AllowBackgroundInput = true; // 捕获模式通常需要允许背景输入
-
+                    config.Input.AllowBackgroundInput = true;
                     config.Input.EnableWindowsKey = true;
                     config.Input.GrabFocusOnConnect = true;
                     config.HyperV.Instance = VmId.Trim().ToUpper();
@@ -179,19 +187,21 @@ namespace ExHyperV.Tools
                     config.Server = "127.0.0.1";
                     config.Display.ResizeBehavior = ResizeBehavior.Scrollbars;
                     config.Display.ColorDepth = RdpColorDepth.ColorDepth32Bpp;
-                    config.Display.AutoScaling = false;
                     config.Redirection.RedirectClipboard = true;
 
-                    if (IsEnhancedMode && _targetW > 0) { config.Display.DesktopWidth = _targetW; config.Display.DesktopHeight = _targetH; }
+                    if (IsEnhancedMode)
+                    {
+                        config.Display.DesktopWidth = _targetW;
+                        config.Display.DesktopHeight = _targetH;
+                    }
 
                     _rdpControl.Connect();
                     await Task.Delay(10);
                 }
             }
-            catch { }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[RDP_LOG] 连接异常: {ex.Message}"); }
             finally { _isConnecting = false; await Task.Delay(1000); _isTransitioning = false; _curtain.Visible = false; }
-        }
-
+        }        
         #region Mouse Trap Logic
         public void TrapMouse()
         {
@@ -238,7 +248,16 @@ namespace ExHyperV.Tools
                 var source = PresentationSource.FromVisual(this);
                 if (source?.CompositionTarget == null) return;
                 double dpiX = source.CompositionTarget.TransformToDevice.M11, dpiY = source.CompositionTarget.TransformToDevice.M22;
-                Width = w / dpiX; Height = h / dpiY;
+
+                System.Diagnostics.Debug.WriteLine($"[RDP_LOG] --- 执行布局计算 ---");
+                System.Diagnostics.Debug.WriteLine($"[RDP_LOG] 物理像素: {w}x{h}, DPI渲染比例: {dpiX}");
+
+                // 还原逻辑：恢复为你原始的计算方式（去掉了我之前加的 0.5 余量）
+                Width = (w / dpiX);
+                Height = (h / dpiY);
+
+                System.Diagnostics.Debug.WriteLine($"[RDP_LOG] 计算后的WPF尺寸: {Width}x{Height}");
+
                 if (_parentWindow?.WindowState == WindowState.Normal)
                 {
                     _parentWindow.Width = double.NaN; _parentWindow.Height = double.NaN;
@@ -247,22 +266,40 @@ namespace ExHyperV.Tools
                 }
             });
         }
-
         private void StartFastSniffer()
         {
             if (_fastResizeTimer != null) return;
             _fastResizeTimer = new DispatcherTimer(DispatcherPriority.Render) { Interval = TimeSpan.FromMilliseconds(20) };
             _fastResizeTimer.Tick += (s, e) => {
                 if (_rdpControl.RdpClient?.ConnectionState != RoyalApps.Community.Rdp.WinForms.Controls.ConnectionState.Connected) return;
+
                 IntPtr opHandle = GetOutputPresenterHandle(_rdpControl.Handle);
                 int cw, ch;
-                if (opHandle != IntPtr.Zero && GetClientRect(opHandle, out RECT rect)) { cw = rect.Right - rect.Left; ch = rect.Bottom - rect.Top; }
-                else { cw = _rdpControl.RdpClient.DesktopWidth; ch = _rdpControl.RdpClient.DesktopHeight; }
-                if (cw > 400 && (cw != ActualPixelsWidth || ch != ActualPixelsHeight)) UpdateLayoutByPixels(cw, ch);
+
+                // 获取当前 Win32 窗口真实的物理像素尺寸
+                if (opHandle != IntPtr.Zero && GetClientRect(opHandle, out RECT rect))
+                {
+                    cw = rect.Right - rect.Left;
+                    ch = rect.Bottom - rect.Top;
+                }
+                else
+                {
+                    cw = _rdpControl.RdpClient.DesktopWidth;
+                    ch = _rdpControl.RdpClient.DesktopHeight;
+                }
+
+                // 如果探测到的物理尺寸 cw 跟我们记录的上次尺寸 ActualPixelsWidth 不同
+                if (cw > 400 && (cw != ActualPixelsWidth || ch != ActualPixelsHeight))
+                {
+                    // 此时日志将正确显示：从 [旧的实际值] 变为 [探测到的新实际值]
+                    System.Diagnostics.Debug.WriteLine($"[RDP_LOG] 分辨率真实变化: 从 {ActualPixelsWidth}x{ActualPixelsHeight} (记录) 变为 {cw}x{ch} (窗口)");
+
+                    // 更新记录并触发布局调整
+                    UpdateLayoutByPixels(cw, ch);
+                }
             };
             _fastResizeTimer.Start();
         }
-
         private void StopFastSniffer() { _fastResizeTimer?.Stop(); _fastResizeTimer = null; }
 
         private IntPtr GetOutputPresenterHandle(IntPtr rdpHandle)
