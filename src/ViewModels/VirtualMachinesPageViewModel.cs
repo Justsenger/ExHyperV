@@ -2833,6 +2833,12 @@ namespace ExHyperV.ViewModels
 
             for (int i = startIndex; i < tasks.Count; i++)
             {
+                if (CurrentViewType != VmDetailViewType.AddGpuProgress || SelectedHostGpu == null)
+                {
+                    Debug.WriteLine("GPU Workflow aborted: UI state or SelectedHostGpu has been reset.");
+                    return;
+                }
+
                 var task = tasks[i];
                 task.Status = ExHyperV.Models.TaskStatus.Running;
                 AppendLog(string.Format(Properties.Resources.Msg_Gpu_ExecTask, task.Name));
@@ -3216,9 +3222,28 @@ namespace ExHyperV.ViewModels
         private async Task FinishWorkflowAsync()
         {
             await Task.Delay(1000);
+            // 确保在 UI 线程刷新
             await RefreshCurrentVmGpuAssignments();
+
+            // --- 核心修复：非空安全获取显卡名称 ---
+            string gpuName = "GPU";
+            if (SelectedHostGpu != null)
+            {
+                gpuName = SelectedHostGpu.Name;
+            }
+            else if (SelectedVm?.AssignedGpus?.Count > 0)
+            {
+                // 如果 SelectedHostGpu 已经被重置，尝试从已分配列表里拿名字
+                gpuName = SelectedVm.AssignedGpus.Last().Name;
+            }
+
             CurrentViewType = VmDetailViewType.GpuSettings;
-            ShowSnackbar(Properties.Resources.Msg_Common_ConfigSuccess, string.Format(Properties.Resources.Msg_Gpu_Ready, SelectedHostGpu.Name), ControlAppearance.Success, SymbolRegular.CheckmarkCircle24);
+
+            ShowSnackbar(
+                Properties.Resources.Msg_Common_ConfigSuccess,
+                string.Format(Properties.Resources.Msg_Gpu_Ready, gpuName),
+                ControlAppearance.Success,
+                SymbolRegular.CheckmarkCircle24);
         }
 
         // 设备 ID 格式化辅助
@@ -3281,37 +3306,75 @@ namespace ExHyperV.ViewModels
             Clipboard.SetText(text);
         }
         // ✅ 增加重置/重试命令逻辑
+
         [RelayCommand]
         private async Task ResetGpuDeployment()
         {
-            // 1. 如果当前有正在处理的分区 ID（说明已经分配但未成功），先执行回滚
+            if (SelectedPartition != null)
+            {
+                // --- 场景 1: 软重置 ---
+                var driveTask = GpuTasks.FirstOrDefault(t => t.TaskType == GpuTaskType.Driver);
+                if (driveTask != null)
+                {
+                    driveTask.Status = ExHyperV.Models.TaskStatus.Pending;
+                    driveTask.Description = SelectedPartition.OsType == OperatingSystemType.Linux
+                        ? Properties.Resources.Msg_Gpu_SshConfirm
+                        : Properties.Resources.Msg_Gpu_SelectPart;
+                }
+
+                if (SelectedPartition.OsType == OperatingSystemType.Linux)
+                {
+                    ShowPartitionSelector = true;
+                    ShowSshForm = true;
+                }
+                else
+                {
+                    // Windows 流程重置
+                    ShowPartitionSelector = true;
+                    ShowSshForm = false;
+
+                    // --- 关键改进：清空选中项，允许用户重新点击同一个分区 ---
+                    SelectedPartition = null;
+                }
+
+                AppendLog($"--- {Properties.Resources.Label_Progress} ({Properties.Resources.VirtualMachinesPageViewModel_24}) ---");
+                return;
+            }
+            // --- 场景 2: “硬重置”（彻底回滚，回到选显卡第一步） ---
+            // 触发条件：还没有选定分区就挂了，或者用户在还没选分区时点击了重置
+
+            // 1. 如果当前有正在处理的分区 ID（说明已经分配但未成功），执行物理回滚
             if (!string.IsNullOrEmpty(_currentProcessingGpuAdapterId))
             {
-                AppendLog(Properties.Resources.VirtualMachinesPageViewModel_21);
+                AppendLog(Properties.Resources.VirtualMachinesPageViewModel_21); // "正在回滚 GPU 分配..."
                 try
                 {
                     await _vmGpuService.RemoveGpuPartitionAsync(SelectedVm.Name, _currentProcessingGpuAdapterId);
                     _currentProcessingGpuAdapterId = null;
-                    AppendLog(Properties.Resources.VirtualMachinesPageViewModel_22);
+                    AppendLog(Properties.Resources.VirtualMachinesPageViewModel_22); // "回滚完成。"
                 }
                 catch (Exception ex)
                 {
-                    AppendLog(string.Format(Properties.Resources.VirtualMachinesPageViewModel_23, ex.Message));
+                    AppendLog(string.Format(Properties.Resources.VirtualMachinesPageViewModel_23, ex.Message)); // "回滚失败: {0}"
                 }
             }
 
-            // 2. 重置 UI 状态
-            GpuTasks.Clear();                // 清空任务清单
-            GpuDeploymentLog = string.Empty; // 清空日志
-            ShowPartitionSelector = false;   // 隐藏分区选择
-            ShowSshForm = false;             // 隐藏 SSH 表单
-            ShowLogConsole = false;          // 隐藏日志控制台
+            // 2. 重置所有 UI 状态
+            GpuTasks.Clear();
+            GpuDeploymentLog = string.Empty;
+            ShowPartitionSelector = false;
+            ShowSshForm = false;
+            ShowLogConsole = false;
 
-            // 3. 重新初始化数据并跳转回选择界面
-            // 这步会重新扫描宿主机 GPU 和部署脚本，确保环境是最新的
+            // 3. 彻底重来，重新初始化数据并跳转回选择界面
             await GoToAddGpu();
 
-            ShowSnackbar(Properties.Resources.VirtualMachinesPageViewModel_24, Properties.Resources.VirtualMachinesPageViewModel_25, Wpf.Ui.Controls.ControlAppearance.Info, Wpf.Ui.Controls.SymbolRegular.ArrowCounterclockwise24);
+            // 4. 弹出全局重置提示
+            ShowSnackbar(
+                Properties.Resources.VirtualMachinesPageViewModel_24, // "重置"
+                Properties.Resources.VirtualMachinesPageViewModel_25, // "流程已重置，请重新选择显卡。"
+                Wpf.Ui.Controls.ControlAppearance.Info,
+                Wpf.Ui.Controls.SymbolRegular.ArrowCounterclockwise24);
         }
         private async Task MonitorThumbnailLoop(CancellationToken token)
         {
