@@ -209,27 +209,110 @@
                             </Border>
                         </Grid>
 
-                        <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="0,0,0,0">
-                            <TextBlock Text="{Binding Name}" FontSize="28" 
-                               Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,8"/>
+                        <!-- 详情区域 -->
+                        <Grid Grid.Column="2" VerticalAlignment="Center">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
 
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                            <!-- 第一行：名称与按钮 -->
+                            <Grid Grid.Row="0" Margin="0,0,0,4">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <TextBlock Text="{Binding Name}" FontSize="28" 
+                                           TextTrimming="CharacterEllipsis" VerticalAlignment="Center"
+                                           Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,16,0"/>
+
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <ui:Button Content="{x:Static properties:Resources.Label_Console}" Icon="Display24" Appearance="Secondary" 
+                                               Padding="16,6" Height="36" Margin="0,0,8,0" CornerRadius="8"
+                                               Command="{Binding DataContext.OpenNativeConnectCommand, RelativeSource={RelativeSource AncestorType=Page}}" />
+                                    <Border CornerRadius="8" ClipToBounds="True">
+                                        <Grid>
+                                            <ui:Button Content="{x:Static properties:Resources.Button_Start}" Icon="Play24" Appearance="Primary" 
+                                                       Padding="41,6" Height="36" CornerRadius="8" BorderThickness="0"
+                                                       HorizontalAlignment="Center" HorizontalContentAlignment="Center"
+                                                       Command="{Binding ControlCommand}" 
+                                                       CommandParameter="Start">
+                                                <ui:Button.Style>
+                                                    <Style TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsRunning}" Value="False">
+                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </ui:Button.Style>
+                                            </ui:Button>
+                                            <Grid>
+                                                <Grid.Style>
+                                                    <Style TargetType="Grid">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsRunning}" Value="True">
+                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Grid.Style>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <ui:Button Grid.Column="0" Content="{x:Static properties:Resources.Button_ShutDown}" Icon="Stop24" Appearance="Danger" 
+                                                           Padding="24,6" Height="36" CornerRadius="8,0,0,8" BorderThickness="0" Margin="0"
+                                                           Command="{Binding ControlCommand}" CommandParameter="Stop"/>
+                                                <ui:DropDownButton Grid.Column="1" Icon="ChevronDown24" Appearance="Danger" 
+                                                                   Padding="8,6" Height="36" CornerRadius="0,8,8,0" BorderThickness="0" Margin="0">
+                                                    <ui:DropDownButton.Flyout>
+                                                        <ContextMenu>
+                                                            <MenuItem Header="{x:Static properties:Resources.Button_Restart}" Icon="{ui:SymbolIcon ArrowCounterclockwise24}"
+                                                              Command="{Binding PlacementTarget.DataContext.ControlCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" 
+                                                              CommandParameter="Restart"/>
+                                                            <MenuItem Header="{x:Static properties:Resources.Button_Pause}" Icon="{ui:SymbolIcon Pause24}"
+                                                              Command="{Binding PlacementTarget.DataContext.ControlCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" 
+                                                              CommandParameter="Suspend"/>
+                                                            <Separator/>
+                                                            <MenuItem Header="{x:Static properties:Resources.Button_Save}" Icon="{ui:SymbolIcon Save24}"
+                                                              Command="{Binding PlacementTarget.DataContext.ControlCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" 
+                                                              CommandParameter="Save"/>
+                                                            <MenuItem Header="{x:Static properties:Resources.Button_TurnOff}" Icon="{ui:SymbolIcon Power24}" Foreground="#E81123"
+                                                              Command="{Binding PlacementTarget.DataContext.ControlCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" 
+                                                              CommandParameter="TurnOff"/>
+                                                        </ContextMenu>
+                                                    </ui:DropDownButton.Flyout>
+                                                </ui:DropDownButton>
+                                            </Grid>
+                                        </Grid>
+                                    </Border>
+                                </StackPanel>
+                            </Grid>
+
+                            <!-- 第二行：状态信息 -->
+                            <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,12">
                                 <ui:SymbolIcon Symbol="Pulse24" FontSize="16" Margin="0,1,6,0" 
-                                       Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                                               Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
                                 <TextBlock Text="{Binding State}" FontSize="14" 
-                                   Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,12,0"/>
+                                           Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,12,0"/>
 
                                 <ui:SymbolIcon Symbol="Timer24" FontSize="16" Margin="0,1,6,0" 
-                                       Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                                               Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
                                 <TextBlock Text="{Binding Uptime}" FontSize="14" 
-                                   Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                                           Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
                             </StackPanel>
 
-                            <!-- 第一行标签：配置、代数、版本 -->
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                            <!-- 第三行：基本配置标签 -->
+                            <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,0,0,8">
                                 <Border Background="{ui:ThemeResource ControlFillColorTertiaryBrush}" 
-                                BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
-                                CornerRadius="4" Padding="10,6" Margin="0,0,8,0">
+                                        BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
+                                        CornerRadius="4" Padding="10,6" Margin="0,0,8,0">
                                     <StackPanel Orientation="Horizontal">
                                         <ui:FontIcon Glyph="&#xE81E;" FontSize="14" FontFamily="{DynamicResource SegoeFluentIcons}" Margin="0,1,8,0" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
                                         <TextBlock Text="{Binding ConfigSummary}" TextTrimming="CharacterEllipsis" FontSize="13" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
@@ -237,8 +320,8 @@
                                 </Border>
 
                                 <Border Background="{ui:ThemeResource ControlFillColorTertiaryBrush}" 
-                                BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
-                                CornerRadius="4" Padding="10,6" Margin="0,0,8,0">
+                                        BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
+                                        CornerRadius="4" Padding="10,6" Margin="0,0,8,0">
                                     <StackPanel Orientation="Horizontal">
                                         <ui:FontIcon Glyph="&#xE8C8;" FontSize="14" FontFamily="{DynamicResource SegoeFluentIcons}" Margin="0,1,8,0" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
                                         <TextBlock FontSize="13" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}">
@@ -252,8 +335,8 @@
                                 </Border>
 
                                 <Border Background="{ui:ThemeResource ControlFillColorTertiaryBrush}" 
-                                BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
-                                CornerRadius="4" Padding="10,6">
+                                        BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
+                                        CornerRadius="4" Padding="10,6">
                                     <StackPanel Orientation="Horizontal">
                                         <ui:FontIcon Glyph="&#xE946;" FontSize="14" FontFamily="{DynamicResource SegoeFluentIcons}" Margin="0,1,8,0" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
                                         <TextBlock FontSize="13" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}">
@@ -267,9 +350,8 @@
                                 </Border>
                             </StackPanel>
 
-                            <!-- 第二行标签：系统选择、GPU、IP -->
-                            <StackPanel Orientation="Horizontal">
-                                <!-- 系统选择按钮 (ui:Button 自带边框，无需额外加 Border) -->
+                            <!-- 第四行：系统、GPU、IP 标签 -->
+                            <StackPanel Grid.Row="3" Orientation="Horizontal">
                                 <ui:DropDownButton Appearance="Secondary" Padding="10,6" CornerRadius="4">
                                     <ui:DropDownButton.Content>
                                         <StackPanel Orientation="Horizontal">
@@ -291,15 +373,14 @@
                                     </ui:DropDownButton.Flyout>
                                 </ui:DropDownButton>
 
-                                <!-- GPU 标签 -->
                                 <Border Margin="8,0,0,0" VerticalAlignment="Center" 
-                                Background="{ui:ThemeResource ControlFillColorTertiaryBrush}" 
-                                BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
-                                CornerRadius="4" Padding="10,6"
-                                ToolTip="{Binding GpuDisplayLabel}">
+                                        Background="{ui:ThemeResource ControlFillColorTertiaryBrush}" 
+                                        BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
+                                        CornerRadius="4" Padding="10,6"
+                                        ToolTip="{Binding GpuDisplayLabel}">
                                     <StackPanel Orientation="Horizontal">
                                         <ui:FontIcon Glyph="&#xF211;" FontSize="14" FontFamily="{DynamicResource SegoeFluentIcons}" Margin="0,1,8,0" 
-                                             Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                                                     Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
                                         <TextBlock FontSize="13" TextTrimming="CharacterEllipsis">
                                             <TextBlock.Style>
                                                 <Style TargetType="TextBlock">
@@ -316,16 +397,15 @@
                                     </StackPanel>
                                 </Border>
 
-                                <!-- IP 地址标签 -->
                                 <Border Margin="8,0,0,0" VerticalAlignment="Center" 
-                                Background="{ui:ThemeResource ControlFillColorTertiaryBrush}" 
-                                BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
-                                CornerRadius="4" Padding="10,6"
-                                ToolTip="{x:Static properties:Resources.Label_CopyIp}">
+                                        Background="{ui:ThemeResource ControlFillColorTertiaryBrush}" 
+                                        BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
+                                        CornerRadius="4" Padding="10,6"
+                                        ToolTip="{x:Static properties:Resources.Label_CopyIp}">
                                     <Border.InputBindings>
                                         <MouseBinding Gesture="LeftClick" 
-                                              Command="{Binding DataContext.CopyToClipboardCommand, RelativeSource={RelativeSource AncestorType=Page}}" 
-                                              CommandParameter="{Binding IpAddress}"/>
+                                                      Command="{Binding DataContext.CopyToClipboardCommand, RelativeSource={RelativeSource AncestorType=Page}}" 
+                                                      CommandParameter="{Binding IpAddress}"/>
                                     </Border.InputBindings>
                                     <StackPanel Orientation="Horizontal">
                                         <ui:FontIcon Glyph="&#xE839;" FontSize="14" FontFamily="{DynamicResource SegoeFluentIcons}" Margin="0,1,8,0" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
@@ -333,73 +413,7 @@
                                     </StackPanel>
                                 </Border>
                             </StackPanel>
-                        </StackPanel>
-
-                        <!-- 按钮控制区 -->
-                        <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Top" HorizontalAlignment="Right">
-                            <ui:Button Content="{x:Static properties:Resources.Label_Console}" Icon="Display24" Appearance="Secondary" 
-                               Padding="16,6" Height="36" Margin="0,0,8,0" CornerRadius="8"
-                               Command="{Binding DataContext.OpenNativeConnectCommand, RelativeSource={RelativeSource AncestorType=Page}}" />
-                            <Border CornerRadius="8" ClipToBounds="True">
-                                <Grid>
-                                    <ui:Button Content="{x:Static properties:Resources.Button_Start}" Icon="Play24" Appearance="Primary" 
-           Padding="41,6" Height="36" CornerRadius="8" BorderThickness="0"
-           HorizontalAlignment="Center" HorizontalContentAlignment="Center"
-           Command="{Binding ControlCommand}" 
-           CommandParameter="Start">
-                                        <ui:Button.Style>
-                                            <Style TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
-                                                <Setter Property="Visibility" Value="Collapsed"/>
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding IsRunning}" Value="False">
-                                                        <Setter Property="Visibility" Value="Visible"/>
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </ui:Button.Style>
-                                    </ui:Button>
-                                    <Grid>
-                                        <Grid.Style>
-                                            <Style TargetType="Grid">
-                                                <Setter Property="Visibility" Value="Collapsed"/>
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding IsRunning}" Value="True">
-                                                        <Setter Property="Visibility" Value="Visible"/>
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </Grid.Style>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                        </Grid.ColumnDefinitions>
-                                        <ui:Button Grid.Column="0" Content="{x:Static properties:Resources.Button_ShutDown}" Icon="Stop24" Appearance="Danger" 
-                                           Padding="24,6" Height="36" CornerRadius="8,0,0,8" BorderThickness="0" Margin="0"
-                                           Command="{Binding ControlCommand}" CommandParameter="Stop"/>
-                                        <ui:DropDownButton Grid.Column="1" Icon="ChevronDown24" Appearance="Danger" 
-                                                   Padding="8,6" Height="36" CornerRadius="0,8,8,0" BorderThickness="0" Margin="0">
-                                            <ui:DropDownButton.Flyout>
-                                                <ContextMenu>
-                                                    <MenuItem Header="{x:Static properties:Resources.Button_Restart}" Icon="{ui:SymbolIcon ArrowCounterclockwise24}"
-                                                      Command="{Binding PlacementTarget.DataContext.ControlCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" 
-                                                      CommandParameter="Restart"/>
-                                                    <MenuItem Header="{x:Static properties:Resources.Button_Pause}" Icon="{ui:SymbolIcon Pause24}"
-                                                      Command="{Binding PlacementTarget.DataContext.ControlCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" 
-                                                      CommandParameter="Suspend"/>
-                                                    <Separator/>
-                                                    <MenuItem Header="{x:Static properties:Resources.Button_Save}" Icon="{ui:SymbolIcon Save24}"
-                                                      Command="{Binding PlacementTarget.DataContext.ControlCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" 
-                                                      CommandParameter="Save"/>
-                                                    <MenuItem Header="{x:Static properties:Resources.Button_TurnOff}" Icon="{ui:SymbolIcon Power24}" Foreground="#E81123"
-                                                      Command="{Binding PlacementTarget.DataContext.ControlCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" 
-                                                      CommandParameter="TurnOff"/>
-                                                </ContextMenu>
-                                            </ui:DropDownButton.Flyout>
-                                        </ui:DropDownButton>
-                                    </Grid>
-                                </Grid>
-                            </Border>
-                        </StackPanel>
+                        </Grid>
                     </Grid>
                 </Border>
 
