@@ -42,8 +42,8 @@ jobs:
 
       - if: steps.check_tag.outputs.EXISTS == 'false'
         run: |
-          dotnet publish src/ExHyperV.csproj -c Release -r win-x64 --self-contained true -o ./publish_x64
-          dotnet publish src/ExHyperV.csproj -c Release -r win-arm64 --self-contained true -o ./publish_arm64
+          dotnet publish src/ExHyperV.csproj -c Release -r win-x64 --self-contained false -o ./publish_x64
+          dotnet publish src/ExHyperV.csproj -c Release -r win-arm64 --self-contained false -o ./publish_arm64
 
       - if: steps.check_tag.outputs.EXISTS == 'false'
         shell: pwsh
