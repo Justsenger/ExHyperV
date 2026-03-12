@@ -1,0 +1,70 @@
+name: 自动发布
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  publish:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract Version
+        id: get_version
+        shell: pwsh
+        run: |
+          [xml]$project = Get-Content src/ExHyperV.csproj
+          $ver = $project.Project.PropertyGroup.Version
+          echo "VERSION=$ver" >> $env:GITHUB_OUTPUT
+
+      - name: Check if Release Exists
+        id: check_tag
+        shell: pwsh
+        run: |
+          $ver = "${{ steps.get_version.outputs.VERSION }}"
+          $tag = "V$ver"
+          $exists = git tag -l $tag
+          if ($exists) {
+            echo "EXISTS=true" >> $env:GITHUB_OUTPUT
+          } else {
+            echo "EXISTS=false" >> $env:GITHUB_OUTPUT
+          }
+
+      - name: Setup .NET
+        if: steps.check_tag.outputs.EXISTS == 'false'
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Dotnet Publish
+        if: steps.check_tag.outputs.EXISTS == 'false'
+        run: |
+          dotnet publish src/ExHyperV.csproj -c Release -o ./temp_publish
+
+      - name: Create Zip Archive
+        if: steps.check_tag.outputs.EXISTS == 'false'
+        shell: pwsh
+        run: |
+          $ver = "${{ steps.get_version.outputs.VERSION }}"
+          Compress-Archive -Path ./temp_publish/* -DestinationPath "$ver.zip"
+
+      - name: Auto Create Tag and Release
+        if: steps.check_tag.outputs.EXISTS == 'false'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: "V${{ steps.get_version.outputs.VERSION }}"
+          name: "V${{ steps.get_version.outputs.VERSION }}"
+          files: "${{ steps.get_version.outputs.VERSION }}.zip"
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
