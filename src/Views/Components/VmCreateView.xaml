@@ -191,10 +191,12 @@
                             <StackPanel Grid.Column="0">
                                 <TextBlock Text="{x:Static properties:Resources.Xaml_CapacityGb}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,8"/>
                                 <ComboBox IsEditable="True" Text="{Binding NewVmDiskSizeGb, UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Stretch">
-                                    <sys:String>60</sys:String>
-                                    <sys:String>127</sys:String>
+                                    <sys:String>32</sys:String>
+                                    <sys:String>64</sys:String>
+                                    <sys:String>128</sys:String>
                                     <sys:String>256</sys:String>
                                     <sys:String>512</sys:String>
+                                    <sys:String>1024</sys:String>
                                 </ComboBox>
                             </StackPanel>
 

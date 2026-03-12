@@ -36,7 +36,7 @@ public static class WmiTools
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"WMI 查询异常 [{scope}]: {ex.Message}");
+                Debug.WriteLine(string.Format(Properties.Resources.WmiTools_1, scope, ex.Message));
             }
             return result;
         });

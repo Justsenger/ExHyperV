@@ -40,16 +40,16 @@ namespace ExHyperV.Services
                         if (CheckGptSignatureAt(diskStream, 512))
                         {
                             bytesPerSector = 512;
-                            Debug.WriteLine("[DiskParser] 自动识别扇区: 512 字节 (Standard/512e)");
+                            Debug.WriteLine(Properties.Resources.DiskParserService_1);
                         }
                         else if (CheckGptSignatureAt(diskStream, 4096))
                         {
                             bytesPerSector = 4096;
-                            Debug.WriteLine("[DiskParser] 自动识别扇区: 4096 字节 (Native 4Kn)");
+                            Debug.WriteLine(Properties.Resources.DiskParserService_2);
                         }
                         else
                         {
-                            Debug.WriteLine("[DiskParser] 错误: 无法在 512 或 4096 偏移处找到 GPT 签名");
+                            Debug.WriteLine(Properties.Resources.DiskParserService_3);
                             return partitions;
                         }
 
@@ -64,7 +64,7 @@ namespace ExHyperV.Services
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[DiskParser] 读取磁盘失败: {ex.Message}");
+                Debug.WriteLine(string.Format(Properties.Resources.DiskParserService_4, ex.Message));
             }
 
             const long oneGbInBytes = 1024L * 1024 * 1024;

@@ -1,4 +1,4 @@
-﻿using ExHyperV.Models;
+using ExHyperV.Models;
 
 namespace ExHyperV.Services
 {
@@ -57,7 +57,7 @@ namespace ExHyperV.Services
         /// <summary>
         /// 异步执行DDA设备分配操作。
         /// </summary>
-        /// <param name="targetVmName">目标虚拟机名称或"主机"。</param>
+        /// <param name="targetVmName">目标虚拟机名称或Properties.Resources.UsbDeviceModel_1。</param>
         /// <param name="currentVmName">设备当前分配的虚拟机名称。</param>
         /// <param name="instanceId">设备的实例ID。</param>
         /// <param name="path">设备的位置路径。</param>

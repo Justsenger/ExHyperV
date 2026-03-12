@@ -149,7 +149,7 @@ namespace ExHyperV.Services
                     }
                     catch (Exception ex)
                     {
-                        Log($"    [高级设置] 读取异常: {ex.Message}");
+                        Log(string.Format(Properties.Resources.VmNetworkService_2, ex.Message));
                     }
                 }
                 else
@@ -178,7 +178,7 @@ namespace ExHyperV.Services
             var targetAdapters = adapters.Where(a => (a.IpAddresses == null || a.IpAddresses.Count == 0) && !string.IsNullOrEmpty(a.MacAddress)).ToList();
             if (targetAdapters.Count == 0) return;
 
-            Log($">>> [Background] 开始填充 IP...");
+            Log(Properties.Resources.VmNetworkService_3);
 
             foreach (var adapter in targetAdapters)
             {
@@ -210,7 +210,7 @@ namespace ExHyperV.Services
         {
             try
             {
-                Log($">>> [PS] 正在尝试添加网卡到 {vmName}...");
+                Log(string.Format(Properties.Resources.VmNetworkService_4, vmName));
 
                 // 1. 构造脚本
                 string script = $"Add-VMNetworkAdapter -VMName '{vmName.Replace("'", "''")}'";

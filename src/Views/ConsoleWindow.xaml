@@ -1,9 +1,12 @@
-﻿<ui:FluentWindow
+<ui:FluentWindow 
+    xmlns:properties="clr-namespace:ExHyperV.Properties"
     x:Class="ExHyperV.Views.ConsoleWindow"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    
     xmlns:converters="clr-namespace:ExHyperV.Converters"
+                 
     xmlns:components="clr-namespace:ExHyperV.Views.Components"
     Title="{Binding VmName}"
     MinWidth="720" 
@@ -50,7 +53,7 @@
                                Height="32"
                                Padding="0"
                                Command="{Binding StartVmCommand}"
-                               ToolTip="启动虚拟机"
+                               ToolTip="{x:Static properties:Resources.ConsoleWindow_1}"
                                Visibility="{Binding IsRunning, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=Invert}"/>
 
                             <!-- 运行状态按钮组 -->
@@ -63,7 +66,7 @@
                                    Padding="0"
                                    CornerRadius="4,0,0,4"
                                    Command="{Binding ShutdownVmCommand}"
-                                   ToolTip="正常关机" />
+                                   ToolTip="{x:Static properties:Resources.ConsoleWindow_2}" />
 
                                 <ui:DropDownButton Appearance="Transparent"
                                            Width="24"
@@ -75,23 +78,23 @@
                                            IsEnabled="{Binding IsNotBusy}">
                                     <ui:DropDownButton.Flyout>
                                         <ContextMenu>
-                                            <MenuItem Header="重启" Command="{Binding ResetVmCommand}">
+                                            <MenuItem Header="{x:Static properties:Resources.ConsoleWindow_3}" Command="{Binding ResetVmCommand}">
                                                 <MenuItem.Icon>
                                                     <ui:SymbolIcon Symbol="ArrowSync24"/>
                                                 </MenuItem.Icon>
                                             </MenuItem>
-                                            <MenuItem Header="暂停" Command="{Binding PauseVmCommand}">
+                                            <MenuItem Header="{x:Static properties:Resources.ConsoleWindow_4}" Command="{Binding PauseVmCommand}">
                                                 <MenuItem.Icon>
                                                     <ui:SymbolIcon Symbol="Pause24"/>
                                                 </MenuItem.Icon>
                                             </MenuItem>
-                                            <MenuItem Header="保存状态" Command="{Binding SaveVmCommand}">
+                                            <MenuItem Header="{x:Static properties:Resources.ConsoleWindow_5}" Command="{Binding SaveVmCommand}">
                                                 <MenuItem.Icon>
                                                     <ui:SymbolIcon Symbol="Save24"/>
                                                 </MenuItem.Icon>
                                             </MenuItem>
                                             <Separator />
-                                            <MenuItem Header="强制关闭" Foreground="#FF4D4F" Command="{Binding TurnOffVmCommand}">
+                                            <MenuItem Header="{x:Static properties:Resources.ConsoleWindow_6}" Foreground="#FF4D4F" Command="{Binding TurnOffVmCommand}">
                                                 <MenuItem.Icon>
                                                     <ui:SymbolIcon Symbol="Power24" Foreground="#FF4D4F"/>
                                                 </MenuItem.Icon>
@@ -132,8 +135,8 @@
                            Margin="8,0,0,0">
                             <ui:DropDownButton.Flyout>
                                 <ContextMenu>
-                                    <MenuItem Header="基本会话" Command="{Binding SwitchSessionModeCommand}" CommandParameter="基本会话" />
-                                    <MenuItem Header="增强会话" Command="{Binding SwitchSessionModeCommand}" CommandParameter="增强会话" />
+                                    <MenuItem Header="{x:Static properties:Resources.ConsoleViewModel_4}" Command="{Binding SwitchSessionModeCommand}" CommandParameter="{x:Static properties:Resources.ConsoleViewModel_4}" />
+                                    <MenuItem Header="{x:Static properties:Resources.ConsoleViewModel_5}" Command="{Binding SwitchSessionModeCommand}" CommandParameter="{x:Static properties:Resources.ConsoleViewModel_5}" />
                                 </ContextMenu>
                             </ui:DropDownButton.Flyout>
                         </ui:DropDownButton>
@@ -144,7 +147,7 @@
                                    Padding="0"
                                    Margin="8,0,0,0"
                                    Command="{Binding SendCadCommand}"
-                                   ToolTip="发送 Ctrl+Alt+Del">
+                                   ToolTip="{x:Static properties:Resources.ConsoleWindow_9}">
                             <ui:SymbolIcon Symbol="Keyboard24" FontSize="16" />
                         </ui:Button>
 
@@ -156,7 +159,7 @@
                                    Padding="8,0"
                                    Margin="8,0,0,0"
                                    Command="{Binding ToggleFullScreenCommand}"
-                                   ToolTip="全屏模式 (Ctrl+Alt+Space)" />
+                                   ToolTip="{x:Static properties:Resources.ConsoleWindow_10}" />
                     </StackPanel>
                 </Grid>
             </ui:TitleBar.Header>

@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Management;
 
 namespace ExHyperV.Services
@@ -31,7 +31,7 @@ namespace ExHyperV.Services
                             }
                             catch (Exception ex)
                             {
-                                Debug.WriteLine($"[ProcessAffinityManager] 找到匹配的 vmmem 进程 (PID: {mo["ProcessId"]}) 但获取失败: {ex.Message}");
+                                Debug.WriteLine(string.Format(Properties.Resources.ProcessAffinityManager_1, mo["ProcessId"], ex.Message));
                             }
                         }
                     }
@@ -39,7 +39,7 @@ namespace ExHyperV.Services
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[ProcessAffinityManager] WMI 查询 vmmem 进程失败: {ex.Message}");
+                Debug.WriteLine(string.Format(Properties.Resources.ProcessAffinityManager_2, ex.Message));
             }
 
             return null;
@@ -67,7 +67,7 @@ namespace ExHyperV.Services
                 }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine($"[ProcessAffinityManager] 获取进程 {process.Id} 的相关性失败: {ex.Message}");
+                    Debug.WriteLine(string.Format(Properties.Resources.ProcessAffinityManager_3, process.Id, ex.Message));
                 }
             }
             return coreIds;
@@ -95,7 +95,7 @@ namespace ExHyperV.Services
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[ProcessAffinityManager] 设置失败: {ex.Message}");
+                Debug.WriteLine(string.Format(Properties.Resources.ProcessAffinityManager_4, ex.Message));
                 return false;
             }
         }

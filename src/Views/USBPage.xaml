@@ -1,4 +1,4 @@
-﻿<Page
+<Page xmlns:properties="clr-namespace:ExHyperV.Properties"
     x:Class="ExHyperV.Views.Pages.USBPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -35,14 +35,13 @@
 
                     <!-- 中间文字内容：使用 Run 让标题和正文同排 -->
                     <TextBlock Grid.Column="1" VerticalAlignment="Center" TextWrapping="Wrap">
-            <Run Text="使用须知：" FontSize="16" />
-            <Run Text=" 目前 USB 直通功能需要预先手动安装驱动和代理程序。请务必阅读配置文档。" 
+            <Run Text="{x:Static properties:Resources.USBPage_2}" 
                  FontSize="16" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
                     </TextBlock>
 
                     <!-- 右侧操作按钮 -->
                     <ui:Button Grid.Column="2" 
-                   Content="查看指南" 
+                   Content="{x:Static properties:Resources.USBPage_3}" 
                    Appearance="Secondary"
                    Icon="{ui:SymbolIcon Link24}"
                    VerticalAlignment="Center"
@@ -58,10 +57,10 @@
                     <Grid>
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                             <ui:FontIcon Glyph="&#xE88E;" FontSize="24" FontFamily="{DynamicResource SegoeFluentIcons}"/>
-                            <TextBlock Text="可分配设备" FontSize="16" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                            <TextBlock Text="{x:Static properties:Resources.USBPage_4}" FontSize="16" VerticalAlignment="Center" Margin="10,0,0,0"/>
                         </StackPanel>
                         <ui:Button HorizontalAlignment="Right"
-                                   Content="刷新" 
+                                   Content="{x:Static properties:Resources.USBPage_5}" 
                                    Command="{Binding LoadDataCommand}"
                                    IsEnabled="{Binding IsUiEnabled}"/>
                     </Grid>

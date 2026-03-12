@@ -77,7 +77,7 @@ namespace ExHyperV.Tools
                 }
                 if ((ushort)job["JobState"] != 10)
                 {
-                    throw new Exception($"应用CPU组的作业失败。作业状态: {(ushort)job["JobState"]}. 错误: {job["ErrorDescription"]}");
+                    throw new Exception(string.Format(Properties.Resources.HcsManager_1, (ushort)job["JobState"], job["ErrorDescription"]));
                 }
             }
             else if (returnValue != 0)

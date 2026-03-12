@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -60,9 +60,9 @@ namespace ExHyperV.Services
             {
                 cts.Cancel();
                 cts.Dispose();
-                Log($"[StopTunnel] 正在停止旧隧道: {busId}");
+                Log(string.Format(Properties.Resources.UsbVmbusService_1, busId));
             }
-            Log($"[StopTunnel] 强制执行 unbind: {busId}");
+            Log(string.Format(Properties.Resources.UsbVmbusService_2, busId));
             await RunUsbIpCommand($"unbind --busid {busId}");
             await Task.Delay(500);
         }
@@ -89,7 +89,7 @@ namespace ExHyperV.Services
             }
             catch (Exception ex)
             {
-                Log($"[AutoRecover] 隧道建立失败: {ex.Message}");
+                Log(string.Format(Properties.Resources.UsbVmbusService_3, ex.Message));
                 _activeCts.TryRemove(busId, out _);
             }
         }
@@ -237,7 +237,7 @@ namespace ExHyperV.Services
                     }
                 }
             }
-            catch (Exception ex) { Debug.WriteLine($"[ExHyperV-USB] 获取VM失败: {ex.Message}"); }
+            catch (Exception ex) { Debug.WriteLine(string.Format(Properties.Resources.UsbVmbusService_4, ex.Message)); }
             return list;
         }
 

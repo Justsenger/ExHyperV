@@ -35,7 +35,7 @@
             <StackPanel Grid.Column="1" Orientation="Horizontal">
                 <!-- ✅ 重置/重试按钮：随时重置整个流程 -->
                 <ui:Button Appearance="Transparent" Padding="8" Margin="0,0,4,0"
-                           ToolTip="重置部署流程 (回到初始状态)"
+                           ToolTip="{x:Static properties:Resources.VmAddGpuProgressView_1}"
                            Command="{Binding ResetGpuDeploymentCommand}">
                     <ui:SymbolIcon Symbol="ArrowCounterclockwise24" FontSize="18" Foreground="{ui:ThemeResource SystemAccentColorPrimaryBrush}"/>
                 </ui:Button>
@@ -128,7 +128,7 @@
 
                                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,16,0">
                                                 <!-- 原 Code24 图标已删除 -->
-                                                <TextBlock Text="选择部署方案" FontWeight="Medium" VerticalAlignment="Center"/>
+                                                <TextBlock Text="{x:Static properties:Resources.VmAddGpuProgressView_2}" FontWeight="Medium" VerticalAlignment="Center"/>
                                             </StackPanel>
 
                                             <ComboBox Grid.Column="1" 

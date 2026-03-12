@@ -108,7 +108,7 @@
 
                             <!-- 禁用按钮：只有当状态完全正常 (Success) 时，才显示 -->
                             <ui:Button 
-        Content="禁用" 
+        Content="{x:Static properties:Resources.HostPage_1}" 
         Appearance="Secondary"
         Visibility="{Binding HyperVStatus.IsSuccess, Converter={StaticResource BoolToVis}}"
         Command="{Binding DisableHyperVCommand}"/>

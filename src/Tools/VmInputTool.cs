@@ -1,4 +1,4 @@
-﻿using System.Management;
+using System.Management;
 using System.Diagnostics;
 
 namespace ExHyperV.Tools;
@@ -68,7 +68,7 @@ public static class VmInputTool
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"文本输入异常: {ex.Message}");
+                Debug.WriteLine(string.Format(Properties.Resources.VmInputTool_1, ex.Message));
             }
         });
     }

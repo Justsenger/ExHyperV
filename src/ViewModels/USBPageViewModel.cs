@@ -1,4 +1,4 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ExHyperV.Models;
@@ -88,7 +88,7 @@ namespace ExHyperV.ViewModels
             foreach (var d in Devices)
             {
                 if (UsbVmbusService.ActiveTunnels.TryGetValue(d.BusId, out string vm)) d.CurrentAssignment = vm;
-                else if (d.CurrentAssignment != "正在连接...") d.CurrentAssignment = "主机";
+                else if (d.CurrentAssignment != Properties.Resources.USBPageViewModel_1) d.CurrentAssignment = Properties.Resources.UsbDeviceModel_1;
             }
         }
 
@@ -103,17 +103,17 @@ namespace ExHyperV.ViewModels
             IsUiEnabled = false;
             try
             {
-                if (selectedTarget == "主机")
+                if (selectedTarget == Properties.Resources.UsbDeviceModel_1)
                 {
                     UsbVmbusService.ActiveTunnels.TryRemove(deviceVM.BusId, out _);
                     await _srv.StopTunnelAsync(deviceVM.BusId); // 使用 Await 版本
-                    deviceVM.CurrentAssignment = "主机";
+                    deviceVM.CurrentAssignment = Properties.Resources.UsbDeviceModel_1;
                 }
                 else
                 {
                     // 1. 先记录意图
                     UsbVmbusService.ActiveTunnels[deviceVM.BusId] = selectedTarget;
-                    deviceVM.CurrentAssignment = "正在连接...";
+                    deviceVM.CurrentAssignment = Properties.Resources.USBPageViewModel_1;
 
                     // 2. 异步执行切换，内部会处理 Stop 旧隧道 -> Start 新隧道
                     _ = Task.Run(async () => {
@@ -143,7 +143,7 @@ namespace ExHyperV.ViewModels
             catch (Exception ex)
             {
                 // 这里可以记录日志，防止由于系统环境问题导致崩溃
-                Debug.WriteLine($"无法打开网页: {ex.Message}");
+                Debug.WriteLine(string.Format(Properties.Resources.USBPageViewModel_6, ex.Message));
             }
 
         }

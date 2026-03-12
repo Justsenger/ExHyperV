@@ -1291,7 +1291,7 @@ return 'OK'
                     var item = ParseScriptHeader(content);
                     item.IsLocal = true;
                     // 【修改点】：添加“本地”标识
-                    item.Name = $"[本地] {item.Name}";
+                    item.Name = string.Format(Properties.Resources.VmGPUService_1, item.Name);
                     item.SourcePathOrUrl = file;
                     item.FileName = Path.GetFileName(file);
                     allScripts.Add(item);
@@ -1317,7 +1317,7 @@ return 'OK'
                     {
                         item.IsLocal = false;
                         // 【修改点】：添加“在线”标识
-                        item.Name = $"[在线] {item.Name}";
+                        item.Name = string.Format(Properties.Resources.VmGPUService_2, item.Name);
                         item.SourcePathOrUrl = $"{ScriptBaseUrl}{item.FileName}";
                         allScripts.Add(item);
                     }

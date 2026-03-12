@@ -1,4 +1,4 @@
-﻿using System.Windows;
+using System.Windows;
 using System.Windows.Forms.Integration;
 using System.Windows.Threading;
 using RoyalApps.Community.Rdp.WinForms.Controls;
@@ -160,9 +160,9 @@ namespace ExHyperV.Tools
                     _targetW = RequestWidth;
                     _targetH = RequestHeight;
 
-                    System.Diagnostics.Debug.WriteLine($"[RDP_LOG] === 准备发起连接/切换 ---");
-                    System.Diagnostics.Debug.WriteLine($"[RDP_LOG] 宿主DPI: {hostDpi:F2}, 增强模式: {IsEnhancedMode}");
-                    System.Diagnostics.Debug.WriteLine($"[RDP_LOG] 目标分辨率设定: {_targetW}x{_targetH}");
+                    System.Diagnostics.Debug.WriteLine(Properties.Resources.MsRdpExHost_1);
+                    System.Diagnostics.Debug.WriteLine(string.Format(Properties.Resources.MsRdpExHost_2, hostDpi, IsEnhancedMode));
+                    System.Diagnostics.Debug.WriteLine(string.Format(Properties.Resources.MsRdpExHost_3, _targetW, _targetH));
 
                     // 【关键点】删掉了这行：ActualPixelsWidth = _targetW; 
                     // 理由：不能在连接前就假定分辨率已经改变，否则会误导 Sniffer 的“From”逻辑
@@ -199,7 +199,7 @@ namespace ExHyperV.Tools
                     await Task.Delay(10);
                 }
             }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[RDP_LOG] 连接异常: {ex.Message}"); }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine(string.Format(Properties.Resources.MsRdpExHost_4, ex.Message)); }
             finally { _isConnecting = false; await Task.Delay(1000); _isTransitioning = false; _curtain.Visible = false; }
         }        
         #region Mouse Trap Logic
@@ -249,14 +249,14 @@ namespace ExHyperV.Tools
                 if (source?.CompositionTarget == null) return;
                 double dpiX = source.CompositionTarget.TransformToDevice.M11, dpiY = source.CompositionTarget.TransformToDevice.M22;
 
-                System.Diagnostics.Debug.WriteLine($"[RDP_LOG] --- 执行布局计算 ---");
+                System.Diagnostics.Debug.WriteLine(Properties.Resources.MsRdpExHost_5);
                 System.Diagnostics.Debug.WriteLine($"[RDP_LOG] 物理像素: {w}x{h}, DPI渲染比例: {dpiX}");
 
                 // 还原逻辑：恢复为你原始的计算方式（去掉了我之前加的 0.5 余量）
                 Width = (w / dpiX);
                 Height = (h / dpiY);
 
-                System.Diagnostics.Debug.WriteLine($"[RDP_LOG] 计算后的WPF尺寸: {Width}x{Height}");
+                System.Diagnostics.Debug.WriteLine(string.Format(Properties.Resources.MsRdpExHost_7, Width, Height));
 
                 if (_parentWindow?.WindowState == WindowState.Normal)
                 {

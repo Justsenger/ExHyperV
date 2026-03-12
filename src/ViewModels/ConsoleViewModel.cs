@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Diagnostics;
 using System.Linq;
 using System.Collections.ObjectModel;
@@ -48,7 +48,7 @@ namespace ExHyperV.ViewModels
         {
             IsFullScreen = !IsFullScreen;
             // 如果进入全屏，可以顺便给用户一个简单提示（可选）
-            // Debug.WriteLine("进入全屏模式，按 Ctrl+Alt+Break 退出");
+            // Debug.WriteLine(Properties.Resources.ConsoleViewModel_1);
         }
 
         public ConsoleViewModel() { }
@@ -115,7 +115,7 @@ namespace ExHyperV.ViewModels
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"操作失败: {ex.Message}");
+                Debug.WriteLine(string.Format(Properties.Resources.ConsoleViewModel_2, ex.Message));
             }
             finally
             {
@@ -128,7 +128,7 @@ namespace ExHyperV.ViewModels
         [RelayCommand]
         private void SendCad()
         {
-            Debug.WriteLine("[VM] SendCadCommand 激活，准备触发事件...");
+            Debug.WriteLine(Properties.Resources.ConsoleViewModel_3);
             SendCadRequested?.Invoke(this, EventArgs.Empty);
         }
 
@@ -159,7 +159,7 @@ namespace ExHyperV.ViewModels
             "1280 x 720",  "1152 x 864",  "1024 x 768",  "800 x 600"
         };
 
-        [ObservableProperty] private string _selectedSessionMode = "基本会话";
+        [ObservableProperty] private string _selectedSessionMode = Properties.Resources.ConsoleViewModel_4;
         [ObservableProperty] private bool _isEnhancedMode = false;
 
         [RelayCommand]
@@ -167,7 +167,7 @@ namespace ExHyperV.ViewModels
 
         partial void OnSelectedSessionModeChanged(string value)
         {
-            IsEnhancedMode = (value == "增强会话");
+            IsEnhancedMode = (value == Properties.Resources.ConsoleViewModel_5);
             OnPropertyChanged(nameof(CanChangeResolution));
         }
 

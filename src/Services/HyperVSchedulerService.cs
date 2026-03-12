@@ -1,4 +1,4 @@
-﻿using ExHyperV.Tools;
+using ExHyperV.Tools;
 using System.Diagnostics;
 using System.Diagnostics.Eventing.Reader;
 
@@ -38,7 +38,7 @@ namespace ExHyperV.Services
                     }
                 }
             }
-            catch (System.Exception ex) { Debug.WriteLine($"[HyperVSchedulerService] 查询事件日志失败: {ex.Message}"); }
+            catch (System.Exception ex) { Debug.WriteLine(string.Format(Properties.Resources.HyperVSchedulerService_1, ex.Message)); }
             return HyperVSchedulerType.Unknown;
         }
 
@@ -54,7 +54,7 @@ namespace ExHyperV.Services
             }
             catch (System.Exception ex)
             {
-                Debug.WriteLine($"[HyperVSchedulerService] 使用 Utils.RunScriptSTA 执行 bcdedit 失败: {ex.Message}");
+                Debug.WriteLine(string.Format(Properties.Resources.HyperVSchedulerService_2, ex.Message));
                 return false;
             }
         }

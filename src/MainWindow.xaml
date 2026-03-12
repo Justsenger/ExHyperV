@@ -89,7 +89,7 @@
                 <!-- USB 直通菜单项 -->
                 <ui:NavigationViewItem
     x:Name="USBPassThrough"
-    Content="USB 直通 ( Beta )" 
+    Content="{x:Static properties:Resources.MainWindow_1}" 
     NavigationCacheMode="Enabled"
     TargetPageType="{x:Type pages:USBPage}">
                     <ui:NavigationViewItem.Icon>

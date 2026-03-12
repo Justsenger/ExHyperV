@@ -3069,6 +3069,324 @@
   <data name="Xaml_Placeholder_IsoOptional" xml:space="preserve">
     <value>选择操作系统安装 ISO 镜像 (可选)</value>
   </data>
+  <data name="MainWindow_1" xml:space="preserve">
+    <value>USB 直通 ( Beta )</value>
+  </data>
+  <data name="UsbDeviceModel_1" xml:space="preserve">
+    <value>主机</value>
+  </data>
+  <data name="UsbDeviceModel_2" xml:space="preserve">
+    <value>主机</value>
+  </data>
+  <data name="UsbDeviceModel_3" xml:space="preserve">
+    <value>主机</value>
+  </data>
+  <data name="UsbDeviceModel_4" xml:space="preserve">
+    <value>主机</value>
+  </data>
+  <data name="DiskParserService_1" xml:space="preserve">
+    <value>[DiskParser] 自动识别扇区: 512 字节 (Standard/512e)</value>
+  </data>
+  <data name="DiskParserService_2" xml:space="preserve">
+    <value>[DiskParser] 自动识别扇区: 4096 字节 (Native 4Kn)</value>
+  </data>
+  <data name="DiskParserService_3" xml:space="preserve">
+    <value>[DiskParser] 错误: 无法在 512 或 4096 偏移处找到 GPT 签名</value>
+  </data>
+  <data name="DiskParserService_4" xml:space="preserve">
+    <value>[DiskParser] 读取磁盘失败: {0}</value>
+  </data>
+  <data name="HyperVSchedulerService_1" xml:space="preserve">
+    <value>[HyperVSchedulerService] 查询事件日志失败: {0}</value>
+  </data>
+  <data name="HyperVSchedulerService_2" xml:space="preserve">
+    <value>[HyperVSchedulerService] 使用 Utils.RunScriptSTA 执行 bcdedit 失败: {0}</value>
+  </data>
+  <data name="IHyperVService_1" xml:space="preserve">
+    <value>主机</value>
+  </data>
+  <data name="UsbVmbusService_1" xml:space="preserve">
+    <value>[StopTunnel] 正在停止旧隧道: {0}</value>
+  </data>
+  <data name="UsbVmbusService_2" xml:space="preserve">
+    <value>[StopTunnel] 强制执行 unbind: {0}</value>
+  </data>
+  <data name="UsbVmbusService_3" xml:space="preserve">
+    <value>[AutoRecover] 隧道建立失败: {0}</value>
+  </data>
+  <data name="UsbVmbusService_4" xml:space="preserve">
+    <value>[ExHyperV-USB] 获取VM失败: {0}</value>
+  </data>
+  <data name="VmGPUService_1" xml:space="preserve">
+    <value>[本地] {0}</value>
+  </data>
+  <data name="VmGPUService_2" xml:space="preserve">
+    <value>[在线] {0}</value>
+  </data>
+  <data name="VmMemoryService_1" xml:space="preserve">
+    <value>读取内存配置时发生严重异常: {0}</value>
+  </data>
+  <data name="VmNetworkService_1" xml:space="preserve">
+    <value>\n--- [处理第 {0}/{1} 个网卡: '{2}'] ---</value>
+  </data>
+  <data name="VmNetworkService_2" xml:space="preserve">
+    <value>    [高级设置] 读取异常: {0}</value>
+  </data>
+  <data name="VmNetworkService_3" xml:space="preserve">
+    <value>&gt;&gt;&gt; [Background] 开始填充 IP...</value>
+  </data>
+  <data name="VmNetworkService_4" xml:space="preserve">
+    <value>&gt;&gt;&gt; [PS] 正在尝试添加网卡到 {0}...</value>
+  </data>
+  <data name="HcsManager_1" xml:space="preserve">
+    <value>应用CPU组的作业失败。作业状态: {0}. 错误: {1}</value>
+  </data>
+  <data name="MsRdpExHost_1" xml:space="preserve">
+    <value>[RDP_LOG] === 准备发起连接/切换 ---</value>
+  </data>
+  <data name="MsRdpExHost_2" xml:space="preserve">
+    <value>[RDP_LOG] 宿主DPI: {0}, 增强模式: {1}</value>
+  </data>
+  <data name="MsRdpExHost_3" xml:space="preserve">
+    <value>[RDP_LOG] 目标分辨率设定: {0}x{1}</value>
+  </data>
+  <data name="MsRdpExHost_4" xml:space="preserve">
+    <value>[RDP_LOG] 连接异常: {0}</value>
+  </data>
+  <data name="MsRdpExHost_5" xml:space="preserve">
+    <value>[RDP_LOG] --- 执行布局计算 ---</value>
+  </data>
+  <data name="MsRdpExHost_6" xml:space="preserve">
+    <value>[RDP_LOG] 物理像素: {0}x{1}, DPI渲染比例: {2}</value>
+  </data>
+  <data name="MsRdpExHost_7" xml:space="preserve">
+    <value>[RDP_LOG] 计算后的WPF尺寸: {0}x{1}</value>
+  </data>
+  <data name="MsRdpExHost_8" xml:space="preserve">
+    <value>[RDP_LOG] 分辨率真实变化: 从 {0}x{1} (记录) 变为 {2}x{3} (窗口)</value>
+  </data>
+  <data name="ProcessAffinityManager_1" xml:space="preserve">
+    <value>[ProcessAffinityManager] 找到匹配的 vmmem 进程 (PID: {0}) 但获取失败: {1}</value>
+  </data>
+  <data name="ProcessAffinityManager_2" xml:space="preserve">
+    <value>[ProcessAffinityManager] WMI 查询 vmmem 进程失败: {0}</value>
+  </data>
+  <data name="ProcessAffinityManager_3" xml:space="preserve">
+    <value>[ProcessAffinityManager] 获取进程 {0} 的相关性失败: {1}</value>
+  </data>
+  <data name="ProcessAffinityManager_4" xml:space="preserve">
+    <value>[ProcessAffinityManager] 设置失败: {0}</value>
+  </data>
+  <data name="VmInputTool_1" xml:space="preserve">
+    <value>文本输入异常: {0}</value>
+  </data>
+  <data name="WmiTools_1" xml:space="preserve">
+    <value>WMI 查询异常 [{0}]: {1}</value>
+  </data>
+  <data name="ConsoleViewModel_1" xml:space="preserve">
+    <value>进入全屏模式，按 Ctrl+Alt+Break 退出</value>
+  </data>
+  <data name="ConsoleViewModel_2" xml:space="preserve">
+    <value>操作失败: {0}</value>
+  </data>
+  <data name="ConsoleViewModel_3" xml:space="preserve">
+    <value>[VM] SendCadCommand 激活，准备触发事件...</value>
+  </data>
+  <data name="ConsoleViewModel_4" xml:space="preserve">
+    <value>基本会话</value>
+  </data>
+  <data name="ConsoleViewModel_5" xml:space="preserve">
+    <value>增强会话</value>
+  </data>
+  <data name="HostPageViewModel_1" xml:space="preserve">
+    <value>正在禁用 Hyper-V 组件...</value>
+  </data>
+  <data name="HostPageViewModel_2" xml:space="preserve">
+    <value>禁用失败，请尝试手动执行或检查权限。</value>
+  </data>
+  <data name="HostPageViewModel_3" xml:space="preserve">
+    <value>Hyper-V 已成功禁用，需要重启电脑生效。</value>
+  </data>
+  <data name="HostPageViewModel_4" xml:space="preserve">
+    <value>状态正常（vmms / Hyper-V 模块 / WMI 已就绪）</value>
+  </data>
+  <data name="HostPageViewModel_5" xml:space="preserve">
+    <value>Hypervisor 未激活</value>
+  </data>
+  <data name="HostPageViewModel_6" xml:space="preserve">
+    <value>vmms 服务缺失</value>
+  </data>
+  <data name="HostPageViewModel_7" xml:space="preserve">
+    <value>vmms 未运行</value>
+  </data>
+  <data name="HostPageViewModel_8" xml:space="preserve">
+    <value>缺少 Hyper-V PowerShell 模块</value>
+  </data>
+  <data name="HostPageViewModel_9" xml:space="preserve">
+    <value>缺少 WMI 命名空间 root\virtualization\v2</value>
+  </data>
+  <data name="HostPageViewModel_10" xml:space="preserve">
+    <value>缺失组件：{0}</value>
+  </data>
+  <data name="HostPageViewModel_11" xml:space="preserve">
+    <value>Hyper-V 状态未知</value>
+  </data>
+  <data name="USBPageViewModel_1" xml:space="preserve">
+    <value>正在连接...</value>
+  </data>
+  <data name="USBPageViewModel_2" xml:space="preserve">
+    <value>主机</value>
+  </data>
+  <data name="USBPageViewModel_3" xml:space="preserve">
+    <value>主机</value>
+  </data>
+  <data name="USBPageViewModel_4" xml:space="preserve">
+    <value>主机</value>
+  </data>
+  <data name="USBPageViewModel_5" xml:space="preserve">
+    <value>正在连接...</value>
+  </data>
+  <data name="USBPageViewModel_6" xml:space="preserve">
+    <value>无法打开网页: {0}</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_1" xml:space="preserve">
+    <value>取消</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_2" xml:space="preserve">
+    <value>立即创建</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_3" xml:space="preserve">
+    <value>[CONSOLE] 正在为 {0} 开启沉浸式控制台...</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_4" xml:space="preserve">
+    <value>无法启动控制台: {0}</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_5" xml:space="preserve">
+    <value>[Affinity] 自动应用成功: {0}</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_6" xml:space="preserve">
+    <value>[Affinity] 尝试应用失败 ({0}/5): {1} - 进程可能未就绪或无权限</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_7" xml:space="preserve">
+    <value>[Affinity] 自动应用异常: {0}</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_8" xml:space="preserve">
+    <value>[DEBUG-STORAGE] [触发] 类型手动变更 -&gt; {0}</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_9" xml:space="preserve">
+    <value>[DEBUG-STORAGE] [触发] 编号手动变更 -&gt; {0}</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_10" xml:space="preserve">
+    <value>[DEBUG-STORAGE] [通知] SelectedLocation 当前值为: {0}</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_11" xml:space="preserve">
+    <value>[STORAGE-ACTION] 执行添加操作: {0} -&gt; 控制器:{1} #{2} 位置:{3}</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_12" xml:space="preserve">
+    <value>[DEBUG-STORAGE] &gt;&gt;&gt; 开始自动分配: {0} #{1} Loc:{2}</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_13" xml:space="preserve">
+    <value>[DEBUG-STORAGE] 编号强刷完成 -&gt; {0}</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_14" xml:space="preserve">
+    <value>[DEBUG-STORAGE] 位置强刷完成 -&gt; {0}</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_15" xml:space="preserve">
+    <value>[DEBUG-STORAGE] &lt;&lt;&lt; 自动分配与 UI 同步全部结束</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_16" xml:space="preserve">
+    <value>[DEBUG-STORAGE] SetSlot 异常: {0}</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_17" xml:space="preserve">
+    <value>[DEBUG-STORAGE] 正在刷新 [编号] 列表，类型: {0}</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_18" xml:space="preserve">
+    <value>[DEBUG-STORAGE] 正在刷新 [位置] 列表: {0}, #{1}</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_19" xml:space="preserve">
+    <value>[DEBUG-STORAGE] 手动切换后重置位置为: {0}</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_20" xml:space="preserve">
+    <value>请检查部署方案及主机IP (Please check script and Host IP)</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_21" xml:space="preserve">
+    <value>[User Reset] 检测到未完成的分区分配，正在回滚...</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_22" xml:space="preserve">
+    <value>[User Reset] 分区已成功移除。</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_23" xml:space="preserve">
+    <value>[User Reset] 回滚失败: {0}</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_24" xml:space="preserve">
+    <value>流程已重置</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_25" xml:space="preserve">
+    <value>您可以重新选择显卡或修改配置参数</value>
+  </data>
+  <data name="ConsoleWindow_1" xml:space="preserve">
+    <value>启动虚拟机</value>
+  </data>
+  <data name="ConsoleWindow_2" xml:space="preserve">
+    <value>正常关机</value>
+  </data>
+  <data name="ConsoleWindow_3" xml:space="preserve">
+    <value>重启</value>
+  </data>
+  <data name="ConsoleWindow_4" xml:space="preserve">
+    <value>暂停</value>
+  </data>
+  <data name="ConsoleWindow_5" xml:space="preserve">
+    <value>保存状态</value>
+  </data>
+  <data name="ConsoleWindow_6" xml:space="preserve">
+    <value>强制关闭</value>
+  </data>
+  <data name="ConsoleWindow_7" xml:space="preserve">
+    <value>基本会话</value>
+  </data>
+  <data name="ConsoleWindow_8" xml:space="preserve">
+    <value>增强会话</value>
+  </data>
+  <data name="ConsoleWindow_9" xml:space="preserve">
+    <value>发送 Ctrl+Alt+Del</value>
+  </data>
+  <data name="ConsoleWindow_10" xml:space="preserve">
+    <value>全屏模式 (Ctrl+Alt+Space)</value>
+  </data>
+  <data name="HostPage_1" xml:space="preserve">
+    <value>禁用</value>
+  </data>
+  <data name="MainPage_1" xml:space="preserve">
+    <value>USB 直通 ( Beta )</value>
+  </data>
+  <data name="MainPage_2" xml:space="preserve">
+    <value>将主机 USB 设备分配给虚拟机</value>
+  </data>
+  <data name="USBPage_2" xml:space="preserve">
+    <value> 目前 USB 直通功能需要预先手动安装驱动和代理程序。请务必阅读配置文档。</value>
+  </data>
+  <data name="USBPage_3" xml:space="preserve">
+    <value>查看指南</value>
+  </data>
+  <data name="USBPage_4" xml:space="preserve">
+    <value>可分配设备</value>
+  </data>
+  <data name="USBPage_5" xml:space="preserve">
+    <value>刷新</value>
+  </data>
+  <data name="VmAddGpuProgressView_1" xml:space="preserve">
+    <value>重置部署流程 (回到初始状态)</value>
+  </data>
+  <data name="VmAddGpuProgressView_2" xml:space="preserve">
+    <value>选择部署方案</value>
+  </data>
+  <data name="VmConsoleView_1" xml:space="preserve">
+    <value>正在建立 Hyper-V 安全会话...</value>
+  </data>
+  <data name="VmDashboardView_1" xml:space="preserve">
+    <value>{Binding IpAddressDisplay, FallbackValue='获取中...'}</value>
+  </data>
   <data name="Status_Msg_CurrentVer_Duplicate" xml:space="preserve">
     <value>当前识别为</value>
   </data>

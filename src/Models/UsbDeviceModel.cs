@@ -1,4 +1,4 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace ExHyperV.Models
@@ -30,7 +30,7 @@ namespace ExHyperV.Models
         [ObservableProperty] private string _description;
         [ObservableProperty] private string _status;
 
-        // 当前分配目标 (如: "主机" 或 虚拟机名称)
+        // 当前分配目标 (如: Properties.Resources.UsbDeviceModel_1 或 虚拟机名称)
         [ObservableProperty] private string _currentAssignment;
 
         // 分配选项列表 - 改为 ObservableCollection 以支持动态更新下拉框内容
@@ -42,7 +42,7 @@ namespace ExHyperV.Models
             VidPid = model.VidPid;
             Description = model.Description;
             Status = model.Status;
-            _currentAssignment = "主机";
+            _currentAssignment = Properties.Resources.UsbDeviceModel_1;
 
             UpdateOptions(runningVmNames);
         }
@@ -55,7 +55,7 @@ namespace ExHyperV.Models
 
             // 更新列表内容
             AssignmentOptions.Clear();
-            AssignmentOptions.Add("主机");
+            AssignmentOptions.Add(Properties.Resources.UsbDeviceModel_1);
             foreach (var name in runningVmNames)
             {
                 AssignmentOptions.Add(name);
@@ -65,7 +65,7 @@ namespace ExHyperV.Models
             if (AssignmentOptions.Contains(current))
                 CurrentAssignment = current;
             else
-                CurrentAssignment = "主机";
+                CurrentAssignment = Properties.Resources.UsbDeviceModel_1;
         }
     }
 }

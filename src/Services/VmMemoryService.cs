@@ -38,7 +38,7 @@ public class VmMemoryService
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"读取内存配置时发生严重异常: {ex}");
+            Debug.WriteLine(string.Format(Properties.Resources.VmMemoryService_1, ex));
             return null;
         }
     }

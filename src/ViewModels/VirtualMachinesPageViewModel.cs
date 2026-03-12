@@ -499,7 +499,7 @@ namespace ExHyperV.ViewModels
                 IsLoadingSettings = false;
             }
         }
-        // 2. 点击 "取消" 按钮：退出创建模式
+        // 2. 点击 Properties.Resources.VirtualMachinesPageViewModel_1 按钮：退出创建模式
         [RelayCommand]
         private void CancelCreate()
         {
@@ -559,7 +559,7 @@ namespace ExHyperV.ViewModels
             if (dialog.ShowDialog() == true) NewVmIsoPath = dialog.FileName;
         }
 
-        // 3. 点击 "立即创建" 按钮：执行创建
+        // 3. 点击 Properties.Resources.VirtualMachinesPageViewModel_2 按钮：执行创建
         [RelayCommand]
         private async Task ConfirmCreate()
         {
@@ -920,13 +920,13 @@ namespace ExHyperV.ViewModels
                 consoleWin.Show();
 
                 // 4. (可选) 给个小反馈
-                Debug.WriteLine($"[CONSOLE] 正在为 {SelectedVm.Name} 开启沉浸式控制台...");
+                Debug.WriteLine(string.Format(Properties.Resources.VirtualMachinesPageViewModel_3, SelectedVm.Name));
             }
             catch (Exception ex)
             {
                 ShowSnackbar(
                     Properties.Resources.Error_Vm_StartFail,
-                    $"无法启动控制台: {ex.Message}",
+                    string.Format(Properties.Resources.VirtualMachinesPageViewModel_4, ex.Message),
                     ControlAppearance.Danger,
                     SymbolRegular.ErrorCircle24);
             }
@@ -1430,15 +1430,15 @@ namespace ExHyperV.ViewModels
                         bool success = ProcessAffinityManager.SetVmProcessAffinity(vm.Id, coreIds);
                         if (success)
                         {
-                            Debug.WriteLine($"[Affinity] 自动应用成功: {vm.Name}");
+                            Debug.WriteLine(string.Format(Properties.Resources.VirtualMachinesPageViewModel_5, vm.Name));
                             break;
                         }
-                        Debug.WriteLine($"[Affinity] 尝试应用失败 ({i + 1}/5): {vm.Name} - 进程可能未就绪或无权限");
+                        Debug.WriteLine(string.Format(Properties.Resources.VirtualMachinesPageViewModel_6, i + 1, vm.Name));
                     }
                 }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine($"[Affinity] 自动应用异常: {ex.Message}");
+                    Debug.WriteLine(string.Format(Properties.Resources.VirtualMachinesPageViewModel_7, ex.Message));
                 }
             });
         }
@@ -1750,7 +1750,7 @@ namespace ExHyperV.ViewModels
         {
             if (_isInternalUpdating || value == null) return;
 
-            Debug.WriteLine($"[DEBUG-STORAGE] [触发] 类型手动变更 -> {value}");
+            Debug.WriteLine(string.Format(Properties.Resources.VirtualMachinesPageViewModel_8, value));
             RefreshAvailableNumbers(value);
 
             // 手动切换时也使用跳变技巧，确保 UI 同步
@@ -1766,14 +1766,14 @@ namespace ExHyperV.ViewModels
             // 如果是内部设定的跳变值 -2，或者是锁定状态，绝对不要去刷新位置列表，否则会造成闪烁或死循环
             if (value == -2 || _isInternalUpdating) return;
 
-            Debug.WriteLine($"[DEBUG-STORAGE] [触发] 编号手动变更 -> {value}");
+            Debug.WriteLine(string.Format(Properties.Resources.VirtualMachinesPageViewModel_9, value));
             UpdateAvailableLocations();
         }
 
         // 增加位置变更监听（用于观察是否有 UI 回传 null/默认值的情况）
         partial void OnSelectedLocationChanged(int value)
         {
-            Debug.WriteLine($"[DEBUG-STORAGE] [通知] SelectedLocation 当前值为: {value}");
+            Debug.WriteLine(string.Format(Properties.Resources.VirtualMachinesPageViewModel_10, value));
         }
 
 
@@ -2107,7 +2107,7 @@ namespace ExHyperV.ViewModels
                     // 用 -2 强制触发 PropertyChanged，因为 -1 可能已经是当前 UI 的内部错误状态
                     SelectedControllerNumber = -2;
                     SelectedControllerNumber = targetNum;
-                    Debug.WriteLine($"[DEBUG-STORAGE] 编号强刷完成 -> {SelectedControllerNumber}");
+                    Debug.WriteLine(string.Format(Properties.Resources.VirtualMachinesPageViewModel_13, SelectedControllerNumber));
 
                     // --- 强刷 [位置] ---
                     SelectedLocation = -2;
@@ -2119,27 +2119,27 @@ namespace ExHyperV.ViewModels
                     {
                         SelectedLocation = AvailableLocations[0];
                     }
-                    Debug.WriteLine($"[DEBUG-STORAGE] 位置强刷完成 -> {SelectedLocation}");
+                    Debug.WriteLine(string.Format(Properties.Resources.VirtualMachinesPageViewModel_14, SelectedLocation));
 
                     IsSlotValid = true;
                     SlotWarningMessage = string.Empty;
 
                     // 全部完成后解锁
                     _isInternalUpdating = false;
-                    Debug.WriteLine("[DEBUG-STORAGE] <<< 自动分配与 UI 同步全部结束");
+                    Debug.WriteLine(Properties.Resources.VirtualMachinesPageViewModel_15);
 
                 }), System.Windows.Threading.DispatcherPriority.Loaded);
             }
             catch (Exception ex)
             {
                 _isInternalUpdating = false;
-                Debug.WriteLine($"[DEBUG-STORAGE] SetSlot 异常: {ex.Message}");
+                Debug.WriteLine(string.Format(Properties.Resources.VirtualMachinesPageViewModel_16, ex.Message));
             }
         }
 
         private void RefreshAvailableNumbers(string type)
         {
-            Debug.WriteLine($"[DEBUG-STORAGE] 正在刷新 [编号] 列表，类型: {type}");
+            Debug.WriteLine(string.Format(Properties.Resources.VirtualMachinesPageViewModel_17, type));
             AvailableControllerNumbers.Clear();
             int maxCtrl = (type == "IDE") ? 2 : 4;
             for (int i = 0; i < maxCtrl; i++)
@@ -2150,7 +2150,7 @@ namespace ExHyperV.ViewModels
         {
             if (SelectedVm == null || type == null) return;
 
-            Debug.WriteLine($"[DEBUG-STORAGE] 正在刷新 [位置] 列表: {type}, #{ctrlNum}");
+            Debug.WriteLine(string.Format(Properties.Resources.VirtualMachinesPageViewModel_18, type, ctrlNum));
             var usedLocations = SelectedVm.StorageItems
                 .Where(i => i.ControllerType == type && i.ControllerNumber == ctrlNum)
                 .Select(i => i.ControllerLocation)
@@ -2186,7 +2186,7 @@ namespace ExHyperV.ViewModels
             if (!AvailableLocations.Contains(SelectedLocation))
             {
                 SelectedLocation = AvailableLocations[0];
-                Debug.WriteLine($"[DEBUG-STORAGE] 手动切换后重置位置为: {SelectedLocation}");
+                Debug.WriteLine(string.Format(Properties.Resources.VirtualMachinesPageViewModel_19, SelectedLocation));
             }
         }
         // 刷新控制器选项
@@ -3114,7 +3114,7 @@ namespace ExHyperV.ViewModels
             // 2. 验证
             if (SelectedLinuxScript == null || string.IsNullOrWhiteSpace(SshHost))
             {
-                ShowSnackbar(Properties.Resources.Error_Common_Verify, "请检查部署方案及主机IP (Please check script and Host IP)", ControlAppearance.Caution, SymbolRegular.Warning24);
+                ShowSnackbar(Properties.Resources.Error_Common_Verify, Properties.Resources.VirtualMachinesPageViewModel_20, ControlAppearance.Caution, SymbolRegular.Warning24);
                 return;
             }
 
@@ -3287,16 +3287,16 @@ namespace ExHyperV.ViewModels
             // 1. 如果当前有正在处理的分区 ID（说明已经分配但未成功），先执行回滚
             if (!string.IsNullOrEmpty(_currentProcessingGpuAdapterId))
             {
-                AppendLog("[User Reset] 检测到未完成的分区分配，正在回滚...");
+                AppendLog(Properties.Resources.VirtualMachinesPageViewModel_21);
                 try
                 {
                     await _vmGpuService.RemoveGpuPartitionAsync(SelectedVm.Name, _currentProcessingGpuAdapterId);
                     _currentProcessingGpuAdapterId = null;
-                    AppendLog("[User Reset] 分区已成功移除。");
+                    AppendLog(Properties.Resources.VirtualMachinesPageViewModel_22);
                 }
                 catch (Exception ex)
                 {
-                    AppendLog($"[User Reset] 回滚失败: {ex.Message}");
+                    AppendLog(string.Format(Properties.Resources.VirtualMachinesPageViewModel_23, ex.Message));
                 }
             }
 
@@ -3311,7 +3311,7 @@ namespace ExHyperV.ViewModels
             // 这步会重新扫描宿主机 GPU 和部署脚本，确保环境是最新的
             await GoToAddGpu();
 
-            ShowSnackbar("流程已重置", "您可以重新选择显卡或修改配置参数", Wpf.Ui.Controls.ControlAppearance.Info, Wpf.Ui.Controls.SymbolRegular.ArrowCounterclockwise24);
+            ShowSnackbar(Properties.Resources.VirtualMachinesPageViewModel_24, Properties.Resources.VirtualMachinesPageViewModel_25, Wpf.Ui.Controls.ControlAppearance.Info, Wpf.Ui.Controls.SymbolRegular.ArrowCounterclockwise24);
         }
         private async Task MonitorThumbnailLoop(CancellationToken token)
         {

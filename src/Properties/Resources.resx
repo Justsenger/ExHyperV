@@ -2829,19 +2829,19 @@ This operation sends a shutdown signal to the guest OS.</value>
     <value>Advanced settings application exception: {0}</value>
   </data>
   <data name="VmNet_StartGetInfo" xml:space="preserve">
-    <value>Starting to get network adapter info for virtual machine &apos;{0}&apos;...</value>
+    <value>Starting to get network adapter info for virtual machine '{0}'...</value>
   </data>
   <data name="VmNet_QueryGuid" xml:space="preserve">
-    <value>[1/4] Querying GUID for virtual machine &apos;{0}&apos;...</value>
+    <value>[1/4] Querying GUID for virtual machine '{0}'...</value>
   </data>
   <data name="VmNet_VmNotFound" xml:space="preserve">
-    <value>[Error] Virtual machine named &apos;{0}&apos; not found. Please check if the name is correct.</value>
+    <value>[Error] Virtual machine named '{0}' not found. Please check if the name is correct.</value>
   </data>
   <data name="VmNet_GotGuid" xml:space="preserve">
     <value>[Success] Obtained VM GUID: {0}</value>
   </data>
   <data name="VmNet_QueryPorts" xml:space="preserve">
-    <value>[2/4] Concurrently querying network adapter ports and allocation settings for GUID &apos;{0}&apos;...</value>
+    <value>[2/4] Concurrently querying network adapter ports and allocation settings for GUID '{0}'...</value>
   </data>
   <data name="VmNet_QueryComplete" xml:space="preserve">
     <value>[Success] Query complete: Found {0} network ports, {1} allocation settings.</value>
@@ -2898,7 +2898,7 @@ This operation sends a shutdown signal to the guest OS.</value>
     <value>Replacement failed: Error code {0}</value>
   </data>
   <data name="Utils_UnknownNetMode" xml:space="preserve">
-    <value>Error: Unknown network mode &apos;{0}&apos;</value>
+    <value>Error: Unknown network mode '{0}'</value>
   </data>
   <data name="Wmi_TaskFail" xml:space="preserve">
     <value>Task execution failed (Status code: {0})</value>
@@ -2976,7 +2976,7 @@ This operation sends a shutdown signal to the guest OS.</value>
     <value>Delete</value>
   </data>
   <data name="Xaml_CreateVm" xml:space="preserve">
-    <value>Create Virtual Machine</value>
+    <value>Create VM</value>
   </data>
   <data name="Xaml_NewVm" xml:space="preserve">
     <value>New Virtual Machine</value>
@@ -2988,7 +2988,7 @@ This operation sends a shutdown signal to the guest OS.</value>
     <value>Name</value>
   </data>
   <data name="Xaml_ConfigLoc" xml:space="preserve">
-    <value>Configuration File Location</value>
+    <value>Config Path</value>
   </data>
   <data name="Xaml_Browse" xml:space="preserve">
     <value>Browse</value>
@@ -3088,5 +3088,323 @@ This operation sends a shutdown signal to the guest OS.</value>
   </data>
   <data name="Xaml_Placeholder_IsoOptional" xml:space="preserve">
     <value>Select OS installation ISO image (optional)</value>
+  </data>
+  <data name="MainWindow_1" xml:space="preserve">
+    <value>USB Passthrough (Beta)</value>
+  </data>
+  <data name="UsbDeviceModel_1" xml:space="preserve">
+    <value>Host</value>
+  </data>
+  <data name="UsbDeviceModel_2" xml:space="preserve">
+    <value>Host</value>
+  </data>
+  <data name="UsbDeviceModel_3" xml:space="preserve">
+    <value>Host</value>
+  </data>
+  <data name="UsbDeviceModel_4" xml:space="preserve">
+    <value>Host</value>
+  </data>
+  <data name="DiskParserService_1" xml:space="preserve">
+    <value>[DiskParser] Auto-identified sector: 512 bytes (Standard/512e)</value>
+  </data>
+  <data name="DiskParserService_2" xml:space="preserve">
+    <value>[DiskParser] Auto-identified sector: 4096 bytes (Native 4Kn)</value>
+  </data>
+  <data name="DiskParserService_3" xml:space="preserve">
+    <value>[DiskParser] Error: GPT signature not found at 512 or 4096 offset</value>
+  </data>
+  <data name="DiskParserService_4" xml:space="preserve">
+    <value>[DiskParser] Failed to read disk: {0}</value>
+  </data>
+  <data name="HyperVSchedulerService_1" xml:space="preserve">
+    <value>[HyperVSchedulerService] Failed to query event log: {0}</value>
+  </data>
+  <data name="HyperVSchedulerService_2" xml:space="preserve">
+    <value>[HyperVSchedulerService] Failed to execute bcdedit via Utils.RunScriptSTA: {0}</value>
+  </data>
+  <data name="IHyperVService_1" xml:space="preserve">
+    <value>Host</value>
+  </data>
+  <data name="UsbVmbusService_1" xml:space="preserve">
+    <value>[StopTunnel] Stopping old tunnel: {0}</value>
+  </data>
+  <data name="UsbVmbusService_2" xml:space="preserve">
+    <value>[StopTunnel] Enforcing unbind: {0}</value>
+  </data>
+  <data name="UsbVmbusService_3" xml:space="preserve">
+    <value>[AutoRecover] Tunnel establishment failed: {0}</value>
+  </data>
+  <data name="UsbVmbusService_4" xml:space="preserve">
+    <value>[ExHyperV-USB] Failed to get VM: {0}</value>
+  </data>
+  <data name="VmGPUService_1" xml:space="preserve">
+    <value>[Local] {0}</value>
+  </data>
+  <data name="VmGPUService_2" xml:space="preserve">
+    <value>[Online] {0}</value>
+  </data>
+  <data name="VmMemoryService_1" xml:space="preserve">
+    <value>Critical exception occurred while reading memory config: {0}</value>
+  </data>
+  <data name="VmNetworkService_1" xml:space="preserve">
+    <value>\n--- [Processing NIC {0}/{1}: '{2}'] ---</value>
+  </data>
+  <data name="VmNetworkService_2" xml:space="preserve">
+    <value>    [Advanced Settings] Read exception: {0}</value>
+  </data>
+  <data name="VmNetworkService_3" xml:space="preserve">
+    <value>&gt;&gt;&gt; [Background] Starting IP population...</value>
+  </data>
+  <data name="VmNetworkService_4" xml:space="preserve">
+    <value>&gt;&gt;&gt; [PS] Attempting to add NIC to {0}...</value>
+  </data>
+  <data name="HcsManager_1" xml:space="preserve">
+    <value>Applying CPU group job failed. Job status: {0}. Error: {1}</value>
+  </data>
+  <data name="MsRdpExHost_1" xml:space="preserve">
+    <value>[RDP_LOG] === Preparing to initiate connection/switch ---</value>
+  </data>
+  <data name="MsRdpExHost_2" xml:space="preserve">
+    <value>[RDP_LOG] Host DPI: {0}, Enhanced Mode: {1}</value>
+  </data>
+  <data name="MsRdpExHost_3" xml:space="preserve">
+    <value>[RDP_LOG] Target resolution set: {0}x{1}</value>
+  </data>
+  <data name="MsRdpExHost_4" xml:space="preserve">
+    <value>[RDP_LOG] Connection exception: {0}</value>
+  </data>
+  <data name="MsRdpExHost_5" xml:space="preserve">
+    <value>[RDP_LOG] --- Performing layout calculation ---</value>
+  </data>
+  <data name="MsRdpExHost_6" xml:space="preserve">
+    <value>[RDP_LOG] Physical pixels: {0}x{1}, DPI scale: {2}</value>
+  </data>
+  <data name="MsRdpExHost_7" xml:space="preserve">
+    <value>[RDP_LOG] Calculated WPF size: {0}x{1}</value>
+  </data>
+  <data name="MsRdpExHost_8" xml:space="preserve">
+    <value>[RDP_LOG] Actual resolution changed: from {0}x{1} (recorded) to {2}x{3} (window)</value>
+  </data>
+  <data name="ProcessAffinityManager_1" xml:space="preserve">
+    <value>[ProcessAffinityManager] Found matching vmmem process (PID: {0}) but failed to acquire: {1}</value>
+  </data>
+  <data name="ProcessAffinityManager_2" xml:space="preserve">
+    <value>[ProcessAffinityManager] WMI query for vmmem process failed: {0}</value>
+  </data>
+  <data name="ProcessAffinityManager_3" xml:space="preserve">
+    <value>[ProcessAffinityManager] Failed to get affinity for process {0}: {1}</value>
+  </data>
+  <data name="ProcessAffinityManager_4" xml:space="preserve">
+    <value>[ProcessAffinityManager] Set affinity failed: {0}</value>
+  </data>
+  <data name="VmInputTool_1" xml:space="preserve">
+    <value>Text input exception: {0}</value>
+  </data>
+  <data name="WmiTools_1" xml:space="preserve">
+    <value>WMI query exception [{0}]: {1}</value>
+  </data>
+  <data name="ConsoleViewModel_1" xml:space="preserve">
+    <value>Entering full screen, press Ctrl+Alt+Break to exit</value>
+  </data>
+  <data name="ConsoleViewModel_2" xml:space="preserve">
+    <value>Operation failed: {0}</value>
+  </data>
+  <data name="ConsoleViewModel_3" xml:space="preserve">
+    <value>[VM] SendCadCommand activated, preparing to trigger event...</value>
+  </data>
+  <data name="ConsoleViewModel_4" xml:space="preserve">
+    <value>Basic Session</value>
+  </data>
+  <data name="ConsoleViewModel_5" xml:space="preserve">
+    <value>Enhanced Session</value>
+  </data>
+  <data name="HostPageViewModel_1" xml:space="preserve">
+    <value>Disabling Hyper-V components...</value>
+  </data>
+  <data name="HostPageViewModel_2" xml:space="preserve">
+    <value>Disable failed. Please try manually or check permissions.</value>
+  </data>
+  <data name="HostPageViewModel_3" xml:space="preserve">
+    <value>Hyper-V disabled successfully. Reboot required to take effect.</value>
+  </data>
+  <data name="HostPageViewModel_4" xml:space="preserve">
+    <value>Status Normal (vmms / Hyper-V / WMI ready)</value>
+  </data>
+  <data name="HostPageViewModel_5" xml:space="preserve">
+    <value>Hypervisor not active</value>
+  </data>
+  <data name="HostPageViewModel_6" xml:space="preserve">
+    <value>vmms service missing</value>
+  </data>
+  <data name="HostPageViewModel_7" xml:space="preserve">
+    <value>vmms not running</value>
+  </data>
+  <data name="HostPageViewModel_8" xml:space="preserve">
+    <value>Hyper-V PowerShell module missing</value>
+  </data>
+  <data name="HostPageViewModel_9" xml:space="preserve">
+    <value>WMI namespace root\virtualization\v2 missing</value>
+  </data>
+  <data name="HostPageViewModel_10" xml:space="preserve">
+    <value>Missing components: {0}</value>
+  </data>
+  <data name="HostPageViewModel_11" xml:space="preserve">
+    <value>Hyper-V status unknown</value>
+  </data>
+  <data name="USBPageViewModel_1" xml:space="preserve">
+    <value>Connecting...</value>
+  </data>
+  <data name="USBPageViewModel_2" xml:space="preserve">
+    <value>Host</value>
+  </data>
+  <data name="USBPageViewModel_3" xml:space="preserve">
+    <value>Host</value>
+  </data>
+  <data name="USBPageViewModel_4" xml:space="preserve">
+    <value>Host</value>
+  </data>
+  <data name="USBPageViewModel_5" xml:space="preserve">
+    <value>Connecting...</value>
+  </data>
+  <data name="USBPageViewModel_6" xml:space="preserve">
+    <value>Unable to open webpage: {0}</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_1" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_2" xml:space="preserve">
+    <value>Create Now</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_3" xml:space="preserve">
+    <value>[CONSOLE] Opening immersive console for {0}...</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_4" xml:space="preserve">
+    <value>Cannot start console: {0}</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_5" xml:space="preserve">
+    <value>[Affinity] Auto-applied successfully: {0}</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_6" xml:space="preserve">
+    <value>[Affinity] Apply failed ({0}/5): {1} - Process not ready or no permission</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_7" xml:space="preserve">
+    <value>[Affinity] Auto-apply exception: {0}</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_8" xml:space="preserve">
+    <value>[DEBUG-STORAGE] [Trigger] Type manual change -&gt; {0}</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_9" xml:space="preserve">
+    <value>[DEBUG-STORAGE] [Trigger] Number manual change -&gt; {0}</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_10" xml:space="preserve">
+    <value>[DEBUG-STORAGE] [Notify] SelectedLocation current: {0}</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_11" xml:space="preserve">
+    <value>[STORAGE-ACTION] Performing add: {0} -&gt; Controller:{1} #{2} Location:{3}</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_12" xml:space="preserve">
+    <value>[DEBUG-STORAGE] &gt;&gt;&gt; Starting auto-allocation: {0} #{1} Loc:{2}</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_13" xml:space="preserve">
+    <value>[DEBUG-STORAGE] Number refresh complete -&gt; {0}</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_14" xml:space="preserve">
+    <value>[DEBUG-STORAGE] Location refresh complete -&gt; {0}</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_15" xml:space="preserve">
+    <value>[DEBUG-STORAGE] &lt;&lt;&lt; Auto-allocation UI sync complete</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_16" xml:space="preserve">
+    <value>[DEBUG-STORAGE] SetSlot exception: {0}</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_17" xml:space="preserve">
+    <value>[DEBUG-STORAGE] Refreshing [Number] list, type: {0}</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_18" xml:space="preserve">
+    <value>[DEBUG-STORAGE] Refreshing [Location] list: {0}, #{1}</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_19" xml:space="preserve">
+    <value>[DEBUG-STORAGE] Location reset after manual switch to: {0}</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_20" xml:space="preserve">
+    <value>Please check deployment scheme and Host IP</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_21" xml:space="preserve">
+    <value>[User Reset] Unfinished GPU partitioning detected, rolling back...</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_22" xml:space="preserve">
+    <value>[User Reset] Partition removed successfully.</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_23" xml:space="preserve">
+    <value>[User Reset] Rollback failed: {0}</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_24" xml:space="preserve">
+    <value>Process reset</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_25" xml:space="preserve">
+    <value>You can re-select the GPU or modify parameters</value>
+  </data>
+  <data name="ConsoleWindow_1" xml:space="preserve">
+    <value>Start VM</value>
+  </data>
+  <data name="ConsoleWindow_2" xml:space="preserve">
+    <value>Shut Down</value>
+  </data>
+  <data name="ConsoleWindow_3" xml:space="preserve">
+    <value>Restart</value>
+  </data>
+  <data name="ConsoleWindow_4" xml:space="preserve">
+    <value>Pause</value>
+  </data>
+  <data name="ConsoleWindow_5" xml:space="preserve">
+    <value>Save State</value>
+  </data>
+  <data name="ConsoleWindow_6" xml:space="preserve">
+    <value>Turn Off</value>
+  </data>
+  <data name="ConsoleWindow_7" xml:space="preserve">
+    <value>Basic Session</value>
+  </data>
+  <data name="ConsoleWindow_8" xml:space="preserve">
+    <value>Enhanced Session</value>
+  </data>
+  <data name="ConsoleWindow_9" xml:space="preserve">
+    <value>Send Ctrl+Alt+Del</value>
+  </data>
+  <data name="ConsoleWindow_10" xml:space="preserve">
+    <value>Full Screen (Ctrl+Alt+Space)</value>
+  </data>
+  <data name="HostPage_1" xml:space="preserve">
+    <value>Disable</value>
+  </data>
+  <data name="MainPage_1" xml:space="preserve">
+    <value>USB Passthrough (Beta)</value>
+  </data>
+  <data name="MainPage_2" xml:space="preserve">
+    <value>Assign host USB devices to VMs</value>
+  </data>
+  <data name="USBPage_2" xml:space="preserve">
+    <value> Currently USB passthrough requires manual driver and agent installation. Please read the documentation.</value>
+  </data>
+  <data name="USBPage_3" xml:space="preserve">
+    <value>View Guide</value>
+  </data>
+  <data name="USBPage_4" xml:space="preserve">
+    <value>Assignable Devices</value>
+  </data>
+  <data name="USBPage_5" xml:space="preserve">
+    <value>Refresh</value>
+  </data>
+  <data name="VmAddGpuProgressView_1" xml:space="preserve">
+    <value>Reset Deployment (Return to initial state)</value>
+  </data>
+  <data name="VmAddGpuProgressView_2" xml:space="preserve">
+    <value>Select Deployment Scheme</value>
+  </data>
+  <data name="VmConsoleView_1" xml:space="preserve">
+    <value>Establishing Hyper-V secure session...</value>
+  </data>
+  <data name="VmDashboardView_1" xml:space="preserve">
+    <value>{Binding IpAddressDisplay, FallbackValue='Fetching...'}</value>
   </data>
 </root>

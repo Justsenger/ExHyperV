@@ -580,7 +580,7 @@
                                             <!-- 第一行：IP 地址 + 速率 -->
                                             <Grid>
                                                 <StackPanel Orientation="Horizontal">
-                                                    <TextBlock Text="{Binding IpAddressDisplay, FallbackValue='获取中...'}" 
+                                                    <TextBlock Text="{Binding IpAddressDisplay, FallbackValue={x:Static properties:Resources.VmDashboardView_1}}" 
                                                                FontSize="14" 
                                                                FontWeight="SemiBold"
                                                                Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>

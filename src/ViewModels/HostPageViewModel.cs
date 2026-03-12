@@ -197,7 +197,7 @@ namespace ExHyperV.ViewModels
         private async Task DisableHyperVAsync()
         {
             // 1. 发送提示
-            ShowSnackbar(Translate("Status_Title_Info"), "正在禁用 Hyper-V 组件...", ControlAppearance.Info, SymbolRegular.Settings24);
+            ShowSnackbar(Translate("Status_Title_Info"), Properties.Resources.HostPageViewModel_1, ControlAppearance.Info, SymbolRegular.Settings24);
 
             bool ok = false;
             try
@@ -231,12 +231,12 @@ foreach ($f in $features) {
             // 2. 结果判定
             if (!ok)
             {
-                ShowSnackbar(Translate("Status_Title_Error"), "禁用失败，请尝试手动执行或检查权限。", ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                ShowSnackbar(Translate("Status_Title_Error"), Properties.Resources.HostPageViewModel_2, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
                 return;
             }
 
             // 3. 提示重启
-            ShowRestartPrompt("Hyper-V 已成功禁用，需要重启电脑生效。");
+            ShowRestartPrompt(Properties.Resources.HostPageViewModel_3);
         }
 
         // 启用 Hyper-V
@@ -326,17 +326,17 @@ foreach ($f in $features) {
         {
             if (hypervisor && vmmsStatus == 1 && moduleReady && wmiReady)
             {
-                return "状态正常（vmms / Hyper-V 模块 / WMI 已就绪）";
+                return Properties.Resources.HostPageViewModel_4;
             }
 
             var missing = new List<string>();
-            if (!hypervisor) missing.Add("Hypervisor 未激活");
-            if (vmmsStatus == 0) missing.Add("vmms 服务缺失");
-            else if (vmmsStatus != 1) missing.Add("vmms 未运行");
-            if (!moduleReady) missing.Add("缺少 Hyper-V PowerShell 模块");
-            if (!wmiReady) missing.Add(@"缺少 WMI 命名空间 root\virtualization\v2");
+            if (!hypervisor) missing.Add(Properties.Resources.HostPageViewModel_5);
+            if (vmmsStatus == 0) missing.Add(Properties.Resources.HostPageViewModel_6);
+            else if (vmmsStatus != 1) missing.Add(Properties.Resources.HostPageViewModel_7);
+            if (!moduleReady) missing.Add(Properties.Resources.HostPageViewModel_8);
+            if (!wmiReady) missing.Add(@Properties.Resources.HostPageViewModel_9);
 
-            return missing.Count > 0 ? $"缺失组件：{string.Join("；", missing)}" : "Hyper-V 状态未知";
+            return missing.Count > 0 ? string.Format(Properties.Resources.HostPageViewModel_10, string.Join("；", missing)) : Properties.Resources.HostPageViewModel_11;
         }
 
         private void CheckGpuStrategyReg()
