@@ -137,6 +137,7 @@ namespace ExHyperV.ViewModels
         [ObservableProperty] private PartitionInfo? _selectedPartition;
         [ObservableProperty] private bool _showSshForm = false;
         [ObservableProperty] private string? _currentProcessingGpuAdapterId;
+        private bool _needConfig = false;
 
         // Linux SSH 凭据
         [ObservableProperty] private string _sshHost = "";
@@ -2798,6 +2799,14 @@ namespace ExHyperV.ViewModels
 
             GpuTasks.Add(new TaskItem
             {
+                TaskType = GpuTaskType.ConfigCheck,
+                Name = Properties.Resources.Task_Gpu_Config,
+                Description = Properties.Resources.Msg_Gpu_CheckingConfig,
+                Status = ExHyperV.Models.TaskStatus.Pending  // 这里写全称
+            });
+
+            GpuTasks.Add(new TaskItem
+            {
                 TaskType = GpuTaskType.PowerCheck,
                 Name = Properties.Resources.Task_Gpu_Power,
                 Description = Properties.Resources.Msg_Gpu_CheckingPower,
@@ -2857,6 +2866,11 @@ namespace ExHyperV.ViewModels
                         case GpuTaskType.Prepare:
                             await _vmGpuService.PrepareHostEnvironmentAsync();
                             task.Description = Properties.Resources.Msg_Gpu_Policy;
+                            break;
+
+                        case GpuTaskType.ConfigCheck:
+                            _needConfig = !(await _vmGpuService.CheckVmForGpuAsync(SelectedVm.Name));
+                            task.Description = _needConfig ? Properties.Resources.Msg_Gpu_ConfigNeeded : Properties.Resources.Msg_Gpu_ConfigOk;
                             break;
 
                         case GpuTaskType.PowerCheck:

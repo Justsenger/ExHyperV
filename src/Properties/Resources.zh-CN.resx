@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <root>
   <!-- 
     Microsoft ResX Schema 
@@ -3407,5 +3407,17 @@
   </data>
   <data name="Global_Restart_Duplicate" xml:space="preserve">
     <value>立即重启</value>
+  </data>
+  <data name="Task_Gpu_Config" xml:space="preserve">
+    <value>配置检查</value>
+  </data>
+  <data name="Msg_Gpu_CheckingConfig" xml:space="preserve">
+    <value>检查虚拟机配置...</value>
+  </data>
+  <data name="Msg_Gpu_ConfigNeeded" xml:space="preserve">
+    <value>将会修改虚拟机设置。</value>
+  </data>
+  <data name="Msg_Gpu_ConfigOk" xml:space="preserve">
+    <value>虚拟机设置OK。</value>
   </data>
 </root>

@@ -1,4 +1,4 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace ExHyperV.Models
 {
@@ -6,6 +6,7 @@ namespace ExHyperV.Models
     public enum GpuTaskType
     {
         Prepare,        // 环境准备
+        ConfigCheck,    // 检查虚拟机设置
         PowerCheck,     // 电源检查
         Optimization,   // 系统优化
         Assign,         // 分配显卡
