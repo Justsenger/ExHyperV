@@ -2759,15 +2759,14 @@ namespace ExHyperV.ViewModels
         partial void OnSelectedPartitionChanged(PartitionInfo? value)
         {
             if (value == null) return;
-
-            // 仅仅负责清理选中状态，不要在这里执行任何 Command！
+            _ = SelectPartitionAndContinueCommand.ExecuteAsync(value);
             Application.Current.Dispatcher.BeginInvoke(new Action(() =>
             {
                 _selectedPartition = null;
                 OnPropertyChanged(nameof(SelectedPartition));
             }), System.Windows.Threading.DispatcherPriority.Input);
         }
-        
+
         // 检查是否可以确认添加
         private bool CanConfirmAddGpu() => SelectedHostGpu != null;
 
@@ -3014,7 +3013,7 @@ namespace ExHyperV.ViewModels
         [RelayCommand]
         private async Task SelectPartitionAndContinue(PartitionInfo partition)
         {
-            var driveTask = GpuTasks.FirstOrDefault(t => t.Name == Properties.Resources.Task_Gpu_Driver);
+            var driveTask = GpuTasks.FirstOrDefault(t => t.TaskType == GpuTaskType.Driver);
             if (driveTask == null) return;
 
             if (partition.OsType == OperatingSystemType.Windows)
