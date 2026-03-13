@@ -42,15 +42,22 @@ jobs:
 
       - if: steps.check_tag.outputs.EXISTS == 'false'
         run: |
-          dotnet publish src/ExHyperV.csproj -c Release -r win-x64 --self-contained false -o ./publish_x64
-          dotnet publish src/ExHyperV.csproj -c Release -r win-arm64 --self-contained false -o ./publish_arm64
+          dotnet publish src/ExHyperV.csproj -c Release --self-contained false -o ./publish_raw
 
       - if: steps.check_tag.outputs.EXISTS == 'false'
         shell: pwsh
         run: |
           $ver = "${{ steps.get_version.outputs.VERSION }}"
-          Compress-Archive -Path ./publish_x64/* -DestinationPath "ExHyperV_$($ver)_x64.zip" -Force
-          Compress-Archive -Path ./publish_arm64/* -DestinationPath "ExHyperV_$($ver)_arm64.zip" -Force
+          
+          Copy-Item -Path "./publish_raw" -Destination "./dist_x64" -Recurse
+          Copy-Item -Path "./publish_raw" -Destination "./dist_arm64" -Recurse
+
+          Remove-Item "./dist_x64/ExHyperV_ARM64.exe" -Force
+          Compress-Archive -Path ./dist_x64/* -DestinationPath "ExHyperV_$($ver)_x64.zip" -Force
+
+          Remove-Item "./dist_arm64/ExHyperV.exe" -Force
+          Move-Item "./dist_arm64/ExHyperV_ARM64.exe" "./dist_arm64/ExHyperV.exe"
+          Compress-Archive -Path ./dist_arm64/* -DestinationPath "ExHyperV_$($ver)_arm64.zip" -Force
 
       - if: steps.check_tag.outputs.EXISTS == 'false'
         uses: softprops/action-gh-release@v2
