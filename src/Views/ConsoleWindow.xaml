@@ -9,7 +9,8 @@
                  
     xmlns:components="clr-namespace:ExHyperV.Views.Components"
     Title="{Binding VmName}"
-    MinWidth="200" 
+    MinWidth="550" 
+    MinHeight="340" 
     WindowStartupLocation="CenterScreen"
     ExtendsContentIntoTitleBar="True"
     WindowBackdropType="Mica">
