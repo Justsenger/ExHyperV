@@ -12,6 +12,13 @@ namespace ExHyperV.Services
     {
         private const ulong RequiredMmioBytes = 64UL * 1024 * 1024 * 1024; // 64 GiB
 
+        private string GetPureId(string? instanceId)
+        {
+            if (string.IsNullOrEmpty(instanceId)) return string.Empty;
+            int idx = instanceId.IndexOf(@"\VEN_", StringComparison.OrdinalIgnoreCase);
+            return idx >= 0 ? instanceId.Substring(idx) : instanceId;
+        }
+
         #region Public Methods (IHyperVService Implementation)
 
         public async Task<(List<DeviceInfo> Devices, List<string> VmNames)> GetDdaInfoAsync()
@@ -23,8 +30,6 @@ namespace ExHyperV.Services
             {
                 var pciInfoProvider = new PciInfoProvider();
                 await pciInfoProvider.EnsureInitializedAsync();
-                
-                string GetPureId(string? id) => id?.Split('\\').Last() ?? string.Empty;// 统一 ID 提取逻辑，只取 VEN_XXXX 之后的部分，兼容 PCI\ 和 PCIP\
 
                 try
                 {
@@ -48,10 +53,10 @@ namespace ExHyperV.Services
                                 {
                                     foreach (var device in assignedDevices)
                                     {
-                                        var instanceId = GetPureId(device.Members["InstanceID"]?.Value?.ToString());
-                                        if (!string.IsNullOrEmpty(instanceId))
+                                        var pureId = GetPureId(device.Members["InstanceID"]?.Value?.ToString());
+                                        if (!string.IsNullOrEmpty(pureId))
                                         {
-                                            vmDeviceAssignments[instanceId] = name;
+                                            vmDeviceAssignments[pureId] = name;
                                         }
                                     }
                                 }
@@ -60,19 +65,22 @@ namespace ExHyperV.Services
                     }
 
                     // 2. 检查已卸除(Dismounted)的设备状态
-                    var pnpDevices = Utils.Run("Get-PnpDevice -PresentOnly | Where-Object { $_.InstanceId -like 'PCIP\\*' } | Select-Object InstanceId, Status"); if (pnpDevices != null)
+                    var pnpDevices = Utils.Run("Get-PnpDevice | Where-Object { $_.InstanceId -like 'PCIP\\*' } | Select-Object InstanceId, Status");
+                    if (pnpDevices != null)
                     {
                         foreach (var pnpDevice in pnpDevices)
                         {
-                            var instanceId = GetPureId(pnpDevice.Members["InstanceId"]?.Value?.ToString());
-                            if (!string.IsNullOrEmpty(instanceId) && !vmDeviceAssignments.ContainsKey(instanceId))
+                            var pureId = GetPureId(pnpDevice.Members["InstanceId"]?.Value?.ToString());
+                            var status = pnpDevice.Members["Status"]?.Value?.ToString();
+                            // 如果它在 PCIP 列表且尚未分配给虚拟机，标记为“已卸除”
+                            if (!string.IsNullOrEmpty(pureId) && status == "OK" && !vmDeviceAssignments.ContainsKey(pureId))
                             {
-                                vmDeviceAssignments[instanceId] = Resources.removed;
+                                vmDeviceAssignments[pureId] = Resources.removed;
                             }
                         }
                     }
 
-                    // 3. 获取所有PCI设备并确定其最终状态
+                    // 3. 获取所有PCI设备（包含隐藏设备）
                     string getPciDevicesScript = @"function Invoke-GetPathBatch {
                                                 param($Ids, $Map, $Key)
                                                 if ($Ids.Count -eq 0) { return }
@@ -87,7 +95,7 @@ namespace ExHyperV.Services
                                             $maxRetries = $fastRetries + $slowRetries
                                             $KeyName = 'DEVPKEY_Device_LocationPaths'
 
-                                            $pciDevices = Get-PnpDevice -PresentOnly | Where-Object { $_.InstanceId -like 'PCI\*' -or $_.InstanceId -like 'PCIP\*' }
+                                            $pciDevices = Get-PnpDevice | Where-Object { $_.InstanceId -like 'PCI\*' }
                                             if (-not $pciDevices) { exit }
 
                                             $pciDeviceCount = $pciDevices.Count
@@ -139,17 +147,25 @@ namespace ExHyperV.Services
                         {
                             var service = result.Members["Service"]?.Value?.ToString();
                             var classType = result.Members["Class"]?.Value?.ToString();
+
+                            // 过滤掉基础的主板通信/PCI桥设备
                             if (service == "pci" || string.IsNullOrEmpty(service)) continue;
+
                             var instanceId = result.Members["InstanceId"]?.Value?.ToString();
                             var status = result.Members["Status"]?.Value?.ToString();
                             var pureId = GetPureId(instanceId);
-                            if (vmDeviceAssignments.TryGetValue(pureId, out var assignedStatus))
+
+                            // 如果设备处于隐藏状态（Unknown），去字典里查它是不是被卸除或分配给虚拟机了
+                            if (status == "Unknown" && !string.IsNullOrEmpty(pureId))
                             {
-                                status = assignedStatus;
-                            }
-                            else if (instanceId != null && instanceId.StartsWith("PCIP", StringComparison.OrdinalIgnoreCase))
-                            {
-                                status = Resources.removed;
+                                if (vmDeviceAssignments.TryGetValue(pureId, out var assignedStatus))
+                                {
+                                    status = assignedStatus;
+                                }
+                                else
+                                {
+                                    continue;
+                                }
                             }
                             else
                             {
@@ -174,7 +190,6 @@ namespace ExHyperV.Services
 
             return (deviceList, vmNameList);
         }
-
         public Task<bool> IsServerOperatingSystemAsync()
         {
             return Task.FromResult(HyperVEnvironmentService.IsServerSystem());
@@ -230,7 +245,7 @@ namespace ExHyperV.Services
             try
             {
                 var operations = DDACommands(targetVmName, instanceId, path, currentVmName);
-                if (operations.Count == 0) return (true, null); 
+                if (operations.Count == 0) return (true, null);
                 foreach (var operation in operations)
                 {
                     progress?.Report(operation.Message);
