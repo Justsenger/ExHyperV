@@ -3420,4 +3420,7 @@
   <data name="Msg_Gpu_ConfigOk" xml:space="preserve">
     <value>虚拟机设置OK。</value>
   </data>
+  <data name="Msg_Skip" xml:space="preserve">
+    <value>已跳过。</value>
+  </data>
 </root>

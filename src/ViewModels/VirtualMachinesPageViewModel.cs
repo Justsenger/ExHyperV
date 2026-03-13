@@ -2889,8 +2889,15 @@ namespace ExHyperV.ViewModels
                             break;
 
                         case GpuTaskType.Optimization:
-                            bool optOk = await _vmGpuService.OptimizeVmForGpuAsync(SelectedVm.Name);
-                            task.Description = optOk ? Properties.Resources.Msg_Gpu_MmioOk : Properties.Resources.Error_Gpu_OptFail;
+                            if (_needConfig)
+                            {
+                                bool optOk = await _vmGpuService.OptimizeVmForGpuAsync(SelectedVm.Name);
+                                task.Description = optOk ? Properties.Resources.Msg_Gpu_MmioOk : Properties.Resources.Error_Gpu_OptFail;
+                            }
+                            else
+                            {
+                                task.Description = Properties.Resources.Msg_Skip;
+                            }
                             break;
 
                         case GpuTaskType.Assign:

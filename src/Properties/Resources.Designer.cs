@@ -6438,6 +6438,15 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 Skipped. 的本地化字符串。
+        /// </summary>
+        public static string Msg_Skip {
+            get {
+                return ResourceManager.GetString("Msg_Skip", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Device connected to {0} {1}:{2} 的本地化字符串。
         /// </summary>
         public static string Msg_Storage_Connected {

@@ -3101,6 +3101,9 @@ This operation sends a shutdown signal to the guest OS.</value>
   <data name="Msg_Gpu_ConfigOk" xml:space="preserve">
     <value>VM config is OK.</value>
   </data>
+  <data name="Msg_Skip" xml:space="preserve">
+    <value>Skipped.</value>
+  </data>
   <data name="MainWindow_1" xml:space="preserve">
     <value>USB Passthrough (Beta)</value>
   </data>
