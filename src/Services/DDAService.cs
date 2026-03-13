@@ -23,6 +23,8 @@ namespace ExHyperV.Services
             {
                 var pciInfoProvider = new PciInfoProvider();
                 await pciInfoProvider.EnsureInitializedAsync();
+                
+                string GetPureId(string? id) => id?.Split('\\').Last() ?? string.Empty;// 统一 ID 提取逻辑，只取 VEN_XXXX 之后的部分，兼容 PCI\ 和 PCIP\
 
                 try
                 {
@@ -46,7 +48,7 @@ namespace ExHyperV.Services
                                 {
                                     foreach (var device in assignedDevices)
                                     {
-                                        var instanceId = device.Members["InstanceID"]?.Value?.ToString()?.Substring(4);
+                                        var instanceId = GetPureId(device.Members["InstanceID"]?.Value?.ToString());
                                         if (!string.IsNullOrEmpty(instanceId))
                                         {
                                             vmDeviceAssignments[instanceId] = name;
@@ -58,14 +60,12 @@ namespace ExHyperV.Services
                     }
 
                     // 2. 检查已卸除(Dismounted)的设备状态
-                    var pnpDevices = Utils.Run("Get-PnpDevice | Where-Object { $_.InstanceId -like 'PCIP\\*' } | Select-Object InstanceId, Status");
-                    if (pnpDevices != null)
+                    var pnpDevices = Utils.Run("Get-PnpDevice -PresentOnly | Where-Object { $_.InstanceId -like 'PCIP\\*' } | Select-Object InstanceId, Status"); if (pnpDevices != null)
                     {
                         foreach (var pnpDevice in pnpDevices)
                         {
-                            var instanceId = pnpDevice.Members["InstanceId"]?.Value?.ToString()?.Substring(4);
-                            var status = pnpDevice.Members["Status"]?.Value?.ToString();
-                            if (!string.IsNullOrEmpty(instanceId) && status == "OK" && !vmDeviceAssignments.ContainsKey(instanceId))
+                            var instanceId = GetPureId(pnpDevice.Members["InstanceId"]?.Value?.ToString());
+                            if (!string.IsNullOrEmpty(instanceId) && !vmDeviceAssignments.ContainsKey(instanceId))
                             {
                                 vmDeviceAssignments[instanceId] = Resources.removed;
                             }
@@ -87,7 +87,7 @@ namespace ExHyperV.Services
                                             $maxRetries = $fastRetries + $slowRetries
                                             $KeyName = 'DEVPKEY_Device_LocationPaths'
 
-                                            $pciDevices = Get-PnpDevice | Where-Object { $_.InstanceId -like 'PCI\*' }
+                                            $pciDevices = Get-PnpDevice -PresentOnly | Where-Object { $_.InstanceId -like 'PCI\*' -or $_.InstanceId -like 'PCIP\*' }
                                             if (-not $pciDevices) { exit }
 
                                             $pciDeviceCount = $pciDevices.Count
@@ -140,15 +140,16 @@ namespace ExHyperV.Services
                             var service = result.Members["Service"]?.Value?.ToString();
                             var classType = result.Members["Class"]?.Value?.ToString();
                             if (service == "pci" || string.IsNullOrEmpty(service)) continue;
-                            //if (classType == "System") continue;
-
                             var instanceId = result.Members["InstanceId"]?.Value?.ToString();
                             var status = result.Members["Status"]?.Value?.ToString();
-
-                            if (status == "Unknown" && !string.IsNullOrEmpty(instanceId) && instanceId.Length > 3)
+                            var pureId = GetPureId(instanceId);
+                            if (vmDeviceAssignments.TryGetValue(pureId, out var assignedStatus))
                             {
-                                status = vmDeviceAssignments.GetValueOrDefault(instanceId.Substring(3));
-                                if (status == null) continue;
+                                status = assignedStatus;
+                            }
+                            else if (instanceId != null && instanceId.StartsWith("PCIP", StringComparison.OrdinalIgnoreCase))
+                            {
+                                status = Resources.removed;
                             }
                             else
                             {
