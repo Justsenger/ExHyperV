@@ -305,6 +305,32 @@ namespace ExHyperV.Services
             });
         }
 
+        /// <summary>检查VM配置，判断是否满足GPU-PV要求。</summary>
+        /// <param name="vmName">待检查的VM名称</param>
+        /// <returns>如果满足要求，返回true。否则返回false。</returns>
+        public Task<bool> CheckVmForGpuAsync(string vmName)
+        {
+            const uint OneGB = 1073741824;
+            const ulong SixtyFourGB = 68719476736;
+            return Task.Run(() =>
+            {
+                try
+                {
+                    var vmList = Utils.Run($"Get-VM -Name '{vmName}'");
+                    var vm = vmList?[0];
+                    if (vm == null)
+                    {
+                        return false;
+                    }
+                    var cacheTypes = (bool)(vm.Members["GuestControlledCacheTypes"]?.Value ?? false);
+                    var lowMMIO = (uint)(vm.Members["LowMemoryMappedIoSpace"]?.Value ?? 0);
+                    var highMMIO = (ulong)(vm.Members["HighMemoryMappedIoSpace"]?.Value ?? 0);
+                    return cacheTypes && lowMMIO >= OneGB && highMMIO >= SixtyFourGB;
+                }
+                catch { return false; }
+            });
+        }
+
         public Task<bool> OptimizeVmForGpuAsync(string vmName)
         {
             return Task.Run(() =>
