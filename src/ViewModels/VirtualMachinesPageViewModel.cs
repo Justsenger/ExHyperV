@@ -2874,18 +2874,25 @@ namespace ExHyperV.ViewModels
                             break;
 
                         case GpuTaskType.PowerCheck:
-                            var (isOff, state) = await _vmGpuService.IsVmPoweredOffAsync(SelectedVm.Name);
-                            if (!isOff)
+                            if (_needConfig || AutoInstallDrivers)
                             {
-                                task.Description = string.Format(Properties.Resources.Msg_Gpu_ForceOff, state);
-                                AppendLog(task.Description);
-                                await _powerService.ExecuteControlActionAsync(SelectedVm.Name, "TurnOff");
-                                while (!(await _vmGpuService.IsVmPoweredOffAsync(SelectedVm.Name)).IsOff)
+                                var (isOff, state) = await _vmGpuService.IsVmPoweredOffAsync(SelectedVm.Name);
+                                if (!isOff)
                                 {
-                                    await Task.Delay(100);
+                                    task.Description = string.Format(Properties.Resources.Msg_Gpu_ForceOff, state);
+                                    AppendLog(task.Description);
+                                    await _powerService.ExecuteControlActionAsync(SelectedVm.Name, "TurnOff");
+                                    while (!(await _vmGpuService.IsVmPoweredOffAsync(SelectedVm.Name)).IsOff)
+                                    {
+                                        await Task.Delay(100);
+                                    }
                                 }
+                                task.Description = Properties.Resources.Msg_Gpu_Off;
                             }
-                            task.Description = Properties.Resources.Msg_Gpu_Off;
+                            else
+                            {
+                                task.Description = Properties.Resources.Msg_Skip;
+                            }
                             break;
 
                         case GpuTaskType.Optimization:
