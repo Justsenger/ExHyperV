@@ -502,7 +502,7 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
-        ///   查找类似 Config Affinity 的本地化字符串。
+        ///   查找类似 Configure Affinity 的本地化字符串。
         /// </summary>
         public static string Button_ConfigAffinity {
             get {
@@ -1269,7 +1269,7 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
-        ///   查找类似 DDA physical GPUs to VMs 的本地化字符串。
+        ///   查找类似 Assign physical GPUs and devices directly to VMs 的本地化字符串。
         /// </summary>
         public static string Desc_Pcie {
             get {
@@ -1323,7 +1323,7 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
-        ///   查找类似 Magic tweak for Build 26100 and below 的本地化字符串。
+        ///   查找类似 Magic Tweak (Not available for Pro/Home/Ent editions) 的本地化字符串。
         /// </summary>
         public static string Desc_SwitchServer {
             get {
@@ -2967,7 +2967,7 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
-        ///   查找类似 Buy me a coffee 的本地化字符串。
+        ///   查找类似 I&apos;m cute, please send money 的本地化字符串。
         /// </summary>
         public static string Label_Donate {
             get {
@@ -3444,7 +3444,7 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
-        ///   查找类似 Is Windows Server 的本地化字符串。
+        ///   查找类似 Windows Server Edition 的本地化字符串。
         /// </summary>
         public static string Label_ServerSys {
             get {
@@ -3579,7 +3579,7 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
-        ///   查找类似 Legacy System Compatibility 的本地化字符串。
+        ///   查找类似 Limit CPU features for legacy OS compatibility 的本地化字符串。
         /// </summary>
         public static string LegacySystemCompatibility {
             get {
@@ -3615,7 +3615,7 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
-        ///   查找类似 Limits VMbus communication frequency. 的本地化字符串。
+        ///   查找类似 VMBus monitoring (Prevents interrupt storms) 的本地化字符串。
         /// </summary>
         public static string LimitVmBusCommunicationFrequency {
             get {
@@ -3876,7 +3876,7 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
-        ///   查找类似 Migration Compatibility 的本地化字符串。
+        ///   查找类似 Limit CPU features for migration 的本地化字符串。
         /// </summary>
         public static string MigrationCompatibility {
             get {
@@ -4209,7 +4209,7 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
-        ///   查找类似 Linux partition detected. Waiting for VM start... 的本地化字符串。
+        ///   查找类似 Linux partition detected. Waiting for VM to start... 的本地化字符串。
         /// </summary>
         public static string Msg_Gpu_LinuxVm {
             get {
@@ -5271,7 +5271,7 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
-        ///   查找类似 Modify the shutdown action of the virtual machine to force power off... 的本地化字符串。
+        ///   查找类似 Change VM shutdown action to Hard Turn Off... 的本地化字符串。
         /// </summary>
         public static string string5 {
             get {
@@ -5514,7 +5514,8 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
-        ///   查找类似  Currently USB passthrough requires manual driver and agent installation. Please read the documentation. 的本地化字符串。
+        ///   查找类似  USB passthrough requires pre-installed drivers and agents. Read the guide for details.
+        /// 的本地化字符串。
         /// </summary>
         public static string USBPage_2 {
             get {
@@ -5631,7 +5632,7 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
-        ///   查找类似 VCpuCount 的本地化字符串。
+        ///   查找类似 vCPU Count 的本地化字符串。
         /// </summary>
         public static string VCpuCount {
             get {

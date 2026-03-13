@@ -2307,7 +2307,7 @@
     <value>[DEBUG-STORAGE] 手动切换后重置位置为: {0}</value>
   </data>
   <data name="VirtualMachinesPageViewModel_20" xml:space="preserve">
-    <value>请检查部署方案及主机IP (Please check script and Host IP)</value>
+    <value>请检查部署方案及主机IP</value>
   </data>
   <data name="VirtualMachinesPageViewModel_21" xml:space="preserve">
     <value>[User Reset] 检测到未完成的分区分配，正在回滚...</value>

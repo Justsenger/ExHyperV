@@ -151,7 +151,7 @@
     <value>Host</value>
   </data>
   <data name="string5" xml:space="preserve">
-    <value>Modify the shutdown action of the virtual machine to force power off...</value>
+    <value>Change VM shutdown action to Hard Turn Off...</value>
   </data>
   <data name="setting" xml:space="preserve">
     <value>Settings are being modified</value>
@@ -546,7 +546,7 @@ To ensure the virtual machine uses the same GPU on the next cold boot, you must 
     <value>Compute Resources</value>
   </data>
   <data name="VCpuCount" xml:space="preserve">
-    <value>VCpuCount</value>
+    <value>vCPU Count</value>
   </data>
   <data name="ReservePercentage" xml:space="preserve">
     <value>Reserve (%)</value>
@@ -570,13 +570,13 @@ To ensure the virtual machine uses the same GPU on the next cold boot, you must 
     <value>Host Resource Protection</value>
   </data>
   <data name="MigrationCompatibility" xml:space="preserve">
-    <value>Migration Compatibility</value>
+    <value>Limit CPU features for migration</value>
   </data>
   <data name="MigrationCompatibilityDescription" xml:space="preserve">
     <value>Allows migration across different CPUs.</value>
   </data>
   <data name="LegacySystemCompatibility" xml:space="preserve">
-    <value>Legacy System Compatibility</value>
+    <value>Limit CPU features for legacy OS compatibility</value>
   </data>
   <data name="LegacySystemCompatibilityDescription" xml:space="preserve">
     <value>Improves compatibility with older OS.</value>
@@ -594,7 +594,7 @@ To ensure the virtual machine uses the same GPU on the next cold boot, you must 
     <value>Loading data...</value>
   </data>
   <data name="LimitVmBusCommunicationFrequency" xml:space="preserve">
-    <value>Limits VMbus communication frequency.</value>
+    <value>VMBus monitoring (Prevents interrupt storms)</value>
   </data>
   <data name="AddDisk_AutoAssign" xml:space="preserve">
     <value>Auto-Assign</value>
@@ -1293,7 +1293,7 @@ To ensure the virtual machine uses the same GPU on the next cold boot, you must 
     <value>[Rollback] Driver sync failed: {0}</value>
   </data>
   <data name="Msg_Gpu_LinuxVm" xml:space="preserve">
-    <value>Linux partition detected. Waiting for VM start...</value>
+    <value>Linux partition detected. Waiting for VM to start...</value>
   </data>
   <data name="Msg_Gpu_IpSniff" xml:space="preserve">
     <value>Auto-starting VM to initialize network...</value>
@@ -1398,7 +1398,7 @@ To ensure the virtual machine uses the same GPU on the next cold boot, you must 
     <value>System Version:</value>
   </data>
   <data name="Label_ServerSys" xml:space="preserve">
-    <value>Is Windows Server</value>
+    <value>Windows Server Edition</value>
   </data>
   <data name="Menu_Advanced" xml:space="preserve">
     <value>Advanced Settings</value>
@@ -1422,7 +1422,7 @@ To ensure the virtual machine uses the same GPU on the next cold boot, you must 
     <value>Switch to Server Edition</value>
   </data>
   <data name="Desc_SwitchServer" xml:space="preserve">
-    <value>Magic tweak for Build 26100 and below</value>
+    <value>Magic Tweak (Not available for Pro/Home/Ent editions)</value>
   </data>
   <data name="Menu_VMManagement" xml:space="preserve">
     <value>VM Management</value>
@@ -1440,7 +1440,7 @@ To ensure the virtual machine uses the same GPU on the next cold boot, you must 
     <value>PCIe Passthrough</value>
   </data>
   <data name="Desc_Pcie" xml:space="preserve">
-    <value>DDA physical GPUs to VMs</value>
+    <value>Assign physical GPUs and devices directly to VMs</value>
   </data>
   <data name="Menu_NetSwitch" xml:space="preserve">
     <value>Virtual Switch</value>
@@ -1449,7 +1449,7 @@ To ensure the virtual machine uses the same GPU on the next cold boot, you must 
     <value>Manage switches and network modes</value>
   </data>
   <data name="Label_Donate" xml:space="preserve">
-    <value>Buy me a coffee</value>
+    <value>I'm cute, please send money</value>
   </data>
   <data name="Label_NoVmSelected" xml:space="preserve">
     <value>No VM Selected</value>
@@ -1581,7 +1581,7 @@ To ensure the virtual machine uses the same GPU on the next cold boot, you must 
     <value>Configure VM affinity to physical cores.</value>
   </data>
   <data name="Button_ConfigAffinity" xml:space="preserve">
-    <value>Config Affinity</value>
+    <value>Configure Affinity</value>
   </data>
   <data name="Label_Processor" xml:space="preserve">
     <value>Processor</value>
@@ -2370,7 +2370,8 @@ To ensure the virtual machine uses the same GPU on the next cold boot, you must 
     <value>Assign host USB devices to VMs</value>
   </data>
   <data name="USBPage_2" xml:space="preserve">
-    <value> Currently USB passthrough requires manual driver and agent installation. Please read the documentation.</value>
+    <value> USB passthrough requires pre-installed drivers and agents. Read the guide for details.
+</value>
   </data>
   <data name="USBPage_3" xml:space="preserve">
     <value>View Guide</value>
