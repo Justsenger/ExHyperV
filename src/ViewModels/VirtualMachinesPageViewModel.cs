@@ -47,7 +47,6 @@ namespace ExHyperV.ViewModels
         private Task _cpuTask;
         private Task _stateTask;
         private DispatcherTimer _uiTimer;
-        private DispatcherTimer? _thumbnailTimer;
 
         private readonly Dictionary<Guid, (string NewName, DateTime Expiry)> _renameLockouts = new();
 
@@ -57,7 +56,6 @@ namespace ExHyperV.ViewModels
         private const int MaxHistoryLength = 60;
         private readonly Dictionary<string, LinkedList<double>> _historyCache = new();
         private VmProcessorSettings _originalSettingsCache;
-        private Snackbar? _activeSnackbar;
         private bool _isInternalUpdating = false;
 
         // ----------------------------------------------------------------------------------
@@ -136,7 +134,7 @@ namespace ExHyperV.ViewModels
         [ObservableProperty] private ObservableCollection<TaskItem> _gpuTasks = new();
         [ObservableProperty] private bool _showPartitionSelector = false;
         [ObservableProperty] private ObservableCollection<PartitionInfo> _detectedPartitions = new();
-        [ObservableProperty] private PartitionInfo _selectedPartition;
+        [ObservableProperty] private PartitionInfo? _selectedPartition;
         [ObservableProperty] private bool _showSshForm = false;
         [ObservableProperty] private string? _currentProcessingGpuAdapterId;
 
@@ -246,8 +244,6 @@ namespace ExHyperV.ViewModels
 
         // 控制右侧界面切换
         [ObservableProperty] private bool _isCreatingVm = false;
-
-        private bool _isManualPath = false; // 标记用户是否手动点击过“浏览”或修改过路径
 
         // 当名称变化时，自动更新磁盘路径
         partial void OnNewVmNameChanged(string value)
@@ -470,19 +466,33 @@ namespace ExHyperV.ViewModels
                 // --- 7. 加载虚拟交换机列表 ---
                 var switches = await _vmNetworkService.GetAvailableSwitchesAsync();
 
-                // 创建一个新的列表，第一项为“未连接”
-                var switchList = new List<string> { Properties.Resources.none }; // 使用资源文件中的“未连接”
+                // 创建一个临时的列表，第一项放“未连接”
+                string noneText = Properties.Resources.none; // “未连接”的文本
+                var switchList = new List<string> { noneText };
                 if (switches != null) switchList.AddRange(switches);
 
                 AvailableSwitchNames = new ObservableCollection<string>(switchList);
 
-                // 自动选择逻辑：
-                // 优先找“Default”，如果没有，则默认选中“未连接”（即列表第一项）
+                // --- 改进后的自动选择逻辑 ---
+
+                // 1. 尝试寻找包含 "Default" 的交换机
                 var defaultSwitch = AvailableSwitchNames.FirstOrDefault(s =>
                     s.Contains("Default", StringComparison.OrdinalIgnoreCase) ||
                     s.Contains(Properties.Resources.VmPage_Default, StringComparison.OrdinalIgnoreCase));
 
-                NewVmSelectedSwitch = defaultSwitch ?? AvailableSwitchNames.FirstOrDefault();
+                if (defaultSwitch != null)
+                {
+                    NewVmSelectedSwitch = defaultSwitch;
+                }
+                else
+                {
+                    // 2. 如果没找到 Default，尝试寻找第一个“非未连接”的真实交换机
+                    var firstRealSwitch = AvailableSwitchNames.FirstOrDefault(s => s != noneText);
+
+                    // 3. 如果找到了真实交换机就选它，否则（即列表里只有“未连接”）才选“未连接”
+                    NewVmSelectedSwitch = firstRealSwitch ?? noneText;
+                }
+
             }
             catch (Exception ex)
             {
@@ -519,7 +529,6 @@ namespace ExHyperV.ViewModels
             var dialog = new Microsoft.Win32.OpenFolderDialog { Title = Properties.Resources.VmPage_SelectConfigDir };
             if (dialog.ShowDialog() == true)
             {
-                _isManualPath = true; // 用户手动干预了
                 NewVmStoragePath = dialog.FolderName;
             }
         }
@@ -1367,7 +1376,7 @@ namespace ExHyperV.ViewModels
                 if (success)
                 {
                     ShowSnackbar(Properties.Resources.Msg_Common_SaveSuccess, Properties.Resources.Msg_Cpu_AffinityApplied, ControlAppearance.Success, SymbolRegular.CheckmarkCircle24);
-                    GoToCpuSettings();
+                    await GoToCpuSettings();
                 }
                 else
                 {
@@ -1376,7 +1385,7 @@ namespace ExHyperV.ViewModels
                     if (scheduler == HyperVSchedulerType.Root && !SelectedVm.IsRunning)
                     {
                         ShowSnackbar(Properties.Resources.Msg_Cpu_AffinityQueued, Properties.Resources.Msg_Cpu_RootNotice, ControlAppearance.Info, SymbolRegular.Clock24);
-                        GoToCpuSettings();
+                        await GoToCpuSettings();
                     }
                     else
                     {
@@ -2746,7 +2755,6 @@ namespace ExHyperV.ViewModels
             GpuTasks.Clear();
         }
 
-        // 修改为这样：
         partial void OnSelectedPartitionChanged(PartitionInfo? value)
         {
             if (value == null) return;
@@ -2975,9 +2983,7 @@ namespace ExHyperV.ViewModels
             await FinishWorkflowAsync();
         }
 
-        // 选择分区并继续驱动安装
-        // 选择分区并继续驱动安装
-        [RelayCommand] // 确保有这个特性
+        [RelayCommand]
         private async Task SelectPartitionAndContinue(PartitionInfo partition)
         {
             var driveTask = GpuTasks.FirstOrDefault(t => t.Name == Properties.Resources.Task_Gpu_Driver);

@@ -1,0 +1,67 @@
+name: 自动发布
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - id: get_version
+        shell: pwsh
+        run: |
+          [xml]$project = Get-Content src/ExHyperV.csproj
+          $ver = $project.Project.PropertyGroup.Version
+          echo "VERSION=$ver" >> $env:GITHUB_OUTPUT
+
+      - id: check_tag
+        shell: pwsh
+        run: |
+          $ver = "${{ steps.get_version.outputs.VERSION }}"
+          $tag = "V$ver"
+          if (git tag -l $tag) {
+            echo "EXISTS=true" >> $env:GITHUB_OUTPUT
+          } else {
+            echo "EXISTS=false" >> $env:GITHUB_OUTPUT
+          }
+
+      - if: steps.check_tag.outputs.EXISTS == 'false'
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - if: steps.check_tag.outputs.EXISTS == 'false'
+        run: |
+          dotnet publish src/ExHyperV.csproj -c Release -r win-x64 --self-contained false -o ./publish_x64
+          dotnet publish src/ExHyperV.csproj -c Release -r win-arm64 --self-contained false -o ./publish_arm64
+
+      - if: steps.check_tag.outputs.EXISTS == 'false'
+        shell: pwsh
+        run: |
+          $ver = "${{ steps.get_version.outputs.VERSION }}"
+          Compress-Archive -Path ./publish_x64/* -DestinationPath "ExHyperV_$($ver)_x64.zip" -Force
+          Compress-Archive -Path ./publish_arm64/* -DestinationPath "ExHyperV_$($ver)_arm64.zip" -Force
+
+      - if: steps.check_tag.outputs.EXISTS == 'false'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: "V${{ steps.get_version.outputs.VERSION }}"
+          name: "V${{ steps.get_version.outputs.VERSION }}"
+          files: |
+            ExHyperV_${{ steps.get_version.outputs.VERSION }}_x64.zip
+            ExHyperV_${{ steps.get_version.outputs.VERSION }}_arm64.zip
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -8,7 +8,6 @@ namespace ExHyperV.Views.Components
 {
     public partial class VmCpuAffinityView : UserControl
     {
-        private bool _isDragging = false;
         private VmCoreModel _lastToggledCore = null;
 
         public VmCpuAffinityView()
@@ -19,7 +18,6 @@ namespace ExHyperV.Views.Components
         // 鼠标按下：开始捕获
         private void ItemsControl_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            _isDragging = false;
             _lastToggledCore = null;
 
             // 立即处理第一次点击，防止需要移动一点点才算选中
@@ -38,7 +36,6 @@ namespace ExHyperV.Views.Components
         {
             if (e.LeftButton == MouseButtonState.Pressed)
             {
-                _isDragging = true;
                 var core = GetCoreFromPosition(e.GetPosition(CoresItemsControl));
 
                 // 只有移到了一个新的格子才切换状态，防止在一个格子里抖动导致闪烁
@@ -53,7 +50,6 @@ namespace ExHyperV.Views.Components
         // 鼠标抬起：释放捕获
         private void ItemsControl_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
-            _isDragging = false;
             _lastToggledCore = null;
             (sender as IInputElement)?.ReleaseMouseCapture();
         }
