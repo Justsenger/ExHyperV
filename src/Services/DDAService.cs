@@ -254,6 +254,10 @@ namespace ExHyperV.Services
                     if (errorLogs.Any())
                     {
                         var errorMessage = string.Join(Environment.NewLine, errorLogs);
+                        if (targetVmName == Resources.Host)
+                        {
+                            await ExecutePowerShellCommandAsync($"Enable-PnpDevice -InstanceId '{instanceId}' -Confirm:$false");
+                        }
                         return (false, errorMessage);
                     }
                 }
@@ -309,6 +313,7 @@ namespace ExHyperV.Services
                     Command: $"Mount-VMHostAssignableDevice -LocationPath '{path}'",
                     Message: Resources.mounting
                 ));
+                operations.Add(($"Enable-PnpDevice -InstanceId '{instanceId}' -Confirm:$false", Resources.enabling));
             }
             // 场景2: 设备已卸除，现在要分配给某个虚拟机。
             else if (Nowname == Resources.removed && Vmname != Resources.Host)
