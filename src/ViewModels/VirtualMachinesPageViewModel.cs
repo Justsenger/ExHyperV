@@ -148,6 +148,7 @@ namespace ExHyperV.ViewModels
         [ObservableProperty] private bool _useSshProxy = false;
         [ObservableProperty] private string _sshProxyHost = "";
         [ObservableProperty] private string _sshProxyPort = "";
+        private CancellationTokenSource? _gpuDeploymentCts;
 
         // 日志与控制台
         [ObservableProperty] private string _gpuDeploymentLog = string.Empty;
@@ -3146,6 +3147,10 @@ namespace ExHyperV.ViewModels
         [RelayCommand] // 之前缺失这个特性，导致按钮无效
         private async Task StartLinuxDeploy()
         {
+            _gpuDeploymentCts?.Cancel();
+            _gpuDeploymentCts = new CancellationTokenSource();
+            var token = _gpuDeploymentCts.Token;
+
             // 1. 定位驱动安装任务项
             var driveTask = GpuTasks.FirstOrDefault(t => t.TaskType == GpuTaskType.Driver);
             if (driveTask == null) return;
@@ -3212,7 +3217,7 @@ namespace ExHyperV.ViewModels
                     }
                     AppendLog(msg);
                 },
-                CancellationToken.None
+                token
             );
 
             // 7. 流程结束判定
@@ -3343,6 +3348,10 @@ namespace ExHyperV.ViewModels
         [RelayCommand]
         private async Task ResetGpuDeployment()
         {
+            _gpuDeploymentCts?.Cancel();
+            _gpuDeploymentCts = new CancellationTokenSource();
+            IsLoadingSettings = false;
+
             if (SelectedPartition != null)
             {
                 // --- 场景 1: 软重置 ---
