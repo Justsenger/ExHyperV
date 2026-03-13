@@ -147,60 +147,6 @@
   <data name="Memorycapacity" xml:space="preserve">
     <value>内存容量</value>
   </data>
-  <data name="Graphicsmodel" xml:space="preserve">
-    <value>显卡型号</value>
-  </data>
-  <data name="soft" xml:space="preserve">
-    <value>应用信息</value>
-  </data>
-  <data name="String1" xml:space="preserve">
-    <value>HyperV功能已安装。</value>
-  </data>
-  <data name="String2" xml:space="preserve">
-    <value>HyperV功能未安装。</value>
-  </data>
-  <data name="String3" xml:space="preserve">
-    <value>宿主Windows版本为 </value>
-  </data>
-  <data name="v19041" xml:space="preserve">
-    <value>，建议虚拟机版本不小于19041。</value>
-  </data>
-  <data name="disablegpu" xml:space="preserve">
-    <value>，已禁用GPU虚拟化功能。</value>
-  </data>
-  <data name="GPU1" xml:space="preserve">
-    <value>CPU虚拟化已启用。</value>
-  </data>
-  <data name="GPU2" xml:space="preserve">
-    <value>CPU虚拟化未启用。</value>
-  </data>
-  <data name="Admin1" xml:space="preserve">
-    <value>管理员权限已获得。</value>
-  </data>
-  <data name="Admin2" xml:space="preserve">
-    <value>管理员权限未获得。所有功能无效。</value>
-  </data>
-  <data name="complicate" xml:space="preserve">
-    <value>兼容性</value>
-  </data>
-  <data name="checksys" xml:space="preserve">
-    <value>检测系统版本...</value>
-  </data>
-  <data name="checkcpuct" xml:space="preserve">
-    <value>检测CPU是否开启虚拟化...</value>
-  </data>
-  <data name="checkhyperv" xml:space="preserve">
-    <value>检测HyperV是否安装...</value>
-  </data>
-  <data name="checkadmin" xml:space="preserve">
-    <value>检测是否以管理员权限启动...</value>
-  </data>
-  <data name="checksetting" xml:space="preserve">
-    <value>设定</value>
-  </data>
-  <data name="disablereg" xml:space="preserve">
-    <value>禁用安全策略</value>
-  </data>
   <data name="Host" xml:space="preserve">
     <value>主机</value>
   </data>
@@ -210,9 +156,6 @@
   <data name="setting" xml:space="preserve">
     <value>设定修改中</value>
   </data>
-  <data name="wait" xml:space="preserve">
-    <value>操作不可中断，请等待</value>
-  </data>
   <data name="kind" xml:space="preserve">
     <value>类型</value>
   </data>
@@ -221,12 +164,6 @@
   </data>
   <data name="path" xml:space="preserve">
     <value>路径</value>
-  </data>
-  <data name="operated" xml:space="preserve">
-    <value>操作完成！</value>
-  </data>
-  <data name="OK" xml:space="preserve">
-    <value>OK</value>
   </data>
   <data name="removed" xml:space="preserve">
     <value>#已卸除</value>
@@ -246,59 +183,14 @@
   <data name="Dismountdevice" xml:space="preserve">
     <value>卸载设备中...</value>
   </data>
-  <data name="installedcard" xml:space="preserve">
-    <value>已安装显卡</value>
-  </data>
-  <data name="vmlist" xml:space="preserve">
-    <value>虚拟机列表</value>
-  </data>
   <data name="none" xml:space="preserve">
     <value>无</value>
-  </data>
-  <data name="notsupport" xml:space="preserve">
-    <value>不支持</value>
-  </data>
-  <data name="needhyperv" xml:space="preserve">
-    <value>需要先安装HyperV</value>
-  </data>
-  <data name="support" xml:space="preserve">
-    <value>支持</value>
   </data>
   <data name="manu" xml:space="preserve">
     <value>制造商</value>
   </data>
-  <data name="ram" xml:space="preserve">
-    <value>专用显存</value>
-  </data>
-  <data name="gpupv" xml:space="preserve">
-    <value>GPU分区功能</value>
-  </data>
-  <data name="gpupvpath" xml:space="preserve">
-    <value>GPU分区路径</value>
-  </data>
-  <data name="driverversion" xml:space="preserve">
-    <value>驱动程序版本</value>
-  </data>
-  <data name="addgpu" xml:space="preserve">
-    <value>添加GPU</value>
-  </data>
   <data name="uninstall" xml:space="preserve">
     <value>卸载</value>
-  </data>
-  <data name="gpupvid" xml:space="preserve">
-    <value>GPU分区ID</value>
-  </data>
-  <data name="runerror" xml:space="preserve">
-    <value>执行出错:</value>
-  </data>
-  <data name="success" xml:space="preserve">
-    <value>成功</value>
-  </data>
-  <data name="already" xml:space="preserve">
-    <value>已分配到</value>
-  </data>
-  <data name="GPUselect" xml:space="preserve">
-    <value>GPU选择</value>
   </data>
   <data name="cancel" xml:space="preserve">
     <value>取消</value>
@@ -342,47 +234,17 @@
   <data name="complisetting" xml:space="preserve">
     <value>主机</value>
   </data>
-  <data name="gpupvv" xml:space="preserve">
-    <value>GPU半虚拟化</value>
-  </data>
   <data name="DDA" xml:space="preserve">
     <value>PCIe 直通</value>
   </data>
-  <data name="Colsefirst" xml:space="preserve">
-    <value>请先关闭虚拟机！</value>
-  </data>
-  <data name="appversion" xml:space="preserve">
-    <value>版本</value>
-  </data>
-  <data name="author" xml:space="preserve">
-    <value>作者</value>
-  </data>
-  <data name="buildtime" xml:space="preserve">
-    <value>编译时间</value>
-  </data>
-  <data name="checkversion" xml:space="preserve">
-    <value>检测是否属于服务器版本...</value>
-  </data>
-  <data name="ddaa" xml:space="preserve">
-    <value>主机系统非服务器版本，无法使用 PCIe 直通！</value>
-  </data>
-  <data name="Isserver" xml:space="preserve">
-    <value>宿主系统属于服务器版本。</value>
-  </data>
   <data name="enabling" xml:space="preserve">
     <value>启用设备中...</value>
-  </data>
-  <data name="drivererror" xml:space="preserve">
-    <value>驱动注入出现错误！检查系统盘是否开启了BitLocker，或不存在Windows目录？</value>
   </data>
   <data name="error" xml:space="preserve">
     <value>错误</value>
   </data>
   <data name="servererror" xml:space="preserve">
     <value>主机系统非服务器版本，无法使用 PCIe 直通！</value>
-  </data>
-  <data name="GetVmState_Error" xml:space="preserve">
-    <value>错误：无法获取虚拟机‘{0}’的状态。</value>
   </data>
   <data name="VirtualSwitchList" xml:space="preserve">
     <value>虚拟交换机列表</value>
@@ -413,24 +275,6 @@
   </data>
   <data name="NetDraw" xml:space="preserve">
     <value>网络拓扑</value>
-  </data>
-  <data name="Error_CannotGetVmHardDiskPath" xml:space="preserve">
-    <value>错误: 无法获取虚拟机“{0}”的硬盘路径。</value>
-  </data>
-  <data name="Error_FailedToMountHardDisk" xml:space="preserve">
-    <value>错误: 挂载硬盘“{0}”失败。</value>
-  </data>
-  <data name="Error_FailedToFindSystemPartition" xml:space="preserve">
-    <value>错误: 在挂载的硬盘“{0}”中查找系统分区失败。</value>
-  </data>
-  <data name="Error_RemoveOldDriverFolderReadOnlyFailed" xml:space="preserve">
-    <value>错误：尝试移除旧驱动文件夹只读属性失败：{0}</value>
-  </data>
-  <data name="Error_RobocopyDriverCopyFailed" xml:space="preserve">
-    <value>错误：robocopy 驱动文件复制失败，退出代码: {0}</value>
-  </data>
-  <data name="Error_UnexpectedSystemException" xml:space="preserve">
-    <value>错误: 发生意外的系统异常 - {0}</value>
   </data>
   <data name="Error_ExportLocalRegistryInfoFailed" xml:space="preserve">
     <value>错误：导出本机注册表信息失败。</value>
@@ -529,9 +373,6 @@
   <data name="DdaPage_Error_CheckMmioGeneric" xml:space="preserve">
     <value>检查MMIO空间时出错：{0}</value>
   </data>
-  <data name="DdaPage_Status_AssigningDevice" xml:space="preserve">
-    <value>正在执行设备分配，请稍候...</value>
-  </data>
   <data name="Dialog_Title_OperationFailed" xml:space="preserve">
     <value>操作失败</value>
   </data>
@@ -545,30 +386,6 @@
   </data>
   <data name="Close" xml:space="preserve">
     <value>关闭</value>
-  </data>
-  <data name="GpuPartition_Error_MountGpuFailed" xml:space="preserve">
-    <value>挂载 GPU 失败：{0}</value>
-  </data>
-  <data name="Error_FatalError" xml:space="preserve">
-    <value>发生严重错误：{0}</value>
-  </data>
-  <data name="Error_UnmountGpuFailed" xml:space="preserve">
-    <value>卸载 GPU 失败。</value>
-  </data>
-  <data name="Error_LoadDataFailed" xml:space="preserve">
-    <value>加载数据时出错：{0}</value>
-  </data>
-  <data name="Status_CheckingBiosIommu" xml:space="preserve">
-    <value>检测BIOS设置：IOMMU...</value>
-  </data>
-  <data name="Info_BiosIommuEnabled" xml:space="preserve">
-    <value>BIOS已启用IOMMU。</value>
-  </data>
-  <data name="Error_BiosIommuDisabled" xml:space="preserve">
-    <value>BIOS未启用IOMMU，DDA和GPU-PV不可用。</value>
-  </data>
-  <data name="Description_HyperVRfScheduler" xml:space="preserve">
-    <value>Hyper-V 虚拟机睿频调度器，由 ExhyperV 程序创建和管理。</value>
   </data>
   <data name="Auto" xml:space="preserve">
     <value>自动适应</value>
@@ -640,242 +457,17 @@
   <data name="Label_PhysicalNetworkAdapter" xml:space="preserve">
     <value>物理网卡</value>
   </data>
-  <data name="Title_HyperVAutoTurbo" xml:space="preserve">
-    <value>Hyper-V 自动睿频</value>
-  </data>
-  <data name="Description_HyperVAutoTurbo" xml:space="preserve">
-    <value>虚拟机高负载/低负载时，修改电源模式为高性能/节能。</value>
-  </data>
   <data name="Title_VirtualSwitch" xml:space="preserve">
     <value>虚拟交换机</value>
-  </data>
-  <data name="InstalledMemory" xml:space="preserve">
-    <value>已安装内存</value>
-  </data>
-  <data name="PartNumber" xml:space="preserve">
-    <value>型号</value>
-  </data>
-  <data name="MemoryGroup" xml:space="preserve">
-    <value>内存组</value>
-  </data>
-  <data name="Slot" xml:space="preserve">
-    <value>插槽</value>
-  </data>
-  <data name="Type" xml:space="preserve">
-    <value>类型</value>
-  </data>
-  <data name="Capacity" xml:space="preserve">
-    <value>容量</value>
-  </data>
-  <data name="RatedSpeed" xml:space="preserve">
-    <value>额定速度</value>
-  </data>
-  <data name="ConfiguredSpeed" xml:space="preserve">
-    <value>运行速度</value>
-  </data>
-  <data name="VMMemory" xml:space="preserve">
-    <value>虚拟机内存</value>
-  </data>
-  <data name="StartupRAM" xml:space="preserve">
-    <value>启动内存</value>
-  </data>
-  <data name="Description_StartupRAM" xml:space="preserve">
-    <value>指定启动此虚拟机所需的初始内存量</value>
-  </data>
-  <data name="MemoryWeight" xml:space="preserve">
-    <value>内存权重</value>
-  </data>
-  <data name="Description_MemoryWeight" xml:space="preserve">
-    <value>主机内存不足时获得内存的优先级</value>
-  </data>
-  <data name="EnableDynamicMemory" xml:space="preserve">
-    <value>启用动态内存</value>
-  </data>
-  <data name="MinimumRAM" xml:space="preserve">
-    <value>最小内存</value>
-  </data>
-  <data name="Description_MinimumRAM" xml:space="preserve">
-    <value>虚拟机可收缩到的最小内存</value>
-  </data>
-  <data name="MaximumRAM" xml:space="preserve">
-    <value>最大内存</value>
-  </data>
-  <data name="Description_MaximumRAM" xml:space="preserve">
-    <value>虚拟机可扩展到的最大内存</value>
-  </data>
-  <data name="MemoryBuffer" xml:space="preserve">
-    <value>内存缓冲区</value>
-  </data>
-  <data name="Description_MemoryBuffer" xml:space="preserve">
-    <value>分配量 = (100% + 缓冲区%) * 需求量</value>
-  </data>
-  <data name="Reset" xml:space="preserve">
-    <value>重置</value>
   </data>
   <data name="Apply" xml:space="preserve">
     <value>应用</value>
   </data>
-  <data name="VMMemory_UsageFormat" xml:space="preserve">
-    <value>{0} MB (需求) / {1} MB (已分配)</value>
-  </data>
-  <data name="VMMemory_Status_Off" xml:space="preserve">
-    <value>已关闭</value>
-  </data>
-  <data name="StartupRamLessThanMinRam" xml:space="preserve">
-    <value>启动RAM不能小于最小RAM。</value>
-  </data>
-  <data name="MinRamGreaterThanMaxRam" xml:space="preserve">
-    <value>最小RAM不能大于最大RAM。</value>
-  </data>
-  <data name="Error_GenericFormat" xml:space="preserve">
-    <value>错误: {0}</value>
-  </data>
-  <data name="LoadDataFailed" xml:space="preserve">
-    <value>数据加载失败: {0}</value>
-  </data>
-  <data name="ApplyMemorySettingsFailed" xml:space="preserve">
-    <value>应用内存设置时出错: {0}</value>
-  </data>
-  <data name="HyperVMemory" xml:space="preserve">
-    <value>Hyper-V 内存</value>
-  </data>
-  <data name="Memory" xml:space="preserve">
-    <value>内存</value>
-  </data>
-  <data name="Running" xml:space="preserve">
-    <value>运行中</value>
-  </data>
-  <data name="Error_VmHardDiskNotFound" xml:space="preserve">
-    <value>无法找到虚拟机 '{0}' 的虚拟硬盘文件。</value>
-  </data>
   <data name="Error_NoAvailableDriveLetters" xml:space="preserve">
     <value>没有可用的盘符</value>
   </data>
-  <data name="Error_MountVhdOrGetDiskNumberFailed" xml:space="preserve">
-    <value>挂载虚拟磁盘或获取其磁盘编号失败。</value>
-  </data>
-  <data name="Error_AdminRequiredForPartitionInfo" xml:space="preserve">
-    <value>需要管理员权限才能读取磁盘分区信息，请以管理员身份重新启动应用程序。</value>
-  </data>
-  <data name="Error_InvalidWindowsPartition" xml:space="preserve">
-    <value>所选分区 (分区号: {0}, 已挂载为 {1}) 似乎不是一个有效的Windows系统分区。所需路径 '{2}' 不存在，或者该分区已被Bitlocker加密。</value>
-  </data>
   <data name="Error_VmMustBeOff" xml:space="preserve">
     <value>错误：虚拟机 '{0}' 必须处于关闭状态。</value>
-  </data>
-  <data name="Error_GetVmHardDiskPathFailed" xml:space="preserve">
-    <value>错误：无法获取虚拟机硬盘路径以注入驱动。</value>
-  </data>
-  <data name="Error_GetVmMacAddressFailed" xml:space="preserve">
-    <value>错误：无法获取虚拟机 '{0}' 的MAC地址。请检查虚拟机网络设置。</value>
-  </data>
-  <data name="Error_NoValidIpv4AddressFound" xml:space="preserve">
-    <value>错误：找到了地址 '{0}' 但无法解析为有效的IPv4地址。</value>
-  </data>
-  <data name="Info_SshLoginCancelledByUser" xml:space="preserve">
-    <value>用户取消了 SSH 登录操作。</value>
-  </data>
-  <data name="Error_PreparationFailed" xml:space="preserve">
-    <value>准备阶段发生错误: {0}</value>
-  </data>
-  <data name="LinuxDeploy_Step1" xml:space="preserve">
-    <value>[1/5] 正在连接到虚拟机并初始化远程环境...</value>
-  </data>
-  <data name="Log_SshConnectionSuccess" xml:space="preserve">
-    <value>[✓] SSH 连接成功。</value>
-  </data>
-  <data name="Error_GetLinuxHomeDirectoryFailed" xml:space="preserve">
-    <value>[X] 无法获取Linux主目录路径。</value>
-  </data>
-  <data name="Log_LinuxHomeDirectoryFound" xml:space="preserve">
-    <value>[✓] 获取到Linux主目录: {0}</value>
-  </data>
-  <data name="Log_TempDeployDirectoryCreated" xml:space="preserve">
-    <value>[✓] 已创建临时部署目录: {0}</value>
-  </data>
-  <data name="Log_RemoteEnvInitializationComplete" xml:space="preserve">
-    <value>[✓] 远程环境初始化完成。</value>
-  </data>
-  <data name="LinuxDeploy_Step2" xml:space="preserve">
-    <value>[2/5] 正在配置网络代理...</value>
-  </data>
-  <data name="Log_ProxyServerInfo" xml:space="preserve">
-    <value>[✓] 代理服务器: {0}:{1}</value>
-  </data>
-  <data name="Log_ProxyConfigurationComplete" xml:space="preserve">
-    <value>[✓] 网络代理配置完成。</value>
-  </data>
-  <data name="LinuxDeploy_Step3" xml:space="preserve">
-    <value>[3/5] 正在定位主机 GPU 驱动...</value>
-  </data>
-  <data name="Log_GpuDriverNotFoundFallback" xml:space="preserve">
-    <value>[!] 未能定位到特定 GPU 驱动文件夹，将执行全量驱动拷贝。</value>
-  </data>
-  <data name="Log_PreciseDriverPathLocated" xml:space="preserve">
-    <value>[✓] 已定位到精准驱动路径: {0}</value>
-  </data>
-  <data name="LinuxDeploy_Step3_Status_Import" xml:space="preserve">
-    <value>[3/5] 正在导入GPU驱动与库文件...</value>
-  </data>
-  <data name="Log_HostDriverImportComplete" xml:space="preserve">
-    <value>[✓] 主机驱动文件导入完毕。</value>
-  </data>
-  <data name="Log_LocalLibrariesCheckComplete" xml:space="preserve">
-    <value>[✓] 本地核心库检查完毕。</value>
-  </data>
-  <data name="LinuxDeploy_Step4" xml:space="preserve">
-    <value>[4/5] 正在从 GitHub 下载并执行部署脚本...</value>
-  </data>
-  <data name="Log_DxgkrnlModuleCompiling" xml:space="preserve">
-    <value>[!] 正在编译dxgkrnl内核模块，此过程可能需要较长时间，并可能触发系统重启...</value>
-  </data>
-  <data name="Log_KernelUpdateRebootRequired" xml:space="preserve">
-    <value>[!] 内核更新完成，系统需要重启。程序将自动处理...</value>
-  </data>
-  <data name="Status_RebootingVm" xml:space="preserve">
-    <value>[~] 正在重启虚拟机...</value>
-  </data>
-  <data name="Log_WaitingForVmToComeOnline" xml:space="preserve">
-    <value>[~] 等待虚拟机重新上线 (这可能需要1-2分钟)...</value>
-  </data>
-  <data name="Error_VmDidNotComeBackOnline" xml:space="preserve">
-    <value>[X] 虚拟机重启后未能恢复在线状态，部署失败。</value>
-  </data>
-  <data name="Log_VmReconnectedRestartingDeploy" xml:space="preserve">
-    <value>[✓] 虚拟机已重新连接！正在重新执行部署流程...</value>
-  </data>
-  <data name="Error_KernelModuleScriptFailed" xml:space="preserve">
-    <value>[X] 内核模块安装脚本执行失败，未返回成功状态。请检查日志。</value>
-  </data>
-  <data name="Log_KernelModuleInstallSuccess" xml:space="preserve">
-    <value>[✓] 内核模块安装成功。</value>
-  </data>
-  <data name="Log_ConfiguringMesa" xml:space="preserve">
-    <value>[!] 正在配置 Mesa 图形环境...</value>
-  </data>
-  <data name="Log_ConfiguringSystem" xml:space="preserve">
-    <value>[!] 正在进行系统配置...</value>
-  </data>
-  <data name="LinuxDeploy_Step5" xml:space="preserve">
-    <value>[5/5] 部署完成！虚拟机即将重启...</value>
-  </data>
-  <data name="Info_OperationCancelled" xml:space="preserve">
-    <value>操作已取消</value>
-  </data>
-  <data name="Error_DeploymentFailed" xml:space="preserve">
-    <value>[X] 部署失败: {0}</value>
-  </data>
-  <data name="Log_ErrorBlockHeader" xml:space="preserve">
-    <value>
-
---- 错误发生 ---
-{0}</value>
-  </data>
-  <data name="Status_DeploymentFailedCheckLogs" xml:space="preserve">
-    <value>部署失败，请检查日志</value>
-  </data>
-  <data name="Info_OperationAbortedByUser" xml:space="preserve">
-    <value>操作被用户强行中止。</value>
   </data>
   <data name="Error_FatalExceptionOccurred" xml:space="preserve">
     <value>【严重异常】
@@ -902,9 +494,6 @@
   <data name="Error_LocalDirectoryNotFound" xml:space="preserve">
     <value>[X] 本地目录未找到: {0}</value>
   </data>
-  <data name="Error_NoRecognizedPartitionFound" xml:space="preserve">
-    <value>错误：未在该虚拟磁盘上找到可识别的 Windows 或 Linux 分区。</value>
-  </data>
   <data name="Status_CheckingForUpdates" xml:space="preserve">
     <value>正在检查更新...</value>
   </data>
@@ -914,52 +503,8 @@
   <data name="Info_AlreadyLatestVersion" xml:space="preserve">
     <value>已是最新版本</value>
   </data>
-  <data name="Label_DriverInjection" xml:space="preserve">
-    <value>驱动注入</value>
-  </data>
-  <data name="Status_InstallationInProgress" xml:space="preserve">
-    <value>正在准备并执行安装... 请在下方查看实时进度。</value>
-  </data>
-  <data name="Button_Retry" xml:space="preserve">
-    <value>重试</value>
-  </data>
-  <data name="Button_Close" xml:space="preserve">
-    <value>关闭</value>
-  </data>
-  <data name="Status_DeploymentComplete" xml:space="preserve">
-    <value>部署完成！</value>
-  </data>
-  <data name="Error_AnErrorOccurred" xml:space="preserve">
-    <value>发生错误: {0}</value>
-  </data>
-  <data name="Log_UserRetryingDeployment" xml:space="preserve">
-    <value>用户选择重试，正在重新执行部署脚本...
-</value>
-  </data>
-  <data name="Title_ConfirmOperation" xml:space="preserve">
-    <value>确认操作</value>
-  </data>
-  <data name="Title_ShutdownConfirmation" xml:space="preserve">
-    <value>关机确认</value>
-  </data>
-  <data name="Info_VmMustBeOffForGpuAssignment" xml:space="preserve">
-    <value>要为此虚拟机分配GPU，它必须处于关闭状态。</value>
-  </data>
   <data name="Button_Cancel" xml:space="preserve">
     <value>取消</value>
-  </data>
-  <data name="Button_ShutdownAndContinue" xml:space="preserve">
-    <value>关机并继续</value>
-  </data>
-  <data name="Confirm_ShutdownMessage" xml:space="preserve">
-    <value>虚拟机 “{0}” 当前正在运行。
-
-为了继续分配GPU，需要将此虚拟机关闭。
-
-选择“关机并继续”将执行强制关闭操作（等同于断开电源）。</value>
-  </data>
-  <data name="Title_SshLogin" xml:space="preserve">
-    <value>SSH 登录</value>
   </data>
   <data name="Label_ConnectToLinuxVm" xml:space="preserve">
     <value>连接到 Linux 虚拟机</value>
@@ -975,9 +520,6 @@
   </data>
   <data name="Label_Username" xml:space="preserve">
     <value>用户名:</value>
-  </data>
-  <data name="Placeholder_UsernameExample" xml:space="preserve">
-    <value>例如: root</value>
   </data>
   <data name="Label_Password" xml:space="preserve">
     <value>口令:</value>
@@ -997,106 +539,8 @@
   <data name="Button_Connect" xml:space="preserve">
     <value>连接</value>
   </data>
-  <data name="Title_ConnectingToVm" xml:space="preserve">
-    <value>连接到 {0}</value>
-  </data>
-  <data name="Validation_HostIpCannotBeEmpty" xml:space="preserve">
-    <value>主机 IP 地址不能为空。</value>
-  </data>
-  <data name="Validation_InvalidSshPort" xml:space="preserve">
-    <value>SSH 端口无效 (应为 1-65535)。</value>
-  </data>
-  <data name="Validation_UsernameCannotBeEmpty" xml:space="preserve">
-    <value>用户名不能为空。</value>
-  </data>
   <data name="Validation_ProxyIpAndPortMismatch" xml:space="preserve">
     <value>代理 IP 和端口必须同时填写或同时为空。</value>
-  </data>
-  <data name="Validation_InvalidProxyPort" xml:space="preserve">
-    <value>代理端口号无效 (应为 1-65535)。</value>
-  </data>
-  <data name="Status_Connecting" xml:space="preserve">
-    <value>正在连接中...</value>
-  </data>
-  <data name="Error_ConnectionFailed" xml:space="preserve">
-    <value>连接失败: 无法连接到主机 {0} 的端口 {1}。
-请检查 IP 和端口是否正确。</value>
-  </data>
-  <data name="Error_ConnectionTimedOut" xml:space="preserve">
-    <value>连接超时: 无法连接到主机 {0} 的端口 {1}。</value>
-  </data>
-  <data name="Error_AuthenticationFailed" xml:space="preserve">
-    <value>身份验证失败: 用户名或口令不正确。</value>
-  </data>
-  <data name="Error_UnknownConnectionError" xml:space="preserve">
-    <value>连接发生未知错误: {0}</value>
-  </data>
-  <data name="SettingsSavedSuccessfully" xml:space="preserve">
-    <value>设置已成功应用</value>
-  </data>
-  <data name="Title_Information" xml:space="preserve">
-    <value>提示</value>
-  </data>
-  <data name="UnknownError" xml:space="preserve">
-    <value>未知错误</value>
-  </data>
-  <data name="SystemAutomaticallyScheduled" xml:space="preserve">
-    <value>由系统自动调度</value>
-  </data>
-  <data name="PerformanceLimited" xml:space="preserve">
-    <value>性能受限 {0}</value>
-  </data>
-  <data name="RandomlyDriftWithinSelectedCoreGroup" xml:space="preserve">
-    <value>将在选定的核心组内随机漂移 {0}</value>
-  </data>
-  <data name="Perfect" xml:space="preserve">
-    <value>完美！ {0}</value>
-  </data>
-  <data name="NumaSettingsModifiedRestartRequired" xml:space="preserve">
-    <value>NUMA 设置已更新，重启计算机后生效。</value>
-  </data>
-  <data name="SettingFailed" xml:space="preserve">
-    <value>设置失败</value>
-  </data>
-  <data name="SchedulerTypeChangedRestartRequired" xml:space="preserve">
-    <value>Hyper-V 调度器类型已更改，需要重启系统才能生效。</value>
-  </data>
-  <data name="UnexpectedErrorOccurred" xml:space="preserve">
-    <value>发生未预期的错误:</value>
-  </data>
-  <data name="CannotSetCpuPinningWithRootSchedulerAndVmOff" xml:space="preserve">
-    <value>当使用根调度器且虚拟机未运行时，无法设置 CPU 绑定。</value>
-  </data>
-  <data name="VmProcessNotFound" xml:space="preserve">
-    <value>无法找到虚拟机进程，请确保虚拟机正在运行。</value>
-  </data>
-  <data name="OperationSucceeded" xml:space="preserve">
-    <value>操作成功</value>
-  </data>
-  <data name="SelectHostCpuCoresToBind" xml:space="preserve">
-    <value>选择要绑定的宿主机核心 (可拖动多选)：
-</value>
-  </data>
-  <data name="Cpu" xml:space="preserve">
-    <value>中央处理器</value>
-  </data>
-  <data name="RefreshRate" xml:space="preserve">
-    <value>更新速度：</value>
-  </data>
-  <data name="RefreshRateFastest" xml:space="preserve">
-    <value>迅速 (0.5s)</value>
-  </data>
-  <data name="RefreshRateFast" xml:space="preserve">
-    <value>快 (1s)</value>
-  </data>
-  <data name="RefreshRateSlow" xml:space="preserve">
-    <value>慢 (2s)</value>
-  </data>
-  <data name="RefreshRatePaused" xml:space="preserve">
-    <value>暂停</value>
-  </data>
-  <data name="Off" xml:space="preserve">
-    <value>已关闭</value>
   </data>
   <data name="ComputeResources" xml:space="preserve">
     <value>计算资源</value>
@@ -1143,158 +587,14 @@
   <data name="VirtualMachineSmtDescription" xml:space="preserve">
     <value>启用超线程感知，优化内核缓存利用与进程调度</value>
   </data>
-  <data name="FollowHost" xml:space="preserve">
-    <value>跟随宿主</value>
-  </data>
-  <data name="On" xml:space="preserve">
-    <value>开启</value>
-  </data>
   <data name="CpuBinding" xml:space="preserve">
     <value>CPU 绑定</value>
-  </data>
-  <data name="SchedulerType" xml:space="preserve">
-    <value>Hyper-V 调度器类型</value>
-  </data>
-  <data name="ClassicScheduler" xml:space="preserve">
-    <value>经典调度器</value>
-  </data>
-  <data name="CoreScheduler" xml:space="preserve">
-    <value>核心调度器</value>
-  </data>
-  <data name="RootScheduler" xml:space="preserve">
-    <value>根调度器</value>
-  </data>
-  <data name="ClassicSchedulerDescription" xml:space="preserve">
-    <value>经典调度器：基于传统时间片轮换，公平分配 CPU 资源，性能更强但安全性稍弱。</value>
-  </data>
-  <data name="CoreSchedulerDescription" xml:space="preserve">
-    <value>核心调度器：优先为单个虚拟机分配单个物理核心的全部线程，安全性更强但性能稍弱。</value>
-  </data>
-  <data name="RootSchedulerDescription" xml:space="preserve">
-    <value>根调度器：由系统接管 CPU 调度，适合普通用户。启用后无法调整虚拟机预留、限制和权重等设置。</value>
-  </data>
-  <data name="AllowNumaSpanning" xml:space="preserve">
-    <value>允许 NUMA 跨越</value>
-  </data>
-  <data name="AllowNumaSpanningDescription" xml:space="preserve">
-    <value>允许虚拟机使用其他 NUMA 节点的内存 (在 Server 2025 中关闭可能会错误地禁用 CPU 超额订阅)</value>
   </data>
   <data name="DataLoading" xml:space="preserve">
     <value>数据加载中...</value>
   </data>
   <data name="LimitVmBusCommunicationFrequency" xml:space="preserve">
     <value>监控 VMBus 通信，防止中断风暴影响主机</value>
-  </data>
-  <data name="VMSettingsSavedSuccessfully" xml:space="preserve">
-    <value>虚拟机 {0} 的设置已成功应用。</value>
-  </data>
-  <data name="Storage_Title_Error" xml:space="preserve">
-    <value>错误</value>
-  </data>
-  <data name="Storage_Title_AddSuccess" xml:space="preserve">
-    <value>添加成功</value>
-  </data>
-  <data name="Storage_Title_ModifySuccess" xml:space="preserve">
-    <value>修改成功</value>
-  </data>
-  <data name="Storage_Title_EjectSuccess" xml:space="preserve">
-    <value>弹出成功</value>
-  </data>
-  <data name="Storage_Title_RemoveSuccess" xml:space="preserve">
-    <value>移除成功</value>
-  </data>
-  <data name="Storage_Msg_MountedTo" xml:space="preserve">
-    <value>设备已挂载至</value>
-  </data>
-  <data name="Storage_Msg_MediaUpdated" xml:space="preserve">
-    <value>驱动器媒体已更新。</value>
-  </data>
-  <data name="Storage_Msg_Success" xml:space="preserve">
-    <value>操作成功。</value>
-  </data>
-  <data name="Storage_Msg_Removed" xml:space="preserve">
-    <value>设备已成功移除。</value>
-  </data>
-  <data name="Storage_Msg_Ejected" xml:space="preserve">
-    <value>媒介已成功弹出。</value>
-  </data>
-  <data name="Storage_Msg_AlreadyRemoved" xml:space="preserve">
-    <value>设备已移除。</value>
-  </data>
-  <data name="Storage_Error_VmNotFound" xml:space="preserve">
-    <value>找不到指定的虚拟机。</value>
-  </data>
-  <data name="Storage_Error_ScsiHotAddNotSupported" xml:space="preserve">
-    <value>虚拟机正在运行，无法动态创建 SCSI 控制器。</value>
-  </data>
-  <data name="Storage_Error_IdeHotSwapNotSupported" xml:space="preserve">
-    <value>IDE 控制器不支持在虚拟机运行状态下更换硬件。</value>
-  </data>
-  <data name="Storage_Error_DiskToDvdHotSwapNotSupported" xml:space="preserve">
-    <value>虚拟机运行中，无法将硬盘位更换为光驱位。</value>
-  </data>
-  <data name="Storage_Error_DvdHotRemoveNotSupported" xml:space="preserve">
-    <value>虚拟机运行中，无法移除空光驱硬件，仅支持弹出光盘。</value>
-  </data>
-  <data name="Storage_Error_DvdDriveNotFound" xml:space="preserve">
-    <value>找不到指定位置的光驱设备。</value>
-  </data>
-  <data name="Storage_Error_DiskNotFound" xml:space="preserve">
-    <value>找不到指定的硬盘设备。</value>
-  </data>
-  <data name="Storage_Error_DiskAlreadyAttached" xml:space="preserve">
-    <value>磁盘已连接到虚拟机，无法重复挂载。</value>
-  </data>
-  <data name="Storage_Error_FileNotFound" xml:space="preserve">
-    <value>找不到指定的虚拟磁盘文件。</value>
-  </data>
-  <data name="Storage_Error_Unknown" xml:space="preserve">
-    <value>发生未知错误。</value>
-  </data>
-  <data name="Iso_Error_BuildFailed" xml:space="preserve">
-    <value>创建 ISO 镜像时发生未知错误</value>
-  </data>
-  <data name="Iso_Error_DirectoryDepthTooDeep" xml:space="preserve">
-    <value>目录结构过深 (超过 8 层)。</value>
-  </data>
-  <data name="Iso_Error_FileDepthTooDeep" xml:space="preserve">
-    <value>文件所在目录结构过深 (超过 8 层)。</value>
-  </data>
-  <data name="Iso_Error_FileNameTooLong" xml:space="preserve">
-    <value>文件名过长 (超过 64 字符)。</value>
-  </data>
-  <data name="Iso_Error_FileTooLarge" xml:space="preserve">
-    <value>单个文件大小超过 4GB 上限。</value>
-  </data>
-  <data name="Iso_Error_PathTooLong" xml:space="preserve">
-    <value>ISO 内相对路径过长 (超过 240 字符)。</value>
-  </data>
-  <data name="Iso_Error_SourceDirNotFound" xml:space="preserve">
-    <value>源目录不存在。</value>
-  </data>
-  <data name="Iso_Error_VolumeLabelTooLong" xml:space="preserve">
-    <value>卷标过长，超过了 16 个字符的限制。</value>
-  </data>
-  <data name="Iso_Msg_CreateSuccess" xml:space="preserve">
-    <value>ISO 镜像创建成功</value>
-  </data>
-  <data name="AddDisk_Filter_OpticalImage" xml:space="preserve">
-    <value>光盘镜像</value>
-  </data>
-  <data name="AddDisk_Filter_VirtualDisk" xml:space="preserve">
-    <value>虚拟磁盘</value>
-  </data>
-  <data name="AddDisk_Placeholder_FilePath" xml:space="preserve">
-    <value>请指定文件路径...</value>
-  </data>
-  <data name="AddDisk_Placeholder_SavePath" xml:space="preserve">
-    <value>请指定保存路径...</value>
-  </data>
-  <data name="AddDisk_Title_SelectParentDisk" xml:space="preserve">
-    <value>选择父虚拟磁盘</value>
-  </data>
-  <data name="AddDisk_Title_SelectSourceFolder" xml:space="preserve">
-    <value>选择源文件夹</value>
   </data>
   <data name="AddDisk_AutoAssign" xml:space="preserve">
     <value>自动分配</value>
@@ -1308,20 +608,11 @@
   <data name="AddDisk_DiskType" xml:space="preserve">
     <value>磁盘类型</value>
   </data>
-  <data name="AddDisk_FileContent" xml:space="preserve">
-    <value>文件内容</value>
-  </data>
-  <data name="AddDisk_Info_IsoLimits" xml:space="preserve">
-    <value>ISO 创建仅使用9660标准，单文件上限为4GB。</value>
-  </data>
   <data name="AddDisk_Interface" xml:space="preserve">
     <value>接口</value>
   </data>
   <data name="AddDisk_Location" xml:space="preserve">
     <value>位置</value>
-  </data>
-  <data name="AddDisk_MediaSelection" xml:space="preserve">
-    <value>媒介选择</value>
   </data>
   <data name="AddDisk_New" xml:space="preserve">
     <value>新建</value>
@@ -1374,9 +665,6 @@
   <data name="AddDisk_VhdType_Fixed" xml:space="preserve">
     <value>固定磁盘</value>
   </data>
-  <data name="AddDisk_VolumeLabel" xml:space="preserve">
-    <value>卷标</value>
-  </data>
   <data name="AddDisk_WindowTitle" xml:space="preserve">
     <value>添加存储设备</value>
   </data>
@@ -1401,50 +689,17 @@
   <data name="Common_Path" xml:space="preserve">
     <value>路径</value>
   </data>
-  <data name="Common_Remove" xml:space="preserve">
-    <value>移除</value>
-  </data>
   <data name="Common_Type" xml:space="preserve">
     <value>类型</value>
   </data>
   <data name="Storage_AddStorage" xml:space="preserve">
     <value>添加存储</value>
   </data>
-  <data name="Storage_Controller" xml:space="preserve">
-    <value>控制器</value>
-  </data>
-  <data name="Storage_DeviceList" xml:space="preserve">
-    <value>设备列表</value>
-  </data>
-  <data name="Storage_DiskType_Empty" xml:space="preserve">
-    <value>空设备</value>
-  </data>
-  <data name="Storage_DiskType_Physical" xml:space="preserve">
-    <value>物理设备</value>
-  </data>
-  <data name="Storage_DiskType_Virtual" xml:space="preserve">
-    <value>虚拟文件</value>
-  </data>
-  <data name="Storage_Location" xml:space="preserve">
-    <value>位置</value>
-  </data>
-  <data name="Storage_NoDevicesFound" xml:space="preserve">
-    <value>此虚拟机没有任何存储设备</value>
-  </data>
   <data name="Storage_Settings" xml:space="preserve">
     <value>存储设置</value>
   </data>
   <data name="Storage_Slot" xml:space="preserve">
     <value>插槽</value>
-  </data>
-  <data name="Storage_Tooltip_RemoveDevice" xml:space="preserve">
-    <value>移除此设备</value>
-  </data>
-  <data name="VM_State_Running" xml:space="preserve">
-    <value>运行中</value>
-  </data>
-  <data name="Storage" xml:space="preserve">
-    <value>存储</value>
   </data>
   <data name="Model_Drive_OpticalDrive" xml:space="preserve">
     <value>光驱</value>
@@ -1460,66 +715,6 @@
   </data>
   <data name="Model_Drive_VirtualHardDisk" xml:space="preserve">
     <value>虚拟硬盘</value>
-  </data>
-  <data name="Status_Msg_RebootRequired" xml:space="preserve">
-    <value>修改后需要重启以生效。</value>
-  </data>
-  <data name="Status_Msg_CurrentVer" xml:space="preserve">
-    <value>当前识别为</value>
-  </data>
-  <data name="Status_Title_Success" xml:space="preserve">
-    <value>操作成功</value>
-  </data>
-  <data name="Status_Msg_RestartNow" xml:space="preserve">
-    <value>系统标识已修改。是否立即重启以应用更改？</value>
-  </data>
-  <data name="Global_Restart" xml:space="preserve">
-    <value>立即重启</value>
-  </data>
-  <data name="Status_Title_Error" xml:space="preserve">
-    <value>错误</value>
-  </data>
-  <data name="Status_Title_Info" xml:space="preserve">
-    <value>提示</value>
-  </data>
-  <data name="Status_Msg_OperationPending" xml:space="preserve">
-    <value>已有变更挂起，请先重启电脑。</value>
-  </data>
-  <data name="Status_Edition_Server" xml:space="preserve">
-    <value>服务器版本 (ServerNT)</value>
-  </data>
-  <data name="Status_Edition_Workstation" xml:space="preserve">
-    <value>工作站版本 (WinNT)</value>
-  </data>
-  <data name="Status_Title_SwitchEdition" xml:space="preserve">
-    <value>切换系统版本</value>
-  </data>
-  <data name="Confirm_Restart_Title" xml:space="preserve">
-    <value>确认重启</value>
-  </data>
-  <data name="Confirm_Restart_Message" xml:space="preserve">
-    <value>确定要重启虚拟机 "{0}" 吗？
-
-这将中断所有正在运行的服务和程序。</value>
-  </data>
-  <data name="Confirm_Shutdown_Title" xml:space="preserve">
-    <value>确认关机</value>
-  </data>
-  <data name="Confirm_Shutdown_Message" xml:space="preserve">
-    <value>确定要关闭虚拟机 "{0}" 吗？
-
-此操作将向客户机操作系统发送关机信号。</value>
-  </data>
-  <data name="Confirm_TurnOff_Title" xml:space="preserve">
-    <value>确认强制断电</value>
-  </data>
-  <data name="Confirm_TurnOff_Message" xml:space="preserve">
-    <value>确定要强制断电虚拟机 "{0}" 吗？
-
-⚠️ 警告：此操作相当于直接拔掉电源线，可能导致数据丢失或文件系统损坏！</value>
-  </data>
-  <data name="Instances_SelectVmPrompt" xml:space="preserve">
-    <value>请选择虚拟机</value>
   </data>
   <data name="Menu_VM" xml:space="preserve">
     <value>虚拟机</value>
@@ -1584,9 +779,6 @@
   <data name="Msg_Gpu_SyncingFiles" xml:space="preserve">
     <value>正在同步驱动文件...</value>
   </data>
-  <data name="Msg_Gpu_Source" xml:space="preserve">
-    <value>源: {0}</value>
-  </data>
   <data name="Msg_Gpu_InjectingReg" xml:space="preserve">
     <value>正在注入 NVIDIA 注册表项...</value>
   </data>
@@ -1595,9 +787,6 @@
   </data>
   <data name="Msg_Gpu_Remounting" xml:space="preserve">
     <value>正在执行物理磁盘安全回挂流程...</value>
-  </data>
-  <data name="Msg_Common_Syncing" xml:space="preserve">
-    <value>正在同步...</value>
   </data>
   <data name="Msg_Gpu_RemountSuccess" xml:space="preserve">
     <value>物理磁盘已成功回挂至虚拟机。</value>
@@ -1617,56 +806,14 @@
   <data name="Error_Common_NoPartitionSelected" xml:space="preserve">
     <value>未选择分区</value>
   </data>
-  <data name="Msg_Gpu_LinuxConfigStart" xml:space="preserve">
-    <value>正在启动虚拟机以进行 Linux 配置...</value>
-  </data>
   <data name="Msg_Gpu_LinuxWaitingIp" xml:space="preserve">
     <value>正在等待虚拟机网络就绪并获取 IP...</value>
-  </data>
-  <data name="Msg_Gpu_LinuxIpObtained" xml:space="preserve">
-    <value>虚拟机 IP 已获取: {0}，正在建立 SSH 连接...</value>
   </data>
   <data name="Error_Gpu_SshTimeout" xml:space="preserve">
     <value>SSH 连接超时，请检查虚拟机网络设置。</value>
   </data>
   <data name="Msg_Gpu_LinuxRemoteInit" xml:space="preserve">
     <value>远程环境初始化完成，临时目录: {0}</value>
-  </data>
-  <data name="Msg_Gpu_LinuxProxy" xml:space="preserve">
-    <value>配置 APT 和环境变量代理 ({0}:{1})...</value>
-  </data>
-  <data name="Msg_Gpu_LinuxUploadingDriver" xml:space="preserve">
-    <value>正在定位并上传宿主机 GPU 驱动...</value>
-  </data>
-  <data name="Warn_Gpu_LinuxDriverStore" xml:space="preserve">
-    <value>警告：无法精确定位驱动，使用全量 DriverStore (速度较慢)...</value>
-  </data>
-  <data name="Msg_Gpu_LinuxUploadingWsl" xml:space="preserve">
-    <value>正在上传 WSL 依赖库...</value>
-  </data>
-  <data name="Msg_Gpu_LinuxDownloadingScripts" xml:space="preserve">
-    <value>正在下载配置脚本...</value>
-  </data>
-  <data name="Msg_Gpu_LinuxCompilingDxg" xml:space="preserve">
-    <value>正在编译安装 dxgkrnl 内核模块 (这可能需要一些时间)...</value>
-  </data>
-  <data name="Msg_Gpu_LinuxKernelUpdated" xml:space="preserve">
-    <value>内核已更新，正在重启虚拟机以应用更改...</value>
-  </data>
-  <data name="Error_Gpu_LinuxCompileFail" xml:space="preserve">
-    <value>dxgkrnl 编译脚本执行失败，请检查日志。</value>
-  </data>
-  <data name="Msg_Gpu_LinuxMesa" xml:space="preserve">
-    <value>正在配置 Mesa 3D...</value>
-  </data>
-  <data name="Msg_Gpu_LinuxFinalizing" xml:space="preserve">
-    <value>正在完成系统最终配置...</value>
-  </data>
-  <data name="Msg_Gpu_LinuxConfigDone" xml:space="preserve">
-    <value>配置完成，正在重启虚拟机...</value>
-  </data>
-  <data name="Error_Gpu_LinuxDeployFail" xml:space="preserve">
-    <value>Linux 配置失败: {0}</value>
   </data>
   <data name="Status_Running" xml:space="preserve">
     <value>正在运行</value>
@@ -1682,9 +829,6 @@
   </data>
   <data name="Status_Starting" xml:space="preserve">
     <value>正在启动</value>
-  </data>
-  <data name="Status_Snapshotting" xml:space="preserve">
-    <value>正在快照</value>
   </data>
   <data name="Status_Saving" xml:space="preserve">
     <value>正在保存</value>
@@ -1707,35 +851,11 @@
   <data name="Error_Memory_ObjNotFound" xml:space="preserve">
     <value>无法定位内存配置对象。</value>
   </data>
-  <data name="Error_Common_ModifyFail" xml:space="preserve">
-    <value>修改失败: {0}</value>
-  </data>
   <data name="Msg_Memory_Applied" xml:space="preserve">
     <value>内存设置已应用。</value>
   </data>
-  <data name="Error_Memory_Advanced" xml:space="preserve">
-    <value>高级设置应用异常: {0}</value>
-  </data>
-  <data name="Msg_Net_FetchingInfo" xml:space="preserve">
-    <value>开始为虚拟机 '{0}' 获取网卡信息...</value>
-  </data>
   <data name="Error_Net_NameEmpty" xml:space="preserve">
     <value>[错误] 传入的 vmName 为空，操作中止。</value>
-  </data>
-  <data name="Msg_Net_QueryGuid" xml:space="preserve">
-    <value>[1/4] 正在查询虚拟机 '{0}' 的 GUID...</value>
-  </data>
-  <data name="Error_Net_VmNotFound" xml:space="preserve">
-    <value>[错误] 找不到名为 '{0}' 的虚拟机。请检查虚拟机名称是否正确。</value>
-  </data>
-  <data name="Msg_Net_GuidSuccess" xml:space="preserve">
-    <value>[成功] 获取到 VM GUID: {0}</value>
-  </data>
-  <data name="Msg_Net_QueryPorts" xml:space="preserve">
-    <value>[2/4] 正在并发查询属于 GUID '{0}' 的网卡端口和分配设置...</value>
-  </data>
-  <data name="Msg_Net_QuerySummary" xml:space="preserve">
-    <value>[成功] 查询完成: 找到 {0} 个网卡端口, {1} 个分配设置。</value>
   </data>
   <data name="Msg_Net_Scanning" xml:space="preserve">
     <value>[3/4] 开始遍历和匹配每个网卡...</value>
@@ -1749,41 +869,20 @@
   <data name="Warn_Net_DefaultSettings" xml:space="preserve">
     <value>    [高级设置] 未找到关联设置，将使用默认值。</value>
   </data>
-  <data name="Error_Net_AdvancedRead" xml:space="preserve">
-    <value>    [高级设置] 读取异常: {0}</value>
-  </data>
   <data name="Msg_Net_ScanDone" xml:space="preserve">
     <value>\n[4/4] 所有网卡处理完毕。</value>
-  </data>
-  <data name="Error_Net_IpFetch" xml:space="preserve">
-    <value>IP获取失败: {0}</value>
-  </data>
-  <data name="Error_Net_TemplateMissing" xml:space="preserve">
-    <value>模板缺失</value>
   </data>
   <data name="Error_Net_AllocNotFound" xml:space="preserve">
     <value>找不到分配对象</value>
   </data>
-  <data name="Msg_Net_PvlanFix" xml:space="preserve">
-    <value>[归一执行] 网关模式：强制辅ID {0} -&gt; 主ID {1}</value>
-  </data>
   <data name="Error_Net_ConfigObject" xml:space="preserve">
     <value>无法定位配置对象或创建模板失败。</value>
-  </data>
-  <data name="Msg_Net_Applying" xml:space="preserve">
-    <value>正在提交 {0} 设置...</value>
   </data>
   <data name="Common_UnknownSwitch" xml:space="preserve">
     <value>未知交换机</value>
   </data>
   <data name="Error_Cpu_ConfigNotFound" xml:space="preserve">
     <value>找不到虚拟机或处理器配置。</value>
-  </data>
-  <data name="Error_Common_Exception" xml:space="preserve">
-    <value>异常: {0}</value>
-  </data>
-  <data name="Error_Cpu_VmIdNotFound" xml:space="preserve">
-    <value>无法找到虚拟机 (ID: {0}) 的处理器配置。</value>
   </data>
   <data name="Error_Common_X64Required" xml:space="preserve">
     <value>错误: 必须编译为 x64 并在 64 位环境下运行！</value>
@@ -1794,26 +893,11 @@
   <data name="Error_Sys_Privilege" xml:space="preserve">
     <value>权限提升失败 (SeBackup/Restore)</value>
   </data>
-  <data name="Error_Sys_SystemKey" xml:space="preserve">
-    <value>打不开 SYSTEM 键, 错误码: {0}</value>
-  </data>
-  <data name="Error_Sys_HiveExport" xml:space="preserve">
-    <value>导出 Hive 失败: {0} (检查是否有杀毒软件拦截)</value>
-  </data>
   <data name="Error_Sys_ExportIncomplete" xml:space="preserve">
     <value>导出异常: 文件大小仅为 {0} KB，导出不完整。</value>
   </data>
   <data name="Error_Sys_OfflineMod" xml:space="preserve">
     <value>离线修改失败 (Load/Unload 环节错误)</value>
-  </data>
-  <data name="Error_Sys_AccessDenied" xml:space="preserve">
-    <value>替换失败: 拒绝访问 (Build 28000 内核已锁定 SYSTEM 蜂巢。请尝试在 PE 环境下替换程序导出的 C:\\temp\\sys_mod_exec.hiv)</value>
-  </data>
-  <data name="Error_Sys_ReplaceCode" xml:space="preserve">
-    <value>替换失败: 错误码 {0}</value>
-  </data>
-  <data name="Error_Net_UnknownMode" xml:space="preserve">
-    <value>错误：未知的网络模式 '{0}'</value>
   </data>
   <data name="Common_Notice" xml:space="preserve">
     <value>提示</value>
@@ -1827,12 +911,6 @@
   <data name="Error_Wmi_Code" xml:space="preserve">
     <value>WMI 错误代码: {0}</value>
   </data>
-  <data name="Error_Wmi_TaskFail" xml:space="preserve">
-    <value>任务执行失败 (状态码: {0})</value>
-  </data>
-  <data name="Error_Wmi_WaitExc" xml:space="preserve">
-    <value>等待任务时异常: {0}</value>
-  </data>
   <data name="Scheduler_Classic" xml:space="preserve">
     <value>经典 (Classic)</value>
   </data>
@@ -1841,9 +919,6 @@
   </data>
   <data name="Scheduler_Root" xml:space="preserve">
     <value>根 (Root)</value>
-  </data>
-  <data name="Error_Common_Admin" xml:space="preserve">
-    <value>需要管理员权限才能执行此操作。</value>
   </data>
   <data name="Msg_Host_EnableHyperV" xml:space="preserve">
     <value>正在启用 Hyper-V 服务，请稍候...</value>
@@ -1871,9 +946,6 @@
   </data>
   <data name="Error_Vm_StartFail" xml:space="preserve">
     <value>启动失败</value>
-  </data>
-  <data name="Error_Vm_ConnectTool" xml:space="preserve">
-    <value>无法打开官方连接工具，请确保已安装 Hyper-V 管理组件。</value>
   </data>
   <data name="Error_Common_ModFailShort" xml:space="preserve">
     <value>修改失败</value>
@@ -2127,9 +1199,6 @@
   <data name="Error_Common_OpException" xml:space="preserve">
     <value>操作异常</value>
   </data>
-  <data name="Error_Gpu_LoadHost" xml:space="preserve">
-    <value>无法加载宿主机显卡: </value>
-  </data>
   <data name="Msg_Gpu_WorkStart" xml:space="preserve">
     <value>&gt;&gt;&gt; 开始为虚拟机 [{0}] 配置 GPU 分区</value>
   </data>
@@ -2196,9 +1265,6 @@
   <data name="Error_Gpu_NoPartFound" xml:space="preserve">
     <value>未能在任何硬盘上识别到有效分区。请确保系统已安装。</value>
   </data>
-  <data name="Msg_Gpu_ScanOk" xml:space="preserve">
-    <value>扫描完成：共发现 {0} 个分区，分布在 {1} 个磁盘上。</value>
-  </data>
   <data name="Msg_Gpu_DetectWin" xml:space="preserve">
     <value>检测到唯一的 Windows 系统分区，正在同步驱动...</value>
   </data>
@@ -2229,17 +1295,11 @@
   <data name="Msg_Gpu_LinuxVm" xml:space="preserve">
     <value>检测到 Linux 分区，正在等待虚拟机启动...</value>
   </data>
-  <data name="Msg_Gpu_ProxyOk" xml:space="preserve">
-    <value>已自动识别系统代理: {0}:{1}</value>
-  </data>
   <data name="Msg_Gpu_IpSniff" xml:space="preserve">
     <value>正在自动启动虚拟机以初始化网络...</value>
   </data>
   <data name="Msg_Gpu_IpScanning" xml:space="preserve">
     <value>正在嗅探虚拟机 IP 地址...</value>
-  </data>
-  <data name="Msg_Gpu_MacOk" xml:space="preserve">
-    <value>获取到 MAC 地址: {0}，正在匹配 IP...</value>
   </data>
   <data name="Msg_Gpu_IpOk" xml:space="preserve">
     <value>成功获取 IP 地址: {0}</value>
@@ -2259,14 +1319,8 @@
   <data name="Error_Common_Verify" xml:space="preserve">
     <value>验证失败</value>
   </data>
-  <data name="Error_Gpu_IpEmpty" xml:space="preserve">
-    <value>主机 IP 地址不能为空</value>
-  </data>
   <data name="Msg_Gpu_DeployStart" xml:space="preserve">
     <value>&gt;&gt;&gt; 开始 Linux 部署流程</value>
-  </data>
-  <data name="Msg_Gpu_SshInfo" xml:space="preserve">
-    <value>连接参数 - Host: {0}, Port: {1}, User: {2}</value>
   </data>
   <data name="Msg_Gpu_UsingProxy" xml:space="preserve">
     <value>使用代理: {0}:{1}</value>
@@ -2586,9 +1640,6 @@
   <data name="Desc_NetInfo" xml:space="preserve">
     <value>网络设置与连接信息</value>
   </data>
-  <data name="Label_FetchingIp" xml:space="preserve">
-    <value>获取中...</value>
-  </data>
   <data name="Warn_NoAdapter" xml:space="preserve">
     <value>未配置网络适配器</value>
   </data>
@@ -2825,9 +1876,6 @@
   </data>
   <data name="VmNet_QueryComplete" xml:space="preserve">
     <value>[成功] 查询完成: 找到 {0} 个网卡端口, {1} 个分配设置。</value>
-  </data>
-  <data name="VmNet_AdvSetReadExp" xml:space="preserve">
-    <value>    [高级设置] 读取异常: {0}</value>
   </data>
   <data name="VmNet_IpFail" xml:space="preserve">
     <value>IP获取失败: {0}</value>
@@ -3075,15 +2123,6 @@
   <data name="UsbDeviceModel_1" xml:space="preserve">
     <value>主机</value>
   </data>
-  <data name="UsbDeviceModel_2" xml:space="preserve">
-    <value>主机</value>
-  </data>
-  <data name="UsbDeviceModel_3" xml:space="preserve">
-    <value>主机</value>
-  </data>
-  <data name="UsbDeviceModel_4" xml:space="preserve">
-    <value>主机</value>
-  </data>
   <data name="DiskParserService_1" xml:space="preserve">
     <value>[DiskParser] 自动识别扇区: 512 字节 (Standard/512e)</value>
   </data>
@@ -3101,9 +2140,6 @@
   </data>
   <data name="HyperVSchedulerService_2" xml:space="preserve">
     <value>[HyperVSchedulerService] 使用 Utils.RunScriptSTA 执行 bcdedit 失败: {0}</value>
-  </data>
-  <data name="IHyperVService_1" xml:space="preserve">
-    <value>主机</value>
   </data>
   <data name="UsbVmbusService_1" xml:space="preserve">
     <value>[StopTunnel] 正在停止旧隧道: {0}</value>
@@ -3125,9 +2161,6 @@
   </data>
   <data name="VmMemoryService_1" xml:space="preserve">
     <value>读取内存配置时发生严重异常: {0}</value>
-  </data>
-  <data name="VmNetworkService_1" xml:space="preserve">
-    <value>\n--- [处理第 {0}/{1} 个网卡: '{2}'] ---</value>
   </data>
   <data name="VmNetworkService_2" xml:space="preserve">
     <value>    [高级设置] 读取异常: {0}</value>
@@ -3156,14 +2189,8 @@
   <data name="MsRdpExHost_5" xml:space="preserve">
     <value>[RDP_LOG] --- 执行布局计算 ---</value>
   </data>
-  <data name="MsRdpExHost_6" xml:space="preserve">
-    <value>[RDP_LOG] 物理像素: {0}x{1}, DPI渲染比例: {2}</value>
-  </data>
   <data name="MsRdpExHost_7" xml:space="preserve">
     <value>[RDP_LOG] 计算后的WPF尺寸: {0}x{1}</value>
-  </data>
-  <data name="MsRdpExHost_8" xml:space="preserve">
-    <value>[RDP_LOG] 分辨率真实变化: 从 {0}x{1} (记录) 变为 {2}x{3} (窗口)</value>
   </data>
   <data name="ProcessAffinityManager_1" xml:space="preserve">
     <value>[ProcessAffinityManager] 找到匹配的 vmmem 进程 (PID: {0}) 但获取失败: {1}</value>
@@ -3182,9 +2209,6 @@
   </data>
   <data name="WmiTools_1" xml:space="preserve">
     <value>WMI 查询异常 [{0}]: {1}</value>
-  </data>
-  <data name="ConsoleViewModel_1" xml:space="preserve">
-    <value>进入全屏模式，按 Ctrl+Alt+Break 退出</value>
   </data>
   <data name="ConsoleViewModel_2" xml:space="preserve">
     <value>操作失败: {0}</value>
@@ -3234,26 +2258,8 @@
   <data name="USBPageViewModel_1" xml:space="preserve">
     <value>正在连接...</value>
   </data>
-  <data name="USBPageViewModel_2" xml:space="preserve">
-    <value>主机</value>
-  </data>
-  <data name="USBPageViewModel_3" xml:space="preserve">
-    <value>主机</value>
-  </data>
-  <data name="USBPageViewModel_4" xml:space="preserve">
-    <value>主机</value>
-  </data>
-  <data name="USBPageViewModel_5" xml:space="preserve">
-    <value>正在连接...</value>
-  </data>
   <data name="USBPageViewModel_6" xml:space="preserve">
     <value>无法打开网页: {0}</value>
-  </data>
-  <data name="VirtualMachinesPageViewModel_1" xml:space="preserve">
-    <value>取消</value>
-  </data>
-  <data name="VirtualMachinesPageViewModel_2" xml:space="preserve">
-    <value>立即创建</value>
   </data>
   <data name="VirtualMachinesPageViewModel_3" xml:space="preserve">
     <value>[CONSOLE] 正在为 {0} 开启沉浸式控制台...</value>
@@ -3278,12 +2284,6 @@
   </data>
   <data name="VirtualMachinesPageViewModel_10" xml:space="preserve">
     <value>[DEBUG-STORAGE] [通知] SelectedLocation 当前值为: {0}</value>
-  </data>
-  <data name="VirtualMachinesPageViewModel_11" xml:space="preserve">
-    <value>[STORAGE-ACTION] 执行添加操作: {0} -&gt; 控制器:{1} #{2} 位置:{3}</value>
-  </data>
-  <data name="VirtualMachinesPageViewModel_12" xml:space="preserve">
-    <value>[DEBUG-STORAGE] &gt;&gt;&gt; 开始自动分配: {0} #{1} Loc:{2}</value>
   </data>
   <data name="VirtualMachinesPageViewModel_13" xml:space="preserve">
     <value>[DEBUG-STORAGE] 编号强刷完成 -&gt; {0}</value>
@@ -3342,12 +2342,6 @@
   <data name="ConsoleWindow_6" xml:space="preserve">
     <value>强制关闭</value>
   </data>
-  <data name="ConsoleWindow_7" xml:space="preserve">
-    <value>基本会话</value>
-  </data>
-  <data name="ConsoleWindow_8" xml:space="preserve">
-    <value>增强会话</value>
-  </data>
   <data name="ConsoleWindow_9" xml:space="preserve">
     <value>发送 Ctrl+Alt+Del</value>
   </data>
@@ -3356,9 +2350,6 @@
   </data>
   <data name="HostPage_1" xml:space="preserve">
     <value>禁用</value>
-  </data>
-  <data name="MainPage_1" xml:space="preserve">
-    <value>USB 直通 ( Beta )</value>
   </data>
   <data name="MainPage_2" xml:space="preserve">
     <value>将主机 USB 设备分配给虚拟机</value>
@@ -3386,27 +2377,6 @@
   </data>
   <data name="VmDashboardView_1" xml:space="preserve">
     <value>{Binding IpAddressDisplay, FallbackValue='获取中...'}</value>
-  </data>
-  <data name="Status_Msg_CurrentVer_Duplicate" xml:space="preserve">
-    <value>当前识别为</value>
-  </data>
-  <data name="Status_Msg_OperationPending_Duplicate" xml:space="preserve">
-    <value>变更已挂起，重启后生效。</value>
-  </data>
-  <data name="Status_Msg_RestartNow_Duplicate" xml:space="preserve">
-    <value>系统标识已修改。是否立即重启？</value>
-  </data>
-  <data name="Status_Title_Success_Duplicate" xml:space="preserve">
-    <value>操作成功</value>
-  </data>
-  <data name="Status_Title_Info_Duplicate" xml:space="preserve">
-    <value>提示</value>
-  </data>
-  <data name="Status_Title_Error_Duplicate" xml:space="preserve">
-    <value>错误</value>
-  </data>
-  <data name="Global_Restart_Duplicate" xml:space="preserve">
-    <value>立即重启</value>
   </data>
   <data name="Task_Gpu_Config" xml:space="preserve">
     <value>配置检查</value>
