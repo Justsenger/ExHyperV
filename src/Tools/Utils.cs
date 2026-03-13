@@ -649,7 +649,14 @@ public class Utils
         catch { }
         return (string.Empty, string.Empty);
     }
-    public static string Version => "V1.4.2";
-    public static string Author => "Saniye";
+    public static string Version
+    {
+        get
+        {
+            return $"V{Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "1.0.0"}";
+        }
+    }
+
+    public static string Author => "Justsenger";
 
 }

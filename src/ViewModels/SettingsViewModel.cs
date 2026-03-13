@@ -88,7 +88,7 @@ namespace ExHyperV.ViewModels
             }
             catch{}
         }
-        public string CopyrightInfo => "© 2025 | Saniye | " + Utils.Version;
+        public string CopyrightInfo => "© 2026 | " + Utils.Author+ " | " + Utils.Version;
 
         public SettingsViewModel()
         {
