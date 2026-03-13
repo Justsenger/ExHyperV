@@ -218,28 +218,5 @@
         <RemoveDir Directories="@(RuntimesDirsToRemove)" />
         <Delete Files="@(RuntimesFilesToRemove)" Condition=" '%(Identity)' != '' " />
         
-    </Target>
-
-	<!-- ========================================================================================= -->
-	<!-- ===                    ARM64 启动器                       === -->
-	<!-- ========================================================================================= -->
-	<UsingTask TaskName="Microsoft.NET.Build.Tasks.CreateAppHost"
-			   AssemblyFile="$(MSBuildSDKPath)\Microsoft.NET.Build.Tasks.dll" />
-
-	<Target Name="GenerateNativeArm64AppHost" AfterTargets="GodTierCleanupAfterPublish">
-		<PropertyGroup>
-			<Arm64AppHostName>$(AssemblyName)_ARM64.exe</Arm64AppHostName>
-			<Arm64AppHostPath>$(PublishDir)$(Arm64AppHostName)</Arm64AppHostPath>
-			<Arm64HostTemplatePath>$(NetCoreTargetingPackRoot)\Microsoft.NETCore.App.Host.win-arm64\$(BundledNETCoreAppPackageVersion)\runtimes\win-arm64\native\apphost.exe</Arm64HostTemplatePath>
-			<MyIntermediateAssembly>$(IntermediateOutputPath)$(TargetName)$(TargetExt)</MyIntermediateAssembly>
-		</PropertyGroup>
-
-		<CreateAppHost
-			AppHostSourcePath="$(Arm64HostTemplatePath)"
-			AppHostDestinationPath="$(Arm64AppHostPath)"
-			AppBinaryName="$(AssemblyName).dll"
-			IntermediateAssembly="$(MyIntermediateAssembly)"
-			WindowsGraphicalUserInterface="true" />
-	</Target>
-	
+    </Target>	
 </Project>
