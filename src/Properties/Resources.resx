@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <root>
   <!-- 
     Microsoft ResX Schema 
@@ -3088,6 +3088,21 @@ This operation sends a shutdown signal to the guest OS.</value>
   </data>
   <data name="Xaml_Placeholder_IsoOptional" xml:space="preserve">
     <value>Select OS installation ISO image (optional)</value>
+  </data>
+  <data name="Task_Gpu_Config" xml:space="preserve">
+    <value>Config check</value>
+  </data>
+  <data name="Msg_Gpu_CheckingConfig" xml:space="preserve">
+    <value>Checking VM configuration...</value>
+  </data>
+  <data name="Msg_Gpu_ConfigNeeded" xml:space="preserve">
+    <value>Pending configure.</value>
+  </data>
+  <data name="Msg_Gpu_ConfigOk" xml:space="preserve">
+    <value>VM config is OK.</value>
+  </data>
+  <data name="Msg_Skip" xml:space="preserve">
+    <value>Skipped.</value>
   </data>
   <data name="MainWindow_1" xml:space="preserve">
     <value>USB Passthrough (Beta)</value>

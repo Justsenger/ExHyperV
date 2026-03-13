@@ -137,6 +137,7 @@ namespace ExHyperV.ViewModels
         [ObservableProperty] private PartitionInfo? _selectedPartition;
         [ObservableProperty] private bool _showSshForm = false;
         [ObservableProperty] private string? _currentProcessingGpuAdapterId;
+        private bool _needConfig = false;
 
         // Linux SSH 凭据
         [ObservableProperty] private string _sshHost = "";
@@ -2798,6 +2799,14 @@ namespace ExHyperV.ViewModels
 
             GpuTasks.Add(new TaskItem
             {
+                TaskType = GpuTaskType.ConfigCheck,
+                Name = Properties.Resources.Task_Gpu_Config,
+                Description = Properties.Resources.Msg_Gpu_CheckingConfig,
+                Status = ExHyperV.Models.TaskStatus.Pending  // 这里写全称
+            });
+
+            GpuTasks.Add(new TaskItem
+            {
                 TaskType = GpuTaskType.PowerCheck,
                 Name = Properties.Resources.Task_Gpu_Power,
                 Description = Properties.Resources.Msg_Gpu_CheckingPower,
@@ -2859,24 +2868,43 @@ namespace ExHyperV.ViewModels
                             task.Description = Properties.Resources.Msg_Gpu_Policy;
                             break;
 
+                        case GpuTaskType.ConfigCheck:
+                            _needConfig = !(await _vmGpuService.CheckVmForGpuAsync(SelectedVm.Name));
+                            task.Description = _needConfig ? Properties.Resources.Msg_Gpu_ConfigNeeded : Properties.Resources.Msg_Gpu_ConfigOk;
+                            break;
+
                         case GpuTaskType.PowerCheck:
-                            var (isOff, state) = await _vmGpuService.IsVmPoweredOffAsync(SelectedVm.Name);
-                            if (!isOff)
+                            if (_needConfig || AutoInstallDrivers)
                             {
-                                task.Description = string.Format(Properties.Resources.Msg_Gpu_ForceOff, state);
-                                AppendLog(task.Description);
-                                await _powerService.ExecuteControlActionAsync(SelectedVm.Name, "TurnOff");
-                                while (!(await _vmGpuService.IsVmPoweredOffAsync(SelectedVm.Name)).IsOff)
+                                var (isOff, state) = await _vmGpuService.IsVmPoweredOffAsync(SelectedVm.Name);
+                                if (!isOff)
                                 {
-                                    await Task.Delay(100);
+                                    task.Description = string.Format(Properties.Resources.Msg_Gpu_ForceOff, state);
+                                    AppendLog(task.Description);
+                                    await _powerService.ExecuteControlActionAsync(SelectedVm.Name, "TurnOff");
+                                    while (!(await _vmGpuService.IsVmPoweredOffAsync(SelectedVm.Name)).IsOff)
+                                    {
+                                        await Task.Delay(100);
+                                    }
                                 }
+                                task.Description = Properties.Resources.Msg_Gpu_Off;
                             }
-                            task.Description = Properties.Resources.Msg_Gpu_Off;
+                            else
+                            {
+                                task.Description = Properties.Resources.Msg_Skip;
+                            }
                             break;
 
                         case GpuTaskType.Optimization:
-                            bool optOk = await _vmGpuService.OptimizeVmForGpuAsync(SelectedVm.Name);
-                            task.Description = optOk ? Properties.Resources.Msg_Gpu_MmioOk : Properties.Resources.Error_Gpu_OptFail;
+                            if (_needConfig)
+                            {
+                                bool optOk = await _vmGpuService.OptimizeVmForGpuAsync(SelectedVm.Name);
+                                task.Description = optOk ? Properties.Resources.Msg_Gpu_MmioOk : Properties.Resources.Error_Gpu_OptFail;
+                            }
+                            else
+                            {
+                                task.Description = Properties.Resources.Msg_Skip;
+                            }
                             break;
 
                         case GpuTaskType.Assign:
