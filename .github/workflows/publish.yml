@@ -41,22 +41,29 @@ jobs:
           dotnet-version: '8.0.x'
 
       - if: steps.check_tag.outputs.EXISTS == 'false'
+        shell: pwsh
         run: |
-          dotnet publish src/ExHyperV.csproj -c Release --self-contained false -o ./publish_raw
+          # 1. 生成标准的“可移植”版本 (这是你清理脚本运行的基础)
+          dotnet publish src/ExHyperV.csproj -c Release --self-contained false -o ./publish_portable
+
+          # 2. 专门生成一个 ARM64 版本 (仅为了提取那个原生的 ExHyperV.exe)
+          # 注意：这里加了 -r，SDK 会自动下载缺失的 win-arm64 packs
+          dotnet publish src/ExHyperV.csproj -c Release -r win-arm64 --self-contained false -o ./temp_arm64
 
       - if: steps.check_tag.outputs.EXISTS == 'false'
         shell: pwsh
         run: |
           $ver = "${{ steps.get_version.outputs.VERSION }}"
           
-          Copy-Item -Path "./publish_raw" -Destination "./dist_x64" -Recurse
-          Copy-Item -Path "./publish_raw" -Destination "./dist_arm64" -Recurse
-
-          Remove-Item "./dist_x64/ExHyperV_ARM64.exe" -Force
+          # 准备 x64 分发包 (直接使用可移植版本)
+          Copy-Item -Path "./publish_portable" -Destination "./dist_x64" -Recurse
           Compress-Archive -Path ./dist_x64/* -DestinationPath "ExHyperV_$($ver)_x64.zip" -Force
 
+          # 准备 ARM64 分发包
+          Copy-Item -Path "./publish_portable" -Destination "./dist_arm64" -Recurse
+          # 关键一步：用 temp_arm64 里的原生 EXE 替换掉可移植版本里的 x64 EXE
           Remove-Item "./dist_arm64/ExHyperV.exe" -Force
-          Move-Item "./dist_arm64/ExHyperV_ARM64.exe" "./dist_arm64/ExHyperV.exe"
+          Copy-Item -Path "./temp_arm64/ExHyperV.exe" -Destination "./dist_arm64/ExHyperV.exe"
           Compress-Archive -Path ./dist_arm64/* -DestinationPath "ExHyperV_$($ver)_arm64.zip" -Force
 
       - if: steps.check_tag.outputs.EXISTS == 'false'
