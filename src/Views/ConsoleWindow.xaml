@@ -9,7 +9,7 @@
                  
     xmlns:components="clr-namespace:ExHyperV.Views.Components"
     Title="{Binding VmName}"
-    MinWidth="720" 
+    MinWidth="200" 
     WindowStartupLocation="CenterScreen"
     ExtendsContentIntoTitleBar="True"
     WindowBackdropType="Mica">
@@ -35,7 +35,7 @@
             Padding="0"
             Visibility="{Binding IsFullScreen, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=Invert}">
             <ui:TitleBar.Header>
-                <Grid Margin="12,0,140,0" HorizontalAlignment="Stretch">
+                <Grid Margin="12,0,0,0" HorizontalAlignment="Stretch">
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                         <TextBlock Text="{Binding VmName}"
                            VerticalAlignment="Center"
