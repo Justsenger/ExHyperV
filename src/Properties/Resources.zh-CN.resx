@@ -2118,7 +2118,7 @@
     <value>选择操作系统安装 ISO 镜像 (可选)</value>
   </data>
   <data name="MainWindow_1" xml:space="preserve">
-    <value>USB 直通 ( Beta )</value>
+    <value>USB 直通</value>
   </data>
   <data name="UsbDeviceModel_1" xml:space="preserve">
     <value>主机</value>

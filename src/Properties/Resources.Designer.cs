@@ -3642,7 +3642,7 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
-        ///   查找类似 USB Passthrough (Beta) 的本地化字符串。
+        ///   查找类似 USB Passthrough 的本地化字符串。
         /// </summary>
         public static string MainWindow_1 {
             get {
@@ -5514,8 +5514,7 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
-        ///   查找类似  USB passthrough requires pre-installed drivers and agents. Read the guide for details.
-        /// 的本地化字符串。
+        ///   查找类似  USB passthrough requires pre-installed drivers and agents. Read the guide for details. 的本地化字符串。
         /// </summary>
         public static string USBPage_2 {
             get {

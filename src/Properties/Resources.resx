@@ -2133,7 +2133,7 @@ To ensure the virtual machine uses the same GPU on the next cold boot, you must 
     <value>Skipped.</value>
   </data>
   <data name="MainWindow_1" xml:space="preserve">
-    <value>USB Passthrough (Beta)</value>
+    <value>USB Passthrough</value>
   </data>
   <data name="UsbDeviceModel_1" xml:space="preserve">
     <value>Host</value>
@@ -2370,8 +2370,7 @@ To ensure the virtual machine uses the same GPU on the next cold boot, you must 
     <value>Assign host USB devices to VMs</value>
   </data>
   <data name="USBPage_2" xml:space="preserve">
-    <value> USB passthrough requires pre-installed drivers and agents. Read the guide for details.
-</value>
+    <value> USB passthrough requires pre-installed drivers and agents. Read the guide for details.</value>
   </data>
   <data name="USBPage_3" xml:space="preserve">
     <value>View Guide</value>
