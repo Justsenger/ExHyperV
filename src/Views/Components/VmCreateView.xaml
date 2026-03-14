@@ -147,13 +147,7 @@
                         <ComboBox ItemsSource="{Binding SupportedIsolationTypes}" 
                                   SelectedItem="{Binding NewVmIsolationType}" 
                                   Width="200"/>
-
-                        <!-- 修复点：只有当 IsIsolationSupported 等于 False 时，才显示这个警告文本 -->
-                        <TextBlock Text="{x:Static properties:Resources.Xaml_ConfidentialNotSupported}" 
-                                   VerticalAlignment="Center" Margin="12,0,0,0"
-                                   Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"
-                                   Visibility="{Binding IsIsolationSupported, Converter={StaticResource EqualityToVis}, ConverterParameter=False}"/>
-                    </StackPanel>
+                   </StackPanel>
                 </ui:CardControl>
 
                 <!-- === 存储资源 === -->

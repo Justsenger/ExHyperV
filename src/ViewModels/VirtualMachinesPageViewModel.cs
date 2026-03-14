@@ -647,7 +647,7 @@ namespace ExHyperV.ViewModels
 
                 // 存储设置
                 DiskMode = NewVmDiskMode,
-                DiskSizeGb = long.TryParse(NewVmDiskSizeGb, out var ds) ? ds : 127,
+                DiskSizeGb = long.TryParse(NewVmDiskSizeGb, out var ds) ? ds : 128,
                 VhdPath = NewVmDiskMode == 0 ? NewVmNewDiskPath : NewVmExistingDiskPath,
                 IsoPath = NewVmIsoPath,
 
