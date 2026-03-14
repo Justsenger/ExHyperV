@@ -308,46 +308,36 @@ namespace ExHyperV.Services
         /// <summary>检查VM配置，判断是否满足GPU-PV要求。</summary>
         /// <param name="vmName">待检查的VM名称</param>
         /// <returns>如果满足要求，返回true。否则返回false。</returns>
+
         public Task<bool> CheckVmForGpuAsync(string vmName)
         {
-            const uint OneGB = 1073741824;
-            const ulong SixtyFourGB = 68719476736;
             return Task.Run(() =>
             {
                 try
                 {
                     var vmList = Utils.Run($"Get-VM -Name '{vmName}'");
                     var vm = vmList?[0];
-                    if (vm == null)
-                    {
-                        return false;
-                    }
-                    var cacheTypes = (bool)(vm.Members["GuestControlledCacheTypes"]?.Value ?? false);
-                    var lowMMIO = (uint)(vm.Members["LowMemoryMappedIoSpace"]?.Value ?? 0);
-                    var highMMIO = (ulong)(vm.Members["HighMemoryMappedIoSpace"]?.Value ?? 0);
-                    return cacheTypes && lowMMIO >= OneGB && highMMIO >= SixtyFourGB;
-                }
-                catch { return false; }
-            });
-        }
+                    if (vm == null) return false;
 
-        public Task<bool> OptimizeVmForGpuAsync(string vmName)
-        {
-            return Task.Run(() =>
-            {
-                try
-                {
-                    string vmConfigScript = $@"
-                Set-VM -GuestControlledCacheTypes $true -VMName '{vmName}';
-                Set-VM -HighMemoryMappedIoSpace 64GB -VMName '{vmName}';
-                Set-VM -LowMemoryMappedIoSpace 1GB -VMName '{vmName}';
-            ";
-                    Utils.Run(vmConfigScript);
+                    var highMMIO = (ulong)(vm.Members["HighMemoryMappedIoSpace"]?.Value ?? 0);
+                    var baseAddr = (ulong)(vm.Members["HighMemoryMappedIoBaseAddress"]?.Value ?? 0);
+                    var cacheEnabled = (bool)(vm.Members["GuestControlledCacheTypes"]?.Value ?? false);
+                    if (highMMIO < 32212254720) return false;
+                    if (baseAddr == 68182605824 || baseAddr == 36507222016) return false;
+
+                    if (!cacheEnabled) return false;
+
                     return true;
                 }
                 catch { return false; }
             });
         }
+        public async Task<bool> OptimizeVmForGpuAsync(string vmName)
+        {
+
+            return await MMIOOptimizer.OptimizeVmAsync(vmName);
+        }
+        
         #endregion
 
         #region 磁盘与分区操作
