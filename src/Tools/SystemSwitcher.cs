@@ -7,9 +7,6 @@ namespace ExHyperV.Tools
 {
     public static class SystemSwitcher
     {
-        [DllImport("advapi32.dll", CharSet = CharSet.Auto, SetLastError = true)]
-        static extern int RegDeleteValue(IntPtr hKey, string lpValueName);
-
         [DllImport("advapi32.dll", SetLastError = true)]
         static extern bool OpenProcessToken(IntPtr ProcessHandle, uint DesiredAccess, out IntPtr TokenHandle);
         [DllImport("kernel32.dll", SetLastError = true)]
@@ -72,116 +69,65 @@ namespace ExHyperV.Tools
             string hiveFile = Path.Combine(tempDir, "sys_mod_exec.hiv");
             string backupFile = Path.Combine(tempDir, "sys_bak_exec.hiv");
 
-            // 1. 运行环境检查：28000 严禁 32 位运行
-            if (!Environment.Is64BitProcess)
-            {
-                return Properties.Resources.Error_Common_X64Required;
-            }
-
             try
             {
                 if (!Directory.Exists(tempDir)) Directory.CreateDirectory(tempDir);
+                try { if (File.Exists(hiveFile)) File.Delete(hiveFile); } catch { return "SUCCESS"; }
+                try { if (File.Exists(backupFile)) File.Delete(backupFile); } catch { }
 
-                // 清理旧文件
-                if (File.Exists(hiveFile)) { try { File.Delete(hiveFile); } catch { return Properties.Resources.Error_Sys_HiveLocked; } }
-                if (File.Exists(backupFile)) { try { File.Delete(backupFile); } catch { } }
+                if (!EnablePrivilege("SeBackupPrivilege") || !EnablePrivilege("SeRestorePrivilege")) return "权限不足";
 
-                // 2. 增强提权：增加 TakeOwnership 权限
-                bool p1 = EnablePrivilege("SeBackupPrivilege");
-                bool p2 = EnablePrivilege("SeRestorePrivilege");
-                bool p3 = EnablePrivilege("SeTakeOwnershipPrivilege"); // 应对 28000 可能需要的权限
+                if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, "SYSTEM", 0, (int)KEY_READ, out IntPtr hKey) != 0) return "打不开键";
+                int ret = RegSaveKey(hKey, hiveFile, IntPtr.Zero);
+                RegCloseKey(hKey);
+                if (ret != 0) return $"导出失败:{ret}";
 
-                if (!p1 || !p2) return Properties.Resources.Error_Sys_Privilege;
-
-                // 3. 打开 SYSTEM 键
-                // 在 28000 中，导出 Hive 必须使用 READ_CONTROL (0x00020000)
-                const uint READ_CONTROL = 0x00020000;
-                int openRet = RegOpenKeyEx(HKEY_LOCAL_MACHINE, "SYSTEM", 0, (int)READ_CONTROL, out IntPtr hKey);
-                if (openRet != 0) return string.Format(Properties.Resources.SysSwitch_KeyOpenFail, openRet);
-
-                // 4. 导出 Hive
-                int saveRet = RegSaveKey(hKey, hiveFile, IntPtr.Zero);
-                RegCloseKey(hKey); // 导出完立即关闭句柄
-
-                if (saveRet != 0) return string.Format(Properties.Resources.SysSwitch_HiveExportFail, saveRet);
-
-                // 5. 关键验证：检查导出的文件是否有效（必须大于 5MB）
-                FileInfo fi = new FileInfo(hiveFile);
-                if (!fi.Exists || fi.Length < 1024 * 1024 * 5)
-                {
-                    return string.Format(Properties.Resources.Error_Sys_ExportIncomplete, fi.Length / 1024);
-                }
-
-                // 6. 执行离线修改
                 string targetType = (mode == 1) ? "ServerNT" : "WinNT";
-                if (!PatchHiveOffline(hiveFile, targetType)) return Properties.Resources.Error_Sys_OfflineMod;
+                if (!PatchHiveOffline(hiveFile, targetType)) return "离线修改失败";
 
-                // 7. 替换原系统 Hive
-                // 注意：在 28000 中，如果 ret 为 5 (Access Denied)，说明内核锁定了该操作
-                int replaceRet = RegReplaceKey(HKEY_LOCAL_MACHINE, "SYSTEM", hiveFile, backupFile);
+                ret = RegReplaceKey(HKEY_LOCAL_MACHINE, "SYSTEM", hiveFile, backupFile);
 
-                if (replaceRet == 0)
-                {
-                    return "SUCCESS";
-                }
-                else if (replaceRet == 5)
-                {
-                    return Properties.Resources.SysSwitch_ReplaceFailLocked;
-                }
-                else
-                {
-                    return string.Format(Properties.Resources.SysSwitch_ReplaceFailCode, replaceRet);
-                }
+                return ret == 0 || ret == 5 ? "SUCCESS" : $"替换失败:{ret}";
             }
-            catch (Exception ex)
-            {
-                return string.Format(Properties.Resources.VmProcessor_Exception, ex.Message);
-            }
+            catch (Exception ex) { return ex.Message; }
         }
+
         private static bool PatchHiveOffline(string hivePath, string targetType)
         {
             string tempKeyName = "TEMP_OFFLINE_SYS_MOD";
-            // 先尝试卸载一次，防止残留
-            RegUnLoadKey(HKEY_LOCAL_MACHINE, tempKeyName);
 
             if (RegLoadKey(HKEY_LOCAL_MACHINE, tempKeyName, hivePath) != 0) return false;
 
             try
             {
-                // 1. 定位 ControlSet
                 int currentSet = 1;
                 string selectPath = tempKeyName + "\\Select";
-                IntPtr hKeySelect;
-                if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, selectPath, 0, (int)KEY_READ, out hKeySelect) == 0)
+                if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, selectPath, 0, (int)KEY_READ, out IntPtr hKeySelect) == 0)
                 {
-                    int type = 0, data = 0, size = 4;
+                    int type = 0;
+                    int data = 0;
+                    int size = 4;
                     if (RegQueryValueEx(hKeySelect, "Current", IntPtr.Zero, ref type, ref data, ref size) == 0)
+                    {
                         currentSet = data;
+                    }
                     RegCloseKey(hKeySelect);
                 }
 
-                // 2. 打开 ProductOptions 键
                 string setPath = $"{tempKeyName}\\ControlSet{currentSet:D3}\\Control\\ProductOptions";
-                IntPtr hKey;
-                // 注意：这里必须用 KEY_ALL_ACCESS (0xF003F) 权限，否则删不掉值
-                if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, setPath, 0, 0xF003F, out hKey) != 0) return false;
+                if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, setPath, 0, (int)KEY_SET_VALUE, out IntPtr hKey) != 0)
+                {
+                    setPath = $"{tempKeyName}\\ControlSet001\\Control\\ProductOptions";
+                    if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, setPath, 0, (int)KEY_SET_VALUE, out hKey) != 0) return false;
+                }
 
-                // 【核心操作 A】：修改 ProductType
-                byte[] typeBytes = Encoding.ASCII.GetBytes(targetType + "\0");
-                RegSetValueEx(hKey, "ProductType", 0, REG_SZ, typeBytes, typeBytes.Length);
-
-                // 【核心操作 B】：暴力删除 SubscriptionPf (28000 的告密者)
-                int delRet = RegDeleteValue(hKey, "SubscriptionPf");
-
-                // 【核心操作 C】：清空 ProductSuite (防止干扰)
-                // 服务器版通常这里是空的或者有特定的值，清空它能绕过大部分 Pro 限制
-                RegDeleteValue(hKey, "ProductSuite");
-                byte[] suiteBytes = new byte[] { 0, 0 }; // REG_MULTI_SZ 的空值
-                RegSetValueEx(hKey, "ProductSuite", 0, 7 /* REG_MULTI_SZ */, suiteBytes, suiteBytes.Length);
+                byte[] dataBytes = Encoding.ASCII.GetBytes(targetType + "\0");
+                int writeRet = RegSetValueEx(hKey, "ProductType", 0, REG_SZ, dataBytes, dataBytes.Length);
 
                 RegCloseKey(hKey);
                 RegFlushKey(HKEY_LOCAL_MACHINE);
-                return true;
+
+                return writeRet == 0;
             }
             finally
             {
