@@ -198,7 +198,6 @@
             <RuntimesDirsToRemove Include="$(PublishDir)runtimes\win\lib\net8.0\Modules\Microsoft.WSMan.Management" />
 
 			<RuntimesDirsToRemove Include="$(PublishDir)runtimes\win\lib\netcoreapp2.1" />
-			<RuntimesDirsToRemove Include="$(PublishDir)runtimes\win-x64\native" />
 			
 
 			<RuntimesFilesToRemove Include="$(PublishDir)runtimes\win\lib\net8.0\Microsoft.Management.Infrastructure.CimCmdlets.dll" />
