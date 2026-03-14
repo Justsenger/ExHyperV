@@ -1,5 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<Values xmlns="urn:tom-englert.de/Configuration/1/0">
-  <Value Key="Rules">{"EnabledRules":["StringFormat","WhiteSpaceLead","WhiteSpaceTail","PunctuationLead"]}</Value>
-  <Value Key="PrefixTranslations">False</Value>
-</Values>

@@ -108,20 +108,21 @@ namespace ExHyperV.ViewModels
             InitializeProductType();
             await LoadAdvancedConfigAsync();
             IsGpuStrategyToggleEnabled = true;
+            IsSystemSwitchEnabled = true;
 
-            string currentId = Microsoft.Win32.Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion", "EditionID", "")?.ToString() ?? "";
+            //string currentId = Microsoft.Win32.Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion", "EditionID", "")?.ToString() ?? "";
 
-            bool isServer = currentId.StartsWith("Server", StringComparison.OrdinalIgnoreCase);
+            //bool isServer = currentId.StartsWith("Server", StringComparison.OrdinalIgnoreCase);
 
-            if (isServer)
-            {
-                IsSystemSwitchEnabled = false;
-            }
-            else
-            {
-                var restricted = new List<string> { "Professional", "Core", "Enterprise" };
-                IsSystemSwitchEnabled = !restricted.Contains(currentId);
-            }
+            //if (isServer)
+            //{
+            //    IsSystemSwitchEnabled = false;
+            //}
+            //else
+            //{
+            //    var restricted = new List<string> { "Professional", "Core", "Enterprise" };
+            //    IsSystemSwitchEnabled = !restricted.Contains(currentId);
+            //}
         }
 
         private async Task CheckServerInfoAsync()
