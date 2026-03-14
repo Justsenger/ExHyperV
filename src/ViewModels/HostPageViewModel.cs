@@ -326,7 +326,7 @@ foreach ($f in $features) {
         {
             if (hypervisor && vmmsStatus == 1 && moduleReady && wmiReady)
             {
-                return Properties.Resources.HostPageViewModel_4;
+                return string.Empty;
             }
 
             var missing = new List<string>();

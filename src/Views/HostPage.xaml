@@ -9,6 +9,7 @@
 
     <Page.Resources>
         <converters:BooleanToVisibilityConverter x:Key="BoolToVis" />
+        <converters:StringToVisibilityConverter x:Key="StringToVisibilityConverter" />
     </Page.Resources>
 
     <Grid Margin="24">
@@ -94,7 +95,13 @@
                         <!-- 文字 -->
                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
                             <TextBlock Text="{x:Static properties:Resources.Menu_HyperVService}" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
-                            <TextBlock Text="{Binding HyperVStatus.StatusText}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                            <TextBlock 
+    Text="{Binding HyperVStatus.StatusText}" 
+    Visibility="{Binding HyperVStatus.StatusText, Converter={StaticResource StringToVisibilityConverter}}" 
+    FontSize="12" 
+    Margin="0,2,0,0" 
+    TextWrapping="Wrap" 
+    Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" />
                         </StackPanel>
 
                         <!-- 按钮容器 -->
