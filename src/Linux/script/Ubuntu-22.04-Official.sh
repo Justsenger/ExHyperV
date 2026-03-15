@@ -2,7 +2,7 @@
 # @Name: Ubuntu-22.04-Official
 # @Description: 针对 Ubuntu 22.04 的官方部署脚本。
 # @Author: Justsenger
-# @Version: 1.0.7
+# @Version: 1.0.8
 
 set -e
 
@@ -18,7 +18,7 @@ update_env() {
     echo "$key=$val" | sudo tee -a /etc/environment > /dev/null
 }
 
-# 带有重试机制的命令执行器（应对不稳定的网络）
+# 重试机制
 retry_cmd() {
     local n=1
     local max=5
@@ -46,11 +46,28 @@ ACTION=${1:-"deploy"}
 ENABLE_GRAPHICS=${2:-"true"}
 PROXY_URL=${3:-""}
 
+# --- 自动识别架构 ---
+MACHINE_ARCH=$(uname -m)
+case "$MACHINE_ARCH" in
+    x86_64)
+        ARCH_DIR="x64"
+        ;;
+    aarch64|arm64)
+        ARCH_DIR="arm64"
+        ;;
+    *)
+        echo "[ERROR] Unsupported architecture: $MACHINE_ARCH"
+        exit 1
+        ;;
+esac
+echo "[+] Detected architecture: $MACHINE_ARCH (Using repo dir: $ARCH_DIR)"
+
+
 DEPLOY_DIR="$(dirname $(realpath $0))"
 LIB_DIR="$DEPLOY_DIR/lib"
 # 补丁与库文件的远程仓库基准地址
 PATCH_BASE_URL="https://raw.githubusercontent.com/Justsenger/ExHyperV/main/src/Linux/script/patches"
-GITHUB_LIB_URL="https://raw.githubusercontent.com/Justsenger/ExHyperV/main/src/Linux/lib"
+GITHUB_LIB_URL="https://raw.githubusercontent.com/Justsenger/ExHyperV/main/src/Linux/lib/$ARCH_DIR"
 
 if [ -n "$PROXY_URL" ]; then
     export http_proxy="$PROXY_URL"
@@ -228,21 +245,24 @@ fi
 # ==========================================================
 echo "[STEP: Deploying WSL Core Libraries...]"
 LIBS=("libd3d12.so" "libd3d12core.so" "libdxcore.so")
+mkdir -p "$LIB_DIR"
+for lib in "${LIBS[@]}"; do
+    if [ ! -f "$LIB_DIR/$lib" ]; then
+        echo " -> $lib not found locally, downloading for $ARCH_DIR..."
+        if ! retry_cmd aria2c -x 4 -s 4 --dir="$LIB_DIR" --out="$lib" "$GITHUB_LIB_URL/$lib" --allow-overwrite; then
+            echo " -> [ERROR] Failed to download $lib from $GITHUB_LIB_URL/$lib"
+            exit 1
+        fi
+    fi
+done
+
+
 if [ -f "$LIB_DIR/nvidia-smi" ]; then
     echo "[+] Found nvidia-smi uploaded from host, deploying to /usr/bin..."
     sudo cp "$LIB_DIR/nvidia-smi" /usr/bin/nvidia-smi
     sudo chmod 755 /usr/bin/nvidia-smi
 fi
-mkdir -p "$LIB_DIR"
-for lib in "${LIBS[@]}"; do
-    if [ ! -f "$LIB_DIR/$lib" ]; then
-        echo " -> $lib not found locally, downloading..."
-        if ! retry_cmd aria2c -x 4 -s 4 --dir="$LIB_DIR" --out="$lib" "$GITHUB_LIB_URL/$lib" --allow-overwrite; then
-            echo " -> [ERROR] Failed to download $lib."
-            exit 1
-        fi
-    fi
-done
+
 
 sudo mkdir -p /usr/lib/wsl/drivers /usr/lib/wsl/lib
 sudo rm -rf /usr/lib/wsl/drivers/* /usr/lib/wsl/lib/*
