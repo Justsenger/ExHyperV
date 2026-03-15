@@ -27,8 +27,8 @@
             <Setter Property="Topmost" Value="{Binding IsFullScreen, Mode=OneWay}" />
         </Style>
     </ui:FluentWindow.Resources>
-    
-    <DockPanel LastChildFill="True" Background="#0A0A0A">
+
+    <DockPanel LastChildFill="True" Background="Transparent">
         <!-- 全屏时，Visibility 会变为 Collapsed，释放顶部 42 像素空间 -->
         <ui:TitleBar 
             DockPanel.Dock="Top" 
@@ -39,12 +39,12 @@
                 <Grid Margin="12,0,0,0" HorizontalAlignment="Stretch">
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                         <TextBlock Text="{Binding VmName}"
-                           VerticalAlignment="Center"
-                           Margin="0,0,16,0"
-                           FontSize="12"
-                           FontWeight="SemiBold"
-                           MouseLeftButtonDown="OnHeaderMouseLeftButtonDown"
-                           Foreground="#CCFFFFFF"/>
+           VerticalAlignment="Center"
+           Margin="0,0,16,0"
+           FontSize="12"
+           FontWeight="SemiBold"
+           MouseLeftButtonDown="OnHeaderMouseLeftButtonDown"
+           Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
 
                         <Grid VerticalAlignment="Center">
                             <!-- 启动按钮 -->
