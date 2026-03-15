@@ -10,7 +10,7 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <ApplicationIcon>applicationIcon.ico</ApplicationIcon>
-        <Version>1.4.1</Version>
+        <Version>1.4.2</Version>
 		<IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
         <WpfUiGenerateDiagnosticMessages>False</WpfUiGenerateDiagnosticMessages>
         <SatelliteResourceLanguages>en;zh-Hans</SatelliteResourceLanguages>
