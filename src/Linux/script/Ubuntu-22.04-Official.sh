@@ -303,11 +303,8 @@ fi
 EOF
 sudo chmod +x /usr/local/bin/load_dxg_driver.sh
 
-# 5. 创建 Systemd 服务
-echo " -> Creating systemd service..."
-# 清理旧状态确保写入成功
 sudo systemctl stop load-dxg-late.service 2>/dev/null || true
-sudo systemctl unmask load-dxg-late.service 2>/dev/null || true
+sudo systemctl disable load-dxg-late.service 2>/dev/null || true
 sudo rm -f /etc/systemd/system/load-dxg-late.service
 
 sudo tee /etc/systemd/system/load-dxg-late.service > /dev/null << 'EOF'
@@ -326,10 +323,10 @@ RestartSec=5
 WantedBy=graphical.target
 EOF
 
-# 6. 启用服务
 sudo systemctl daemon-reload
+sudo systemctl unmask load-dxg-late.service
 sudo systemctl enable load-dxg-late.service
-
+sudo systemctl start load-dxg-late.service
 
 # ==========================================================
 # 8. 环境变量与权限
