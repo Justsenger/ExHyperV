@@ -361,6 +361,20 @@
                                     </ui:DropDownButton.Content>
                                     <ui:DropDownButton.Flyout>
                                         <ContextMenu ItemsSource="{Binding DataContext.AvailableOsTypes, Source={x:Reference RootPage}}">
+                                            <ContextMenu.Template>
+                                                <ControlTemplate TargetType="{x:Type ContextMenu}">
+                                                    <Border x:Name="Border"
+                                                            Background="{TemplateBinding Background}"
+                                                            BorderBrush="{TemplateBinding BorderBrush}"
+                                                            BorderThickness="1">
+                                                        <ScrollViewer x:Name="ScrollViewer"
+                                                                      VerticalScrollBarVisibility="Auto"
+                                                                      CanContentScroll="True">
+                                                            <ItemsPresenter />
+                                                        </ScrollViewer>
+                                                    </Border>
+                                                </ControlTemplate>
+                                            </ContextMenu.Template>
                                             <ContextMenu.ItemContainerStyle>
                                                 <Style TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
                                                     <Setter Property="Header" Value="{Binding}" />
