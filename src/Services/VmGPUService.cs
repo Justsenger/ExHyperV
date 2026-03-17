@@ -186,7 +186,9 @@ namespace ExHyperV.Services
 
                 try
                 {
-                    // 1. 找到对应的虚拟机 (Msvm_ComputerSystem)
+                    var notesResult = Utils.Run($"(Get-VM -Name '{vmName}').Notes");
+                    string vmNotes = (notesResult != null && notesResult.Count > 0) ? notesResult[0]?.ToString() ?? "" : "";
+
                     string query = $"SELECT * FROM Msvm_ComputerSystem WHERE ElementName = '{vmName}'";
                     using var searcher = new ManagementObjectSearcher(scopePath, query);
                     using var vmCollection = searcher.Get();
@@ -194,7 +196,6 @@ namespace ExHyperV.Services
                     var computerSystem = vmCollection.Cast<ManagementObject>().FirstOrDefault();
                     if (computerSystem == null) return result;
 
-                    // 2. 获取 VM 的系统设置 (Msvm_VirtualSystemSettingData)
                     using var relatedSettings = computerSystem.GetRelated(
                         "Msvm_VirtualSystemSettingData",
                         "Msvm_SettingsDefineState",
@@ -203,7 +204,6 @@ namespace ExHyperV.Services
                     var virtualSystemSetting = relatedSettings.Cast<ManagementObject>().FirstOrDefault();
                     if (virtualSystemSetting == null) return result;
 
-                    // 3. 获取 GPU 分区配置组件 (Msvm_GpuPartitionSettingData)
                     using var gpuSettingsCollection = virtualSystemSetting.GetRelated(
                         "Msvm_GpuPartitionSettingData",
                         "Msvm_VirtualSystemSettingDataComponent",
@@ -211,30 +211,33 @@ namespace ExHyperV.Services
 
                     foreach (var gpuSetting in gpuSettingsCollection.Cast<ManagementObject>())
                     {
-                        // 获取 Adapter ID (对应 PowerShell 的 Id)
                         string adapterId = gpuSetting["InstanceID"]?.ToString();
                         string instancePath = string.Empty;
 
-                        // 获取 HostResource (这是一个字符串数组，包含指向 Msvm_PartitionableGpu 的 WMI 路径)
                         string[] hostResources = (string[])gpuSetting["HostResource"];
-
                         if (hostResources != null && hostResources.Length > 0)
                         {
-                            // 4. 解析 HostResource，获取物理 GPU 对象
                             try
                             {
-                                // 直接使用路径实例化 ManagementObject
                                 using var partitionableGpu = new ManagementObject(hostResources[0]);
-                                partitionableGpu.Get(); // 强制加载属性
-
-                                // 读取 Msvm_PartitionableGpu 的 "Name" 属性
-                                // Name 属性包含 \\?\PCI#VEN... 
+                                partitionableGpu.Get();
                                 instancePath = partitionableGpu["Name"]?.ToString();
                             }
-                            catch (Exception)
+                            catch { }
+                        }
+
+                        if (string.IsNullOrEmpty(instancePath) || instancePath.Contains("Unknown"))
+                        {
+                            string tagPrefix = "[AssignedGPU:";
+                            int startIndex = vmNotes.IndexOf(tagPrefix);
+                            if (startIndex != -1)
                             {
-                                // 如果无法解析物理路径（例如驱动已卸载），保留为空或填入原始路径
-                                instancePath = "Unknown/Unresolved Device";
+                                startIndex += tagPrefix.Length;
+                                int endIndex = vmNotes.IndexOf("]", startIndex);
+                                if (endIndex != -1)
+                                {
+                                    instancePath = vmNotes.Substring(startIndex, endIndex - startIndex);
+                                }
                             }
                         }
 
@@ -246,7 +249,6 @@ namespace ExHyperV.Services
                 }
                 catch (Exception ex)
                 {
-                    // 记录日志或处理错误
                     System.Diagnostics.Debug.WriteLine($"WMI Query Error: {ex.Message}");
                 }
 
