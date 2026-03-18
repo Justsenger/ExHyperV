@@ -369,7 +369,8 @@
                                                             BorderThickness="1">
                                                         <ScrollViewer x:Name="ScrollViewer"
                                                                       VerticalScrollBarVisibility="Auto"
-                                                                      CanContentScroll="True">
+                                                                      CanContentScroll="True"
+                                                                      MaxHeight="300" >
                                                             <ItemsPresenter />
                                                         </ScrollViewer>
                                                     </Border>
