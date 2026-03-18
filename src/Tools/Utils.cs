@@ -575,7 +575,7 @@ public class Utils
     public static readonly List<string> SupportedOsTypes = new()
         {
             "Windows","Ubuntu","ArchLinux","Debian","CentOS","Kali", "Linux", "Android", "ChromeOS", "FydeOS",
-            "MacOS", "FreeBSD", "OpenWrt", "FnOS","iStoreOS","TrueNAS","Unraid"
+            "MacOS", "FreeBSD", "OpenWrt", "FnOS","iStoreOS","TrueNAS","Unraid","NixOS","Manjaro","LinuxMint","Fedora","Deepin"
         };
 
     public static string GetOsImageName(string osType)
