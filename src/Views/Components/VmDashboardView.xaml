@@ -27,7 +27,7 @@
 
     <ScrollViewer Padding="24,0,24,24" VerticalScrollBarVisibility="Auto">
         <StackPanel>
-
+            
             <!-- 处理器 (CPU) 折叠卡片 -->
             <ui:CardExpander Margin="0,0,0,8" IsExpanded="False">
                 <ui:CardExpander.Header>
@@ -626,6 +626,82 @@
                             </Style>
                         </TextBlock.Style>
                     </TextBlock>
+                </Grid>
+            </ui:CardExpander>
+
+            <!-- 引导顺序 (Boot Order) 折叠卡片 -->
+            <ui:CardExpander Margin="0,0,0,8" IsExpanded="False">
+                <ui:CardExpander.Header>
+                    <Grid MinHeight="38" Margin="8,0,12,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="15"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- 左侧：图标与标题 -->
+                        <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                            <ui:FontIcon FontSize="22" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xE7E8;" Margin="-5,0,12,0" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="引导顺序" FontSize="16" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                                <TextBlock Text="引导顺序/描述" FontSize="12" Opacity="0.6" Margin="0,2,0,0" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                            </StackPanel>
+                        </StackPanel>
+
+                        <!-- 中间：当前第一启动项摘要 -->
+                        <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding SelectedVm.FirstBootDevice, FallbackValue='启动设备：硬盘'}" 
+                                       FontSize="14" Opacity="0.8" VerticalAlignment="Bottom" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                        </StackPanel>
+
+                        <!-- 右侧：设置按钮 -->
+                        <ui:Button Grid.Column="4" Appearance="Transparent" Padding="8,4" Command="{Binding DataContext.GoToBootSettingsCommand, RelativeSource={RelativeSource AncestorType=UserControl}}">
+                            <ui:SymbolIcon Symbol="Settings24" FontSize="18" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                        </ui:Button>
+                    </Grid>
+                </ui:CardExpander.Header>
+
+                <Grid Margin="-5">
+                    <!-- 引导设备列表 -->
+                    <ItemsControl ItemsSource="{Binding SelectedVm.BootOrderItems}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Orientation="Horizontal" Margin="12,8"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Border Background="{ui:ThemeResource ControlFillColorTertiaryBrush}" 
+                                            BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" 
+                                            BorderThickness="1" 
+                                            CornerRadius="4" 
+                                            Padding="10,6">
+                                        <StackPanel Orientation="Horizontal">
+                                            <ui:FontIcon Glyph="{Binding Icon}" 
+                                                         FontFamily="{DynamicResource SegoeFluentIcons}" 
+                                                         FontSize="14" 
+                                                         Margin="0,0,8,0"
+                                                         Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                                            <TextBlock Text="{Binding Name}" 
+                                                       FontSize="13" 
+                                                       VerticalAlignment="Center"
+                                                       Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                                        </StackPanel>
+                                    </Border>
+                                    <ui:FontIcon Glyph="&#xE76C;" 
+                                                 FontSize="10" 
+                                                 Margin="8,0" 
+                                                 Opacity="0.3" 
+                                                 VerticalAlignment="Center"
+                                                 Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"
+                                                 Visibility="{Binding IsLast, Converter={StaticResource InverseBooleanToVisibilityConverter}, FallbackValue=Visible}"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
                 </Grid>
             </ui:CardExpander>
 
