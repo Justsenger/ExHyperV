@@ -73,11 +73,11 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Submit to Winget
-        # 删掉 if，让它强制运行
+        if: steps.check_tag.outputs.EXISTS == 'false'
         uses: vedantmgoyal2009/winget-releaser@v2
         with:
           identifier: Justsenger.ExHyperV
           installers-regex: '\.zip$'
           token: ${{ secrets.WINGET_TOKEN }}
-          version: 1.4.2
-          release-tag: V1.4.2
+          version: ${{ steps.get_version.outputs.VERSION }}
+          release-tag: V${{ steps.get_version.outputs.VERSION }}
