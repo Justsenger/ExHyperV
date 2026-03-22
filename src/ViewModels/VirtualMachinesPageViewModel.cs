@@ -528,7 +528,11 @@ namespace ExHyperV.ViewModels
         [RelayCommand]
         private void BrowseNewVmPath()
         {
-            var dialog = new Microsoft.Win32.OpenFolderDialog { Title = Properties.Resources.VmPage_SelectConfigDir };
+            var dialog = new Microsoft.Win32.OpenFolderDialog
+            {
+                Title = Properties.Resources.VmPage_SelectConfigDir,
+                InitialDirectory = string.IsNullOrWhiteSpace(NewVmStoragePath) ? string.Empty : NewVmStoragePath
+            };
             if (dialog.ShowDialog() == true)
             {
                 NewVmStoragePath = dialog.FolderName;
@@ -543,7 +547,8 @@ namespace ExHyperV.ViewModels
             {
                 Title = Properties.Resources.VmPage_SelectNewVhdPath,
                 Filter = Properties.Resources.VmPage_VhdFilter,
-                FileName = $"{NewVmName}.vhdx"
+                InitialDirectory = string.IsNullOrWhiteSpace(NewVmNewDiskPath) ? string.Empty : System.IO.Path.GetDirectoryName(NewVmNewDiskPath),
+                FileName = string.IsNullOrWhiteSpace(NewVmNewDiskPath) ? $"{NewVmName}.vhdx" : System.IO.Path.GetFileName(NewVmNewDiskPath)
             };
             if (dialog.ShowDialog() == true) NewVmNewDiskPath = dialog.FileName;
         }
@@ -554,7 +559,8 @@ namespace ExHyperV.ViewModels
             var dialog = new Microsoft.Win32.OpenFileDialog
             {
                 Title = Properties.Resources.VmPage_SelectExistVhd,
-                Filter = Properties.Resources.VmPage_VhdFilterBoth
+                Filter = Properties.Resources.VmPage_VhdFilterBoth,
+                InitialDirectory = string.IsNullOrWhiteSpace(NewVmExistingDiskPath) ? string.Empty : System.IO.Path.GetDirectoryName(NewVmExistingDiskPath)
             };
             if (dialog.ShowDialog() == true) NewVmExistingDiskPath = dialog.FileName;
         }
@@ -565,7 +571,8 @@ namespace ExHyperV.ViewModels
             var dialog = new Microsoft.Win32.OpenFileDialog
             {
                 Title = Properties.Resources.VmPage_SelectIso,
-                Filter = Properties.Resources.VmPage_IsoFilter
+                Filter = Properties.Resources.VmPage_IsoFilter,
+                InitialDirectory = string.IsNullOrWhiteSpace(NewVmIsoPath) ? string.Empty : System.IO.Path.GetDirectoryName(NewVmIsoPath)
             };
             if (dialog.ShowDialog() == true) NewVmIsoPath = dialog.FileName;
         }
@@ -1906,7 +1913,8 @@ namespace ExHyperV.ViewModels
                     Title = Properties.Resources.Title_CreateVhd,
                     Filter = Properties.Resources.Filter_VhdExt,
                     DefaultExt = ".vhdx",
-                    FileName = Properties.Resources.Default_VhdName
+                    InitialDirectory = string.IsNullOrWhiteSpace(FilePath) ? string.Empty : System.IO.Path.GetDirectoryName(FilePath),
+                    FileName = string.IsNullOrWhiteSpace(FilePath) ? Properties.Resources.Default_VhdName : System.IO.Path.GetFileName(FilePath)
                 };
 
                 if (saveDialog.ShowDialog() == true)
@@ -1921,7 +1929,8 @@ namespace ExHyperV.ViewModels
                     Title = DeviceType == "HardDisk" ? Properties.Resources.Title_OpenVhd : Properties.Resources.Title_SelectIso,
                     Filter = DeviceType == "HardDisk" ?
                              Properties.Resources.Filter_VhdOnly :
-                             Properties.Resources.Filter_IsoOnly
+                             Properties.Resources.Filter_IsoOnly,
+                    InitialDirectory = string.IsNullOrWhiteSpace(FilePath) ? string.Empty : System.IO.Path.GetDirectoryName(FilePath)
                 };
 
                 if (openDialog.ShowDialog() == true)
@@ -1935,7 +1944,10 @@ namespace ExHyperV.ViewModels
         [RelayCommand]
         private void BrowseFolder()
         {
-            var dialog = new Microsoft.Win32.OpenFolderDialog();
+            var dialog = new Microsoft.Win32.OpenFolderDialog
+            {
+                InitialDirectory = string.IsNullOrWhiteSpace(IsoSourceFolderPath) ? string.Empty : IsoSourceFolderPath
+            };
             if (dialog.ShowDialog() == true) IsoSourceFolderPath = dialog.FolderName;
         }
 
@@ -1943,7 +1955,11 @@ namespace ExHyperV.ViewModels
         [RelayCommand]
         private void BrowseParentFile()
         {
-            var dialog = new Microsoft.Win32.OpenFileDialog { Filter = Properties.Resources.Filter_VhdOnly };
+            var dialog = new Microsoft.Win32.OpenFileDialog
+            {
+                Filter = Properties.Resources.Filter_VhdOnly,
+                InitialDirectory = string.IsNullOrWhiteSpace(ParentPath) ? string.Empty : System.IO.Path.GetDirectoryName(ParentPath)
+            };
             if (dialog.ShowDialog() == true) ParentPath = dialog.FileName;
         }
 
@@ -1956,7 +1972,8 @@ namespace ExHyperV.ViewModels
                 Title = Properties.Resources.Title_SaveIso,
                 Filter = Properties.Resources.Filter_IsoExt,
                 DefaultExt = ".iso",
-                FileName = $"{IsoVolumeLabel}.iso"
+                InitialDirectory = string.IsNullOrWhiteSpace(IsoOutputPath) ? string.Empty : System.IO.Path.GetDirectoryName(IsoOutputPath),
+                FileName = string.IsNullOrWhiteSpace(IsoOutputPath) ? $"{IsoVolumeLabel}.iso" : System.IO.Path.GetFileName(IsoOutputPath)
             };
 
             if (saveDialog.ShowDialog() == true)
