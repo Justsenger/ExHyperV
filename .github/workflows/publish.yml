@@ -74,7 +74,7 @@ jobs:
 
       # 自动化提交到 Winget 官方仓库
       - name: Submit to Winget
-        if: steps.check_tag.outputs.EXISTS == 'false'
+        # if: steps.check_tag.outputs.EXISTS == 'false'
         uses: vedantmgoyal2009/winget-releaser@v2
         with:
           identifier: Justsenger.ExHyperV  # （需先手动提交一次初版）
