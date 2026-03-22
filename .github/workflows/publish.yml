@@ -79,4 +79,5 @@ jobs:
           identifier: Justsenger.ExHyperV
           installers-regex: '\.zip$'
           token: ${{ secrets.WINGET_TOKEN }}
-          version: 1.4.2  # <--- 强制指定版本号为 1.4.2
+          version: 1.4.2
+          release-tag: V1.4.2
