@@ -72,11 +72,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # 自动化提交到 Winget 官方仓库
       - name: Submit to Winget
-        # if: steps.check_tag.outputs.EXISTS == 'false'
+        # 删掉 if，让它强制运行
         uses: vedantmgoyal2009/winget-releaser@v2
         with:
-          identifier: Justsenger.ExHyperV  # （需先手动提交一次初版）
+          identifier: Justsenger.ExHyperV
           installers-regex: '\.zip$'
-          token: ${{ secrets.WINGET_TOKEN }} # 需要在仓库设置中配置 PAT
+          token: ${{ secrets.WINGET_TOKEN }}
+          version: 1.4.2  # <--- 强制指定版本号为 1.4.2
