@@ -582,6 +582,7 @@ A huge thank you to our sponsors! Your generous support is the driving force beh
 
 ### 🌌 Legend Tier
 ![](https://img.shields.io/badge/LEGEND-USER--09837-24292e?style=for-the-badge&logo=starship&logoColor=BE64FF&labelColor=24292e&color=BE64FF)
+<a href="https://github.com/PIKACHUIM"><img src="https://img.shields.io/badge/LEGEND-PIKACHUIM-24292e?style=for-the-badge&logo=starship&logoColor=BE64FF&labelColor=24292e&color=BE64FF" /></a> 
 
 ---
 
@@ -601,3 +602,4 @@ A huge thank you to our sponsors! Your generous support is the driving force beh
 ![](https://img.shields.io/badge/BEGINNER-User--2b965-0078D4?style=flat-square&logo=hyperledger&logoColor=white) 
 ![](https://img.shields.io/badge/BEGINNER-苏芸晴或i-0078D4?style=flat-square&logo=hyperledger&logoColor=white) 
 ![](https://img.shields.io/badge/BEGINNER-tiwatezhanshen-0078D4?style=flat-square&logo=hyperledger&logoColor=white) 
+![](https://img.shields.io/badge/BEGINNER-User--_tpuJ-0078D4?style=flat-square&logo=hyperledger&logoColor=white) 
