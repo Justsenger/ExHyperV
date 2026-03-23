@@ -57,6 +57,7 @@ namespace ExHyperV.ViewModels
         private readonly Dictionary<string, LinkedList<double>> _historyCache = new();
         private VmProcessorSettings _originalSettingsCache;
         private bool _isInternalUpdating = false;
+        private bool _isDiskPathManual = false; // 记录用户是否手动选择过磁盘路径
 
         // ----------------------------------------------------------------------------------
         // 视图模型属性 - 页面状态
@@ -395,11 +396,11 @@ namespace ExHyperV.ViewModels
         // 1. 点击左侧 "+" 按钮：进入创建模式
         private void UpdateDiskPath()
         {
-            if (string.IsNullOrWhiteSpace(NewVmName)) return;
+            if (string.IsNullOrWhiteSpace(NewVmName) || _isDiskPathManual) return; // 如果手动选过，就不再自动更新
+
             string root = string.IsNullOrWhiteSpace(NewVmStoragePath) ? @"C:\ProgramData\Microsoft\Windows\Hyper-V" : NewVmStoragePath;
             try
             {
-                // 自动计算：根目录 \ 虚拟机名 \ 虚拟机名.vhdx
                 NewVmNewDiskPath = Path.Combine(root, NewVmName, $"{NewVmName}.vhdx");
             }
             catch { }
@@ -547,10 +548,14 @@ namespace ExHyperV.ViewModels
             {
                 Title = Properties.Resources.VmPage_SelectNewVhdPath,
                 Filter = Properties.Resources.VmPage_VhdFilter,
-                InitialDirectory = string.IsNullOrWhiteSpace(NewVmNewDiskPath) ? string.Empty : System.IO.Path.GetDirectoryName(NewVmNewDiskPath),
-                FileName = string.IsNullOrWhiteSpace(NewVmNewDiskPath) ? $"{NewVmName}.vhdx" : System.IO.Path.GetFileName(NewVmNewDiskPath)
+                InitialDirectory = GetDir(NewVmNewDiskPath),
+                FileName = GetFileName(NewVmNewDiskPath, $"{NewVmName}.vhdx")
             };
-            if (dialog.ShowDialog() == true) NewVmNewDiskPath = dialog.FileName;
+            if (dialog.ShowDialog() == true)
+            {
+                NewVmNewDiskPath = dialog.FileName;
+                _isDiskPathManual = true; // 关键：标记用户已手动选择
+            }
         }
 
         [RelayCommand]
@@ -560,7 +565,7 @@ namespace ExHyperV.ViewModels
             {
                 Title = Properties.Resources.VmPage_SelectExistVhd,
                 Filter = Properties.Resources.VmPage_VhdFilterBoth,
-                InitialDirectory = string.IsNullOrWhiteSpace(NewVmExistingDiskPath) ? string.Empty : System.IO.Path.GetDirectoryName(NewVmExistingDiskPath)
+                InitialDirectory = GetDir(NewVmExistingDiskPath)
             };
             if (dialog.ShowDialog() == true) NewVmExistingDiskPath = dialog.FileName;
         }
@@ -572,12 +577,11 @@ namespace ExHyperV.ViewModels
             {
                 Title = Properties.Resources.VmPage_SelectIso,
                 Filter = Properties.Resources.VmPage_IsoFilter,
-                InitialDirectory = string.IsNullOrWhiteSpace(NewVmIsoPath) ? string.Empty : System.IO.Path.GetDirectoryName(NewVmIsoPath)
+                InitialDirectory = GetDir(NewVmIsoPath)
             };
             if (dialog.ShowDialog() == true) NewVmIsoPath = dialog.FileName;
         }
-
-        // 3. 点击 Properties.Resources.VirtualMachinesPageViewModel_2 按钮：执行创建
+        
         [RelayCommand]
         private async Task ConfirmCreate()
         {
@@ -1913,33 +1917,23 @@ namespace ExHyperV.ViewModels
                     Title = Properties.Resources.Title_CreateVhd,
                     Filter = Properties.Resources.Filter_VhdExt,
                     DefaultExt = ".vhdx",
-                    InitialDirectory = string.IsNullOrWhiteSpace(FilePath) ? string.Empty : System.IO.Path.GetDirectoryName(FilePath),
-                    FileName = string.IsNullOrWhiteSpace(FilePath) ? Properties.Resources.Default_VhdName : System.IO.Path.GetFileName(FilePath)
+                    InitialDirectory = GetDir(FilePath),
+                    FileName = GetFileName(FilePath, Properties.Resources.Default_VhdName)
                 };
-
-                if (saveDialog.ShowDialog() == true)
-                {
-                    FilePath = saveDialog.FileName;
-                }
+                if (saveDialog.ShowDialog() == true) FilePath = saveDialog.FileName;
             }
             else
             {
                 var openDialog = new Microsoft.Win32.OpenFileDialog
                 {
                     Title = DeviceType == "HardDisk" ? Properties.Resources.Title_OpenVhd : Properties.Resources.Title_SelectIso,
-                    Filter = DeviceType == "HardDisk" ?
-                             Properties.Resources.Filter_VhdOnly :
-                             Properties.Resources.Filter_IsoOnly,
-                    InitialDirectory = string.IsNullOrWhiteSpace(FilePath) ? string.Empty : System.IO.Path.GetDirectoryName(FilePath)
+                    Filter = DeviceType == "HardDisk" ? Properties.Resources.Filter_VhdOnly : Properties.Resources.Filter_IsoOnly,
+                    InitialDirectory = GetDir(FilePath)
                 };
-
-                if (openDialog.ShowDialog() == true)
-                {
-                    FilePath = openDialog.FileName;
-                }
+                if (openDialog.ShowDialog() == true) FilePath = openDialog.FileName;
             }
         }
-
+        
         // 浏览文件夹 (用于ISO制作)
         [RelayCommand]
         private void BrowseFolder()
@@ -3457,5 +3451,27 @@ namespace ExHyperV.ViewModels
                 await Task.Delay(1500, token);
             }
         }
+        // 获取目录，用于 InitialDirectory
+        private string GetDir(string? path)
+        {
+            if (string.IsNullOrWhiteSpace(path)) return string.Empty;
+            try
+            {
+                return Path.GetDirectoryName(path) ?? string.Empty;
+            }
+            catch { return string.Empty; }
+        }
+
+        // 获取文件名，用于 SaveFileDialog 的 FileName
+        private string GetFileName(string? path, string defaultNameWithExt)
+        {
+            if (string.IsNullOrWhiteSpace(path)) return defaultNameWithExt;
+            try
+            {
+                return Path.GetFileName(path) ?? defaultNameWithExt;
+            }
+            catch { return defaultNameWithExt; }
+        }
+
     }
 }
