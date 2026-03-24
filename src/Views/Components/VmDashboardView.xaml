@@ -692,12 +692,24 @@
                                         </StackPanel>
                                     </Border>
                                     <ui:FontIcon Glyph="&#xE76C;" 
-                                                 FontSize="10" 
-                                                 Margin="8,0" 
-                                                 Opacity="0.3" 
-                                                 VerticalAlignment="Center"
-                                                 Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"
-                                                 Visibility="{Binding IsLast, Converter={StaticResource InverseBooleanToVisibilityConverter}, FallbackValue=Visible}"/>
+             FontSize="10" 
+             Margin="8,0" 
+             Opacity="0.3" 
+             VerticalAlignment="Center"
+             Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}">
+                                        <ui:FontIcon.Style>
+                                            <Style TargetType="ui:FontIcon">
+                                                <!-- 默认显示箭头 -->
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                                <Style.Triggers>
+                                                    <!-- 如果是最后一个人 (IsLast=True)，则隐藏 -->
+                                                    <DataTrigger Binding="{Binding IsLast}" Value="True">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </ui:FontIcon.Style>
+                                    </ui:FontIcon>
                                 </StackPanel>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>

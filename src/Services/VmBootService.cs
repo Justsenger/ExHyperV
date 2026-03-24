@@ -102,58 +102,46 @@ namespace ExHyperV.Services
         {
             return await Task.Run(() =>
             {
-                string timestamp = DateTime.Now.ToString("HH:mm:ss.fff");
-                System.Diagnostics.Debug.WriteLine($"\n[{timestamp}] [WMI-START] 开始同步引导顺序: {vmName}");
-
                 try
                 {
+                    // 🟢 关键修改：每次保存都重新获取最鲜活的 VM 和 Settings 句柄
+                    // 不要复用任何外部传入的 ManagementObject
                     using var vm = GetVmObject(vmName);
                     using var settings = GetVmSettings(vm);
+
                     bool isGen2 = settings["VirtualSystemSubType"]?.ToString() == "Microsoft:Hyper-V:SubType:2";
 
                     if (isGen2)
                     {
+                        // 确保 Reference 数组内容完整
                         string[] newOrder = items.Select(i => i.Reference.ToString()).ToArray();
                         settings["BootSourceOrder"] = newOrder;
-                        System.Diagnostics.Debug.WriteLine($"[{timestamp}] [WMI-DEBUG] Gen2 路径总数: {newOrder.Length}, 第一项: {newOrder.FirstOrDefault()}");
                     }
                     else
                     {
                         ushort[] newOrder = items.Select(i => Convert.ToUInt16(i.Reference)).ToArray();
                         settings["BootOrder"] = newOrder;
-                        System.Diagnostics.Debug.WriteLine($"[{timestamp}] [WMI-DEBUG] Gen1 顺序: {string.Join(",", newOrder)}");
                     }
 
                     using var vmSvc = GetManagementService();
                     using var inParams = vmSvc.GetMethodParameters("ModifySystemSettings");
+
+                    // 🟢 关键：Hyper-V 极其依赖这个 XML 序列化格式来确认“这是整套配置更新”
                     inParams["SystemSettings"] = settings.GetText(TextFormat.CimDtd20);
 
-                    // 计时开始
-                    var watch = System.Diagnostics.Stopwatch.StartNew();
                     using var outParams = vmSvc.InvokeMethod("ModifySystemSettings", inParams, null);
-                    watch.Stop();
-
                     uint returnValue = (uint)outParams["ReturnValue"];
-                    System.Diagnostics.Debug.WriteLine($"[{timestamp}] [WMI-RESULT] InvokeMethod 返回值: {returnValue} (耗时: {watch.ElapsedMilliseconds}ms)");
 
-                    if (returnValue == 0) return true;
-                    if (returnValue == 4096)
-                    {
-                        string jobPath = outParams["Job"]?.ToString();
-                        System.Diagnostics.Debug.WriteLine($"[{timestamp}] [WMI-JOB] 启动异步任务: {jobPath}");
-                        return WaitForJob(jobPath);
-                    }
-
-                    return false;
+                    if (returnValue == 4096) return WaitForJob(outParams["Job"]?.ToString());
+                    return returnValue == 0;
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[{timestamp}] [WMI-ERROR] 异常: {ex.Message}");
+                    System.Diagnostics.Debug.WriteLine($"[WMI-CRITICAL-ERROR] {ex.Message}");
                     return false;
                 }
             });
         }
-
         private bool WaitForJob(string jobPath)
         {
             if (string.IsNullOrEmpty(jobPath)) return false;

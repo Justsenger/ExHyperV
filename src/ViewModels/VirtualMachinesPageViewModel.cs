@@ -2606,29 +2606,27 @@ namespace ExHyperV.ViewModels
         {
             if (SelectedVm == null || SelectedVm.BootOrderItems == null) return;
 
-            // 🟢 增加异步排队锁：确保上一次 WMI 没写完，下一次就在这等着，不丢失操作
             await _bootOrderLock.WaitAsync();
             try
             {
-                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] [VM-SAVE-PROCESS] 开始处理 WMI 写入...");
+                // 🟢 技巧 1：给 UI 动画留 100ms 稳定期，防止集合正在 Move 时进行快照
+                await Task.Delay(100);
 
-                // 必须在 UI 线程外创建快照
                 var currentOrder = SelectedVm.BootOrderItems.ToList();
+                string vmName = SelectedVm.Name;
 
-                bool result = await _vmBootService.SetBootOrderAsync(SelectedVm.Name, currentOrder);
+                // 🟢 技巧 2：在写入 WMI 时，直接调用 Service
+                // 之前的日志显示 ReturnValue 是 0，说明逻辑通了，但可能由于
+                // 虚拟机实例对象在内存中已过期，导致修改了“旧快照”。
+                bool result = await _vmBootService.SetBootOrderAsync(vmName, currentOrder);
 
-                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] [VM-SAVE-FINISHED] WMI 写入完成，结果: {result}");
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"[VM-SAVE-ERROR] {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] [VM-SAVE] 结果: {result}");
             }
             finally
             {
                 _bootOrderLock.Release();
             }
         }
-
 
 
         // ----------------------------------------------------------------------------------
