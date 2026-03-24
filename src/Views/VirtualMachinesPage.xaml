@@ -266,26 +266,26 @@
                                                     <ColumnDefinition Width="*"/>
                                                     <ColumnDefinition Width="Auto"/>
                                                 </Grid.ColumnDefinitions>
-                                                <ui:Button Grid.Column="0" Content="{x:Static properties:Resources.Button_ShutDown}" Icon="Stop24" Appearance="Danger" 
-                                                           Padding="24,6" Height="36" CornerRadius="8,0,0,8" BorderThickness="0" Margin="0"
-                                                           Command="{Binding ControlCommand}" CommandParameter="Stop"/>
-                                                <ui:DropDownButton Grid.Column="1" Icon="ChevronDown24" Appearance="Danger" 
-                                                                   Padding="8,6" Height="36" CornerRadius="0,8,8,0" BorderThickness="0" Margin="0">
+                                                <ui:Button Grid.Column="0" Content="{x:Static properties:Resources.Button_ShutDown}" Icon="Stop24" Appearance="Danger" Foreground="White"
+           Padding="24,0" Height="36" CornerRadius="8,0,0,8" BorderThickness="0" Margin="0" VerticalContentAlignment="Center"
+           Command="{Binding ControlCommand}" CommandParameter="Stop"/>
+                                                <ui:DropDownButton Grid.Column="1" Icon="ChevronDown24" Appearance="Danger" Foreground="White"
+                   Padding="6,0,10,0" Height="36" CornerRadius="0,8,8,0" BorderThickness="0" Margin="0" VerticalContentAlignment="Center">
                                                     <ui:DropDownButton.Flyout>
                                                         <ContextMenu>
                                                             <MenuItem Header="{x:Static properties:Resources.Button_Restart}" Icon="{ui:SymbolIcon ArrowCounterclockwise24}"
-                                                              Command="{Binding PlacementTarget.DataContext.ControlCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" 
-                                                              CommandParameter="Restart"/>
+              Command="{Binding PlacementTarget.DataContext.ControlCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" 
+              CommandParameter="Restart"/>
                                                             <MenuItem Header="{x:Static properties:Resources.Button_Pause}" Icon="{ui:SymbolIcon Pause24}"
-                                                              Command="{Binding PlacementTarget.DataContext.ControlCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" 
-                                                              CommandParameter="Suspend"/>
+              Command="{Binding PlacementTarget.DataContext.ControlCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" 
+              CommandParameter="Suspend"/>
                                                             <Separator/>
                                                             <MenuItem Header="{x:Static properties:Resources.Button_Save}" Icon="{ui:SymbolIcon Save24}"
-                                                              Command="{Binding PlacementTarget.DataContext.ControlCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" 
-                                                              CommandParameter="Save"/>
+              Command="{Binding PlacementTarget.DataContext.ControlCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" 
+              CommandParameter="Save"/>
                                                             <MenuItem Header="{x:Static properties:Resources.Button_TurnOff}" Icon="{ui:SymbolIcon Power24}" Foreground="#E81123"
-                                                              Command="{Binding PlacementTarget.DataContext.ControlCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" 
-                                                              CommandParameter="TurnOff"/>
+              Command="{Binding PlacementTarget.DataContext.ControlCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" 
+              CommandParameter="TurnOff"/>
                                                         </ContextMenu>
                                                     </ui:DropDownButton.Flyout>
                                                 </ui:DropDownButton>
