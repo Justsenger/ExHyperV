@@ -5,6 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:b="http://schemas.microsoft.com/xaml/behaviors"
+             xmlns:behaviors="clr-namespace:ExHyperV.Behaviors"
              mc:Ignorable="d" d:DesignHeight="600" d:DesignWidth="800">
 
     <Grid>
@@ -13,30 +14,35 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <Grid Grid.Row="0" Margin="24,16,24,12">
+        <Grid Grid.Row="0" Margin="24,20,24,16">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
             <StackPanel VerticalAlignment="Center">
-                <TextBlock Text="引导顺序" FontSize="20" FontWeight="SemiBold" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
-                <TextBlock Text="按住卡片上下拖动以调整启动优先级" FontSize="12" Opacity="0.6" Margin="0,4,0,0" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                <TextBlock Text="引导顺序" FontSize="22" FontWeight="Normal" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                <TextBlock Text="上下拖动以调整优先级" FontSize="13" Opacity="0.6" Margin="0,6,0,0" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
             </StackPanel>
             <ui:Button Grid.Column="1" Appearance="Transparent" Padding="8" Command="{Binding GoBackToDashboardCommand}">
-                <ui:SymbolIcon Symbol="ArrowLeft24" FontSize="18"/>
+                <ui:SymbolIcon Symbol="ArrowLeft24" FontSize="20"/>
             </ui:Button>
         </Grid>
 
         <ListBox x:Name="BootListBox" 
                  Grid.Row="1" 
-                 Margin="24,8,24,24" 
+                 Margin="24,4,24,24" 
                  Background="Transparent" 
                  BorderThickness="0"
                  ItemsSource="{Binding SelectedVm.BootOrderItems}"
                  AllowDrop="True"
-                 DragOver="BootListBox_DragOver"
-                 Drop="BootListBox_Drop"
                  ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+
+            <b:Interaction.Behaviors>
+                <behaviors:ListBoxDragDropBehavior 
+                    MoveItemCommand="{Binding ReorderBootItemCommand}"
+                    DropCompletedCommand="{Binding SaveBootOrderCommand}"/>
+            </b:Interaction.Behaviors>
+
             <ListBox.ItemsPanel>
                 <ItemsPanelTemplate>
                     <StackPanel x:Name="ItemsPanel" IsItemsHost="True">
@@ -55,10 +61,8 @@
                 <Style TargetType="ListBoxItem">
                     <Setter Property="Background" Value="Transparent"/>
                     <Setter Property="Padding" Value="0"/>
-                    <Setter Property="Margin" Value="0,0,0,8"/>
+                    <Setter Property="Margin" Value="0,0,0,10"/>
                     <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-                    <EventSetter Event="PreviewMouseLeftButtonDown" Handler="Card_PreviewMouseLeftButtonDown"/>
-                    <EventSetter Event="PreviewMouseMove" Handler="Card_PreviewMouseMove"/>
                     <Setter Property="Template">
                         <Setter.Value>
                             <ControlTemplate TargetType="ListBoxItem">
@@ -75,7 +79,7 @@
                 <DataTemplate>
                     <Border Background="{ui:ThemeResource ControlFillColorDefaultBrush}"
                             BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}"
-                            BorderThickness="1" CornerRadius="8" Padding="16,20">
+                            BorderThickness="1" CornerRadius="8" Padding="18,18">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto"/>
@@ -83,14 +87,24 @@
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
 
-                            <ui:FontIcon Grid.Column="0" Glyph="{Binding Icon}" FontSize="20" Margin="0,0,16,0" Opacity="0.8"/>
+                            <ui:FontIcon Grid.Column="0" 
+                                         Glyph="{Binding Icon}" 
+                                         FontSize="20" 
+                                         Margin="0,0,18,0"
+                                         FontFamily="{DynamicResource SegoeFluentIcons}"
+                                         Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
 
-                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                <TextBlock Text="{Binding Name}" FontSize="16" FontWeight="Medium" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
-                                <TextBlock Text="{Binding Description}" FontSize="12" Opacity="0.5" Margin="0,4,0,0" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding Name}" FontSize="15" FontWeight="Medium" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                                <TextBlock Text="{Binding Description}" FontSize="14" Opacity="0.5" Margin="16,0,0,0" VerticalAlignment="Center" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" TextTrimming="CharacterEllipsis"/>
                             </StackPanel>
 
-                            <ui:FontIcon Grid.Column="2" Glyph="&#xE76F;" FontFamily="{DynamicResource SegoeFluentIcons}" FontSize="18" Opacity="0.4" VerticalAlignment="Center"/>
+                            <ui:FontIcon Grid.Column="2" 
+                                         Glyph="&#xE700;" 
+                                         FontFamily="{DynamicResource SegoeFluentIcons}" 
+                                         FontSize="18" 
+                                         Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"
+                                         VerticalAlignment="Center"/>
                         </Grid>
                     </Border>
                 </DataTemplate>

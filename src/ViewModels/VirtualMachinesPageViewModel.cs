@@ -13,6 +13,7 @@ using Wpf.Ui.Controls;
 using System.Diagnostics;
 using System.ComponentModel;
 using System.IO;
+using ExHyperV.Behaviors;
 
 namespace ExHyperV.ViewModels
 {
@@ -2628,6 +2629,41 @@ namespace ExHyperV.ViewModels
             }
         }
 
+        [RelayCommand]
+        private void ReorderBootItem(DragMoveArgs args)
+        {
+            if (SelectedVm == null || args == null) return;
+
+            var list = SelectedVm.BootOrderItems;
+            int oldIndex = list.IndexOf(args.Source);
+            int newIndex = list.IndexOf(args.Target);
+
+            if (oldIndex == -1 || newIndex == -1) return;
+
+            // 之前的 1/3 阈值逻辑迁移到这里进行最终判定
+            if (newIndex > oldIndex) // 向下拖
+            {
+                if (args.RelativeY < args.Threshold) return;
+            }
+            else // 向上拖
+            {
+                if (args.RelativeY > (args.Threshold * 2)) return; // 对应 targetItem.ActualHeight - threshold
+            }
+
+            // 执行移动
+            list.Move(oldIndex, newIndex);
+
+            // 更新 IsLast 标记以维护 UI 箭头显示（如果需要）
+            foreach (var item in list) item.IsLast = false;
+            list.Last().IsLast = true;
+        }
+
+        [RelayCommand]
+        private async Task SaveBootOrder()
+        {
+            System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] [VM-SAVE-TASK] 执行异步保存...");
+            await SilentSaveBootOrderAsync();
+        }
 
         // ----------------------------------------------------------------------------------
         // GPU 管理模块 - 列表与基础操作
