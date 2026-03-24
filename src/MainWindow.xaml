@@ -9,7 +9,9 @@
         mc:Ignorable="d"
         Title="ExHyperV" Height="800" Width="1100"
         xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
-        WindowStartupLocation="CenterScreen">
+        WindowStartupLocation="CenterScreen"
+        WindowBackdropType="Mica"
+        ExtendsContentIntoTitleBar="True">
     <Grid>
         <!-- 布局规划 -->
         <Grid.RowDefinitions>

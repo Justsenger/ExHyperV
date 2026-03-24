@@ -18,10 +18,6 @@ namespace ExHyperV
             }
             else { ApplicationThemeManager.Apply(ApplicationTheme.Light); }
 
-            Loaded += (sender, args) =>  //监听系统切换主题事件
-            {
-                SystemThemeWatcher.Watch(this, WindowBackdropType.Mica, true);
-            };
         }
 
         private void PagePreload(object sender, RoutedEventArgs e)
