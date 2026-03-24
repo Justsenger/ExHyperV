@@ -1190,22 +1190,31 @@ return 'OK'
                 string guestRepo = Path.Combine(assignedDriveLetter, "Windows", "System32", "HostDriverStore", "FileRepository");
                 string hostDestDir = Path.Combine(assignedDriveLetter, "Windows", targetSubDir);
 
-                // 1. 如果目标子目录不存在，先创建它
                 if (!Directory.Exists(hostDestDir))
                 {
                     Directory.CreateDirectory(hostDestDir);
                 }
-
-                // --- 新增：针对 SyChpe32 等系统目录的脱权处理 ---
-                // 只有当路径包含 SyChpe32 或 System32 时才触发，避免大范围修改权限
-                if (targetSubDir.Contains("SyChpe32", StringComparison.OrdinalIgnoreCase) ||
+                if (targetSubDir.Equals("System32", StringComparison.OrdinalIgnoreCase) ||
+                    targetSubDir.Contains("SyChpe32", StringComparison.OrdinalIgnoreCase) ||
                     targetSubDir.Contains("SysWOW64", StringComparison.OrdinalIgnoreCase))
                 {
-                    // 获取所有权 (Administrators 组)
                     ExecuteCommand($"cmd /c takeown /f \"{hostDestDir}\" /a");
-                    // 授予完全控制权限 (WELL-KNOWN SID S-1-5-32-544 代表管理员组)
                     ExecuteCommand($"cmd /c icacls \"{hostDestDir}\" /grant *S-1-5-32-544:F");
                 }
+
+                string hostLinkPath = Path.Combine(hostDestDir, targetName);
+                if (System.IO.File.Exists(hostLinkPath) || System.IO.Directory.Exists(hostLinkPath))
+                {
+                    return;
+                }
+                try
+                {
+                    if (System.IO.File.GetAttributes(hostLinkPath) != (System.IO.FileAttributes)(-1))
+                    {
+                        ExecuteCommand($"cmd /c del /f /q \"{hostLinkPath}\"");
+                    }
+                }
+                catch {}
 
                 var foundFiles = new DirectoryInfo(guestRepo)
                                     .GetFiles(sourceName, SearchOption.AllDirectories)
@@ -1216,17 +1225,7 @@ return 'OK'
 
                 string hostSourceFile = foundFiles[0].FullName;
                 string guestInternalTarget = hostSourceFile.Replace(assignedDriveLetter, "C:");
-                string hostLinkPath = Path.Combine(hostDestDir, targetName);
 
-                // --- 新增：针对单个目标文件的脱权（如果文件已存在） ---
-                if (File.Exists(hostLinkPath))
-                {
-                    ExecuteCommand($"cmd /c takeown /f \"{hostLinkPath}\" /a");
-                    ExecuteCommand($"cmd /c icacls \"{hostLinkPath}\" /grant *S-1-5-32-544:F");
-                    File.Delete(hostLinkPath);
-                }
-
-                // 执行 mklink
                 ExecuteCommand($"cmd /c mklink \"{hostLinkPath}\" \"{guestInternalTarget}\"");
             }
             catch (Exception ex)
