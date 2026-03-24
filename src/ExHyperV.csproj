@@ -57,6 +57,9 @@
         <Compile Update="Converters\IntListToStringConverter.cs">
           <Generator>MSBuild:Compile</Generator>
         </Compile>
+        <Compile Update="Models\BootOrderItem.cs">
+          <Generator>MSBuild:Compile</Generator>
+        </Compile>
         <Compile Update="Models\SshCredentials.cs">
           <Generator>MSBuild:Compile</Generator>
         </Compile>
@@ -93,8 +96,7 @@
         <!-- 清理多余的 runtimes 文件夹，仅保留 win 和 win-x64 -->
 		<ItemGroup>
 			<AllRuntimeDirs Include="$([System.IO.Directory]::GetDirectories('$(PublishDir)runtimes'))" />
-			<RuntimeDirsToDelete Include="@(AllRuntimeDirs)"
-				Condition=" '%(Filename)' != 'win' AND '%(Filename)' != 'win-x64' AND '%(Filename)' != 'win-arm64' " />
+			<RuntimeDirsToDelete Include="@(AllRuntimeDirs)" Condition=" '%(Filename)' != 'win' AND '%(Filename)' != 'win-x64' AND '%(Filename)' != 'win-arm64' " />
 		</ItemGroup>
 		<RemoveDir Directories="@(RuntimeDirsToDelete)" />
 		

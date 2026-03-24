@@ -21,7 +21,7 @@ namespace ExHyperV.ViewModels
         Dashboard, CpuSettings, CpuAffinity, MemorySettings, StorageSettings, AddStorage,
         GpuSettings,
         AddGpuSelect,
-        AddGpuProgress, NetworkSettings
+        AddGpuProgress, NetworkSettings, BootSettings
     }
     public partial class VirtualMachinesPageViewModel : ObservableObject, IDisposable
     {
@@ -38,6 +38,7 @@ namespace ExHyperV.ViewModels
         private readonly VmNetworkService _vmNetworkService;
         private readonly VmCreateService _vmCreateService = new();
         private readonly VmEditService _vmEditService = new();
+        private readonly VmBootService _vmBootService = new();
 
         // ----------------------------------------------------------------------------------
         // 监控与后台任务字段
@@ -227,6 +228,7 @@ namespace ExHyperV.ViewModels
                 case VmDetailViewType.AddStorage:
                     CurrentViewType = VmDetailViewType.StorageSettings;
                     break;
+                case VmDetailViewType.BootSettings:
                 case VmDetailViewType.GpuSettings:
                 case VmDetailViewType.CpuSettings:
                 case VmDetailViewType.CpuAffinity:
@@ -2571,6 +2573,46 @@ namespace ExHyperV.ViewModels
                 ShowSnackbar(Properties.Resources.Error_Net_SecurityFail, result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
             }
         }
+
+        // 引导顺序部分
+
+        [RelayCommand]
+        private async Task GoToBootSettings()
+        {
+            if (SelectedVm == null) return;
+            CurrentViewType = VmDetailViewType.BootSettings;
+            IsLoadingSettings = true;
+
+            try
+            {
+                var list = await _vmBootService.GetBootOrderAsync(SelectedVm.Name);
+
+                // 更新 UI 集合
+                SelectedVm.BootOrderItems.Clear();
+                foreach (var item in list) SelectedVm.BootOrderItems.Add(item);
+
+                // 标记最后一个用于 UI 箭头显示
+                if (SelectedVm.BootOrderItems.Count > 0)
+                    SelectedVm.BootOrderItems.Last().IsLast = true;
+            }
+            finally { IsLoadingSettings = false; }
+        }
+
+        // 保存逻辑
+
+        public async Task SilentSaveBootOrderAsync()
+        {
+            if (SelectedVm == null || SelectedVm.BootOrderItems == null) return;
+
+            // 直接后台执行，不影响 UI 状态
+            await _vmBootService.SetBootOrderAsync(
+                SelectedVm.Name,
+                SelectedVm.BootOrderItems.ToList()
+            );
+        }
+
+
+
 
         // ----------------------------------------------------------------------------------
         // GPU 管理模块 - 列表与基础操作

@@ -346,6 +346,17 @@ namespace ExHyperV.Models
         [NotifyPropertyChangedFor(nameof(ConfigSummary))]
         private double _totalDiskSizeGb;
 
+
+        //引导顺序的配置
+
+        /// <summary>
+        /// 虚拟机的引导顺序项目列表
+        /// </summary>
+        [ObservableProperty]
+        private ObservableCollection<ExHyperV.Models.BootOrderItem> _bootOrderItems = new();
+
+
+
         // ----------------------------------------------------------------------------------
         // 显卡 (GPU) 分区与资源配置 (修复 XLS0432)
         // ----------------------------------------------------------------------------------
