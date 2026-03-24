@@ -2575,6 +2575,8 @@ namespace ExHyperV.ViewModels
         }
 
         // 引导顺序部分
+        private readonly System.Threading.SemaphoreSlim _bootOrderLock = new(1, 1);
+
 
         [RelayCommand]
         private async Task GoToBootSettings()
@@ -2604,13 +2606,28 @@ namespace ExHyperV.ViewModels
         {
             if (SelectedVm == null || SelectedVm.BootOrderItems == null) return;
 
-            // 直接后台执行，不影响 UI 状态
-            await _vmBootService.SetBootOrderAsync(
-                SelectedVm.Name,
-                SelectedVm.BootOrderItems.ToList()
-            );
-        }
+            // 🟢 增加异步排队锁：确保上一次 WMI 没写完，下一次就在这等着，不丢失操作
+            await _bootOrderLock.WaitAsync();
+            try
+            {
+                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] [VM-SAVE-PROCESS] 开始处理 WMI 写入...");
 
+                // 必须在 UI 线程外创建快照
+                var currentOrder = SelectedVm.BootOrderItems.ToList();
+
+                bool result = await _vmBootService.SetBootOrderAsync(SelectedVm.Name, currentOrder);
+
+                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] [VM-SAVE-FINISHED] WMI 写入完成，结果: {result}");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[VM-SAVE-ERROR] {ex.Message}");
+            }
+            finally
+            {
+                _bootOrderLock.Release();
+            }
+        }
 
 
 

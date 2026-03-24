@@ -85,30 +85,12 @@ namespace ExHyperV.Views.Components
         private async void BootListBox_Drop(object sender, System.Windows.DragEventArgs e)
         {
             _isDragging = false;
-            if (e.Data.GetDataPresent(typeof(BootOrderItem)))
+            var viewModel = this.DataContext as VirtualMachinesPageViewModel;
+
+            if (viewModel != null)
             {
-                var droppedData = e.Data.GetData(typeof(BootOrderItem)) as BootOrderItem;
-                var targetItem = FindVisualParent<ListBoxItem>(e.OriginalSource as DependencyObject);
-
-                if (targetItem != null && droppedData != null)
-                {
-                    var targetData = targetItem.DataContext as BootOrderItem;
-                    var viewModel = this.DataContext as VirtualMachinesPageViewModel;
-
-                    if (viewModel?.SelectedVm != null && droppedData != targetData)
-                    {
-                        var list = viewModel.SelectedVm.BootOrderItems;
-                        int oldIndex = list.IndexOf(droppedData);
-                        int newIndex = list.IndexOf(targetData);
-
-                        if (oldIndex != -1 && newIndex != -1)
-                        {
-                            list.Move(oldIndex, newIndex);
-
-                            await viewModel.SilentSaveBootOrderAsync();
-                        }
-                    }
-                }
+                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] [UI-DROP] 用户松手，请求保存...");
+                await viewModel.SilentSaveBootOrderAsync();
             }
             e.Handled = true;
         }
