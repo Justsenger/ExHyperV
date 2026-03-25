@@ -37,7 +37,6 @@ namespace ExHyperV.Behaviors
             AssociatedObject.PreviewMouseLeftButtonDown += OnPreviewMouseLeftButtonDown;
             AssociatedObject.PreviewMouseMove += OnPreviewMouseMove;
             AssociatedObject.DragOver += OnDragOver;
-            AssociatedObject.Drop += OnDrop;
         }
 
         protected override void OnDetaching()
@@ -46,7 +45,6 @@ namespace ExHyperV.Behaviors
             AssociatedObject.PreviewMouseLeftButtonDown -= OnPreviewMouseLeftButtonDown;
             AssociatedObject.PreviewMouseMove -= OnPreviewMouseMove;
             AssociatedObject.DragOver -= OnDragOver;
-            AssociatedObject.Drop -= OnDrop;
         }
 
         private void OnPreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -67,16 +65,21 @@ namespace ExHyperV.Behaviors
                     {
                         _isDragging = true;
                         item.Opacity = 0.6;
-                        
+
                         System.Windows.DragDrop.DoDragDrop(item, item.DataContext, System.Windows.DragDropEffects.Move);
+
                         item.Opacity = 1.0;
                         _isDragging = false;
+
+                        if (DropCompletedCommand?.CanExecute(null) == true)
+                        {
+                            DropCompletedCommand.Execute(null);
+                        }
                     }
                 }
             }
         }
 
-        
         private void OnDragOver(object sender, System.Windows.DragEventArgs e)
         {
             if (e.Data.GetDataPresent(typeof(BootOrderItem)))
@@ -90,7 +93,7 @@ namespace ExHyperV.Behaviors
                     if (sourceData != targetData)
                     {
                         Point relativePos = e.GetPosition(targetItem);
-                        double threshold = targetItem.ActualHeight / 4;
+                        double threshold = targetItem.ActualHeight / 3;
 
                         if (MoveItemCommand?.CanExecute(null) == true)
                         {
@@ -105,19 +108,8 @@ namespace ExHyperV.Behaviors
                     }
                 }
             }
-            
-            e.Effects = System.Windows.DragDropEffects.Move;
-            e.Handled = true;
-        }
 
-        
-        private void OnDrop(object sender, System.Windows.DragEventArgs e)
-        {
-            _isDragging = false;
-            if (DropCompletedCommand?.CanExecute(null) == true)
-            {
-                DropCompletedCommand.Execute(null);
-            }
+            e.Effects = System.Windows.DragDropEffects.Move;
             e.Handled = true;
         }
 

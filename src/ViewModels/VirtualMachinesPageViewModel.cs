@@ -761,10 +761,36 @@ namespace ExHyperV.ViewModels
             if (value != null)
             {
                 IsCreatingVm = false;
+                _ = RefreshBootOrderForSelectedVmAsync(value);
             }
             CurrentViewType = VmDetailViewType.Dashboard;
             _originalSettingsCache = null;
             HostDisks.Clear();
+        }
+
+        private async Task RefreshBootOrderForSelectedVmAsync(VmInstanceInfo vm)
+        {
+            if (vm == null) return;
+            try
+            {
+                var list = await _vmBootService.GetBootOrderAsync(vm.Name);
+
+                Application.Current.Dispatcher.Invoke(() => {
+                    vm.BootOrderItems.Clear();
+                    foreach (var item in list)
+                    {
+                        vm.BootOrderItems.Add(item);
+                    }
+                    if (vm.BootOrderItems.Count > 0)
+                    {
+                        vm.BootOrderItems.Last().IsLast = true;
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[BOOT-REFRESH-ERROR] {ex.Message}");
+            }
         }
 
         private VmInstanceInfo CreateVmInstance(ExHyperV.Models.VmInstanceInfo vm)
@@ -2577,7 +2603,7 @@ namespace ExHyperV.ViewModels
 
         // 引导顺序部分
         private readonly System.Threading.SemaphoreSlim _bootOrderLock = new(1, 1);
-
+        private CancellationTokenSource? _bootSaveCts;
 
         [RelayCommand]
         private async Task GoToBootSettings()
@@ -2602,30 +2628,31 @@ namespace ExHyperV.ViewModels
         }
 
         // 保存逻辑
+        [RelayCommand]
+        private async Task SaveBootOrder()
+        {
+            await SilentSaveBootOrderAsync();
+        }
 
         public async Task SilentSaveBootOrderAsync()
         {
             if (SelectedVm == null || SelectedVm.BootOrderItems == null) return;
 
-            await _bootOrderLock.WaitAsync();
             try
             {
-                // 🟢 技巧 1：给 UI 动画留 100ms 稳定期，防止集合正在 Move 时进行快照
-                await Task.Delay(100);
-
+                // 关键检查：在保存前打印 UI 集合的名称顺序
                 var currentOrder = SelectedVm.BootOrderItems.ToList();
+                string names = string.Join(" -> ", currentOrder.Select(x => x.Name));
+                Debug.WriteLine($"[VM-LOG] UI 触发保存，当前预览顺序: {names}");
+
                 string vmName = SelectedVm.Name;
+                bool success = await _vmBootService.SetBootOrderAsync(vmName, currentOrder);
 
-                // 🟢 技巧 2：在写入 WMI 时，直接调用 Service
-                // 之前的日志显示 ReturnValue 是 0，说明逻辑通了，但可能由于
-                // 虚拟机实例对象在内存中已过期，导致修改了“旧快照”。
-                bool result = await _vmBootService.SetBootOrderAsync(vmName, currentOrder);
-
-                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] [VM-SAVE] 结果: {result}");
+                Debug.WriteLine($"[VM-LOG] 磁盘保存结果: {success}");
             }
-            finally
+            catch (Exception ex)
             {
-                _bootOrderLock.Release();
+                Debug.WriteLine($"[VM-LOG] 保存过程出错: {ex.Message}");
             }
         }
 
@@ -2656,13 +2683,6 @@ namespace ExHyperV.ViewModels
             // 更新 IsLast 标记以维护 UI 箭头显示（如果需要）
             foreach (var item in list) item.IsLast = false;
             list.Last().IsLast = true;
-        }
-
-        [RelayCommand]
-        private async Task SaveBootOrder()
-        {
-            System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] [VM-SAVE-TASK] 执行异步保存...");
-            await SilentSaveBootOrderAsync();
         }
 
         // ----------------------------------------------------------------------------------

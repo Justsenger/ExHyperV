@@ -1,9 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Diagnostics;
 using System.Management;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 using ExHyperV.Models;
 
 namespace ExHyperV.Services
@@ -23,21 +20,16 @@ namespace ExHyperV.Services
                     if (vm == null) return result;
 
                     using var settings = GetVmSettings(vm);
-                    // 修正：判断代数最稳妥的方法
                     bool isGen2 = settings["VirtualSystemSubType"]?.ToString() == "Microsoft:Hyper-V:SubType:2";
-
-                    // 缓存所有硬件
                     var allHardware = GetVmHardware(settings);
                     var hardwareMap = allHardware.ToDictionary(h => NormalizeId(h["InstanceID"]?.ToString()), h => h);
                     var childrenMap = BuildChildrenMap(allHardware);
 
                     if (!isGen2)
                     {
-                        // --- 第一代逻辑 ---
                         var rawOrder = settings["BootOrder"];
                         if (rawOrder is ushort[] bootOrder)
                         {
-                            // 这里的 (string, string) 即使写了名字，编译器有时也会弄丢
                             var bootDict = new Dictionary<int, (string, string)> {
             { 0, ("软盘", "\uE7F1") },
             { 1, ("光驱", "\uE958") },
@@ -48,12 +40,10 @@ namespace ExHyperV.Services
 
                             foreach (var code in bootOrder)
                             {
-                                // 获取元组对象
                                 var info = bootDict.ContainsKey((int)code) ? bootDict[(int)code] : ("未知设备", "\uE9CE");
 
                                 var item = new BootOrderItem
                                 {
-                                    // 🟢 关键修复：使用 Item1 替代 Name，使用 Item2 替代 Icon
                                     Name = info.Item1,
                                     Icon = info.Item2,
                                     IsGen2 = false,
@@ -66,7 +56,6 @@ namespace ExHyperV.Services
                     }
                     else
                     {
-                        // --- 第二代逻辑 (基于具体实例) ---
                         var bootPaths = (string[])settings["BootSourceOrder"];
                         if (bootPaths != null)
                         {
@@ -88,7 +77,7 @@ namespace ExHyperV.Services
                                     ParseGen2BootInfo(item, fwPath, allHardware, hardwareMap, childrenMap);
                                     result.Add(item);
                                 }
-                                catch { /* 忽略单个失效的引导项 */ }
+                                catch { }
                             }
                         }
                     }
@@ -104,77 +93,52 @@ namespace ExHyperV.Services
             {
                 try
                 {
-                    // 🟢 关键修改：每次保存都重新获取最鲜活的 VM 和 Settings 句柄
-                    // 不要复用任何外部传入的 ManagementObject
                     using var vm = GetVmObject(vmName);
+                    if (vm == null)
+                    {
+                        Debug.WriteLine($"[BOOT-ERROR] 找不到虚拟机: {vmName}");
+                        return false;
+                    }
                     using var settings = GetVmSettings(vm);
 
                     bool isGen2 = settings["VirtualSystemSubType"]?.ToString() == "Microsoft:Hyper-V:SubType:2";
+                    Debug.WriteLine($"[BOOT-TRACE] 开始设置 {vmName} ({(isGen2 ? "Gen2" : "Gen1")}) 的引导顺序");
 
                     if (isGen2)
                     {
-                        // 确保 Reference 数组内容完整
                         string[] newOrder = items.Select(i => i.Reference.ToString()).ToArray();
+                        // 打印每一项的路径，核对顺序是否真的变了
+                        for (int i = 0; i < newOrder.Length; i++)
+                            Debug.WriteLine($"[BOOT-DATA] Index {i}: {newOrder[i]}");
+
                         settings["BootSourceOrder"] = newOrder;
                     }
                     else
                     {
                         ushort[] newOrder = items.Select(i => Convert.ToUInt16(i.Reference)).ToArray();
+                        Debug.WriteLine($"[BOOT-DATA] Gen1 Order: {string.Join(", ", newOrder)}");
                         settings["BootOrder"] = newOrder;
                     }
 
                     using var vmSvc = GetManagementService();
                     using var inParams = vmSvc.GetMethodParameters("ModifySystemSettings");
-
-                    // 🟢 关键：Hyper-V 极其依赖这个 XML 序列化格式来确认“这是整套配置更新”
                     inParams["SystemSettings"] = settings.GetText(TextFormat.CimDtd20);
 
                     using var outParams = vmSvc.InvokeMethod("ModifySystemSettings", inParams, null);
                     uint returnValue = (uint)outParams["ReturnValue"];
 
-                    if (returnValue == 4096) return WaitForJob(outParams["Job"]?.ToString());
-                    return returnValue == 0;
+                    Debug.WriteLine($"[BOOT-RESULT] WMI 返回值: {returnValue} (0=成功, 4096=处理中)");
+
+                    return returnValue == 0 || returnValue == 4096;
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[WMI-CRITICAL-ERROR] {ex.Message}");
+                    Debug.WriteLine($"[BOOT-CRITICAL] 发生异常: {ex.Message}\n{ex.StackTrace}");
                     return false;
                 }
             });
         }
-        private bool WaitForJob(string jobPath)
-        {
-            if (string.IsNullOrEmpty(jobPath)) return false;
-            using var job = new ManagementObject(jobPath);
-            var watch = System.Diagnostics.Stopwatch.StartNew();
 
-            while (true)
-            {
-                job.Get();
-                ushort state = (ushort)job["JobState"];
-                // 3-开始, 4-运行中, 7-成功, 8-失败
-                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] [WMI-JOB-POLLING] 状态: {state}");
-
-                if (state == 7)
-                {
-                    System.Diagnostics.Debug.WriteLine($"[WMI-JOB-DONE] 任务成功结束 (总耗时: {watch.ElapsedMilliseconds}ms)");
-                    return true;
-                }
-                if (state >= 8)
-                {
-                    System.Diagnostics.Debug.WriteLine($"[WMI-JOB-FAILED] 任务失败或被终止，状态码: {state}, 错误: {job["ErrorDescription"]}");
-                    return false;
-                }
-
-                System.Threading.Thread.Sleep(150); // 轮询间隔
-                if (watch.ElapsedMilliseconds > 10000) // 10秒超时保护
-                {
-                    System.Diagnostics.Debug.WriteLine("[WMI-JOB-TIMEOUT] 任务超时");
-                    return false;
-                }
-            }
-        }
-        
         #region 核心工具方法
 
         private string GetGen1HardwareSummary(int code, List<ManagementObject> all, Dictionary<string, ManagementObject> map, Dictionary<string, List<ManagementObject>> children)
@@ -226,10 +190,23 @@ namespace ExHyperV.Services
                 {
                     int cIdx = int.Parse(m.Groups[1].Value);
                     int sIdx = int.Parse(m.Groups[2].Value);
+
                     var drive = all.FirstOrDefault(d =>
-                        Convert.ToInt32(d["AddressOnParent"] ?? -1) == sIdx &&
-                        map.ContainsKey(GetParentId(d) ?? "") &&
-                        Convert.ToInt32(map[GetParentId(d)]["Address"] ?? -1) == cIdx);
+                    {
+                        int resType = Convert.ToInt32(d["ResourceType"] ?? 0);
+                        if (resType != 16 && resType != 17 && resType != 22) return false;
+
+                        if (Convert.ToInt32(d["AddressOnParent"] ?? -1) != sIdx) return false;
+
+                        string pId = GetParentId(d);
+                        if (pId != null && map.ContainsKey(pId))
+                        {
+                            var parent = map[pId];
+                            int ctrlAddr = Convert.ToInt32(parent["Address"] ?? 0);
+                            return ctrlAddr == cIdx;
+                        }
+                        return false;
+                    });
 
                     item.Description = GetMediaFile(drive, children) ?? $"SCSI {cIdx}:{sIdx}";
                     item.Icon = (item.Description.EndsWith(".iso", StringComparison.OrdinalIgnoreCase)) ? "\uE958" : "\uEDA2";
@@ -257,20 +234,33 @@ namespace ExHyperV.Services
         {
             if (drive == null) return null;
             string dId = NormalizeId(drive["InstanceID"]?.ToString());
+
             if (children.ContainsKey(dId))
             {
                 foreach (var media in children[dId])
                 {
                     ushort type = Convert.ToUInt16(media["ResourceType"]);
-                    if ((type == 31 || type == 16 || type == 22) && media["HostResource"] is string[] hr && hr.Length > 0)
+                    // 31 是二代 VHDX 常用的 SASD 类型
+                    if (type == 31 || type == 16 || type == 22)
                     {
-                        return System.IO.Path.GetFileName(hr[0].Replace("file://", "").Replace("/", "\\"));
+                        // 修正：兼容多种数组类型
+                        var hrRaw = media["HostResource"];
+                        if (hrRaw is System.Collections.IEnumerable enumerable)
+                        {
+                            foreach (var pathObj in enumerable)
+                            {
+                                string path = pathObj?.ToString();
+                                if (!string.IsNullOrEmpty(path))
+                                {
+                                    return System.IO.Path.GetFileName(path.Replace("file://", "").Replace("/", "\\"));
+                                }
+                            }
+                        }
                     }
                 }
             }
             return null;
         }
-
         private ManagementObject GetVmObject(string vmName) =>
             new ManagementObjectSearcher($"\\\\.\\{Namespace}", $"SELECT * FROM Msvm_ComputerSystem WHERE ElementName='{vmName}'")
             .Get().Cast<ManagementObject>().FirstOrDefault();
@@ -305,7 +295,7 @@ namespace ExHyperV.Services
         {
             string p = res["Parent"]?.ToString();
             if (string.IsNullOrEmpty(p)) return null;
-            var m = Regex.Match(p, "InstanceID=\"([^\"]+)\"");
+            var m = Regex.Match(p, @"InstanceID=[""']([^""']+)[""']");
             return m.Success ? NormalizeId(m.Groups[1].Value) : null;
         }
 
