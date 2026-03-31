@@ -6,7 +6,7 @@ using RoyalApps.Community.Rdp.WinForms.Configuration;
 using RdpColorDepth = RoyalApps.Community.Rdp.WinForms.Configuration.ColorDepth;
 using System.Runtime.InteropServices;
 using MSTSCLib;
-
+using System.Windows.Interop;
 namespace ExHyperV.Tools
 {
     public class MsRdpExHost : WindowsFormsHost
@@ -18,6 +18,8 @@ namespace ExHyperV.Tools
         private string? _lastConnectedId;
         private bool? _lastEnhancedMode;
         private bool? _lastRelativeMouse; // 用于判定模式切换
+        private bool _wasFullScreen; // 追踪上一周期的全屏状态
+        private bool? _lastSyncState = null;
         private int _lastReqW, _lastReqH;
         private DispatcherTimer? _fastResizeTimer;
         private DispatcherTimer? _layoutStabilizeTimer;
@@ -104,6 +106,7 @@ namespace ExHyperV.Tools
             _rdpControl.OnClientAreaClicked += (s, e) => {
                 if (IsRelativeMouseMode) TrapMouse();
             };
+
 
             _rdpControl.OnConnected += (s, e) => {
                 int w = _rdpControl.RdpClient!.DesktopWidth, h = _rdpControl.RdpClient.DesktopHeight;
@@ -272,6 +275,39 @@ namespace ExHyperV.Tools
             if (_fastResizeTimer != null) return;
             _fastResizeTimer = new DispatcherTimer(DispatcherPriority.Render) { Interval = TimeSpan.FromMilliseconds(20) };
             _fastResizeTimer.Tick += (s, e) => {
+                var client = _rdpControl.RdpClient;
+                if (client?.ConnectionState != RoyalApps.Community.Rdp.WinForms.Controls.ConnectionState.Connected) return;
+
+                if (this.DataContext is ViewModels.ConsoleViewModel vm)
+                {
+
+                    bool currentUI = vm.IsFullScreen;
+                    bool currentHook = client.KeyboardHookMode != 0;
+
+                    if (_lastSyncState == null)
+                    {
+                        _lastSyncState = currentUI;
+                        client.KeyboardHookMode = currentUI ? 1 : 0;
+                        _wasFullScreen = currentUI;
+                        return;
+                    }
+
+                    if (currentHook != _lastSyncState)
+                    {
+                        vm.IsFullScreen = currentHook; // 强行拉动 UI 进入或退出全屏
+                        if (!currentHook) ReleaseMouse();
+                        _lastSyncState = currentHook;
+                        _wasFullScreen = currentHook;
+                    }
+                    else if (currentUI != _lastSyncState)
+                    {
+                        client.KeyboardHookMode = currentUI ? 1 : 0; // 强行拉动 Hook 开启或关闭
+                        if (!currentUI) ReleaseMouse();
+                        _lastSyncState = currentUI;
+                        _wasFullScreen = currentUI;
+                    }
+                }
+
                 if (_rdpControl.RdpClient?.ConnectionState != RoyalApps.Community.Rdp.WinForms.Controls.ConnectionState.Connected) return;
 
                 IntPtr opHandle = GetOutputPresenterHandle(_rdpControl.Handle);
