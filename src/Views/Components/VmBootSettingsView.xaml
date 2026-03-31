@@ -35,7 +35,8 @@
                  BorderThickness="0"
                  ItemsSource="{Binding SelectedVm.BootOrderItems}"
                  AllowDrop="True"
-                 ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                 IsHitTestVisible="{Binding SelectedVm.CanChangeBootOrder}">
 
             <b:Interaction.Behaviors>
                 <behaviors:ListBoxDragDropBehavior 
@@ -77,7 +78,8 @@
 
             <ListBox.ItemTemplate>
                 <DataTemplate>
-                    <Border Background="{ui:ThemeResource ControlFillColorDefaultBrush}"
+                    <Border x:Name="MainBorder" 
+                            Background="{ui:ThemeResource ControlFillColorDefaultBrush}"
                             BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}"
                             BorderThickness="1" CornerRadius="8" Padding="18,18">
                         <Grid>
@@ -107,6 +109,11 @@
                                          VerticalAlignment="Center"/>
                         </Grid>
                     </Border>
+                    <DataTemplate.Triggers>
+                        <DataTrigger Binding="{Binding DataContext.SelectedVm.CanChangeBootOrder, RelativeSource={RelativeSource AncestorType=ListBox}}" Value="False">
+                            <Setter TargetName="MainBorder" Property="Opacity" Value="0.6" />
+                        </DataTrigger>
+                    </DataTemplate.Triggers>
                 </DataTemplate>
             </ListBox.ItemTemplate>
         </ListBox>

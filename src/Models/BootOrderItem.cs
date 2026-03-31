@@ -1,4 +1,5 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
+using System.Collections.Generic;
 
 namespace ExHyperV.Models
 {
@@ -9,10 +10,34 @@ namespace ExHyperV.Models
         [ObservableProperty] private string _icon;          // 图标代码
         [ObservableProperty] private bool _isLast;          // 辅助 UI 箭头显示
 
-        // Gen1 存整数 Code，Gen2 存 Msvm_BootSourceSettingData 的 WMI 路径
         public object Reference { get; set; }
-
-        // 标记是否为第二代虚拟机
         public bool IsGen2 { get; set; }
+
+        // 映射表
+        private static readonly Dictionary<int, (string Name, string Icon)> Gen1DeviceMapping = new()
+        {
+            { 0, ("软盘", "\uE74E") },
+            { 1, ("光驱", "\uE958") },
+            { 2, ("IDE 硬盘", "\uEDA2") },
+            { 3, ("PXE 网络引导", "\uE774") },
+            { 4, ("SCSI 硬盘", "\uEDA2") }
+        };
+
+        /// <summary>
+        /// 快速创建一个第一代虚拟机的引导项
+        /// </summary>
+        public static BootOrderItem CreateGen1(ushort code)
+        {
+            var exists = Gen1DeviceMapping.TryGetValue(code, out var info);
+            var (name, icon) = exists ? info : ("未知设备", "\uE9CE");
+
+            return new BootOrderItem
+            {
+                Name = name,
+                Icon = icon,
+                IsGen2 = false,
+                Reference = (int)code
+            };
+        }
     }
 }

@@ -253,12 +253,23 @@ namespace ExHyperV.Models
         [ObservableProperty] private Guid _id;
         [ObservableProperty] private string _name;
         [ObservableProperty] private string _notes;
-        [ObservableProperty] private int _generation;
+
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(ConfigSummary))]
+        [NotifyPropertyChangedFor(nameof(CanChangeBootOrder))] 
+        private int _generation;
+
         [ObservableProperty] private string _version;
         [ObservableProperty] private string _osType;          
         [ObservableProperty] private string _state;
         [ObservableProperty] private string _uptime = "00:00:00";
-        [ObservableProperty] private bool _isRunning;
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(CanChangeBootOrder))]
+        private bool _isRunning;
+
+        public bool CanChangeBootOrder => !(Generation == 1 && IsRunning);
+
+
         [ObservableProperty] private BitmapSource? _thumbnail;
         // ---  IP 和 MAC 属性 ---
         [ObservableProperty]

@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using System.Management;
+﻿using System.Management;
 using System.Text.RegularExpressions;
 using ExHyperV.Models;
 
@@ -30,26 +29,11 @@ namespace ExHyperV.Services
                         var rawOrder = settings["BootOrder"];
                         if (rawOrder is ushort[] bootOrder)
                         {
-                            var bootDict = new Dictionary<int, (string, string)> {
-                                { 0, ("软盘", "\uE74E") },
-                                { 1, ("光驱", "\uE958") },
-                                { 2, ("IDE 硬盘", "\uEDA2") },
-                                { 3, ("PXE 网络引导", "\uE774") },
-                                { 4, ("SCSI 硬盘", "\uEDA2") }
-                            };
-
                             foreach (var code in bootOrder)
                             {
-                                var info = bootDict.ContainsKey((int)code) ? bootDict[(int)code] : ("未知设备", "\uE9CE");
-
-                                var item = new BootOrderItem
-                                {
-                                    Name = info.Item1,
-                                    Icon = info.Item2,
-                                    IsGen2 = false,
-                                    Reference = (int)code
-                                };
+                                var item = BootOrderItem.CreateGen1(code);
                                 item.Description = GetGen1HardwareSummary((int)code, allHardware, hardwareMap, childrenMap);
+
                                 result.Add(item);
                             }
                         }
