@@ -118,6 +118,7 @@ namespace ExHyperV.Tools
                 ReleaseMouse(); // 断开时释放鼠标
                 StopFastSniffer(); _layoutStabilizeTimer.Stop(); _curtain.Visible = true;
                 _lastConnectedId = null; _lastEnhancedMode = null; _lastRelativeMouse = null;
+                _lastSyncState = null;
                 OnRdpDisconnected?.Invoke(e.Description);
             };
 
@@ -180,6 +181,12 @@ namespace ExHyperV.Tools
                     _lastRelativeMouse = IsRelativeMouseMode; _lastReqW = _targetW; _lastReqH = _targetH;
 
                     var config = _rdpControl.RdpConfiguration;
+                    bool currentUiFullScreen = false;
+                    if (this.DataContext is ViewModels.ConsoleViewModel vm)
+                    {
+                        currentUiFullScreen = vm.IsFullScreen;
+                    }
+
                     config.Input.KeyboardHookMode = true;
                     config.Input.KeyboardHookToggleShortcutEnabled = true;
                     config.Input.RelativeMouseMode = IsRelativeMouseMode;
@@ -278,6 +285,7 @@ namespace ExHyperV.Tools
                 var client = _rdpControl.RdpClient;
                 if (client?.ConnectionState != RoyalApps.Community.Rdp.WinForms.Controls.ConnectionState.Connected) return;
 
+                if (_isTransitioning) return;
                 if (this.DataContext is ViewModels.ConsoleViewModel vm)
                 {
 
