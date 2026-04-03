@@ -1,3 +1,5 @@
+---
+
 <h1>
   <img src="https://github.com/Justsenger/ExHyperV/blob/main/img/logo.png?raw=true" width="32" alt="ExHyperV logo"> 
   ExHyperV
@@ -80,13 +82,13 @@ This section will be maintained long-term. It is written based on Hyper-V relate
 > [!NOTE]
 > Hyper-V is a high-performance virtual machine manager (Hypervisor) based on Type-1 architecture.
 
-When you enable the Hyper-V feature, the host system becomes a privileged virtual machine belonging to the root partition. The created virtual machines belong to child partitions; they are isolated from each other and cannot perceive each other's existence.
+When you enable the Hyper-V feature, the host system becomes a privileged virtual machine belonging to the Root Partition. The created virtual machines belong to Child Partitions; they are isolated from each other and cannot perceive each other's existence.
 
-Virtualization technologies belonging to the Type-1 architecture include Hyper-V, Proxmox (KVM), VMware ESXi (VMkernel), Xen, etc., with performance utilization rates generally above 98%.
+Virtualization technologies belonging to the Type-1 architecture include: Hyper-V, Proxmox (KVM), VMware ESXi (VMkernel), Xen, etc., with performance utilization rates generally above 98%.
 
-Virtualization technologies belonging to the Type-2 architecture include VMware Workstation, Oracle VirtualBox, Parallels Desktop, etc., with performance utilization rates around 90%~95%.
+Virtualization technologies belonging to the Type-2 architecture include: VMware Workstation, Oracle VirtualBox, Parallels Desktop, etc., with performance utilization rates around 90%~95%.
 
-Based on these facts, you can view virtual machines as isolated small rooms where you can run potentially threatening programs, test system functions, multi-box games, or other uses without worrying about messing up the host system (Except in cases where FLR is not supported in PCIe passthrough, where a VM restart might restart the host, or viruses with lateral movement capabilities—please pay attention to network security).
+Based on these facts, you can view virtual machines as isolated small rooms where you can run potentially threatening programs, test system functions, multi-box games, or other uses without worrying about messing up the host system (Except in cases where FLR is not supported in PCIe Passthrough, where a VM restart might restart the host, or viruses with lateral movement capabilities—please pay attention to network security).
 
 You can enable/disable Hyper-V via the Control Panel or a simple Powershell command (requires Pro or Server edition). After confirming with Y and rebooting, processes like vmms.exe, vmcompute.exe, and vmmem will run continuously in the background, and the Hyper-V Manager icon will appear in the Start menu.
 ```
@@ -97,13 +99,13 @@ Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V -All
 > [!NOTE]
 > The scheduler coordinates how physical processor CPU time is allocated to virtual machine processors.
 
-Hyper-V has three types of schedulers: Classic, Core, and Root. They can be categorized into two types: Manual (Classic, Core) and Automatic (Root). Core can be seen as a variant of Classic that improves security but may reduce performance in some scenarios.
+Hyper-V has three types of schedulers: Classic / Core / Root. They can be categorized into two types: Manual (Classic, Core) and Automatic (Root). Core can be seen as a variant of Classic that improves security but may reduce performance in some scenarios.
 
-The **Classic** scheduler dates back to Windows Server 2008. It is based on the principle of fair allocation using traditional time slicing. It randomly allocates VM processor time to any available logical processor on the host. If host resources are idle, it is more likely to allocate logical processors from different physical cores rather than hyper-threads to achieve better performance.
+The **Classic Scheduler** dates back to Windows Server 2008. It is based on the principle of fair allocation using traditional time slicing. It randomly allocates VM processor time to any available logical processor on the host. If host resources are idle, it is more likely to allocate logical processors from different physical cores rather than hyper-threads to achieve better performance.
 
-The **Core** scheduler appeared later, introduced in Windows Server 2016 and Windows 10 Build 14393. Its purpose is to mitigate side-channel attacks. Even if host resources are idle, it tends to allocate two threads of the same physical core rather than more physical cores. This strategy helps improve security and VM isolation but significantly reduces the CPU performance allocated to VMs when host resources are idle. Starting from Windows Server 2019, Windows Server defaults to using the Core scheduler.
+The **Core Scheduler** appeared later, introduced in Windows Server 2016 and Windows 10 Build 14393. Its purpose is to mitigate side-channel attacks. Even if host resources are idle, it tends to allocate two threads of the same physical core rather than more physical cores. This strategy helps improve security and VM isolation but significantly reduces the CPU performance allocated to VMs when host resources are idle. Starting from Windows Server 2019, Windows Server defaults to using the Core Scheduler.
 
-The **Root** scheduler was released in Windows 10 Build 17134. It collects metrics on workload CPU usage and makes automatic scheduling decisions. It is very suitable for hybrid CPU architectures (Big/Little cores). Starting from Build 17134, Windows Hyper-V (Pro) defaults to using the Root scheduler.
+The **Root Scheduler** was released in Windows 10 Build 17134. It collects metrics on workload CPU usage and makes automatic scheduling decisions. It is very suitable for hybrid CPU architectures (Big/Little cores). Starting from Build 17134, Windows Hyper-V (Pro) defaults to using the Root Scheduler.
 
 The system type is independent of the scheduler type; you can switch arbitrarily, effective after rebooting the host.
 
@@ -120,7 +122,7 @@ Usually set to even numbers like 2, 4, 8, 16.
 
 Increasing vCPUs significantly improves the processing speed of parallel tasks, but too many unnecessary vCPUs may bring scheduling pressure to the Hypervisor.
 
-If the total number of VM cores exceeds the host's physical logical core count (overselling), applications requiring immediate response will be greatly affected.
+If the total number of VM cores exceeds the host's physical logical core count (Overselling), applications requiring immediate response will be greatly affected.
 
 ##### Reserve
 
@@ -144,7 +146,7 @@ When enabled, it monitors I/O requests communicated through VMBus. If abnormal b
 
 When enabled, it passes through the CPU's VT-x/AMD-V instruction set extensions, allowing you to run a virtual machine inside a Hyper-V virtual machine. This slightly increases CPU virtualization overhead.
 
-After enabling nested virtualization and Hyper-V features in the VM, the VM's Task Manager will show L1/L2/L3 cache topology and will no longer be marked as "Virtual Machine: Yes," which helps with avoiding virtualization detection.
+After enabling Nested Virtualization and Hyper-V features in the VM, the VM's Task Manager will show L1/L2/L3 cache topology and will no longer be marked as "Virtual Machine: Yes," which helps with avoiding virtualization detection.
 
 <div align="center">
 <img width="616" height="532" alt="image" src="https://github.com/user-attachments/assets/00c838f1-91ef-42db-bf21-34c5b49b08b9" />
@@ -152,9 +154,9 @@ After enabling nested virtualization and Hyper-V features in the VM, the VM's Ta
 
 ##### Migration Compatibility
 
-When enabled, it masks advanced CPU instruction sets (such as AVX-512, etc.) to facilitate live migration on hosts with different hardware. Ordinary users do not need to enable this.
+When enabled, it masks advanced CPU instruction sets (such as AES, AVX, AVX2, FMA3, SHA, SSE4A, etc.) to facilitate live migration on hosts with different hardware. Ordinary users do not need to enable this.
 
-##### Legacy Compatibility
+##### Legacy System Compatibility
 
 When enabled, it significantly strips down the CPU instruction set. This is beneficial for running Windows 7 or earlier operating systems but detrimental to running modern operating systems.
 
@@ -162,7 +164,7 @@ When enabled, it significantly strips down the CPU instruction set. This is bene
 
 When enabled, the virtual machine can perceive that its vCPUs appear as paired logical cores, helping the OS kernel inside the VM to better perform L1/L2 cache optimization and process scheduling.
 
-##### Hide Hypervisor Presence
+##### Hide Hypervisor Presence # Soon to be removed
 
 This is an early switch, and its function is still unclear. Located at [Msvm_ProcessorSettingData/HideHypervisorPresent](https://github.com/Justsenger/HyperV-WMI-Documentation/blob/main/docs/Msvm_ProcessorSettingData.md).
 
@@ -180,13 +182,13 @@ When enabled, allows the virtual machine operating system to read the actual fre
 
 When enabled, turns off software patches for vulnerabilities like Spectre and Meltdown. This slightly improves performance but reduces virtualization security.
 
-##### Enable Slot Topology
+##### Enable Socket Topology
 
 When enabled, simulates multiple physical sockets for the virtual machine. May be useful for systems with multiple physical processors.
 
-##### CPU Binding
+##### CPU Pinning
 
-CPU binding is implemented based on CPU Groups (Classic + Core schedulers) + Process Affinity (Root scheduler), allowing you to forcibly lock vCPUs to specified cores.
+CPU Pinning is implemented based on CPU Groups (Classic + Core schedulers) + Process Affinity (Root scheduler), allowing you to forcibly lock vCPUs to specified cores.
 
 The best practice is binding 4 vCPUs to 4 cores. Binding 2 vCPUs to 4 cores will cause random drift, and binding 4 vCPUs to 2 cores will cause queuing, and so on.
 
@@ -199,7 +201,7 @@ If you find the scheduler performance poor, or have concerns about Intel's hybri
 
 #### Compute Resources
 
-##### Startup Memory
+##### Startup RAM
 
 The amount of physical memory the virtual machine must occupy when powered on. If the host lacks sufficient free memory, startup may fail.
 
@@ -213,9 +215,9 @@ The priority of multiple virtual machines competing for memory when host physica
 
 Allows the Hypervisor to scale the allocated memory amount in real-time based on the actual needs inside the virtual machine.
 
-Minimum memory cannot be greater than startup memory. The virtual machine will naturally not exceed the Maximum Memory or the host's physical memory limit.
+Minimum memory cannot be greater than Startup RAM. The virtual machine will naturally not exceed the maximum memory or the host's physical memory limit.
 
-When using GPU-PV or PCIe passthrough, startup memory must be the same as minimum memory to determine memory address mapping relationships.
+When using GPU-PV or PCIe Passthrough, Startup RAM must be the same as minimum memory to determine memory address mapping relationships.
 
 #### Advanced Features
 
@@ -232,23 +234,23 @@ When enabled, uses hardware features (AMD SEV or Intel TDX) to encrypt memory da
 > [!NOTE]
 > Local storage media accessible by the virtual machine.
 
-Divided into virtual files and physical devices. Virtual files can be vhdx, vhd, and iso formats. Physical devices can select offline hard drives or optical drives on the host for passthrough (some USB storage media may not be supported).
+Divided into Virtual Files and Physical Devices. Virtual files can be vhdx, vhd, and iso formats. Physical devices can select offline hard drives or optical drives on the host for passthrough (some USB storage media may not be supported).
 
 The monitoring interface shows real-time read/write rates and capacity changes. The number on the left is the file size, and the number on the right is the capacity limit.
 
 #### Slot Configuration
 
-Hyper-V requires you to mount virtual files or physical devices to an IDE controller or SCSI controller for VM access. ExHyperV has simplified this operation to automatic allocation, allowing you to care only about the media source without worrying about slot allocation.
+Hyper-V requires you to mount virtual files or physical devices to an IDE Controller or SCSI Controller for VM access. ExHyperV has simplified this operation to automatic allocation, allowing you to care only about the media source without worrying about slot allocation.
 
 If you try to understand the complex slot logic, please refer to the following rules:
 
-· For running Generation 1 VMs, IDE controllers cannot be uninstalled, but ISOs can be ejected and inserted.
+· For running Generation 1 VMs, IDE Controllers cannot be uninstalled, but ISOs can be ejected and inserted.
 
-· For Generation 1 VMs, ISOs can only be inserted into IDE controllers. Gen 1 VMs can only boot from media on IDE controllers.
+· For Generation 1 VMs, ISOs can only be inserted into IDE Controllers. Gen 1 VMs can only boot from media on IDE Controllers.
 
-· For Generation 2 VMs, SCSI controllers and the media within them can be ejected and removed at any time, so please operate with caution.
+· For Generation 2 VMs, SCSI Controllers and the media within them can be ejected and removed at any time, so please operate with caution.
 
-· For Generation 1 VMs, there are a total of 2 IDE controllers x 2 + 4 SCSI controllers x 64 = 260 slots available. For Generation 2 VMs, there are a total of 4 SCSI controllers x 64 = 256 slots available.
+· For Generation 1 VMs, there are a total of 2 IDE Controllers x 2 + 4 SCSI Controllers x 64 = 260 slots available. For Generation 2 VMs, there are a total of 4 SCSI Controllers x 64 = 256 slots available.
 
 #### Media Settings
 
@@ -260,11 +262,11 @@ Select a virtual file or an available physical device. Some USB storage media wi
 
 ###### Type: Hard Disk
 
-When the disk type is **Dynamic**, the initial file size is small (generated based on block size and capacity for the block allocation table) rather than the full capacity, and it grows gradually.
+When the disk type is Dynamic, the initial file size is small (generated based on block size and capacity for the block allocation table) rather than the full capacity, and it grows gradually.
 
-When the disk type is **Fixed**, the initial value is the capacity size and does not change; read/write efficiency is higher.
+When the disk type is Fixed, the initial value is the capacity size and does not change; read/write efficiency is higher.
 
-When the disk type is **Differencing**, you need to specify a dynamic/fixed virtual hard disk to inherit all its parameters.
+When the disk type is Differencing, you need to specify a dynamic/fixed virtual hard disk to inherit all its parameters.
 
 Sector Format: 512n, 512e (default), 4kn. Corresponding physical sector size and logical sector size are: 512/512, 4096/512, 4096/4096. Ordinary users can keep the default.
 
@@ -283,13 +285,13 @@ Due to many restrictions, this part may consider using the UDF standard as a rep
 > [!NOTE]
 > The ability of the virtual machine to access the host physical graphics card via GPU-PV technology.
 
-GPU-PV is a paravirtualization technology that allows multiple virtual machines to share the computing power of a physical GPU without PCIe passthrough. GPU-PV is still evolving; the newer the WDDM version, the more complete the functions. The host and VM should use the latest system versions as much as possible.
+GPU-PV is a paravirtualization technology that allows multiple virtual machines to share the computing power of a physical GPU without PCIe Passthrough. GPU-PV is still evolving; the newer the WDDM version, the more complete the functions. The host and VM should use the latest system versions as much as possible.
 
 · The monitoring interface allows viewing the graphics engine utilization of all GPU-PV partitions on that VM, including four common engines: 3D Rendering, Copy, Video Encode, and Video Decode.
 
 · Currently, Hyper-V cannot effectively limit the GPU resources used by each virtual machine. Parameters in `Set-VMGpuPartitionAdapter` do not take effect ([Relevant discussion](https://github.com/jamesstringerparsec/Easy-GPU-PV/issues/298)). Therefore, this tool does not currently provide resource allocation functions.
 
-· although virtual devices created by GPU-PV can call the physical GPU, they do not fully inherit its hardware characteristics and driver details. Certain software/games relying on specific hardware IDs or driver signatures may not run.
+· Although virtual devices created by GPU-PV can call the physical GPU, they do not fully inherit its hardware characteristics and driver details. Certain software/games relying on specific hardware IDs or driver signatures may not run.
 
 #### System Requirements
 
@@ -305,7 +307,7 @@ Host and VM must be the following versions to enable this capability.
 
 · Virtual machines with GPU-PV enabled do not support the checkpoint function.
 
-· Graphics cards with GPU-PV enabled must exist on the host and cannot be used for PCIe passthrough simultaneously.
+· Graphics cards with GPU-PV enabled must exist on the host and cannot be used for PCIe Passthrough simultaneously.
 
 · Multiple GPU-PV graphics partitions obtained from the same graphics card cannot provide computing power exceeding the physical limit.
 
@@ -336,6 +338,7 @@ Host and VM must be the following versions to enable this capability.
 | **Nvidia** | RTX 2080 Super | Turing | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | |
 | **Nvidia** | GTX 1050 | Pascal | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | |
 | **Nvidia** | GT 210 | Tesla | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | Not supported |
+| **Nvidia** | Tesla V100-SXM2-16GB | Volta | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | Host crashes on boot #95 |
 | **Intel**| Iris Xe Graphics| Xe-LP | ⚠️ | ✅ | ✅ | ✅ | ✅ | ❌ | Incomplete HW ID| 
 | **Intel**| A380 | Xe-HPG | ⚠️ | ✅ | ✅ | ✅ | ✅ | ❌ | Incomplete HW ID|
 | **Intel**| UHD Graphics 730 | Xe-LP | ⚠️ | ✅ | ✅ | ✅ | ✅ | ❌ | Incomplete HW ID|
@@ -344,9 +347,9 @@ Host and VM must be the following versions to enable this capability.
 | **AMD** | Radeon Vega 3 | GCN 5.0 | ⚠️ | ✅ | ✅ | ✅ | ✅ | ✅ | Incomplete HW ID|
 | **AMD** | Radeon 8060S | RDNA 3.5 | ⚠️ | ✅ | ✅ | ✅ | ✅ | ❌ | Incomplete HW ID |
 | **AMD** | Radeon 890M | RDNA 3.5 | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | Boot crashes host |
-| **Qualcomm** | Qualcomm(R) Adreno(TM) X1-85 GPU | Adreno X1 | ⚠️ | ✅ | ✅ | ✅ | ✅ | ✅ | Incomplete HW ID|
 | **Moore Threads** | MTT S80 | MUSA | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | Not supported |
-
+| **Qualcomm** | Qualcomm(R) Adreno(TM) X1-85 GPU | Adreno X1 | ⚠️ | ✅ | ✅ | ✅ | ✅ | ✅ | Incomplete HW ID|
+| **Qualcomm** | Qualcomm(R) Adreno(TM) 8cx Gen 3 | Adreno | ⚠️ | ✅ | ✅ | ✅ | ✅ | ✅ | Incomplete HW ID|
 
 #### How to output video from the VM?
 
@@ -377,7 +380,7 @@ In the GPU-PV model, the VM's GPU-PV card acts as a "Render Device" and needs a 
 · Connect to the virtual machine via Moonlight. If all goes well, video and sound will be transmitted to the Moonlight client.
 
 3.  **USB Graphics Card + GPU-PV**
-    - **Idea**: Use PCIe passthrough to assign a USB controller to the VM, then connect a USB graphics card (e.g., based on [DisplayLink DL-6950](https://www.synaptics.com/cn/products/displaylink-graphics/integrated-chipsets/dl-6000) or [Silicon Motion SM768](https://www.siliconmotion.com/product/cht/Graphics-Display-SoCs.html) chips) as the display device.
+    - **Idea**: Use PCIe Passthrough to assign a USB controller to the VM, then connect a USB graphics card (e.g., based on [DisplayLink DL-6950](https://www.synaptics.com/cn/products/displaylink-graphics/integrated-chipsets/dl-6000) or [Silicon Motion SM768](https://www.siliconmotion.com/product/cht/Graphics-Display-SoCs.html) chips) as the display device.
     - **Status**: This solution may conflict with large memory graphics cards and requires more testing.
 
 #### Configuration Process
@@ -392,7 +395,13 @@ The system optimization in the next step requires the virtual machine to be powe
 
 ##### System Optimization
 
-Configure high MMIO space to 64GB, low space to 1GB, and enable Write Combining.
+Detect host physical addressing capability, automatically configure MMIO Space, and enable Write Combining cache.
+
+Query physical addressing capability:
+
+```
+$n="CheckMMIO_$(Get-Random)";New-VM $n -Gen 2 -NoVHD|Out-Null;Set-VM $n -AutomaticCheckpointsEnabled $false|Out-Null;$m=[WMI](gwmi -n root\virtualization\v2 Msvm_VirtualSystemManagementService).Path;@(1073741824,268435456,134217728,67108864,16777216,4194304,1048576,524288,262144,131072,65536,34816)|%{$v=$_;$p=(gwmi -n root\virtualization\v2 Msvm_VirtualSystemSettingData|? ElementName -eq $n).Path;if($p){$s=[WMI]$p;$s.HighMmioGapBase=$v-1024;$s.HighMmioGapSize=1024;$m.ModifySystemSettings($s.GetText(2))|Out-Null;try{Start-VM $n -EA Stop;$g=[math]::Ceiling($v/1024);$b=[math]::Log($v,2)+20;$o=if($g-ge1024){"$([math]::round($g/1024,1))TB"}else{"$g GB"};"$b bit / $o";Stop-VM $n -TurnOff -F;while((Get-VM $n).State -ne 'Off'){sleep 1};Remove-VM $n -F;break}catch{}}};Get-VM "T_*" -EA 0|Remove-VM -F -EA 0
+```
 
 ##### Assign Graphics Card
 
@@ -402,9 +411,9 @@ Create a GPU-PV partition for the selected graphics card and assign it to the vi
 
 This is optional. When adding multiple graphics cards, you can uncheck this to avoid importing drivers every time.
 
-For Windows VMs, the host driver folder will be fully injected into the VM's specified partition. If it's an Nvidia card, registry fixes will also be added.
+For Windows VMs, the host driver folder will be fully injected into the VM's specified partition. If it's an Nvidia card, registry fixes will also be added. At the same time, link files for certain driver files will be created in the VM's System32 directory. For specific mapping relationships, refer to [drivermapping.md](https://github.com/Justsenger/ExHyperV/blob/main/doc/drivermapping.md).
 
-For Linux VMs, a different SSH-related flow will be executed for module compilation and driver installation. Systems or kernels outside the compatibility list need more testing.
+For Linux VMs, an SSH automated flow will be executed for module compilation and driver installation. Systems or kernels outside the compatibility list need more testing.
 
 ![Linux&Blender](https://github.com/Justsenger/ExHyperV/blob/main/img/Linux.png)
 
@@ -425,17 +434,17 @@ Known Compatibility:
 > [!NOTE]
 > VLAN (Virtual Local Area Network) is a communication technology that logically divides a physical LAN into multiple independent broadcast domains.
 
-**Access Mode**: Assigns the virtual machine's network adapter to a single VLAN. When VLAN ID equals 0, VLAN function is disabled.
+Access Mode: Assigns the virtual machine's network adapter to a single VLAN. When VLAN ID equals 0, VLAN function is disabled.
 
 The VLAN ID range is 1-4094. After setting a specific VLAN ID, the virtual machine can only communicate at Layer 2 with devices in the same virtual switch that are in the same VLAN ID.
 
-**Trunk Mode**: Allows the virtual machine's network adapter to transmit traffic for multiple VLANs simultaneously.
+Trunk Mode: Allows the virtual machine's network adapter to transmit traffic for multiple VLANs simultaneously.
 
 · Native VLAN ID: Used to handle untagged default traffic.
 
 · Allow List: Specifies the range of VLAN IDs allowed through this network card (e.g., 10, 20-30).
 
-**Private Mode**: Implements further Layer 2 isolation within the same VLAN, often used in multi-tenant or hosting environments.
+Private Mode: Implements further Layer 2 isolation within the same VLAN, often used in multi-tenant or hosting environments.
 
 · Primary ID: Public VLAN identifier the VM belongs to.
 · Secondary ID: Internal identifier used to implement subdivision isolation.
@@ -460,29 +469,29 @@ Minimum: Guaranteed floor. When the network is busy, the system prioritizes rese
 > [!NOTE]
 > Offloads work that originally required host CPU processing to the physical network card hardware to improve performance.
 
-**Single Root I/O Virtualization (SR-IOV)**: Allows the virtual machine to skip the virtual switch and directly "connect" to the hardware resources of the physical network card. This feature requires physical network card support, and SR-IOV must be checked when creating the virtual switch. Enable for server-grade NICs with high performance needs.
+Single Root I/O Virtualization (SR-IOV): Allows the virtual machine to skip the virtual switch and directly "connect" to the hardware resources of the physical network card. This feature requires physical network card support, and SR-IOV must be checked when creating the virtual switch. Enable for server-grade NICs with high performance needs.
 
-**Virtual Machine Queue (VMQ)**: Uses the physical NIC's hardware filtering to pre-classify packets sent to different VMs and deliver them directly to the VM's memory. Enable for 10GbE NICs; recommended to disable for 1GbE NICs or Broadcom NICs.
+Virtual Machine Queue (VMQ): Uses the physical NIC's hardware filtering to pre-classify packets sent to different VMs and deliver them directly to the VM's memory. Enable for 10GbE NICs; recommended to disable for 1GbE NICs or Broadcom NICs.
 
-**IPsec Task Offload**: Transfers encryption/decryption calculations (IPsec protocol) in network transmission from the CPU to the NIC hardware. Default off is fine; almost useless for most.
+IPsec Task Offload: Transfers encryption/decryption calculations (IPsec protocol) in network transmission from the CPU to the NIC hardware. Default off is fine; almost useless for most.
 
 #### Security and Monitoring
 > [!NOTE]
 > Enhances virtual network security isolation and traffic monitoring.
 
-**Allow MAC Address Spoofing**: Allows the virtual machine to change its network card's MAC address. Usually used when enabling nested virtualization or for certain soft router systems that need to spoof MACs. If not enabled, the VM can only use the unique fixed MAC assigned to it.
+Allow MAC Address Spoofing: Allows the virtual machine to change its network card's MAC address. Usually used when enabling nested virtualization or for certain soft router systems that need to spoof MACs. If not enabled, the VM can only use the unique fixed MAC assigned to it.
 
-**DHCP Guard**: Prevents the virtual machine from acting as a DHCP server, avoiding network disconnection caused by other devices in the network obtaining incorrect IP addresses from this VM.
+DHCP Guard: Prevents the virtual machine from acting as a DHCP server, avoiding network disconnection caused by other devices in the network obtaining incorrect IP addresses from this VM.
 
-**Router Guard**: Prevents the virtual machine from masquerading as a gateway, maliciously hijacking, or spoofing intranet traffic.
+Router Guard: Prevents the virtual machine from masquerading as a gateway, maliciously hijacking, or spoofing intranet traffic.
 
-**Port Mirroring**: Copies traffic from VMs in the Source group to VMs in the Destination group.
+Port Mirroring: Copies traffic from VMs in the Source group to VMs in the Destination group.
 
-**Join Source Group**: Traffic from this network adapter will be sent to the Destination group network adapters.
+Join Source Group: Traffic from this network adapter will be sent to the Destination group network adapters.
 
-**Join Destination Group**: This network adapter will receive traffic from Source group network adapters.
+Join Destination Group: This network adapter will receive traffic from Source group network adapters.
 
-**Storm Threshold**: Limits the number of broadcast/multicast packets the VM is allowed to send per second. Setting to 0 means no limit; recommended setting is 500-1000.
+Storm Threshold: Limits the number of broadcast/multicast packets the VM is allowed to send per second. Setting to 0 means no limit; recommended setting is 500-1000.
 
 ---
 ### PCIe Passthrough
@@ -507,12 +516,16 @@ Usually use Windows 10/11 or higher. Linux requires further testing.
 - Windows Server 2022
 - Windows Server 2025
 
-**Black Magic**: If you want to use PCIe passthrough on a non-Server system, you can try toggling the system version switch to change the identifier from WinNT to ServerNT, thereby tricking the Hypervisor. This switch currently only works for Build 26100 and below.
+**Black Magic**: If you want to use PCIe Passthrough on a non-Server system, you can try toggling the system version switch to change the identifier from WinNT to ServerNT, thereby tricking the Hypervisor. This switch currently only works for the following versions.
+
+Effective Versions: Pro Education, Pro Workstation, Pro Single Language, Pro China, Education, Enterprise LTSC, Enterprise G, Enterprise Multi-Session, IOT Enterprise.
+
+Ineffective Versions: Pro, Home, Enterprise, Home Single Language.
 
 #### Three States of PCIe Devices
 
 1.  **Host State**: The device is normally mounted to the host system and can only be used by the host.
-2.  **Dismounted State**: The device has been uninstalled from the host (`Dismount-VMHostAssignableDevice`) but not assigned to a VM. At this point, the device is unavailable in the host Device Manager and needs to be remounted to the host or assigned to a VM.
+2.  **Dismounted State**: The device has been uninstalled from the host (Dismount-VMHostAssignableDevice) but not assigned to a VM. At this point, the device is unavailable in the host Device Manager and needs to be remounted to the host or assigned to a VM.
 3.  **Virtual State**: The device has been successfully assigned to a virtual machine.
 
 #### PCIe Partial Graphics Card Compatibility List
@@ -529,6 +542,7 @@ Usually use Windows 10/11 or higher. Linux requires further testing.
 | **Nvidia** | GTX 1050 | Pascal | ✅ | ✅ | ✅ |
 | **Nvidia** | GT 1030 | Pascal | ✅ | ✅ | ✅ |
 | **Nvidia** | GT 210 | Tesla | ✅ | ✅ | ❌ |
+| **Nvidia** | Tesla V100-SXM2-16GB | Volta | ✅ | ✅ | ❌ |
 | **Intel** | DG1 | Xe-LP | ✅ | ❌ | [Specific Driver](https://www.shengqipc.cn/d21.html) ✅ |
 | **Intel** | A380 | Xe-HPG | Code 43 ❌ | ✅ | ❌ |
 | **Intel**| UHD Graphics 620 Mobile | Generation 9.5 | Fails ❌ | ❌ | ❌ | 
@@ -537,6 +551,7 @@ Usually use Windows 10/11 or higher. Linux requires further testing.
 | **AMD** | RX 580 | GCN 4.0 | Code 43 ❌ | ✅ | ❌ |
 | **AMD** | Radeon Vega 3 | GCN 5.0 | Code 43 ❌ | ❌ | ❌ |
 | **Qualcomm** | Qualcomm(R) Adreno(TM) X1-85 GPU | Adreno X1 | Not supported❌ | ❌ | ❌ |
+| **Qualcomm** | Qualcomm(R) Adreno(TM) 8cx Gen 3  | Adreno | Not supported❌ | ❌ | ❌ |
 
 
 - **Boot**: Whether the driver can be successfully installed and recognized after assignment to the VM. Code 43 indicates the driver level does not allow the card to work inside a VM.
@@ -551,13 +566,15 @@ ExHyperV redefines Hyper-V's three switch types (External, Internal, Private) in
 
 ### Network Modes
 
-**Bridged Mode**: Host and VM connect under the same external virtual switch, with a specified physical network card providing the outlet network.
+Bridged Mode: Host and VM connect under the same external virtual switch, with a specified physical network card providing the outlet network.
 
-**NAT Mode**: Host and VM connect under the same internal virtual switch. The host shares the physical network card's network to the VM via ICS and is responsible for the upstream outlet, NAT translation, and DHCP. Only one NAT mode network can exist.
+NAT Mode: Host and VM connect under the same internal virtual switch. The host shares the physical network card's network to the VM via ICS and is responsible for the upstream outlet, NAT translation, and DHCP. Only one NAT mode network can exist.
 
-**No Upstream**: Host and VM connect under the same internal virtual switch with no upstream network. The host can choose not to connect to this switch, in which case the virtual switch automatically switches to a Private switch.
+No Upstream: Host and VM connect under the same internal virtual switch with no upstream network. The host can choose not to connect to this switch, in which case the virtual switch automatically switches to a Private switch.
 
-· **Default Switch** belongs to a unique switch type working similarly to NAT mode and automatically switches the upstream network based on metrics.
+· Default Switch belongs to a unique switch type working similarly to NAT mode and automatically switches the upstream network based on metrics.
+
+
 
 ## 🤝 Contribution
 Any form of contribution is welcome!
@@ -589,12 +606,11 @@ A huge thank you to our sponsors! Your generous support is the driving force beh
 ### 🏅 Expert Tier
 ![](https://img.shields.io/badge/EXPERT-User--6b017-24292e?style=for-the-badge&logo=expertsexchange&logoColor=FFBF00&labelColor=24292e&color=FFBF00)
 ![](https://img.shields.io/badge/EXPERT-死都不怕还怕活着？-24292e?style=for-the-badge&logo=expertsexchange&logoColor=FFBF00&labelColor=24292e&color=FFBF00)
+![](https://img.shields.io/badge/EXPERT-LinearKF-24292e?style=for-the-badge&logo=expertsexchange&logoColor=FFBF00&labelColor=24292e&color=FFBF00)
 ---
 
-
-
-
 ### 🔹 Beginner Tier
+![](https://img.shields.io/badge/BEGINNER-癞蛤蟆-0078D4?style=flat-square&logo=hyperledger&logoColor=white) 
 ![](https://img.shields.io/badge/BEGINNER-激进娘-0078D4?style=flat-square&logo=hyperledger&logoColor=white) 
 ![](https://img.shields.io/badge/BEGINNER-User--FaTM-0078D4?style=flat-square&logo=hyperledger&logoColor=white) 
 <a href="mailto:miooiio@outlook.jp"><img src="https://img.shields.io/badge/BEGINNER-User--53EDF-0078D4?style=flat-square&logo=hyperledger&logoColor=white" /></a> 
@@ -602,4 +618,4 @@ A huge thank you to our sponsors! Your generous support is the driving force beh
 ![](https://img.shields.io/badge/BEGINNER-User--2b965-0078D4?style=flat-square&logo=hyperledger&logoColor=white) 
 ![](https://img.shields.io/badge/BEGINNER-苏芸晴或i-0078D4?style=flat-square&logo=hyperledger&logoColor=white) 
 ![](https://img.shields.io/badge/BEGINNER-tiwatezhanshen-0078D4?style=flat-square&logo=hyperledger&logoColor=white) 
-![](https://img.shields.io/badge/BEGINNER-User--_tpuJ-0078D4?style=flat-square&logo=hyperledger&logoColor=white) 
+![](https://img.shields.io/badge/BEGINNER-User--_tpuJ-0078D4?style=flat-square&logo=hyperledger&logoColor=white)
