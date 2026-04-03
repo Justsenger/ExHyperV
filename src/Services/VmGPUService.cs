@@ -841,6 +841,7 @@ return 'OK'
                     Log(Properties.Resources.Msg_Gpu_InjectingReg);
                     NvidiaReg(assignedDriveLetter);
                     PromoteNvidiaFiles(assignedDriveLetter);
+                    await NvidiaProgramFoldersAsync(assignedDriveLetter, Log);
                 }
                 else if (gpuManu.Contains("Intel", StringComparison.OrdinalIgnoreCase))
                 {
@@ -1266,6 +1267,43 @@ return 'OK'
                 if (File.Exists(tempRegFile)) File.Delete(tempRegFile);
             }
         }
+
+        private async Task NvidiaProgramFoldersAsync(string assignedDriveLetter, Action<string> Log)
+        {
+            var sourceFolders = new List<string>
+    {
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "NVIDIA Corporation"),
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "NVIDIA Corporation"),
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "NVIDIA Corporation")
+    };
+
+            foreach (var sourcePath in sourceFolders)
+            {
+                if (!Directory.Exists(sourcePath)) continue;
+                string root = Path.GetPathRoot(sourcePath);
+                string relativePath = sourcePath.Substring(root.Length);
+
+                string targetPath = Path.Combine(assignedDriveLetter, relativePath);
+
+                Log?.Invoke(string.Format("Syncing: {0} -> {1}", sourcePath, targetPath));
+
+                if (!Directory.Exists(targetPath))
+                {
+                    Directory.CreateDirectory(targetPath);
+                }
+                using (Process p = Process.Start(new ProcessStartInfo
+                {
+                    FileName = "robocopy.exe",
+                    Arguments = $"\"{sourcePath}\" \"{targetPath}\" /E /R:1 /W:1 /MT:32 /XJ /NDL /NJH /NJS /NC /NS",
+                    CreateNoWindow = true,
+                    UseShellExecute = false
+                }))
+                {
+                    await p.WaitForExitAsync();
+                }
+            }
+        }
+
         #endregion
 
         #region Linux 驱动环境与脚本部署
