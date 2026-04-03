@@ -37,6 +37,7 @@ namespace ExHyperV.Tools
         private DispatcherTimer? _layoutStabilizeTimer;                // 布局稳定器
         private readonly DispatcherTimer _configDebounceTimer;         // 配置防抖器
         private Window? _parentWindow;                                 // 父级窗口引用
+        private int _hookChangeConfirmCount = 0;                           // Hook 变化双采样计数器
         #endregion
 
         public event Action? OnRdpConnected;
@@ -217,11 +218,22 @@ namespace ExHyperV.Tools
                     }
                     else if (currentHook != _lastSyncState)
                     {
-                        vm.IsFullScreen = currentHook; _lastSyncState = currentHook;
+                        if (_hookChangeConfirmCount == 0)
+                        {
+                            _hookChangeConfirmCount = 1; 
+                        }
+                        else
+                        {
+                            vm.IsFullScreen = currentHook;
+                            _lastSyncState = currentHook;
+                            _hookChangeConfirmCount = 0;
+                        }
                     }
                     else if (currentUI != _lastSyncState)
                     {
-                        client.KeyboardHookMode = currentUI ? 1 : 0; _lastSyncState = currentUI;
+                        client.KeyboardHookMode = currentUI ? 1 : 0;
+                        _lastSyncState = currentUI;
+                        _hookChangeConfirmCount = 0;
                     }
                 }
 

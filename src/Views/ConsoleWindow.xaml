@@ -19,13 +19,6 @@
         <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
         <converters:FullScreenToStyleConverter x:Key="FullScreenToStyleConverter" />
         <converters:FullScreenToStateConverter x:Key="FullScreenToStateConverter" />
-
-        <Style TargetType="ui:FluentWindow" BasedOn="{StaticResource {x:Type ui:FluentWindow}}">
-            <!-- 核心修复：添加 Mode=OneWay -->
-            <Setter Property="WindowStyle" Value="{Binding IsFullScreen, Converter={StaticResource FullScreenToStyleConverter}, Mode=OneWay}" />
-            <Setter Property="WindowState" Value="{Binding IsFullScreen, Converter={StaticResource FullScreenToStateConverter}, Mode=OneWay}" />
-            <Setter Property="Topmost" Value="{Binding IsFullScreen, Mode=OneWay}" />
-        </Style>
     </ui:FluentWindow.Resources>
 
     <DockPanel LastChildFill="True" Background="Transparent">
