@@ -43,11 +43,11 @@ public class Utils
 
     public static Collection<PSObject> Run(string script)
     {
+        string fixedScript = PrefixHyperVCommands(script);
         using (PowerShell ps = PowerShell.Create())
         {
-            ps.AddScript(script);
-            var results = ps.Invoke();
-            return results;
+            ps.AddScript(fixedScript);
+            return ps.Invoke();
         }
     }
     public static async Task<Collection<PSObject>> Run2(string script, CancellationToken cancellationToken = default)
@@ -59,10 +59,11 @@ public class Utils
     {
         return await Task.Run(async () =>
         {
+            string fixedScript = PrefixHyperVCommands(script);
             using (var ps = PowerShell.Create())
             {
                 ps.RunspacePool = _runspacePool;
-                ps.AddScript(script);
+                ps.AddScript(fixedScript);
                 var psDataCollection = await ps.InvokeAsync().WaitAsync(cancellationToken);
 
                 if (ps.HadErrors)
@@ -658,5 +659,24 @@ public class Utils
     }
 
     public static string Author => "Justsenger";
+
+    private static readonly string[] ConflictCommands = {
+    "Get-VM", "Set-VM", "New-VM", "Remove-VM",
+    "Get-VMHost", "Set-VMHost",
+    "Get-NetworkAdapter", "Set-NetworkAdapter",
+    "Get-HardDisk", "Set-HardDisk",
+    "Get-Snapshot", "Remove-Snapshot", "New-Snapshot",
+    "Stop-VM", "Restart-VM", "Start-VM"
+};
+
+    private static string PrefixHyperVCommands(string script)
+    {
+        foreach (var cmd in ConflictCommands)
+        {
+            string pattern = $@"\b{cmd}\b";
+            script = Regex.Replace(script, pattern, $"Hyper-V\\{cmd}", RegexOptions.IgnoreCase);
+        }
+        return script;
+    }
 
 }

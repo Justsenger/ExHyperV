@@ -44,7 +44,7 @@ namespace ExHyperV.Services
         private const string GetPartitionableGpusWin10Script = "Get-VMPartitionableGpu | select name";
 
         private const string CheckHyperVModuleScript = "Get-Module -ListAvailable -Name Hyper-V";
-        private const string GetVmsScript = "Hyper-V\\Get-VM | Select Id, vmname,LowMemoryMappedIoSpace,GuestControlledCacheTypes,HighMemoryMappedIoSpace,Notes";
+        private const string GetVmsScript = "Get-VM | Select Id, vmname,LowMemoryMappedIoSpace,GuestControlledCacheTypes,HighMemoryMappedIoSpace,Notes";
         #endregion
 
         #region 环境与底层工具集

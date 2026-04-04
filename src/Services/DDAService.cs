@@ -39,7 +39,7 @@ namespace ExHyperV.Services
                     var hypervModule = Utils.Run("Get-Module -ListAvailable -Name Hyper-V");
                     if (hypervModule != null && hypervModule.Count != 0)
                     {
-                        var vms = Utils.Run(@"Hyper-V\Get-VM | Select-Object Name");
+                        var vms = Utils.Run(@"Get-VM | Select-Object Name");
                         if (vms != null)
                         {
                             foreach (var vm in vms)
@@ -201,7 +201,7 @@ namespace ExHyperV.Services
             {
                 try
                 {
-                    var results = Utils.Run($"Hyper-V\\Get-VM -Name \"{vmName}\" | Select-Object HighMemoryMappedIoSpace");
+                    var results = Utils.Run($"Get-VM -Name \"{vmName}\" | Select-Object HighMemoryMappedIoSpace");
                     if (results == null || results.Count == 0)
                         return (MmioCheckResultType.Error, Properties.Resources.Error_CannotGetVmInfo);
 
@@ -232,7 +232,7 @@ namespace ExHyperV.Services
                 try
                 {
                     string script =
-                        $"if ((Hyper-V\\Get-VM -Name '{vmName}').State -eq 'Running') {{ Stop-VM -Name '{vmName}' -Force; }};" +
+                        $"if ((Get-VM -Name '{vmName}').State -eq 'Running') {{ Stop-VM -Name '{vmName}' -Force; }};" +
                         $"\nSet-VM -VMName '{vmName}' -HighMemoryMappedIoSpace {RequiredMmioBytes};";
                     return Utils.Run(script) != null;
                 }
