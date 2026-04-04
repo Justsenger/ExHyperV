@@ -35,5 +35,9 @@ namespace ExHyperV.Views.Components
         {
             RdpHost?.SendCtrlAltDel();
         }
+        public void SuspendRdpLayout(bool suspended)
+        {
+            RdpHost?.SuspendLayout(suspended);
+        }
     }
 }

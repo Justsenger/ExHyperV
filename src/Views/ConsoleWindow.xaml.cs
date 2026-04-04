@@ -29,8 +29,10 @@ namespace ExHyperV.Views
         }
         private void ApplyFullScreen(bool fullScreen)
         {
-            if (_isApplyingFullScreen) return; // 防重入
+            if (_isApplyingFullScreen) return;
             _isApplyingFullScreen = true;
+
+            ConsoleHost.SuspendRdpLayout(true);   // 幕布盖上
 
             if (fullScreen)
             {
@@ -49,11 +51,14 @@ namespace ExHyperV.Views
                     this.WindowState = System.Windows.WindowState.Maximized;
             }
 
-            // ★ 延迟释放锁，等窗口状态抖动平息后再允许快嗅器写入
-            Task.Delay(500).ContinueWith(_ =>
-                Dispatcher.Invoke(() => _isApplyingFullScreen = false)
-            );
+            Task.Delay(24).ContinueWith(_ => Dispatcher.Invoke(() =>
+            {
+                _isApplyingFullScreen = false;
+                ConsoleHost.SuspendRdpLayout(false);
+            }));
         }
+
+
         private void OnSendCadRequested(object? sender, EventArgs e)
         {
             ConsoleHost?.SendCtrlAltDel();

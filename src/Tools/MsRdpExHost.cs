@@ -1,6 +1,4 @@
-using System;
 using System.Runtime.InteropServices;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Forms.Integration;
 using System.Windows.Interop;
@@ -32,16 +30,40 @@ namespace ExHyperV.Tools
         private bool _isTransitioning;                                 // 过渡期锁
         private bool _isUserResizingOrMoving = false;                  // 用户操作窗口锁
         private bool _isLayoutPending = false;                         // 布局待处理标志
+        private bool _isLayoutSuspended = false;
 
         private DispatcherTimer? _fastResizeTimer;                     // 像素嗅探器
         private DispatcherTimer? _layoutStabilizeTimer;                // 布局稳定器
         private readonly DispatcherTimer _configDebounceTimer;         // 配置防抖器
         private Window? _parentWindow;                                 // 父级窗口引用
         private int _hookChangeConfirmCount = 0;                           // Hook 变化双采样计数器
+        private DispatcherTimer? _reconnectTimer;
+        private int _reconnectAttempts = 0;
+
         #endregion
 
         public event Action? OnRdpConnected;
         public event Action<string>? OnRdpDisconnected;
+
+        public void SuspendLayout(bool suspended)
+        {
+            _isLayoutSuspended = suspended;
+            if (suspended)
+            {
+                _curtain.Visible = true;          // ★ 立即盖上幕布
+                _layoutStabilizeTimer?.Stop();
+                // 不停 _fastResizeTimer，让它继续跑但被 _isLayoutSuspended 拦截
+                // 停掉会导致恢复时状态不连续
+            }
+            else
+            {
+                // 恢复后等窗口彻底稳定再揭幕布
+                Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    _curtain.Visible = false;
+                }), DispatcherPriority.Background);
+            }
+        }
 
         #region Dependency Properties
         public static readonly DependencyProperty VmIdProperty = DependencyProperty.Register(nameof(VmId), typeof(string), typeof(MsRdpExHost), new PropertyMetadata(null, OnConfigChanged));
@@ -87,6 +109,7 @@ namespace ExHyperV.Tools
             };
 
             _rdpControl.OnConnected += (s, e) => {
+                StopReconnectLoop();
                 var client = _rdpControl.RdpClient;
                 if (client == null) return;
                 ActualPixelsWidth = client.DesktopWidth;
@@ -101,9 +124,12 @@ namespace ExHyperV.Tools
                 StopFastSniffer();
                 _layoutStabilizeTimer.Stop();
                 _curtain.Visible = true;
+                // ★ 清空缓存，让 TriggerConnectAsync 的 while 条件能重新成立
                 _lastConnectedId = null; _lastEnhancedMode = null; _lastSyncState = null;
                 OnRdpDisconnected?.Invoke(e.Description);
+                StartReconnectLoop();
             };
+
 
             this.Child = _winFormsContainer;
             this.Loaded += (s, e) => {
@@ -120,61 +146,128 @@ namespace ExHyperV.Tools
             };
         }
 
+        private void StartReconnectLoop()
+        {
+            StopReconnectLoop();
+            if (!IsVmRunning) return;
+
+            _reconnectAttempts = 0;
+            _reconnectTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(3) };
+            _reconnectTimer.Tick += async (s, e) =>
+            {
+                if (!IsVmRunning)
+                {
+                    StopReconnectLoop();
+                    return;
+                }
+
+                // 已经连上了就停
+                if (_rdpControl.RdpClient?.ConnectionState ==
+                    RoyalApps.Community.Rdp.WinForms.Controls.ConnectionState.Connected)
+                {
+                    StopReconnectLoop();
+                    return;
+                }
+
+                _reconnectAttempts++;
+                var rng = Random.Shared;
+                double seconds = Math.Min(Math.Pow(2, _reconnectAttempts - 1), 5);
+                double jitter = rng.NextDouble() * 0.3;
+                _reconnectTimer!.Interval = TimeSpan.FromSeconds(seconds + jitter);
+
+                _ = TriggerConnectAsync();
+            };
+            _reconnectTimer.Start();
+        }
+
+        private void StopReconnectLoop()
+        {
+            _reconnectTimer?.Stop();
+            _reconnectTimer = null;
+            _reconnectAttempts = 0;
+        }
+
         private async Task TriggerConnectAsync()
         {
             if (string.IsNullOrEmpty(VmId) || !this.IsLoaded || !IsVmRunning) return;
             if (_isConnecting) return;
 
-            bool isConnected = _rdpControl.RdpClient?.ConnectionState == RoyalApps.Community.Rdp.WinForms.Controls.ConnectionState.Connected;
+            bool isConnected = _rdpControl.RdpClient?.ConnectionState ==
+                RoyalApps.Community.Rdp.WinForms.Controls.ConnectionState.Connected;
             if (isConnected && _lastConnectedId == VmId && _lastEnhancedMode == IsEnhancedMode &&
                 _lastReqW == RequestWidth && _lastReqH == RequestHeight) return;
 
             _isConnecting = true; _isTransitioning = true; _curtain.Visible = true;
+
+            // ★ 记录本次尝试的目标值，但不立即写入缓存
+            string attemptId = VmId;
+            bool attemptEnhanced = IsEnhancedMode;
+            int attemptW = RequestWidth, attemptH = RequestHeight;
+
             try
             {
-                while (_lastConnectedId != VmId || _lastEnhancedMode != IsEnhancedMode ||
-                       _lastReqW != RequestWidth || _lastReqH != RequestHeight)
+                // 先断开旧连接
+                if (_lastConnectedId != null ||
+                    (_rdpControl.RdpClient != null && (short)_rdpControl.RdpClient.ConnectionState != 0))
                 {
-                    _targetW = RequestWidth; _targetH = RequestHeight;
-                    if (_lastConnectedId != null || (_rdpControl.RdpClient != null && (short)_rdpControl.RdpClient.ConnectionState != 0))
-                    {
-                        try { _rdpControl.Disconnect(); } catch { }
-                        await Task.Delay(50);
-                    }
-                    _lastConnectedId = VmId; _lastEnhancedMode = IsEnhancedMode;
-                    _lastReqW = _targetW; _lastReqH = _targetH;
-
-                    var config = _rdpControl.RdpConfiguration;
-                    config.Input.KeyboardHookMode = true;
-                    config.Input.KeyboardHookToggleShortcutEnabled = true;
-                    config.Input.AllowBackgroundInput = true;
-                    config.Input.EnableWindowsKey = true;
-                    config.Input.GrabFocusOnConnect = true;
-                    config.HyperV.Instance = VmId.Trim().ToUpper();
-                    config.HyperV.EnhancedSessionMode = IsEnhancedMode;
-                    config.Server = "127.0.0.1";
-                    config.Display.ResizeBehavior = ResizeBehavior.Scrollbars;
-                    config.Display.ColorDepth = RdpColorDepth.ColorDepth32Bpp;
-                    config.Redirection.RedirectClipboard = true;
-
-                    if (IsEnhancedMode)
-                    {
-                        config.Display.DesktopWidth = _targetW;
-                        config.Display.DesktopHeight = _targetH;
-                    }
-                    _rdpControl.Connect();
-                    await Task.Delay(10);
+                    try { _rdpControl.Disconnect(); } catch { }
+                    await Task.Delay(50);
                 }
+
+                // ★ 检查目标是否在等待期间又变了
+                if (VmId != attemptId || IsEnhancedMode != attemptEnhanced ||
+                    RequestWidth != attemptW || RequestHeight != attemptH)
+                {
+                    // 目标变了，清缓存让下次重新触发
+                    _lastConnectedId = null;
+                    return;
+                }
+
+                _targetW = attemptW; _targetH = attemptH;
+
+                var config = _rdpControl.RdpConfiguration;
+                config.Input.KeyboardHookMode = true;
+                config.Input.KeyboardHookToggleShortcutEnabled = true;
+                config.Input.AllowBackgroundInput = true;
+                config.Input.EnableWindowsKey = true;
+                config.Input.GrabFocusOnConnect = true;
+                config.HyperV.Instance = attemptId.Trim().ToUpper();
+                config.HyperV.EnhancedSessionMode = attemptEnhanced;
+                config.Server = "127.0.0.1";
+                config.Display.ResizeBehavior = ResizeBehavior.Scrollbars;
+                config.Display.ColorDepth = RdpColorDepth.ColorDepth32Bpp;
+                config.Redirection.RedirectClipboard = true;
+
+                if (attemptEnhanced)
+                {
+                    config.Display.DesktopWidth = attemptW;
+                    config.Display.DesktopHeight = attemptH;
+                }
+
+                // ★ 先写缓存再连接，但连接失败时由 OnDisconnected 清除缓存
+                _lastConnectedId = attemptId;
+                _lastEnhancedMode = attemptEnhanced;
+                _lastReqW = attemptW; _lastReqH = attemptH;
+
+                _rdpControl.Connect();
+                await Task.Delay(10);
             }
-            catch { }
+            catch
+            {
+                // ★ 异常时清缓存，允许重试
+                _lastConnectedId = null;
+            }
             finally
             {
-                _isConnecting = false; await Task.Delay(1000); _isTransitioning = false; _curtain.Visible = false;
+                _isConnecting = false;
+                await Task.Delay(1000);
+                _isTransitioning = false;
+                //_curtain.Visible = false;
             }
         }
-
         private void ExecutePhysicalLayout(int w, int h)
         {
+            if (_isLayoutSuspended) return;
             if (w < 400 || h < 400 || _isUserResizingOrMoving)
             {
                 if (_isUserResizingOrMoving) { _pendingW = w; _pendingH = h; _isLayoutPending = true; }
@@ -187,6 +280,10 @@ namespace ExHyperV.Tools
                 double dpiY = source.CompositionTarget.TransformToDevice.M22;
                 _rdpControl.Size = new System.Drawing.Size(w, h);
                 _winFormsContainer.Size = new System.Drawing.Size(w, h);
+
+                // ★ 全屏时不动窗口尺寸，只调整控件
+                if (_parentWindow.WindowState == System.Windows.WindowState.Maximized) return;
+
                 this.Width = w / dpiX; this.Height = h / dpiY;
                 if (_parentWindow.WindowState == WindowState.Normal)
                 {
@@ -199,7 +296,6 @@ namespace ExHyperV.Tools
                 }
             });
         }
-
         private void StartFastSniffer()
         {
             if (_fastResizeTimer != null) return;
@@ -258,6 +354,7 @@ namespace ExHyperV.Tools
 
         private void UpdateLayoutByPixels(int w, int h)
         {
+            if (_isLayoutSuspended) return;
             if (w < 400 || h < 400 || (_isTransitioning && (w != _targetW || h != _targetH))) return;
             _isTransitioning = false; _curtain.Visible = false;
             ActualPixelsWidth = w; ActualPixelsHeight = h; _pendingW = w; _pendingH = h;
@@ -270,7 +367,18 @@ namespace ExHyperV.Tools
             if (this.DataContext is ViewModels.ConsoleViewModel vm && vm.IsFullScreen) vm.IsFullScreen = false;
         }
 
-        private static void OnIsVmRunningChanged(DependencyObject d, DependencyPropertyChangedEventArgs e) { if (d is MsRdpExHost host && (bool)e.NewValue) host._configDebounceTimer.Start(); }
+        private static void OnIsVmRunningChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is not MsRdpExHost host) return;
+            if ((bool)e.NewValue)
+            {
+                host._configDebounceTimer.Start();  // 开机触发连接
+            }
+            else
+            {
+                host.StopReconnectLoop();           // 关机停止重连
+            }
+        }
         private static void OnConfigChanged(DependencyObject d, DependencyPropertyChangedEventArgs e) { if (d is MsRdpExHost host) host._configDebounceTimer.Start(); }
 
         private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
@@ -293,8 +401,14 @@ namespace ExHyperV.Tools
             return FindWindowEx(h3, IntPtr.Zero, "OPWindowClass", null);
         }
 
-        public void Disconnect() { StopFastSniffer(); _layoutStabilizeTimer.Stop(); _lastConnectedId = null; try { _rdpControl?.Disconnect(); } catch { } }
-
+        public void Disconnect()
+        {
+            StopReconnectLoop();   // ★ 主动断开不重连
+            StopFastSniffer();
+            _layoutStabilizeTimer.Stop();
+            _lastConnectedId = null;
+            try { _rdpControl?.Disconnect(); } catch { }
+        }
         public void SendCtrlAltDel()
         {
             string targetVmId = this.VmId;
