@@ -147,6 +147,43 @@
                 <TextBlock Text="{x:Static properties:Resources.AdvancedFeatures}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,12"/>
                 <Border Background="{ui:ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="0" Margin="0,0,0,32">
                     <StackPanel>
+                        <Grid Margin="24,12,16,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="16"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="24"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Grid.Column="0" 
+               Text="CPU 名称" 
+               FontSize="14" 
+               VerticalAlignment="Center" 
+               Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+
+                            <ui:TextBox Grid.Column="2" 
+                VerticalAlignment="Center"
+                Text="{Binding SelectedVm.Processor.CpuBrandString, UpdateSourceTrigger=PropertyChanged}"
+                IsEnabled="{Binding SelectedVm.IsRunning, Converter={StaticResource InverseBooleanConverter}}"/>
+
+                            <ui:Button Grid.Column="4" 
+               Content="{x:Static properties:Resources.Apply}" 
+               Appearance="Primary"
+               VerticalAlignment="Center" 
+               Padding="16,6"
+               Command="{Binding ApplyChangesCommand}"
+               IsEnabled="{Binding SelectedVm.IsRunning, Converter={StaticResource InverseBooleanConverter}}">
+                                <ui:Button.ToolTip>
+                                    <ToolTip Content="此操作需要虚拟机处于关机状态" 
+                     Visibility="{Binding SelectedVm.IsRunning, Converter={StaticResource BoolToVis}}"/>
+                                </ui:Button.ToolTip>
+                            </ui:Button>
+                        </Grid>
+                        
+                        <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
+
+                        
                         <Grid Margin="24,16">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>

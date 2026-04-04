@@ -199,6 +199,7 @@ namespace ExHyperV.Models
         [ObservableProperty] private bool? _enablePerfmonArchPmu;
         [ObservableProperty] private bool? _allowAcountMcount;
         [ObservableProperty] private bool? _enableSocketTopology;
+        [ObservableProperty] private string? _cpuBrandString;
 
         public VmProcessorSettings Clone() => (VmProcessorSettings)this.MemberwiseClone();
         public void Restore(VmProcessorSettings other)
@@ -218,6 +219,7 @@ namespace ExHyperV.Models
             _enablePerfmonArchPmu = other.EnablePerfmonArchPmu;
             _allowAcountMcount = other.AllowAcountMcount;
             _enableSocketTopology = other.EnableSocketTopology;
+            _cpuBrandString = other.CpuBrandString;
         }
     }
 

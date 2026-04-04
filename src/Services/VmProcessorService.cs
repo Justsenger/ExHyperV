@@ -38,7 +38,8 @@ namespace ExHyperV.Services
                     HideHypervisorPresent = GetNullableBoolProperty(procData, "HideHypervisorPresent"),
                     EnablePerfmonArchPmu = GetNullableBoolProperty(procData, "EnablePerfmonArchPmu"),
                     AllowAcountMcount = GetNullableBoolProperty(procData, "AllowAcountMcount"),
-                    EnableSocketTopology = GetNullableBoolProperty(procData, "EnableSocketTopology")
+                    EnableSocketTopology = GetNullableBoolProperty(procData, "EnableSocketTopology"),
+                    CpuBrandString = procData["CpuBrandString"]?.ToString(),
                 };
             });
 
@@ -86,6 +87,14 @@ namespace ExHyperV.Services
                     TrySetNullableProperty(procData, "EnablePerfmonArchPmu", newSettings.EnablePerfmonArchPmu);
                     TrySetNullableProperty(procData, "AllowAcountMcount", newSettings.AllowAcountMcount);
                     TrySetNullableProperty(procData, "EnableSocketTopology", newSettings.EnableSocketTopology);
+
+                    if (HasProperty(procData, "CpuBrandString"))
+                    {
+                        procData["CpuBrandString"] = string.IsNullOrWhiteSpace(newSettings.CpuBrandString)
+                            ? null
+                            : newSettings.CpuBrandString;
+                    }
+
 
                     return procData.GetText(TextFormat.CimDtd20);
                 });
