@@ -5,5 +5,12 @@
     "Description": "针对 Ubuntu 22.04 的官方部署脚本。",
     "Author": "Justsenger",
     "Version": "1.0.9"
+  },
+  {
+    "FileName": "Ubuntu-24.04-Test.sh",
+    "Name": "Ubuntu-24.04-Test",
+    "Description": "针对 Ubuntu 24.04 的官方部署脚本。",
+    "Author": "Justsenger",
+    "Version": "1.0.1"
   }
 ]
