@@ -2,7 +2,7 @@
 # @Name: Ubuntu-22.04-Official
 # @Description: 针对 Ubuntu 22.04 的官方部署脚本。
 # @Author: Justsenger
-# @Version: 1.0.8
+# @Version: 1.0.9
 
 set -e
 
@@ -109,84 +109,68 @@ if [ ! -e "/lib/modules/$TARGET_KERNEL_VERSION/build" ]; then
 fi
 
 # ==========================================================
-# 4. dxgkrnl 模块编译与验证 (核心逻辑)
+# 4. dxgkrnl 模块编译与验证 (核心逻辑 - 自动化 Packaging Layer 适配版)
 # [说明]: 
-# 1. 下载云端提取好的轻量源码包。
-# 2. 人工重建内核源码目录结构以便完美兼容官方补丁 (-p1 参数)。
-# 3. 本地应用驱动补丁。
+# 1. 根据当前内核版本自动分流，下载对应的“全熟”预制包。
+# 2. 预制包已在云端完成所有 API 适配补丁，无需本地 apply_patch。
+# 3. 统一使用 DKMS 进行独立模块构建。
 # ==========================================================
 if lsmod | grep -q "dxgkrnl" || dkms status | grep -q "dxgkrnl"; then
     echo " -> dxgkrnl is already installed or loaded."
 else
-    echo "[STEP: Preparing Source & Patching...]"
-    # 获取内核大版本号以选择分支 (5.15 或 6.6)
+    echo "[STEP: Preparing Pre-patched Source...]"
+    # 获取内核大版本号进行分流
     KERNEL_MAJOR=$(echo $TARGET_KERNEL_VERSION | cut -d. -f1)
     KERNEL_MINOR=$(echo $TARGET_KERNEL_VERSION | cut -d. -f2)
     
-    if [[ "$KERNEL_MAJOR" -eq 6 && "$KERNEL_MINOR" -ge 6 ]] || [[ "$KERNEL_MAJOR" -gt 6 ]]; then
-        TARGET_BRANCH="linux-msft-wsl-6.6.y"
+    # --- 版本分流决策 ---
+    if [[ "$KERNEL_MAJOR" -eq 5 ]]; then
+        PKG_VER="5.15"
+    elif [[ "$KERNEL_MAJOR" -eq 6 ]]; then
+        if [[ "$KERNEL_MINOR" -le 6 ]]; then
+            PKG_VER="6.6"
+        else
+            # 6.7 及其以上版本（如 6.12, 6.17, 6.19）统一使用 6.12 适配包
+            PKG_VER="6.12"
+        fi
     else
-        TARGET_BRANCH="linux-msft-wsl-5.15.y"
+        # 兼容未来的 7.x+
+        PKG_VER="6.12"
     fi
+
+    PKG="dxgkrnl-${PKG_VER}-patched"
+    echo " -> Detected Kernel $TARGET_KERNEL_VERSION, using pre-patched assets: $PKG"
 
     # 清理旧工作空间
-    rm -rf /tmp/dxg-src /tmp/kernel_src.tar.gz /tmp/extract-tmp
+    rm -rf /tmp/dxg-src /tmp/kernel_src.tar.gz /tmp/$PKG
     
-    # 获取远程轻量包名称
-    PKG="dxgkrnl-${TARGET_BRANCH#linux-msft-wsl-}"
-    PKG="${PKG%.y}-patched"
-    echo " -> Downloading Lightweight Kernel Source using Aria2..."
+    # 下载云端提取好的全熟包
     ZIP_URL="https://raw.githubusercontent.com/Justsenger/ExHyperV/kernel-assets/$PKG.tar.gz"
-    
+    echo " -> Downloading from: $ZIP_URL"
     retry_cmd aria2c -x 4 -s 4 --dir=/tmp --out=kernel_src.tar.gz "$ZIP_URL" --allow-overwrite
     
-    # 重建目录结构：使 patch -p1 和 Makefile 寻找 include 的逻辑与 WSL2 源码树完全一致
-    echo " -> Recreating Kernel Tree Structure..."
-    mkdir -p /tmp/extract-tmp
-    tar -xzf /tmp/kernel_src.tar.gz -C /tmp/extract-tmp --strip-components=1
+    # 解压
+    tar -xzf /tmp/kernel_src.tar.gz -C /tmp/
     
-    mkdir -p /tmp/dxg-src/drivers/hv/dxgkrnl
-    mv /tmp/extract-tmp/include /tmp/dxg-src/include
-    cp -r /tmp/extract-tmp/* /tmp/dxg-src/drivers/hv/dxgkrnl/
-    
-    cd /tmp/dxg-src
     VERSION="custom"
-
-    # 打补丁函数：匹配远程 Patch 仓库
-    apply_patch() {
-        local patch_url=$1
-        local patch_file=$(basename "$patch_url")
-        retry_cmd curl -fsSL --retry 3 "$patch_url" -o "$patch_file"
-        patch -p1 < "$patch_file"
-    }
-
-    echo "[STEP: Patching Kernel Source...]"
-    apply_patch "$PATCH_BASE_URL/linux-msft-wsl-5.15.y/0001-Add-a-gpu-pv-support.patch"
-    
-    if [ "$TARGET_BRANCH" == "linux-msft-wsl-5.15.y" ]; then
-        apply_patch "$PATCH_BASE_URL/linux-msft-wsl-5.15.y/0002-Add-a-multiple-kernel-version-support.patch"
-        apply_patch "$PATCH_BASE_URL/linux-msft-wsl-5.15.y/0003-Fix-gpadl-has-incomplete-type-error.patch"
-    else
-        # 6.6 分支修复
-        retry_cmd curl -fsSL --retry 3 "$PATCH_BASE_URL/linux-msft-wsl-6.6.y/0002-Fix-eventfd_signal.patch" -o patch_6.6.patch
-        patch -p1 --ignore-whitespace < patch_6.6.patch
-    fi
+    sudo rm -rf /usr/src/dxgkrnl-$VERSION
+    # 将源码移至 DKMS 目录 (tar包内应包含 dxgkrnl-xx-patched 文件夹)
+    sudo cp -r /tmp/$PKG /usr/src/dxgkrnl-$VERSION
 
     echo "[STEP: Compiling and Installing DXG Module...]"
-    # 将打好补丁的源码移至 /usr/src 下供 DKMS 使用
-    sudo cp -r ./drivers/hv/dxgkrnl /usr/src/dxgkrnl-$VERSION
-    sudo cp -r ./include /usr/src/dxgkrnl-$VERSION/include
-    DXGMODULE_FILE="/usr/src/dxgkrnl-$VERSION/dxgmodule.c"
     
-    # 针对 6.8+ 内核的 API 变更自动热修复
-    if grep -q "eventfd_signal.*struct eventfd_ctx.*__u64" /lib/modules/$TARGET_KERNEL_VERSION/build/include/linux/eventfd.h 2>/dev/null; then
-        sed -i 's/eventfd_signal(event->cpu_event);/eventfd_signal(event->cpu_event, 1);/g' "$DXGMODULE_FILE"
-    fi
-
     # 配置独立编译 Makefile
-    echo "Configuring Makefile..."
-    sudo sed -i 's/\$(CONFIG_DXGKRNL)/m/' /usr/src/dxgkrnl-$VERSION/Makefile
-    echo "EXTRA_CFLAGS=-I\$(PWD)/include -D_MAIN_KERNEL_" | sudo tee -a /usr/src/dxgkrnl-$VERSION/Makefile
+    # 强制修改 Makefile 以支持独立模块编译，并包含内部 include 路径
+    sudo bash -c "cat > /usr/src/dxgkrnl-$VERSION/Makefile <<EOF
+obj-m := dxgkrnl.o
+dxgkrnl-y := dxgmodule.o hmgr.o misc.o dxgadapter.o ioctl.o dxgvmbus.o dxgprocess.o dxgsyncfile.o
+ccflags-y := -I\\\$(src)/include -D_MAIN_KERNEL_
+
+all:
+	make -C /lib/modules/\\\$(shell uname -r)/build M=\\\$(PWD) modules
+clean:
+	make -C /lib/modules/\\\$(shell uname -r)/build M=\\\$(PWD) clean
+EOF"
     
     # 生成 DKMS 配置文件
     sudo tee /usr/src/dxgkrnl-$VERSION/dkms.conf > /dev/null <<EOF
