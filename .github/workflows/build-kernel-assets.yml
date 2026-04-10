@@ -1,4 +1,4 @@
-name: 构建干净的 DXG 驱动轻量包
+name: dxgkrnl 构建
 
 on:
   schedule:
@@ -15,32 +15,68 @@ jobs:
       - name: 检出 ExHyperV 仓库
         uses: actions/checkout@v4
 
+      - name: 安装基础工具
+        run: sudo apt-get install -y patch git
+
       - name: 构建驱动压缩包
         run: |
           set -e
-          VERSIONS=("linux-msft-wsl-5.15.y:5.15" "linux-msft-wsl-6.6.y:6.6")
           mkdir -p output
           
-          for item in "${VERSIONS[@]}"; do
-            BRANCH=${item%%:*}
-            SHORT_VER=${item#*:}
-            echo ">>> 提取干净源码: $BRANCH"
-            
-            rm -rf ms-kernel && mkdir ms-kernel && cd ms-kernel
-            git init -q
-            git remote add origin https://github.com/microsoft/WSL2-Linux-Kernel.git
-            git config core.sparseCheckout true
-            echo "drivers/hv/dxgkrnl/" >> .git/info/sparse-checkout
-            echo "include/" >> .git/info/sparse-checkout
-            git pull --depth 1 origin $BRANCH -q
-            cd ..
+          # 克隆 Locietta 补丁集 (供 6.12 版本使用)
+          git clone --depth 1 https://github.com/Locietta/xanmod-kernel-WSL2.git l-patches
+          
+          # 版本循环配置 (源码分支名 : 包版本号 : 补丁源标识)
+          # ms = 微软源 + ExHyperV 本地补丁; loc = 主线源 + Locietta 补丁
+          VERSIONS=("linux-msft-wsl-5.15.y:5.15:ms" "linux-msft-wsl-6.6.y:6.6:ms" "v6.12:6.12:loc")
 
+          for item in "${VERSIONS[@]}"; do
+            IFS=':' read -r RAW_VER SHORT_VER SRC_TYPE <<< "$item"
             BUILD_DIR="dxgkrnl-${SHORT_VER}-patched"
-            mkdir -p "$BUILD_DIR"
+            echo ">>> [开始构建] 版本: $SHORT_VER (来源: $SRC_TYPE)"
+
+            if [[ "$SRC_TYPE" == "ms" ]]; then
+                # --- 微软官方源流程 ---
+                rm -rf ms-kernel && mkdir ms-kernel && cd ms-kernel
+                git init -q
+                git remote add origin https://github.com/microsoft/WSL2-Linux-Kernel.git
+                git config core.sparseCheckout true
+                echo "drivers/hv/dxgkrnl/" >> .git/info/sparse-checkout
+                echo "include/" >> .git/info/sparse-checkout
+                git pull --depth 1 origin "$RAW_VER" -q
+                cd ..
+                
+                # 自动应用 ExHyperV 本地对应的补丁 (无需列出清单，按顺序全打)
+                LOCAL_PATCH_DIR="src/Linux/script/patches/linux-msft-wsl-${SHORT_VER}.y"
+                if [ -d "$LOCAL_PATCH_DIR" ]; then
+                    echo " -> 应用本地补丁 ($LOCAL_PATCH_DIR)"
+                    ls "$LOCAL_PATCH_DIR"/*.patch | sort | xargs -n1 patch -p1 -i -d ms-kernel
+                fi
+            else
+                # --- Community / 主线源流程 (6.12+) ---
+                git clone --depth 1 --branch "$RAW_VER" https://github.com/torvalds/linux.git ms-kernel
+                echo " -> 自动从补丁集筛选并应用驱动相关补丁..."
+                # 自动筛选所有包含 dxgkrnl, d3d, 或 monitored_fence 关键字的补丁应用
+                find l-patches/patches -name "*.patch" | grep -iE "dxgkrnl|d3d|fence" | sort | while read -r p; do
+                    echo "    Applying: $(basename "$p")"
+                    patch -p1 -d ms-kernel --ignore-whitespace < "$p" || echo "    [Skip] $(basename "$p")"
+                done
+            fi
+
+            # --- 统一提取逻辑 (封装 Packaging Layer) ---
+            mkdir -p "$BUILD_DIR/include/linux"
+            mkdir -p "$BUILD_DIR/include/uapi/misc"
+
+            # 拷贝驱动源码核心
             cp -r ms-kernel/drivers/hv/dxgkrnl/* "$BUILD_DIR/"
-            cp -r ms-kernel/include "$BUILD_DIR/include"
             
+            # 拷贝关键头文件 (这是解决 GUID 未定义报错的根本)
+            [ -f ms-kernel/include/linux/hyperv.h ] && cp ms-kernel/include/linux/hyperv.h "$BUILD_DIR/include/linux/"
+            [ -f ms-kernel/include/uapi/misc/d3dkmthk.h ] && cp ms-kernel/include/uapi/misc/d3dkmthk.h "$BUILD_DIR/include/uapi/misc/"
+
+            # 打包并记录时间
             tar -czf "output/${BUILD_DIR}.tar.gz" "$BUILD_DIR"
+            echo ">>> [完成] $BUILD_DIR 生产完毕"
             rm -rf "$BUILD_DIR" ms-kernel
           done
 
