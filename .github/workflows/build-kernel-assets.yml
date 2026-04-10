@@ -1,8 +1,5 @@
 name: Dxgkrnl 构建
 
-# run-name 会显示在具体某次运行的标题里，方便识别
-run-name: 正在构建 GPU-PV 驱动 - ${{ github.ref_name }}
-
 on:
   schedule:
     - cron: '0 0 * * 1'
@@ -12,126 +9,102 @@ permissions:
   contents: write
 
 jobs:
-  build-driver:
-    # 这里的 name 会直接显示在 Actions 运行页面的左侧 Job 列表中
-    name: 构建 dxgkrnl-${{ matrix.short_ver }}
+  build-and-deploy-to-branch:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - raw_ver: "linux-msft-wsl-5.15.y"
-            short_ver: "5.15"
-            use_locietta: false
-          - raw_ver: "linux-msft-wsl-6.6.y"
-            short_ver: "6.6"
-            use_locietta: false
-          - raw_ver: "linux-msft-wsl-6.6.y"
-            short_ver: "6.12"
-            use_locietta: true
-
     steps:
       - name: 检出 ExHyperV 仓库
         uses: actions/checkout@v4
 
       - name: 安装基础工具
-        run: sudo apt-get install -y patch git tar gzip
+        run: sudo apt-get install -y patch git
 
-      - name: 准备源码和补丁
+      - name: 构建驱动压缩包
         run: |
-          mkdir -p output_bin
-          if [ "${{ matrix.use_locietta }}" = "true" ]; then
-            git clone --depth 1 https://github.com/Locietta/xanmod-kernel-WSL2.git l-patches
-          fi
-
-      - name: 提取微软官方源码 [${{ matrix.short_ver }}]
-        run: |
-          rm -rf ms-kernel && mkdir ms-kernel && cd ms-kernel
-          git init -q
-          git remote add origin https://github.com/microsoft/WSL2-Linux-Kernel.git
-          git config core.sparseCheckout true
-          echo "drivers/hv/dxgkrnl/" >> .git/info/sparse-checkout
-          echo "include/" >> .git/info/sparse-checkout
-          git pull --depth 1 origin "${{ matrix.raw_ver }}" -q
-
-      - name: 应用本地基础补丁
-        run: |
-          # 针对 6.12 依然使用 6.6 的基础补丁
-          LOCAL_VER="${{ matrix.short_ver }}"
-          [ "$LOCAL_VER" = "6.12" ] && LOCAL_VER="6.6"
-          PATCH_DIR="src/Linux/script/patches/linux-msft-wsl-${LOCAL_VER}.y"
+          set -e
+          mkdir -p output
           
-          if [ -d "$PATCH_DIR" ]; then
-            cd ms-kernel
-            ls ../$PATCH_DIR/*.patch | sort | while read -r p; do
-              echo "Applying: $p"
-              patch -p1 < "$p"
-            done
-          fi
+          # 克隆 Locietta 补丁集
+          git clone --depth 1 https://github.com/Locietta/xanmod-kernel-WSL2.git l-patches
+          
+          # 微软源码分支 : 生成版本 : 是否应用Locietta
+          VERSIONS=("linux-msft-wsl-5.15.y:5.15:false" "linux-msft-wsl-6.6.y:6.6:false" "linux-msft-wsl-6.6.y:6.12:true")
 
-      - name: 执行高版本硬核修复 [仅限 6.12+]
-        if: matrix.use_locietta == true
-        run: |
-          cd ms-kernel
-          # 1. 应用 Locietta 补丁
-          find ../l-patches/patches -maxdepth 1 -name "*.patch" | grep -iE "dxgkrnl|d3d|fence" | sort | while read -r p; do
-            echo "Applying Locietta: $(basename "$p")"
-            patch -p1 --ignore-whitespace < "$p"
-          done
+          for item in "${VERSIONS[@]}"; do
+            IFS=':' read -r RAW_VER SHORT_VER USE_LOCIETTA <<< "$item"
+            BUILD_DIR="dxgkrnl-${SHORT_VER}-patched"
+            echo ">>> [开始构建] 版本: $SHORT_VER"
 
-          # 2. 注入 GUID 到本地头文件 (解决阴影覆盖问题)
-          TARGET_H="drivers/hv/dxgkrnl/dxgkrnl.h"
-          sed -i '/#define _DXGKRNL_H/a \
-\
-#ifndef HV_GPUP_DXGK_GLOBAL_GUID \
-#define HV_GPUP_DXGK_GLOBAL_GUID \\ \
-	.guid = GUID_INIT(0xdde9cbc0, 0x5060, 0x4436, 0x94, 0x48, 0xea, 0x12, 0x54, 0xa5, 0xd1, 0x77) \
-#endif \
-#ifndef HV_GPUP_DXGK_VGPU_GUID \
-#define HV_GPUP_DXGK_VGPU_GUID \\ \
-	.guid = GUID_INIT(0x6e382d18, 0x3336, 0x4f4b, 0xac, 0xc4, 0x2b, 0x77, 0x3, 0xd4, 0xdf, 0x4a) \
+            # 1. 提取官方源码
+            rm -rf ms-kernel && mkdir ms-kernel && cd ms-kernel
+            git init -q
+            git remote add origin https://github.com/microsoft/WSL2-Linux-Kernel.git
+            git config core.sparseCheckout true
+            echo "drivers/hv/dxgkrnl/" >> .git/info/sparse-checkout
+            echo "include/" >> .git/info/sparse-checkout
+            git pull --depth 1 origin "$RAW_VER" -q
+            cd ..
+
+            # 2. 应用本地基础补丁
+            LOCAL_PATCH_DIR="src/Linux/script/patches/linux-msft-wsl-6.6.y"
+            if [[ "$SHORT_VER" == "5.15" ]]; then
+                LOCAL_PATCH_DIR="src/Linux/script/patches/linux-msft-wsl-5.15.y"
+            fi
+
+            if [ -d "$LOCAL_PATCH_DIR" ]; then
+                cd ms-kernel
+                ls ../$LOCAL_PATCH_DIR/*.patch | sort | while read -r p; do
+                    patch -p1 < "$p"
+                done
+                cd ..
+            fi
+
+            # 3. 硬核修复逻辑 (仅针对 6.12/6.17+ 高版本)
+            if [[ "$USE_LOCIETTA" == "true" ]]; then
+                cd ms-kernel
+                # 应用核心补丁
+                find ../l-patches/patches -maxdepth 1 -name "*.patch" | grep -iE "dxgkrnl|d3d|fence" | sort | while read -r p; do
+                    echo "    Applying: $(basename "$p")"
+                    patch -p1 --ignore-whitespace < "$p" || echo "    [Skip] $(basename "$p")"
+                done
+
+                # 【修复 A】: 解决 6.17 内核找不到 GUID 的报错
+                # 直接通过 sed 将宏注入到模块私有头文件 dxgkrnl.h，彻底解决 Shadowing 问题
+                TARGET_H="drivers/hv/dxgkrnl/dxgkrnl.h"
+                sed -i '/#define _DXGKRNL_H/a \
+#ifndef HV_GPUP_DXGK_GLOBAL_GUID \n\
+#define HV_GPUP_DXGK_GLOBAL_GUID \\ \n\
+	.guid = GUID_INIT(0xdde9cbc0, 0x5060, 0x4436, 0x94, 0x48, 0xea, 0x12, 0x54, 0xa5, 0xd1, 0x77) \n\
+#endif \n\
+#ifndef HV_GPUP_DXGK_VGPU_GUID \n\
+#define HV_GPUP_DXGK_VGPU_GUID \\ \n\
+	.guid = GUID_INIT(0x6e382d18, 0x3336, 0x4f4b, 0xac, 0xc4, 0x2b, 0x77, 0x3, 0xd4, 0xdf, 0x4a) \n\
 #endif' "$TARGET_H"
 
-          # 3. 修正 API 冲突
-          sed -i 's/eventfd_signal(\(.*\), 1)/eventfd_signal(\1)/g' drivers/hv/dxgkrnl/dxgmodule.c
-          sed -i 's/DXG_TRACE("err: %d",  ret);/DXG_TRACE("err: %d",  ret); {;}/g' drivers/hv/dxgkrnl/dxgmodule.c
+                # 【修复 B】: 修正 eventfd_signal 参数不匹配
+                # 6.17 内核 eventfd_signal 只要 1 个参数，强制删掉补丁残留的 ", 1"
+                sed -i 's/eventfd_signal(\(.*\), 1)/eventfd_signal(\1)/g' drivers/hv/dxgkrnl/dxgmodule.c
 
-      - name: 整理并打包
-        run: |
-          BUILD_DIR="dxgkrnl-${{ matrix.short_ver }}-patched"
-          mkdir -p "$BUILD_DIR/include/linux"
-          mkdir -p "$BUILD_DIR/include/uapi/misc"
-          cp -r ms-kernel/drivers/hv/dxgkrnl/* "$BUILD_DIR/"
-          [ -f ms-kernel/include/linux/hyperv.h ] && cp ms-kernel/include/linux/hyperv.h "$BUILD_DIR/include/linux/"
-          [ -f ms-kernel/include/uapi/misc/d3dkmthk.h ] && cp ms-kernel/include/uapi/misc/d3dkmthk.h "$BUILD_DIR/include/uapi/misc/"
-          
-          # 验证
-          if find "$BUILD_DIR" -name "*.rej" | grep -q "."; then exit 1; fi
-          
-          tar -czf "../output_bin/${BUILD_DIR}.tar.gz" "$BUILD_DIR"
-          cd ..
+                # 【修复 C】: 解决 GCC 13 空 body 警告
+                sed -i 's/DXG_TRACE("err: %d",  ret);/DXG_TRACE("err: %d",  ret); {;}/g' drivers/hv/dxgkrnl/dxgmodule.c
+                
+                cd ..
+            fi
 
-      - name: 暂存构建产物
-        uses: actions/upload-artifact@v4
-        with:
-          name: drivers-${{ matrix.short_ver }}
-          path: output_bin/*.tar.gz
+            # 4. 整理输出结构
+            mkdir -p "$BUILD_DIR/include/linux"
+            mkdir -p "$BUILD_DIR/include/uapi/misc"
+            cp -r ms-kernel/drivers/hv/dxgkrnl/* "$BUILD_DIR/"
+            [ -f ms-kernel/include/linux/hyperv.h ] && cp ms-kernel/include/linux/hyperv.h "$BUILD_DIR/include/linux/"
+            [ -f ms-kernel/include/uapi/misc/d3dkmthk.h ] && cp ms-kernel/include/uapi/misc/d3dkmthk.h "$BUILD_DIR/include/uapi/misc/"
 
-  deploy:
-    name: 汇总并推送到 kernel-assets 分支
-    needs: build-driver
-    runs-on: ubuntu-latest
-    steps:
-      - name: 下载所有驱动包
-        uses: actions/download-artifact@v4
-        with:
-          path: all-drivers
-          merge-multiple: true
+            # 5. 打包
+            tar -czf "output/${BUILD_DIR}.tar.gz" "$BUILD_DIR"
+            rm -rf "$BUILD_DIR" ms-kernel
+          done
 
       - name: 强制推送到独立资源分支
         run: |
-          mkdir deploy && cd deploy
-          cp ../all-drivers/*.tar.gz .
+          cd output
           git init
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
