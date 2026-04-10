@@ -1,4 +1,4 @@
-name: dxgkrnl 构建
+name: 构建干净的 DXG 驱动轻量包
 
 on:
   schedule:
@@ -23,20 +23,20 @@ jobs:
           set -e
           mkdir -p output
           
-          # 克隆 Locietta 补丁集 (供 6.12 版本使用)
+          # 克隆 Locietta 补丁集 (用于 6.12 及其它潜在参考)
           git clone --depth 1 https://github.com/Locietta/xanmod-kernel-WSL2.git l-patches
           
-          # 版本循环配置 (源码分支名 : 包版本号 : 补丁源标识)
+          # 定义版本： 源码标识 : 包名版本 : 补丁源类型
           # ms = 微软源 + ExHyperV 本地补丁; loc = 主线源 + Locietta 补丁
           VERSIONS=("linux-msft-wsl-5.15.y:5.15:ms" "linux-msft-wsl-6.6.y:6.6:ms" "v6.12:6.12:loc")
 
           for item in "${VERSIONS[@]}"; do
             IFS=':' read -r RAW_VER SHORT_VER SRC_TYPE <<< "$item"
             BUILD_DIR="dxgkrnl-${SHORT_VER}-patched"
-            echo ">>> [开始构建] 版本: $SHORT_VER (来源: $SRC_TYPE)"
+            echo ">>> [PROCESS] Version: $SHORT_VER ($SRC_TYPE)"
 
             if [[ "$SRC_TYPE" == "ms" ]]; then
-                # --- 微软官方源流程 ---
+                # 1. 微软官方源流程
                 rm -rf ms-kernel && mkdir ms-kernel && cd ms-kernel
                 git init -q
                 git remote add origin https://github.com/microsoft/WSL2-Linux-Kernel.git
@@ -46,37 +46,51 @@ jobs:
                 git pull --depth 1 origin "$RAW_VER" -q
                 cd ..
                 
-                # 自动应用 ExHyperV 本地对应的补丁 (无需列出清单，按顺序全打)
+                # 应用本地补丁
                 LOCAL_PATCH_DIR="src/Linux/script/patches/linux-msft-wsl-${SHORT_VER}.y"
                 if [ -d "$LOCAL_PATCH_DIR" ]; then
-                    echo " -> 应用本地补丁 ($LOCAL_PATCH_DIR)"
-                    ls "$LOCAL_PATCH_DIR"/*.patch | sort | xargs -n1 patch -p1 -i -d ms-kernel
+                    echo " -> Applying local patches from $LOCAL_PATCH_DIR"
+                    cd ms-kernel
+                    for p in ../$LOCAL_PATCH_DIR/*.patch; do
+                        echo "    Patching: $(basename $p)"
+                        patch -p1 < "$p"
+                    done
+                    cd ..
                 fi
             else
-                # --- Community / 主线源流程 (6.12+) ---
+                # 2. Locietta / 主线源流程 (6.12)
                 git clone --depth 1 --branch "$RAW_VER" https://github.com/torvalds/linux.git ms-kernel
-                echo " -> 自动从补丁集筛选并应用驱动相关补丁..."
-                # 自动筛选所有包含 dxgkrnl, d3d, 或 monitored_fence 关键字的补丁应用
-                find l-patches/patches -name "*.patch" | grep -iE "dxgkrnl|d3d|fence" | sort | while read -r p; do
+                cd ms-kernel
+                echo " -> Auto-applying relevant Locietta patches..."
+                # 自动筛选显卡相关补丁
+                find ../l-patches/patches -name "*.patch" | grep -iE "dxgkrnl|d3d|fence" | sort | while read -r p; do
                     echo "    Applying: $(basename "$p")"
-                    patch -p1 -d ms-kernel --ignore-whitespace < "$p" || echo "    [Skip] $(basename "$p")"
+                    patch -p1 --ignore-whitespace < "$p" || echo "    [Skip] $(basename "$p")"
                 done
+                cd ..
             fi
 
-            # --- 统一提取逻辑 (封装 Packaging Layer) ---
+            # 3. 统一提取与装箱 (The Packaging Layer)
+            echo " -> Extracting files to $BUILD_DIR"
             mkdir -p "$BUILD_DIR/include/linux"
             mkdir -p "$BUILD_DIR/include/uapi/misc"
 
-            # 拷贝驱动源码核心
+            # 提取驱动核心代码
             cp -r ms-kernel/drivers/hv/dxgkrnl/* "$BUILD_DIR/"
             
-            # 拷贝关键头文件 (这是解决 GUID 未定义报错的根本)
-            [ -f ms-kernel/include/linux/hyperv.h ] && cp ms-kernel/include/linux/hyperv.h "$BUILD_DIR/include/linux/"
-            [ -f ms-kernel/include/uapi/misc/d3dkmthk.h ] && cp ms-kernel/include/uapi/misc/d3dkmthk.h "$BUILD_DIR/include/uapi/misc/"
+            # 提取关键头文件（这些文件已经在上一步被补丁修改过了）
+            # 包含 GUID 定义的 hyperv.h
+            if [ -f ms-kernel/include/linux/hyperv.h ]; then
+                cp ms-kernel/include/linux/hyperv.h "$BUILD_DIR/include/linux/"
+            fi
+            # 包含通信协议的 d3dkmthk.h
+            if [ -f ms-kernel/include/uapi/misc/d3dkmthk.h ]; then
+                cp ms-kernel/include/uapi/misc/d3dkmthk.h "$BUILD_DIR/include/uapi/misc/"
+            fi
 
-            # 打包并记录时间
+            # 4. 打包
             tar -czf "output/${BUILD_DIR}.tar.gz" "$BUILD_DIR"
-            echo ">>> [完成] $BUILD_DIR 生产完毕"
+            echo ">>> [SUCCESS] $BUILD_DIR.tar.gz created."
             rm -rf "$BUILD_DIR" ms-kernel
           done
 
