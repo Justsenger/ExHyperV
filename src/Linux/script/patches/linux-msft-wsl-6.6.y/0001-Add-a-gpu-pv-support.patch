@@ -1,21 +1,21 @@
---- a/drivers/hv/dxgkrnl/dxgmodule.c
-+++ b/drivers/hv/dxgkrnl/dxgmodule.c
-@@ -28,6 +28,19 @@
- #undef dev_fmt
- #define dev_fmt(fmt)	"dxgk: " fmt
+--- a/drivers/hv/dxgkrnl/dxgkrnl.h
++++ b/drivers/hv/dxgkrnl/dxgkrnl.h
+@@ -14,6 +14,20 @@
+ #ifndef _DXGKRNL_H
+ #define _DXGKRNL_H
  
 +#ifndef HV_GPUP_DXGK_GLOBAL_GUID
 +#define HV_GPUP_DXGK_GLOBAL_GUID \
-+	GUID_INIT(0xdde9cbc0, 0x5060, 0x4436, 0x94, 0x48, \
-+		  0xea, 0x12, 0x54, 0xa5, 0xd1, 0x77)
++	.guid = GUID_INIT(0xdde9cbc0, 0x5060, 0x4436, 0x94, 0x48, \
++			  0xea, 0x12, 0x54, 0xa5, 0xd1, 0x77)
 +#endif
 +
 +#ifndef HV_GPUP_DXGK_VGPU_GUID
 +#define HV_GPUP_DXGK_VGPU_GUID \
-+	GUID_INIT(0x6e382d18, 0x3336, 0x4f4b, 0xac, 0xc4, \
-+		  0x2b, 0x77, 0x03, 0xd4, 0xdf, 0x4a)
++	.guid = GUID_INIT(0x6e382d18, 0x3336, 0x4f4b, 0xac, 0xc4, \
++			  0x2b, 0x77, 0x03, 0xd4, 0xdf, 0x4a)
 +#endif
 +
- /*
-  * Interface from dxgglobal
-  */
+ #include <linux/uuid.h>
+ #include <linux/kernel.h>
+ #include <linux/mutex.h>
