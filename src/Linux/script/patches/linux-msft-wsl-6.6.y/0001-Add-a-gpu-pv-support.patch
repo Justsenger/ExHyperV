@@ -4,6 +4,7 @@
  #ifndef _DXGKRNL_H
  #define _DXGKRNL_H
  
++/* GPU-PV GUIDs: Directly injected into local header to bypass system header shadowing */
 +#ifndef HV_GPUP_DXGK_GLOBAL_GUID
 +#define HV_GPUP_DXGK_GLOBAL_GUID \
 +	.guid = GUID_INIT(0xdde9cbc0, 0x5060, 0x4436, 0x94, 0x48, \
