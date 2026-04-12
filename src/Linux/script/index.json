@@ -2,15 +2,15 @@
   {
     "FileName": "Ubuntu-22.04-Official.sh",
     "Name": "Ubuntu-22.04-Official",
-    "Description": "针对 Ubuntu 22.04 的官方部署脚本。",
+    "Description": "CUDA√Mesa√",
     "Author": "Justsenger",
-    "Version": "1.0.9"
+    "Version": "1.1.0"
   },
   {
-    "FileName": "Ubuntu-24.04-Test.sh",
-    "Name": "Ubuntu-24.04-Test",
-    "Description": "针对 Ubuntu 24.04 的官方部署脚本。",
+    "FileName": "Ubuntu-24.04-Official.sh",
+    "Name": "Ubuntu-24.04-Official",
+    "Description": "CUDA√Mesa×",
     "Author": "Justsenger",
-    "Version": "1.0.1"
+    "Version": "1.0.2"
   }
 ]
