@@ -1,8 +1,8 @@
 #!/bin/bash
 # @Name: Ubuntu-22.04-Official
-# @Description: 针对 Ubuntu 22.04 的官方部署脚本。
+# @Description: CUDA√Mesa√
 # @Author: Justsenger
-# @Version: 1.0.9
+# @Version: 1.1.0
 
 set -e
 
@@ -318,14 +318,14 @@ sudo systemctl start load-dxg-late.service
 if [ "$ENABLE_GRAPHICS" == "true" ]; then
     echo "[STEP: Finalizing environment variables...]"
     # Gallium D3D12 后端配置
-    update_env "GALLIUM_DRIVERS" "d3d12"
+    update_env "GALLIUM_DRIVER" "d3d12"
     update_env "DRI_PRIME" "1"
     update_env "LIBVA_DRIVER_NAME" "d3d12"
     
-    if ! grep -q "GALLIUM_DRIVERS=d3d12" ~/.bashrc; then
+    if ! grep -q "GALLIUM_DRIVER=d3d12" ~/.bashrc; then
         cat >> ~/.bashrc <<EOF
 # GPU-PV Configuration
-export GALLIUM_DRIVERS=d3d12
+export GALLIUM_DRIVER=d3d12
 export DRI_PRIME=1
 export LIBVA_DRIVER_NAME=d3d12
 EOF
