@@ -579,17 +579,34 @@
 
                     <!-- 搜索框容器 -->
                     <Grid Grid.Column="0">
-                        <ui:TextBox PlaceholderText="{x:Static properties:Resources.Placeholder_SearchVm}" 
-                    ClearButtonEnabled="True" 
-                    Padding="10,0,32,0"
-                    Text="{Binding SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                        <ui:SymbolIcon Symbol="Search24" 
-                       HorizontalAlignment="Right" 
-                       Margin="0,0,8,0" 
-                       Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" 
-                       IsHitTestVisible="False"/>
-                    </Grid>
+                        <ui:TextBox x:Name="SearchBox"
+                PlaceholderText="{x:Static properties:Resources.Placeholder_SearchVm}" 
+                ClearButtonEnabled="True" MinHeight="28"
+                VerticalContentAlignment="Center"
+                Padding="10,0,32,0"
+                Text="{Binding SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
 
+                        <ui:SymbolIcon Symbol="Search24" 
+                   HorizontalAlignment="Right" 
+                   VerticalAlignment="Center"
+                   Margin="0,0,8,0" 
+                   Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" 
+                   IsHitTestVisible="False">
+                            <ui:SymbolIcon.Style>
+                                <Style TargetType="ui:SymbolIcon">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Text, ElementName=SearchBox}" Value="">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding Text, ElementName=SearchBox}" Value="{x:Null}">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </ui:SymbolIcon.Style>
+                        </ui:SymbolIcon>
+                    </Grid>
                     <!-- 添加按钮 -->
                     <ui:Button Grid.Column="1" 
                Margin="8,0,0,0" 
