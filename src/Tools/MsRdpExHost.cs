@@ -238,6 +238,10 @@ namespace ExHyperV.Tools
                 config.Display.ColorDepth = RdpColorDepth.ColorDepth32Bpp;
                 config.Redirection.RedirectClipboard = true;
 
+                config.Performance.EnableFontSmoothing = true;        // 开启字体平滑 (ClearType)
+                config.Performance.EnableDesktopComposition = true;   // 开启桌面组合 (Aero特效)
+
+
                 if (attemptEnhanced)
                 {
                     config.Display.DesktopWidth = attemptW;
