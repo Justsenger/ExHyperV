@@ -3471,10 +3471,24 @@ namespace ExHyperV.ViewModels
                 var presenter = Application.Current.MainWindow?.FindName("SnackbarPresenter") as SnackbarPresenter;
                 if (presenter != null)
                 {
-                    var snack = new Snackbar(presenter) { Title = title, Content = message, Appearance = appearance, Icon = new SymbolIcon(icon), Timeout = TimeSpan.FromSeconds(3) };
+                    // 根据类型决定显示时间
+                    // 如果是 Danger (错误) 或 Caution (警告)，设置为 30 (不自动消失，直到手动点叉) 
+                    TimeSpan timeout = (appearance == ControlAppearance.Danger || appearance == ControlAppearance.Caution)
+                        ? TimeSpan.FromSeconds(30)
+                        : TimeSpan.FromSeconds(2); // 成功信息 2 秒消失
+
+                    var snack = new Snackbar(presenter)
+                    {
+                        Title = title,
+                        Content = message,
+                        Appearance = appearance,
+                        Icon = new SymbolIcon(icon),
+                        Timeout = timeout
+                    };
                     snack.Show();
                 }
             });
+
         }
 
         // 获取操作状态的乐观显示文本
