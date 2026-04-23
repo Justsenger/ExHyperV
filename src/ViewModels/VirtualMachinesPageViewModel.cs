@@ -1505,6 +1505,8 @@ namespace ExHyperV.ViewModels
             if (SelectedVm == null) return;
             CurrentViewType = VmDetailViewType.MemorySettings;
             IsLoadingSettings = true;
+
+            _isInternalUpdating = true; // 开启拦截：加载过程中不触发任何 PropertyChanged 逻辑
             try
             {
                 var settings = await _vmMemoryService.GetVmMemorySettingsAsync(SelectedVm.Name);
@@ -1512,14 +1514,19 @@ namespace ExHyperV.ViewModels
                 {
                     if (SelectedVm.MemorySettings != null)
                         SelectedVm.MemorySettings.PropertyChanged -= MemorySettings_PropertyChanged;
+
                     SelectedVm.MemorySettings = settings;
                     SelectedVm.MemorySettings.PropertyChanged += MemorySettings_PropertyChanged;
                 }
             }
-            catch (Exception ex) { ShowSnackbar(Properties.Resources.Common_Error, string.Format(Properties.Resources.Error_Format_LoadFail, Utils.GetFriendlyErrorMessages(ex.Message)), ControlAppearance.Danger, SymbolRegular.ErrorCircle24); }
+            catch (Exception ex)
+            {
+                ShowSnackbar(Properties.Resources.Common_Error, ex.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+            }
             finally
             {
-                await Task.Delay(200);
+                await Task.Delay(100);
+                _isInternalUpdating = false; // 加载完毕，恢复监听
                 IsLoadingSettings = false;
             }
         }
@@ -1527,31 +1534,43 @@ namespace ExHyperV.ViewModels
         // 监听内存属性变更以实现部分自动应用
         private async void MemorySettings_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
-            var fastTrackProps = new[] { nameof(VmMemorySettings.BackingPageSize), nameof(VmMemorySettings.DynamicMemoryEnabled), nameof(VmMemorySettings.MemoryEncryptionPolicy) };
+            if (_isInternalUpdating || IsLoadingSettings || SelectedVm?.MemorySettings == null)
+                return;
+
+            var fastTrackProps = new[] {
+        nameof(VmMemorySettings.BackingPageSize),
+        nameof(VmMemorySettings.DynamicMemoryEnabled),
+        nameof(VmMemorySettings.MemoryEncryptionPolicy),
+        nameof(VmMemorySettings.BackingType),
+        nameof(VmMemorySettings.DynMemOperationAlignment),
+        nameof(VmMemorySettings.MemoryAccessTrackingState),
+        nameof(VmMemorySettings.MemoryAccessTrackingPolicy),
+        nameof(VmMemorySettings.SgxEnabled), 
+        nameof(VmMemorySettings.SgxLaunchControlMode),
+        nameof(VmMemorySettings.CxlEnabled),
+        nameof(VmMemorySettings.EnableGpaPinning)
+    };
+
             if (fastTrackProps.Contains(e.PropertyName))
             {
-                if (IsLoadingSettings || SelectedVm == null || SelectedVm.IsRunning || SelectedVm.MemorySettings == null)
-                    return;
+                // 只有在虚拟机未运行且没有被锁定的情况下才自动应用
+                if (SelectedVm.IsRunning) return;
 
+                _isInternalUpdating = true; // 加锁
                 IsLoadingSettings = true;
                 try
                 {
-                    var result = await _vmMemoryService.SetVmMemorySettingsAsync(
-    SelectedVm.Name,
-    SelectedVm.MemorySettings,
-    SelectedVm.IsRunning // 传入当前运行状态
-);
+                    var result = await _vmMemoryService.SetVmMemorySettingsAsync(SelectedVm.Name, SelectedVm.MemorySettings, false);
                     if (!result.Success)
                     {
                         ShowSnackbar(Properties.Resources.Error_Memory_AutoApply, result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
-                        await GoToMemorySettings();
+                        // 失败时不刷新数据，保持 UI 现状供用户修正
                     }
-                    else OnPropertyChanged(nameof(SelectedVm));
                 }
                 finally
                 {
-                    await Task.Delay(200);
                     IsLoadingSettings = false;
+                    _isInternalUpdating = false; // 解锁
                 }
             }
         }
@@ -1574,6 +1593,45 @@ namespace ExHyperV.ViewModels
             catch (Exception ex) { ShowSnackbar(Properties.Resources.Common_ExceptionLabel, Utils.GetFriendlyErrorMessages(ex.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24); }
             finally { IsLoadingSettings = false; }
         }
+
+        // --- 实验性功能的纯中文数据源 (禁止任何英文) ---
+
+        public List<object> BackingTypeOptions { get; } = new()
+{
+    new { Value = (byte)0, Name = "物理映射模式" },
+    new { Value = (byte)1, Name = "虚拟映射模式" },
+    new { Value = (byte)2, Name = "混合映射模式" }
+};
+
+        public List<object> MemoryByteGranularityOptions { get; } = new()
+{
+    new { Value = (byte)0, Name = "系统自动分配" },
+    new { Value = (byte)1, Name = "标准粒度" },
+    new { Value = (byte)2, Name = "大页粒度" },
+    new { Value = (byte)3, Name = "巨型页粒度" }
+};
+        public List<object> MemoryUintGranularityOptions { get; } = new()
+{
+    new { Value = (uint)0, Name = "系统自动分配" },
+    new { Value = (uint)1, Name = "标准粒度" },
+    new { Value = (uint)2, Name = "大页粒度" },
+    new { Value = (uint)3, Name = "巨型页粒度" }
+};
+            
+
+        public List<object> MemoryTrackingStateOptions { get; } = new()
+{
+    new { Value = (byte)0, Name = "关闭跟踪" },
+    new { Value = (byte)1, Name = "开启跟踪" },
+    new { Value = (byte)2, Name = "按处理器节点配置" }
+};
+
+        public List<object> SgxLaunchControlOptions { get; } = new()
+{
+    new { Value = (uint)0, Name = "禁止访问" },
+    new { Value = (uint)1, Name = "仅限读取" },
+    new { Value = (uint)2, Name = "允许读写" }
+};
 
         // ----------------------------------------------------------------------------------
         // 存储管理模块 - 列表与基础操作

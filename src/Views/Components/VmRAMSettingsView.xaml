@@ -1,4 +1,4 @@
-<UserControl xmlns:properties="clr-namespace:ExHyperV.Properties" x:Class="ExHyperV.Views.Components.VmRAMSettingsView"
+﻿<UserControl xmlns:properties="clr-namespace:ExHyperV.Properties" x:Class="ExHyperV.Views.Components.VmRAMSettingsView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
@@ -8,7 +8,7 @@
              xmlns:converters="clr-namespace:ExHyperV.Converters"
              xmlns:sys="clr-namespace:System;assembly=mscorlib"
              mc:Ignorable="d" 
-             d:DesignHeight="850" d:DesignWidth="1000">
+             d:DesignHeight="1550" d:DesignWidth="1000">
 
     <UserControl.Resources>
         <converters:ByteToBooleanConverter x:Key="ByteToBoolConverter"/>
@@ -227,8 +227,163 @@
                                              IsChecked="{Binding SelectedVm.MemorySettings.MemoryEncryptionPolicy, Converter={StaticResource ByteToBoolConverter}, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                              Command="{Binding ApplyMemorySettingsCommand}"/>
                         </Grid>
+
+                    </StackPanel>
+
+                </Border>
+                <TextBlock Text="{x:Static properties:Resources.Label_Experimental}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,12"/>
+                <Border Background="{ui:ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="0">
+                    <StackPanel>
+                        <!-- 1. 内存映射模式 -->
+                        <Grid Margin="24,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="220"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="内存映射模式" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
+                                <TextBlock Text="配置虚拟机内存如何映射到宿主机物理资源" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                            </StackPanel>
+                            <ComboBox Grid.Column="1" VerticalAlignment="Center"
+                                      Validation.ErrorTemplate="{x:Null}"
+                                      Style="{StaticResource ShutdownRequiredComboBoxStyle}"
+                                      Tag="{Binding SelectedVm.MemorySettings.BackingType}"
+                                      ItemsSource="{Binding BackingTypeOptions}"
+                                      SelectedValue="{Binding SelectedVm.MemorySettings.BackingType, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                      SelectedValuePath="Value" DisplayMemberPath="Name" />
+                        </Grid>
+                        <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
+
+                        <!-- 2. 动态内存对齐 -->
+                        <Grid Margin="24,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="220"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="动态内存对齐粒度" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
+                                <TextBlock Text="调整动态分配内存时的最小步进单位" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                            </StackPanel>
+                            <ComboBox Grid.Column="1" VerticalAlignment="Center"
+          Style="{StaticResource ShutdownRequiredComboBoxStyle}"
+          Tag="{Binding SelectedVm.MemorySettings.DynMemOperationAlignment}"
+          ItemsSource="{Binding MemoryUintGranularityOptions}" 
+          SelectedValue="{Binding SelectedVm.MemorySettings.DynMemOperationAlignment, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+          SelectedValuePath="Value" DisplayMemberPath="Name" />
+                        </Grid>
+                        <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
+
+                        <!-- 3. 内存访问跟踪状态 -->
+                        <Grid Margin="24,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="220"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="内存读写访问跟踪状态" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
+                                <TextBlock Text="是否开启内存页面的读写频率监控" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                            </StackPanel>
+                            <ComboBox Grid.Column="1" VerticalAlignment="Center"
+                                      Validation.ErrorTemplate="{x:Null}"
+                                      Style="{StaticResource ShutdownRequiredComboBoxStyle}"
+                                      Tag="{Binding SelectedVm.MemorySettings.MemoryAccessTrackingState}"
+                                      ItemsSource="{Binding MemoryTrackingStateOptions}"
+                                      SelectedValue="{Binding SelectedVm.MemorySettings.MemoryAccessTrackingState, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                      SelectedValuePath="Value" DisplayMemberPath="Name" />
+                        </Grid>
+
+                        <!-- 4. 内存访问跟踪精度 -->
+                        <Grid Margin="24,8,24,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="220"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="内存读写访问跟踪精度" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
+                                <TextBlock Text="设置监控页面大小的分辨率级别" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                            </StackPanel>
+                            <ComboBox Grid.Column="1" VerticalAlignment="Center"
+          Style="{StaticResource ShutdownRequiredComboBoxStyle}"
+          Tag="{Binding SelectedVm.MemorySettings.MemoryAccessTrackingPolicy}"
+          ItemsSource="{Binding MemoryByteGranularityOptions}"
+          SelectedValue="{Binding SelectedVm.MemorySettings.MemoryAccessTrackingPolicy, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+          SelectedValuePath="Value" DisplayMemberPath="Name" />
+                        </Grid>
+                        <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
+
+                        <!-- 5. 机密计算 (SGX) -->
+                        <Grid Margin="24,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="机密计算保护" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
+                                <TextBlock Text="开启处理器硬件级的隔离安全执行环境" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                            </StackPanel>
+                            <ui:ToggleSwitch Grid.Column="1" 
+                                             Style="{StaticResource ShutdownRequiredToggleStyle}" 
+                                             Tag="{Binding SelectedVm.MemorySettings.SgxEnabled}"
+                                             IsChecked="{Binding SelectedVm.MemorySettings.SgxEnabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                        </Grid>
+
+                        <!-- 机密计算子选项 -->
+                        <Grid Margin="48,8,24,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="180"/>
+                                <ColumnDefinition Width="180"/>
+                                <ColumnDefinition Width="80"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="授权模式与机密内存大小 (兆字节)" VerticalAlignment="Center" FontSize="13" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+
+                            <ComboBox Grid.Column="1" Margin="0,0,12,0"
+                                      Validation.ErrorTemplate="{x:Null}"
+                                      Style="{StaticResource ShutdownRequiredComboBoxStyle}"
+                                      Tag="{Binding SelectedVm.MemorySettings.SgxLaunchControlMode}"
+                                      ItemsSource="{Binding SgxLaunchControlOptions}"
+                                      SelectedValue="{Binding SelectedVm.MemorySettings.SgxLaunchControlMode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                      SelectedValuePath="Value" DisplayMemberPath="Name"
+                                      IsEnabled="{Binding SelectedVm.MemorySettings.SgxEnabled}"/>
+
+                            <!-- 输入框加宽到 180，去掉上下按钮 -->
+                            <ui:NumberBox Grid.Column="2" 
+                                          Value="{Binding SelectedVm.MemorySettings.SgxSize, Mode=TwoWay}" 
+                                          Minimum="0" ClearButtonEnabled="False"
+                                          IsEnabled="{Binding SelectedVm.MemorySettings.SgxEnabled}"/>
+
+                            <ui:Button Grid.Column="3" Content="应用" Margin="8,0,0,0" Height="32" Width="60"
+                                       Command="{Binding ApplyMemorySettingsCommand}" Appearance="Primary"
+                                       IsEnabled="{Binding SelectedVm.MemorySettings.SgxEnabled}"/>
+                        </Grid>
+                        <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
+
+                        <!-- 6. 硬件加速扩展 -->
+                        <Grid Margin="24,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="硬件加速扩展" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
+                                <TextBlock Text="启用高速硬件互连支持或强制物理地址映射固定" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                <ui:ToggleSwitch Content="高速互连支持" Margin="0,0,16,0"
+                                                 Style="{StaticResource ShutdownRequiredToggleStyle}" 
+                                                 Tag="{Binding SelectedVm.MemorySettings.CxlEnabled}"
+                                                 IsChecked="{Binding SelectedVm.MemorySettings.CxlEnabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+
+                                <ui:ToggleSwitch Content="物理地址固定" 
+                                                 Style="{StaticResource ShutdownRequiredToggleStyle}" 
+                                                 Tag="{Binding SelectedVm.MemorySettings.EnableGpaPinning}"
+                                                 IsChecked="{Binding SelectedVm.MemorySettings.EnableGpaPinning, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                        </Grid>
                     </StackPanel>
                 </Border>
+
             </StackPanel>
         </ScrollViewer>
     </Grid>

@@ -148,8 +148,10 @@ namespace ExHyperV.Models
         }
     }
 
+
     public partial class VmMemorySettings : ObservableObject
     {
+
         [ObservableProperty] private long _startup;
         [ObservableProperty] private bool _dynamicMemoryEnabled;
         [ObservableProperty] private long _minimum;
@@ -157,6 +159,18 @@ namespace ExHyperV.Models
         [ObservableProperty] private int _buffer;
         [ObservableProperty] private int _priority;
         [ObservableProperty] private byte? _backingPageSize;
+
+        // --- 实验性功能 ---
+        [ObservableProperty] private byte? _backingType;              // 内存后端类型
+        [ObservableProperty] private uint? _dynMemOperationAlignment;  // 动态内存操作对齐
+        [ObservableProperty] private byte? _memoryAccessTrackingPolicy; // 访问跟踪策略
+        [ObservableProperty] private byte? _memoryAccessTrackingState;  // 访问跟踪状态
+        [ObservableProperty] private bool? _sgxEnabled;                // SGX 开关
+        [ObservableProperty] private double? _sgxSize;                  // SGX 大小
+        [ObservableProperty] private uint? _sgxLaunchControlMode;      // SGX 启动模式
+        [ObservableProperty] private bool? _enableGpaPinning;          // GPA 固定
+        [ObservableProperty] private bool? _cxlEnabled;                // CXL 支持
+
 
         public List<PageSizeItem> AvailablePageSizes { get; } = new List<PageSizeItem>
         {
@@ -180,6 +194,16 @@ namespace ExHyperV.Models
             _priority = other.Priority;
             _backingPageSize = other.BackingPageSize;
             _memoryEncryptionPolicy = other.MemoryEncryptionPolicy;
+
+            BackingType = other.BackingType;
+            DynMemOperationAlignment = other.DynMemOperationAlignment;
+            MemoryAccessTrackingPolicy = other.MemoryAccessTrackingPolicy;
+            MemoryAccessTrackingState = other.MemoryAccessTrackingState;
+            SgxEnabled = other.SgxEnabled;
+            SgxSize = other.SgxSize;
+            SgxLaunchControlMode = other.SgxLaunchControlMode;
+            EnableGpaPinning = other.EnableGpaPinning;
+            CxlEnabled = other.CxlEnabled;
         }
     }
 

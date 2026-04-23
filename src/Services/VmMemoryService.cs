@@ -31,6 +31,17 @@ public class VmMemoryService
                 s.BackingPageSize = GetNullableByteProperty(obj, "BackingPageSize");
                 s.MemoryEncryptionPolicy = GetNullableByteProperty(obj, "MemoryEncryptionPolicy");
 
+                // --- 实验性高级功能 ---
+                s.BackingType = GetNullableByteProperty(obj, "BackingType");
+                s.DynMemOperationAlignment = GetNullableValueProperty<uint>(obj, "DynMemOperationAlignment");
+                s.MemoryAccessTrackingPolicy = GetNullableByteProperty(obj, "MemoryAccessTrackingPolicy");
+                s.MemoryAccessTrackingState = GetNullableByteProperty(obj, "MemoryAccessTrackingState");
+                s.SgxEnabled = GetNullableValueProperty<bool>(obj, "SgxEnabled");;
+                s.SgxSize = GetNullableValueProperty<ulong>(obj, "SgxSize") ?? 0;
+                s.SgxLaunchControlMode = GetNullableValueProperty<uint>(obj, "SgxLaunchControlMode");
+                s.EnableGpaPinning = GetNullableValueProperty<bool>(obj, "EnableGpaPinning");
+                s.CxlEnabled = GetNullableValueProperty<bool>(obj, "CxlEnabled");
+
                 return s;
             });
 
@@ -154,6 +165,51 @@ public class VmMemoryService
                 if (correctedMaxNuma == 0) correctedMaxNuma = (ulong)alignment;
                 memData["MaxMemoryBlocksPerNumaNode"] = correctedMaxNuma;
             }
+
+            // 实验功能
+
+
+            // 1. 内存后端类型 (物理/虚拟/混合) - 强制 byte 类型
+            if (memorySettings.BackingType.HasValue && HasProperty(memData, "BackingType"))
+                memData["BackingType"] = (byte)memorySettings.BackingType.Value;
+
+            // 2. 动态内存操作对齐限制 - 强制 uint 类型
+            if (memorySettings.DynMemOperationAlignment.HasValue && HasProperty(memData, "DynMemOperationAlignment"))
+                memData["DynMemOperationAlignment"] = (uint)memorySettings.DynMemOperationAlignment.Value;
+
+            // 3. 内存访问跟踪精度与状态
+            if (memorySettings.MemoryAccessTrackingPolicy.HasValue && HasProperty(memData, "MemoryAccessTrackingPolicy"))
+                memData["MemoryAccessTrackingPolicy"] = (byte)memorySettings.MemoryAccessTrackingPolicy.Value;
+
+            if (memorySettings.MemoryAccessTrackingState.HasValue && HasProperty(memData, "MemoryAccessTrackingState"))
+                memData["MemoryAccessTrackingState"] = (byte)memorySettings.MemoryAccessTrackingState.Value;
+
+            // 4. Intel SGX 安全飞地 (核心修正：直接使用 MB 单位，严禁乘以 1024)
+            if (memorySettings.SgxEnabled.HasValue && HasProperty(memData, "SgxEnabled"))
+                memData["SgxEnabled"] = memorySettings.SgxEnabled.Value;
+
+            if (memorySettings.SgxEnabled == true && memorySettings.SgxSize.HasValue && HasProperty(memData, "SgxSize"))
+            {
+                // 直接取 UI 上的数字，单位已经是 MB
+                ulong sgxMb = (ulong)memorySettings.SgxSize.Value;
+
+                // 2MB 对齐校验 (Hyper-V 最小分配单位是 2MB)
+                if (sgxMb < 2) sgxMb = 2;
+                sgxMb = (sgxMb / 2) * 2;
+
+                // 写入 WMI (注意：这里绝对不能再乘以 1024 * 1024 了！)
+                memData["SgxSize"] = sgxMb;
+            }
+
+            if (memorySettings.SgxLaunchControlMode.HasValue && HasProperty(memData, "SgxLaunchControlMode"))
+                memData["SgxLaunchControlMode"] = (uint)memorySettings.SgxLaunchControlMode.Value;
+
+            // 5. 预览版功能 (GPA Pinning & CXL)
+            if (memorySettings.EnableGpaPinning.HasValue && HasProperty(memData, "EnableGpaPinning"))
+                memData["EnableGpaPinning"] = memorySettings.EnableGpaPinning.Value;
+
+            if (memorySettings.CxlEnabled.HasValue && HasProperty(memData, "CxlEnabled"))
+                memData["CxlEnabled"] = memorySettings.CxlEnabled.Value;
         }
         else
         {
@@ -175,5 +231,16 @@ public class VmMemoryService
         if (!HasProperty(obj, propName)) return null;
         var val = obj[propName];
         return val == null ? null : Convert.ToByte(val);
+    }
+    private static T? GetNullableValueProperty<T>(ManagementObject obj, string propName) where T : struct
+    {
+        if (!HasProperty(obj, propName)) return null;
+        var val = obj[propName];
+        if (val == null) return null;
+        try
+        {
+            return (T)Convert.ChangeType(val, typeof(T));
+        }
+        catch { return null; }
     }
 }
