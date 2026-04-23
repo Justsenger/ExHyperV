@@ -1610,6 +1610,47 @@ namespace ExHyperV.ViewModels
             catch { }
         }
 
+
+        // 优化磁盘
+        [RelayCommand]
+        private async Task OptimizeStorage(VmStorageItem item)
+        {
+            // 空值、正在运行、或已经在优化中的磁盘不处理
+            if (item == null || SelectedVm == null || SelectedVm.IsRunning || item.IsOptimizing) return;
+
+            // 进入优化状态
+            item.IsOptimizing = true;
+
+            try
+            {
+                // 1. 发起 WMI 压缩指令
+                // 虽然 await 会等待，但由于 vmms.exe 承载了 Job，即便 UI 崩溃，任务依然在后台跑
+                var result = await _storageService.CompactDiskAsync(item.PathOrDiskNumber);
+
+                if (result.Success)
+                {
+                    // 2. 刷新磁盘物理大小 (FileSize)
+                    // 调用现有的存储服务，确保 UI 上的 GB 数值得到更新
+                    await _storageService.RefreshVirtualDiskSizesAsync(SelectedVm);
+
+                    ShowSnackbar("优化完成", "虚拟磁盘空间已成功回收", ControlAppearance.Success, SymbolRegular.CheckmarkCircle24);
+                }
+                else
+                {
+                    ShowSnackbar("优化失败", result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowSnackbar("系统异常", ex.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+            }
+            finally
+            {
+                // 3. 释放优化状态
+                item.IsOptimizing = false;
+            }
+        }
+
         // 移除存储设备
         [RelayCommand]
         private async Task RemoveStorageItem(VmStorageItem item)

@@ -234,6 +234,34 @@ namespace ExHyperV.Services
             });
         }
 
+        // 压缩/优化磁盘的方法。
+
+        public async Task<(bool Success, string Message)> CompactDiskAsync(string vhdPath)
+        {
+            try
+            {
+                // 构造输入参数
+                var inParams = new Dictionary<string, object>
+        {
+            { "Path", vhdPath },
+            { "Mode", 1u } // 1u 表示 Full 深度压缩模式
+        };
+
+                // 调用 Msvm_ImageManagementService 的 CompactVirtualHardDisk 方法
+                // WmiTools.ExecuteMethodAsync 内部会处理 Job (4096) 并等待其完成
+                return await WmiTools.ExecuteMethodAsync(
+                    "SELECT * FROM Msvm_ImageManagementService",
+                    "CompactVirtualHardDisk",
+                    inParams
+                );
+            }
+            catch (Exception ex)
+            {
+                return (false, $"WMI 执行异常: {ex.Message}");
+            }
+        }
+
+
         // 获取主机上可用于直通挂载的物理硬盘列表（排除系统盘及已占用的磁盘）
         public async Task<List<HostDiskInfo>> GetHostDisksAsync()
         {

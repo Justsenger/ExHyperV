@@ -70,8 +70,31 @@
                                             <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
 
-                                        <ui:FontIcon Grid.Column="0" Glyph="{Binding Icon}" FontFamily="{StaticResource SegoeFluentIcons}" FontSize="20" VerticalAlignment="Center"/>
+                                        <Grid Grid.Column="0" Width="22" Height="22" VerticalAlignment="Center">
+                                            <!-- 1. 正常状态：磁盘图标 -->
+                                            <ui:FontIcon Glyph="{Binding Icon}" 
+                 FontFamily="{StaticResource SegoeFluentIcons}" 
+                 FontSize="20"
+                 VerticalAlignment="Center">
+                                                <ui:FontIcon.Style>
+                                                    <Style TargetType="ui:FontIcon">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                        <Style.Triggers>
+                                                            <!-- 当正在优化时，直接塌陷隐藏 -->
+                                                            <DataTrigger Binding="{Binding IsOptimizing}" Value="True">
+                                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </ui:FontIcon.Style>
+                                            </ui:FontIcon>
 
+                                            <!-- 2. 优化状态：加载环 -->
+                                            <!-- 直接利用你现有的 BooleanToVisibilityConverter -->
+                                            <ui:ProgressRing Width="18" Height="18" 
+                     IsIndeterminate="True"
+                     Visibility="{Binding IsOptimizing, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                        </Grid>
                                         <!-- 修改2：文件名和容量放在同一行 -->
                                         <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="16,0,0,0">
                                             <TextBlock Text="{Binding DisplayName}" FontSize="15" FontWeight="Medium" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
@@ -92,7 +115,6 @@
                                                 </TextBlock.Style>
                                             </TextBlock>
                                         </StackPanel>
-
                                         <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="0,0,12,0">
                                             <!-- 新增：打开文件夹按钮 -->
                                             <ui:Button Icon="{ui:SymbolIcon Symbol=Share24, FontSize=18}" 
@@ -117,6 +139,33 @@
                                                 </ui:Button.Style>
                                             </ui:Button>
 
+                                            <ui:Button Icon="{ui:SymbolIcon Symbol=Broom24, FontSize=18}" 
+           ToolTip="优化磁盘"
+           Appearance="Secondary" 
+           Margin="0,0,8,0"
+           Command="{Binding DataContext.OptimizeStorageCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+           CommandParameter="{Binding}">
+                                                <ui:Button.Style>
+                                                    <Style TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                        <Style.Triggers>
+                                                            <MultiDataTrigger>
+                                                                <MultiDataTrigger.Conditions>
+                                                                    <Condition Binding="{Binding DriveType}" Value="HardDisk"/>
+                                                                    <Condition Binding="{Binding DiskType}" Value="Virtual"/>
+                                                                    <Condition Binding="{Binding DataContext.SelectedVm.IsRunning, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="False"/>
+                                                                </MultiDataTrigger.Conditions>
+                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                            </MultiDataTrigger>
+
+                                                            <DataTrigger Binding="{Binding IsOptimizing}" Value="True">
+                                                                <Setter Property="IsEnabled" Value="False"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </ui:Button.Style>
+                                            </ui:Button>
+                                            
                                             <ui:Button Icon="{ui:SymbolIcon Symbol=Edit24, FontSize=18}" 
            ToolTip="{x:Static properties:Resources.Common_Modify}"
            Appearance="Secondary" 

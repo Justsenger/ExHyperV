@@ -98,7 +98,7 @@ namespace ExHyperV.Models
         [ObservableProperty] private int _controllerLocation;
         [ObservableProperty] private string _controllerType;
         [ObservableProperty] private int _controllerNumber;
-
+        [ObservableProperty] private bool _isOptimizing;
         [ObservableProperty] private int _diskNumber;
         [ObservableProperty] private string _diskModel;
 
