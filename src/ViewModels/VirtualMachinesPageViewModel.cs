@@ -58,6 +58,7 @@ namespace ExHyperV.ViewModels
         private const int MaxHistoryLength = 60;
         private readonly Dictionary<string, LinkedList<double>> _historyCache = new();
         private VmProcessorSettings _originalSettingsCache;
+        private VmMemorySettings _originalMemorySettingsCache;
         private bool _isInternalUpdating = false;
         private bool _isDiskPathManual = false; // 记录用户是否手动选择过磁盘路径
 
@@ -765,6 +766,7 @@ namespace ExHyperV.ViewModels
             }
             CurrentViewType = VmDetailViewType.Dashboard;
             _originalSettingsCache = null;
+            _originalMemorySettingsCache = null;
             HostDisks.Clear();
         }
 
@@ -1516,6 +1518,7 @@ namespace ExHyperV.ViewModels
                         SelectedVm.MemorySettings.PropertyChanged -= MemorySettings_PropertyChanged;
 
                     SelectedVm.MemorySettings = settings;
+                    _originalMemorySettingsCache = settings.Clone(); // 加载成功时缓存原始状态
                     SelectedVm.MemorySettings.PropertyChanged += MemorySettings_PropertyChanged;
                 }
             }
@@ -1530,51 +1533,60 @@ namespace ExHyperV.ViewModels
                 IsLoadingSettings = false;
             }
         }
-
-        // 监听内存属性变更以实现部分自动应用
         private async void MemorySettings_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
             if (_isInternalUpdating || IsLoadingSettings || SelectedVm?.MemorySettings == null)
                 return;
 
             var fastTrackProps = new[] {
-        nameof(VmMemorySettings.BackingPageSize),
-        nameof(VmMemorySettings.DynamicMemoryEnabled),
-        nameof(VmMemorySettings.MemoryEncryptionPolicy),
-        nameof(VmMemorySettings.BackingType),
-        nameof(VmMemorySettings.DynMemOperationAlignment),
-        nameof(VmMemorySettings.MemoryAccessTrackingState),
-        nameof(VmMemorySettings.MemoryAccessTrackingPolicy),
-        nameof(VmMemorySettings.SgxEnabled), 
-        nameof(VmMemorySettings.SgxLaunchControlMode),
-        nameof(VmMemorySettings.CxlEnabled),
-        nameof(VmMemorySettings.EnableGpaPinning)
-    };
+                nameof(VmMemorySettings.BackingPageSize),
+                nameof(VmMemorySettings.DynamicMemoryEnabled),
+                nameof(VmMemorySettings.MemoryEncryptionPolicy),
+                nameof(VmMemorySettings.BackingType),
+                nameof(VmMemorySettings.MemoryAccessTrackingState),
+                nameof(VmMemorySettings.MemoryAccessTrackingPolicy),
+                nameof(VmMemorySettings.EnableColdHint),
+                nameof(VmMemorySettings.EnableHotHint),
+                nameof(VmMemorySettings.EnableEpf),
+                nameof(VmMemorySettings.EnablePrivateCompressionStore),
+                nameof(VmMemorySettings.SgxEnabled),
+                nameof(VmMemorySettings.CxlEnabled),
+                nameof(VmMemorySettings.EnableGpaPinning),
+                nameof(VmMemorySettings.DynMemOperationAlignment),
+                nameof(VmMemorySettings.MaxMemoryBlocksPerNumaNode)
+            };
 
             if (fastTrackProps.Contains(e.PropertyName))
             {
-                // 只有在虚拟机未运行且没有被锁定的情况下才自动应用
                 if (SelectedVm.IsRunning) return;
 
-                _isInternalUpdating = true; // 加锁
+                // 移除以前错误的 var backup = SelectedVm.MemorySettings.Clone();
+
+                _isInternalUpdating = true;
                 IsLoadingSettings = true;
                 try
                 {
                     var result = await _vmMemoryService.SetVmMemorySettingsAsync(SelectedVm.Name, SelectedVm.MemorySettings, false);
                     if (!result.Success)
                     {
-                        ShowSnackbar(Properties.Resources.Error_Memory_AutoApply, result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
-                        // 失败时不刷新数据，保持 UI 现状供用户修正
+                        ShowSnackbar("修改失败", result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+
+                        // 核心修复：使用真正纯净的初始缓存进行弹回恢复
+                        SelectedVm.MemorySettings.Restore(_originalMemorySettingsCache);
+                    }
+                    else
+                    {
+                        // 如果修改成功，需要更新基准缓存为当前状态，否则下次别的选项失败时，会把这次成功的修改也弹回去
+                        _originalMemorySettingsCache = SelectedVm.MemorySettings.Clone();
                     }
                 }
                 finally
                 {
                     IsLoadingSettings = false;
-                    _isInternalUpdating = false; // 解锁
+                    _isInternalUpdating = false;
                 }
             }
         }
-
         // 手动应用内存设置
         [RelayCommand]
         private async Task ApplyMemorySettings()
@@ -1587,13 +1599,26 @@ namespace ExHyperV.ViewModels
                     SelectedVm.Name,
                     SelectedVm.MemorySettings,
                     SelectedVm.IsRunning // 传入当前运行状态
-                ); if (!result.Success) ShowSnackbar(Properties.Resources.Error_Common_SaveFail, Utils.GetFriendlyErrorMessages(result.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                );
+
+                if (!result.Success)
+                {
+                    ShowSnackbar(Properties.Resources.Error_Common_SaveFail, Utils.GetFriendlyErrorMessages(result.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                }
+                else
+                {
+                    // 保存成功后更新缓存基准
+                    _originalMemorySettingsCache = SelectedVm.MemorySettings.Clone();
+                }
+
                 await GoToMemorySettings();
             }
-            catch (Exception ex) { ShowSnackbar(Properties.Resources.Common_ExceptionLabel, Utils.GetFriendlyErrorMessages(ex.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24); }
+            catch (Exception ex)
+            {
+                ShowSnackbar(Properties.Resources.Common_ExceptionLabel, Utils.GetFriendlyErrorMessages(ex.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+            }
             finally { IsLoadingSettings = false; }
         }
-
         // --- 实验性功能的纯中文数据源 (禁止任何英文) ---
 
         public List<object> BackingTypeOptions { get; } = new()
@@ -3523,17 +3548,48 @@ namespace ExHyperV.ViewModels
         // ----------------------------------------------------------------------------------
 
         // 显示 Snackbar 通知
+        private Snackbar? _currentSnackbar;
         private void ShowSnackbar(string title, string message, ControlAppearance appearance, SymbolRegular icon)
         {
-            Application.Current.Dispatcher.Invoke(() => {
+            // 使用 Background 优先级，同时加上 async 支持 await 操作
+            Application.Current.Dispatcher.InvokeAsync(async () => {
                 var presenter = Application.Current.MainWindow?.FindName("SnackbarPresenter") as SnackbarPresenter;
                 if (presenter != null)
                 {
-                    // 根据类型决定显示时间
-                    // 如果是 Danger (错误) 或 Caution (警告)，设置为 30 (不自动消失，直到手动点叉) 
-                    TimeSpan timeout = (appearance == ControlAppearance.Danger || appearance == ControlAppearance.Caution)
-                        ? TimeSpan.FromSeconds(30)
-                        : TimeSpan.FromSeconds(2); // 成功信息 2 秒消失
+                    // 核心修复 1：暴力清空积压队列
+                    try
+                    {
+                        var queueProp = typeof(SnackbarPresenter).GetProperty("Queue", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                        var queueObj = queueProp?.GetValue(presenter);
+                        queueObj?.GetType().GetMethod("Clear")?.Invoke(queueObj, null);
+                    }
+                    catch { }
+
+                    // 核心修复 2：使用官方推荐的 HideCurrent() 安全关闭
+                    try
+                    {
+                        await presenter.HideCurrent();
+                    }
+                    catch { }
+
+                    // --- 核心优化：动态计算弹窗留存时间 ---
+                    TimeSpan timeout;
+                    if (appearance == ControlAppearance.Danger || appearance == ControlAppearance.Caution)
+                    {
+                        int msgLength = message?.Length ?? 0;
+
+                        // 算法：每 20 个字符增加 1 秒
+                        int calculatedSeconds = msgLength / 20;
+
+                        calculatedSeconds = Math.Clamp(calculatedSeconds, 2, 60);
+
+                        timeout = TimeSpan.FromSeconds(calculatedSeconds);
+                    }
+                    else
+                    {
+                        // 成功或常规消息固定 2 秒
+                        timeout = TimeSpan.FromSeconds(2);
+                    }
 
                     var snack = new Snackbar(presenter)
                     {
@@ -3543,13 +3599,11 @@ namespace ExHyperV.ViewModels
                         Icon = new SymbolIcon(icon),
                         Timeout = timeout
                     };
+
                     snack.Show();
                 }
-            });
-
+            }, System.Windows.Threading.DispatcherPriority.Background);
         }
-
-        // 获取操作状态的乐观显示文本
         private string GetOptimisticText(string action) => action switch { "Start" => Properties.Resources.Status_Starting, "Restart" => Properties.Resources.Status_Restarting, "Stop" => Properties.Resources.Status_StoppingPresent, "TurnOff" => Properties.Resources.Status_Off, "Save" => Properties.Resources.Status_Saving, "Suspend" => Properties.Resources.Status_Suspending, _ => Properties.Resources.Status_Processing };
 
         // 追加日志到控制台

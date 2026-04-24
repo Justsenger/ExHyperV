@@ -170,6 +170,12 @@ namespace ExHyperV.Models
         [ObservableProperty] private uint? _sgxLaunchControlMode;      // SGX 启动模式
         [ObservableProperty] private bool? _enableGpaPinning;          // GPA 固定
         [ObservableProperty] private bool? _cxlEnabled;                // CXL 支持
+        [ObservableProperty] private bool? _enableColdHint;
+        [ObservableProperty] private bool? _enableHotHint;
+        [ObservableProperty] private bool? _enableEpf;
+        [ObservableProperty] private bool? _enablePrivateCompressionStore;
+        [ObservableProperty] private ulong? _maxMemoryBlocksPerNumaNode;
+        [ObservableProperty] private string? _sgxLaunchControlDefault;
 
 
         public List<PageSizeItem> AvailablePageSizes { get; } = new List<PageSizeItem>
@@ -186,15 +192,16 @@ namespace ExHyperV.Models
         public void Restore(VmMemorySettings other)
         {
             if (other == null) return;
-            _startup = other.Startup;
-            _dynamicMemoryEnabled = other.DynamicMemoryEnabled;
-            _minimum = other.Minimum;
-            _maximum = other.Maximum;
-            _buffer = other.Buffer;
-            _priority = other.Priority;
-            _backingPageSize = other.BackingPageSize;
-            _memoryEncryptionPolicy = other.MemoryEncryptionPolicy;
+            Startup = other.Startup;
+            DynamicMemoryEnabled = other.DynamicMemoryEnabled;
+            Minimum = other.Minimum;
+            Maximum = other.Maximum;
+            Buffer = other.Buffer;
+            Priority = other.Priority;
+            BackingPageSize = other.BackingPageSize;
+            MemoryEncryptionPolicy = other.MemoryEncryptionPolicy;
 
+            // 实验性功能补齐
             BackingType = other.BackingType;
             DynMemOperationAlignment = other.DynMemOperationAlignment;
             MemoryAccessTrackingPolicy = other.MemoryAccessTrackingPolicy;
@@ -204,6 +211,12 @@ namespace ExHyperV.Models
             SgxLaunchControlMode = other.SgxLaunchControlMode;
             EnableGpaPinning = other.EnableGpaPinning;
             CxlEnabled = other.CxlEnabled;
+            EnableColdHint = other.EnableColdHint;
+            EnableHotHint = other.EnableHotHint;
+            EnableEpf = other.EnableEpf;
+            EnablePrivateCompressionStore = other.EnablePrivateCompressionStore;
+            MaxMemoryBlocksPerNumaNode = other.MaxMemoryBlocksPerNumaNode;
+            SgxLaunchControlDefault = other.SgxLaunchControlDefault;
         }
     }
 
