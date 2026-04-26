@@ -3549,14 +3549,19 @@ namespace ExHyperV.ViewModels
         // ----------------------------------------------------------------------------------
 
         [ObservableProperty] private ObservableCollection<SpacetimeNode> _spacetimeNodes = new();
+
         [ObservableProperty]
         [NotifyCanExecuteChangedFor(nameof(TeleportCommand))]
         [NotifyCanExecuteChangedFor(nameof(OpenWormholeCommand))]
         [NotifyCanExecuteChangedFor(nameof(ParallelSpacetimeCommand))]
+        [NotifyCanExecuteChangedFor(nameof(AnnihilateCommand))]
         private SpacetimeNode? _selectedSpacetimeNode;
-        private bool CanOperateHistoricalNode => SelectedSpacetimeNode != null && !SelectedSpacetimeNode.IsCurrent;
 
-
+        /// <summary>
+        /// 判定逻辑：只有选中的是真实的历史快照节点（非现世指针、非虚拟根节点）时，才允许执行穿梭、删除等操作。
+        /// </summary>
+        private bool CanOperateHistoricalNode => SelectedSpacetimeNode != null &&
+                                                SelectedSpacetimeNode.NodeType == SpacetimeNodeType.Snapshot;
 
         [RelayCommand]
         private async Task GoToSpacetimeSettings()
@@ -3567,24 +3572,44 @@ namespace ExHyperV.ViewModels
             try
             {
                 var nodes = await _spacetimeService.GetSpacetimeNodesAsync(SelectedVm.Name);
+
+                // --- 逻辑优化：处理纯净态（仅有主时空和当前时空） ---
+                var snapshots = nodes.Where(n => n.NodeType == SpacetimeNodeType.Snapshot).ToList();
+                if (!snapshots.Any())
+                {
+                    var genesis = nodes.FirstOrDefault(n => n.NodeType == SpacetimeNodeType.Genesis);
+                    var current = nodes.FirstOrDefault(n => n.NodeType == SpacetimeNodeType.Current);
+                    if (genesis != null && current != null)
+                    {
+                        // 1. 将主时空的时间（原始 VHDX 时间）赋予当前
+                        current.CreatedDate = genesis.CreatedDate;
+                        // 2. 将当前设为根节点（去掉父 ID）
+                        current.ParentId = null;
+                        // 3. 移除主时空节点
+                        nodes.Remove(genesis);
+                    }
+                }
+
+                // 更新集合
                 SpacetimeNodes = new ObservableCollection<SpacetimeNode>(nodes);
 
-                var currentNode = nodes.FirstOrDefault(n => n.IsCurrent);
+                // 优先选中“当前”节点（现在它可能是唯一的根，也可能是快照链的末端）
+                var currentNode = nodes.FirstOrDefault(n => n.NodeType == SpacetimeNodeType.Current);
                 if (currentNode != null)
                 {
                     SelectedSpacetimeNode = currentNode;
                 }
-                else
-                {
-                    // 如果快照里没现世，说明现世在“主时空”
-                    SelectedSpacetimeNode = new SpacetimeNode { Id = "GENESIS_NODE", Name = "主时空", IsCurrent = true };
-                }
+            }
+            catch (Exception ex)
+            {
+                ShowSnackbar("检索失败", ex.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
             }
             finally
             {
                 IsLoadingSettings = false;
             }
-        }        // 捕捉瞬间 (创建快照)
+        }
+        // 捕捉瞬间 (创建快照)
         [RelayCommand]
         private async Task CaptureMoment()
         {
@@ -3596,7 +3621,7 @@ namespace ExHyperV.ViewModels
                 if (result.Success)
                 {
                     ShowSnackbar("时空扩张成功", "已成功捕捉当前时空锚点", ControlAppearance.Success, SymbolRegular.CheckmarkCircle24);
-                    // 重新加载并触发 UI 重绘
+                    // 刷新列表以显示新生成的节点
                     await GoToSpacetimeSettings();
                 }
                 else
@@ -3611,47 +3636,64 @@ namespace ExHyperV.ViewModels
         [RelayCommand(CanExecute = nameof(CanOperateHistoricalNode))]
         private async Task Teleport()
         {
-            if (SelectedSpacetimeNode == null) return;
+            if (SelectedSpacetimeNode == null || string.IsNullOrEmpty(SelectedSpacetimeNode.Path)) return;
 
-            // 穿梭通常涉及状态改变，建议弹出简单确认（可选）
             IsLoading = true;
             try
             {
                 var result = await _spacetimeService.TeleportAsync(SelectedSpacetimeNode);
                 if (result.Success)
                 {
-                    ShowSnackbar("穿梭完成", $"已回归至时空：{SelectedSpacetimeNode.Name}", ControlAppearance.Info, SymbolRegular.ArrowClockwise24);
+                    ShowSnackbar("穿梭完成", $"已回归至时空锚点：{SelectedSpacetimeNode.Name}", ControlAppearance.Info, SymbolRegular.ArrowClockwise24);
                     await GoToSpacetimeSettings();
+                }
+                else
+                {
+                    ShowSnackbar("穿梭失败", result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
                 }
             }
             finally { IsLoading = false; }
         }
 
-        // 湮灭 (删除快照)
-        [RelayCommand]
+        // 删除快照
+        [RelayCommand(CanExecute = nameof(CanOperateHistoricalNode))]
         private async Task Annihilate()
         {
-            if (SelectedSpacetimeNode == null) return;
-
+            if (SelectedSpacetimeNode == null || string.IsNullOrEmpty(SelectedSpacetimeNode.Path) || SelectedVm == null) return;
             IsLoading = true;
             try
             {
-                var result = await _spacetimeService.AnnihilateAsync(SelectedSpacetimeNode);
+                // 传入 VM 名称以辅助图片清理
+                var result = await _spacetimeService.AnnihilateAsync(SelectedVm.Name, SelectedSpacetimeNode);
                 if (result.Success)
                 {
-                    ShowSnackbar("湮灭完成", "该时空维度已收束", ControlAppearance.Success, SymbolRegular.Delete24);
+                    ShowSnackbar("删除完成", "该时空维度已收束", ControlAppearance.Success, SymbolRegular.Delete24);
                     SelectedSpacetimeNode = null;
                     await GoToSpacetimeSettings();
                 }
             }
             finally { IsLoading = false; }
         }
+        // 开启虫洞
+        [RelayCommand(CanExecute = nameof(CanOperateHistoricalNode))]
+        private void OpenWormhole()
+        {
+            ShowSnackbar("虫洞开启", "功能研发中：允许挂载历史锚点磁盘为只读驱动器", ControlAppearance.Info, SymbolRegular.Link24);
+        }
 
-        // 平行时空 / 开启虫洞 / 时间线收束 (这些可以映射到创建或导出等，目前先做基础逻辑)
-        [RelayCommand(CanExecute = nameof(CanOperateHistoricalNode))] private void OpenWormhole() => ShowSnackbar("虫洞开启", "功能研发中：允许挂载快照磁盘为只读驱动器", ControlAppearance.Info, SymbolRegular.Info24);
-        [RelayCommand(CanExecute = nameof(CanOperateHistoricalNode))] private void ParallelSpacetime() => CaptureMomentCommand.Execute(null);
-        [RelayCommand] private void Convergence() => AnnihilateCommand.Execute(null);
+        // 平行时空
+        [RelayCommand(CanExecute = nameof(CanOperateHistoricalNode))]
+        private void ParallelSpacetime()
+        {
+            ShowSnackbar("平行时空", "功能研发中：正在基于此锚点导出并衍生新的虚拟机实例", ControlAppearance.Info, SymbolRegular.Copy24);
+        }
 
+        // 时间线收束
+        [RelayCommand]
+        private void Convergence()
+        {
+            ShowSnackbar("收束指令", "正在检测所有离散时空点，准备执行全局合并...", ControlAppearance.Caution, SymbolRegular.Merge24);
+        }
 
         // ----------------------------------------------------------------------------------
         // UI 辅助方法

@@ -1,6 +1,28 @@
 ﻿using System;
+using System.Windows.Media.Imaging;
 
 namespace ExHyperV.Models;
+
+/// <summary>
+/// 时空节点类型
+/// </summary>
+public enum SpacetimeNodeType
+{
+    /// <summary>
+    /// 主时空 (起点)
+    /// </summary>
+    Genesis,
+
+    /// <summary>
+    /// 快照时空 (历史点)
+    /// </summary>
+    Snapshot,
+
+    /// <summary>
+    /// 当前时空 (正在运行的状态)
+    /// </summary>
+    Current
+}
 
 public class SpacetimeNode
 {
@@ -8,20 +30,27 @@ public class SpacetimeNode
     public string? ParentId { get; set; }
     public string Name { get; set; } = string.Empty;
     public DateTime CreatedDate { get; set; }
+    public BitmapSource? Thumbnail { get; set; }
 
-    public System.Windows.Media.Imaging.BitmapSource? Thumbnail { get; set; }
     /// <summary>
-    /// 是否为当前正在运行的“现世”指针指向的节点
+    /// 是否为当前正在运行的指针指向的节点
     /// </summary>
     public bool IsCurrent { get; set; }
 
-    /// <summary>
-    /// 原始 WMI 路径，用于后续操作
-    /// </summary>
     public string Path { get; set; } = string.Empty;
+    public string VirtualSystemType { get; set; } = string.Empty;
 
     /// <summary>
-    /// 虚拟系统类型 (Snapshot 或 Realized)
+    /// 节点逻辑类型
     /// </summary>
-    public string VirtualSystemType { get; set; } = string.Empty;
+    public SpacetimeNodeType NodeType { get; set; }
+
+    /// <summary>
+    /// 是否为逻辑构造节点
+    /// </summary>
+    public bool IsLogicalNode => NodeType == SpacetimeNodeType.Genesis || NodeType == SpacetimeNodeType.Current;
+
+    // 常量定义
+    public const string GenesisId = "GENESIS_ROOT";
+    public const string CurrentId = "CURRENT_RUNNING";
 }
