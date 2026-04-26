@@ -22,7 +22,7 @@ namespace ExHyperV.ViewModels
         Dashboard, CpuSettings, CpuAffinity, MemorySettings, StorageSettings, AddStorage,
         GpuSettings,
         AddGpuSelect,
-        AddGpuProgress, NetworkSettings, BootSettings
+        AddGpuProgress, NetworkSettings, BootSettings, SpacetimeSettings
     }
     public partial class VirtualMachinesPageViewModel : ObservableObject, IDisposable
     {
@@ -40,6 +40,7 @@ namespace ExHyperV.ViewModels
         private readonly VmCreateService _vmCreateService = new();
         private readonly VmEditService _vmEditService = new();
         private readonly VmBootService _vmBootService = new();
+        private readonly VmSpacetimeService _spacetimeService = new();
 
         // ----------------------------------------------------------------------------------
         // 监控与后台任务字段
@@ -237,6 +238,7 @@ namespace ExHyperV.ViewModels
                 case VmDetailViewType.MemorySettings:
                 case VmDetailViewType.StorageSettings:
                 case VmDetailViewType.NetworkSettings:
+                case VmDetailViewType.SpacetimeSettings:
                     CurrentViewType = VmDetailViewType.Dashboard;
                     break;
                 default:
@@ -3391,8 +3393,7 @@ namespace ExHyperV.ViewModels
             }
         }
         // 开始 Linux 部署
-        // 开始 Linux 部署
-        [RelayCommand] // 之前缺失这个特性，导致按钮无效
+        [RelayCommand]
         private async Task StartLinuxDeploy()
         {
             _gpuDeploymentCts?.Cancel();
@@ -3542,6 +3543,115 @@ namespace ExHyperV.ViewModels
             if (suffixIndex != -1) normalizedId = normalizedId.Substring(0, suffixIndex);
             return normalizedId.Replace('\\', '#').Replace("#", "");
         }
+
+        // ----------------------------------------------------------------------------------
+        // 时空管理模块
+        // ----------------------------------------------------------------------------------
+
+        [ObservableProperty] private ObservableCollection<SpacetimeNode> _spacetimeNodes = new();
+        [ObservableProperty]
+        [NotifyCanExecuteChangedFor(nameof(TeleportCommand))]
+        [NotifyCanExecuteChangedFor(nameof(OpenWormholeCommand))]
+        [NotifyCanExecuteChangedFor(nameof(ParallelSpacetimeCommand))]
+        private SpacetimeNode? _selectedSpacetimeNode;
+        private bool CanOperateHistoricalNode => SelectedSpacetimeNode != null && !SelectedSpacetimeNode.IsCurrent;
+
+
+
+        [RelayCommand]
+        private async Task GoToSpacetimeSettings()
+        {
+            if (SelectedVm == null) return;
+            CurrentViewType = VmDetailViewType.SpacetimeSettings;
+            IsLoadingSettings = true;
+            try
+            {
+                var nodes = await _spacetimeService.GetSpacetimeNodesAsync(SelectedVm.Name);
+                SpacetimeNodes = new ObservableCollection<SpacetimeNode>(nodes);
+
+                var currentNode = nodes.FirstOrDefault(n => n.IsCurrent);
+                if (currentNode != null)
+                {
+                    SelectedSpacetimeNode = currentNode;
+                }
+                else
+                {
+                    // 如果快照里没现世，说明现世在“主时空”
+                    SelectedSpacetimeNode = new SpacetimeNode { Id = "GENESIS_NODE", Name = "主时空", IsCurrent = true };
+                }
+            }
+            finally
+            {
+                IsLoadingSettings = false;
+            }
+        }        // 捕捉瞬间 (创建快照)
+        [RelayCommand]
+        private async Task CaptureMoment()
+        {
+            if (SelectedVm == null) return;
+            IsLoading = true;
+            try
+            {
+                var result = await _spacetimeService.CaptureMomentAsync(SelectedVm.Name);
+                if (result.Success)
+                {
+                    ShowSnackbar("时空扩张成功", "已成功捕捉当前时空锚点", ControlAppearance.Success, SymbolRegular.CheckmarkCircle24);
+                    // 重新加载并触发 UI 重绘
+                    await GoToSpacetimeSettings();
+                }
+                else
+                {
+                    ShowSnackbar("时空塌陷", result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                }
+            }
+            finally { IsLoading = false; }
+        }
+
+        // 穿梭 (应用快照)
+        [RelayCommand(CanExecute = nameof(CanOperateHistoricalNode))]
+        private async Task Teleport()
+        {
+            if (SelectedSpacetimeNode == null) return;
+
+            // 穿梭通常涉及状态改变，建议弹出简单确认（可选）
+            IsLoading = true;
+            try
+            {
+                var result = await _spacetimeService.TeleportAsync(SelectedSpacetimeNode);
+                if (result.Success)
+                {
+                    ShowSnackbar("穿梭完成", $"已回归至时空：{SelectedSpacetimeNode.Name}", ControlAppearance.Info, SymbolRegular.ArrowClockwise24);
+                    await GoToSpacetimeSettings();
+                }
+            }
+            finally { IsLoading = false; }
+        }
+
+        // 湮灭 (删除快照)
+        [RelayCommand]
+        private async Task Annihilate()
+        {
+            if (SelectedSpacetimeNode == null) return;
+
+            IsLoading = true;
+            try
+            {
+                var result = await _spacetimeService.AnnihilateAsync(SelectedSpacetimeNode);
+                if (result.Success)
+                {
+                    ShowSnackbar("湮灭完成", "该时空维度已收束", ControlAppearance.Success, SymbolRegular.Delete24);
+                    SelectedSpacetimeNode = null;
+                    await GoToSpacetimeSettings();
+                }
+            }
+            finally { IsLoading = false; }
+        }
+
+        // 平行时空 / 开启虫洞 / 时间线收束 (这些可以映射到创建或导出等，目前先做基础逻辑)
+        [RelayCommand(CanExecute = nameof(CanOperateHistoricalNode))] private void OpenWormhole() => ShowSnackbar("虫洞开启", "功能研发中：允许挂载快照磁盘为只读驱动器", ControlAppearance.Info, SymbolRegular.Info24);
+        [RelayCommand(CanExecute = nameof(CanOperateHistoricalNode))] private void ParallelSpacetime() => CaptureMomentCommand.Execute(null);
+        [RelayCommand] private void Convergence() => AnnihilateCommand.Execute(null);
+
 
         // ----------------------------------------------------------------------------------
         // UI 辅助方法

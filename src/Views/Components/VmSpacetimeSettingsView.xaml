@@ -1,0 +1,183 @@
+﻿<UserControl x:Class="ExHyperV.Views.Components.VmSpacetimeSettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+             xmlns:converters="clr-namespace:ExHyperV.Converters"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignHeight="850" d:DesignWidth="1100">
+
+    <UserControl.Resources>
+        <converters:BooleanToVisibilityConverter x:Key="BoolToVis" />
+        <converters:EqualityToVisibilityConverter x:Key="EqualityToVisibilityConverter" />
+
+        <DrawingBrush x:Key="FineGridBrush" Viewport="0,0,20,20" ViewportUnits="Absolute" TileMode="Tile">
+            <DrawingBrush.Drawing>
+                <GeometryDrawing>
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="0,0,20,20"/>
+                    </GeometryDrawing.Geometry>
+                    <GeometryDrawing.Pen>
+                        <Pen Brush="#0DFFFFFF" Thickness="0.5"/>
+                    </GeometryDrawing.Pen>
+                </GeometryDrawing>
+            </DrawingBrush.Drawing>
+        </DrawingBrush>
+    </UserControl.Resources>
+
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- 1. 顶部标题栏 -->
+        <Grid Grid.Row="0" Margin="0,0,0,8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <TextBlock Text="时空管理" FontSize="20" VerticalAlignment="Center" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+
+            <ui:Button Grid.Column="1" Content="创建时空" Icon="{ui:SymbolIcon Symbol=Add24}" Appearance="Primary" Margin="0,0,8,0" Padding="16,6" Command="{Binding CaptureMomentCommand}"/>
+            <ui:Button Grid.Column="2" Appearance="Transparent" Padding="8" Command="{Binding GoBackCommand}">
+                <ui:SymbolIcon Symbol="ArrowLeft24" FontSize="18"/>
+            </ui:Button>
+        </Grid>
+
+        <!-- 2. 主区域 -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="200"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- A. 时空画布 -->
+            <Border Grid.Column="0" Background="{ui:ThemeResource ControlFillColorDefaultBrush}" 
+        BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Margin="0,0,12,0"
+        ClipToBounds="True">
+                <Grid x:Name="CanvasContainer" Background="{StaticResource FineGridBrush}" 
+          MouseDown="CanvasContainer_MouseDown" 
+          MouseMove="CanvasContainer_MouseMove" 
+          MouseUp="CanvasContainer_MouseUp"
+          MouseLeave="CanvasContainer_MouseLeave">
+                    <ScrollViewer x:Name="SpacetimeScrollViewer" 
+                      HorizontalScrollBarVisibility="Hidden" 
+                      VerticalScrollBarVisibility="Hidden"
+                      Focusable="False">
+                        <!-- 必须保留这个 Canvas 容器，C# 才能往里面画图 -->
+                        <Canvas x:Name="SpacetimeCanvas" Width="2000" Height="2000" Background="Transparent">
+                            <!-- 这里不需要写任何内容，内容由 C# 动态生成 -->
+                        </Canvas>
+                    </ScrollViewer>
+                </Grid>
+            </Border>
+            <!-- B. 时空详情面板 -->
+            <StackPanel Grid.Column="1">
+                <ui:Card Padding="12">
+                    <StackPanel>
+                        <TextBlock Text="时空详情" FontSize="14" FontWeight="Medium" Margin="0,0,0,12"/>
+
+                        <Border Background="{ui:ThemeResource ControlFillColorTertiaryBrush}" CornerRadius="6" Padding="12" Margin="0,0,0,0">
+                            <Grid>
+                                <!-- 1. 未选择提示 -->
+                                <TextBlock Text="未选择锚点" FontSize="12" Opacity="0.4" HorizontalAlignment="Center">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding SelectedSpacetimeNode}" Value="{x:Null}">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+
+                                <!-- 2. 详情内容：【修复】：删除了会导致当前时空详情消失的隐藏触发器 -->
+                                <StackPanel>
+                                    <StackPanel.Style>
+                                        <Style TargetType="StackPanel">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding SelectedSpacetimeNode}" Value="{x:Null}">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </StackPanel.Style>
+
+                                    <TextBlock Text="{Binding SelectedSpacetimeNode.Name}" FontWeight="SemiBold" FontSize="13" TextTrimming="CharacterEllipsis"/>
+                                    <!-- 【防抖设置】：等宽字体 + 像素对齐 -->
+                                    <TextBlock x:Name="SelectedNodeTimeText" Height="16"
+                                   Text="{Binding SelectedSpacetimeNode.CreatedDate, StringFormat=\{0:yyyy/MM/dd HH:mm:ss\}}" 
+                                   FontSize="11" Opacity="0.6" Margin="0,4,0,0"/>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+
+                        <TextBlock Text="操作" FontSize="12" Opacity="0.5" Margin="0,16,0,8"/>
+
+                        <!-- 3. 操作按钮：【核心修复】：判断 ID 是否为 LIVE_POINTER，而不是 IsCurrent -->
+                        <StackPanel>
+                            <StackPanel.Style>
+                                <Style TargetType="StackPanel">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                    <Style.Triggers>
+                                        <!-- 只有虚拟节点（当前时空）才隐藏这组按钮 -->
+                                        <DataTrigger Binding="{Binding SelectedSpacetimeNode.Id}" Value="LIVE_POINTER">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </StackPanel.Style>
+
+                            <ui:Button Margin="0,0,0,6" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="10,8"
+                           Command="{Binding TeleportCommand}">
+                                <StackPanel Orientation="Horizontal">
+                                    <ui:SymbolIcon Symbol="ArrowClockwise24" FontSize="16"/>
+                                    <TextBlock Text="穿梭" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                                </StackPanel>
+                            </ui:Button>
+
+                            <ui:Button Margin="0,0,0,6" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="10,8"
+                           Command="{Binding OpenWormholeCommand}">
+                                <StackPanel Orientation="Horizontal">
+                                    <ui:SymbolIcon Symbol="Link24" FontSize="16"/>
+                                    <TextBlock Text="开启虫洞" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                                </StackPanel>
+                            </ui:Button>
+
+                            <ui:Button Margin="0,0,0,6" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="10,8"
+                           Command="{Binding ParallelSpacetimeCommand}">
+                                <StackPanel Orientation="Horizontal">
+                                    <ui:SymbolIcon Symbol="Copy24" FontSize="16"/>
+                                    <TextBlock Text="平行时空" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                                </StackPanel>
+                            </ui:Button>
+                        </StackPanel>
+
+                        <!-- 下方两个按钮全局显示或按需隐藏 -->
+                        <ui:Button Margin="0,0,0,6" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="10,8"
+                       Command="{Binding ConvergenceCommand}">
+                            <StackPanel Orientation="Horizontal">
+                                <ui:SymbolIcon Symbol="Merge24" FontSize="16"/>
+                                <TextBlock Text="时间线收束" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                            </StackPanel>
+                        </ui:Button>
+
+                        <ui:Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="10,8"
+                       Appearance="Danger" Command="{Binding AnnihilateCommand}">
+                            <StackPanel Orientation="Horizontal">
+                                <ui:SymbolIcon Symbol="Delete24" FontSize="16"/>
+                                <TextBlock Text="删除" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                            </StackPanel>
+                        </ui:Button>
+                    </StackPanel>
+                </ui:Card>
+            </StackPanel>
+        </Grid>
+    </Grid>
+</UserControl>
