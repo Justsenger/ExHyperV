@@ -3555,6 +3555,7 @@ namespace ExHyperV.ViewModels
         [NotifyCanExecuteChangedFor(nameof(OpenWormholeCommand))]
         [NotifyCanExecuteChangedFor(nameof(ParallelSpacetimeCommand))]
         [NotifyCanExecuteChangedFor(nameof(AnnihilateCommand))]
+        [NotifyCanExecuteChangedFor(nameof(ConvergenceCommand))]
         private SpacetimeNode? _selectedSpacetimeNode;
 
         /// <summary>
@@ -3659,21 +3660,20 @@ namespace ExHyperV.ViewModels
         [RelayCommand(CanExecute = nameof(CanOperateHistoricalNode))]
         private async Task Annihilate()
         {
-            if (SelectedSpacetimeNode == null || string.IsNullOrEmpty(SelectedSpacetimeNode.Path) || SelectedVm == null) return;
+            if (SelectedSpacetimeNode == null || SelectedVm == null) return;
             IsLoading = true;
             try
             {
-                // 传入 VM 名称以辅助图片清理
                 var result = await _spacetimeService.AnnihilateAsync(SelectedVm.Name, SelectedSpacetimeNode);
                 if (result.Success)
                 {
-                    ShowSnackbar("删除完成", "该时空维度已收束", ControlAppearance.Success, SymbolRegular.Delete24);
-                    SelectedSpacetimeNode = null;
+                    ShowSnackbar("时空湮灭", "该分支已从现实中抹除", ControlAppearance.Success, SymbolRegular.Delete24);
                     await GoToSpacetimeSettings();
                 }
             }
             finally { IsLoading = false; }
         }
+
         // 开启虫洞
         [RelayCommand(CanExecute = nameof(CanOperateHistoricalNode))]
         private void OpenWormhole()
@@ -3689,10 +3689,21 @@ namespace ExHyperV.ViewModels
         }
 
         // 时间线收束
-        [RelayCommand]
-        private void Convergence()
+        [RelayCommand(CanExecute = nameof(CanOperateHistoricalNode))]
+        private async Task Convergence()
         {
-            ShowSnackbar("收束指令", "正在检测所有离散时空点，准备执行全局合并...", ControlAppearance.Caution, SymbolRegular.Merge24);
+            if (SelectedSpacetimeNode == null || SelectedVm == null) return;
+            IsLoading = true;
+            try
+            {
+                var result = await _spacetimeService.ConvergeAsync(SelectedVm.Name, SelectedSpacetimeNode);
+                if (result.Success)
+                {
+                    ShowSnackbar("时间线收束", "历史点已合入主进程", ControlAppearance.Success, SymbolRegular.Merge24);
+                    await GoToSpacetimeSettings();
+                }
+            }
+            finally { IsLoading = false; }
         }
 
         // ----------------------------------------------------------------------------------

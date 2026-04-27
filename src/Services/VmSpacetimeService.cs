@@ -42,7 +42,7 @@ internal class VmSpacetimeService
             string snapshotDir = Path.Combine(configRoot, "Snapshots");
 
             // 2. 查询 SettingData
-            string settingWql = $"SELECT InstanceID, ElementName, CreationTime, Parent, VirtualSystemType FROM Msvm_VirtualSystemSettingData WHERE VirtualSystemIdentifier = '{vm.Guid}'";
+            string settingWql = $"SELECT * FROM Msvm_VirtualSystemSettingData WHERE VirtualSystemIdentifier = '{vm.Guid}'";
             var allRawNodes = await WmiTools.QueryAsync(settingWql, obj => new SpacetimeNode
             {
                 Id = obj["InstanceID"]?.ToString() ?? "",
@@ -116,10 +116,14 @@ internal class VmSpacetimeService
     public async Task<(bool Success, string Message)> TeleportAsync(SpacetimeNode node)
     {
         if (node.NodeType != SpacetimeNodeType.Snapshot) return (false, "只能穿梭至历史快照点");
-        var parameters = new Dictionary<string, object> { { "SnapshotSettings", node.Path } };
-        return await WmiTools.ExecuteMethodAsync(SnapshotServiceWql, "ApplySnapshot", parameters);
-    }
 
+        // 文档：ApplySnapshot -> 参数名：Snapshot
+        var parameters = new Dictionary<string, object> { { "Snapshot", node.Path } };
+        var result = await WmiTools.ExecuteMethodAsync(SnapshotServiceWql, "ApplySnapshot", parameters);
+
+        if (result.Success || result.Message == "4096") return (true, "正在扭转时空...");
+        return (false, $"穿梭失败: {result.Message}");
+    }
     public async Task<(bool Success, string Message)> CaptureMomentAsync(string vmName)
     {
         string vmWql = $"SELECT * FROM Msvm_ComputerSystem WHERE ElementName = '{vmName.Replace("'", "''")}'";
@@ -145,28 +149,82 @@ internal class VmSpacetimeService
     {
         if (node.IsLogicalNode) return (false, "主时空与当前节点不可湮灭");
 
-        var parameters = new Dictionary<string, object> { { "SnapshotSettings", node.Path } };
+        // 文档：DestroySnapshotTree -> 参数名：SnapshotSettingData
+        // 核心修复：这里绝对不能写 AffectedSnapshot，必须写 SnapshotSettingData
+        var parameters = new Dictionary<string, object> { { "SnapshotSettingData", node.Path } };
+
+        var result = await WmiTools.ExecuteMethodAsync(SnapshotServiceWql, "DestroySnapshotTree", parameters);
+
+        if (result.Success || result.Message == "4096")
+        {
+            string? snapshotDir = await GetSnapshotDirectoryAsync(vmName);
+            if (!string.IsNullOrEmpty(snapshotDir)) DeleteThumbnailFile(snapshotDir, node.Id);
+            return (true, "时空分支已彻底湮灭");
+        }
+        return (false, $"湮灭失败: {result.Message}");
+    }
+    public async Task<(bool Success, string Message)> ConvergeAsync(string vmName, SpacetimeNode node)
+    {
+        if (node.IsLogicalNode) return (false, "主时空与当前节点不可收束");
+
+        // 文档：DestroySnapshot -> 参数名：AffectedSnapshot
+        var parameters = new Dictionary<string, object> { { "AffectedSnapshot", node.Path } };
         var result = await WmiTools.ExecuteMethodAsync(SnapshotServiceWql, "DestroySnapshot", parameters);
 
-        if (result.Success)
+        if (result.Success || result.Message == "4096")
         {
-            try
-            {
-                // 获取 VM 配置根目录来精确定位图片
-                string rootWql = $"SELECT ConfigurationDataRoot FROM Msvm_VirtualSystemSettingData WHERE ElementName = '{vmName.Replace("'", "''")}' OR VirtualSystemIdentifier = (SELECT Name FROM Msvm_ComputerSystem WHERE ElementName = '{vmName}')";
-                var configData = await WmiTools.QueryAsync(rootWql, obj => obj["ConfigurationDataRoot"]?.ToString());
-                string? configRoot = configData.FirstOrDefault();
-                if (!string.IsNullOrEmpty(configRoot))
-                {
-                    string filePath = Path.Combine(configRoot, "Snapshots", $"{GetSafeId(node.Id)}.jpg");
-                    if (File.Exists(filePath)) File.Delete(filePath);
-                }
-            }
-            catch { }
+            string? snapshotDir = await GetSnapshotDirectoryAsync(vmName);
+            if (!string.IsNullOrEmpty(snapshotDir)) DeleteThumbnailFile(snapshotDir, node.Id);
+            return (true, "时间线收束中...");
         }
-        return result;
+        return (false, $"收束失败: {result.Message}");
+    }
+    // --- 辅助方法：截图物理删除 ---
+    private void DeleteThumbnailFile(string snapshotDir, string nodeId)
+    {
+        try
+        {
+            string filePath = Path.Combine(snapshotDir, $"{GetSafeId(nodeId)}.jpg");
+            if (File.Exists(filePath))
+            {
+                // 如果文件被占用（可能正在加载），尝试延迟删除
+                File.Delete(filePath);
+                Debug.WriteLine($"[Spacetime] 已清理快照截图: {nodeId}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[Spacetime] 清理截图失败: {ex.Message}");
+        }
     }
 
+    // --- 辅助方法：获取 VM 的快照目录 ---
+    private async Task<string?> GetSnapshotDirectoryAsync(string vmName)
+    {
+        try
+        {
+            // 查找 Realized 状态的 SettingData 以获取最准确的配置根目录
+            string wql = $"SELECT ConfigurationDataRoot FROM Msvm_VirtualSystemSettingData WHERE VirtualSystemIdentifier = (SELECT Name FROM Msvm_ComputerSystem WHERE ElementName = '{vmName.Replace("'", "''")}') AND VirtualSystemType = 'Microsoft:Hyper-V:System:Realized'";
+            var results = await WmiTools.QueryAsync(wql, obj => obj["ConfigurationDataRoot"]?.ToString());
+            string? root = results.FirstOrDefault();
+            return string.IsNullOrEmpty(root) ? null : Path.Combine(root, "Snapshots");
+        }
+        catch { return null; }
+    }
+
+    // 递归查找子孙的辅助方法保持不变
+    private void FindDescendantsRecursive(string parentId, List<SpacetimeNode> allNodes, List<SpacetimeNode> results)
+    {
+        var children = allNodes.Where(n => n.ParentId == parentId).ToList();
+        foreach (var child in children)
+        {
+            results.Add(child);
+            FindDescendantsRecursive(child.Id, allNodes, results);
+        }
+    }
+    
+    
+ 
     private async Task<List<SpacetimeNode>> CreateInitialSpacetimeAsync(string vmName, string snapshotDir)
     {
         var thumb = await VmThumbnailProvider.GetThumbnailAsync(vmName, 280, 160);

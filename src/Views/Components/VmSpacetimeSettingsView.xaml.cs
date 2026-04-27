@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -9,8 +6,6 @@ using System.Windows.Shapes;
 using System.Windows.Threading;
 using ExHyperV.Models;
 using ExHyperV.ViewModels;
-
-// 显式解决命名空间冲突
 using Brush = System.Windows.Media.Brush;
 using Brushes = System.Windows.Media.Brushes;
 using Cursors = System.Windows.Input.Cursors;
@@ -28,25 +23,19 @@ namespace ExHyperV.Views.Components
         private bool _isRendering = false;
         private VirtualMachinesPageViewModel? _boundVm;
 
-        // 现世时间跳动计时器
         private DispatcherTimer _liveTimer;
 
         public VmSpacetimeSettingsView()
         {
             InitializeComponent();
-
-            // 初始化计时器：每秒更新一次“当前”时空的时间
             _liveTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
             _liveTimer.Tick += (s, e) => {
                 if (DataContext is VirtualMachinesPageViewModel vm)
                 {
-                    // 找到当前节点并更新其时间
                     var currentNode = vm.SpacetimeNodes?.FirstOrDefault(n => n.NodeType == SpacetimeNodeType.Current);
                     if (currentNode != null)
                     {
                         currentNode.CreatedDate = DateTime.Now;
-
-                        // 如果当前选中的正是“当前”节点，强制刷新详情面板的时间文字
                         if (vm.SelectedSpacetimeNode?.NodeType == SpacetimeNodeType.Current)
                         {
                             SelectedNodeTimeText.GetBindingExpression(TextBlock.TextProperty)?.UpdateTarget();
@@ -104,35 +93,21 @@ namespace ExHyperV.Views.Components
 
                 var spacetimeList = vm.SpacetimeNodes?.ToList() ?? new List<SpacetimeNode>();
                 if (!spacetimeList.Any()) return;
-
-                // --- 核心修复：寻找“根”逻辑 ---
-                // 不再只找 Genesis 类型，而是寻找 ParentId 为空或不存在的节点作为谱系起点
                 var root = spacetimeList.FirstOrDefault(n => string.IsNullOrEmpty(n.ParentId));
-
-                // 如果实在找不到（逻辑错误），再尝试找主时空或第一个节点兜底
                 if (root == null) root = spacetimeList.FirstOrDefault(n => n.NodeType == SpacetimeNodeType.Genesis)
                                        ?? spacetimeList.FirstOrDefault();
-
                 if (root == null) return;
-
-                // 构建父子关系索引
                 foreach (var node in spacetimeList)
                 {
                     if (string.IsNullOrEmpty(node.ParentId)) continue;
                     if (!_treeMap.ContainsKey(node.ParentId)) _treeMap[node.ParentId] = new List<SpacetimeNode>();
                     _treeMap[node.ParentId].Add(node);
                 }
-
-                // 默认选中逻辑
                 if (_needsInitialCenter || vm.SelectedSpacetimeNode == null)
                 {
                     vm.SelectedSpacetimeNode = spacetimeList.FirstOrDefault(n => n.NodeType == SpacetimeNodeType.Current);
                 }
-
-                // 开始递归绘图
                 DrawRecursive(root, 120, SpacetimeCanvas.Height / 2, 240, vm.SelectedSpacetimeNode);
-
-                // 处理居中定位
                 if (_needsInitialCenter)
                 {
                     _needsInitialCenter = false;
