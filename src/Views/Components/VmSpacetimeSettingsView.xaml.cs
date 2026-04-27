@@ -73,6 +73,12 @@ namespace ExHyperV.Views.Components
 
         private void OnVmPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
+            // 监听 IsLoadingSettings 以便在数据刷新前立刻显示遮罩
+            if (e.PropertyName == nameof(VirtualMachinesPageViewModel.IsLoadingSettings))
+            {
+                // 这里的 Visibility 已经在 XAML 绑定了，但如果需要额外的 UI 逻辑可以在此处理
+            }
+
             if (_isRendering) return;
             if (e.PropertyName == nameof(VirtualMachinesPageViewModel.SpacetimeNodes) ||
                 e.PropertyName == nameof(VirtualMachinesPageViewModel.SelectedSpacetimeNode))
@@ -80,6 +86,7 @@ namespace ExHyperV.Views.Components
                 RenderSpacetimeFlow();
             }
         }
+
 
         private void RenderSpacetimeFlow()
         {

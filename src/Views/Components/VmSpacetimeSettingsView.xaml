@@ -3,10 +3,13 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
              xmlns:d="http://schemas.expression/blend/2008"
+             xmlns:converters="clr-namespace:ExHyperV.Converters"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d" d:DesignHeight="850" d:DesignWidth="1100">
 
     <UserControl.Resources>
+        <converters:BooleanToVisibilityConverter x:Key="BoolToVis" />
+        
         <!-- 完美无缝、边共享正六边形矩阵 -->
         <!-- 计算基准：六边形半径 R = 20 -->
         <!-- 视口宽度 W = R * √3 ≈ 34.64 -->
@@ -64,12 +67,34 @@
             <!-- 左侧：时空流动画布 -->
             <Border Grid.Column="0" Background="{ui:ThemeResource ControlFillColorDefaultBrush}" BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Margin="0,0,12,0" ClipToBounds="True">
                 <Grid x:Name="CanvasContainer" Background="{StaticResource FineGridBrush}" MouseDown="CanvasContainer_MouseDown" MouseMove="CanvasContainer_MouseMove" MouseUp="CanvasContainer_MouseUp" MouseLeave="CanvasContainer_MouseLeave">
+
+                    <!-- 1. 绘图层 -->
                     <ScrollViewer x:Name="SpacetimeScrollViewer" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Hidden">
                         <Canvas x:Name="SpacetimeCanvas" Width="3000" Height="2000" Background="Transparent"/>
                     </ScrollViewer>
+
+                    <!-- 2. 新增：时空重构遮罩层 (科技感十足) -->
+                    <!-- 当 IsLoadingSettings 为 True 时显示 -->
+                    <Grid x:Name="ReconstructOverlay" 
+              Visibility="{Binding IsLoadingSettings, Converter={StaticResource BoolToVis}}"
+              Panel.ZIndex="100">
+                        <Border Background="{ui:ThemeResource ApplicationBackgroundBrush}" Opacity="0.6"/>
+                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                            <ui:ProgressRing IsIndeterminate="True" Width="40" Height="40" 
+                                 Foreground="{ui:ThemeResource SystemAccentColorPrimaryBrush}"/>
+                            <TextBlock Text="刷新中..." FontSize="14" Margin="0,16,0,0" 
+                           Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"
+                           HorizontalAlignment="Center" FontWeight="SemiBold"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- 3. 顶置进度条 (双重反馈) -->
+                    <ProgressBar IsIndeterminate="True" Height="2" VerticalAlignment="Top" 
+                        Visibility="{Binding IsLoadingSettings, Converter={StaticResource BoolToVis}}"
+                        Panel.ZIndex="101"/>
                 </Grid>
             </Border>
-
+            
             <!-- 右侧：控制面板 -->
             <StackPanel Grid.Column="1">
                 <ui:Card Padding="12">
@@ -132,7 +157,7 @@
                             </StackPanel>
                         </ui:Button>
 
-                        <!-- B. [主时空] 和 [快照] 共有操作：穿梭、虫洞、平行 -->
+                        <!-- B. [时空起源] 和 [快照] 共有操作：穿梭、虫洞、平行 -->
                         <StackPanel>
                             <StackPanel.Style>
                                 <Style TargetType="StackPanel">

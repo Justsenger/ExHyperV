@@ -3574,7 +3574,7 @@ namespace ExHyperV.ViewModels
             {
                 var nodes = await _spacetimeService.GetSpacetimeNodesAsync(SelectedVm.Name);
 
-                // --- 逻辑优化：处理纯净态（仅有主时空和当前时空） ---
+                // --- 逻辑优化：处理纯净态（仅有时空起源和当前时空） ---
                 var snapshots = nodes.Where(n => n.NodeType == SpacetimeNodeType.Snapshot).ToList();
                 if (!snapshots.Any())
                 {
@@ -3582,11 +3582,11 @@ namespace ExHyperV.ViewModels
                     var current = nodes.FirstOrDefault(n => n.NodeType == SpacetimeNodeType.Current);
                     if (genesis != null && current != null)
                     {
-                        // 1. 将主时空的时间（原始 VHDX 时间）赋予当前
+                        // 1. 将时空起源的时间（原始 VHDX 时间）赋予当前
                         current.CreatedDate = genesis.CreatedDate;
                         // 2. 将当前设为根节点（去掉父 ID）
                         current.ParentId = null;
-                        // 3. 移除主时空节点
+                        // 3. 移除时空起源节点
                         nodes.Remove(genesis);
                     }
                 }
@@ -3616,68 +3616,86 @@ namespace ExHyperV.ViewModels
         {
             if (SelectedVm == null) return;
 
-            // 1. 直接拿取当前 UI 已经显示出来的缩略图 (它是 320x240，足够清晰)
-            // 这是最稳妥的，因为它避开了快照开始时的黑屏瞬间
             var currentFrame = SelectedVm.Thumbnail;
 
-            IsLoading = true;
+            // 核心改进：使用 IsLoadingSettings 开启局部遮罩，不锁死左侧列表
+            IsLoadingSettings = true;
             try
             {
-                // 2. 将图片作为参数传递给 Service
                 var result = await _spacetimeService.CaptureMomentAsync(SelectedVm.Name, currentFrame);
 
                 if (result.Success)
                 {
-                    ShowSnackbar("时空扩张成功", "已成功捕捉当前时空锚点", ControlAppearance.Success, SymbolRegular.CheckmarkCircle24);
+                    // 关键点：给 WMI 数据库一点点沉降时间，防止立刻刷新读不到新生成的快照文件
+                    await Task.Delay(1000);
+
+                    // 重新获取节点，由于在 finally 之前调用，遮罩会一直持续到节点树重新画好
                     await GoToSpacetimeSettings();
+
+                    ShowSnackbar("时空扩张成功", "已成功捕捉当前时空锚点", ControlAppearance.Success, SymbolRegular.CheckmarkCircle24);
                 }
                 else
                 {
                     ShowSnackbar("时空塌陷", result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
                 }
             }
-            finally { IsLoading = false; }
+            finally
+            {
+                IsLoadingSettings = false;
+            }
         }
 
         // 穿梭 (应用快照)
         [RelayCommand(CanExecute = nameof(CanOperateHistoricalNode))]
         private async Task Teleport()
         {
-            if (SelectedSpacetimeNode == null || string.IsNullOrEmpty(SelectedSpacetimeNode.Path)) return;
+            if (SelectedSpacetimeNode == null || string.IsNullOrEmpty(SelectedSpacetimeNode.Path) || SelectedVm == null) return;
 
-            IsLoading = true;
+            // 核心修复：将 IsLoading (全屏) 改为 IsLoadingSettings (组件内部局部加载)
+            // 这样才会触发 VmSpacetimeSettingsView 里的 "正在重构时空流..." 动画
+            IsLoadingSettings = true;
             try
             {
                 var result = await _spacetimeService.TeleportAsync(SelectedSpacetimeNode, SelectedVm.Name);
                 if (result.Success)
                 {
-                    ShowSnackbar("穿梭完成", $"已回归至时空锚点：{SelectedSpacetimeNode.Name}", ControlAppearance.Info, SymbolRegular.ArrowClockwise24);
+                    // 穿梭涉及磁盘切换，给 WMI 500ms 的沉降时间
+                    await Task.Delay(500);
+
+                    // 重新加载节点。注意：必须在 IsLoadingSettings = false 之前执行
                     await GoToSpacetimeSettings();
+
+                    ShowSnackbar("穿梭完成", $"已回归至时空锚点：{SelectedSpacetimeNode.Name}", ControlAppearance.Info, SymbolRegular.ArrowClockwise24);
                 }
                 else
                 {
                     ShowSnackbar("穿梭失败", result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
                 }
             }
-            finally { IsLoading = false; }
+            finally
+            {
+                // 只有当树图重新画好了，才撤掉遮罩
+                IsLoadingSettings = false;
+            }
         }
-
         // 删除快照
         [RelayCommand(CanExecute = nameof(CanOperateHistoricalNode))]
         private async Task Annihilate()
         {
             if (SelectedSpacetimeNode == null || SelectedVm == null) return;
-            IsLoading = true;
+
+            IsLoadingSettings = true;
             try
             {
                 var result = await _spacetimeService.AnnihilateAsync(SelectedVm.Name, SelectedSpacetimeNode);
                 if (result.Success)
                 {
-                    ShowSnackbar("时空湮灭", "该分支已从现实中抹除", ControlAppearance.Success, SymbolRegular.Delete24);
+                    await Task.Delay(800);
                     await GoToSpacetimeSettings();
+                    ShowSnackbar("时空湮灭", "该分支已从现实中抹除", ControlAppearance.Success, SymbolRegular.Delete24);
                 }
             }
-            finally { IsLoading = false; }
+            finally { IsLoadingSettings = false; }
         }
 
         // 开启虫洞
@@ -3699,19 +3717,21 @@ namespace ExHyperV.ViewModels
         private async Task Convergence()
         {
             if (SelectedSpacetimeNode == null || SelectedVm == null) return;
-            IsLoading = true;
+
+            // 同样改为局部加载
+            IsLoadingSettings = true;
             try
             {
                 var result = await _spacetimeService.ConvergeAsync(SelectedVm.Name, SelectedSpacetimeNode);
                 if (result.Success)
                 {
-                    ShowSnackbar("时间线收束", "历史点已合入主进程", ControlAppearance.Success, SymbolRegular.Merge24);
+                    await Task.Delay(800);
                     await GoToSpacetimeSettings();
+                    ShowSnackbar("时间线收束", "历史点已合入主进程", ControlAppearance.Success, SymbolRegular.Merge24);
                 }
             }
-            finally { IsLoading = false; }
+            finally { IsLoadingSettings = false; }
         }
-
         // ----------------------------------------------------------------------------------
         // UI 辅助方法
         // ----------------------------------------------------------------------------------

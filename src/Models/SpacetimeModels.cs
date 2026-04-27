@@ -9,7 +9,7 @@ namespace ExHyperV.Models;
 public enum SpacetimeNodeType
 {
     /// <summary>
-    /// 主时空 (起点)
+    /// 时空起源 (起点)
     /// </summary>
     Genesis,
 

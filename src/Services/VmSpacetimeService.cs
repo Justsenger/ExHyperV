@@ -61,7 +61,7 @@ internal class VmSpacetimeService
             var snapshots = allRawNodes.Where(n => n.VirtualSystemType.Contains("Snapshot")).ToList();
             var realizedNode = allRawNodes.FirstOrDefault(n => n.VirtualSystemType == "Microsoft:Hyper-V:System:Realized");
 
-            // 3. 追溯主时空时间
+            // 3. 追溯时空起源时间
             DateTime genesisTime = snapshots.Any() ? snapshots.Min(s => s.CreatedDate).AddMinutes(-1) : DateTime.Now;
             if (realizedNode != null)
             {
@@ -82,7 +82,7 @@ internal class VmSpacetimeService
                 node.Thumbnail = LoadThumbnailFromDisk(snapshotDir, node.Id);
             }
 
-            // 主时空截图：若不存在则初始化
+            // 时空起源截图：若不存在则初始化
             var genesisThumbnail = LoadThumbnailFromDisk(snapshotDir, SpacetimeNode.GenesisId);
             if (genesisThumbnail == null)
             {
@@ -90,7 +90,7 @@ internal class VmSpacetimeService
                 if (genesisThumbnail != null) await SaveThumbnailToDisk(genesisThumbnail, snapshotDir, SpacetimeNode.GenesisId);
             }
 
-            var genesisNode = new SpacetimeNode { Id = SpacetimeNode.GenesisId, Name = "主时空", NodeType = SpacetimeNodeType.Genesis, CreatedDate = genesisTime, Thumbnail = genesisThumbnail };
+            var genesisNode = new SpacetimeNode { Id = SpacetimeNode.GenesisId, Name = "时空起源", NodeType = SpacetimeNodeType.Genesis, CreatedDate = genesisTime, Thumbnail = genesisThumbnail };
 
             // 当前时空截图：实时抓取画面
             var currentNode = new SpacetimeNode { Id = SpacetimeNode.CurrentId, Name = "当前", NodeType = SpacetimeNodeType.Current, IsCurrent = true, CreatedDate = DateTime.Now, Thumbnail = await VmThumbnailProvider.GetThumbnailAsync(vmName, 280, 160) };
@@ -252,7 +252,7 @@ internal class VmSpacetimeService
     }
     public async Task<(bool Success, string Message)> AnnihilateAsync(string vmName, SpacetimeNode node)
     {
-        if (node.IsLogicalNode) return (false, "主时空与当前节点不可湮灭");
+        if (node.IsLogicalNode) return (false, "时空起源与当前节点不可湮灭");
 
         // 文档：DestroySnapshotTree -> 参数名：SnapshotSettingData
         // 核心修复：这里绝对不能写 AffectedSnapshot，必须写 SnapshotSettingData
@@ -270,7 +270,7 @@ internal class VmSpacetimeService
     }
     public async Task<(bool Success, string Message)> ConvergeAsync(string vmName, SpacetimeNode node)
     {
-        if (node.IsLogicalNode) return (false, "主时空与当前节点不可收束");
+        if (node.IsLogicalNode) return (false, "时空起源与当前节点不可收束");
 
         // 文档：DestroySnapshot -> 参数名：AffectedSnapshot
         var parameters = new Dictionary<string, object> { { "AffectedSnapshot", node.Path } };
@@ -336,7 +336,7 @@ internal class VmSpacetimeService
         if (thumb != null && !string.IsNullOrEmpty(snapshotDir)) await SaveThumbnailToDisk(thumb, snapshotDir, SpacetimeNode.GenesisId);
         return new List<SpacetimeNode>
         {
-            new() { Id = SpacetimeNode.GenesisId, Name = "主时空", NodeType = SpacetimeNodeType.Genesis, IsCurrent = true, CreatedDate = DateTime.Now.AddMinutes(-1), Thumbnail = thumb },
+            new() { Id = SpacetimeNode.GenesisId, Name = "时空起源", NodeType = SpacetimeNodeType.Genesis, IsCurrent = true, CreatedDate = DateTime.Now.AddMinutes(-1), Thumbnail = thumb },
             new() { Id = SpacetimeNode.CurrentId, Name = "当前", NodeType = SpacetimeNodeType.Current, ParentId = SpacetimeNode.GenesisId, IsCurrent = true, CreatedDate = DateTime.Now, Thumbnail = thumb }
         };
     }
