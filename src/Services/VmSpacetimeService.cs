@@ -16,6 +16,9 @@ internal class VmSpacetimeService
 {
     private const string SnapshotServiceWql = "SELECT * FROM Msvm_VirtualSystemSnapshotService";
 
+    private readonly VmPowerService _powerService = new();
+
+
     /// <summary>
     /// 获取一个安全的文件名（去掉 WMI ID 中的非法冒号，防止产生 NTFS 备用流文件）
     /// </summary>
@@ -113,38 +116,140 @@ internal class VmSpacetimeService
         catch (Exception ex) { Debug.WriteLine($"时空检索失败: {ex.Message}"); return new List<SpacetimeNode>(); }
     }
 
-    public async Task<(bool Success, string Message)> TeleportAsync(SpacetimeNode node)
+    public async Task<(bool Success, string Message)> TeleportAsync(SpacetimeNode node, string vmName)
     {
         if (node.NodeType != SpacetimeNodeType.Snapshot) return (false, "只能穿梭至历史快照点");
 
-        // 文档：ApplySnapshot -> 参数名：Snapshot
-        var parameters = new Dictionary<string, object> { { "Snapshot", node.Path } };
-        var result = await WmiTools.ExecuteMethodAsync(SnapshotServiceWql, "ApplySnapshot", parameters);
+        try
+        {
+            // 1. 记录穿梭前的原始状态
+            // EnabledState: 2 = Running, 3 = Off, 6 = Saved, 32768 = Paused
+            string vmWql = $"SELECT EnabledState FROM Msvm_ComputerSystem WHERE ElementName = '{vmName.Replace("'", "''")}'";
+            var vmStateData = await WmiTools.QueryAsync(vmWql, obj => (ushort)obj["EnabledState"]);
+            ushort initialState = vmStateData.FirstOrDefault();
 
-        if (result.Success || result.Message == "4096") return (true, "正在扭转时空...");
-        return (false, $"穿梭失败: {result.Message}");
+            // 判定穿梭前用户是否正在“使用”虚拟机
+            bool shouldRestartAfter = (initialState == 2 || initialState == 32768);
+
+            // 2. 预处理：如果是运行中，先 Save（WMI V2 强制要求）
+            if (initialState != 3 && initialState != 6)
+            {
+                await _powerService.ExecuteControlActionAsync(vmName, "Save");
+                // 等待进入 Saved 状态
+                int attempts = 0;
+                while (attempts < 30)
+                {
+                    await Task.Delay(300);
+                    var check = await WmiTools.QueryAsync(vmWql, obj => (ushort)obj["EnabledState"]);
+                    if (check.FirstOrDefault() == 6) break;
+                    attempts++;
+                }
+            }
+
+            // 3. 执行穿梭
+            var parameters = new Dictionary<string, object> { { "Snapshot", node.Path } };
+            var result = await WmiTools.ExecuteMethodAsync(SnapshotServiceWql, "ApplySnapshot", parameters);
+
+            // 4. 判定穿梭指令是否成功下达
+            if (result.Success || result.Message == "4096")
+            {
+                // 如果之前是运行状态，我们发起一个后台“恢复”任务
+                if (shouldRestartAfter)
+                {
+                    // 注意：由于 ApplySnapshot 是异步的，这里不能立即 Start
+                    // 我们新开一个 Task 在后台等它稳了再起，不阻塞 Teleport 的返回
+                    _ = Task.Run(async () =>
+                    {
+                        // 给 Hyper-V 几秒钟处理磁盘切换和配置加载
+                        await Task.Delay(2000);
+
+                        // 循环检查，直到状态不再是“正在应用/正在恢复”之类的过渡态
+                        for (int i = 0; i < 10; i++)
+                        {
+                            var sData = await WmiTools.QueryAsync(vmWql, obj => (ushort)obj["EnabledState"]);
+                            ushort s = sData.FirstOrDefault();
+                            // 如果已经到了可以启动的状态（Off=3 或 Saved=6）
+                            if (s == 3 || s == 6)
+                            {
+                                await _powerService.ExecuteControlActionAsync(vmName, "Start");
+                                break;
+                            }
+                            await Task.Delay(1000);
+                        }
+                    });
+                    return (true, "穿梭已启动，正在恢复运行状态...");
+                }
+
+                return (true, "穿梭成功，虚拟机已回到指定时空点（已关机）");
+            }
+
+            return (false, $"穿梭失败: {result.Message}");
+        }
+        catch (Exception ex)
+        {
+            return (false, $"时空异常: {ex.Message}");
+        }
     }
-    public async Task<(bool Success, string Message)> CaptureMomentAsync(string vmName)
+    // 修改签名，接受可选的 externalThumb
+    public async Task<(bool Success, string Message)> CaptureMomentAsync(string vmName, BitmapSource? externalThumb = null)
     {
         string vmWql = $"SELECT * FROM Msvm_ComputerSystem WHERE ElementName = '{vmName.Replace("'", "''")}'";
         var vmData = await WmiTools.QueryAsync(vmWql, obj => new { Path = obj.Path.ToString(), Guid = obj["Name"].ToString() });
         var vm = vmData.FirstOrDefault();
         if (vm == null) return (false, "找不到指定的虚拟机载体");
 
-        var bitmap = await VmThumbnailProvider.GetThumbnailAsync(vmName, 280, 160);
+        // 1. 记录现有 ID 集合
+        string snapshotListWql = $"SELECT InstanceID FROM Msvm_VirtualSystemSettingData WHERE VirtualSystemIdentifier = '{vm.Guid}' AND VirtualSystemType LIKE '%Snapshot%'";
+        var existingIds = (await WmiTools.QueryAsync(snapshotListWql, obj => obj["InstanceID"].ToString())).ToHashSet();
+
+        // 2. 抢先截图
+        BitmapSource? bitmap = externalThumb ?? await VmThumbnailProvider.GetThumbnailAsync(vmName, 280, 160);
+
+        // 3. 发起快照
         var parameters = new Dictionary<string, object> { { "AffectedSystem", vm.Path }, { "SnapshotType", (ushort)2 } };
         var result = await WmiTools.ExecuteMethodAsync(SnapshotServiceWql, "CreateSnapshot", parameters);
 
-        if (result.Success && bitmap != null)
+        if (result.Success || result.Message == "4096")
         {
-            string latestWql = $"SELECT InstanceID, ConfigurationDataRoot FROM Msvm_VirtualSystemSettingData WHERE VirtualSystemIdentifier = '{vm.Guid}' AND VirtualSystemType LIKE '%Snapshot%'";
-            var nodes = await WmiTools.QueryAsync(latestWql, obj => new { Id = obj["InstanceID"].ToString(), Root = obj["ConfigurationDataRoot"].ToString() });
-            var latest = nodes.OrderByDescending(n => n.Id).FirstOrDefault();
-            if (latest != null) await SaveThumbnailToDisk(bitmap, Path.Combine(latest.Root, "Snapshots"), latest.Id);
+            // 4. 【核心优化：同步快速等待】
+            // 快照的“写盘”很慢，但“生成 ID”极快。我们在这里阻塞最多 3 秒来捕捉这个 ID。
+            string? newId = null;
+            for (int i = 0; i < 15; i++) // 200ms * 15 = 3秒
+            {
+                await Task.Delay(200);
+                var currentIds = await WmiTools.QueryAsync(snapshotListWql, obj => obj["InstanceID"].ToString());
+                newId = currentIds.FirstOrDefault(id => !existingIds.Contains(id));
+                if (newId != null) break;
+            }
+
+            if (newId != null && bitmap != null)
+            {
+                // 5. 抓到 ID 了，立刻同步写入 JPG，然后再返回给 ViewModel 刷新 UI
+                string? snapshotDir = await GetSnapshotDirectoryByGuidAsync(vm.Guid);
+                if (!string.IsNullOrEmpty(snapshotDir))
+                {
+                    // 注意这里不要 await Task.Run，直接本地写入，确保文件锁释放前 UI 还没去查
+                    await SaveThumbnailToDisk(bitmap, snapshotDir, newId);
+                    Debug.WriteLine($"[Spacetime] ID 已捕捉并预存 JPG: {newId}");
+                }
+            }
+
+            return (true, "时空锚点已锚定");
         }
         return result;
     }
-
+    // 改进版路径查询：直接根据 GUID 查
+    private async Task<string?> GetSnapshotDirectoryByGuidAsync(string vmGuid)
+    {
+        try
+        {
+            string wql = $"SELECT ConfigurationDataRoot FROM Msvm_VirtualSystemSettingData WHERE VirtualSystemIdentifier = '{vmGuid}' AND VirtualSystemType = 'Microsoft:Hyper-V:System:Realized'";
+            var results = await WmiTools.QueryAsync(wql, obj => obj["ConfigurationDataRoot"]?.ToString());
+            string? root = results.FirstOrDefault();
+            return string.IsNullOrEmpty(root) ? null : Path.Combine(root, "Snapshots");
+        }
+        catch { return null; }
+    }
     public async Task<(bool Success, string Message)> AnnihilateAsync(string vmName, SpacetimeNode node)
     {
         if (node.IsLogicalNode) return (false, "主时空与当前节点不可湮灭");

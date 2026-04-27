@@ -15,6 +15,7 @@ namespace ExHyperV.Views.Components
     public partial class VmSpacetimeSettingsView : UserControl
     {
         private Dictionary<string, List<SpacetimeNode>> _treeMap = new();
+        private Dictionary<string, int> _subtreeLeafCount = new(); // 存储每个节点的叶子总数
         private Point _dragStartPos;
         private Point _dragStartOffset;
         private Point _selectedNodePos;
@@ -89,25 +90,41 @@ namespace ExHyperV.Views.Components
                 _isRendering = true;
                 SpacetimeCanvas.Children.Clear();
                 _treeMap.Clear();
+                _subtreeLeafCount.Clear();
                 _selectedNodePos = new Point(0, 0);
 
                 var spacetimeList = vm.SpacetimeNodes?.ToList() ?? new List<SpacetimeNode>();
                 if (!spacetimeList.Any()) return;
-                var root = spacetimeList.FirstOrDefault(n => string.IsNullOrEmpty(n.ParentId));
-                if (root == null) root = spacetimeList.FirstOrDefault(n => n.NodeType == SpacetimeNodeType.Genesis)
-                                       ?? spacetimeList.FirstOrDefault();
+
+                // 1. 建立树结构
+                var root = spacetimeList.FirstOrDefault(n => string.IsNullOrEmpty(n.ParentId))
+                           ?? spacetimeList.FirstOrDefault(n => n.NodeType == SpacetimeNodeType.Genesis)
+                           ?? spacetimeList.FirstOrDefault();
+
                 if (root == null) return;
+
                 foreach (var node in spacetimeList)
                 {
                     if (string.IsNullOrEmpty(node.ParentId)) continue;
                     if (!_treeMap.ContainsKey(node.ParentId)) _treeMap[node.ParentId] = new List<SpacetimeNode>();
                     _treeMap[node.ParentId].Add(node);
                 }
-                if (_needsInitialCenter || vm.SelectedSpacetimeNode == null)
-                {
-                    vm.SelectedSpacetimeNode = spacetimeList.FirstOrDefault(n => n.NodeType == SpacetimeNodeType.Current);
-                }
-                DrawRecursive(root, 120, SpacetimeCanvas.Height / 2, 240, vm.SelectedSpacetimeNode);
+
+                // 2. 预计算每个节点的叶子权重
+                int totalLeaves = CalculateLeafCounts(root.Id);
+
+                // 3. 【核心修复】计算实际需要的垂直空间
+                // 每个叶子占 200px 足够了，不再盲目使用 Canvas.Height
+                double rowHeight = 200;
+                double requiredHeight = totalLeaves * rowHeight;
+
+                // 计算起始位置使其在 Canvas 中间居中
+                double startY = (SpacetimeCanvas.Height - requiredHeight) / 2;
+                double endY = startY + requiredHeight;
+
+                // 4. 开始递归绘图
+                DrawRecursiveStep(root, 150, startY, endY, vm.SelectedSpacetimeNode);
+
                 if (_needsInitialCenter)
                 {
                     _needsInitialCenter = false;
@@ -116,6 +133,59 @@ namespace ExHyperV.Views.Components
             }
             finally { _isRendering = false; }
         }
+
+        private void DrawRecursiveStep(SpacetimeNode node, double x, double top, double bottom, SpacetimeNode? selected)
+        {
+            // 节点垂直居于它分配到的扇区中心
+            double midY = (top + bottom) / 2;
+
+            if (selected != null && node.Id == selected.Id) _selectedNodePos = new Point(x, midY);
+            DrawSpacetimeAnchor(new Point(x, midY), node, selected?.Id == node.Id);
+
+            if (_treeMap.TryGetValue(node.Id, out var children))
+            {
+                // 按创建时间排序
+                var sorted = children.OrderBy(c => c.CreatedDate).ToList();
+                double currentTop = top;
+                double totalLeavesInThisBranch = _subtreeLeafCount[node.Id];
+
+                foreach (var child in sorted)
+                {
+                    // 获取该子分支占用的叶子比例
+                    double childLeafCount = _subtreeLeafCount[child.Id];
+                    double childSectorHeight = (childLeafCount / totalLeavesInThisBranch) * (bottom - top);
+
+                    // 水平间距 280 比较美观
+                    double nextX = x + 280;
+                    double childMidY = currentTop + (childSectorHeight / 2);
+
+                    DrawTimeLine(new Point(x, midY), new Point(nextX, childMidY));
+
+                    // 递归分配子扇区
+                    DrawRecursiveStep(child, nextX, currentTop, currentTop + childSectorHeight, selected);
+
+                    currentTop += childSectorHeight;
+                }
+            }
+        }        // 递归计算每个节点控制的叶子节点数量（权重）
+        private int CalculateLeafCounts(string nodeId)
+        {
+            if (!_treeMap.TryGetValue(nodeId, out var children) || children.Count == 0)
+            {
+                _subtreeLeafCount[nodeId] = 1; // 自己就是叶子
+                return 1;
+            }
+
+            int count = 0;
+            foreach (var child in children)
+            {
+                count += CalculateLeafCounts(child.Id);
+            }
+            _subtreeLeafCount[nodeId] = count;
+            return count;
+        }
+
+
         private void DrawRecursive(SpacetimeNode node, double x, double y, double verticalRange, SpacetimeNode? selected)
         {
             if (selected != null && node.Id == selected.Id) _selectedNodePos = new Point(x, y);
@@ -124,16 +194,27 @@ namespace ExHyperV.Views.Components
             if (_treeMap.TryGetValue(node.Id, out var children))
             {
                 var sorted = children.OrderBy(c => c.CreatedDate).ToList();
-                for (int i = 0; i < sorted.Count; i++)
+                int count = sorted.Count;
+
+                for (int i = 0; i < count; i++)
                 {
-                    double offset = (sorted.Count > 1) ? (-verticalRange / 2 + (i * (verticalRange / (sorted.Count - 1)))) : 0;
-                    double nextX = x + 240, nextY = y + offset;
+                    // 改进：确保即便分叉很多，垂直间距也不低于 180 (节点高160 + 20间隙)
+                    double gap = Math.Max(verticalRange, (count - 1) * 180);
+
+                    double offset = (count > 1)
+                        ? (-gap / 2 + (i * (gap / (count - 1))))
+                        : 0;
+
+                    double nextX = x + 260; // 稍微拉大水平间距（从240改为260）
+                    double nextY = y + offset;
+
                     DrawTimeLine(new Point(x, y), new Point(nextX, nextY));
-                    DrawRecursive(sorted[i], nextX, nextY, verticalRange * 0.75, selected);
+
+                    // 衰减系数改为 0.8，防止空间收缩过快
+                    DrawRecursive(sorted[i], nextX, nextY, gap * 0.8, selected);
                 }
             }
         }
-
         private void DrawSpacetimeAnchor(Point pos, SpacetimeNode data, bool isSelected)
         {
             bool isCurrent = data.NodeType == SpacetimeNodeType.Current;

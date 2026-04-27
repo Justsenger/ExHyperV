@@ -3615,14 +3615,20 @@ namespace ExHyperV.ViewModels
         private async Task CaptureMoment()
         {
             if (SelectedVm == null) return;
+
+            // 1. 直接拿取当前 UI 已经显示出来的缩略图 (它是 320x240，足够清晰)
+            // 这是最稳妥的，因为它避开了快照开始时的黑屏瞬间
+            var currentFrame = SelectedVm.Thumbnail;
+
             IsLoading = true;
             try
             {
-                var result = await _spacetimeService.CaptureMomentAsync(SelectedVm.Name);
+                // 2. 将图片作为参数传递给 Service
+                var result = await _spacetimeService.CaptureMomentAsync(SelectedVm.Name, currentFrame);
+
                 if (result.Success)
                 {
                     ShowSnackbar("时空扩张成功", "已成功捕捉当前时空锚点", ControlAppearance.Success, SymbolRegular.CheckmarkCircle24);
-                    // 刷新列表以显示新生成的节点
                     await GoToSpacetimeSettings();
                 }
                 else
@@ -3642,7 +3648,7 @@ namespace ExHyperV.ViewModels
             IsLoading = true;
             try
             {
-                var result = await _spacetimeService.TeleportAsync(SelectedSpacetimeNode);
+                var result = await _spacetimeService.TeleportAsync(SelectedSpacetimeNode, SelectedVm.Name);
                 if (result.Success)
                 {
                     ShowSnackbar("穿梭完成", $"已回归至时空锚点：{SelectedSpacetimeNode.Name}", ControlAppearance.Info, SymbolRegular.ArrowClockwise24);
