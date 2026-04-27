@@ -12,5 +12,12 @@
     "Description": "CUDA√Mesa×",
     "Author": "Justsenger",
     "Version": "1.0.2"
+  },
+  {
+    "FileName": "fnOS-1.1.23(6.12.18-trim)-HyperV-GPU-PV.sh",
+    "Name": "fnOS-1.1.23(6.12.18-trim)-HyperV-GPU-PV",
+    "Description": "FNOS dxgkrnl + WSL libs + reboot auto-load via root crontab",
+    "Author": "Justsenger",
+    "Version": "3.7.0"
   }
 ]
