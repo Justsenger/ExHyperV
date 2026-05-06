@@ -3565,6 +3565,41 @@ namespace ExHyperV.ViewModels
                                                 SelectedSpacetimeNode.NodeType == SpacetimeNodeType.Snapshot;
 
         [RelayCommand]
+        private async Task CommitSpacetimeRenameAsync(SpacetimeNode node)
+        {
+            if (node == null || !node.IsEditing) return;
+            node.IsEditing = false;
+            if (string.IsNullOrWhiteSpace(node.EditedName) || node.EditedName == node.Name) return;
+
+            // 起源和当前节点禁止改名
+            if (node.IsLogicalNode) return;
+
+            IsLoadingSettings = true;
+            try
+            {
+                var result = await _spacetimeService.RenameSnapshotAsync(node.Path, node.EditedName);
+                if (result.Success)
+                {
+                    node.Name = node.EditedName;
+                    OnPropertyChanged(nameof(SpacetimeNodes));
+                }
+                else
+                {
+                    ShowSnackbar("修改失败", result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                }
+            }
+            finally
+            {
+                IsLoadingSettings = false;
+            }
+        }
+        [RelayCommand]
+        private void CancelSpacetimeRename(SpacetimeNode node)
+        {
+            if (node != null) node.IsEditing = false;
+        }
+
+        [RelayCommand]
         private async Task GoToSpacetimeSettings()
         {
             if (SelectedVm == null) return;
@@ -3574,7 +3609,7 @@ namespace ExHyperV.ViewModels
             {
                 var nodes = await _spacetimeService.GetSpacetimeNodesAsync(SelectedVm.Name);
 
-                // --- 逻辑优化：处理纯净态（仅有时空起源和当前时空） ---
+                // --- 逻辑优化：处理纯净态（仅有起源和当前时空） ---
                 var snapshots = nodes.Where(n => n.NodeType == SpacetimeNodeType.Snapshot).ToList();
                 if (!snapshots.Any())
                 {
@@ -3582,11 +3617,11 @@ namespace ExHyperV.ViewModels
                     var current = nodes.FirstOrDefault(n => n.NodeType == SpacetimeNodeType.Current);
                     if (genesis != null && current != null)
                     {
-                        // 1. 将时空起源的时间（原始 VHDX 时间）赋予当前
+                        // 1. 将起源的时间（原始 VHDX 时间）赋予当前
                         current.CreatedDate = genesis.CreatedDate;
                         // 2. 将当前设为根节点（去掉父 ID）
                         current.ParentId = null;
-                        // 3. 移除时空起源节点
+                        // 3. 移除起源节点
                         nodes.Remove(genesis);
                     }
                 }
@@ -3651,8 +3686,6 @@ namespace ExHyperV.ViewModels
         {
             if (SelectedSpacetimeNode == null || string.IsNullOrEmpty(SelectedSpacetimeNode.Path) || SelectedVm == null) return;
 
-            // 核心修复：将 IsLoading (全屏) 改为 IsLoadingSettings (组件内部局部加载)
-            // 这样才会触发 VmSpacetimeSettingsView 里的 "正在重构时空流..." 动画
             IsLoadingSettings = true;
             try
             {
@@ -3665,7 +3698,7 @@ namespace ExHyperV.ViewModels
                     // 重新加载节点。注意：必须在 IsLoadingSettings = false 之前执行
                     await GoToSpacetimeSettings();
 
-                    ShowSnackbar("穿梭完成", $"已回归至时空锚点：{SelectedSpacetimeNode.Name}", ControlAppearance.Info, SymbolRegular.ArrowClockwise24);
+                    ShowSnackbar("穿梭完成", $"已回归至时空锚点：{SelectedSpacetimeNode.Name}", ControlAppearance.Success, SymbolRegular.ArrowClockwise24);
                 }
                 else
                 {

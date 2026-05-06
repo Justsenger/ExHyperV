@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
              xmlns:d="http://schemas.expression/blend/2008"
+             xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
              xmlns:converters="clr-namespace:ExHyperV.Converters"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d" d:DesignHeight="850" d:DesignWidth="1100">
@@ -131,7 +132,88 @@
                                         </Style>
                                     </StackPanel.Style>
 
-                                    <TextBlock Text="{Binding SelectedSpacetimeNode.Name}" FontWeight="SemiBold" FontSize="13" TextTrimming="CharacterEllipsis"/>
+                                    <Grid>
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <StackPanel.Style>
+                                                <Style TargetType="StackPanel">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding SelectedSpacetimeNode.IsEditing}" Value="True">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </StackPanel.Style>
+
+                                            <TextBlock Text="{Binding SelectedSpacetimeNode.Name}"
+                   FontWeight="SemiBold" FontSize="13"
+                   TextTrimming="CharacterEllipsis"
+                   VerticalAlignment="Center"
+                   MaxWidth="130">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+                                                        <!-- 默认：不可点击 -->
+                                                        <Setter Property="Cursor" Value="Arrow"/>
+                                                        <Style.Triggers>
+                                                            <!-- 快照节点：变成手型，允许点击进入编辑 -->
+                                                            <DataTrigger Binding="{Binding SelectedSpacetimeNode.NodeType}" Value="Snapshot">
+                                                                <Setter Property="Cursor" Value="IBeam"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                                <TextBlock.InputBindings>
+                                                    <MouseBinding MouseAction="LeftClick" 
+                              Command="{Binding SelectedSpacetimeNode.StartEditCommand}"/>
+                                                </TextBlock.InputBindings>
+                                            </TextBlock>
+
+                                            <!-- 铅笔图标：仅快照节点显示 -->
+                                            <ui:Button Margin="6,0,0,0" Padding="2"
+                   Appearance="Transparent"
+                   Command="{Binding SelectedSpacetimeNode.StartEditCommand}">
+                                                <ui:Button.Style>
+                                                    <Style TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding SelectedSpacetimeNode.NodeType}" Value="Snapshot">
+                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </ui:Button.Style>
+                                                <ui:SymbolIcon Symbol="Edit24" FontSize="12" Opacity="0.6"/>
+                                            </ui:Button>
+                                        </StackPanel>
+
+                                        <!-- 编辑态 TextBox 保持不变 -->
+                                        <ui:TextBox Text="{Binding SelectedSpacetimeNode.EditedName, UpdateSourceTrigger=PropertyChanged}"
+                FontSize="12" MinHeight="26" Padding="5,2" Margin="-5,0,0,0"
+                VerticalContentAlignment="Center">
+                                            <ui:TextBox.Style>
+                                                <Style TargetType="ui:TextBox" BasedOn="{StaticResource {x:Type ui:TextBox}}">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding SelectedSpacetimeNode.IsEditing}" Value="True">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </ui:TextBox.Style>
+                                            <ui:TextBox.InputBindings>
+                                                <KeyBinding Key="Enter" Command="{Binding CommitSpacetimeRenameCommand}"
+                        CommandParameter="{Binding SelectedSpacetimeNode}"/>
+                                                <KeyBinding Key="Esc" Command="{Binding CancelSpacetimeRenameCommand}"
+                        CommandParameter="{Binding SelectedSpacetimeNode}"/>
+                                            </ui:TextBox.InputBindings>
+                                            <i:Interaction.Triggers>
+                                                <i:EventTrigger EventName="LostFocus">
+                                                    <i:InvokeCommandAction Command="{Binding CommitSpacetimeRenameCommand}"
+                                       CommandParameter="{Binding SelectedSpacetimeNode}"/>
+                                                </i:EventTrigger>
+                                            </i:Interaction.Triggers>
+                                        </ui:TextBox>
+                                    </Grid>
                                     <TextBlock x:Name="SelectedNodeTimeText" Height="16" Text="{Binding SelectedSpacetimeNode.CreatedDate, StringFormat=\{0:yyyy/MM/dd HH:mm:ss\}}" FontSize="11" Opacity="0.6" Margin="0,4,0,0"/>
                                 </StackPanel>
                             </Grid>
@@ -157,7 +239,7 @@
                             </StackPanel>
                         </ui:Button>
 
-                        <!-- B. [时空起源] 和 [快照] 共有操作：穿梭、虫洞、平行 -->
+                        <!-- B. [起源] 和 [快照] 共有操作：穿梭、虫洞、平行 -->
                         <StackPanel>
                             <StackPanel.Style>
                                 <Style TargetType="StackPanel">

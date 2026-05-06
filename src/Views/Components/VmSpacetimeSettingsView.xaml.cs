@@ -225,7 +225,7 @@ namespace ExHyperV.Views.Components
         private void DrawSpacetimeAnchor(Point pos, SpacetimeNode data, bool isSelected)
         {
             bool isCurrent = data.NodeType == SpacetimeNodeType.Current;
-            var anchorGroup = new Grid { Width = 200, Height = 160, Cursor = Cursors.Hand, Tag = data, Background = Brushes.Transparent };
+            var anchorGroup = new Grid { Width = 200, Height = 160, Cursor = Cursors.Hand, Tag = data, Background = null };
 
             anchorGroup.MouseDown += (s, e) => {
                 if (!_isDragging && e.ChangedButton == MouseButton.Left && DataContext is VirtualMachinesPageViewModel vm)
@@ -267,14 +267,56 @@ namespace ExHyperV.Views.Components
         private void CanvasContainer_MouseDown(object sender, MouseButtonEventArgs e) { _dragStartPos = e.GetPosition(this); _dragStartOffset = new Point(SpacetimeScrollViewer.HorizontalOffset, SpacetimeScrollViewer.VerticalOffset); _isDragging = false; }
         private void CanvasContainer_MouseMove(object sender, MouseEventArgs e)
         {
-            if (e.LeftButton == MouseButtonState.Pressed || e.MiddleButton == MouseButtonState.Pressed || e.RightButton == MouseButtonState.Pressed)
+            if (e.LeftButton == MouseButtonState.Pressed ||
+                e.MiddleButton == MouseButtonState.Pressed ||
+                e.RightButton == MouseButtonState.Pressed)
             {
-                Point currentPos = e.GetPosition(this); double deltaX = _dragStartPos.X - currentPos.X; double deltaY = _dragStartPos.Y - currentPos.Y;
-                if (!_isDragging && (Math.Abs(deltaX) > 5 || Math.Abs(deltaY) > 5)) { _isDragging = true; CanvasContainer.CaptureMouse(); CanvasContainer.Cursor = Cursors.SizeAll; }
-                if (_isDragging) { SpacetimeScrollViewer.ScrollToHorizontalOffset(_dragStartOffset.X + deltaX); SpacetimeScrollViewer.ScrollToVerticalOffset(_dragStartOffset.Y + deltaY); e.Handled = true; }
+                Point currentPos = e.GetPosition(this);
+                double deltaX = _dragStartPos.X - currentPos.X;
+                double deltaY = _dragStartPos.Y - currentPos.Y;
+
+                if (!_isDragging && (Math.Abs(deltaX) > 5 || Math.Abs(deltaY) > 5))
+                {
+                    _isDragging = true;
+                    CanvasContainer.CaptureMouse();
+                    CanvasContainer.Cursor = Cursors.SizeAll;
+
+                    // 拖动开始：关闭画布内所有子元素的命中测试，防止触发节点选中导致重绘
+                    SpacetimeCanvas.IsHitTestVisible = false;
+                }
+
+                if (_isDragging)
+                {
+                    SpacetimeScrollViewer.ScrollToHorizontalOffset(_dragStartOffset.X + deltaX);
+                    SpacetimeScrollViewer.ScrollToVerticalOffset(_dragStartOffset.Y + deltaY);
+                    e.Handled = true;
+                }
             }
         }
-        private void CanvasContainer_MouseUp(object sender, MouseButtonEventArgs e) { if (CanvasContainer.IsMouseCaptured) { CanvasContainer.ReleaseMouseCapture(); CanvasContainer.Cursor = Cursors.Arrow; if (_isDragging) e.Handled = true; } }
-        private void CanvasContainer_MouseLeave(object sender, MouseEventArgs e) { if (CanvasContainer.IsMouseCaptured) CanvasContainer.ReleaseMouseCapture(); }
+
+        private void CanvasContainer_MouseUp(object sender, MouseButtonEventArgs e)
+        {
+            if (CanvasContainer.IsMouseCaptured)
+            {
+                CanvasContainer.ReleaseMouseCapture();
+                CanvasContainer.Cursor = Cursors.Arrow;
+
+                // 拖动结束：恢复命中测试
+                SpacetimeCanvas.IsHitTestVisible = true;
+
+                if (_isDragging) e.Handled = true;
+            }
+            _isDragging = false;
+        }
+
+        private void CanvasContainer_MouseLeave(object sender, MouseEventArgs e)
+        {
+            if (CanvasContainer.IsMouseCaptured)
+            {
+                CanvasContainer.ReleaseMouseCapture();
+                // 离开也要恢复
+                SpacetimeCanvas.IsHitTestVisible = true;
+            }
+        }
     }
 }

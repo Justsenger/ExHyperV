@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Windows.Media.Imaging;
-
+using System.Xml.Linq;
+using CommunityToolkit.Mvvm.ComponentModel; // 必须引用这个
+using CommunityToolkit.Mvvm.Input;
 namespace ExHyperV.Models;
 
 /// <summary>
@@ -8,27 +10,21 @@ namespace ExHyperV.Models;
 /// </summary>
 public enum SpacetimeNodeType
 {
-    /// <summary>
-    /// 时空起源 (起点)
-    /// </summary>
     Genesis,
-
-    /// <summary>
-    /// 快照时空 (历史点)
-    /// </summary>
     Snapshot,
-
-    /// <summary>
-    /// 当前时空 (正在运行的状态)
-    /// </summary>
     Current
 }
 
-public class SpacetimeNode
+// 核心改动 1：加上 partial 和 继承 ObservableObject
+public partial class SpacetimeNode : ObservableObject
 {
     public string Id { get; set; } = string.Empty;
     public string? ParentId { get; set; }
-    public string Name { get; set; } = string.Empty;
+
+    // 核心改动 2：将 Name 改为 ObservableProperty，这样修改名称时 UI 才会动
+    [ObservableProperty]
+    private string _name = string.Empty;
+
     public DateTime CreatedDate { get; set; }
     public BitmapSource? Thumbnail { get; set; }
 
@@ -50,6 +46,20 @@ public class SpacetimeNode
     /// </summary>
     public bool IsLogicalNode => NodeType == SpacetimeNodeType.Genesis || NodeType == SpacetimeNodeType.Current;
 
+
+    [ObservableProperty]
+    private bool _isEditing; // 控制是否显示输入框
+
+    [ObservableProperty]
+    private string _editedName = string.Empty; // 存储输入框里的临时文本
+
+    public void StartEditing()
+    {
+        if (IsLogicalNode) return;
+        EditedName = Name;
+        IsEditing = true;
+    }
+    [RelayCommand] private void StartEdit() => StartEditing();
     // 常量定义
     public const string GenesisId = "GENESIS_ROOT";
     public const string CurrentId = "CURRENT_RUNNING";
