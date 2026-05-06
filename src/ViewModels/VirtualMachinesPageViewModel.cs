@@ -3686,32 +3686,29 @@ namespace ExHyperV.ViewModels
         {
             if (SelectedSpacetimeNode == null || string.IsNullOrEmpty(SelectedSpacetimeNode.Path) || SelectedVm == null) return;
 
+            // 提前保存目标名称，避免 GoToSpacetimeSettings 刷新后被覆盖
+            string targetName = SelectedSpacetimeNode.Name;
+
             IsLoadingSettings = true;
             try
             {
                 var result = await _spacetimeService.TeleportAsync(SelectedSpacetimeNode, SelectedVm.Name);
                 if (result.Success)
                 {
-                    // 穿梭涉及磁盘切换，给 WMI 500ms 的沉降时间
                     await Task.Delay(500);
-
-                    // 重新加载节点。注意：必须在 IsLoadingSettings = false 之前执行
                     await GoToSpacetimeSettings();
-
-                    ShowSnackbar("穿梭完成", $"已回归至时空锚点：{SelectedSpacetimeNode.Name}", ControlAppearance.Success, SymbolRegular.ArrowClockwise24);
+                    ShowSnackbar("操作成功", $"已穿梭至时空：{targetName}", ControlAppearance.Success, SymbolRegular.ArrowClockwise24);
                 }
                 else
                 {
-                    ShowSnackbar("穿梭失败", result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                    ShowSnackbar("操作失败", result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
                 }
             }
             finally
             {
-                // 只有当树图重新画好了，才撤掉遮罩
                 IsLoadingSettings = false;
             }
-        }
-        // 删除快照
+        }        // 删除快照
         [RelayCommand(CanExecute = nameof(CanOperateHistoricalNode))]
         private async Task Annihilate()
         {
@@ -3725,7 +3722,7 @@ namespace ExHyperV.ViewModels
                 {
                     await Task.Delay(800);
                     await GoToSpacetimeSettings();
-                    ShowSnackbar("时空湮灭", "该分支已从现实中抹除", ControlAppearance.Success, SymbolRegular.Delete24);
+                    ShowSnackbar("操作成功", "该时空已湮灭", ControlAppearance.Success, SymbolRegular.Delete24);
                 }
             }
             finally { IsLoadingSettings = false; }
@@ -3735,14 +3732,14 @@ namespace ExHyperV.ViewModels
         [RelayCommand(CanExecute = nameof(CanOperateHistoricalNode))]
         private void OpenWormhole()
         {
-            ShowSnackbar("虫洞开启", "功能研发中：允许挂载历史锚点磁盘为只读驱动器", ControlAppearance.Info, SymbolRegular.Link24);
+            ShowSnackbar("功能研发中", "开启虫洞：允许挂载历史锚点磁盘为只读驱动器", ControlAppearance.Info, SymbolRegular.Link24);
         }
 
         // 平行时空
         [RelayCommand(CanExecute = nameof(CanOperateHistoricalNode))]
         private void ParallelSpacetime()
         {
-            ShowSnackbar("平行时空", "功能研发中：正在基于此锚点导出并衍生新的虚拟机实例", ControlAppearance.Info, SymbolRegular.Copy24);
+            ShowSnackbar("功能研发中", "平行时空：正在基于此锚点导出并衍生新的虚拟机实例", ControlAppearance.Info, SymbolRegular.Copy24);
         }
 
         // 时间线收束
@@ -3760,7 +3757,7 @@ namespace ExHyperV.ViewModels
                 {
                     await Task.Delay(800);
                     await GoToSpacetimeSettings();
-                    ShowSnackbar("时间线收束", "历史点已合入主进程", ControlAppearance.Success, SymbolRegular.Merge24);
+                    ShowSnackbar("操作成功", "时空已收束至上一节点", ControlAppearance.Success, SymbolRegular.Merge24);
                 }
             }
             finally { IsLoadingSettings = false; }
