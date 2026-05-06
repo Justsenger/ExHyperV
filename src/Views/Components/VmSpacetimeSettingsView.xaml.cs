@@ -1,7 +1,9 @@
-﻿using System.Windows;
+﻿using System.IO;
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using System.Windows.Threading;
 using ExHyperV.Models;
@@ -90,6 +92,7 @@ namespace ExHyperV.Views.Components
 
         private void RenderSpacetimeFlow()
         {
+            _contentBounds = Rect.Empty;
             if (DataContext is not VirtualMachinesPageViewModel vm || _isRendering) return;
 
             try
@@ -139,6 +142,62 @@ namespace ExHyperV.Views.Components
                 }
             }
             finally { _isRendering = false; }
+        }
+
+        private void ExportButton_Click(object sender, RoutedEventArgs e)
+        {
+            ExportTopologyAsImage();
+        }
+
+        public void ExportTopologyAsImage()
+        {
+            // 强制完成布局
+            SpacetimeCanvas.UpdateLayout();
+            SpacetimeCanvas.Measure(new Size(SpacetimeCanvas.Width, SpacetimeCanvas.Height));
+            SpacetimeCanvas.Arrange(new Rect(0, 0, SpacetimeCanvas.Width, SpacetimeCanvas.Height));
+
+            // 计算裁剪区域（有效内容 + 80px 边距）
+            const double padding = 80;
+            Rect crop = _contentBounds == Rect.Empty
+                ? new Rect(0, 0, SpacetimeCanvas.Width, SpacetimeCanvas.Height)
+                : new Rect(
+                    Math.Max(0, _contentBounds.X - padding),
+                    Math.Max(0, _contentBounds.Y - padding),
+                    Math.Min(SpacetimeCanvas.Width, _contentBounds.Width + padding * 2),
+                    Math.Min(SpacetimeCanvas.Height, _contentBounds.Height + padding * 2));
+
+            // 渲染整个 Canvas
+            var fullBitmap = new RenderTargetBitmap(
+                (int)SpacetimeCanvas.Width, (int)SpacetimeCanvas.Height,
+                96, 96, PixelFormats.Pbgra32);
+            fullBitmap.Render(SpacetimeCanvas);
+
+            // 裁剪到有效区域
+            var cropped = new CroppedBitmap(fullBitmap, new Int32Rect(
+                (int)crop.X, (int)crop.Y, (int)crop.Width, (int)crop.Height));
+
+            // 弹出保存对话框
+            var dialog = new Microsoft.Win32.SaveFileDialog
+            {
+                Title = "导出时空拓扑图",
+                Filter = "PNG 图片|*.png",
+                FileName = $"SpacetimeTopology_{DateTime.Now:yyyyMMdd_HHmmss}.png"
+            };
+
+            if (dialog.ShowDialog() == true)
+            {
+                using var stream = new FileStream(dialog.FileName, FileMode.Create);
+                var encoder = new PngBitmapEncoder();
+                encoder.Frames.Add(BitmapFrame.Create(cropped));
+                encoder.Save(stream);
+            }
+        }
+        private Rect _contentBounds = Rect.Empty;
+
+        private void UpdateContentBounds(double left, double top, double width, double height)
+        {
+            var rect = new Rect(left, top, width, height);
+            _contentBounds = _contentBounds == Rect.Empty ? rect : Rect.Union(_contentBounds, rect);
         }
 
         private void DrawRecursiveStep(SpacetimeNode node, double x, double top, double bottom, SpacetimeNode? selected)
@@ -245,6 +304,7 @@ namespace ExHyperV.Views.Components
 
             Canvas.SetLeft(anchorGroup, pos.X - 100);
             Canvas.SetTop(anchorGroup, pos.Y - 80);
+            UpdateContentBounds(pos.X - 100, pos.Y - 80, 200, 160);
             Canvas.SetZIndex(anchorGroup, isSelected ? 100 : (isCurrent ? 80 : 50));
             SpacetimeCanvas.Children.Add(anchorGroup);
         }

@@ -53,10 +53,24 @@
 
         <!-- 顶部标题栏 -->
         <Grid Grid.Row="0" Margin="0,0,0,8">
-            <TextBlock Text="时空管理" FontSize="20" VerticalAlignment="Center" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
-            <ui:Button HorizontalAlignment="Right" Appearance="Transparent" Padding="8" Command="{Binding GoBackCommand}">
-                <ui:SymbolIcon Symbol="ArrowLeft24" FontSize="18"/>
-            </ui:Button>
+            <TextBlock Text="时空管理" FontSize="20" VerticalAlignment="Center" 
+               Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <!-- 新增：导出按钮 -->
+                <ui:Button Appearance="Primary" Padding="12,8" Margin="0,0,8,0"
+                   Click="ExportButton_Click">
+                    <StackPanel Orientation="Horizontal">
+                        <ui:SymbolIcon Symbol="ArrowExportUp24" FontSize="16"/>
+                        <TextBlock Text="导出拓扑图" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                    </StackPanel>
+                </ui:Button>
+
+                <!-- 原有返回按钮 -->
+                <ui:Button Appearance="Transparent" Padding="8" Command="{Binding GoBackCommand}">
+                    <ui:SymbolIcon Symbol="ArrowLeft24" FontSize="18"/>
+                </ui:Button>
+            </StackPanel>
         </Grid>
 
         <Grid Grid.Row="1">
