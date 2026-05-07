@@ -5,6 +5,12 @@ using CommunityToolkit.Mvvm.ComponentModel; // 必须引用这个
 using CommunityToolkit.Mvvm.Input;
 namespace ExHyperV.Models;
 
+public enum SpacetimeMode
+{
+    Continuous, // 连续时空 - 标准检查点 SnapshotType=1
+    Still       // 静止时空 - 生产检查点 SnapshotType=2
+}
+
 /// <summary>
 /// 时空节点类型
 /// </summary>

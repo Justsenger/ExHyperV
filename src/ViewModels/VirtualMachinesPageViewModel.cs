@@ -3557,6 +3557,9 @@ namespace ExHyperV.ViewModels
         [NotifyCanExecuteChangedFor(nameof(AnnihilateCommand))]
         [NotifyCanExecuteChangedFor(nameof(ConvergenceCommand))]
         private SpacetimeNode? _selectedSpacetimeNode;
+        [ObservableProperty]
+        private SpacetimeMode _selectedSpacetimeMode = SpacetimeMode.Continuous;
+
 
         /// <summary>
         /// 判定逻辑：只有选中的是真实的历史快照节点（非现世指针、非虚拟根节点）时，才允许执行穿梭、删除等操作。
@@ -3657,7 +3660,10 @@ namespace ExHyperV.ViewModels
             IsLoadingSettings = true;
             try
             {
-                var result = await _spacetimeService.CaptureMomentAsync(SelectedVm.Name, currentFrame);
+                var result = await _spacetimeService.CaptureMomentAsync(
+                    SelectedVm.Name,
+                    SelectedSpacetimeMode
+                );
 
                 if (result.Success)
                 {

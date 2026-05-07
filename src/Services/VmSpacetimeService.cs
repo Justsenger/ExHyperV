@@ -225,30 +225,100 @@ internal class VmSpacetimeService
         }
     }
     // 修改签名，接受可选的 externalThumb
-    public async Task<(bool Success, string Message)> CaptureMomentAsync(string vmName, BitmapSource? externalThumb = null)
+    public async Task<(bool Success, string Message)> CaptureMomentAsync(
+        string vmName,
+        SpacetimeMode mode,
+        BitmapSource? externalThumb = null)
     {
         string vmWql = $"SELECT * FROM Msvm_ComputerSystem WHERE ElementName = '{vmName.Replace("'", "''")}'";
-        var vmData = await WmiTools.QueryAsync(vmWql, obj => new { Path = obj.Path.ToString(), Guid = obj["Name"].ToString() });
+        var vmData = await WmiTools.QueryAsync(vmWql, obj => new {
+            Path = obj.Path.ToString(),
+            Guid = obj["Name"].ToString()
+        });
         var vm = vmData.FirstOrDefault();
         if (vm == null) return (false, "找不到指定的虚拟机载体");
 
-        // 1. 记录现有 ID 集合
-        string snapshotListWql = $"SELECT InstanceID FROM Msvm_VirtualSystemSettingData WHERE VirtualSystemIdentifier = '{vm.Guid}' AND VirtualSystemType LIKE '%Snapshot%'";
+        string snapshotListWql = $"SELECT InstanceID FROM Msvm_VirtualSystemSettingData WHERE VirtualSystemIdentifier = '{vm.Guid}' AND VirtualSystemType = 'Microsoft:Hyper-V:Snapshot:Realized'";
         var existingIds = (await WmiTools.QueryAsync(snapshotListWql, obj => obj["InstanceID"].ToString())).ToHashSet();
 
-        // 2. 抢先截图
         BitmapSource? bitmap = externalThumb ?? await VmThumbnailProvider.GetThumbnailAsync(vmName, 280, 160);
 
-        // 3. 发起快照
-        var parameters = new Dictionary<string, object> { { "AffectedSystem", vm.Path }, { "SnapshotType", (ushort)2 } };
-        var result = await WmiTools.ExecuteMethodAsync(SnapshotServiceWql, "CreateSnapshot", parameters);
-
-        if (result.Success || result.Message == "4096")
+        bool success;
+        try
         {
-            // 4. 【核心优化：同步快速等待】
-            // 快照的“写盘”很慢，但“生成 ID”极快。我们在这里阻塞最多 3 秒来捕捉这个 ID。
+            success = await Task.Run(() =>
+            {
+                var scope = new ManagementScope(@"root\virtualization\v2");
+                scope.Connect();
+
+                using var svcSearcher = new ManagementObjectSearcher(scope, new ObjectQuery(SnapshotServiceWql));
+                using var svc = svcSearcher.Get().Cast<ManagementObject>().FirstOrDefault();
+                if (svc == null) return false;
+
+                using var vmObj = new ManagementObject(scope, new ManagementPath(vm.Path), null);
+                var inParams = svc.GetMethodParameters("CreateSnapshot");
+                inParams["AffectedSystem"] = vmObj;
+
+                if (mode == SpacetimeMode.Continuous)
+                {
+                    // 标准检查点：必须显式构造 SnapshotSettings
+                    using var settingsClass = new ManagementClass(scope, new ManagementPath("Msvm_VirtualSystemSnapshotSettingData"), null);
+                    using var settings = settingsClass.CreateInstance();
+                    settings["ConsistencyLevel"] = (byte)1;
+                    settings["IgnoreNonSnapshottableDisks"] = true;
+                    inParams["SnapshotSettings"] = settings.GetText(TextFormat.WmiDtd20);
+                    inParams["SnapshotType"] = (ushort)3;
+                }
+                else
+                {
+                    // 生产检查点：空字符串即可
+                    inParams["SnapshotSettings"] = "";
+                    inParams["SnapshotType"] = (ushort)2;
+                }
+
+                var outParams = svc.InvokeMethod("CreateSnapshot", inParams, null);
+                uint ret = (uint)outParams["ReturnValue"];
+                Debug.WriteLine($"[Spacetime] CreateSnapshot ReturnValue: {ret}");
+                if (ret == 4096)
+                {
+                    // 异步 Job，等它完成
+                    string jobPath = outParams["Job"]?.ToString() ?? "";
+                    Debug.WriteLine($"[Spacetime] Job path: {jobPath}");
+
+                    if (!string.IsNullOrEmpty(jobPath))
+                    {
+                        using var job = new ManagementObject(scope, new ManagementPath(jobPath), null);
+                        int waited = 0;
+                        while (waited < 30)
+                        {
+                            job.Get();
+                            ushort jobState = (ushort)job["JobState"];
+                            string errorDesc = job["ErrorDescription"]?.ToString() ?? "";
+                            Debug.WriteLine($"[Spacetime] JobState: {jobState}, Error: {errorDesc}");
+
+                            // 7=Completed, 8=Terminated, 9=Exception, 10=Service
+                            if (jobState == 7) { Debug.WriteLine("[Spacetime] Job 成功完成"); break; }
+                            if (jobState >= 8) { Debug.WriteLine($"[Spacetime] Job 失败: {errorDesc}"); break; }
+
+                            Thread.Sleep(500);
+                            waited++;
+                        }
+                    }
+                }
+
+                return ret == 0 || ret == 4096;
+
+            });
+        }
+        catch (Exception ex)
+        {
+            return (false, $"时空塌陷: {ex.Message}");
+        }
+
+        if (success)
+        {
             string? newId = null;
-            for (int i = 0; i < 15; i++) // 200ms * 15 = 3秒
+            for (int i = 0; i < 15; i++)
             {
                 await Task.Delay(200);
                 var currentIds = await WmiTools.QueryAsync(snapshotListWql, obj => obj["InstanceID"].ToString());
@@ -258,21 +328,17 @@ internal class VmSpacetimeService
 
             if (newId != null && bitmap != null)
             {
-                // 5. 抓到 ID 了，立刻同步写入 JPG，然后再返回给 ViewModel 刷新 UI
                 string? snapshotDir = await GetSnapshotDirectoryByGuidAsync(vm.Guid);
                 if (!string.IsNullOrEmpty(snapshotDir))
-                {
-                    // 注意这里不要 await Task.Run，直接本地写入，确保文件锁释放前 UI 还没去查
                     await SaveThumbnailToDisk(bitmap, snapshotDir, newId);
-                    Debug.WriteLine($"[Spacetime] ID 已捕捉并预存 JPG: {newId}");
-                }
             }
 
             return (true, "时空锚点已锚定");
         }
-        return result;
+
+        return (false, "时空锚点创建失败");
     }
-    // 改进版路径查询：直接根据 GUID 查
+
     private async Task<string?> GetSnapshotDirectoryByGuidAsync(string vmGuid)
     {
         try

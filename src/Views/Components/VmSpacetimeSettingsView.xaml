@@ -10,6 +10,7 @@
 
     <UserControl.Resources>
         <converters:BooleanToVisibilityConverter x:Key="BoolToVis" />
+        <converters:EnumToBoolConverter x:Key="EnumToBoolConverter"/>
         
         <!-- 完美无缝、边共享正六边形矩阵 -->
         <!-- 计算基准：六边形半径 R = 20 -->
@@ -234,6 +235,46 @@
                         </Border>
                         <TextBlock Text="操作" FontSize="12" Opacity="0.5" Margin="0,16,0,8"/>
 
+                        <!-- 时空模式选择：仅当前节点显示 -->
+                        <StackPanel Margin="0,0,0,10">
+                            <StackPanel.Style>
+                                <Style TargetType="StackPanel">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding SelectedSpacetimeNode.NodeType}" Value="Current">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </StackPanel.Style>
+
+                            <TextBlock Text="时空模式" FontSize="12" Opacity="0.5" Margin="0,0,0,8"/>
+
+                            <!-- 连续时空 -->
+                            <RadioButton Margin="0,0,0,6" GroupName="SpacetimeMode"
+                 IsChecked="{Binding SelectedSpacetimeMode, 
+                             Converter={StaticResource EnumToBoolConverter}, 
+                             ConverterParameter=Continuous}">
+                                <StackPanel>
+                                    <TextBlock Text="连续时空" FontSize="12" FontWeight="Medium"/>
+                                    <TextBlock Text="保存磁盘和内存状态" 
+                       FontSize="11" Opacity="0.5" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </RadioButton>
+
+                            <!-- 静止时空 -->
+                            <RadioButton GroupName="SpacetimeMode"
+                 IsChecked="{Binding SelectedSpacetimeMode, 
+                             Converter={StaticResource EnumToBoolConverter}, 
+                             ConverterParameter=Still}">
+                                <StackPanel>
+                                    <TextBlock Text="静止时空" FontSize="12" FontWeight="Medium"/>
+                                    <TextBlock Text="保存磁盘状态" 
+                       FontSize="11" Opacity="0.5" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </RadioButton>
+                        </StackPanel>
+                        
                         <!-- A. [当前] 节点特有操作：创建时空 -->
                         <ui:Button Margin="0,0,0,6" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="10,8" Appearance="Primary" 
                Command="{Binding CaptureMomentCommand}">
@@ -257,10 +298,10 @@
                         <StackPanel>
                             <StackPanel.Style>
                                 <Style TargetType="StackPanel">
-                                    <Setter Property="Visibility" Value="Visible"/>
+                                    <Setter Property="Visibility" Value="Collapsed"/>
                                     <Style.Triggers>
-                                        <DataTrigger Binding="{Binding SelectedSpacetimeNode.NodeType}" Value="Current">
-                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        <DataTrigger Binding="{Binding SelectedSpacetimeNode.NodeType}" Value="Snapshot">
+                                            <Setter Property="Visibility" Value="Visible"/>
                                         </DataTrigger>
                                     </Style.Triggers>
                                 </Style>
