@@ -3673,11 +3673,11 @@ namespace ExHyperV.ViewModels
                     // 重新获取节点，由于在 finally 之前调用，遮罩会一直持续到节点树重新画好
                     await GoToSpacetimeSettings();
 
-                    ShowSnackbar("时空扩张成功", "已成功捕捉当前时空锚点", ControlAppearance.Success, SymbolRegular.CheckmarkCircle24);
+                    ShowSnackbar("操作成功", "已成功创建时空", ControlAppearance.Success, SymbolRegular.CheckmarkCircle24);
                 }
                 else
                 {
-                    ShowSnackbar("时空塌陷", result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                    ShowSnackbar("操作失败", result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
                 }
             }
             finally

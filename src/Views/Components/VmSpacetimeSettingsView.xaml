@@ -248,8 +248,6 @@
                                 </Style>
                             </StackPanel.Style>
 
-                            <TextBlock Text="时空模式" FontSize="12" Opacity="0.5" Margin="0,0,0,8"/>
-
                             <!-- 连续时空 -->
                             <RadioButton Margin="0,0,0,6" GroupName="SpacetimeMode"
                  IsChecked="{Binding SelectedSpacetimeMode, 

@@ -238,107 +238,66 @@ internal class VmSpacetimeService
         var vm = vmData.FirstOrDefault();
         if (vm == null) return (false, "找不到指定的虚拟机载体");
 
+        // 查询原来的 CheckpointType，用于创建完后恢复
+        string originalType = "Production";
+        try
+        {
+            string settingsWql = $"SELECT UserSnapshotType FROM Msvm_VirtualSystemSettingData WHERE VirtualSystemIdentifier = '{vm.Guid}' AND VirtualSystemType = 'Microsoft:Hyper-V:System:Realized'";
+            var settingsData = await WmiTools.QueryAsync(settingsWql, obj => obj["UserSnapshotType"]?.ToString());
+            var rawType = settingsData.FirstOrDefault();
+            // UserSnapshotType: 3=Production, 5=Standard
+            originalType = rawType == "5" ? "Standard" : "Production";
+        }
+        catch { }
+
         string snapshotListWql = $"SELECT InstanceID FROM Msvm_VirtualSystemSettingData WHERE VirtualSystemIdentifier = '{vm.Guid}' AND VirtualSystemType = 'Microsoft:Hyper-V:Snapshot:Realized'";
         var existingIds = (await WmiTools.QueryAsync(snapshotListWql, obj => obj["InstanceID"].ToString())).ToHashSet();
 
         BitmapSource? bitmap = externalThumb ?? await VmThumbnailProvider.GetThumbnailAsync(vmName, 280, 160);
 
-        bool success;
+        string targetType = mode == SpacetimeMode.Continuous ? "Standard" : "Production";
+        string safe = vmName.Replace("'", "''");
+        string snapshotName = $"{vmName} - ({DateTime.Now:yyyy/M/d - HH:mm:ss})";
+
         try
         {
-            success = await Task.Run(() =>
-            {
-                var scope = new ManagementScope(@"root\virtualization\v2");
-                scope.Connect();
+            // 1. 切换类型
+            await Utils.Run2($"Set-VM -Name '{safe}' -CheckpointType {targetType}");
 
-                using var svcSearcher = new ManagementObjectSearcher(scope, new ObjectQuery(SnapshotServiceWql));
-                using var svc = svcSearcher.Get().Cast<ManagementObject>().FirstOrDefault();
-                if (svc == null) return false;
-
-                using var vmObj = new ManagementObject(scope, new ManagementPath(vm.Path), null);
-                var inParams = svc.GetMethodParameters("CreateSnapshot");
-                inParams["AffectedSystem"] = vmObj;
-
-                if (mode == SpacetimeMode.Continuous)
-                {
-                    // 标准检查点：必须显式构造 SnapshotSettings
-                    using var settingsClass = new ManagementClass(scope, new ManagementPath("Msvm_VirtualSystemSnapshotSettingData"), null);
-                    using var settings = settingsClass.CreateInstance();
-                    settings["ConsistencyLevel"] = (byte)1;
-                    settings["IgnoreNonSnapshottableDisks"] = true;
-                    inParams["SnapshotSettings"] = settings.GetText(TextFormat.WmiDtd20);
-                    inParams["SnapshotType"] = (ushort)3;
-                }
-                else
-                {
-                    // 生产检查点：空字符串即可
-                    inParams["SnapshotSettings"] = "";
-                    inParams["SnapshotType"] = (ushort)2;
-                }
-
-                var outParams = svc.InvokeMethod("CreateSnapshot", inParams, null);
-                uint ret = (uint)outParams["ReturnValue"];
-                Debug.WriteLine($"[Spacetime] CreateSnapshot ReturnValue: {ret}");
-                if (ret == 4096)
-                {
-                    // 异步 Job，等它完成
-                    string jobPath = outParams["Job"]?.ToString() ?? "";
-                    Debug.WriteLine($"[Spacetime] Job path: {jobPath}");
-
-                    if (!string.IsNullOrEmpty(jobPath))
-                    {
-                        using var job = new ManagementObject(scope, new ManagementPath(jobPath), null);
-                        int waited = 0;
-                        while (waited < 30)
-                        {
-                            job.Get();
-                            ushort jobState = (ushort)job["JobState"];
-                            string errorDesc = job["ErrorDescription"]?.ToString() ?? "";
-                            Debug.WriteLine($"[Spacetime] JobState: {jobState}, Error: {errorDesc}");
-
-                            // 7=Completed, 8=Terminated, 9=Exception, 10=Service
-                            if (jobState == 7) { Debug.WriteLine("[Spacetime] Job 成功完成"); break; }
-                            if (jobState >= 8) { Debug.WriteLine($"[Spacetime] Job 失败: {errorDesc}"); break; }
-
-                            Thread.Sleep(500);
-                            waited++;
-                        }
-                    }
-                }
-
-                return ret == 0 || ret == 4096;
-
-            });
+            // 2. 创建检查点
+            await Utils.Run2($"Checkpoint-VM -Name '{safe}' -SnapshotName '{snapshotName}'");
         }
         catch (Exception ex)
         {
+            // 创建失败也要恢复原来的类型
+            try { await Utils.Run2($"Set-VM -Name '{safe}' -CheckpointType {originalType}"); } catch { }
             return (false, $"时空塌陷: {ex.Message}");
         }
-
-        if (success)
+        finally
         {
-            string? newId = null;
-            for (int i = 0; i < 15; i++)
-            {
-                await Task.Delay(200);
-                var currentIds = await WmiTools.QueryAsync(snapshotListWql, obj => obj["InstanceID"].ToString());
-                newId = currentIds.FirstOrDefault(id => !existingIds.Contains(id));
-                if (newId != null) break;
-            }
-
-            if (newId != null && bitmap != null)
-            {
-                string? snapshotDir = await GetSnapshotDirectoryByGuidAsync(vm.Guid);
-                if (!string.IsNullOrEmpty(snapshotDir))
-                    await SaveThumbnailToDisk(bitmap, snapshotDir, newId);
-            }
-
-            return (true, "时空锚点已锚定");
+            // 3. 无论成败，恢复原来的 CheckpointType
+            try { await Utils.Run2($"Set-VM -Name '{safe}' -CheckpointType {originalType}"); } catch { }
         }
 
-        return (false, "时空锚点创建失败");
-    }
+        // 4. 捕捉新 ID 并存截图
+        string? newId = null;
+        for (int i = 0; i < 15; i++)
+        {
+            await Task.Delay(200);
+            var currentIds = await WmiTools.QueryAsync(snapshotListWql, obj => obj["InstanceID"].ToString());
+            newId = currentIds.FirstOrDefault(id => !existingIds.Contains(id));
+            if (newId != null) break;
+        }
 
+        if (newId != null && bitmap != null)
+        {
+            string? snapshotDir = await GetSnapshotDirectoryByGuidAsync(vm.Guid);
+            if (!string.IsNullOrEmpty(snapshotDir))
+                await SaveThumbnailToDisk(bitmap, snapshotDir, newId);
+        }
+
+        return (true, "时空锚点已锚定");
+    }
     private async Task<string?> GetSnapshotDirectoryByGuidAsync(string vmGuid)
     {
         try
