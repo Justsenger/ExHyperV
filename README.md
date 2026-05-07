@@ -350,8 +350,10 @@ Host and VM must be the following versions to enable this capability.
 | **AMD** | Radeon 8060S | RDNA 3.5 | ⚠️ | ✅ | ✅ | ✅ | ✅ | ❌ | Incomplete HW ID |
 | **AMD** | Radeon 890M | RDNA 3.5 | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | Boot crashes host |
 | **Moore Threads** | MTT S80 | MUSA | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | Not supported |
-| **Qualcomm** | Qualcomm(R) Adreno(TM) X1-85 GPU | Adreno X1 | ⚠️ | ✅ | ✅ | ✅ | ✅ | ✅ | Incomplete HW ID|
 | **Qualcomm** | Qualcomm(R) Adreno(TM) 8cx Gen 3 | Adreno | ⚠️ | ✅ | ✅ | ✅ | ✅ | ✅ | Incomplete HW ID|
+| **Qualcomm** | Qualcomm(R) Adreno(TM) X1-85 GPU | Adreno X1 | ⚠️ | ✅ | ✅ | ✅ | ✅ | ✅ | Incomplete HW ID|
+| **Qualcomm** | Qualcomm(R) Adreno(TM) X2-90 GPU | Adreno X2 | ⚠️ | ✅ | ✅ | ✅ | ✅ | ✅ | Incomplete HW ID|
+
 
 #### How to output video from the VM?
 
@@ -609,6 +611,7 @@ A huge thank you to our sponsors! Your generous support is the driving force beh
 ![](https://img.shields.io/badge/EXPERT-User--6b017-24292e?style=for-the-badge&logo=expertsexchange&logoColor=FFBF00&labelColor=24292e&color=FFBF00)
 ![](https://img.shields.io/badge/EXPERT-死都不怕还怕活着？-24292e?style=for-the-badge&logo=expertsexchange&logoColor=FFBF00&labelColor=24292e&color=FFBF00)
 ![](https://img.shields.io/badge/EXPERT-LinearKF-24292e?style=for-the-badge&logo=expertsexchange&logoColor=FFBF00&labelColor=24292e&color=FFBF00)
+![](https://img.shields.io/badge/EXPERT-User--7bdd5-24292e?style=for-the-badge&logo=expertsexchange&logoColor=FFBF00&labelColor=24292e&color=FFBF00)
 ---
 
 ### 🔹 Beginner Tier
@@ -621,3 +624,6 @@ A huge thank you to our sponsors! Your generous support is the driving force beh
 ![](https://img.shields.io/badge/BEGINNER-苏芸晴或i-0078D4?style=flat-square&logo=hyperledger&logoColor=white) 
 ![](https://img.shields.io/badge/BEGINNER-tiwatezhanshen-0078D4?style=flat-square&logo=hyperledger&logoColor=white) 
 ![](https://img.shields.io/badge/BEGINNER-User--_tpuJ-0078D4?style=flat-square&logo=hyperledger&logoColor=white)
+![](https://img.shields.io/badge/BEGINNER-User--e9738-0078D4?style=flat-square&logo=hyperledger&logoColor=white)
+![](https://img.shields.io/badge/BEGINNER-User--1ab90-0078D4?style=flat-square&logo=hyperledger&logoColor=white)
+![](https://img.shields.io/badge/BEGINNER-EFP001-0078D4?style=flat-square&logo=hyperledger&logoColor=white)
