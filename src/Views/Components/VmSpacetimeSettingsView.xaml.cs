@@ -224,12 +224,19 @@ namespace ExHyperV.Views.Components
                 (int)Math.Min(crop.Height, offCanvas.Height - crop.Y)));
 
             // ── 6. 保存 ──────────────────────────────────────────────────────────
+            string safeName = vm.SelectedVm?.Name ?? "VM";
+            string safeNode = vm.SelectedSpacetimeNode?.Name ?? "Node";
+            string safeTime = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
+            char[] invalidChars = System.IO.Path.GetInvalidFileNameChars();
+            safeNode = string.Concat(safeNode.Select(c => invalidChars.Contains(c) ? '_' : c));
+
             var dialog = new Microsoft.Win32.SaveFileDialog
             {
                 Title = "导出时空拓扑图",
                 Filter = "PNG 图片|*.png",
-                FileName = $"{vm.SelectedVm?.Name}_{vm.SelectedSpacetimeNode?.Name}_{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.png"
+                FileName = $"{safeName}_{safeNode}_{safeTime}.png"
             };
+
             if (dialog.ShowDialog() != true) return;
 
             using var stream = new FileStream(dialog.FileName, FileMode.Create);
@@ -349,7 +356,7 @@ namespace ExHyperV.Views.Components
             // 标签底板
             var labelBg = new Border
             {
-                Background = new SolidColorBrush(Color.FromArgb(180, 255, 255, 255)),
+                Background = new SolidColorBrush(Color.FromArgb(200, 20, 20, 20)), // 深色半透明底
                 CornerRadius = new CornerRadius(3 * scale),
                 Padding = new Thickness(6 * scale, 2 * scale, 6 * scale, 2 * scale),
                 HorizontalAlignment = HorizontalAlignment.Center,
@@ -361,13 +368,12 @@ namespace ExHyperV.Views.Components
                 Text = data.Name,
                 FontSize = 12 * scale,
                 FontWeight = isCurrent ? FontWeights.Bold : FontWeights.Normal,
-                Foreground = new SolidColorBrush(Color.FromRgb(20, 20, 20)),
+                Foreground = new SolidColorBrush(Color.FromRgb(235, 235, 235)), // 白色文字
                 TextAlignment = TextAlignment.Center,
                 Opacity = (isSelected || isCurrent) ? 1.0 : 0.85,
                 TextWrapping = TextWrapping.NoWrap,
                 TextTrimming = TextTrimming.CharacterEllipsis
             };
-
             labelBg.Child = label;
 
             // 用 StackPanel 替代手动定位
