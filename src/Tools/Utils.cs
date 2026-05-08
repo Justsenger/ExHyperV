@@ -581,16 +581,15 @@ public class Utils
 
     public static string GetOsImageName(string osType)
     {
-        if (string.IsNullOrWhiteSpace(osType)) return "microsoft.png";
+        if (string.IsNullOrWhiteSpace(osType)) return "Windows.png";
 
         string lower = osType.ToLower();
 
-        if (lower == "windows") return "microsoft.png";
         if (SupportedOsTypes.Any(t => t.Equals(lower, StringComparison.OrdinalIgnoreCase)))
         {
             return $"{lower}.png";
         }
-        return "microsoft.png";
+        return "Windows.png";
     }
 
     public static string GetTagValue(string text, string tagName)

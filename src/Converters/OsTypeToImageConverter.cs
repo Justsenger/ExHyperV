@@ -20,7 +20,7 @@ namespace ExHyperV.Converters
             catch
             {
                 // 如果图片路径报错的回退方案
-                return new BitmapImage(new Uri("pack://application:,,,/Assets/microsoft.png"));
+                return new BitmapImage(new Uri("pack://application:,,,/Assets/Windows.png"));
             }
         }
 

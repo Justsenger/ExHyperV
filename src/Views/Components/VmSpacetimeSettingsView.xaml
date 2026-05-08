@@ -282,18 +282,25 @@
                                 </StackPanel>
                             </RadioButton>
                         </StackPanel>
-                        
+
                         <!-- A. [当前] 节点特有操作：创建时空 -->
-                        <ui:Button Margin="0,0,0,6" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="10,8" Appearance="Primary" 
-               Command="{Binding CaptureMomentCommand}"
+                        <ui:Button Margin="0,0,0,6" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="10,8" 
+                                   Command="{Binding CaptureMomentCommand}"
                                    IsEnabled="{Binding IsCheckpointsEnabled}">
                             <ui:Button.Style>
                                 <Style TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
+                                    <!-- 将默认的 Primary 外观放在 Setter 中，使得触发器可以覆盖它 -->
+                                    <Setter Property="Appearance" Value="Primary"/>
                                     <Setter Property="Visibility" Value="Collapsed"/>
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding SelectedSpacetimeNode.NodeType}" Value="Current">
                                             <Setter Property="Visibility" Value="Visible"/>
                                         </DataTrigger>
+                                        <!-- 当按钮被禁用时，更改外观和前景色，防止文字在灰色背景下不可见 -->
+                                        <Trigger Property="IsEnabled" Value="False">
+                                            <Setter Property="Appearance" Value="Secondary"/>
+                                            <Setter Property="Foreground" Value="{ui:ThemeResource TextFillColorDisabledBrush}"/>
+                                        </Trigger>
                                     </Style.Triggers>
                                 </Style>
                             </ui:Button.Style>
@@ -302,7 +309,7 @@
                                 <TextBlock Text="创建时空" VerticalAlignment="Center" Margin="10,0,0,0"/>
                             </StackPanel>
                         </ui:Button>
-
+                        
                         <!-- B. [起源] 和 [快照] 共有操作：穿梭、虫洞、平行 -->
                         <StackPanel>
                             <StackPanel.Style>
