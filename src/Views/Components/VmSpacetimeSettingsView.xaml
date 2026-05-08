@@ -310,63 +310,97 @@
                             </StackPanel>
                         </ui:Button>
                         
-                        <!-- B. [起源] 和 [快照] 共有操作：穿梭、虫洞、平行 -->
+                        <!-- B. [快照] 节点特有操作区：正常态 vs 虫洞态 二选一 -->
+
+                        <!-- B-1. 虫洞开启中：仅显示关闭虫洞按钮 -->
                         <StackPanel>
                             <StackPanel.Style>
                                 <Style TargetType="StackPanel">
                                     <Setter Property="Visibility" Value="Collapsed"/>
                                     <Style.Triggers>
-                                        <DataTrigger Binding="{Binding SelectedSpacetimeNode.NodeType}" Value="Snapshot">
+                                        <MultiDataTrigger>
+                                            <MultiDataTrigger.Conditions>
+                                                <Condition Binding="{Binding SelectedSpacetimeNode.NodeType}" Value="Snapshot"/>
+                                                <Condition Binding="{Binding SelectedSpacetimeNode.IsWormhole}" Value="True"/>
+                                            </MultiDataTrigger.Conditions>
                                             <Setter Property="Visibility" Value="Visible"/>
-                                        </DataTrigger>
+                                        </MultiDataTrigger>
                                     </Style.Triggers>
                                 </Style>
                             </StackPanel.Style>
-                            <ui:Button Margin="0,0,0,6" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="10,8" Command="{Binding TeleportCommand}">
+                            <!-- 虫洞状态提示 -->
+                            <Border Background="{ui:ThemeResource SystemFillColorCautionBackgroundBrush}"
+            CornerRadius="6" Padding="10,8" Margin="0,0,0,10">
+                                <StackPanel Orientation="Horizontal">
+                                    <ui:SymbolIcon Symbol="Link24" FontSize="14" Foreground="#FFD700"/>
+                                    <TextBlock Text="虫洞干涉中" FontSize="12" FontWeight="SemiBold"
+                       Foreground="#FFD700" VerticalAlignment="Center" Margin="6,0,0,0"/>
+                                </StackPanel>
+                            </Border>
+                            <!-- 关闭虫洞 -->
+                            <ui:Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+               Padding="10,8" Appearance="Caution"
+               Command="{Binding CloseWormholeCommand}">
+                                <StackPanel Orientation="Horizontal">
+                                    <ui:SymbolIcon Symbol="LinkDismiss24" FontSize="16"/>
+                                    <TextBlock Text="关闭虫洞" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                                </StackPanel>
+                            </ui:Button>
+                        </StackPanel>
+
+                        <!-- B-2. 正常态：穿梭、虫洞、平行、收束、删除 -->
+                        <StackPanel>
+                            <StackPanel.Style>
+                                <Style TargetType="StackPanel">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <MultiDataTrigger>
+                                            <MultiDataTrigger.Conditions>
+                                                <Condition Binding="{Binding SelectedSpacetimeNode.NodeType}" Value="Snapshot"/>
+                                                <Condition Binding="{Binding SelectedSpacetimeNode.IsWormhole}" Value="False"/>
+                                            </MultiDataTrigger.Conditions>
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </MultiDataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </StackPanel.Style>
+                            <ui:Button Margin="0,0,0,6" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+               Padding="10,8" Command="{Binding TeleportCommand}">
                                 <StackPanel Orientation="Horizontal">
                                     <ui:SymbolIcon Symbol="ArrowClockwise24" FontSize="16"/>
                                     <TextBlock Text="穿梭" VerticalAlignment="Center" Margin="10,0,0,0"/>
                                 </StackPanel>
                             </ui:Button>
-                            <ui:Button Margin="0,0,0,6" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="10,8" Command="{Binding OpenWormholeCommand}">
+                            <ui:Button Margin="0,0,0,6" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+               Padding="10,8" Command="{Binding OpenWormholeCommand}">
                                 <StackPanel Orientation="Horizontal">
                                     <ui:SymbolIcon Symbol="Link24" FontSize="16"/>
                                     <TextBlock Text="开启虫洞" VerticalAlignment="Center" Margin="10,0,0,0"/>
                                 </StackPanel>
                             </ui:Button>
-                            <ui:Button Margin="0,0,0,6" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="10,8" Command="{Binding ParallelSpacetimeCommand}">
+                            <ui:Button Margin="0,0,0,6" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+               Padding="10,8" Command="{Binding ParallelSpacetimeCommand}">
                                 <StackPanel Orientation="Horizontal">
                                     <ui:SymbolIcon Symbol="Copy24" FontSize="16"/>
                                     <TextBlock Text="平行时空" VerticalAlignment="Center" Margin="10,0,0,0"/>
                                 </StackPanel>
                             </ui:Button>
-                        </StackPanel>
-
-                        <!-- C. [快照] 节点特有操作：收束、删除 -->
-                        <StackPanel>
-                            <StackPanel.Style>
-                                <Style TargetType="StackPanel">
-                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding SelectedSpacetimeNode.NodeType}" Value="Snapshot">
-                                            <Setter Property="Visibility" Value="Visible"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </StackPanel.Style>
-                            <ui:Button Margin="0,0,0,6" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="10,8" Command="{Binding ConvergenceCommand}">
+                            <ui:Button Margin="0,0,0,6" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+               Padding="10,8" Command="{Binding ConvergenceCommand}">
                                 <StackPanel Orientation="Horizontal">
                                     <ui:SymbolIcon Symbol="Merge24" FontSize="16"/>
                                     <TextBlock Text="时间线收束" VerticalAlignment="Center" Margin="10,0,0,0"/>
                                 </StackPanel>
                             </ui:Button>
-                            <ui:Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="10,8" Appearance="Danger" Command="{Binding AnnihilateCommand}">
+                            <ui:Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+               Padding="10,8" Appearance="Danger" Command="{Binding AnnihilateCommand}">
                                 <StackPanel Orientation="Horizontal">
                                     <ui:SymbolIcon Symbol="Delete24" FontSize="16"/>
                                     <TextBlock Text="删除" VerticalAlignment="Center" Margin="10,0,0,0"/>
                                 </StackPanel>
                             </ui:Button>
                         </StackPanel>
+
                     </StackPanel>
                 </ui:Card>
             </StackPanel>

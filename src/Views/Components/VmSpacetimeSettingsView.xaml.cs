@@ -24,6 +24,7 @@ namespace ExHyperV.Views.Components
         private Point _dragStartPos;
         private Point _dragStartOffset;
         private Point _selectedNodePos;
+        private Point _currentNodePos;
         private bool _isDragging = false;
         private bool _needsInitialCenter = true;
         private bool _isRendering = false;
@@ -191,6 +192,7 @@ namespace ExHyperV.Views.Components
                 double endY = startY + requiredHeight;
 
                 DrawRecursiveStep(root, 150, startY, endY, vm.SelectedSpacetimeNode);
+                DrawWormholeLines();
                 if (_needsInitialCenter)
                 {
                     _needsInitialCenter = false;
@@ -440,6 +442,7 @@ namespace ExHyperV.Views.Components
             double midY = (top + bottom) / 2;
 
             if (selected != null && node.Id == selected.Id) _selectedNodePos = new Point(x, midY);
+            if (node.NodeType == SpacetimeNodeType.Current) _currentNodePos = new Point(x, midY);
             DrawSpacetimeAnchor(new Point(x, midY), node, selected?.Id == node.Id);
 
             if (_treeMap.TryGetValue(node.Id, out var children))
@@ -528,8 +531,13 @@ namespace ExHyperV.Views.Components
             };
 
             Brush currentBrush = TryFindResource("SystemAccentColorPrimaryBrush") as Brush ?? Brushes.DodgerBlue;
-            Brush statusBrush = isSelected ? currentBrush : (isCurrent ? currentBrush : (TryFindResource("TextFillColorTertiaryBrush") as Brush ?? Brushes.DimGray));
-            var previewBox = new Border { Width = 140, Height = 80, Background = Brushes.Black, BorderBrush = statusBrush, BorderThickness = new Thickness(isSelected ? 3 : 1), CornerRadius = new CornerRadius(4), ClipToBounds = true, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+            Brush wormholeBrush = new SolidColorBrush(Color.FromRgb(255, 215, 0));
+            Brush statusBrush = data.IsWormhole ? wormholeBrush
+                              : isSelected ? currentBrush
+                              : isCurrent ? currentBrush
+                              : (TryFindResource("TextFillColorTertiaryBrush") as Brush ?? Brushes.DimGray);
+            var previewBox = new Border { Width = 140, Height = 80, Background = Brushes.Black, BorderBrush = statusBrush, BorderThickness = new Thickness((isSelected || data.IsWormhole) ? 3 : 1), CornerRadius = new CornerRadius(4), ClipToBounds = true, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+
 
             if (data.Thumbnail != null) previewBox.Background = new ImageBrush(data.Thumbnail) { Stretch = Stretch.UniformToFill };
             anchorGroup.Children.Add(previewBox);
@@ -559,7 +567,41 @@ namespace ExHyperV.Views.Components
             Canvas.SetZIndex(line, 5);
             SpacetimeCanvas.Children.Add(line);
         }
+        private void DrawWormholeLines()
+        {
+            if (DataContext is not VirtualMachinesPageViewModel vm) return;
+            var wormholeNodes = vm.SpacetimeNodes?
+                .Where(n => n.IsWormhole && n.NodeType == SpacetimeNodeType.Snapshot)
+                .ToList();
+            if (wormholeNodes == null || !wormholeNodes.Any()) return;
 
+            foreach (var wNode in wormholeNodes)
+            {
+                Point? wPos = null;
+                foreach (var child in SpacetimeCanvas.Children)
+                {
+                    if (child is Grid g && g.Tag is SpacetimeNode n && n.Id == wNode.Id)
+                    {
+                        wPos = new Point(Canvas.GetLeft(g) + 100, Canvas.GetTop(g) + 80);
+                        break;
+                    }
+                }
+                if (wPos == null) continue;
+
+                var line = new Line
+                {
+                    X1 = wPos.Value.X,
+                    Y1 = wPos.Value.Y,
+                    X2 = _currentNodePos.X,
+                    Y2 = _currentNodePos.Y,
+                    Stroke = new SolidColorBrush(Color.FromRgb(180, 0, 255)),
+                    StrokeThickness = 2,
+                    Opacity = 0.85,
+                };
+                Canvas.SetZIndex(line, 10);
+                SpacetimeCanvas.Children.Add(line);
+            }
+        }
         private void CenterOnSelectedNode()
         {
             Debug.WriteLine($"[DRAG] !!! CenterOnSelectedNode isDragging={_isDragging} " +

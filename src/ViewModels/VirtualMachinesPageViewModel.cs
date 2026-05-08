@@ -3556,6 +3556,7 @@ namespace ExHyperV.ViewModels
         [NotifyCanExecuteChangedFor(nameof(ParallelSpacetimeCommand))]
         [NotifyCanExecuteChangedFor(nameof(AnnihilateCommand))]
         [NotifyCanExecuteChangedFor(nameof(ConvergenceCommand))]
+        [NotifyCanExecuteChangedFor(nameof(CloseWormholeCommand))]
         private SpacetimeNode? _selectedSpacetimeNode;
         [ObservableProperty]
         private SpacetimeMode _selectedSpacetimeMode = SpacetimeMode.Continuous;
@@ -3725,14 +3726,19 @@ namespace ExHyperV.ViewModels
         [RelayCommand(CanExecute = nameof(CanOperateHistoricalNode))]
         private async Task Teleport()
         {
-            if (SelectedSpacetimeNode == null || string.IsNullOrEmpty(SelectedSpacetimeNode.Path) || SelectedVm == null) return;
-
-            // 提前保存目标名称，避免 GoToSpacetimeSettings 刷新后被覆盖
-            string targetName = SelectedSpacetimeNode.Name;
-
+            if (SelectedSpacetimeNode == null || SelectedVm == null) return;
             IsLoadingSettings = true;
             try
             {
+                // 穿梭前关闭所有虫洞
+                var wormholeNodes = SpacetimeNodes?.Where(n => n.IsWormhole).ToList();
+                if (wormholeNodes != null && wormholeNodes.Any())
+                {
+                    foreach (var wNode in wormholeNodes)
+                        await _spacetimeService.CloseWormholeAsync(SelectedVm.Name, wNode);
+                }
+
+                string targetName = SelectedSpacetimeNode.Name;
                 var result = await _spacetimeService.TeleportAsync(SelectedSpacetimeNode, SelectedVm.Name);
                 if (result.Success)
                 {
@@ -3745,11 +3751,9 @@ namespace ExHyperV.ViewModels
                     ShowSnackbar("操作失败", result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
                 }
             }
-            finally
-            {
-                IsLoadingSettings = false;
-            }
-        }        // 删除快照
+            finally { IsLoadingSettings = false; }
+        }
+
         [RelayCommand(CanExecute = nameof(CanOperateHistoricalNode))]
         private async Task Annihilate()
         {
@@ -3771,9 +3775,48 @@ namespace ExHyperV.ViewModels
 
         // 开启虫洞
         [RelayCommand(CanExecute = nameof(CanOperateHistoricalNode))]
-        private void OpenWormhole()
+        private async Task OpenWormhole()
         {
-            ShowSnackbar("功能研发中", "开启虫洞：允许挂载历史锚点磁盘为只读驱动器", ControlAppearance.Info, SymbolRegular.Link24);
+            if (SelectedSpacetimeNode == null || SelectedVm == null) return;
+            IsLoadingSettings = true;
+            try
+            {
+                var result = await _spacetimeService.OpenWormholeAsync(SelectedVm.Name, SelectedSpacetimeNode);
+                if (result.Success)
+                {
+                    string openedNodeId = SelectedSpacetimeNode.Id;
+                    await GoToSpacetimeSettings();
+                    var wormholeNode = SpacetimeNodes.FirstOrDefault(n => n.Id == openedNodeId);
+                    if (wormholeNode != null) SelectedSpacetimeNode = wormholeNode;
+                    ShowSnackbar("虫洞已开启", $"已连接到时空「{SelectedSpacetimeNode.Name}」", ControlAppearance.Success, SymbolRegular.Link24);
+                }
+                else
+                {
+                    ShowSnackbar("开启失败", result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                }
+            }
+            finally { IsLoadingSettings = false; }
+        }
+
+        [RelayCommand(CanExecute = nameof(CanOperateHistoricalNode))]
+        private async Task CloseWormhole()
+        {
+            if (SelectedSpacetimeNode == null || SelectedVm == null) return;
+            IsLoadingSettings = true;
+            try
+            {
+                var result = await _spacetimeService.CloseWormholeAsync(SelectedVm.Name, SelectedSpacetimeNode);
+                if (result.Success)
+                {
+                    await GoToSpacetimeSettings();
+                    ShowSnackbar("虫洞已关闭", "时间线已恢复正常", ControlAppearance.Success, SymbolRegular.LinkDismiss24);
+                }
+                else
+                {
+                    ShowSnackbar("关闭失败", result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                }
+            }
+            finally { IsLoadingSettings = false; }
         }
 
         // 平行时空
