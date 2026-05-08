@@ -40,7 +40,7 @@
                         </GeometryGroup>
                     </GeometryDrawing.Geometry>
                     <GeometryDrawing.Pen>
-                        <Pen Brush="#0AFFFFFF" Thickness="1"/>
+                        <Pen Brush="#14808080" Thickness="1"/>
                     </GeometryDrawing.Pen>
                 </GeometryDrawing>
             </DrawingBrush.Drawing>
@@ -54,9 +54,16 @@
 
         <!-- 顶部标题栏 -->
         <Grid Grid.Row="0" Margin="0,0,0,8">
-            <TextBlock Text="时空管理" FontSize="20" VerticalAlignment="Center" 
-               Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <TextBlock Text="时空管理" FontSize="20" VerticalAlignment="Center" 
+           Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
 
+                <!-- 检查点开关 -->
+                <ui:ToggleSwitch Margin="20,0,0,0" 
+                 IsChecked="{Binding IsCheckpointsEnabled, Mode=TwoWay}" 
+                 VerticalAlignment="Center"/>
+            </StackPanel>
+            
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                 <!-- 新增：导出按钮 -->
                 <ui:Button Appearance="Primary" Padding="12,8" Margin="0,0,8,0"
@@ -82,8 +89,11 @@
 
             <!-- 左侧：时空流动画布 -->
             <Border Grid.Column="0" Background="{ui:ThemeResource ControlFillColorDefaultBrush}" BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Margin="0,0,12,0" ClipToBounds="True">
-                <Grid x:Name="CanvasContainer" Background="{StaticResource FineGridBrush}" MouseDown="CanvasContainer_MouseDown" MouseMove="CanvasContainer_MouseMove" MouseUp="CanvasContainer_MouseUp" MouseLeave="CanvasContainer_MouseLeave">
-
+                <Grid x:Name="CanvasContainer" Background="{StaticResource FineGridBrush}" 
+      PreviewMouseDown="CanvasContainer_MouseDown" 
+      PreviewMouseMove="CanvasContainer_MouseMove" 
+      PreviewMouseUp="CanvasContainer_MouseUp" 
+      MouseLeave="CanvasContainer_MouseLeave">
                     <!-- 1. 绘图层 -->
                     <ScrollViewer x:Name="SpacetimeScrollViewer" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Hidden">
                         <Canvas x:Name="SpacetimeCanvas" Width="3000" Height="2000" Background="Transparent"/>
@@ -275,7 +285,8 @@
                         
                         <!-- A. [当前] 节点特有操作：创建时空 -->
                         <ui:Button Margin="0,0,0,6" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="10,8" Appearance="Primary" 
-               Command="{Binding CaptureMomentCommand}">
+               Command="{Binding CaptureMomentCommand}"
+                                   IsEnabled="{Binding IsCheckpointsEnabled}">
                             <ui:Button.Style>
                                 <Style TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
                                     <Setter Property="Visibility" Value="Collapsed"/>

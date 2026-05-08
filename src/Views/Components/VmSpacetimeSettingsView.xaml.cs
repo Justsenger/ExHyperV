@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System.Diagnostics;
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -51,6 +52,9 @@ namespace ExHyperV.Views.Components
             _liveTimer.Start();
 
             this.DataContextChanged += (s, e) => {
+                Debug.WriteLine($"[DRAG] !!! DataContextChanged isDragging={_isDragging} " +
+                    $"oldOffset=({SpacetimeScrollViewer.HorizontalOffset:F1},{SpacetimeScrollViewer.VerticalOffset:F1})");
+
                 if (_boundVm != null) _boundVm.PropertyChanged -= OnVmPropertyChanged;
 
                 if (DataContext is VirtualMachinesPageViewModel vm)
@@ -73,31 +77,78 @@ namespace ExHyperV.Views.Components
             {
                 Dispatcher.Invoke(RenderSpacetimeFlow);
             };
-
-            CanvasContainer.PreviewMouseDown += CanvasContainer_MouseDown;
-            CanvasContainer.PreviewMouseMove += CanvasContainer_MouseMove;
-            CanvasContainer.PreviewMouseUp += CanvasContainer_MouseUp;
         }
 
         private void OnVmPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
-            // 监听 IsLoadingSettings 以便在数据刷新前立刻显示遮罩
-            if (e.PropertyName == nameof(VirtualMachinesPageViewModel.IsLoadingSettings))
+            if (_isRendering) return;
+
+            if (e.PropertyName == nameof(VirtualMachinesPageViewModel.SpacetimeNodes))
             {
-                // 这里的 Visibility 已经在 XAML 绑定了，但如果需要额外的 UI 逻辑可以在此处理
+                Debug.WriteLine($"[DRAG] !!! SpacetimeNodes changed -> RenderSpacetimeFlow (isDragging={_isDragging})");
+                RenderSpacetimeFlow();
+            }
+            else if (e.PropertyName == nameof(VirtualMachinesPageViewModel.SelectedSpacetimeNode))
+            {
+                Debug.WriteLine($"[DRAG] !!! SelectedSpacetimeNode changed -> RefreshSelectionStyle (isDragging={_isDragging})");
+                if (!_isDragging)
+                    RefreshSelectionStyle();
+            }
+        }
+
+        private void RefreshSelectionStyle()
+        {
+            if (DataContext is not VirtualMachinesPageViewModel vm) return;
+            string? selectedId = vm.SelectedSpacetimeNode?.Id;
+
+            foreach (var child in SpacetimeCanvas.Children)
+            {
+                if (child is not Grid g || g.Tag is not SpacetimeNode node) continue;
+
+                bool isSelected = node.Id == selectedId;
+                bool isCurrent = node.NodeType == SpacetimeNodeType.Current;
+
+                if (g.Children[0] is Border previewBox)
+                {
+                    Brush currentBrush = TryFindResource("SystemAccentColorPrimaryBrush") as Brush ?? Brushes.DodgerBlue;
+                    previewBox.BorderBrush = isSelected ? currentBrush
+                        : isCurrent ? currentBrush
+                        : (TryFindResource("TextFillColorTertiaryBrush") as Brush ?? Brushes.DimGray);
+                    previewBox.BorderThickness = new Thickness(isSelected ? 3 : 1);
+                }
+
+                if (g.Children[1] is TextBlock tb)
+                {
+                    tb.Opacity = (isSelected || isCurrent) ? 1.0 : 0.6;
+                }
+
+                Canvas.SetZIndex(g, isSelected ? 100 : isCurrent ? 80 : 50);
             }
 
-            if (_isRendering) return;
-            if (e.PropertyName == nameof(VirtualMachinesPageViewModel.SpacetimeNodes) ||
-                e.PropertyName == nameof(VirtualMachinesPageViewModel.SelectedSpacetimeNode))
+            SelectedNodeTimeText.GetBindingExpression(TextBlock.TextProperty)?.UpdateTarget();
+
+            if (vm.SelectedSpacetimeNode != null)
             {
-                RenderSpacetimeFlow();
+                foreach (var child in SpacetimeCanvas.Children)
+                {
+                    if (child is Grid g && g.Tag is SpacetimeNode node && node.Id == selectedId)
+                    {
+                        double left = Canvas.GetLeft(g) + 100;
+                        double top = Canvas.GetTop(g) + 80;
+                        _selectedNodePos = new Point(left, top);
+                        break;
+                    }
+                }
             }
         }
 
 
         private void RenderSpacetimeFlow()
         {
+            Debug.WriteLine($"[DRAG] >>> RenderSpacetimeFlow ENTER " +
+                $"offsetBefore=({SpacetimeScrollViewer?.HorizontalOffset:F1},{SpacetimeScrollViewer?.VerticalOffset:F1}) " +
+                $"isDragging={_isDragging}");
+
             _contentBounds = Rect.Empty;
             if (DataContext is not VirtualMachinesPageViewModel vm || _isRendering) return;
 
@@ -112,7 +163,6 @@ namespace ExHyperV.Views.Components
                 var spacetimeList = vm.SpacetimeNodes?.ToList() ?? new List<SpacetimeNode>();
                 if (!spacetimeList.Any()) return;
 
-                // 1. 建立树结构
                 var root = spacetimeList.FirstOrDefault(n => string.IsNullOrEmpty(n.ParentId))
                            ?? spacetimeList.FirstOrDefault(n => n.NodeType == SpacetimeNodeType.Genesis)
                            ?? spacetimeList.FirstOrDefault();
@@ -126,10 +176,8 @@ namespace ExHyperV.Views.Components
                     _treeMap[node.ParentId].Add(node);
                 }
 
-                // 2. 预计算每个节点的叶子权重
                 int totalLeaves = CalculateLeafCounts(root.Id);
 
-                // 3. 动态扩展画布，防止内容溢出
                 double rowHeight = 200;
                 double requiredHeight = totalLeaves * rowHeight;
 
@@ -139,11 +187,9 @@ namespace ExHyperV.Views.Components
                 SpacetimeCanvas.Height = Math.Max(2000, requiredHeight + 400);
                 SpacetimeCanvas.Width = Math.Max(3000, requiredWidth);
 
-                // 计算起始位置使其在 Canvas 中间居中
                 double startY = (SpacetimeCanvas.Height - requiredHeight) / 2;
                 double endY = startY + requiredHeight;
 
-                // 4. 开始递归绘图
                 DrawRecursiveStep(root, 150, startY, endY, vm.SelectedSpacetimeNode);
                 if (_needsInitialCenter)
                 {
@@ -151,7 +197,12 @@ namespace ExHyperV.Views.Components
                     Dispatcher.BeginInvoke(new Action(() => CenterOnSelectedNode()), System.Windows.Threading.DispatcherPriority.Loaded);
                 }
             }
-            finally { _isRendering = false; }
+            finally
+            {
+                _isRendering = false;
+                Debug.WriteLine($"[DRAG] <<< RenderSpacetimeFlow EXIT " +
+                    $"offsetAfter=({SpacetimeScrollViewer.HorizontalOffset:F1},{SpacetimeScrollViewer.VerticalOffset:F1})");
+            }
         }
 
         private int CalculateMaxDepth(string nodeId)
@@ -168,35 +219,29 @@ namespace ExHyperV.Views.Components
 
         public void ExportTopologyAsImage()
         {
-            const double scale = 3.0;   // 真正的 3x 离屏绘制，非插值放大
+            const double scale = 3.0;
             const double padding = 100;
 
             if (DataContext is not VirtualMachinesPageViewModel vm) return;
             var spacetimeList = vm.SpacetimeNodes?.ToList();
             if (spacetimeList == null || !spacetimeList.Any()) return;
 
-            // ── 1. 在离屏 Canvas 上重绘，完全不碰界面 ──────────────────────────
             var offCanvas = new Canvas
             {
                 Width = SpacetimeCanvas.Width * scale,
                 Height = SpacetimeCanvas.Height * scale,
-                Background = Brushes.Transparent   // 透明背景
+                Background = Brushes.Transparent
             };
 
-            // 强制 Measure/Arrange，否则子元素 ActualWidth 全为 0
             offCanvas.Measure(new Size(offCanvas.Width, offCanvas.Height));
             offCanvas.Arrange(new Rect(0, 0, offCanvas.Width, offCanvas.Height));
 
-            // ── 2. 重新建树（复用已有的 _treeMap / _subtreeLeafCount）──────────
-            // 注意：这里不重建树，直接用现有数据重绘到离屏 Canvas
             DrawOffscreen(offCanvas, spacetimeList, vm.SelectedSpacetimeNode, scale);
 
-            // 二次 Measure/Arrange，让新添加的子元素也完成布局
             offCanvas.Measure(new Size(offCanvas.Width, offCanvas.Height));
             offCanvas.Arrange(new Rect(0, 0, offCanvas.Width, offCanvas.Height));
             offCanvas.UpdateLayout();
 
-            // ── 3. 计算裁剪区域（_contentBounds 是 1x 坐标，乘以 scale）────────
             Rect crop;
             if (_contentBounds == Rect.Empty)
             {
@@ -211,19 +256,16 @@ namespace ExHyperV.Views.Components
                 crop = new Rect(cx, cy, cw, ch);
             }
 
-            // ── 4. 渲染离屏 Canvas → 位图（不影响界面任何元素）─────────────────
             var rtb = new RenderTargetBitmap(
                 (int)offCanvas.Width, (int)offCanvas.Height,
                 96, 96, PixelFormats.Pbgra32);
             rtb.Render(offCanvas);
 
-            // ── 5. 裁剪 ──────────────────────────────────────────────────────────
             var cropped = new CroppedBitmap(rtb, new Int32Rect(
                 (int)crop.X, (int)crop.Y,
                 (int)Math.Min(crop.Width, offCanvas.Width - crop.X),
                 (int)Math.Min(crop.Height, offCanvas.Height - crop.Y)));
 
-            // ── 6. 保存 ──────────────────────────────────────────────────────────
             string safeName = vm.SelectedVm?.Name ?? "VM";
             string safeNode = vm.SelectedSpacetimeNode?.Name ?? "Node";
             string safeTime = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
@@ -245,13 +287,9 @@ namespace ExHyperV.Views.Components
             encoder.Save(stream);
         }
 
-        /// <summary>
-        /// 在离屏 Canvas 上以 scale 倍坐标重新绘制整棵树，不触碰任何界面元素。
-        /// </summary>
         private void DrawOffscreen(Canvas canvas, List<SpacetimeNode> nodes,
                                    SpacetimeNode? selected, double scale)
         {
-            // 重建树结构（离屏专用，不影响 _treeMap）
             var treeMap = new Dictionary<string, List<SpacetimeNode>>();
             var leafCount = new Dictionary<string, int>();
 
@@ -267,7 +305,6 @@ namespace ExHyperV.Views.Components
                 treeMap[node.ParentId].Add(node);
             }
 
-            // 计算叶子数
             int CalcLeaves(string id)
             {
                 if (!treeMap.TryGetValue(id, out var ch) || ch.Count == 0) { leafCount[id] = 1; return 1; }
@@ -281,7 +318,6 @@ namespace ExHyperV.Views.Components
             double required = total * rowH;
             double startY = (canvas.Height - required) / 2;
 
-            // 递归绘制
             void DrawStep(SpacetimeNode node, double x, double top, double bottom)
             {
                 double midY = (top + bottom) / 2;
@@ -299,14 +335,13 @@ namespace ExHyperV.Views.Components
                     double nextX = x + 280 * scale;
                     double childMidY = curTop + sector / 2;
 
-                    // 绘制连线
                     var line = new Line
                     {
                         X1 = x,
                         Y1 = midY,
                         X2 = nextX,
                         Y2 = childMidY,
-                        Stroke = new SolidColorBrush(Color.FromArgb(160, 120, 120, 120)), // 半透明灰，深浅主题都可见
+                        Stroke = new SolidColorBrush(Color.FromArgb(160, 120, 120, 120)),
                         Opacity = 1.0,
                         StrokeThickness = scale,
                         StrokeDashArray = new DoubleCollection { 4, 3 }
@@ -332,7 +367,6 @@ namespace ExHyperV.Views.Components
             double previewW = 140 * scale;
             double previewH = 80 * scale;
 
-            // 缩略图预览框
             var previewBox = new Border
             {
                 Width = previewW,
@@ -353,10 +387,9 @@ namespace ExHyperV.Views.Components
             if (data.Thumbnail != null)
                 previewBox.Background = new ImageBrush(data.Thumbnail) { Stretch = Stretch.UniformToFill };
 
-            // 标签底板
             var labelBg = new Border
             {
-                Background = new SolidColorBrush(Color.FromArgb(200, 20, 20, 20)), // 深色半透明底
+                Background = new SolidColorBrush(Color.FromArgb(200, 20, 20, 20)),
                 CornerRadius = new CornerRadius(3 * scale),
                 Padding = new Thickness(6 * scale, 2 * scale, 6 * scale, 2 * scale),
                 HorizontalAlignment = HorizontalAlignment.Center,
@@ -368,7 +401,7 @@ namespace ExHyperV.Views.Components
                 Text = data.Name,
                 FontSize = 12 * scale,
                 FontWeight = isCurrent ? FontWeights.Bold : FontWeights.Normal,
-                Foreground = new SolidColorBrush(Color.FromRgb(235, 235, 235)), // 白色文字
+                Foreground = new SolidColorBrush(Color.FromRgb(235, 235, 235)),
                 TextAlignment = TextAlignment.Center,
                 Opacity = (isSelected || isCurrent) ? 1.0 : 0.85,
                 TextWrapping = TextWrapping.NoWrap,
@@ -376,7 +409,6 @@ namespace ExHyperV.Views.Components
             };
             labelBg.Child = label;
 
-            // 用 StackPanel 替代手动定位
             var labelPanel = new StackPanel
             {
                 Width = cardW,
@@ -386,7 +418,6 @@ namespace ExHyperV.Views.Components
             };
             labelPanel.Children.Add(labelBg);
 
-            // 组合
             var group = new Grid { Width = cardW, Height = cardH };
             group.Children.Add(previewBox);
             group.Children.Add(labelPanel);
@@ -406,7 +437,6 @@ namespace ExHyperV.Views.Components
 
         private void DrawRecursiveStep(SpacetimeNode node, double x, double top, double bottom, SpacetimeNode? selected)
         {
-            // 节点垂直居于它分配到的扇区中心
             double midY = (top + bottom) / 2;
 
             if (selected != null && node.Id == selected.Id) _selectedNodePos = new Point(x, midY);
@@ -414,35 +444,32 @@ namespace ExHyperV.Views.Components
 
             if (_treeMap.TryGetValue(node.Id, out var children))
             {
-                // 按创建时间排序
                 var sorted = children.OrderBy(c => c.CreatedDate).ToList();
                 double currentTop = top;
                 double totalLeavesInThisBranch = _subtreeLeafCount[node.Id];
 
                 foreach (var child in sorted)
                 {
-                    // 获取该子分支占用的叶子比例
                     double childLeafCount = _subtreeLeafCount[child.Id];
                     double childSectorHeight = (childLeafCount / totalLeavesInThisBranch) * (bottom - top);
 
-                    // 水平间距 280 比较美观
                     double nextX = x + 280;
                     double childMidY = currentTop + (childSectorHeight / 2);
 
                     DrawTimeLine(new Point(x, midY), new Point(nextX, childMidY));
 
-                    // 递归分配子扇区
                     DrawRecursiveStep(child, nextX, currentTop, currentTop + childSectorHeight, selected);
 
                     currentTop += childSectorHeight;
                 }
             }
-        }        // 递归计算每个节点控制的叶子节点数量（权重）
+        }
+
         private int CalculateLeafCounts(string nodeId)
         {
             if (!_treeMap.TryGetValue(nodeId, out var children) || children.Count == 0)
             {
-                _subtreeLeafCount[nodeId] = 1; // 自己就是叶子
+                _subtreeLeafCount[nodeId] = 1;
                 return 1;
             }
 
@@ -468,19 +495,17 @@ namespace ExHyperV.Views.Components
 
                 for (int i = 0; i < count; i++)
                 {
-                    // 改进：确保即便分叉很多，垂直间距也不低于 180 (节点高160 + 20间隙)
                     double gap = Math.Max(verticalRange, (count - 1) * 180);
 
                     double offset = (count > 1)
                         ? (-gap / 2 + (i * (gap / (count - 1))))
                         : 0;
 
-                    double nextX = x + 260; // 稍微拉大水平间距（从240改为260）
+                    double nextX = x + 260;
                     double nextY = y + offset;
 
                     DrawTimeLine(new Point(x, y), new Point(nextX, nextY));
 
-                    // 衰减系数改为 0.8，防止空间收缩过快
                     DrawRecursive(sorted[i], nextX, nextY, gap * 0.8, selected);
                 }
             }
@@ -490,12 +515,16 @@ namespace ExHyperV.Views.Components
             bool isCurrent = data.NodeType == SpacetimeNodeType.Current;
             var anchorGroup = new Grid { Width = 200, Height = 160, Cursor = Cursors.Hand, Tag = data, Background = null };
 
-            anchorGroup.MouseDown += (s, e) => {
-                if (!_isDragging && e.ChangedButton == MouseButton.Left && DataContext is VirtualMachinesPageViewModel vm)
+            // 改用 MouseLeftButtonUp 触发选中，且不 Handled，事件正常冒泡
+            anchorGroup.MouseLeftButtonUp += (s, e) => {
+                Debug.WriteLine($"[DRAG] *** Node MouseUp isDragging={_isDragging} " +
+                    $"node={(((Grid)s).Tag as SpacetimeNode)?.Name}");
+                // 拖动后的 MouseUp 不能触发选中，否则拖完之后会意外切换选中节点
+                if (!_isDragging && DataContext is VirtualMachinesPageViewModel vm)
                 {
                     vm.SelectedSpacetimeNode = (SpacetimeNode)((Grid)s).Tag;
-                    e.Handled = true;
                 }
+                // 不要 e.Handled = true
             };
 
             Brush currentBrush = TryFindResource("SystemAccentColorPrimaryBrush") as Brush ?? Brushes.DodgerBlue;
@@ -523,7 +552,7 @@ namespace ExHyperV.Views.Components
                 X2 = to.X,
                 Y2 = to.Y,
                 Stroke = TryFindResource("TextFillColorPrimaryBrush") as Brush ?? Brushes.Gray,
-                Opacity = 0.4,          // 从 0.25 提高到 0.4，白色主题下也看得清
+                Opacity = 0.4,
                 StrokeThickness = 1,
                 StrokeDashArray = new DoubleCollection { 4, 3 }
             };
@@ -533,64 +562,109 @@ namespace ExHyperV.Views.Components
 
         private void CenterOnSelectedNode()
         {
+            Debug.WriteLine($"[DRAG] !!! CenterOnSelectedNode isDragging={_isDragging} " +
+                $"selectedPos=({_selectedNodePos.X:F1},{_selectedNodePos.Y:F1}) " +
+                $"oldOffset=({SpacetimeScrollViewer.HorizontalOffset:F1},{SpacetimeScrollViewer.VerticalOffset:F1})");
+
             double targetX = _selectedNodePos.X > 0 ? _selectedNodePos.X : 120;
             double targetY = _selectedNodePos.Y > 0 ? _selectedNodePos.Y : SpacetimeCanvas.Height / 2;
             SpacetimeScrollViewer.ScrollToHorizontalOffset(targetX - (SpacetimeScrollViewer.ActualWidth / 2));
             SpacetimeScrollViewer.ScrollToVerticalOffset(targetY - (SpacetimeScrollViewer.ActualHeight / 2));
         }
+        private Point _lastMousePos;
+        private bool _hasLastPos = false;  // 唯一的状态：上一帧位置是否有效
 
-        private void CanvasContainer_MouseDown(object sender, MouseButtonEventArgs e) { _dragStartPos = e.GetPosition(this); _dragStartOffset = new Point(SpacetimeScrollViewer.HorizontalOffset, SpacetimeScrollViewer.VerticalOffset); _isDragging = false; }
+        private void CanvasContainer_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            _lastMousePos = e.GetPosition(this);
+            _hasLastPos = true;
+            _isDragging = false;
+            Debug.WriteLine($"[DRAG] === MouseDown === pos=({_lastMousePos.X:F1},{_lastMousePos.Y:F1})");
+        }
+
         private void CanvasContainer_MouseMove(object sender, MouseEventArgs e)
         {
-            if (e.LeftButton == MouseButtonState.Pressed ||
-                e.MiddleButton == MouseButtonState.Pressed ||
-                e.RightButton == MouseButtonState.Pressed)
+            // 任何按键都没按下 → 重置基准，下次按下才重新开始
+            if (e.LeftButton != MouseButtonState.Pressed &&
+                e.MiddleButton != MouseButtonState.Pressed &&
+                e.RightButton != MouseButtonState.Pressed)
             {
-                Point currentPos = e.GetPosition(this);
-                double deltaX = _dragStartPos.X - currentPos.X;
-                double deltaY = _dragStartPos.Y - currentPos.Y;
-
-                if (!_isDragging && (Math.Abs(deltaX) > 5 || Math.Abs(deltaY) > 5))
-                {
-                    _isDragging = true;
-                    CanvasContainer.CaptureMouse();
-                    CanvasContainer.Cursor = Cursors.SizeAll;
-
-                    // 拖动开始：关闭画布内所有子元素的命中测试，防止触发节点选中导致重绘
-                    SpacetimeCanvas.IsHitTestVisible = false;
-                }
-
-                if (_isDragging)
-                {
-                    SpacetimeScrollViewer.ScrollToHorizontalOffset(_dragStartOffset.X + deltaX);
-                    SpacetimeScrollViewer.ScrollToVerticalOffset(_dragStartOffset.Y + deltaY);
-                    e.Handled = true;
-                }
+                _hasLastPos = false;
+                _isDragging = false;
+                return;
             }
+
+            Point currentPos = e.GetPosition(this);
+
+            // 关键守卫：如果没有有效的上一帧位置（说明 MouseDown 没触发就来了 Move），
+            // 当前帧不动作，只记录位置，等下一帧用真实位移
+            if (!_hasLastPos)
+            {
+                _lastMousePos = currentPos;
+                _hasLastPos = true;
+                return;
+            }
+
+            double frameDeltaX = _lastMousePos.X - currentPos.X;
+            double frameDeltaY = _lastMousePos.Y - currentPos.Y;
+
+            // 单帧位移过大（超过 50 像素）= 异常，直接丢弃这一帧
+            // 正常人手单帧不可能移动这么多，这种数据一定是事件错乱导致
+            if (Math.Abs(frameDeltaX) > 50 || Math.Abs(frameDeltaY) > 50)
+            {
+                Debug.WriteLine($"[DRAG] !!! 异常位移 delta=({frameDeltaX:F1},{frameDeltaY:F1}) 已丢弃");
+                _lastMousePos = currentPos;
+                return;
+            }
+
+            if (!_isDragging)
+            {
+                if (Math.Abs(frameDeltaX) < 2 && Math.Abs(frameDeltaY) < 2)
+                    return;  // 抖动忽略，不更新基准
+
+                _isDragging = true;
+                CanvasContainer.CaptureMouse();
+                CanvasContainer.Cursor = Cursors.SizeAll;
+                SpacetimeCanvas.IsHitTestVisible = false;
+                Debug.WriteLine($"[DRAG] === DragStart === pos=({currentPos.X:F1},{currentPos.Y:F1}) delta=({frameDeltaX:F1},{frameDeltaY:F1})");
+            }
+
+            SpacetimeScrollViewer.ScrollToHorizontalOffset(
+                SpacetimeScrollViewer.HorizontalOffset + frameDeltaX);
+            SpacetimeScrollViewer.ScrollToVerticalOffset(
+                SpacetimeScrollViewer.VerticalOffset + frameDeltaY);
+
+            _lastMousePos = currentPos;
+            e.Handled = true;
         }
 
         private void CanvasContainer_MouseUp(object sender, MouseButtonEventArgs e)
         {
+            bool wasDragging = _isDragging;
+            _isDragging = false;
+            _hasLastPos = false;   // ← 关键：松开就清掉，下次必须重新 MouseDown 才能拖
+
             if (CanvasContainer.IsMouseCaptured)
             {
                 CanvasContainer.ReleaseMouseCapture();
                 CanvasContainer.Cursor = Cursors.Arrow;
-
-                // 拖动结束：恢复命中测试
-                SpacetimeCanvas.IsHitTestVisible = true;
-
-                if (_isDragging) e.Handled = true;
             }
-            _isDragging = false;
+
+            SpacetimeCanvas.IsHitTestVisible = true;
+            Debug.WriteLine($"[DRAG] === MouseUp === wasDragging={wasDragging}");
+
+            if (wasDragging) e.Handled = true;
         }
 
         private void CanvasContainer_MouseLeave(object sender, MouseEventArgs e)
         {
             if (CanvasContainer.IsMouseCaptured)
             {
+                _isDragging = false;
+                _hasLastPos = false;
                 CanvasContainer.ReleaseMouseCapture();
-                // 离开也要恢复
                 SpacetimeCanvas.IsHitTestVisible = true;
+                CanvasContainer.Cursor = Cursors.Arrow;
             }
         }
     }

@@ -3560,6 +3560,37 @@ namespace ExHyperV.ViewModels
         [ObservableProperty]
         private SpacetimeMode _selectedSpacetimeMode = SpacetimeMode.Continuous;
 
+        [ObservableProperty]
+        private bool _isCheckpointsEnabled = true;
+
+        // 防止 GoToSpacetimeSettings 加载时触发 setter 又去写回 Hyper-V
+        private bool _isLoadingCheckpointState = false;
+
+        partial void OnIsCheckpointsEnabledChanged(bool value)
+        {
+            if (_isLoadingCheckpointState || SelectedVm == null) return;
+
+            _ = Task.Run(async () =>
+            {
+                var result = await _spacetimeService.SetCheckpointsEnabledAsync(SelectedVm.Name, value);
+                if (!result.Success)
+                {
+                    // 失败时回滚 UI 状态
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        _isLoadingCheckpointState = true;
+                        IsCheckpointsEnabled = !value;
+                        _isLoadingCheckpointState = false;
+                        ShowSnackbar("操作失败", result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                    });
+                }
+                else
+                {
+                }
+            });
+        }
+
+
 
         /// <summary>
         /// 判定逻辑：只有选中的是真实的历史快照节点（非现世指针、非虚拟根节点）时，才允许执行穿梭、删除等操作。
@@ -3610,6 +3641,10 @@ namespace ExHyperV.ViewModels
             IsLoadingSettings = true;
             try
             {
+                _isLoadingCheckpointState = true;
+                IsCheckpointsEnabled = await _spacetimeService.GetCheckpointsEnabledAsync(SelectedVm.Name);
+                _isLoadingCheckpointState = false;
+
                 var nodes = await _spacetimeService.GetSpacetimeNodesAsync(SelectedVm.Name);
 
                 // --- 逻辑优化：处理纯净态（仅有起源和当前时空） ---

@@ -468,4 +468,86 @@ internal class VmSpacetimeService
         var match = Regex.Match(path, "InstanceID=\"([^\"]+)\"", RegexOptions.IgnoreCase);
         return match.Success ? match.Groups[1].Value : null;
     }
+
+    /// <summary>
+    /// 读取虚拟机的检查点功能是否启用（基于 UserSnapshotType）
+    /// UserSnapshotType: 2=Disabled, 3=Production, 4=ProductionOnly, 5=Standard
+    /// </summary>
+    public async Task<bool> GetCheckpointsEnabledAsync(string vmName)
+    {
+        try
+        {
+            string safeName = vmName.Replace("'", "''");
+            // 先拿 GUID
+            string vmWql = $"SELECT Name FROM Msvm_ComputerSystem WHERE ElementName = '{safeName}'";
+            var vmData = await WmiTools.QueryAsync(vmWql, obj => obj["Name"]?.ToString());
+            string? vmGuid = vmData.FirstOrDefault();
+            if (string.IsNullOrEmpty(vmGuid)) return true;
+
+            // 读取 Realized 配置上的 UserSnapshotType
+            string settingsWql = $"SELECT UserSnapshotType FROM Msvm_VirtualSystemSettingData " +
+                                 $"WHERE VirtualSystemIdentifier = '{vmGuid}' " +
+                                 $"AND VirtualSystemType = 'Microsoft:Hyper-V:System:Realized'";
+            var typeData = await WmiTools.QueryAsync(settingsWql, obj => obj["UserSnapshotType"]?.ToString());
+            string? typeStr = typeData.FirstOrDefault();
+
+            // 2 = Disabled，其他都视为启用
+            return typeStr != "2";
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[Spacetime] 读取检查点状态失败: {ex.Message}");
+            return true;
+        }
+    }
+
+    /// <summary>
+    /// 设置虚拟机的检查点开关（通过修改 UserSnapshotType）
+    /// </summary>
+    public async Task<(bool Success, string Message)> SetCheckpointsEnabledAsync(string vmName, bool enabled)
+    {
+        try
+        {
+            string safeName = vmName.Replace("'", "''");
+            // 1. 拿 GUID
+            string vmWql = $"SELECT Name FROM Msvm_ComputerSystem WHERE ElementName = '{safeName}'";
+            var vmData = await WmiTools.QueryAsync(vmWql, obj => obj["Name"]?.ToString());
+            string? vmGuid = vmData.FirstOrDefault();
+            if (string.IsNullOrEmpty(vmGuid)) return (false, "找不到虚拟机");
+
+            // 2. 拿 Realized SettingData 的 WMI Path
+            using var searcher = new ManagementObjectSearcher(@"root\virtualization\v2",
+                $"SELECT * FROM Msvm_VirtualSystemSettingData " +
+                $"WHERE VirtualSystemIdentifier = '{vmGuid}' " +
+                $"AND VirtualSystemType = 'Microsoft:Hyper-V:System:Realized'");
+            using var settingObj = searcher.Get().Cast<ManagementObject>().FirstOrDefault();
+            if (settingObj == null) return (false, "找不到虚拟机配置");
+
+            // 3. 修改 UserSnapshotType
+            // 启用：默认设为 Production (3)
+            // 禁用：Disabled (2)
+            settingObj["UserSnapshotType"] = enabled ? (byte)3 : (byte)2;
+
+            // 4. 通过 ManagementService.ModifySystemSettings 应用更改
+            using var svcSearcher = new ManagementObjectSearcher(@"root\virtualization\v2",
+                "SELECT * FROM Msvm_VirtualSystemManagementService");
+            using var svcInst = svcSearcher.Get().Cast<ManagementObject>().FirstOrDefault();
+            if (svcInst == null) return (false, "找不到 WMI 管理服务");
+
+            var inParams = svcInst.GetMethodParameters("ModifySystemSettings");
+            inParams["SystemSettings"] = settingObj.GetText(TextFormat.WmiDtd20);
+
+            var outParams = svcInst.InvokeMethod("ModifySystemSettings", inParams, null);
+            uint returnValue = (uint)outParams["ReturnValue"];
+
+            if (returnValue == 0 || returnValue == 4096)
+                return (true, enabled ? "已启用检查点" : "已禁用检查点");
+
+            return (false, $"操作失败: WMI 错误代码 {returnValue}");
+        }
+        catch (Exception ex)
+        {
+            return (false, $"操作异常: {ex.Message}");
+        }
+    }
 }
