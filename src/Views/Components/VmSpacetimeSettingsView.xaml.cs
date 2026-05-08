@@ -8,8 +8,10 @@ using System.Windows.Shapes;
 using System.Windows.Threading;
 using ExHyperV.Models;
 using ExHyperV.ViewModels;
+using Wpf.Ui.Appearance;
 using Brush = System.Windows.Media.Brush;
 using Brushes = System.Windows.Media.Brushes;
+using Color = System.Windows.Media.Color;
 using Cursors = System.Windows.Input.Cursors;
 
 namespace ExHyperV.Views.Components
@@ -67,6 +69,10 @@ namespace ExHyperV.Views.Components
             this.Loaded += (s, e) => {
                 if (_needsInitialCenter) RenderSpacetimeFlow();
             };
+            ApplicationThemeManager.Changed += (theme, color) =>
+            {
+                Dispatcher.Invoke(RenderSpacetimeFlow);
+            };
 
             CanvasContainer.PreviewMouseDown += CanvasContainer_MouseDown;
             CanvasContainer.PreviewMouseMove += CanvasContainer_MouseMove;
@@ -123,10 +129,15 @@ namespace ExHyperV.Views.Components
                 // 2. 预计算每个节点的叶子权重
                 int totalLeaves = CalculateLeafCounts(root.Id);
 
-                // 3. 【核心修复】计算实际需要的垂直空间
-                // 每个叶子占 200px 足够了，不再盲目使用 Canvas.Height
+                // 3. 动态扩展画布，防止内容溢出
                 double rowHeight = 200;
                 double requiredHeight = totalLeaves * rowHeight;
+
+                int maxDepth = CalculateMaxDepth(root.Id);
+                double requiredWidth = 150 + maxDepth * 280 + 300;
+
+                SpacetimeCanvas.Height = Math.Max(2000, requiredHeight + 400);
+                SpacetimeCanvas.Width = Math.Max(3000, requiredWidth);
 
                 // 计算起始位置使其在 Canvas 中间居中
                 double startY = (SpacetimeCanvas.Height - requiredHeight) / 2;
@@ -134,7 +145,6 @@ namespace ExHyperV.Views.Components
 
                 // 4. 开始递归绘图
                 DrawRecursiveStep(root, 150, startY, endY, vm.SelectedSpacetimeNode);
-
                 if (_needsInitialCenter)
                 {
                     _needsInitialCenter = false;
@@ -144,6 +154,13 @@ namespace ExHyperV.Views.Components
             finally { _isRendering = false; }
         }
 
+        private int CalculateMaxDepth(string nodeId)
+        {
+            if (!_treeMap.TryGetValue(nodeId, out var children) || children.Count == 0)
+                return 0;
+            return 1 + children.Max(c => CalculateMaxDepth(c.Id));
+        }
+
         private void ExportButton_Click(object sender, RoutedEventArgs e)
         {
             ExportTopologyAsImage();
@@ -151,46 +168,227 @@ namespace ExHyperV.Views.Components
 
         public void ExportTopologyAsImage()
         {
-            // 强制完成布局
-            SpacetimeCanvas.UpdateLayout();
-            SpacetimeCanvas.Measure(new Size(SpacetimeCanvas.Width, SpacetimeCanvas.Height));
-            SpacetimeCanvas.Arrange(new Rect(0, 0, SpacetimeCanvas.Width, SpacetimeCanvas.Height));
+            const double scale = 3.0;   // 真正的 3x 离屏绘制，非插值放大
+            const double padding = 100;
 
-            // 计算裁剪区域（有效内容 + 80px 边距）
-            const double padding = 80;
-            Rect crop = _contentBounds == Rect.Empty
-                ? new Rect(0, 0, SpacetimeCanvas.Width, SpacetimeCanvas.Height)
-                : new Rect(
-                    Math.Max(0, _contentBounds.X - padding),
-                    Math.Max(0, _contentBounds.Y - padding),
-                    Math.Min(SpacetimeCanvas.Width, _contentBounds.Width + padding * 2),
-                    Math.Min(SpacetimeCanvas.Height, _contentBounds.Height + padding * 2));
+            if (DataContext is not VirtualMachinesPageViewModel vm) return;
+            var spacetimeList = vm.SpacetimeNodes?.ToList();
+            if (spacetimeList == null || !spacetimeList.Any()) return;
 
-            // 渲染整个 Canvas
-            var fullBitmap = new RenderTargetBitmap(
-                (int)SpacetimeCanvas.Width, (int)SpacetimeCanvas.Height,
+            // ── 1. 在离屏 Canvas 上重绘，完全不碰界面 ──────────────────────────
+            var offCanvas = new Canvas
+            {
+                Width = SpacetimeCanvas.Width * scale,
+                Height = SpacetimeCanvas.Height * scale,
+                Background = Brushes.Transparent   // 透明背景
+            };
+
+            // 强制 Measure/Arrange，否则子元素 ActualWidth 全为 0
+            offCanvas.Measure(new Size(offCanvas.Width, offCanvas.Height));
+            offCanvas.Arrange(new Rect(0, 0, offCanvas.Width, offCanvas.Height));
+
+            // ── 2. 重新建树（复用已有的 _treeMap / _subtreeLeafCount）──────────
+            // 注意：这里不重建树，直接用现有数据重绘到离屏 Canvas
+            DrawOffscreen(offCanvas, spacetimeList, vm.SelectedSpacetimeNode, scale);
+
+            // 二次 Measure/Arrange，让新添加的子元素也完成布局
+            offCanvas.Measure(new Size(offCanvas.Width, offCanvas.Height));
+            offCanvas.Arrange(new Rect(0, 0, offCanvas.Width, offCanvas.Height));
+            offCanvas.UpdateLayout();
+
+            // ── 3. 计算裁剪区域（_contentBounds 是 1x 坐标，乘以 scale）────────
+            Rect crop;
+            if (_contentBounds == Rect.Empty)
+            {
+                crop = new Rect(0, 0, offCanvas.Width, offCanvas.Height);
+            }
+            else
+            {
+                double cx = Math.Max(0, (_contentBounds.X - padding) * scale);
+                double cy = Math.Max(0, (_contentBounds.Y - padding) * scale);
+                double cw = Math.Min(offCanvas.Width - cx, (_contentBounds.Width + padding * 2) * scale);
+                double ch = Math.Min(offCanvas.Height - cy, (_contentBounds.Height + padding * 2) * scale);
+                crop = new Rect(cx, cy, cw, ch);
+            }
+
+            // ── 4. 渲染离屏 Canvas → 位图（不影响界面任何元素）─────────────────
+            var rtb = new RenderTargetBitmap(
+                (int)offCanvas.Width, (int)offCanvas.Height,
                 96, 96, PixelFormats.Pbgra32);
-            fullBitmap.Render(SpacetimeCanvas);
+            rtb.Render(offCanvas);
 
-            // 裁剪到有效区域
-            var cropped = new CroppedBitmap(fullBitmap, new Int32Rect(
-                (int)crop.X, (int)crop.Y, (int)crop.Width, (int)crop.Height));
+            // ── 5. 裁剪 ──────────────────────────────────────────────────────────
+            var cropped = new CroppedBitmap(rtb, new Int32Rect(
+                (int)crop.X, (int)crop.Y,
+                (int)Math.Min(crop.Width, offCanvas.Width - crop.X),
+                (int)Math.Min(crop.Height, offCanvas.Height - crop.Y)));
 
-            // 弹出保存对话框
+            // ── 6. 保存 ──────────────────────────────────────────────────────────
             var dialog = new Microsoft.Win32.SaveFileDialog
             {
                 Title = "导出时空拓扑图",
                 Filter = "PNG 图片|*.png",
-                FileName = $"SpacetimeTopology_{DateTime.Now:yyyyMMdd_HHmmss}.png"
+                FileName = $"{vm.SelectedVm?.Name}_{vm.SelectedSpacetimeNode?.Name}_{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.png"
+            };
+            if (dialog.ShowDialog() != true) return;
+
+            using var stream = new FileStream(dialog.FileName, FileMode.Create);
+            var encoder = new PngBitmapEncoder();
+            encoder.Frames.Add(BitmapFrame.Create(cropped));
+            encoder.Save(stream);
+        }
+
+        /// <summary>
+        /// 在离屏 Canvas 上以 scale 倍坐标重新绘制整棵树，不触碰任何界面元素。
+        /// </summary>
+        private void DrawOffscreen(Canvas canvas, List<SpacetimeNode> nodes,
+                                   SpacetimeNode? selected, double scale)
+        {
+            // 重建树结构（离屏专用，不影响 _treeMap）
+            var treeMap = new Dictionary<string, List<SpacetimeNode>>();
+            var leafCount = new Dictionary<string, int>();
+
+            var root = nodes.FirstOrDefault(n => string.IsNullOrEmpty(n.ParentId))
+                       ?? nodes.FirstOrDefault(n => n.NodeType == SpacetimeNodeType.Genesis)
+                       ?? nodes.FirstOrDefault();
+            if (root == null) return;
+
+            foreach (var node in nodes)
+            {
+                if (string.IsNullOrEmpty(node.ParentId)) continue;
+                if (!treeMap.ContainsKey(node.ParentId)) treeMap[node.ParentId] = new();
+                treeMap[node.ParentId].Add(node);
+            }
+
+            // 计算叶子数
+            int CalcLeaves(string id)
+            {
+                if (!treeMap.TryGetValue(id, out var ch) || ch.Count == 0) { leafCount[id] = 1; return 1; }
+                int c = ch.Sum(x => CalcLeaves(x.Id));
+                leafCount[id] = c;
+                return c;
+            }
+            int total = CalcLeaves(root.Id);
+
+            double rowH = 200 * scale;
+            double required = total * rowH;
+            double startY = (canvas.Height - required) / 2;
+
+            // 递归绘制
+            void DrawStep(SpacetimeNode node, double x, double top, double bottom)
+            {
+                double midY = (top + bottom) / 2;
+                DrawOffscreenAnchor(canvas, new Point(x, midY), node, selected?.Id == node.Id, scale);
+
+                if (!treeMap.TryGetValue(node.Id, out var children)) return;
+                var sorted = children.OrderBy(c => c.CreatedDate).ToList();
+                double curTop = top;
+                double totalLeaves = leafCount[node.Id];
+
+                foreach (var child in sorted)
+                {
+                    double childLeaves = leafCount[child.Id];
+                    double sector = (childLeaves / totalLeaves) * (bottom - top);
+                    double nextX = x + 280 * scale;
+                    double childMidY = curTop + sector / 2;
+
+                    // 绘制连线
+                    var line = new Line
+                    {
+                        X1 = x,
+                        Y1 = midY,
+                        X2 = nextX,
+                        Y2 = childMidY,
+                        Stroke = new SolidColorBrush(Color.FromArgb(160, 120, 120, 120)), // 半透明灰，深浅主题都可见
+                        Opacity = 1.0,
+                        StrokeThickness = scale,
+                        StrokeDashArray = new DoubleCollection { 4, 3 }
+                    };
+                    Canvas.SetZIndex(line, 5);
+                    canvas.Children.Add(line);
+
+                    DrawStep(child, nextX, curTop, curTop + sector);
+                    curTop += sector;
+                }
+            }
+
+            DrawStep(root, 150 * scale, startY, startY + required);
+        }
+
+        private void DrawOffscreenAnchor(Canvas canvas, Point pos, SpacetimeNode data,
+                                          bool isSelected, double scale)
+        {
+            bool isCurrent = data.NodeType == SpacetimeNodeType.Current;
+
+            double cardW = 200 * scale;
+            double cardH = 160 * scale;
+            double previewW = 140 * scale;
+            double previewH = 80 * scale;
+
+            // 缩略图预览框
+            var previewBox = new Border
+            {
+                Width = previewW,
+                Height = previewH,
+                Background = Brushes.Black,
+                BorderBrush = isSelected
+                                ? new SolidColorBrush(Color.FromRgb(0, 120, 215))
+                                : isCurrent
+                                    ? new SolidColorBrush(Color.FromRgb(0, 120, 215))
+                                    : new SolidColorBrush(Color.FromRgb(80, 80, 80)),
+                BorderThickness = new Thickness(isSelected ? 3 * scale : scale),
+                CornerRadius = new CornerRadius(4 * scale),
+                ClipToBounds = true,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
             };
 
-            if (dialog.ShowDialog() == true)
+            if (data.Thumbnail != null)
+                previewBox.Background = new ImageBrush(data.Thumbnail) { Stretch = Stretch.UniformToFill };
+
+            // 标签底板
+            var labelBg = new Border
             {
-                using var stream = new FileStream(dialog.FileName, FileMode.Create);
-                var encoder = new PngBitmapEncoder();
-                encoder.Frames.Add(BitmapFrame.Create(cropped));
-                encoder.Save(stream);
-            }
+                Background = new SolidColorBrush(Color.FromArgb(180, 255, 255, 255)),
+                CornerRadius = new CornerRadius(3 * scale),
+                Padding = new Thickness(6 * scale, 2 * scale, 6 * scale, 2 * scale),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                MaxWidth = cardW - 10 * scale
+            };
+
+            var label = new TextBlock
+            {
+                Text = data.Name,
+                FontSize = 12 * scale,
+                FontWeight = isCurrent ? FontWeights.Bold : FontWeights.Normal,
+                Foreground = new SolidColorBrush(Color.FromRgb(20, 20, 20)),
+                TextAlignment = TextAlignment.Center,
+                Opacity = (isSelected || isCurrent) ? 1.0 : 0.85,
+                TextWrapping = TextWrapping.NoWrap,
+                TextTrimming = TextTrimming.CharacterEllipsis
+            };
+
+            labelBg.Child = label;
+
+            // 用 StackPanel 替代手动定位
+            var labelPanel = new StackPanel
+            {
+                Width = cardW,
+                VerticalAlignment = VerticalAlignment.Bottom,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                Margin = new Thickness(0, 0, 0, 8 * scale)
+            };
+            labelPanel.Children.Add(labelBg);
+
+            // 组合
+            var group = new Grid { Width = cardW, Height = cardH };
+            group.Children.Add(previewBox);
+            group.Children.Add(labelPanel);
+
+            Canvas.SetLeft(group, pos.X - cardW / 2);
+            Canvas.SetTop(group, pos.Y - cardH / 2);
+            Canvas.SetZIndex(group, isSelected ? 100 : isCurrent ? 80 : 50);
+            canvas.Children.Add(group);
         }
         private Rect _contentBounds = Rect.Empty;
 
@@ -294,13 +492,14 @@ namespace ExHyperV.Views.Components
                 }
             };
 
-            Brush statusBrush = isSelected ? (Brush)FindResource("SystemAccentColorPrimaryBrush") : (isCurrent ? Brushes.SpringGreen : Brushes.DimGray);
+            Brush currentBrush = TryFindResource("SystemAccentColorPrimaryBrush") as Brush ?? Brushes.DodgerBlue;
+            Brush statusBrush = isSelected ? currentBrush : (isCurrent ? currentBrush : (TryFindResource("TextFillColorTertiaryBrush") as Brush ?? Brushes.DimGray));
             var previewBox = new Border { Width = 140, Height = 80, Background = Brushes.Black, BorderBrush = statusBrush, BorderThickness = new Thickness(isSelected ? 3 : 1), CornerRadius = new CornerRadius(4), ClipToBounds = true, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
 
             if (data.Thumbnail != null) previewBox.Background = new ImageBrush(data.Thumbnail) { Stretch = Stretch.UniformToFill };
             anchorGroup.Children.Add(previewBox);
 
-            anchorGroup.Children.Add(new TextBlock { Text = data.Name, FontSize = 12, FontWeight = isCurrent ? FontWeights.Bold : FontWeights.Normal, Foreground = isCurrent ? Brushes.SpringGreen : (Brush)FindResource("TextFillColorPrimaryBrush"), Width = 180, TextAlignment = TextAlignment.Center, Margin = new Thickness(0, 105, 0, 0), HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center, Opacity = (isSelected || isCurrent) ? 1.0 : 0.6 });
+            anchorGroup.Children.Add(new TextBlock { Text = data.Name, FontSize = 12, FontWeight = isCurrent ? FontWeights.Bold : FontWeights.Normal, Foreground = (Brush)FindResource("TextFillColorPrimaryBrush"), Width = 180, TextAlignment = TextAlignment.Center, Margin = new Thickness(0, 105, 0, 0), HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center, Opacity = (isSelected || isCurrent) ? 1.0 : 0.6 });
 
             Canvas.SetLeft(anchorGroup, pos.X - 100);
             Canvas.SetTop(anchorGroup, pos.Y - 80);
@@ -311,7 +510,17 @@ namespace ExHyperV.Views.Components
 
         private void DrawTimeLine(Point from, Point to)
         {
-            var line = new Line { X1 = from.X, Y1 = from.Y, X2 = to.X, Y2 = to.Y, Stroke = Brushes.White, Opacity = 0.15, StrokeThickness = 1, StrokeDashArray = new DoubleCollection { 4, 3 } };
+            var line = new Line
+            {
+                X1 = from.X,
+                Y1 = from.Y,
+                X2 = to.X,
+                Y2 = to.Y,
+                Stroke = TryFindResource("TextFillColorPrimaryBrush") as Brush ?? Brushes.Gray,
+                Opacity = 0.4,          // 从 0.25 提高到 0.4，白色主题下也看得清
+                StrokeThickness = 1,
+                StrokeDashArray = new DoubleCollection { 4, 3 }
+            };
             Canvas.SetZIndex(line, 5);
             SpacetimeCanvas.Children.Add(line);
         }
