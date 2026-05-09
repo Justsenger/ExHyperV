@@ -382,7 +382,7 @@
                Padding="10,8" Command="{Binding ParallelSpacetimeCommand}">
                                 <StackPanel Orientation="Horizontal">
                                     <ui:SymbolIcon Symbol="Copy24" FontSize="16"/>
-                                    <TextBlock Text="平行时空" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                                    <TextBlock Text="开启平行时空" VerticalAlignment="Center" Margin="10,0,0,0"/>
                                 </StackPanel>
                             </ui:Button>
                             <ui:Button Margin="0,0,0,6" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
