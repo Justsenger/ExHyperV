@@ -253,6 +253,7 @@ namespace ExHyperV.ViewModels
 
         // 控制右侧界面切换
         [ObservableProperty] private bool _isCreatingVm = false;
+        [ObservableProperty] private string _creatingStatusText = string.Empty;
 
         // 当名称变化时，自动更新磁盘路径
         partial void OnNewVmNameChanged(string value)
@@ -674,13 +675,16 @@ namespace ExHyperV.ViewModels
             };
 
             // --- 3. 执行创建流程 ---
-            IsLoading = true; // 显示全屏遮罩
+            IsLoadingSettings = true;
+            CreatingStatusText = "正在创建虚拟机...";
+
             try
             {
                 var result = await _vmCreateService.CreateVirtualMachineAsync(request);
 
                 if (result.Success)
                 {
+                    CreatingStatusText = "正在启动虚拟机...";
                     string actualCreatedName = result.Message;
                     ShowSnackbar(
                          Properties.Resources.VmPage_CreateSuccess,
@@ -708,7 +712,8 @@ namespace ExHyperV.ViewModels
             }
             finally
             {
-                IsLoading = false;
+                IsLoadingSettings = false;
+                CreatingStatusText = string.Empty;
             }
         }
         // --- 辅助私有方法 ---

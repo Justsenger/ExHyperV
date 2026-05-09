@@ -276,5 +276,20 @@
             </Grid>
         </Border>
 
+        <!-- 创建中遮罩 -->
+        <Grid Grid.RowSpan="2" Panel.ZIndex="100"
+              Visibility="{Binding IsLoadingSettings, Converter={StaticResource BoolToVis}}">
+            <Border Background="{ui:ThemeResource ApplicationBackgroundBrush}" Opacity="0.85"/>
+            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                <ui:ProgressRing IsIndeterminate="True" Width="40" Height="40"
+                                 Foreground="{ui:ThemeResource SystemAccentColorPrimaryBrush}"/>
+                <TextBlock Text="{Binding CreatingStatusText}" 
+                           FontSize="14" FontWeight="SemiBold"
+                           Margin="0,16,0,0"
+                           HorizontalAlignment="Center"
+                           Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+            </StackPanel>
+        </Grid>
+
     </Grid>
 </UserControl>
