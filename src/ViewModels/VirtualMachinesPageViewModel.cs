@@ -603,17 +603,6 @@ namespace ExHyperV.ViewModels
             string rootPath = string.IsNullOrWhiteSpace(NewVmStoragePath) ? @"C:\Virtual Machines" : NewVmStoragePath;
             string targetVmDir = Path.Combine(rootPath, NewVmName);
 
-            // 检查：如果目标文件夹已存在且里面有文件，弹出警告（防止覆盖或混乱）
-            if (Directory.Exists(targetVmDir))
-            {
-                if (Directory.EnumerateFileSystemEntries(targetVmDir).Any())
-                {
-                    // 这里可以根据需求决定是阻断还是仅提示。通常建议阻断以防止文件冲突。
-                    ShowSnackbar(Properties.Resources.VmPage_CreateWarn, Properties.Resources.VmPage_TargetExist, ControlAppearance.Caution, SymbolRegular.Warning24);
-                    return;
-                }
-            }
-
             // --- 3. 磁盘模式深度验证 ---
             if (NewVmDiskMode == 0) // 新建磁盘
             {
@@ -738,6 +727,29 @@ namespace ExHyperV.ViewModels
         // ----------------------------------------------------------------------------------
 
         [RelayCommand]
+        private void OpenVmFolder(VmInstanceInfo vm)
+        {
+            if (vm == null) return;
+            try
+            {
+                var result = Utils.Run($"(Get-VM -Name '{vm.Name.Replace("'", "''")}').ConfigurationLocation");
+                string? path = result?.FirstOrDefault()?.ToString();
+                if (!string.IsNullOrEmpty(path) && Directory.Exists(path))
+                {
+                    System.Diagnostics.Process.Start("explorer.exe", path);
+                }
+                else
+                {
+                    ShowSnackbar("打开失败", "找不到虚拟机配置目录", ControlAppearance.Caution, SymbolRegular.Warning24);
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowSnackbar("打开失败", ex.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+            }
+        }
+
+        [RelayCommand]
         private async Task DeleteVmAsync(VmInstanceInfo vm)
         {
             if (vm == null) return;
@@ -763,6 +775,74 @@ namespace ExHyperV.ViewModels
             }
             finally { IsLoading = false; }
         }
+
+        [RelayCommand]
+        private async Task PurgeVmAsync(VmInstanceInfo vm)
+        {
+            if (vm == null) return;
+
+            // 二次确认弹窗
+            var dialog = new Wpf.Ui.Controls.MessageBox
+            {
+                Title = "彻底删除虚拟机",
+                Content = $"即将彻底删除「{vm.Name}」，包括所有虚拟硬盘文件和配置目录。\n\n⚠️ 请确认虚拟机配置目录中是否存在其他文件，删除后无法恢复！",
+                PrimaryButtonText = "彻底删除",
+                CloseButtonText = "取消",
+            };
+
+            var result = await dialog.ShowDialogAsync();
+            if (result != Wpf.Ui.Controls.MessageBoxResult.Primary) return;
+
+            IsLoading = true;
+            try
+            {
+                await Task.Run(() =>
+                {
+                    string safe = vm.Name.Replace("'", "''");
+
+                    // 1. 先收集所有磁盘路径和配置目录（删除前必须先查）
+                    var diskPaths = Utils.Run(
+                        $"Get-VMHardDiskDrive -VMName '{safe}' | Select-Object -ExpandProperty Path");
+                    var configLocation = Utils.Run(
+                        $"(Get-VM -Name '{safe}').ConfigurationLocation");
+
+                    // 2. 停止并删除虚拟机配置
+                    Utils.Run($"Stop-VM -Name '{safe}' -TurnOff -ErrorAction SilentlyContinue");
+                    Utils.Run($"Remove-VM -Name '{safe}' -Force -ErrorAction Stop");
+
+                    // 3. 删除所有 vhdx 文件
+                    foreach (var diskObj in diskPaths)
+                    {
+                        string? diskPath = diskObj?.ToString();
+                        if (string.IsNullOrEmpty(diskPath)) continue;
+                        try
+                        {
+                            if (File.Exists(diskPath))
+                                File.Delete(diskPath);
+                        }
+                        catch { }
+                    }
+
+                    // 4. 尝试删除虚拟机配置文件夹
+                    string? configDir = configLocation?.FirstOrDefault()?.ToString();
+                    if (!string.IsNullOrEmpty(configDir) && Directory.Exists(configDir))
+                    {
+                        try { Directory.Delete(configDir, recursive: true); }
+                        catch { }
+                    }
+                });
+
+                VmList.Remove(vm);
+                if (SelectedVm == vm) SelectedVm = VmList.FirstOrDefault();
+                ShowSnackbar("删除完成", $"「{vm.Name}」已彻底清除", ControlAppearance.Success, SymbolRegular.Delete24);
+            }
+            catch (Exception ex)
+            {
+                ShowSnackbar("删除失败", Utils.GetFriendlyErrorMessages(ex.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+            }
+            finally { IsLoading = false; }
+        }
+
         // 当选中的虚拟机发生变化时重置视图
         partial void OnSelectedVmChanged(VmInstanceInfo value)
         {

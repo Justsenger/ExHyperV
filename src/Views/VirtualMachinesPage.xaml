@@ -58,6 +58,15 @@
                 
                 <Border.ContextMenu>
                     <ContextMenu>
+                        <ui:MenuItem Header="打开文件夹"
+             Command="{Binding PlacementTarget.Tag.OpenVmFolderCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+             CommandParameter="{Binding}">
+                            <ui:MenuItem.Icon>
+                                <ui:SymbolIcon Symbol="FolderOpen24" />
+                            </ui:MenuItem.Icon>
+                        </ui:MenuItem>
+                        <Separator/>
+                        
                         <!-- 重命名选项 -->
                         <ui:MenuItem Header="{x:Static properties:Resources.Xaml_Rename}" 
                              Command="{Binding PlacementTarget.Tag.RenameVmCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
@@ -67,6 +76,16 @@
                             </ui:MenuItem.Icon>
                         </ui:MenuItem>
 
+                        <Separator/>
+                        <ui:MenuItem Header="彻底删除"
+             Command="{Binding PlacementTarget.Tag.PurgeVmCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+             CommandParameter="{Binding}"
+             Foreground="{ui:ThemeResource SystemFillColorCriticalBrush}">
+                            <ui:MenuItem.Icon>
+                                <ui:SymbolIcon Symbol="DeleteDismiss24" Foreground="{ui:ThemeResource SystemFillColorCriticalBrush}"/>
+                            </ui:MenuItem.Icon>
+                        </ui:MenuItem>
+                        
                         <!-- 删除选项 (重新添加) -->
                         <ui:MenuItem Header="{x:Static properties:Resources.Xaml_Delete}" 
                              Command="{Binding PlacementTarget.Tag.DeleteVmCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"

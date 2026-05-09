@@ -56,7 +56,7 @@ namespace ExHyperV.Services
 
         public async Task<(bool Success, string Message)> CreateVirtualMachineAsync(VmCreationParams p)
         {
-            string finalVmName = p.Name;
+            string finalVmName = p.IsManualName ? p.Name : GetUniqueVmName(p.Name, p.Path);
 
             return await Task.Run(() =>
             {
@@ -123,6 +123,27 @@ namespace ExHyperV.Services
                     return (false, ex.Message);
                 }
             });
+        }
+
+        private string GetUniqueVmName(string baseName, string basePath)
+        {
+            string candidate = baseName;
+            int i = 2;
+            while (Directory.Exists(Path.Combine(basePath, candidate)) || VmNameExists(candidate))
+            {
+                candidate = $"{baseName} ({i++})";
+            }
+            return candidate;
+        }
+
+        private bool VmNameExists(string name)
+        {
+            try
+            {
+                var result = Utils.Run($"Get-VM -Name '{name.Replace("'", "''")}' -ErrorAction SilentlyContinue");
+                return result != null && result.Count > 0;
+            }
+            catch { return false; }
         }
     }
 }
