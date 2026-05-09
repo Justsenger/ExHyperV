@@ -100,7 +100,15 @@ internal class VmSpacetimeService
             }
 
             var genesisNode = new SpacetimeNode { Id = SpacetimeNode.GenesisId, Name = "起源", NodeType = SpacetimeNodeType.Genesis, CreatedDate = genesisTime, Thumbnail = genesisThumbnail };
-            var currentNode = new SpacetimeNode { Id = SpacetimeNode.CurrentId, Name = "当前", NodeType = SpacetimeNodeType.Current, IsCurrent = true, CreatedDate = DateTime.Now, Thumbnail = await VmThumbnailProvider.GetThumbnailAsync(vmName, 280, 160) };
+            var currentNode = new SpacetimeNode
+            {
+                Id = SpacetimeNode.CurrentId,
+                Name = "当前",
+                NodeType = SpacetimeNodeType.Current,
+                IsCurrent = true,
+                CreatedDate = DateTime.Now,
+                Thumbnail = null  // 先占位，后面并行填充
+            };
 
             foreach (var s in snapshots)
                 if (string.IsNullOrEmpty(s.ParentId)) s.ParentId = SpacetimeNode.GenesisId;
@@ -117,10 +125,15 @@ internal class VmSpacetimeService
             result.AddRange(snapshots);
             result.Add(currentNode);
 
-            // 虫洞检测：扫描挂载状态，标记对应节点
-            await DetectAndMarkWormholeAsync(vmName, result);
+            // 缩略图同步等待（很快）
+            var thumbTask = VmThumbnailProvider.GetThumbnailAsync(vmName, 280, 160);
+            currentNode.Thumbnail = await thumbTask;
+
+            // 虫洞检测完全放后台，跑完自动通过 IsWormhole 属性通知 UI
+            _ = Task.Run(async () => await DetectAndMarkWormholeAsync(vmName, result));
 
             return result;
+
         }
         catch (Exception ex) { Debug.WriteLine($"时空检索失败: {ex.Message}"); return new List<SpacetimeNode>(); }
     }
@@ -232,8 +245,13 @@ internal class VmSpacetimeService
 
     public async Task<(bool Success, string Message)> OpenWormholeAsync(string vmName, SpacetimeNode targetNode)
     {
+        var existingWormhole = await CheckAnyWormholeExistsAsync(vmName);
+        if (existingWormhole)
+            return (false, "当前时空中已存在虫洞，请先关闭现有虫洞后再开启新的，否则将引发时空悖论");
+
         if (await IsNodeInCurrentChainAsync(vmName, targetNode.VhdPath))
             return (false, "该节点是当前时空的父链节点，开启虫洞会导致时空悖论");
+
         if (targetNode.NodeType != SpacetimeNodeType.Snapshot) return (false, "只能对快照节点开启虫洞");
         if (string.IsNullOrEmpty(targetNode.VhdPath)) return (false, "快照磁盘路径无效");
         if (targetNode.IsWormhole) return (false, "该节点已有虫洞开启中");
@@ -285,7 +303,21 @@ internal class VmSpacetimeService
         }
     }
 
+    private async Task<bool> CheckAnyWormholeExistsAsync(string vmName)
+    {
+        try
+        {
+            string safe = vmName.Replace("'", "''");
+            var drives = await Utils.Run2(
+                $"Get-VMHardDiskDrive -VMName '{safe}' | " +
+                $"Where-Object {{ $_.ControllerType -eq 'SCSI' }} | " +
+                $"Select-Object -ExpandProperty Path");
 
+            return drives.Any(o =>
+                o?.ToString()?.Contains("_wormhole_tmp", StringComparison.OrdinalIgnoreCase) == true);
+        }
+        catch { return false; }
+    }
     private async Task<bool> IsNodeInCurrentChainAsync(string vmName, string targetVhdPath)
     {
         try

@@ -53,10 +53,11 @@ namespace ExHyperV.Views.Components
             _liveTimer.Start();
 
             this.DataContextChanged += (s, e) => {
-                Debug.WriteLine($"[DRAG] !!! DataContextChanged isDragging={_isDragging} " +
-                    $"oldOffset=({SpacetimeScrollViewer.HorizontalOffset:F1},{SpacetimeScrollViewer.VerticalOffset:F1})");
-
-                if (_boundVm != null) _boundVm.PropertyChanged -= OnVmPropertyChanged;
+                if (_boundVm != null)
+                {
+                    _boundVm.PropertyChanged -= OnVmPropertyChanged;
+                    UnsubscribeNodeEvents(_boundVm.SpacetimeNodes); // ★ 新增
+                }
 
                 if (DataContext is VirtualMachinesPageViewModel vm)
                 {
@@ -87,6 +88,8 @@ namespace ExHyperV.Views.Components
             if (e.PropertyName == nameof(VirtualMachinesPageViewModel.SpacetimeNodes))
             {
                 Debug.WriteLine($"[DRAG] !!! SpacetimeNodes changed -> RenderSpacetimeFlow (isDragging={_isDragging})");
+                UnsubscribeNodeEvents(_boundVm?.SpacetimeNodes); // ★ 先解绑旧的
+                SubscribeNodeEvents(_boundVm?.SpacetimeNodes);   // ★ 再绑定新的
                 RenderSpacetimeFlow();
             }
             else if (e.PropertyName == nameof(VirtualMachinesPageViewModel.SelectedSpacetimeNode))
@@ -588,18 +591,34 @@ namespace ExHyperV.Views.Components
                 }
                 if (wPos == null) continue;
 
-                var line = new Line
+                // 底层：黑色粗实线（作为间隔色背景）
+                var lineBlack = new Line
                 {
                     X1 = wPos.Value.X,
                     Y1 = wPos.Value.Y,
                     X2 = _currentNodePos.X,
                     Y2 = _currentNodePos.Y,
-                    Stroke = new SolidColorBrush(Color.FromRgb(180, 0, 255)),
-                    StrokeThickness = 2,
-                    Opacity = 0.85,
+                    Stroke = new SolidColorBrush(Color.FromRgb(30, 30, 30)),
+                    StrokeThickness = 6,
+                    Opacity = 0.9,
                 };
-                Canvas.SetZIndex(line, 10);
-                SpacetimeCanvas.Children.Add(line);
+                Canvas.SetZIndex(lineBlack, 9);
+                SpacetimeCanvas.Children.Add(lineBlack);
+
+                // 上层：黄色虚线，与黑色底层叠加形成警戒线
+                var lineYellow = new Line
+                {
+                    X1 = wPos.Value.X,
+                    Y1 = wPos.Value.Y,
+                    X2 = _currentNodePos.X,
+                    Y2 = _currentNodePos.Y,
+                    Stroke = new SolidColorBrush(Color.FromRgb(255, 210, 0)),
+                    StrokeThickness = 6,
+                    Opacity = 0.95,
+                    StrokeDashArray = new DoubleCollection { 6, 6 },
+                };
+                Canvas.SetZIndex(lineYellow, 10);
+                SpacetimeCanvas.Children.Add(lineYellow);
             }
         }
         private void CenterOnSelectedNode()
@@ -708,6 +727,39 @@ namespace ExHyperV.Views.Components
                 SpacetimeCanvas.IsHitTestVisible = true;
                 CanvasContainer.Cursor = Cursors.Arrow;
             }
+        }
+        private void SubscribeNodeEvents(IEnumerable<SpacetimeNode>? nodes)
+        {
+            if (nodes == null) return;
+            foreach (var node in nodes)
+                node.PropertyChanged += OnNodePropertyChanged;
+        }
+
+        private void UnsubscribeNodeEvents(IEnumerable<SpacetimeNode>? nodes)
+        {
+            if (nodes == null) return;
+            foreach (var node in nodes)
+                node.PropertyChanged -= OnNodePropertyChanged;
+        }
+
+        private void OnNodePropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName != nameof(SpacetimeNode.IsWormhole)) return;
+
+            Dispatcher.Invoke(() =>
+            {
+                // 只清掉虫洞线（ZIndex 9 和 10），不重绘整个画布
+                var toRemove = SpacetimeCanvas.Children
+                    .OfType<Line>()
+                    .Where(l => Canvas.GetZIndex(l) == 9 || Canvas.GetZIndex(l) == 10)
+                    .ToList();
+                foreach (var l in toRemove)
+                    SpacetimeCanvas.Children.Remove(l);
+
+                // 重画虫洞线 + 刷新节点边框颜色
+                DrawWormholeLines();
+                RefreshSelectionStyle();
+            });
         }
     }
 }

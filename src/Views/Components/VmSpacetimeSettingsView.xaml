@@ -59,17 +59,30 @@
            Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
 
                 <!-- 检查点开关 -->
-                <ui:ToggleSwitch Margin="20,0,0,0" 
-                 IsChecked="{Binding IsCheckpointsEnabled, Mode=TwoWay}" 
-                 VerticalAlignment="Center"/>
+                <Border BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" 
+        BorderThickness="1" CornerRadius="6" Padding="10,4"
+        Margin="20,0,0,0" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="检查点" FontSize="12" 
+                   Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"
+                   VerticalAlignment="Center" Margin="0,0,10,0"/>
+                        <ui:ToggleSwitch IsChecked="{Binding IsCheckpointsEnabled, Mode=TwoWay}" 
+                 VerticalAlignment="Center"
+                 RenderTransformOrigin="0.5,0.5">
+                            <ui:ToggleSwitch.RenderTransform>
+                                <ScaleTransform ScaleX="0.85" ScaleY="0.85"/>
+                            </ui:ToggleSwitch.RenderTransform>
+                        </ui:ToggleSwitch>
+                    </StackPanel>
+                </Border>
             </StackPanel>
             
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                 <!-- 新增：导出按钮 -->
-                <ui:Button Appearance="Primary" Padding="12,8" Margin="0,0,8,0"
-                   Click="ExportButton_Click">
+                <ui:Button Appearance="Transparent" Padding="12,8" Margin="0,0,8,0"
+           Click="ExportButton_Click">
                     <StackPanel Orientation="Horizontal">
-                        <ui:SymbolIcon Symbol="ArrowExportUp24" FontSize="16"/>
+                        <ui:SymbolIcon Symbol="Save24" FontSize="16"/>
                         <TextBlock Text="导出拓扑图" VerticalAlignment="Center" Margin="8,0,0,0"/>
                     </StackPanel>
                 </ui:Button>
@@ -367,7 +380,7 @@
                             <ui:Button Margin="0,0,0,6" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
                Padding="10,8" Command="{Binding TeleportCommand}">
                                 <StackPanel Orientation="Horizontal">
-                                    <ui:SymbolIcon Symbol="ArrowClockwise24" FontSize="16"/>
+                                    <ui:SymbolIcon Symbol="PersonRunning20" FontSize="16"/>
                                     <TextBlock Text="穿梭" VerticalAlignment="Center" Margin="10,0,0,0"/>
                                 </StackPanel>
                             </ui:Button>
@@ -381,19 +394,24 @@
                             <ui:Button Margin="0,0,0,6" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
                Padding="10,8" Command="{Binding ParallelSpacetimeCommand}">
                                 <StackPanel Orientation="Horizontal">
-                                    <ui:SymbolIcon Symbol="Copy24" FontSize="16"/>
-                                    <TextBlock Text="开启平行时空" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                                    <ui:SymbolIcon Symbol="BranchFork24" FontSize="16"/>
+                                    <TextBlock Text="开启平行宇宙" VerticalAlignment="Center" Margin="10,0,0,0"/>
                                 </StackPanel>
                             </ui:Button>
                             <ui:Button Margin="0,0,0,6" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
                Padding="10,8" Command="{Binding ConvergenceCommand}">
                                 <StackPanel Orientation="Horizontal">
-                                    <ui:SymbolIcon Symbol="Merge24" FontSize="16"/>
+                                    <ui:SymbolIcon Symbol="ArrowReply24" FontSize="16"/>
                                     <TextBlock Text="时间线收束" VerticalAlignment="Center" Margin="10,0,0,0"/>
                                 </StackPanel>
                             </ui:Button>
                             <ui:Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
-               Padding="10,8" Appearance="Danger" Command="{Binding AnnihilateCommand}">
+           Padding="10,8" Appearance="Danger" Command="{Binding AnnihilateCommand}">
+                                <ui:Button.Style>
+                                    <Style TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
+                                        <Setter Property="Foreground" Value="White"/>
+                                    </Style>
+                                </ui:Button.Style>
                                 <StackPanel Orientation="Horizontal">
                                     <ui:SymbolIcon Symbol="Delete24" FontSize="16"/>
                                     <TextBlock Text="删除" VerticalAlignment="Center" Margin="10,0,0,0"/>
