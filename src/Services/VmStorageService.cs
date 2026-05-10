@@ -1,6 +1,5 @@
 ﻿using System.IO;
 using System.Text.RegularExpressions;
-using DiscUtils.Iso9660;
 using ExHyperV.Models;
 using ExHyperV.Tools;
 using Microsoft.Management.Infrastructure;
@@ -541,99 +540,38 @@ namespace ExHyperV.Services
         // ISO 镜像生成：将本地目录打包为标准镜像
         // ============================================================
 
-        // 使用 DiscUtils 库将指定的本地文件夹打包成符合 ISO 9660 / Joliet 标准的镜像文件
         private async Task<(bool Success, string Message)> CreateIsoFromDirectoryAsync(string sourceDirectory, string targetIsoPath, string volumeLabel)
         {
             var sourceDirInfo = new DirectoryInfo(sourceDirectory);
             if (!sourceDirInfo.Exists) return (false, "Iso_Error_SourceDirNotFound");
 
-            const long MaxFileSize = 4294967295;
-            const int MaxFileNameLength = 103;
-            const int MaxPathLength = 240;
-            const int MaxDirectoryDepth = 8;
-            const int MaxVolumeLabelLength = 31;
-            const long MaxTotalSize = 8796093022208;
-
-            string finalVolumeLabel = string.IsNullOrWhiteSpace(volumeLabel)
-                ? sourceDirInfo.Name
-                : volumeLabel;
-
-            if (finalVolumeLabel.Length > MaxVolumeLabelLength)
-                return (false, "Iso_Error_VolumeLabelTooLong");
-
+            // 简单处理卷标
+            string finalVolumeLabel = string.IsNullOrWhiteSpace(volumeLabel) ? sourceDirInfo.Name : volumeLabel;
             finalVolumeLabel = Regex.Replace(finalVolumeLabel, @"[^A-Za-z0-9_\- ]", "_");
-            if (string.IsNullOrEmpty(finalVolumeLabel))
-                finalVolumeLabel = "NewISO";
+            if (string.IsNullOrEmpty(finalVolumeLabel)) finalVolumeLabel = "NewISO";
 
             return await Task.Run(() => {
                 try
                 {
-                    var allItems = Directory.EnumerateFileSystemEntries(sourceDirectory, "*", SearchOption.AllDirectories).ToList();
-
-                    if (allItems.Count == 0)
-                        return (false, "Iso_Error_SourceDirEmpty");
-
-                    long totalSize = 0;
-
-                    foreach (var item in allItems)
-                    {
-                        string relativePath = Path.GetRelativePath(sourceDirInfo.FullName, item);
-                        string fileName = Path.GetFileName(item);
-
-                        if (fileName.Length > MaxFileNameLength)
-                            return (false, $"Iso_Error_FileNameTooLong");
-
-                        if (relativePath.Length > MaxPathLength)
-                            return (false, $"Iso_Error_PathTooLong");
-
-                        int depth = relativePath.Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries).Length;
-
-                        if (File.Exists(item))
-                        {
-                            var fileInfo = new FileInfo(item);
-                            if (depth - 1 >= MaxDirectoryDepth)
-                                return (false, "Iso_Error_FileDepthTooDeep");
-                            if (fileInfo.Length >= MaxFileSize)
-                                return (false, "Iso_Error_FileTooLarge");
-
-                            totalSize += fileInfo.Length;
-                            if (totalSize >= MaxTotalSize)
-                                return (false, "Iso_Error_TotalSizeTooLarge");
-                        }
-                        else if (Directory.Exists(item))
-                        {
-                            if (depth > MaxDirectoryDepth)
-                                return (false, "Iso_Error_DirectoryDepthTooDeep");
-                        }
-                    }
-
+                    // 确保输出目录存在
                     var targetDir = Path.GetDirectoryName(targetIsoPath);
                     if (!string.IsNullOrEmpty(targetDir) && !Directory.Exists(targetDir))
                     {
                         Directory.CreateDirectory(targetDir);
                     }
 
-                    var builder = new CDBuilder
-                    {
-                        UseJoliet = true,
-                        VolumeIdentifier = finalVolumeLabel
-                    };
+                    // 调用IMAPI2 工具类
+                    ExHyperV.Tools.ImapiIsoTool.BuildUdfIso(sourceDirectory, targetIsoPath, finalVolumeLabel);
 
-                    foreach (var file in Directory.GetFiles(sourceDirectory, "*", SearchOption.AllDirectories))
-                    {
-                        builder.AddFile(Path.GetRelativePath(sourceDirectory, file), file);
-                    }
-
-                    builder.Build(targetIsoPath);
                     return (true, "Iso_Msg_CreateSuccess");
                 }
                 catch (Exception ex)
                 {
+                    // 如果报错，返回具体的异常信息
                     return (false, $"Iso_Error_BuildFailed: {ex.Message}");
                 }
             });
         }
-
         // ============================================================
         // 底层辅助工具：PowerShell 执行与脚本封装
         // ============================================================

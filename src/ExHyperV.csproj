@@ -25,9 +25,6 @@
     <!-- =================================================================== -->
     <ItemGroup>
         <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
-        <PackageReference Include="DiscUtils.Core" Version="0.16.13" />
-        <PackageReference Include="DiscUtils.Iso9660" Version="0.16.13" />
-        <PackageReference Include="DiscUtils.Streams" Version="0.16.13" />
         <PackageReference Include="Microsoft.PowerShell.SDK" Version="7.4.0" />
         <PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.135" />
         <PackageReference Include="RoyalApps.Community.Rdp.WinForms" Version="1.4.0" />
@@ -48,6 +45,17 @@
       <None Remove="UserScripts\configure_system.sh" />
       <None Remove="UserScripts\Ubuntu-22.04-Micro-ATP.sh" />
       <None Remove="UserScripts\Ubuntu-22.04-Official.sh" />
+    </ItemGroup>
+    <ItemGroup>
+      <COMReference Include="IMAPI2FS">
+        <WrapperTool>tlbimp</WrapperTool>
+        <VersionMinor>0</VersionMinor>
+        <VersionMajor>1</VersionMajor>
+        <Guid>2c941fd0-975b-59be-a960-9a2a262853a5</Guid>
+        <Lcid>0</Lcid>
+        <Isolated>false</Isolated>
+        <EmbedInteropTypes>true</EmbedInteropTypes>
+      </COMReference>
     </ItemGroup>
 
     <!-- =================================================================== -->
