@@ -82,7 +82,23 @@ internal class VmSpacetimeService
                 if (!string.IsNullOrEmpty(currentVhdPath))
                 {
                     string genesisPath = await Task.Run(() => TraceToGenesisPath(currentVhdPath));
-                    if (File.Exists(genesisPath)) genesisTime = File.GetLastWriteTime(genesisPath);
+                    if (File.Exists(genesisPath))
+                    {
+                        var fi = new FileInfo(genesisPath);
+                        // 优先用创建时间，但创建时间在跨盘复制后会被重置
+                        // 所以取 CreationTime 和 LastWriteTime 中更早的那个，再和快照链兜底对比
+                        var candidate = fi.CreationTime < fi.LastWriteTime
+                            ? fi.CreationTime
+                            : fi.LastWriteTime;
+
+                        // 不能晚于最早快照（保证起源永远在最前面）
+                        if (snapshots.Any())
+                            candidate = candidate < snapshots.Min(s => s.CreatedDate)
+                                ? candidate
+                                : snapshots.Min(s => s.CreatedDate).AddMinutes(-1);
+
+                        genesisTime = candidate;
+                    }
                 }
             }
 
@@ -631,7 +647,7 @@ internal class VmSpacetimeService
         {
             string? snapshotDir = await GetSnapshotDirectoryAsync(vmName);
             if (!string.IsNullOrEmpty(snapshotDir)) DeleteThumbnailFile(snapshotDir, node.Id);
-            return (true, "时间线收束中...");
+            return (true, "时空收束中...");
         }
         return (false, $"收束失败: {result.Message}");
     }

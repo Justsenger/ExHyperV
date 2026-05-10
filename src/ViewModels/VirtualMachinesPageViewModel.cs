@@ -3297,7 +3297,7 @@ namespace ExHyperV.ViewModels
                                         AppendLog("Detected single Linux partition. Automating environment preparation...");
 
                                         // 异步启动 Linux 准备工作流（即你点击列表项时触发的逻辑）
-                                        _ = Task.Run(async () => await SelectPartitionAndContinueCommand.ExecuteAsync(singlePart));
+                                        await SelectPartitionAndContinue(singlePart);
 
                                         return; // 退出当前循环，由 SelectPartitionAndContinue 接管后续逻辑
                                     }
@@ -3390,7 +3390,7 @@ namespace ExHyperV.ViewModels
             }
             else if (partition.OsType == OperatingSystemType.Linux)
             {
-                SelectedPartition = partition;
+                _selectedPartition = partition;
                 IsLoadingSettings = true;
 
                 // UI 状态转换：保持卡片开启，但切换到 SSH 表单 Grid
@@ -3908,10 +3908,10 @@ namespace ExHyperV.ViewModels
         [RelayCommand(CanExecute = nameof(CanOperateHistoricalNode))]
         private void ParallelSpacetime()
         {
-            ShowSnackbar("功能研发中", "平行时空：正在基于此锚点导出并衍生新的虚拟机实例", ControlAppearance.Info, SymbolRegular.Copy24);
+            ShowSnackbar("功能研发中", "平行时空：基于此时空创建新的虚拟机实例", ControlAppearance.Info, SymbolRegular.Copy24);
         }
 
-        // 时间线收束
+        // 时空收束
         [RelayCommand(CanExecute = nameof(CanOperateHistoricalNode))]
         private async Task Convergence()
         {

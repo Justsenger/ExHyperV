@@ -404,7 +404,7 @@
                Padding="10,8" Command="{Binding ConvergenceCommand}">
                                 <StackPanel Orientation="Horizontal">
                                     <ui:SymbolIcon Symbol="ArrowReply24" FontSize="16"/>
-                                    <TextBlock Text="时间线收束" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                                    <TextBlock Text="时空收束" VerticalAlignment="Center" Margin="10,0,0,0"/>
                                 </StackPanel>
                             </ui:Button>
                             <ui:Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"

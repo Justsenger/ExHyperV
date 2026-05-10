@@ -50,8 +50,61 @@
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
             <StackPanel Margin="0,0,12,0">
 
+                <!-- 任务清单 -->
+                <ItemsControl ItemsSource="{Binding GpuTasks}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type models:TaskItem}">
+                            <Border x:Name="TaskBorder" Margin="0,0,0,8" Padding="16,12" CornerRadius="8" 
+                                    Background="{ui:ThemeResource ControlFillColorDefaultBrush}" 
+                                    BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" 
+                                    BorderThickness="1">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="42"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <Grid Grid.Column="0" VerticalAlignment="Center" HorizontalAlignment="Left">
+                                        <ui:FontIcon x:Name="IconPending" Glyph="&#xEA3A;" FontSize="18" FontFamily="{DynamicResource SegoeFluentIcons}" Foreground="{ui:ThemeResource TextFillColorDisabledBrush}" Visibility="Collapsed"/>
+                                        <ui:ProgressRing x:Name="IconRunning" IsIndeterminate="True" Width="18" Height="18" Visibility="Collapsed"/>
+                                        <ui:FontIcon x:Name="IconSuccess" Glyph="&#xEC61;" FontSize="20" FontFamily="{DynamicResource SegoeFluentIcons}" Foreground="#FF008A17" Visibility="Collapsed"/>
+                                        <ui:FontIcon x:Name="IconFailed" Glyph="&#xEB90;" FontSize="20" FontFamily="{DynamicResource SegoeFluentIcons}" Foreground="Red" Visibility="Collapsed"/>
+                                    </Grid>
+
+                                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="2,0,0,0">
+                                        <TextBlock x:Name="NameTxt" Text="{Binding Name}" FontSize="15" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                                        <TextBlock x:Name="DescTxt" Text="{Binding Description}" FontSize="12" Margin="0,4,0,0" TextWrapping="Wrap" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+
+                            <DataTemplate.Triggers>
+                                <DataTrigger Binding="{Binding Status}" Value="Pending">
+                                    <Setter TargetName="IconPending" Property="Visibility" Value="Visible"/>
+                                    <Setter TargetName="NameTxt" Property="Foreground" Value="{ui:ThemeResource TextFillColorDisabledBrush}"/>
+                                    <Setter TargetName="DescTxt" Property="Foreground" Value="{ui:ThemeResource TextFillColorDisabledBrush}"/>
+                                    <Setter TargetName="TaskBorder" Property="Opacity" Value="0.6"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding Status}" Value="Running">
+                                    <Setter TargetName="IconRunning" Property="Visibility" Value="Visible"/>
+                                    <Setter TargetName="TaskBorder" Property="Background" Value="{ui:ThemeResource ControlFillColorSecondaryBrush}"/>
+                                    <Setter TargetName="TaskBorder" Property="BorderBrush" Value="{ui:ThemeResource ControlStrongFillColorDefaultBrush}"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding Status}" Value="Success">
+                                    <Setter TargetName="IconSuccess" Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding Status}" Value="Failed">
+                                    <Setter TargetName="IconFailed" Property="Visibility" Value="Visible"/>
+                                    <Setter TargetName="DescTxt" Property="Foreground" Value="#C42B1C"/>
+                                </DataTrigger>
+                            </DataTemplate.Triggers>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+
                 <!-- ✅ 交互层：分区选择/SSH 面板 -->
-                <ui:Card Margin="0,0,0,24" Padding="0" 
+                <ui:Card Margin="0,16,0,0" Padding="0" 
                          Visibility="{Binding ShowPartitionSelector, Converter={StaticResource BoolToVis}}">
                     <Grid>
                         <!-- 1. 分区列表界面 -->
@@ -170,7 +223,7 @@
                                         </Border>
                                     </StackPanel>
                                 </ui:Card>
-                                
+
                                 <!-- 主机 IP 与 端口 -->
                                 <Grid Margin="0,0,0,15">
                                     <Grid.ColumnDefinitions>
@@ -204,7 +257,7 @@
                                         <ui:PasswordBox Password="{Binding SshPassword, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
                                     </StackPanel>
                                 </Grid>
-                                
+
                                 <!-- 图形驱动选项 -->
                                 <CheckBox Content="{x:Static properties:Resources.CheckBox_InstallGraphicsDrivers}" IsChecked="{Binding InstallGraphics}" Margin="0,0,0,20"/>
 
@@ -260,7 +313,7 @@
 
                                     </Grid>
                                 </Border>
-                                
+
                                 <!-- 底部按钮 -->
                                 <Grid>
                                     <Grid.ColumnDefinitions>
@@ -275,60 +328,9 @@
                     </Grid>
                 </ui:Card>
 
-                <!-- 任务清单 (保持不变) -->
-                <ItemsControl ItemsSource="{Binding GpuTasks}">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate DataType="{x:Type models:TaskItem}">
-                            <Border x:Name="TaskBorder" Margin="0,0,0,8" Padding="16,12" CornerRadius="8" 
-                                    Background="{ui:ThemeResource ControlFillColorDefaultBrush}" 
-                                    BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" 
-                                    BorderThickness="1">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="42"/>
-                                        <ColumnDefinition Width="*"/>
-                                    </Grid.ColumnDefinitions>
 
-                                    <Grid Grid.Column="0" VerticalAlignment="Center" HorizontalAlignment="Left">
-                                        <ui:FontIcon x:Name="IconPending" Glyph="&#xEA3A;" FontSize="18" FontFamily="{DynamicResource SegoeFluentIcons}" Foreground="{ui:ThemeResource TextFillColorDisabledBrush}" Visibility="Collapsed"/>
-                                        <ui:ProgressRing x:Name="IconRunning" IsIndeterminate="True" Width="18" Height="18" Visibility="Collapsed"/>
-                                        <ui:FontIcon x:Name="IconSuccess" Glyph="&#xEC61;" FontSize="20" FontFamily="{DynamicResource SegoeFluentIcons}" Foreground="#FF008A17" Visibility="Collapsed"/>
-                                        <ui:FontIcon x:Name="IconFailed" Glyph="&#xEB90;" FontSize="20" FontFamily="{DynamicResource SegoeFluentIcons}" Foreground="Red" Visibility="Collapsed"/>
-                                    </Grid>
-
-                                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="2,0,0,0">
-                                        <TextBlock x:Name="NameTxt" Text="{Binding Name}" FontSize="15" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
-                                        <TextBlock x:Name="DescTxt" Text="{Binding Description}" FontSize="12" Margin="0,4,0,0" TextWrapping="Wrap" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
-                                    </StackPanel>
-                                </Grid>
-                            </Border>
-
-                            <DataTemplate.Triggers>
-                                <DataTrigger Binding="{Binding Status}" Value="Pending">
-                                    <Setter TargetName="IconPending" Property="Visibility" Value="Visible"/>
-                                    <Setter TargetName="NameTxt" Property="Foreground" Value="{ui:ThemeResource TextFillColorDisabledBrush}"/>
-                                    <Setter TargetName="DescTxt" Property="Foreground" Value="{ui:ThemeResource TextFillColorDisabledBrush}"/>
-                                    <Setter TargetName="TaskBorder" Property="Opacity" Value="0.6"/>
-                                </DataTrigger>
-                                <DataTrigger Binding="{Binding Status}" Value="Running">
-                                    <Setter TargetName="IconRunning" Property="Visibility" Value="Visible"/>
-                                    <Setter TargetName="TaskBorder" Property="Background" Value="{ui:ThemeResource ControlFillColorSecondaryBrush}"/>
-                                    <Setter TargetName="TaskBorder" Property="BorderBrush" Value="{ui:ThemeResource ControlStrongFillColorDefaultBrush}"/>
-                                </DataTrigger>
-                                <DataTrigger Binding="{Binding Status}" Value="Success">
-                                    <Setter TargetName="IconSuccess" Property="Visibility" Value="Visible"/>
-                                </DataTrigger>
-                                <DataTrigger Binding="{Binding Status}" Value="Failed">
-                                    <Setter TargetName="IconFailed" Property="Visibility" Value="Visible"/>
-                                    <Setter TargetName="DescTxt" Property="Foreground" Value="#C42B1C"/>
-                                </DataTrigger>
-                            </DataTemplate.Triggers>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-
-
-                <!-- 3. 配置日志控制台 (保持不变) -->
+                
+                <!-- 3. 配置日志控制台 -->
                 <ui:Card Margin="0,16,0,0" Padding="0" VerticalAlignment="Stretch"
                          Visibility="{Binding ShowLogConsole, Converter={StaticResource BoolToVis}}">
                     <Grid>
