@@ -24,12 +24,12 @@ jobs:
           $ver = $project.Project.PropertyGroup.Version
           echo "VERSION=$ver" >> $env:GITHUB_OUTPUT
 
-      - id: check_tag
+- id: check_tag
         shell: pwsh
         run: |
           $ver = "${{ steps.get_version.outputs.VERSION }}"
           $tag = "V$ver"
-          if (git tag -l $tag) {
+          if ((git tag -l $tag) -or ($ver -like "*beta*")) {
             echo "EXISTS=true" >> $env:GITHUB_OUTPUT
           } else {
             echo "EXISTS=false" >> $env:GITHUB_OUTPUT
