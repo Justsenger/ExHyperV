@@ -143,6 +143,7 @@ namespace ExHyperV.Tools
             };
             this.Unloaded += (s, e) => {
                 if (_parentWindow != null) _parentWindow.Deactivated -= ParentWindow_Deactivated;
+                Disconnect();
             };
         }
 
@@ -194,19 +195,58 @@ namespace ExHyperV.Tools
 
             bool isConnected = _rdpControl.RdpClient?.ConnectionState ==
                 RoyalApps.Community.Rdp.WinForms.Controls.ConnectionState.Connected;
+
+            // ★ 增强模式已连接，且只有分辨率变了 → 走动态调整，不断开
+            if (isConnected
+                && _lastConnectedId == VmId
+                && _lastEnhancedMode == IsEnhancedMode
+                && IsEnhancedMode
+                && (_lastReqW != RequestWidth || _lastReqH != RequestHeight))
+            {
+                int newW = RequestWidth, newH = RequestHeight;
+                if (newW < 400 || newH < 400) return;
+
+                _curtain.Visible = true;
+                _isConnecting = true; // ★ 锁住，防止轮询期间重入
+
+                try
+                {
+                    var client = _rdpControl.RdpClient;
+                    if (client != null)
+                    {
+                        client.UpdateSessionDisplaySettings(
+                            (uint)newW, (uint)newH,
+                            (uint)newW, (uint)newH,
+                            0, 100, 1);
+
+                        _lastReqW = newW;
+                        _lastReqH = newH;
+
+                        await Task.Delay(300);
+                        UpdateLayoutByPixels(newW, newH);
+                    }
+                }
+                catch (COMException) { }
+                finally
+                {
+                    _curtain.Visible = false;
+                    _isConnecting = false;
+                }
+
+                return;
+            }
+
             if (isConnected && _lastConnectedId == VmId && _lastEnhancedMode == IsEnhancedMode &&
                 _lastReqW == RequestWidth && _lastReqH == RequestHeight) return;
 
             _isConnecting = true; _isTransitioning = true; _curtain.Visible = true;
 
-            // ★ 记录本次尝试的目标值，但不立即写入缓存
             string attemptId = VmId;
             bool attemptEnhanced = IsEnhancedMode;
             int attemptW = RequestWidth, attemptH = RequestHeight;
 
             try
             {
-                // 先断开旧连接
                 if (_lastConnectedId != null ||
                     (_rdpControl.RdpClient != null && (short)_rdpControl.RdpClient.ConnectionState != 0))
                 {
@@ -214,11 +254,9 @@ namespace ExHyperV.Tools
                     await Task.Delay(50);
                 }
 
-                // ★ 检查目标是否在等待期间又变了
                 if (VmId != attemptId || IsEnhancedMode != attemptEnhanced ||
                     RequestWidth != attemptW || RequestHeight != attemptH)
                 {
-                    // 目标变了，清缓存让下次重新触发
                     _lastConnectedId = null;
                     return;
                 }
@@ -237,10 +275,8 @@ namespace ExHyperV.Tools
                 config.Display.ResizeBehavior = ResizeBehavior.Scrollbars;
                 config.Display.ColorDepth = RdpColorDepth.ColorDepth32Bpp;
                 config.Redirection.RedirectClipboard = true;
-
-                config.Performance.EnableFontSmoothing = true;        // 开启字体平滑 (ClearType)
-                config.Performance.EnableDesktopComposition = true;   // 开启桌面组合 (Aero特效)
-
+                config.Performance.EnableFontSmoothing = true;
+                config.Performance.EnableDesktopComposition = true;
 
                 if (attemptEnhanced)
                 {
@@ -248,7 +284,6 @@ namespace ExHyperV.Tools
                     config.Display.DesktopHeight = attemptH;
                 }
 
-                // ★ 先写缓存再连接，但连接失败时由 OnDisconnected 清除缓存
                 _lastConnectedId = attemptId;
                 _lastEnhancedMode = attemptEnhanced;
                 _lastReqW = attemptW; _lastReqH = attemptH;
@@ -258,7 +293,6 @@ namespace ExHyperV.Tools
             }
             catch
             {
-                // ★ 异常时清缓存，允许重试
                 _lastConnectedId = null;
             }
             finally
@@ -266,7 +300,6 @@ namespace ExHyperV.Tools
                 _isConnecting = false;
                 await Task.Delay(1000);
                 _isTransitioning = false;
-                //_curtain.Visible = false;
             }
         }
         private void ExecutePhysicalLayout(int w, int h)
