@@ -29,19 +29,18 @@
         </Grid.RowDefinitions>
 
         <!-- 顶部标题栏 -->
-        <Grid Grid.Row="0" Margin="24,24,24,12">
+        <Grid Grid.Row="0" Margin="24,16,24,12">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
-
             <TextBlock Text="{x:Static properties:Resources.AddDisk_WindowTitle}" 
-                       FontSize="24" FontWeight="SemiBold" 
-                       VerticalAlignment="Center" 
-                       Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
-
-            <ui:Button Grid.Column="1" Appearance="Transparent" Icon="{ui:SymbolIcon Symbol=ArrowLeft24}" 
-                       Padding="8" Command="{Binding GoBackCommand}"/>
+               FontSize="20" FontWeight="Regular" 
+               VerticalAlignment="Center" 
+               Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+            <ui:Button Grid.Column="1" Appearance="Transparent" Padding="7,7" Command="{Binding GoBackCommand}">
+                <ui:SymbolIcon Symbol="ArrowLeft24" FontSize="18"/>
+            </ui:Button>
         </Grid>
 
         <ScrollViewer Grid.Row="1" Padding="24,0,24,24" VerticalScrollBarVisibility="Auto">

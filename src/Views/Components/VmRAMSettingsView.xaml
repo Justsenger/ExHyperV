@@ -359,8 +359,8 @@
                                         <TextBlock Text="MSR 运行控制默认值" FontSize="13" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
                                         <TextBlock Text="处理器特定寄存器初始值" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
                                     </StackPanel>
-                                    <ui:TextBox Grid.Column="1" PlaceholderText="例如: a6053e864141c51a4c2111296a4a150bf4d1502421384f54323565e31d9326e0" 
-                        Text="{Binding SelectedVm.MemorySettings.SgxLaunchControlDefault, Mode=TwoWay}"/>
+                                    <ui:TextBox Grid.Column="1" PlaceholderText="64位十六进制字符串" 
+            Text="{Binding SelectedVm.MemorySettings.SgxLaunchControlDefault, Mode=TwoWay}"/>
                                 </Grid>
 
                                 <!-- 3.4 应用按钮 (右对齐) -->

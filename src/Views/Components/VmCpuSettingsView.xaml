@@ -367,12 +367,12 @@
                 IsEnabled="{Binding SelectedVm.IsRunning, Converter={StaticResource InverseBooleanConverter}}"/>
 
                             <ui:Button Grid.Column="4" 
-               Content="{x:Static properties:Resources.Apply}" 
-               Appearance="Primary"
-               VerticalAlignment="Center" 
-               Padding="16,6"
-               Command="{Binding ApplyChangesCommand}"
-               IsEnabled="{Binding SelectedVm.IsRunning, Converter={StaticResource InverseBooleanConverter}}">
+           Content="{x:Static properties:Resources.Apply}" 
+           Appearance="Primary"
+           VerticalAlignment="Center" 
+           Padding="16,7"
+           Command="{Binding ApplyChangesCommand}"
+           IsEnabled="{Binding SelectedVm.IsRunning, Converter={StaticResource InverseBooleanConverter}}">
                                 <ui:Button.ToolTip>
                                     <ToolTip Content="此操作需要虚拟机处于关机状态" 
                      Visibility="{Binding SelectedVm.IsRunning, Converter={StaticResource BoolToVis}}"/>

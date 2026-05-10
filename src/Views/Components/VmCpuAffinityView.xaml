@@ -83,17 +83,16 @@
         </Grid.RowDefinitions>
 
         <!-- 标题栏 -->
-        <Grid Grid.Row="0" Margin="24,20,24,18">
+        <Grid Grid.Row="0" Margin="24,16,24,12">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
             <StackPanel Orientation="Vertical">
-                <TextBlock Text="{x:Static properties:Resources.Label_CpuAffinity}" FontSize="20" FontWeight="SemiBold" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                <TextBlock Text="{x:Static properties:Resources.Label_CpuAffinity}" FontSize="20" FontWeight="Regular" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
                 <TextBlock Text="{x:Static properties:Resources.Label_SelectCores}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" Margin="0,4,0,0"/>
             </StackPanel>
-
-            <ui:Button Grid.Column="1" Appearance="Transparent" Margin="0,0,0,10" Padding="8" Command="{Binding GoToCpuSettingsCommand}">
+            <ui:Button Grid.Column="1" Appearance="Transparent" Padding="8" VerticalAlignment="Top" Command="{Binding GoToCpuSettingsCommand}">
                 <ui:SymbolIcon Symbol="ArrowLeft24" FontSize="18"/>
             </ui:Button>
         </Grid>

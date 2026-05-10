@@ -16,35 +16,29 @@
         <converters:GpuImagePathConverter x:Key="GpuImagePathConverter"/>
     </UserControl.Resources>
 
-    <Grid Margin="24">
+    <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <!-- 1. 顶部标题栏：已移除左侧标志图标 -->
-        <Grid Grid.Row="0" Margin="0,0,0,8">
+        <Grid Grid.Row="0" Margin="24,16,24,12">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
-            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                <!-- 原有的 FontIcon 已删除 -->
-                <TextBlock Text="{x:Static properties:Resources.Label_AvailableGpu}" FontSize="20" VerticalAlignment="Center" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
-            </StackPanel>
-
-            <ui:Button Grid.Column="1" Content="{x:Static properties:Resources.Button_Next}" Appearance="Primary" Margin="0,0,8,0" Padding="16,6" 
+            <TextBlock Text="{x:Static properties:Resources.Label_AvailableGpu}" FontSize="20" VerticalAlignment="Center" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                <ui:Button Content="{x:Static properties:Resources.Button_Next}" Appearance="Primary" Margin="0,0,8,0" Padding="16,7" 
                        Command="{Binding ConfirmAddGpuCommand}"/>
-
-            <ui:Button Grid.Column="2" Appearance="Transparent" Padding="8" 
-                       Command="{Binding CancelAddGpuCommand}">
-                <ui:SymbolIcon Symbol="ArrowLeft24" FontSize="18"/>
-            </ui:Button>
+                <ui:Button Appearance="Transparent" Padding="7,7" Command="{Binding CancelAddGpuCommand}">
+                    <ui:SymbolIcon Symbol="ArrowLeft24" FontSize="18"/>
+                </ui:Button>
+            </StackPanel>
         </Grid>
 
         <!-- 2. 内容区域 -->
-        <Grid Grid.Row="1">
+        <Grid Grid.Row="1" Margin="24,0,24,24">
             <Grid.RowDefinitions>
                 <RowDefinition Height="*"/>
                 <RowDefinition Height="Auto"/>
