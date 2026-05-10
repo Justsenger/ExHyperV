@@ -76,7 +76,15 @@
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
-            <TextBlock Text="{x:Static properties:Resources.Label_ProcessorSettings}" FontSize="20" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <ui:FontIcon Glyph="&#xF58E;" FontFamily="{DynamicResource SegoeFluentIcons}" FontSize="24" Margin="0,0,12,0" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}">
+                    <ui:FontIcon.RenderTransform>
+                        <RotateTransform Angle="90"/>
+                    </ui:FontIcon.RenderTransform>
+                    <ui:FontIcon.RenderTransformOrigin>0.5,0.5</ui:FontIcon.RenderTransformOrigin>
+                </ui:FontIcon>
+                <TextBlock Text="{x:Static properties:Resources.Label_ProcessorSettings}" FontSize="20" FontWeight="Regular" VerticalAlignment="Center" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+            </StackPanel>
             <ui:Button Grid.Column="1" Appearance="Transparent" Padding="8" Command="{Binding GoBackToDashboardCommand}">
                 <ui:SymbolIcon Symbol="ArrowLeft24" FontSize="18"/>
             </ui:Button>

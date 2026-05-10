@@ -55,8 +55,10 @@
         <!-- 顶部标题栏 -->
         <Grid Grid.Row="0" Margin="0,0,0,8">
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                <TextBlock Text="时空管理" FontSize="20" VerticalAlignment="Center" 
-           Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <ui:FontIcon Glyph="&#xF738;" FontFamily="{DynamicResource SegoeFluentIcons}" FontSize="24" Margin="0,0,12,0" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                    <TextBlock Text="时空管理" FontSize="20" VerticalAlignment="Center" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                </StackPanel>
 
                 <!-- 检查点开关 -->
                 <Border BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" 

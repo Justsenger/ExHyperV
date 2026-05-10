@@ -17,31 +17,40 @@
         <converters:GpuImagePathConverter x:Key="GpuImagePathConverter"/>
     </UserControl.Resources>
 
-    <Grid Margin="24">
+    <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
         <!-- 1. 顶部标题栏：下边距从 24 减小到 8，使卡片上移 -->
-        <Grid Grid.Row="0" Margin="0,0,0,8">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
-            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                <ui:FontIcon Glyph="&#xF211;" FontFamily="{DynamicResource SegoeFluentIcons}" FontSize="24" Margin="0,0,12,0" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
-                <TextBlock Text="{x:Static properties:Resources.Label_GpuSettings}" FontSize="20" VerticalAlignment="Center" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
-            </StackPanel>
-            <ui:Button Grid.Column="1" Content="{x:Static properties:Resources.Button_Add}" Icon="{ui:SymbolIcon Symbol=Add24}" Appearance="Primary" Margin="0,0,8,0" Padding="16,6" Command="{Binding GoToAddGpuCommand}"/>
-            <ui:Button Grid.Column="2" Appearance="Transparent" Padding="8" Command="{Binding GoBackCommand}">
-                <ui:SymbolIcon Symbol="ArrowLeft24" FontSize="18"/>
-            </ui:Button>
-        </Grid>
+        <Grid Grid.Row="0" Margin="24,16,24,12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <ui:FontIcon Glyph="&#xF211;" FontFamily="{DynamicResource SegoeFluentIcons}" FontSize="24" Margin="0,0,12,0" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                    <TextBlock Text="{x:Static properties:Resources.Label_GpuSettings}" FontSize="20" VerticalAlignment="Center" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <ui:Button Appearance="Primary" Margin="0,0,8,0"
+                   Padding="16,7"
+                   Command="{Binding GoToAddGpuCommand}">
+                        <StackPanel Orientation="Horizontal">
+                            <ui:SymbolIcon Symbol="Add24" FontSize="16" Margin="0,0,8,0"/>
+                            <TextBlock Text="{x:Static properties:Resources.Button_Add}" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </ui:Button>
+                    <ui:Button Appearance="Transparent" Padding="7,7" Command="{Binding GoBackCommand}">
+                        <ui:SymbolIcon Symbol="ArrowLeft24" FontSize="18"/>
+                    </ui:Button>
+                </StackPanel>
+            </Grid>
+
 
         <!-- 2. 显卡列表区域 -->
-        <Grid Grid.Row="1">
+        <Grid Grid.Row="1" Margin="24,0,24,24">
             <ScrollViewer VerticalScrollBarVisibility="Auto">
                 <StackPanel>
                     <ItemsControl ItemsSource="{Binding SelectedVm.AssignedGpus}">
