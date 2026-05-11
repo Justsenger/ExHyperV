@@ -302,7 +302,7 @@ if [ "$ENABLE_GRAPHICS" == "true" ]; then
     update_env "DRI_PRIME" "1"
     update_env "LIBVA_DRIVER_NAME" "d3d12"
     
-    if ! grep -q "GALLIUM_DRIVE=d3d12" ~/.bashrc; then
+    if ! grep -q "GALLIUM_DRIVER=d3d12" ~/.bashrc; then
         cat >> ~/.bashrc <<EOF
 # GPU-PV Configuration
 export GALLIUM_DRIVER=d3d12
