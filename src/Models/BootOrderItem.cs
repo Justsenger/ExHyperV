@@ -1,4 +1,4 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.ComponentModel;
 using System.Collections.Generic;
 
 namespace ExHyperV.Models
@@ -16,11 +16,11 @@ namespace ExHyperV.Models
         // 映射表
         private static readonly Dictionary<int, (string Name, string Icon)> Gen1DeviceMapping = new()
         {
-            { 0, ("软盘", "\uE74E") },
-            { 1, ("光驱", "\uE958") },
-            { 2, ("IDE 硬盘", "\uEDA2") },
-            { 3, ("PXE 网络引导", "\uE774") },
-            { 4, ("SCSI 硬盘", "\uEDA2") }
+            { 0, (Properties.Resources.BootOrderItem_1, "\uE74E") },
+            { 1, (Properties.Resources.BootOrderItem_2, "\uE958") },
+            { 2, (Properties.Resources.BootOrderItem_3, "\uEDA2") },
+            { 3, (Properties.Resources.BootOrderItem_4, "\uE774") },
+            { 4, (Properties.Resources.BootOrderItem_5, "\uEDA2") }
         };
 
         /// <summary>
@@ -29,7 +29,7 @@ namespace ExHyperV.Models
         public static BootOrderItem CreateGen1(ushort code)
         {
             var exists = Gen1DeviceMapping.TryGetValue(code, out var info);
-            var (name, icon) = exists ? info : ("未知设备", "\uE9CE");
+            var (name, icon) = exists ? info : (Properties.Resources.BootOrderItem_6, "\uE9CE");
 
             return new BootOrderItem
             {

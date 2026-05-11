@@ -1,4 +1,4 @@
-﻿using System.Management;
+using System.Management;
 using System.Text.RegularExpressions;
 using ExHyperV.Models;
 
@@ -112,7 +112,7 @@ namespace ExHyperV.Services
 
         private string GetGen1HardwareSummary(int code, List<ManagementObject> all, Dictionary<string, ManagementObject> map, Dictionary<string, List<ManagementObject>> children)
         {
-            if (code == 3) return "PXE 网络引导";
+            if (code == 3) return Properties.Resources.BootOrderItem_4;
 
             var matchedDevices = all.Where(dev => {
                 ushort resType = Convert.ToUInt16(dev["ResourceType"]);
@@ -172,17 +172,17 @@ namespace ExHyperV.Services
             else if (fwPath.Contains("MAC("))
             {
                 item.Icon = "\uE774";
-                item.Description = "PXE 网络引导";
+                item.Description = Properties.Resources.BootOrderItem_4;
             }
             else if (fwPath.Contains(".efi"))
             {
                 item.Icon = "\uE74C";
-                item.Description = "Windows 启动管理器";
+                item.Description = Properties.Resources.VmBootService_3;
             }
             else
             {
                 item.Icon = "\uE713";
-                item.Description = "系统内置引导项";
+                item.Description = Properties.Resources.VmBootService_4;
             }
         }
 

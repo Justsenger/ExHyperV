@@ -1,4 +1,4 @@
-﻿<UserControl x:Class="ExHyperV.Views.Components.VmSpacetimeSettingsView"
+<UserControl xmlns:properties="clr-namespace:ExHyperV.Properties" x:Class="ExHyperV.Views.Components.VmSpacetimeSettingsView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
@@ -57,7 +57,7 @@
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <ui:FontIcon Glyph="&#xF738;" FontFamily="{DynamicResource SegoeFluentIcons}" FontSize="24" Margin="0,0,12,0" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
-                    <TextBlock Text="时空管理" FontSize="20" VerticalAlignment="Center" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                    <TextBlock Text="{x:Static properties:Resources.VmSpacetimeSettingsView_1}" FontSize="20" VerticalAlignment="Center" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
                 </StackPanel>
 
                 <!-- 检查点开关 -->
@@ -65,7 +65,7 @@
         BorderThickness="1" CornerRadius="6" Padding="10,4"
         Margin="20,0,0,0" VerticalAlignment="Center">
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <TextBlock Text="检查点" FontSize="12" 
+                        <TextBlock Text="{x:Static properties:Resources.VmSpacetimeSettingsView_2}" FontSize="12" 
                    Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"
                    VerticalAlignment="Center" Margin="0,0,10,0"/>
                         <ui:ToggleSwitch IsChecked="{Binding IsCheckpointsEnabled, Mode=TwoWay}" 
@@ -85,7 +85,7 @@
            Click="ExportButton_Click">
                     <StackPanel Orientation="Horizontal">
                         <ui:SymbolIcon Symbol="Save24" FontSize="16"/>
-                        <TextBlock Text="导出拓扑图" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                        <TextBlock Text="{x:Static properties:Resources.VmSpacetimeSettingsView_3}" VerticalAlignment="Center" Margin="8,0,0,0"/>
                     </StackPanel>
                 </ui:Button>
 
@@ -123,7 +123,7 @@
                         <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
                             <ui:ProgressRing IsIndeterminate="True" Width="40" Height="40" 
                                  Foreground="{ui:ThemeResource SystemAccentColorPrimaryBrush}"/>
-                            <TextBlock Text="同步中..." FontSize="14" Margin="0,16,0,0" 
+                            <TextBlock Text="{x:Static properties:Resources.VmSpacetimeSettingsView_4}" FontSize="14" Margin="0,16,0,0" 
                            Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"
                            HorizontalAlignment="Center" FontWeight="SemiBold"/>
                         </StackPanel>
@@ -140,11 +140,11 @@
             <StackPanel Grid.Column="1">
                 <ui:Card Padding="12">
                     <StackPanel>
-                        <TextBlock Text="时空详情" FontSize="14" FontWeight="Medium" Margin="0,0,0,12"/>
+                        <TextBlock Text="{x:Static properties:Resources.VmSpacetimeSettingsView_5}" FontSize="14" FontWeight="Medium" Margin="0,0,0,12"/>
                         <Border Background="{ui:ThemeResource ControlFillColorTertiaryBrush}" CornerRadius="6" Padding="12">
                             <Grid>
                                 <!-- 1. 未选择提示：默认显示，只有当 SelectedSpacetimeNode 不为 null 时隐藏 -->
-                                <TextBlock Text="未选择锚点" FontSize="12" Opacity="0.4" HorizontalAlignment="Center">
+                                <TextBlock Text="{x:Static properties:Resources.VmSpacetimeSettingsView_6}" FontSize="12" Opacity="0.4" HorizontalAlignment="Center">
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="Visibility" Value="Collapsed"/>
@@ -258,7 +258,7 @@
                                 </StackPanel>
                             </Grid>
                         </Border>
-                        <TextBlock Text="操作" FontSize="12" Opacity="0.5" Margin="0,16,0,8"/>
+                        <TextBlock Text="{x:Static properties:Resources.VmSpacetimeSettingsView_7}" FontSize="12" Opacity="0.5" Margin="0,16,0,8"/>
 
                         <!-- 时空模式选择：仅当前节点显示 -->
                         <StackPanel Margin="0,0,0,10">
@@ -279,8 +279,8 @@
                              Converter={StaticResource EnumToBoolConverter}, 
                              ConverterParameter=Continuous}">
                                 <StackPanel>
-                                    <TextBlock Text="连续时空" FontSize="12" FontWeight="Medium"/>
-                                    <TextBlock Text="保存磁盘和内存状态" 
+                                    <TextBlock Text="{x:Static properties:Resources.VmSpacetimeSettingsView_8}" FontSize="12" FontWeight="Medium"/>
+                                    <TextBlock Text="{x:Static properties:Resources.VmSpacetimeSettingsView_9}" 
                        FontSize="11" Opacity="0.5" TextWrapping="Wrap"/>
                                 </StackPanel>
                             </RadioButton>
@@ -291,8 +291,8 @@
                              Converter={StaticResource EnumToBoolConverter}, 
                              ConverterParameter=Still}">
                                 <StackPanel>
-                                    <TextBlock Text="静止时空" FontSize="12" FontWeight="Medium"/>
-                                    <TextBlock Text="保存磁盘状态" 
+                                    <TextBlock Text="{x:Static properties:Resources.VmSpacetimeSettingsView_10}" FontSize="12" FontWeight="Medium"/>
+                                    <TextBlock Text="{x:Static properties:Resources.VmSpacetimeSettingsView_11}" 
                        FontSize="11" Opacity="0.5" TextWrapping="Wrap"/>
                                 </StackPanel>
                             </RadioButton>
@@ -321,7 +321,7 @@
                             </ui:Button.Style>
                             <StackPanel Orientation="Horizontal">
                                 <ui:SymbolIcon Symbol="Add24" FontSize="16"/>
-                                <TextBlock Text="创建时空" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                                <TextBlock Text="{x:Static properties:Resources.VmSpacetimeSettingsView_12}" VerticalAlignment="Center" Margin="10,0,0,0"/>
                             </StackPanel>
                         </ui:Button>
                         
@@ -348,7 +348,7 @@
             CornerRadius="6" Padding="10,8" Margin="0,0,0,10">
                                 <StackPanel Orientation="Horizontal">
                                     <ui:SymbolIcon Symbol="Link24" FontSize="14" Foreground="#FFD700"/>
-                                    <TextBlock Text="虫洞干涉中" FontSize="12" FontWeight="SemiBold"
+                                    <TextBlock Text="{x:Static properties:Resources.VmSpacetimeSettingsView_13}" FontSize="12" FontWeight="SemiBold"
                        Foreground="#FFD700" VerticalAlignment="Center" Margin="6,0,0,0"/>
                                 </StackPanel>
                             </Border>
@@ -358,7 +358,7 @@
                Command="{Binding CloseWormholeCommand}">
                                 <StackPanel Orientation="Horizontal">
                                     <ui:SymbolIcon Symbol="LinkDismiss24" FontSize="16"/>
-                                    <TextBlock Text="关闭虫洞" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                                    <TextBlock Text="{x:Static properties:Resources.VmSpacetimeSettingsView_14}" VerticalAlignment="Center" Margin="10,0,0,0"/>
                                 </StackPanel>
                             </ui:Button>
                         </StackPanel>
@@ -383,28 +383,28 @@
                Padding="10,8" Command="{Binding TeleportCommand}">
                                 <StackPanel Orientation="Horizontal">
                                     <ui:SymbolIcon Symbol="PersonRunning20" FontSize="16"/>
-                                    <TextBlock Text="穿梭" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                                    <TextBlock Text="{x:Static properties:Resources.VmSpacetimeSettingsView_15}" VerticalAlignment="Center" Margin="10,0,0,0"/>
                                 </StackPanel>
                             </ui:Button>
                             <ui:Button Margin="0,0,0,6" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
                Padding="10,8" Command="{Binding OpenWormholeCommand}">
                                 <StackPanel Orientation="Horizontal">
                                     <ui:SymbolIcon Symbol="Link24" FontSize="16"/>
-                                    <TextBlock Text="开启虫洞" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                                    <TextBlock Text="{x:Static properties:Resources.VmSpacetimeSettingsView_16}" VerticalAlignment="Center" Margin="10,0,0,0"/>
                                 </StackPanel>
                             </ui:Button>
                             <ui:Button Margin="0,0,0,6" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
                Padding="10,8" Command="{Binding ParallelSpacetimeCommand}">
                                 <StackPanel Orientation="Horizontal">
                                     <ui:SymbolIcon Symbol="BranchFork24" FontSize="16"/>
-                                    <TextBlock Text="开启平行宇宙" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                                    <TextBlock Text="{x:Static properties:Resources.VmSpacetimeSettingsView_17}" VerticalAlignment="Center" Margin="10,0,0,0"/>
                                 </StackPanel>
                             </ui:Button>
                             <ui:Button Margin="0,0,0,6" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
                Padding="10,8" Command="{Binding ConvergenceCommand}">
                                 <StackPanel Orientation="Horizontal">
                                     <ui:SymbolIcon Symbol="ArrowReply24" FontSize="16"/>
-                                    <TextBlock Text="时空收束" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                                    <TextBlock Text="{x:Static properties:Resources.VmSpacetimeSettingsView_18}" VerticalAlignment="Center" Margin="10,0,0,0"/>
                                 </StackPanel>
                             </ui:Button>
                             <ui:Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
@@ -416,7 +416,7 @@
                                 </ui:Button.Style>
                                 <StackPanel Orientation="Horizontal">
                                     <ui:SymbolIcon Symbol="Delete24" FontSize="16"/>
-                                    <TextBlock Text="删除" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                                    <TextBlock Text="{x:Static properties:Resources.VmSpacetimeSettingsView_19}" VerticalAlignment="Center" Margin="10,0,0,0"/>
                                 </StackPanel>
                             </ui:Button>
                         </StackPanel>

@@ -665,7 +665,7 @@ namespace ExHyperV.ViewModels
 
             // --- 3. 执行创建流程 ---
             IsLoadingSettings = true;
-            CreatingStatusText = "正在创建虚拟机...";
+            CreatingStatusText = Properties.Resources.VirtualMachinesPageViewModel_26;
 
             try
             {
@@ -673,7 +673,7 @@ namespace ExHyperV.ViewModels
 
                 if (result.Success)
                 {
-                    CreatingStatusText = "正在启动虚拟机...";
+                    CreatingStatusText = Properties.Resources.VirtualMachinesPageViewModel_27;
                     string actualCreatedName = result.Message;
                     ShowSnackbar(
                          Properties.Resources.VmPage_CreateSuccess,
@@ -740,12 +740,12 @@ namespace ExHyperV.ViewModels
                 }
                 else
                 {
-                    ShowSnackbar("打开失败", "找不到虚拟机配置目录", ControlAppearance.Caution, SymbolRegular.Warning24);
+                    ShowSnackbar(Properties.Resources.VirtualMachinesPageViewModel_28, Properties.Resources.VirtualMachinesPageViewModel_29, ControlAppearance.Caution, SymbolRegular.Warning24);
                 }
             }
             catch (Exception ex)
             {
-                ShowSnackbar("打开失败", ex.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                ShowSnackbar(Properties.Resources.VirtualMachinesPageViewModel_28, ex.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
             }
         }
 
@@ -784,10 +784,10 @@ namespace ExHyperV.ViewModels
             // 二次确认弹窗
             var dialog = new Wpf.Ui.Controls.MessageBox
             {
-                Title = "彻底删除虚拟机",
-                Content = $"即将彻底删除「{vm.Name}」，包括所有虚拟硬盘文件和配置目录。\n\n⚠️ 请确认虚拟机配置目录中是否存在其他文件，删除后无法恢复！",
-                PrimaryButtonText = "彻底删除",
-                CloseButtonText = "取消",
+                Title = Properties.Resources.VirtualMachinesPageViewModel_31,
+                Content = string.Format(Properties.Resources.VirtualMachinesPageViewModel_32, vm.Name),
+                PrimaryButtonText = Properties.Resources.VirtualMachinesPageViewModel_33,
+                CloseButtonText = Properties.Resources.VirtualMachinesPageViewModel_34,
             };
 
             var result = await dialog.ShowDialogAsync();
@@ -834,11 +834,11 @@ namespace ExHyperV.ViewModels
 
                 VmList.Remove(vm);
                 if (SelectedVm == vm) SelectedVm = VmList.FirstOrDefault();
-                ShowSnackbar("删除完成", $"「{vm.Name}」已彻底清除", ControlAppearance.Success, SymbolRegular.Delete24);
+                ShowSnackbar(Properties.Resources.VirtualMachinesPageViewModel_35, string.Format(Properties.Resources.VirtualMachinesPageViewModel_36, vm.Name), ControlAppearance.Success, SymbolRegular.Delete24);
             }
             catch (Exception ex)
             {
-                ShowSnackbar("删除失败", Utils.GetFriendlyErrorMessages(ex.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                ShowSnackbar(Properties.Resources.VirtualMachinesPageViewModel_37, Utils.GetFriendlyErrorMessages(ex.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
             }
             finally { IsLoading = false; }
         }
@@ -1656,7 +1656,7 @@ namespace ExHyperV.ViewModels
                     var result = await _vmMemoryService.SetVmMemorySettingsAsync(SelectedVm.Name, SelectedVm.MemorySettings, false);
                     if (!result.Success)
                     {
-                        ShowSnackbar("修改失败", result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                        ShowSnackbar(Properties.Resources.VirtualMachinesPageViewModel_38, result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
 
                         // 核心修复：使用真正纯净的初始缓存进行弹回恢复
                         SelectedVm.MemorySettings.Restore(_originalMemorySettingsCache);
@@ -1710,39 +1710,39 @@ namespace ExHyperV.ViewModels
 
         public List<object> BackingTypeOptions { get; } = new()
 {
-    new { Value = (byte)0, Name = "物理映射模式" },
-    new { Value = (byte)1, Name = "虚拟映射模式" },
-    new { Value = (byte)2, Name = "混合映射模式" }
+    new { Value = (byte)0, Name = Properties.Resources.VirtualMachinesPageViewModel_39 },
+    new { Value = (byte)1, Name = Properties.Resources.VirtualMachinesPageViewModel_40 },
+    new { Value = (byte)2, Name = Properties.Resources.VirtualMachinesPageViewModel_41 }
 };
 
         public List<object> MemoryByteGranularityOptions { get; } = new()
 {
-    new { Value = (byte)0, Name = "系统自动分配" },
-    new { Value = (byte)1, Name = "标准粒度" },
-    new { Value = (byte)2, Name = "大页粒度" },
-    new { Value = (byte)3, Name = "巨型页粒度" }
+    new { Value = (byte)0, Name = Properties.Resources.VirtualMachinesPageViewModel_42 },
+    new { Value = (byte)1, Name = Properties.Resources.VirtualMachinesPageViewModel_43 },
+    new { Value = (byte)2, Name = Properties.Resources.VirtualMachinesPageViewModel_44 },
+    new { Value = (byte)3, Name = Properties.Resources.VirtualMachinesPageViewModel_45 }
 };
         public List<object> MemoryUintGranularityOptions { get; } = new()
 {
-    new { Value = (uint)0, Name = "系统自动分配" },
-    new { Value = (uint)1, Name = "标准粒度" },
-    new { Value = (uint)2, Name = "大页粒度" },
-    new { Value = (uint)3, Name = "巨型页粒度" }
+    new { Value = (uint)0, Name = Properties.Resources.VirtualMachinesPageViewModel_42 },
+    new { Value = (uint)1, Name = Properties.Resources.VirtualMachinesPageViewModel_43 },
+    new { Value = (uint)2, Name = Properties.Resources.VirtualMachinesPageViewModel_44 },
+    new { Value = (uint)3, Name = Properties.Resources.VirtualMachinesPageViewModel_45 }
 };
             
 
         public List<object> MemoryTrackingStateOptions { get; } = new()
 {
-    new { Value = (byte)0, Name = "关闭跟踪" },
-    new { Value = (byte)1, Name = "开启跟踪" },
-    new { Value = (byte)2, Name = "按处理器节点配置" }
+    new { Value = (byte)0, Name = Properties.Resources.VirtualMachinesPageViewModel_50 },
+    new { Value = (byte)1, Name = Properties.Resources.VirtualMachinesPageViewModel_51 },
+    new { Value = (byte)2, Name = Properties.Resources.VirtualMachinesPageViewModel_52 }
 };
 
         public List<object> SgxLaunchControlOptions { get; } = new()
 {
-    new { Value = (uint)0, Name = "禁止访问" },
-    new { Value = (uint)1, Name = "仅限读取" },
-    new { Value = (uint)2, Name = "允许读写" }
+    new { Value = (uint)0, Name = Properties.Resources.VirtualMachinesPageViewModel_53 },
+    new { Value = (uint)1, Name = Properties.Resources.VirtualMachinesPageViewModel_54 },
+    new { Value = (uint)2, Name = Properties.Resources.VirtualMachinesPageViewModel_55 }
 };
 
         // ----------------------------------------------------------------------------------
@@ -1803,16 +1803,16 @@ namespace ExHyperV.ViewModels
                     // 调用现有的存储服务，确保 UI 上的 GB 数值得到更新
                     await _storageService.RefreshVirtualDiskSizesAsync(SelectedVm);
 
-                    ShowSnackbar("优化完成", "虚拟磁盘空间已成功回收", ControlAppearance.Success, SymbolRegular.CheckmarkCircle24);
+                    ShowSnackbar(Properties.Resources.VirtualMachinesPageViewModel_56, Properties.Resources.VirtualMachinesPageViewModel_57, ControlAppearance.Success, SymbolRegular.CheckmarkCircle24);
                 }
                 else
                 {
-                    ShowSnackbar("优化失败", result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                    ShowSnackbar(Properties.Resources.VirtualMachinesPageViewModel_58, result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
                 }
             }
             catch (Exception ex)
             {
-                ShowSnackbar("系统异常", ex.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                ShowSnackbar(Properties.Resources.VirtualMachinesPageViewModel_59, ex.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
             }
             finally
             {
@@ -2854,16 +2854,16 @@ namespace ExHyperV.ViewModels
                 // 关键检查：在保存前打印 UI 集合的名称顺序
                 var currentOrder = SelectedVm.BootOrderItems.ToList();
                 string names = string.Join(" -> ", currentOrder.Select(x => x.Name));
-                Debug.WriteLine($"[VM-LOG] UI 触发保存，当前预览顺序: {names}");
+                Debug.WriteLine(string.Format(Properties.Resources.VirtualMachinesPageViewModel_62, names));
 
                 string vmName = SelectedVm.Name;
                 bool success = await _vmBootService.SetBootOrderAsync(vmName, currentOrder);
 
-                Debug.WriteLine($"[VM-LOG] 磁盘保存结果: {success}");
+                Debug.WriteLine(string.Format(Properties.Resources.VirtualMachinesPageViewModel_63, success));
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[VM-LOG] 保存过程出错: {ex.Message}");
+                Debug.WriteLine(string.Format(Properties.Resources.VirtualMachinesPageViewModel_64, ex.Message));
             }
         }
 
@@ -3667,7 +3667,7 @@ namespace ExHyperV.ViewModels
                         _isLoadingCheckpointState = true;
                         IsCheckpointsEnabled = !value;
                         _isLoadingCheckpointState = false;
-                        ShowSnackbar("操作失败", result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                        ShowSnackbar(Properties.Resources.VirtualMachinesPageViewModel_65, result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
                     });
                 }
                 else
@@ -3705,7 +3705,7 @@ namespace ExHyperV.ViewModels
                 }
                 else
                 {
-                    ShowSnackbar("修改失败", result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                    ShowSnackbar(Properties.Resources.VirtualMachinesPageViewModel_38, result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
                 }
             }
             finally
@@ -3762,7 +3762,7 @@ namespace ExHyperV.ViewModels
             }
             catch (Exception ex)
             {
-                ShowSnackbar("检索失败", ex.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                ShowSnackbar(Properties.Resources.VirtualMachinesPageViewModel_67, ex.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
             }
             finally
             {
@@ -3794,11 +3794,11 @@ namespace ExHyperV.ViewModels
                     // 重新获取节点，由于在 finally 之前调用，遮罩会一直持续到节点树重新画好
                     await GoToSpacetimeSettings();
 
-                    ShowSnackbar("操作成功", "已成功创建时空", ControlAppearance.Success, SymbolRegular.CheckmarkCircle24);
+                    ShowSnackbar(Properties.Resources.VirtualMachinesPageViewModel_68, Properties.Resources.VirtualMachinesPageViewModel_69, ControlAppearance.Success, SymbolRegular.CheckmarkCircle24);
                 }
                 else
                 {
-                    ShowSnackbar("操作失败", result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                    ShowSnackbar(Properties.Resources.VirtualMachinesPageViewModel_65, result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
                 }
             }
             finally
@@ -3829,11 +3829,11 @@ namespace ExHyperV.ViewModels
                 {
                     await Task.Delay(500);
                     await GoToSpacetimeSettings();
-                    ShowSnackbar("操作成功", $"已穿梭至时空：{targetName}", ControlAppearance.Success, SymbolRegular.ArrowClockwise24);
+                    ShowSnackbar(Properties.Resources.VirtualMachinesPageViewModel_68, string.Format(Properties.Resources.VirtualMachinesPageViewModel_72, targetName), ControlAppearance.Success, SymbolRegular.ArrowClockwise24);
                 }
                 else
                 {
-                    ShowSnackbar("操作失败", result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                    ShowSnackbar(Properties.Resources.VirtualMachinesPageViewModel_65, result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
                 }
             }
             finally { IsLoadingSettings = false; }
@@ -3852,7 +3852,7 @@ namespace ExHyperV.ViewModels
                 {
                     await Task.Delay(800);
                     await GoToSpacetimeSettings();
-                    ShowSnackbar("操作成功", "该时空已湮灭", ControlAppearance.Success, SymbolRegular.Delete24);
+                    ShowSnackbar(Properties.Resources.VirtualMachinesPageViewModel_68, Properties.Resources.VirtualMachinesPageViewModel_75, ControlAppearance.Success, SymbolRegular.Delete24);
                 }
             }
             finally { IsLoadingSettings = false; }
@@ -3873,11 +3873,11 @@ namespace ExHyperV.ViewModels
                     await GoToSpacetimeSettings();
                     var wormholeNode = SpacetimeNodes.FirstOrDefault(n => n.Id == openedNodeId);
                     if (wormholeNode != null) SelectedSpacetimeNode = wormholeNode;
-                    ShowSnackbar("虫洞已开启", $"已连接到时空「{SelectedSpacetimeNode.Name}」", ControlAppearance.Success, SymbolRegular.Link24);
+                    ShowSnackbar(Properties.Resources.VmSpacetimeService_22, string.Format(Properties.Resources.VirtualMachinesPageViewModel_77, SelectedSpacetimeNode.Name), ControlAppearance.Success, SymbolRegular.Link24);
                 }
                 else
                 {
-                    ShowSnackbar("开启失败", result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                    ShowSnackbar(Properties.Resources.VirtualMachinesPageViewModel_78, result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
                 }
             }
             finally { IsLoadingSettings = false; }
@@ -3894,11 +3894,11 @@ namespace ExHyperV.ViewModels
                 if (result.Success)
                 {
                     await GoToSpacetimeSettings();
-                    ShowSnackbar("虫洞已关闭", "时间线已恢复正常", ControlAppearance.Success, SymbolRegular.LinkDismiss24);
+                    ShowSnackbar(Properties.Resources.VirtualMachinesPageViewModel_79, Properties.Resources.VirtualMachinesPageViewModel_80, ControlAppearance.Success, SymbolRegular.LinkDismiss24);
                 }
                 else
                 {
-                    ShowSnackbar("关闭失败", result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                    ShowSnackbar(Properties.Resources.VirtualMachinesPageViewModel_81, result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
                 }
             }
             finally { IsLoadingSettings = false; }
@@ -3908,7 +3908,7 @@ namespace ExHyperV.ViewModels
         [RelayCommand(CanExecute = nameof(CanOperateHistoricalNode))]
         private void ParallelSpacetime()
         {
-            ShowSnackbar("功能研发中", "平行宇宙：基于此时空创建新的虚拟机实例", ControlAppearance.Info, SymbolRegular.Copy24);
+            ShowSnackbar(Properties.Resources.VirtualMachinesPageViewModel_82, Properties.Resources.VirtualMachinesPageViewModel_83, ControlAppearance.Info, SymbolRegular.Copy24);
         }
 
         // 时空收束
@@ -3926,7 +3926,7 @@ namespace ExHyperV.ViewModels
                 {
                     await Task.Delay(800);
                     await GoToSpacetimeSettings();
-                    ShowSnackbar("操作成功", "时空已收束至上一节点", ControlAppearance.Success, SymbolRegular.Merge24);
+                    ShowSnackbar(Properties.Resources.VirtualMachinesPageViewModel_68, Properties.Resources.VirtualMachinesPageViewModel_85, ControlAppearance.Success, SymbolRegular.Merge24);
                 }
             }
             finally { IsLoadingSettings = false; }
@@ -4067,16 +4067,16 @@ namespace ExHyperV.ViewModels
             // 1. 如果当前有正在处理的分区 ID（说明已经分配但未成功），执行物理回滚
             if (!string.IsNullOrEmpty(_currentProcessingGpuAdapterId))
             {
-                AppendLog(Properties.Resources.VirtualMachinesPageViewModel_21); // "正在回滚 GPU 分配..."
+                AppendLog(Properties.Resources.VirtualMachinesPageViewModel_21); // Properties.Resources.VirtualMachinesPageViewModel_86
                 try
                 {
                     await _vmGpuService.RemoveGpuPartitionAsync(SelectedVm.Name, _currentProcessingGpuAdapterId);
                     _currentProcessingGpuAdapterId = null;
-                    AppendLog(Properties.Resources.VirtualMachinesPageViewModel_22); // "回滚完成。"
+                    AppendLog(Properties.Resources.VirtualMachinesPageViewModel_22); // Properties.Resources.VirtualMachinesPageViewModel_87
                 }
                 catch (Exception ex)
                 {
-                    AppendLog(string.Format(Properties.Resources.VirtualMachinesPageViewModel_23, ex.Message)); // "回滚失败: {0}"
+                    AppendLog(string.Format(Properties.Resources.VirtualMachinesPageViewModel_23, ex.Message)); // Properties.Resources.VirtualMachinesPageViewModel_88
                 }
             }
 
@@ -4092,8 +4092,8 @@ namespace ExHyperV.ViewModels
 
             // 4. 弹出全局重置提示
             ShowSnackbar(
-                Properties.Resources.VirtualMachinesPageViewModel_24, // "重置"
-                Properties.Resources.VirtualMachinesPageViewModel_25, // "流程已重置，请重新选择显卡。"
+                Properties.Resources.VirtualMachinesPageViewModel_24, // Properties.Resources.VirtualMachinesPageViewModel_89
+                Properties.Resources.VirtualMachinesPageViewModel_25, // Properties.Resources.VirtualMachinesPageViewModel_90
                 Wpf.Ui.Controls.ControlAppearance.Info,
                 Wpf.Ui.Controls.SymbolRegular.ArrowCounterclockwise24);
         }

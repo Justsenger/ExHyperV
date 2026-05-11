@@ -1,4 +1,4 @@
-﻿using System.IO;
+using System.IO;
 using System.Text.RegularExpressions;
 using ExHyperV.Models;
 using ExHyperV.Tools;
@@ -256,7 +256,7 @@ namespace ExHyperV.Services
             }
             catch (Exception ex)
             {
-                return (false, $"WMI 执行异常: {ex.Message}");
+                return (false, string.Format(Properties.Resources.VmStorageService_1, ex.Message));
             }
         }
 

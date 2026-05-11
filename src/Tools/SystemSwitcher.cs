@@ -75,19 +75,19 @@ namespace ExHyperV.Tools
                 try { if (File.Exists(hiveFile)) File.Delete(hiveFile); } catch { return "SUCCESS"; }
                 try { if (File.Exists(backupFile)) File.Delete(backupFile); } catch { }
 
-                if (!EnablePrivilege("SeBackupPrivilege") || !EnablePrivilege("SeRestorePrivilege")) return "权限不足";
+                if (!EnablePrivilege("SeBackupPrivilege") || !EnablePrivilege("SeRestorePrivilege")) return Properties.Resources.SystemSwitcher_1;
 
-                if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, "SYSTEM", 0, (int)KEY_READ, out IntPtr hKey) != 0) return "打不开键";
+                if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, "SYSTEM", 0, (int)KEY_READ, out IntPtr hKey) != 0) return Properties.Resources.SystemSwitcher_2;
                 int ret = RegSaveKey(hKey, hiveFile, IntPtr.Zero);
                 RegCloseKey(hKey);
-                if (ret != 0) return $"导出失败:{ret}";
+                if (ret != 0) return string.Format(Properties.Resources.SystemSwitcher_3, ret);
 
                 string targetType = (mode == 1) ? "ServerNT" : "WinNT";
-                if (!PatchHiveOffline(hiveFile, targetType)) return "离线修改失败";
+                if (!PatchHiveOffline(hiveFile, targetType)) return Properties.Resources.SystemSwitcher_4;
 
                 ret = RegReplaceKey(HKEY_LOCAL_MACHINE, "SYSTEM", hiveFile, backupFile);
 
-                return ret == 0 || ret == 5 ? "SUCCESS" : $"替换失败:{ret}";
+                return ret == 0 || ret == 5 ? "SUCCESS" : string.Format(Properties.Resources.SystemSwitcher_5, ret);
             }
             catch (Exception ex) { return ex.Message; }
         }

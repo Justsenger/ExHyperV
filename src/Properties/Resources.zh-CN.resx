@@ -3423,4 +3423,619 @@
   <data name="Msg_Skip" xml:space="preserve">
     <value>已跳过。</value>
   </data>
+  <data name="BootOrderItem_1" xml:space="preserve">
+    <value>软盘</value>
+  </data>
+  <data name="BootOrderItem_2" xml:space="preserve">
+    <value>光驱</value>
+  </data>
+  <data name="BootOrderItem_3" xml:space="preserve">
+    <value>IDE 硬盘</value>
+  </data>
+  <data name="BootOrderItem_4" xml:space="preserve">
+    <value>PXE 网络引导</value>
+  </data>
+  <data name="BootOrderItem_5" xml:space="preserve">
+    <value>SCSI 硬盘</value>
+  </data>
+  <data name="BootOrderItem_6" xml:space="preserve">
+    <value>未知设备</value>
+  </data>
+  <data name="VmBootService_1" xml:space="preserve">
+    <value>PXE 网络引导</value>
+  </data>
+  <data name="VmBootService_2" xml:space="preserve">
+    <value>PXE 网络引导</value>
+  </data>
+  <data name="VmBootService_3" xml:space="preserve">
+    <value>Windows 启动管理器</value>
+  </data>
+  <data name="VmBootService_4" xml:space="preserve">
+    <value>系统内置引导项</value>
+  </data>
+  <data name="VmSpacetimeService_1" xml:space="preserve">
+    <value>起源</value>
+  </data>
+  <data name="VmSpacetimeService_2" xml:space="preserve">
+    <value>当前</value>
+  </data>
+  <data name="VmSpacetimeService_3" xml:space="preserve">
+    <value>时空检索失败: {0}</value>
+  </data>
+  <data name="VmSpacetimeService_4" xml:space="preserve">
+    <value>[Wormhole] SCSI磁盘JSON: {0}</value>
+  </data>
+  <data name="VmSpacetimeService_5" xml:space="preserve">
+    <value>[Wormhole] 无SCSI磁盘，退出</value>
+  </data>
+  <data name="VmSpacetimeService_6" xml:space="preserve">
+    <value>[Wormhole] 反序列化失败</value>
+  </data>
+  <data name="VmSpacetimeService_7" xml:space="preserve">
+    <value>[Wormhole] 虫洞盘: {0}</value>
+  </data>
+  <data name="VmSpacetimeService_8" xml:space="preserve">
+    <value>[Wormhole] 父盘路径: {0}</value>
+  </data>
+  <data name="VmSpacetimeService_9" xml:space="preserve">
+    <value>[Wormhole] 还原路径: {0}</value>
+  </data>
+  <data name="VmSpacetimeService_10" xml:space="preserve">
+    <value>[Wormhole] 节点 [{0}] VhdPath={1}</value>
+  </data>
+  <data name="VmSpacetimeService_11" xml:space="preserve">
+    <value>[Wormhole] 匹配节点: {0}</value>
+  </data>
+  <data name="VmSpacetimeService_12" xml:space="preserve">
+    <value>[Wormhole] 标记成功: {0}</value>
+  </data>
+  <data name="VmSpacetimeService_13" xml:space="preserve">
+    <value>[Wormhole] 检测失败: {0}</value>
+  </data>
+  <data name="VmSpacetimeService_14" xml:space="preserve">
+    <value>当前时空中已存在虫洞，请先关闭现有虫洞后再开启新的，否则将引发时空悖论</value>
+  </data>
+  <data name="VmSpacetimeService_15" xml:space="preserve">
+    <value>该节点是当前时空的父链节点，开启虫洞会导致时空悖论</value>
+  </data>
+  <data name="VmSpacetimeService_16" xml:space="preserve">
+    <value>只能对快照节点开启虫洞</value>
+  </data>
+  <data name="VmSpacetimeService_17" xml:space="preserve">
+    <value>快照磁盘路径无效</value>
+  </data>
+  <data name="VmSpacetimeService_18" xml:space="preserve">
+    <value>该节点已有虫洞开启中</value>
+  </data>
+  <data name="VmSpacetimeService_19" xml:space="preserve">
+    <value>无法确定磁盘目录</value>
+  </data>
+  <data name="VmSpacetimeService_20" xml:space="preserve">
+    <value>没有可用的 SCSI 插槽</value>
+  </data>
+  <data name="VmSpacetimeService_21" xml:space="preserve">
+    <value>创建临时差分盘失败: {0}</value>
+  </data>
+  <data name="VmSpacetimeService_22" xml:space="preserve">
+    <value>虫洞已开启</value>
+  </data>
+  <data name="VmSpacetimeService_23" xml:space="preserve">
+    <value>时空异常: {0}</value>
+  </data>
+  <data name="VmSpacetimeService_24" xml:space="preserve">
+    <value>该节点没有开启虫洞</value>
+  </data>
+  <data name="VmSpacetimeService_25" xml:space="preserve">
+    <value>虫洞已关闭，时间线恢复正常</value>
+  </data>
+  <data name="VmSpacetimeService_26" xml:space="preserve">
+    <value>关闭虫洞异常: {0}</value>
+  </data>
+  <data name="VmSpacetimeService_27" xml:space="preserve">
+    <value>找不到 WMI ImageManagementService</value>
+  </data>
+  <data name="VmSpacetimeService_28" xml:space="preserve">
+    <value>WMI 返回: {0}</value>
+  </data>
+  <data name="VmSpacetimeService_29" xml:space="preserve">
+    <value>找不到 WMI 管理服务</value>
+  </data>
+  <data name="VmSpacetimeService_30" xml:space="preserve">
+    <value>名称已成功更新</value>
+  </data>
+  <data name="VmSpacetimeService_31" xml:space="preserve">
+    <value>更新失败: WMI 错误代码: {0}</value>
+  </data>
+  <data name="VmSpacetimeService_32" xml:space="preserve">
+    <value>重命名服务异常: {0}</value>
+  </data>
+  <data name="VmSpacetimeService_33" xml:space="preserve">
+    <value>只能穿梭至历史快照点</value>
+  </data>
+  <data name="VmSpacetimeService_34" xml:space="preserve">
+    <value>穿梭已启动，正在恢复运行状态...</value>
+  </data>
+  <data name="VmSpacetimeService_35" xml:space="preserve">
+    <value>穿梭成功，虚拟机已回到指定时空点（已关机）</value>
+  </data>
+  <data name="VmSpacetimeService_36" xml:space="preserve">
+    <value>穿梭失败: {0}</value>
+  </data>
+  <data name="VmSpacetimeService_37" xml:space="preserve">
+    <value>时空异常: {0}</value>
+  </data>
+  <data name="VmSpacetimeService_38" xml:space="preserve">
+    <value>找不到指定的虚拟机载体</value>
+  </data>
+  <data name="VmSpacetimeService_39" xml:space="preserve">
+    <value>时空塌陷: {0}</value>
+  </data>
+  <data name="VmSpacetimeService_40" xml:space="preserve">
+    <value>时空锚点已锚定</value>
+  </data>
+  <data name="VmSpacetimeService_41" xml:space="preserve">
+    <value>起源与当前节点不可湮灭</value>
+  </data>
+  <data name="VmSpacetimeService_42" xml:space="preserve">
+    <value>时空分支已彻底湮灭</value>
+  </data>
+  <data name="VmSpacetimeService_43" xml:space="preserve">
+    <value>湮灭失败: {0}</value>
+  </data>
+  <data name="VmSpacetimeService_44" xml:space="preserve">
+    <value>起源与当前节点不可收束</value>
+  </data>
+  <data name="VmSpacetimeService_45" xml:space="preserve">
+    <value>时空收束中...</value>
+  </data>
+  <data name="VmSpacetimeService_46" xml:space="preserve">
+    <value>收束失败: {0}</value>
+  </data>
+  <data name="VmSpacetimeService_47" xml:space="preserve">
+    <value>[Spacetime] 读取检查点状态失败: {0}</value>
+  </data>
+  <data name="VmSpacetimeService_48" xml:space="preserve">
+    <value>找不到虚拟机</value>
+  </data>
+  <data name="VmSpacetimeService_49" xml:space="preserve">
+    <value>找不到虚拟机配置</value>
+  </data>
+  <data name="VmSpacetimeService_50" xml:space="preserve">
+    <value>找不到 WMI 管理服务</value>
+  </data>
+  <data name="VmSpacetimeService_51" xml:space="preserve">
+    <value>已启用检查点</value>
+  </data>
+  <data name="VmSpacetimeService_52" xml:space="preserve">
+    <value>已禁用检查点</value>
+  </data>
+  <data name="VmSpacetimeService_53" xml:space="preserve">
+    <value>操作失败: WMI 错误代码 {0}</value>
+  </data>
+  <data name="VmSpacetimeService_54" xml:space="preserve">
+    <value>操作异常: {0}</value>
+  </data>
+  <data name="VmSpacetimeService_55" xml:space="preserve">
+    <value>[Spacetime] 已清理快照截图: {0}</value>
+  </data>
+  <data name="VmSpacetimeService_56" xml:space="preserve">
+    <value>[Spacetime] 清理截图失败: {0}</value>
+  </data>
+  <data name="VmSpacetimeService_57" xml:space="preserve">
+    <value>起源</value>
+  </data>
+  <data name="VmSpacetimeService_58" xml:space="preserve">
+    <value>当前</value>
+  </data>
+  <data name="VmStorageService_1" xml:space="preserve">
+    <value>WMI 执行异常: {0}</value>
+  </data>
+  <data name="MMIOOptimizer_1" xml:space="preserve">
+    <value>无法获取 Msvm_VirtualSystemManagementService</value>
+  </data>
+  <data name="MMIOOptimizer_2" xml:space="preserve">
+    <value>[MMIO] 正在探测上限值: {0}</value>
+  </data>
+  <data name="MMIOOptimizer_3" xml:space="preserve">
+    <value>[MMIO] 探测成功，宿主上限确定为: {0}</value>
+  </data>
+  <data name="MMIOOptimizer_4" xml:space="preserve">
+    <value>[MMIO] 最终计算结果:</value>
+  </data>
+  <data name="MMIOOptimizer_5" xml:space="preserve">
+    <value>[MMIO] 最终配置已成功应用。</value>
+  </data>
+  <data name="MMIOOptimizer_6" xml:space="preserve">
+    <value>[MMIO] 错误: {0}</value>
+  </data>
+  <data name="SystemSwitcher_1" xml:space="preserve">
+    <value>权限不足</value>
+  </data>
+  <data name="SystemSwitcher_2" xml:space="preserve">
+    <value>打不开键</value>
+  </data>
+  <data name="SystemSwitcher_3" xml:space="preserve">
+    <value>导出失败:{0}</value>
+  </data>
+  <data name="SystemSwitcher_4" xml:space="preserve">
+    <value>离线修改失败</value>
+  </data>
+  <data name="SystemSwitcher_5" xml:space="preserve">
+    <value>替换失败:{0}</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_26" xml:space="preserve">
+    <value>正在创建虚拟机...</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_27" xml:space="preserve">
+    <value>正在启动虚拟机...</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_28" xml:space="preserve">
+    <value>打开失败</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_29" xml:space="preserve">
+    <value>找不到虚拟机配置目录</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_30" xml:space="preserve">
+    <value>打开失败</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_31" xml:space="preserve">
+    <value>彻底删除虚拟机</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_32" xml:space="preserve">
+    <value>即将彻底删除「{0}」，包括所有虚拟硬盘文件和配置目录。\n\n⚠️ 请确认虚拟机配置目录中是否存在其他文件，删除后无法恢复！</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_33" xml:space="preserve">
+    <value>彻底删除</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_34" xml:space="preserve">
+    <value>取消</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_35" xml:space="preserve">
+    <value>删除完成</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_36" xml:space="preserve">
+    <value>「{0}」已彻底清除</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_37" xml:space="preserve">
+    <value>删除失败</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_38" xml:space="preserve">
+    <value>修改失败</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_39" xml:space="preserve">
+    <value>物理映射模式</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_40" xml:space="preserve">
+    <value>虚拟映射模式</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_41" xml:space="preserve">
+    <value>混合映射模式</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_42" xml:space="preserve">
+    <value>系统自动分配</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_43" xml:space="preserve">
+    <value>标准粒度</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_44" xml:space="preserve">
+    <value>大页粒度</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_45" xml:space="preserve">
+    <value>巨型页粒度</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_46" xml:space="preserve">
+    <value>系统自动分配</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_47" xml:space="preserve">
+    <value>标准粒度</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_48" xml:space="preserve">
+    <value>大页粒度</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_49" xml:space="preserve">
+    <value>巨型页粒度</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_50" xml:space="preserve">
+    <value>关闭跟踪</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_51" xml:space="preserve">
+    <value>开启跟踪</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_52" xml:space="preserve">
+    <value>按处理器节点配置</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_53" xml:space="preserve">
+    <value>禁止访问</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_54" xml:space="preserve">
+    <value>仅限读取</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_55" xml:space="preserve">
+    <value>允许读写</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_56" xml:space="preserve">
+    <value>优化完成</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_57" xml:space="preserve">
+    <value>虚拟磁盘空间已成功回收</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_58" xml:space="preserve">
+    <value>优化失败</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_59" xml:space="preserve">
+    <value>系统异常</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_60" xml:space="preserve">
+    <value>[STORAGE-ACTION] 执行添加操作: {0} -&gt; 控制器:{1} #{2} 位置:{3}</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_61" xml:space="preserve">
+    <value>[DEBUG-STORAGE] &gt;&gt;&gt; 开始自动分配: {0} #{1} Loc:{2}</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_62" xml:space="preserve">
+    <value>[VM-LOG] UI 触发保存，当前预览顺序: {0}</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_63" xml:space="preserve">
+    <value>[VM-LOG] 磁盘保存结果: {0}</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_64" xml:space="preserve">
+    <value>[VM-LOG] 保存过程出错: {0}</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_65" xml:space="preserve">
+    <value>操作失败</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_66" xml:space="preserve">
+    <value>修改失败</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_67" xml:space="preserve">
+    <value>检索失败</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_68" xml:space="preserve">
+    <value>操作成功</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_69" xml:space="preserve">
+    <value>已成功创建时空</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_70" xml:space="preserve">
+    <value>操作失败</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_71" xml:space="preserve">
+    <value>操作成功</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_72" xml:space="preserve">
+    <value>已穿梭至时空：{0}</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_73" xml:space="preserve">
+    <value>操作失败</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_74" xml:space="preserve">
+    <value>操作成功</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_75" xml:space="preserve">
+    <value>该时空已湮灭</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_76" xml:space="preserve">
+    <value>虫洞已开启</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_77" xml:space="preserve">
+    <value>已连接到时空「{0}」</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_78" xml:space="preserve">
+    <value>开启失败</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_79" xml:space="preserve">
+    <value>虫洞已关闭</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_80" xml:space="preserve">
+    <value>时间线已恢复正常</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_81" xml:space="preserve">
+    <value>关闭失败</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_82" xml:space="preserve">
+    <value>功能研发中</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_83" xml:space="preserve">
+    <value>平行宇宙：基于此时空创建新的虚拟机实例</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_84" xml:space="preserve">
+    <value>操作成功</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_85" xml:space="preserve">
+    <value>时空已收束至上一节点</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_86" xml:space="preserve">
+    <value>正在回滚 GPU 分配...</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_87" xml:space="preserve">
+    <value>回滚完成。</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_88" xml:space="preserve">
+    <value>回滚失败: {0}</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_89" xml:space="preserve">
+    <value>重置</value>
+  </data>
+  <data name="VirtualMachinesPageViewModel_90" xml:space="preserve">
+    <value>流程已重置，请重新选择显卡。</value>
+  </data>
+  <data name="VirtualMachinesPage_1" xml:space="preserve">
+    <value>打开文件夹</value>
+  </data>
+  <data name="VirtualMachinesPage_2" xml:space="preserve">
+    <value>彻底删除</value>
+  </data>
+  <data name="VmBootSettingsView_1" xml:space="preserve">
+    <value>引导顺序</value>
+  </data>
+  <data name="VmBootSettingsView_2" xml:space="preserve">
+    <value>上下拖动以调整优先级</value>
+  </data>
+  <data name="VmCpuSettingsView_1" xml:space="preserve">
+    <value>自定义 CPU 名称</value>
+  </data>
+  <data name="VmCpuSettingsView_2" xml:space="preserve">
+    <value>此操作需要虚拟机处于关机状态</value>
+  </data>
+  <data name="VmDashboardView_2" xml:space="preserve">
+    <value>引导</value>
+  </data>
+  <data name="VmDashboardView_3" xml:space="preserve">
+    <value>引导顺序与设备列表</value>
+  </data>
+  <data name="VmDashboardView_4" xml:space="preserve">
+    <value>时空</value>
+  </data>
+  <data name="VmDashboardView_5" xml:space="preserve">
+    <value>快照管理与时空穿梭</value>
+  </data>
+  <data name="VmRAMSettingsView_1" xml:space="preserve">
+    <value>内存映射模式</value>
+  </data>
+  <data name="VmRAMSettingsView_2" xml:space="preserve">
+    <value>配置虚拟机内存如何映射到宿主机物理资源</value>
+  </data>
+  <data name="VmRAMSettingsView_3" xml:space="preserve">
+    <value>内存访问监控粒度</value>
+  </data>
+  <data name="VmRAMSettingsView_4" xml:space="preserve">
+    <value>配置读写监控状态与页面分辨率级别</value>
+  </data>
+  <data name="VmRAMSettingsView_5" xml:space="preserve">
+    <value>Intel SGX 机密计算</value>
+  </data>
+  <data name="VmRAMSettingsView_6" xml:space="preserve">
+    <value>开启处理器硬件级的隔离安全执行环境</value>
+  </data>
+  <data name="VmRAMSettingsView_7" xml:space="preserve">
+    <value>应用</value>
+  </data>
+  <data name="VmRAMSettingsView_8" xml:space="preserve">
+    <value>授权控制模式</value>
+  </data>
+  <data name="VmRAMSettingsView_9" xml:space="preserve">
+    <value>配置安全飞地的启动授权与运行验证模式</value>
+  </data>
+  <data name="VmRAMSettingsView_10" xml:space="preserve">
+    <value>机密内存大小</value>
+  </data>
+  <data name="VmRAMSettingsView_11" xml:space="preserve">
+    <value>分配给机密计算使用的物理隔离内存总量 (单位: MB)</value>
+  </data>
+  <data name="VmRAMSettingsView_12" xml:space="preserve">
+    <value>MSR 运行控制默认值</value>
+  </data>
+  <data name="VmRAMSettingsView_13" xml:space="preserve">
+    <value>处理器特定寄存器初始值</value>
+  </data>
+  <data name="VmRAMSettingsView_14" xml:space="preserve">
+    <value>64位十六进制字符串</value>
+  </data>
+  <data name="VmRAMSettingsView_15" xml:space="preserve">
+    <value>内存优化</value>
+  </data>
+  <data name="VmRAMSettingsView_16" xml:space="preserve">
+    <value>内存活跃度提示</value>
+  </data>
+  <data name="VmRAMSettingsView_17" xml:space="preserve">
+    <value>半虚拟化分页优化</value>
+  </data>
+  <data name="VmRAMSettingsView_18" xml:space="preserve">
+    <value>独立压缩内存池</value>
+  </data>
+  <data name="VmRAMSettingsView_19" xml:space="preserve">
+    <value>NUMA 节点内存块限制</value>
+  </data>
+  <data name="VmRAMSettingsView_20" xml:space="preserve">
+    <value>手动限制单个虚拟 NUMA 节点可观察的最大内存块数</value>
+  </data>
+  <data name="VmRAMSettingsView_21" xml:space="preserve">
+    <value>应用</value>
+  </data>
+  <data name="VmRAMSettingsView_22" xml:space="preserve">
+    <value>动态内存调整步长</value>
+  </data>
+  <data name="VmRAMSettingsView_23" xml:space="preserve">
+    <value>调整动态分配内存时的最小步进单位</value>
+  </data>
+  <data name="VmRAMSettingsView_24" xml:space="preserve">
+    <value>硬件加速扩展（CXL）</value>
+  </data>
+  <data name="VmRAMSettingsView_25" xml:space="preserve">
+    <value>启用高速总线互连协议支持或强制物理地址锁定</value>
+  </data>
+  <data name="VmRAMSettingsView_26" xml:space="preserve">
+    <value>CXL支持</value>
+  </data>
+  <data name="VmRAMSettingsView_27" xml:space="preserve">
+    <value>物理固定</value>
+  </data>
+  <data name="VmSpacetimeSettingsView_1" xml:space="preserve">
+    <value>时空管理</value>
+  </data>
+  <data name="VmSpacetimeSettingsView_2" xml:space="preserve">
+    <value>检查点</value>
+  </data>
+  <data name="VmSpacetimeSettingsView_3" xml:space="preserve">
+    <value>导出拓扑图</value>
+  </data>
+  <data name="VmSpacetimeSettingsView_4" xml:space="preserve">
+    <value>同步中...</value>
+  </data>
+  <data name="VmSpacetimeSettingsView_5" xml:space="preserve">
+    <value>时空详情</value>
+  </data>
+  <data name="VmSpacetimeSettingsView_6" xml:space="preserve">
+    <value>未选择锚点</value>
+  </data>
+  <data name="VmSpacetimeSettingsView_7" xml:space="preserve">
+    <value>操作</value>
+  </data>
+  <data name="VmSpacetimeSettingsView_8" xml:space="preserve">
+    <value>连续时空</value>
+  </data>
+  <data name="VmSpacetimeSettingsView_9" xml:space="preserve">
+    <value>保存磁盘和内存状态</value>
+  </data>
+  <data name="VmSpacetimeSettingsView_10" xml:space="preserve">
+    <value>静止时空</value>
+  </data>
+  <data name="VmSpacetimeSettingsView_11" xml:space="preserve">
+    <value>保存磁盘状态</value>
+  </data>
+  <data name="VmSpacetimeSettingsView_12" xml:space="preserve">
+    <value>创建时空</value>
+  </data>
+  <data name="VmSpacetimeSettingsView_13" xml:space="preserve">
+    <value>虫洞干涉中</value>
+  </data>
+  <data name="VmSpacetimeSettingsView_14" xml:space="preserve">
+    <value>关闭虫洞</value>
+  </data>
+  <data name="VmSpacetimeSettingsView_15" xml:space="preserve">
+    <value>穿梭</value>
+  </data>
+  <data name="VmSpacetimeSettingsView_16" xml:space="preserve">
+    <value>开启虫洞</value>
+  </data>
+  <data name="VmSpacetimeSettingsView_17" xml:space="preserve">
+    <value>开启平行宇宙</value>
+  </data>
+  <data name="VmSpacetimeSettingsView_18" xml:space="preserve">
+    <value>时空收束</value>
+  </data>
+  <data name="VmSpacetimeSettingsView_19" xml:space="preserve">
+    <value>删除</value>
+  </data>
+  <data name="VmSpacetimeSettingsView.xaml_1" xml:space="preserve">
+    <value>导出时空拓扑图</value>
+  </data>
+  <data name="VmSpacetimeSettingsView.xaml_2" xml:space="preserve">
+    <value>PNG 图片|*.png</value>
+  </data>
+  <data name="VmSpacetimeSettingsView.xaml_3" xml:space="preserve">
+    <value>[DRAG] !!! 异常位移 delta=({0},{1}) 已丢弃</value>
+  </data>
+  <data name="VmStorageSettingsView_1" xml:space="preserve">
+    <value>优化磁盘</value>
+  </data>
 </root>
