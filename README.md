@@ -166,12 +166,6 @@ When enabled, it significantly strips down the CPU instruction set. This is bene
 
 When enabled, the virtual machine can perceive that its vCPUs appear as paired logical cores, helping the OS kernel inside the VM to better perform L1/L2 cache optimization and process scheduling.
 
-##### Hide Hypervisor Presence # Soon to be removed
-
-This is an early switch, and its function is still unclear. Located at [Msvm_ProcessorSettingData/HideHypervisorPresent](https://github.com/Justsenger/HyperV-WMI-Documentation/blob/main/docs/Msvm_ProcessorSettingData.md).
-
-Indicates whether Hyper-V should report the presence of a hypervisor to nested guests.
-
 ##### Expose Architecture Performance Monitoring Unit
 
 When enabled, it passes through the CPU's hardware counters, allowing development tools inside the virtual machine to directly access physical CPU performance monitoring hardware.
@@ -195,6 +189,13 @@ CPU Pinning is implemented based on CPU Groups (Classic + Core schedulers) + Pro
 The best practice is binding 4 vCPUs to 4 cores. Binding 2 vCPUs to 4 cores will cause random drift, and binding 4 vCPUs to 2 cores will cause queuing, and so on.
 
 If you find the scheduler performance poor, or have concerns about Intel's hybrid architecture or AMD's multi-chip architecture, please try using this feature.
+
+> [!CAUTION]
+> The following are experimental features. Use with caution.
+
+##### Custom CPU Name
+
+Allows customizing the CPU name, a maximum 48-byte ASCII string. Requires at least Build 20348.
 
 ---
 ### Memory
@@ -231,6 +232,39 @@ Determines the "granularity" when mapping virtual memory to physical memory. Opt
 
 When enabled, uses hardware features (AMD SEV or Intel TDX) to encrypt memory data in real-time. Even the host cannot read the memory data. Enabling this adds slight memory latency and increased CPU load.
 
+> [!CAUTION]
+> The following are experimental features. Use with caution.
+
+##### Memory Mapping Mode
+Controls the physical backend allocation method for virtual machine memory. Three modes are available: Physical Mapping Mode, Virtual Mapping Mode, and Hybrid Mapping Mode.
+
+##### Memory Access Monitoring Granularity
+Configures the Hypervisor's tracking policy for virtual machine memory read/write behavior, with two dimensions:
+- Monitor State: Disable tracking, enable tracking, or configure per processor node.
+- Page Granularity: The minimum memory unit for tracking. Options: auto-assign, standard granularity (4KB), large page granularity (2MB), huge page granularity (1GB). Smaller granularity means higher precision but greater overhead.
+
+##### Intel SGX Confidential Computing
+Uses Intel SGX to carve out a hardware-level isolated secure Enclave inside the processor. Code and data within the Enclave are completely invisible to the host during runtime.
+- Confidential Memory Size: Total physical memory allocated for secure Enclave use, in MB. Minimum 2MB, must be a multiple of 2MB.
+- Authorization Control Mode: Controls the Enclave's launch authorization method. No Access means fully controlled by the platform; Read Only means reading the launch control MSR; Read/Write means the VM manages Enclave authorization itself.
+- MSR Runtime Control Default: The initial value of the SGX launch control register, a 64-bit hexadecimal string. Only effective when Authorization Control Mode is set to Read/Write.
+
+##### Memory Optimization
+Three independent memory performance optimization switches.
+- Memory Activity Hints: Reports hot/cold memory page information from inside the VM to the Hypervisor, helping the host make smarter memory reclamation and paging decisions, reducing performance jitter under memory pressure.
+- Paravirtualized Paging Optimization: Enables heuristic page faults, where the VM proactively notifies the Hypervisor of page fault events, reducing unnecessary interception overhead and improving throughput for memory-intensive workloads.
+- Independent Compressed Memory Pool: Allocates a dedicated memory compression storage area for the VM. When host memory is tight, it prioritizes compression over swapping to disk, reducing memory reclamation latency.
+
+##### NUMA Node Memory Block Limit
+Manually limits the maximum number of memory blocks observable on a single virtual NUMA node. Adjusting this value controls the NUMA topology awareness range of the OS inside the VM, avoiding performance degradation caused by cross-node access. When modifying large-page memory configuration, this value is automatically aligned to prevent configuration conflicts.
+
+##### Dynamic Memory Adjustment Stride
+Configures the minimum step size for each dynamic memory scaling operation. Options: small page (4KB), large page (2MB), huge page (1GB), or disable alignment constraints. The stride unit should be consistent with the memory page size configuration; otherwise dynamic memory adjustment may fail.
+
+##### Hardware Accelerated Extension (CXL)
+- CXL Support: Enables CXL (Compute Express Link) high-speed bus protocol support, allowing the virtual machine to access expanded memory devices mounted via the CXL interface.
+- Physical Pinning: Enables GPA Pinning, locking the VM's physical address space in host memory and disabling swapping or migration. Suitable for scenarios with extreme memory latency sensitivity or requiring stable DMA mapping.
+
 ---
 ### Storage
 > [!NOTE]
@@ -240,11 +274,13 @@ Divided into Virtual Files and Physical Devices. Virtual files can be vhdx, vhd,
 
 The monitoring interface shows real-time read/write rates and capacity changes. The number on the left is the file size, and the number on the right is the capacity limit.
 
+The detail interface allows unmounting, modifying the source, capacity optimization (dynamic disk), and folder location for mounted devices.
+
 #### Slot Configuration
 
 Hyper-V requires you to mount virtual files or physical devices to an IDE Controller or SCSI Controller for VM access. ExHyperV has simplified this operation to automatic allocation, allowing you to care only about the media source without worrying about slot allocation.
 
-If you try to understand the complex slot logic, please refer to the following rules:
+If you wish to understand the complex slot logic and configure manually, please refer to the following rules:
 
 · For running Generation 1 VMs, IDE Controllers cannot be uninstalled, but ISOs can be ejected and inserted.
 
@@ -276,11 +312,7 @@ Block Size: Minimum storage unit. Larger blocks mean higher read/write efficienc
 
 ###### Type: Optical Drive
 
-Created using DiscUtils, enabling quick packaging of a specified folder and mounting it to the VM. Uses ISO 9660 standard with Joliet extension enabled.
-
-Single file cannot exceed 4GB, total size cannot exceed 8TB, ISO volume label cannot exceed 32 characters, path depth cannot exceed 8 levels, single file or folder name cannot exceed 103 characters, and the total length of the absolute path of a file in the image cannot exceed 240 characters.
-
-Due to many restrictions, this part may consider using the UDF standard as a replacement in the future. This function is used to compensate for Hyper-V's disadvantage in quickly creating ISOs.
+Created using Windows built-in IMAPI2, using the ISO 9660 + UDF dual-format standard. It quickly packages a specified folder and mounts it to the virtual machine. This feature compensates for Hyper-V's disadvantage in quickly creating ISOs.
 
 ---
 ### Graphics Card
@@ -331,7 +363,7 @@ Host and VM must be the following versions to enable this capability.
 | 22621 | 3.1 | UMD/KMD memory sharing, reducing data copying, improving efficiency. |
 | 26100 | 3.2 | VM Task Manager can view GPU performance counters. Introduced new features like GPU live migration, WDDM capability queries. |
 
-#### GPU-PV Partial Compatibility List (Tested using Gpu Caps Viewer+DXVA Checker)
+#### GPU-PV Partial Compatibility List (Tested using Gpu Caps Viewer + DXVA Checker)
 
 | Brand | Model | Architecture | Recognition | DirectX 12 | OpenGL | Vulkan | Codec | CUDA/OpenCL | Remarks |
 | :--- | :--- | :--- | :--- |:--- | :--- | :--- | :--- | :--- | :--- |
@@ -341,7 +373,7 @@ Host and VM must be the following versions to enable this capability.
 | **Nvidia** | GTX 1050 | Pascal | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | |
 | **Nvidia** | GT 210 | Tesla | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | Not supported |
 | **Nvidia** | Tesla V100-SXM2-16GB | Volta | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | Host crashes on boot #95 |
-| **Intel**| Iris Xe Graphics| Xe-LP | ⚠️ | ✅ | ✅ | ✅ | ✅ | ❌ | Incomplete HW ID| 
+| **Intel**| Iris Xe Graphics| Xe-LP | ⚠️ | ✅ | ✅ | ✅ | ✅ | ❌ | Incomplete HW ID|
 | **Intel**| A380 | Xe-HPG | ⚠️ | ✅ | ✅ | ✅ | ✅ | ❌ | Incomplete HW ID|
 | **Intel**| UHD Graphics 730 | Xe-LP | ⚠️ | ✅ | ✅ | ✅ | ✅ | ❌ | Incomplete HW ID|
 | **Intel**| UHD Graphics 620 Mobile | Generation 9.5 | ⚠️ | ✅ | ✅ | ✅ | ✅ | ❌ | Incomplete HW ID|
@@ -415,19 +447,53 @@ Create a GPU-PV partition for the selected graphics card and assign it to the vi
 
 This is optional. When adding multiple graphics cards, you can uncheck this to avoid importing drivers every time.
 
-For Windows VMs, the host driver folder will be fully injected into the VM's specified partition. If it's an Nvidia card, registry fixes will also be added. At the same time, link files for certain driver files will be created in the VM's System32 directory. For specific mapping relationships, refer to [drivermapping.md](https://github.com/Justsenger/ExHyperV/blob/main/doc/drivermapping.md).
+- For Windows VMs, the host driver folder will be fully injected into the VM's specified partition. If it's an Nvidia card, registry fixes will also be added. At the same time, link files for certain driver files will be created in the VM's System32 directory. For specific mapping relationships, refer to [drivermapping.md](https://github.com/Justsenger/ExHyperV/blob/main/doc/drivermapping.md).
 
-For Linux VMs, an SSH automated flow will be executed for module compilation and driver installation. Systems or kernels outside the compatibility list need more testing.
+- For Linux VMs, an SSH automated flow will be executed for module compilation and driver installation. Systems or kernels outside the compatibility list need more testing.
+
+Deployment scripts are stored at: [https://github.com/Justsenger/ExHyperV/tree/main/src/Linux/script](https://github.com/Justsenger/ExHyperV/tree/main/src/Linux/script)
+
+Known Compatibility:
+
+| Distro | Kernel Version | dxgkrnl | CUDA | Mesa/Vulkan | OpenGL | Codec | Remarks |
+|:---|:---|:---:|:---:|:---:|:---:|:---:|:---|
+| Ubuntu 22.04 | 5.x | ✅ | ✅ | ✅ | ✅ | ✅ | Kisak PPA |
+| Ubuntu 22.04 | 6.0–6.6 | ✅ | ✅ | ✅ | ✅ | ✅ | Kisak PPA |
+| Ubuntu 22.04 | 6.7+ | ✅ | ✅ | ✅ | ✅ | ✅ | Kisak PPA |
+| Ubuntu 24.04 | 6.8–6.x | ✅ | ✅ | ❌ | ❌ | ❌ | No graphics stack configured |
+| fnOS 1.1.23 | 6.12.18-trim | ✅ | ✅ | ❌ | ❌ | ❌ | No graphics stack configured |
 
 ![Linux&Blender](https://github.com/Justsenger/ExHyperV/blob/main/img/Linux.png)
 
-Known Compatibility:
-| System | Kernel Version | Dxgkrnl | CUDA | Vulkan | OpenGL | Codec |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- | 
-| Ubuntu 24.04  | 6.14.0-36-generic | ❌ | \ | \ | \ | \ |
-| Ubuntu 22.04  | 6.8.0-87-generic | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Arch Linux | 6.6.119-1-lts66 | ✅ | ✅ | Untested | Untested | Untested |
-| fnOS 0.9.2 | 6.12.18-trim | ❌ | \ | \ | \ | \ |
+---
+
+### Console
+> [!NOTE]
+> Connects to and displays the virtual machine's screen via the RDP protocol, supporting both Basic Session and Enhanced Session modes.
+
+The console window implements RDP connections based on MsRdpEx, connecting directly to the local Hyper-V virtual machine via `127.0.0.1`.
+
+#### Session Modes
+
+**Basic Session**: Connects via the Hyper-V VMBus channel. Does not rely on the VM's internal network or RDP service, making it suitable for viewing early boot screens before the system has fully started (e.g., BIOS/UEFI, installation interface). Resolution is fixed; clipboard sharing and audio are not supported.
+
+**Enhanced Session**: Connects via the RDP protocol. Requires Remote Desktop Services to be enabled inside the virtual machine (enabled by default on Windows). Supports bidirectional clipboard sharing, custom resolution, audio redirection, and other features, offering an experience closer to local usage.
+
+#### Resolution
+
+Only adjustable in Enhanced Session mode. In Basic Session mode, resolution is determined by the Hyper-V virtual graphics adapter and the internal operating system, and cannot be modified from the console side. To force a specific Basic Session resolution, run the following PowerShell command while the VM is powered off:
+
+```powershell
+Set-VMVideo -VMName "VMName" -HorizontalResolution 1920 -VerticalResolution 1080 -ResolutionType Single
+```
+
+#### Full Screen Mode
+
+Click the full screen button in the title bar or use the shortcut (Ctrl+Alt+Space) to toggle full screen. In full screen mode, the title bar is hidden and keyboard input is fully captured by the virtual machine. Use the shortcut to exit full screen.
+
+#### Send Ctrl+Alt+Del
+
+The keyboard icon button in the title bar sends the Ctrl+Alt+Del signal to the virtual machine.
 
 ---
 ### Network
@@ -497,6 +563,49 @@ Join Destination Group: This network adapter will receive traffic from Source gr
 
 Storm Threshold: Limits the number of broadcast/multicast packets the VM is allowed to send per second. Setting to 0 means no limit; recommended setting is 500-1000.
 
+### Boot
+> [!NOTE]
+> Determines the order in which the virtual machine attempts each boot device at startup. Drag up and down to adjust priority.
+
+Generation 1 virtual machines support four fixed boot entry types: DVD Drive, Floppy Disk, Network (PXE), and Hard Drive.
+
+Generation 2 virtual machines are based on UEFI firmware, and boot entries come from actually attached hardware devices, including SCSI hard drives, SCSI optical drives, network adapters (PXE), and the Windows Boot Manager. Boot order is persistently stored in the `.vmgs` file corresponding to the virtual machine. This file has an internal simulated GPT disk structure, fixed at 4097 sectors in size—equivalent to the NVRAM chip on a physical machine—and is used to store firmware state such as Secure Boot certificates and boot order.
+
+### Checkpoints
+> [!NOTE]
+> Manages the virtual machine's checkpoints.
+
+Displays the complete timeline of the virtual machine in a tree structure. Each checkpoint represents a historical state, and the lines between checkpoints indicate derivation relationships. Click a checkpoint to view details and perform operations. Use the export button to save the current topology diagram as an image file.
+
+The checkpoint toggle at the top controls whether new checkpoints can be created. Disabling it still allows viewing and operating existing checkpoints.
+
+#### Checkpoint Types
+- Origin: The initial state of the virtual machine; the root node of the entire tree.
+- Snapshot: A checkpoint generated each time a checkpoint is created; can be renamed.
+- Current: The current state of the virtual machine; always located at the end of the tree.
+
+#### Create Checkpoint
+Two types of snapshot checkpoints are available:
+- Standard Checkpoint: Saves both disk and memory state, allowing complete restoration of a running virtual machine.
+- Production Checkpoint: Saves only disk state; the virtual machine does not need to be running to create one, and the file size is smaller.
+
+#### Apply
+Switches the virtual machine to the selected checkpoint. All modifications in the current state will be lost. All open wormholes are automatically closed before applying.
+
+#### Merge
+Merges the selected checkpoint into its parent, without affecting the topology structure with other checkpoints.
+
+#### Delete
+Deletes the selected checkpoint and all its child checkpoints.
+
+#### Export
+Exports the selected checkpoint as an independent virtual machine instance. Feature under development.
+
+#### Mount
+Mounts the disk of the selected checkpoint to the currently running virtual machine without applying the checkpoint. All modifications to the mounted disk do not affect the selected checkpoint. Only one mount can be active at a time.
+
+While a checkpoint is mounted, no other operations can be performed on that checkpoint.
+
 ---
 ### PCIe Passthrough
 > [!NOTE]
@@ -529,7 +638,7 @@ Ineffective Versions: Pro, Home, Enterprise, Home Single Language.
 #### Three States of PCIe Devices
 
 1.  **Host State**: The device is normally mounted to the host system and can only be used by the host.
-2.  **Dismounted State**: The device has been uninstalled from the host (Dismount-VMHostAssignableDevice) but not assigned to a VM. At this point, the device is unavailable in the host Device Manager and needs to be remounted to the host or assigned to a VM.
+2.  **Dismounted State**: The device has been uninstalled from the host (`Dismount-VMHostAssignableDevice`) but not assigned to a VM. At this point, the device is unavailable in the host Device Manager and needs to be remounted to the host or assigned to a VM.
 3.  **Virtual State**: The device has been successfully assigned to a virtual machine.
 
 #### PCIe Partial Graphics Card Compatibility List
@@ -549,13 +658,13 @@ Ineffective Versions: Pro, Home, Enterprise, Home Single Language.
 | **Nvidia** | Tesla V100-SXM2-16GB | Volta | ✅ | ✅ | ❌ |
 | **Intel** | DG1 | Xe-LP | ✅ | ❌ | [Specific Driver](https://www.shengqipc.cn/d21.html) ✅ |
 | **Intel** | A380 | Xe-HPG | Code 43 ❌ | ✅ | ❌ |
-| **Intel**| UHD Graphics 620 Mobile | Generation 9.5 | Fails ❌ | ❌ | ❌ | 
-| **Intel**| HD Graphics 610 | Generation 9.5 | Fails ❌ | ❌ | ❌ | 
-| **Intel**| HD Graphics 530 | Generation 9.0 | Fails ❌ | ❌ | ❌ | ❌ |
+| **Intel**| UHD Graphics 620 Mobile | Generation 9.5 | Fails ❌ | ❌ | ❌ |
+| **Intel**| HD Graphics 610 | Generation 9.5 | Fails ❌ | ❌ | ❌ |
+| **Intel**| HD Graphics 530 | Generation 9.0 | Fails ❌ | ❌ | ❌ |
 | **AMD** | RX 580 | GCN 4.0 | Code 43 ❌ | ✅ | ❌ |
 | **AMD** | Radeon Vega 3 | GCN 5.0 | Code 43 ❌ | ❌ | ❌ |
-| **Qualcomm** | Qualcomm(R) Adreno(TM) X1-85 GPU | Adreno X1 | Not supported❌ | ❌ | ❌ |
-| **Qualcomm** | Qualcomm(R) Adreno(TM) 8cx Gen 3  | Adreno | Not supported❌ | ❌ | ❌ |
+| **Qualcomm** | Qualcomm(R) Adreno(TM) X1-85 GPU | Adreno X1 | Not supported ❌ | ❌ | ❌ |
+| **Qualcomm** | Qualcomm(R) Adreno(TM) 8cx Gen 3  | Adreno | Not supported ❌ | ❌ | ❌ |
 
 
 - **Boot**: Whether the driver can be successfully installed and recognized after assignment to the VM. Code 43 indicates the driver level does not allow the card to work inside a VM.
@@ -578,7 +687,64 @@ No Upstream: Host and VM connect under the same internal virtual switch with no 
 
 · Default Switch belongs to a unique switch type working similarly to NAT mode and automatically switches the upstream network based on metrics.
 
+---
+### USB Passthrough
+> [!NOTE]
+> USB Passthrough is implemented via VMBus + USBIP protocol, not network or RDP forwarding.
 
+USB Passthrough allows assigning a USB device on the host to a virtual machine for exclusive use, without requiring PCIe Passthrough and without IOMMU restrictions.
+
+> [!WARNING]
+> This feature is currently in its first phase (proxy solution) and is a beta feature. There may be uncovered scenarios and bugs. Please be aware of the risks before using.
+
+#### How It Works
+
+ExHyperV wraps the USBIP protocol using the af-hyperv protocol within VMBus, establishing a high-performance data channel between the host and the virtual machine without any network configuration.
+
+#### Requirements
+
+**Host**:
+- Install [usbipd-win](https://github.com/dorssel/usbipd-win)
+
+**Virtual Machine**:
+- Install [usbip-win2](https://github.com/vadimgrn/usbip-win2)
+- Download and run the VM agent `USBProxy.exe` from [ExHyperV-USBProxy](https://github.com/Justsenger/ExHyperV-USBProxy/releases/latest)
+
+#### Verified Compatible Devices
+
+| Device Type | Compatibility | Remarks |
+| :--- | :--- | :--- |
+| USB Keyboard / Mouse | ✅ | |
+| Regular / SSD USB Drive | ✅ | |
+| Android Phone | ✅ | |
+| USB Camera | ✅ | May have stuttering issues |
+| USB Microphone | ✅ | |
+| DisplayLink Graphics Card | ✅ | |
+
+> Devices not natively compatible with the USBIP protocol are also not supported by this solution.
+
+#### Usage Notes
+
+- The current version requires ExHyperV to remain running to maintain the USB connection.
+- Only the Windows host → Windows VM link is currently maintained. Windows → Linux is theoretically feasible; PRs are welcome at [ExHyperV-USBProxy](https://github.com/Justsenger/ExHyperV-USBProxy/releases/latest).
+- ExHyperV must stay running to maintain the USB connection; the forwarding service has not yet been made an independent background service.
+- Slim/stripped-down system VMs may be unable to use this feature due to missing required components.
+- The next development phase may consider using GPADL memory sharing mechanisms.
+
+---
+### Hyper-V on ARM
+> [!IMPORTANT]
+> Hyper-V on ARM applies to Windows ARM devices equipped with Qualcomm Snapdragon processors (8cx series and above).
+
+Hyper-V is currently the most mature virtualization solution on the ARM platform. With a few feature limitations, the virtualization capabilities available on the x86 platform can be migrated seamlessly.
+
+It is worth noting that since the Snapdragon 8cx Gen3 has a physical addressing capability of 36-bit (64GB), MMIO space configuration has been specially optimized.
+
+#### Known Feature Limitations
+- Only ARM64 architecture virtual machines can run; x86/x64 systems are not supported. Use ARM64 ISOs when installing.
+- Nested Virtualization: Not supported. Hyper-V has not yet implemented this on the ARM platform; this is unrelated to hardware capabilities.
+- PCIe Passthrough (DDA): Not supported. Snapdragon platform PCIe root ports lack ACS support, and the SMMU does not expose available DMA remapping capabilities to Hyper-V; hardware capability is limited.
+- Only Generation 2 virtual machines are supported.
 
 ## 🤝 Contribution
 Any form of contribution is welcome!
@@ -603,7 +769,7 @@ A huge thank you to our sponsors! Your generous support is the driving force beh
 
 ### 🌌 Legend Tier
 ![](https://img.shields.io/badge/LEGEND-USER--09837-24292e?style=for-the-badge&logo=starship&logoColor=BE64FF&labelColor=24292e&color=BE64FF)
-<a href="https://github.com/PIKACHUIM"><img src="https://img.shields.io/badge/LEGEND-PIKACHUIM-24292e?style=for-the-badge&logo=starship&logoColor=BE64FF&labelColor=24292e&color=BE64FF" /></a> 
+<a href="https://github.com/PIKACHUIM"><img src="https://img.shields.io/badge/LEGEND-PIKACHUIM-24292e?style=for-the-badge&logo=starship&logoColor=BE64FF&labelColor=24292e&color=BE64FF" /></a>
 
 ---
 
