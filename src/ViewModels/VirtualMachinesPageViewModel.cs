@@ -3904,11 +3904,11 @@ namespace ExHyperV.ViewModels
             finally { IsLoadingSettings = false; }
         }
 
-        // 平行时空
+        // 平行宇宙
         [RelayCommand(CanExecute = nameof(CanOperateHistoricalNode))]
         private void ParallelSpacetime()
         {
-            ShowSnackbar("功能研发中", "平行时空：基于此时空创建新的虚拟机实例", ControlAppearance.Info, SymbolRegular.Copy24);
+            ShowSnackbar("功能研发中", "平行宇宙：基于此时空创建新的虚拟机实例", ControlAppearance.Info, SymbolRegular.Copy24);
         }
 
         // 时空收束
