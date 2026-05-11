@@ -5403,7 +5403,7 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
-        ///   查找类似 CPU Virt 的本地化字符串。
+        ///   查找类似 CPU Virtualization 的本地化字符串。
         /// </summary>
         public static string Menu_CpuVirt {
             get {
@@ -5511,7 +5511,7 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
-        ///   查找类似 Runtime Env 的本地化字符串。
+        ///   查找类似 Runtime Environment 的本地化字符串。
         /// </summary>
         public static string Menu_Runtime {
             get {

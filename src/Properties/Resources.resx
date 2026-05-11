@@ -2346,10 +2346,10 @@ This operation sends a shutdown signal to the guest OS.</value>
     <value>Env &amp; Settings</value>
   </data>
   <data name="Menu_Runtime" xml:space="preserve">
-    <value>Runtime Env</value>
+    <value>Runtime Environment</value>
   </data>
   <data name="Menu_CpuVirt" xml:space="preserve">
-    <value>CPU Virt</value>
+    <value>CPU Virtualization</value>
   </data>
   <data name="Menu_Iommu" xml:space="preserve">
     <value>IOMMU Status</value>
@@ -3681,7 +3681,7 @@ This operation sends a shutdown signal to the guest OS.</value>
     <value>Permanently Delete VM</value>
   </data>
   <data name="VmPage_MsgDiskReclaimOk" xml:space="preserve">
-    <value>About to permanently delete &quot;{0}&quot;, including all virtual hard disk files and the configuration directory.\n\n⚠️ Please confirm there are no other files in the VM configuration directory. This action cannot be undone!</value>
+    <value>About to permanently delete "{0}", including all virtual hard disk files and the configuration directory.\n\n⚠️ Please confirm there are no other files in the VM configuration directory. This action cannot be undone!</value>
   </data>
   <data name="VmPage_ErrOptimizeFailed" xml:space="preserve">
     <value>Permanently Delete</value>
@@ -3693,7 +3693,7 @@ This operation sends a shutdown signal to the guest OS.</value>
     <value>Deletion complete</value>
   </data>
   <data name="VmPage_LogStorageAutoAssign" xml:space="preserve">
-    <value>&quot;{0}&quot; has been permanently removed</value>
+    <value>"{0}" has been permanently removed</value>
   </data>
   <data name="VmPage_LogUiSaveTriggered" xml:space="preserve">
     <value>Deletion failed</value>
@@ -3816,7 +3816,7 @@ This operation sends a shutdown signal to the guest OS.</value>
     <value>Wormhole opened</value>
   </data>
   <data name="VmPage_MsgConnectedTo2" xml:space="preserve">
-    <value>Connected to spacetime &quot;{0}&quot;</value>
+    <value>Connected to spacetime "{0}"</value>
   </data>
   <data name="VmPage_ErrOpenFailed4" xml:space="preserve">
     <value>Failed to open</value>
