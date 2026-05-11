@@ -246,8 +246,8 @@
                                 <ColumnDefinition Width="220"/>
                             </Grid.ColumnDefinitions>
                             <StackPanel VerticalAlignment="Center">
-                                <TextBlock Text="{x:Static properties:Resources.VmRAMSettingsView_1}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
-                                <TextBlock Text="{x:Static properties:Resources.VmRAMSettingsView_2}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                                <TextBlock Text="{x:Static properties:Resources.VmRAMSettings_LabelMemMappingMode}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
+                                <TextBlock Text="{x:Static properties:Resources.VmRAMSettings_DescMemMappingMode}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
                             </StackPanel>
                             <ComboBox Grid.Column="1" VerticalAlignment="Center"
                       Style="{StaticResource ShutdownRequiredComboBoxStyle}"
@@ -266,8 +266,8 @@
                                 <ColumnDefinition Width="180"/>
                             </Grid.ColumnDefinitions>
                             <StackPanel VerticalAlignment="Center">
-                                <TextBlock Text="{x:Static properties:Resources.VmRAMSettingsView_3}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
-                                <TextBlock Text="{x:Static properties:Resources.VmRAMSettingsView_4}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                                <TextBlock Text="{x:Static properties:Resources.VmRAMSettings_LabelMemAccessMonitor}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
+                                <TextBlock Text="{x:Static properties:Resources.VmRAMSettings_DescMemAccessMonitor}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
                             </StackPanel>
                             <ComboBox Grid.Column="1" Margin="0,0,8,0"
                       Style="{StaticResource ShutdownRequiredComboBoxStyle}"
@@ -294,8 +294,8 @@
                                     <ColumnDefinition Width="80"/>
                                 </Grid.ColumnDefinitions>
                                 <StackPanel VerticalAlignment="Center">
-                                    <TextBlock Text="{x:Static properties:Resources.VmRAMSettingsView_5}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
-                                    <TextBlock Text="{x:Static properties:Resources.VmRAMSettingsView_6}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                                    <TextBlock Text="{x:Static properties:Resources.VmRAMSettings_LabelSgxComputing}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
+                                    <TextBlock Text="{x:Static properties:Resources.VmRAMSettings_DescSgxComputing}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
                                 </StackPanel>
 
                                 <ui:ToggleSwitch Grid.Column="1" VerticalAlignment="Center" Margin="0,0,12,0"
@@ -303,7 +303,7 @@
                          Tag="{Binding SelectedVm.MemorySettings.SgxEnabled}"
                          IsChecked="{Binding SelectedVm.MemorySettings.SgxEnabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
 
-                                <ui:Button Grid.Column="2" Content="{x:Static properties:Resources.VmRAMSettingsView_7}" 
+                                <ui:Button Grid.Column="2" Content="{x:Static properties:Resources.VmRAMSettings_BtnApply}" 
                    VerticalAlignment="Center"
                    Padding="24,6"
                    HorizontalAlignment="Right"
@@ -322,8 +322,8 @@
                                         <!-- 加宽输入区域以保持一致 -->
                                     </Grid.ColumnDefinitions>
                                     <StackPanel VerticalAlignment="Center">
-                                        <TextBlock Text="{x:Static properties:Resources.VmRAMSettingsView_8}" FontSize="13" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
-                                        <TextBlock Text="{x:Static properties:Resources.VmRAMSettingsView_9}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
+                                        <TextBlock Text="{x:Static properties:Resources.VmRAMSettings_LabelSgxAuthMode}" FontSize="13" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                                        <TextBlock Text="{x:Static properties:Resources.VmRAMSettings_DescSgxAuthMode}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
                                     </StackPanel>
                                     <ComboBox Grid.Column="1"
                       Style="{StaticResource ShutdownRequiredComboBoxStyle}"
@@ -340,8 +340,8 @@
                                         <ColumnDefinition Width="380"/>
                                     </Grid.ColumnDefinitions>
                                     <StackPanel VerticalAlignment="Center">
-                                        <TextBlock Text="{x:Static properties:Resources.VmRAMSettingsView_10}" FontSize="13" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
-                                        <TextBlock Text="{x:Static properties:Resources.VmRAMSettingsView_11}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
+                                        <TextBlock Text="{x:Static properties:Resources.VmRAMSettings_LabelSgxMemSize}" FontSize="13" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                                        <TextBlock Text="{x:Static properties:Resources.VmRAMSettings_DescSgxMemSize}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
                                     </StackPanel>
                                     <ui:NumberBox Grid.Column="1"
                           Value="{Binding SelectedVm.MemorySettings.SgxSize, Mode=TwoWay}" 
@@ -356,10 +356,10 @@
                                         <ColumnDefinition Width="440"/>
                                     </Grid.ColumnDefinitions>
                                     <StackPanel VerticalAlignment="Center">
-                                        <TextBlock Text="{x:Static properties:Resources.VmRAMSettingsView_12}" FontSize="13" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
-                                        <TextBlock Text="{x:Static properties:Resources.VmRAMSettingsView_13}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                                        <TextBlock Text="{x:Static properties:Resources.VmRAMSettings_LabelSgxMsrDefault}" FontSize="13" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                                        <TextBlock Text="{x:Static properties:Resources.VmRAMSettings_DescSgxMsrDefault}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
                                     </StackPanel>
-                                    <ui:TextBox Grid.Column="1" PlaceholderText="{x:Static properties:Resources.VmRAMSettingsView_14}" 
+                                    <ui:TextBox Grid.Column="1" PlaceholderText="{x:Static properties:Resources.VmRAMSettings_PlaceholderSgxMsr}" 
             Text="{Binding SelectedVm.MemorySettings.SgxLaunchControlDefault, Mode=TwoWay}"/>
                                 </Grid>
 
@@ -376,16 +376,16 @@
                                 <ColumnDefinition Width="560"/>
                             </Grid.ColumnDefinitions>
                             <StackPanel VerticalAlignment="Center">
-                                <TextBlock Text="{x:Static properties:Resources.VmRAMSettingsView_15}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
+                                <TextBlock Text="{x:Static properties:Resources.VmRAMSettings_LabelMemOptimization}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
                             </StackPanel>
                             <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                                <ui:ToggleSwitch Content="{x:Static properties:Resources.VmRAMSettingsView_16}" Margin="0,0,12,0" 
+                                <ui:ToggleSwitch Content="{x:Static properties:Resources.VmRAMSettings_ToggleColdHint}" Margin="0,0,12,0" 
                                  Style="{StaticResource ShutdownRequiredToggleStyle}" Tag="True"
                                  IsChecked="{Binding SelectedVm.MemorySettings.EnableColdHint, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
-                                <ui:ToggleSwitch Content="{x:Static properties:Resources.VmRAMSettingsView_17}" Margin="0,0,12,0" 
+                                <ui:ToggleSwitch Content="{x:Static properties:Resources.VmRAMSettings_ToggleEpf}" Margin="0,0,12,0" 
                                  Style="{StaticResource ShutdownRequiredToggleStyle}" Tag="True"
                                  IsChecked="{Binding SelectedVm.MemorySettings.EnableEpf, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
-                                <ui:ToggleSwitch Content="{x:Static properties:Resources.VmRAMSettingsView_18}" 
+                                <ui:ToggleSwitch Content="{x:Static properties:Resources.VmRAMSettings_ToggleCompressStore}" 
                                  Style="{StaticResource ShutdownRequiredToggleStyle}" Tag="True"
                                  IsChecked="{Binding SelectedVm.MemorySettings.EnablePrivateCompressionStore, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
                             </StackPanel>
@@ -400,13 +400,13 @@
                                 <ColumnDefinition Width="80"/>
                             </Grid.ColumnDefinitions>
                             <StackPanel VerticalAlignment="Center">
-                                <TextBlock Text="{x:Static properties:Resources.VmRAMSettingsView_19}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
-                                <TextBlock Text="{x:Static properties:Resources.VmRAMSettingsView_20}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
+                                <TextBlock Text="{x:Static properties:Resources.VmRAMSettings_LabelNumaBlockLimit}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
+                                <TextBlock Text="{x:Static properties:Resources.VmRAMSettings_DescNumaBlockLimit}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
                             </StackPanel>
                             <ui:NumberBox Grid.Column="1" 
                           Value="{Binding SelectedVm.MemorySettings.MaxMemoryBlocksPerNumaNode, Mode=TwoWay}"
                           Minimum="1" SpinButtonPlacementMode="Compact"/>
-                            <ui:Button Grid.Column="2" Content="{x:Static properties:Resources.VmRAMSettingsView_7}" Margin="8,0,0,0" Width="72"
+                            <ui:Button Grid.Column="2" Content="{x:Static properties:Resources.VmRAMSettings_BtnApply}" Margin="8,0,0,0" Width="72"
                        Command="{Binding ApplyMemorySettingsCommand}" Appearance="Primary"/>
                         </Grid>
                         <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
@@ -418,8 +418,8 @@
                                 <ColumnDefinition Width="180"/>
                             </Grid.ColumnDefinitions>
                             <StackPanel VerticalAlignment="Center">
-                                <TextBlock Text="{x:Static properties:Resources.VmRAMSettingsView_22}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
-                                <TextBlock Text="{x:Static properties:Resources.VmRAMSettingsView_23}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                                <TextBlock Text="{x:Static properties:Resources.VmRAMSettings_LabelDynMemStep}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
+                                <TextBlock Text="{x:Static properties:Resources.VmRAMSettings_DescDynMemStep}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
                             </StackPanel>
                             <ComboBox Grid.Column="1" VerticalAlignment="Center"
                       Style="{StaticResource ShutdownRequiredComboBoxStyle}"
@@ -437,15 +437,15 @@
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
                             <StackPanel VerticalAlignment="Center">
-                                <TextBlock Text="{x:Static properties:Resources.VmRAMSettingsView_24}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
-                                <TextBlock Text="{x:Static properties:Resources.VmRAMSettingsView_25}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                                <TextBlock Text="{x:Static properties:Resources.VmRAMSettings_LabelCxlExtension}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
+                                <TextBlock Text="{x:Static properties:Resources.VmRAMSettings_DescCxlExtension}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
                             </StackPanel>
                             <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                                <ui:ToggleSwitch Content="{x:Static properties:Resources.VmRAMSettingsView_26}" Margin="0,0,16,0"
+                                <ui:ToggleSwitch Content="{x:Static properties:Resources.VmRAMSettings_ToggleCxlSupport}" Margin="0,0,16,0"
                                  Style="{StaticResource ShutdownRequiredToggleStyle}" 
                                  Tag="{Binding SelectedVm.MemorySettings.CxlEnabled}"
                                  IsChecked="{Binding SelectedVm.MemorySettings.CxlEnabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
-                                <ui:ToggleSwitch Content="{x:Static properties:Resources.VmRAMSettingsView_27}" 
+                                <ui:ToggleSwitch Content="{x:Static properties:Resources.VmRAMSettings_TogglePhysicalPinning}" 
                                  Style="{StaticResource ShutdownRequiredToggleStyle}" 
                                  Tag="{Binding SelectedVm.MemorySettings.EnableGpaPinning}"
                                  IsChecked="{Binding SelectedVm.MemorySettings.EnableGpaPinning, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>

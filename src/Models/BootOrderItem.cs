@@ -16,11 +16,11 @@ namespace ExHyperV.Models
         // 映射表
         private static readonly Dictionary<int, (string Name, string Icon)> Gen1DeviceMapping = new()
         {
-            { 0, (Properties.Resources.BootOrderItem_1, "\uE74E") },
-            { 1, (Properties.Resources.BootOrderItem_2, "\uE958") },
-            { 2, (Properties.Resources.BootOrderItem_3, "\uEDA2") },
-            { 3, (Properties.Resources.BootOrderItem_4, "\uE774") },
-            { 4, (Properties.Resources.BootOrderItem_5, "\uEDA2") }
+            { 0, (Properties.Resources.BootOrderItem_FloppyDisk, "\uE74E") },
+            { 1, (Properties.Resources.BootOrderItem_OpticalDrive, "\uE958") },
+            { 2, (Properties.Resources.BootOrderItem_IdeHardDisk, "\uEDA2") },
+            { 3, (Properties.Resources.BootOrderItem_PxeNetworkBoot, "\uE774") },
+            { 4, (Properties.Resources.BootOrderItem_ScsiHardDisk, "\uEDA2") }
         };
 
         /// <summary>
@@ -29,7 +29,7 @@ namespace ExHyperV.Models
         public static BootOrderItem CreateGen1(ushort code)
         {
             var exists = Gen1DeviceMapping.TryGetValue(code, out var info);
-            var (name, icon) = exists ? info : (Properties.Resources.BootOrderItem_6, "\uE9CE");
+            var (name, icon) = exists ? info : (Properties.Resources.BootOrderItem_UnknownDevice, "\uE9CE");
 
             return new BootOrderItem
             {

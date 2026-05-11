@@ -16,7 +16,7 @@ namespace ExHyperV.Tools
                     Scope.Connect();
 
                     using var service = GetManagementService();
-                    if (service == null) throw new Exception(Properties.Resources.MMIOOptimizer_1);
+                    if (service == null) throw new Exception(Properties.Resources.MMIOOptimizer_ErrGetMgmtSvcFailed);
 
                     // 探测宿主物理极限
                     ulong[] vals = { 1073741824, 268435456, 134217728, 67108864, 16777216, 4194304, 1048576, 524288, 262144, 131072, 65536, 34816 };
@@ -24,7 +24,7 @@ namespace ExHyperV.Tools
 
                     foreach (ulong v in vals)
                     {
-                        Debug.WriteLine(string.Format(Properties.Resources.MMIOOptimizer_2, v));
+                        Debug.WriteLine(string.Format(Properties.Resources.MMIOOptimizer_LogProbingUpperLimit, v));
 
                         using var vmSettings = GetRealizedVmSettings(vmName);
                         if (vmSettings == null) continue;
@@ -38,7 +38,7 @@ namespace ExHyperV.Tools
                         if (RunPowerShellTryStart(vmName))
                         {
                             foundLimit = v;
-                            Debug.WriteLine(string.Format(Properties.Resources.MMIOOptimizer_3, foundLimit));
+                            Debug.WriteLine(string.Format(Properties.Resources.MMIOOptimizer_LogProbeSucceeded, foundLimit));
                             RunPowerShellStopAndWait(vmName);
                             break;
                         }
@@ -52,7 +52,7 @@ namespace ExHyperV.Tools
 
                     ulong finalLowSize = 1024; // 固定 1GB
 
-                    Debug.WriteLine(Properties.Resources.MMIOOptimizer_4);
+                    Debug.WriteLine(Properties.Resources.MMIOOptimizer_LogFinalResult);
                     Debug.WriteLine($" - HighMmioGapBase: {finalBase}");
                     Debug.WriteLine($" - HighMmioGapSize: {finalHighSize}");
                     Debug.WriteLine($" - LowMmioGapSize: {finalLowSize}");
@@ -65,13 +65,13 @@ namespace ExHyperV.Tools
                         finalSettings["GuestControlledCacheTypes"] = true;
 
                         bool success = ApplySettings(service, finalSettings);
-                        if (success) Debug.WriteLine(Properties.Resources.MMIOOptimizer_5);
+                        if (success) Debug.WriteLine(Properties.Resources.MMIOOptimizer_LogConfigApplied);
                         return success;
                     }
                 }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine(string.Format(Properties.Resources.MMIOOptimizer_6, ex.Message));
+                    Debug.WriteLine(string.Format(Properties.Resources.MMIOOptimizer_LogError, ex.Message));
                     return false;
                 }
             });

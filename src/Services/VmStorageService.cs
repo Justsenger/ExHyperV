@@ -256,7 +256,7 @@ namespace ExHyperV.Services
             }
             catch (Exception ex)
             {
-                return (false, string.Format(Properties.Resources.VmStorageService_1, ex.Message));
+                return (false, string.Format(Properties.Resources.VmStorageService_ErrWmiException, ex.Message));
             }
         }
 

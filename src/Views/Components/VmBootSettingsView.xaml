@@ -22,9 +22,9 @@
             <StackPanel VerticalAlignment="Center">
                 <StackPanel Orientation="Horizontal">
                     <ui:FontIcon Glyph="&#xF2C7;" FontFamily="{DynamicResource SegoeFluentIcons}" FontSize="22" Margin="0,0,12,0" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
-                    <TextBlock Text="{x:Static properties:Resources.VmBootSettingsView_1}" FontSize="20" FontWeight="Normal" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                    <TextBlock Text="{x:Static properties:Resources.VmBootSettings_TitleBootOrder}" FontSize="20" FontWeight="Normal" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
                 </StackPanel>
-                <TextBlock Text="{x:Static properties:Resources.VmBootSettingsView_2}" FontSize="13" Opacity="0.6" Margin="0,6,0,0" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                <TextBlock Text="{x:Static properties:Resources.VmBootSettings_HintDragToAdjust}" FontSize="13" Opacity="0.6" Margin="0,6,0,0" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
             </StackPanel>
             <ui:Button Grid.Column="1" Appearance="Transparent" Padding="8" Command="{Binding GoBackToDashboardCommand}">
                 <ui:SymbolIcon Symbol="ArrowLeft24" FontSize="20"/>

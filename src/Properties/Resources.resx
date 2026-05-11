@@ -3161,7 +3161,7 @@ This operation sends a shutdown signal to the guest OS.</value>
   <data name="VmMemoryService_1" xml:space="preserve">
     <value>Critical exception occurred while reading memory config: {0}</value>
   </data>
-  <data name="VmNetworkService_1" xml:space="preserve">
+  <data name="VmNetworkService_LogProcessingNic" xml:space="preserve">
     <value>\n--- [Processing NIC {0}/{1}: '{2}'] ---</value>
   </data>
   <data name="VmNetworkService_2" xml:space="preserve">
@@ -3284,79 +3284,79 @@ This operation sends a shutdown signal to the guest OS.</value>
   <data name="USBPageViewModel_6" xml:space="preserve">
     <value>Unable to open webpage: {0}</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_1" xml:space="preserve">
+  <data name="VmPage_MsgCreatingVm" xml:space="preserve">
     <value>Cancel</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_2" xml:space="preserve">
+  <data name="VmPage_MsgStartingVm" xml:space="preserve">
     <value>Create Now</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_3" xml:space="preserve">
+  <data name="VmPage_ErrOpenFailed" xml:space="preserve">
     <value>[CONSOLE] Opening immersive console for {0}...</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_4" xml:space="preserve">
+  <data name="VmPage_ErrConfigDirNotFound" xml:space="preserve">
     <value>Cannot start console: {0}</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_5" xml:space="preserve">
+  <data name="VmPage_ErrOpenFailed2" xml:space="preserve">
     <value>[Affinity] Auto-applied successfully: {0}</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_6" xml:space="preserve">
+  <data name="VmPage_TitlePermanentDelete" xml:space="preserve">
     <value>[Affinity] Apply failed ({0}/5): {1} - Process not ready or no permission</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_7" xml:space="preserve">
+  <data name="VmPage_MsgPermanentDeleteConfirm" xml:space="preserve">
     <value>[Affinity] Auto-apply exception: {0}</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_8" xml:space="preserve">
+  <data name="VmPage_BtnPermanentDelete" xml:space="preserve">
     <value>[DEBUG-STORAGE] [Trigger] Type manual change -&gt; {0}</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_9" xml:space="preserve">
+  <data name="VmPage_BtnCancel" xml:space="preserve">
     <value>[DEBUG-STORAGE] [Trigger] Number manual change -&gt; {0}</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_10" xml:space="preserve">
+  <data name="VmPage_MsgDeleteComplete" xml:space="preserve">
     <value>[DEBUG-STORAGE] [Notify] SelectedLocation current: {0}</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_11" xml:space="preserve">
+  <data name="VmPage_MsgDeletedSuccessfully" xml:space="preserve">
     <value>[STORAGE-ACTION] Performing add: {0} -&gt; Controller:{1} #{2} Location:{3}</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_12" xml:space="preserve">
+  <data name="VmPage_ErrDeleteFailed" xml:space="preserve">
     <value>[DEBUG-STORAGE] &gt;&gt;&gt; Starting auto-allocation: {0} #{1} Loc:{2}</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_13" xml:space="preserve">
+  <data name="VmPage_ErrModifyFailed" xml:space="preserve">
     <value>[DEBUG-STORAGE] Number refresh complete -&gt; {0}</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_14" xml:space="preserve">
+  <data name="VmPage_MemMapPhysical" xml:space="preserve">
     <value>[DEBUG-STORAGE] Location refresh complete -&gt; {0}</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_15" xml:space="preserve">
+  <data name="VmPage_MemMapVirtual" xml:space="preserve">
     <value>[DEBUG-STORAGE] &lt;&lt;&lt; Auto-allocation UI sync complete</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_16" xml:space="preserve">
+  <data name="VmPage_MemMapHybrid" xml:space="preserve">
     <value>[DEBUG-STORAGE] SetSlot exception: {0}</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_17" xml:space="preserve">
+  <data name="VmPage_MemGranAutoAssign" xml:space="preserve">
     <value>[DEBUG-STORAGE] Refreshing [Number] list, type: {0}</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_18" xml:space="preserve">
+  <data name="VmPage_MemGranStandard" xml:space="preserve">
     <value>[DEBUG-STORAGE] Refreshing [Location] list: {0}, #{1}</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_19" xml:space="preserve">
+  <data name="VmPage_MemGranLargePage" xml:space="preserve">
     <value>[DEBUG-STORAGE] Location reset after manual switch to: {0}</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_20" xml:space="preserve">
+  <data name="VmPage_MemGranHugePage" xml:space="preserve">
     <value>Please check deployment scheme and Host IP</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_21" xml:space="preserve">
+  <data name="VmPage_MemGranAutoAssign2" xml:space="preserve">
     <value>[User Reset] Unfinished GPU partitioning detected, rolling back...</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_22" xml:space="preserve">
+  <data name="VmPage_MemGranStandard2" xml:space="preserve">
     <value>[User Reset] Partition removed successfully.</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_23" xml:space="preserve">
+  <data name="VmPage_MemGranLargePage2" xml:space="preserve">
     <value>[User Reset] Rollback failed: {0}</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_24" xml:space="preserve">
+  <data name="VmPage_MemGranHugePage2" xml:space="preserve">
     <value>Process reset</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_25" xml:space="preserve">
+  <data name="VmPage_MemTrackDisable" xml:space="preserve">
     <value>You can re-select the GPU or modify parameters</value>
   </data>
   <data name="ConsoleWindow_1" xml:space="preserve">
@@ -3419,622 +3419,622 @@ This operation sends a shutdown signal to the guest OS.</value>
   <data name="VmConsoleView_1" xml:space="preserve">
     <value>Establishing Hyper-V secure session...</value>
   </data>
-  <data name="VmDashboardView_1" xml:space="preserve">
+  <data name="VmDashboard_TabBoot" xml:space="preserve">
     <value>{Binding IpAddressDisplay, FallbackValue='Fetching...'}</value>
   </data>
-  <data name="BootOrderItem_1" xml:space="preserve">
+  <data name="BootOrderItem_FloppyDisk" xml:space="preserve">
     <value>Floppy Disk</value>
   </data>
-  <data name="BootOrderItem_2" xml:space="preserve">
+  <data name="BootOrderItem_OpticalDrive" xml:space="preserve">
     <value>Optical Drive</value>
   </data>
-  <data name="BootOrderItem_3" xml:space="preserve">
+  <data name="BootOrderItem_IdeHardDisk" xml:space="preserve">
     <value>IDE Hard Disk</value>
   </data>
-  <data name="BootOrderItem_4" xml:space="preserve">
+  <data name="BootOrderItem_PxeNetworkBoot" xml:space="preserve">
     <value>PXE Network Boot</value>
   </data>
-  <data name="BootOrderItem_5" xml:space="preserve">
+  <data name="BootOrderItem_ScsiHardDisk" xml:space="preserve">
     <value>SCSI Hard Disk</value>
   </data>
-  <data name="BootOrderItem_6" xml:space="preserve">
+  <data name="BootOrderItem_UnknownDevice" xml:space="preserve">
     <value>Unknown Device</value>
   </data>
-  <data name="VmBootService_1" xml:space="preserve">
+  <data name="VmBootService_PxeNetworkBoot" xml:space="preserve">
     <value>PXE Network Boot</value>
   </data>
-  <data name="VmBootService_2" xml:space="preserve">
+  <data name="VmBootService_PxeNetworkBoot2" xml:space="preserve">
     <value>PXE Network Boot</value>
   </data>
-  <data name="VmBootService_3" xml:space="preserve">
+  <data name="VmBootService_WindowsBootManager" xml:space="preserve">
     <value>Windows Boot Manager</value>
   </data>
-  <data name="VmBootService_4" xml:space="preserve">
+  <data name="VmBootService_SystemBuiltinBootEntry" xml:space="preserve">
     <value>System Built-in Boot Entry</value>
   </data>
-  <data name="VmSpacetimeService_1" xml:space="preserve">
+  <data name="VmSpacetimeService_NodeLabelOrigin" xml:space="preserve">
     <value>Origin</value>
   </data>
-  <data name="VmSpacetimeService_2" xml:space="preserve">
+  <data name="VmSpacetimeService_NodeLabelCurrent" xml:space="preserve">
     <value>Current</value>
   </data>
-  <data name="VmSpacetimeService_3" xml:space="preserve">
+  <data name="VmSpacetimeService_ErrLookupFailed" xml:space="preserve">
     <value>Spacetime lookup failed: {0}</value>
   </data>
-  <data name="VmSpacetimeService_4" xml:space="preserve">
+  <data name="VmSpacetimeService_LogWormholeScsiJson" xml:space="preserve">
     <value>[Wormhole] SCSI Disk JSON: {0}</value>
   </data>
-  <data name="VmSpacetimeService_5" xml:space="preserve">
+  <data name="VmSpacetimeService_LogWormholeNoScsi" xml:space="preserve">
     <value>[Wormhole] No SCSI disk found, exiting</value>
   </data>
-  <data name="VmSpacetimeService_6" xml:space="preserve">
+  <data name="VmSpacetimeService_LogWormholeDeserFailed" xml:space="preserve">
     <value>[Wormhole] Deserialization failed</value>
   </data>
-  <data name="VmSpacetimeService_7" xml:space="preserve">
+  <data name="VmSpacetimeService_LogWormholeDisk" xml:space="preserve">
     <value>[Wormhole] Wormhole disk: {0}</value>
   </data>
-  <data name="VmSpacetimeService_8" xml:space="preserve">
+  <data name="VmSpacetimeService_LogWormholeParentPath" xml:space="preserve">
     <value>[Wormhole] Parent disk path: {0}</value>
   </data>
-  <data name="VmSpacetimeService_9" xml:space="preserve">
+  <data name="VmSpacetimeService_LogWormholeRestorePath" xml:space="preserve">
     <value>[Wormhole] Restore path: {0}</value>
   </data>
-  <data name="VmSpacetimeService_10" xml:space="preserve">
+  <data name="VmSpacetimeService_LogWormholeNodeVhd" xml:space="preserve">
     <value>[Wormhole] Node [{0}] VhdPath={1}</value>
   </data>
-  <data name="VmSpacetimeService_11" xml:space="preserve">
+  <data name="VmSpacetimeService_LogWormholeMatchedNode" xml:space="preserve">
     <value>[Wormhole] Matched node: {0}</value>
   </data>
-  <data name="VmSpacetimeService_12" xml:space="preserve">
+  <data name="VmSpacetimeService_LogWormholeMarkedOk" xml:space="preserve">
     <value>[Wormhole] Marked successfully: {0}</value>
   </data>
-  <data name="VmSpacetimeService_13" xml:space="preserve">
+  <data name="VmSpacetimeService_LogWormholeDetectFailed" xml:space="preserve">
     <value>[Wormhole] Detection failed: {0}</value>
   </data>
-  <data name="VmSpacetimeService_14" xml:space="preserve">
+  <data name="VmSpacetimeService_ErrWormholeAlreadyExists" xml:space="preserve">
     <value>A wormhole already exists in the current spacetime. Please close the existing wormhole before opening a new one, or a spacetime paradox will occur.</value>
   </data>
-  <data name="VmSpacetimeService_15" xml:space="preserve">
+  <data name="VmSpacetimeService_ErrParentChainNode" xml:space="preserve">
     <value>This node is a parent-chain node of the current spacetime. Opening a wormhole would cause a spacetime paradox.</value>
   </data>
-  <data name="VmSpacetimeService_16" xml:space="preserve">
+  <data name="VmSpacetimeService_ErrOnlySnapshotNode" xml:space="preserve">
     <value>Wormholes can only be opened on snapshot nodes.</value>
   </data>
-  <data name="VmSpacetimeService_17" xml:space="preserve">
+  <data name="VmSpacetimeService_ErrSnapshotPathInvalid" xml:space="preserve">
     <value>Snapshot disk path is invalid.</value>
   </data>
-  <data name="VmSpacetimeService_18" xml:space="preserve">
+  <data name="VmSpacetimeService_ErrNodeHasWormhole" xml:space="preserve">
     <value>This node already has an active wormhole.</value>
   </data>
-  <data name="VmSpacetimeService_19" xml:space="preserve">
+  <data name="VmSpacetimeService_ErrCannotDetermineDiskDir" xml:space="preserve">
     <value>Unable to determine the disk directory.</value>
   </data>
-  <data name="VmSpacetimeService_20" xml:space="preserve">
+  <data name="VmSpacetimeService_ErrNoScsiSlot" xml:space="preserve">
     <value>No available SCSI slots.</value>
   </data>
-  <data name="VmSpacetimeService_21" xml:space="preserve">
+  <data name="VmSpacetimeService_ErrCreateDiffDiskFailed" xml:space="preserve">
     <value>Failed to create temporary differencing disk: {0}</value>
   </data>
-  <data name="VmSpacetimeService_22" xml:space="preserve">
+  <data name="VmSpacetimeService_MsgWormholeOpened" xml:space="preserve">
     <value>Wormhole opened</value>
   </data>
-  <data name="VmSpacetimeService_23" xml:space="preserve">
+  <data name="VmSpacetimeService_ErrSpacetimeException" xml:space="preserve">
     <value>Spacetime exception: {0}</value>
   </data>
-  <data name="VmSpacetimeService_24" xml:space="preserve">
+  <data name="VmSpacetimeService_ErrNoActiveWormhole" xml:space="preserve">
     <value>This node has no active wormhole.</value>
   </data>
-  <data name="VmSpacetimeService_25" xml:space="preserve">
+  <data name="VmSpacetimeService_MsgWormholeClosed" xml:space="preserve">
     <value>Wormhole closed. Timeline restored to normal.</value>
   </data>
-  <data name="VmSpacetimeService_26" xml:space="preserve">
+  <data name="VmSpacetimeService_ErrCloseWormholeException" xml:space="preserve">
     <value>Exception while closing wormhole: {0}</value>
   </data>
-  <data name="VmSpacetimeService_27" xml:space="preserve">
+  <data name="VmSpacetimeService_ErrWmiImageSvcNotFound" xml:space="preserve">
     <value>WMI ImageManagementService not found</value>
   </data>
-  <data name="VmSpacetimeService_28" xml:space="preserve">
+  <data name="VmSpacetimeService_LogWmiReturned" xml:space="preserve">
     <value>WMI returned: {0}</value>
   </data>
-  <data name="VmSpacetimeService_29" xml:space="preserve">
+  <data name="VmSpacetimeService_ErrWmiMgmtSvcNotFound" xml:space="preserve">
     <value>WMI management service not found</value>
   </data>
-  <data name="VmSpacetimeService_30" xml:space="preserve">
+  <data name="VmSpacetimeService_MsgNameUpdated" xml:space="preserve">
     <value>Name updated successfully</value>
   </data>
-  <data name="VmSpacetimeService_31" xml:space="preserve">
+  <data name="VmSpacetimeService_ErrUpdateWmiCode" xml:space="preserve">
     <value>Update failed: WMI error code: {0}</value>
   </data>
-  <data name="VmSpacetimeService_32" xml:space="preserve">
+  <data name="VmSpacetimeService_ErrRenameException" xml:space="preserve">
     <value>Rename service exception: {0}</value>
   </data>
-  <data name="VmSpacetimeService_33" xml:space="preserve">
+  <data name="VmSpacetimeService_ErrOnlyHistoricalNode" xml:space="preserve">
     <value>Can only travel to historical snapshot points.</value>
   </data>
-  <data name="VmSpacetimeService_34" xml:space="preserve">
+  <data name="VmSpacetimeService_MsgTravelInitiated" xml:space="preserve">
     <value>Travel initiated, restoring running state...</value>
   </data>
-  <data name="VmSpacetimeService_35" xml:space="preserve">
+  <data name="VmSpacetimeService_MsgTravelSucceeded" xml:space="preserve">
     <value>Travel succeeded. VM has returned to the specified spacetime point (powered off).</value>
   </data>
-  <data name="VmSpacetimeService_36" xml:space="preserve">
+  <data name="VmSpacetimeService_ErrTravelFailed" xml:space="preserve">
     <value>Travel failed: {0}</value>
   </data>
-  <data name="VmSpacetimeService_37" xml:space="preserve">
+  <data name="VmSpacetimeService_ErrSpacetimeException2" xml:space="preserve">
     <value>Spacetime exception: {0}</value>
   </data>
-  <data name="VmSpacetimeService_38" xml:space="preserve">
+  <data name="VmSpacetimeService_ErrVmCarrierNotFound" xml:space="preserve">
     <value>Specified VM carrier not found.</value>
   </data>
-  <data name="VmSpacetimeService_39" xml:space="preserve">
+  <data name="VmSpacetimeService_ErrSpacetimeCollapse" xml:space="preserve">
     <value>Spacetime collapse: {0}</value>
   </data>
-  <data name="VmSpacetimeService_40" xml:space="preserve">
+  <data name="VmSpacetimeService_MsgAnchorSet" xml:space="preserve">
     <value>Spacetime anchor set.</value>
   </data>
-  <data name="VmSpacetimeService_41" xml:space="preserve">
+  <data name="VmSpacetimeService_ErrOriginCurrentNoAnnihilate" xml:space="preserve">
     <value>Origin and current nodes cannot be annihilated.</value>
   </data>
-  <data name="VmSpacetimeService_42" xml:space="preserve">
+  <data name="VmSpacetimeService_MsgAnnihilated" xml:space="preserve">
     <value>Spacetime branch fully annihilated.</value>
   </data>
-  <data name="VmSpacetimeService_43" xml:space="preserve">
+  <data name="VmSpacetimeService_ErrAnnihilateFailed" xml:space="preserve">
     <value>Annihilation failed: {0}</value>
   </data>
-  <data name="VmSpacetimeService_44" xml:space="preserve">
+  <data name="VmSpacetimeService_ErrOriginCurrentNoConverge" xml:space="preserve">
     <value>Origin and current nodes cannot be converged.</value>
   </data>
-  <data name="VmSpacetimeService_45" xml:space="preserve">
+  <data name="VmSpacetimeService_MsgConverging" xml:space="preserve">
     <value>Converging spacetime...</value>
   </data>
-  <data name="VmSpacetimeService_46" xml:space="preserve">
+  <data name="VmSpacetimeService_ErrConvergeFailed" xml:space="preserve">
     <value>Convergence failed: {0}</value>
   </data>
-  <data name="VmSpacetimeService_47" xml:space="preserve">
+  <data name="VmSpacetimeService_LogReadCheckpointFailed" xml:space="preserve">
     <value>[Spacetime] Failed to read checkpoint state: {0}</value>
   </data>
-  <data name="VmSpacetimeService_48" xml:space="preserve">
+  <data name="VmSpacetimeService_ErrVmNotFound" xml:space="preserve">
     <value>Virtual machine not found</value>
   </data>
-  <data name="VmSpacetimeService_49" xml:space="preserve">
+  <data name="VmSpacetimeService_ErrVmConfigNotFound" xml:space="preserve">
     <value>VM configuration not found</value>
   </data>
-  <data name="VmSpacetimeService_50" xml:space="preserve">
+  <data name="VmSpacetimeService_ErrWmiMgmtSvcNotFound2" xml:space="preserve">
     <value>WMI management service not found</value>
   </data>
-  <data name="VmSpacetimeService_51" xml:space="preserve">
+  <data name="VmSpacetimeService_MsgCheckpointEnabled" xml:space="preserve">
     <value>Checkpoint enabled</value>
   </data>
-  <data name="VmSpacetimeService_52" xml:space="preserve">
+  <data name="VmSpacetimeService_MsgCheckpointDisabled" xml:space="preserve">
     <value>Checkpoint disabled</value>
   </data>
-  <data name="VmSpacetimeService_53" xml:space="preserve">
+  <data name="VmSpacetimeService_ErrOperationWmiCode" xml:space="preserve">
     <value>Operation failed: WMI error code {0}</value>
   </data>
-  <data name="VmSpacetimeService_54" xml:space="preserve">
+  <data name="VmSpacetimeService_ErrOperationException" xml:space="preserve">
     <value>Operation exception: {0}</value>
   </data>
-  <data name="VmSpacetimeService_55" xml:space="preserve">
+  <data name="VmSpacetimeService_LogSnapshotScreenCleaned" xml:space="preserve">
     <value>[Spacetime] Snapshot screenshot cleaned: {0}</value>
   </data>
-  <data name="VmSpacetimeService_56" xml:space="preserve">
+  <data name="VmSpacetimeService_LogCleanScreenFailed" xml:space="preserve">
     <value>[Spacetime] Failed to clean screenshot: {0}</value>
   </data>
-  <data name="VmSpacetimeService_57" xml:space="preserve">
+  <data name="VmSpacetimeService_NodeLabelOrigin2" xml:space="preserve">
     <value>Origin</value>
   </data>
-  <data name="VmSpacetimeService_58" xml:space="preserve">
+  <data name="VmSpacetimeService_NodeLabelCurrent2" xml:space="preserve">
     <value>Current</value>
   </data>
-  <data name="VmStorageService_1" xml:space="preserve">
+  <data name="VmStorageService_ErrWmiException" xml:space="preserve">
     <value>WMI execution exception: {0}</value>
   </data>
-  <data name="MMIOOptimizer_1" xml:space="preserve">
+  <data name="MMIOOptimizer_ErrGetMgmtSvcFailed" xml:space="preserve">
     <value>Unable to get Msvm_VirtualSystemManagementService</value>
   </data>
-  <data name="MMIOOptimizer_2" xml:space="preserve">
+  <data name="MMIOOptimizer_LogProbingUpperLimit" xml:space="preserve">
     <value>[MMIO] Probing upper limit: {0}</value>
   </data>
-  <data name="MMIOOptimizer_3" xml:space="preserve">
+  <data name="MMIOOptimizer_LogProbeSucceeded" xml:space="preserve">
     <value>[MMIO] Probe successful, host upper limit set to: {0}</value>
   </data>
-  <data name="MMIOOptimizer_4" xml:space="preserve">
+  <data name="MMIOOptimizer_LogFinalResult" xml:space="preserve">
     <value>[MMIO] Final calculation result:</value>
   </data>
-  <data name="MMIOOptimizer_5" xml:space="preserve">
+  <data name="MMIOOptimizer_LogConfigApplied" xml:space="preserve">
     <value>[MMIO] Final configuration applied successfully.</value>
   </data>
-  <data name="MMIOOptimizer_6" xml:space="preserve">
+  <data name="MMIOOptimizer_LogError" xml:space="preserve">
     <value>[MMIO] Error: {0}</value>
   </data>
-  <data name="SystemSwitcher_1" xml:space="preserve">
+  <data name="SystemSwitcher_ErrInsufficientPermissions" xml:space="preserve">
     <value>Insufficient permissions</value>
   </data>
-  <data name="SystemSwitcher_2" xml:space="preserve">
+  <data name="SystemSwitcher_ErrCannotOpenRegKey" xml:space="preserve">
     <value>Cannot open registry key</value>
   </data>
-  <data name="SystemSwitcher_3" xml:space="preserve">
+  <data name="SystemSwitcher_ErrExportFailed" xml:space="preserve">
     <value>Export failed: {0}</value>
   </data>
-  <data name="SystemSwitcher_4" xml:space="preserve">
+  <data name="SystemSwitcher_ErrOfflineModFailed" xml:space="preserve">
     <value>Offline modification failed</value>
   </data>
-  <data name="SystemSwitcher_5" xml:space="preserve">
+  <data name="SystemSwitcher_ErrReplaceFailed" xml:space="preserve">
     <value>Replacement failed: {0}</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_26" xml:space="preserve">
+  <data name="VmPage_MemTrackEnable" xml:space="preserve">
     <value>Creating virtual machine...</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_27" xml:space="preserve">
+  <data name="VmPage_MemTrackByProcessorNode" xml:space="preserve">
     <value>Starting virtual machine...</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_28" xml:space="preserve">
+  <data name="VmPage_SgxAccessDenied" xml:space="preserve">
     <value>Failed to open</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_29" xml:space="preserve">
+  <data name="VmPage_SgxReadOnly" xml:space="preserve">
     <value>VM configuration directory not found</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_30" xml:space="preserve">
+  <data name="VmPage_SgxReadWrite" xml:space="preserve">
     <value>Failed to open</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_31" xml:space="preserve">
+  <data name="VmPage_MsgOptimizeComplete" xml:space="preserve">
     <value>Permanently Delete VM</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_32" xml:space="preserve">
+  <data name="VmPage_MsgDiskReclaimOk" xml:space="preserve">
     <value>About to permanently delete &quot;{0}&quot;, including all virtual hard disk files and the configuration directory.\n\n⚠️ Please confirm there are no other files in the VM configuration directory. This action cannot be undone!</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_33" xml:space="preserve">
+  <data name="VmPage_ErrOptimizeFailed" xml:space="preserve">
     <value>Permanently Delete</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_34" xml:space="preserve">
+  <data name="VmPage_ErrSystemException" xml:space="preserve">
     <value>Cancel</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_35" xml:space="preserve">
+  <data name="VmPage_LogStorageAddAction" xml:space="preserve">
     <value>Deletion complete</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_36" xml:space="preserve">
+  <data name="VmPage_LogStorageAutoAssign" xml:space="preserve">
     <value>&quot;{0}&quot; has been permanently removed</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_37" xml:space="preserve">
+  <data name="VmPage_LogUiSaveTriggered" xml:space="preserve">
     <value>Deletion failed</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_38" xml:space="preserve">
+  <data name="VmPage_LogDiskSaveResult" xml:space="preserve">
     <value>Modification failed</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_39" xml:space="preserve">
+  <data name="VmPage_LogSaveError" xml:space="preserve">
     <value>Physical Mapping Mode</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_40" xml:space="preserve">
+  <data name="VmPage_ErrOperationFailed" xml:space="preserve">
     <value>Virtual Mapping Mode</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_41" xml:space="preserve">
+  <data name="VmPage_ErrModifyFailed2" xml:space="preserve">
     <value>Hybrid Mapping Mode</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_42" xml:space="preserve">
+  <data name="VmPage_ErrRetrieveFailed" xml:space="preserve">
     <value>System Auto-Assign</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_43" xml:space="preserve">
+  <data name="VmPage_MsgOperationOk" xml:space="preserve">
     <value>Standard Granularity</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_44" xml:space="preserve">
+  <data name="VmPage_MsgSpacetimeCreated" xml:space="preserve">
     <value>Large Page Granularity</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_45" xml:space="preserve">
+  <data name="VmPage_ErrOperationFailed2" xml:space="preserve">
     <value>Huge Page Granularity</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_46" xml:space="preserve">
+  <data name="VmPage_MsgOperationOk2" xml:space="preserve">
     <value>System Auto-Assign</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_47" xml:space="preserve">
+  <data name="VmPage_MsgTraveledTo" xml:space="preserve">
     <value>Standard Granularity</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_48" xml:space="preserve">
+  <data name="VmPage_ErrOperationFailed3" xml:space="preserve">
     <value>Large Page Granularity</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_49" xml:space="preserve">
+  <data name="VmPage_MsgOperationOk3" xml:space="preserve">
     <value>Huge Page Granularity</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_50" xml:space="preserve">
+  <data name="VmPage_MsgSpacetimeAnnihilated" xml:space="preserve">
     <value>Disable Tracking</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_51" xml:space="preserve">
+  <data name="VmPage_MsgWormholeOpened" xml:space="preserve">
     <value>Enable Tracking</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_52" xml:space="preserve">
+  <data name="VmPage_MsgConnectedTo" xml:space="preserve">
     <value>Configure by Processor Node</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_53" xml:space="preserve">
+  <data name="VmPage_ErrOpenFailed3" xml:space="preserve">
     <value>Access Denied</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_54" xml:space="preserve">
+  <data name="VmPage_MsgWormholeClosed" xml:space="preserve">
     <value>Read Only</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_55" xml:space="preserve">
+  <data name="VmPage_MsgTimelineRestored" xml:space="preserve">
     <value>Read/Write</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_56" xml:space="preserve">
+  <data name="VmPage_ErrCloseFailed" xml:space="preserve">
     <value>Optimization complete</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_57" xml:space="preserve">
+  <data name="VmPage_MsgFeatureInDev" xml:space="preserve">
     <value>Virtual disk space reclaimed successfully</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_58" xml:space="preserve">
+  <data name="VmPage_MsgParallelUniverse" xml:space="preserve">
     <value>Optimization failed</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_59" xml:space="preserve">
+  <data name="VmPage_MsgOperationOk4" xml:space="preserve">
     <value>System exception</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_60" xml:space="preserve">
+  <data name="VmPage_MsgSpacetimeConverged" xml:space="preserve">
     <value>[STORAGE-ACTION] Executing add operation: {0} -&gt; Controller:{1} #{2} Location:{3}</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_61" xml:space="preserve">
+  <data name="VmPage_MsgRollingBackGpu" xml:space="preserve">
     <value>[DEBUG-STORAGE] &gt;&gt;&gt; Starting auto-assign: {0} #{1} Loc:{2}</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_62" xml:space="preserve">
+  <data name="VmPage_MsgRollbackComplete" xml:space="preserve">
     <value>[VM-LOG] UI triggered save, current preview order: {0}</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_63" xml:space="preserve">
+  <data name="VmPage_ErrRollbackFailed" xml:space="preserve">
     <value>[VM-LOG] Disk save result: {0}</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_64" xml:space="preserve">
+  <data name="VmPage_BtnReset" xml:space="preserve">
     <value>[VM-LOG] Error during save: {0}</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_65" xml:space="preserve">
+  <data name="VmPage_MsgProcessReset" xml:space="preserve">
     <value>Operation failed</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_66" xml:space="preserve">
+  <data name="VmPage_ErrModifyFailed3" xml:space="preserve">
     <value>Modification failed</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_67" xml:space="preserve">
+  <data name="VmPage_ErrRetrieveFailed2" xml:space="preserve">
     <value>Retrieval failed</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_68" xml:space="preserve">
+  <data name="VmPage_MsgOperationOk5" xml:space="preserve">
     <value>Operation successful</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_69" xml:space="preserve">
+  <data name="VmPage_MsgSpacetimeCreated2" xml:space="preserve">
     <value>Spacetime created successfully</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_70" xml:space="preserve">
+  <data name="VmPage_ErrOperationFailed4" xml:space="preserve">
     <value>Operation failed</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_71" xml:space="preserve">
+  <data name="VmPage_MsgOperationOk6" xml:space="preserve">
     <value>Operation successful</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_72" xml:space="preserve">
+  <data name="VmPage_MsgTraveledTo2" xml:space="preserve">
     <value>Traveled to spacetime: {0}</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_73" xml:space="preserve">
+  <data name="VmPage_ErrOperationFailed5" xml:space="preserve">
     <value>Operation failed</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_74" xml:space="preserve">
+  <data name="VmPage_MsgOperationOk7" xml:space="preserve">
     <value>Operation successful</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_75" xml:space="preserve">
+  <data name="VmPage_MsgSpacetimeAnnihilated2" xml:space="preserve">
     <value>This spacetime has been annihilated.</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_76" xml:space="preserve">
+  <data name="VmPage_MsgWormholeOpened2" xml:space="preserve">
     <value>Wormhole opened</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_77" xml:space="preserve">
+  <data name="VmPage_MsgConnectedTo2" xml:space="preserve">
     <value>Connected to spacetime &quot;{0}&quot;</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_78" xml:space="preserve">
+  <data name="VmPage_ErrOpenFailed4" xml:space="preserve">
     <value>Failed to open</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_79" xml:space="preserve">
+  <data name="VmPage_MsgWormholeClosed2" xml:space="preserve">
     <value>Wormhole closed</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_80" xml:space="preserve">
+  <data name="VmPage_MsgTimelineRestored2" xml:space="preserve">
     <value>Timeline restored to normal</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_81" xml:space="preserve">
+  <data name="VmPage_ErrCloseFailed2" xml:space="preserve">
     <value>Failed to close</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_82" xml:space="preserve">
+  <data name="VmPage_MsgFeatureInDev2" xml:space="preserve">
     <value>Feature under development</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_83" xml:space="preserve">
+  <data name="VmPage_MsgParallelUniverse2" xml:space="preserve">
     <value>Parallel Universe: Create a new VM instance based on this spacetime</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_84" xml:space="preserve">
+  <data name="VmPage_MsgOperationOk8" xml:space="preserve">
     <value>Operation successful</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_85" xml:space="preserve">
+  <data name="VmPage_MsgSpacetimeConverged2" xml:space="preserve">
     <value>Spacetime converged to the previous node</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_86" xml:space="preserve">
+  <data name="VmPage_MsgRollingBackGpu2" xml:space="preserve">
     <value>Rolling back GPU allocation...</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_87" xml:space="preserve">
+  <data name="VmPage_MsgRollbackComplete2" xml:space="preserve">
     <value>Rollback complete.</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_88" xml:space="preserve">
+  <data name="VmPage_ErrRollbackFailed2" xml:space="preserve">
     <value>Rollback failed: {0}</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_89" xml:space="preserve">
+  <data name="VmPage_BtnReset2" xml:space="preserve">
     <value>Reset</value>
   </data>
-  <data name="VirtualMachinesPageViewModel_90" xml:space="preserve">
+  <data name="VmPage_MsgProcessReset2" xml:space="preserve">
     <value>Process reset. Please re-select the GPU.</value>
   </data>
-  <data name="VirtualMachinesPage_1" xml:space="preserve">
+  <data name="VmPage_MenuOpenFolder" xml:space="preserve">
     <value>Open Folder</value>
   </data>
-  <data name="VirtualMachinesPage_2" xml:space="preserve">
+  <data name="VmPage_MenuPermanentDelete" xml:space="preserve">
     <value>Permanently Delete</value>
   </data>
-  <data name="VmBootSettingsView_1" xml:space="preserve">
+  <data name="VmBootSettings_TitleBootOrder" xml:space="preserve">
     <value>Boot Order</value>
   </data>
-  <data name="VmBootSettingsView_2" xml:space="preserve">
+  <data name="VmBootSettings_HintDragToAdjust" xml:space="preserve">
     <value>Drag up/down to adjust priority</value>
   </data>
-  <data name="VmCpuSettingsView_1" xml:space="preserve">
+  <data name="VmCpuSettings_LabelCustomCpuName" xml:space="preserve">
     <value>Custom CPU Name</value>
   </data>
-  <data name="VmCpuSettingsView_2" xml:space="preserve">
+  <data name="VmCpuSettings_WarnVmOffRequired" xml:space="preserve">
     <value>This operation requires the VM to be powered off.</value>
   </data>
-  <data name="VmDashboardView_2" xml:space="preserve">
+  <data name="VmDashboard_DescBoot" xml:space="preserve">
     <value>Boot</value>
   </data>
-  <data name="VmDashboardView_3" xml:space="preserve">
+  <data name="VmDashboard_TabSpacetime" xml:space="preserve">
     <value>Boot Order and Device List</value>
   </data>
-  <data name="VmDashboardView_4" xml:space="preserve">
+  <data name="VmDashboard_DescSpacetime" xml:space="preserve">
     <value>Spacetime</value>
   </data>
   <data name="VmDashboardView_5" xml:space="preserve">
     <value>Snapshot Management and Spacetime Travel</value>
   </data>
-  <data name="VmRAMSettingsView_1" xml:space="preserve">
+  <data name="VmRAMSettings_LabelMemMappingMode" xml:space="preserve">
     <value>Memory Mapping Mode</value>
   </data>
-  <data name="VmRAMSettingsView_2" xml:space="preserve">
+  <data name="VmRAMSettings_DescMemMappingMode" xml:space="preserve">
     <value>Configure how VM memory maps to host physical resources</value>
   </data>
-  <data name="VmRAMSettingsView_3" xml:space="preserve">
+  <data name="VmRAMSettings_LabelMemAccessMonitor" xml:space="preserve">
     <value>Memory Access Monitoring Granularity</value>
   </data>
-  <data name="VmRAMSettingsView_4" xml:space="preserve">
+  <data name="VmRAMSettings_DescMemAccessMonitor" xml:space="preserve">
     <value>Configure read/write monitoring state and page resolution level</value>
   </data>
-  <data name="VmRAMSettingsView_5" xml:space="preserve">
+  <data name="VmRAMSettings_LabelSgxComputing" xml:space="preserve">
     <value>Intel SGX Confidential Computing</value>
   </data>
-  <data name="VmRAMSettingsView_6" xml:space="preserve">
+  <data name="VmRAMSettings_DescSgxComputing" xml:space="preserve">
     <value>Enable hardware-level isolated secure execution environment on the processor</value>
   </data>
-  <data name="VmRAMSettingsView_7" xml:space="preserve">
+  <data name="VmRAMSettings_BtnApply" xml:space="preserve">
     <value>Apply</value>
   </data>
-  <data name="VmRAMSettingsView_8" xml:space="preserve">
+  <data name="VmRAMSettings_LabelSgxAuthMode" xml:space="preserve">
     <value>Authorization Control Mode</value>
   </data>
-  <data name="VmRAMSettingsView_9" xml:space="preserve">
+  <data name="VmRAMSettings_DescSgxAuthMode" xml:space="preserve">
     <value>Configure launch authorization and runtime verification mode for secure enclaves</value>
   </data>
-  <data name="VmRAMSettingsView_10" xml:space="preserve">
+  <data name="VmRAMSettings_LabelSgxMemSize" xml:space="preserve">
     <value>Confidential Memory Size</value>
   </data>
-  <data name="VmRAMSettingsView_11" xml:space="preserve">
+  <data name="VmRAMSettings_DescSgxMemSize" xml:space="preserve">
     <value>Total physically isolated memory allocated for confidential computing (unit: MB)</value>
   </data>
-  <data name="VmRAMSettingsView_12" xml:space="preserve">
+  <data name="VmRAMSettings_LabelSgxMsrDefault" xml:space="preserve">
     <value>MSR Runtime Control Default</value>
   </data>
-  <data name="VmRAMSettingsView_13" xml:space="preserve">
+  <data name="VmRAMSettings_DescSgxMsrDefault" xml:space="preserve">
     <value>Processor-specific register initial value</value>
   </data>
-  <data name="VmRAMSettingsView_14" xml:space="preserve">
+  <data name="VmRAMSettings_PlaceholderSgxMsr" xml:space="preserve">
     <value>64-bit hexadecimal string</value>
   </data>
-  <data name="VmRAMSettingsView_15" xml:space="preserve">
+  <data name="VmRAMSettings_LabelMemOptimization" xml:space="preserve">
     <value>Memory Optimization</value>
   </data>
-  <data name="VmRAMSettingsView_16" xml:space="preserve">
+  <data name="VmRAMSettings_ToggleColdHint" xml:space="preserve">
     <value>Memory Activity Hint</value>
   </data>
-  <data name="VmRAMSettingsView_17" xml:space="preserve">
+  <data name="VmRAMSettings_ToggleEpf" xml:space="preserve">
     <value>Para-virtualized Paging Optimization</value>
   </data>
-  <data name="VmRAMSettingsView_18" xml:space="preserve">
+  <data name="VmRAMSettings_ToggleCompressStore" xml:space="preserve">
     <value>Independent Compressed Memory Pool</value>
   </data>
-  <data name="VmRAMSettingsView_19" xml:space="preserve">
+  <data name="VmRAMSettings_LabelNumaBlockLimit" xml:space="preserve">
     <value>NUMA Node Memory Block Limit</value>
   </data>
-  <data name="VmRAMSettingsView_20" xml:space="preserve">
+  <data name="VmRAMSettings_DescNumaBlockLimit" xml:space="preserve">
     <value>Manually limit the maximum number of memory blocks observable by a single virtual NUMA node</value>
   </data>
-  <data name="VmRAMSettingsView_21" xml:space="preserve">
+  <data name="VmRAMSettings_BtnApply2" xml:space="preserve">
     <value>Apply</value>
   </data>
-  <data name="VmRAMSettingsView_22" xml:space="preserve">
+  <data name="VmRAMSettings_LabelDynMemStep" xml:space="preserve">
     <value>Dynamic Memory Adjustment Step</value>
   </data>
-  <data name="VmRAMSettingsView_23" xml:space="preserve">
+  <data name="VmRAMSettings_DescDynMemStep" xml:space="preserve">
     <value>Minimum step unit when adjusting dynamically allocated memory</value>
   </data>
-  <data name="VmRAMSettingsView_24" xml:space="preserve">
+  <data name="VmRAMSettings_LabelCxlExtension" xml:space="preserve">
     <value>Hardware Acceleration Extension (CXL)</value>
   </data>
-  <data name="VmRAMSettingsView_25" xml:space="preserve">
+  <data name="VmRAMSettings_DescCxlExtension" xml:space="preserve">
     <value>Enable high-speed bus interconnect protocol support or force physical address locking</value>
   </data>
-  <data name="VmRAMSettingsView_26" xml:space="preserve">
+  <data name="VmRAMSettings_ToggleCxlSupport" xml:space="preserve">
     <value>CXL Support</value>
   </data>
-  <data name="VmRAMSettingsView_27" xml:space="preserve">
+  <data name="VmRAMSettings_TogglePhysicalPinning" xml:space="preserve">
     <value>Physical Pinning</value>
   </data>
-  <data name="VmSpacetimeSettingsView_1" xml:space="preserve">
+  <data name="VmSpacetimeSettings_TitleMgmt" xml:space="preserve">
     <value>Spacetime Management</value>
   </data>
-  <data name="VmSpacetimeSettingsView_2" xml:space="preserve">
+  <data name="VmSpacetimeSettings_LabelCheckpoint" xml:space="preserve">
     <value>Checkpoint</value>
   </data>
-  <data name="VmSpacetimeSettingsView_3" xml:space="preserve">
+  <data name="VmSpacetimeSettings_BtnExportTopology" xml:space="preserve">
     <value>Export Topology Map</value>
   </data>
-  <data name="VmSpacetimeSettingsView_4" xml:space="preserve">
+  <data name="VmSpacetimeSettings_MsgSyncing" xml:space="preserve">
     <value>Syncing...</value>
   </data>
-  <data name="VmSpacetimeSettingsView_5" xml:space="preserve">
+  <data name="VmSpacetimeSettings_LabelDetails" xml:space="preserve">
     <value>Spacetime Details</value>
   </data>
-  <data name="VmSpacetimeSettingsView_6" xml:space="preserve">
+  <data name="VmSpacetimeSettings_MsgNoAnchor" xml:space="preserve">
     <value>No anchor selected</value>
   </data>
-  <data name="VmSpacetimeSettingsView_7" xml:space="preserve">
+  <data name="VmSpacetimeSettings_LabelAction" xml:space="preserve">
     <value>Action</value>
   </data>
-  <data name="VmSpacetimeSettingsView_8" xml:space="preserve">
+  <data name="VmSpacetimeSettings_TypeContinuous" xml:space="preserve">
     <value>Continuous Spacetime</value>
   </data>
-  <data name="VmSpacetimeSettingsView_9" xml:space="preserve">
+  <data name="VmSpacetimeSettings_DescContinuous" xml:space="preserve">
     <value>Save disk and memory state</value>
   </data>
-  <data name="VmSpacetimeSettingsView_10" xml:space="preserve">
+  <data name="VmSpacetimeSettings_TypeStatic" xml:space="preserve">
     <value>Static Spacetime</value>
   </data>
-  <data name="VmSpacetimeSettingsView_11" xml:space="preserve">
+  <data name="VmSpacetimeSettings_DescStatic" xml:space="preserve">
     <value>Save disk state</value>
   </data>
-  <data name="VmSpacetimeSettingsView_12" xml:space="preserve">
+  <data name="VmSpacetimeSettings_BtnCreate" xml:space="preserve">
     <value>Create Spacetime</value>
   </data>
-  <data name="VmSpacetimeSettingsView_13" xml:space="preserve">
+  <data name="VmSpacetimeSettings_StateWormholeActive" xml:space="preserve">
     <value>Wormhole Interfering</value>
   </data>
-  <data name="VmSpacetimeSettingsView_14" xml:space="preserve">
+  <data name="VmSpacetimeSettings_BtnCloseWormhole" xml:space="preserve">
     <value>Close Wormhole</value>
   </data>
-  <data name="VmSpacetimeSettingsView_15" xml:space="preserve">
+  <data name="VmSpacetimeSettings_BtnTravel" xml:space="preserve">
     <value>Travel</value>
   </data>
-  <data name="VmSpacetimeSettingsView_16" xml:space="preserve">
+  <data name="VmSpacetimeSettings_BtnOpenWormhole" xml:space="preserve">
     <value>Open Wormhole</value>
   </data>
-  <data name="VmSpacetimeSettingsView_17" xml:space="preserve">
+  <data name="VmSpacetimeSettings_BtnParallelUniverse" xml:space="preserve">
     <value>Open Parallel Universe</value>
   </data>
-  <data name="VmSpacetimeSettingsView_18" xml:space="preserve">
+  <data name="VmSpacetimeSettings_BtnConverge" xml:space="preserve">
     <value>Spacetime Convergence</value>
   </data>
-  <data name="VmSpacetimeSettingsView_19" xml:space="preserve">
+  <data name="VmSpacetimeSettings_BtnDelete" xml:space="preserve">
     <value>Delete</value>
   </data>
-  <data name="VmSpacetimeSettingsView.xaml_1" xml:space="preserve">
+  <data name="VmSpacetimeSettings_DlgExportTitle" xml:space="preserve">
     <value>Export Spacetime Topology Map</value>
   </data>
-  <data name="VmSpacetimeSettingsView.xaml_2" xml:space="preserve">
+  <data name="VmSpacetimeSettings_DlgExportFilter" xml:space="preserve">
     <value>PNG Image|*.png</value>
   </data>
-  <data name="VmSpacetimeSettingsView.xaml_3" xml:space="preserve">
+  <data name="VmSpacetimeSettings_LogAbnormalDelta" xml:space="preserve">
     <value>[DRAG] !!! Abnormal displacement delta=({0},{1}) discarded</value>
   </data>
-  <data name="VmStorageSettingsView_1" xml:space="preserve">
+  <data name="VmStorageSettings_BtnOptimizeDisk" xml:space="preserve">
     <value>Optimize Disk</value>
   </data>
 </root>

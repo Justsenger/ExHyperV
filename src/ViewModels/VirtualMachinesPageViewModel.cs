@@ -519,7 +519,7 @@ namespace ExHyperV.ViewModels
                 IsLoadingSettings = false;
             }
         }
-        // 2. 点击 Properties.Resources.VirtualMachinesPageViewModel_1 按钮：退出创建模式
+        // 2. 点击 Properties.Resources.VmPage_MsgCreatingVm 按钮：退出创建模式
         [RelayCommand]
         private void CancelCreate()
         {
@@ -665,7 +665,7 @@ namespace ExHyperV.ViewModels
 
             // --- 3. 执行创建流程 ---
             IsLoadingSettings = true;
-            CreatingStatusText = Properties.Resources.VirtualMachinesPageViewModel_26;
+            CreatingStatusText = Properties.Resources.VmPage_MemTrackEnable;
 
             try
             {
@@ -673,7 +673,7 @@ namespace ExHyperV.ViewModels
 
                 if (result.Success)
                 {
-                    CreatingStatusText = Properties.Resources.VirtualMachinesPageViewModel_27;
+                    CreatingStatusText = Properties.Resources.VmPage_MemTrackByProcessorNode;
                     string actualCreatedName = result.Message;
                     ShowSnackbar(
                          Properties.Resources.VmPage_CreateSuccess,
@@ -740,12 +740,12 @@ namespace ExHyperV.ViewModels
                 }
                 else
                 {
-                    ShowSnackbar(Properties.Resources.VirtualMachinesPageViewModel_28, Properties.Resources.VirtualMachinesPageViewModel_29, ControlAppearance.Caution, SymbolRegular.Warning24);
+                    ShowSnackbar(Properties.Resources.VmPage_SgxAccessDenied, Properties.Resources.VmPage_SgxReadOnly, ControlAppearance.Caution, SymbolRegular.Warning24);
                 }
             }
             catch (Exception ex)
             {
-                ShowSnackbar(Properties.Resources.VirtualMachinesPageViewModel_28, ex.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                ShowSnackbar(Properties.Resources.VmPage_SgxAccessDenied, ex.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
             }
         }
 
@@ -784,10 +784,10 @@ namespace ExHyperV.ViewModels
             // 二次确认弹窗
             var dialog = new Wpf.Ui.Controls.MessageBox
             {
-                Title = Properties.Resources.VirtualMachinesPageViewModel_31,
-                Content = string.Format(Properties.Resources.VirtualMachinesPageViewModel_32, vm.Name),
-                PrimaryButtonText = Properties.Resources.VirtualMachinesPageViewModel_33,
-                CloseButtonText = Properties.Resources.VirtualMachinesPageViewModel_34,
+                Title = Properties.Resources.VmPage_MsgOptimizeComplete,
+                Content = string.Format(Properties.Resources.VmPage_MsgDiskReclaimOk, vm.Name),
+                PrimaryButtonText = Properties.Resources.VmPage_ErrOptimizeFailed,
+                CloseButtonText = Properties.Resources.VmPage_ErrSystemException,
             };
 
             var result = await dialog.ShowDialogAsync();
@@ -834,11 +834,11 @@ namespace ExHyperV.ViewModels
 
                 VmList.Remove(vm);
                 if (SelectedVm == vm) SelectedVm = VmList.FirstOrDefault();
-                ShowSnackbar(Properties.Resources.VirtualMachinesPageViewModel_35, string.Format(Properties.Resources.VirtualMachinesPageViewModel_36, vm.Name), ControlAppearance.Success, SymbolRegular.Delete24);
+                ShowSnackbar(Properties.Resources.VmPage_LogStorageAddAction, string.Format(Properties.Resources.VmPage_LogStorageAutoAssign, vm.Name), ControlAppearance.Success, SymbolRegular.Delete24);
             }
             catch (Exception ex)
             {
-                ShowSnackbar(Properties.Resources.VirtualMachinesPageViewModel_37, Utils.GetFriendlyErrorMessages(ex.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                ShowSnackbar(Properties.Resources.VmPage_LogUiSaveTriggered, Utils.GetFriendlyErrorMessages(ex.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
             }
             finally { IsLoading = false; }
         }
@@ -1060,13 +1060,13 @@ namespace ExHyperV.ViewModels
                 consoleWin.Show();
 
                 // 4. (可选) 给个小反馈
-                Debug.WriteLine(string.Format(Properties.Resources.VirtualMachinesPageViewModel_3, SelectedVm.Name));
+                Debug.WriteLine(string.Format(Properties.Resources.VmPage_ErrOpenFailed, SelectedVm.Name));
             }
             catch (Exception ex)
             {
                 ShowSnackbar(
                     Properties.Resources.Error_Vm_StartFail,
-                    string.Format(Properties.Resources.VirtualMachinesPageViewModel_4, ex.Message),
+                    string.Format(Properties.Resources.VmPage_ErrConfigDirNotFound, ex.Message),
                     ControlAppearance.Danger,
                     SymbolRegular.ErrorCircle24);
             }
@@ -1570,15 +1570,15 @@ namespace ExHyperV.ViewModels
                         bool success = ProcessAffinityManager.SetVmProcessAffinity(vm.Id, coreIds);
                         if (success)
                         {
-                            Debug.WriteLine(string.Format(Properties.Resources.VirtualMachinesPageViewModel_5, vm.Name));
+                            Debug.WriteLine(string.Format(Properties.Resources.VmPage_ErrOpenFailed2, vm.Name));
                             break;
                         }
-                        Debug.WriteLine(string.Format(Properties.Resources.VirtualMachinesPageViewModel_6, i + 1, vm.Name));
+                        Debug.WriteLine(string.Format(Properties.Resources.VmPage_TitlePermanentDelete, i + 1, vm.Name));
                     }
                 }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine(string.Format(Properties.Resources.VirtualMachinesPageViewModel_7, ex.Message));
+                    Debug.WriteLine(string.Format(Properties.Resources.VmPage_MsgPermanentDeleteConfirm, ex.Message));
                 }
             });
         }
@@ -1656,7 +1656,7 @@ namespace ExHyperV.ViewModels
                     var result = await _vmMemoryService.SetVmMemorySettingsAsync(SelectedVm.Name, SelectedVm.MemorySettings, false);
                     if (!result.Success)
                     {
-                        ShowSnackbar(Properties.Resources.VirtualMachinesPageViewModel_38, result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                        ShowSnackbar(Properties.Resources.VmPage_LogDiskSaveResult, result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
 
                         // 核心修复：使用真正纯净的初始缓存进行弹回恢复
                         SelectedVm.MemorySettings.Restore(_originalMemorySettingsCache);
@@ -1710,39 +1710,39 @@ namespace ExHyperV.ViewModels
 
         public List<object> BackingTypeOptions { get; } = new()
 {
-    new { Value = (byte)0, Name = Properties.Resources.VirtualMachinesPageViewModel_39 },
-    new { Value = (byte)1, Name = Properties.Resources.VirtualMachinesPageViewModel_40 },
-    new { Value = (byte)2, Name = Properties.Resources.VirtualMachinesPageViewModel_41 }
+    new { Value = (byte)0, Name = Properties.Resources.VmPage_LogSaveError },
+    new { Value = (byte)1, Name = Properties.Resources.VmPage_ErrOperationFailed },
+    new { Value = (byte)2, Name = Properties.Resources.VmPage_ErrModifyFailed2 }
 };
 
         public List<object> MemoryByteGranularityOptions { get; } = new()
 {
-    new { Value = (byte)0, Name = Properties.Resources.VirtualMachinesPageViewModel_42 },
-    new { Value = (byte)1, Name = Properties.Resources.VirtualMachinesPageViewModel_43 },
-    new { Value = (byte)2, Name = Properties.Resources.VirtualMachinesPageViewModel_44 },
-    new { Value = (byte)3, Name = Properties.Resources.VirtualMachinesPageViewModel_45 }
+    new { Value = (byte)0, Name = Properties.Resources.VmPage_ErrRetrieveFailed },
+    new { Value = (byte)1, Name = Properties.Resources.VmPage_MsgOperationOk },
+    new { Value = (byte)2, Name = Properties.Resources.VmPage_MsgSpacetimeCreated },
+    new { Value = (byte)3, Name = Properties.Resources.VmPage_ErrOperationFailed2 }
 };
         public List<object> MemoryUintGranularityOptions { get; } = new()
 {
-    new { Value = (uint)0, Name = Properties.Resources.VirtualMachinesPageViewModel_42 },
-    new { Value = (uint)1, Name = Properties.Resources.VirtualMachinesPageViewModel_43 },
-    new { Value = (uint)2, Name = Properties.Resources.VirtualMachinesPageViewModel_44 },
-    new { Value = (uint)3, Name = Properties.Resources.VirtualMachinesPageViewModel_45 }
+    new { Value = (uint)0, Name = Properties.Resources.VmPage_ErrRetrieveFailed },
+    new { Value = (uint)1, Name = Properties.Resources.VmPage_MsgOperationOk },
+    new { Value = (uint)2, Name = Properties.Resources.VmPage_MsgSpacetimeCreated },
+    new { Value = (uint)3, Name = Properties.Resources.VmPage_ErrOperationFailed2 }
 };
             
 
         public List<object> MemoryTrackingStateOptions { get; } = new()
 {
-    new { Value = (byte)0, Name = Properties.Resources.VirtualMachinesPageViewModel_50 },
-    new { Value = (byte)1, Name = Properties.Resources.VirtualMachinesPageViewModel_51 },
-    new { Value = (byte)2, Name = Properties.Resources.VirtualMachinesPageViewModel_52 }
+    new { Value = (byte)0, Name = Properties.Resources.VmPage_MsgSpacetimeAnnihilated },
+    new { Value = (byte)1, Name = Properties.Resources.VmPage_MsgWormholeOpened },
+    new { Value = (byte)2, Name = Properties.Resources.VmPage_MsgConnectedTo }
 };
 
         public List<object> SgxLaunchControlOptions { get; } = new()
 {
-    new { Value = (uint)0, Name = Properties.Resources.VirtualMachinesPageViewModel_53 },
-    new { Value = (uint)1, Name = Properties.Resources.VirtualMachinesPageViewModel_54 },
-    new { Value = (uint)2, Name = Properties.Resources.VirtualMachinesPageViewModel_55 }
+    new { Value = (uint)0, Name = Properties.Resources.VmPage_ErrOpenFailed3 },
+    new { Value = (uint)1, Name = Properties.Resources.VmPage_MsgWormholeClosed },
+    new { Value = (uint)2, Name = Properties.Resources.VmPage_MsgTimelineRestored }
 };
 
         // ----------------------------------------------------------------------------------
@@ -1803,16 +1803,16 @@ namespace ExHyperV.ViewModels
                     // 调用现有的存储服务，确保 UI 上的 GB 数值得到更新
                     await _storageService.RefreshVirtualDiskSizesAsync(SelectedVm);
 
-                    ShowSnackbar(Properties.Resources.VirtualMachinesPageViewModel_56, Properties.Resources.VirtualMachinesPageViewModel_57, ControlAppearance.Success, SymbolRegular.CheckmarkCircle24);
+                    ShowSnackbar(Properties.Resources.VmPage_ErrCloseFailed, Properties.Resources.VmPage_MsgFeatureInDev, ControlAppearance.Success, SymbolRegular.CheckmarkCircle24);
                 }
                 else
                 {
-                    ShowSnackbar(Properties.Resources.VirtualMachinesPageViewModel_58, result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                    ShowSnackbar(Properties.Resources.VmPage_MsgParallelUniverse, result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
                 }
             }
             catch (Exception ex)
             {
-                ShowSnackbar(Properties.Resources.VirtualMachinesPageViewModel_59, ex.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                ShowSnackbar(Properties.Resources.VmPage_MsgOperationOk4, ex.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
             }
             finally
             {
@@ -2012,7 +2012,7 @@ namespace ExHyperV.ViewModels
         {
             if (_isInternalUpdating || value == null) return;
 
-            Debug.WriteLine(string.Format(Properties.Resources.VirtualMachinesPageViewModel_8, value));
+            Debug.WriteLine(string.Format(Properties.Resources.VmPage_BtnPermanentDelete, value));
             RefreshAvailableNumbers(value);
 
             // 手动切换时也使用跳变技巧，确保 UI 同步
@@ -2028,14 +2028,14 @@ namespace ExHyperV.ViewModels
             // 如果是内部设定的跳变值 -2，或者是锁定状态，绝对不要去刷新位置列表，否则会造成闪烁或死循环
             if (value == -2 || _isInternalUpdating) return;
 
-            Debug.WriteLine(string.Format(Properties.Resources.VirtualMachinesPageViewModel_9, value));
+            Debug.WriteLine(string.Format(Properties.Resources.VmPage_BtnCancel, value));
             UpdateAvailableLocations();
         }
 
         // 增加位置变更监听（用于观察是否有 UI 回传 null/默认值的情况）
         partial void OnSelectedLocationChanged(int value)
         {
-            Debug.WriteLine(string.Format(Properties.Resources.VirtualMachinesPageViewModel_10, value));
+            Debug.WriteLine(string.Format(Properties.Resources.VmPage_MsgDeleteComplete, value));
         }
 
 
@@ -2369,7 +2369,7 @@ namespace ExHyperV.ViewModels
                     // 用 -2 强制触发 PropertyChanged，因为 -1 可能已经是当前 UI 的内部错误状态
                     SelectedControllerNumber = -2;
                     SelectedControllerNumber = targetNum;
-                    Debug.WriteLine(string.Format(Properties.Resources.VirtualMachinesPageViewModel_13, SelectedControllerNumber));
+                    Debug.WriteLine(string.Format(Properties.Resources.VmPage_ErrModifyFailed, SelectedControllerNumber));
 
                     // --- 强刷 [位置] ---
                     SelectedLocation = -2;
@@ -2381,27 +2381,27 @@ namespace ExHyperV.ViewModels
                     {
                         SelectedLocation = AvailableLocations[0];
                     }
-                    Debug.WriteLine(string.Format(Properties.Resources.VirtualMachinesPageViewModel_14, SelectedLocation));
+                    Debug.WriteLine(string.Format(Properties.Resources.VmPage_MemMapPhysical, SelectedLocation));
 
                     IsSlotValid = true;
                     SlotWarningMessage = string.Empty;
 
                     // 全部完成后解锁
                     _isInternalUpdating = false;
-                    Debug.WriteLine(Properties.Resources.VirtualMachinesPageViewModel_15);
+                    Debug.WriteLine(Properties.Resources.VmPage_MemMapVirtual);
 
                 }), System.Windows.Threading.DispatcherPriority.Loaded);
             }
             catch (Exception ex)
             {
                 _isInternalUpdating = false;
-                Debug.WriteLine(string.Format(Properties.Resources.VirtualMachinesPageViewModel_16, ex.Message));
+                Debug.WriteLine(string.Format(Properties.Resources.VmPage_MemMapHybrid, ex.Message));
             }
         }
 
         private void RefreshAvailableNumbers(string type)
         {
-            Debug.WriteLine(string.Format(Properties.Resources.VirtualMachinesPageViewModel_17, type));
+            Debug.WriteLine(string.Format(Properties.Resources.VmPage_MemGranAutoAssign, type));
             AvailableControllerNumbers.Clear();
             int maxCtrl = (type == "IDE") ? 2 : 4;
             for (int i = 0; i < maxCtrl; i++)
@@ -2412,7 +2412,7 @@ namespace ExHyperV.ViewModels
         {
             if (SelectedVm == null || type == null) return;
 
-            Debug.WriteLine(string.Format(Properties.Resources.VirtualMachinesPageViewModel_18, type, ctrlNum));
+            Debug.WriteLine(string.Format(Properties.Resources.VmPage_MemGranStandard, type, ctrlNum));
             var usedLocations = SelectedVm.StorageItems
                 .Where(i => i.ControllerType == type && i.ControllerNumber == ctrlNum)
                 .Select(i => i.ControllerLocation)
@@ -2448,7 +2448,7 @@ namespace ExHyperV.ViewModels
             if (!AvailableLocations.Contains(SelectedLocation))
             {
                 SelectedLocation = AvailableLocations[0];
-                Debug.WriteLine(string.Format(Properties.Resources.VirtualMachinesPageViewModel_19, SelectedLocation));
+                Debug.WriteLine(string.Format(Properties.Resources.VmPage_MemGranLargePage, SelectedLocation));
             }
         }
         // 刷新控制器选项
@@ -2854,16 +2854,16 @@ namespace ExHyperV.ViewModels
                 // 关键检查：在保存前打印 UI 集合的名称顺序
                 var currentOrder = SelectedVm.BootOrderItems.ToList();
                 string names = string.Join(" -> ", currentOrder.Select(x => x.Name));
-                Debug.WriteLine(string.Format(Properties.Resources.VirtualMachinesPageViewModel_62, names));
+                Debug.WriteLine(string.Format(Properties.Resources.VmPage_MsgRollbackComplete, names));
 
                 string vmName = SelectedVm.Name;
                 bool success = await _vmBootService.SetBootOrderAsync(vmName, currentOrder);
 
-                Debug.WriteLine(string.Format(Properties.Resources.VirtualMachinesPageViewModel_63, success));
+                Debug.WriteLine(string.Format(Properties.Resources.VmPage_ErrRollbackFailed, success));
             }
             catch (Exception ex)
             {
-                Debug.WriteLine(string.Format(Properties.Resources.VirtualMachinesPageViewModel_64, ex.Message));
+                Debug.WriteLine(string.Format(Properties.Resources.VmPage_BtnReset, ex.Message));
             }
         }
 
@@ -3492,7 +3492,7 @@ namespace ExHyperV.ViewModels
             // 2. 验证
             if (SelectedLinuxScript == null || string.IsNullOrWhiteSpace(SshHost))
             {
-                ShowSnackbar(Properties.Resources.Error_Common_Verify, Properties.Resources.VirtualMachinesPageViewModel_20, ControlAppearance.Caution, SymbolRegular.Warning24);
+                ShowSnackbar(Properties.Resources.Error_Common_Verify, Properties.Resources.VmPage_MemGranHugePage, ControlAppearance.Caution, SymbolRegular.Warning24);
                 return;
             }
 
@@ -3667,7 +3667,7 @@ namespace ExHyperV.ViewModels
                         _isLoadingCheckpointState = true;
                         IsCheckpointsEnabled = !value;
                         _isLoadingCheckpointState = false;
-                        ShowSnackbar(Properties.Resources.VirtualMachinesPageViewModel_65, result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                        ShowSnackbar(Properties.Resources.VmPage_MsgProcessReset, result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
                     });
                 }
                 else
@@ -3705,7 +3705,7 @@ namespace ExHyperV.ViewModels
                 }
                 else
                 {
-                    ShowSnackbar(Properties.Resources.VirtualMachinesPageViewModel_38, result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                    ShowSnackbar(Properties.Resources.VmPage_LogDiskSaveResult, result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
                 }
             }
             finally
@@ -3762,7 +3762,7 @@ namespace ExHyperV.ViewModels
             }
             catch (Exception ex)
             {
-                ShowSnackbar(Properties.Resources.VirtualMachinesPageViewModel_67, ex.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                ShowSnackbar(Properties.Resources.VmPage_ErrRetrieveFailed2, ex.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
             }
             finally
             {
@@ -3794,11 +3794,11 @@ namespace ExHyperV.ViewModels
                     // 重新获取节点，由于在 finally 之前调用，遮罩会一直持续到节点树重新画好
                     await GoToSpacetimeSettings();
 
-                    ShowSnackbar(Properties.Resources.VirtualMachinesPageViewModel_68, Properties.Resources.VirtualMachinesPageViewModel_69, ControlAppearance.Success, SymbolRegular.CheckmarkCircle24);
+                    ShowSnackbar(Properties.Resources.VmPage_MsgOperationOk5, Properties.Resources.VmPage_MsgSpacetimeCreated2, ControlAppearance.Success, SymbolRegular.CheckmarkCircle24);
                 }
                 else
                 {
-                    ShowSnackbar(Properties.Resources.VirtualMachinesPageViewModel_65, result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                    ShowSnackbar(Properties.Resources.VmPage_MsgProcessReset, result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
                 }
             }
             finally
@@ -3829,11 +3829,11 @@ namespace ExHyperV.ViewModels
                 {
                     await Task.Delay(500);
                     await GoToSpacetimeSettings();
-                    ShowSnackbar(Properties.Resources.VirtualMachinesPageViewModel_68, string.Format(Properties.Resources.VirtualMachinesPageViewModel_72, targetName), ControlAppearance.Success, SymbolRegular.ArrowClockwise24);
+                    ShowSnackbar(Properties.Resources.VmPage_MsgOperationOk5, string.Format(Properties.Resources.VmPage_MsgTraveledTo2, targetName), ControlAppearance.Success, SymbolRegular.ArrowClockwise24);
                 }
                 else
                 {
-                    ShowSnackbar(Properties.Resources.VirtualMachinesPageViewModel_65, result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                    ShowSnackbar(Properties.Resources.VmPage_MsgProcessReset, result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
                 }
             }
             finally { IsLoadingSettings = false; }
@@ -3852,7 +3852,7 @@ namespace ExHyperV.ViewModels
                 {
                     await Task.Delay(800);
                     await GoToSpacetimeSettings();
-                    ShowSnackbar(Properties.Resources.VirtualMachinesPageViewModel_68, Properties.Resources.VirtualMachinesPageViewModel_75, ControlAppearance.Success, SymbolRegular.Delete24);
+                    ShowSnackbar(Properties.Resources.VmPage_MsgOperationOk5, Properties.Resources.VmPage_MsgSpacetimeAnnihilated2, ControlAppearance.Success, SymbolRegular.Delete24);
                 }
             }
             finally { IsLoadingSettings = false; }
@@ -3873,11 +3873,11 @@ namespace ExHyperV.ViewModels
                     await GoToSpacetimeSettings();
                     var wormholeNode = SpacetimeNodes.FirstOrDefault(n => n.Id == openedNodeId);
                     if (wormholeNode != null) SelectedSpacetimeNode = wormholeNode;
-                    ShowSnackbar(Properties.Resources.VmSpacetimeService_22, string.Format(Properties.Resources.VirtualMachinesPageViewModel_77, SelectedSpacetimeNode.Name), ControlAppearance.Success, SymbolRegular.Link24);
+                    ShowSnackbar(Properties.Resources.VmSpacetimeService_MsgWormholeOpened, string.Format(Properties.Resources.VmPage_MsgConnectedTo2, SelectedSpacetimeNode.Name), ControlAppearance.Success, SymbolRegular.Link24);
                 }
                 else
                 {
-                    ShowSnackbar(Properties.Resources.VirtualMachinesPageViewModel_78, result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                    ShowSnackbar(Properties.Resources.VmPage_ErrOpenFailed4, result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
                 }
             }
             finally { IsLoadingSettings = false; }
@@ -3894,11 +3894,11 @@ namespace ExHyperV.ViewModels
                 if (result.Success)
                 {
                     await GoToSpacetimeSettings();
-                    ShowSnackbar(Properties.Resources.VirtualMachinesPageViewModel_79, Properties.Resources.VirtualMachinesPageViewModel_80, ControlAppearance.Success, SymbolRegular.LinkDismiss24);
+                    ShowSnackbar(Properties.Resources.VmPage_MsgWormholeClosed2, Properties.Resources.VmPage_MsgTimelineRestored2, ControlAppearance.Success, SymbolRegular.LinkDismiss24);
                 }
                 else
                 {
-                    ShowSnackbar(Properties.Resources.VirtualMachinesPageViewModel_81, result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                    ShowSnackbar(Properties.Resources.VmPage_ErrCloseFailed2, result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
                 }
             }
             finally { IsLoadingSettings = false; }
@@ -3908,7 +3908,7 @@ namespace ExHyperV.ViewModels
         [RelayCommand(CanExecute = nameof(CanOperateHistoricalNode))]
         private void ParallelSpacetime()
         {
-            ShowSnackbar(Properties.Resources.VirtualMachinesPageViewModel_82, Properties.Resources.VirtualMachinesPageViewModel_83, ControlAppearance.Info, SymbolRegular.Copy24);
+            ShowSnackbar(Properties.Resources.VmPage_MsgFeatureInDev2, Properties.Resources.VmPage_MsgParallelUniverse2, ControlAppearance.Info, SymbolRegular.Copy24);
         }
 
         // 时空收束
@@ -3926,7 +3926,7 @@ namespace ExHyperV.ViewModels
                 {
                     await Task.Delay(800);
                     await GoToSpacetimeSettings();
-                    ShowSnackbar(Properties.Resources.VirtualMachinesPageViewModel_68, Properties.Resources.VirtualMachinesPageViewModel_85, ControlAppearance.Success, SymbolRegular.Merge24);
+                    ShowSnackbar(Properties.Resources.VmPage_MsgOperationOk5, Properties.Resources.VmPage_MsgSpacetimeConverged2, ControlAppearance.Success, SymbolRegular.Merge24);
                 }
             }
             finally { IsLoadingSettings = false; }
@@ -4058,7 +4058,7 @@ namespace ExHyperV.ViewModels
                     SelectedPartition = null;
                 }
 
-                AppendLog($"--- {Properties.Resources.Label_Progress} ({Properties.Resources.VirtualMachinesPageViewModel_24}) ---");
+                AppendLog($"--- {Properties.Resources.Label_Progress} ({Properties.Resources.VmPage_MemGranHugePage2}) ---");
                 return;
             }
             // --- 场景 2: “硬重置”（彻底回滚，回到选显卡第一步） ---
@@ -4067,16 +4067,16 @@ namespace ExHyperV.ViewModels
             // 1. 如果当前有正在处理的分区 ID（说明已经分配但未成功），执行物理回滚
             if (!string.IsNullOrEmpty(_currentProcessingGpuAdapterId))
             {
-                AppendLog(Properties.Resources.VirtualMachinesPageViewModel_21); // Properties.Resources.VirtualMachinesPageViewModel_86
+                AppendLog(Properties.Resources.VmPage_MemGranAutoAssign2); // Properties.Resources.VmPage_MsgRollingBackGpu2
                 try
                 {
                     await _vmGpuService.RemoveGpuPartitionAsync(SelectedVm.Name, _currentProcessingGpuAdapterId);
                     _currentProcessingGpuAdapterId = null;
-                    AppendLog(Properties.Resources.VirtualMachinesPageViewModel_22); // Properties.Resources.VirtualMachinesPageViewModel_87
+                    AppendLog(Properties.Resources.VmPage_MemGranStandard2); // Properties.Resources.VmPage_MsgRollbackComplete2
                 }
                 catch (Exception ex)
                 {
-                    AppendLog(string.Format(Properties.Resources.VirtualMachinesPageViewModel_23, ex.Message)); // Properties.Resources.VirtualMachinesPageViewModel_88
+                    AppendLog(string.Format(Properties.Resources.VmPage_MemGranLargePage2, ex.Message)); // Properties.Resources.VmPage_ErrRollbackFailed2
                 }
             }
 
@@ -4092,8 +4092,8 @@ namespace ExHyperV.ViewModels
 
             // 4. 弹出全局重置提示
             ShowSnackbar(
-                Properties.Resources.VirtualMachinesPageViewModel_24, // Properties.Resources.VirtualMachinesPageViewModel_89
-                Properties.Resources.VirtualMachinesPageViewModel_25, // Properties.Resources.VirtualMachinesPageViewModel_90
+                Properties.Resources.VmPage_MemGranHugePage2, // Properties.Resources.VmPage_BtnReset2
+                Properties.Resources.VmPage_MemTrackDisable, // Properties.Resources.VmPage_MsgProcessReset2
                 Wpf.Ui.Controls.ControlAppearance.Info,
                 Wpf.Ui.Controls.SymbolRegular.ArrowCounterclockwise24);
         }

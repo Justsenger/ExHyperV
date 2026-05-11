@@ -356,7 +356,7 @@
                             </Grid.ColumnDefinitions>
 
                             <TextBlock Grid.Column="0" 
-               Text="{x:Static properties:Resources.VmCpuSettingsView_1}" 
+               Text="{x:Static properties:Resources.VmCpuSettings_LabelCustomCpuName}" 
                FontSize="14" 
                VerticalAlignment="Center" 
                Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
@@ -374,7 +374,7 @@
            Command="{Binding ApplyChangesCommand}"
            IsEnabled="{Binding SelectedVm.IsRunning, Converter={StaticResource InverseBooleanConverter}}">
                                 <ui:Button.ToolTip>
-                                    <ToolTip Content="{x:Static properties:Resources.VmCpuSettingsView_2}" 
+                                    <ToolTip Content="{x:Static properties:Resources.VmCpuSettings_WarnVmOffRequired}" 
                      Visibility="{Binding SelectedVm.IsRunning, Converter={StaticResource BoolToVis}}"/>
                                 </ui:Button.ToolTip>
                             </ui:Button>

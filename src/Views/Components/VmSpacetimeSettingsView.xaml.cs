@@ -279,8 +279,8 @@ namespace ExHyperV.Views.Components
 
             var dialog = new Microsoft.Win32.SaveFileDialog
             {
-                Title = Properties.Resources.VmSpacetimeSettingsView_xaml_1,
-                Filter = Properties.Resources.VmSpacetimeSettingsView_xaml_2,
+                Title = Properties.Resources.VmSpacetimeSettings_DlgExportTitle,
+                Filter = Properties.Resources.VmSpacetimeSettings_DlgExportFilter,
                 FileName = $"{safeName}_{safeNode}_{safeTime}.png"
             };
 
@@ -673,7 +673,7 @@ namespace ExHyperV.Views.Components
             // 正常人手单帧不可能移动这么多，这种数据一定是事件错乱导致
             if (Math.Abs(frameDeltaX) > 50 || Math.Abs(frameDeltaY) > 50)
             {
-                Debug.WriteLine(string.Format(Properties.Resources.VmSpacetimeSettingsView_xaml_3, frameDeltaX, frameDeltaY));
+                Debug.WriteLine(string.Format(Properties.Resources.VmSpacetimeSettings_LogAbnormalDelta, frameDeltaX, frameDeltaY));
                 _lastMousePos = currentPos;
                 return;
             }

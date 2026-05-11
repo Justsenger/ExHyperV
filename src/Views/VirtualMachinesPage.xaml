@@ -58,7 +58,7 @@
                 
                 <Border.ContextMenu>
                     <ContextMenu>
-                        <ui:MenuItem Header="{x:Static properties:Resources.VirtualMachinesPage_1}"
+                        <ui:MenuItem Header="{x:Static properties:Resources.VmPage_MenuOpenFolder}"
              Command="{Binding PlacementTarget.Tag.OpenVmFolderCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
              CommandParameter="{Binding}">
                             <ui:MenuItem.Icon>
@@ -77,7 +77,7 @@
                         </ui:MenuItem>
 
                         <Separator/>
-                        <ui:MenuItem Header="{x:Static properties:Resources.VirtualMachinesPageViewModel_33}"
+                        <ui:MenuItem Header="{x:Static properties:Resources.VmPage_ErrOptimizeFailed}"
              Command="{Binding PlacementTarget.Tag.PurgeVmCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
              CommandParameter="{Binding}"
              Foreground="{ui:ThemeResource SystemFillColorCriticalBrush}">

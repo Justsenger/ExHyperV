@@ -115,11 +115,11 @@ internal class VmSpacetimeService
                 if (genesisThumbnail != null) await SaveThumbnailToDisk(genesisThumbnail, snapshotDir, SpacetimeNode.GenesisId);
             }
 
-            var genesisNode = new SpacetimeNode { Id = SpacetimeNode.GenesisId, Name = Properties.Resources.VmSpacetimeService_1, NodeType = SpacetimeNodeType.Genesis, CreatedDate = genesisTime, Thumbnail = genesisThumbnail };
+            var genesisNode = new SpacetimeNode { Id = SpacetimeNode.GenesisId, Name = Properties.Resources.VmSpacetimeService_NodeLabelOrigin, NodeType = SpacetimeNodeType.Genesis, CreatedDate = genesisTime, Thumbnail = genesisThumbnail };
             var currentNode = new SpacetimeNode
             {
                 Id = SpacetimeNode.CurrentId,
-                Name = Properties.Resources.VmSpacetimeService_2,
+                Name = Properties.Resources.VmSpacetimeService_NodeLabelCurrent,
                 NodeType = SpacetimeNodeType.Current,
                 IsCurrent = true,
                 CreatedDate = DateTime.Now,
@@ -151,7 +151,7 @@ internal class VmSpacetimeService
             return result;
 
         }
-        catch (Exception ex) { Debug.WriteLine(string.Format(Properties.Resources.VmSpacetimeService_3, ex.Message)); return new List<SpacetimeNode>(); }
+        catch (Exception ex) { Debug.WriteLine(string.Format(Properties.Resources.VmSpacetimeService_ErrLookupFailed, ex.Message)); return new List<SpacetimeNode>(); }
     }
 
     // ============================================================
@@ -171,31 +171,31 @@ internal class VmSpacetimeService
                 $"ConvertTo-Json -Compress");
 
             string json = string.Join("", drives.Select(o => o?.ToString() ?? "")).Trim();
-            Debug.WriteLine(string.Format(Properties.Resources.VmSpacetimeService_4, json));  // ← 看有没有 _wormhole_tmp
+            Debug.WriteLine(string.Format(Properties.Resources.VmSpacetimeService_LogWormholeScsiJson, json));  // ← 看有没有 _wormhole_tmp
 
-            if (string.IsNullOrEmpty(json) || json == "null") { Debug.WriteLine(Properties.Resources.VmSpacetimeService_5); return; }
+            if (string.IsNullOrEmpty(json) || json == "null") { Debug.WriteLine(Properties.Resources.VmSpacetimeService_LogWormholeNoScsi); return; }
             if (!json.StartsWith("[")) json = $"[{json}]";
 
             var diskEntries = System.Text.Json.JsonSerializer.Deserialize<List<ScsiDiskEntry>>(json);
-            if (diskEntries == null) { Debug.WriteLine(Properties.Resources.VmSpacetimeService_6); return; }
+            if (diskEntries == null) { Debug.WriteLine(Properties.Resources.VmSpacetimeService_LogWormholeDeserFailed); return; }
 
             var wormholeDisk = diskEntries.FirstOrDefault(d =>
                 !string.IsNullOrEmpty(d.Path) &&
                 d.Path.Contains("_wormhole_tmp", StringComparison.OrdinalIgnoreCase));
 
-            Debug.WriteLine(string.Format(Properties.Resources.VmSpacetimeService_7, wormholeDisk?.Path ?? "未找到"));  // ← 看能不能找到
+            Debug.WriteLine(string.Format(Properties.Resources.VmSpacetimeService_LogWormholeDisk, wormholeDisk?.Path ?? "未找到"));  // ← 看能不能找到
             if (wormholeDisk == null) return;
 
             string renamedParentPath = await GetVhdParentPathAsync(wormholeDisk.Path);
-            Debug.WriteLine(string.Format(Properties.Resources.VmSpacetimeService_8, renamedParentPath));  // ← 看父盘路径对不对
+            Debug.WriteLine(string.Format(Properties.Resources.VmSpacetimeService_LogWormholeParentPath, renamedParentPath));  // ← 看父盘路径对不对
 
             string originalAvhdxPath = renamedParentPath.Replace(
                 "_renamed.vhdx", ".avhdx", StringComparison.OrdinalIgnoreCase);
-            Debug.WriteLine(string.Format(Properties.Resources.VmSpacetimeService_9, originalAvhdxPath));
+            Debug.WriteLine(string.Format(Properties.Resources.VmSpacetimeService_LogWormholeRestorePath, originalAvhdxPath));
 
             // 打印所有快照节点的 VhdPath
             foreach (var n in nodes.Where(n => n.NodeType == SpacetimeNodeType.Snapshot))
-                Debug.WriteLine(string.Format(Properties.Resources.VmSpacetimeService_10, n.Name, n.VhdPath));
+                Debug.WriteLine(string.Format(Properties.Resources.VmSpacetimeService_LogWormholeNodeVhd, n.Name, n.VhdPath));
 
             var targetNode = nodes.FirstOrDefault(n =>
                 n.NodeType == SpacetimeNodeType.Snapshot &&
@@ -203,7 +203,7 @@ internal class VmSpacetimeService
                 (string.Equals(n.VhdPath, originalAvhdxPath, StringComparison.OrdinalIgnoreCase) ||
                  string.Equals(n.VhdPath, renamedParentPath, StringComparison.OrdinalIgnoreCase)));
 
-            Debug.WriteLine(string.Format(Properties.Resources.VmSpacetimeService_11, targetNode?.Name ?? "未匹配"));  // ← 最关键
+            Debug.WriteLine(string.Format(Properties.Resources.VmSpacetimeService_LogWormholeMatchedNode, targetNode?.Name ?? "未匹配"));  // ← 最关键
             if (targetNode == null) return;
 
             targetNode.IsWormhole = true;
@@ -212,9 +212,9 @@ internal class VmSpacetimeService
             targetNode.WormholeCtrlType = wormholeDisk.ControllerTypeString;
             targetNode.WormholeCtrlNum = wormholeDisk.ControllerNumber;
             targetNode.WormholeCtrlLoc = wormholeDisk.ControllerLocation;
-            Debug.WriteLine(string.Format(Properties.Resources.VmSpacetimeService_12, targetNode.Name));
+            Debug.WriteLine(string.Format(Properties.Resources.VmSpacetimeService_LogWormholeMarkedOk, targetNode.Name));
         }
-        catch (Exception ex) { Debug.WriteLine(string.Format(Properties.Resources.VmSpacetimeService_13, ex.Message)); }
+        catch (Exception ex) { Debug.WriteLine(string.Format(Properties.Resources.VmSpacetimeService_LogWormholeDetectFailed, ex.Message)); }
     }
     private async Task<string> GetVhdParentPathAsync(string vhdPath)
     {
@@ -263,25 +263,25 @@ internal class VmSpacetimeService
     {
         var existingWormhole = await CheckAnyWormholeExistsAsync(vmName);
         if (existingWormhole)
-            return (false, Properties.Resources.VmSpacetimeService_14);
+            return (false, Properties.Resources.VmSpacetimeService_ErrWormholeAlreadyExists);
 
         if (await IsNodeInCurrentChainAsync(vmName, targetNode.VhdPath))
-            return (false, Properties.Resources.VmSpacetimeService_15);
+            return (false, Properties.Resources.VmSpacetimeService_ErrParentChainNode);
 
-        if (targetNode.NodeType != SpacetimeNodeType.Snapshot) return (false, Properties.Resources.VmSpacetimeService_16);
-        if (string.IsNullOrEmpty(targetNode.VhdPath)) return (false, Properties.Resources.VmSpacetimeService_17);
-        if (targetNode.IsWormhole) return (false, Properties.Resources.VmSpacetimeService_18);
+        if (targetNode.NodeType != SpacetimeNodeType.Snapshot) return (false, Properties.Resources.VmSpacetimeService_ErrOnlySnapshotNode);
+        if (string.IsNullOrEmpty(targetNode.VhdPath)) return (false, Properties.Resources.VmSpacetimeService_ErrSnapshotPathInvalid);
+        if (targetNode.IsWormhole) return (false, Properties.Resources.VmSpacetimeService_ErrNodeHasWormhole);
 
         string diskDir = Path.GetDirectoryName(targetNode.VhdPath) ?? "";
         string originalAvhdx = targetNode.VhdPath;
         string renamedVhdx = originalAvhdx.Replace(".avhdx", "_renamed.vhdx", StringComparison.OrdinalIgnoreCase);
         string tmpDisk = Path.Combine(diskDir, "_wormhole_tmp.vhdx");
 
-        if (string.IsNullOrEmpty(diskDir)) return (false, Properties.Resources.VmSpacetimeService_19);
+        if (string.IsNullOrEmpty(diskDir)) return (false, Properties.Resources.VmSpacetimeService_ErrCannotDetermineDiskDir);
         if (File.Exists(tmpDisk)) File.Delete(tmpDisk);
 
         var (ctrlType, ctrlNum, ctrlLoc) = await FindFreeScsiSlotAsync(vmName);
-        if (ctrlNum == -1) return (false, Properties.Resources.VmSpacetimeService_20);
+        if (ctrlNum == -1) return (false, Properties.Resources.VmSpacetimeService_ErrNoScsiSlot);
 
         // 临时改名绕过 WMI .avhdx 扩展名限制
         File.Move(originalAvhdx, renamedVhdx);
@@ -292,7 +292,7 @@ internal class VmSpacetimeService
             if (!createResult.Success)
             {
                 File.Move(renamedVhdx, originalAvhdx);
-                return (false, string.Format(Properties.Resources.VmSpacetimeService_21, createResult.Message));
+                return (false, string.Format(Properties.Resources.VmSpacetimeService_ErrCreateDiffDiskFailed, createResult.Message));
             }
 
             string safe = vmName.Replace("'", "''");
@@ -308,14 +308,14 @@ internal class VmSpacetimeService
             targetNode.WormholeCtrlNum = ctrlNum;
             targetNode.WormholeCtrlLoc = ctrlLoc;
 
-            return (true, Properties.Resources.VmSpacetimeService_22);
+            return (true, Properties.Resources.VmSpacetimeService_MsgWormholeOpened);
         }
         catch (Exception ex)
         {
             if (File.Exists(tmpDisk)) File.Delete(tmpDisk);
             if (File.Exists(renamedVhdx) && !File.Exists(originalAvhdx))
                 File.Move(renamedVhdx, originalAvhdx);
-            return (false, string.Format(Properties.Resources.VmSpacetimeService_23, ex.Message));
+            return (false, string.Format(Properties.Resources.VmSpacetimeService_ErrSpacetimeException, ex.Message));
         }
     }
 
@@ -375,7 +375,7 @@ internal class VmSpacetimeService
 
     public async Task<(bool Success, string Message)> CloseWormholeAsync(string vmName, SpacetimeNode node)
     {
-        if (!node.IsWormhole) return (false, Properties.Resources.VmSpacetimeService_24);
+        if (!node.IsWormhole) return (false, Properties.Resources.VmSpacetimeService_ErrNoActiveWormhole);
 
         try
         {
@@ -400,9 +400,9 @@ internal class VmSpacetimeService
             node.WormholeTmpDiskPath = string.Empty;
             node.WormholeRenamedPath = string.Empty;
 
-            return (true, Properties.Resources.VmSpacetimeService_25);
+            return (true, Properties.Resources.VmSpacetimeService_MsgWormholeClosed);
         }
-        catch (Exception ex) { return (false, string.Format(Properties.Resources.VmSpacetimeService_26, ex.Message)); }
+        catch (Exception ex) { return (false, string.Format(Properties.Resources.VmSpacetimeService_ErrCloseWormholeException, ex.Message)); }
     }
 
     // ============================================================
@@ -418,7 +418,7 @@ internal class VmSpacetimeService
                 using var imgSvc = new ManagementObjectSearcher(
                     @"root\virtualization\v2", "SELECT * FROM Msvm_ImageManagementService");
                 using var svcInst = imgSvc.Get().Cast<ManagementObject>().FirstOrDefault();
-                if (svcInst == null) return (false, Properties.Resources.VmSpacetimeService_27);
+                if (svcInst == null) return (false, Properties.Resources.VmSpacetimeService_ErrWmiImageSvcNotFound);
 
                 using var settingClass = new ManagementClass(
                     @"root\virtualization\v2", "Msvm_VirtualHardDiskSettingData", null);
@@ -451,7 +451,7 @@ internal class VmSpacetimeService
                     ushort err = (ushort)job["ErrorCode"];
                     return err == 0 ? (true, "") : (false, job["ErrorDescription"]?.ToString() ?? "");
                 }
-                return (false, string.Format(Properties.Resources.VmSpacetimeService_28, ret));
+                return (false, string.Format(Properties.Resources.VmSpacetimeService_LogWmiReturned, ret));
             }
             catch (Exception ex) { return (false, ex.Message); }
         });
@@ -499,7 +499,7 @@ internal class VmSpacetimeService
             using var svc = new ManagementObjectSearcher(@"root\virtualization\v2",
                 "SELECT * FROM Msvm_VirtualSystemManagementService");
             using var svcInst = svc.Get().Cast<ManagementObject>().FirstOrDefault();
-            if (svcInst == null) return (false, Properties.Resources.VmSpacetimeService_29);
+            if (svcInst == null) return (false, Properties.Resources.VmSpacetimeService_ErrWmiMgmtSvcNotFound);
 
             var inParams = svcInst.GetMethodParameters("ModifySystemSettings");
             inParams["SystemSettings"] = snapshotObj.GetText(TextFormat.WmiDtd20);
@@ -507,15 +507,15 @@ internal class VmSpacetimeService
             uint returnValue = (uint)outParams["ReturnValue"];
 
             return (returnValue == 0 || returnValue == 4096)
-                ? (true, Properties.Resources.VmSpacetimeService_30)
-                : (false, string.Format(Properties.Resources.VmSpacetimeService_31, returnValue));
+                ? (true, Properties.Resources.VmSpacetimeService_MsgNameUpdated)
+                : (false, string.Format(Properties.Resources.VmSpacetimeService_ErrUpdateWmiCode, returnValue));
         }
-        catch (Exception ex) { return (false, string.Format(Properties.Resources.VmSpacetimeService_32, ex.Message)); }
+        catch (Exception ex) { return (false, string.Format(Properties.Resources.VmSpacetimeService_ErrRenameException, ex.Message)); }
     }
 
     public async Task<(bool Success, string Message)> TeleportAsync(SpacetimeNode node, string vmName)
     {
-        if (node.NodeType != SpacetimeNodeType.Snapshot) return (false, Properties.Resources.VmSpacetimeService_33);
+        if (node.NodeType != SpacetimeNodeType.Snapshot) return (false, Properties.Resources.VmSpacetimeService_ErrOnlyHistoricalNode);
 
         try
         {
@@ -555,13 +555,13 @@ internal class VmSpacetimeService
                             await Task.Delay(1000);
                         }
                     });
-                    return (true, Properties.Resources.VmSpacetimeService_34);
+                    return (true, Properties.Resources.VmSpacetimeService_MsgTravelInitiated);
                 }
-                return (true, Properties.Resources.VmSpacetimeService_35);
+                return (true, Properties.Resources.VmSpacetimeService_MsgTravelSucceeded);
             }
-            return (false, string.Format(Properties.Resources.VmSpacetimeService_36, result.Message));
+            return (false, string.Format(Properties.Resources.VmSpacetimeService_ErrTravelFailed, result.Message));
         }
-        catch (Exception ex) { return (false, string.Format(Properties.Resources.VmSpacetimeService_23, ex.Message)); }
+        catch (Exception ex) { return (false, string.Format(Properties.Resources.VmSpacetimeService_ErrSpacetimeException, ex.Message)); }
     }
 
     public async Task<(bool Success, string Message)> CaptureMomentAsync(
@@ -573,7 +573,7 @@ internal class VmSpacetimeService
             Guid = obj["Name"].ToString()
         });
         var vm = vmData.FirstOrDefault();
-        if (vm == null) return (false, Properties.Resources.VmSpacetimeService_38);
+        if (vm == null) return (false, Properties.Resources.VmSpacetimeService_ErrVmCarrierNotFound);
 
         string originalType = "Production";
         try
@@ -599,7 +599,7 @@ internal class VmSpacetimeService
         catch (Exception ex)
         {
             try { await Utils.Run2($"Set-VM -Name '{safe}' -CheckpointType {originalType}"); } catch { }
-            return (false, string.Format(Properties.Resources.VmSpacetimeService_39, ex.Message));
+            return (false, string.Format(Properties.Resources.VmSpacetimeService_ErrSpacetimeCollapse, ex.Message));
         }
         finally
         {
@@ -621,35 +621,35 @@ internal class VmSpacetimeService
             if (!string.IsNullOrEmpty(snapshotDir))
                 await SaveThumbnailToDisk(bitmap, snapshotDir, newId);
         }
-        return (true, Properties.Resources.VmSpacetimeService_40);
+        return (true, Properties.Resources.VmSpacetimeService_MsgAnchorSet);
     }
 
     public async Task<(bool Success, string Message)> AnnihilateAsync(string vmName, SpacetimeNode node)
     {
-        if (node.IsLogicalNode) return (false, Properties.Resources.VmSpacetimeService_41);
+        if (node.IsLogicalNode) return (false, Properties.Resources.VmSpacetimeService_ErrOriginCurrentNoAnnihilate);
         var parameters = new Dictionary<string, object> { { "SnapshotSettingData", node.Path } };
         var result = await WmiTools.ExecuteMethodAsync(SnapshotServiceWql, "DestroySnapshotTree", parameters);
         if (result.Success || result.Message == "4096")
         {
             string? snapshotDir = await GetSnapshotDirectoryAsync(vmName);
             if (!string.IsNullOrEmpty(snapshotDir)) DeleteThumbnailFile(snapshotDir, node.Id);
-            return (true, Properties.Resources.VmSpacetimeService_42);
+            return (true, Properties.Resources.VmSpacetimeService_MsgAnnihilated);
         }
-        return (false, string.Format(Properties.Resources.VmSpacetimeService_43, result.Message));
+        return (false, string.Format(Properties.Resources.VmSpacetimeService_ErrAnnihilateFailed, result.Message));
     }
 
     public async Task<(bool Success, string Message)> ConvergeAsync(string vmName, SpacetimeNode node)
     {
-        if (node.IsLogicalNode) return (false, Properties.Resources.VmSpacetimeService_44);
+        if (node.IsLogicalNode) return (false, Properties.Resources.VmSpacetimeService_ErrOriginCurrentNoConverge);
         var parameters = new Dictionary<string, object> { { "AffectedSnapshot", node.Path } };
         var result = await WmiTools.ExecuteMethodAsync(SnapshotServiceWql, "DestroySnapshot", parameters);
         if (result.Success || result.Message == "4096")
         {
             string? snapshotDir = await GetSnapshotDirectoryAsync(vmName);
             if (!string.IsNullOrEmpty(snapshotDir)) DeleteThumbnailFile(snapshotDir, node.Id);
-            return (true, Properties.Resources.VmSpacetimeService_45);
+            return (true, Properties.Resources.VmSpacetimeService_MsgConverging);
         }
-        return (false, string.Format(Properties.Resources.VmSpacetimeService_46, result.Message));
+        return (false, string.Format(Properties.Resources.VmSpacetimeService_ErrConvergeFailed, result.Message));
     }
 
     public async Task<bool> GetCheckpointsEnabledAsync(string vmName)
@@ -668,7 +668,7 @@ internal class VmSpacetimeService
             var typeData = await WmiTools.QueryAsync(settingsWql, obj => obj["UserSnapshotType"]?.ToString());
             return typeData.FirstOrDefault() != "2";
         }
-        catch (Exception ex) { Debug.WriteLine(string.Format(Properties.Resources.VmSpacetimeService_47, ex.Message)); return true; }
+        catch (Exception ex) { Debug.WriteLine(string.Format(Properties.Resources.VmSpacetimeService_LogReadCheckpointFailed, ex.Message)); return true; }
     }
 
     public async Task<(bool Success, string Message)> SetCheckpointsEnabledAsync(string vmName, bool enabled)
@@ -679,21 +679,21 @@ internal class VmSpacetimeService
             string vmWql = $"SELECT Name FROM Msvm_ComputerSystem WHERE ElementName = '{safeName}'";
             var vmData = await WmiTools.QueryAsync(vmWql, obj => obj["Name"]?.ToString());
             string? vmGuid = vmData.FirstOrDefault();
-            if (string.IsNullOrEmpty(vmGuid)) return (false, Properties.Resources.VmSpacetimeService_48);
+            if (string.IsNullOrEmpty(vmGuid)) return (false, Properties.Resources.VmSpacetimeService_ErrVmNotFound);
 
             using var searcher = new ManagementObjectSearcher(@"root\virtualization\v2",
                 $"SELECT * FROM Msvm_VirtualSystemSettingData " +
                 $"WHERE VirtualSystemIdentifier = '{vmGuid}' " +
                 $"AND VirtualSystemType = 'Microsoft:Hyper-V:System:Realized'");
             using var settingObj = searcher.Get().Cast<ManagementObject>().FirstOrDefault();
-            if (settingObj == null) return (false, Properties.Resources.VmSpacetimeService_49);
+            if (settingObj == null) return (false, Properties.Resources.VmSpacetimeService_ErrVmConfigNotFound);
 
             settingObj["UserSnapshotType"] = enabled ? (byte)3 : (byte)2;
 
             using var svcSearcher = new ManagementObjectSearcher(@"root\virtualization\v2",
                 "SELECT * FROM Msvm_VirtualSystemManagementService");
             using var svcInst = svcSearcher.Get().Cast<ManagementObject>().FirstOrDefault();
-            if (svcInst == null) return (false, Properties.Resources.VmSpacetimeService_29);
+            if (svcInst == null) return (false, Properties.Resources.VmSpacetimeService_ErrWmiMgmtSvcNotFound);
 
             var inParams = svcInst.GetMethodParameters("ModifySystemSettings");
             inParams["SystemSettings"] = settingObj.GetText(TextFormat.WmiDtd20);
@@ -701,10 +701,10 @@ internal class VmSpacetimeService
             uint returnValue = (uint)outParams["ReturnValue"];
 
             return (returnValue == 0 || returnValue == 4096)
-                ? (true, enabled ? Properties.Resources.VmSpacetimeService_51 : Properties.Resources.VmSpacetimeService_52)
-                : (false, string.Format(Properties.Resources.VmSpacetimeService_53, returnValue));
+                ? (true, enabled ? Properties.Resources.VmSpacetimeService_MsgCheckpointEnabled : Properties.Resources.VmSpacetimeService_MsgCheckpointDisabled)
+                : (false, string.Format(Properties.Resources.VmSpacetimeService_ErrOperationWmiCode, returnValue));
         }
-        catch (Exception ex) { return (false, string.Format(Properties.Resources.VmSpacetimeService_54, ex.Message)); }
+        catch (Exception ex) { return (false, string.Format(Properties.Resources.VmSpacetimeService_ErrOperationException, ex.Message)); }
     }
 
     // ============================================================
@@ -716,9 +716,9 @@ internal class VmSpacetimeService
         try
         {
             string filePath = Path.Combine(snapshotDir, $"{GetSafeId(nodeId)}.jpg");
-            if (File.Exists(filePath)) { File.Delete(filePath); Debug.WriteLine(string.Format(Properties.Resources.VmSpacetimeService_55, nodeId)); }
+            if (File.Exists(filePath)) { File.Delete(filePath); Debug.WriteLine(string.Format(Properties.Resources.VmSpacetimeService_LogSnapshotScreenCleaned, nodeId)); }
         }
-        catch (Exception ex) { Debug.WriteLine(string.Format(Properties.Resources.VmSpacetimeService_56, ex.Message)); }
+        catch (Exception ex) { Debug.WriteLine(string.Format(Properties.Resources.VmSpacetimeService_LogCleanScreenFailed, ex.Message)); }
     }
 
     private async Task<string?> GetSnapshotDirectoryAsync(string vmName)
@@ -757,8 +757,8 @@ internal class VmSpacetimeService
         if (thumb != null && !string.IsNullOrEmpty(snapshotDir)) await SaveThumbnailToDisk(thumb, snapshotDir, SpacetimeNode.GenesisId);
         return new List<SpacetimeNode>
         {
-            new() { Id = SpacetimeNode.GenesisId, Name = Properties.Resources.VmSpacetimeService_1, NodeType = SpacetimeNodeType.Genesis, IsCurrent = true, CreatedDate = DateTime.Now.AddMinutes(-1), Thumbnail = thumb },
-            new() { Id = SpacetimeNode.CurrentId, Name = Properties.Resources.VmSpacetimeService_2, NodeType = SpacetimeNodeType.Current, ParentId = SpacetimeNode.GenesisId, IsCurrent = true, CreatedDate = DateTime.Now, Thumbnail = thumb }
+            new() { Id = SpacetimeNode.GenesisId, Name = Properties.Resources.VmSpacetimeService_NodeLabelOrigin, NodeType = SpacetimeNodeType.Genesis, IsCurrent = true, CreatedDate = DateTime.Now.AddMinutes(-1), Thumbnail = thumb },
+            new() { Id = SpacetimeNode.CurrentId, Name = Properties.Resources.VmSpacetimeService_NodeLabelCurrent, NodeType = SpacetimeNodeType.Current, ParentId = SpacetimeNode.GenesisId, IsCurrent = true, CreatedDate = DateTime.Now, Thumbnail = thumb }
         };
     }
 

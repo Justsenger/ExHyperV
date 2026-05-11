@@ -144,7 +144,7 @@
                                             </ui:Button>
 
                                             <ui:Button Icon="{ui:SymbolIcon Symbol=Broom24, FontSize=18}" 
-           ToolTip="{x:Static properties:Resources.VmStorageSettingsView_1}"
+           ToolTip="{x:Static properties:Resources.VmStorageSettings_BtnOptimizeDisk}"
            Appearance="Secondary" 
            Margin="0,0,8,0"
            Command="{Binding DataContext.OptimizeStorageCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
