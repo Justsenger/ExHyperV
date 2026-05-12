@@ -1,86 +1,26 @@
-using System;
-using System.Management;
-using System.Threading.Tasks;
-using System.Linq;
+using ExHyperV.Tools.Api;
 
-namespace ExHyperV.Services
+namespace ExHyperV.Services;
+
+public class VmEditService
 {
-    public class VmEditService
+    public async Task<(bool Success, string Message)> RenameVmAsync(Guid vmGuid, string newName)
     {
-        private const string Namespace = @"root\virtualization\v2";
+        // Msvm_ComputerSystem 里 Name 字段存的是 GUID，不是显示名
+        // 先找到 VM 对应的 VirtualSystemSettingData，改 ElementName，再提交
+        string settingsWql = $@"SELECT * FROM Msvm_VirtualSystemSettingData
+                                WHERE VirtualSystemIdentifier = '{vmGuid}'
+                                AND VirtualSystemType = 'Microsoft:Hyper-V:System:Realized'";
 
-        /// <summary>
-        /// 使用 WMI 修改虚拟机名称（ElementName）
-        /// </summary>
-        /// <param name="oldName">当前的虚拟机显示名称</param>
-        /// <param name="newName">目标显示名称</param>
-        /// <returns>操作是否成功以及错误信息</returns>
-        /// <summary>
-        /// 使用 WMI 精确修改虚拟机名称
-        /// </summary>
-        /// <param name="vmGuid">虚拟机的唯一 ID (Guid)</param>
-        /// <param name="newName">新的显示名称</param>
-        public async Task<(bool Success, string Message)> RenameVmAsync(Guid vmGuid, string newName)
-        {
-            return await Task.Run(() =>
-            {
-                try
-                {
-                    using var managementService = GetVirtualSystemManagementService();
+        var result = await WmiApi.WithObjectAsync(
+            wql: settingsWql,
+            modifier: obj => obj["ElementName"] = newName,
+            submitMethod: "ModifySystemSettings",
+            submitParamName: "SystemSettings",
+            wrapInArray: false);
 
-                    // --- 核心修复：使用 Name (即 GUID) 而不是 ElementName 查询 ---
-                    using var vm = GetComputerSystemByGuid(vmGuid);
-                    if (vm == null) return (false, Properties.Resources.VmEdit_InstanceNotFound);
-
-                    using var settings = GetVmSettings(vm);
-                    if (settings == null) return (false, Properties.Resources.VmEdit_ConfigDataError);
-
-                    settings["ElementName"] = newName;
-
-                    using var inParams = managementService.GetMethodParameters("ModifySystemSettings");
-                    inParams["SystemSettings"] = settings.GetText(TextFormat.CimDtd20);
-
-                    using var outParams = managementService.InvokeMethod("ModifySystemSettings", inParams, null);
-
-                    uint errorCode = (uint)outParams["ReturnValue"];
-                    return errorCode == 0 || errorCode == 4096
-                        ? (true, Properties.Resources.Msg_Success)
-                        : (false, string.Format(Properties.Resources.Wmi_ErrorCode, errorCode));
-                }
-                catch (Exception ex) { return (false, ex.Message); }
-            });
-        }
-        private ManagementObject GetComputerSystemByGuid(Guid guid)
-        {
-            var scope = new ManagementScope(Namespace);
-            // 在 Msvm_ComputerSystem 类中，"Name" 属性存放的就是虚拟机的 GUID
-            var query = new ObjectQuery($"SELECT * FROM Msvm_ComputerSystem WHERE Name = '{guid}'");
-            using var searcher = new ManagementObjectSearcher(scope, query);
-            return searcher.Get().Cast<ManagementObject>().FirstOrDefault();
-        }
-
-        private ManagementObject GetVirtualSystemManagementService()
-        {
-            var scope = new ManagementScope(Namespace);
-            var query = new ObjectQuery("SELECT * FROM Msvm_VirtualSystemManagementService");
-            using var searcher = new ManagementObjectSearcher(scope, query);
-            return searcher.Get().Cast<ManagementObject>().FirstOrDefault();
-        }
-
-        private ManagementObject GetComputerSystemByName(string name)
-        {
-            var scope = new ManagementScope(Namespace);
-            // 注意：ElementName 对应 Hyper-V 管理器里看到的名字
-            var query = new ObjectQuery($"SELECT * FROM Msvm_ComputerSystem WHERE ElementName = '{name.Replace("'", "''")}'");
-            using var searcher = new ManagementObjectSearcher(scope, query);
-            return searcher.Get().Cast<ManagementObject>().FirstOrDefault();
-        }
-
-        private ManagementObject GetVmSettings(ManagementObject vm)
-        {
-            // 通过关联获取设置数据，通常 VirtualSystemType 为 Microsoft:Hyper-V:System:Realized
-            using var settingsCollection = vm.GetRelated("Msvm_VirtualSystemSettingData", "Msvm_SettingsDefineState", null, null, null, null, false, null);
-            return settingsCollection.Cast<ManagementObject>().FirstOrDefault();
-        }
+        return result.Success
+            ? (true, Properties.Resources.Msg_Success)
+            : (false, result.Error);
     }
 }

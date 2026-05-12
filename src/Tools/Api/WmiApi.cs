@@ -274,9 +274,10 @@ public static class WmiApi
     }
 
     /// <summary>
-    /// CIM 路径重载，用于 Storage / StdCimV2 命名空间。
+    /// CIM 路径查询，用于 Storage / StdCimV2 命名空间。
+    /// 方法名加 Cim 后缀避免与 ManagementObject 重载产生歧义。
     /// </summary>
-    public static Task<ApiResponse<List<T>>> QueryAsync<T>(
+    public static Task<ApiResponse<List<T>>> QueryCimAsync<T>(
         string wql,
         Func<CimInstance, T> mapper,
         string scope = WmiScope.Storage,
@@ -325,35 +326,38 @@ public static class WmiApi
         string wql,
         Func<ManagementObject, T> mapper,
         string scope = WmiScope.HyperV,
-        WmiContext? ctx = null) where T : class
+        WmiContext? ctx = null)
     {
         var response = await QueryAsync(wql, mapper, scope, ctx);
 
         if (!response.Success)
             return ApiResponse<T>.Fail(response.Error, response.Code, response.ErrorSource);
 
-        var first = response.Data?.FirstOrDefault();
-        return first is null
-            ? ApiResponse<T>.Empty()
-            : ApiResponse<T>.Ok(first);
+        if (response.Data == null || response.Data.Count == 0)
+            return ApiResponse<T>.Empty();
+
+        return ApiResponse<T>.Ok(response.Data[0]);
     }
 
-    /// <summary>CIM 路径单行重载。</summary>
-    public static async Task<ApiResponse<T>> QueryFirstAsync<T>(
+    /// <summary>
+    /// CIM 路径单行查询，用于 Storage / StdCimV2 命名空间。
+    /// 方法名加 Cim 后缀避免与 ManagementObject 重载产生歧义。
+    /// </summary>
+    public static async Task<ApiResponse<T>> QueryFirstCimAsync<T>(
         string wql,
         Func<CimInstance, T> mapper,
         string scope = WmiScope.Storage,
-        WmiContext? ctx = null) where T : class
+        WmiContext? ctx = null)
     {
-        var response = await QueryAsync(wql, mapper, scope, ctx);
+        var response = await QueryCimAsync(wql, mapper, scope, ctx);
 
         if (!response.Success)
             return ApiResponse<T>.Fail(response.Error, response.Code, response.ErrorSource);
 
-        var first = response.Data?.FirstOrDefault();
-        return first is null
-            ? ApiResponse<T>.Empty()
-            : ApiResponse<T>.Ok(first);
+        if (response.Data == null || response.Data.Count == 0)
+            return ApiResponse<T>.Empty();
+
+        return ApiResponse<T>.Ok(response.Data[0]);
     }
 
     // ── E. 关联查询 ───────────────────────────────────────────────
