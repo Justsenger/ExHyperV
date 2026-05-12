@@ -186,7 +186,7 @@
                         </Grid.ColumnDefinitions>
 
                         <!-- 监视器/图标容器 -->
-                        <Grid Grid.Column="0" Width="110" Height="110" VerticalAlignment="Center">
+                        <Grid Grid.Column="0" Width="120" Height="100" VerticalAlignment="Center">
                             <!-- 1. 默认 OS 图标 (关机时显示) -->
                             <Image RenderOptions.BitmapScalingMode="HighQuality"
                            Width="110" Height="110" HorizontalAlignment="Center" VerticalAlignment="Center"
