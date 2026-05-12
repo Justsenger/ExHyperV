@@ -1,64 +1,54 @@
 name: 自动发布
-
 on:
   push:
     branches:
       - main
   workflow_dispatch:
-
 jobs:
   publish:
     runs-on: windows-latest
     permissions:
       contents: write
-
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
       - id: get_version
         shell: pwsh
         run: |
           [xml]$project = Get-Content src/ExHyperV.csproj
           $ver = $project.Project.PropertyGroup.Version
           echo "VERSION=$ver" >> $env:GITHUB_OUTPUT
-
       - id: check_tag
         shell: pwsh
         run: |
           $ver = "${{ steps.get_version.outputs.VERSION }}"
           $tag = "V$ver"
-          # 如果 Tag 已存在，或者版本号包含 beta (不区分大小写)
           if ((git tag -l $tag) -or ($ver -like "*beta*")) {
             echo "EXISTS=true" >> $env:GITHUB_OUTPUT
           } else {
             echo "EXISTS=false" >> $env:GITHUB_OUTPUT
           }
-
       - if: steps.check_tag.outputs.EXISTS == 'false'
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
-
       - if: steps.check_tag.outputs.EXISTS == 'false'
+        shell: pwsh
         run: |
-          dotnet publish src/ExHyperV.csproj -c Release --self-contained false -o ./publish_portable
-          dotnet publish src/ExHyperV.csproj -c Release -r win-arm64 --self-contained false -o ./temp_arm64
-
+          $msbuild = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -requires Microsoft.Component.MSBuild -find MSBuild\**\Bin\MSBuild.exe | Select-Object -First 1
+          & $msbuild src/ExHyperV.csproj /p:Configuration=Release /p:PublishDir=../publish_portable/ /p:SelfContained=false /t:Publish
+          & $msbuild src/ExHyperV.csproj /p:Configuration=Release /p:PublishDir=../temp_arm64/ /p:SelfContained=false /p:RuntimeIdentifier=win-arm64 /t:Publish
       - if: steps.check_tag.outputs.EXISTS == 'false'
         shell: pwsh
         run: |
           $ver = "${{ steps.get_version.outputs.VERSION }}"
-          
           Copy-Item -Path "./publish_portable" -Destination "./dist_x64" -Recurse
           Compress-Archive -Path ./dist_x64/* -DestinationPath "ExHyperV_$($ver)_x64.zip" -Force
-
           Copy-Item -Path "./publish_portable" -Destination "./dist_arm64" -Recurse
           Remove-Item "./dist_arm64/ExHyperV.exe" -Force
           Copy-Item -Path "./temp_arm64/ExHyperV.exe" -Destination "./dist_arm64/ExHyperV.exe"
           Compress-Archive -Path ./dist_arm64/* -DestinationPath "ExHyperV_$($ver)_arm64.zip" -Force
-
       - if: steps.check_tag.outputs.EXISTS == 'false'
         uses: softprops/action-gh-release@v2
         with:
@@ -72,7 +62,6 @@ jobs:
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Submit to Winget
         if: steps.check_tag.outputs.EXISTS == 'false'
         uses: vedantmgoyal2009/winget-releaser@v2
