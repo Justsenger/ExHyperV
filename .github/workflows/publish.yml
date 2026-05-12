@@ -36,8 +36,10 @@ jobs:
       - if: steps.check_tag.outputs.EXISTS == 'false'
         shell: pwsh
         run: |
+          dotnet restore src/ExHyperV.csproj
           $msbuild = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -requires Microsoft.Component.MSBuild -find MSBuild\**\Bin\MSBuild.exe | Select-Object -First 1
           & $msbuild src/ExHyperV.csproj /p:Configuration=Release /p:PublishDir=../publish_portable/ /p:SelfContained=false /t:Publish
+          dotnet restore src/ExHyperV.csproj -r win-arm64
           & $msbuild src/ExHyperV.csproj /p:Configuration=Release /p:PublishDir=../temp_arm64/ /p:SelfContained=false /p:RuntimeIdentifier=win-arm64 /t:Publish
       - if: steps.check_tag.outputs.EXISTS == 'false'
         shell: pwsh
