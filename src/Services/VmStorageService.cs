@@ -549,42 +549,138 @@ Write-Output ""RESULT:{controllerType},{controllerNumber},{location}""";
             }
         }
 
+        /// <summary>
+        /// 从虚拟机移除存储设备。
+        ///
+        /// 分支逻辑（与原 PowerShell 完全对应）：
+        ///   DVD + 关机 或 SCSI  → RemoveResourceSettings 移除槽位 RASD
+        ///   DVD + 运行中 IDE + 有介质 → ModifyMediaPathAsync("") 弹出介质，返回 Ejected
+        ///   DVD + 运行中 IDE + 无介质 → 报错，不支持热移除空驱动器
+        ///   HardDisk            → RemoveResourceSettings 移除槽位 RASD
+        ///                         物理盘额外调 SetDiskOfflineStatusAsync(false) 恢复联机
+        ///
+        /// RemoveResourceSettings 入参是对象路径引用数组（不是 XML），
+        /// 取槽位 RASD 的 __PATH 字符串传入即可。
+        /// </summary>
         public async Task<(bool Success, string Message)> RemoveDriveAsync(
             string vmName, VmStorageItem drive)
         {
-            string script = $@"
-$ErrorActionPreference = 'Stop'
-$vmName = '{vmName}'; $cnum = {drive.ControllerNumber}; $loc = {drive.ControllerLocation}; $ctype = '{drive.ControllerType}'
-$v = Get-VM -Name $vmName
-if ('{drive.DriveType}' -eq 'DvdDrive') {{
-    $check = Get-VMDvdDrive -VMName $vmName | Where-Object {{ $_.ControllerType -eq $ctype -and $_.ControllerNumber -eq $cnum -and $_.ControllerLocation -eq $loc }}
-    if (-not $check) {{ throw 'Storage_Error_DvdDriveNotFound' }}
-    if ($v.State -eq 'Off' -or $ctype -eq 'SCSI') {{
-        $check | Remove-VMDvdDrive -ErrorAction Stop
-        return 'Storage_Msg_Removed'
-    }} else {{
-        if ($check.Path) {{
-            $check | Set-VMDvdDrive -Path $null -ErrorAction Stop
-            return 'Storage_Msg_Ejected'
-        }} else {{ throw 'Storage_Error_DvdHotRemoveNotSupported' }}
-    }}
-}} else {{
-    $disk = Get-VMHardDiskDrive -VMName $vmName | Where-Object {{ $_.ControllerType -eq $ctype -and $_.ControllerNumber -eq $cnum -and $_.ControllerLocation -eq $loc }}
-    if (-not $disk) {{ throw 'Storage_Error_DiskNotFound' }}
-    $disk | Remove-VMHardDiskDrive -ErrorAction Stop
-    if ('{drive.DiskType}' -eq 'Physical' -and {drive.DiskNumber} -gt -1) {{
-        Start-Sleep -Milliseconds 500
-        Set-Disk -Number {drive.DiskNumber} -IsOffline $false -ErrorAction SilentlyContinue
-    }}
-    return 'Storage_Msg_Removed'
-}}";
-            try
+            // Step 1：取 VM 运行状态
+            var vmResp = await WmiApi.QueryFirstAsync(
+                $"SELECT * FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(vmName)}'",
+                obj => Convert.ToInt32(obj["EnabledState"] ?? 0),
+                WmiScope.HyperV);
+
+            if (!vmResp.HasData)
+                return (false, $"VM '{vmName}' not found");
+
+            bool isRunning = vmResp.Data == 2;
+
+            // Step 2：DVD 运行中 IDE → 只能弹出介质，不能移除驱动器
+            if (drive.DriveType == "DvdDrive" &&
+                isRunning &&
+                drive.ControllerType == "IDE")
             {
-                var res = await Utils.Run2(script);
-                return (true, res.LastOrDefault()?.ToString() ?? "Storage_Msg_Removed");
+                // 有介质 → 弹出
+                if (drive.DiskType != "Empty" && !string.IsNullOrEmpty(drive.PathOrDiskNumber))
+                {
+                    var ejectResult = await ModifyMediaPathAsync(
+                        vmName, drive.ControllerNumber, drive.ControllerLocation,
+                        "Microsoft:Hyper-V:Virtual CD/DVD Disk", "");
+                    return ejectResult.Success
+                        ? (true, "Storage_Msg_Ejected")
+                        : ejectResult;
+                }
+
+                // 无介质 → 不支持热移除空 IDE 驱动器
+                return (false, "Storage_Error_DvdHotRemoveNotSupported");
             }
-            catch (Exception ex) { return (false, Utils.GetFriendlyErrorMessage(ex.Message)); }
+
+            // Step 3：定位槽位 RASD，通过 VM settings 关联查询限定在当前 VM 范围
+            using var vmObj = WmiApi.GetVmComputerSystem(vmName);
+            if (vmObj == null)
+                return (false, $"VM '{vmName}' not found");
+
+            using var settings = WmiApi.GetVmSettings(vmObj);
+            if (settings == null)
+                return (false, "Cannot get VM settings");
+
+            var rasdResp = await WmiApi.QueryRelatedAsync(
+                settings,
+                "Msvm_ResourceAllocationSettingData",
+                obj => new
+                {
+                    InstanceID = obj["InstanceID"]?.ToString() ?? "",
+                    ObjPath = obj.Path.Path,
+                },
+                "Msvm_VirtualSystemSettingDataComponent",
+                WmiScope.HyperV);
+
+            if (!rasdResp.Success || rasdResp.Data == null)
+                return (false, rasdResp.Error.Length > 0 ? rasdResp.Error : "Cannot enumerate resources");
+
+            // InstanceID 格式：Microsoft:VM-GUID\SASD-GUID\controllerNumber\location\D
+            // segments[^1]="D"，segments[^2]=location，segments[^3]=controllerNumber
+            var slotRasd = rasdResp.Data.FirstOrDefault(r =>
+            {
+                var segs = r.InstanceID.Split('\\');
+                if (segs.Length < 3) return false;
+                if (segs[^1] != "D") return false;
+                return int.TryParse(segs[^3], out int cNum) && cNum == drive.ControllerNumber
+                    && int.TryParse(segs[^2], out int cLoc) && cLoc == drive.ControllerLocation;
+            });
+
+            if (slotRasd == null)
+                return (false, drive.DriveType == "DvdDrive"
+                    ? "Storage_Error_DvdDriveNotFound"
+                    : "Storage_Error_DiskNotFound");
+
+            // Step 4：RemoveResourceSettings，入参是对象路径引用数组
+            // 必须先删介质层 SASD（\L），再删槽位 RASD（\D），否则 Hyper-V 报错：
+            // "仍然有一个逻辑磁盘对象连接到它"
+            // 介质 InstanceID = 槽位 InstanceID 末尾 \D 替换为 \L，格式固定。
+            // SASD 有介质时才需要删，空槽（无 \L 对象）直接删槽位即可。
+            var mediaInstanceId = slotRasd.InstanceID[..^1] + "L"; // 末尾 D → L
+            // WQL 中反斜杠是转义字符，InstanceID 里的每个 \ 必须双写
+            var mediaInstanceIdWql = mediaInstanceId.Replace(@"\", @"\\");
+
+            var mediaResp = await WmiApi.QueryFirstAsync(
+                $"SELECT * FROM Msvm_StorageAllocationSettingData WHERE InstanceID = '{mediaInstanceIdWql}'",
+                obj => obj.Path.Path,
+                WmiScope.HyperV);
+
+            if (mediaResp.HasData)
+            {
+                var removeMediaResult = await WmiApi.InvokeAsync(
+                    "SELECT * FROM Msvm_VirtualSystemManagementService",
+                    "RemoveResourceSettings",
+                    p => p["ResourceSettings"] = new string[] { mediaResp.Data! },
+                    WmiScope.HyperV);
+
+                if (!removeMediaResult.Success)
+                    return (false, Utils.GetFriendlyErrorMessage(removeMediaResult.Error));
+            }
+
+            // 再删槽位
+            var removeResult = await WmiApi.InvokeAsync(
+                "SELECT * FROM Msvm_VirtualSystemManagementService",
+                "RemoveResourceSettings",
+                p => p["ResourceSettings"] = new string[] { slotRasd.ObjPath },
+                WmiScope.HyperV);
+
+            if (!removeResult.Success)
+                return (false, Utils.GetFriendlyErrorMessage(removeResult.Error));
+
+            // Step 5：物理盘移除后恢复联机
+            if (drive.DiskType == "Physical" && drive.DiskNumber > -1)
+            {
+                await Task.Delay(500);
+                await SetDiskOfflineStatusAsync(drive.DiskNumber, false);
+            }
+
+            return (true, "Storage_Msg_Removed");
         }
+
 
         // ============================================================
         // 设备修改操作（已重构为原生 WMI）
