@@ -469,9 +469,28 @@ namespace ExHyperV.Services
         }
 
         // ============================================================
-        // 设备增删改操作（暂留 PowerShell）
+        // ============================================================
+        // 设备增删改操作
         // ============================================================
 
+        /// <summary>
+        /// 向虚拟机添加存储设备。
+        ///
+        /// WMI 调用链（实测确认）：
+        ///   1. ISO 生成（可选）
+        ///   2. 取 VM 状态 + settings
+        ///   3. 槽位冲突检测：查 RASD InstanceID 末尾 \ctrlNum\loc\D
+        ///   4. 运行状态校验：IDE 运行中只允许 DvdDrive 热插
+        ///   5. SCSI 控制器不足时补充：AddResourceSettings + SCSI RASD XML
+        ///   6. 添加槽位 RASD：AddResourceSettings，返回槽位 __PATH
+        ///   7. 添加介质 SASD（有路径时）：AddResourceSettings，Parent=槽位路径
+        ///
+        /// 物理直通盘 vs 虚拟盘的差异（PS cmdlet 隐藏的细节）：
+        ///   虚拟盘槽位 ResourceSubType = "Microsoft:Hyper-V:Synthetic Disk Drive"
+        ///   物理直通槽位 ResourceSubType = "Microsoft:Hyper-V:Physical Disk Drive"
+        ///   介质层 ResourceSubType = "Microsoft:Hyper-V:Virtual Hard Disk"（虚拟）
+        ///                           物理直通的 HostResource 直接指向 Msvm_DiskDrive 路径
+        /// </summary>
         public async Task<(bool Success, string Message, string ActualType, int ActualNumber, int ActualLocation)>
             AddDriveAsync(
                 string vmName, string controllerType, int controllerNumber, int location, string driveType,
@@ -479,67 +498,296 @@ namespace ExHyperV.Services
                 string vhdType = "Dynamic", string parentPath = "", string sectorFormat = "Default",
                 string blockSize = "Default", string isoSourcePath = null, string isoVolumeLabel = null)
         {
-            string psPath = string.IsNullOrWhiteSpace(pathOrNumber) ? "$null" : $"'{pathOrNumber}'";
-
+            // ── Step 0: ISO 生成（DvdDrive + isNew + 有源目录）─────────
             if (driveType == "DvdDrive" && isNew && !string.IsNullOrWhiteSpace(isoSourcePath))
             {
-                var createResult = await CreateIsoFromDirectoryAsync(isoSourcePath, pathOrNumber, isoVolumeLabel);
-                if (!createResult.Success)
-                    return (false, createResult.Message, controllerType, controllerNumber, location);
+                var isoResult = await CreateIsoFromDirectoryAsync(isoSourcePath, pathOrNumber, isoVolumeLabel);
+                if (!isoResult.Success)
+                    return (false, isoResult.Message, controllerType, controllerNumber, location);
             }
-
-            string script = $@"
-$ErrorActionPreference = 'Stop'
-$vmName = '{vmName}'; $v = Get-VM -Name $vmName
-$targetDisk = Get-VMHardDiskDrive -VMName $vmName -ControllerType '{controllerType}' -ControllerNumber {controllerNumber} -ControllerLocation {location} -ErrorAction SilentlyContinue
-$targetDvd = Get-VMDvdDrive -VMName $vmName -ControllerNumber {controllerNumber} -ControllerLocation {location} | Where-Object {{ $_.ControllerType -eq '{controllerType}' }}
-if ($targetDisk -or $targetDvd) {{ throw 'Storage_Error_SlotOccupied' }}
-
-$oldDisk = Get-VMHardDiskDrive -VMName $vmName -ControllerType '{controllerType}' -ControllerNumber {controllerNumber} -ControllerLocation {location} -ErrorAction SilentlyContinue
-$oldDvd  = Get-VMDvdDrive -VMName $vmName -ControllerNumber {controllerNumber} -ControllerLocation {location} | Where-Object {{ $_.ControllerType -eq '{controllerType}' }}
-
-if ('{controllerType}' -eq 'IDE' -and $v.State -eq 'Running') {{
-    if ('{driveType}' -ne 'DvdDrive' -or (-not $oldDvd)) {{ throw 'Storage_Error_IdeHotPlugNotSupported' }}
-}}
-if ('{controllerType}' -eq 'SCSI') {{
-    $scsiCtrls = Get-VMScsiController -VMName $vmName | Sort-Object ControllerNumber
-    $max = if ($scsiCtrls) {{ ($scsiCtrls | Select-Object -Last 1).ControllerNumber }} else {{ -1 }}
-    if ({controllerNumber} -gt $max) {{
-        if ($v.State -eq 'Running') {{ throw 'Storage_Error_ScsiControllerHotAddNotSupported' }}
-        for ($i = $max + 1; $i -le {controllerNumber}; $i++) {{ Add-VMScsiController -VMName $vmName -ErrorAction Stop }}
-    }}
-}}
-if ('{driveType}' -eq 'HardDisk') {{
-    if ($oldDisk) {{ Remove-VMHardDiskDrive -VMName $vmName -ControllerType '{controllerType}' -ControllerNumber {controllerNumber} -ControllerLocation {location} -ErrorAction Stop }}
-    if ($oldDvd)  {{ Remove-VMDvdDrive     -VMName $vmName -ControllerNumber {controllerNumber} -ControllerLocation {location} -ErrorAction Stop }}
-    if ('{isNew.ToString().ToLower()}' -eq 'true') {{
-        $vhdParams = @{{ Path={psPath}; SizeBytes={sizeGb}GB; {vhdType}=$true; ErrorAction='Stop' }}
-        if ('{sectorFormat}' -eq '512n') {{ $vhdParams.LogicalSectorSizeBytes=512;  $vhdParams.PhysicalSectorSizeBytes=512  }}
-        elseif ('{sectorFormat}' -eq '512e') {{ $vhdParams.LogicalSectorSizeBytes=512;  $vhdParams.PhysicalSectorSizeBytes=4096 }}
-        elseif ('{sectorFormat}' -eq '4kn')  {{ $vhdParams.LogicalSectorSizeBytes=4096; $vhdParams.PhysicalSectorSizeBytes=4096 }}
-        if ('{blockSize}' -ne 'Default') {{ $vhdParams.BlockSizeBytes='{blockSize}' }}
-        if ('{vhdType}' -eq 'Differencing') {{ $vhdParams.Remove('SizeBytes'); $vhdParams.Remove('Dynamic'); $vhdParams.Remove('Fixed'); $vhdParams.ParentPath='{parentPath}' }}
-        New-VHD @vhdParams
-    }}
-    $p = @{{ VMName=$vmName; ControllerType='{controllerType}'; ControllerNumber={controllerNumber}; ControllerLocation={location}; ErrorAction='Stop' }}
-    if ('{isPhysical.ToString().ToLower()}' -eq 'true') {{ $p.DiskNumber={psPath} }} else {{ $p.Path={psPath} }}
-    Add-VMHardDiskDrive @p
-}} else {{
-    if ($oldDisk) {{ Remove-VMHardDiskDrive -VMName $vmName -ControllerType '{controllerType}' -ControllerNumber {controllerNumber} -ControllerLocation {location} -ErrorAction Stop }}
-    if ($oldDvd)  {{ Set-VMDvdDrive  -VMName $vmName -ControllerNumber {controllerNumber} -ControllerLocation {location} -Path {psPath} -ErrorAction Stop }}
-    else          {{ Add-VMDvdDrive  -VMName $vmName -ControllerNumber {controllerNumber} -ControllerLocation {location} -Path {psPath} -ErrorAction Stop }}
-}}
-Write-Output ""RESULT:{controllerType},{controllerNumber},{location}""";
 
             try
             {
-                var results = await Utils.Run2(script);
-                var last = results.LastOrDefault()?.ToString() ?? "";
-                if (last.StartsWith("RESULT:"))
+                // ── Step 1: 取 VM 对象、状态、settings ────────────────
+                using var vmObj = WmiApi.GetVmComputerSystem(vmName);
+                if (vmObj == null)
+                    return (false, $"VM '{vmName}' not found", controllerType, controllerNumber, location);
+
+                int enabledState = WmiApi.Prop<int>(vmObj, "EnabledState", 0);
+                bool isRunning = enabledState == 2;
+
+                using var settings = WmiApi.GetVmSettings(vmObj);
+                if (settings == null)
+                    return (false, "Cannot get VM settings", controllerType, controllerNumber, location);
+
+                // ── Step 2: 槽位冲突检测 ──────────────────────────────
+                // InstanceID 末尾格式：\ctrlNum\loc\D
+                var existingRasdResp = await WmiApi.QueryRelatedAsync(
+                    settings,
+                    "Msvm_ResourceAllocationSettingData",
+                    obj => obj["InstanceID"]?.ToString() ?? "",
+                    "Msvm_VirtualSystemSettingDataComponent",
+                    WmiScope.HyperV);
+
+                if (existingRasdResp.Success && existingRasdResp.Data != null)
                 {
-                    var parts = last.Substring(7).Split(',');
-                    return (true, "Storage_Msg_Success", parts[0], int.Parse(parts[1]), int.Parse(parts[2]));
+                    bool occupied = existingRasdResp.Data.Any(id =>
+                    {
+                        var segs = id.Split('\\');
+                        if (segs.Length < 3 || segs[^1] != "D") return false;
+                        return int.TryParse(segs[^3], out int cNum) && cNum == controllerNumber
+                            && int.TryParse(segs[^2], out int cLoc) && cLoc == location;
+                    });
+
+                    if (occupied)
+                        return (false, "Storage_Error_SlotOccupied", controllerType, controllerNumber, location);
                 }
+
+                // ── Step 3: 运行状态校验 ──────────────────────────────
+                if (controllerType == "IDE" && isRunning && driveType != "DvdDrive")
+                    return (false, "Storage_Error_IdeHotPlugNotSupported", controllerType, controllerNumber, location);
+
+                // ── Step 4: SCSI 控制器数量检查，不足时补充 ──────────
+                if (controllerType == "SCSI")
+                {
+                    var scsiCtrls = existingRasdResp.Data?
+                        .Where(id =>
+                        {
+                            // SCSI 控制器 InstanceID 末尾只有一段编号，格式：...\GUID\0
+                            var segs = id.Split('\\');
+                            // 先过滤掉槽位（\D）和介质（\L）
+                            return segs.Length >= 2
+                                && segs[^1] != "D" && segs[^1] != "L"
+                                && int.TryParse(segs[^1], out _);
+                        })
+                        .ToList() ?? new List<string>();
+
+                    // 这里还需要进一步过滤出 SCSI 控制器（ResourceType=6）
+                    // 用完整 RASD 对象比 InstanceID 字符串更可靠
+                    var allRasdResp = await WmiApi.QueryRelatedAsync(
+                        settings,
+                        "Msvm_ResourceAllocationSettingData",
+                        obj => new RasdInfo(
+                            obj["InstanceID"]?.ToString() ?? "",
+                            Convert.ToInt32(obj["ResourceType"] ?? 0),
+                            obj.Path.Path),
+                        "Msvm_VirtualSystemSettingDataComponent",
+                        WmiScope.HyperV);
+
+                    var scsiCtrlList = (allRasdResp.Data ?? [])
+                        .Where(r => r.ResourceType == 6)
+                        .ToList();
+
+                    int scsiCount = scsiCtrlList.Count;
+
+                    if (controllerNumber >= scsiCount)
+                    {
+                        if (isRunning)
+                            return (false, "Storage_Error_ScsiControllerHotAddNotSupported",
+                                controllerType, controllerNumber, location);
+
+                        // 补充 SCSI 控制器到够用
+                        for (int i = scsiCount; i <= controllerNumber; i++)
+                        {
+                            var scsiClass = new System.Management.ManagementClass(
+                                settings.Scope,
+                                new System.Management.ManagementPath("Msvm_ResourceAllocationSettingData"),
+                                null);
+                            using var scsiObj = scsiClass.CreateInstance();
+                            scsiObj["ResourceType"] = (ushort)6;
+                            scsiObj["ResourceSubType"] = "Microsoft:Hyper-V:Synthetic SCSI Controller";
+                            scsiObj["AutomaticAllocation"] = true;
+                            string scsiXml = scsiObj.GetText(System.Management.TextFormat.CimDtd20);
+
+                            var addScsiResult = await WmiApi.InvokeAsync(
+                                "SELECT * FROM Msvm_VirtualSystemManagementService",
+                                "AddResourceSettings",
+                                p =>
+                                {
+                                    p["AffectedConfiguration"] = settings.Path.Path;
+                                    p["ResourceSettings"] = new string[] { scsiXml };
+                                },
+                                WmiScope.HyperV);
+
+                            if (!addScsiResult.Success)
+                                return (false, Utils.GetFriendlyErrorMessage(addScsiResult.Error),
+                                    controllerType, controllerNumber, location);
+                        }
+
+                        // 重新查控制器列表（刚添加完）
+                        allRasdResp = await WmiApi.QueryRelatedAsync(
+                            settings,
+                            "Msvm_ResourceAllocationSettingData",
+                            obj => new RasdInfo(
+                                obj["InstanceID"]?.ToString() ?? "",
+                                Convert.ToInt32(obj["ResourceType"] ?? 0),
+                                obj.Path.Path),
+                            "Msvm_VirtualSystemSettingDataComponent",
+                            WmiScope.HyperV);
+
+                        scsiCtrlList = (allRasdResp.Data ?? [])
+                            .Where(r => r.ResourceType == 6)
+                            .ToList();
+                    }
+
+                    // 取目标 SCSI 控制器的 WMI 路径（按顺序，index=controllerNumber）
+                    if (controllerNumber >= scsiCtrlList.Count)
+                        return (false, "Storage_Error_ScsiControllerNotFound",
+                            controllerType, controllerNumber, location);
+                }
+
+                // ── Step 5: 取目标控制器的 WMI 路径 ──────────────────
+                // IDE: ResourceType=5，Address 字段 = 控制器编号（"0" 或 "1"）
+                // SCSI: ResourceType=6，按关联查询返回顺序的第 controllerNumber 个
+                var ctrlRasdResp = await WmiApi.QueryRelatedAsync(
+                    settings,
+                    "Msvm_ResourceAllocationSettingData",
+                    obj => new RasdInfo(
+                        obj["InstanceID"]?.ToString() ?? "",
+                        Convert.ToInt32(obj["ResourceType"] ?? 0),
+                        obj.Path.Path),
+                    "Msvm_VirtualSystemSettingDataComponent",
+                    WmiScope.HyperV);
+
+                string? controllerPath = null;
+                if (controllerType == "IDE")
+                {
+                    // IDE 控制器 InstanceID 末尾格式：...\GUID\controllerNumber（只有一段数字，无 \D/\L）
+                    controllerPath = ctrlRasdResp.Data?
+                        .FirstOrDefault(r =>
+                        {
+                            if (r.ResourceType != 5) return false;
+                            var segs = r.InstanceID.Split('\\');
+                            return segs.Length >= 1
+                                && int.TryParse(segs[^1], out int n)
+                                && n == controllerNumber;
+                        })
+                        ?.ObjPath;
+                }
+                else
+                {
+                    var scsiList = ctrlRasdResp.Data?
+                        .Where(r => r.ResourceType == 6)
+                        .ToList();
+                    controllerPath = scsiList?.ElementAtOrDefault(controllerNumber)?.ObjPath;
+                }
+
+                if (controllerPath == null)
+                    return (false, "Storage_Error_ControllerNotFound",
+                        controllerType, controllerNumber, location);
+
+                // ── Step 6: 如果是 HardDisk + isNew，先创建 VHD ──────
+                if (driveType == "HardDisk" && isNew && !string.IsNullOrWhiteSpace(pathOrNumber))
+                {
+                    var createResult = await CreateVhdAsync(
+                        pathOrNumber, vhdType, sizeGb, sectorFormat, blockSize, parentPath);
+                    if (!createResult.Success)
+                        return (false, createResult.Message, controllerType, controllerNumber, location);
+                }
+
+                // ── Step 7: 添加槽位 RASD ────────────────────────────
+                int slotResourceType = driveType == "DvdDrive" ? 16 : 17;
+                string slotSubType = driveType == "DvdDrive"
+                    ? "Microsoft:Hyper-V:Synthetic DVD Drive"
+                    : (isPhysical
+                        ? "Microsoft:Hyper-V:Physical Disk Drive"
+                        : "Microsoft:Hyper-V:Synthetic Disk Drive");
+
+                // ── Step 7: 添加槽位 RASD ────────────────────────────
+                // 物理直通盘：HostResource 直接设在槽位 RASD 上（没有介质层 SASD）
+                //   HostResource 格式：Msvm_DiskDrive 的完整 WMI 对象路径
+                //   DeviceID 格式：Microsoft:GUID\diskNumber
+                // 虚拟盘/DVD：槽位 RASD 不设 HostResource，介质路径在后续 SASD 里
+
+                string? physicalHostResource = null;
+                if (isPhysical && driveType == "HardDisk")
+                {
+                    // 取 Msvm_DiskDrive 对象路径，DeviceID LIKE '%\diskNumber'
+                    var diskDriveResp = await WmiApi.QueryFirstAsync(
+                        $"SELECT * FROM Msvm_DiskDrive WHERE DeviceID LIKE '%\\\\{pathOrNumber}'",
+                        obj => obj.Path.Path,
+                        WmiScope.HyperV);
+
+                    if (!diskDriveResp.HasData)
+                        return (false, $"Physical disk {pathOrNumber} not found in Hyper-V",
+                            controllerType, controllerNumber, location);
+
+                    physicalHostResource = diskDriveResp.Data!;
+                }
+
+                var slotClass = new System.Management.ManagementClass(
+                    settings.Scope,
+                    new System.Management.ManagementPath("Msvm_ResourceAllocationSettingData"),
+                    null);
+                using var slotObj = slotClass.CreateInstance();
+                slotObj["ResourceType"] = (ushort)slotResourceType;
+                slotObj["ResourceSubType"] = slotSubType;
+                slotObj["Parent"] = controllerPath;
+                slotObj["AddressOnParent"] = location.ToString();
+                slotObj["AutomaticAllocation"] = true;
+
+                if (physicalHostResource != null)
+                    slotObj["HostResource"] = new string[] { physicalHostResource };
+
+                string slotXml = slotObj.GetText(System.Management.TextFormat.CimDtd20);
+
+                var addSlotResult = await WmiApi.InvokeWithResultAsync(
+                    "SELECT * FROM Msvm_VirtualSystemManagementService",
+                    "AddResourceSettings",
+                    p =>
+                    {
+                        p["AffectedConfiguration"] = settings.Path.Path;
+                        p["ResourceSettings"] = new string[] { slotXml };
+                    },
+                    WmiScope.HyperV);
+
+                if (!addSlotResult.Success)
+                    return (false, Utils.GetFriendlyErrorMessage(addSlotResult.Error),
+                        controllerType, controllerNumber, location);
+
+                string? slotPath = addSlotResult.Data?.FirstOrDefault();
+
+                if (slotPath == null)
+                    return (false, "Storage_Error_SlotNotFound after AddResourceSettings",
+                        controllerType, controllerNumber, location);
+
+                // ── Step 8: 添加介质 SASD（虚拟盘/DVD，有路径时）─────
+                // 物理直通盘不走这里，HostResource 已在槽位 RASD 上
+                bool hasMedia = !isPhysical && !string.IsNullOrWhiteSpace(pathOrNumber);
+                if (hasMedia)
+                {
+                    string mediaSubType = driveType == "DvdDrive"
+                        ? "Microsoft:Hyper-V:Virtual CD/DVD Disk"
+                        : "Microsoft:Hyper-V:Virtual Hard Disk";
+
+                    var sasdClass = new System.Management.ManagementClass(
+                        settings.Scope,
+                        new System.Management.ManagementPath("Msvm_StorageAllocationSettingData"),
+                        null);
+                    using var sasdObj = sasdClass.CreateInstance();
+                    sasdObj["ResourceType"] = (ushort)31;
+                    sasdObj["ResourceSubType"] = mediaSubType;
+                    sasdObj["Parent"] = slotPath;
+                    sasdObj["AutomaticAllocation"] = true;
+                    sasdObj["HostResource"] = new string[] { pathOrNumber };
+
+                    string sasdXml = sasdObj.GetText(System.Management.TextFormat.CimDtd20);
+
+                    var addMediaResult = await WmiApi.InvokeAsync(
+                        "SELECT * FROM Msvm_VirtualSystemManagementService",
+                        "AddResourceSettings",
+                        p =>
+                        {
+                            p["AffectedConfiguration"] = settings.Path.Path;
+                            p["ResourceSettings"] = new string[] { sasdXml };
+                        },
+                        WmiScope.HyperV);
+
+                    if (!addMediaResult.Success)
+                        return (false, Utils.GetFriendlyErrorMessage(addMediaResult.Error),
+                            controllerType, controllerNumber, location);
+                }
+
                 return (true, "Storage_Msg_Success", controllerType, controllerNumber, location);
             }
             catch (Exception ex)
@@ -548,6 +796,96 @@ Write-Output ""RESULT:{controllerType},{controllerNumber},{location}""";
                     controllerType, controllerNumber, location);
             }
         }
+
+        /// <summary>
+        /// 内部：创建 VHD/VHDX 文件。
+        /// 对应 New-VHD，走 Msvm_ImageManagementService.CreateVirtualHardDisk。
+        ///
+        /// Msvm_VirtualHardDiskSettingData 关键字段（文档确认）：
+        ///   Type:   2=Fixed, 3=Dynamic, 4=Differencing
+        ///   Format: 2=VHD, 3=VHDX
+        ///   MaxInternalSize: 字节数（uint64）
+        ///   BlockSize, LogicalSectorSize, PhysicalSectorSize: 扇区参数（uint32，0=默认）
+        ///   ParentPath: 差分盘父路径
+        /// </summary>
+        private async Task<(bool Success, string Message)> CreateVhdAsync(
+            string path, string vhdType, int sizeGb,
+            string sectorFormat, string blockSize, string parentPathStr)
+        {
+            try
+            {
+                // 判断格式（vhd/vhdx）
+                string ext = System.IO.Path.GetExtension(path).ToLowerInvariant();
+                ushort format = ext == ".vhd" ? (ushort)2 : (ushort)3;
+
+                // Type
+                ushort type = vhdType switch
+                {
+                    "Fixed" => 2,
+                    "Differencing" => 4,
+                    _ => 3  // Dynamic
+                };
+
+                // 扇区参数
+                uint logicalSector = sectorFormat switch
+                {
+                    "512n" => 512,
+                    "512e" => 512,
+                    "4kn" => 4096,
+                    _ => 0  // 0 = 默认
+                };
+                uint physicalSector = sectorFormat switch
+                {
+                    "512n" => 512,
+                    "512e" => 4096,
+                    "4kn" => 4096,
+                    _ => 0
+                };
+
+                // BlockSize
+                uint blockSizeBytes = 0;
+                if (blockSize != "Default" && uint.TryParse(blockSize, out uint bs))
+                    blockSizeBytes = bs;
+
+                // 构造 VirtualHardDiskSettingData XML
+                // 通过已有的 GetVirtualSystemManagementService 借用其 Scope
+                // 该对象已持有连接好的 ManagementScope，避免重复建连
+                using var svcForScope = WmiApi.GetVirtualSystemManagementService();
+                var vhdClass = new System.Management.ManagementClass(
+                    svcForScope.Scope,
+                    new System.Management.ManagementPath("Msvm_VirtualHardDiskSettingData"),
+                    null);
+                using var vhdObj = vhdClass.CreateInstance();
+                vhdObj["Type"] = type;
+                vhdObj["Format"] = format;
+                vhdObj["Path"] = path;
+                vhdObj["MaxInternalSize"] = type == 4 ? (ulong)0 : (ulong)sizeGb * 1073741824UL;
+
+                if (logicalSector > 0) vhdObj["LogicalSectorSize"] = logicalSector;
+                if (physicalSector > 0) vhdObj["PhysicalSectorSize"] = physicalSector;
+                if (blockSizeBytes > 0) vhdObj["BlockSize"] = blockSizeBytes;
+
+                if (type == 4 && !string.IsNullOrWhiteSpace(parentPathStr))
+                    vhdObj["ParentPath"] = parentPathStr;
+
+                string vhdXml = vhdObj.GetText(System.Management.TextFormat.CimDtd20);
+
+                var result = await WmiApi.InvokeAsync(
+                    "SELECT * FROM Msvm_ImageManagementService",
+                    "CreateVirtualHardDisk",
+                    p => p["VirtualDiskSettingData"] = vhdXml,
+                    WmiScope.HyperV);
+
+                return result.Success
+                    ? (true, string.Empty)
+                    : (false, Utils.GetFriendlyErrorMessage(result.Error));
+            }
+            catch (Exception ex)
+            {
+                return (false, Utils.GetFriendlyErrorMessage(ex.Message));
+            }
+        }
+
 
         /// <summary>
         /// 从虚拟机移除存储设备。
@@ -608,11 +946,10 @@ Write-Output ""RESULT:{controllerType},{controllerNumber},{location}""";
             var rasdResp = await WmiApi.QueryRelatedAsync(
                 settings,
                 "Msvm_ResourceAllocationSettingData",
-                obj => new
-                {
-                    InstanceID = obj["InstanceID"]?.ToString() ?? "",
-                    ObjPath = obj.Path.Path,
-                },
+                obj => new RasdInfo(
+                    obj["InstanceID"]?.ToString() ?? "",
+                    0,
+                    obj.Path.Path),
                 "Msvm_VirtualSystemSettingDataComponent",
                 WmiScope.HyperV);
 
@@ -869,6 +1206,8 @@ Write-Output ""RESULT:{controllerType},{controllerNumber},{location}""";
         // ============================================================
         // 内部辅助数据模型
         // ============================================================
+
+        private sealed record RasdInfo(string InstanceID, int ResourceType, string ObjPath);
 
         private class HostDiskInfoCache
         {

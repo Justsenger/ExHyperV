@@ -392,6 +392,75 @@ public static class WmiApi
         }, cancellationToken);
     }
 
+
+
+    /// <summary>
+    /// 同 InvokeAsync，但额外返回完整的 outParams，
+    /// 供调用方读取 ResultingResourceSettings 等 out 参数。
+    /// </summary>
+    public static Task<ApiResponse<string[]>> InvokeWithResultAsync(
+        string wql,
+        string methodName,
+        Action<ManagementBaseObject>? setParams = null,
+        string scope = WmiScope.HyperV,
+        WmiContext? ctx = null,
+        CancellationToken cancellationToken = default)
+    {
+        ctx ??= WmiContext.Local;
+
+        return Task.Run(async () =>
+        {
+            try
+            {
+                var ms = WmiConnectionCache.GetManagementScope(scope, ctx);
+
+                using var searcher = new ManagementObjectSearcher(ms, new ObjectQuery(wql));
+                using var collection = searcher.Get();
+                using var target = collection.Cast<ManagementObject>().FirstOrDefault();
+
+                if (target is null)
+                    return ApiResponse<string[]>.Fail($"WMI object not found: {wql}");
+
+                using var inParams = target.GetMethodParameters(methodName);
+                setParams?.Invoke(inParams);
+
+                var outParams = target.InvokeMethod(methodName, inParams, null);
+                if (outParams is null)
+                    return ApiResponse<string[]>.Fail($"Method '{methodName}' returned null");
+
+                int returnValue = Convert.ToInt32(outParams["ReturnValue"]);
+
+                if (returnValue == 4096)
+                {
+                    var jobResult = await WaitForJobAsync(
+                        (string)outParams["Job"], scope, ctx, cancellationToken);
+                    if (!jobResult.Success)
+                        return ApiResponse<string[]>.Fail(
+                            jobResult.Error, jobResult.Code, jobResult.ErrorSource);
+                }
+                else if (returnValue != 0)
+                {
+                    return ApiResponse<string[]>.Fail(
+                        $"Method '{methodName}' returned code {returnValue}",
+                        returnValue, ApiErrorSource.Wmi);
+                }
+
+                var resulting = outParams["ResultingResourceSettings"] as string[] ?? [];
+                outParams.Dispose();
+                return ApiResponse<string[]>.Ok(resulting);
+            }
+            catch (ManagementException ex)
+            {
+                return ApiResponse<string[]>.Fail(
+                    ex.Message, (int)ex.ErrorCode, ApiErrorSource.Wmi, ex);
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<string[]>.Fail(ex.Message, -1, ApiErrorSource.None, ex);
+            }
+        }, cancellationToken);
+    }
+
     /// <summary>
     /// 在已有的 ManagementObject 上直接调用方法。
     /// </summary>
@@ -438,6 +507,8 @@ public static class WmiApi
             }
         }, cancellationToken);
     }
+
+
 
     // ── D. 改属性提交 ─────────────────────────────────────────────
 
@@ -876,4 +947,5 @@ public static class ManagementObjectExtensions
         if (!obj.HasProperty(propName)) return null;
         return obj[propName]?.ToString();
     }
+
 }
