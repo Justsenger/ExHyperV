@@ -554,22 +554,27 @@ public static class WmiApi
     }
 
     /// <summary>
-    /// CIM 关联查询重载。
+    /// CIM 关联查询。
+    /// 自动获取 CimSession，服务层无需再持有。
     /// </summary>
-    public static Task<ApiResponse<List<T>>> QueryRelatedAsync<T>(
-        CimSession session,
+    public static Task<ApiResponse<List<T>>> QueryRelatedCimAsync<T>(
         CimInstance source,
-        string scope,
         string associationClass,
         string resultClass,
         string sourceRole,
         string resultRole,
-        Func<CimInstance, T> mapper)
+        Func<CimInstance, T> mapper,
+        string scope = WmiScope.HyperV,
+        WmiContext? ctx = null)
     {
+        ctx ??= WmiContext.Local;
+
         return Task.Run(() =>
         {
             try
             {
+                // 内部获取 Session，符合你“服务层不允许硬编码”的要求
+                var session = WmiConnectionCache.GetCimSession(scope, ctx);
                 var list = new List<T>();
 
                 var related = session.EnumerateAssociatedInstances(
@@ -580,13 +585,13 @@ public static class WmiApi
                     try { list.Add(mapper(instance)); }
                     catch (Exception ex)
                     {
-                        Debug.WriteLine($"[WmiApi.CimQueryRelated] mapper error: {ex.Message}");
+                        System.Diagnostics.Debug.WriteLine($"[WmiApi.CimQueryRelated] mapper error: {ex.Message}");
                     }
                 }
 
                 return ApiResponse<List<T>>.Ok(list);
             }
-            catch (CimException ex)
+            catch (Microsoft.Management.Infrastructure.CimException ex)
             {
                 return ApiResponse<List<T>>.Fail(
                     ex.Message, (int)ex.NativeErrorCode, ApiErrorSource.Wmi, ex);

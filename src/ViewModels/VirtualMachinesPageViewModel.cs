@@ -1774,8 +1774,15 @@ namespace ExHyperV.ViewModels
         {
             try
             {
-                var disks = await _storageService.GetHostDisksAsync();
-                Application.Current.Dispatcher.Invoke(() => HostDisks = new ObservableCollection<HostDiskInfo>(disks));
+                // 1. 获取 ApiResponse<List<HostDiskInfo>>
+                var response = await _storageService.GetHostDisksAsync();
+
+                // 2. 判断是否成功且存在数据
+                if (response.HasData)
+                {
+                    // 3. 将 response.Data 传递给 ObservableCollection
+                    Application.Current.Dispatcher.Invoke(() => HostDisks = new ObservableCollection<HostDiskInfo>(response.Data!));
+                }
             }
             catch { }
         }
@@ -1807,7 +1814,7 @@ namespace ExHyperV.ViewModels
                 }
                 else
                 {
-                    ShowSnackbar(Properties.Resources.VmPage_MsgParallelUniverse, result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                    ShowSnackbar(Properties.Resources.VmPage_MsgParallelUniverse, result.Error, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
                 }
             }
             catch (Exception ex)
