@@ -3028,6 +3028,15 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 Failed to get network adapter template 的本地化字符串。
+        /// </summary>
+        public static string Error_Net_TemplateNotFound {
+            get {
+                return ResourceManager.GetString("Error_Net_TemplateNotFound", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Error: Unknown network mode &apos;{0}&apos; 的本地化字符串。
         /// </summary>
         public static string Error_Net_UnknownMode {
@@ -6704,6 +6713,15 @@ namespace ExHyperV.Properties {
         public static string NestedVirtualizationDescription {
             get {
                 return ResourceManager.GetString("NestedVirtualizationDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Network Adapter 的本地化字符串。
+        /// </summary>
+        public static string Net_DefaultAdapterName {
+            get {
+                return ResourceManager.GetString("Net_DefaultAdapterName", resourceCulture);
             }
         }
         

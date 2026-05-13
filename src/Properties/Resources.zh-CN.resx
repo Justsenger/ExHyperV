@@ -4038,4 +4038,10 @@
   <data name="VmStorageSettings_BtnOptimizeDisk" xml:space="preserve">
     <value>优化磁盘</value>
   </data>
+  <data name="Net_DefaultAdapterName" xml:space="preserve">
+  <value>网络适配器</value>
+</data>
+<data name="Error_Net_TemplateNotFound" xml:space="preserve">
+  <value>无法获取网络适配器模板</value>
+</data>
 </root>

@@ -1,142 +1,131 @@
 using ExHyperV.Models;
-using ExHyperV.Tools;
+using ExHyperV.Tools.Api;
 using System.Management;
 
-namespace ExHyperV.Services
-{
-    public class VmProcessorService
-    {
-        public async Task<VmProcessorSettings?> GetVmProcessorAsync(string vmName)
-        {
-            var query = $"SELECT * FROM Msvm_ComputerSystem WHERE ElementName = '{vmName.Replace("'", "''")}'";
+namespace ExHyperV.Services;
 
-            var results = await WmiTools.QueryAsync(query, (vmEntry) =>
+public class VmProcessorService
+{
+    public async Task<VmProcessorSettings?> GetVmProcessorAsync(string vmName)
+    {
+        string query = $"SELECT * FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(vmName)}'";
+
+        var results = await WmiApi.QueryAsync(query, vmEntry =>
+        {
+            var allSettings = vmEntry.GetRelated("Msvm_VirtualSystemSettingData")
+                .Cast<ManagementObject>().ToList();
+
+            var settingData =
+                allSettings.FirstOrDefault(s => s["VirtualSystemType"]?.ToString() == "Microsoft:Hyper-V:System:Realized")
+             ?? allSettings.FirstOrDefault(s => s["VirtualSystemType"]?.ToString() == "Microsoft:Hyper-V:System:Definition");
+
+            if (settingData == null) return null;
+
+            using var procData = settingData.GetRelated("Msvm_ProcessorSettingData")
+                .Cast<ManagementObject>().FirstOrDefault();
+            if (procData == null) return null;
+
+            return new VmProcessorSettings
             {
-                var allSettings = vmEntry.GetRelated("Msvm_VirtualSystemSettingData").Cast<ManagementObject>().ToList();
-                var settingData = allSettings.FirstOrDefault(s => s["VirtualSystemType"]?.ToString() == "Microsoft:Hyper-V:System:Realized")
-                               ?? allSettings.FirstOrDefault(s => s["VirtualSystemType"]?.ToString() == "Microsoft:Hyper-V:System:Definition");
+                Count = Convert.ToInt32(procData["VirtualQuantity"]),
+                Reserve = Convert.ToInt32(procData["Reservation"]) / 1000,
+                Maximum = Convert.ToInt32(procData["Limit"]) / 1000,
+                RelativeWeight = Convert.ToInt32(procData["Weight"]),
+
+                ExposeVirtualizationExtensions = procData.TryGet<bool>("ExposeVirtualizationExtensions") ?? false,
+                EnableHostResourceProtection = procData.TryGet<bool>("EnableHostResourceProtection") ?? false,
+                CompatibilityForMigrationEnabled = procData.TryGet<bool>("LimitProcessorFeatures") ?? false,
+                CompatibilityForOlderOperatingSystemsEnabled = procData.TryGet<bool>("LimitCPUID") ?? false,
+                SmtMode = ConvertHwThreadsToSmtMode(Convert.ToUInt32(procData["HwThreadsPerCore"])),
+
+                DisableSpeculationControls = procData.TryGet<bool>("DisableSpeculationControls"),
+                HideHypervisorPresent = procData.TryGet<bool>("HideHypervisorPresent"),
+                EnablePerfmonArchPmu = procData.TryGet<bool>("EnablePerfmonArchPmu"),
+                AllowAcountMcount = procData.TryGet<bool>("AllowAcountMcount"),
+                EnableSocketTopology = procData.TryGet<bool>("EnableSocketTopology"),
+                CpuBrandString = procData.TryGetString("CpuBrandString"),
+            };
+        });
+
+        return results.Data?.FirstOrDefault();
+    }
+
+    public async Task<(bool Success, string Message)> SetVmProcessorAsync(
+        string vmName, VmProcessorSettings newSettings)
+    {
+        try
+        {
+            string query = $"SELECT * FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(vmName)}'";
+
+            var xmlResults = await WmiApi.QueryAsync(query, vmEntry =>
+            {
+                var allSettings = vmEntry.GetRelated("Msvm_VirtualSystemSettingData")
+                    .Cast<ManagementObject>().ToList();
+
+                var settingData =
+                    allSettings.FirstOrDefault(s => s["VirtualSystemType"]?.ToString() == "Microsoft:Hyper-V:System:Realized")
+                 ?? allSettings.FirstOrDefault(s => s["VirtualSystemType"]?.ToString() == "Microsoft:Hyper-V:System:Definition");
 
                 if (settingData == null) return null;
 
-                using var procData = settingData.GetRelated("Msvm_ProcessorSettingData").Cast<ManagementObject>().FirstOrDefault();
+                using var procData = settingData.GetRelated("Msvm_ProcessorSettingData")
+                    .Cast<ManagementObject>().FirstOrDefault();
                 if (procData == null) return null;
 
-                return new VmProcessorSettings
-                {
-                    Count = Convert.ToInt32(procData["VirtualQuantity"]),
-                    Reserve = Convert.ToInt32(procData["Reservation"]) / 1000,
-                    Maximum = Convert.ToInt32(procData["Limit"]) / 1000,
-                    RelativeWeight = Convert.ToInt32(procData["Weight"]),
+                // 核数只能在关机状态（非 Realized）下修改
+                if (!procData.Path.Path.Contains("Realized"))
+                    procData["VirtualQuantity"] = (ulong)newSettings.Count;
 
-                    ExposeVirtualizationExtensions = GetNullableBoolProperty(procData, "ExposeVirtualizationExtensions") ?? false,
-                    EnableHostResourceProtection = GetNullableBoolProperty(procData, "EnableHostResourceProtection") ?? false,
-                    CompatibilityForMigrationEnabled = GetNullableBoolProperty(procData, "LimitProcessorFeatures") ?? false,
-                    CompatibilityForOlderOperatingSystemsEnabled = GetNullableBoolProperty(procData, "LimitCPUID") ?? false,
-                    SmtMode = ConvertHwThreadsToSmtMode(Convert.ToUInt32(procData["HwThreadsPerCore"])),
+                procData["Reservation"] = (ulong)(newSettings.Reserve * 1000);
+                procData["Limit"] = (ulong)(newSettings.Maximum * 1000);
+                procData["Weight"] = (uint)newSettings.RelativeWeight;
 
-                    DisableSpeculationControls = GetNullableBoolProperty(procData, "DisableSpeculationControls"),
-                    HideHypervisorPresent = GetNullableBoolProperty(procData, "HideHypervisorPresent"),
-                    EnablePerfmonArchPmu = GetNullableBoolProperty(procData, "EnablePerfmonArchPmu"),
-                    AllowAcountMcount = GetNullableBoolProperty(procData, "AllowAcountMcount"),
-                    EnableSocketTopology = GetNullableBoolProperty(procData, "EnableSocketTopology"),
-                    CpuBrandString = procData["CpuBrandString"]?.ToString(),
-                };
+                procData.TrySet("ExposeVirtualizationExtensions", newSettings.ExposeVirtualizationExtensions);
+                procData.TrySet("EnableHostResourceProtection", newSettings.EnableHostResourceProtection);
+                procData.TrySet("LimitProcessorFeatures", newSettings.CompatibilityForMigrationEnabled);
+                procData.TrySet("LimitCPUID", newSettings.CompatibilityForOlderOperatingSystemsEnabled);
+
+                if (newSettings.SmtMode.HasValue)
+                    procData.TrySetAlways("HwThreadsPerCore",
+                        (ulong)ConvertSmtModeToHwThreads(newSettings.SmtMode.Value));
+
+                procData.TrySet("DisableSpeculationControls", newSettings.DisableSpeculationControls);
+                procData.TrySet("HideHypervisorPresent", newSettings.HideHypervisorPresent);
+                procData.TrySet("EnablePerfmonArchPmu", newSettings.EnablePerfmonArchPmu);
+                procData.TrySet("AllowAcountMcount", newSettings.AllowAcountMcount);
+                procData.TrySet("EnableSocketTopology", newSettings.EnableSocketTopology);
+
+                // CpuBrandString 空字符串写 null（清除品牌字符串）
+                if (procData.HasProperty("CpuBrandString"))
+                    procData["CpuBrandString"] = string.IsNullOrWhiteSpace(newSettings.CpuBrandString)
+                        ? null
+                        : newSettings.CpuBrandString;
+
+                return procData.GetText(TextFormat.CimDtd20);
             });
 
-            return results.FirstOrDefault();
+            string? xml = xmlResults.Data?.FirstOrDefault();
+            if (string.IsNullOrEmpty(xml))
+                return (false, Properties.Resources.Error_Cpu_ConfigNotFound);
+
+            var result = await WmiApi.InvokeAsync(
+                "SELECT * FROM Msvm_VirtualSystemManagementService",
+                "ModifyResourceSettings",
+                p => p["ResourceSettings"] = new string[] { xml });
+
+            return result.Success
+                ? (true, string.Empty)
+                : (false, result.Error);
         }
-
-        public async Task<(bool Success, string Message)> SetVmProcessorAsync(string vmName, VmProcessorSettings newSettings)
+        catch (Exception ex)
         {
-            try
-            {
-                var query = $"SELECT * FROM Msvm_ComputerSystem WHERE ElementName = '{vmName.Replace("'", "''")}'";
-
-                var xmlResults = await WmiTools.QueryAsync(query, (vmEntry) =>
-                {
-                    var allSettings = vmEntry.GetRelated("Msvm_VirtualSystemSettingData").Cast<ManagementObject>().ToList();
-                    var settingData = allSettings.FirstOrDefault(s => s["VirtualSystemType"]?.ToString() == "Microsoft:Hyper-V:System:Realized")
-                                   ?? allSettings.FirstOrDefault(s => s["VirtualSystemType"]?.ToString() == "Microsoft:Hyper-V:System:Definition");
-
-                    if (settingData == null) return null;
-
-                    using var procData = settingData.GetRelated("Msvm_ProcessorSettingData").Cast<ManagementObject>().FirstOrDefault();
-                    if (procData == null) return null;
-
-                    if (!procData.Path.Path.Contains("Realized"))
-                    {
-                        procData["VirtualQuantity"] = (ulong)newSettings.Count;
-                    }
-
-                    procData["Reservation"] = (ulong)(newSettings.Reserve * 1000);
-                    procData["Limit"] = (ulong)(newSettings.Maximum * 1000);
-                    procData["Weight"] = (uint)newSettings.RelativeWeight;
-
-                    TrySetNullableProperty(procData, "ExposeVirtualizationExtensions", newSettings.ExposeVirtualizationExtensions);
-                    TrySetNullableProperty(procData, "EnableHostResourceProtection", newSettings.EnableHostResourceProtection);
-                    TrySetNullableProperty(procData, "LimitProcessorFeatures", newSettings.CompatibilityForMigrationEnabled);
-                    TrySetNullableProperty(procData, "LimitCPUID", newSettings.CompatibilityForOlderOperatingSystemsEnabled);
-
-                    if (newSettings.SmtMode.HasValue && HasProperty(procData, "HwThreadsPerCore"))
-                    {
-                        procData["HwThreadsPerCore"] = (ulong)ConvertSmtModeToHwThreads(newSettings.SmtMode.Value);
-                    }
-
-                    TrySetNullableProperty(procData, "DisableSpeculationControls", newSettings.DisableSpeculationControls);
-                    TrySetNullableProperty(procData, "HideHypervisorPresent", newSettings.HideHypervisorPresent);
-                    TrySetNullableProperty(procData, "EnablePerfmonArchPmu", newSettings.EnablePerfmonArchPmu);
-                    TrySetNullableProperty(procData, "AllowAcountMcount", newSettings.AllowAcountMcount);
-                    TrySetNullableProperty(procData, "EnableSocketTopology", newSettings.EnableSocketTopology);
-
-                    if (HasProperty(procData, "CpuBrandString"))
-                    {
-                        procData["CpuBrandString"] = string.IsNullOrWhiteSpace(newSettings.CpuBrandString)
-                            ? null
-                            : newSettings.CpuBrandString;
-                    }
-
-
-                    return procData.GetText(TextFormat.CimDtd20);
-                });
-
-                var xml = xmlResults.FirstOrDefault();
-                if (string.IsNullOrEmpty(xml)) return (false, Properties.Resources.Error_Cpu_ConfigNotFound);
-
-                var inParams = new Dictionary<string, object>
-            {
-                { "ResourceSettings", new string[] { xml } }
-            };
-
-                return await WmiTools.ExecuteMethodAsync(
-                    "SELECT * FROM Msvm_VirtualSystemManagementService",
-                    "ModifyResourceSettings",
-                    inParams
-                );
-            }
-            catch (Exception ex)
-            {
-                return (false, string.Format(Properties.Resources.VmProcessor_Exception, ex.Message));
-            }
-        }
-        private static SmtMode ConvertHwThreadsToSmtMode(uint hwThreads) => hwThreads == 1 ? SmtMode.SingleThread : SmtMode.MultiThread;
-
-        private static uint ConvertSmtModeToHwThreads(SmtMode smtMode) => smtMode == SmtMode.SingleThread ? 1u : 2u;
-
-        private static bool HasProperty(ManagementObject obj, string propName) =>
-            obj.Properties.Cast<PropertyData>().Any(p => p.Name.Equals(propName, StringComparison.OrdinalIgnoreCase));
-
-        private static void TrySetNullableProperty(ManagementObject obj, string propName, bool? value)
-        {
-            if (value.HasValue && HasProperty(obj, propName))
-            {
-                try { obj[propName] = value.Value; } catch { }
-            }
-        }
-
-        private static bool? GetNullableBoolProperty(ManagementObject obj, string propName)
-        {
-            if (!HasProperty(obj, propName) || obj[propName] == null) return null;
-            try { return Convert.ToBoolean(obj[propName]); } catch { return null; }
+            return (false, string.Format(Properties.Resources.VmProcessor_Exception, ex.Message));
         }
     }
+
+    private static SmtMode ConvertHwThreadsToSmtMode(uint hwThreads)
+        => hwThreads == 1 ? SmtMode.SingleThread : SmtMode.MultiThread;
+
+    private static uint ConvertSmtModeToHwThreads(SmtMode smtMode)
+        => smtMode == SmtMode.SingleThread ? 1u : 2u;
 }

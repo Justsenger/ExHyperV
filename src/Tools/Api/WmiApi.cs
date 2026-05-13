@@ -13,7 +13,7 @@ public static class WmiScope
 {
     public const string HyperV = @"root\virtualization\v2";
     public const string CimV2 = @"root\cimv2";
-    public const string Storage = @"root\Microsoft\Windows\Storage";
+    public const string Storage = @"Root\Microsoft\Windows\Storage";
     public const string StdCimV2 = @"root\StandardCimv2";
     public const string Wmi = @"root\wmi";
     public const string DeviceGuard = @"root\Microsoft\Windows\DeviceGuard";
@@ -67,7 +67,6 @@ internal static class WmiConnectionCache
     private static readonly object _mgmtLock = new();
     private static readonly object _cimLock = new();
 
-    // 30 秒内同一连接不重复做健康检查，避免高频轮询时产生额外开销
     private static readonly TimeSpan HealthCheckInterval = TimeSpan.FromSeconds(30);
 
     public static ManagementScope GetManagementScope(string scope, WmiContext ctx)
@@ -77,14 +76,12 @@ internal static class WmiConnectionCache
         {
             if (_mgmtCache.TryGetValue(key, out var cached) && cached.IsConnected)
             {
-                // 30 秒内直接复用，不做健康检查
                 if (_mgmtLastChecked.TryGetValue(key, out var lastChecked) &&
                     DateTime.Now - lastChecked < HealthCheckInterval)
                 {
                     return cached;
                 }
 
-                // 超过 30 秒，做一次轻量验证
                 try
                 {
                     using var searcher = new ManagementObjectSearcher(cached,
@@ -95,7 +92,6 @@ internal static class WmiConnectionCache
                 }
                 catch
                 {
-                    // 连接已断，移除缓存重新建立
                     _mgmtCache.Remove(key);
                     _mgmtLastChecked.Remove(key);
                 }
@@ -129,14 +125,12 @@ internal static class WmiConnectionCache
         {
             if (_cimCache.TryGetValue(key, out var cached))
             {
-                // 30 秒内直接复用，不做健康检查
                 if (_cimLastChecked.TryGetValue(key, out var lastChecked) &&
                     DateTime.Now - lastChecked < HealthCheckInterval)
                 {
                     return cached;
                 }
 
-                // 超过 30 秒，做一次轻量验证
                 try
                 {
                     cached.QueryInstances(scope, "WQL",
@@ -195,7 +189,6 @@ internal static class WmiConnectionCache
         }
     }
 
-    // CIM 远程连接需要 SecureString 密码
     private static System.Security.SecureString MakePsCredPassword(string? password)
     {
         var ss = new System.Security.SecureString();
@@ -226,7 +219,6 @@ public static class WmiApi
     {
         ctx ??= WmiContext.Local;
 
-        // Storage / StdCimV2 命名空间强制走 CIM
         if (WmiScope.RequiresCim(scope))
             throw new InvalidOperationException(
                 $"Scope '{scope}' 只支持 CIM API，请使用接受 Func<CimInstance, T> 的重载。");
@@ -275,7 +267,6 @@ public static class WmiApi
 
     /// <summary>
     /// CIM 路径查询，用于 Storage / StdCimV2 命名空间。
-    /// 方法名加 Cim 后缀避免与 ManagementObject 重载产生歧义。
     /// </summary>
     public static Task<ApiResponse<List<T>>> QueryCimAsync<T>(
         string wql,
@@ -341,7 +332,6 @@ public static class WmiApi
 
     /// <summary>
     /// CIM 路径单行查询，用于 Storage / StdCimV2 命名空间。
-    /// 方法名加 Cim 后缀避免与 ManagementObject 重载产生歧义。
     /// </summary>
     public static async Task<ApiResponse<T>> QueryFirstCimAsync<T>(
         string wql,
@@ -360,11 +350,162 @@ public static class WmiApi
         return ApiResponse<T>.Ok(response.Data[0]);
     }
 
+    // ── C. 调用方法 ───────────────────────────────────────────────
+
+    /// <summary>
+    /// 在 WQL 查到的对象上调用 WMI 方法。
+    /// 自动处理 ReturnValue=4096 的异步 Job，等待完成后返回。
+    /// </summary>
+    public static Task<ApiResponse> InvokeAsync(
+        string wql,
+        string methodName,
+        Action<ManagementBaseObject>? setParams = null,
+        string scope = WmiScope.HyperV,
+        WmiContext? ctx = null,
+        CancellationToken cancellationToken = default)
+    {
+        ctx ??= WmiContext.Local;
+
+        return Task.Run(async () =>
+        {
+            try
+            {
+                var ms = WmiConnectionCache.GetManagementScope(scope, ctx);
+
+                using var searcher = new ManagementObjectSearcher(ms, new ObjectQuery(wql));
+                using var collection = searcher.Get();
+                using var target = collection.Cast<ManagementObject>().FirstOrDefault();
+
+                if (target is null)
+                    return ApiResponse.Fail($"WMI object not found: {wql}");
+
+                return await InvokeOnObjectAsync(target, methodName, setParams, scope, ctx, cancellationToken);
+            }
+            catch (ManagementException ex)
+            {
+                return ApiResponse.Fail(ex.Message, (int)ex.ErrorCode, ApiErrorSource.Wmi, ex);
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse.Fail(ex.Message, -1, ApiErrorSource.None, ex);
+            }
+        }, cancellationToken);
+    }
+
+    /// <summary>
+    /// 在已有的 ManagementObject 上直接调用方法。
+    /// </summary>
+    public static async Task<ApiResponse> InvokeOnObjectAsync(
+        ManagementObject target,
+        string methodName,
+        Action<ManagementBaseObject>? setParams = null,
+        string scope = WmiScope.HyperV,
+        WmiContext? ctx = null,
+        CancellationToken cancellationToken = default)
+    {
+        ctx ??= WmiContext.Local;
+
+        return await Task.Run(async () =>
+        {
+            try
+            {
+                using var inParams = target.GetMethodParameters(methodName);
+                setParams?.Invoke(inParams);
+
+                using var outParams = target.InvokeMethod(methodName, inParams, null);
+                if (outParams is null)
+                    return ApiResponse.Fail($"Method '{methodName}' returned null");
+
+                int returnValue = Convert.ToInt32(outParams["ReturnValue"]);
+
+                return returnValue switch
+                {
+                    0 => ApiResponse.Ok(),
+                    4096 => await WaitForJobAsync(
+                                (string)outParams["Job"], scope, ctx, cancellationToken),
+                    _ => ApiResponse.Fail(
+                                $"Method '{methodName}' returned code {returnValue}",
+                                returnValue, ApiErrorSource.Wmi)
+                };
+            }
+            catch (ManagementException ex)
+            {
+                return ApiResponse.Fail(ex.Message, (int)ex.ErrorCode, ApiErrorSource.Wmi, ex);
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse.Fail(ex.Message, -1, ApiErrorSource.None, ex);
+            }
+        }, cancellationToken);
+    }
+
+    // ── D. 改属性提交 ─────────────────────────────────────────────
+
+    /// <summary>
+    /// 拿到 WMI 对象，在回调里修改属性，由 WmiApi 自动序列化并提交。
+    /// </summary>
+    public static async Task<ApiResponse> WithObjectAsync(
+        string wql,
+        Action<ManagementObject> modifier,
+        string submitMethod = "ModifySystemSettings",
+        string submitParamName = "SystemSettings",
+        bool wrapInArray = false,
+        string scope = WmiScope.HyperV,
+        WmiContext? ctx = null,
+        string serviceWql = "SELECT * FROM Msvm_VirtualSystemManagementService",
+        CancellationToken cancellationToken = default)
+    {
+        ctx ??= WmiContext.Local;
+
+        return await Task.Run(async () =>
+        {
+            try
+            {
+                var ms = WmiConnectionCache.GetManagementScope(scope, ctx);
+
+                using var searcher = new ManagementObjectSearcher(ms, new ObjectQuery(wql));
+                using var collection = searcher.Get();
+                using var obj = collection.Cast<ManagementObject>().FirstOrDefault();
+
+                if (obj is null)
+                    return ApiResponse.Fail($"WMI object not found: {wql}");
+
+                modifier(obj);
+                string xml = obj.GetText(TextFormat.CimDtd20);
+
+                using var svcSearcher = new ManagementObjectSearcher(ms, new ObjectQuery(serviceWql));
+                using var svcCollection = svcSearcher.Get();
+                using var service = svcCollection.Cast<ManagementObject>().FirstOrDefault();
+
+                if (service is null)
+                    return ApiResponse.Fail($"Service not found: {serviceWql}");
+
+                return await InvokeOnObjectAsync(
+                    service,
+                    submitMethod,
+                    p =>
+                    {
+                        p[submitParamName] = wrapInArray
+                            ? (object)new string[] { xml }
+                            : xml;
+                    },
+                    scope, ctx, cancellationToken);
+            }
+            catch (ManagementException ex)
+            {
+                return ApiResponse.Fail(ex.Message, (int)ex.ErrorCode, ApiErrorSource.Wmi, ex);
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse.Fail(ex.Message, -1, ApiErrorSource.None, ex);
+            }
+        }, cancellationToken);
+    }
+
     // ── E. 关联查询 ───────────────────────────────────────────────
 
     /// <summary>
     /// 关联查询：从已有对象出发，找到与其关联的目标类对象。
-    /// 等效于 WMI 的 ASSOCIATORS OF 语句，或 obj.GetRelated()。
     /// </summary>
     public static Task<ApiResponse<List<T>>> QueryRelatedAsync<T>(
         ManagementObject source,
@@ -461,7 +602,6 @@ public static class WmiApi
 
     /// <summary>
     /// 通过 WMI 对象路径字符串直接获取对象。
-    /// 典型场景：BootSourceOrder 里存的是路径数组，逐个实例化。
     /// </summary>
     public static Task<ApiResponse<T>> GetByPathAsync<T>(
         string objectPath,
@@ -496,176 +636,63 @@ public static class WmiApi
         });
     }
 
-    // ── C. 调用方法 ───────────────────────────────────────────────
+    // ── G. CIM 实例方法调用 ───────────────────────────────────────
 
     /// <summary>
-    /// 在 WQL 查到的对象上调用 WMI 方法。
-    /// 自动处理 ReturnValue=4096 的异步 Job，等待完成后返回。
-    /// setParams：用来设置入参，例如 p => p["SystemSettings"] = xml
+    /// 在 CIM 实例上调用方法。
+    /// 适用于 root\Microsoft\Windows\Storage 等只支持 CIM 的命名空间。
+    /// 无入参时 parameters 传 null；有入参时通过 setParams 回调填充。
     /// </summary>
-    public static Task<ApiResponse> InvokeAsync(
-        string wql,
+    public static Task<ApiResponse> InvokeCimMethodAsync(
+        CimInstance instance,
         string methodName,
-        Action<ManagementBaseObject>? setParams = null,
-        string scope = WmiScope.HyperV,
-        WmiContext? ctx = null,
-        CancellationToken cancellationToken = default)
+        string scope,
+        Action<CimMethodParametersCollection>? setParams = null,
+        WmiContext? ctx = null)
     {
         ctx ??= WmiContext.Local;
 
-        return Task.Run(async () =>
+        return Task.Run(() =>
         {
             try
             {
-                var ms = WmiConnectionCache.GetManagementScope(scope, ctx);
+                var session = WmiConnectionCache.GetCimSession(scope, ctx);
 
-                using var searcher = new ManagementObjectSearcher(ms, new ObjectQuery(wql));
-                using var collection = searcher.Get();
-                using var target = collection.Cast<ManagementObject>().FirstOrDefault();
-
-                if (target is null)
-                    return ApiResponse.Fail($"WMI object not found: {wql}");
-
-                return await InvokeOnObjectAsync(target, methodName, setParams, scope, ctx, cancellationToken);
-            }
-            catch (ManagementException ex)
-            {
-                return ApiResponse.Fail(ex.Message, (int)ex.ErrorCode, ApiErrorSource.Wmi, ex);
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse.Fail(ex.Message, -1, ApiErrorSource.None, ex);
-            }
-        }, cancellationToken);
-    }
-
-    /// <summary>
-    /// 在已有的 ManagementObject 上直接调用方法。
-    /// 场景：已经拿到对象，不想再查一次。
-    /// </summary>
-    public static async Task<ApiResponse> InvokeOnObjectAsync(
-        ManagementObject target,
-        string methodName,
-        Action<ManagementBaseObject>? setParams = null,
-        string scope = WmiScope.HyperV,
-        WmiContext? ctx = null,
-        CancellationToken cancellationToken = default)
-    {
-        ctx ??= WmiContext.Local;
-
-        return await Task.Run(async () =>
-        {
-            try
-            {
-                using var inParams = target.GetMethodParameters(methodName);
-                setParams?.Invoke(inParams);
-
-                using var outParams = target.InvokeMethod(methodName, inParams, null);
-                if (outParams is null)
-                    return ApiResponse.Fail($"Method '{methodName}' returned null");
-
-                int returnValue = Convert.ToInt32(outParams["ReturnValue"]);
-
-                return returnValue switch
+                CimMethodParametersCollection? parameters = null;
+                if (setParams != null)
                 {
-                    0 => ApiResponse.Ok(),
-                    4096 => await WaitForJobAsync(
-                                (string)outParams["Job"], scope, ctx, cancellationToken),
-                    _ => ApiResponse.Fail(
-                                $"Method '{methodName}' returned code {returnValue}",
-                                returnValue, ApiErrorSource.Wmi)
-                };
+                    parameters = new CimMethodParametersCollection();
+                    setParams(parameters);
+                }
+
+                var result = session.InvokeMethod(scope, instance, methodName, parameters);
+
+                // ExtendedStatus 非空且 Message 非空表示有错误
+                if (result.OutParameters["ExtendedStatus"]?.Value is CimInstance status)
+                {
+                    string? msg = status.CimInstanceProperties["Message"]?.Value?.ToString();
+                    if (!string.IsNullOrEmpty(msg))
+                        return ApiResponse.Fail(msg, -1, ApiErrorSource.Wmi);
+                }
+
+                return ApiResponse.Ok();
             }
-            catch (ManagementException ex)
+            catch (CimException ex)
             {
-                return ApiResponse.Fail(ex.Message, (int)ex.ErrorCode, ApiErrorSource.Wmi, ex);
+                return ApiResponse.Fail(
+                    ex.Message, (int)ex.NativeErrorCode, ApiErrorSource.Wmi, ex);
             }
             catch (Exception ex)
             {
                 return ApiResponse.Fail(ex.Message, -1, ApiErrorSource.None, ex);
             }
-        }, cancellationToken);
-    }
-
-    // ── D. 改属性提交 ─────────────────────────────────────────────
-
-    /// <summary>
-    /// 拿到 WMI 对象，在回调里修改属性，由 WmiApi 自动序列化并调用
-    /// ModifySystemSettings 或 ModifyResourceSettings 提交。
-    ///
-    /// submitMethod：提交用的方法名，默认 ModifySystemSettings
-    /// submitParamName：XML 放进哪个参数，默认 SystemSettings
-    ///
-    /// 典型场景：改虚拟机名称、改内存设置、改处理器设置。
-    /// </summary>
-    public static async Task<ApiResponse> WithObjectAsync(
-        string wql,
-        Action<ManagementObject> modifier,
-        string submitMethod = "ModifySystemSettings",
-        string submitParamName = "SystemSettings",
-        bool wrapInArray = false,
-        string scope = WmiScope.HyperV,
-        WmiContext? ctx = null,
-        // 默认指向 Hyper-V 管理服务，非 Hyper-V 场景可自行传入其他服务的 WQL
-        string serviceWql = "SELECT * FROM Msvm_VirtualSystemManagementService",
-        CancellationToken cancellationToken = default)
-    {
-        ctx ??= WmiContext.Local;
-
-        return await Task.Run(async () =>
-        {
-            try
-            {
-                var ms = WmiConnectionCache.GetManagementScope(scope, ctx);
-
-                using var searcher = new ManagementObjectSearcher(ms, new ObjectQuery(wql));
-                using var collection = searcher.Get();
-                using var obj = collection.Cast<ManagementObject>().FirstOrDefault();
-
-                if (obj is null)
-                    return ApiResponse.Fail($"WMI object not found: {wql}");
-
-                // 让服务层修改属性
-                modifier(obj);
-
-                // 序列化成 XML
-                string xml = obj.GetText(TextFormat.CimDtd20);
-
-                // 找到提交用的服务对象
-                using var svcSearcher = new ManagementObjectSearcher(ms, new ObjectQuery(serviceWql));
-                using var svcCollection = svcSearcher.Get();
-                using var service = svcCollection.Cast<ManagementObject>().FirstOrDefault();
-
-                if (service is null)
-                    return ApiResponse.Fail($"Service not found: {serviceWql}");
-
-                return await InvokeOnObjectAsync(
-                    service,
-                    submitMethod,
-                    p =>
-                    {
-                        p[submitParamName] = wrapInArray
-                            ? (object)new string[] { xml }
-                            : xml;
-                    },
-                    scope, ctx, cancellationToken);
-            }
-            catch (ManagementException ex)
-            {
-                return ApiResponse.Fail(ex.Message, (int)ex.ErrorCode, ApiErrorSource.Wmi, ex);
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse.Fail(ex.Message, -1, ApiErrorSource.None, ex);
-            }
-        }, cancellationToken);
+        });
     }
 
     // ── 辅助：Hyper-V 管理服务快捷获取 ───────────────────────────
 
     /// <summary>
     /// 获取 Msvm_VirtualSystemManagementService。
-    /// 这是 Hyper-V 几乎所有操作的入口，频繁使用。
     /// 调用方负责 Dispose。
     /// </summary>
     public static ManagementObject GetVirtualSystemManagementService(
@@ -699,11 +726,23 @@ public static class WmiApi
         return col.Cast<ManagementObject>().FirstOrDefault();
     }
 
+    /// <summary>
+    /// 获取虚拟机当前激活的 VirtualSystemSettingData。
+    /// 调用方负责 Dispose。
+    /// </summary>
+    public static ManagementObject? GetVmSettings(ManagementObject vmComputerSystem)
+    {
+        using var related = vmComputerSystem.GetRelated(
+            "Msvm_VirtualSystemSettingData",
+            "Msvm_SettingsDefineState",
+            null, null, null, null, false, null);
+        return related.Cast<ManagementObject>().FirstOrDefault();
+    }
+
     // ── 辅助工具 ──────────────────────────────────────────────────
 
     /// <summary>
     /// 转义 WQL 字符串中的单引号，防止注入。
-    /// 使用方式：$"WHERE ElementName = '{WmiApi.Escape(name)}'"
     /// </summary>
     public static string Escape(string value) => value.Replace("'", "\\'");
 
@@ -734,7 +773,6 @@ public static class WmiApi
         WmiContext ctx,
         CancellationToken cancellationToken)
     {
-        // 内置默认超时 2 分钟，防止 Hyper-V Job 卡死导致线程永久挂起
         using var timeoutCts = new CancellationTokenSource(TimeSpan.FromMinutes(2));
         using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(
             cancellationToken, timeoutCts.Token);
@@ -749,10 +787,8 @@ public static class WmiApi
                 job.Get();
                 ushort jobState = (ushort)job["JobState"];
 
-                // 7 = Completed
                 if (jobState == 7) return ApiResponse.Ok();
 
-                // > 7 = 终态但不是成功（Exception / Terminated / Killed）
                 if (jobState > 7)
                 {
                     string error = job["ErrorDescription"]?.ToString()
@@ -761,11 +797,9 @@ public static class WmiApi
                     return ApiResponse.Fail(error, jobState, ApiErrorSource.Wmi);
                 }
 
-                // 2=New 3=Starting 4=Running 5=Suspended 6=ShuttingDown → 继续等
                 await Task.Delay(300, linkedCts.Token);
             }
 
-            // 区分是用户取消还是超时
             return timeoutCts.Token.IsCancellationRequested
                 ? ApiResponse.Fail("Operation timed out (2 min)", -1, ApiErrorSource.Wmi)
                 : ApiResponse.Fail("Operation cancelled", -1, ApiErrorSource.None);
@@ -784,5 +818,57 @@ public static class WmiApi
         {
             return ApiResponse.Fail($"WaitForJob error: {ex.Message}", -1, ApiErrorSource.None, ex);
         }
+    }
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  ManagementObjectExtensions
+// ══════════════════════════════════════════════════════════════════
+public static class ManagementObjectExtensions
+{
+    public static bool HasProperty(this ManagementObject obj, string propName)
+        => obj.Properties.Cast<PropertyData>()
+               .Any(p => p.Name.Equals(propName, StringComparison.OrdinalIgnoreCase));
+
+    public static void TrySet<T>(this ManagementObject obj, string propName, T? value)
+        where T : struct
+    {
+        if (value.HasValue && obj.HasProperty(propName))
+            obj[propName] = value.Value;
+    }
+
+    public static void TrySet(this ManagementObject obj, string propName, string? value)
+    {
+        if (!string.IsNullOrEmpty(value) && obj.HasProperty(propName))
+            obj[propName] = value;
+    }
+
+    public static void TrySetAlways(this ManagementObject obj, string propName, object? value)
+    {
+        if (obj.HasProperty(propName))
+            obj[propName] = value;
+    }
+
+    public static T? TryGet<T>(this ManagementObject obj, string propName)
+        where T : struct
+    {
+        if (!obj.HasProperty(propName)) return null;
+        var val = obj[propName];
+        if (val == null) return null;
+        try { return (T)Convert.ChangeType(val, typeof(T)); }
+        catch { return null; }
+    }
+
+    public static byte? TryGetByte(this ManagementObject obj, string propName)
+    {
+        if (!obj.HasProperty(propName)) return null;
+        var val = obj[propName];
+        return val == null ? null : Convert.ToByte(val);
+    }
+
+    public static string? TryGetString(this ManagementObject obj, string propName)
+    {
+        if (!obj.HasProperty(propName)) return null;
+        return obj[propName]?.ToString();
     }
 }
