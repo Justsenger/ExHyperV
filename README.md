@@ -732,17 +732,30 @@ ExHyperV wraps the USBIP protocol using the af-hyperv protocol within VMBus, est
 
 ---
 ### Hyper-V on ARM
+
 > [!IMPORTANT]
-> Hyper-V on ARM applies to Windows ARM devices equipped with Qualcomm Snapdragon processors (8cx series and above).
+> Hyper-V on ARM is supported on Windows ARM devices with Qualcomm Snapdragon processors (8cx series and above).
 
-Hyper-V is currently the most mature virtualization solution on the ARM platform. With a few feature limitations, the virtualization capabilities available on the x86 platform can be migrated seamlessly.
+Hyper-V is currently the most mature virtualization solution on ARM, with functionality largely equivalent to the x86 platform, aside from some known limitations.
 
-It is worth noting that since the Snapdragon 8cx Gen3 has a physical addressing capability of 36-bit (64GB), MMIO space configuration has been specially optimized.
+Note that due to the Snapdragon 8cx Gen3's 36-bit physical addressing limit (64GB), MMIO space has been specially optimized.
 
-#### Known Feature Limitations
-- Only ARM64 architecture virtual machines can run; x86/x64 systems are not supported. Use ARM64 ISOs when installing.
-- Nested Virtualization: Not supported. Hyper-V has not yet implemented this on the ARM platform; this is unrelated to hardware capabilities.
-- PCIe Passthrough (DDA): Not supported. Snapdragon platform PCIe root ports lack ACS support, and the SMMU does not expose available DMA remapping capabilities to Hyper-V; hardware capability is limited.
+#### Architecture
+
+x86/x64 uses the Ring privilege model, with the OS kernel running at Ring 0. To give the Hypervisor a higher privilege level, Intel and AMD introduced VMX Root Mode outside the Ring model — commonly referred to as "Ring -1".
+
+ARM does not use the Ring model. Instead, it uses Exception Levels:
+
+- **EL0**: User mode
+- **EL1**: Kernel mode
+- **EL2**: Hypervisor
+- **EL3**: Secure Monitor
+
+#### Known Limitations
+
+- Only ARM64 virtual machines are supported. x86/x64 guests cannot run — make sure to use an ARM64 ISO when installing.
+- Nested virtualization: not supported. This is a Hyper-V limitation on ARM and is unrelated to hardware capability.
+- PCIe passthrough (DDA): not supported. Snapdragon's PCIe root ports lack ACS support, and the SMMU does not expose usable DMA remapping capabilities to Hyper-V.
 - Only Generation 2 virtual machines are supported.
 
 ## 🤝 Contribution
