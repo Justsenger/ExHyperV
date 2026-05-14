@@ -101,8 +101,10 @@ public class VmNetworkService
                                            $"WHERE AssocClass = Msvm_EthernetPortSettingDataComponent " +
                                            $"ResultClass = Msvm_EthernetSwitchPortFeatureSettingData";
 
-                        var ms = WmiConnectionCache.GetManagementScope(WmiScope.HyperV, WmiContext.Local);
-                        using var searcher = new ManagementObjectSearcher(ms, new ObjectQuery(query));
+                        // 借用已连接的 Scope，不直接持有 WmiConnectionCache
+                        using var svcForScope = WmiApi.GetVirtualSystemManagementService();
+                        using var searcher = new ManagementObjectSearcher(
+                            svcForScope.Scope, new ObjectQuery(query));
                         using var features = searcher.Get();
 
                         foreach (var feature in features.Cast<ManagementObject>())
@@ -179,10 +181,11 @@ public class VmNetworkService
             using var vm = WmiApi.GetVmComputerSystem(vmName);
             if (vm == null) return (false, Properties.Resources.Error_Net_VmNotFound);
 
-            var ms = WmiConnectionCache.GetManagementScope(WmiScope.HyperV, WmiContext.Local);
+            // 借用已连接的 Scope
+            using var svcForScope = WmiApi.GetVirtualSystemManagementService();
 
             // 步骤1：获取端口默认模板，创建网卡端口
-            using var portTemplateSearcher = new ManagementObjectSearcher(ms,
+            using var portTemplateSearcher = new ManagementObjectSearcher(svcForScope.Scope,
                 new ObjectQuery("SELECT * FROM Msvm_SyntheticEthernetPortSettingData WHERE InstanceID LIKE '%Default%'"));
             using var portTemplateCol = portTemplateSearcher.Get();
             using var portTemplate = portTemplateCol.Cast<ManagementObject>().FirstOrDefault();
@@ -204,7 +207,7 @@ public class VmNetworkService
             if (!portResult.Success) return (false, portResult.Error);
 
             // 步骤2：获取分配对象默认模板，关联到刚创建的端口
-            using var allocTemplateSearcher = new ManagementObjectSearcher(ms,
+            using var allocTemplateSearcher = new ManagementObjectSearcher(svcForScope.Scope,
                 new ObjectQuery("SELECT * FROM Msvm_EthernetPortAllocationSettingData WHERE InstanceID LIKE '%Default%'"));
             using var allocTemplateCol = allocTemplateSearcher.Get();
             using var allocTemplate = allocTemplateCol.Cast<ManagementObject>().FirstOrDefault();
@@ -212,7 +215,7 @@ public class VmNetworkService
             if (allocTemplate == null) return (false, Properties.Resources.Error_Net_TemplateNotFound);
 
             // 找到刚创建的端口路径
-            using var newPortSearcher = new ManagementObjectSearcher(ms,
+            using var newPortSearcher = new ManagementObjectSearcher(svcForScope.Scope,
                 new ObjectQuery($"SELECT * FROM Msvm_SyntheticEthernetPortSettingData WHERE ElementName = '{WmiApi.Escape(Properties.Resources.Net_DefaultAdapterName)}' AND InstanceID LIKE 'Microsoft:{vm["Name"]}%'"));
             using var newPortCol = newPortSearcher.Get();
             using var newPort = newPortCol.Cast<ManagementObject>().LastOrDefault();
@@ -276,8 +279,6 @@ public class VmNetworkService
 
                 allocation["EnabledState"] = (ushort)(adapter.IsConnected ? 2 : 3);
 
-                // 连接时更新交换机，断开时保留原有 HostResource 记录
-                // 这样用户关闭再打开开关时，之前连的交换机不会丢失
                 if (adapter.IsConnected && !string.IsNullOrEmpty(adapter.SwitchName))
                 {
                     string path = GetSwitchPathByName(adapter.SwitchName);
@@ -525,8 +526,9 @@ public class VmNetworkService
 
     private string? GetSwitchPathByName(string switchName)
     {
-        var ms = WmiConnectionCache.GetManagementScope(WmiScope.HyperV, WmiContext.Local);
-        using var searcher = new ManagementObjectSearcher(ms,
+        // 改为借用 GetVirtualSystemManagementService 的 Scope，不直接持有 WmiConnectionCache
+        using var svcForScope = WmiApi.GetVirtualSystemManagementService();
+        using var searcher = new ManagementObjectSearcher(svcForScope.Scope,
             new ObjectQuery($"SELECT * FROM Msvm_VirtualEthernetSwitch WHERE ElementName = '{WmiApi.Escape(switchName)}'"));
         using var col = searcher.Get();
         return col.Cast<ManagementObject>().FirstOrDefault()?.Path.Path;
@@ -534,8 +536,9 @@ public class VmNetworkService
 
     private ManagementObject? GetDefaultFeatureTemplate(string className)
     {
-        var ms = WmiConnectionCache.GetManagementScope(WmiScope.HyperV, WmiContext.Local);
-        using var searcher = new ManagementObjectSearcher(ms,
+        // 改为借用 GetVirtualSystemManagementService 的 Scope，不直接持有 WmiConnectionCache
+        using var svcForScope = WmiApi.GetVirtualSystemManagementService();
+        using var searcher = new ManagementObjectSearcher(svcForScope.Scope,
             new ObjectQuery($"SELECT * FROM {className} WHERE InstanceID LIKE '%Default%'"));
         using var col = searcher.Get();
         return col.Cast<ManagementObject>().FirstOrDefault();
