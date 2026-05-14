@@ -520,29 +520,6 @@ namespace ExHyperV.Services
                 if (settings == null)
                     return (false, "Cannot get VM settings", controllerType, controllerNumber, location);
 
-                // ── Step 2: 槽位冲突检测 ──────────────────────────────
-                // InstanceID 末尾格式：\ctrlNum\loc\D
-                var existingRasdResp = await WmiApi.QueryRelatedAsync(
-                    settings,
-                    "Msvm_ResourceAllocationSettingData",
-                    obj => obj["InstanceID"]?.ToString() ?? "",
-                    "Msvm_VirtualSystemSettingDataComponent",
-                    WmiScope.HyperV);
-
-                if (existingRasdResp.Success && existingRasdResp.Data != null)
-                {
-                    bool occupied = existingRasdResp.Data.Any(id =>
-                    {
-                        var segs = id.Split('\\');
-                        if (segs.Length < 3 || segs[^1] != "D") return false;
-                        return int.TryParse(segs[^3], out int cNum) && cNum == controllerNumber
-                            && int.TryParse(segs[^2], out int cLoc) && cLoc == location;
-                    });
-
-                    if (occupied)
-                        return (false, "Storage_Error_SlotOccupied", controllerType, controllerNumber, location);
-                }
-
                 // ── Step 3: 运行状态校验 ──────────────────────────────
                 if (controllerType == "IDE" && isRunning && driveType != "DvdDrive")
                     return (false, "Storage_Error_IdeHotPlugNotSupported", controllerType, controllerNumber, location);
@@ -550,27 +527,13 @@ namespace ExHyperV.Services
                 // ── Step 4: SCSI 控制器数量检查，不足时补充 ──────────
                 if (controllerType == "SCSI")
                 {
-                    var scsiCtrls = existingRasdResp.Data?
-                        .Where(id =>
-                        {
-                            // SCSI 控制器 InstanceID 末尾只有一段编号，格式：...\GUID\0
-                            var segs = id.Split('\\');
-                            // 先过滤掉槽位（\D）和介质（\L）
-                            return segs.Length >= 2
-                                && segs[^1] != "D" && segs[^1] != "L"
-                                && int.TryParse(segs[^1], out _);
-                        })
-                        .ToList() ?? new List<string>();
-
-                    // 这里还需要进一步过滤出 SCSI 控制器（ResourceType=6）
-                    // 用完整 RASD 对象比 InstanceID 字符串更可靠
                     var allRasdResp = await WmiApi.QueryRelatedAsync(
                         settings,
                         "Msvm_ResourceAllocationSettingData",
                         obj => new RasdInfo(
                             obj["InstanceID"]?.ToString() ?? "",
                             Convert.ToInt32(obj["ResourceType"] ?? 0),
-                            obj.Path.Path),
+                            (obj["__PATH"]?.ToString() ?? obj.Path.Path)),
                         "Msvm_VirtualSystemSettingDataComponent",
                         WmiScope.HyperV);
 
@@ -621,7 +584,7 @@ namespace ExHyperV.Services
                             obj => new RasdInfo(
                                 obj["InstanceID"]?.ToString() ?? "",
                                 Convert.ToInt32(obj["ResourceType"] ?? 0),
-                                obj.Path.Path),
+                                (obj["__PATH"]?.ToString() ?? obj.Path.Path)),
                             "Msvm_VirtualSystemSettingDataComponent",
                             WmiScope.HyperV);
 
@@ -645,7 +608,7 @@ namespace ExHyperV.Services
                     obj => new RasdInfo(
                         obj["InstanceID"]?.ToString() ?? "",
                         Convert.ToInt32(obj["ResourceType"] ?? 0),
-                        obj.Path.Path),
+                        (obj["__PATH"]?.ToString() ?? obj.Path.Path)),
                     "Msvm_VirtualSystemSettingDataComponent",
                     WmiScope.HyperV);
 
@@ -705,7 +668,7 @@ namespace ExHyperV.Services
                     // 取 Msvm_DiskDrive 对象路径，DeviceID LIKE '%\diskNumber'
                     var diskDriveResp = await WmiApi.QueryFirstAsync(
                         $"SELECT * FROM Msvm_DiskDrive WHERE DeviceID LIKE '%\\\\{pathOrNumber}'",
-                        obj => obj.Path.Path,
+                        obj => (obj["__PATH"]?.ToString() ?? obj.Path.Path),
                         WmiScope.HyperV);
 
                     if (!diskDriveResp.HasData)
@@ -948,22 +911,38 @@ namespace ExHyperV.Services
                 "Msvm_ResourceAllocationSettingData",
                 obj => new RasdInfo(
                     obj["InstanceID"]?.ToString() ?? "",
-                    0,
-                    obj.Path.Path),
+                    Convert.ToInt32(obj["ResourceType"] ?? 0),
+                    (obj["__PATH"]?.ToString() ?? obj.Path.Path)),
                 "Msvm_VirtualSystemSettingDataComponent",
                 WmiScope.HyperV);
 
             if (!rasdResp.Success || rasdResp.Data == null)
                 return (false, rasdResp.Error.Length > 0 ? rasdResp.Error : "Cannot enumerate resources");
 
-            // InstanceID 格式：Microsoft:VM-GUID\SASD-GUID\controllerNumber\location\D
-            // segments[^1]="D"，segments[^2]=location，segments[^3]=controllerNumber
+            // InstanceID 实际格式：Microsoft:VM-GUID\CTRL-GUID\0\location\D
+            // segs[^3] 固定是 "0"，不是控制器编号。
+            // 正确定位：先按控制器类型（IDE=5/SCSI=6）分组，取第 ControllerNumber 个控制器的 GUID，
+            // 再找 segs[^4] 匹配该 GUID 且 segs[^2]=location 的槽位。
+            int ctrlResourceType = drive.ControllerType == "SCSI" ? 6 : 5;
+            var ctrlList = rasdResp.Data
+                .Where(r => r.ResourceType == ctrlResourceType)
+                .ToList();
+
+            if (drive.ControllerNumber >= ctrlList.Count)
+                return (false, drive.DriveType == "DvdDrive"
+                    ? "Storage_Error_DvdDriveNotFound"
+                    : "Storage_Error_DiskNotFound");
+
+            // 控制器 InstanceID 格式：Microsoft:VM-GUID\CTRL-GUID\0，取 segs[^2] 即 CTRL-GUID
+            var ctrlSegs = ctrlList[drive.ControllerNumber].InstanceID.Split('\\');
+            string ctrlGuid = ctrlSegs.Length >= 2 ? ctrlSegs[^2] : "";
+
             var slotRasd = rasdResp.Data.FirstOrDefault(r =>
             {
                 var segs = r.InstanceID.Split('\\');
-                if (segs.Length < 3) return false;
-                if (segs[^1] != "D") return false;
-                return int.TryParse(segs[^3], out int cNum) && cNum == drive.ControllerNumber
+                // 槽位格式：Microsoft:VM-GUID\CTRL-GUID\0\location\D，共5段以上
+                if (segs.Length < 5 || segs[^1] != "D") return false;
+                return segs[^4] == ctrlGuid
                     && int.TryParse(segs[^2], out int cLoc) && cLoc == drive.ControllerLocation;
             });
 
@@ -983,7 +962,7 @@ namespace ExHyperV.Services
 
             var mediaResp = await WmiApi.QueryFirstAsync(
                 $"SELECT * FROM Msvm_StorageAllocationSettingData WHERE InstanceID = '{mediaInstanceIdWql}'",
-                obj => obj.Path.Path,
+                obj => (obj["__PATH"]?.ToString() ?? obj.Path.Path),
                 WmiScope.HyperV);
 
             if (mediaResp.HasData)

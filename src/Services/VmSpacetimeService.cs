@@ -14,6 +14,7 @@ internal class VmSpacetimeService
     private const string SnapshotServiceWql = "SELECT * FROM Msvm_VirtualSystemSnapshotService";
     private const string ManagementServiceWql = "SELECT * FROM Msvm_VirtualSystemManagementService";
     private readonly VmPowerService _powerService = new();
+    private readonly VmStorageService _storageService = new();
     private string GetSafeId(string id) => id.Replace(":", "_");
 
     // ============================================================
@@ -218,7 +219,9 @@ internal class VmSpacetimeService
 
     public async Task<(bool Success, string Message)> OpenWormholeAsync(string vmName, SpacetimeNode targetNode)
     {
-        if (await CheckAnyWormholeExistsAsync(vmName))
+        var existsResult = await CheckAnyWormholeExistsAsync(vmName);
+        System.Diagnostics.Debug.WriteLine($"[OpenWormhole] CheckAnyWormholeExists={existsResult}");
+        if (existsResult)
             return (false, Properties.Resources.VmSpacetimeService_ErrWormholeAlreadyExists);
 
         if (await IsNodeInCurrentChainAsync(vmName, targetNode.VhdPath))
@@ -238,7 +241,45 @@ internal class VmSpacetimeService
 
         if (string.IsNullOrEmpty(diskDir))
             return (false, Properties.Resources.VmSpacetimeService_ErrCannotDetermineDiskDir);
-        if (File.Exists(tmpDisk)) File.Delete(tmpDisk);
+
+        // 清理上次未正常关闭的虫洞残留：先从 VM 卸载，再删文件
+        if (File.Exists(tmpDisk))
+        {
+            // 尝试找到并卸载残留的虫洞盘
+            var vmGuidResp = await WmiApi.QueryFirstAsync(
+                $"SELECT Name FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(vmName)}'",
+                obj => obj["Name"]?.ToString() ?? "");
+            if (vmGuidResp.HasData)
+            {
+                var staleResp = await WmiApi.QueryAsync(
+                    $"SELECT InstanceID FROM Msvm_StorageAllocationSettingData WHERE ResourceType = 31 AND InstanceID LIKE 'Microsoft:{vmGuidResp.Data}%'",
+                    obj => new { InstanceID = obj["InstanceID"]?.ToString() ?? "", Host = (obj["HostResource"] as string[])?.FirstOrDefault() ?? "" });
+
+                var stale = staleResp.Data?.FirstOrDefault(d =>
+                    d.Host.Contains("_wormhole_tmp", StringComparison.OrdinalIgnoreCase));
+
+                if (stale != null)
+                {
+                    // 找到对应槽位并移除
+                    var staleSegs = stale.InstanceID.Split('\\');
+                    if (staleSegs.Length >= 3 && int.TryParse(staleSegs[^3], out int wCtrlNum)
+                        && int.TryParse(staleSegs[^2], out int wCtrlLoc))
+                    {
+                        var staleItem = new VmStorageItem
+                        {
+                            DriveType = "HardDisk",
+                            DiskType = "Virtual",
+                            ControllerType = "SCSI",
+                            ControllerNumber = wCtrlNum,
+                            ControllerLocation = wCtrlLoc,
+                            DiskNumber = -1
+                        };
+                        await _storageService.RemoveDriveAsync(vmName, staleItem);
+                    }
+                }
+            }
+            try { File.Delete(tmpDisk); } catch { }
+        }
 
         var (ctrlType, ctrlNum, ctrlLoc) = await FindFreeScsiSlotAsync(vmName);
         if (ctrlNum == -1) return (false, Properties.Resources.VmSpacetimeService_ErrNoScsiSlot);
@@ -417,12 +458,6 @@ internal class VmSpacetimeService
 
         var vm = vmResponse.Data!;
 
-        string settingsWql = $"SELECT UserSnapshotType FROM Msvm_VirtualSystemSettingData WHERE VirtualSystemIdentifier = '{vm.Guid}' AND VirtualSystemType = 'Microsoft:Hyper-V:System:Realized'";
-        var typeResponse = await WmiApi.QueryFirstAsync(settingsWql, obj => obj["UserSnapshotType"]?.ToString());
-        string originalType = typeResponse.Data == "5" ? "Standard" : "Production";
-        byte targetTypeCode = mode == SpacetimeMode.Continuous ? (byte)5 : (byte)3;
-        byte originalTypeCode = originalType == "Standard" ? (byte)5 : (byte)3;
-
         string snapshotListWql = $"SELECT InstanceID FROM Msvm_VirtualSystemSettingData WHERE VirtualSystemIdentifier = '{vm.Guid}' AND VirtualSystemType = 'Microsoft:Hyper-V:Snapshot:Realized'";
         var existingResponse = await WmiApi.QueryAsync(snapshotListWql, obj => obj["InstanceID"]?.ToString() ?? "");
         var existingIds = (existingResponse.Data ?? new List<string>()).ToHashSet();
@@ -430,24 +465,48 @@ internal class VmSpacetimeService
         BitmapSource? bitmap = externalThumb ?? await VmThumbnailProvider.GetThumbnailAsync(vmName, 280, 160);
         string snapshotName = $"{vmName} - ({DateTime.Now:yyyy/M/d - HH:mm:ss})";
 
+        // Production 快照需要 VM 运行中（需要 guest VSS 配合），关机时自动降级为 Standard
+        var stateResp = await WmiApi.QueryFirstAsync(
+            $"SELECT EnabledState FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(vmName)}'",
+            obj => Convert.ToInt32(obj["EnabledState"] ?? 0));
+        bool isRunning = stateResp.Data == 2;
+
         try
         {
-            await WmiApi.WithObjectAsync(
-                settingsWql,
-                obj => obj["UserSnapshotType"] = targetTypeCode);
+            // SnapshotType：2=Standard（连续时空，保存磁盘+内存），3=Production（静止时空，只保存磁盘）
+            // VM 关机时 Production 无法创建（无 VSS），自动降级为 Standard
+            byte snapType = (mode == SpacetimeMode.Continuous || !isRunning) ? (byte)2 : (byte)3;
 
-            // 构造快照设置 XML，借用 GetVirtualSystemManagementService 的 Scope
+            // Standard 快照用 Msvm_VirtualSystemSettingData（设置名称）
+            // Production 快照用 Msvm_VirtualSystemSnapshotSettingData（设置一致性级别）
             using var svcForScope = WmiApi.GetVirtualSystemManagementService();
-            using var snapClass = new ManagementClass(
-                svcForScope.Scope,
-                new ManagementPath("Msvm_VirtualSystemSettingData"),
-                null);
-            using var snapSettings = snapClass.CreateInstance();
-            snapSettings["ElementName"] = snapshotName;
-            string snapXml = snapSettings.GetText(TextFormat.CimDtd20);
 
-            byte snapType = mode == SpacetimeMode.Continuous ? (byte)2 : (byte)3;
-            await WmiApi.InvokeAsync(
+            string snapXml;
+            if (snapType == 2)
+            {
+                // Standard：只需要设置名称
+                using var snapClass = new ManagementClass(
+                    svcForScope.Scope,
+                    new ManagementPath("Msvm_VirtualSystemSettingData"),
+                    null);
+                using var snapSettings = snapClass.CreateInstance();
+                snapSettings["ElementName"] = snapshotName;
+                snapXml = snapSettings.GetText(TextFormat.WmiDtd20);
+            }
+            else
+            {
+                // Production：使用 Msvm_VirtualSystemSnapshotSettingData
+                using var snapClass = new ManagementClass(
+                    svcForScope.Scope,
+                    new ManagementPath("Msvm_VirtualSystemSnapshotSettingData"),
+                    null);
+                using var snapSettings = snapClass.CreateInstance();
+                snapSettings["ConsistencyLevel"] = (byte)1;
+                snapSettings["IgnoreNonSnapshottableDisks"] = true;
+                snapXml = snapSettings.GetText(TextFormat.WmiDtd20);
+            }
+
+            var createResult = await WmiApi.InvokeAsync(
                 SnapshotServiceWql,
                 "CreateSnapshot",
                 p =>
@@ -456,15 +515,13 @@ internal class VmSpacetimeService
                     p["SnapshotSettings"] = snapXml;
                     p["SnapshotType"] = snapType;
                 });
+
+            if (!createResult.Success)
+                return (false, string.Format(Properties.Resources.VmSpacetimeService_ErrSpacetimeCollapse, createResult.Error));
         }
         catch (Exception ex)
         {
-            await WmiApi.WithObjectAsync(settingsWql, obj => obj["UserSnapshotType"] = originalTypeCode);
             return (false, string.Format(Properties.Resources.VmSpacetimeService_ErrSpacetimeCollapse, ex.Message));
-        }
-        finally
-        {
-            await WmiApi.WithObjectAsync(settingsWql, obj => obj["UserSnapshotType"] = originalTypeCode);
         }
 
         string? newId = null;
@@ -512,6 +569,8 @@ internal class VmSpacetimeService
         var result = await WmiApi.InvokeAsync(
             SnapshotServiceWql, "DestroySnapshot",
             p => p["AffectedSnapshot"] = node.Path);
+
+        System.Diagnostics.Debug.WriteLine($"[Converge] node.Path={node.Path}, result.Success={result.Success}, error={result.Error}");
 
         if (result.Success)
         {
@@ -637,136 +696,40 @@ internal class VmSpacetimeService
     }
 
     /// <summary>
-    /// 添加虚拟磁盘到虚拟机。
-    /// 两步：先 AddResourceSettings 添加槽位 RASD，用 InvokeWithResultAsync 直接取槽位路径，
-    /// 再 AddResourceSettings 添加介质 SASD。
+    /// 添加虚拟磁盘到虚拟机。直接复用 VmStorageService.AddDriveAsync。
     /// </summary>
     private async Task<ApiResponse> AddVmHardDiskDriveAsync(
         string vmName, string ctrlType, int ctrlNum, int ctrlLoc, string vhdPath)
     {
-        using var vm = WmiApi.GetVmComputerSystem(vmName);
-        if (vm == null) return ApiResponse.Fail("VM not found");
+        var result = await _storageService.AddDriveAsync(
+            vmName, ctrlType, ctrlNum, ctrlLoc,
+            "HardDisk", vhdPath, false);
 
-        string vmGuid = vm["Name"]?.ToString() ?? "";
-
-        // 找目标控制器 InstanceID（按顺序取第 ctrlNum 个 SCSI 控制器）
-        var ctrlResponse = await WmiApi.QueryAsync(
-            $"SELECT InstanceID FROM Msvm_ResourceAllocationSettingData WHERE ResourceType = 6 AND InstanceID LIKE 'Microsoft:{vmGuid}%'",
-            obj => obj["InstanceID"]?.ToString() ?? "");
-
-        var controllers = ctrlResponse.Data ?? new List<string>();
-        if (ctrlNum >= controllers.Count) return ApiResponse.Fail("Controller not found");
-
-        string ctrlInstanceId = controllers[ctrlNum];
-        string ctrlPath = $"\\\\{Environment.MachineName}\\root\\virtualization\\v2:Msvm_ResourceAllocationSettingData.InstanceID=\"{ctrlInstanceId.Replace("\\", "\\\\")}\"";
-
-        // 构造槽位 RASD，借用 vm.Scope
-        using var rasdClass = new ManagementClass(
-            vm.Scope,
-            new ManagementPath("Msvm_ResourceAllocationSettingData"),
-            null);
-        using var rasd = rasdClass.CreateInstance();
-        rasd["ResourceType"] = (ushort)17;
-        rasd["ResourceSubType"] = "Microsoft:Hyper-V:Synthetic Disk Drive";
-        rasd["Parent"] = ctrlPath;
-        rasd["AddressOnParent"] = ctrlLoc.ToString();
-        rasd["AutomaticAllocation"] = true;
-
-        // AddResourceSettings 直接返回槽位路径，不需要延时重查
-        var rasdResult = await WmiApi.InvokeWithResultAsync(
-            ManagementServiceWql, "AddResourceSettings",
-            p =>
-            {
-                p["AffectedConfiguration"] = vm.Path.Path;
-                p["ResourceSettings"] = new string[] { rasd.GetText(TextFormat.CimDtd20) };
-            });
-
-        if (!rasdResult.Success) return ApiResponse.Fail(rasdResult.Error);
-        string? slotPath = rasdResult.Data?.FirstOrDefault();
-        if (slotPath == null) return ApiResponse.Fail("Slot not found after creation");
-
-        // 构造介质 SASD
-        using var sasdClass = new ManagementClass(
-            vm.Scope,
-            new ManagementPath("Msvm_StorageAllocationSettingData"),
-            null);
-        using var sasd = sasdClass.CreateInstance();
-        sasd["ResourceType"] = (ushort)31;
-        sasd["ResourceSubType"] = "Microsoft:Hyper-V:Virtual Hard Disk";
-        sasd["Parent"] = slotPath;
-        sasd["HostResource"] = new string[] { vhdPath };
-        sasd["AutomaticAllocation"] = true;
-
-        return await WmiApi.InvokeAsync(
-            ManagementServiceWql, "AddResourceSettings",
-            p =>
-            {
-                p["AffectedConfiguration"] = vm.Path.Path;
-                p["ResourceSettings"] = new string[] { sasd.GetText(TextFormat.CimDtd20) };
-            });
+        return result.Success
+            ? ApiResponse.Ok()
+            : ApiResponse.Fail(result.Message);
     }
 
     /// <summary>
-    /// 从虚拟机移除虚拟磁盘。
-    /// 先删介质 SASD，再删槽位 RASD，顺序和 VmStorageService.RemoveDriveAsync 一致。
+    /// 从虚拟机移除虚拟磁盘。直接复用 VmStorageService.RemoveDriveAsync。
     /// </summary>
     private async Task<ApiResponse> RemoveVmHardDiskDriveAsync(
         string vmName, string ctrlType, int ctrlNum, int ctrlLoc)
     {
-        using var vm = WmiApi.GetVmComputerSystem(vmName);
-        if (vm == null) return ApiResponse.Fail("VM not found");
-
-        string vmGuid = vm["Name"]?.ToString() ?? "";
-
-        using var settings = WmiApi.GetVmSettings(vm);
-        if (settings == null) return ApiResponse.Fail("Cannot get VM settings");
-
-        // 找目标槽位 RASD（InstanceID 末尾 \ctrlNum\ctrlLoc\D）
-        var rasdResp = await WmiApi.QueryRelatedAsync(
-            settings,
-            "Msvm_ResourceAllocationSettingData",
-            obj => new
-            {
-                InstanceID = obj["InstanceID"]?.ToString() ?? "",
-                ObjPath = obj.Path.Path,
-            },
-            "Msvm_VirtualSystemSettingDataComponent",
-            WmiScope.HyperV);
-
-        if (!rasdResp.Success || rasdResp.Data == null)
-            return ApiResponse.Fail("Cannot enumerate resources");
-
-        var slotRasd = rasdResp.Data.FirstOrDefault(r =>
+        var fakeItem = new VmStorageItem
         {
-            var segs = r.InstanceID.Split('\\');
-            if (segs.Length < 3 || segs[^1] != "D") return false;
-            return int.TryParse(segs[^3], out int cNum) && cNum == ctrlNum
-                && int.TryParse(segs[^2], out int cLoc) && cLoc == ctrlLoc;
-        });
+            DriveType = "HardDisk",
+            DiskType = "Virtual",
+            ControllerType = ctrlType,
+            ControllerNumber = ctrlNum,
+            ControllerLocation = ctrlLoc,
+            DiskNumber = -1
+        };
 
-        if (slotRasd == null) return ApiResponse.Fail("Disk slot not found");
-
-        // 先删介质 SASD（\L），再删槽位 RASD（\D）
-        string mediaInstanceId = slotRasd.InstanceID[..^1] + "L";
-        string mediaInstanceIdWql = mediaInstanceId.Replace(@"\", @"\\");
-
-        var mediaResp = await WmiApi.QueryFirstAsync(
-            $"SELECT * FROM Msvm_StorageAllocationSettingData WHERE InstanceID = '{mediaInstanceIdWql}'",
-            obj => obj.Path.Path,
-            WmiScope.HyperV);
-
-        if (mediaResp.HasData)
-        {
-            var removeMediaResult = await WmiApi.InvokeAsync(
-                ManagementServiceWql, "RemoveResourceSettings",
-                p => p["ResourceSettings"] = new string[] { mediaResp.Data! });
-
-            if (!removeMediaResult.Success) return removeMediaResult;
-        }
-
-        return await WmiApi.InvokeAsync(
-            ManagementServiceWql, "RemoveResourceSettings",
-            p => p["ResourceSettings"] = new string[] { slotRasd.ObjPath });
+        var result = await _storageService.RemoveDriveAsync(vmName, fakeItem);
+        return result.Success
+            ? ApiResponse.Ok()
+            : ApiResponse.Fail(result.Message);
     }
 
     // ============================================================
@@ -906,10 +869,18 @@ internal class VmSpacetimeService
         {
             try
             {
+                // GetVirtualHardDiskSettingData 属于 Msvm_ImageManagementService，不是 VirtualSystemManagementService
                 using var svc = WmiApi.GetVirtualSystemManagementService();
-                using var inParams = svc.GetMethodParameters("GetVirtualHardDiskSettingData");
+                using var imgSearcher = new ManagementObjectSearcher(
+                    svc.Scope,
+                    new ObjectQuery("SELECT * FROM Msvm_ImageManagementService"));
+                using var imgCol = imgSearcher.Get();
+                using var imgSvc = imgCol.Cast<ManagementObject>().FirstOrDefault();
+                if (imgSvc == null) return string.Empty;
+
+                using var inParams = imgSvc.GetMethodParameters("GetVirtualHardDiskSettingData");
                 inParams["Path"] = vhdPath;
-                using var outParams = svc.InvokeMethod("GetVirtualHardDiskSettingData", inParams, null);
+                using var outParams = imgSvc.InvokeMethod("GetVirtualHardDiskSettingData", inParams, null);
                 string xml = outParams["SettingData"]?.ToString() ?? string.Empty;
                 var match = Regex.Match(xml,
                     @"<PROPERTY NAME=""ParentPath"" TYPE=""string"">\s*<VALUE>(.*?)</VALUE>",
@@ -927,15 +898,22 @@ internal class VmSpacetimeService
     private string TraceToGenesisPath(string childPath)
     {
         string currentPath = childPath;
+        // GetVirtualHardDiskSettingData 属于 Msvm_ImageManagementService
         using var svc = WmiApi.GetVirtualSystemManagementService();
+        using var imgSearcher = new ManagementObjectSearcher(
+            svc.Scope,
+            new ObjectQuery("SELECT * FROM Msvm_ImageManagementService"));
+        using var imgCol = imgSearcher.Get();
+        using var imgSvc = imgCol.Cast<ManagementObject>().FirstOrDefault();
+        if (imgSvc == null) return childPath;
 
         for (int i = 0; i < 10; i++)
         {
             try
             {
-                using var inParams = svc.GetMethodParameters("GetVirtualHardDiskSettingData");
+                using var inParams = imgSvc.GetMethodParameters("GetVirtualHardDiskSettingData");
                 inParams["Path"] = currentPath;
-                using var outParams = svc.InvokeMethod("GetVirtualHardDiskSettingData", inParams, null);
+                using var outParams = imgSvc.InvokeMethod("GetVirtualHardDiskSettingData", inParams, null);
                 string xml = outParams["SettingData"]?.ToString() ?? string.Empty;
                 var match = Regex.Match(xml,
                     @"<PROPERTY NAME=""ParentPath"" TYPE=""string"">\s*<VALUE>(.*?)</VALUE>",
