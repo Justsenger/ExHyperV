@@ -1,8 +1,4 @@
-using System;
 using System.Text.RegularExpressions;
-
-//映射工具
-
 namespace ExHyperV.Services
 {
     /// <summary>
@@ -31,22 +27,19 @@ namespace ExHyperV.Services
         {
             return code switch
             {
-                // --- 标准 CIM 状态码 ---
                 0 => Properties.Resources.Status_Unknown,
                 1 => Properties.Resources.Status_Other,
-                2 => Properties.Resources.Status_Running,       // Enabled
-                3 => Properties.Resources.Status_Off,           // Disabled
+                2 => Properties.Resources.Status_Running,
+                3 => Properties.Resources.Status_Off,
                 4 => Properties.Resources.Status_ShuttingDown,
                 5 => Properties.Resources.Status_NotApplicable,
-                6 => Properties.Resources.Status_Saved,         // Enabled but Offline
+                6 => Properties.Resources.Status_Saved,
                 7 => Properties.Resources.Status_InTest,
                 8 => Properties.Resources.Status_Deferred,
-                9 => Properties.Resources.Status_Suspended,     // Quiesce
+                9 => Properties.Resources.Status_Suspended,
                 10 => Properties.Resources.Status_Starting,
-
-                // --- Hyper-V 扩展状态码 ---
-                32768 => Properties.Resources.Status_Suspended, // Paused
-                32769 => Properties.Resources.Status_Saved,     // Saved
+                32768 => Properties.Resources.Status_Suspended,
+                32769 => Properties.Resources.Status_Saved,
                 32770 => Properties.Resources.Status_Starting,
                 32771 => Properties.Resources.Status_WaitingToStart,
                 32772 => Properties.Resources.Status_MergingDisks,
@@ -55,11 +48,14 @@ namespace ExHyperV.Services
                 32775 => Properties.Resources.Status_Processing,
                 32776 => Properties.Resources.Status_Suspending,
                 32777 => Properties.Resources.Status_Resuming,
-                32779 => Properties.Resources.Status_Migrating,
-
-                // --- 兜底 ---
+                32779 => Properties.Resources.Status_FastSaved,
+                32780 => Properties.Resources.Status_FastSaving,
+                32781 => Properties.Resources.Status_ForceShutdown,
+                32782 => Properties.Resources.Status_ForceReboot,
+                32783 => Properties.Resources.Status_Hibernated,
                 _ => string.Format(Properties.Resources.Status_UnknownCode, code)
             };
         }
+
     }
 }

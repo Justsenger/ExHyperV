@@ -4044,4 +4044,19 @@
 <data name="Error_Net_TemplateNotFound" xml:space="preserve">
   <value>无法获取网络适配器模板</value>
 </data>
+<data name="Status_FastSaved" xml:space="preserve">
+  <value>快速保存</value>
+</data>
+<data name="Status_FastSaving" xml:space="preserve">
+  <value>快速保存中</value>
+</data>
+<data name="Status_ForceShutdown" xml:space="preserve">
+  <value>强制关机中</value>
+</data>
+<data name="Status_ForceReboot" xml:space="preserve">
+  <value>强制重启中</value>
+</data>
+<data name="Status_Hibernated" xml:space="preserve">
+  <value>已休眠</value>
+</data>
 </root>

@@ -7401,6 +7401,51 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 Fast Saved 的本地化字符串。
+        /// </summary>
+        public static string Status_FastSaved {
+            get {
+                return ResourceManager.GetString("Status_FastSaved", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Fast Saving 的本地化字符串。
+        /// </summary>
+        public static string Status_FastSaving {
+            get {
+                return ResourceManager.GetString("Status_FastSaving", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Force Rebooting 的本地化字符串。
+        /// </summary>
+        public static string Status_ForceReboot {
+            get {
+                return ResourceManager.GetString("Status_ForceReboot", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Force Shutting Down 的本地化字符串。
+        /// </summary>
+        public static string Status_ForceShutdown {
+            get {
+                return ResourceManager.GetString("Status_ForceShutdown", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Hibernated 的本地化字符串。
+        /// </summary>
+        public static string Status_Hibernated {
+            get {
+                return ResourceManager.GetString("Status_Hibernated", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Preparing and executing installation... Please see the real-time progress below. 的本地化字符串。
         /// </summary>
         public static string Status_InstallationInProgress {

@@ -404,6 +404,7 @@ public static class WmiApi
         Action<ManagementBaseObject>? setParams = null,
         string scope = WmiScope.HyperV,
         WmiContext? ctx = null,
+        string resultField = "ResultingResourceSettings",
         CancellationToken cancellationToken = default)
     {
         ctx ??= WmiContext.Local;
@@ -445,7 +446,10 @@ public static class WmiApi
                         returnValue, ApiErrorSource.Wmi);
                 }
 
-                var resulting = outParams["ResultingResourceSettings"] as string[] ?? [];
+                var raw = outParams[resultField];
+                var resulting = raw is string[] arr ? arr :
+                                raw is string s ? new[] { s } :
+                                Array.Empty<string>();
                 outParams.Dispose();
                 return ApiResponse<string[]>.Ok(resulting);
             }

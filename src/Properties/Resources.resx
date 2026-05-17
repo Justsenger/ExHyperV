@@ -4043,4 +4043,19 @@ This operation sends a shutdown signal to the guest OS.</value>
 <data name="Error_Net_TemplateNotFound" xml:space="preserve">
   <value>Failed to get network adapter template</value>
 </data>
+<data name="Status_FastSaved" xml:space="preserve">
+  <value>Fast Saved</value>
+</data>
+<data name="Status_FastSaving" xml:space="preserve">
+  <value>Fast Saving</value>
+</data>
+<data name="Status_ForceShutdown" xml:space="preserve">
+  <value>Force Shutting Down</value>
+</data>
+<data name="Status_ForceReboot" xml:space="preserve">
+  <value>Force Rebooting</value>
+</data>
+<data name="Status_Hibernated" xml:space="preserve">
+  <value>Hibernated</value>
+</data>
 </root>

@@ -1,126 +1,374 @@
 ﻿using System.IO;
 using ExHyperV.Models;
 using ExHyperV.Tools;
+using ExHyperV.Tools.Api;
+using System.Management;
+using Microsoft.Management.Infrastructure;
 
 namespace ExHyperV.Services
 {
     public class VmCreateService
     {
+        private readonly VmStorageService _storage = new();
+        private readonly VmNetworkService _network = new();
+        private readonly VmPowerService _power = new();
+
+        private const string ServiceWql = "SELECT * FROM Msvm_VirtualSystemManagementService";
+
         public async Task<List<string>> GetSupportedVersionsAsync()
         {
-            return await Task.Run(() =>
-            {
-                try
-                {
-                    var results = Utils.Run("Get-VMHostSupportedVersion | Select-Object -ExpandProperty Version");
-                    if (results != null && results.Count > 0)
-                    {
-                        return results.Select(r => r.ToString()).OrderByDescending(v => double.Parse(v)).ToList();
-                    }
-                }
-                catch { }
+            var capsResp = await WmiApi.QueryFirstAsync(
+                "SELECT * FROM Msvm_VirtualSystemManagementCapabilities",
+                obj => obj,
+                WmiScope.HyperV);
+
+            if (!capsResp.HasData)
                 return new List<string> { "11.0", "10.0", "9.0" };
-            });
+
+            var settingsResp = await WmiApi.QueryRelatedAsync(
+                capsResp.Data!,
+                "Msvm_VirtualSystemSettingData",
+                obj => obj["Version"]?.ToString() ?? "",
+                scope: WmiScope.HyperV);
+
+            var versions = (settingsResp.Data ?? new List<string>())
+                .Where(v => !string.IsNullOrEmpty(v))
+                .Distinct()
+                .OrderByDescending(v => Version.TryParse(v, out var parsed) ? parsed : new Version(0, 0))
+                .ToList();
+
+            return versions.Count > 0 ? versions : new List<string> { "11.0", "10.0", "9.0" };
         }
+
+        private sealed record IsolationItem(string InstanceID, bool IsolationEnabled, int IsolationType);
 
         public async Task<(bool Supported, List<string> Types)> GetIsolationSupportAsync()
         {
-            return await Task.Run(() =>
-            {
-                try
-                {
-                    var check = Utils.Run("(Get-Command New-VM).Parameters.ContainsKey('GuestStateIsolationType')");
-                    if (check != null && check.Count > 0 && check[0].ToString().ToLower() == "true")
-                    {
-                        var types = Utils.Run("((Get-Command New-VM).Parameters['GuestStateIsolationType'].Attributes | Where-Object { $_.ValidValues }).ValidValues");
-                        if (types != null && types.Count > 0) return (true, types.Select(t => t.ToString()).ToList());
-                    }
-                }
-                catch { }
-                return (false, new List<string> { "Disabled" });
-            });
-        }
+            var capsResp = await WmiApi.QueryFirstAsync(
+                "SELECT * FROM Msvm_VirtualSystemManagementCapabilities",
+                obj => obj,
+                WmiScope.HyperV);
 
+            if (!capsResp.HasData)
+                return (false, new List<string> { "Disabled" });
+
+            var settingsResp = await WmiApi.QueryRelatedAsync(
+                capsResp.Data!,
+                "Msvm_VirtualSystemSettingData",
+                obj => new IsolationItem(
+                    obj["InstanceID"]?.ToString() ?? "",
+                    obj["GuestStateIsolationEnabled"] is bool b && b,
+                    Convert.ToInt32(obj["GuestStateIsolationType"] ?? -1)
+                ),
+                scope: WmiScope.HyperV);
+
+            var isolationTypes = (settingsResp.Data ?? new List<IsolationItem>())
+                .Where(s => s.InstanceID.IndexOf("GuestStateIsolationType",
+                    StringComparison.OrdinalIgnoreCase) >= 0)
+                .Select(s => s.IsolationType switch
+                {
+                    0 => "TrustedLaunch",
+                    1 => "VBS",
+                    2 => "SNP",
+                    3 => "TDX",
+                    _ => "Disabled"
+                })
+                .Distinct()
+                .ToList();
+
+            if (isolationTypes.Count == 0)
+                return (false, new List<string> { "Disabled" });
+
+            if (!isolationTypes.Contains("Disabled"))
+                isolationTypes.Add("Disabled");
+
+            return (true, isolationTypes);
+        }
         public async Task<(string DefaultVmPath, string DefaultVhdPath)> GetHostDefaultPathsAsync()
         {
-            return await Task.Run(() =>
-            {
-                try
-                {
-                    var vmPath = Utils.Run("(Get-VMHost).VirtualMachinePath");
-                    return (vmPath?.FirstOrDefault()?.ToString() ?? @"C:\ProgramData\Microsoft\Windows\Hyper-V", "");
-                }
-                catch { return (@"C:\ProgramData\Microsoft\Windows\Hyper-V", ""); }
-            });
+            var resp = await WmiApi.QueryFirstAsync(
+                "SELECT DefaultVirtualMachinePath, DefaultVirtualHardDiskPath FROM Msvm_VirtualSystemManagementServiceSettingData",
+                obj => (
+                    VmPath: obj["DefaultVirtualMachinePath"]?.ToString() ?? @"C:\ProgramData\Microsoft\Windows\Hyper-V",
+                    VhdPath: obj["DefaultVirtualHardDiskPath"]?.ToString() ?? ""
+                ),
+                WmiScope.HyperV);
+
+            if (resp.HasData)
+                return (resp.Data.VmPath, resp.Data.VhdPath);
+
+            return (@"C:\ProgramData\Microsoft\Windows\Hyper-V", "");
         }
 
         public async Task<(bool Success, string Message)> CreateVirtualMachineAsync(VmCreationParams p)
         {
             string finalVmName = p.IsManualName ? p.Name : GetUniqueVmName(p.Name, p.Path);
 
-            return await Task.Run(() =>
+            try
             {
-                try
+                // ── Step 1: 创建目录 ──────────────────────────────
+                string vmHomeFolder = Path.Combine(p.Path, finalVmName);
+                if (!Directory.Exists(vmHomeFolder))
+                    Directory.CreateDirectory(vmHomeFolder);
+
+                if (p.DiskMode == 0)
+                    p.VhdPath = Path.Combine(vmHomeFolder, $"{finalVmName}.vhdx");
+
+                // ── Step 2: DefineSystem 创建 VM ──────────────────
+                using var svcForScope = WmiApi.GetVirtualSystemManagementService();
+
+                var vssdClass = new ManagementClass(
+                    svcForScope.Scope,
+                    new ManagementPath("Msvm_VirtualSystemSettingData"),
+                    null);
+                using var vssd = vssdClass.CreateInstance();
+
+                vssd["ElementName"] = finalVmName;
+                vssd["VirtualSystemSubType"] = p.Generation == 2
+                    ? "Microsoft:Hyper-V:SubType:2"
+                    : "Microsoft:Hyper-V:SubType:1";
+                vssd["Version"] = p.Version;
+                vssd["ConfigurationDataRoot"] = p.Path;
+                vssd["SnapshotDataRoot"] = p.Path;
+                vssd["SwapFileDataRoot"] = p.Path;
+
+                if (p.Generation == 2 && p.IsolationType != "Disabled" &&
+                    !string.IsNullOrEmpty(p.IsolationType))
                 {
-                    string vmHomeFolder = Path.Combine(p.Path, finalVmName);
-                    if (!Directory.Exists(vmHomeFolder)) Directory.CreateDirectory(vmHomeFolder);
-
-                    if (p.DiskMode == 0) p.VhdPath = Path.Combine(vmHomeFolder, $"{finalVmName}.vhdx");
-
-                    string switchParam = string.Empty;
-
-                    if (!string.IsNullOrWhiteSpace(p.SwitchName) &&
-                        p.SwitchName != ExHyperV.Properties.Resources.none)
-                    {
-                        switchParam = $"-SwitchName '{p.SwitchName}'";
-                    }
-
-                    long memoryBytes = p.MemoryMb * 1024 * 1024;
-                    string diskParam = p.DiskMode switch
-                    {
-                        0 => $"-NewVHDPath '{p.VhdPath}' -NewVHDSizeBytes {p.DiskSizeGb}GB",
-                        1 => $"-VHDPath '{p.VhdPath}'",
-                        _ => "-NoVHD"
-                    };
-                    // 使用 -Force 参数来强制跳过预发行版本(如 255.0)的警告和确认提示
-                    string createScript = $"New-VM -Name '{finalVmName}' -MemoryStartupBytes {memoryBytes} -Generation {p.Generation} -Path '{p.Path}' -Version {p.Version} {switchParam} {diskParam} -Force -ErrorAction Stop";
-                    double.TryParse(p.Version, out double ver);
-                    if (p.Generation == 2 && ver >= 10.0 && p.IsolationType != "Disabled")
-                    {
-                        createScript += $" -GuestStateIsolationType {p.IsolationType}";
-                    }
-
-                    Utils.Run(createScript);
-
-                    Utils.Run($"Set-VMProcessor -VMName '{finalVmName}' -Count {p.ProcessorCount} -ErrorAction Stop");
-                    Utils.Run($"Set-VMMemory -VMName '{finalVmName}' -DynamicMemoryEnabled {(p.EnableDynamicMemory ? "$true" : "$false")} -ErrorAction Stop");
-
-                    if (p.Generation == 2)
-                    {
-                        if (p.EnableTpm)
-                        {
-                            Utils.Run($"Set-VMSecurity -VMName '{finalVmName}' -EncryptStateAndVmMigrationTraffic $true -ErrorAction Stop");
-                            Utils.Run($"Set-VMKeyProtector -VMName '{finalVmName}' -NewLocalKeyProtector -ErrorAction Stop");
-                            Utils.Run($"Enable-VMTPM -VMName '{finalVmName}' -ErrorAction Stop");
-                        }
-                        string secureBootState = p.EnableSecureBoot ? "On" : "Off";
-                        Utils.Run($"Set-VMFirmware -VMName '{finalVmName}' -EnableSecureBoot {secureBootState} -ErrorAction Stop");
-                    }
-
-                    if (!string.IsNullOrWhiteSpace(p.IsoPath) && File.Exists(p.IsoPath))
-                    {
-                        Utils.Run($"if (!(Get-VMDvdDrive -VMName '{finalVmName}')) {{ Add-VMDvdDrive -VMName '{finalVmName}' }}");
-                        Utils.Run($"Set-VMDvdDrive -VMName '{finalVmName}' -Path '{p.IsoPath}'");
-                        if (p.Generation == 2) Utils.Run($"$d = Get-VMDvdDrive -VMName '{finalVmName}'; Set-VMFirmware -VMName '{finalVmName}' -FirstBootDevice $d");
-                    }
-
-                    if (p.StartAfterCreation) Utils.Run($"Start-VM -Name '{finalVmName}' -ErrorAction Stop");
-
-                    return (true, finalVmName);
+                    vssd.TrySet("GuestStateIsolationType", p.IsolationType);
                 }
-                catch (Exception ex)
+
+                string vssdXml = vssd.GetText(TextFormat.CimDtd20);
+
+                var defineResp = await WmiApi.InvokeWithResultAsync(
+                    ServiceWql,
+                    "DefineSystem",
+                    p2 =>
+                    {
+                        p2["SystemSettings"] = vssdXml;
+                        p2["ResourceSettings"] = Array.Empty<string>();
+                        p2["ReferenceConfiguration"] = null;
+                    },
+                    resultField: "ResultingSystem");
+
+                if (!defineResp.Success)
+                    return (false, defineResp.Error);
+
+                string? vmPath = defineResp.Data?.FirstOrDefault();
+                if (string.IsNullOrEmpty(vmPath))
+                    return (false, "DefineSystem 未返回 VM 路径");
+
+                // ── Step 3: 取新 VM 的 Name（GUID）───────────────
+                string vmGuid;
+                using (var vmObj = new ManagementObject(svcForScope.Scope, new ManagementPath(vmPath), null))
                 {
-                    return (false, ex.Message);
+                    vmObj.Get();
+                    vmGuid = vmObj["Name"]?.ToString() ?? "";
+                }
+
+                if (string.IsNullOrEmpty(vmGuid))
+                    return (false, "无法获取新建 VM 的 GUID");
+
+                // ── Step 4: 处理器设置 ────────────────────────────
+                var procSettings = new VmProcessorSettings { Count = p.ProcessorCount };
+                var procService = new VmProcessorService();
+                await procService.SetVmProcessorAsync(finalVmName, procSettings);
+
+                // ── Step 5: 内存设置 ──────────────────────────────
+                var memSettings = new VmMemorySettings
+                {
+                    Startup = p.MemoryMb,
+                    DynamicMemoryEnabled = p.EnableDynamicMemory,
+                    Minimum = p.EnableDynamicMemory ? p.MemoryMb / 2 : p.MemoryMb,
+                    Maximum = p.EnableDynamicMemory ? p.MemoryMb * 4 : p.MemoryMb,
+                };
+                var memService = new VmMemoryService();
+                await memService.SetVmMemorySettingsAsync(finalVmName, memSettings, false);
+
+                // ── Step 6: 网卡 ──────────────────────────────────
+                await _network.AddNetworkAdapterAsync(finalVmName);
+                if (!string.IsNullOrWhiteSpace(p.SwitchName) &&
+                    p.SwitchName != ExHyperV.Properties.Resources.none)
+                {
+                    var adapters = await _network.GetNetworkAdaptersAsync(finalVmName);
+                    var adapter = adapters.FirstOrDefault();
+                    if (adapter != null)
+                    {
+                        adapter.IsConnected = true;
+                        adapter.SwitchName = p.SwitchName;
+                        await _network.UpdateConnectionAsync(finalVmName, adapter);
+                    }
+                }
+
+                // ── Step 7: 磁盘 ──────────────────────────────────
+                if (p.DiskMode == 0)
+                {
+                    await _storage.AddDriveAsync(
+                        finalVmName,
+                        p.Generation == 2 ? "SCSI" : "IDE", 0, 0,
+                        "HardDisk", p.VhdPath, false,
+                        isNew: true, sizeGb: (int)p.DiskSizeGb);
+                }
+                else if (p.DiskMode == 1 && !string.IsNullOrEmpty(p.VhdPath))
+                {
+                    await _storage.AddDriveAsync(
+                        finalVmName,
+                        p.Generation == 2 ? "SCSI" : "IDE", 0, 0,
+                        "HardDisk", p.VhdPath, false);
+                }
+
+                // ── Step 8: DVD ───────────────────────────────────
+                if (!string.IsNullOrWhiteSpace(p.IsoPath) && File.Exists(p.IsoPath))
+                {
+                    string dvdCtrl = p.Generation == 1 ? "IDE" : "SCSI";
+                    int dvdCtrlNum = p.Generation == 1 ? 1 : 0;
+                    int dvdLoc = p.Generation == 1 ? 0 : 1;
+
+                    await _storage.AddDriveAsync(
+                        finalVmName, dvdCtrl, dvdCtrlNum, dvdLoc,
+                        "DvdDrive", p.IsoPath, false);
+                }
+
+                // ── Step 9: Gen2 安全启动 ─────────────────────────
+                if (p.Generation == 2)
+                {
+                    string settingsWql = $"SELECT * FROM Msvm_VirtualSystemSettingData " +
+                        $"WHERE VirtualSystemIdentifier = '{vmGuid}' " +
+                        $"AND VirtualSystemType = 'Microsoft:Hyper-V:System:Realized'";
+
+                    await WmiApi.WithObjectAsync(
+                        wql: settingsWql,
+                        modifier: obj =>
+                        {
+                            if (obj.HasProperty("SecureBootEnabled"))
+                                obj["SecureBootEnabled"] = p.EnableSecureBoot;
+                        },
+                        submitMethod: "ModifySystemSettings",
+                        submitParamName: "SystemSettings",
+                        wrapInArray: false);
+                }
+
+                // ── Step 10: TPM ──────────────────────────────────
+                if (p.Generation == 2 && p.EnableTpm)
+                {
+                    await EnableTpmAsync(finalVmName, vmGuid, svcForScope.Scope);
+                }
+
+                // ── Step 11: 启动 ─────────────────────────────────
+                if (p.StartAfterCreation)
+                    await _power.ExecuteControlActionAsync(finalVmName, "Start");
+
+                return (true, finalVmName);
+            }
+            catch (Exception ex)
+            {
+                return (false, ex.Message);
+            }
+        }
+
+        // ── TPM 启用（纯 WMI/CIM）────────────────────────────────────
+        // 流程：
+        //   1. 取或创建 UntrustedGuardian（root\microsoft\windows\hgs）
+        //   2. 生成本地 KeyProtector RawData（MSFT_HgsKeyProtector.NewByGuardians）
+        //   3. Msvm_SecurityService.SetKeyProtector（传入 SecuritySettingData XML + RawData）
+        //   4. Msvm_SecuritySettingData: TpmEnabled=true, EncryptStateAndVmMigrationTraffic=true
+        //      → Msvm_SecurityService.ModifySecuritySettings
+        private async Task EnableTpmAsync(string vmName, string vmGuid, ManagementScope hyperVScope)
+        {
+            await Task.Run(() =>
+            {
+                const string hgsScope = "root\\microsoft\\windows\\hgs";
+
+                using var cimSession = CimSession.Create(null);
+
+                // Step 1: 取或创建 UntrustedGuardian
+                CimInstance? guardian = cimSession
+                    .EnumerateInstances(hgsScope, "MSFT_HgsGuardian")
+                    .FirstOrDefault(g => g.CimInstanceProperties["Name"]?.Value as string == "UntrustedGuardian");
+
+                if (guardian == null)
+                {
+                    using var createParams = new CimMethodParametersCollection();
+                    createParams.Add(CimMethodParameter.Create("Name", "UntrustedGuardian", Microsoft.Management.Infrastructure.CimType.String, CimFlags.None));
+                    createParams.Add(CimMethodParameter.Create("GenerateCertificates", true, Microsoft.Management.Infrastructure.CimType.Boolean, CimFlags.None));
+                    using var createResult = cimSession.InvokeMethod(hgsScope, "MSFT_HgsGuardian", "NewByGenerateCertificates", createParams);
+                    guardian = createResult.OutParameters["cmdletOutput"].Value as CimInstance;
+                }
+
+                if (guardian == null)
+                    throw new InvalidOperationException("无法获取或创建 UntrustedGuardian");
+
+                // Step 2: 生成本地 KeyProtector
+                using var kpParams = new CimMethodParametersCollection();
+                kpParams.Add(CimMethodParameter.Create("Owner", guardian, CimFlags.None));
+                kpParams.Add(CimMethodParameter.Create("AllowUntrustedRoot", true, Microsoft.Management.Infrastructure.CimType.Boolean, CimFlags.None));
+                using var kpResult = cimSession.InvokeMethod(hgsScope, "MSFT_HgsKeyProtector", "NewByGuardians", kpParams);
+                using var kpInstance = kpResult.OutParameters["cmdletOutput"].Value as CimInstance;
+                byte[]? rawData = kpInstance?.CimInstanceProperties["RawData"]?.Value as byte[];
+
+                if (rawData == null || rawData.Length == 0)
+                    throw new InvalidOperationException("无法生成本地 KeyProtector");
+
+                // Step 3: 取 Msvm_SecuritySettingData，序列化为 XML
+                using var secSettingSearcher = new ManagementObjectSearcher(
+                    hyperVScope,
+                    new ObjectQuery(
+                        $"SELECT * FROM Msvm_SecuritySettingData WHERE InstanceID LIKE 'Microsoft:{vmGuid}%'"));
+                using var secSettingCol = secSettingSearcher.Get();
+                using var secSetting = secSettingCol.Cast<ManagementObject>().FirstOrDefault();
+
+                if (secSetting == null)
+                    throw new InvalidOperationException("无法找到 VM 的 SecuritySettingData");
+
+                string secXml = secSetting.GetText(TextFormat.CimDtd20);
+
+                // Step 4: Msvm_SecurityService.SetKeyProtector
+                using var secSvcSearcher = new ManagementObjectSearcher(
+                    hyperVScope,
+                    new ObjectQuery("SELECT * FROM Msvm_SecurityService"));
+                using var secSvcCol = secSvcSearcher.Get();
+                using var secSvc = secSvcCol.Cast<ManagementObject>().FirstOrDefault();
+
+                if (secSvc == null)
+                    throw new InvalidOperationException("无法找到 Msvm_SecurityService");
+
+                using var kpInParams = secSvc.GetMethodParameters("SetKeyProtector");
+                kpInParams["SecuritySettingData"] = secXml;
+                kpInParams["KeyProtector"] = rawData;
+                using var kpOut = secSvc.InvokeMethod("SetKeyProtector", kpInParams, null);
+                int kpRet = Convert.ToInt32(kpOut["ReturnValue"]);
+                if (kpRet != 0)
+                    throw new InvalidOperationException($"SetKeyProtector 失败，返回码：{kpRet}");
+
+                // Step 5: TpmEnabled=true + EncryptStateAndVmMigrationTraffic=true
+                secSetting["TpmEnabled"] = true;
+                secSetting["EncryptStateAndVmMigrationTraffic"] = true;
+                string updatedXml = secSetting.GetText(TextFormat.CimDtd20);
+
+                using var modInParams = secSvc.GetMethodParameters("ModifySecuritySettings");
+                modInParams["SecuritySettingData"] = updatedXml;
+                using var modOut = secSvc.InvokeMethod("ModifySecuritySettings", modInParams, null);
+                int modRet = Convert.ToInt32(modOut["ReturnValue"]);
+                if (modRet != 0 && modRet != 4096)
+                    throw new InvalidOperationException($"ModifySecuritySettings 失败，返回码：{modRet}");
+
+                // 如果是异步 Job，等待完成
+                if (modRet == 4096)
+                {
+                    string jobPath = modOut["Job"]?.ToString() ?? "";
+                    if (!string.IsNullOrEmpty(jobPath))
+                    {
+                        using var job = new ManagementObject(hyperVScope, new ManagementPath(jobPath), null);
+                        while (true)
+                        {
+                            job.Get();
+                            ushort state = (ushort)job["JobState"];
+                            if (state == 7) break;
+                            if (state > 7)
+                                throw new InvalidOperationException($"TPM Job 失败，状态：{state}");
+                            System.Threading.Thread.Sleep(300);
+                        }
+                    }
                 }
             });
         }
@@ -130,20 +378,18 @@ namespace ExHyperV.Services
             string candidate = baseName;
             int i = 2;
             while (Directory.Exists(Path.Combine(basePath, candidate)) || VmNameExists(candidate))
-            {
                 candidate = $"{baseName} ({i++})";
-            }
             return candidate;
         }
 
         private bool VmNameExists(string name)
         {
-            try
-            {
-                var result = Utils.Run($"Get-VM -Name '{name.Replace("'", "''")}' -ErrorAction SilentlyContinue");
-                return result != null && result.Count > 0;
-            }
-            catch { return false; }
+            var resp = WmiApi.QueryFirstAsync(
+                $"SELECT Name FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(name)}' AND Caption = 'Virtual Machine'",
+                obj => obj["Name"]?.ToString(),
+                WmiScope.HyperV).GetAwaiter().GetResult();
+
+            return resp.HasData;
         }
     }
 }
