@@ -7,44 +7,16 @@ using ExHyperV.Tools;
 using ExHyperV.Models;
 using System.Runtime.InteropServices;
 using System.Collections.Concurrent;
+using ExHyperV.Tools.Api;
 
 namespace ExHyperV.Services
 {
     public class UsbVmbusService
     {
-        [DllImport("ws2_32.dll", SetLastError = true)]
-        private static extern unsafe int recv(IntPtr s, void* buf, int len, int flags);
-
-        [DllImport("ws2_32.dll", SetLastError = true)]
-        private static extern unsafe int send(IntPtr s, void* buf, int len, int flags);
-
-        [DllImport("ws2_32.dll", SetLastError = true)]
-        private static extern int closesocket(IntPtr s);
-
-        [DllImport("ws2_32.dll", SetLastError = true)]
-        private static extern int setsockopt(IntPtr s, int level, int optname, ref int optval, int optlen);
-
-        [DllImport("ws2_32.dll", SetLastError = true)]
-        private static extern int WSAIoctl(IntPtr s, uint dwIoControlCode, ref int lpvInBuffer, uint cbInBuffer, IntPtr lpvOutBuffer, uint cbOutBuffer, out uint lpcbBytesReturned, IntPtr lpOverlapped, IntPtr lpCompletionRoutine);
-
-        private const uint SIO_TCP_SET_ACK_FREQUENCY = 0x98000017;
-        private const int IPPROTO_TCP = 6;
-        private const int TCP_NODELAY = 0x0001;
-        private const int SOL_SOCKET = 0xFFFF;
-        private const int SO_SNDBUF = 0x1001;
-        private const int SO_RCVBUF = 0x1002;
-
-        public static ConcurrentDictionary<string, string> ActiveTunnels { get; } = new ConcurrentDictionary<string, string>();
+        public static ConcurrentDictionary<string, string> ActiveTunnels { get; } = new();
         private static readonly ConcurrentDictionary<string, CancellationTokenSource> _activeCts = new();
 
-        [DllImport("ws2_32.dll", SetLastError = true)]
-        private static extern IntPtr socket(int af, int type, int protocol);
-
-        private const int AF_HYPERV = 34;
-        private const int SOCK_STREAM = 1;
-        private const int HV_PROTOCOL_RAW = 1;
         private static readonly Guid ServiceId = Guid.Parse("45784879-7065-7256-5553-4250726F7879");
-
         private const int ProxyBufSize = 512 * 1024;
 
         public UsbVmbusService()
@@ -96,16 +68,20 @@ namespace ExHyperV.Services
 
         public async Task StartTunnelAsync(Guid vmId, string busId, CancellationToken ct)
         {
-            IntPtr hvHandle = socket(AF_HYPERV, SOCK_STREAM, HV_PROTOCOL_RAW);
-            if (hvHandle == (IntPtr)(-1)) throw new SocketException(Marshal.GetLastWin32Error());
+            // 创建 VMBus socket
+            var hvResp = VmbusApi.CreateVmbusSocket();
+            if (!hvResp.Success)
+                throw new SocketException(hvResp.Code);
 
-            var hv = new Socket(new System.Net.Sockets.SafeSocketHandle(hvHandle, true));
-            Socket tcp = null;
+            nint hvHandle = hvResp.Data;
+            var hv = VmbusApi.WrapHandle(hvHandle);
+            Socket? tcp = null;
 
             var completion = new TaskCompletionSource<bool>();
-            ct.Register(() => {
-                closesocket(hvHandle);
-                if (tcp != null) closesocket(tcp.SafeHandle.DangerousGetHandle());
+            ct.Register(() =>
+            {
+                VmbusApi.CloseSocket(hvHandle);
+                if (tcp != null) VmbusApi.CloseSocket(tcp.SafeHandle.DangerousGetHandle());
                 completion.TrySetResult(true);
             });
 
@@ -128,24 +104,16 @@ namespace ExHyperV.Services
                 }
                 if (!tcpOk) throw new Exception("usbipd service unreachable");
 
-                // 【重要】强制恢复阻塞模式
                 tcp.Blocking = true;
 
-                IntPtr tcpHandle = tcp.SafeHandle.DangerousGetHandle();
+                nint tcpHandle = tcp.SafeHandle.DangerousGetHandle();
 
-                // 【配置同步】
-                int opt1 = 1;
-                int optSmall = 8192;  // 黄金 8KB，千万别改了
-                int ackFreq = 1;
-                uint bytesReturned;
-
-                // 1. 设置 ACK 频率
-                WSAIoctl(tcpHandle, SIO_TCP_SET_ACK_FREQUENCY, ref ackFreq, 4, IntPtr.Zero, 0, out bytesReturned, IntPtr.Zero, IntPtr.Zero);
-                // 2. 禁用 Nagle
-                setsockopt(tcpHandle, IPPROTO_TCP, TCP_NODELAY, ref opt1, 4);
-                // 3. 设置微型缓冲区
-                setsockopt(tcpHandle, SOL_SOCKET, SO_SNDBUF, ref optSmall, 4);
-                setsockopt(tcpHandle, SOL_SOCKET, SO_RCVBUF, ref optSmall, 4);
+                // 【配置同步】黄金 8KB，千万别改
+                int optSmall = 8192;
+                VmbusApi.SetAckFrequency(tcpHandle, 1);
+                VmbusApi.SetNoDelay(tcpHandle);
+                VmbusApi.SetSendBuffer(tcpHandle, optSmall);
+                VmbusApi.SetReceiveBuffer(tcpHandle, optSmall);
 
                 StartNativePump(hvHandle, tcpHandle, "VMBUS_TO_TCP", () => completion.TrySetResult(false), ct);
                 StartNativePump(tcpHandle, hvHandle, "TCP_TO_VMBUS", () => completion.TrySetResult(false), ct);
@@ -160,7 +128,7 @@ namespace ExHyperV.Services
             }
         }
 
-        private unsafe void StartNativePump(IntPtr sIn, IntPtr sOut, string label, Action onFault, CancellationToken ct)
+        private unsafe void StartNativePump(nint sIn, nint sOut, string label, Action onFault, CancellationToken ct)
         {
             new Thread(() =>
             {
@@ -171,17 +139,17 @@ namespace ExHyperV.Services
                 {
                     while (!ct.IsCancellationRequested)
                     {
-                        int b = recv(sIn, bufferPtr, ProxyBufSize, 0);
+                        int b = VmbusApi.Recv(sIn, bufferPtr, ProxyBufSize);
                         if (b <= 0) break;
-                        if (send(sOut, bufferPtr, b, 0) <= 0) break;
+                        if (VmbusApi.Send(sOut, bufferPtr, b) <= 0) break;
                     }
                 }
                 catch (Exception ex) { Debug.WriteLine($"[{label}] Error: {ex.Message}"); }
                 finally
                 {
                     NativeMemory.AlignedFree(bufferPtr);
-                    closesocket(sIn);
-                    closesocket(sOut);
+                    VmbusApi.CloseSocket(sIn);
+                    VmbusApi.CloseSocket(sOut);
                     onFault?.Invoke();
                 }
             })
@@ -195,24 +163,25 @@ namespace ExHyperV.Services
                 foreach (var entry in ActiveTunnels)
                 {
                     if (!_activeCts.ContainsKey(entry.Key))
-                    {
                         _ = Task.Run(() => AutoRecoverTunnel(entry.Key, entry.Value));
-                    }
                 }
                 await Task.Delay(2000, globalCt);
             }
         }
 
         public async Task<bool> EnsureDeviceSharedAsync(string busId)
-        {
-            return await RunUsbIpCommand($"bind --busid {busId}");
-        }
+            => await RunUsbIpCommand($"bind --busid {busId}");
 
         private async Task<bool> RunUsbIpCommand(string args)
         {
             try
             {
-                var psi = new ProcessStartInfo("usbipd", args) { UseShellExecute = true, Verb = "runas", WindowStyle = ProcessWindowStyle.Hidden };
+                var psi = new ProcessStartInfo("usbipd", args)
+                {
+                    UseShellExecute = true,
+                    Verb = "runas",
+                    WindowStyle = ProcessWindowStyle.Hidden
+                };
                 var proc = Process.Start(psi);
                 if (proc != null) { await proc.WaitForExitAsync(); return proc.ExitCode == 0; }
                 return false;
@@ -222,23 +191,18 @@ namespace ExHyperV.Services
 
         public async Task<List<VmInfo>> GetRunningVMsAsync()
         {
-            var list = new List<VmInfo>();
-            try
-            {
-                string script = "Get-VM | Where-Object {$_.State -eq 'Running'} | Select-Object Name, Id";
-                var results = await Utils.Run2(script);
-                foreach (var psObj in results)
+            var resp = await WmiApi.QueryAsync(
+                "SELECT Name, ElementName FROM Msvm_ComputerSystem WHERE EnabledState = 2 AND Name <> ElementName",
+                obj => new VmInfo
                 {
-                    var name = psObj.Properties["Name"]?.Value?.ToString();
-                    var idValue = psObj.Properties["Id"]?.Value;
-                    if (!string.IsNullOrEmpty(name) && idValue != null)
-                    {
-                        list.Add(new VmInfo { Name = name, Id = idValue is Guid guid ? guid : Guid.Parse(idValue.ToString()) });
-                    }
-                }
-            }
-            catch (Exception ex) { Debug.WriteLine(string.Format(Properties.Resources.UsbVmbusService_4, ex.Message)); }
-            return list;
+                    Name = obj["ElementName"]?.ToString() ?? "",
+                    Id = Guid.TryParse(obj["Name"]?.ToString(), out var g) ? g : Guid.Empty
+                },
+                WmiScope.HyperV);
+
+            return (resp.Data ?? new List<VmInfo>())
+                .Where(v => !string.IsNullOrEmpty(v.Name) && v.Id != Guid.Empty)
+                .ToList();
         }
 
         public async Task<List<UsbDeviceModel>> GetUsbIpDevicesAsync()
@@ -246,9 +210,15 @@ namespace ExHyperV.Services
             var list = new List<UsbDeviceModel>();
             try
             {
-                var psi = new ProcessStartInfo("usbipd", "list") { RedirectStandardOutput = true, UseShellExecute = false, CreateNoWindow = true, StandardOutputEncoding = System.Text.Encoding.Default };
+                var psi = new ProcessStartInfo("usbipd", "list")
+                {
+                    RedirectStandardOutput = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                    StandardOutputEncoding = System.Text.Encoding.Default
+                };
                 using var proc = Process.Start(psi);
-                string outStr = await proc.StandardOutput.ReadToEndAsync();
+                string outStr = await proc!.StandardOutput.ReadToEndAsync();
                 var lines = outStr.Split(new[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
                 bool foundSection = false;
                 foreach (var line in lines)
@@ -257,7 +227,14 @@ namespace ExHyperV.Services
                     if (foundSection && line.Trim().Length > 0 && char.IsDigit(line.Trim()[0]))
                     {
                         var m = Regex.Match(line.Trim(), @"^([0-9\-.]+)\s+([0-9a-fA-F:]+)\s+(.*?)\s{2,}");
-                        if (m.Success) list.Add(new UsbDeviceModel { BusId = m.Groups[1].Value.Trim(), VidPid = m.Groups[2].Value.Trim(), Description = m.Groups[3].Value.Trim(), Status = "Ready" });
+                        if (m.Success)
+                            list.Add(new UsbDeviceModel
+                            {
+                                BusId = m.Groups[1].Value.Trim(),
+                                VidPid = m.Groups[2].Value.Trim(),
+                                Description = m.Groups[3].Value.Trim(),
+                                Status = "Ready"
+                            });
                     }
                 }
             }
