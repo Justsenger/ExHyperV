@@ -17,7 +17,7 @@ namespace ExHyperV.ViewModels
     /// </summary>
     public partial class DDAPageViewModel : ObservableObject
     {
-        private readonly IHyperVService _hyperVService;
+        private readonly DDAService _DDAService;
 
         [ObservableProperty]
         private bool _isLoading;
@@ -34,7 +34,7 @@ namespace ExHyperV.ViewModels
 
         public DDAPageViewModel()
         {
-            _hyperVService = new DDAService();
+            _DDAService = new DDAService();
             Devices = new ObservableCollection<DeviceViewModel>();
             LoadDataCommand = new AsyncRelayCommand(LoadDataAsync);
             ChangeAssignmentCommand = new AsyncRelayCommand<object>(ChangeAssignmentAsync);
@@ -54,8 +54,8 @@ namespace ExHyperV.ViewModels
             IsLoading = true;
             try
             {
-                var serverCheckTask = _hyperVService.IsServerOperatingSystemAsync();
-                var ddaInfoTask = _hyperVService.GetDdaInfoAsync();
+                var serverCheckTask = _DDAService.IsServerOperatingSystemAsync();
+                var ddaInfoTask = _DDAService.GetDdaInfoAsync();
                 await Task.WhenAll(serverCheckTask, ddaInfoTask);
 
                 Devices.Clear();
@@ -114,7 +114,7 @@ namespace ExHyperV.ViewModels
         /// </summary>
         private async Task<bool> HandleMmioCheckAsync(string targetVmName)
         {
-            var (resultType, message) = await _hyperVService.CheckMmioSpaceAsync(targetVmName);
+            var (resultType, message) = await _DDAService.CheckMmioSpaceAsync(targetVmName);
 
             if (resultType == MmioCheckResultType.NeedsConfirmation)
             {
@@ -136,7 +136,7 @@ namespace ExHyperV.ViewModels
                     DialogHost = ((MainWindow)Application.Current.MainWindow).ContentPresenterForDialogs,
                 };
                 var shutdownDialogTask = shutdownDialog.ShowAsync();
-                bool updateSuccess = await _hyperVService.UpdateMmioSpaceAsync(targetVmName);
+                bool updateSuccess = await _DDAService.UpdateMmioSpaceAsync(targetVmName);
                 shutdownDialog.Hide();
                 await shutdownDialogTask;
 
@@ -194,7 +194,7 @@ namespace ExHyperV.ViewModels
                 statusTextBlock.Text = message;
             });
             var dialogTask = waitDialog.ShowAsync();
-            var (success, errorMessage) = await _hyperVService.ExecuteDdaOperationAsync(
+            var (success, errorMessage) = await _DDAService.ExecuteDdaOperationAsync(
                 target,
                 device.Status,
                 device.InstanceId,

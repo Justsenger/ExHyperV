@@ -2,13 +2,13 @@
 using ExHyperV.Models;
 using ExHyperV.Properties;
 using ExHyperV.Tools;
+using ExHyperV.Tools.Api;
 
 namespace ExHyperV.Services
 {
-    /// <summary>
-    /// 实现了IHyperVService接口，负责处理所有与PowerShell的实际交互。
-    /// </summary>
-    public class DDAService : IHyperVService
+    public enum MmioCheckResultType { Ok, NeedsConfirmation, Error }
+
+    public class DDAService
     {
         private const ulong RequiredMmioBytes = 64UL * 1024 * 1024 * 1024; // 64 GiB
 
@@ -18,8 +18,6 @@ namespace ExHyperV.Services
             int idx = instanceId.IndexOf(@"\VEN_", StringComparison.OrdinalIgnoreCase);
             return idx >= 0 ? instanceId.Substring(idx) : instanceId;
         }
-
-        #region Public Methods (IHyperVService Implementation)
 
         public async Task<(List<DeviceInfo> Devices, List<string> VmNames)> GetDdaInfoAsync()
         {
@@ -35,36 +33,67 @@ namespace ExHyperV.Services
                 {
                     Dictionary<string, string> vmDeviceAssignments = new Dictionary<string, string>();
 
-                    // 1. 获取虚拟机及已分配设备的信息
-                    var hypervModule = Utils.Run("Get-Module -ListAvailable -Name Hyper-V");
-                    if (hypervModule != null && hypervModule.Count != 0)
-                    {
-                        var vms = Utils.Run(@"Get-VM | Select-Object Name");
-                        if (vms != null)
-                        {
-                            foreach (var vm in vms)
-                            {
-                                var name = vm.Members["Name"]?.Value?.ToString();
-                                if (string.IsNullOrEmpty(name)) continue;
+                    // 1. 获取虚拟机列表（WMI 替换 Get-VM）
+                    string hostName = WmiApi.Escape(Environment.MachineName);
+                    var vmResp = await WmiApi.QueryAsync(
+                        $"SELECT ElementName FROM Msvm_ComputerSystem WHERE Name <> '{hostName}'",
+                        obj => obj["ElementName"]?.ToString() ?? string.Empty,
+                        WmiScope.HyperV);
 
-                                vmNameList.Add(name);
-                                var assignedDevices = Utils.Run($@"Get-VMAssignableDevice -VMName '{name}' | Select-Object InstanceID");
-                                if (assignedDevices != null)
-                                {
-                                    foreach (var device in assignedDevices)
-                                    {
-                                        var pureId = GetPureId(device.Members["InstanceID"]?.Value?.ToString());
-                                        if (!string.IsNullOrEmpty(pureId))
-                                        {
-                                            vmDeviceAssignments[pureId] = name;
-                                        }
-                                    }
-                                }
+                    if (vmResp.Success && vmResp.Data != null)
+                        vmNameList.AddRange(vmResp.Data.Where(n => !string.IsNullOrEmpty(n)));
+
+                    // 用 Msvm_PciExpressSettingData 替换 Get-VMAssignableDevice
+                    // InstanceID 格式：Microsoft:VM_GUID\device_GUID（排除 Definition/Minimum/Maximum/Increment）
+                    // HostResource[0] 的 DeviceID 里包含 PNP InstanceId
+                    var pciSettingResp = await WmiApi.QueryAsync(
+                        "SELECT InstanceID, HostResource FROM Msvm_PciExpressSettingData",
+                        obj => obj,
+                        WmiScope.HyperV);
+
+                    if (pciSettingResp.Success && pciSettingResp.Data != null)
+                    {
+                        // 建立 VM GUID → VM 名称的映射
+                        var vmGuidToName = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                        var vmGuidResp = await WmiApi.QueryAsync(
+                            $"SELECT Name, ElementName FROM Msvm_ComputerSystem WHERE Name <> '{hostName}'",
+                            obj => (Guid: obj["Name"]?.ToString() ?? "", Name: obj["ElementName"]?.ToString() ?? ""),
+                            WmiScope.HyperV);
+                        if (vmGuidResp.Success && vmGuidResp.Data != null)
+                            foreach (var item in vmGuidResp.Data.Where(x => !string.IsNullOrEmpty(x.Guid)))
+                                vmGuidToName[item.Guid] = item.Name;
+
+                        foreach (var obj in pciSettingResp.Data)
+                        {
+                            using (obj)
+                            {
+                                string instanceId = obj["InstanceID"]?.ToString() ?? string.Empty;
+                                // 排除 Definition/Minimum/Maximum/Increment 记录
+                                if (!instanceId.StartsWith("Microsoft:", StringComparison.OrdinalIgnoreCase)) continue;
+                                string withoutPrefix = instanceId.Substring("Microsoft:".Length);
+                                // 格式：VMGUID\deviceGUID，VMGUID 不含 "Definition" 等关键字
+                                int backslash = withoutPrefix.IndexOf('\\');
+                                if (backslash < 0) continue;
+                                string vmGuid = withoutPrefix.Substring(0, backslash);
+                                if (vmGuid.IndexOf("Definition", StringComparison.OrdinalIgnoreCase) >= 0) continue;
+
+                                if (!vmGuidToName.TryGetValue(vmGuid, out string vmName) || string.IsNullOrEmpty(vmName)) continue;
+
+                                // 从 HostResource 提取 PNP InstanceId
+                                if (!(obj["HostResource"] is string[] hostResources) || hostResources.Length == 0) continue;
+                                string hostResStr = hostResources[0];
+                                var match = System.Text.RegularExpressions.Regex.Match(
+                                    hostResStr, @"DeviceID=""Microsoft:[^\\]+\\\\(.+?)""");
+                                if (!match.Success) continue;
+                                string pnpInstanceId = match.Groups[1].Value.Replace("\\\\", "\\");
+                                string pureId = GetPureId(pnpInstanceId);
+                                if (!string.IsNullOrEmpty(pureId))
+                                    vmDeviceAssignments[pureId] = vmName;
                             }
                         }
                     }
 
-                    // 2. 检查已卸除(Dismounted)的设备状态
+                    // 2. 检查已卸除设备（Get-PnpDevice 无法替换，保留 PS）
                     var pnpDevices = Utils.Run("Get-PnpDevice | Where-Object { $_.InstanceId -like 'PCIP\\*' } | Select-Object InstanceId, Status");
                     if (pnpDevices != null)
                     {
@@ -72,15 +101,12 @@ namespace ExHyperV.Services
                         {
                             var pureId = GetPureId(pnpDevice.Members["InstanceId"]?.Value?.ToString());
                             var status = pnpDevice.Members["Status"]?.Value?.ToString();
-                            // 如果它在 PCIP 列表且尚未分配给虚拟机，标记为“已卸除”
                             if (!string.IsNullOrEmpty(pureId) && status == "OK" && !vmDeviceAssignments.ContainsKey(pureId))
-                            {
                                 vmDeviceAssignments[pureId] = Resources.removed;
-                            }
                         }
                     }
 
-                    // 3. 获取所有PCI设备（包含隐藏设备）
+                    // 3. 获取所有PCI设备（Get-PnpDeviceProperty DEVPKEY_Device_LocationPaths 无法替换，保留 PS）
                     string getPciDevicesScript = @"function Invoke-GetPathBatch {
                                                 param($Ids, $Map, $Key)
                                                 if ($Ids.Count -eq 0) { return }
@@ -147,25 +173,18 @@ namespace ExHyperV.Services
                         {
                             var service = result.Members["Service"]?.Value?.ToString();
                             var classType = result.Members["Class"]?.Value?.ToString();
-
-                            // 过滤掉基础的主板通信/PCI桥设备
                             if (service == "pci" || string.IsNullOrEmpty(service)) continue;
 
                             var instanceId = result.Members["InstanceId"]?.Value?.ToString();
                             var status = result.Members["Status"]?.Value?.ToString();
                             var pureId = GetPureId(instanceId);
 
-                            // 如果设备处于隐藏状态（Unknown），去字典里查它是不是被卸除或分配给虚拟机了
                             if (status == "Unknown" && !string.IsNullOrEmpty(pureId))
                             {
                                 if (vmDeviceAssignments.TryGetValue(pureId, out var assignedStatus))
-                                {
                                     status = assignedStatus;
-                                }
                                 else
-                                {
                                     continue;
-                                }
                             }
                             else
                             {
@@ -175,14 +194,13 @@ namespace ExHyperV.Services
                             var friendlyName = result.Members["FriendlyName"]?.Value?.ToString();
                             var path = result.Members["Path"]?.Value?.ToString();
                             string vendor = pciInfoProvider.GetVendorFromInstanceId(instanceId);
-
                             deviceList.Add(new DeviceInfo(friendlyName, status, classType, instanceId, path, vendor));
                         }
                     }
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"[HyperVService] Error in GetDdaInfoAsync: {ex}");
+                    Console.WriteLine($"[DDAService] Error in GetDdaInfoAsync: {ex}");
                     deviceList.Clear();
                     vmNameList.Clear();
                 }
@@ -190,10 +208,9 @@ namespace ExHyperV.Services
 
             return (deviceList, vmNameList);
         }
+
         public Task<bool> IsServerOperatingSystemAsync()
-        {
-            return Task.FromResult(HyperVEnvironmentService.IsServerSystem());
-        }
+            => Task.FromResult(HyperVEnvironmentService.IsServerSystem());
 
         public async Task<(MmioCheckResultType Result, string Message)> CheckMmioSpaceAsync(string vmName)
         {
@@ -240,24 +257,25 @@ namespace ExHyperV.Services
             });
         }
 
-        public async Task<(bool Success, string? ErrorMessage)> ExecuteDdaOperationAsync(string targetVmName, string currentVmName, string instanceId, string path, IProgress<string>? progress = null)
+        public async Task<(bool Success, string? ErrorMessage)> ExecuteDdaOperationAsync(
+            string targetVmName, string currentVmName, string instanceId, string path,
+            IProgress<string>? progress = null)
         {
             try
             {
                 var operations = DDACommands(targetVmName, instanceId, path, currentVmName);
                 if (operations.Count == 0) return (true, null);
+
                 foreach (var operation in operations)
                 {
                     progress?.Report(operation.Message);
-                    var logOutput = await ExecutePowerShellCommandAsync(operation.Command);
+                    var logOutput = await ExecuteCommandAsync(operation.Command, instanceId, operation.IsPnpEnable, operation.IsPnpDisable);
                     var errorLogs = logOutput.Where(log => log.Contains("Error", StringComparison.OrdinalIgnoreCase)).ToList();
                     if (errorLogs.Any())
                     {
                         var errorMessage = string.Join(Environment.NewLine, errorLogs);
                         if (targetVmName == Resources.Host)
-                        {
-                            await ExecutePowerShellCommandAsync($"Enable-PnpDevice -InstanceId '{instanceId}' -Confirm:$false");
-                        }
+                            Win32Api.EnablePnpDevice(instanceId);
                         return (false, errorMessage);
                     }
                 }
@@ -269,32 +287,24 @@ namespace ExHyperV.Services
             }
         }
 
-        #endregion
-
-        #region Private Helper Methods
-
-        private async Task<List<string>> ExecutePowerShellCommandAsync(string psCommand)
+        private async Task<List<string>> ExecuteCommandAsync(string psCommand, string instanceId, bool isPnpEnable, bool isPnpDisable)
         {
+            // Enable/Disable PnpDevice 暂时保留 PS，Win32Api 路径待验证
+            string actualCommand = psCommand;
+            if (isPnpEnable)
+                actualCommand = $"Enable-PnpDevice -InstanceId '{instanceId}' -Confirm:$false";
+            else if (isPnpDisable)
+                actualCommand = $"Disable-PnpDevice -InstanceId '{instanceId}' -Confirm:$false";
+
             var logOutput = new List<string>();
             try
             {
-                using (var powerShell = PowerShell.Create())
-                {
-                    powerShell.AddScript(psCommand);
-                    var results = await Task.Run(() => powerShell.Invoke());
-                    foreach (var item in results)
-                    {
-                        logOutput.Add(item.ToString());
-                    }
-                    var errorStream = powerShell.Streams.Error.ReadAll();
-                    if (errorStream.Any())
-                    {
-                        foreach (var error in errorStream)
-                        {
-                            logOutput.Add($"Error: {error}");
-                        }
-                    }
-                }
+                using var powerShell = PowerShell.Create();
+                powerShell.AddScript(actualCommand);
+                var results = await Task.Run(() => powerShell.Invoke());
+                foreach (var item in results) logOutput.Add(item.ToString());
+                var errorStream = powerShell.Streams.Error.ReadAll();
+                foreach (var error in errorStream) logOutput.Add($"Error: {error}");
             }
             catch (Exception ex)
             {
@@ -303,55 +313,51 @@ namespace ExHyperV.Services
             return logOutput;
         }
 
-        private List<(string Command, string Message)> DDACommands(string Vmname, string instanceId, string path, string Nowname)
+        private List<(string Command, string Message, bool IsPnpEnable, bool IsPnpDisable)> DDACommands(
+            string Vmname, string instanceId, string path, string Nowname)
         {
-            var operations = new List<(string Command, string Message)>();
-            // 场景1: 设备已卸除，现在要分配给主机。
+            var operations = new List<(string Command, string Message, bool IsPnpEnable, bool IsPnpDisable)>();
+
+            // 场景1: 设备已卸除，现在要分配给主机
             if (Nowname == Resources.removed && Vmname == Resources.Host)
             {
-                operations.Add((
-                    Command: $"Mount-VMHostAssignableDevice -LocationPath '{path}'",
-                    Message: Resources.mounting
-                ));
-                operations.Add(($"Enable-PnpDevice -InstanceId '{instanceId}' -Confirm:$false", Resources.enabling));
+                operations.Add(($"Mount-VMHostAssignableDevice -LocationPath '{path}'", Resources.mounting, false, false));
+                operations.Add((string.Empty, Resources.enabling, true, false)); // Win32Api.EnablePnpDevice
             }
-            // 场景2: 设备已卸除，现在要分配给某个虚拟机。
+            // 场景2: 设备已卸除，现在要分配给某个虚拟机
             else if (Nowname == Resources.removed && Vmname != Resources.Host)
             {
-                operations.Add((
-                    Command: $"Add-VMAssignableDevice -LocationPath '{path}' -VMName '{Vmname}'",
-                    Message: Resources.mounting
-                ));
+                operations.Add(($"Add-VMAssignableDevice -LocationPath '{path}' -VMName '{Vmname}'", Resources.mounting, false, false));
             }
-            // 场景3: 设备在主机上，现在要分配给某个虚拟机。
+            // 场景3: 设备在主机上，现在要分配给某个虚拟机
             else if (Nowname == Resources.Host)
             {
-                operations.Add(($"Set-VM -Name '{Vmname}' -AutomaticStopAction TurnOff", Resources.string5));
-                operations.Add(($"Set-VM -GuestControlledCacheTypes $true -VMName '{Vmname}'", Resources.cpucache));
-                operations.Add(($"(Get-PnpDeviceProperty -InstanceId '{instanceId}' DEVPKEY_Device_LocationPaths).Data[0]", Resources.getpath));
-                operations.Add(($"Disable-PnpDevice -InstanceId '{instanceId}' -Confirm:$false", Resources.Disabledevice));
-                operations.Add(($"Dismount-VMHostAssignableDevice -Force -LocationPath '{path}'", Resources.Dismountdevice));
-                operations.Add(($"Add-VMAssignableDevice -LocationPath '{path}' -VMName '{Vmname}'", Resources.mounting));
+                operations.Add(($"Set-VM -Name '{Vmname}' -AutomaticStopAction TurnOff", Resources.string5, false, false));
+                operations.Add(($"Set-VM -GuestControlledCacheTypes $true -VMName '{Vmname}'", Resources.cpucache, false, false));
+                operations.Add(($"(Get-PnpDeviceProperty -InstanceId '{instanceId}' DEVPKEY_Device_LocationPaths).Data[0]", Resources.getpath, false, false));
+                operations.Add((string.Empty, Resources.Disabledevice, false, true)); // Win32Api.DisablePnpDevice
+                operations.Add(($"Dismount-VMHostAssignableDevice -Force -LocationPath '{path}'", Resources.Dismountdevice, false, false));
+                operations.Add(($"Add-VMAssignableDevice -LocationPath '{path}' -VMName '{Vmname}'", Resources.mounting, false, false));
             }
-            // 场景4: 设备从一个虚拟机移到另一个虚拟机。
+            // 场景4: 设备从一个虚拟机移到另一个虚拟机
             else if (Vmname != Resources.Host && Nowname != Resources.Host)
             {
-                operations.Add(($"Set-VM -Name '{Vmname}' -AutomaticStopAction TurnOff", Resources.string5));
-                operations.Add(($"Set-VM -GuestControlledCacheTypes $true -VMName '{Vmname}'", Resources.cpucache));
-                operations.Add(($"(Get-PnpDeviceProperty -InstanceId '{instanceId}' DEVPKEY_Device_LocationPaths).Data[0]", Resources.getpath));
-                operations.Add(($"Remove-VMAssignableDevice -LocationPath '{path}' -VMName '{Nowname}'", Resources.Dismountdevice));
-                operations.Add(($"Add-VMAssignableDevice -LocationPath '{path}' -VMName '{Vmname}'", Resources.mounting));
+                operations.Add(($"Set-VM -Name '{Vmname}' -AutomaticStopAction TurnOff", Resources.string5, false, false));
+                operations.Add(($"Set-VM -GuestControlledCacheTypes $true -VMName '{Vmname}'", Resources.cpucache, false, false));
+                operations.Add(($"(Get-PnpDeviceProperty -InstanceId '{instanceId}' DEVPKEY_Device_LocationPaths).Data[0]", Resources.getpath, false, false));
+                operations.Add(($"Remove-VMAssignableDevice -LocationPath '{path}' -VMName '{Nowname}'", Resources.Dismountdevice, false, false));
+                operations.Add(($"Add-VMAssignableDevice -LocationPath '{path}' -VMName '{Vmname}'", Resources.mounting, false, false));
             }
-            // 场景5: 设备从一个虚拟机移回给主机。
+            // 场景5: 设备从一个虚拟机移回给主机
             else if (Vmname == Resources.Host && Nowname != Resources.Host)
             {
-                operations.Add(($"(Get-PnpDeviceProperty -InstanceId '{instanceId}' DEVPKEY_Device_LocationPaths).Data[0]", Resources.getpath));
-                operations.Add(($"Remove-VMAssignableDevice -LocationPath '{path}' -VMName '{Nowname}'", Resources.Dismountdevice));
-                operations.Add(($"Mount-VMHostAssignableDevice -LocationPath '{path}'", Resources.mounting));
-                operations.Add(($"Enable-PnpDevice -InstanceId '{instanceId}' -Confirm:$false", Resources.enabling));
+                operations.Add(($"(Get-PnpDeviceProperty -InstanceId '{instanceId}' DEVPKEY_Device_LocationPaths).Data[0]", Resources.getpath, false, false));
+                operations.Add(($"Remove-VMAssignableDevice -LocationPath '{path}' -VMName '{Nowname}'", Resources.Dismountdevice, false, false));
+                operations.Add(($"Mount-VMHostAssignableDevice -LocationPath '{path}'", Resources.mounting, false, false));
+                operations.Add((string.Empty, Resources.enabling, true, false)); // Win32Api.EnablePnpDevice
             }
+
             return operations;
         }
-        #endregion
     }
 }
