@@ -3,7 +3,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using ExHyperV.Models;
-using ExHyperV.Tools;
+using ExHyperV.Tools.Api;
 
 namespace ExHyperV.Services
 {
@@ -122,7 +122,7 @@ namespace ExHyperV.Services
 
                     if (loopCount % 5 == 0)
                     {
-                        await UpdateVmInfoFromPowerShellAsync(token);
+                        await UpdateVmInfoFromWmiAsync(token);
                     }
 
                     loopCount++;
@@ -196,51 +196,67 @@ namespace ExHyperV.Services
             }
         }
 
-        private async Task UpdateVmInfoFromPowerShellAsync(CancellationToken token)
+        private async Task UpdateVmInfoFromWmiAsync(CancellationToken token)
         {
             try
             {
-                string script = "Get-VMProcessor * | Select-Object VMName, Count";
-                var results = await Utils.Run2(script, token);
+                // 排除宿主机（Name = MachineName），获取所有 VM（包括关机状态）
+                string hostName = WmiApi.Escape(Environment.MachineName);
+                var vmResp = await WmiApi.QueryAsync(
+                    $"SELECT * FROM Msvm_ComputerSystem WHERE Name <> '{hostName}'",
+                    obj => obj,
+                    WmiScope.HyperV);
 
-                if (results == null) return;
+                if (!vmResp.Success || vmResp.Data == null) return;
 
                 var activeConfigNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-                foreach (var pso in results)
+                foreach (var vmObj in vmResp.Data)
                 {
-                    if (pso == null) continue;
-                    var vmName = pso.Properties["VMName"]?.Value as string;
-                    var countVal = pso.Properties["Count"]?.Value;
-
-                    if (!string.IsNullOrEmpty(vmName) && countVal != null)
+                    using (vmObj)
                     {
-                        try
-                        {
-                            int count = Convert.ToInt32(countVal);
-                            _vmCoreCounts[vmName] = count;
-                            activeConfigNames.Add(vmName);
-                        }
-                        catch { }
+                        if (token.IsCancellationRequested) break;
+
+                        string vmName = vmObj["ElementName"]?.ToString() ?? string.Empty;
+                        if (string.IsNullOrEmpty(vmName)) continue;
+
+                        // Msvm_ComputerSystem → Msvm_VirtualSystemSettingData
+                        var settingsResp = await WmiApi.QueryRelatedAsync(
+                            vmObj, "Msvm_VirtualSystemSettingData", obj => obj, "Msvm_SettingsDefineState");
+
+                        if (!settingsResp.Success || settingsResp.Data == null || settingsResp.Data.Count == 0)
+                            continue;
+
+                        using var settingData = settingsResp.Data[0];
+
+                        // Msvm_VirtualSystemSettingData → Msvm_ProcessorSettingData
+                        var procResp = await WmiApi.QueryRelatedAsync(
+                            settingData, "Msvm_ProcessorSettingData", obj => obj,
+                            "Msvm_VirtualSystemSettingDataComponent");
+
+                        if (!procResp.Success || procResp.Data == null || procResp.Data.Count == 0)
+                            continue;
+
+                        using var procData = procResp.Data[0];
+                        int count = Convert.ToInt32(procData["VirtualQuantity"] ?? 1);
+
+                        _vmCoreCounts[vmName] = count;
+                        activeConfigNames.Add(vmName);
                     }
                 }
 
                 var keysToRemove = _vmCoreCounts.Keys
                     .Where(k => k != "Host" && !activeConfigNames.Contains(k))
                     .ToList();
-
                 foreach (var key in keysToRemove)
-                {
                     _vmCoreCounts.TryRemove(key, out _);
-                }
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[CpuMonitor] PowerShell update failed: {ex.Message}");
+                Debug.WriteLine($"[CpuMonitor] WMI update failed: {ex.Message}");
             }
-
-
         }
+
         public List<CpuCoreMetric> GetCpuUsage()
         {
             var results = new List<CpuCoreMetric>();
@@ -294,10 +310,9 @@ namespace ExHyperV.Services
                         }
                     }
                 }
-                catch
-                {
-                }
+                catch { }
             }
+
             foreach (var kvp in _vmCoreCounts)
             {
                 string vmName = kvp.Key;

@@ -54,7 +54,7 @@ public static class HyperVSchedulerService
             var psi = new ProcessStartInfo
             {
                 FileName = "bcdedit.exe",
-                Arguments = $"/set hypervisorschedulertype {type}",
+                Arguments = $"/set hypervisorschedulertype {type.ToString().ToLower()}",
                 Verb = "runas",          // 以管理员身份运行
                 UseShellExecute = true,             // Verb=runas 必须为 true
                 WindowStyle = ProcessWindowStyle.Hidden,
