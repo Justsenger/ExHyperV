@@ -715,7 +715,7 @@ namespace ExHyperV.Services
         {
             var ms = WmiConnectionCache.GetManagementScope(WmiScope.HyperV, WmiContext.Local);
             using var switchObj = await GetSwitchObjectAsync(switchName);
-            await EnsureInternalModeAsync(switchObj, ms);
+            await EnsureInternalModeAsync(switchObj, ms, switchName);
             await ComApi.DisableAllIcsSharingAsync();
 
             bool hasInternal = await HasInternalPortAsync(switchObj);
