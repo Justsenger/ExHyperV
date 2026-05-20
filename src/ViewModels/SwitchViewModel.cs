@@ -9,7 +9,7 @@ namespace ExHyperV.ViewModels
 {
     public partial class SwitchViewModel : ObservableObject
     {
-        private readonly INetworkService _networkService;
+        private readonly NetworkService _networkService;
         private readonly List<PhysicalAdapterInfo> _allPhysicalAdapters;
         private readonly ObservableCollection<SwitchViewModel> _allSwitchViewModels;
 
@@ -34,7 +34,7 @@ namespace ExHyperV.ViewModels
         public string DropDownButtonContent => IsDefaultSwitch ? ExHyperV.Properties.Resources.Auto : SelectedNetworkMode == "Isolated" ? ExHyperV.Properties.Resources.Status_Unavailable : string.IsNullOrEmpty(SelectedUpstreamAdapter) ? ExHyperV.Properties.Resources.Placeholder_SelectNetworkAdapter : SelectedUpstreamAdapter;
         public string IconGlyph => Utils.GetIconPath("Switch", SwitchName);
 
-        public SwitchViewModel(SwitchInfo switchInfo, INetworkService networkService, List<PhysicalAdapterInfo> allPhysicalAdapters, ObservableCollection<SwitchViewModel> allSwitchViewModels)
+        public SwitchViewModel(SwitchInfo switchInfo, NetworkService networkService, List<PhysicalAdapterInfo> allPhysicalAdapters, ObservableCollection<SwitchViewModel> allSwitchViewModels)
         {
             _networkService = networkService;
             _allPhysicalAdapters = allPhysicalAdapters;
@@ -126,4 +126,4 @@ namespace ExHyperV.ViewModels
             _ => "Isolated"
         };
     }
-}
+    }

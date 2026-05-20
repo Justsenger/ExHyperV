@@ -6,7 +6,7 @@ using ExHyperV.Tools.Api;
 
 namespace ExHyperV.Services
 {
-    public class NetworkService : INetworkService
+    public class NetworkService
     {
         // ── VM 适配器查询 ─────────────────────────────────────────────────
         private static async Task<List<AdapterInfo>> GetVmAdaptersOnSwitchAsync(string switchGuid, string switchName)
@@ -104,9 +104,10 @@ namespace ExHyperV.Services
         private static async Task<AdapterInfo?> GetHostAdapterOnSwitchAsync(string switchName)
         {
             // Msvm_InternalEthernetPort 对应 ManagementOS 的虚拟网卡
+            // ElementName 就是 Switch 名本身，不是 "vEthernet (switchName)"
             string safe = WmiApi.Escape(switchName);
             var portResp = await WmiApi.QueryAsync(
-                $"SELECT * FROM Msvm_InternalEthernetPort WHERE ElementName = 'vEthernet ({safe})'",
+                $"SELECT * FROM Msvm_InternalEthernetPort WHERE ElementName = '{safe}'",
                 obj => obj,
                 WmiScope.HyperV);
 
@@ -149,7 +150,9 @@ namespace ExHyperV.Services
 
                         if (ipResp.Success && ipResp.Data?.Count > 0)
                         {
-                            ipAddresses = string.Join(",", ipResp.Data.Where(ip => !string.IsNullOrEmpty(ip)));
+                            ipAddresses = string.Join(",", ipResp.Data.Where(ip =>
+                                !string.IsNullOrEmpty(ip) && System.Net.IPAddress.TryParse(ip, out var addr) &&
+                                addr.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork));
                             if (!string.IsNullOrEmpty(ipAddresses)) break;
                         }
                         await Task.Delay(200);
@@ -921,7 +924,6 @@ namespace ExHyperV.Services
                 WmiScope.HyperV);
 
             string wifiResult = (wifiResp.Success && wifiResp.Data?.Count > 0) ? wifiResp.Data[0] : string.Empty;
-            Debug.WriteLine($"[FindExternalPort] interfaceDescription={interfaceDescription} ethResult={(ethResp.Data?.Count > 0 ? ethResp.Data[0] : "empty")} wifiResult={wifiResult}");
             return wifiResult;
         }
 
@@ -974,7 +976,6 @@ namespace ExHyperV.Services
                 var guidMatch = System.Text.RegularExpressions.Regex.Match(
                     switchPath, @",Name=""([^""]+)""", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
                 string switchGuid = guidMatch.Success ? guidMatch.Groups[1].Value : string.Empty;
-                Debug.WriteLine($"[GetFullSwitchNetworkState] switchPath={switchPath} switchGuid={switchGuid}");
 
                 // 2. 查所有 VM 的 Msvm_SyntheticEthernetPort，过滤连接到此 Switch 的
                 var vmAdapters = await GetVmAdaptersOnSwitchAsync(switchGuid, switchName);
