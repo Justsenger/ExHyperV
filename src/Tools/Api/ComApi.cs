@@ -252,7 +252,7 @@ internal static class IcsCore
                     // SharingConnectionType 0 = PRIVATE → 但这里用 ICS 的约定反过来
                     // 实际上 EnableSharing(0)=PUBLIC，EnableSharing(1)=PRIVATE
                     // NetConnectionProps 查到的是上游（物理网卡）的名字
-                    if (sharingType == Private)
+                    if (sharingType == Public && name != vEthernetName)
                         sourceAdapterName = name;
                 }
                 catch (Exception ex)

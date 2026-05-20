@@ -1,295 +1,997 @@
-﻿using System.Collections.ObjectModel;
-using System.Diagnostics;
-using System.Management.Automation;
+﻿using System.Diagnostics;
+using System.Management;
 using ExHyperV.Models;
 using ExHyperV.Tools;
+using ExHyperV.Tools.Api;
 
 namespace ExHyperV.Services
 {
     public class NetworkService : INetworkService
     {
-        public async Task<(List<SwitchInfo> Switches, List<PhysicalAdapterInfo> PhysicalAdapters)> GetNetworkInfoAsync()
+        // ── VM 适配器查询 ─────────────────────────────────────────────────
+        private static async Task<List<AdapterInfo>> GetVmAdaptersOnSwitchAsync(string switchGuid, string switchName)
         {
-            return await Task.Run(() =>
+            var result = new List<AdapterInfo>();
+
+            if (string.IsNullOrEmpty(switchGuid)) return result;
+
+            // 查所有 Msvm_EthernetPortAllocationSettingData
+            var allocResp = await WmiApi.QueryAsync(
+                "SELECT * FROM Msvm_EthernetPortAllocationSettingData",
+                obj => obj,
+                WmiScope.HyperV);
+
+            if (!allocResp.Success || allocResp.Data == null) return result;
+
+            var tasks = allocResp.Data.Select(async allocObj =>
             {
-                var switchList = new List<SwitchInfo>();
-                var physicalAdapterList = new List<PhysicalAdapterInfo>();
-
-                try
+                using (allocObj)
                 {
-                    Utils.Run("Set-ExecutionPolicy RemoteSigned -Scope Process -Force");
+                    // 检查 HostResource 是否指向目标 Switch
+                    var hostResourceRaw = allocObj["HostResource"];
+                    if (!(hostResourceRaw is string[] hostResource) || hostResource.Length == 0)
+                        return (AdapterInfo?)null;
 
-                    if (Utils.Run("Get-Module -ListAvailable -Name Hyper-V").Count == 0)
-                    {
-                        return (switchList, physicalAdapterList);
-                    }
+                    // 用正则从 HostResource 路径提取 ClassName 和 Name(GUID)
+                    string hostResStr = hostResource[0];
+                    var classMatch = System.Text.RegularExpressions.Regex.Match(
+                        hostResStr, @":(\w+)\.", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                    if (!classMatch.Success) return null;
+                    string className = classMatch.Groups[1].Value;
 
-                    var phydata = Utils.Run(@"Get-NetAdapter -Physical | select Name, InterfaceDescription");
-                    if (phydata != null)
+                    if (!string.Equals(className, "Msvm_VirtualEthernetSwitch", StringComparison.OrdinalIgnoreCase))
+                        return null;
+
+                    var hostGuidMatch = System.Text.RegularExpressions.Regex.Match(
+                        hostResStr, @",Name=""([^""]+)""", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                    if (!hostGuidMatch.Success) return null;
+                    string hostGuid = hostGuidMatch.Groups[1].Value;
+
+                    if (!string.Equals(hostGuid, switchGuid, StringComparison.OrdinalIgnoreCase))
+                        return null;
+
+                    // alloc 的 Parent 指向 Msvm_SyntheticEthernetPortSettingData
+                    string parentPath = allocObj["Parent"]?.ToString() ?? string.Empty;
+                    if (string.IsNullOrEmpty(parentPath)) return null;
+
+                    var ms = WmiConnectionCache.GetManagementScope(WmiScope.HyperV, WmiContext.Local);
+                    try
                     {
-                        foreach (var result in phydata)
+                        using var portSetting = new ManagementObject(ms, new ManagementPath(parentPath), null);
+                        portSetting.Get();
+
+                        string rawMac = portSetting["Address"]?.ToString() ?? string.Empty;
+                        string mac = FormatMac(rawMac);
+
+                        // 从 portSetting 找所属 VM
+                        var vmSettingsResp = await WmiApi.QueryRelatedAsync(
+                            portSetting, "Msvm_VirtualSystemSettingData",
+                            obj => obj, "Msvm_VirtualSystemSettingDataComponent");
+
+                        if (!vmSettingsResp.Success || vmSettingsResp.Data == null || vmSettingsResp.Data.Count == 0)
+                            return null;
+
+                        string vmName = string.Empty;
+                        using (var vmSetting = vmSettingsResp.Data[0])
                         {
-                            var phyDesc = result.Properties["InterfaceDescription"]?.Value?.ToString();
-                            if (!string.IsNullOrEmpty(phyDesc))
-                            {
-                                physicalAdapterList.Add(new PhysicalAdapterInfo(phyDesc));
-                            }
+                            var vmResp = await WmiApi.QueryRelatedAsync(
+                                vmSetting, "Msvm_ComputerSystem",
+                                obj => obj["ElementName"]?.ToString() ?? string.Empty,
+                                "Msvm_SettingsDefineState");
+
+                            if (vmResp.Success && vmResp.Data?.Count > 0)
+                                vmName = vmResp.Data[0];
                         }
+
+                        if (string.IsNullOrEmpty(vmName)) return null;
+
+                        string ipAddresses = await GetVmIpAddressWmiAsync(vmName, rawMac);
+                        return (AdapterInfo?)new AdapterInfo(vmName, mac, "Unknown", ipAddresses);
                     }
-
-                    var switchdata = Utils.Run(@"Get-VMSwitch | Select-Object Name, Id, SwitchType, AllowManagementOS, NetAdapterInterfaceDescription");
-                    if (switchdata != null)
+                    catch (Exception ex)
                     {
-                        foreach (var result in switchdata)
-                        {
-                            var switchName = result.Properties["Name"]?.Value?.ToString() ?? string.Empty;
-                            var switchType = result.Properties["SwitchType"]?.Value?.ToString() ?? string.Empty;
-                            var host = result.Properties["AllowManagementOS"]?.Value?.ToString() ?? string.Empty;
-                            var id = result.Properties["Id"]?.Value?.ToString() ?? string.Empty;
-                            var phydesc = result.Properties["NetAdapterInterfaceDescription"]?.Value?.ToString() ?? string.Empty;
-
-                            string? icsAdapter = GetIcsSourceAdapterName(switchName);
-                            if (icsAdapter != null)
-                            {
-                                switchType = "NAT";
-                                phydesc = icsAdapter;
-                            }
-
-                            if (!string.IsNullOrEmpty(switchName))
-                            {
-                                switchList.Add(new SwitchInfo(switchName, switchType, host, id, phydesc));
-                            }
-                        }
+                        Debug.WriteLine($"[GetVmAdaptersOnSwitchAsync] error: {ex.Message}");
+                        return null;
                     }
                 }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine($"Error in GetNetworkInfoAsync: {ex}");
-                    throw new InvalidOperationException(Properties.Resources.Error_GetNetworkInfoFailed, ex);
-                }
-
-                return (switchList, physicalAdapterList);
             });
+
+            var taskResults = await Task.WhenAll(tasks);
+            result.AddRange(taskResults.Where(a => a != null).Cast<AdapterInfo>());
+            return result;
         }
 
-        public async Task<List<AdapterInfo>> GetFullSwitchNetworkStateAsync(string switchName)
+        private static async Task<AdapterInfo?> GetHostAdapterOnSwitchAsync(string switchName)
         {
-            return await Task.Run(async () =>
-            {
-                string vmAdaptersScript =
-                    $@"Get-VMNetworkAdapter -VMName * | Where-Object {{ $_.SwitchName -eq '{switchName}' }} | " +
-                    "Select-Object VMName, " +
-                    "@{Name='MacAddress'; Expression={ " +
-                    "  $m = ($_.MacAddress -replace '[^0-9A-F]', '').ToUpper(); " +
-                    "  if($m.Length -eq 12) { $m -replace '(..)(..)(..)(..)(..)(..)', '$1:$2:$3:$4:$5:$6' } else { $m } " +
-                    "}}, " +
-                    "@{Name='AdapterStatus'; Expression={($_.Status | Out-String).Trim()}}";
+            // Msvm_InternalEthernetPort 对应 ManagementOS 的虚拟网卡
+            string safe = WmiApi.Escape(switchName);
+            var portResp = await WmiApi.QueryAsync(
+                $"SELECT * FROM Msvm_InternalEthernetPort WHERE ElementName = 'vEthernet ({safe})'",
+                obj => obj,
+                WmiScope.HyperV);
 
-                string hostAdapterScript =
-                    $@"
-            $v = Get-VMNetworkAdapter -ManagementOS | Where-Object {{ $_.SwitchName -eq '{switchName}' }};
-            if ($v) {{
-                $targetMac = $v.MacAddress -replace '[^0-9A-F]', '';
-                $n = Get-NetAdapter -IncludeHidden | Where-Object {{ (($_.MacAddress -replace '[^0-9A-F]', '') -eq $targetMac) -and ($_.InterfaceDescription -like '*Hyper-V*') }} | Select-Object -First 1;
-                if ($n) {{
-                    $rm = ($n.MacAddress -replace '[^0-9A-F]', '').ToUpper();
-                    $fm = if($rm.Length -eq 12) {{ $rm -replace '(..)(..)(..)(..)(..)(..)', '$1:$2:$3:$4:$5:$6' }} else {{ $rm }};
-                    $ipList = (Get-NetIPAddress -InterfaceIndex $n.InterfaceIndex -ErrorAction SilentlyContinue).IPAddress;
-                    $ips = if($ipList) {{ $ipList -join ',' }} else {{ '' }};
-                    [PSCustomObject]@{{
-                        VMName      = '(ManagementOS)';
-                        MacAddress  = $fm;
-                        Status      = $n.Status.ToString();
-                        IPAddresses = $ips;
-                    }};
-                }}
-            }}";
+            if (!portResp.Success || portResp.Data == null || portResp.Data.Count == 0)
+                return null;
 
-                try
+            using var port = portResp.Data[0];
+            string rawMac = port["PermanentAddress"]?.ToString() ?? string.Empty;
+            string mac = FormatMac(rawMac);
+
+            // 用 MAC 匹配 MSFT_NetAdapter，拿 InterfaceIndex 查 IP
+            string cleanMac = rawMac.ToUpper();
+            string ipAddresses = string.Empty;
+
+            var adapterResp = await WmiApi.QueryCimAsync(
+                $"SELECT InterfaceIndex, Status FROM MSFT_NetAdapter WHERE PermanentAddress = '{cleanMac}'",
+                inst => new
                 {
-                    var allAdapters = new List<AdapterInfo>();
-                    var vmResults = Utils.Run(vmAdaptersScript);
-                    if (vmResults != null)
-                    {
-                        var tasks = vmResults.Select(async pso =>
-                        {
-                            var vmName = pso.Properties["VMName"]?.Value?.ToString() ?? "";
-                            var macAddress = pso.Properties["MacAddress"]?.Value?.ToString() ?? "";
-                            var adapterStatus = pso.Properties["AdapterStatus"]?.Value?.ToString() ?? "";
-                            var ipAddresses = await Utils.GetVmIpAddressAsync(vmName, macAddress);
-                            return new AdapterInfo(vmName, macAddress, adapterStatus, ipAddresses);
-                        });
-                        allAdapters.AddRange(await Task.WhenAll(tasks));
-                    }
+                    Index = inst.CimInstanceProperties["InterfaceIndex"]?.Value?.ToString() ?? string.Empty,
+                    Status = inst.CimInstanceProperties["Status"]?.Value?.ToString() ?? string.Empty
+                },
+                WmiScope.StdCimV2);
 
-                    var stopwatch = Stopwatch.StartNew();
-                    System.Collections.ObjectModel.Collection<PSObject>? hostResults = null;
-                    while (stopwatch.ElapsedMilliseconds < 2000)
+            string status = "Unknown";
+            if (adapterResp.Success && adapterResp.Data?.Count > 0)
+            {
+                status = adapterResp.Data[0].Status;
+                string ifIndex = adapterResp.Data[0].Index;
+
+                if (!string.IsNullOrEmpty(ifIndex))
+                {
+                    // 轮询等 IP 就绪，最多 2 秒
+                    var sw = System.Diagnostics.Stopwatch.StartNew();
+                    while (sw.ElapsedMilliseconds < 2000)
                     {
-                        hostResults = Utils.Run(hostAdapterScript);
-                        if (hostResults != null && hostResults.Count > 0)
+                        var ipResp = await WmiApi.QueryCimAsync(
+                            $"SELECT IPAddress FROM MSFT_NetIPAddress WHERE InterfaceIndex = {ifIndex}",
+                            inst => inst.CimInstanceProperties["IPAddress"]?.Value?.ToString() ?? string.Empty,
+                            WmiScope.StdCimV2);
+
+                        if (ipResp.Success && ipResp.Data?.Count > 0)
                         {
-                            var ipValue = hostResults[0].Properties["IPAddresses"]?.Value?.ToString();
-                            if (!string.IsNullOrEmpty(ipValue)) break;
+                            ipAddresses = string.Join(",", ipResp.Data.Where(ip => !string.IsNullOrEmpty(ip)));
+                            if (!string.IsNullOrEmpty(ipAddresses)) break;
                         }
                         await Task.Delay(200);
                     }
-                    stopwatch.Stop();
+                }
+            }
 
-                    if (hostResults != null)
+            return new AdapterInfo(
+                ExHyperV.Properties.Resources.DisplayName_HostManagementOS,
+                mac, status, ipAddresses);
+        }
+
+        // ── VM IP 地址查询（WMI KVP，降级走 ARP）────────────────────────
+        private static async Task<string> GetVmIpAddressWmiAsync(string vmName, string rawMac)
+        {
+            // 1. 通过 Msvm_GuestNetworkAdapterConfiguration 查 IP
+            try
+            {
+                string safe = WmiApi.Escape(vmName);
+                var vmResp = await WmiApi.QueryAsync(
+                    $"SELECT * FROM Msvm_ComputerSystem WHERE ElementName = '{safe}'",
+                    obj => obj,
+                    WmiScope.HyperV);
+
+                if (vmResp.Success && vmResp.Data?.Count > 0)
+                {
+                    using var vmObj = vmResp.Data[0];
+                    var settingsResp = await WmiApi.QueryRelatedAsync(
+                        vmObj, "Msvm_VirtualSystemSettingData", obj => obj, "Msvm_SettingsDefineState");
+
+                    if (settingsResp.Success && settingsResp.Data?.Count > 0)
                     {
-                        foreach (var pso in hostResults)
+                        using var settings = settingsResp.Data[0];
+                        var nicSettingsResp = await WmiApi.QueryRelatedAsync(
+                            settings, "Msvm_SyntheticEthernetPortSettingData", obj => obj,
+                            "Msvm_VirtualSystemSettingDataComponent");
+
+                        if (nicSettingsResp.Success && nicSettingsResp.Data != null)
                         {
-                            string rawVmName = pso.Properties["VMName"]?.Value?.ToString() ?? "";
-                            allAdapters.Add(new AdapterInfo(
-                                rawVmName == "(ManagementOS)" ? ExHyperV.Properties.Resources.DisplayName_HostManagementOS : rawVmName,
-                                pso.Properties["MacAddress"]?.Value?.ToString() ?? "",
-                                pso.Properties["Status"]?.Value?.ToString() ?? "",
-                                pso.Properties["IPAddresses"]?.Value?.ToString() ?? ""
-                            ));
+                            foreach (var nicSetting in nicSettingsResp.Data)
+                            {
+                                using (nicSetting)
+                                {
+                                    // 匹配 MAC
+                                    string nicMac = nicSetting["Address"]?.ToString() ?? string.Empty;
+                                    if (!string.Equals(nicMac, rawMac, StringComparison.OrdinalIgnoreCase))
+                                        continue;
+
+                                    var guestConfigResp = await WmiApi.QueryRelatedAsync(
+                                        nicSetting, "Msvm_GuestNetworkAdapterConfiguration", obj => obj, null);
+
+                                    if (guestConfigResp.Success && guestConfigResp.Data?.Count > 0)
+                                    {
+                                        using var guestConfig = guestConfigResp.Data[0];
+                                        if (guestConfig["IPAddresses"] is string[] ips && ips.Length > 0)
+                                        {
+                                            string result = string.Join(",", ips.Where(ip => !string.IsNullOrEmpty(ip)));
+                                            if (!string.IsNullOrEmpty(result))
+                                                return Utils.SelectBestIpv4Address(result);
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
-                    return allAdapters;
                 }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine($"Error getting full network state for switch '{switchName}': {ex.Message}");
-                    return new List<AdapterInfo>();
-                }
-            });
-        }
-        public async Task UpdateSwitchConfigurationAsync(string switchName, string mode, string? adapterDescription, bool allowManagementOS, bool enableDhcp)
-        {
-            await Utils.UpdateSwitchConfigurationAsync(switchName, mode, adapterDescription, allowManagementOS, enableDhcp);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[GetVmIpAddressWmiAsync] KVP lookup failed for {vmName}: {ex.Message}");
+            }
+
+            // 2. 降级：ARP 缓存
+            return await GetIpFromArpCacheWmiAsync(rawMac);
         }
 
+        // ── ARP 缓存查询 ──────────────────────────────────────────────────
+        private static async Task<string> GetIpFromArpCacheWmiAsync(string rawMac)
+        {
+            // 格式化为 xx-xx-xx-xx-xx-xx
+            string cleanMac = rawMac.ToUpper();
+            string formattedMac = System.Text.RegularExpressions.Regex.Replace(cleanMac, ".{2}", "$0-").TrimEnd('-');
+            string safe = formattedMac.Replace("'", "\'");
+
+            try
+            {
+                var resp = await WmiApi.QueryCimAsync(
+                    $"SELECT IPAddress FROM MSFT_NetNeighbor WHERE LinkLayerAddress = '{safe}' AND AddressFamily = 2",
+                    inst => inst.CimInstanceProperties["IPAddress"]?.Value?.ToString() ?? string.Empty,
+                    WmiScope.StdCimV2);
+
+                if (resp.Success && resp.Data?.Count > 0)
+                    return resp.Data.FirstOrDefault(ip => !string.IsNullOrEmpty(ip)) ?? string.Empty;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[GetIpFromArpCacheWmiAsync] failed for {rawMac}: {ex.Message}");
+            }
+            return string.Empty;
+        }
+
+        // ── MAC 格式化工具 ─────────────────────────────────────────────────
+        private static string FormatMac(string raw)
+        {
+            string clean = System.Text.RegularExpressions.Regex.Replace(raw.ToUpper(), "[^0-9A-F]", "");
+            if (clean.Length == 12)
+                return System.Text.RegularExpressions.Regex.Replace(clean, "(..)(..)(..)(..)(..)(..)", "$1:$2:$3:$4:$5:$6");
+            return clean;
+        }
+
+        // ══════════════════════════════════════════════════════════════════
+        //  GetNetworkInfoAsync — WmiApi
+        // ══════════════════════════════════════════════════════════════════
+        public async Task<(List<SwitchInfo> Switches, List<PhysicalAdapterInfo> PhysicalAdapters)> GetNetworkInfoAsync()
+        {
+            try
+            {
+                var switchTask = GetSwitchListAsync();
+                var adapterTask = GetPhysicalAdaptersAsync();
+                await Task.WhenAll(switchTask, adapterTask);
+                return (await switchTask, await adapterTask);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error in GetNetworkInfoAsync: {ex}");
+                throw new InvalidOperationException(Properties.Resources.Error_GetNetworkInfoFailed, ex);
+            }
+        }
+
+        // ── 物理网卡列表 ─────────────────────────────────────────────────
+        private static async Task<List<PhysicalAdapterInfo>> GetPhysicalAdaptersAsync()
+        {
+            var response = await WmiApi.QueryCimAsync(
+                "SELECT InterfaceDescription FROM MSFT_NetAdapter WHERE ConnectorPresent = TRUE",
+                inst => new PhysicalAdapterInfo(
+                    inst.CimInstanceProperties["InterfaceDescription"]?.Value?.ToString() ?? string.Empty),
+                WmiScope.StdCimV2);
+
+            if (!response.Success)
+            {
+                Debug.WriteLine($"[NetworkService] GetPhysicalAdapters WMI error: {response.Error}");
+                return new List<PhysicalAdapterInfo>();
+            }
+
+            return (response.Data ?? new List<PhysicalAdapterInfo>())
+                .Where(a => !string.IsNullOrWhiteSpace(a.InterfaceDescription))
+                .ToList();
+        }
+
+        // ── 虚拟交换机列表 ───────────────────────────────────────────────
+        private async Task<List<SwitchInfo>> GetSwitchListAsync()
+        {
+            var switchObjects = await WmiApi.QueryAsync(
+                "SELECT * FROM Msvm_VirtualEthernetSwitch",
+                obj => obj,
+                WmiScope.HyperV);
+
+            if (!switchObjects.Success || switchObjects.Data == null)
+            {
+                Debug.WriteLine($"[NetworkService] GetSwitchList WMI error: {switchObjects.Error}");
+                return new List<SwitchInfo>();
+            }
+
+            var tasks = switchObjects.Data.Select(async switchObj =>
+            {
+                using (switchObj) { return await ParseSwitchInfoAsync(switchObj); }
+            });
+
+            var results = await Task.WhenAll(tasks);
+            return results.Where(s => s != null).Cast<SwitchInfo>().ToList();
+        }
+
+        private async Task<SwitchInfo?> ParseSwitchInfoAsync(ManagementObject switchObj)
+        {
+            string switchName = switchObj["ElementName"]?.ToString() ?? string.Empty;
+            if (string.IsNullOrEmpty(switchName)) return null;
+
+            string switchGuid = switchObj["Name"]?.ToString() ?? string.Empty;
+
+            string switchId = string.Empty;
+            var settingResponse = await WmiApi.QueryRelatedAsync(
+                switchObj,
+                "Msvm_VirtualEthernetSwitchSettingData",
+                obj => obj["VirtualSystemIdentifier"]?.ToString() ?? string.Empty,
+                associationClass: "Msvm_SettingsDefineState");
+
+            if (settingResponse.Success && settingResponse.Data?.Count > 0)
+                switchId = settingResponse.Data[0];
+
+            bool hasExternal = false;
+            bool hasInternal = false;
+            string externalAdapterElementName = string.Empty;
+
+            var portsResponse = await WmiApi.QueryRelatedAsync(
+                switchObj, "Msvm_EthernetSwitchPort", obj => obj, "Msvm_SystemDevice");
+
+            if (portsResponse.Success && portsResponse.Data != null)
+            {
+                foreach (var portObj in portsResponse.Data)
+                {
+                    using (portObj)
+                    {
+                        var portSettingsResp = await WmiApi.QueryRelatedAsync(
+                            portObj, "Msvm_EthernetPortAllocationSettingData", obj => obj, "Msvm_ElementSettingData");
+
+                        if (!portSettingsResp.Success || portSettingsResp.Data == null) continue;
+
+                        foreach (var portSettings in portSettingsResp.Data)
+                        {
+                            using (portSettings)
+                            {
+                                var (portType, adapterName) = DeterminePortType(portSettings);
+                                switch (portType)
+                                {
+                                    case PortConnectionKind.Internal:
+                                        hasInternal = true;
+                                        break;
+                                    case PortConnectionKind.External:
+                                        hasExternal = true;
+                                        if (string.IsNullOrEmpty(externalAdapterElementName))
+                                            externalAdapterElementName = adapterName;
+                                        break;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            string switchType = hasExternal ? "External" : hasInternal ? "Internal" : "Private";
+            bool allowManagementOS = hasInternal;
+
+            string interfaceDescription = string.Empty;
+            if (hasExternal && !string.IsNullOrEmpty(externalAdapterElementName))
+                interfaceDescription = await ResolveInterfaceDescriptionAsync(externalAdapterElementName);
+
+            // ICS（NAT）检测
+            var icsResponse = ComApi.GetIcsSourceAdapter(switchName);
+            if (icsResponse.Success && icsResponse.Data != null)
+            {
+                switchType = "NAT";
+                // GetIcsSourceAdapter 返回适配器显示名（如 "WLAN"），转换为 InterfaceDescription
+                interfaceDescription = await ResolveInterfaceDescriptionAsync(icsResponse.Data);
+                if (string.IsNullOrEmpty(interfaceDescription))
+                    interfaceDescription = icsResponse.Data;
+            }
+
+            return new SwitchInfo(
+                switchName,
+                switchType,
+                allowManagementOS.ToString(),
+                string.IsNullOrEmpty(switchId) ? switchGuid : switchId,
+                interfaceDescription);
+        }
+
+        private enum PortConnectionKind { Nothing, Internal, External, VirtualMachine }
+
+        private static (PortConnectionKind kind, string adapterElementName) DeterminePortType(
+            ManagementObject portSettings)
+        {
+            if (portSettings["HostResource"] is string[] hostResource && hostResource.Length > 0)
+            {
+                var path = new ManagementPath(hostResource[0]);
+                if (string.Equals(path.ClassName, "Msvm_ComputerSystem", StringComparison.OrdinalIgnoreCase))
+                    return (PortConnectionKind.Internal, string.Empty);
+
+                if (string.Equals(path.ClassName, "Msvm_ExternalEthernetPort", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(path.ClassName, "Msvm_WiFiPort", StringComparison.OrdinalIgnoreCase))
+                {
+                    string elementName = string.Empty;
+                    try
+                    {
+                        var ms = WmiConnectionCache.GetManagementScope(WmiScope.HyperV, WmiContext.Local);
+                        using var extPort = new ManagementObject(ms, new ManagementPath(hostResource[0]), null);
+                        extPort.Get();
+                        elementName = extPort["ElementName"]?.ToString() ?? string.Empty;
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"[NetworkService] DeterminePortType ExternalPort error: {ex.Message}");
+                    }
+                    return (PortConnectionKind.External, elementName);
+                }
+            }
+
+            string parent = portSettings["Parent"]?.ToString() ?? string.Empty;
+            if (!string.IsNullOrEmpty(parent))
+            {
+                var parentPath = new ManagementPath(parent);
+                if (string.Equals(parentPath.ClassName, "Msvm_SyntheticEthernetPortSettingData", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(parentPath.ClassName, "Msvm_EmulatedEthernetPortSettingData", StringComparison.OrdinalIgnoreCase))
+                    return (PortConnectionKind.VirtualMachine, string.Empty);
+            }
+
+            return (PortConnectionKind.Nothing, string.Empty);
+        }
+
+        private static async Task<string> ResolveInterfaceDescriptionAsync(string elementName)
+        {
+            if (string.IsNullOrWhiteSpace(elementName)) return string.Empty;
+
+            string safe = elementName.Replace("'", "\\'");
+            var response = await WmiApi.QueryCimAsync(
+                $"SELECT InterfaceDescription FROM MSFT_NetAdapter WHERE Name = '{safe}'",
+                inst => inst.CimInstanceProperties["InterfaceDescription"]?.Value?.ToString() ?? string.Empty,
+                WmiScope.StdCimV2);
+
+            if (response.Success && response.Data?.Count > 0 && !string.IsNullOrEmpty(response.Data[0]))
+                return response.Data[0];
+
+            return elementName;
+        }
+
+        // ══════════════════════════════════════════════════════════════════
+        //  CreateSwitchAsync — WmiApi
+        // ══════════════════════════════════════════════════════════════════
         public async Task CreateSwitchAsync(string name, string type, string? adapterDescription)
         {
             try
             {
-                string script;
                 switch (type.ToUpper())
                 {
                     case "EXTERNAL":
                         if (string.IsNullOrEmpty(adapterDescription))
-                        {
                             throw new ArgumentException(Properties.Resources.Error_ExternalSwitchRequiresPhysicalAdapter);
-                        }
-                        script = $"New-VMSwitch -Name '{name}' -NetAdapterInterfaceDescription '{adapterDescription}' -AllowManagementOS $true";
-                        await Task.Run(() => Utils.Run(script));
+                        // External Switch 不预加 Internal 端口，避免产生 vEthernet ()
+                        // 用户可通过 Host Connection 开关事后开启
+                        await CreateSwitchWmiAsync(name, isExternal: true, adapterDescription, allowManagementOS: true);
                         break;
+
                     case "NAT":
-                        script = $"New-VMSwitch -Name '{name}' -SwitchType Internal";
-                        await Task.Run(() => Utils.Run(script));
+                        await CreateSwitchWmiAsync(name, isExternal: false, null, allowManagementOS: true);
                         await Task.Delay(3000);
                         await UpdateSwitchConfigurationAsync(name, "NAT", adapterDescription, true, true);
                         break;
+
                     case "INTERNAL":
                     default:
-                        script = $"New-VMSwitch -Name '{name}' -SwitchType Internal";
-                        await Task.Run(() => Utils.Run(script));
+                        await CreateSwitchWmiAsync(name, isExternal: false, null, allowManagementOS: true);
                         break;
                 }
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"Error in CreateSwitchAsync: {ex}");
-                throw new InvalidOperationException(string.Format(Properties.Resources.Error_CreateSwitchFailed, name, ex.Message), ex);
+                throw new InvalidOperationException(
+                    string.Format(Properties.Resources.Error_CreateSwitchFailed, name, ex.Message), ex);
             }
         }
 
+        private static async Task CreateSwitchWmiAsync(
+            string name, bool isExternal, string? adapterInterfaceDescription, bool allowManagementOS)
+        {
+            var ms = WmiConnectionCache.GetManagementScope(WmiScope.HyperV, WmiContext.Local);
+
+            // 1. 构造 SettingData XML（只有名称，其余用默认值）
+            string settingXml;
+            using (var settingClass = new ManagementClass(ms, new ManagementPath("Msvm_VirtualEthernetSwitchSettingData"), null))
+            using (var settingInstance = settingClass.CreateInstance())
+            {
+                settingInstance["ElementName"] = name;
+                settingXml = settingInstance.GetText(TextFormat.CimDtd20);
+            }
+
+            // 2. DefineSystem：ResourceSettings 传 null，与 PS 底层 BeginCreateVirtualSwitch 行为一致
+            var defineResult = await WmiApi.InvokeAsync(
+                "SELECT * FROM Msvm_VirtualEthernetSwitchManagementService",
+                "DefineSystem",
+                p =>
+                {
+                    p["SystemSettings"] = settingXml;
+                    p["ResourceSettings"] = null;
+                    p["ReferenceConfiguration"] = null;
+                },
+                WmiScope.HyperV);
+
+            if (!defineResult.Success)
+                throw new InvalidOperationException(defineResult.Error);
+
+            // 3. 创建后再绑端口（等价于 ConfigureConnections -> AddConnections）
+            using var switchObj = await GetSwitchObjectAsync(name);
+            string settingPath = await GetSwitchSettingPathAsync(switchObj);
+
+            var resourceXmls = new List<string>();
+
+            if (isExternal && !string.IsNullOrEmpty(adapterInterfaceDescription))
+            {
+                string extPortPath = await FindExternalEthernetPortPathAsync(adapterInterfaceDescription);
+                if (string.IsNullOrEmpty(extPortPath))
+                    throw new InvalidOperationException(
+                        Properties.Resources.Error_ExternalSwitchRequiresPhysicalAdapter);
+
+                using var extAllocClass = new ManagementClass(ms, new ManagementPath("Msvm_EthernetPortAllocationSettingData"), null);
+                using var extAllocInstance = extAllocClass.CreateInstance();
+                extAllocInstance["HostResource"] = new string[] { extPortPath };
+                resourceXmls.Add(extAllocInstance.GetText(TextFormat.CimDtd20));
+            }
+
+            if (allowManagementOS || !isExternal)
+            {
+                string hostSystemPath = GetHostComputerSystemPath(ms);
+                using var intAllocClass = new ManagementClass(ms, new ManagementPath("Msvm_EthernetPortAllocationSettingData"), null);
+                using var intAllocInstance = intAllocClass.CreateInstance();
+                intAllocInstance["ElementName"] = name;
+                intAllocInstance["HostResource"] = new string[] { hostSystemPath };
+                resourceXmls.Add(intAllocInstance.GetText(TextFormat.CimDtd20));
+            }
+
+            if (resourceXmls.Count > 0)
+            {
+                var addResult = await WmiApi.InvokeAsync(
+                    "SELECT * FROM Msvm_VirtualEthernetSwitchManagementService",
+                    "AddResourceSettings",
+                    p =>
+                    {
+                        p["AffectedConfiguration"] = settingPath;
+                        p["ResourceSettings"] = resourceXmls.ToArray();
+                    },
+                    WmiScope.HyperV);
+
+                if (!addResult.Success)
+                    throw new InvalidOperationException(addResult.Error);
+            }
+            else
+            {
+            }
+        }
+
+        // ══════════════════════════════════════════════════════════════════
+        //  DeleteSwitchAsync — WmiApi + ComApi
+        // ══════════════════════════════════════════════════════════════════
         public async Task DeleteSwitchAsync(string switchName)
         {
-            await Task.Run(() =>
-            {
-                try
-                {
-                    ClearAllIcsSettings();
-                    string script = $"Remove-VMSwitch -Name '{switchName}' -Force";
-                    Utils.Run(script);
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine($"Error in DeleteSwitchAsync: {ex}");
-                    throw new InvalidOperationException(string.Format(Properties.Resources.Error_DeleteSwitchFailed, switchName), ex);
-                }
-            });
-        }
-
-        private void ClearAllIcsSettings()
-        {
             try
             {
-                string script = @"
-                    $netShareManager = New-Object -ComObject HNetCfg.HNetShare;
-                    foreach ($connection in $netShareManager.EnumEveryConnection) {
-                        $config = $netShareManager.INetSharingConfigurationForINetConnection.Invoke($connection);
-                        if ($config.SharingEnabled) {
-                            $config.DisableSharing();
-                        }
-                    }";
-                Utils.Run(script);
+                // ICS 清理加超时保护，避免桥接状态下枚举网络连接卡死
+                var icsTask = ComApi.DisableAllIcsSharingAsync();
+                await Task.WhenAny(icsTask, Task.Delay(5000));
+                if (!icsTask.IsCompleted)
+                    Debug.WriteLine("[DeleteSwitch] DisableAllIcsSharing timeout, continuing anyway.");
+
+                var switchResp = await WmiApi.QueryAsync(
+                    $"SELECT * FROM Msvm_VirtualEthernetSwitch WHERE ElementName = '{WmiApi.Escape(switchName)}'",
+                    obj => obj.Path.Path,
+                    WmiScope.HyperV);
+
+                if (!switchResp.Success || switchResp.Data == null || switchResp.Data.Count == 0)
+                    throw new InvalidOperationException($"Switch '{switchName}' not found.");
+
+                var result = await WmiApi.InvokeAsync(
+                    "SELECT * FROM Msvm_VirtualEthernetSwitchManagementService",
+                    "DestroySystem",
+                    p => p["AffectedSystem"] = switchResp.Data[0],
+                    WmiScope.HyperV);
+
+                if (!result.Success)
+                    throw new InvalidOperationException(result.Error);
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Exception in ClearAllIcsSettings: {ex}");
+                Debug.WriteLine($"Error in DeleteSwitchAsync: {ex}");
+                throw new InvalidOperationException(
+                    string.Format(Properties.Resources.Error_DeleteSwitchFailed, switchName), ex);
             }
         }
 
-        private string? GetIcsSourceAdapterName(string switchName)
+        // ══════════════════════════════════════════════════════════════════
+        //  UpdateSwitchConfigurationAsync — WmiApi + ComApi
+        // ══════════════════════════════════════════════════════════════════
+        public async Task UpdateSwitchConfigurationAsync(
+            string switchName, string mode, string? adapterDescription,
+            bool allowManagementOS, bool enableDhcp)
         {
-            string script = @"
-            param([string]$switchName)
-            try {
-                $PublicAdapterNameToFind = ""vEthernet ({0})"" -f $switchName
-                $netShareManager = New-Object -ComObject HNetCfg.HNetShare
-                $icsSourceAdapterName = $null
-                $icsGatewayIsCorrect = $false
-                foreach ($connection in $netShareManager.EnumEveryConnection) {
-                    $config = $netShareManager.INetSharingConfigurationForINetConnection.Invoke($connection)
-                    if ($config.SharingEnabled) {
-                        $props = $netShareManager.NetConnectionProps.Invoke($connection)
-                        if (($config.SharingConnectionType -eq 1) -and ($props.Name -eq $PublicAdapterNameToFind)) {
-                            $icsGatewayIsCorrect = $true
-                        }
-                        elseif ($config.SharingConnectionType -eq 0) {
-                            $icsSourceAdapterName = $props.Name
-                        }
-                    }
-                }
-                if (($icsGatewayIsCorrect) -and ($null -ne $icsSourceAdapterName)) {
-                    try {
-                        $adapterDetails = Get-NetAdapter -Name $icsSourceAdapterName -ErrorAction Stop
-                        return $adapterDetails.InterfaceDescription
-                    }
-                    catch {
-                        return $icsSourceAdapterName
-                    }
-                }
-                return $null
+            switch (mode)
+            {
+                case "Bridge":
+                    await SetBridgeModeAsync(switchName, adapterDescription, allowManagementOS);
+                    break;
+                case "NAT":
+                    await SetNatModeAsync(switchName, adapterDescription);
+                    break;
+                case "Isolated":
+                    await SetIsolatedModeAsync(switchName, allowManagementOS);
+                    break;
+                default:
+                    throw new ArgumentException(
+                        string.Format(Properties.Resources.Utils_UnknownNetMode, mode));
             }
-            catch {
-                return $null
-            }";
+        }
 
+        private async Task SetBridgeModeAsync(string switchName, string? adapterDescription, bool allowManagementOS = true)
+        {
+            if (string.IsNullOrEmpty(adapterDescription))
+                throw new ArgumentException("Bridge mode requires a physical adapter.");
+
+            await ComApi.DisableAllIcsSharingAsync();
+
+            var ms = WmiConnectionCache.GetManagementScope(WmiScope.HyperV, WmiContext.Local);
+            using var switchObj = await GetSwitchObjectAsync(switchName);
+
+            await RemoveInternalPortsAsync(switchObj, ms);
+
+            string extPortPath = await FindExternalEthernetPortPathAsync(adapterDescription);
+            if (string.IsNullOrEmpty(extPortPath))
+                throw new InvalidOperationException(
+                    Properties.Resources.Error_ExternalSwitchRequiresPhysicalAdapter);
+
+            string settingPath = await GetSwitchSettingPathAsync(switchObj);
+
+            // 构造端口列表：External 端口必加，Internal 端口按 allowManagementOS 决定
+            var resourceXmls = new List<string>();
+
+            using var extAllocClass = new ManagementClass(ms, new ManagementPath("Msvm_EthernetPortAllocationSettingData"), null);
+            using var extAllocInstance = extAllocClass.CreateInstance();
+            extAllocInstance["HostResource"] = new string[] { extPortPath };
+            resourceXmls.Add(extAllocInstance.GetText(TextFormat.CimDtd20));
+
+            if (allowManagementOS)
+            {
+                string hostSystemPath = GetHostComputerSystemPath(ms);
+                using var intAllocClass = new ManagementClass(ms, new ManagementPath("Msvm_EthernetPortAllocationSettingData"), null);
+                using var intAllocInstance = intAllocClass.CreateInstance();
+                intAllocInstance["ElementName"] = switchName;
+                intAllocInstance["HostResource"] = new string[] { hostSystemPath };
+                resourceXmls.Add(intAllocInstance.GetText(TextFormat.CimDtd20));
+            }
+
+            var result = await WmiApi.InvokeAsync(
+                "SELECT * FROM Msvm_VirtualEthernetSwitchManagementService",
+                "AddResourceSettings",
+                p =>
+                {
+                    p["AffectedConfiguration"] = settingPath;
+                    p["ResourceSettings"] = resourceXmls.ToArray();
+                },
+                WmiScope.HyperV);
+
+            if (!result.Success) throw new InvalidOperationException(result.Error);
+        }
+
+        private async Task SetNatModeAsync(string switchName, string? adapterDescription)
+        {
+            if (string.IsNullOrEmpty(adapterDescription))
+                throw new ArgumentException("NAT mode requires a physical adapter.");
+
+            var ms = WmiConnectionCache.GetManagementScope(WmiScope.HyperV, WmiContext.Local);
+            using var switchObj = await GetSwitchObjectAsync(switchName);
+            await EnsureInternalModeAsync(switchObj, ms, switchName);
+
+            await ComApi.DisableAllIcsSharingAsync();
+
+            string vEthernetName = $"vEthernet ({switchName})";
+            string physicalAdapterName = await ResolveAdapterNameAsync(adapterDescription);
+
+            var icsResult = await ComApi.EnableIcsSharingAsync(physicalAdapterName, vEthernetName);
+            if (!icsResult.Success) throw new InvalidOperationException(icsResult.Error);
+        }
+
+        private async Task SetIsolatedModeAsync(string switchName, bool allowManagementOS)
+        {
+            var ms = WmiConnectionCache.GetManagementScope(WmiScope.HyperV, WmiContext.Local);
+            using var switchObj = await GetSwitchObjectAsync(switchName);
+            await EnsureInternalModeAsync(switchObj, ms);
+            await ComApi.DisableAllIcsSharingAsync();
+
+            bool hasInternal = await HasInternalPortAsync(switchObj);
+
+            if (allowManagementOS && !hasInternal)
+            {
+                string hostSystemPath = GetHostComputerSystemPath(ms);
+                string settingPath = await GetSwitchSettingPathAsync(switchObj);
+
+                using var allocClass = new ManagementClass(ms, new ManagementPath("Msvm_EthernetPortAllocationSettingData"), null);
+                using var allocInstance = allocClass.CreateInstance();
+                allocInstance["ElementName"] = switchObj["ElementName"]?.ToString() ?? string.Empty;
+                allocInstance["HostResource"] = new string[] { hostSystemPath };
+
+                var addResult = await WmiApi.InvokeAsync(
+                    "SELECT * FROM Msvm_VirtualEthernetSwitchManagementService",
+                    "AddResourceSettings",
+                    p =>
+                    {
+                        p["AffectedConfiguration"] = settingPath;
+                        p["ResourceSettings"] = new string[] { allocInstance.GetText(TextFormat.CimDtd20) };
+                    },
+                    WmiScope.HyperV);
+
+                if (!addResult.Success) throw new InvalidOperationException(addResult.Error);
+            }
+            else if (!allowManagementOS && hasInternal)
+            {
+                await RemoveInternalPortsAsync(switchObj, ms);
+            }
+        }
+
+        // ── Switch 操作辅助 ───────────────────────────────────────────────
+
+        private static async Task<ManagementObject> GetSwitchObjectAsync(string switchName)
+        {
+            var resp = await WmiApi.QueryAsync(
+                $"SELECT * FROM Msvm_VirtualEthernetSwitch WHERE ElementName = '{WmiApi.Escape(switchName)}'",
+                obj => obj,
+                WmiScope.HyperV);
+
+            if (!resp.Success || resp.Data == null || resp.Data.Count == 0)
+                throw new InvalidOperationException($"Switch '{switchName}' not found.");
+
+            return resp.Data[0];
+        }
+
+        private static async Task<string> GetSwitchSettingPathAsync(ManagementObject switchObj)
+        {
+            var resp = await WmiApi.QueryRelatedAsync(
+                switchObj, "Msvm_VirtualEthernetSwitchSettingData",
+                obj => obj.Path.Path, "Msvm_SettingsDefineState");
+
+            if (!resp.Success || resp.Data == null || resp.Data.Count == 0)
+                throw new InvalidOperationException("Cannot find switch SettingData.");
+
+            return resp.Data[0];
+        }
+
+        private static async Task RemoveInternalPortsAsync(ManagementObject switchObj, ManagementScope ms)
+        {
+            var portsResp = await WmiApi.QueryRelatedAsync(
+                switchObj, "Msvm_EthernetSwitchPort", obj => obj, "Msvm_SystemDevice");
+
+            if (!portsResp.Success || portsResp.Data == null) return;
+
+            var internalPortPaths = new List<string>();
+            foreach (var port in portsResp.Data)
+            {
+                using (port)
+                {
+                    var settingsResp = await WmiApi.QueryRelatedAsync(
+                        port, "Msvm_EthernetPortAllocationSettingData", obj => obj, "Msvm_ElementSettingData");
+
+                    if (!settingsResp.Success || settingsResp.Data == null) continue;
+                    foreach (var ps in settingsResp.Data)
+                    {
+                        using (ps)
+                        {
+                            var (kind, _) = DeterminePortType(ps);
+                            if (kind == PortConnectionKind.Internal)
+                                internalPortPaths.Add(ps.Path.Path);
+                        }
+                    }
+                }
+            }
+
+            if (internalPortPaths.Count == 0) return;
+
+            var removeResult = await WmiApi.InvokeAsync(
+                "SELECT * FROM Msvm_VirtualEthernetSwitchManagementService",
+                "RemoveResourceSettings",
+                p => p["ResourceSettings"] = internalPortPaths.ToArray(),
+                WmiScope.HyperV);
+
+            if (!removeResult.Success)
+                Debug.WriteLine($"[NetworkService] RemoveInternalPorts warning: {removeResult.Error}");
+        }
+
+        private static async Task<bool> HasInternalPortAsync(ManagementObject switchObj)
+        {
+            var portsResp = await WmiApi.QueryRelatedAsync(
+                switchObj, "Msvm_EthernetSwitchPort", obj => obj, "Msvm_SystemDevice");
+
+            if (!portsResp.Success || portsResp.Data == null) return false;
+
+            foreach (var port in portsResp.Data)
+            {
+                using (port)
+                {
+                    var settingsResp = await WmiApi.QueryRelatedAsync(
+                        port, "Msvm_EthernetPortAllocationSettingData", obj => obj, "Msvm_ElementSettingData");
+
+                    if (!settingsResp.Success || settingsResp.Data == null) continue;
+                    foreach (var ps in settingsResp.Data)
+                    {
+                        using (ps)
+                        {
+                            var (kind, _) = DeterminePortType(ps);
+                            if (kind == PortConnectionKind.Internal) return true;
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+
+        private static async Task EnsureInternalModeAsync(ManagementObject switchObj, ManagementScope ms, string switchName = "")
+        {
+            var portsResp = await WmiApi.QueryRelatedAsync(
+                switchObj, "Msvm_EthernetSwitchPort", obj => obj, "Msvm_SystemDevice");
+
+            if (!portsResp.Success || portsResp.Data == null) return;
+
+            var externalPortPaths = new List<string>();
+            bool hasInternal = false;
+
+            foreach (var port in portsResp.Data)
+            {
+                using (port)
+                {
+                    var settingsResp = await WmiApi.QueryRelatedAsync(
+                        port, "Msvm_EthernetPortAllocationSettingData", obj => obj, "Msvm_ElementSettingData");
+
+                    if (!settingsResp.Success || settingsResp.Data == null) continue;
+                    foreach (var ps in settingsResp.Data)
+                    {
+                        using (ps)
+                        {
+                            var (kind, _) = DeterminePortType(ps);
+                            if (kind == PortConnectionKind.External) externalPortPaths.Add(ps.Path.Path);
+                            if (kind == PortConnectionKind.Internal) hasInternal = true;
+                        }
+                    }
+                }
+            }
+
+            if (externalPortPaths.Count > 0)
+            {
+                await WmiApi.InvokeAsync(
+                    "SELECT * FROM Msvm_VirtualEthernetSwitchManagementService",
+                    "RemoveResourceSettings",
+                    p => p["ResourceSettings"] = externalPortPaths.ToArray(),
+                    WmiScope.HyperV);
+            }
+
+            if (!hasInternal)
+            {
+                string hostSystemPath = GetHostComputerSystemPath(ms);
+                string settingPath = await GetSwitchSettingPathAsync(switchObj);
+
+                using var allocClass = new ManagementClass(ms, new ManagementPath("Msvm_EthernetPortAllocationSettingData"), null);
+                using var allocInstance = allocClass.CreateInstance();
+                allocInstance["ElementName"] = switchObj["ElementName"]?.ToString() ?? string.Empty;
+                allocInstance["HostResource"] = new string[] { hostSystemPath };
+
+                await WmiApi.InvokeAsync(
+                    "SELECT * FROM Msvm_VirtualEthernetSwitchManagementService",
+                    "AddResourceSettings",
+                    p =>
+                    {
+                        p["AffectedConfiguration"] = settingPath;
+                        p["ResourceSettings"] = new string[] { allocInstance.GetText(TextFormat.CimDtd20) };
+                    },
+                    WmiScope.HyperV);
+            }
+        }
+
+        private static async Task<string> FindExternalEthernetPortPathAsync(string interfaceDescription)
+        {
+            // InterfaceDescription 对应 WMI 里的 Name 字段
+            // 有线网卡在 Msvm_ExternalEthernetPort，Wi-Fi 在 Msvm_WiFiPort，两个都要查
+            string safe = interfaceDescription.Replace("'", "\\'");
+
+            var ethResp = await WmiApi.QueryAsync(
+                $"SELECT * FROM Msvm_ExternalEthernetPort WHERE Name = '{safe}'",
+                obj => obj.Path.Path,
+                WmiScope.HyperV);
+
+            if (ethResp.Success && ethResp.Data?.Count > 0 && !string.IsNullOrEmpty(ethResp.Data[0]))
+                return ethResp.Data[0];
+
+            var wifiResp = await WmiApi.QueryAsync(
+                $"SELECT * FROM Msvm_WiFiPort WHERE Name = '{safe}'",
+                obj => obj.Path.Path,
+                WmiScope.HyperV);
+
+            string wifiResult = (wifiResp.Success && wifiResp.Data?.Count > 0) ? wifiResp.Data[0] : string.Empty;
+            Debug.WriteLine($"[FindExternalPort] interfaceDescription={interfaceDescription} ethResult={(ethResp.Data?.Count > 0 ? ethResp.Data[0] : "empty")} wifiResult={wifiResult}");
+            return wifiResult;
+        }
+
+        private static string GetHostComputerSystemPath(ManagementScope ms)
+        {
+            // 宿主机的 Msvm_ComputerSystem 用 Name = 主机名 查询（非虚拟机）
+            // Caption = "Hosting Computer System" 是另一个可靠的过滤条件
+            string hostName = System.Environment.MachineName;
+            using var searcher = new ManagementObjectSearcher(ms,
+                new ObjectQuery($"SELECT * FROM Msvm_ComputerSystem WHERE Name = '{hostName}'"));
+            using var col = searcher.Get();
+            var host = col.Cast<ManagementObject>().FirstOrDefault();
+            return host?.Path.Path ?? string.Empty;
+        }
+
+        private static async Task<string> ResolveAdapterNameAsync(string interfaceDescription)
+        {
+            string safe = interfaceDescription.Replace("'", "\\'");
+            var resp = await WmiApi.QueryCimAsync(
+                $"SELECT Name FROM MSFT_NetAdapter WHERE InterfaceDescription = '{safe}'",
+                inst => inst.CimInstanceProperties["Name"]?.Value?.ToString() ?? string.Empty,
+                WmiScope.StdCimV2);
+
+            return (resp.Success && resp.Data?.Count > 0 && !string.IsNullOrEmpty(resp.Data[0]))
+                ? resp.Data[0] : interfaceDescription;
+        }
+
+        // ══════════════════════════════════════════════════════════════════
+        //  GetFullSwitchNetworkStateAsync — WmiApi + CimApi
+        // ══════════════════════════════════════════════════════════════════
+        public async Task<List<AdapterInfo>> GetFullSwitchNetworkStateAsync(string switchName)
+        {
             try
             {
-                using (var ps = PowerShell.Create())
-                {
-                    ps.AddScript(script);
-                    ps.AddParameter("switchName", switchName);
-                    var results = ps.Invoke();
-                    if (ps.Streams.Error.Count > 0) return null;
-                    if (results.Count > 0 && results[0] != null) return results[0].BaseObject?.ToString();
-                }
+                var allAdapters = new List<AdapterInfo>();
+
+                // 1. 找到 Switch 对象路径，用于过滤端口
+                string safe = WmiApi.Escape(switchName);
+                var switchResp = await WmiApi.QueryAsync(
+                    $"SELECT * FROM Msvm_VirtualEthernetSwitch WHERE ElementName = '{safe}'",
+                    obj => obj.Path.Path,
+                    WmiScope.HyperV);
+
+                if (!switchResp.Success || switchResp.Data == null || switchResp.Data.Count == 0)
+                    return allAdapters;
+
+                string switchPath = switchResp.Data[0];
+
+                // 从路径提取 Switch GUID（Name 字段）
+                var guidMatch = System.Text.RegularExpressions.Regex.Match(
+                    switchPath, @",Name=""([^""]+)""", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                string switchGuid = guidMatch.Success ? guidMatch.Groups[1].Value : string.Empty;
+                Debug.WriteLine($"[GetFullSwitchNetworkState] switchPath={switchPath} switchGuid={switchGuid}");
+
+                // 2. 查所有 VM 的 Msvm_SyntheticEthernetPort，过滤连接到此 Switch 的
+                var vmAdapters = await GetVmAdaptersOnSwitchAsync(switchGuid, switchName);
+                allAdapters.AddRange(vmAdapters);
+
+                // 3. 查 ManagementOS 的 Internal 端口
+                var hostAdapter = await GetHostAdapterOnSwitchAsync(switchName);
+                if (hostAdapter != null)
+                    allAdapters.Add(hostAdapter);
+
+                return allAdapters;
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Exception in GetIcsSourceAdapterName: {ex}");
-                return null;
+                Debug.WriteLine($"Error getting full network state for switch '{switchName}': {ex.Message}");
+                return new List<AdapterInfo>();
             }
-
-            return null;
         }
     }
 }
