@@ -44,18 +44,44 @@ namespace ExHyperV.Services
                         vmNameList.AddRange(vmResp.Data.Where(n => !string.IsNullOrEmpty(n)));
                     Debug.WriteLine($"[DDA] vmNames={string.Join(",", vmNameList)}");
 
-                    // Get-VMAssignableDevice 返回 PCIP\* 格式的 InstanceID
+                    // WMI 替换 Get-VMAssignableDevice：
+                    // Msvm_ComputerSystem → Msvm_VirtualSystemSettingData(Realized) → Msvm_PciExpressSettingData → HostResource
                     foreach (var vmName in vmNameList)
                     {
-                        var assigned = Utils.Run($"Get-VMAssignableDevice -VMName '{vmName}' | Select-Object InstanceID");
-                        if (assigned == null) continue;
-                        foreach (var dev in assigned)
+                        // 拿 VM 的 Realized 设置对象
+                        string escapedVmName = WmiApi.Escape(vmName);
+                        var settingResp = await WmiApi.QueryAsync(
+                            $"SELECT InstanceID FROM Msvm_VirtualSystemSettingData " +
+                            $"WHERE VirtualSystemType = 'Microsoft:Hyper-V:System:Realized' " +
+                            $"AND ElementName = '{escapedVmName}'",
+                            obj => obj["InstanceID"]?.ToString() ?? string.Empty,
+                            WmiScope.HyperV);
+                        if (!settingResp.Success || settingResp.Data == null) continue;
+
+                        foreach (var settingId in settingResp.Data.Where(s => !string.IsNullOrEmpty(s)))
                         {
-                            var pureId = GetPureId(dev.Members["InstanceID"]?.Value?.ToString());
-                            if (!string.IsNullOrEmpty(pureId))
+                            // settingId = "Microsoft:VMGUID"
+                            // Msvm_PciExpressSettingData.InstanceID = "Microsoft:VMGUID\deviceGUID"
+                            string escapedSettingId = WmiApi.Escape(settingId);
+                            var pciResp = await WmiApi.QueryAsync(
+                                $"SELECT HostResource FROM Msvm_PciExpressSettingData " +
+                                $"WHERE InstanceID LIKE '{escapedSettingId}\\\\%'",
+                                obj => obj["HostResource"] is string[] hr && hr.Length > 0 ? hr[0] : null,
+                                WmiScope.HyperV);
+
+                            if (!pciResp.Success || pciResp.Data == null) continue;
+                            foreach (var hostResource in pciResp.Data.Where(r => r != null))
                             {
-                                vmDeviceAssignments[pureId] = vmName;
-                                Debug.WriteLine($"[DDA] assigned: pureId='{pureId}' vm='{vmName}'");
+                                var match = System.Text.RegularExpressions.Regex.Match(
+                                    hostResource!, @"DeviceID=""Microsoft:[^\\]+\\\\(.+?)""");
+                                if (!match.Success) continue;
+                                string rawId = match.Groups[1].Value.Replace("\\\\", "\\");
+                                string pureId = GetPureId(rawId);
+                                if (!string.IsNullOrEmpty(pureId))
+                                {
+                                    vmDeviceAssignments[pureId] = vmName;
+                                    Debug.WriteLine($"[DDA] WMI assigned: pureId='{pureId}' vm='{vmName}'");
+                                }
                             }
                         }
                     }
@@ -137,42 +163,77 @@ namespace ExHyperV.Services
 
         public async Task<(MmioCheckResultType Result, string Message)> CheckMmioSpaceAsync(string vmName)
         {
-            return await Task.Run(() =>
+            // WMI 替换 Get-VM HighMemoryMappedIoSpace
+            // Msvm_VirtualSystemSettingData.HighMmioGapSize 单位是 MB，需乘以 1048576 得字节数
+            string escapedVmName = WmiApi.Escape(vmName);
+            var resp = await WmiApi.QueryAsync(
+                $"SELECT HighMmioGapSize FROM Msvm_VirtualSystemSettingData " +
+                $"WHERE ElementName = '{escapedVmName}' AND VirtualSystemType = 'Microsoft:Hyper-V:System:Realized'",
+                obj => obj["HighMmioGapSize"],
+                WmiScope.HyperV);
+
+            if (!resp.Success || resp.Data == null || resp.Data.Count == 0)
+                return (MmioCheckResultType.Error, Properties.Resources.Error_CannotGetVmInfo);
+
+            try
             {
-                try
+                ulong highMmioGapSizeMb = Convert.ToUInt64(resp.Data[0]);
+                ulong currentMmioBytes = highMmioGapSizeMb * 1048576UL;
+                if (currentMmioBytes < RequiredMmioBytes)
                 {
-                    var results = Utils.Run($"Get-VM -Name \"{vmName}\" | Select-Object HighMemoryMappedIoSpace");
-                    if (results == null || results.Count == 0)
-                        return (MmioCheckResultType.Error, Properties.Resources.Error_CannotGetVmInfo);
-                    var mmioProperty = results[0].Properties["HighMemoryMappedIoSpace"];
-                    if (mmioProperty == null || mmioProperty.Value == null)
-                        return (MmioCheckResultType.Error, Properties.Resources.Error_CannotParseMmioSpace);
-                    ulong currentMmioBytes = Convert.ToUInt64(mmioProperty.Value);
-                    if (currentMmioBytes < RequiredMmioBytes)
-                    {
-                        long currentMmioGB = (long)(currentMmioBytes / (1024 * 1024 * 1024));
-                        string message = string.Format(Properties.Resources.Warning_LowMmioSpace_ConfirmExpand, vmName, currentMmioGB);
-                        return (MmioCheckResultType.NeedsConfirmation, message);
-                    }
-                    return (MmioCheckResultType.Ok, Properties.Resources.Info_MmioSpaceSufficient);
+                    long currentMmioGB = (long)(currentMmioBytes / (1024 * 1024 * 1024));
+                    string message = string.Format(Properties.Resources.Warning_LowMmioSpace_ConfirmExpand, vmName, currentMmioGB);
+                    return (MmioCheckResultType.NeedsConfirmation, message);
                 }
-                catch (Exception ex) { return (MmioCheckResultType.Error, ex.Message); }
-            });
+                return (MmioCheckResultType.Ok, Properties.Resources.Info_MmioSpaceSufficient);
+            }
+            catch (Exception ex) { return (MmioCheckResultType.Error, ex.Message); }
         }
 
         public async Task<bool> UpdateMmioSpaceAsync(string vmName)
         {
-            return await Task.Run(() =>
+            string escapedVmName = WmiApi.Escape(vmName);
+
+            // 1. WMI 检查 VM 是否运行中（EnabledState=2），是则先关机
+            var stateResp = await WmiApi.QueryAsync(
+                $"SELECT EnabledState FROM Msvm_ComputerSystem WHERE ElementName = '{escapedVmName}'",
+                obj => Convert.ToUInt16(obj["EnabledState"]),
+                WmiScope.HyperV);
+
+            if (stateResp.Success && stateResp.Data != null && stateResp.Data.Any(s => s == 2))
             {
-                try
+                // RequestStateChange(3) = 强制关机
+                var stopResult = await WmiApi.InvokeAsync(
+                    $"SELECT * FROM Msvm_ComputerSystem WHERE ElementName = '{escapedVmName}'",
+                    "RequestStateChange",
+                    p => p["RequestedState"] = (ushort)3,
+                    WmiScope.HyperV);
+                if (!stopResult.Success) return false;
+
+                // 等待关机完成（最多30秒）
+                for (int i = 0; i < 30; i++)
                 {
-                    string script =
-                        $"if ((Get-VM -Name '{vmName}').State -eq 'Running') {{ Stop-VM -Name '{vmName}' -Force; }};" +
-                        $"\nSet-VM -VMName '{vmName}' -HighMemoryMappedIoSpace {RequiredMmioBytes};";
-                    return Utils.Run(script) != null;
+                    await Task.Delay(1000);
+                    var checkResp = await WmiApi.QueryAsync(
+                        $"SELECT EnabledState FROM Msvm_ComputerSystem WHERE ElementName = '{escapedVmName}'",
+                        obj => Convert.ToUInt16(obj["EnabledState"]),
+                        WmiScope.HyperV);
+                    if (checkResp.Data?.Any(s => s == 3) == true) break; // EnabledState=3 = 已关机
                 }
-                catch { return false; }
-            });
+            }
+
+            // 2. WMI 设置 HighMmioGapSize（单位 MB，RequiredMmioBytes / 1048576）
+            ulong requiredMb = RequiredMmioBytes / 1048576UL;
+            var setResult = await WmiApi.WithObjectAsync(
+                wql: $"SELECT * FROM Msvm_VirtualSystemSettingData WHERE ElementName = '{escapedVmName}' AND VirtualSystemType = 'Microsoft:Hyper-V:System:Realized'",
+                modifier: obj => obj["HighMmioGapSize"] = requiredMb,
+                submitMethod: "ModifySystemSettings",
+                submitParamName: "SystemSettings",
+                wrapInArray: false,
+                scope: WmiScope.HyperV,
+                serviceWql: "SELECT * FROM Msvm_VirtualSystemManagementService");
+
+            return setResult.Success;
         }
 
         public async Task<(bool Success, string? ErrorMessage)> ExecuteDdaOperationAsync(
@@ -187,7 +248,7 @@ namespace ExHyperV.Services
                 foreach (var operation in operations)
                 {
                     progress?.Report(operation.Message);
-                    var logOutput = await ExecuteCommandAsync(operation.Command, instanceId, operation.IsPnpEnable, operation.IsPnpDisable);
+                    var logOutput = await ExecuteOperationAsync(operation, instanceId);
                     var errorLogs = logOutput.Where(log => log.Contains("Error", StringComparison.OrdinalIgnoreCase)).ToList();
                     if (errorLogs.Any())
                     {
@@ -202,67 +263,147 @@ namespace ExHyperV.Services
             catch (Exception ex) { return (false, ex.Message); }
         }
 
-        private async Task<List<string>> ExecuteCommandAsync(string psCommand, string instanceId, bool isPnpEnable, bool isPnpDisable)
-        {
-            string actualCommand = psCommand;
-            if (isPnpEnable)
-                actualCommand = $"Enable-PnpDevice -InstanceId '{instanceId}' -Confirm:$false";
-            else if (isPnpDisable)
-                actualCommand = $"Disable-PnpDevice -InstanceId '{instanceId}' -Confirm:$false";
+        // ── DDA 操作类型 ──────────────────────────────────────────────
+        private enum DdaOpType { Ps, Wmi, PnpEnable, PnpDisable }
 
-            var logOutput = new List<string>();
-            try
+        private record DdaOperation(
+            string Message,
+            DdaOpType Type,
+            string? PsCommand = null,
+            Func<Task<ApiResponse>>? WmiAction = null);
+
+        private async Task<List<string>> ExecuteOperationAsync(DdaOperation op, string instanceId)
+        {
+            switch (op.Type)
             {
-                using var powerShell = PowerShell.Create();
-                powerShell.AddScript(actualCommand);
-                var results = await Task.Run(() => powerShell.Invoke());
-                foreach (var item in results) logOutput.Add(item.ToString());
-                foreach (var error in powerShell.Streams.Error.ReadAll()) logOutput.Add($"Error: {error}");
+                case DdaOpType.PnpEnable:
+                    {
+                        var r = Win32Api.EnablePnpDevice(instanceId);
+                        return r.Success ? new List<string>() : new List<string> { $"Error: {r.Error}" };
+                    }
+                case DdaOpType.PnpDisable:
+                    {
+                        var r = Win32Api.DisablePnpDevice(instanceId);
+                        return r.Success ? new List<string>() : new List<string> { $"Error: {r.Error}" };
+                    }
+                case DdaOpType.Wmi:
+                    {
+                        var r = await op.WmiAction!();
+                        return r.Success ? new List<string>() : new List<string> { $"Error: {r.Error}" };
+                    }
+                case DdaOpType.Ps:
+                default:
+                    {
+                        var logOutput = new List<string>();
+                        try
+                        {
+                            using var powerShell = PowerShell.Create();
+                            powerShell.AddScript(op.PsCommand!);
+                            var results = await Task.Run(() => powerShell.Invoke());
+                            foreach (var item in results) logOutput.Add(item.ToString());
+                            foreach (var error in powerShell.Streams.Error.ReadAll()) logOutput.Add($"Error: {error}");
+                        }
+                        catch (Exception ex) { logOutput.Add($"Error: {ex.Message}"); }
+                        return logOutput;
+                    }
             }
-            catch (Exception ex) { logOutput.Add($"Error: {ex.Message}"); }
-            return logOutput;
         }
 
-        private List<(string Command, string Message, bool IsPnpEnable, bool IsPnpDisable)> DDACommands(
-            string Vmname, string instanceId, string path, string Nowname)
+        private List<DdaOperation> DDACommands(string Vmname, string instanceId, string path, string Nowname)
         {
-            var operations = new List<(string Command, string Message, bool IsPnpEnable, bool IsPnpDisable)>();
+            var ops = new List<DdaOperation>();
+
+            // WMI：Mount-VMHostAssignableDevice
+            DdaOperation MountDevice(string devInstanceId, string locationPath) => new(
+                Resources.mounting, DdaOpType.Wmi,
+                WmiAction: () => WmiApi.InvokeAsync(
+                    "SELECT * FROM Msvm_AssignableDeviceService",
+                    "MountAssignableDevice",
+                    p => {
+                        string pcipId = devInstanceId.StartsWith("PCI\\", StringComparison.OrdinalIgnoreCase)
+                            ? "PCIP\\" + devInstanceId.Substring(4)
+                            : devInstanceId;
+                        p["DeviceInstancePath"] = pcipId;
+                        p["DeviceLocationPath"] = locationPath;
+                    },
+                    WmiScope.HyperV));
+
+            // WMI：Dismount-VMHostAssignableDevice
+            DdaOperation DismountDevice(string devInstanceId, string locationPath) => new(
+                Resources.Dismountdevice, DdaOpType.Wmi,
+                WmiAction: () => WmiApi.InvokeAsync(
+                    "SELECT * FROM Msvm_AssignableDeviceService",
+                    "DismountAssignableDevice",
+                    p => {
+                        var ms = WmiConnectionCache.GetManagementScope(WmiScope.HyperV, WmiContext.Local);
+                        using var cls = new System.Management.ManagementClass(ms, new System.Management.ManagementPath("Msvm_AssignableDeviceDismountSettingData"), null);
+                        using var inst = cls.CreateInstance();
+                        inst["DeviceInstancePath"] = devInstanceId;
+                        inst["DeviceLocationPath"] = locationPath;
+                        inst["RequireAcsSupport"] = false;
+                        inst["RequireDeviceMitigations"] = false;
+                        p["DismountSettingData"] = inst.GetText(System.Management.TextFormat.CimDtd20);
+                    },
+                    WmiScope.HyperV));
+
+            // WMI：Set-VM -AutomaticStopAction TurnOff（AutomaticShutdownAction=2）
+            DdaOperation SetAutoStop(string vmName) => new(
+                Resources.string5, DdaOpType.Wmi,
+                WmiAction: () => WmiApi.WithObjectAsync(
+                    $"SELECT * FROM Msvm_VirtualSystemSettingData WHERE ElementName = '{WmiApi.Escape(vmName)}' AND VirtualSystemType = 'Microsoft:Hyper-V:System:Realized'",
+                    obj => obj["AutomaticShutdownAction"] = (ushort)2,
+                    submitMethod: "ModifySystemSettings",
+                    submitParamName: "SystemSettings",
+                    wrapInArray: false,
+                    scope: WmiScope.HyperV,
+                    serviceWql: "SELECT * FROM Msvm_VirtualSystemManagementService"));
+
+            // WMI：Set-VM -GuestControlledCacheTypes $true
+            DdaOperation SetGuestCache(string vmName) => new(
+                Resources.cpucache, DdaOpType.Wmi,
+                WmiAction: () => WmiApi.WithObjectAsync(
+                    $"SELECT * FROM Msvm_VirtualSystemSettingData WHERE ElementName = '{WmiApi.Escape(vmName)}' AND VirtualSystemType = 'Microsoft:Hyper-V:System:Realized'",
+                    obj => obj["GuestControlledCacheTypes"] = true,
+                    submitMethod: "ModifySystemSettings",
+                    submitParamName: "SystemSettings",
+                    wrapInArray: false,
+                    scope: WmiScope.HyperV,
+                    serviceWql: "SELECT * FROM Msvm_VirtualSystemManagementService"));
 
             if (Nowname == Resources.removed && Vmname == Resources.Host)
             {
-                operations.Add(($"Mount-VMHostAssignableDevice -LocationPath '{path}'", Resources.mounting, false, false));
-                operations.Add((string.Empty, Resources.enabling, true, false));
+                ops.Add(MountDevice(instanceId, path));
+                ops.Add(new(Resources.enabling, DdaOpType.PnpEnable));
             }
             else if (Nowname == Resources.removed && Vmname != Resources.Host)
             {
-                operations.Add(($"Add-VMAssignableDevice -LocationPath '{path}' -VMName '{Vmname}'", Resources.mounting, false, false));
+                ops.Add(SetAutoStop(Vmname));
+                ops.Add(SetGuestCache(Vmname));
+                ops.Add(new(Resources.mounting, DdaOpType.Ps, $"Add-VMAssignableDevice -LocationPath '{path}' -VMName '{Vmname}'"));
             }
             else if (Nowname == Resources.Host)
             {
-                operations.Add(($"Set-VM -Name '{Vmname}' -AutomaticStopAction TurnOff", Resources.string5, false, false));
-                operations.Add(($"Set-VM -GuestControlledCacheTypes $true -VMName '{Vmname}'", Resources.cpucache, false, false));
-                operations.Add(($"(Get-PnpDeviceProperty -InstanceId '{instanceId}' DEVPKEY_Device_LocationPaths).Data[0]", Resources.getpath, false, false));
-                operations.Add((string.Empty, Resources.Disabledevice, false, true));
-                operations.Add(($"Dismount-VMHostAssignableDevice -Force -LocationPath '{path}'", Resources.Dismountdevice, false, false));
-                operations.Add(($"Add-VMAssignableDevice -LocationPath '{path}' -VMName '{Vmname}'", Resources.mounting, false, false));
+                ops.Add(SetAutoStop(Vmname));
+                ops.Add(SetGuestCache(Vmname));
+                ops.Add(new(Resources.Disabledevice, DdaOpType.PnpDisable));
+                ops.Add(DismountDevice(instanceId, path));
+                ops.Add(new(Resources.mounting, DdaOpType.Ps, $"Add-VMAssignableDevice -LocationPath '{path}' -VMName '{Vmname}'"));
             }
             else if (Vmname != Resources.Host && Nowname != Resources.Host)
             {
-                operations.Add(($"Set-VM -Name '{Vmname}' -AutomaticStopAction TurnOff", Resources.string5, false, false));
-                operations.Add(($"Set-VM -GuestControlledCacheTypes $true -VMName '{Vmname}'", Resources.cpucache, false, false));
-                operations.Add(($"(Get-PnpDeviceProperty -InstanceId '{instanceId}' DEVPKEY_Device_LocationPaths).Data[0]", Resources.getpath, false, false));
-                operations.Add(($"Remove-VMAssignableDevice -LocationPath '{path}' -VMName '{Nowname}'", Resources.Dismountdevice, false, false));
-                operations.Add(($"Add-VMAssignableDevice -LocationPath '{path}' -VMName '{Vmname}'", Resources.mounting, false, false));
+                ops.Add(SetAutoStop(Vmname));
+                ops.Add(SetGuestCache(Vmname));
+                ops.Add(new(Resources.Dismountdevice, DdaOpType.Ps, $"Remove-VMAssignableDevice -LocationPath '{path}' -VMName '{Nowname}'"));
+                ops.Add(new(Resources.mounting, DdaOpType.Ps, $"Add-VMAssignableDevice -LocationPath '{path}' -VMName '{Vmname}'"));
             }
             else if (Vmname == Resources.Host && Nowname != Resources.Host)
             {
-                operations.Add(($"(Get-PnpDeviceProperty -InstanceId '{instanceId}' DEVPKEY_Device_LocationPaths).Data[0]", Resources.getpath, false, false));
-                operations.Add(($"Remove-VMAssignableDevice -LocationPath '{path}' -VMName '{Nowname}'", Resources.Dismountdevice, false, false));
-                operations.Add(($"Mount-VMHostAssignableDevice -LocationPath '{path}'", Resources.mounting, false, false));
-                operations.Add((string.Empty, Resources.enabling, true, false));
+                ops.Add(new(Resources.Dismountdevice, DdaOpType.Ps, $"Remove-VMAssignableDevice -LocationPath '{path}' -VMName '{Nowname}'"));
+                ops.Add(MountDevice(instanceId, path));
+                ops.Add(new(Resources.enabling, DdaOpType.PnpEnable));
             }
 
-            return operations;
+            return ops;
         }
     }
 }
