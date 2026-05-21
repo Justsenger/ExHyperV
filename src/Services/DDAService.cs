@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics;
-using System.Management.Automation;
 using ExHyperV.Models;
 using ExHyperV.Properties;
 using ExHyperV.Tools;
@@ -145,6 +144,37 @@ namespace ExHyperV.Services
                         deviceList.Add(new DeviceInfo(pciDev.FriendlyName, status, pciDev.Class, pciDev.InstanceId, path, vendor));
                     }
 
+                    // 按类型排序
+                    deviceList.Sort((a, b) =>
+                    {
+                        static int GetOrder(DeviceInfo d)
+                        {
+                            string cls = d.ClassType ?? "";
+                            string name = d.FriendlyName ?? "";
+                            if (cls.Equals("Display", StringComparison.OrdinalIgnoreCase) ||
+                                name.Contains("GPU", StringComparison.OrdinalIgnoreCase) ||
+                                name.Contains("显卡", StringComparison.OrdinalIgnoreCase) ||
+                                name.Contains("Graphics", StringComparison.OrdinalIgnoreCase))
+                                return 0;
+                            if (name.Contains("Audio", StringComparison.OrdinalIgnoreCase) ||
+                                name.Contains("声音", StringComparison.OrdinalIgnoreCase) ||
+                                cls.Equals("Media", StringComparison.OrdinalIgnoreCase) ||
+                                cls.Equals("Sound", StringComparison.OrdinalIgnoreCase))
+                                return 1;
+                            if (cls.Equals("Net", StringComparison.OrdinalIgnoreCase) ||
+                                cls.Equals("NetClient", StringComparison.OrdinalIgnoreCase))
+                                return 2;
+                            if (cls.Equals("USB", StringComparison.OrdinalIgnoreCase))
+                                return 3;
+                            if (cls.Equals("SCSIAdapter", StringComparison.OrdinalIgnoreCase) ||
+                                cls.Equals("HDC", StringComparison.OrdinalIgnoreCase) ||
+                                cls.Equals("DiskDrive", StringComparison.OrdinalIgnoreCase))
+                                return 4;
+                            return 5;
+                        }
+                        return GetOrder(a).CompareTo(GetOrder(b));
+                    });
+
                     Debug.WriteLine($"[DDA] deviceList final count={deviceList.Count}");
                 }
                 catch (Exception ex)
@@ -264,12 +294,11 @@ namespace ExHyperV.Services
         }
 
         // ── DDA 操作类型 ──────────────────────────────────────────────
-        private enum DdaOpType { Ps, Wmi, PnpEnable, PnpDisable }
+        private enum DdaOpType { Wmi, PnpEnable, PnpDisable }
 
         private record DdaOperation(
             string Message,
             DdaOpType Type,
-            string? PsCommand = null,
             Func<Task<ApiResponse>>? WmiAction = null);
 
         private async Task<List<string>> ExecuteOperationAsync(DdaOperation op, string instanceId)
@@ -291,21 +320,8 @@ namespace ExHyperV.Services
                         var r = await op.WmiAction!();
                         return r.Success ? new List<string>() : new List<string> { $"Error: {r.Error}" };
                     }
-                case DdaOpType.Ps:
                 default:
-                    {
-                        var logOutput = new List<string>();
-                        try
-                        {
-                            using var powerShell = PowerShell.Create();
-                            powerShell.AddScript(op.PsCommand!);
-                            var results = await Task.Run(() => powerShell.Invoke());
-                            foreach (var item in results) logOutput.Add(item.ToString());
-                            foreach (var error in powerShell.Streams.Error.ReadAll()) logOutput.Add($"Error: {error}");
-                        }
-                        catch (Exception ex) { logOutput.Add($"Error: {ex.Message}"); }
-                        return logOutput;
-                    }
+                    return new List<string>();
             }
         }
 

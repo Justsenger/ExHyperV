@@ -77,7 +77,7 @@ public static class Win32Api
         }
         Debug.WriteLine($"[Win32Api.GetAllDevices] Win32_PnPEntity: {pnpEntityMap.Count} ({sw.ElapsedMilliseconds}ms)");
 
-        // 2. CM_Get_Device_ID_List：枚举所有设备（含 Unknown/分配给VM的）
+        // 2. CM_Get_Device_ID_List：FILTER_NONE 枚举所有设备（含分配给VM的Unknown设备）
         var allIds = new List<string>();
         uint bufferLen = 0;
         int cr = NativeMethods.CM_Get_Device_ID_List_Size(
@@ -94,23 +94,12 @@ public static class Win32Api
         // 3. 并行查每个设备属性
         var results = allIds.AsParallel().Select(instanceId =>
         {
-            bool isPhantom = !pnpEntityMap.ContainsKey(instanceId);
-
-            uint locateFlag = isPhantom
-                ? NativeMethods.CM_LOCATE_DEVNODE_PHANTOM
-                : NativeMethods.CM_LOCATE_DEVNODE_NORMAL;
-
-            int lcr = NativeMethods.CM_Locate_DevNode(out uint devInst, instanceId, locateFlag);
+            // PHANTOM flag 对在线和离线设备都有效
+            int lcr = NativeMethods.CM_Locate_DevNode(out uint devInst, instanceId, NativeMethods.CM_LOCATE_DEVNODE_PHANTOM);
             if (lcr != NativeMethods.CR_SUCCESS)
             {
-                // phantom 再试一次
-                if (!isPhantom)
-                    lcr = NativeMethods.CM_Locate_DevNode(out devInst, instanceId, NativeMethods.CM_LOCATE_DEVNODE_PHANTOM);
-                if (lcr != NativeMethods.CR_SUCCESS)
-                {
-                    Debug.WriteLine($"[Win32Api.GetAllDevices] CM_Locate_DevNode failed '{instanceId}' cr={lcr}");
-                    return null;
-                }
+                Debug.WriteLine($"[Win32Api.GetAllDevices] CM_Locate_DevNode failed '{instanceId}' cr={lcr}");
+                return null;
             }
 
             // Status
