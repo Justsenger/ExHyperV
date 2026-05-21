@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using System.IO;
+﻿using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -33,76 +32,27 @@ public static class Win32Api
         if (string.IsNullOrWhiteSpace(instanceId))
             return ApiResponse.Fail("InstanceId cannot be empty");
 
-        nint deviceInfoSet = NativeMethods.SetupDiGetClassDevs(
-            IntPtr.Zero,
-            instanceId,
-            IntPtr.Zero,
-            NativeMethods.DIGCF_PRESENT | NativeMethods.DIGCF_ALLCLASSES);
+        // 用 CM_Locate_DevNode 直接按 InstanceId 定位设备
+        // Disable 时设备在线，用 NORMAL；Enable 时设备可能是 phantom（从 VM 移回），用 PHANTOM
+        uint locateFlag = enable
+            ? NativeMethods.CM_LOCATE_DEVNODE_PHANTOM
+            : NativeMethods.CM_LOCATE_DEVNODE_NORMAL;
 
-        if (deviceInfoSet == NativeMethods.INVALID_HANDLE_VALUE)
-        {
-            int err = Marshal.GetLastWin32Error();
+        int cr = NativeMethods.CM_Locate_DevNode(out uint devInst, instanceId, locateFlag);
+        if (cr != NativeMethods.CR_SUCCESS)
             return ApiResponse.Fail(
-                $"SetupDiGetClassDevs failed for '{instanceId}'",
-                err, ApiErrorSource.Win32);
-        }
+                $"CM_Locate_DevNode failed for '{instanceId}'",
+                cr, ApiErrorSource.Win32);
 
-        try
-        {
-            var devInfoData = new NativeMethods.SP_DEVINFO_DATA();
-            devInfoData.cbSize = (uint)Marshal.SizeOf(devInfoData);
+        cr = enable
+            ? NativeMethods.CM_Enable_DevNode(devInst, 0)
+            : NativeMethods.CM_Disable_DevNode(devInst, NativeMethods.CM_DISABLE_UI_NOT_OK);
 
-            if (!NativeMethods.SetupDiEnumDeviceInfo(deviceInfoSet, 0, ref devInfoData))
-            {
-                int err = Marshal.GetLastWin32Error();
-                return ApiResponse.Fail(
-                    $"Device not found: '{instanceId}'",
-                    err, ApiErrorSource.Win32);
-            }
-
-            var propChange = new NativeMethods.SP_PROPCHANGE_PARAMS
-            {
-                ClassInstallHeader = new NativeMethods.SP_CLASSINSTALL_HEADER
-                {
-                    cbSize = (uint)Marshal.SizeOf<NativeMethods.SP_CLASSINSTALL_HEADER>(),
-                    InstallFunction = NativeMethods.DIF_PROPERTYCHANGE
-                },
-                StateChange = enable
-                    ? NativeMethods.DICS_ENABLE
-                    : NativeMethods.DICS_DISABLE,
-                Scope = NativeMethods.DICS_FLAG_GLOBAL,
-                HwProfile = 0
-            };
-
-            if (!NativeMethods.SetupDiSetClassInstallParams(
-                    deviceInfoSet,
-                    ref devInfoData,
-                    ref propChange,
-                    (uint)Marshal.SizeOf(propChange)))
-            {
-                int err = Marshal.GetLastWin32Error();
-                return ApiResponse.Fail(
-                    "SetupDiSetClassInstallParams failed",
-                    err, ApiErrorSource.Win32);
-            }
-
-            if (!NativeMethods.SetupDiCallClassInstaller(
-                    NativeMethods.DIF_PROPERTYCHANGE,
-                    deviceInfoSet,
-                    ref devInfoData))
-            {
-                int err = Marshal.GetLastWin32Error();
-                return ApiResponse.Fail(
-                    $"SetupDiCallClassInstaller failed (enable={enable})",
-                    err, ApiErrorSource.Win32);
-            }
-
-            return ApiResponse.Ok();
-        }
-        finally
-        {
-            NativeMethods.SetupDiDestroyDeviceInfoList(deviceInfoSet);
-        }
+        return cr == NativeMethods.CR_SUCCESS
+            ? ApiResponse.Ok()
+            : ApiResponse.Fail(
+                $"{(enable ? "CM_Enable_DevNode" : "CM_Disable_DevNode")} failed for '{instanceId}'",
+                cr, ApiErrorSource.Win32);
     }
 
     // ── 权限提升 ──────────────────────────────────────────────────
@@ -200,7 +150,6 @@ public static class Win32Api
     /// </summary>
     public static ApiResponse SaveHive(string subKeyName, string filePath)
     {
-        // 先尝试删除旧备份，失败不报错
         try { if (File.Exists(filePath)) File.Delete(filePath); } catch { }
 
         int openRet = NativeMethods.RegOpenKeyEx(
@@ -313,7 +262,6 @@ public static class Win32Api
 
     /// <summary>
     /// 关闭 Win32 句柄。
-    /// 封装 CloseHandle，统一资源释放入口。
     /// </summary>
     public static bool CloseHandle(nint handle)
         => NativeMethods.CloseHandle(handle);
@@ -329,6 +277,7 @@ internal static class NativeMethods
     public static readonly nint HKEY_LOCAL_MACHINE = new(unchecked((int)0x80000002));
 
     // ── region: setupapi.dll ─────────────────────────────────────
+    // 保留声明（其他地方可能还用得到），但 SetPnpDeviceState 已改用 cfgmgr32
 
     #region setupapi
 
@@ -392,6 +341,33 @@ internal static class NativeMethods
         public uint Scope;
         public uint HwProfile;
     }
+
+    #endregion
+
+    // ── region: cfgmgr32.dll ─────────────────────────────────────
+
+    #region cfgmgr32
+
+    public const int CR_SUCCESS = 0;
+    public const uint CM_LOCATE_DEVNODE_NORMAL = 0x00000000;
+    public const uint CM_LOCATE_DEVNODE_PHANTOM = 0x00000001;
+    public const uint CM_DISABLE_UI_NOT_OK = 0x00000002;
+
+    [DllImport("cfgmgr32.dll", CharSet = CharSet.Unicode)]
+    public static extern int CM_Locate_DevNode(
+        out uint pdnDevInst,
+        string pDeviceID,
+        uint ulFlags);
+
+    [DllImport("cfgmgr32.dll")]
+    public static extern int CM_Enable_DevNode(
+        uint dnDevInst,
+        uint ulFlags);
+
+    [DllImport("cfgmgr32.dll")]
+    public static extern int CM_Disable_DevNode(
+        uint dnDevInst,
+        uint ulFlags);
 
     #endregion
 

@@ -289,18 +289,22 @@ namespace ExHyperV.Services
 
         private async Task<List<string>> ExecuteCommandAsync(string psCommand, string instanceId, bool isPnpEnable, bool isPnpDisable)
         {
-            // Enable/Disable PnpDevice 暂时保留 PS，Win32Api 路径待验证
-            string actualCommand = psCommand;
             if (isPnpEnable)
-                actualCommand = $"Enable-PnpDevice -InstanceId '{instanceId}' -Confirm:$false";
-            else if (isPnpDisable)
-                actualCommand = $"Disable-PnpDevice -InstanceId '{instanceId}' -Confirm:$false";
+            {
+                var result = Win32Api.EnablePnpDevice(instanceId);
+                return result.Success ? new List<string>() : new List<string> { $"Error: {result.Error}" };
+            }
+            if (isPnpDisable)
+            {
+                var result = Win32Api.DisablePnpDevice(instanceId);
+                return result.Success ? new List<string>() : new List<string> { $"Error: {result.Error}" };
+            }
 
             var logOutput = new List<string>();
             try
             {
                 using var powerShell = PowerShell.Create();
-                powerShell.AddScript(actualCommand);
+                powerShell.AddScript(psCommand);
                 var results = await Task.Run(() => powerShell.Invoke());
                 foreach (var item in results) logOutput.Add(item.ToString());
                 var errorStream = powerShell.Streams.Error.ReadAll();
