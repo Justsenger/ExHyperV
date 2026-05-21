@@ -123,27 +123,23 @@ public static class Win32Api
             else
                 status = "OK";
 
-            // Name/Class/Service：优先 Win32_PnPEntity，fallback cfgmgr32
-            string friendlyName, pnpClass, service;
-            if (pnpEntityMap.TryGetValue(instanceId, out var entityInfo))
+            // Name/Class/Service：优先 cfgmgr32 DEVPKEY（支持 Unknown 状态设备）
+            // Win32_PnPEntity 仅作为 fallback，Unknown 状态时该条目不存在
+            string friendlyName = GetDevNodeStringProperty(devInst, instanceId,
+                new Guid("A45C254E-DF1C-4EFD-8020-67D146A850E0"), 14); // DEVPKEY_Device_FriendlyName
+            if (string.IsNullOrEmpty(friendlyName))
+                friendlyName = GetDevNodeStringProperty(devInst, instanceId,
+                    new Guid("A45C254E-DF1C-4EFD-8020-67D146A850E0"), 2);  // DEVPKEY_Device_DeviceDesc
+            string pnpClass = GetDevNodeStringProperty(devInst, instanceId,
+                new Guid("A45C254E-DF1C-4EFD-8020-67D146A850E0"), 9);  // DEVPKEY_Device_Class
+            string service = GetDevNodeStringProperty(devInst, instanceId,
+                new Guid("A45C254E-DF1C-4EFD-8020-67D146A850E0"), 6);  // DEVPKEY_Device_Service
+            // cfgmgr32 拿不到时 fallback Win32_PnPEntity
+            if (string.IsNullOrEmpty(friendlyName) && pnpEntityMap.TryGetValue(instanceId, out var entityInfo))
             {
                 friendlyName = entityInfo.Name;
-                pnpClass = entityInfo.PnpClass;
-                service = entityInfo.Service;
-            }
-            else
-            {
-                // 已卸除/Unknown 设备：从注册表或 cfgmgr32 拿
-                string regPath = $@"SYSTEM\CurrentControlSet\Enum\{instanceId}";
-                string rawDesc = Registry.LocalMachine.OpenSubKey(regPath)
-                    ?.GetValue("DeviceDesc")?.ToString() ?? "";
-                friendlyName = Regex.Replace(rawDesc, @"^[^;]+;", "").Trim();
-                pnpClass = "";
-                service = GetDevNodeStringProperty(devInst, instanceId,
-                    new Guid("A45C254E-DF1C-4EFD-8020-67D146A850E0"), 6); // DEVPKEY_Device_Service
-                if (string.IsNullOrEmpty(service))
-                    service = Registry.LocalMachine.OpenSubKey(regPath)
-                        ?.GetValue("Service")?.ToString() ?? "";
+                pnpClass = string.IsNullOrEmpty(pnpClass) ? entityInfo.PnpClass : pnpClass;
+                service = string.IsNullOrEmpty(service) ? entityInfo.Service : service;
             }
 
             // LocationPaths
