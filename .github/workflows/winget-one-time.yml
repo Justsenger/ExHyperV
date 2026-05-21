@@ -1,0 +1,15 @@
+name: Submit 1.4.3 to Winget
+on:
+  workflow_dispatch: # 允许手动点击运行
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: vedantmgoyal2009/winget-releaser@v2
+        with:
+          identifier: Justsenger.ExHyperV
+          installers-regex: '\.zip$'
+          token: ${{ secrets.WINGET_TOKEN }}
+          version: 1.4.3
+          release-tag: V1.4.3
