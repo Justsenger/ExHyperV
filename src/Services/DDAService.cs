@@ -1,4 +1,5 @@
-﻿using System.Management.Automation;
+﻿using System.Diagnostics;
+using System.Management.Automation;
 using ExHyperV.Models;
 using ExHyperV.Properties;
 using ExHyperV.Tools;
@@ -31,176 +32,98 @@ namespace ExHyperV.Services
 
                 try
                 {
-                    Dictionary<string, string> vmDeviceAssignments = new Dictionary<string, string>();
+                    var vmDeviceAssignments = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
-                    // 1. 获取虚拟机列表（WMI 替换 Get-VM）
+                    // ── 1. VM列表 + 已分配设备（Get-VMAssignableDevice，原始逻辑）──────
                     string hostName = WmiApi.Escape(Environment.MachineName);
                     var vmResp = await WmiApi.QueryAsync(
                         $"SELECT ElementName FROM Msvm_ComputerSystem WHERE Name <> '{hostName}'",
                         obj => obj["ElementName"]?.ToString() ?? string.Empty,
                         WmiScope.HyperV);
-
                     if (vmResp.Success && vmResp.Data != null)
                         vmNameList.AddRange(vmResp.Data.Where(n => !string.IsNullOrEmpty(n)));
+                    Debug.WriteLine($"[DDA] vmNames={string.Join(",", vmNameList)}");
 
-                    // 用 Msvm_PciExpressSettingData 替换 Get-VMAssignableDevice
-                    // InstanceID 格式：Microsoft:VM_GUID\device_GUID（排除 Definition/Minimum/Maximum/Increment）
-                    // HostResource[0] 的 DeviceID 里包含 PNP InstanceId
-                    var pciSettingResp = await WmiApi.QueryAsync(
-                        "SELECT InstanceID, HostResource FROM Msvm_PciExpressSettingData",
-                        obj => obj,
-                        WmiScope.HyperV);
-
-                    if (pciSettingResp.Success && pciSettingResp.Data != null)
+                    // Get-VMAssignableDevice 返回 PCIP\* 格式的 InstanceID
+                    foreach (var vmName in vmNameList)
                     {
-                        // 建立 VM GUID → VM 名称的映射
-                        var vmGuidToName = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-                        var vmGuidResp = await WmiApi.QueryAsync(
-                            $"SELECT Name, ElementName FROM Msvm_ComputerSystem WHERE Name <> '{hostName}'",
-                            obj => (Guid: obj["Name"]?.ToString() ?? "", Name: obj["ElementName"]?.ToString() ?? ""),
-                            WmiScope.HyperV);
-                        if (vmGuidResp.Success && vmGuidResp.Data != null)
-                            foreach (var item in vmGuidResp.Data.Where(x => !string.IsNullOrEmpty(x.Guid)))
-                                vmGuidToName[item.Guid] = item.Name;
-
-                        foreach (var obj in pciSettingResp.Data)
+                        var assigned = Utils.Run($"Get-VMAssignableDevice -VMName '{vmName}' | Select-Object InstanceID");
+                        if (assigned == null) continue;
+                        foreach (var dev in assigned)
                         {
-                            using (obj)
+                            var pureId = GetPureId(dev.Members["InstanceID"]?.Value?.ToString());
+                            if (!string.IsNullOrEmpty(pureId))
                             {
-                                string instanceId = obj["InstanceID"]?.ToString() ?? string.Empty;
-                                // 排除 Definition/Minimum/Maximum/Increment 记录
-                                if (!instanceId.StartsWith("Microsoft:", StringComparison.OrdinalIgnoreCase)) continue;
-                                string withoutPrefix = instanceId.Substring("Microsoft:".Length);
-                                // 格式：VMGUID\deviceGUID，VMGUID 不含 "Definition" 等关键字
-                                int backslash = withoutPrefix.IndexOf('\\');
-                                if (backslash < 0) continue;
-                                string vmGuid = withoutPrefix.Substring(0, backslash);
-                                if (vmGuid.IndexOf("Definition", StringComparison.OrdinalIgnoreCase) >= 0) continue;
-
-                                if (!vmGuidToName.TryGetValue(vmGuid, out string vmName) || string.IsNullOrEmpty(vmName)) continue;
-
-                                // 从 HostResource 提取 PNP InstanceId
-                                if (!(obj["HostResource"] is string[] hostResources) || hostResources.Length == 0) continue;
-                                string hostResStr = hostResources[0];
-                                var match = System.Text.RegularExpressions.Regex.Match(
-                                    hostResStr, @"DeviceID=""Microsoft:[^\\]+\\\\(.+?)""");
-                                if (!match.Success) continue;
-                                string pnpInstanceId = match.Groups[1].Value.Replace("\\\\", "\\");
-                                string pureId = GetPureId(pnpInstanceId);
-                                if (!string.IsNullOrEmpty(pureId))
-                                    vmDeviceAssignments[pureId] = vmName;
+                                vmDeviceAssignments[pureId] = vmName;
+                                Debug.WriteLine($"[DDA] assigned: pureId='{pureId}' vm='{vmName}'");
                             }
                         }
                     }
+                    Debug.WriteLine($"[DDA] vmDeviceAssignments count={vmDeviceAssignments.Count}");
 
-                    // 2. 检查已卸除设备（Get-PnpDevice 无法替换，保留 PS）
-                    var pnpDevices = Utils.Run("Get-PnpDevice | Where-Object { $_.InstanceId -like 'PCIP\\*' } | Select-Object InstanceId, Status");
-                    if (pnpDevices != null)
+                    // ── 2. 枚举所有 PCI 设备（Win32Api，替换 Get-PnpDevice）──────────
+                    var allPciDevices = await Task.Run(() => Win32Api.GetAllDevices());
+                    Debug.WriteLine($"[DDA] allPciDevices count={allPciDevices.Count}");
+
+                    // PCIP（已卸除）且不在 vmDeviceAssignments → 标为 removed
+                    // PCIP 设备只更新字典，不进 deviceList（与原始逻辑一致）
+                    foreach (var d in allPciDevices.Where(d =>
+                        d.InstanceId.StartsWith("PCIP\\", StringComparison.OrdinalIgnoreCase)))
                     {
-                        foreach (var pnpDevice in pnpDevices)
+                        string pureId = GetPureId(d.InstanceId);
+                        if (!string.IsNullOrEmpty(pureId) && !vmDeviceAssignments.ContainsKey(pureId))
                         {
-                            var pureId = GetPureId(pnpDevice.Members["InstanceId"]?.Value?.ToString());
-                            var status = pnpDevice.Members["Status"]?.Value?.ToString();
-                            if (!string.IsNullOrEmpty(pureId) && status == "OK" && !vmDeviceAssignments.ContainsKey(pureId))
-                                vmDeviceAssignments[pureId] = Resources.removed;
+                            vmDeviceAssignments[pureId] = Resources.removed;
+                            Debug.WriteLine($"[DDA] PCIP removed: pureId='{pureId}'");
                         }
                     }
 
-                    // 3. 获取所有PCI设备（Get-PnpDeviceProperty DEVPKEY_Device_LocationPaths 无法替换，保留 PS）
-                    string getPciDevicesScript = @"function Invoke-GetPathBatch {
-                                                param($Ids, $Map, $Key)
-                                                if ($Ids.Count -eq 0) { return }
-                                                Get-PnpDeviceProperty -InstanceId $Ids -KeyName $Key -ErrorAction SilentlyContinue | ForEach-Object {
-                                                    if ($_.Data -and $_.Data.Count -gt 0) { $Map[$_.InstanceId] = $_.Data[0] }
-                                                }
-                                            }
+                    // ── 3. 构建 DeviceInfo（只用 PCI\* 在线设备，与原始逻辑一致）────────
+                    var sortedDevices = allPciDevices
+                        .Where(d => !string.IsNullOrEmpty(d.Service)
+                            && d.InstanceId.StartsWith("PCI\\", StringComparison.OrdinalIgnoreCase)
+                            && !d.InstanceId.StartsWith("PCIP\\", StringComparison.OrdinalIgnoreCase))
+                        .OrderBy(d => d.Service![0])
+                        .ToList();
 
-                                            $fastRetries = 3
-                                            $slowRetries = 2
-                                            $slowRetryIntervalSeconds = 1
-                                            $maxRetries = $fastRetries + $slowRetries
-                                            $KeyName = 'DEVPKEY_Device_LocationPaths'
-
-                                            $pciDevices = Get-PnpDevice | Where-Object { $_.InstanceId -like 'PCI\*' }
-                                            if (-not $pciDevices) { exit }
-
-                                            $pciDeviceCount = $pciDevices.Count
-                                            if ($pciDeviceCount -gt 200) {
-                                                $batchSize = 100
-                                            } else {
-                                                $batchSize = $pciDeviceCount
-                                                if ($batchSize -lt 1) { $batchSize = 1 }
-                                            }
-
-                                            $allInstanceIds = $pciDevices.InstanceId
-                                            $pathMap = @{}
-                                            $idsNeedingPath = $allInstanceIds
-                                            $attemptCount = 0
-
-                                            while (($idsNeedingPath.Count -gt 0) -and ($attemptCount -lt $maxRetries)) {
-                                                $attemptCount++
-                                                if ($idsNeedingPath.Count -gt 0) {
-                                                    $numBatches = [Math]::Ceiling($idsNeedingPath.Count / $batchSize)
-                                                    for ($i = 0; $i -lt $numBatches; $i++) {
-                                                        $batch = $idsNeedingPath[($i * $batchSize) .. ([Math]::Min((($i + 1) * $batchSize - 1), ($idsNeedingPath.Count - 1)))]
-                                                        if ($batch.Count -gt 0) {
-                                                            Invoke-GetPathBatch -Ids $batch -Map $pathMap -Key $KeyName
-                                                        }
-                                                    }
-                                                }
-
-                                                $idsNeedingPath = $allInstanceIds | Where-Object { -not $pathMap.ContainsKey($_) }
-
-                                                if (($idsNeedingPath.Count -gt 0) -and ($attemptCount -ge $fastRetries) -and ($attemptCount -lt $maxRetries)) {
-                                                    Start-Sleep -Seconds $slowRetryIntervalSeconds
-                                                }
-                                            }
-
-                                            $pciDevices | Select-Object Class, InstanceId, FriendlyName, Status, Service | ForEach-Object {
-                                                $val = $null; if ($pathMap.ContainsKey($_.InstanceId)) { $val = $pathMap[$_.InstanceId] }
-                                                $_ | Add-Member -NotePropertyName 'Path' -NotePropertyValue $val -Force; $_
-                                            }";
-
-                    var pciData = Utils.Run(getPciDevicesScript);
-                    if (pciData != null)
+                    foreach (var pciDev in sortedDevices)
                     {
-                        var sortedResults = pciData
-                            .Where(r => r != null)
-                            .OrderBy(r => r.Members["Service"]?.Value?.ToString()?[0])
-                            .ToList();
+                        if (string.Equals(pciDev.Service, "pci", StringComparison.OrdinalIgnoreCase)) continue;
 
-                        foreach (var result in sortedResults)
+                        string pureId = GetPureId(pciDev.InstanceId);
+                        vmDeviceAssignments.TryGetValue(pureId ?? string.Empty, out string? assignedVal);
+                        bool inAssignments = !string.IsNullOrEmpty(pureId) && assignedVal != null;
+                        assignedVal ??= string.Empty;
+
+                        Debug.WriteLine($"[DDA] device '{pciDev.InstanceId}' status={pciDev.Status} inAssignments={inAssignments} assignedVal='{assignedVal}'");
+
+                        string status;
+                        if (pciDev.Status == "Unknown" && !string.IsNullOrEmpty(pureId))
                         {
-                            var service = result.Members["Service"]?.Value?.ToString();
-                            var classType = result.Members["Class"]?.Value?.ToString();
-                            if (service == "pci" || string.IsNullOrEmpty(service)) continue;
-
-                            var instanceId = result.Members["InstanceId"]?.Value?.ToString();
-                            var status = result.Members["Status"]?.Value?.ToString();
-                            var pureId = GetPureId(instanceId);
-
-                            if (status == "Unknown" && !string.IsNullOrEmpty(pureId))
+                            if (!inAssignments)
                             {
-                                if (vmDeviceAssignments.TryGetValue(pureId, out var assignedStatus))
-                                    status = assignedStatus;
-                                else
-                                    continue;
+                                Debug.WriteLine($"[DDA]   → SKIP (Unknown not in assignments)");
+                                continue;
                             }
-                            else
-                            {
-                                status = Resources.Host;
-                            }
-
-                            var friendlyName = result.Members["FriendlyName"]?.Value?.ToString();
-                            var path = result.Members["Path"]?.Value?.ToString();
-                            string vendor = pciInfoProvider.GetVendorFromInstanceId(instanceId);
-                            deviceList.Add(new DeviceInfo(friendlyName, status, classType, instanceId, path, vendor));
+                            status = assignedVal;
+                            Debug.WriteLine($"[DDA]   → status='{status}'");
                         }
+                        else
+                        {
+                            status = Resources.Host;
+                            Debug.WriteLine($"[DDA]   → Host");
+                        }
+
+                        string path = pciDev.FirstLocationPath ?? "";
+                        string vendor = pciInfoProvider.GetVendorFromInstanceId(pciDev.InstanceId);
+                        deviceList.Add(new DeviceInfo(pciDev.FriendlyName, status, pciDev.Class, pciDev.InstanceId, path, vendor));
                     }
+
+                    Debug.WriteLine($"[DDA] deviceList final count={deviceList.Count}");
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"[DDAService] Error in GetDdaInfoAsync: {ex}");
+                    Debug.WriteLine($"[DDA] EXCEPTION: {ex}");
                     deviceList.Clear();
                     vmNameList.Clear();
                 }
@@ -221,11 +144,9 @@ namespace ExHyperV.Services
                     var results = Utils.Run($"Get-VM -Name \"{vmName}\" | Select-Object HighMemoryMappedIoSpace");
                     if (results == null || results.Count == 0)
                         return (MmioCheckResultType.Error, Properties.Resources.Error_CannotGetVmInfo);
-
                     var mmioProperty = results[0].Properties["HighMemoryMappedIoSpace"];
                     if (mmioProperty == null || mmioProperty.Value == null)
                         return (MmioCheckResultType.Error, Properties.Resources.Error_CannotParseMmioSpace);
-
                     ulong currentMmioBytes = Convert.ToUInt64(mmioProperty.Value);
                     if (currentMmioBytes < RequiredMmioBytes)
                     {
@@ -235,10 +156,7 @@ namespace ExHyperV.Services
                     }
                     return (MmioCheckResultType.Ok, Properties.Resources.Info_MmioSpaceSufficient);
                 }
-                catch (Exception ex)
-                {
-                    return (MmioCheckResultType.Error, ex.Message);
-                }
+                catch (Exception ex) { return (MmioCheckResultType.Error, ex.Message); }
             });
         }
 
@@ -281,39 +199,27 @@ namespace ExHyperV.Services
                 }
                 return (true, null);
             }
-            catch (Exception ex)
-            {
-                return (false, ex.Message);
-            }
+            catch (Exception ex) { return (false, ex.Message); }
         }
 
         private async Task<List<string>> ExecuteCommandAsync(string psCommand, string instanceId, bool isPnpEnable, bool isPnpDisable)
         {
+            string actualCommand = psCommand;
             if (isPnpEnable)
-            {
-                var result = Win32Api.EnablePnpDevice(instanceId);
-                return result.Success ? new List<string>() : new List<string> { $"Error: {result.Error}" };
-            }
-            if (isPnpDisable)
-            {
-                var result = Win32Api.DisablePnpDevice(instanceId);
-                return result.Success ? new List<string>() : new List<string> { $"Error: {result.Error}" };
-            }
+                actualCommand = $"Enable-PnpDevice -InstanceId '{instanceId}' -Confirm:$false";
+            else if (isPnpDisable)
+                actualCommand = $"Disable-PnpDevice -InstanceId '{instanceId}' -Confirm:$false";
 
             var logOutput = new List<string>();
             try
             {
                 using var powerShell = PowerShell.Create();
-                powerShell.AddScript(psCommand);
+                powerShell.AddScript(actualCommand);
                 var results = await Task.Run(() => powerShell.Invoke());
                 foreach (var item in results) logOutput.Add(item.ToString());
-                var errorStream = powerShell.Streams.Error.ReadAll();
-                foreach (var error in errorStream) logOutput.Add($"Error: {error}");
+                foreach (var error in powerShell.Streams.Error.ReadAll()) logOutput.Add($"Error: {error}");
             }
-            catch (Exception ex)
-            {
-                logOutput.Add($"Error: {ex.Message}");
-            }
+            catch (Exception ex) { logOutput.Add($"Error: {ex.Message}"); }
             return logOutput;
         }
 
@@ -322,28 +228,24 @@ namespace ExHyperV.Services
         {
             var operations = new List<(string Command, string Message, bool IsPnpEnable, bool IsPnpDisable)>();
 
-            // 场景1: 设备已卸除，现在要分配给主机
             if (Nowname == Resources.removed && Vmname == Resources.Host)
             {
                 operations.Add(($"Mount-VMHostAssignableDevice -LocationPath '{path}'", Resources.mounting, false, false));
-                operations.Add((string.Empty, Resources.enabling, true, false)); // Win32Api.EnablePnpDevice
+                operations.Add((string.Empty, Resources.enabling, true, false));
             }
-            // 场景2: 设备已卸除，现在要分配给某个虚拟机
             else if (Nowname == Resources.removed && Vmname != Resources.Host)
             {
                 operations.Add(($"Add-VMAssignableDevice -LocationPath '{path}' -VMName '{Vmname}'", Resources.mounting, false, false));
             }
-            // 场景3: 设备在主机上，现在要分配给某个虚拟机
             else if (Nowname == Resources.Host)
             {
                 operations.Add(($"Set-VM -Name '{Vmname}' -AutomaticStopAction TurnOff", Resources.string5, false, false));
                 operations.Add(($"Set-VM -GuestControlledCacheTypes $true -VMName '{Vmname}'", Resources.cpucache, false, false));
                 operations.Add(($"(Get-PnpDeviceProperty -InstanceId '{instanceId}' DEVPKEY_Device_LocationPaths).Data[0]", Resources.getpath, false, false));
-                operations.Add((string.Empty, Resources.Disabledevice, false, true)); // Win32Api.DisablePnpDevice
+                operations.Add((string.Empty, Resources.Disabledevice, false, true));
                 operations.Add(($"Dismount-VMHostAssignableDevice -Force -LocationPath '{path}'", Resources.Dismountdevice, false, false));
                 operations.Add(($"Add-VMAssignableDevice -LocationPath '{path}' -VMName '{Vmname}'", Resources.mounting, false, false));
             }
-            // 场景4: 设备从一个虚拟机移到另一个虚拟机
             else if (Vmname != Resources.Host && Nowname != Resources.Host)
             {
                 operations.Add(($"Set-VM -Name '{Vmname}' -AutomaticStopAction TurnOff", Resources.string5, false, false));
@@ -352,13 +254,12 @@ namespace ExHyperV.Services
                 operations.Add(($"Remove-VMAssignableDevice -LocationPath '{path}' -VMName '{Nowname}'", Resources.Dismountdevice, false, false));
                 operations.Add(($"Add-VMAssignableDevice -LocationPath '{path}' -VMName '{Vmname}'", Resources.mounting, false, false));
             }
-            // 场景5: 设备从一个虚拟机移回给主机
             else if (Vmname == Resources.Host && Nowname != Resources.Host)
             {
                 operations.Add(($"(Get-PnpDeviceProperty -InstanceId '{instanceId}' DEVPKEY_Device_LocationPaths).Data[0]", Resources.getpath, false, false));
                 operations.Add(($"Remove-VMAssignableDevice -LocationPath '{path}' -VMName '{Nowname}'", Resources.Dismountdevice, false, false));
                 operations.Add(($"Mount-VMHostAssignableDevice -LocationPath '{path}'", Resources.mounting, false, false));
-                operations.Add((string.Empty, Resources.enabling, true, false)); // Win32Api.EnablePnpDevice
+                operations.Add((string.Empty, Resources.enabling, true, false));
             }
 
             return operations;
