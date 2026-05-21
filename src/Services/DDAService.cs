@@ -328,6 +328,53 @@ namespace ExHyperV.Services
                     },
                     WmiScope.HyperV));
 
+            // WMI：Add-VMAssignableDevice
+            // 流程：拿 PciExpress Default 模板 → 设置 HostResource = PCIP 设备路径 → AddResourceSettings
+            DdaOperation AddDevice(string devInstanceId, string locationPath, string vmName) => new(
+                Resources.mounting, DdaOpType.Wmi,
+                WmiAction: async () =>
+                {
+                    var ms = WmiConnectionCache.GetManagementScope(WmiScope.HyperV, WmiContext.Local);
+
+                    // 1. 拿 PciExpress Default 模板
+                    using var templateSearcher = new System.Management.ManagementObjectSearcher(ms,
+                        new System.Management.ObjectQuery(
+                            "SELECT * FROM Msvm_PciExpressSettingData WHERE InstanceID LIKE '%Default%'"));
+                    using var templateCol = templateSearcher.Get();
+                    using var template = templateCol.Cast<System.Management.ManagementObject>().FirstOrDefault();
+                    if (template is null) return ApiResponse.Fail("Cannot find PciExpress Default template");
+
+                    // 2. 拿 PCIP 设备的 WMI 路径（用 LocationPath 查询）
+                    string escapedLocationPath = WmiApi.Escape(locationPath);
+                    using var pcipSearcher = new System.Management.ManagementObjectSearcher(ms,
+                        new System.Management.ObjectQuery(
+                            $"SELECT * FROM Msvm_PciExpress WHERE LocationPath='{escapedLocationPath}'"));
+                    using var pcipCol = pcipSearcher.Get();
+                    using var pcipDevice = pcipCol.Cast<System.Management.ManagementObject>().FirstOrDefault();
+                    if (pcipDevice is null) return ApiResponse.Fail($"Cannot find PciExpress device at: {locationPath}");
+
+                    template["HostResource"] = new string[] { pcipDevice["__PATH"]?.ToString() ?? "" };
+
+                    // 3. 拿 VM VirtualSystemSettingData 路径
+                    string escapedVmName = WmiApi.Escape(vmName);
+                    using var vmSettingSearcher = new System.Management.ManagementObjectSearcher(ms,
+                        new System.Management.ObjectQuery(
+                            $"SELECT * FROM Msvm_VirtualSystemSettingData WHERE ElementName='{escapedVmName}' AND VirtualSystemType='Microsoft:Hyper-V:System:Realized'"));
+                    using var vmSettingCol = vmSettingSearcher.Get();
+                    using var vmSetting = vmSettingCol.Cast<System.Management.ManagementObject>().FirstOrDefault();
+                    if (vmSetting is null) return ApiResponse.Fail($"Cannot find VM setting: {vmName}");
+
+                    // 4. AddResourceSettings
+                    return await WmiApi.InvokeAsync(
+                        "SELECT * FROM Msvm_VirtualSystemManagementService",
+                        "AddResourceSettings",
+                        p => {
+                            p["AffectedConfiguration"] = vmSetting["__PATH"]?.ToString();
+                            p["ResourceSettings"] = new string[] { template.GetText(System.Management.TextFormat.CimDtd20) };
+                        },
+                        WmiScope.HyperV);
+                });
+
             // WMI：Dismount-VMHostAssignableDevice
             DdaOperation DismountDevice(string devInstanceId, string locationPath) => new(
                 Resources.Dismountdevice, DdaOpType.Wmi,
@@ -345,6 +392,58 @@ namespace ExHyperV.Services
                         p["DismountSettingData"] = inst.GetText(System.Management.TextFormat.CimDtd20);
                     },
                     WmiScope.HyperV));
+
+            // WMI：Remove-VMAssignableDevice
+            // 流程：从 VM 的 Msvm_PciExpressSettingData 找到对应 LocationPath 的设备设置 → RemoveResourceSettings
+            DdaOperation RemoveDevice(string devInstanceId, string locationPath, string vmName) => new(
+                Resources.Dismountdevice, DdaOpType.Wmi,
+                WmiAction: async () =>
+                {
+                    var ms = WmiConnectionCache.GetManagementScope(WmiScope.HyperV, WmiContext.Local);
+
+                    // 1. 拿 VM 的 Realized VirtualSystemSettingData
+                    string escapedVmName = WmiApi.Escape(vmName);
+                    using var vmSettingSearcher = new System.Management.ManagementObjectSearcher(ms,
+                        new System.Management.ObjectQuery(
+                            $"SELECT InstanceID FROM Msvm_VirtualSystemSettingData WHERE ElementName='{escapedVmName}' AND VirtualSystemType='Microsoft:Hyper-V:System:Realized'"));
+                    using var vmSettingCol = vmSettingSearcher.Get();
+                    using var vmSetting = vmSettingCol.Cast<System.Management.ManagementObject>().FirstOrDefault();
+                    if (vmSetting is null) return ApiResponse.Fail($"Cannot find VM setting: {vmName}");
+
+                    string settingId = vmSetting["InstanceID"]?.ToString() ?? "";
+                    string escapedSettingId = WmiApi.Escape(settingId);
+
+                    // 2. 找到该 VM 下匹配 LocationPath 的 PciExpressSettingData
+                    using var pciSettingSearcher = new System.Management.ManagementObjectSearcher(ms,
+                        new System.Management.ObjectQuery(
+                            $"SELECT * FROM Msvm_PciExpressSettingData WHERE InstanceID LIKE '{escapedSettingId}\\\\%'"));
+                    using var pciSettingCol = pciSettingSearcher.Get();
+
+                    // 找到 HostResource 里 DeviceID 包含 pureId（\VEN_...）的那条记录
+                    string pureId = GetPureId(devInstanceId);
+                    System.Management.ManagementObject? targetSetting = null;
+                    foreach (System.Management.ManagementObject obj in pciSettingCol)
+                    {
+                        if (obj["HostResource"] is string[] hr && hr.Length > 0
+                            && hr[0].Contains(pureId.Replace("\\", "\\\\"), StringComparison.OrdinalIgnoreCase))
+                        {
+                            targetSetting = obj;
+                            break;
+                        }
+                        obj.Dispose();
+                    }
+                    if (targetSetting is null) return ApiResponse.Fail($"Cannot find PciExpress setting for location: {locationPath}");
+
+                    using (targetSetting)
+                    {
+                        // 3. RemoveResourceSettings
+                        return await WmiApi.InvokeAsync(
+                            "SELECT * FROM Msvm_VirtualSystemManagementService",
+                            "RemoveResourceSettings",
+                            p => p["ResourceSettings"] = new string[] { targetSetting["__PATH"]?.ToString() ?? "" },
+                            WmiScope.HyperV);
+                    }
+                });
 
             // WMI：Set-VM -AutomaticStopAction TurnOff（AutomaticShutdownAction=2）
             DdaOperation SetAutoStop(string vmName) => new(
@@ -379,7 +478,7 @@ namespace ExHyperV.Services
             {
                 ops.Add(SetAutoStop(Vmname));
                 ops.Add(SetGuestCache(Vmname));
-                ops.Add(new(Resources.mounting, DdaOpType.Ps, $"Add-VMAssignableDevice -LocationPath '{path}' -VMName '{Vmname}'"));
+                ops.Add(AddDevice(instanceId, path, Vmname));
             }
             else if (Nowname == Resources.Host)
             {
@@ -387,18 +486,18 @@ namespace ExHyperV.Services
                 ops.Add(SetGuestCache(Vmname));
                 ops.Add(new(Resources.Disabledevice, DdaOpType.PnpDisable));
                 ops.Add(DismountDevice(instanceId, path));
-                ops.Add(new(Resources.mounting, DdaOpType.Ps, $"Add-VMAssignableDevice -LocationPath '{path}' -VMName '{Vmname}'"));
+                ops.Add(AddDevice(instanceId, path, Vmname));
             }
             else if (Vmname != Resources.Host && Nowname != Resources.Host)
             {
                 ops.Add(SetAutoStop(Vmname));
                 ops.Add(SetGuestCache(Vmname));
-                ops.Add(new(Resources.Dismountdevice, DdaOpType.Ps, $"Remove-VMAssignableDevice -LocationPath '{path}' -VMName '{Nowname}'"));
-                ops.Add(new(Resources.mounting, DdaOpType.Ps, $"Add-VMAssignableDevice -LocationPath '{path}' -VMName '{Vmname}'"));
+                ops.Add(RemoveDevice(instanceId, path, Nowname));
+                ops.Add(AddDevice(instanceId, path, Vmname));
             }
             else if (Vmname == Resources.Host && Nowname != Resources.Host)
             {
-                ops.Add(new(Resources.Dismountdevice, DdaOpType.Ps, $"Remove-VMAssignableDevice -LocationPath '{path}' -VMName '{Nowname}'"));
+                ops.Add(RemoveDevice(instanceId, path, Nowname));
                 ops.Add(MountDevice(instanceId, path));
                 ops.Add(new(Resources.enabling, DdaOpType.PnpEnable));
             }
