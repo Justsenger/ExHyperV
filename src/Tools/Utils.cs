@@ -10,6 +10,7 @@ using System.Windows.Media;
 using Wpf.Ui.Controls;
 using System.Text.RegularExpressions;
 using System.Management;
+using Microsoft.Win32;
 
 namespace ExHyperV.Tools;
 
@@ -84,29 +85,28 @@ public class Utils
         switch (deviceType)
         {
             case "Switch":
-                return "\xF597";  // 交换机图标 
+                return "\xF597";
             case "Upstream":
-                return "\uE774";  // 地球/上游网络图标
+                return "\uE774";
             case "Display":
-                return "\xF211";  // 显卡图标 
+                return "\xF211";
             case "Net":
-                return "\xE839";  // 网络图标
+                return "\xE839";
             case "USB":
                 return friendlyName.Contains("USB4")
-                    ? "\xE945"    // 雷电接口图标
-                    : "\xECF0";   // 普通USB图标
+                    ? "\xE945"
+                    : "\xECF0";
             case "HIDClass":
-                return "\xE928";  // HID设备图标
+                return "\xE928";
             case "SCSIAdapter":
             case "HDC":
-                return "\xEDA2";  // 存储控制器图标
+                return "\xEDA2";
             default:
                 return friendlyName.Contains("Audio")
-                    ? "\xE995"     // 音频设备图标
-                    : "\xE950";    // 默认图标
+                    ? "\xE995"
+                    : "\xE950";
         }
     }
-
 
     public static FontIcon FontIcon1(string classType, string friendlyName)
     {
@@ -114,87 +114,55 @@ public class Utils
         {
             FontSize = 24,
             FontFamily = (FontFamily)Application.Current.Resources["SegoeFluentIcons"],
-            Glyph = GetIconPath(classType, friendlyName) // 获取图标Unicode
+            Glyph = GetIconPath(classType, friendlyName)
         };
     }
-
 
     public static string GetGpuImagePath(string Manu, string name)
     {
         string imageName;
-
-        // 根据 Manu 设置不同的图片文件名
-        if (Manu.Contains("NVIDIA")) // 如果是 NVIDIA 显卡，使用 NVIDIA 的图片
-        {
+        if (Manu.Contains("NVIDIA"))
             imageName = "NVIDIA.png";
-        }
-        else if (Manu.Contains("Advanced")) //"Advanced Micro Devices, Inc."
-        {
+        else if (Manu.Contains("Advanced"))
             imageName = "AMD.png";
-        }
-        else if (Manu.Contains("Microsoft")) //"Microsoft"
-        {
+        else if (Manu.Contains("Microsoft"))
             imageName = "Microsoft.png";
-        }
-        else if (Manu.Contains("Intel")) // "Intel Corporation"
+        else if (Manu.Contains("Intel"))
         {
             imageName = "Intel.png";
-            if (name.ToLower().Contains("iris"))
-            {
-                imageName = "Intel-IrisXe.png";
-            }
-            if (name.ToLower().Contains("arc"))
-            {
-                imageName = "Inter-ARC.png";
-            }
-            if (name.ToLower().Contains("data"))
-            {
-                imageName = "Inter-DataCenter.png";
-            }
-
-
+            if (name.ToLower().Contains("iris")) imageName = "Intel-IrisXe.png";
+            if (name.ToLower().Contains("arc")) imageName = "Inter-ARC.png";
+            if (name.ToLower().Contains("data")) imageName = "Inter-DataCenter.png";
         }
-        else if (Manu.Contains("Moore")) // "Moore Threads"
-        {
+        else if (Manu.Contains("Moore"))
             imageName = "Moore.png";
-        }
-        else if (Manu.Contains("Qualcomm")) // "Qualcomm Incorporated"
-        {
+        else if (Manu.Contains("Qualcomm"))
             imageName = "Qualcomm.png";
-        }
-        else if (Manu.Contains("DisplayLink")) //"DisplayLink"
-        {
+        else if (Manu.Contains("DisplayLink"))
             imageName = "DisplayLink.png";
-        }
-        else if (Manu.Contains("Silicon")) //"SiliconMotion"
-        {
+        else if (Manu.Contains("Silicon"))
             imageName = "Silicon.png";
-        }
         else
-        {
-            imageName = "Default.png";  // 其他情况
-        }
+            imageName = "Default.png";
 
         return $"pack://application:,,,/Assets/{imageName}";
     }
 
     public static FontIcon FontIcon(int Size, string Glyph)
     {
-        var icon = new FontIcon
+        return new FontIcon
         {
             FontSize = Size,
             FontFamily = (FontFamily)Application.Current.Resources["SegoeFluentIcons"],
-            Glyph = Glyph // 获取图标Unicode
+            Glyph = Glyph
         };
-        return icon;
     }
+
     public static DateTime GetLinkerTime()
     {
-        //获取编译时间
         string filePath = Assembly.GetExecutingAssembly().Location;
         var fileInfo = new System.IO.FileInfo(filePath);
-        DateTime linkerTime = fileInfo.LastWriteTime;
-        return linkerTime;
+        return fileInfo.LastWriteTime;
     }
 
     public static async Task UpdateSwitchConfigurationAsync(string switchName, string mode, string? physicalAdapterName, bool allowManagementOS, bool enabledhcp)
@@ -203,10 +171,6 @@ public class Utils
         switch (mode)
         {
             case "Bridge":
-
-
-                //1.清除ICS设置。2.清除多余的宿主适配器。3.设置交换机为外部交换机，指定上游网卡。
-
                 script = $@"$netShareManager = New-Object -ComObject HNetCfg.HNetShare;
                 foreach ($connection in $netShareManager.EnumEveryConnection) {{
                     $props = $netShareManager.NetConnectionProps.Invoke($connection);
@@ -217,12 +181,9 @@ public class Utils
                 }}";
                 script += $"Get-VMNetworkAdapter -ManagementOS -SwitchName '{switchName}' -ErrorAction SilentlyContinue | Remove-VMNetworkAdapter -Confirm:$false;";
                 script += $"\nSet-VMSwitch -Name '{switchName}' -NetAdapterInterfaceDescription '{physicalAdapterName}'";
-
                 break;
 
             case "NAT":
-                //1.设置为内部交换机。2.开启ICS.
-
                 script = $"Set-VMSwitch -Name '{switchName}' -SwitchType Internal;";
                 script += $@"$PublicAdapterDescription = '{physicalAdapterName}';
                 $SwitchName = '{switchName}';
@@ -253,7 +214,6 @@ public class Utils
                 if ($publicConfig -and $privateConfig) {{
                     $publicConfig.EnableSharing(0);
                     $privateConfig.EnableSharing(1);
-
                 }}
                 ";
                 break;
@@ -269,13 +229,9 @@ public class Utils
                     }}
                 }}";
                 if (allowManagementOS)
-                {
                     script += $"\nif (-not (Get-VMNetworkAdapter -ManagementOS -SwitchName '{switchName}' -ErrorAction SilentlyContinue)) {{ Add-VMNetworkAdapter -ManagementOS -SwitchName '{switchName}' }};";
-                }
                 else
-                {
                     script += $"\nGet-VMNetworkAdapter -ManagementOS -SwitchName '{switchName}' -ErrorAction SilentlyContinue | Remove-VMNetworkAdapter -Confirm:$false;";
-                }
                 break;
 
             default:
@@ -284,41 +240,44 @@ public class Utils
         await RunScriptSTA(script);
         if (enabledhcp) { }
     }
+
     public static Task RunScriptSTA(string script)
     {
         var tcs = new TaskCompletionSource<object?>();
-
         var staThread = new Thread(() =>
         {
             try
             {
                 Run(script);
-                tcs.SetResult(null); // 表示成功完成
+                tcs.SetResult(null);
             }
             catch (Exception ex)
             {
-                tcs.SetException(ex); // 将异常传递给 Task
+                tcs.SetException(ex);
             }
         });
         staThread.SetApartmentState(ApartmentState.STA);
         staThread.IsBackground = true;
         staThread.Start();
-
         return tcs.Task;
     }
-
 
     /// <summary>
     /// 添加Hyper-V GPU分配策略注册表项，以允许不受支持的GPU进行分区。
     /// </summary>
     public static void AddGpuAssignmentStrategyReg()
     {
-        string path = @"HKLM:\SOFTWARE\Policies\Microsoft\Windows\HyperV";
-        string script = $@"
-            if (-not (Test-Path '{path}')) {{ New-Item -Path '{path}' -Force }}
-            Set-ItemProperty -Path '{path}' -Name 'RequireSecureDeviceAssignment' -Value 0 -Type DWord
-            Set-ItemProperty -Path '{path}' -Name 'RequireSupportedDeviceAssignment' -Value 0 -Type DWord";
-        Run(script); 
+        try
+        {
+            using var key = Registry.LocalMachine.CreateSubKey(
+                @"SOFTWARE\Policies\Microsoft\Windows\HyperV");
+            key.SetValue("RequireSecureDeviceAssignment", 0, RegistryValueKind.DWord);
+            key.SetValue("RequireSupportedDeviceAssignment", 0, RegistryValueKind.DWord);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"AddGpuAssignmentStrategyReg failed: {ex.Message}");
+        }
     }
 
     /// <summary>
@@ -326,13 +285,18 @@ public class Utils
     /// </summary>
     public static void RemoveGpuAssignmentStrategyReg()
     {
-        string path = @"HKLM:\SOFTWARE\Policies\Microsoft\Windows\HyperV";
-        string script = $@"
-            if (Test-Path '{path}') {{
-                Remove-ItemProperty -Path '{path}' -Name 'RequireSecureDeviceAssignment' -ErrorAction SilentlyContinue
-                Remove-ItemProperty -Path '{path}' -Name 'RequireSupportedDeviceAssignment' -ErrorAction SilentlyContinue
-            }}";
-        Run(script); 
+        try
+        {
+            using var key = Registry.LocalMachine.OpenSubKey(
+                @"SOFTWARE\Policies\Microsoft\Windows\HyperV", writable: true);
+            if (key == null) return;
+            key.DeleteValue("RequireSecureDeviceAssignment", throwOnMissingValue: false);
+            key.DeleteValue("RequireSupportedDeviceAssignment", throwOnMissingValue: false);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"RemoveGpuAssignmentStrategyReg failed: {ex.Message}");
+        }
     }
 
     /// <summary>
@@ -341,21 +305,23 @@ public class Utils
     /// </summary>
     public static void ApplyGpuPartitionStrictModeFix()
     {
-        string path = @"HKLM:\SOFTWARE\Microsoft\WindowsNT\CurrentVersion\Virtualization";
-        string script = $@"
-            if (-not (Test-Path '{path}')) {{ New-Item -Path '{path}' -Force }}
-            Set-ItemProperty -Path '{path}' -Name 'DisableGpuPartitionStrictMode' -Value 1 -Type DWord -Force";
-        Run(script);
+        try
+        {
+            using var key = Registry.LocalMachine.CreateSubKey(
+                @"SOFTWARE\Microsoft\WindowsNT\CurrentVersion\Virtualization");
+            key.SetValue("DisableGpuPartitionStrictMode", 1, RegistryValueKind.DWord);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"ApplyGpuPartitionStrictModeFix failed: {ex.Message}");
+        }
     }
 
     #region Hyper-V Network Helpers
 
     public static string SelectBestIpv4Address(string ipCandidates)
     {
-        if (string.IsNullOrWhiteSpace(ipCandidates))
-        {
-            return string.Empty;
-        }
+        if (string.IsNullOrWhiteSpace(ipCandidates)) return string.Empty;
 
         var parsedAddresses = ipCandidates
             .Split(new[] { ',', ';', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
@@ -367,10 +333,7 @@ public class Utils
             .Distinct()
             .ToList();
 
-        if (parsedAddresses.Count == 0)
-        {
-            return string.Empty;
-        }
+        if (parsedAddresses.Count == 0) return string.Empty;
 
         var preferred = parsedAddresses.FirstOrDefault(IsRfc1918PrivateAddress)
             ?? parsedAddresses.FirstOrDefault(addr => !IsLinkLocalOrLoopback(addr))
@@ -381,17 +344,10 @@ public class Utils
 
     private static string NormalizeIpCandidate(string candidate)
     {
-        if (string.IsNullOrWhiteSpace(candidate))
-        {
-            return string.Empty;
-        }
-
+        if (string.IsNullOrWhiteSpace(candidate)) return string.Empty;
         string trimmed = candidate.Trim().Trim('[', ']');
         int cidrIndex = trimmed.IndexOf('/');
-        if (cidrIndex > 0)
-        {
-            trimmed = trimmed.Substring(0, cidrIndex);
-        }
+        if (cidrIndex > 0) trimmed = trimmed.Substring(0, cidrIndex);
         return trimmed.Trim();
     }
 
@@ -404,48 +360,24 @@ public class Utils
     private static bool IsRfc1918PrivateAddress(IPAddress address)
     {
         var bytes = address.GetAddressBytes();
-        if (bytes.Length != 4)
-        {
-            return false;
-        }
-
-        if (bytes[0] == 10)
-        {
-            return true;
-        }
-
-        if (bytes[0] == 172 && bytes[1] >= 16 && bytes[1] <= 31)
-        {
-            return true;
-        }
-
+        if (bytes.Length != 4) return false;
+        if (bytes[0] == 10) return true;
+        if (bytes[0] == 172 && bytes[1] >= 16 && bytes[1] <= 31) return true;
         return bytes[0] == 192 && bytes[1] == 168;
     }
 
-    /// <summary>
-    /// 异步获取虚拟机的IP地址。
-    /// 首先尝试通过Hyper-V集成服务直接获取，如果失败，则回退到使用主机的ARP缓存通过MAC地址查找。
-    /// </summary>
-    /// <param name="vmName">虚拟机的名称。</param>
-    /// <param name="macAddressWithColons">虚拟机网络适配器的MAC地址，格式为 "00:15:5D:..."。</param>
-    /// <returns>一个包含逗号分隔的IP地址的字符串，如果未找到则为空字符串。</returns>
     public static async Task<string> GetVmIpAddressAsync(string vmName, string macAddressWithColons)
     {
         if (string.IsNullOrEmpty(vmName) || string.IsNullOrEmpty(macAddressWithColons))
-        {
             return string.Empty;
-        }
 
-        // 1. 尝试直接从Hyper-V获取IP
         string macAddressWithoutColons = macAddressWithColons.Replace(":", "").Replace("-", "");
-        // 注意: Get-VMNetworkAdapter 返回的 IPAddresses 是一个字符串数组
         string directIpScript = $"@(Get-VMNetworkAdapter -VMName '{vmName}' | Where-Object {{ $_.MacAddress -eq '{macAddressWithoutColons}' }}).IPAddresses";
 
         string ipAddresses = string.Empty;
         try
         {
             var directResults = await Run2(directIpScript);
-
             if (directResults != null && directResults.Count > 0)
             {
                 var ips = directResults.Select(pso => pso?.BaseObject?.ToString()).Where(ip => !string.IsNullOrEmpty(ip));
@@ -455,11 +387,8 @@ public class Utils
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Direct IP lookup for VM '{vmName}' failed: {ex.Message}");
-            // 失败时继续尝试ARP，所以这里不抛出异常
         }
 
-
-        // 2. 如果直接获取失败，则尝试从ARP缓存获取
         if (string.IsNullOrEmpty(ipAddresses))
         {
             System.Diagnostics.Debug.WriteLine($"Direct IP lookup failed or returned empty for VM '{vmName}' (MAC: {macAddressWithColons}). Trying ARP cache.");
@@ -469,11 +398,6 @@ public class Utils
         return ipAddresses;
     }
 
-    /// <summary>
-    /// 通过MAC地址在主机的ARP缓存中查找对应的IPv4地址。
-    /// </summary>
-    /// <param name="macWithColons">带冒号的MAC地址。</param>
-    /// <returns>找到的IP地址，如果未找到则为空字符串。</returns>
     private static async Task<string> GetIpFromArpCacheByMacAsync(string macWithColons)
     {
         string cleanMac = macWithColons.Replace(":", "").Replace("-", "");
@@ -482,12 +406,9 @@ public class Utils
 
         try
         {
-            // 使用 Run2 方法
             var results = await Run2(script);
             if (results != null && results.Count > 0)
-            {
                 return results[0]?.BaseObject?.ToString() ?? string.Empty;
-            }
         }
         catch (Exception ex)
         {
@@ -497,7 +418,6 @@ public class Utils
     }
 
     #endregion
-
 
     public static void Show(string message)
     {
@@ -509,11 +429,9 @@ public class Utils
         };
         messageBox.ShowDialogAsync();
     }
-    public static void Show2(string message)
-    {
 
-        System.Windows.MessageBox.Show(message);
-    }
+    public static void Show2(string message) => System.Windows.MessageBox.Show(message);
+
     public static string GetFriendlyErrorMessage(string rawMessage)
     {
         if (string.IsNullOrWhiteSpace(rawMessage)) return "Storage_Error_Unknown";
@@ -526,70 +444,49 @@ public class Utils
 
     public static string GetFriendlyErrorMessages(string rawMessage)
     {
-        if (string.IsNullOrWhiteSpace(rawMessage))
-        {
-            return string.Empty;
-        }
+        if (string.IsNullOrWhiteSpace(rawMessage)) return string.Empty;
 
         string message = rawMessage;
-
         const string psErrorPrefix = "The running command stopped because the preference variable \"ErrorActionPreference\" or common parameter is set to Stop: ";
         message = message.Replace(psErrorPrefix, "");
 
         var guidInParensRegex = new Regex(@"\s*[\(（].*?[a-fA-F0-9]{8}-(?:[a-fA-F0-9]{4}-){3}[a-fA-F0-9]{12}.*?[\)）]");
-
         string[] lines = message.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.RemoveEmptyEntries);
 
         var distinctLines = lines
             .Select(line => guidInParensRegex.Replace(line, ""))
-            .Select(line => line.Trim().Trim('"', '“', '”').TrimEnd('.', '。'))
+            .Select(line => line.Trim().Trim('"', '\u201c', '\u201d').TrimEnd('.', '。'))
             .Where(line => !string.IsNullOrWhiteSpace(line))
             .Distinct(StringComparer.Ordinal);
 
         string finalMessage = string.Join(Environment.NewLine, distinctLines);
-
         return string.IsNullOrWhiteSpace(finalMessage) ? rawMessage.Trim() : finalMessage;
     }
 
     public static string FormatBytes(long bytes)
     {
-        if (bytes < 0)
-        {
-            return "Invalid size";
-        }
-        if (bytes == 0)
-        {
-            return "0 B";
-        }
-
+        if (bytes < 0) return "Invalid size";
+        if (bytes == 0) return "0 B";
         string[] units = { "B", "KB", "MB", "GB", "TB", "PB", "EB" };
-
         int unitIndex = (int)Math.Floor(Math.Log(bytes, 1024));
-
         double number = bytes / Math.Pow(1024, unitIndex);
-
         string format = (unitIndex == 0) ? "F0" : "F2";
-
         return $"{number.ToString(format)} {units[unitIndex]}";
     }
 
     public static readonly List<string> SupportedOsTypes = new()
-        {
-            "Windows","Ubuntu","ArchLinux","Debian","CentOS","Kali", "Linux", "Android", "ChromeOS", "FydeOS",
-            "MacOS", "FreeBSD", "OpenWrt", "FnOS","iStoreOS","TrueNAS","Unraid","NixOS","Manjaro","LinuxMint","Fedora","Deepin"
-        };
+    {
+        "Windows","Ubuntu","ArchLinux","Debian","CentOS","Kali", "Linux", "Android", "ChromeOS", "FydeOS",
+        "MacOS", "FreeBSD", "OpenWrt", "FnOS","iStoreOS","TrueNAS","Unraid","NixOS","Manjaro","LinuxMint","Fedora","Deepin"
+    };
 
     public static string GetOsImageName(string osType)
     {
         if (string.IsNullOrWhiteSpace(osType)) return "Windows.png";
-
         string lower = osType.ToLower();
-
-        if (SupportedOsTypes.Any(t => t.Equals(lower, StringComparison.OrdinalIgnoreCase)))
-        {
-            return $"{lower}.png";
-        }
-        return "Windows.png";
+        return SupportedOsTypes.Any(t => t.Equals(lower, StringComparison.OrdinalIgnoreCase))
+            ? $"{lower}.png"
+            : "Windows.png";
     }
 
     public static string GetTagValue(string text, string tagName)
@@ -598,7 +495,6 @@ public class Utils
         string prefix = $"[{tagName}:";
         int start = text.IndexOf(prefix, StringComparison.OrdinalIgnoreCase);
         if (start == -1) return string.Empty;
-
         start += prefix.Length;
         int end = text.IndexOf("]", start);
         return end == -1 ? string.Empty : text.Substring(start, end - start);
@@ -609,26 +505,21 @@ public class Utils
         text = text ?? string.Empty;
         string tagPrefix = $"[{tagName}:";
         string newTag = $"[{tagName}:{newValue}]";
-
         int startIndex = text.IndexOf(tagPrefix, StringComparison.OrdinalIgnoreCase);
         if (startIndex != -1)
         {
             int endIndex = text.IndexOf("]", startIndex);
             if (endIndex != -1)
-            {
                 return text.Remove(startIndex, endIndex - startIndex + 1).Insert(startIndex, newTag);
-            }
         }
         return string.IsNullOrWhiteSpace(text) ? newTag : $"{text.Trim()} {newTag}";
     }
 
-    // 读取宿主中的代理设置
     public static (string Host, string Port) GetWindowsSystemProxy()
     {
         try
         {
-
-            using var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Internet Settings");
+            using var key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Internet Settings");
             if (key != null)
             {
                 var proxyEnable = key.GetValue("ProxyEnable");
@@ -639,9 +530,7 @@ public class Utils
                     {
                         var match = System.Text.RegularExpressions.Regex.Match(proxyServer, @"(?:.*=)?(?<host>[^:]+):(?<port>\d+)");
                         if (match.Success)
-                        {
                             return (match.Groups["host"].Value, match.Groups["port"].Value);
-                        }
                     }
                 }
             }
@@ -649,24 +538,20 @@ public class Utils
         catch { }
         return (string.Empty, string.Empty);
     }
-    public static string Version
-    {
-        get
-        {
-            return $"V{Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "1.0.0"}";
-        }
-    }
+
+    public static string Version =>
+        $"V{Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "1.0.0"}";
 
     public static string Author => "Justsenger";
 
     private static readonly string[] ConflictCommands = {
-    "Get-VM", "Set-VM", "New-VM", "Remove-VM",
-    "Get-VMHost", "Set-VMHost",
-    "Get-NetworkAdapter", "Set-NetworkAdapter",
-    "Get-HardDisk", "Set-HardDisk",
-    "Get-Snapshot", "Remove-Snapshot", "New-Snapshot",
-    "Stop-VM", "Restart-VM", "Start-VM"
-};
+        "Get-VM", "Set-VM", "New-VM", "Remove-VM",
+        "Get-VMHost", "Set-VMHost",
+        "Get-NetworkAdapter", "Set-NetworkAdapter",
+        "Get-HardDisk", "Set-HardDisk",
+        "Get-Snapshot", "Remove-Snapshot", "New-Snapshot",
+        "Stop-VM", "Restart-VM", "Start-VM"
+    };
 
     private static string PrefixHyperVCommands(string script)
     {
@@ -677,5 +562,4 @@ public class Utils
         }
         return script;
     }
-
 }
