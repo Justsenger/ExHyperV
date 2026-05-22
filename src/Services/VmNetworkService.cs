@@ -1,8 +1,10 @@
 using ExHyperV.Models;
-using ExHyperV.Tools;
 using ExHyperV.Tools.Api;
 using System.Diagnostics;
 using System.Management;
+using System.Net;
+using System.Net.Sockets;
+using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 
 namespace ExHyperV.Services;
@@ -101,7 +103,6 @@ public class VmNetworkService
                                            $"WHERE AssocClass = Msvm_EthernetPortSettingDataComponent " +
                                            $"ResultClass = Msvm_EthernetSwitchPortFeatureSettingData";
 
-                        // 借用已连接的 Scope，不直接持有 WmiConnectionCache
                         using var svcForScope = WmiApi.GetVirtualSystemManagementService();
                         using var searcher = new ManagementObjectSearcher(
                             svcForScope.Scope, new ObjectQuery(query));
@@ -155,10 +156,10 @@ public class VmNetworkService
             if (adapter.IpAddresses != null && adapter.IpAddresses.Count > 0) continue;
             try
             {
-                string arpIp = await Utils.GetVmIpAddressAsync(vmName, adapter.MacAddress);
-                if (!string.IsNullOrEmpty(arpIp))
+                string ip = await GetVmIpAddressAsync(vmName, adapter.MacAddress);
+                if (!string.IsNullOrEmpty(ip))
                 {
-                    adapter.IpAddresses = arpIp
+                    adapter.IpAddresses = ip
                         .Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries)
                         .Select(x => x.Trim()).ToList();
                 }
@@ -168,6 +169,132 @@ public class VmNetworkService
                 Log(string.Format(Properties.Resources.VmNet_IpFail, ex.Message));
             }
         }
+    }
+
+    // ── VM IP 获取 ────────────────────────────────────────────────
+
+    /// <summary>
+    /// 获取虚拟机 IP 地址。
+    /// 路径1：WMI Msvm_GuestNetworkAdapterConfiguration 直接获取。
+    /// 路径2：GetIpNetTable2 Win32 API 查 ARP 缓存回退。
+    /// </summary>
+    public async Task<string> GetVmIpAddressAsync(string vmName, string macAddressWithColons)
+    {
+        if (string.IsNullOrEmpty(vmName) || string.IsNullOrEmpty(macAddressWithColons))
+            return string.Empty;
+
+        // 路径1：WMI 直接获取
+        string ipAddresses = await Task.Run(() => GetIpFromHyperV(vmName, macAddressWithColons));
+
+        // 路径2：ARP 缓存回退
+        if (string.IsNullOrEmpty(ipAddresses))
+        {
+            Log($"WMI IP lookup failed for VM '{vmName}', trying ARP cache.");
+            ipAddresses = await Task.Run(() => GetIpFromArpCache(macAddressWithColons));
+        }
+
+        return ipAddresses;
+    }
+
+    private string GetIpFromHyperV(string vmName, string macWithColons)
+    {
+        try
+        {
+            string escapedVm = WmiApi.Escape(vmName);
+            using var vmSearcher = new ManagementObjectSearcher(
+                @"root\virtualization\v2",
+                $"SELECT Name FROM Msvm_ComputerSystem WHERE ElementName='{escapedVm}'");
+
+            string? vmGuid = null;
+            foreach (ManagementObject vm in vmSearcher.Get())
+            {
+                vmGuid = vm["Name"]?.ToString();
+                break;
+            }
+            if (vmGuid == null) return string.Empty;
+
+            using var adapterSearcher = new ManagementObjectSearcher(
+                @"root\virtualization\v2",
+                "SELECT * FROM Msvm_GuestNetworkAdapterConfiguration");
+
+            var ips = new List<string>();
+            foreach (ManagementObject obj in adapterSearcher.Get())
+            {
+                string instanceId = obj["InstanceID"]?.ToString() ?? "";
+                if (!instanceId.StartsWith($"Microsoft:{vmGuid}\\", StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                if (obj["IPAddresses"] is string[] addrs)
+                {
+                    foreach (var addr in addrs)
+                    {
+                        if (IPAddress.TryParse(addr, out var ip) &&
+                            ip.AddressFamily == AddressFamily.InterNetwork)
+                            ips.Add(ip.ToString());
+                    }
+                }
+            }
+
+            return string.Join(", ", ips);
+        }
+        catch (Exception ex)
+        {
+            Log($"WMI IP error: {ex.Message}");
+            return string.Empty;
+        }
+    }
+
+    private string GetIpFromArpCache(string macWithColons)
+    {
+        try
+        {
+            string macClean = macWithColons.Replace(":", "").Replace("-", "").ToUpperInvariant();
+            byte[] targetMac = Enumerable.Range(0, 6)
+                .Select(i => Convert.ToByte(macClean.Substring(i * 2, 2), 16))
+                .ToArray();
+
+            IntPtr table = IntPtr.Zero;
+            try
+            {
+                int ret = VmNetNativeMethods.GetIpNetTable2(AddressFamily.InterNetwork, out table);
+                if (ret != 0) return string.Empty;
+
+                int rowCount = Marshal.ReadInt32(table);
+                IntPtr rowPtr = table + 4;
+                int rowSize = Marshal.SizeOf<VmNetNativeMethods.MIB_IPNET_ROW2>();
+
+                for (int i = 0; i < rowCount; i++)
+                {
+                    var row = Marshal.PtrToStructure<VmNetNativeMethods.MIB_IPNET_ROW2>(rowPtr + i * rowSize);
+                    if (row.PhysicalAddressLength == 6 &&
+                        row.PhysicalAddress[0] == targetMac[0] &&
+                        row.PhysicalAddress[1] == targetMac[1] &&
+                        row.PhysicalAddress[2] == targetMac[2] &&
+                        row.PhysicalAddress[3] == targetMac[3] &&
+                        row.PhysicalAddress[4] == targetMac[4] &&
+                        row.PhysicalAddress[5] == targetMac[5])
+                    {
+                        short af = BitConverter.ToInt16(row.Address, 0);
+                        if (af == (short)AddressFamily.InterNetwork)
+                        {
+                            byte[] ipBytes = new byte[4];
+                            Array.Copy(row.Address, 4, ipBytes, 0, 4);
+                            return new IPAddress(ipBytes).ToString();
+                        }
+                    }
+                }
+            }
+            finally
+            {
+                if (table != IntPtr.Zero)
+                    VmNetNativeMethods.FreeMibTable(table);
+            }
+        }
+        catch (Exception ex)
+        {
+            Log($"ARP cache error: {ex.Message}");
+        }
+        return string.Empty;
     }
 
     // ── 网卡生命周期 ──────────────────────────────────────────────
@@ -181,10 +308,8 @@ public class VmNetworkService
             using var vm = WmiApi.GetVmComputerSystem(vmName);
             if (vm == null) return (false, Properties.Resources.Error_Net_VmNotFound);
 
-            // 借用已连接的 Scope
             using var svcForScope = WmiApi.GetVirtualSystemManagementService();
 
-            // 步骤1：获取端口默认模板，创建网卡端口
             using var portTemplateSearcher = new ManagementObjectSearcher(svcForScope.Scope,
                 new ObjectQuery("SELECT * FROM Msvm_SyntheticEthernetPortSettingData WHERE InstanceID LIKE '%Default%'"));
             using var portTemplateCol = portTemplateSearcher.Get();
@@ -206,7 +331,6 @@ public class VmNetworkService
 
             if (!portResult.Success) return (false, portResult.Error);
 
-            // 步骤2：获取分配对象默认模板，关联到刚创建的端口
             using var allocTemplateSearcher = new ManagementObjectSearcher(svcForScope.Scope,
                 new ObjectQuery("SELECT * FROM Msvm_EthernetPortAllocationSettingData WHERE InstanceID LIKE '%Default%'"));
             using var allocTemplateCol = allocTemplateSearcher.Get();
@@ -214,7 +338,6 @@ public class VmNetworkService
 
             if (allocTemplate == null) return (false, Properties.Resources.Error_Net_TemplateNotFound);
 
-            // 找到刚创建的端口路径
             using var newPortSearcher = new ManagementObjectSearcher(svcForScope.Scope,
                 new ObjectQuery($"SELECT * FROM Msvm_SyntheticEthernetPortSettingData WHERE ElementName = '{WmiApi.Escape(Properties.Resources.Net_DefaultAdapterName)}' AND InstanceID LIKE 'Microsoft:{vm["Name"]}%'"));
             using var newPortCol = newPortSearcher.Get();
@@ -333,7 +456,6 @@ public class VmNetworkService
                     s["SecondaryVlanId"] = (ushort)0;
                     s["SecondaryVlanIdArray"] = null;
                     break;
-
                 case VlanOperationMode.Trunk:
                     s["NativeVlanId"] = (ushort)adapter.NativeVlanId;
                     s["TrunkVlanIdArray"] = adapter.TrunkAllowedVlanIds?.Any() == true
@@ -345,15 +467,12 @@ public class VmNetworkService
                     s["SecondaryVlanId"] = (ushort)0;
                     s["SecondaryVlanIdArray"] = null;
                     break;
-
                 case VlanOperationMode.Private:
                     uint pMode = (uint)adapter.PvlanMode == 0 ? 1u : (uint)adapter.PvlanMode;
                     ushort priId = (ushort)adapter.PvlanPrimaryId;
                     ushort secId = (ushort)adapter.PvlanSecondaryId;
-
                     s["PvlanMode"] = pMode;
                     s["PrimaryVlanId"] = priId;
-
                     if (pMode == 3)
                     {
                         s["SecondaryVlanId"] = (ushort)0;
@@ -365,7 +484,6 @@ public class VmNetworkService
                         s["SecondaryVlanId"] = secId;
                         s["SecondaryVlanIdArray"] = null;
                     }
-
                     s["AccessVlanId"] = (ushort)0;
                     s["NativeVlanId"] = (ushort)0;
                     s["TrunkVlanIdArray"] = null;
@@ -471,7 +589,7 @@ public class VmNetworkService
         }
     }
 
-    // ── 业务逻辑（不改动）────────────────────────────────────────
+    // ── 业务逻辑 ──────────────────────────────────────────────────
 
     private void ParseFeatureSettings(VmNetworkAdapter adapter, ManagementObject feature)
     {
@@ -481,13 +599,11 @@ public class VmNetworkService
         {
             uint rawMode = feature.TryGet<uint>("OperationMode") ?? 0;
             adapter.VlanMode = rawMode == 0 ? VlanOperationMode.Access : (VlanOperationMode)rawMode;
-
             adapter.AccessVlanId = (int)(feature.TryGet<uint>("AccessVlanId") ?? 0);
             adapter.NativeVlanId = (int)(feature.TryGet<uint>("NativeVlanId") ?? 0);
             adapter.PvlanMode = (PvlanMode)(feature.TryGet<uint>("PvlanMode") ?? 0);
             adapter.PvlanPrimaryId = (int)(feature.TryGet<uint>("PrimaryVlanId") ?? 0);
             adapter.PvlanSecondaryId = (int)(feature.TryGet<uint>("SecondaryVlanId") ?? 0);
-
             if (feature.HasProperty("TrunkVlanIdArray") && feature["TrunkVlanIdArray"] is ushort[] trunks)
                 adapter.TrunkAllowedVlanIds = trunks.Select(x => (int)x).ToList();
         }
@@ -516,17 +632,14 @@ public class VmNetworkService
     private async Task<string> GetSwitchNameByGuidAsync(string? guid)
     {
         if (string.IsNullOrEmpty(guid)) return Properties.Resources.Status_Unconnected;
-
         var response = await WmiApi.QueryFirstAsync(
             $"SELECT ElementName FROM Msvm_VirtualEthernetSwitch WHERE Name = '{guid}'",
             obj => obj["ElementName"]?.ToString());
-
         return response.HasData ? response.Data! : Properties.Resources.Common_UnknownSwitch;
     }
 
     private string? GetSwitchPathByName(string switchName)
     {
-        // 改为借用 GetVirtualSystemManagementService 的 Scope，不直接持有 WmiConnectionCache
         using var svcForScope = WmiApi.GetVirtualSystemManagementService();
         using var searcher = new ManagementObjectSearcher(svcForScope.Scope,
             new ObjectQuery($"SELECT * FROM Msvm_VirtualEthernetSwitch WHERE ElementName = '{WmiApi.Escape(switchName)}'"));
@@ -536,7 +649,6 @@ public class VmNetworkService
 
     private ManagementObject? GetDefaultFeatureTemplate(string className)
     {
-        // 改为借用 GetVirtualSystemManagementService 的 Scope，不直接持有 WmiConnectionCache
         using var svcForScope = WmiApi.GetVirtualSystemManagementService();
         using var searcher = new ManagementObjectSearcher(svcForScope.Scope,
             new ObjectQuery($"SELECT * FROM {className} WHERE InstanceID LIKE '%Default%'"));
@@ -549,4 +661,29 @@ public class VmNetworkService
             ? "00-15-5D-00-00-00"
             : Regex.Replace(rawMac.Replace(":", "").Replace("-", ""), ".{2}", "$0-")
                    .TrimEnd('-').ToUpperInvariant();
+}
+
+// ── P/Invoke ──────────────────────────────────────────────────────
+internal static class VmNetNativeMethods
+{
+    [DllImport("iphlpapi.dll")]
+    public static extern int GetIpNetTable2(AddressFamily family, out IntPtr table);
+
+    [DllImport("iphlpapi.dll")]
+    public static extern void FreeMibTable(IntPtr memory);
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct MIB_IPNET_ROW2
+    {
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 32)]
+        public byte[] Address;
+        public uint InterfaceIndex;
+        public Guid InterfaceLuid;
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 32)]
+        public byte[] PhysicalAddress;
+        public uint PhysicalAddressLength;
+        public uint State;
+        public uint Flags;
+        public uint ReachabilityTime;
+    }
 }
