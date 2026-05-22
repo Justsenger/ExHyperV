@@ -1,4 +1,8 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Diagnostics;
+using System.IO;
+using System.Management;
 using System.Windows;
 using System.Windows.Data;
 using System.Windows.Media;
@@ -6,14 +10,12 @@ using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using ExHyperV.Behaviors;
 using ExHyperV.Models;
 using ExHyperV.Services;
 using ExHyperV.Tools;
+using ExHyperV.Tools.Api;
 using Wpf.Ui.Controls;
-using System.Diagnostics;
-using System.ComponentModel;
-using System.IO;
-using ExHyperV.Behaviors;
 
 namespace ExHyperV.ViewModels
 {
@@ -588,7 +590,7 @@ namespace ExHyperV.ViewModels
             };
             if (dialog.ShowDialog() == true) NewVmIsoPath = dialog.FileName;
         }
-        
+
         [RelayCommand]
         private async Task ConfirmCreate()
         {
@@ -732,8 +734,16 @@ namespace ExHyperV.ViewModels
             if (vm == null) return;
             try
             {
-                var result = Utils.Run($"(Get-VM -Name '{vm.Name.Replace("'", "''")}').ConfigurationLocation");
-                string? path = result?.FirstOrDefault()?.ToString();
+                string? path = null;
+                using var searcher = new ManagementObjectSearcher(
+                    @"\\.\root\virtualization\v2",
+                    $"SELECT ConfigurationDataRoot FROM Msvm_VirtualSystemSettingData WHERE ElementName = '{vm.Name.Replace("'", "\\'")}' AND VirtualSystemType = 'Microsoft:Hyper-V:System:Realized'");
+                foreach (ManagementObject obj in searcher.Get())
+                {
+                    path = obj["ConfigurationDataRoot"]?.ToString();
+                    break;
+                }
+
                 if (!string.IsNullOrEmpty(path) && Directory.Exists(path))
                 {
                     System.Diagnostics.Process.Start("explorer.exe", path);
@@ -757,14 +767,12 @@ namespace ExHyperV.ViewModels
 
             try
             {
-                await Task.Run(() =>
-                {
-                    // 组合命令：
-                    // 1. Stop-VM -TurnOff: 强制关闭电源（不管当前什么状态，报错也继续执行下一步）
-                    // 2. Remove-VM -Force: 删除配置
-                    string script = $"Stop-VM -Name '{vm.Name}' -TurnOff -ErrorAction SilentlyContinue; Remove-VM -Name '{vm.Name}' -Force";
-                    Utils.Run(script);
-                });
+                await _powerService.ExecuteControlActionAsync(vm.Name, "TurnOff");
+                var vmPath = (await WmiApi.QueryFirstAsync(
+                    $"SELECT * FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(vm.Name)}'",
+                    obj => obj.Path.Path, WmiScope.HyperV)).Data;
+                await WmiApi.InvokeAsync("SELECT * FROM Msvm_VirtualSystemManagementService",
+                    "DestroySystem", p => p["AffectedSystem"] = vmPath, WmiScope.HyperV);
 
                 VmList.Remove(vm);
                 if (SelectedVm == vm) SelectedVm = VmList.FirstOrDefault();
@@ -823,12 +831,37 @@ namespace ExHyperV.ViewModels
                         catch { }
                     }
 
-                    // 4. 尝试删除虚拟机配置文件夹
-                    string? configDir = configLocation?.FirstOrDefault()?.ToString();
-                    if (!string.IsNullOrEmpty(configDir) && Directory.Exists(configDir))
+                    // 4. 尝试删除虚拟机配置文件夹（加入安全熔断机制，严防删除全局公共目录）
+                    string? rawConfigDir = configLocation?.FirstOrDefault()?.ToString();
+                    if (!string.IsNullOrEmpty(rawConfigDir))
                     {
-                        try { Directory.Delete(configDir, recursive: true); }
-                        catch { }
+                        string configDir = rawConfigDir.TrimEnd('\\', '/');
+                        if (Directory.Exists(configDir))
+                        {
+                            // A. 收集需要保护的系统及公共根目录
+                            var protectedPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                            {
+                                @"C:\ProgramData\Microsoft\Windows\Hyper-V",
+                                @"C:\Users\Public\Documents\Hyper-V",
+                                @"C:\ProgramData\Microsoft\Windows",
+                                @"C:\ProgramData",
+                                @"C:\Users\Public\Documents"
+                            };
+
+                            // B. 检查是否为盘符根目录（如 C:\, D:\）
+                            bool isRoot = Path.GetPathRoot(configDir).Equals(configDir, StringComparison.OrdinalIgnoreCase);
+
+                            // C. 检查该文件夹名称是否与当前虚拟机名完全一致
+                            string folderName = Path.GetFileName(configDir);
+                            bool isDedicatedFolder = folderName.Equals(vm.Name, StringComparison.OrdinalIgnoreCase);
+
+                            // D. 只有当不处于保护名单、不是盘符根目录、且确实是该虚拟机专属的独立文件夹时，才执行递归删除
+                            if (!protectedPaths.Contains(configDir) && !isRoot && isDedicatedFolder)
+                            {
+                                try { Directory.Delete(configDir, recursive: true); }
+                                catch { }
+                            }
+                        }
                     }
                 });
 
@@ -1729,7 +1762,7 @@ namespace ExHyperV.ViewModels
     new { Value = (uint)2, Name = Properties.Resources.VmPage_MsgSpacetimeCreated },
     new { Value = (uint)3, Name = Properties.Resources.VmPage_ErrOperationFailed2 }
 };
-            
+
 
         public List<object> MemoryTrackingStateOptions { get; } = new()
 {
@@ -2180,7 +2213,7 @@ namespace ExHyperV.ViewModels
                 if (openDialog.ShowDialog() == true) FilePath = openDialog.FileName;
             }
         }
-        
+
         // 浏览文件夹 (用于ISO制作)
         [RelayCommand]
         private void BrowseFolder()
@@ -3339,7 +3372,7 @@ namespace ExHyperV.ViewModels
                     AppendLog(string.Format(Properties.Resources.Error_Format_StageExc, task.Name, ex.Message));
                     if (!string.IsNullOrEmpty(_currentProcessingGpuAdapterId))
                     {
-                        AppendLog(Properties.Resources.Error_Gpu_LinuxRollback); 
+                        AppendLog(Properties.Resources.Error_Gpu_LinuxRollback);
                         await _vmGpuService.RemoveGpuPartitionAsync(SelectedVm.Name, _currentProcessingGpuAdapterId);
                         _currentProcessingGpuAdapterId = null;
                         AppendLog(Properties.Resources.Msg_Gpu_PartitionRemoved);
@@ -3445,11 +3478,17 @@ namespace ExHyperV.ViewModels
                     // 扫描 IP
                     string vmIp = await Task.Run(async () =>
                     {
-                        string getMacScript = $"(Get-VMNetworkAdapter -VMName '{SelectedVm.Name}').MacAddress | Select-Object -First 1";
-                        var macResult = Utils.Run(getMacScript);
-                        if (macResult != null && macResult.Count > 0)
+                        string rawMac = string.Empty;
+                        using var nicSearcher = new ManagementObjectSearcher(@"\\.\root\virtualization\v2",
+                            $"SELECT Address FROM Msvm_SyntheticEthernetPortSettingData WHERE InstanceID LIKE 'Microsoft:{SelectedVm.Id}%'");
+                        foreach (ManagementObject nic in nicSearcher.Get())
                         {
-                            string rawMac = macResult[0].ToString();
+                            rawMac = nic["Address"]?.ToString() ?? string.Empty;
+                            if (!string.IsNullOrEmpty(rawMac)) break;
+                        }
+
+                        if (!string.IsNullOrEmpty(rawMac))
+                        {
                             string formattedMac = System.Text.RegularExpressions.Regex.Replace(rawMac, "(.{2})", "$1:").TrimEnd(':');
                             for (int i = 0; i < 3; i++)
                             {
