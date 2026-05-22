@@ -366,57 +366,6 @@ public class Utils
         return bytes[0] == 192 && bytes[1] == 168;
     }
 
-    public static async Task<string> GetVmIpAddressAsync(string vmName, string macAddressWithColons)
-    {
-        if (string.IsNullOrEmpty(vmName) || string.IsNullOrEmpty(macAddressWithColons))
-            return string.Empty;
-
-        string macAddressWithoutColons = macAddressWithColons.Replace(":", "").Replace("-", "");
-        string directIpScript = $"@(Get-VMNetworkAdapter -VMName '{vmName}' | Where-Object {{ $_.MacAddress -eq '{macAddressWithoutColons}' }}).IPAddresses";
-
-        string ipAddresses = string.Empty;
-        try
-        {
-            var directResults = await Run2(directIpScript);
-            if (directResults != null && directResults.Count > 0)
-            {
-                var ips = directResults.Select(pso => pso?.BaseObject?.ToString()).Where(ip => !string.IsNullOrEmpty(ip));
-                ipAddresses = string.Join(", ", ips);
-            }
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"Direct IP lookup for VM '{vmName}' failed: {ex.Message}");
-        }
-
-        if (string.IsNullOrEmpty(ipAddresses))
-        {
-            System.Diagnostics.Debug.WriteLine($"Direct IP lookup failed or returned empty for VM '{vmName}' (MAC: {macAddressWithColons}). Trying ARP cache.");
-            ipAddresses = await GetIpFromArpCacheByMacAsync(macAddressWithColons);
-        }
-
-        return ipAddresses;
-    }
-
-    private static async Task<string> GetIpFromArpCacheByMacAsync(string macWithColons)
-    {
-        string cleanMac = macWithColons.Replace(":", "").Replace("-", "");
-        string formattedMacForArp = System.Text.RegularExpressions.Regex.Replace(cleanMac, ".{2}", "$0-").TrimEnd('-');
-        string script = $"Get-NetNeighbor -AddressFamily IPv4 | Where-Object {{ $_.LinkLayerAddress -eq '{formattedMacForArp}' -and $_.State -ne 'Incomplete' }} | Select-Object -ExpandProperty IPAddress -First 1 -ErrorAction SilentlyContinue";
-
-        try
-        {
-            var results = await Run2(script);
-            if (results != null && results.Count > 0)
-                return results[0]?.BaseObject?.ToString() ?? string.Empty;
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"ARP lookup failed for MAC {formattedMacForArp}: {ex.Message}");
-        }
-        return string.Empty;
-    }
-
     #endregion
 
     public static void Show(string message)

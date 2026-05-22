@@ -1427,7 +1427,7 @@ return 'OK'
                     if (macResult == null || macResult.Count == 0) return "Failed to get VM MAC Address";
 
                     string macAddress = Regex.Replace(macResult[0].ToString(), "(.{2})", "$1:").TrimEnd(':');
-                    string vmIpAddress = await Utils.GetVmIpAddressAsync(vmName, macAddress);
+                    string vmIpAddress = await new VmNetworkService().GetVmIpAddressAsync(vmName, macAddress);
                     string targetIp = Utils.SelectBestIpv4Address(!string.IsNullOrWhiteSpace(credentials.Host) ? credentials.Host : vmIpAddress);
 
                     if (string.IsNullOrEmpty(targetIp)) return "No valid IPv4 address found.";
