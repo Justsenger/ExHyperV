@@ -804,21 +804,46 @@ namespace ExHyperV.ViewModels
             IsLoading = true;
             try
             {
-                await Task.Run(() =>
+                await Task.Run(async () =>
                 {
-                    string safe = vm.Name.Replace("'", "''");
+                    string vmGuid = vm.Id.ToString();
 
-                    // 1. 先收集所有磁盘路径和配置目录（删除前必须先查）
-                    var diskPaths = Utils.Run(
-                        $"Get-VMHardDiskDrive -VMName '{safe}' | Select-Object -ExpandProperty Path");
-                    var configLocation = Utils.Run(
-                        $"(Get-VM -Name '{safe}').ConfigurationLocation");
+                    // 1. 收集磁盘路径 — Msvm_StorageAllocationSettingData.Path
+                    var diskPaths = new System.Collections.ObjectModel.Collection<object>();
+                    using (var searcher = new ManagementObjectSearcher(@"\\.\root\virtualization\v2",
+                        $"SELECT Path FROM Msvm_StorageAllocationSettingData WHERE InstanceID LIKE 'Microsoft:{vmGuid}%' AND ResourceSubType = 'Microsoft:Hyper-V:Virtual Hard Disk'"))
+                    {
+                        foreach (ManagementObject obj in searcher.Get())
+                        {
+                            string p = obj["Path"]?.ToString();
+                            if (!string.IsNullOrEmpty(p)) diskPaths.Add(p);
+                        }
+                    }
 
-                    // 2. 停止并删除虚拟机配置
-                    Utils.Run($"Stop-VM -Name '{safe}' -TurnOff -ErrorAction SilentlyContinue");
-                    Utils.Run($"Remove-VM -Name '{safe}' -Force -ErrorAction Stop");
+                    // 2. 收集配置目录 — Msvm_VirtualSystemSettingData.ConfigurationDataRoot
+                    var configLocation = new System.Collections.ObjectModel.Collection<object>();
+                    using (var searcher = new ManagementObjectSearcher(@"\\.\root\virtualization\v2",
+                        $"SELECT ConfigurationDataRoot FROM Msvm_VirtualSystemSettingData WHERE VirtualSystemIdentifier = '{vmGuid}' AND VirtualSystemType = 'Microsoft:Hyper-V:System:Realized'"))
+                    {
+                        foreach (ManagementObject obj in searcher.Get())
+                        {
+                            string p = obj["ConfigurationDataRoot"]?.ToString();
+                            if (!string.IsNullOrEmpty(p)) configLocation.Add(p);
+                            break;
+                        }
+                    }
 
-                    // 3. 删除所有 vhdx 文件
+                    // 3. 停止
+                    await _powerService.ExecuteControlActionAsync(vm.Name, "TurnOff");
+
+                    // 4. 删除
+                    var vmPath = (await WmiApi.QueryFirstAsync(
+                        $"SELECT * FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(vm.Name)}'",
+                        obj => obj.Path.Path, WmiScope.HyperV)).Data;
+                    await WmiApi.InvokeAsync("SELECT * FROM Msvm_VirtualSystemManagementService",
+                        "DestroySystem", p => p["AffectedSystem"] = vmPath, WmiScope.HyperV);
+
+                    // 5. 删除所有 vhdx 文件
                     foreach (var diskObj in diskPaths)
                     {
                         string? diskPath = diskObj?.ToString();
@@ -831,7 +856,7 @@ namespace ExHyperV.ViewModels
                         catch { }
                     }
 
-                    // 4. 尝试删除虚拟机配置文件夹（加入安全熔断机制，严防删除全局公共目录）
+                    // 6. 尝试删除虚拟机配置文件夹（加入安全熔断机制，严防删除全局公共目录）
                     string? rawConfigDir = configLocation?.FirstOrDefault()?.ToString();
                     if (!string.IsNullOrEmpty(rawConfigDir))
                     {
