@@ -148,15 +148,6 @@ public class Utils
         return $"pack://application:,,,/Assets/{imageName}";
     }
 
-    public static FontIcon FontIcon(int Size, string Glyph)
-    {
-        return new FontIcon
-        {
-            FontSize = Size,
-            FontFamily = (FontFamily)Application.Current.Resources["SegoeFluentIcons"],
-            Glyph = Glyph
-        };
-    }
 
     public static DateTime GetLinkerTime()
     {
@@ -165,102 +156,6 @@ public class Utils
         return fileInfo.LastWriteTime;
     }
 
-    public static async Task UpdateSwitchConfigurationAsync(string switchName, string mode, string? physicalAdapterName, bool allowManagementOS, bool enabledhcp)
-    {
-        string script;
-        switch (mode)
-        {
-            case "Bridge":
-                script = $@"$netShareManager = New-Object -ComObject HNetCfg.HNetShare;
-                foreach ($connection in $netShareManager.EnumEveryConnection) {{
-                    $props = $netShareManager.NetConnectionProps.Invoke($connection);
-                    $config = $netShareManager.INetSharingConfigurationForINetConnection.Invoke($connection);
-                    if ($config.SharingEnabled) {{
-                        $config.DisableSharing();
-                    }}
-                }}";
-                script += $"Get-VMNetworkAdapter -ManagementOS -SwitchName '{switchName}' -ErrorAction SilentlyContinue | Remove-VMNetworkAdapter -Confirm:$false;";
-                script += $"\nSet-VMSwitch -Name '{switchName}' -NetAdapterInterfaceDescription '{physicalAdapterName}'";
-                break;
-
-            case "NAT":
-                script = $"Set-VMSwitch -Name '{switchName}' -SwitchType Internal;";
-                script += $@"$PublicAdapterDescription = '{physicalAdapterName}';
-                $SwitchName = '{switchName}';
-                $publicNic = Get-NetAdapter -InterfaceDescription $PublicAdapterDescription -ErrorAction SilentlyContinue;
-                $PublicAdapterActualName = $publicNic.Name;
-                $vmAdapter = Get-VMNetworkAdapter -ManagementOS -SwitchName $SwitchName -ErrorAction SilentlyContinue;
-                $privateAdapter = Get-NetAdapter | Where-Object {{ ($_.MacAddress -replace '[-:]') -eq ($vmAdapter.MacAddress -replace '[-:]') }};
-                $PrivateAdapterName = $privateAdapter.Name;
-
-                $netShareManager = New-Object -ComObject HNetCfg.HNetShare;
-                $publicConfig = $null;
-                $privateConfig = $null;
-
-                foreach ($connection in $netShareManager.EnumEveryConnection) {{
-                    $props = $netShareManager.NetConnectionProps.Invoke($connection);
-                    $config = $netShareManager.INetSharingConfigurationForINetConnection.Invoke($connection);
-                    if ($config.SharingEnabled) {{
-                        $config.DisableSharing();
-                    }}
-                    if ($props.Name -eq $PublicAdapterActualName) {{
-                        $publicConfig = $config;
-                    }}
-                    elseif ($props.Name -eq $PrivateAdapterName) {{
-                        $privateConfig = $config;
-                    }}
-                }}
-
-                if ($publicConfig -and $privateConfig) {{
-                    $publicConfig.EnableSharing(0);
-                    $privateConfig.EnableSharing(1);
-                }}
-                ";
-                break;
-
-            case "Isolated":
-                script = $"\nSet-VMSwitch -Name '{switchName}' -SwitchType Internal;";
-                script += $@"$netShareManager = New-Object -ComObject HNetCfg.HNetShare;
-                foreach ($connection in $netShareManager.EnumEveryConnection) {{
-                    $props = $netShareManager.NetConnectionProps.Invoke($connection);
-                    $config = $netShareManager.INetSharingConfigurationForINetConnection.Invoke($connection);
-                    if ($config.SharingEnabled) {{
-                        $config.DisableSharing();
-                    }}
-                }}";
-                if (allowManagementOS)
-                    script += $"\nif (-not (Get-VMNetworkAdapter -ManagementOS -SwitchName '{switchName}' -ErrorAction SilentlyContinue)) {{ Add-VMNetworkAdapter -ManagementOS -SwitchName '{switchName}' }};";
-                else
-                    script += $"\nGet-VMNetworkAdapter -ManagementOS -SwitchName '{switchName}' -ErrorAction SilentlyContinue | Remove-VMNetworkAdapter -Confirm:$false;";
-                break;
-
-            default:
-                throw new ArgumentException(string.Format(Properties.Resources.Utils_UnknownNetMode, mode));
-        }
-        await RunScriptSTA(script);
-        if (enabledhcp) { }
-    }
-
-    public static Task RunScriptSTA(string script)
-    {
-        var tcs = new TaskCompletionSource<object?>();
-        var staThread = new Thread(() =>
-        {
-            try
-            {
-                Run(script);
-                tcs.SetResult(null);
-            }
-            catch (Exception ex)
-            {
-                tcs.SetException(ex);
-            }
-        });
-        staThread.SetApartmentState(ApartmentState.STA);
-        staThread.IsBackground = true;
-        staThread.Start();
-        return tcs.Task;
-    }
 
     /// <summary>
     /// 添加Hyper-V GPU分配策略注册表项，以允许不受支持的GPU进行分区。
@@ -462,30 +357,6 @@ public class Utils
                 return text.Remove(startIndex, endIndex - startIndex + 1).Insert(startIndex, newTag);
         }
         return string.IsNullOrWhiteSpace(text) ? newTag : $"{text.Trim()} {newTag}";
-    }
-
-    public static (string Host, string Port) GetWindowsSystemProxy()
-    {
-        try
-        {
-            using var key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Internet Settings");
-            if (key != null)
-            {
-                var proxyEnable = key.GetValue("ProxyEnable");
-                if (proxyEnable != null && (int)proxyEnable == 1)
-                {
-                    var proxyServer = key.GetValue("ProxyServer")?.ToString();
-                    if (!string.IsNullOrEmpty(proxyServer))
-                    {
-                        var match = System.Text.RegularExpressions.Regex.Match(proxyServer, @"(?:.*=)?(?<host>[^:]+):(?<port>\d+)");
-                        if (match.Success)
-                            return (match.Groups["host"].Value, match.Groups["port"].Value);
-                    }
-                }
-            }
-        }
-        catch { }
-        return (string.Empty, string.Empty);
     }
 
     public static string Version =>
