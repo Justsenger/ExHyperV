@@ -34,7 +34,7 @@
                 <TextBlock Text="ExHyperV" 
                    FontSize="42" 
                    Foreground="White"
-                   FontFamily="pack://application:,,,/Assets/fonts/#Audiowide" 
+                   FontFamily="pack://application:,,,/Assets/#Audiowide" 
                    />
                 <TextBlock Text="{x:Static properties:Resources.exhyperv}"
                    
