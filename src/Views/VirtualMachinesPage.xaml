@@ -153,12 +153,12 @@
                                 </Style>
                             </ui:TextBox.Style>
                             <ui:TextBox.InputBindings>
-                                <KeyBinding Key="Enter" Command="{Binding DataContext.CommitRenameCommand, RelativeSource={RelativeSource AncestorType=Page}}" CommandParameter="{Binding}"/>
-                                <KeyBinding Key="Esc" Command="{Binding DataContext.CancelRenameCommand, RelativeSource={RelativeSource AncestorType=Page}}" CommandParameter="{Binding}"/>
+                                <KeyBinding Key="Enter" Command="{Binding DataContext.CommitRenameCommand, ElementName=RootPage}" CommandParameter="{Binding}"/>
+                                <KeyBinding Key="Esc" Command="{Binding DataContext.CancelRenameCommand, ElementName=RootPage}" CommandParameter="{Binding}"/>
                             </ui:TextBox.InputBindings>
                             <i:Interaction.Triggers>
                                 <i:EventTrigger EventName="LostFocus">
-                                    <i:InvokeCommandAction Command="{Binding DataContext.CommitRenameCommand, RelativeSource={RelativeSource AncestorType=Page}}" CommandParameter="{Binding}"/>
+                                    <i:InvokeCommandAction Command="{Binding DataContext.CommitRenameCommand, ElementName=RootPage}" CommandParameter="{Binding}"/>
                                 </i:EventTrigger>
                             </i:Interaction.Triggers>
                         </ui:TextBox>

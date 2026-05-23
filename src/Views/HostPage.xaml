@@ -192,8 +192,8 @@
                               ItemsSource="{Binding SchedulerModes}"
                               DisplayMemberPath="Name"
                               SelectedValuePath="Type"
-                              SelectedValue="{Binding CurrentSchedulerType, Mode=TwoWay}"
-                              IsEnabled="{Binding AdminStatus.IsSuccess}">
+                              SelectedValue="{Binding CurrentSchedulerType, Mode=TwoWay}">
+                              
                     </ComboBox>
                 </ui:CardControl>
 
@@ -209,8 +209,8 @@
                         </StackPanel>
                     </ui:CardControl.Header>
 
-                    <ui:ToggleSwitch IsChecked="{Binding IsNumaSpanningEnabled, Mode=TwoWay}"
-                                     IsEnabled="{Binding AdminStatus.IsSuccess}"/>
+                    <ui:ToggleSwitch IsChecked="{Binding IsNumaSpanningEnabled, Mode=TwoWay}"/>
+                                     
                 </ui:CardControl>
 
                 <!-- DDA 策略 -->
