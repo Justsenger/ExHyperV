@@ -30,7 +30,7 @@
         <PackageReference Include="RoyalApps.Community.Rdp.WinForms" Version="1.4.0" />
         <PackageReference Include="SSH.NET" Version="2024.1.0" />
         <PackageReference Include="System.Management" Version="10.0.8" />
-        <PackageReference Include="WPF-UI" Version="4.3.0" />
+        <PackageReference Include="WPF-UI" Version="4.0.3" />
     </ItemGroup>
 	
 	
@@ -146,8 +146,8 @@
             <LowRiskToRemove Include="$(PublishDir)Microsoft.Extensions.ObjectPool.dll" />
 
 			<LowRiskToRemove Include="$(PublishDir)System.Runtime.Caching.dll" />
-			
-
+			<LowRiskToRemove Include="$(PublishDir)System.CodeDom.dll" />
+			<LowRiskToRemove Include="$(PublishDir)Microsoft.Extensions.DependencyInjection.Abstractions.dll" />
 
 
         </ItemGroup>
