@@ -1292,7 +1292,7 @@ namespace ExHyperV.ViewModels
                                             _ = Task.Run(async () => {
                                                 try
                                                 {
-                                                    string arpIp = await new VmNetworkService().GetVmIpAddressAsync(vm.Name, adapter.MacAddress);
+                                                    string arpIp = await Utils.GetVmIpAddressAsync(vm.Name, adapter.MacAddress);
                                                     if (!string.IsNullOrEmpty(arpIp))
                                                         Application.Current.Dispatcher.Invoke(() => {
                                                             adapter.IpAddresses = new List<string> { arpIp };
@@ -3517,7 +3517,7 @@ namespace ExHyperV.ViewModels
                             string formattedMac = System.Text.RegularExpressions.Regex.Replace(rawMac, "(.{2})", "$1:").TrimEnd(':');
                             for (int i = 0; i < 3; i++)
                             {
-                                var ip = await new VmNetworkService().GetVmIpAddressAsync(SelectedVm.Name, formattedMac);
+                                var ip = await Utils.GetVmIpAddressAsync(SelectedVm.Name, formattedMac);
                                 if (!string.IsNullOrEmpty(ip)) return ip;
                                 await Task.Delay(2000);
                             }

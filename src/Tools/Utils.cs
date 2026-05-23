@@ -1,16 +1,18 @@
 using System.Collections.ObjectModel;
+using System.Diagnostics;
+using System.Management;
 using System.Management.Automation;
 using System.Management.Automation.Runspaces;
 using System.Net;
 using System.Net.Sockets;
 using System.Reflection;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Media;
-using Wpf.Ui.Controls;
-using System.Text.RegularExpressions;
-using System.Management;
+using ExHyperV.Tools.Api;
 using Microsoft.Win32;
+using Wpf.Ui.Controls;
 
 namespace ExHyperV.Tools;
 
@@ -260,21 +262,89 @@ public class Utils
         if (bytes[0] == 172 && bytes[1] >= 16 && bytes[1] <= 31) return true;
         return bytes[0] == 192 && bytes[1] == 168;
     }
-
-    #endregion
-
-    public static void Show(string message)
+    public static string FormatMac(string? rawMac)
     {
-        var messageBox = new Wpf.Ui.Controls.MessageBox
-        {
-            Title = Properties.Resources.Common_Notice,
-            Content = message,
-            CloseButtonText = "OK"
-        };
-        messageBox.ShowDialogAsync();
+        if (string.IsNullOrEmpty(rawMac)) return "00:15:5D:00:00:00";
+        string clean = Regex.Replace(rawMac.ToUpperInvariant(), "[^0-9A-F]", "");
+        if (clean.Length != 12) return rawMac;
+        return Regex.Replace(clean, ".{2}", "$0:").TrimEnd(':');
     }
 
-    public static void Show2(string message) => System.Windows.MessageBox.Show(message);
+    public static async Task<string> GetVmIpAddressAsync(string vmName, string macAddressWithColons)
+    {
+        if (string.IsNullOrEmpty(vmName) || string.IsNullOrEmpty(macAddressWithColons))
+            return string.Empty;
+
+        // 路径1：WMI Msvm_GuestNetworkAdapterConfiguration
+        string ip = await Task.Run(() =>
+        {
+            try
+            {
+                string escapedVm = WmiApi.Escape(vmName);
+                using var vmSearcher = new ManagementObjectSearcher(
+                    @"root\virtualization\v2",
+                    $"SELECT Name FROM Msvm_ComputerSystem WHERE ElementName='{escapedVm}'");
+
+                string? vmGuid = null;
+                foreach (ManagementObject vm in vmSearcher.Get())
+                { vmGuid = vm["Name"]?.ToString(); break; }
+                if (vmGuid == null) return string.Empty;
+
+                using var searcher = new ManagementObjectSearcher(
+                    @"root\virtualization\v2",
+                    "SELECT * FROM Msvm_GuestNetworkAdapterConfiguration");
+
+                var ips = new List<string>();
+                foreach (ManagementObject obj in searcher.Get())
+                {
+                    if (!(obj["InstanceID"]?.ToString() ?? "")
+                        .StartsWith($"Microsoft:{vmGuid}\\", StringComparison.OrdinalIgnoreCase))
+                        continue;
+                    if (obj["IPAddresses"] is string[] addrs)
+                        ips.AddRange(addrs.Where(a =>
+                            IPAddress.TryParse(a, out var parsed) &&
+                            parsed.AddressFamily == AddressFamily.InterNetwork));
+                }
+                return string.Join(", ", ips);
+            }
+            catch { return string.Empty; }
+        });
+
+        // 路径2：ARP 缓存回退
+        if (string.IsNullOrEmpty(ip))
+            ip = await GetIpFromArpCacheAsync(macAddressWithColons);
+
+        return ip;
+    }
+
+    public static async Task<string> GetIpFromArpCacheAsync(string macWithColons)
+    {
+        return await Task.Run(() =>
+        {
+            try
+            {
+                string clean = macWithColons.Replace(":", "").Replace("-", "").ToUpperInvariant();
+                string formatted = Regex.Replace(clean, ".{2}", "$0-").TrimEnd('-');
+
+                using var searcher = new ManagementObjectSearcher(
+                    @"root\StandardCimV2",
+                    $"SELECT IPAddress FROM MSFT_NetNeighbor WHERE LinkLayerAddress = '{formatted}' AND AddressFamily = 2 AND State <> 0");
+
+                foreach (ManagementObject obj in searcher.Get())
+                {
+                    string? ip = obj["IPAddress"]?.ToString();
+                    if (!string.IsNullOrEmpty(ip)) return ip;
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"ARP cache error for {macWithColons}: {ex.Message}");
+            }
+            return string.Empty;
+        });
+    }
+
+    #endregion
 
     public static string GetFriendlyErrorMessage(string rawMessage)
     {

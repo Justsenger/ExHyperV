@@ -1,45 +1,28 @@
 using ExHyperV.Models;
+using ExHyperV.Tools;
 using ExHyperV.Tools.Api;
-using System.Diagnostics;
 using System.Management;
-using System.Net;
-using System.Net.Sockets;
-using System.Runtime.InteropServices;
-using System.Text.RegularExpressions;
 
 namespace ExHyperV.Services;
 
 public class VmNetworkService
 {
     private const string ServiceWql = "SELECT * FROM Msvm_VirtualSystemManagementService";
-    private void Log(string message) => Debug.WriteLine($"[VmNetDebug][{DateTime.Now:HH:mm:ss.fff}] {message}");
 
     // ── 查询 ──────────────────────────────────────────────────────
 
     public async Task<List<VmNetworkAdapter>> GetNetworkAdaptersAsync(string vmName)
     {
-        Log($"==============================================================");
-        Log(string.Format(Properties.Resources.VmNet_StartGetInfo, vmName));
-
         var resultList = new List<VmNetworkAdapter>();
-        if (string.IsNullOrEmpty(vmName))
-        {
-            Log(Properties.Resources.Error_Net_NameEmpty);
-            return resultList;
-        }
+        if (string.IsNullOrEmpty(vmName)) return resultList;
 
         var vmResponse = await WmiApi.QueryFirstAsync(
             $"SELECT Name FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(vmName)}'",
             obj => obj["Name"]?.ToString());
 
-        if (!vmResponse.HasData)
-        {
-            Log(string.Format(Properties.Resources.VmNet_VmNotFound, vmName));
-            return resultList;
-        }
+        if (!vmResponse.HasData) return resultList;
 
         string vmGuid = vmResponse.Data!;
-        Log(string.Format(Properties.Resources.VmNet_GotGuid, vmGuid));
 
         var portsTask = WmiApi.QueryAsync(
             $"SELECT ElementName, InstanceID, Address, StaticMacAddress FROM Msvm_SyntheticEthernetPortSettingData WHERE InstanceID LIKE 'Microsoft:{vmGuid}%'",
@@ -54,20 +37,12 @@ public class VmNetworkService
         var allPorts = portsTask.Result.Data ?? new List<ManagementObject>();
         var allAllocs = allocsTask.Result.Data ?? new List<ManagementObject>();
 
-        Log(string.Format(Properties.Resources.VmNet_QueryComplete, allPorts.Count, allAllocs.Count));
-
-        int counter = 0;
         foreach (var port in allPorts)
         {
-            counter++;
             string elementName = port["ElementName"]?.ToString() ?? Properties.Resources.Common_NoName;
             string fullPortId = port["InstanceID"]?.ToString() ?? string.Empty;
 
-            if (string.IsNullOrEmpty(fullPortId))
-            {
-                Log(Properties.Resources.Warn_Net_EmptyInstance);
-                continue;
-            }
+            if (string.IsNullOrEmpty(fullPortId)) continue;
 
             string deviceGuid = fullPortId.Split('\\').Last();
 
@@ -75,7 +50,7 @@ public class VmNetworkService
             {
                 Id = fullPortId,
                 Name = elementName,
-                MacAddress = FormatMac(port["Address"]?.ToString()),
+                MacAddress = Utils.FormatMac(port["Address"]?.ToString()),
                 IsStaticMac = port.TryGet<bool>("StaticMacAddress") ?? false
             };
 
@@ -100,22 +75,18 @@ public class VmNetworkService
                         string wqlSafeId = rawId.Replace(@"\", @"\\").Replace("'", "\\'");
                         string relPath = $"Msvm_EthernetPortAllocationSettingData.InstanceID=\"{wqlSafeId}\"";
                         string query = $"ASSOCIATORS OF {{{relPath}}} " +
-                                           $"WHERE AssocClass = Msvm_EthernetPortSettingDataComponent " +
-                                           $"ResultClass = Msvm_EthernetSwitchPortFeatureSettingData";
+                                       $"WHERE AssocClass = Msvm_EthernetPortSettingDataComponent " +
+                                       $"ResultClass = Msvm_EthernetSwitchPortFeatureSettingData";
 
                         using var svcForScope = WmiApi.GetVirtualSystemManagementService();
-                        using var searcher = new ManagementObjectSearcher(
-                            svcForScope.Scope, new ObjectQuery(query));
+                        using var searcher = new ManagementObjectSearcher(svcForScope.Scope, new ObjectQuery(query));
                         using var features = searcher.Get();
 
                         foreach (var feature in features.Cast<ManagementObject>())
                             ParseFeatureSettings(adapter, feature);
                     }
                 }
-                catch (Exception ex)
-                {
-                    Log(string.Format(Properties.Resources.VmNetworkService_2, ex.Message));
-                }
+                catch { }
             }
             else
             {
@@ -126,7 +97,6 @@ public class VmNetworkService
             resultList.Add(adapter);
         }
 
-        Log(Properties.Resources.Msg_Net_ScanDone);
         return resultList;
     }
 
@@ -156,7 +126,7 @@ public class VmNetworkService
             if (adapter.IpAddresses != null && adapter.IpAddresses.Count > 0) continue;
             try
             {
-                string ip = await GetVmIpAddressAsync(vmName, adapter.MacAddress);
+                string ip = await Utils.GetVmIpAddressAsync(vmName, adapter.MacAddress);
                 if (!string.IsNullOrEmpty(ip))
                 {
                     adapter.IpAddresses = ip
@@ -164,137 +134,13 @@ public class VmNetworkService
                         .Select(x => x.Trim()).ToList();
                 }
             }
-            catch (Exception ex)
-            {
-                Log(string.Format(Properties.Resources.VmNet_IpFail, ex.Message));
-            }
+            catch { }
         }
     }
 
-    // ── VM IP 获取 ────────────────────────────────────────────────
-
-    /// <summary>
-    /// 获取虚拟机 IP 地址。
-    /// 路径1：WMI Msvm_GuestNetworkAdapterConfiguration 直接获取。
-    /// 路径2：GetIpNetTable2 Win32 API 查 ARP 缓存回退。
-    /// </summary>
     public async Task<string> GetVmIpAddressAsync(string vmName, string macAddressWithColons)
     {
-        if (string.IsNullOrEmpty(vmName) || string.IsNullOrEmpty(macAddressWithColons))
-            return string.Empty;
-
-        // 路径1：WMI 直接获取
-        string ipAddresses = await Task.Run(() => GetIpFromHyperV(vmName, macAddressWithColons));
-
-        // 路径2：ARP 缓存回退
-        if (string.IsNullOrEmpty(ipAddresses))
-        {
-            Log($"WMI IP lookup failed for VM '{vmName}', trying ARP cache.");
-            ipAddresses = await Task.Run(() => GetIpFromArpCache(macAddressWithColons));
-        }
-
-        return ipAddresses;
-    }
-
-    private string GetIpFromHyperV(string vmName, string macWithColons)
-    {
-        try
-        {
-            string escapedVm = WmiApi.Escape(vmName);
-            using var vmSearcher = new ManagementObjectSearcher(
-                @"root\virtualization\v2",
-                $"SELECT Name FROM Msvm_ComputerSystem WHERE ElementName='{escapedVm}'");
-
-            string? vmGuid = null;
-            foreach (ManagementObject vm in vmSearcher.Get())
-            {
-                vmGuid = vm["Name"]?.ToString();
-                break;
-            }
-            if (vmGuid == null) return string.Empty;
-
-            using var adapterSearcher = new ManagementObjectSearcher(
-                @"root\virtualization\v2",
-                "SELECT * FROM Msvm_GuestNetworkAdapterConfiguration");
-
-            var ips = new List<string>();
-            foreach (ManagementObject obj in adapterSearcher.Get())
-            {
-                string instanceId = obj["InstanceID"]?.ToString() ?? "";
-                if (!instanceId.StartsWith($"Microsoft:{vmGuid}\\", StringComparison.OrdinalIgnoreCase))
-                    continue;
-
-                if (obj["IPAddresses"] is string[] addrs)
-                {
-                    foreach (var addr in addrs)
-                    {
-                        if (IPAddress.TryParse(addr, out var ip) &&
-                            ip.AddressFamily == AddressFamily.InterNetwork)
-                            ips.Add(ip.ToString());
-                    }
-                }
-            }
-
-            return string.Join(", ", ips);
-        }
-        catch (Exception ex)
-        {
-            Log($"WMI IP error: {ex.Message}");
-            return string.Empty;
-        }
-    }
-
-    private string GetIpFromArpCache(string macWithColons)
-    {
-        try
-        {
-            string macClean = macWithColons.Replace(":", "").Replace("-", "").ToUpperInvariant();
-            byte[] targetMac = Enumerable.Range(0, 6)
-                .Select(i => Convert.ToByte(macClean.Substring(i * 2, 2), 16))
-                .ToArray();
-
-            IntPtr table = IntPtr.Zero;
-            try
-            {
-                int ret = VmNetNativeMethods.GetIpNetTable2(AddressFamily.InterNetwork, out table);
-                if (ret != 0) return string.Empty;
-
-                int rowCount = Marshal.ReadInt32(table);
-                IntPtr rowPtr = table + 4;
-                int rowSize = Marshal.SizeOf<VmNetNativeMethods.MIB_IPNET_ROW2>();
-
-                for (int i = 0; i < rowCount; i++)
-                {
-                    var row = Marshal.PtrToStructure<VmNetNativeMethods.MIB_IPNET_ROW2>(rowPtr + i * rowSize);
-                    if (row.PhysicalAddressLength == 6 &&
-                        row.PhysicalAddress[0] == targetMac[0] &&
-                        row.PhysicalAddress[1] == targetMac[1] &&
-                        row.PhysicalAddress[2] == targetMac[2] &&
-                        row.PhysicalAddress[3] == targetMac[3] &&
-                        row.PhysicalAddress[4] == targetMac[4] &&
-                        row.PhysicalAddress[5] == targetMac[5])
-                    {
-                        short af = BitConverter.ToInt16(row.Address, 0);
-                        if (af == (short)AddressFamily.InterNetwork)
-                        {
-                            byte[] ipBytes = new byte[4];
-                            Array.Copy(row.Address, 4, ipBytes, 0, 4);
-                            return new IPAddress(ipBytes).ToString();
-                        }
-                    }
-                }
-            }
-            finally
-            {
-                if (table != IntPtr.Zero)
-                    VmNetNativeMethods.FreeMibTable(table);
-            }
-        }
-        catch (Exception ex)
-        {
-            Log($"ARP cache error: {ex.Message}");
-        }
-        return string.Empty;
+        return await Utils.GetVmIpAddressAsync(vmName, macAddressWithColons);
     }
 
     // ── 网卡生命周期 ──────────────────────────────────────────────
@@ -303,8 +149,6 @@ public class VmNetworkService
     {
         try
         {
-            Log(string.Format(Properties.Resources.VmNetworkService_4, vmName));
-
             using var vm = WmiApi.GetVmComputerSystem(vmName);
             if (vm == null) return (false, Properties.Resources.Error_Net_VmNotFound);
 
@@ -361,7 +205,6 @@ public class VmNetworkService
         }
         catch (Exception ex)
         {
-            Log(string.Format(Properties.Resources.VmNet_SysError, ex.Message));
             return (false, ex.Message);
         }
     }
@@ -435,11 +278,7 @@ public class VmNetworkService
             if (adapter.PvlanPrimaryId == 0) adapter.PvlanPrimaryId = 100;
             if (adapter.PvlanSecondaryId == 0) adapter.PvlanSecondaryId = 101;
             if (adapter.PvlanMode == PvlanMode.Promiscuous)
-            {
-                Log(string.Format(Properties.Resources.VmNet_GatewayModeLog,
-                    adapter.PvlanSecondaryId, adapter.PvlanPrimaryId));
                 adapter.PvlanSecondaryId = adapter.PvlanPrimaryId;
-            }
         }
 
         return await EnsureAndModifyFeatureAsync(adapter.Id, "Msvm_EthernetSwitchPortVlanSettingData", s =>
@@ -477,7 +316,6 @@ public class VmNetworkService
                     {
                         s["SecondaryVlanId"] = (ushort)0;
                         s["SecondaryVlanIdArray"] = new ushort[] { priId };
-                        Log(string.Format(Properties.Resources.VmNet_WmiAlignmentLog, priId));
                     }
                     else
                     {
@@ -564,8 +402,6 @@ public class VmNetworkService
             var info = xmlInfo.Data;
             string method = info.IsNew ? "AddFeatureSettings" : "ModifyFeatureSettings";
 
-            Log(string.Format(Properties.Resources.VmNet_SubmitSet, featureClass));
-
             var result = await WmiApi.InvokeAsync(
                 ServiceWql,
                 method,
@@ -575,16 +411,12 @@ public class VmNetworkService
                     if (info.IsNew) p["AffectedConfiguration"] = info.Target;
                 });
 
-            if (!result.Success)
-                Log(string.Format(Properties.Resources.VmNet_WmiError, method, result.Error));
-
             return result.Success
                 ? (true, string.Empty)
                 : (false, result.Error);
         }
         catch (Exception ex)
         {
-            Log(string.Format(Properties.Resources.VmNet_Exception, ex.Message, ex.StackTrace));
             return (false, ex.Message);
         }
     }
@@ -654,36 +486,5 @@ public class VmNetworkService
             new ObjectQuery($"SELECT * FROM {className} WHERE InstanceID LIKE '%Default%'"));
         using var col = searcher.Get();
         return col.Cast<ManagementObject>().FirstOrDefault();
-    }
-
-    private static string FormatMac(string? rawMac)
-        => string.IsNullOrEmpty(rawMac)
-            ? "00-15-5D-00-00-00"
-            : Regex.Replace(rawMac.Replace(":", "").Replace("-", ""), ".{2}", "$0-")
-                   .TrimEnd('-').ToUpperInvariant();
-}
-
-// ── P/Invoke ──────────────────────────────────────────────────────
-internal static class VmNetNativeMethods
-{
-    [DllImport("iphlpapi.dll")]
-    public static extern int GetIpNetTable2(AddressFamily family, out IntPtr table);
-
-    [DllImport("iphlpapi.dll")]
-    public static extern void FreeMibTable(IntPtr memory);
-
-    [StructLayout(LayoutKind.Sequential)]
-    public struct MIB_IPNET_ROW2
-    {
-        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 32)]
-        public byte[] Address;
-        public uint InterfaceIndex;
-        public Guid InterfaceLuid;
-        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 32)]
-        public byte[] PhysicalAddress;
-        public uint PhysicalAddressLength;
-        public uint State;
-        public uint Flags;
-        public uint ReachabilityTime;
     }
 }

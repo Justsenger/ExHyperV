@@ -1,14 +1,13 @@
 ﻿using System.Diagnostics;
 using ExHyperV.Models;
 using ExHyperV.Properties;
-using ExHyperV.Tools;
 using ExHyperV.Tools.Api;
 
 namespace ExHyperV.Services
 {
     public enum MmioCheckResultType { Ok, NeedsConfirmation, Error }
 
-    public class DDAService
+    public class HyperVDDAService
     {
         private const ulong RequiredMmioBytes = 64UL * 1024 * 1024 * 1024; // 64 GiB
 

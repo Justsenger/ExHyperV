@@ -11,7 +11,7 @@ namespace ExHyperV.ViewModels
 {
     public partial class VMNetViewModel : ObservableObject
     {
-        private readonly NetworkService _networkService;
+        private readonly HyperVSwitchService _networkService;
 
         [ObservableProperty] private bool _isBusy = false;
         [ObservableProperty] private bool _isContentVisible = true;
@@ -24,7 +24,7 @@ namespace ExHyperV.ViewModels
 
         public VMNetViewModel()
         {
-            _networkService = new NetworkService();
+            _networkService = new HyperVSwitchService();
             LoadNetworkInfoCommand.Execute(null);
         }
 

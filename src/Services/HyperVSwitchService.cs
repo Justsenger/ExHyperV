@@ -6,7 +6,7 @@ using ExHyperV.Tools.Api;
 
 namespace ExHyperV.Services
 {
-    public class NetworkService
+    public class HyperVSwitchService
     {
         // ── VM 适配器查询 ─────────────────────────────────────────────────
         private static async Task<List<AdapterInfo>> GetVmAdaptersOnSwitchAsync(string switchGuid, string switchName)
@@ -61,7 +61,7 @@ namespace ExHyperV.Services
                         portSetting.Get();
 
                         string rawMac = portSetting["Address"]?.ToString() ?? string.Empty;
-                        string mac = FormatMac(rawMac);
+                        string mac = Utils.FormatMac(rawMac);
 
                         // 从 portSetting 找所属 VM
                         var vmSettingsResp = await WmiApi.QueryRelatedAsync(
@@ -85,7 +85,7 @@ namespace ExHyperV.Services
 
                         if (string.IsNullOrEmpty(vmName)) return null;
 
-                        string ipAddresses = await GetVmIpAddressWmiAsync(vmName, rawMac);
+                        string ipAddresses = await Utils.GetVmIpAddressAsync(vmName, rawMac);
                         return (AdapterInfo?)new AdapterInfo(vmName, mac, "Unknown", ipAddresses);
                     }
                     catch (Exception ex)
@@ -116,7 +116,7 @@ namespace ExHyperV.Services
 
             using var port = portResp.Data[0];
             string rawMac = port["PermanentAddress"]?.ToString() ?? string.Empty;
-            string mac = FormatMac(rawMac);
+            string mac = Utils.FormatMac(rawMac);
 
             // 用 MAC 匹配 MSFT_NetAdapter，拿 InterfaceIndex 查 IP
             string cleanMac = rawMac.ToUpper();
@@ -163,104 +163,6 @@ namespace ExHyperV.Services
             return new AdapterInfo(
                 ExHyperV.Properties.Resources.DisplayName_HostManagementOS,
                 mac, status, ipAddresses);
-        }
-
-        // ── VM IP 地址查询（WMI KVP，降级走 ARP）────────────────────────
-        private static async Task<string> GetVmIpAddressWmiAsync(string vmName, string rawMac)
-        {
-            // 1. 通过 Msvm_GuestNetworkAdapterConfiguration 查 IP
-            try
-            {
-                string safe = WmiApi.Escape(vmName);
-                var vmResp = await WmiApi.QueryAsync(
-                    $"SELECT * FROM Msvm_ComputerSystem WHERE ElementName = '{safe}'",
-                    obj => obj,
-                    WmiScope.HyperV);
-
-                if (vmResp.Success && vmResp.Data?.Count > 0)
-                {
-                    using var vmObj = vmResp.Data[0];
-                    var settingsResp = await WmiApi.QueryRelatedAsync(
-                        vmObj, "Msvm_VirtualSystemSettingData", obj => obj, "Msvm_SettingsDefineState");
-
-                    if (settingsResp.Success && settingsResp.Data?.Count > 0)
-                    {
-                        using var settings = settingsResp.Data[0];
-                        var nicSettingsResp = await WmiApi.QueryRelatedAsync(
-                            settings, "Msvm_SyntheticEthernetPortSettingData", obj => obj,
-                            "Msvm_VirtualSystemSettingDataComponent");
-
-                        if (nicSettingsResp.Success && nicSettingsResp.Data != null)
-                        {
-                            foreach (var nicSetting in nicSettingsResp.Data)
-                            {
-                                using (nicSetting)
-                                {
-                                    // 匹配 MAC
-                                    string nicMac = nicSetting["Address"]?.ToString() ?? string.Empty;
-                                    if (!string.Equals(nicMac, rawMac, StringComparison.OrdinalIgnoreCase))
-                                        continue;
-
-                                    var guestConfigResp = await WmiApi.QueryRelatedAsync(
-                                        nicSetting, "Msvm_GuestNetworkAdapterConfiguration", obj => obj, null);
-
-                                    if (guestConfigResp.Success && guestConfigResp.Data?.Count > 0)
-                                    {
-                                        using var guestConfig = guestConfigResp.Data[0];
-                                        if (guestConfig["IPAddresses"] is string[] ips && ips.Length > 0)
-                                        {
-                                            string result = string.Join(",", ips.Where(ip => !string.IsNullOrEmpty(ip)));
-                                            if (!string.IsNullOrEmpty(result))
-                                                return Utils.SelectBestIpv4Address(result);
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"[GetVmIpAddressWmiAsync] KVP lookup failed for {vmName}: {ex.Message}");
-            }
-
-            // 2. 降级：ARP 缓存
-            return await GetIpFromArpCacheWmiAsync(rawMac);
-        }
-
-        // ── ARP 缓存查询 ──────────────────────────────────────────────────
-        private static async Task<string> GetIpFromArpCacheWmiAsync(string rawMac)
-        {
-            // 格式化为 xx-xx-xx-xx-xx-xx
-            string cleanMac = rawMac.ToUpper();
-            string formattedMac = System.Text.RegularExpressions.Regex.Replace(cleanMac, ".{2}", "$0-").TrimEnd('-');
-            string safe = formattedMac.Replace("'", "\'");
-
-            try
-            {
-                var resp = await WmiApi.QueryCimAsync(
-                    $"SELECT IPAddress FROM MSFT_NetNeighbor WHERE LinkLayerAddress = '{safe}' AND AddressFamily = 2",
-                    inst => inst.CimInstanceProperties["IPAddress"]?.Value?.ToString() ?? string.Empty,
-                    WmiScope.StdCimV2);
-
-                if (resp.Success && resp.Data?.Count > 0)
-                    return resp.Data.FirstOrDefault(ip => !string.IsNullOrEmpty(ip)) ?? string.Empty;
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"[GetIpFromArpCacheWmiAsync] failed for {rawMac}: {ex.Message}");
-            }
-            return string.Empty;
-        }
-
-        // ── MAC 格式化工具 ─────────────────────────────────────────────────
-        private static string FormatMac(string raw)
-        {
-            string clean = System.Text.RegularExpressions.Regex.Replace(raw.ToUpper(), "[^0-9A-F]", "");
-            if (clean.Length == 12)
-                return System.Text.RegularExpressions.Regex.Replace(clean, "(..)(..)(..)(..)(..)(..)", "$1:$2:$3:$4:$5:$6");
-            return clean;
         }
 
         // ══════════════════════════════════════════════════════════════════

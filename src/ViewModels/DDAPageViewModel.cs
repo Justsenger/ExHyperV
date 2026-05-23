@@ -12,7 +12,7 @@ namespace ExHyperV.ViewModels
 {
     public partial class DDAPageViewModel : ObservableObject
     {
-        private readonly DDAService _DDAService;
+        private readonly HyperVDDAService _DDAService;
 
         [ObservableProperty]
         private bool _isLoading;
@@ -29,7 +29,7 @@ namespace ExHyperV.ViewModels
 
         public DDAPageViewModel()
         {
-            _DDAService = new DDAService();
+            _DDAService = new HyperVDDAService();
             Devices = new ObservableCollection<DeviceViewModel>();
             LoadDataCommand = new AsyncRelayCommand(LoadDataAsync);
             ChangeAssignmentCommand = new AsyncRelayCommand<object>(ChangeAssignmentAsync);
