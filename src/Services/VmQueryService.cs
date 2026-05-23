@@ -538,6 +538,23 @@ namespace ExHyperV.Services
             catch { return false; }
         }
 
+
+        public async Task<string> GetVmStateAsync(string vmName)
+        {
+            var r = await WmiApi.QueryFirstAsync(
+                $"SELECT * FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(vmName)}'",
+                obj => obj["EnabledState"]?.ToString() ?? "NotFound");
+            return r.Data ?? "NotFound";
+        }
+
+        public async Task<(bool IsOff, string CurrentState)> IsVmPoweredOffAsync(string vmName)
+        {
+            var r = await WmiApi.QueryFirstAsync(
+                $"SELECT * FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(vmName)}'",
+                obj => obj["EnabledState"]?.ToString() ?? "Unknown");
+            string state = r.Data ?? "Unknown";
+            return (state == "3", state);
+        }
         // --- 私有辅助方法：磁盘与硬件映射 ---
 
         private (long Current, long Max, string DiskType) GetDiskSizes(string path)

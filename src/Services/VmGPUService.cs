@@ -7,12 +7,23 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using ExHyperV.Models;
 using ExHyperV.Tools;
+using ExHyperV.Tools.Api;
 using Renci.SshNet;
 
 namespace ExHyperV.Services
 {
     public class VmGPUService
     {
+        private readonly VmPowerService _powerService;
+        private readonly VmQueryService _queryService;
+        private readonly VmNetworkService _networkService;
+        public VmGPUService(VmPowerService powerService, VmQueryService queryService, VmNetworkService networkService)
+        {
+            _powerService = powerService;
+            _queryService = queryService;
+            _networkService = networkService;
+        }
+
         #region 内部模型与常量
         private class VmDiskTarget
         {
@@ -176,83 +187,74 @@ namespace ExHyperV.Services
             });
         }
 
-        public Task<List<(string Id, string InstancePath)>> GetVmGpuAdaptersAsync(string vmName)
+        public async Task<List<(string Id, string InstancePath)>> GetVmGpuAdaptersAsync(string vmName)
         {
-            return Task.Run(() =>
+            var result = new List<(string Id, string InstancePath)>();
+            string scopePath = @"\\.\root\virtualization\v2";
+            try
             {
-                var result = new List<(string Id, string InstancePath)>();
-                string scopePath = @"\\.\root\virtualization\v2";
+                var notesResp = await WmiApi.QueryFirstAsync(
+                    $"SELECT * FROM Msvm_VirtualSystemSettingData WHERE ElementName = '{WmiApi.Escape(vmName)}' AND VirtualSystemType = 'Microsoft:Hyper-V:System:Realized'",
+                    obj => obj["Notes"] is string[] arr ? string.Join("\n", arr) : obj["Notes"]?.ToString() ?? "");
+                string vmNotes = notesResp.Data ?? "";
 
-                try
+                string query = $"SELECT * FROM Msvm_ComputerSystem WHERE ElementName = '{vmName}'";
+                using var searcher = new ManagementObjectSearcher(scopePath, query);
+                using var vmCollection = searcher.Get();
+                var computerSystem = vmCollection.Cast<ManagementObject>().FirstOrDefault();
+                if (computerSystem == null) return result;
+
+                using var relatedSettings = computerSystem.GetRelated(
+                    "Msvm_VirtualSystemSettingData",
+                    "Msvm_SettingsDefineState",
+                    null, null, null, null, false, null);
+                var virtualSystemSetting = relatedSettings.Cast<ManagementObject>().FirstOrDefault();
+                if (virtualSystemSetting == null) return result;
+
+                using var gpuSettingsCollection = virtualSystemSetting.GetRelated(
+                    "Msvm_GpuPartitionSettingData",
+                    "Msvm_VirtualSystemSettingDataComponent",
+                    null, null, null, null, false, null);
+
+                foreach (var gpuSetting in gpuSettingsCollection.Cast<ManagementObject>())
                 {
-                    var notesResult = Utils.Run($"(Get-VM -Name '{vmName}').Notes");
-                    string vmNotes = (notesResult != null && notesResult.Count > 0) ? notesResult[0]?.ToString() ?? "" : "";
+                    string adapterId = gpuSetting["InstanceID"]?.ToString();
+                    string instancePath = string.Empty;
 
-                    string query = $"SELECT * FROM Msvm_ComputerSystem WHERE ElementName = '{vmName}'";
-                    using var searcher = new ManagementObjectSearcher(scopePath, query);
-                    using var vmCollection = searcher.Get();
-
-                    var computerSystem = vmCollection.Cast<ManagementObject>().FirstOrDefault();
-                    if (computerSystem == null) return result;
-
-                    using var relatedSettings = computerSystem.GetRelated(
-                        "Msvm_VirtualSystemSettingData",
-                        "Msvm_SettingsDefineState",
-                        null, null, null, null, false, null);
-
-                    var virtualSystemSetting = relatedSettings.Cast<ManagementObject>().FirstOrDefault();
-                    if (virtualSystemSetting == null) return result;
-
-                    using var gpuSettingsCollection = virtualSystemSetting.GetRelated(
-                        "Msvm_GpuPartitionSettingData",
-                        "Msvm_VirtualSystemSettingDataComponent",
-                        null, null, null, null, false, null);
-
-                    foreach (var gpuSetting in gpuSettingsCollection.Cast<ManagementObject>())
+                    string[] hostResources = (string[])gpuSetting["HostResource"];
+                    if (hostResources != null && hostResources.Length > 0)
                     {
-                        string adapterId = gpuSetting["InstanceID"]?.ToString();
-                        string instancePath = string.Empty;
-
-                        string[] hostResources = (string[])gpuSetting["HostResource"];
-                        if (hostResources != null && hostResources.Length > 0)
+                        try
                         {
-                            try
-                            {
-                                using var partitionableGpu = new ManagementObject(hostResources[0]);
-                                partitionableGpu.Get();
-                                instancePath = partitionableGpu["Name"]?.ToString();
-                            }
-                            catch { }
+                            using var partitionableGpu = new ManagementObject(hostResources[0]);
+                            partitionableGpu.Get();
+                            instancePath = partitionableGpu["Name"]?.ToString();
                         }
+                        catch { }
+                    }
 
-                        if (string.IsNullOrEmpty(instancePath) || instancePath.Contains("Unknown"))
+                    if (string.IsNullOrEmpty(instancePath) || instancePath.Contains("Unknown"))
+                    {
+                        string tagPrefix = "[AssignedGPU:";
+                        int startIndex = vmNotes.IndexOf(tagPrefix);
+                        if (startIndex != -1)
                         {
-                            string tagPrefix = "[AssignedGPU:";
-                            int startIndex = vmNotes.IndexOf(tagPrefix);
-                            if (startIndex != -1)
-                            {
-                                startIndex += tagPrefix.Length;
-                                int endIndex = vmNotes.IndexOf("]", startIndex);
-                                if (endIndex != -1)
-                                {
-                                    instancePath = vmNotes.Substring(startIndex, endIndex - startIndex);
-                                }
-                            }
-                        }
-
-                        if (!string.IsNullOrEmpty(adapterId))
-                        {
-                            result.Add((adapterId, instancePath));
+                            startIndex += tagPrefix.Length;
+                            int endIndex = vmNotes.IndexOf("]", startIndex);
+                            if (endIndex != -1)
+                                instancePath = vmNotes.Substring(startIndex, endIndex - startIndex);
                         }
                     }
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"WMI Query Error: {ex.Message}");
-                }
 
-                return result;
-            });
+                    if (!string.IsNullOrEmpty(adapterId))
+                        result.Add((adapterId, instancePath));
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"WMI Query Error: {ex.Message}");
+            }
+            return result;
         }
         #endregion
 
@@ -280,30 +282,6 @@ namespace ExHyperV.Services
                 await Task.Delay(5000, cancellationToken);
             }
             return false; // 超时
-        }
-
-        public Task<string> GetVmStateAsync(string vmName)
-        {
-            return Task.Run(() =>
-            {
-                var result = Utils.Run($"(Get-VM -Name '{vmName}').State");
-                if (result != null && result.Count > 0)
-                {
-                    return result[0].ToString();
-                }
-                return "NotFound";
-            });
-        }
-
-        public Task<(bool IsOff, string CurrentState)> IsVmPoweredOffAsync(string vmName)
-        {
-            return Task.Run(() =>
-            {
-                var result = Utils.Run($"(Get-VM -Name '{vmName}').State");
-                string state = result != null && result.Count > 0 ? result[0].ToString() : "Unknown";
-                bool isOff = state.Equals("Off", StringComparison.OrdinalIgnoreCase);
-                return (isOff, state);
-            });
         }
 
         /// <summary>检查VM配置，判断是否满足GPU-PV要求。</summary>
@@ -517,14 +495,14 @@ namespace ExHyperV.Services
                     }
 
                     string gpuTag = $"[AssignedGPU:{gpuInstancePath}]";
-                    string updateNotesScript = $@"
-                $vm = Get-VM -Name '{vmName}';
-                $currentNotes = $vm.Notes;
-                $cleanedNotes = $currentNotes -replace '\[AssignedGPU:[^\]]+\]', '';
-                $newNotes = ($cleanedNotes.Trim() + ' ' + '{gpuTag}').Trim();
-                Set-VM -VM $vm -Notes $newNotes;
-            ";
-                    Utils.Run(updateNotesScript);
+                    await WmiApi.WithObjectAsync(
+                        $"SELECT * FROM Msvm_VirtualSystemSettingData WHERE ElementName = '{WmiApi.Escape(vmName)}' AND VirtualSystemType = 'Microsoft:Hyper-V:System:Realized'",
+                        obj =>
+                        {
+                            string current = obj["Notes"] is string[] arr ? string.Join("\n", arr) : obj["Notes"]?.ToString() ?? "";
+                            string cleaned = Regex.Replace(current, @"\[AssignedGPU:[^\]]+\]", "").Trim();
+                            obj["Notes"] = new string[] { (cleaned + " " + gpuTag).Trim() };
+                        });
 
                     return (true, "OK");
                 }
@@ -574,8 +552,8 @@ namespace ExHyperV.Services
 
                     if (selectedPartition != null)
                     {
-                        var vmStateResult = Utils.Run($"(Get-VM -Name '{vmName}').State");
-                        if (vmStateResult == null || vmStateResult.Count == 0 || vmStateResult[0].ToString() != "Off")
+                        var (isOff, _) = await _queryService.IsVmPoweredOffAsync(vmName);
+                        if (!isOff)
                         {
                             return string.Format(Properties.Resources.Error_VmMustBeOff, vmName);
                         }
@@ -629,14 +607,14 @@ namespace ExHyperV.Services
                     if (isWin10)
                     {
                         string gpuTag = $"[AssignedGPU:{gpuInstancePath}]";
-                        string updateNotesScript = $@"
-                        $vm = Get-VM -Name '{vmName}';
-                        $currentNotes = $vm.Notes;
-                        $cleanedNotes = $currentNotes -replace '\[AssignedGPU:[^\]]+\]', '';
-                        $newNotes = ($cleanedNotes.Trim() + ' ' + '{gpuTag}').Trim();
-                        Set-VM -VM $vm -Notes $newNotes;
-                        ";
-                        Utils.Run(updateNotesScript);
+                        await WmiApi.WithObjectAsync(
+                            $"SELECT * FROM Msvm_VirtualSystemSettingData WHERE ElementName = '{WmiApi.Escape(vmName)}' AND VirtualSystemType = 'Microsoft:Hyper-V:System:Realized'",
+                            obj =>
+                            {
+                                string current = obj["Notes"] is string[] arr ? string.Join("\n", arr) : obj["Notes"]?.ToString() ?? "";
+                                string cleaned = Regex.Replace(current, @"\[AssignedGPU:[^\]]+\]", "").Trim();
+                                obj["Notes"] = new string[] { (cleaned + " " + gpuTag).Trim() };
+                            });
                     }
 
                     if (selectedPartition != null)
@@ -661,7 +639,7 @@ namespace ExHyperV.Services
                         }
                     }
 
-                    if (isWin10 && partitionableGpuCount > 1) Utils.Run($"Start-VM -Name '{vmName}'");
+                    if (isWin10 && partitionableGpuCount > 1) await _powerService.ExecuteControlActionAsync(vmName, "Start");
                     return "OK";
                 }
                 catch (Exception ex)
@@ -687,22 +665,21 @@ namespace ExHyperV.Services
             });
         }
 
-        public Task<bool> RemoveGpuPartitionAsync(string vmName, string adapterId)
+        public async Task<bool> RemoveGpuPartitionAsync(string vmName, string adapterId)
         {
-            return Task.Run(() =>
+            return await Task.Run(async () =>
             {
                 var results = Utils.Run2($@"Remove-VMGpuPartitionAdapter -VMName '{vmName}' -AdapterId '{adapterId}' -Confirm:$false");
                 if (results != null)
                 {
-                    string cleanupNotesScript = $@"
-                    $vm = Get-VM -Name '{vmName}';
-                    $currentNotes = $vm.Notes;
-                    if ($currentNotes -match '\[AssignedGPU:[^\]]+\]') {{
-                    $cleanedNotes = $currentNotes -replace '\[AssignedGPU:[^\]]+\]', '';
-                    Set-VM -VM $vm -Notes $cleanedNotes.Trim();
-                        }}
-                    ";
-                    Utils.Run(cleanupNotesScript);
+                    await WmiApi.WithObjectAsync(
+                        $"SELECT * FROM Msvm_VirtualSystemSettingData WHERE ElementName = '{WmiApi.Escape(vmName)}' AND VirtualSystemType = 'Microsoft:Hyper-V:System:Realized'",
+                        obj =>
+                        {
+                            string current = obj["Notes"] is string[] arr ? string.Join("\n", arr) : obj["Notes"]?.ToString() ?? "";
+                            if (Regex.IsMatch(current, @"\[AssignedGPU:[^\]]+\]"))
+                                obj["Notes"] = new string[] { Regex.Replace(current, @"\[AssignedGPU:[^\]]+\]", "").Trim() };
+                        });
                     return true;
                 }
                 return false;
@@ -1412,20 +1389,18 @@ return 'OK'
                 try
                 {
                     // --- 阶段 1: 准备工作 (IP 嗅探与连接) ---
-                    var currentState = await GetVmStateAsync(vmName);
-                    if (currentState != "Running")
+                    var currentState = await _queryService.GetVmStateAsync(vmName);
+                    if (currentState != "2")
                     {
                         Log("[ExHyperV] Starting VM...");
-                        Utils.Run($"Start-VM -Name '{vmName}'");
+                        await _powerService.ExecuteControlActionAsync(vmName, "Start");
                         await Task.Delay(5000);
                     }
 
                     Log(Properties.Resources.Msg_Gpu_LinuxWaitingIp);
-                    string getMacScript = $"(Get-VMNetworkAdapter -VMName '{vmName}').MacAddress | Select-Object -First 1";
-                    var macResult = await Utils.Run2(getMacScript);
-                    if (macResult == null || macResult.Count == 0) return "Failed to get VM MAC Address";
-
-                    string macAddress = Regex.Replace(macResult[0].ToString(), "(.{2})", "$1:").TrimEnd(':');
+                    var adapters = await _networkService.GetNetworkAdaptersAsync(vmName);
+                    if (adapters == null || adapters.Count == 0) return "Failed to get VM MAC Address";
+                    string macAddress = adapters[0].MacAddress;
                     string vmIpAddress = await Utils.GetVmIpAddressAsync(vmName, macAddress);
                     string targetIp = Utils.SelectBestIpv4Address(!string.IsNullOrWhiteSpace(credentials.Host) ? credentials.Host : vmIpAddress);
 
@@ -1504,7 +1479,7 @@ return 'OK'
                         if (rebootNeeded)
                         {
                             Log("!!! VM Reboot required. Restarting now...");
-                            Utils.Run($"Restart-VM -Name '{vmName}' -Force");
+                            await _powerService.ExecuteControlActionAsync(vmName, "Restart");
                             await Task.Delay(10000); // 等待开始关机
                             if (!await WaitForVmToBeResponsiveAsync(credentials.Host, credentials.Port, ct))
                                 return "VM failed to come back online after reboot.";
