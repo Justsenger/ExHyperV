@@ -27,7 +27,7 @@
         <!-- 1. Banner 区 (移除加粗，恢复圆角) -->
         <Grid Grid.Row="0" Margin="0,0,0,10">
             <!-- 背景图片 -->
-            <ui:Image CornerRadius="15" Stretch="Uniform" Source="pack://application:,,,/Assets/banner.png"/>
+            <ui:Image CornerRadius="15" Stretch="Uniform" Source="pack://application:,,,/Assets/banner.webp"/>
 
             <!-- 左侧标题文字 -->
             <StackPanel VerticalAlignment="Center" Margin="30,5,0,-25">
