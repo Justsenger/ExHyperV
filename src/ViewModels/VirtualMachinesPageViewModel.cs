@@ -178,8 +178,8 @@ namespace ExHyperV.ViewModels
             _cpuAffinityService = new CpuAffinityService();
             _vmMemoryService = new VmMemoryService();
             _storageService = new VmStorageService();
-            _vmGpuService = new VmGPUService();
             _vmNetworkService = new VmNetworkService();
+            _vmGpuService = new VmGPUService(_powerService, _queryService, _vmNetworkService);
 
             InitPossibleCpuCounts();
 
@@ -3276,13 +3276,13 @@ namespace ExHyperV.ViewModels
                         case GpuTaskType.PowerCheck:
                             if (_needConfig || AutoInstallDrivers)
                             {
-                                var (isOff, state) = await _vmGpuService.IsVmPoweredOffAsync(SelectedVm.Name);
+                                var (isOff, state) = await _queryService.IsVmPoweredOffAsync(SelectedVm.Name);
                                 if (!isOff)
                                 {
                                     task.Description = string.Format(Properties.Resources.Msg_Gpu_ForceOff, state);
                                     AppendLog(task.Description);
                                     await _powerService.ExecuteControlActionAsync(SelectedVm.Name, "TurnOff");
-                                    while (!(await _vmGpuService.IsVmPoweredOffAsync(SelectedVm.Name)).IsOff)
+                                    while (!(await _queryService.IsVmPoweredOffAsync(SelectedVm.Name)).IsOff)
                                     {
                                         await Task.Delay(100);
                                     }
@@ -3481,7 +3481,7 @@ namespace ExHyperV.ViewModels
                     catch { /* 静默失败 */ }
 
                     // 检查虚拟机电源状态
-                    var status = await _vmGpuService.IsVmPoweredOffAsync(SelectedVm.Name);
+                    var status = await _queryService.IsVmPoweredOffAsync(SelectedVm.Name);
                     // 在 SelectPartitionAndContinue 方法内部：
                     if (status.IsOff)
                     {
@@ -3503,21 +3503,13 @@ namespace ExHyperV.ViewModels
                     // 扫描 IP
                     string vmIp = await Task.Run(async () =>
                     {
-                        string rawMac = string.Empty;
-                        using var nicSearcher = new ManagementObjectSearcher(@"\\.\root\virtualization\v2",
-                            $"SELECT Address FROM Msvm_SyntheticEthernetPortSettingData WHERE InstanceID LIKE 'Microsoft:{SelectedVm.Id}%'");
-                        foreach (ManagementObject nic in nicSearcher.Get())
+                        var adapters = await _vmNetworkService.GetNetworkAdaptersAsync(SelectedVm.Name);
+                        string mac = adapters?.FirstOrDefault()?.MacAddress ?? string.Empty;
+                        if (!string.IsNullOrEmpty(mac))
                         {
-                            rawMac = nic["Address"]?.ToString() ?? string.Empty;
-                            if (!string.IsNullOrEmpty(rawMac)) break;
-                        }
-
-                        if (!string.IsNullOrEmpty(rawMac))
-                        {
-                            string formattedMac = System.Text.RegularExpressions.Regex.Replace(rawMac, "(.{2})", "$1:").TrimEnd(':');
                             for (int i = 0; i < 3; i++)
                             {
-                                var ip = await Utils.GetVmIpAddressAsync(SelectedVm.Name, formattedMac);
+                                var ip = await Utils.GetVmIpAddressAsync(SelectedVm.Name, mac);
                                 if (!string.IsNullOrEmpty(ip)) return ip;
                                 await Task.Delay(2000);
                             }

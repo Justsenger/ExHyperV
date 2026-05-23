@@ -288,28 +288,28 @@ namespace ExHyperV.Services
         /// <param name="vmName">待检查的VM名称</param>
         /// <returns>如果满足要求，返回true。否则返回false。</returns>
 
-        public Task<bool> CheckVmForGpuAsync(string vmName)
+        public async Task<bool> CheckVmForGpuAsync(string vmName)
         {
-            return Task.Run(() =>
+            try
             {
-                try
-                {
-                    var vmList = Utils.Run($"Get-VM -Name '{vmName}'");
-                    var vm = vmList?[0];
-                    if (vm == null) return false;
+                var r = await WmiApi.QueryFirstAsync(
+                    $"SELECT * FROM Msvm_VirtualSystemSettingData WHERE ElementName = '{WmiApi.Escape(vmName)}' AND VirtualSystemType = 'Microsoft:Hyper-V:System:Realized'",
+                    obj =>
+                    {
+                        ulong highMMIO = Convert.ToUInt64(obj["HighMemoryMappedIoSpace"] ?? 0);
+                        ulong baseAddr = Convert.ToUInt64(obj["HighMemoryMappedIoBaseAddress"] ?? 0);
+                        bool cacheEnabled = Convert.ToBoolean(obj["GuestControlledCacheTypes"] ?? false);
+                        return (highMMIO, baseAddr, cacheEnabled);
+                    });
 
-                    var highMMIO = (ulong)(vm.Members["HighMemoryMappedIoSpace"]?.Value ?? 0);
-                    var baseAddr = (ulong)(vm.Members["HighMemoryMappedIoBaseAddress"]?.Value ?? 0);
-                    var cacheEnabled = (bool)(vm.Members["GuestControlledCacheTypes"]?.Value ?? false);
-                    if (highMMIO < 32212254720) return false;
-                    if (baseAddr == 68182605824 || baseAddr == 36507222016) return false;
-
-                    if (!cacheEnabled) return false;
-
-                    return true;
-                }
-                catch { return false; }
-            });
+                if (!r.HasData) return false;
+                var (h, b, c) = r.Data;
+                if (h < 32212254720) return false;
+                if (b == 68182605824 || b == 36507222016) return false;
+                if (!c) return false;
+                return true;
+            }
+            catch { return false; }
         }
         public async Task<bool> OptimizeVmForGpuAsync(string vmName)
         {
@@ -434,257 +434,107 @@ namespace ExHyperV.Services
         #endregion
 
         #region GPU 分配与解绑
-        public Task<(bool Success, string Message)> AssignGpuPartitionAsync(string vmName, string gpuInstancePath)
+        public async Task<(bool Success, string Message)> AssignGpuPartitionAsync(string vmName, string gpuInstancePath)
         {
-            return Task.Run(async () =>
+            try
             {
-                bool isWin10 = !IsWindows11OrGreater();
-                var disabledGpuInstanceIds = new List<string>();
+                // 1. 查 Msvm_PartitionableGpu 拿 WMI 对象路径
+                var gpuResp = await WmiApi.QueryAsync(
+                    "SELECT * FROM Msvm_PartitionableGpu",
+                    obj => new { WmiPath = obj.Path.Path, Name = obj["Name"]?.ToString() ?? "" });
+                if (!gpuResp.HasData) return (false, Properties.Resources.Error_Gpu_NoPartition);
+                var matched = gpuResp.Data.FirstOrDefault(g =>
+                    string.Equals(g.Name, gpuInstancePath, StringComparison.OrdinalIgnoreCase));
+                if (matched == null) return (false, Properties.Resources.Error_Gpu_NoPartition);
+                string gpuWmiPath = matched.WmiPath;
 
-                string NormalizeForComparison(string deviceId)
-                {
-                    if (string.IsNullOrWhiteSpace(deviceId)) return string.Empty;
-                    var normalizedId = deviceId.Replace('#', '\\').ToUpper();
-                    if (normalizedId.StartsWith(@"\\?\")) normalizedId = normalizedId.Substring(4);
-                    int suffixIndex = normalizedId.IndexOf('{');
-                    if (suffixIndex != -1)
+                // 2. 查 ResourcePool → AllocationCapabilities → Default 模板
+                var ms = WmiConnectionCache.GetManagementScope(WmiScope.HyperV, WmiContext.Local);
+                using var poolSearcher = new ManagementObjectSearcher(ms,
+                    new ObjectQuery("SELECT * FROM Msvm_ResourcePool WHERE ResourceType = 32770 AND ResourceSubType = 'Microsoft:Hyper-V:GPU Partition' AND Primordial = TRUE"));
+                using var poolCollection = poolSearcher.Get();
+                using var pool = poolCollection.Cast<ManagementObject>().FirstOrDefault();
+                if (pool == null) return (false, Properties.Resources.Error_Gpu_NoPartition);
+
+                using var capsCollection = pool.GetRelated("Msvm_AllocationCapabilities");
+                using var caps = capsCollection.Cast<ManagementObject>().FirstOrDefault();
+                if (caps == null) return (false, Properties.Resources.Error_Gpu_NoPartition);
+
+                using var templateCollection = caps.GetRelated("Msvm_GpuPartitionSettingData");
+                using var template = templateCollection.Cast<ManagementObject>()
+                    .FirstOrDefault(t => t["InstanceID"]?.ToString()?.EndsWith("\\Default", StringComparison.OrdinalIgnoreCase) == true);
+                if (template == null) return (false, Properties.Resources.Error_Gpu_NoPartition);
+
+                // 3. 设置 HostResource 为 WMI 路径，清空 InstanceID
+                template["InstanceID"] = null;
+                template["HostResource"] = new string[] { gpuWmiPath };
+                string gpuXml = template.GetText(TextFormat.CimDtd20);
+
+                // 4. 查 VM SettingData 路径
+                var vmSettingResp = await WmiApi.QueryFirstAsync(
+                    $"SELECT * FROM Msvm_VirtualSystemSettingData WHERE ElementName = '{WmiApi.Escape(vmName)}' AND VirtualSystemType = 'Microsoft:Hyper-V:System:Realized'",
+                    obj => obj.Path.Path);
+                if (!vmSettingResp.HasData) return (false, "VM setting not found");
+
+                // 5. AddResourceSettings
+                var result = await WmiApi.InvokeAsync(
+                    "SELECT * FROM Msvm_VirtualSystemManagementService",
+                    "AddResourceSettings",
+                    p =>
                     {
-                        int lastSeparatorIndex = normalizedId.LastIndexOf('\\', suffixIndex);
-                        if (lastSeparatorIndex != -1) normalizedId = normalizedId.Substring(0, lastSeparatorIndex);
-                    }
-                    return normalizedId;
-                }
+                        p["AffectedConfiguration"] = vmSettingResp.Data;
+                        p["ResourceSettings"] = new string[] { gpuXml };
+                    });
 
-                try
-                {
-                    if (isWin10)
-                    {
-                        var allHostGpus = await GetHostGpusAsync();
-                        string normalizedSelectedGpuId = NormalizeForComparison(gpuInstancePath);
+                if (!result.Success) return (false, result.Error);
 
-                        foreach (var gpu in allHostGpus)
-                        {
-                            if (!gpu.InstanceId.ToUpper().StartsWith("PCI\\")) continue;
-                            string normalizedCurrentGpuId = NormalizeForComparison(gpu.InstanceId);
-                            if (!string.Equals(normalizedCurrentGpuId, normalizedSelectedGpuId, StringComparison.OrdinalIgnoreCase))
-                            {
-                                disabledGpuInstanceIds.Add(gpu.InstanceId);
-                            }
-                        }
+                // 6. 验证
+                var vmGuidResp = await WmiApi.QueryFirstAsync(
+                    $"SELECT * FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(vmName)}'",
+                    obj => obj["Name"]?.ToString() ?? "");
+                string vmGuid = vmGuidResp.Data ?? "";
 
-                        if (disabledGpuInstanceIds.Any())
-                        {
-                            foreach (var disabledId in disabledGpuInstanceIds)
-                            {
-                                Utils.Run($"Disable-PnpDevice -InstanceId '{disabledId}' -Confirm:$false");
-                            }
-                            await Task.Delay(2000);
-                        }
-                    }
+                var verifyResp = await WmiApi.QueryFirstAsync(
+                    $"SELECT * FROM Msvm_GpuPartitionSettingData WHERE InstanceID LIKE 'Microsoft:{vmGuid}%'",
+                    obj => obj["InstanceID"]?.ToString() ?? "");
+                if (!verifyResp.HasData) return (false, Properties.Resources.Error_Gpu_NoPartition);
 
-                    string addGpuCommand = isWin10
-                        ? $"Add-VMGpuPartitionAdapter -VMName '{vmName}'"
-                        : $"Add-VMGpuPartitionAdapter -VMName '{vmName}' -InstancePath '{gpuInstancePath}'";
-
-                    Utils.Run(addGpuCommand);
-
-                    var verifyResult = Utils.Run($"Get-VMGpuPartitionAdapter -VMName '{vmName}'");
-                    if (verifyResult == null || verifyResult.Count == 0)
-                    {
-                        return (false, Properties.Resources.Error_Gpu_NoPartition);
-                    }
-
-                    string gpuTag = $"[AssignedGPU:{gpuInstancePath}]";
-                    await WmiApi.WithObjectAsync(
-                        $"SELECT * FROM Msvm_VirtualSystemSettingData WHERE ElementName = '{WmiApi.Escape(vmName)}' AND VirtualSystemType = 'Microsoft:Hyper-V:System:Realized'",
-                        obj =>
-                        {
-                            string current = obj["Notes"] is string[] arr ? string.Join("\n", arr) : obj["Notes"]?.ToString() ?? "";
-                            string cleaned = Regex.Replace(current, @"\[AssignedGPU:[^\]]+\]", "").Trim();
-                            obj["Notes"] = new string[] { (cleaned + " " + gpuTag).Trim() };
-                        });
-
-                    return (true, "OK");
-                }
-                catch (Exception ex) { return (false, ex.Message); }
-                finally
-                {
-                    if (disabledGpuInstanceIds.Any())
-                    {
-                        await Task.Delay(1000);
-                        foreach (var instanceId in disabledGpuInstanceIds)
-                        {
-                            Utils.Run($"Enable-PnpDevice -InstanceId '{instanceId}' -Confirm:$false");
-                        }
-                    }
-                }
-            });
+                return (true, "OK");
+            }
+            catch (Exception ex) { return (false, ex.Message); }
         }
-
-        public Task<string> AddGpuPartitionAsync(string vmName, string gpuInstancePath, string gpuManu, PartitionInfo selectedPartition, string id, SshCredentials credentials = null, Action<string> progressCallback = null, CancellationToken cancellationToken = default)
-        {
-            return Task.Run(async () =>
-            {
-                bool isWin10 = !IsWindows11OrGreater();
-                var disabledGpuInstanceIds = new List<string>();
-                int partitionableGpuCount = 0;
-
-                string NormalizeForComparison(string deviceId)
-                {
-                    if (string.IsNullOrWhiteSpace(deviceId)) return string.Empty;
-                    var normalizedId = deviceId.Replace('#', '\\').ToUpper();
-                    if (normalizedId.StartsWith(@"\\?\")) normalizedId = normalizedId.Substring(4);
-                    int suffixIndex = normalizedId.IndexOf('{');
-                    if (suffixIndex != -1)
-                    {
-                        int lastSeparatorIndex = normalizedId.LastIndexOf('\\', suffixIndex);
-                        if (lastSeparatorIndex != -1) normalizedId = normalizedId.Substring(0, lastSeparatorIndex);
-                    }
-                    return normalizedId;
-                }
-
-                void Log(string message) => progressCallback?.Invoke(message);
-
-                try
-                {
-                    Utils.AddGpuAssignmentStrategyReg();
-                    Utils.ApplyGpuPartitionStrictModeFix();
-
-                    if (selectedPartition != null)
-                    {
-                        var (isOff, _) = await _queryService.IsVmPoweredOffAsync(vmName);
-                        if (!isOff)
-                        {
-                            return string.Format(Properties.Resources.Error_VmMustBeOff, vmName);
-                        }
-                    }
-
-                    if (isWin10)
-                    {
-                        var allHostGpus = await GetHostGpusAsync();
-                        partitionableGpuCount = allHostGpus.Count(gpu => !string.IsNullOrEmpty(gpu.Pname));
-                        string normalizedSelectedGpuId = NormalizeForComparison(gpuInstancePath);
-
-                        foreach (var gpu in allHostGpus)
-                        {
-                            if (!gpu.InstanceId.ToUpper().StartsWith("PCI\\")) continue;
-                            string normalizedCurrentGpuId = NormalizeForComparison(gpu.InstanceId);
-                            if (!string.Equals(normalizedCurrentGpuId, normalizedSelectedGpuId, StringComparison.OrdinalIgnoreCase))
-                            {
-                                disabledGpuInstanceIds.Add(gpu.InstanceId);
-                            }
-                        }
-
-                        if (disabledGpuInstanceIds.Any())
-                        {
-                            foreach (var disabledId in disabledGpuInstanceIds)
-                            {
-                                Utils.Run($"Disable-PnpDevice -InstanceId '{disabledId}' -Confirm:$false");
-                            }
-                            await Task.Delay(2000);
-                        }
-                    }
-
-                    string addGpuCommand = isWin10
-                        ? $"Add-VMGpuPartitionAdapter -VMName '{vmName}'"
-                        : $"Add-VMGpuPartitionAdapter -VMName '{vmName}' -InstancePath '{gpuInstancePath}'";
-
-                    string vmConfigScript;
-                    if (selectedPartition == null)
-                    {
-                        vmConfigScript = addGpuCommand;
-                    }
-                    else
-                    {
-                        vmConfigScript = $@"
-                        Set-VM -GuestControlledCacheTypes $true -VMName '{vmName}';
-                        Set-VM -HighMemoryMappedIoSpace 64GB -VMName '{vmName}';
-                        Set-VM -LowMemoryMappedIoSpace 1GB -VMName '{vmName}';
-                        {addGpuCommand};
-                        ";
-                    }
-                    Utils.Run(vmConfigScript);
-                    if (isWin10)
-                    {
-                        string gpuTag = $"[AssignedGPU:{gpuInstancePath}]";
-                        await WmiApi.WithObjectAsync(
-                            $"SELECT * FROM Msvm_VirtualSystemSettingData WHERE ElementName = '{WmiApi.Escape(vmName)}' AND VirtualSystemType = 'Microsoft:Hyper-V:System:Realized'",
-                            obj =>
-                            {
-                                string current = obj["Notes"] is string[] arr ? string.Join("\n", arr) : obj["Notes"]?.ToString() ?? "";
-                                string cleaned = Regex.Replace(current, @"\[AssignedGPU:[^\]]+\]", "").Trim();
-                                obj["Notes"] = new string[] { (cleaned + " " + gpuTag).Trim() };
-                            });
-                    }
-
-                    if (selectedPartition != null)
-                    {
-                        if (selectedPartition.OsType == OperatingSystemType.Windows)
-                        {
-                            Log(Properties.Resources.Msg_Gpu_PreparingDisk);
-                            var diskTarget = new VmDiskTarget
-                            {
-                                IsPhysical = selectedPartition.IsPhysicalDisk,
-                                Path = selectedPartition.IsPhysicalDisk ? null : selectedPartition.DiskPath,
-                                PhysicalDiskNumber = selectedPartition.IsPhysicalDisk ? int.Parse(selectedPartition.DiskPath) : 0
-                            };
-
-                            string injectionResult = await InjectWindowsDriversAsync(vmName, diskTarget, selectedPartition, gpuManu, id, Log);
-
-                            if (injectionResult != "OK") return injectionResult;
-                        }
-                        else if (selectedPartition.OsType == OperatingSystemType.Linux)
-                        {
-                            return "OK";
-                        }
-                    }
-
-                    if (isWin10 && partitionableGpuCount > 1) await _powerService.ExecuteControlActionAsync(vmName, "Start");
-                    return "OK";
-                }
-                catch (Exception ex)
-                {
-                    Log(string.Format(Properties.Resources.Error_FatalExceptionOccurred, ex.Message));
-                    return string.Format(Properties.Resources.Error_OperationFailed, ex.Message);
-                }
-                finally
-                {
-                    if (disabledGpuInstanceIds.Any())
-                    {
-                        await Task.Delay(1000);
-                        foreach (var instanceId in disabledGpuInstanceIds)
-                        {
-                            Utils.Run($"Enable-PnpDevice -InstanceId '{instanceId}' -Confirm:$false");
-                        }
-                    }
-                    if (isWin10 && partitionableGpuCount > 1)
-                    {
-                        Log(Properties.Resources.Warning_Win10GpuAssignmentNotPersistent);
-                    }
-                }
-            });
-        }
-
         public async Task<bool> RemoveGpuPartitionAsync(string vmName, string adapterId)
         {
-            return await Task.Run(async () =>
+            try
             {
-                var results = Utils.Run2($@"Remove-VMGpuPartitionAdapter -VMName '{vmName}' -AdapterId '{adapterId}' -Confirm:$false");
-                if (results != null)
-                {
-                    await WmiApi.WithObjectAsync(
-                        $"SELECT * FROM Msvm_VirtualSystemSettingData WHERE ElementName = '{WmiApi.Escape(vmName)}' AND VirtualSystemType = 'Microsoft:Hyper-V:System:Realized'",
-                        obj =>
-                        {
-                            string current = obj["Notes"] is string[] arr ? string.Join("\n", arr) : obj["Notes"]?.ToString() ?? "";
-                            if (Regex.IsMatch(current, @"\[AssignedGPU:[^\]]+\]"))
-                                obj["Notes"] = new string[] { Regex.Replace(current, @"\[AssignedGPU:[^\]]+\]", "").Trim() };
-                        });
-                    return true;
-                }
-                return false;
-            });
-        }
+                // 1. 查 GpuPartitionSettingData 拿对象路径
+                string escapedId = adapterId.Replace("\\", "\\\\");
+                var adapterResp = await WmiApi.QueryFirstAsync(
+                    $"SELECT * FROM Msvm_GpuPartitionSettingData WHERE InstanceID = '{escapedId}'",
+                    obj => obj.Path.Path);
+                if (!adapterResp.HasData) return false;
+
+                // 2. RemoveResourceSettings
+                var result = await WmiApi.InvokeAsync(
+                    "SELECT * FROM Msvm_VirtualSystemManagementService",
+                    "RemoveResourceSettings",
+                    p => p["ResourceSettings"] = new string[] { adapterResp.Data });
+                if (!result.Success) return false;
+
+                // 3. Notes 清理
+                await WmiApi.WithObjectAsync(
+                    $"SELECT * FROM Msvm_VirtualSystemSettingData WHERE ElementName = '{WmiApi.Escape(vmName)}' AND VirtualSystemType = 'Microsoft:Hyper-V:System:Realized'",
+                    obj =>
+                    {
+                        string current = obj["Notes"] is string[] arr ? string.Join("\n", arr) : obj["Notes"]?.ToString() ?? "";
+                        if (Regex.IsMatch(current, @"\[AssignedGPU:[^\]]+\]"))
+                            obj["Notes"] = new string[] { Regex.Replace(current, @"\[AssignedGPU:[^\]]+\]", "").Trim() };
+                    });
+
+                return true;
+            }
+            catch { return false; }
+        }        
         #endregion
 
         #region Windows 驱动环境注入
