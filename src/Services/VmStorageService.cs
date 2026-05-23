@@ -1,9 +1,10 @@
 using System.IO;
-using System.Text.RegularExpressions;
 using System.Management;
+using System.Text.RegularExpressions;
 using ExHyperV.Models;
-using ExHyperV.Tools.Api;
 using ExHyperV.Tools;
+using ExHyperV.Tools.Api;
+using Microsoft.Management.Infrastructure;
 
 namespace ExHyperV.Services
 {
@@ -1180,6 +1181,273 @@ namespace ExHyperV.Services
                     return (false, $"Iso_Error_BuildFailed: {ex.Message}");
                 }
             });
+        }
+
+        public async Task<ApiResponse> SetDiskReadOnlyAsync(int diskNumber, bool isReadOnly)
+        {
+            var diskResp = await WmiApi.QueryFirstCimAsync(
+                $"SELECT * FROM MSFT_Disk WHERE Number = {diskNumber}",
+                ci => ci,
+                WmiScope.Storage);
+
+            if (!diskResp.HasData)
+                return ApiResponse.Fail($"Disk {diskNumber} not found", -1, ApiErrorSource.Wmi);
+
+            return await WmiApi.InvokeCimMethodAsync(
+                diskResp.Data!,
+                "SetAttributes",
+                WmiScope.Storage,
+                p => p.Add(CimMethodParameter.Create("IsReadOnly", isReadOnly, Microsoft.Management.Infrastructure.CimType.Boolean, Microsoft.Management.Infrastructure.CimFlags.None)));
+        }
+
+        public async Task<(bool Success, int DiskNumber)> MountDiskImageAsync(string imagePath)
+        {
+            var imageResp = await WmiApi.QueryFirstCimAsync(
+                $"SELECT * FROM MSFT_DiskImage WHERE ImagePath = '{imagePath.Replace("'", "\\'")}'",
+                ci => ci,
+                WmiScope.Storage);
+
+            if (!imageResp.HasData)
+                return (false, -1);
+
+            var mountResult = await WmiApi.InvokeCimMethodAsync(
+                imageResp.Data!,
+                "Mount",
+                WmiScope.Storage,
+                p =>
+                {
+                    p.Add(CimMethodParameter.Create("Access", (uint)2, Microsoft.Management.Infrastructure.CimType.UInt32, Microsoft.Management.Infrastructure.CimFlags.None));
+                    p.Add(CimMethodParameter.Create("NoDriveLetter", true, Microsoft.Management.Infrastructure.CimType.Boolean, Microsoft.Management.Infrastructure.CimFlags.None));
+                });
+
+            if (!mountResult.Success) return (false, -1);
+
+            // 挂载后查磁盘编号
+            var diskResp = await WmiApi.QueryFirstCimAsync(
+                $"SELECT * FROM MSFT_DiskImage WHERE ImagePath = '{imagePath.Replace("'", "\\'")}'",
+                ci => Convert.ToInt32(ci.CimInstanceProperties["Number"]?.Value ?? -1),
+                WmiScope.Storage);
+
+            return (true, diskResp.Data);
+        }
+
+        public async Task<bool> DismountDiskImageAsync(string imagePath)
+        {
+            var imageResp = await WmiApi.QueryFirstCimAsync(
+                $"SELECT * FROM MSFT_DiskImage WHERE ImagePath = '{imagePath.Replace("'", "\\'")}'",
+                ci => ci,
+                WmiScope.Storage);
+
+            if (!imageResp.HasData) return true; // 已经卸载
+
+            var result = await WmiApi.InvokeCimMethodAsync(
+                imageResp.Data!,
+                "Dismount",
+                WmiScope.Storage);
+
+            return result.Success;
+        }
+
+        public async Task<(bool Success, int DiskNumber)> MountVhdxAsync(string imagePath)
+        {
+            // 1. 先卸载防止重复挂载
+            await DismountVhdxAsync(imagePath);
+
+            // 2. 挂载
+            var result = await WmiApi.InvokeAsync(
+                "SELECT * FROM Msvm_ImageManagementService",
+                "AttachVirtualHardDisk",
+                p =>
+                {
+                    p["Path"] = imagePath;
+                    p["ReadOnly"] = false;
+                    p["AssignDriveLetter"] = false;
+                },
+                WmiScope.HyperV);
+
+            if (!result.Success) return (false, -1);
+
+            // 3. 轮询等待磁盘出现，最多等5秒
+            for (int i = 0; i < 10; i++)
+            {
+                var diskResp = await WmiApi.QueryFirstCimAsync(
+                    $"SELECT * FROM MSFT_Disk WHERE Location = '{imagePath.Replace("'", "\\'").Replace("\\", "\\\\")}'",
+                    ci => Convert.ToInt32(ci.CimInstanceProperties["Number"]?.Value ?? -1),
+                    WmiScope.Storage);
+
+                if (diskResp.HasData && diskResp.Data >= 0)
+                    return (true, diskResp.Data);
+
+                await Task.Delay(500);
+            }
+            return (false, -1);
+        }
+
+        public async Task<bool> DismountVhdxAsync(string imagePath)
+        {
+            try
+            {
+                var ms = WmiConnectionCache.GetManagementScope(WmiScope.HyperV, WmiContext.Local);
+
+                using var svcSearcher = new ManagementObjectSearcher(ms,
+                    new ObjectQuery("SELECT * FROM Msvm_ImageManagementService"));
+                using var svcCol = svcSearcher.Get();
+                using var imgSvc = svcCol.Cast<ManagementObject>().FirstOrDefault();
+                if (imgSvc == null) return false;
+
+                using var inParams = imgSvc.GetMethodParameters("FindMountedStorageImageInstance");
+                inParams["CriterionType"] = (ushort)2;
+                inParams["SelectionCriterion"] = imagePath;
+                using var outParams = imgSvc.InvokeMethod("FindMountedStorageImageInstance", inParams, null);
+
+                if (outParams == null || Convert.ToInt32(outParams["ReturnValue"]) != 0) return true;
+
+                string imgPath = outParams["Image"]?.ToString();
+                if (string.IsNullOrEmpty(imgPath)) return true;
+
+                using var mountedImg = new ManagementObject(ms, new ManagementPath(imgPath), null);
+                mountedImg.Get();
+                mountedImg.InvokeMethod("DetachVirtualHardDisk", null, null);
+                return true;
+            }
+            catch { return false; }
+        }
+
+        public async Task<(bool Success, char DriveLetter)> AssignPartitionDriveLetterAsync(int diskNumber, int partitionNumber, char driveLetter)
+        {
+            var partResp = await WmiApi.QueryFirstCimAsync(
+                $"SELECT * FROM MSFT_Partition WHERE DiskNumber = {diskNumber} AND PartitionNumber = {partitionNumber}",
+                ci => ci,
+                WmiScope.Storage);
+
+            if (!partResp.HasData)
+                return (false, '\0');
+
+            var result = await WmiApi.InvokeCimMethodAsync(
+                partResp.Data!,
+                "AddAccessPath",
+                WmiScope.Storage,
+                p => p.Add(CimMethodParameter.Create("AccessPath", $"{driveLetter}:\\", Microsoft.Management.Infrastructure.CimType.String, Microsoft.Management.Infrastructure.CimFlags.None)));
+
+            return result.Success ? (true, driveLetter) : (false, '\0');
+        }
+
+        public async Task<bool> RemovePartitionAccessPathAsync(int diskNumber, int partitionNumber, char driveLetter)
+        {
+            var partResp = await WmiApi.QueryFirstCimAsync(
+                $"SELECT * FROM MSFT_Partition WHERE DiskNumber = {diskNumber} AND PartitionNumber = {partitionNumber}",
+                ci => ci,
+                WmiScope.Storage);
+
+            if (!partResp.HasData) return true;
+
+            var result = await WmiApi.InvokeCimMethodAsync(
+                partResp.Data!,
+                "RemoveAccessPath",
+                WmiScope.Storage,
+                p => p.Add(CimMethodParameter.Create("AccessPath", $"{driveLetter}:\\", Microsoft.Management.Infrastructure.CimType.String, Microsoft.Management.Infrastructure.CimFlags.None)));
+
+            return result.Success;
+        }
+
+        public async Task RemoveAllPartitionAccessPathsAsync(int diskNumber)
+        {
+            var partsResp = await WmiApi.QueryCimAsync(
+                $"SELECT * FROM MSFT_Partition WHERE DiskNumber = {diskNumber}",
+                ci => ci,
+                WmiScope.Storage);
+
+            if (!partsResp.HasData) return;
+
+            foreach (var part in partsResp.Data!)
+            {
+                char letter = Convert.ToChar(part.CimInstanceProperties["DriveLetter"]?.Value ?? '\0');
+                if (letter == '\0') continue;
+                await WmiApi.InvokeCimMethodAsync(
+                    part,
+                    "RemoveAccessPath",
+                    WmiScope.Storage,
+                    p => p.Add(CimMethodParameter.Create("AccessPath", $"{letter}:\\",
+                        Microsoft.Management.Infrastructure.CimType.String,
+                        Microsoft.Management.Infrastructure.CimFlags.None)));
+            }
+        }
+
+        public async Task<(bool Success, string CtrlType, int CtrlNum, int CtrlLoc)> DetachPhysicalDiskAsync(string vmName, int diskNumber)
+        {
+            using var vmObj = WmiApi.GetVmComputerSystem(vmName);
+            if (vmObj == null) return (false, "", 0, 0);
+
+            using var settings = WmiApi.GetVmSettings(vmObj);
+            if (settings == null) return (false, "", 0, 0);
+
+            var rasdResp = await WmiApi.QueryRelatedAsync(
+                settings,
+                "Msvm_ResourceAllocationSettingData",
+                obj => new RasdInfo(
+                    obj["InstanceID"]?.ToString() ?? "",
+                    Convert.ToInt32(obj["ResourceType"] ?? 0),
+                    obj["__PATH"]?.ToString() ?? obj.Path.Path),
+                "Msvm_VirtualSystemSettingDataComponent",
+                WmiScope.HyperV);
+
+            if (!rasdResp.Success || rasdResp.Data == null) return (false, "", 0, 0);
+
+            // 查所有物理盘槽位，找匹配 diskNumber 的
+            // 物理盘槽位 HostResource 指向 Msvm_DiskDrive，其 DriveNumber = diskNumber
+            var hvDiskResp = await WmiApi.QueryFirstAsync(
+                $"SELECT * FROM Msvm_DiskDrive WHERE DriveNumber = {diskNumber}",
+                obj => obj["DeviceID"]?.ToString() ?? "",
+                WmiScope.HyperV);
+
+            if (!hvDiskResp.HasData) return (false, "", 0, 0);
+            string deviceId = hvDiskResp.Data;
+
+            // 找槽位 RASD
+            RasdInfo? slotRasd = null;
+            foreach (var rasd in rasdResp.Data.Where(r => r.ResourceType == 17))
+            {
+                // 查这个槽位的 HostResource
+                var slotResp = await WmiApi.QueryFirstAsync(
+                    $"SELECT * FROM Msvm_ResourceAllocationSettingData WHERE InstanceID = '{rasd.InstanceID.Replace(@"\", @"\\")}'",
+                    obj => (obj["HostResource"] as string[])?.FirstOrDefault() ?? "",
+                    WmiScope.HyperV);
+
+                if (slotResp.HasData && slotResp.Data.Contains(deviceId.Replace(@"\", @"\\"), StringComparison.OrdinalIgnoreCase))
+                {
+                    slotRasd = rasd;
+                    break;
+                }
+            }
+
+            if (slotRasd == null) return (false, "", 0, 0);
+
+            // 从 InstanceID 解析控制器信息
+            // 格式：Microsoft:VM-GUID\CTRL-GUID\0\location\D
+            var segs = slotRasd.InstanceID.Split('\\');
+            if (segs.Length < 5) return (false, "", 0, 0);
+
+            int ctrlLoc = int.TryParse(segs[^2], out int l) ? l : 0;
+
+            // 找控制器类型和编号
+            string ctrlGuid = segs[^4];
+            var ctrlList = rasdResp.Data.Where(r => r.ResourceType == 5 || r.ResourceType == 6).ToList();
+            var ctrl = ctrlList.FirstOrDefault(c => c.InstanceID.Contains(ctrlGuid));
+            if (ctrl == null) return (false, "", 0, 0);
+
+            string ctrlType = ctrl.ResourceType == 6 ? "SCSI" : "IDE";
+            int ctrlNum = ctrlList.Where(c => c.ResourceType == ctrl.ResourceType).ToList().IndexOf(ctrl);
+
+            // 移除槽位
+            var removeResult = await WmiApi.InvokeAsync(
+                "SELECT * FROM Msvm_VirtualSystemManagementService",
+                "RemoveResourceSettings",
+                p => p["ResourceSettings"] = new string[] { slotRasd.ObjPath },
+                WmiScope.HyperV);
+
+            if (!removeResult.Success) return (false, "", 0, 0);
+
+            return (true, ctrlType, ctrlNum, ctrlLoc);
         }
 
         // ============================================================

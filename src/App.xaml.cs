@@ -37,12 +37,9 @@ public partial class App
             WriteLanguageToConfig(targetLanguage);
         }
         SetLanguage(targetLanguage);
-        Utils.InitializePowerShell();
     }
     protected override void OnExit(ExitEventArgs e)
     {
-        Utils.CleanupPowerShell();
-
         base.OnExit(e);
     }
 

@@ -68,6 +68,10 @@ namespace ExHyperV.Services
             }
 
             const long oneGbInBytes = 1024L * 1024 * 1024;
+            Debug.WriteLine($"[DiskParser] devicePath={devicePath}, total partitions before filter={partitions.Count}");
+            foreach (var p in partitions)
+                Debug.WriteLine($"[DiskParser] part={p.PartitionNumber}, size={p.SizeInBytes}, osType={p.OsType}");
+
             return partitions
                 .Where(p => p.SizeInBytes >= oneGbInBytes)
                 .Where(p => p.OsType == OperatingSystemType.Windows || p.OsType == OperatingSystemType.Linux)

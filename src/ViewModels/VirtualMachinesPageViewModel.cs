@@ -179,7 +179,7 @@ namespace ExHyperV.ViewModels
             _vmMemoryService = new VmMemoryService();
             _storageService = new VmStorageService();
             _vmNetworkService = new VmNetworkService();
-            _vmGpuService = new VmGPUService(_powerService, _queryService, _vmNetworkService);
+            _vmGpuService = new VmGPUService(_powerService, _queryService, _vmNetworkService, _storageService);
 
             InitPossibleCpuCounts();
 

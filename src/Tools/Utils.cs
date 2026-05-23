@@ -1,87 +1,17 @@
-using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Management;
-using System.Management.Automation;
-using System.Management.Automation.Runspaces;
 using System.Net;
 using System.Net.Sockets;
 using System.Reflection;
-using System.Text;
 using System.Text.RegularExpressions;
-using System.Windows;
-using System.Windows.Media;
 using ExHyperV.Tools.Api;
 using Microsoft.Win32;
 using Wpf.Ui.Controls;
 
 namespace ExHyperV.Tools;
 
-
-public class PowerShellScriptException : Exception
-{
-    public PowerShellScriptException(string message) : base(message) { }
-}
-
 public class Utils
 {
-    private static RunspacePool? _runspacePool;
-
-
-    public static void InitializePowerShell()
-    {
-        if (_runspacePool == null)
-        {
-            InitialSessionState initialSessionState = InitialSessionState.CreateDefault();
-            _runspacePool = RunspaceFactory.CreateRunspacePool(initialSessionState);
-            _runspacePool.Open();
-        }
-    }
-
-    public static void CleanupPowerShell()
-    {
-        _runspacePool?.Close();
-        _runspacePool?.Dispose();
-        _runspacePool = null;
-    }
-
-    public static Collection<PSObject> Run(string script)
-    {
-        string fixedScript = PrefixHyperVCommands(script);
-        using (PowerShell ps = PowerShell.Create())
-        {
-            ps.AddScript(fixedScript);
-            return ps.Invoke();
-        }
-    }
-    public static async Task<Collection<PSObject>> Run2(string script, CancellationToken cancellationToken = default)
-    {
-        return await ExecuteCoreAsync(script, cancellationToken);
-    }
-
-    private static async Task<Collection<PSObject>> ExecuteCoreAsync(string script, CancellationToken cancellationToken)
-    {
-        return await Task.Run(async () =>
-        {
-            string fixedScript = PrefixHyperVCommands(script);
-            using (var ps = PowerShell.Create())
-            {
-                ps.RunspacePool = _runspacePool;
-                ps.AddScript(fixedScript);
-                var psDataCollection = await ps.InvokeAsync().WaitAsync(cancellationToken);
-
-                if (ps.HadErrors)
-                {
-                    var errorMessages = new StringBuilder();
-                    foreach (var error in ps.Streams.Error)
-                    {
-                        errorMessages.AppendLine(error.Exception.Message);
-                    }
-                    throw new PowerShellScriptException(errorMessages.ToString());
-                }
-                return new Collection<PSObject>(psDataCollection);
-            }
-        }, cancellationToken);
-    }
     public static string GetIconPath(string deviceType, string friendlyName)
     {
         switch (deviceType)
@@ -361,9 +291,6 @@ public class Utils
         if (string.IsNullOrWhiteSpace(rawMessage)) return string.Empty;
 
         string message = rawMessage;
-        const string psErrorPrefix = "The running command stopped because the preference variable \"ErrorActionPreference\" or common parameter is set to Stop: ";
-        message = message.Replace(psErrorPrefix, "");
-
         var guidInParensRegex = new Regex(@"\s*[\(（].*?[a-fA-F0-9]{8}-(?:[a-fA-F0-9]{4}-){3}[a-fA-F0-9]{12}.*?[\)）]");
         string[] lines = message.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.RemoveEmptyEntries);
 
@@ -434,22 +361,4 @@ public class Utils
 
     public static string Author => "Justsenger";
 
-    private static readonly string[] ConflictCommands = {
-        "Get-VM", "Set-VM", "New-VM", "Remove-VM",
-        "Get-VMHost", "Set-VMHost",
-        "Get-NetworkAdapter", "Set-NetworkAdapter",
-        "Get-HardDisk", "Set-HardDisk",
-        "Get-Snapshot", "Remove-Snapshot", "New-Snapshot",
-        "Stop-VM", "Restart-VM", "Start-VM"
-    };
-
-    private static string PrefixHyperVCommands(string script)
-    {
-        foreach (var cmd in ConflictCommands)
-        {
-            string pattern = $@"\b{cmd}\b";
-            script = Regex.Replace(script, pattern, $"Hyper-V\\{cmd}", RegexOptions.IgnoreCase);
-        }
-        return script;
-    }
 }
