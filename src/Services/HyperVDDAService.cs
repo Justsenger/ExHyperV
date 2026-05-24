@@ -41,7 +41,6 @@ namespace ExHyperV.Services
                         WmiScope.HyperV);
                     if (vmResp.Success && vmResp.Data != null)
                         vmNameList.AddRange(vmResp.Data.Where(n => !string.IsNullOrEmpty(n)));
-                    Debug.WriteLine($"[DDA] vmNames={string.Join(",", vmNameList)}");
 
                     // WMI 替换 Get-VMAssignableDevice：
                     // Msvm_ComputerSystem → Msvm_VirtualSystemSettingData(Realized) → Msvm_PciExpressSettingData → HostResource
@@ -74,18 +73,13 @@ namespace ExHyperV.Services
                                 string rawId = match.Groups[1].Value.Replace("\\\\", "\\");
                                 string pureId = GetPureId(rawId);
                                 if (!string.IsNullOrEmpty(pureId))
-                                {
                                     vmDeviceAssignments[pureId] = vmName;
-                                    Debug.WriteLine($"[DDA] WMI assigned: pureId='{pureId}' vm='{vmName}'");
-                                }
                             }
                         }
                     }
-                    Debug.WriteLine($"[DDA] vmDeviceAssignments count={vmDeviceAssignments.Count}");
 
                     // ── 2. 枚举所有 PCI 设备（Win32Api，替换 Get-PnpDevice）──────────
                     var allPciDevices = await Task.Run(() => Win32Api.GetAllDevices());
-                    Debug.WriteLine($"[DDA] allPciDevices count={allPciDevices.Count}");
 
                     // PCIP（已卸除）且不在 vmDeviceAssignments → 标为 removed
                     foreach (var d in allPciDevices.Where(d =>
@@ -93,10 +87,7 @@ namespace ExHyperV.Services
                     {
                         string pureId = GetPureId(d.InstanceId);
                         if (!string.IsNullOrEmpty(pureId) && !vmDeviceAssignments.ContainsKey(pureId))
-                        {
                             vmDeviceAssignments[pureId] = Resources.removed;
-                            Debug.WriteLine($"[DDA] PCIP removed: pureId='{pureId}'");
-                        }
                     }
 
                     // ── 3. 构建 DeviceInfo（只用 PCI\* 在线设备）────────
@@ -116,23 +107,15 @@ namespace ExHyperV.Services
                         bool inAssignments = !string.IsNullOrEmpty(pureId) && assignedVal != null;
                         assignedVal ??= string.Empty;
 
-                        Debug.WriteLine($"[DDA] device '{pciDev.InstanceId}' status={pciDev.Status} inAssignments={inAssignments} assignedVal='{assignedVal}'");
-
                         string status;
                         if (pciDev.Status == "Unknown" && !string.IsNullOrEmpty(pureId))
                         {
-                            if (!inAssignments)
-                            {
-                                Debug.WriteLine($"[DDA]   → SKIP (Unknown not in assignments)");
-                                continue;
-                            }
+                            if (!inAssignments) continue;
                             status = assignedVal;
-                            Debug.WriteLine($"[DDA]   → status='{status}'");
                         }
                         else
                         {
                             status = Resources.Host;
-                            Debug.WriteLine($"[DDA]   → Host");
                         }
 
                         string path = pciDev.FirstLocationPath ?? "";
@@ -170,8 +153,6 @@ namespace ExHyperV.Services
                         }
                         return GetOrder(a).CompareTo(GetOrder(b));
                     });
-
-                    Debug.WriteLine($"[DDA] deviceList final count={deviceList.Count}");
                 }
                 catch (Exception ex)
                 {
@@ -254,14 +235,12 @@ namespace ExHyperV.Services
                 foreach (var operation in operations)
                 {
                     progress?.Report(operation.Message);
-                    var logOutput = await ExecuteOperationAsync(operation, instanceId);
-                    var errorLogs = logOutput.Where(log => log.Contains("Error", StringComparison.OrdinalIgnoreCase)).ToList();
-                    if (errorLogs.Any())
+                    var error = await ExecuteOperationAsync(operation, instanceId);
+                    if (error != null)
                     {
-                        var errorMessage = string.Join(Environment.NewLine, errorLogs);
                         if (targetVmName == Resources.Host)
                             Win32Api.EnablePnpDevice(instanceId);
-                        return (false, errorMessage);
+                        return (false, error);
                     }
                 }
                 return (true, null);
@@ -304,37 +283,33 @@ namespace ExHyperV.Services
             DdaOpType Type,
             Func<Task<ApiResponse>>? WmiAction = null);
 
-        private async Task<List<string>> ExecuteOperationAsync(DdaOperation op, string instanceId)
+        private async Task<string?> ExecuteOperationAsync(DdaOperation op, string instanceId)
         {
             switch (op.Type)
             {
                 case DdaOpType.PnpEnable:
                     {
                         var r = Win32Api.EnablePnpDevice(instanceId);
-                        return r.Success ? new List<string>() : new List<string> { $"Error: {r.Error}" };
+                        return r.Success ? null : r.Error;
                     }
                 case DdaOpType.PnpDisable:
                     {
                         var r = Win32Api.DisablePnpDevice(instanceId);
-                        return r.Success ? new List<string>() : new List<string> { $"Error: {r.Error}" };
+                        return r.Success ? null : r.Error;
                     }
                 case DdaOpType.Wmi:
                     {
                         var r = await op.WmiAction!();
-                        if (!r.Success)
-                            Debug.WriteLine($"[DDA] WMI op failed | Message='{op.Message}' | Error='{r.Error}'");
-                        return r.Success ? new List<string>() : new List<string> { $"Error: {r.Error}" };
+                        return r.Success ? null : r.Error;
                     }
                 case DdaOpType.WmiSilent:
                     {
-                        var r = await op.WmiAction!();
-                        if (!r.Success)
-                            Debug.WriteLine($"[DDA] WMI silent op failed (ignored) | Message='{op.Message}' | Error='{r.Error}'");
+                        await op.WmiAction!();
                         await Task.Delay(1000); // 给系统时间处理设备状态
-                        return new List<string>();
+                        return null;
                     }
                 default:
-                    return new List<string>();
+                    return null;
             }
         }
 
@@ -343,21 +318,15 @@ namespace ExHyperV.Services
             var ops = new List<DdaOperation>();
 
             // WMI：Mount-VMHostAssignableDevice
-            DdaOperation MountDevice(string devInstanceId, string locationPath) => new(
+            // WmiSilent：某些设备（核显/NPU 等）不支持标准 Mount 流程，失败静默处理
+            DdaOperation MountDeviceSilent(string locationPath) => new(
                 Resources.mounting, DdaOpType.WmiSilent,
-                            WmiAction: async () =>
-                {
-                    Debug.WriteLine($"[DDA] MountDevice | locationPath='{locationPath}'");
-                    var result = await WmiApi.InvokeAsync(
-                        "SELECT * FROM Msvm_AssignableDeviceService",
-                        "MountAssignableDevice",
-                        p => {
-                            p["DeviceLocationPath"] = locationPath;
-                        },
-                        WmiScope.HyperV);
-                    Debug.WriteLine($"[DDA] MountDevice result | Success={result.Success} | Error='{result.Error}'");
-                    return result;
-                });
+                WmiAction: () => WmiApi.InvokeAsync(
+                    "SELECT * FROM Msvm_AssignableDeviceService",
+                    "MountAssignableDevice",
+                    p => { p["DeviceLocationPath"] = locationPath; },
+                    WmiScope.HyperV));
+
             // WMI：Add-VMAssignableDevice
             // 流程：拿 PciExpress Default 模板 → 设置 HostResource = PCIP 设备路径 → AddResourceSettings
             DdaOperation AddDevice(string devInstanceId, string locationPath, string vmName) => new(
@@ -515,8 +484,8 @@ namespace ExHyperV.Services
 
             if (Nowname == Resources.removed && Vmname == Resources.Host)
             {
-                // 归还主机：Mount + PnpEnable，无需关机，无需改 VM 配置
-                ops.Add(MountDevice(instanceId, path));
+                // 已卸除 → 主机：Mount 静默处理，某些设备（核显/NPU）不支持标准 Mount 但实际可用
+                ops.Add(MountDeviceSilent(path));
                 ops.Add(new(Resources.enabling, DdaOpType.PnpEnable));
             }
             else if (Nowname == Resources.removed && Vmname != Resources.Host)
@@ -542,8 +511,9 @@ namespace ExHyperV.Services
             }
             else if (Vmname == Resources.Host && Nowname != Resources.Host)
             {
+                // VM → 主机：Mount 静默处理，对齐 PS 版本行为
                 ops.Add(RemoveDevice(instanceId, path, Nowname));
-                ops.Add(MountDevice(instanceId, path));
+                ops.Add(MountDeviceSilent(path));
                 ops.Add(new(Resources.enabling, DdaOpType.PnpEnable));
             }
 

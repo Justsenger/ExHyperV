@@ -106,7 +106,12 @@ namespace ExHyperV.ViewModels
                 var errorDialog = new MessageBox
                 {
                     Title = Properties.Resources.Dialog_Title_OperationFailed,
-                    Content = string.Format(Properties.Resources.DdaPage_Error_ExecutionGeneric, errorMessage ?? Properties.Resources.Error_Unknown),
+                    Content = new TextBlock
+                    {
+                        Text = string.Format(Properties.Resources.DdaPage_Error_ExecutionGeneric, errorMessage ?? Properties.Resources.Error_Unknown),
+                        TextWrapping = System.Windows.TextWrapping.Wrap,
+                        MaxWidth = 400
+                    },
                     CloseButtonText = Resources.sure
                 };
                 await errorDialog.ShowDialogAsync();
