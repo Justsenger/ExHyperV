@@ -297,7 +297,7 @@ namespace ExHyperV.Services
         }
 
         // ── DDA 操作类型 ──────────────────────────────────────────────
-        private enum DdaOpType { Wmi, PnpEnable, PnpDisable }
+        private enum DdaOpType { Wmi, WmiSilent, PnpEnable, PnpDisable }
 
         private record DdaOperation(
             string Message,
@@ -321,7 +321,17 @@ namespace ExHyperV.Services
                 case DdaOpType.Wmi:
                     {
                         var r = await op.WmiAction!();
+                        if (!r.Success)
+                            Debug.WriteLine($"[DDA] WMI op failed | Message='{op.Message}' | Error='{r.Error}'");
                         return r.Success ? new List<string>() : new List<string> { $"Error: {r.Error}" };
+                    }
+                case DdaOpType.WmiSilent:
+                    {
+                        var r = await op.WmiAction!();
+                        if (!r.Success)
+                            Debug.WriteLine($"[DDA] WMI silent op failed (ignored) | Message='{op.Message}' | Error='{r.Error}'");
+                        await Task.Delay(1000); // 给系统时间处理设备状态
+                        return new List<string>();
                     }
                 default:
                     return new List<string>();
@@ -334,19 +344,20 @@ namespace ExHyperV.Services
 
             // WMI：Mount-VMHostAssignableDevice
             DdaOperation MountDevice(string devInstanceId, string locationPath) => new(
-                Resources.mounting, DdaOpType.Wmi,
-                WmiAction: () => WmiApi.InvokeAsync(
-                    "SELECT * FROM Msvm_AssignableDeviceService",
-                    "MountAssignableDevice",
-                    p => {
-                        string pcipId = devInstanceId.StartsWith("PCI\\", StringComparison.OrdinalIgnoreCase)
-                            ? "PCIP\\" + devInstanceId.Substring(4)
-                            : devInstanceId;
-                        p["DeviceInstancePath"] = pcipId;
-                        p["DeviceLocationPath"] = locationPath;
-                    },
-                    WmiScope.HyperV));
-
+                Resources.mounting, DdaOpType.WmiSilent,
+                            WmiAction: async () =>
+                {
+                    Debug.WriteLine($"[DDA] MountDevice | locationPath='{locationPath}'");
+                    var result = await WmiApi.InvokeAsync(
+                        "SELECT * FROM Msvm_AssignableDeviceService",
+                        "MountAssignableDevice",
+                        p => {
+                            p["DeviceLocationPath"] = locationPath;
+                        },
+                        WmiScope.HyperV);
+                    Debug.WriteLine($"[DDA] MountDevice result | Success={result.Success} | Error='{result.Error}'");
+                    return result;
+                });
             // WMI：Add-VMAssignableDevice
             // 流程：拿 PciExpress Default 模板 → 设置 HostResource = PCIP 设备路径 → AddResourceSettings
             DdaOperation AddDevice(string devInstanceId, string locationPath, string vmName) => new(
@@ -531,7 +542,6 @@ namespace ExHyperV.Services
             }
             else if (Vmname == Resources.Host && Nowname != Resources.Host)
             {
-                // 从 VM 归还主机：Remove + Mount + PnpEnable，无需改目标配置
                 ops.Add(RemoveDevice(instanceId, path, Nowname));
                 ops.Add(MountDevice(instanceId, path));
                 ops.Add(new(Resources.enabling, DdaOpType.PnpEnable));
