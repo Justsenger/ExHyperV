@@ -10,7 +10,7 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <ApplicationIcon>applicationIcon.ico</ApplicationIcon>
-        <Version>1.5.0-Alpha</Version>
+        <Version>1.5.0-Beta</Version>
 		<IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
         <WpfUiGenerateDiagnosticMessages>False</WpfUiGenerateDiagnosticMessages>
         <SatelliteResourceLanguages>en;zh-Hans</SatelliteResourceLanguages>
@@ -193,7 +193,7 @@
 
 <!-- === 最终魔法: 从 dll 文件夹复制优化版 DLL 进行替换 === -->
 <ItemGroup>
-    <MagicDlls Include="$(MSBuildProjectDirectory)\dll\*.dll" />
+    <MagicDlls Include="$(MSBuildProjectDirectory)\libs\*.dll" />
 </ItemGroup>
 <Copy SourceFiles="@(MagicDlls)" DestinationFolder="$(PublishDir)" OverwriteReadOnlyFiles="true" SkipUnchangedFiles="false" />
 
