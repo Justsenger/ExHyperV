@@ -1,6 +1,5 @@
 ﻿using System.IO;
 using ExHyperV.Models;
-using ExHyperV.Tools;
 using ExHyperV.Tools.Api;
 using System.Management;
 using Microsoft.Management.Infrastructure;
@@ -23,7 +22,7 @@ namespace ExHyperV.Services
                 WmiScope.HyperV);
 
             if (!capsResp.HasData)
-                return new List<string> { "11.0", "10.0", "9.0" };
+                return new List<string>();
 
             var settingsResp = await WmiApi.QueryRelatedAsync(
                 capsResp.Data!,
@@ -37,7 +36,7 @@ namespace ExHyperV.Services
                 .OrderByDescending(v => Version.TryParse(v, out var parsed) ? parsed : new Version(0, 0))
                 .ToList();
 
-            return versions.Count > 0 ? versions : new List<string> { "11.0", "10.0", "9.0" };
+            return versions.Count > 0 ? versions : new List<string>();
         }
 
         private sealed record IsolationItem(string InstanceID, bool IsolationEnabled, int IsolationType);
@@ -102,8 +101,7 @@ namespace ExHyperV.Services
 
         public async Task<(bool Success, string Message)> CreateVirtualMachineAsync(VmCreationParams p)
         {
-            string finalVmName = p.IsManualName ? p.Name : GetUniqueVmName(p.Name, p.Path);
-
+            string finalVmName = p.IsManualName ? p.Name : await GetUniqueVmNameAsync(p.Name, p.Path);
             try
             {
                 // ── Step 1: 创建目录 ──────────────────────────────
@@ -128,9 +126,9 @@ namespace ExHyperV.Services
                     ? "Microsoft:Hyper-V:SubType:2"
                     : "Microsoft:Hyper-V:SubType:1";
                 vssd["Version"] = p.Version;
-                vssd["ConfigurationDataRoot"] = p.Path;
-                vssd["SnapshotDataRoot"] = p.Path;
-                vssd["SwapFileDataRoot"] = p.Path;
+                vssd["ConfigurationDataRoot"] = Path.Combine(p.Path, finalVmName);
+                vssd["SnapshotDataRoot"] = Path.Combine(p.Path, finalVmName);
+                vssd["SwapFileDataRoot"] = Path.Combine(p.Path, finalVmName);
 
                 if (p.Generation == 2 && p.IsolationType != "Disabled" &&
                     !string.IsNullOrEmpty(p.IsolationType))
@@ -373,23 +371,23 @@ namespace ExHyperV.Services
             });
         }
 
-        private string GetUniqueVmName(string baseName, string basePath)
+        private async Task<string> GetUniqueVmNameAsync(string baseName, string basePath)
         {
             string candidate = baseName;
             int i = 2;
-            while (Directory.Exists(Path.Combine(basePath, candidate)) || VmNameExists(candidate))
+            while (Directory.Exists(Path.Combine(basePath, candidate)) || await VmNameExistsAsync(candidate))
                 candidate = $"{baseName} ({i++})";
             return candidate;
         }
 
-        private bool VmNameExists(string name)
+        private async Task<bool> VmNameExistsAsync(string name)
         {
-            var resp = WmiApi.QueryFirstAsync(
+            var resp = await WmiApi.QueryFirstAsync(
                 $"SELECT Name FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(name)}' AND Caption = 'Virtual Machine'",
                 obj => obj["Name"]?.ToString(),
-                WmiScope.HyperV).GetAwaiter().GetResult();
-
+                WmiScope.HyperV);
             return resp.HasData;
         }
+
     }
 }

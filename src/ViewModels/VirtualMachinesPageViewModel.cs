@@ -809,29 +809,20 @@ namespace ExHyperV.ViewModels
                     string vmGuid = vm.Id.ToString();
 
                     // 1. 收集磁盘路径 — Msvm_StorageAllocationSettingData.Path
-                    var diskPaths = new System.Collections.ObjectModel.Collection<object>();
-                    using (var searcher = new ManagementObjectSearcher(@"\\.\root\virtualization\v2",
-                        $"SELECT Path FROM Msvm_StorageAllocationSettingData WHERE InstanceID LIKE 'Microsoft:{vmGuid}%' AND ResourceSubType = 'Microsoft:Hyper-V:Virtual Hard Disk'"))
-                    {
-                        foreach (ManagementObject obj in searcher.Get())
-                        {
-                            string p = obj["Path"]?.ToString();
-                            if (!string.IsNullOrEmpty(p)) diskPaths.Add(p);
-                        }
-                    }
+                    var diskResp = await WmiApi.QueryAsync(
+                        $"SELECT Path FROM Msvm_StorageAllocationSettingData WHERE InstanceID LIKE 'Microsoft:{vmGuid}%' AND ResourceSubType = 'Microsoft:Hyper-V:Virtual Hard Disk'",
+                        obj => obj["Path"]?.ToString() ?? string.Empty,
+                        WmiScope.HyperV);
+                    var diskPaths = (diskResp.Data ?? new List<string>())
+                        .Where(p => !string.IsNullOrEmpty(p))
+                        .ToList();
 
                     // 2. 收集配置目录 — Msvm_VirtualSystemSettingData.ConfigurationDataRoot
-                    var configLocation = new System.Collections.ObjectModel.Collection<object>();
-                    using (var searcher = new ManagementObjectSearcher(@"\\.\root\virtualization\v2",
-                        $"SELECT ConfigurationDataRoot FROM Msvm_VirtualSystemSettingData WHERE VirtualSystemIdentifier = '{vmGuid}' AND VirtualSystemType = 'Microsoft:Hyper-V:System:Realized'"))
-                    {
-                        foreach (ManagementObject obj in searcher.Get())
-                        {
-                            string p = obj["ConfigurationDataRoot"]?.ToString();
-                            if (!string.IsNullOrEmpty(p)) configLocation.Add(p);
-                            break;
-                        }
-                    }
+                    var configResp = await WmiApi.QueryFirstAsync(
+                        $"SELECT ConfigurationDataRoot FROM Msvm_VirtualSystemSettingData WHERE VirtualSystemIdentifier = '{vmGuid}' AND VirtualSystemType = 'Microsoft:Hyper-V:System:Realized'",
+                        obj => obj["ConfigurationDataRoot"]?.ToString() ?? string.Empty,
+                        WmiScope.HyperV);
+                    string? rawConfigDir = configResp.HasData ? configResp.Data : null;
 
                     // 3. 停止
                     await _powerService.ExecuteControlActionAsync(vm.Name, "TurnOff");
@@ -844,9 +835,8 @@ namespace ExHyperV.ViewModels
                         "DestroySystem", p => p["AffectedSystem"] = vmPath, WmiScope.HyperV);
 
                     // 5. 删除所有 vhdx 文件
-                    foreach (var diskObj in diskPaths)
+                    foreach (var diskPath in diskPaths)
                     {
-                        string? diskPath = diskObj?.ToString();
                         if (string.IsNullOrEmpty(diskPath)) continue;
                         try
                         {
@@ -856,32 +846,34 @@ namespace ExHyperV.ViewModels
                         catch { }
                     }
 
-                    // 6. 尝试删除虚拟机配置文件夹（加入安全熔断机制，严防删除全局公共目录）
-                    string? rawConfigDir = configLocation?.FirstOrDefault()?.ToString();
+                    // 6. 尝试删除虚拟机配置文件夹
                     if (!string.IsNullOrEmpty(rawConfigDir))
                     {
+                        var protectedPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    {
+        @"C:\ProgramData\Microsoft\Windows\Hyper-V",
+        @"C:\Users\Public\Documents\Hyper-V",
+        @"C:\ProgramData\Microsoft\Windows",
+        @"C:\ProgramData",
+        @"C:\Users\Public\Documents"
+    };
+
+                        // 如果 ConfigurationLocation 本身就是根目录，尝试找子目录
                         string configDir = rawConfigDir.TrimEnd('\\', '/');
-                        if (Directory.Exists(configDir))
+                        if (protectedPaths.Contains(configDir))
                         {
-                            // A. 收集需要保护的系统及公共根目录
-                            var protectedPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-                            {
-                                @"C:\ProgramData\Microsoft\Windows\Hyper-V",
-                                @"C:\Users\Public\Documents\Hyper-V",
-                                @"C:\ProgramData\Microsoft\Windows",
-                                @"C:\ProgramData",
-                                @"C:\Users\Public\Documents"
-                            };
+                            // 尝试找以虚拟机名命名的子目录
+                            string subDir = Path.Combine(configDir, vm.Name);
+                            if (Directory.Exists(subDir))
+                                configDir = subDir;
+                            else
+                                configDir = string.Empty; // 找不到子目录，放弃删除
+                        }
 
-                            // B. 检查是否为盘符根目录（如 C:\, D:\）
+                        if (!string.IsNullOrEmpty(configDir) && Directory.Exists(configDir))
+                        {
                             bool isRoot = Path.GetPathRoot(configDir).Equals(configDir, StringComparison.OrdinalIgnoreCase);
-
-                            // C. 检查该文件夹名称是否与当前虚拟机名完全一致
-                            string folderName = Path.GetFileName(configDir);
-                            bool isDedicatedFolder = folderName.Equals(vm.Name, StringComparison.OrdinalIgnoreCase);
-
-                            // D. 只有当不处于保护名单、不是盘符根目录、且确实是该虚拟机专属的独立文件夹时，才执行递归删除
-                            if (!protectedPaths.Contains(configDir) && !isRoot && isDedicatedFolder)
+                            if (!protectedPaths.Contains(configDir) && !isRoot)
                             {
                                 try { Directory.Delete(configDir, recursive: true); }
                                 catch { }
@@ -900,7 +892,6 @@ namespace ExHyperV.ViewModels
             }
             finally { IsLoading = false; }
         }
-
         // 当选中的虚拟机发生变化时重置视图
         partial void OnSelectedVmChanged(VmInstanceInfo value)
         {
