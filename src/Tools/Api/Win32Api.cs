@@ -306,8 +306,10 @@ public class PciDeviceInfo
     public string Status { get; set; } = "";
     public List<string> LocationPaths { get; set; } = new();
 
-    public string? FirstLocationPath => LocationPaths.FirstOrDefault(p =>
-        p.StartsWith("PCIROOT", StringComparison.OrdinalIgnoreCase));
+    public string? FirstLocationPath =>
+        LocationPaths.FirstOrDefault(p =>
+            p.StartsWith("PCIROOT", StringComparison.OrdinalIgnoreCase))
+        ?? LocationPaths.FirstOrDefault();
 }
 
 internal static class NativeMethods

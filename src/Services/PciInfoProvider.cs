@@ -51,18 +51,29 @@ public class PciInfoProvider
         }
         _isInitialized = true;
     }
-    public string GetVendorFromInstanceId(string instanceId)
+    public string GetVendorFromInstanceId(string instanceId, string? deviceClass = null)
     {
-        if (!_isInitialized || string.IsNullOrEmpty(instanceId) || _vendorDatabase.Count == 0) return "Unknown";
-        var match = Regex.Match(instanceId, @"SUBSYS_[0-9A-F]{4}([0-9A-F]{4})", RegexOptions.IgnoreCase);
-        if (match.Success)
+        var venMatch = Regex.Match(instanceId, @"VEN_([0-9A-F]{4})", RegexOptions.IgnoreCase);
+        string? vid = venMatch.Success ? venMatch.Groups[1].Value.ToLower() : null;
+
+        // Intel 设备直接用 VEN，不看 SUBSYS
+        bool trySubsys = vid != "8086"
+            && string.Equals(deviceClass, "Display", StringComparison.OrdinalIgnoreCase);
+
+        if (trySubsys)
         {
-            string svid = match.Groups[1].Value.ToLower();
-            if (_vendorDatabase.TryGetValue(svid, out var vendorName))
+            var subsysMatch = Regex.Match(instanceId, @"SUBSYS_[0-9A-F]{4}([0-9A-F]{4})", RegexOptions.IgnoreCase);
+            if (subsysMatch.Success)
             {
-                return vendorName;
+                string svid = subsysMatch.Groups[1].Value.ToLower();
+                if (_vendorDatabase.TryGetValue(svid, out var subsysVendor))
+                    return subsysVendor;
             }
         }
+
+        if (vid != null && _vendorDatabase.TryGetValue(vid, out var vendorName))
+            return vendorName;
+
         return "Unknown";
     }
 }

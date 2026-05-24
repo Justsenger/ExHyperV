@@ -4976,7 +4976,7 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
-        ///   查找类似 Chinese 的本地化字符串。
+        ///   查找类似 中文 的本地化字符串。
         /// </summary>
         public static string Lang_Chinese {
             get {
@@ -7554,6 +7554,15 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 A restart is required before making further changes. 的本地化字符串。
+        /// </summary>
+        public static string Status_Msg_RestartRequired {
+            get {
+                return ResourceManager.GetString("Status_Msg_RestartRequired", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Not Applicable 的本地化字符串。
         /// </summary>
         public static string Status_NotApplicable {
@@ -7766,6 +7775,15 @@ namespace ExHyperV.Properties {
         public static string Status_Title_SwitchEdition {
             get {
                 return ResourceManager.GetString("Status_Title_SwitchEdition", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Warning 的本地化字符串。
+        /// </summary>
+        public static string Status_Title_Warning {
+            get {
+                return ResourceManager.GetString("Status_Title_Warning", resourceCulture);
             }
         }
         

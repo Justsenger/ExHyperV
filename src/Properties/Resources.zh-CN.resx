@@ -3069,6 +3069,21 @@
   <data name="Xaml_Placeholder_IsoOptional" xml:space="preserve">
     <value>选择操作系统安装 ISO 镜像 (可选)</value>
   </data>
+  <data name="Task_Gpu_Config" xml:space="preserve">
+    <value>配置检查</value>
+  </data>
+  <data name="Msg_Gpu_CheckingConfig" xml:space="preserve">
+    <value>检查虚拟机配置...</value>
+  </data>
+  <data name="Msg_Gpu_ConfigNeeded" xml:space="preserve">
+    <value>将会修改虚拟机设置。</value>
+  </data>
+  <data name="Msg_Gpu_ConfigOk" xml:space="preserve">
+    <value>虚拟机设置OK。</value>
+  </data>
+  <data name="Msg_Skip" xml:space="preserve">
+    <value>已跳过。</value>
+  </data>
   <data name="MainWindow_1" xml:space="preserve">
     <value>USB 直通</value>
   </data>
@@ -3386,42 +3401,6 @@
   </data>
   <data name="VmDashboard_TabBoot" xml:space="preserve">
     <value>{Binding IpAddressDisplay, FallbackValue='获取中...'}</value>
-  </data>
-  <data name="Status_Msg_CurrentVer_Duplicate" xml:space="preserve">
-    <value>当前识别为</value>
-  </data>
-  <data name="Status_Msg_OperationPending_Duplicate" xml:space="preserve">
-    <value>变更已挂起，重启后生效。</value>
-  </data>
-  <data name="Status_Msg_RestartNow_Duplicate" xml:space="preserve">
-    <value>系统标识已修改。是否立即重启？</value>
-  </data>
-  <data name="Status_Title_Success_Duplicate" xml:space="preserve">
-    <value>操作成功</value>
-  </data>
-  <data name="Status_Title_Info_Duplicate" xml:space="preserve">
-    <value>提示</value>
-  </data>
-  <data name="Status_Title_Error_Duplicate" xml:space="preserve">
-    <value>错误</value>
-  </data>
-  <data name="Global_Restart_Duplicate" xml:space="preserve">
-    <value>立即重启</value>
-  </data>
-  <data name="Task_Gpu_Config" xml:space="preserve">
-    <value>配置检查</value>
-  </data>
-  <data name="Msg_Gpu_CheckingConfig" xml:space="preserve">
-    <value>检查虚拟机配置...</value>
-  </data>
-  <data name="Msg_Gpu_ConfigNeeded" xml:space="preserve">
-    <value>将会修改虚拟机设置。</value>
-  </data>
-  <data name="Msg_Gpu_ConfigOk" xml:space="preserve">
-    <value>虚拟机设置OK。</value>
-  </data>
-  <data name="Msg_Skip" xml:space="preserve">
-    <value>已跳过。</value>
   </data>
   <data name="BootOrderItem_FloppyDisk" xml:space="preserve">
     <value>软盘</value>
@@ -4039,24 +4018,51 @@
     <value>优化磁盘</value>
   </data>
   <data name="Net_DefaultAdapterName" xml:space="preserve">
-  <value>网络适配器</value>
-</data>
-<data name="Error_Net_TemplateNotFound" xml:space="preserve">
-  <value>无法获取网络适配器模板</value>
-</data>
-<data name="Status_FastSaved" xml:space="preserve">
-  <value>快速保存</value>
-</data>
-<data name="Status_FastSaving" xml:space="preserve">
-  <value>快速保存中</value>
-</data>
-<data name="Status_ForceShutdown" xml:space="preserve">
-  <value>强制关机中</value>
-</data>
-<data name="Status_ForceReboot" xml:space="preserve">
-  <value>强制重启中</value>
-</data>
-<data name="Status_Hibernated" xml:space="preserve">
-  <value>已休眠</value>
-</data>
+    <value>网络适配器</value>
+  </data>
+  <data name="Error_Net_TemplateNotFound" xml:space="preserve">
+    <value>无法获取网络适配器模板</value>
+  </data>
+  <data name="Status_FastSaved" xml:space="preserve">
+    <value>快速保存</value>
+  </data>
+  <data name="Status_FastSaving" xml:space="preserve">
+    <value>快速保存中</value>
+  </data>
+  <data name="Status_ForceShutdown" xml:space="preserve">
+    <value>强制关机中</value>
+  </data>
+  <data name="Status_ForceReboot" xml:space="preserve">
+    <value>强制重启中</value>
+  </data>
+  <data name="Status_Hibernated" xml:space="preserve">
+    <value>已休眠</value>
+  </data>
+  <data name="Status_Msg_RestartRequired" xml:space="preserve">
+    <value>请先重启系统，再进行此操作。</value>
+  </data>
+  <data name="Status_Msg_CurrentVer_Duplicate" xml:space="preserve">
+    <value>当前识别为</value>
+  </data>
+  <data name="Status_Msg_OperationPending_Duplicate" xml:space="preserve">
+    <value>变更已挂起，重启后生效。</value>
+  </data>
+  <data name="Status_Msg_RestartNow_Duplicate" xml:space="preserve">
+    <value>系统标识已修改。是否立即重启？</value>
+  </data>
+  <data name="Status_Title_Success_Duplicate" xml:space="preserve">
+    <value>操作成功</value>
+  </data>
+  <data name="Status_Title_Info_Duplicate" xml:space="preserve">
+    <value>提示</value>
+  </data>
+  <data name="Status_Title_Error_Duplicate" xml:space="preserve">
+    <value>错误</value>
+  </data>
+  <data name="Global_Restart_Duplicate" xml:space="preserve">
+    <value>立即重启</value>
+  </data>
+  <data name="Status_Title_Warning" xml:space="preserve">
+    <value>警告</value>
+  </data>
 </root>

@@ -1578,7 +1578,7 @@ This operation sends a shutdown signal to the guest OS.</value>
     <value>Settings Updated</value>
   </data>
   <data name="Lang_Chinese" xml:space="preserve">
-    <value>Chinese</value>
+    <value>中文</value>
   </data>
   <data name="Msg_Gpu_DismountingDisk" xml:space="preserve">
     <value>[Physical Disk] Locking and dismounting disk {0}...</value>
@@ -4038,24 +4038,30 @@ This operation sends a shutdown signal to the guest OS.</value>
     <value>Optimize Disk</value>
   </data>
   <data name="Net_DefaultAdapterName" xml:space="preserve">
-  <value>Network Adapter</value>
-</data>
-<data name="Error_Net_TemplateNotFound" xml:space="preserve">
-  <value>Failed to get network adapter template</value>
-</data>
-<data name="Status_FastSaved" xml:space="preserve">
-  <value>Fast Saved</value>
-</data>
-<data name="Status_FastSaving" xml:space="preserve">
-  <value>Fast Saving</value>
-</data>
-<data name="Status_ForceShutdown" xml:space="preserve">
-  <value>Force Shutting Down</value>
-</data>
-<data name="Status_ForceReboot" xml:space="preserve">
-  <value>Force Rebooting</value>
-</data>
-<data name="Status_Hibernated" xml:space="preserve">
-  <value>Hibernated</value>
-</data>
+    <value>Network Adapter</value>
+  </data>
+  <data name="Error_Net_TemplateNotFound" xml:space="preserve">
+    <value>Failed to get network adapter template</value>
+  </data>
+  <data name="Status_FastSaved" xml:space="preserve">
+    <value>Fast Saved</value>
+  </data>
+  <data name="Status_FastSaving" xml:space="preserve">
+    <value>Fast Saving</value>
+  </data>
+  <data name="Status_ForceShutdown" xml:space="preserve">
+    <value>Force Shutting Down</value>
+  </data>
+  <data name="Status_ForceReboot" xml:space="preserve">
+    <value>Force Rebooting</value>
+  </data>
+  <data name="Status_Hibernated" xml:space="preserve">
+    <value>Hibernated</value>
+  </data>
+  <data name="Status_Msg_RestartRequired" xml:space="preserve">
+    <value>A restart is required before making further changes.</value>
+  </data>
+  <data name="Status_Title_Warning" xml:space="preserve">
+    <value>Warning</value>
+  </data>
 </root>

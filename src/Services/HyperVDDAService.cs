@@ -10,6 +10,7 @@ namespace ExHyperV.Services
     public class HyperVDDAService
     {
         private const ulong RequiredMmioBytes = 64UL * 1024 * 1024 * 1024; // 64 GiB
+        private readonly VmPowerService _powerService = new();
 
         private string GetPureId(string? instanceId)
         {
@@ -46,7 +47,6 @@ namespace ExHyperV.Services
                     // Msvm_ComputerSystem → Msvm_VirtualSystemSettingData(Realized) → Msvm_PciExpressSettingData → HostResource
                     foreach (var vmName in vmNameList)
                     {
-                        // 拿 VM 的 Realized 设置对象
                         string escapedVmName = WmiApi.Escape(vmName);
                         var settingResp = await WmiApi.QueryAsync(
                             $"SELECT InstanceID FROM Msvm_VirtualSystemSettingData " +
@@ -58,8 +58,6 @@ namespace ExHyperV.Services
 
                         foreach (var settingId in settingResp.Data.Where(s => !string.IsNullOrEmpty(s)))
                         {
-                            // settingId = "Microsoft:VMGUID"
-                            // Msvm_PciExpressSettingData.InstanceID = "Microsoft:VMGUID\deviceGUID"
                             string escapedSettingId = WmiApi.Escape(settingId);
                             var pciResp = await WmiApi.QueryAsync(
                                 $"SELECT HostResource FROM Msvm_PciExpressSettingData " +
@@ -90,7 +88,6 @@ namespace ExHyperV.Services
                     Debug.WriteLine($"[DDA] allPciDevices count={allPciDevices.Count}");
 
                     // PCIP（已卸除）且不在 vmDeviceAssignments → 标为 removed
-                    // PCIP 设备只更新字典，不进 deviceList（与原始逻辑一致）
                     foreach (var d in allPciDevices.Where(d =>
                         d.InstanceId.StartsWith("PCIP\\", StringComparison.OrdinalIgnoreCase)))
                     {
@@ -102,7 +99,7 @@ namespace ExHyperV.Services
                         }
                     }
 
-                    // ── 3. 构建 DeviceInfo（只用 PCI\* 在线设备，与原始逻辑一致）────────
+                    // ── 3. 构建 DeviceInfo（只用 PCI\* 在线设备）────────
                     var sortedDevices = allPciDevices
                         .Where(d => !string.IsNullOrEmpty(d.Service)
                             && d.InstanceId.StartsWith("PCI\\", StringComparison.OrdinalIgnoreCase)
@@ -139,7 +136,7 @@ namespace ExHyperV.Services
                         }
 
                         string path = pciDev.FirstLocationPath ?? "";
-                        string vendor = pciInfoProvider.GetVendorFromInstanceId(pciDev.InstanceId);
+                        string vendor = pciInfoProvider.GetVendorFromInstanceId(pciDev.InstanceId, pciDev.Class);
                         deviceList.Add(new DeviceInfo(pciDev.FriendlyName, status, pciDev.Class, pciDev.InstanceId, path, vendor));
                     }
 
@@ -188,12 +185,10 @@ namespace ExHyperV.Services
         }
 
         public Task<bool> IsServerOperatingSystemAsync()
-            => Task.FromResult(HyperVEnvironmentService.IsServerSystem());
+            => Task.FromResult(HyperVHostService.IsServerSystem());
 
         public async Task<(MmioCheckResultType Result, string Message)> CheckMmioSpaceAsync(string vmName)
         {
-            // WMI 替换 Get-VM HighMemoryMappedIoSpace
-            // Msvm_VirtualSystemSettingData.HighMmioGapSize 单位是 MB，需乘以 1048576 得字节数
             string escapedVmName = WmiApi.Escape(vmName);
             var resp = await WmiApi.QueryAsync(
                 $"SELECT HighMmioGapSize FROM Msvm_VirtualSystemSettingData " +
@@ -221,40 +216,11 @@ namespace ExHyperV.Services
 
         public async Task<bool> UpdateMmioSpaceAsync(string vmName)
         {
-            string escapedVmName = WmiApi.Escape(vmName);
+            if (!await EnsureVmStoppedAsync(vmName)) return false;
 
-            // 1. WMI 检查 VM 是否运行中（EnabledState=2），是则先关机
-            var stateResp = await WmiApi.QueryAsync(
-                $"SELECT EnabledState FROM Msvm_ComputerSystem WHERE ElementName = '{escapedVmName}'",
-                obj => Convert.ToUInt16(obj["EnabledState"]),
-                WmiScope.HyperV);
-
-            if (stateResp.Success && stateResp.Data != null && stateResp.Data.Any(s => s == 2))
-            {
-                // RequestStateChange(3) = 强制关机
-                var stopResult = await WmiApi.InvokeAsync(
-                    $"SELECT * FROM Msvm_ComputerSystem WHERE ElementName = '{escapedVmName}'",
-                    "RequestStateChange",
-                    p => p["RequestedState"] = (ushort)3,
-                    WmiScope.HyperV);
-                if (!stopResult.Success) return false;
-
-                // 等待关机完成（最多30秒）
-                for (int i = 0; i < 30; i++)
-                {
-                    await Task.Delay(1000);
-                    var checkResp = await WmiApi.QueryAsync(
-                        $"SELECT EnabledState FROM Msvm_ComputerSystem WHERE ElementName = '{escapedVmName}'",
-                        obj => Convert.ToUInt16(obj["EnabledState"]),
-                        WmiScope.HyperV);
-                    if (checkResp.Data?.Any(s => s == 3) == true) break; // EnabledState=3 = 已关机
-                }
-            }
-
-            // 2. WMI 设置 HighMmioGapSize（单位 MB，RequiredMmioBytes / 1048576）
             ulong requiredMb = RequiredMmioBytes / 1048576UL;
             var setResult = await WmiApi.WithObjectAsync(
-                wql: $"SELECT * FROM Msvm_VirtualSystemSettingData WHERE ElementName = '{escapedVmName}' AND VirtualSystemType = 'Microsoft:Hyper-V:System:Realized'",
+                wql: $"SELECT * FROM Msvm_VirtualSystemSettingData WHERE ElementName = '{WmiApi.Escape(vmName)}' AND VirtualSystemType = 'Microsoft:Hyper-V:System:Realized'",
                 modifier: obj => obj["HighMmioGapSize"] = requiredMb,
                 submitMethod: "ModifySystemSettings",
                 submitParamName: "SystemSettings",
@@ -274,6 +240,17 @@ namespace ExHyperV.Services
                 var operations = DDACommands(targetVmName, instanceId, path, currentVmName);
                 if (operations.Count == 0) return (true, null);
 
+                // 只有当操作列表中包含 SetGuestCache（cpucache）时才需要关机
+                // SetGuestCache 是唯一强制要求 VM Off 的 ModifySystemSettings 调用
+                // 如果该 VM 的 GuestControlledCacheTypes 已经是 true，DDACommands 不会加入此步骤
+                bool needsStop = operations.Any(op => op.Message == Resources.cpucache);
+                if (needsStop)
+                {
+                    progress?.Report("正在关闭虚拟机...");
+                    if (!await EnsureVmStoppedAsync(targetVmName))
+                        return (false, "无法关闭虚拟机，操作终止。");
+                }
+
                 foreach (var operation in operations)
                 {
                     progress?.Report(operation.Message);
@@ -290,6 +267,33 @@ namespace ExHyperV.Services
                 return (true, null);
             }
             catch (Exception ex) { return (false, ex.Message); }
+        }
+
+        private async Task<bool> EnsureVmStoppedAsync(string vmName)
+        {
+            string escapedVmName = WmiApi.Escape(vmName);
+
+            var stateResp = await WmiApi.QueryAsync(
+                $"SELECT EnabledState FROM Msvm_ComputerSystem WHERE ElementName = '{escapedVmName}'",
+                obj => Convert.ToUInt16(obj["EnabledState"]),
+                WmiScope.HyperV);
+
+            if (!stateResp.Success || stateResp.Data == null) return false;
+            if (!stateResp.Data.Any(s => s == 2)) return true; // 已关机，无需操作
+
+            await _powerService.ExecuteControlActionAsync(vmName, "Stop");
+
+            // 等待关机完成（最多30秒）
+            for (int i = 0; i < 30; i++)
+            {
+                await Task.Delay(1000);
+                var checkResp = await WmiApi.QueryAsync(
+                    $"SELECT EnabledState FROM Msvm_ComputerSystem WHERE ElementName = '{escapedVmName}'",
+                    obj => Convert.ToUInt16(obj["EnabledState"]),
+                    WmiScope.HyperV);
+                if (checkResp.Data?.Any(s => s == 3) == true) return true;
+            }
+            return false; // 30秒超时
         }
 
         // ── DDA 操作类型 ──────────────────────────────────────────────
@@ -409,7 +413,7 @@ namespace ExHyperV.Services
                     WmiScope.HyperV));
 
             // WMI：Remove-VMAssignableDevice
-            // 流程：从 VM 的 Msvm_PciExpressSettingData 找到对应 LocationPath 的设备设置 → RemoveResourceSettings
+            // 流程：从 VM 的 Msvm_PciExpressSettingData 找到对应 HostResource 的设备设置 → RemoveResourceSettings
             DdaOperation RemoveDevice(string devInstanceId, string locationPath, string vmName) => new(
                 Resources.Dismountdevice, DdaOpType.Wmi,
                 WmiAction: async () =>
@@ -428,13 +432,12 @@ namespace ExHyperV.Services
                     string settingId = vmSetting["InstanceID"]?.ToString() ?? "";
                     string escapedSettingId = WmiApi.Escape(settingId);
 
-                    // 2. 找到该 VM 下匹配 LocationPath 的 PciExpressSettingData
+                    // 2. 找到该 VM 下匹配 pureId 的 PciExpressSettingData
                     using var pciSettingSearcher = new System.Management.ManagementObjectSearcher(ms,
                         new System.Management.ObjectQuery(
                             $"SELECT * FROM Msvm_PciExpressSettingData WHERE InstanceID LIKE '{escapedSettingId}\\\\%'"));
                     using var pciSettingCol = pciSettingSearcher.Get();
 
-                    // 找到 HostResource 里 DeviceID 包含 pureId（\VEN_...）的那条记录
                     string pureId = GetPureId(devInstanceId);
                     System.Management.ManagementObject? targetSetting = null;
                     foreach (System.Management.ManagementObject obj in pciSettingCol)
@@ -461,6 +464,7 @@ namespace ExHyperV.Services
                 });
 
             // WMI：Set-VM -AutomaticStopAction TurnOff（AutomaticShutdownAction=2）
+            // 注意：AutomaticShutdownAction 可在 VM 运行时修改，无需关机
             DdaOperation SetAutoStop(string vmName) => new(
                 Resources.string5, DdaOpType.Wmi,
                 WmiAction: () => WmiApi.WithObjectAsync(
@@ -473,6 +477,7 @@ namespace ExHyperV.Services
                     serviceWql: "SELECT * FROM Msvm_VirtualSystemManagementService"));
 
             // WMI：Set-VM -GuestControlledCacheTypes $true
+            // 注意：此字段修改需要 VM 处于 Off 状态
             DdaOperation SetGuestCache(string vmName) => new(
                 Resources.cpucache, DdaOpType.Wmi,
                 WmiAction: () => WmiApi.WithObjectAsync(
@@ -484,21 +489,35 @@ namespace ExHyperV.Services
                     scope: WmiScope.HyperV,
                     serviceWql: "SELECT * FROM Msvm_VirtualSystemManagementService"));
 
+            // ── 检查 GuestControlledCacheTypes 是否已设置，已设置则跳过（同时避免关机）──
+            bool guestCacheAlreadySet = false;
+            if (Vmname != Resources.Host)
+            {
+                string escapedVm = WmiApi.Escape(Vmname);
+                var cacheResp = WmiApi.QueryAsync(
+                    $"SELECT GuestControlledCacheTypes FROM Msvm_VirtualSystemSettingData " +
+                    $"WHERE ElementName = '{escapedVm}' AND VirtualSystemType = 'Microsoft:Hyper-V:System:Realized'",
+                    obj => obj["GuestControlledCacheTypes"] is bool b && b,
+                    WmiScope.HyperV).GetAwaiter().GetResult();
+                guestCacheAlreadySet = cacheResp.Success && (cacheResp.Data?.Any(x => x) ?? false);
+            }
+
             if (Nowname == Resources.removed && Vmname == Resources.Host)
             {
+                // 归还主机：Mount + PnpEnable，无需关机，无需改 VM 配置
                 ops.Add(MountDevice(instanceId, path));
                 ops.Add(new(Resources.enabling, DdaOpType.PnpEnable));
             }
             else if (Nowname == Resources.removed && Vmname != Resources.Host)
             {
                 ops.Add(SetAutoStop(Vmname));
-                ops.Add(SetGuestCache(Vmname));
+                if (!guestCacheAlreadySet) ops.Add(SetGuestCache(Vmname));
                 ops.Add(AddDevice(instanceId, path, Vmname));
             }
             else if (Nowname == Resources.Host)
             {
                 ops.Add(SetAutoStop(Vmname));
-                ops.Add(SetGuestCache(Vmname));
+                if (!guestCacheAlreadySet) ops.Add(SetGuestCache(Vmname));
                 ops.Add(new(Resources.Disabledevice, DdaOpType.PnpDisable));
                 ops.Add(DismountDevice(instanceId, path));
                 ops.Add(AddDevice(instanceId, path, Vmname));
@@ -506,12 +525,13 @@ namespace ExHyperV.Services
             else if (Vmname != Resources.Host && Nowname != Resources.Host)
             {
                 ops.Add(SetAutoStop(Vmname));
-                ops.Add(SetGuestCache(Vmname));
+                if (!guestCacheAlreadySet) ops.Add(SetGuestCache(Vmname));
                 ops.Add(RemoveDevice(instanceId, path, Nowname));
                 ops.Add(AddDevice(instanceId, path, Vmname));
             }
             else if (Vmname == Resources.Host && Nowname != Resources.Host)
             {
+                // 从 VM 归还主机：Remove + Mount + PnpEnable，无需改目标配置
                 ops.Add(RemoveDevice(instanceId, path, Nowname));
                 ops.Add(MountDevice(instanceId, path));
                 ops.Add(new(Resources.enabling, DdaOpType.PnpEnable));

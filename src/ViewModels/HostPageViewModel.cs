@@ -65,7 +65,7 @@ namespace ExHyperV.ViewModels
 
         private async Task CheckCpuInfoAsync()
         {
-            CpuStatus.IsSuccess = await Task.Run(() => HyperVEnvironmentService.IsVirtualizationEnabled());
+            CpuStatus.IsSuccess = await Task.Run(() => HyperVHostService.IsVirtualizationEnabled());
             CpuStatus.IsChecking = false;
         }
 
@@ -80,13 +80,13 @@ namespace ExHyperV.ViewModels
 
         private async Task CheckIommuAsync()
         {
-            IommuStatus.IsSuccess = await Task.Run(() => HyperVEnvironmentService.IsIommuEnabled());
+            IommuStatus.IsSuccess = await Task.Run(() => HyperVHostService.IsIommuEnabled());
             IommuStatus.IsChecking = false;
         }
 
         private async Task CheckServerInfoAsync()
         {
-            SystemStatus.IsSuccess = await Task.Run(() => HyperVEnvironmentService.IsServerSystem());
+            SystemStatus.IsSuccess = await Task.Run(() => HyperVHostService.IsServerSystem());
             SystemStatus.IsChecking = false;
         }
 
@@ -142,7 +142,7 @@ namespace ExHyperV.ViewModels
             _ = Task.Run(async () =>
             {
                 if (await HyperVSchedulerService.SetSchedulerTypeAsync(value))
-                    ShowSnackbar(Translate("Status_Title_Info"), ExHyperV.Properties.Resources.Msg_Host_SchedulerChanged, ControlAppearance.Info, SymbolRegular.Info24);
+                    ShowRestartPrompt(ExHyperV.Properties.Resources.Msg_Host_SchedulerChanged);
                 else
                 {
                     ShowSnackbar(Translate("Status_Title_Error"), ExHyperV.Properties.Resources.Error_Host_SchedulerFail, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
@@ -191,7 +191,7 @@ namespace ExHyperV.ViewModels
 
         private void InitializeProductType()
         {
-            IsServerSystem = HyperVEnvironmentService.IsServerSystem();
+            IsServerSystem = HyperVHostService.IsServerSystem();
             UpdateSystemDesc(IsServerSystem);
         }
 
@@ -203,6 +203,19 @@ namespace ExHyperV.ViewModels
             try
             {
                 IsSystemSwitchEnabled = false;
+
+                if (SystemSwitcher.HasPendingTask())
+                {
+                    ShowSnackbar(Translate("Status_Title_Warning"),
+                        Translate("Status_Msg_RestartRequired"),
+                        ControlAppearance.Caution,
+                        SymbolRegular.Warning24);
+                    _isInitialized = false;
+                    IsServerSystem = !toServer;
+                    _isInitialized = true;
+                    return;
+                }
+
                 string result = await Task.Run(() => SystemSwitcher.ExecutePatch(toServer ? 1 : 2));
                 if (result == "SUCCESS") ShowRestartPrompt(Translate("Status_Msg_RestartNow"));
                 else
@@ -213,6 +226,7 @@ namespace ExHyperV.ViewModels
             }
             finally { IsSystemSwitchEnabled = true; }
         }
+
 
         private string Translate(string key) => ExHyperV.Properties.Resources.ResourceManager.GetString(key) ?? key;
 

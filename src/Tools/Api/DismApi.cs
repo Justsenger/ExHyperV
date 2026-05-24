@@ -48,7 +48,7 @@ public static class DismApi
                 false, null, 0, enableAll,
                 IntPtr.Zero, IntPtr.Zero, IntPtr.Zero);
 
-            return hr == 0
+            return hr == 0 || hr == 3010
                 ? ApiResponse.Ok()
                 : ApiResponse.Fail($"DismEnableFeature failed: 0x{hr:X8}", hr, ApiErrorSource.Win32);
         }
@@ -82,7 +82,7 @@ public static class DismApi
                 null, removePayload,
                 IntPtr.Zero, IntPtr.Zero, IntPtr.Zero);
 
-            return hr == 0
+            return hr == 0 || hr == 3010
                 ? ApiResponse.Ok()
                 : ApiResponse.Fail($"DismDisableFeature failed: 0x{hr:X8}", hr, ApiErrorSource.Win32);
         }

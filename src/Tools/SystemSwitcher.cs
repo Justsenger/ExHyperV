@@ -92,6 +92,21 @@ namespace ExHyperV.Tools
             catch (Exception ex) { return ex.Message; }
         }
 
+        public static bool HasPendingTask()
+        {
+            string hiveFile = @"C:\temp\sys_bak_exec.hiv";
+            if (!File.Exists(hiveFile)) return false;
+            try
+            {
+                File.Delete(hiveFile);
+                return false;
+            }
+            catch
+            {
+                return true;
+            }
+        }
+
         private static bool PatchHiveOffline(string hivePath, string targetType)
         {
             string tempKeyName = "TEMP_OFFLINE_SYS_MOD";
@@ -133,6 +148,7 @@ namespace ExHyperV.Tools
             {
                 RegUnLoadKey(HKEY_LOCAL_MACHINE, tempKeyName);
             }
+
         }
     }
 }
