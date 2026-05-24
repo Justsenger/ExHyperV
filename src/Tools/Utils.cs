@@ -206,72 +206,56 @@ public class Utils
             return string.Empty;
 
         // 路径1：WMI Msvm_GuestNetworkAdapterConfiguration
-        string ip = await Task.Run(() =>
+        var vmGuidResp = await WmiApi.QueryFirstAsync(
+            $"SELECT Name FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(vmName)}'",
+            obj => obj["Name"]?.ToString() ?? string.Empty,
+            WmiScope.HyperV);
+
+        if (vmGuidResp.HasData && !string.IsNullOrEmpty(vmGuidResp.Data))
         {
-            try
-            {
-                string escapedVm = WmiApi.Escape(vmName);
-                using var vmSearcher = new ManagementObjectSearcher(
-                    @"root\virtualization\v2",
-                    $"SELECT Name FROM Msvm_ComputerSystem WHERE ElementName='{escapedVm}'");
-
-                string? vmGuid = null;
-                foreach (ManagementObject vm in vmSearcher.Get())
-                { vmGuid = vm["Name"]?.ToString(); break; }
-                if (vmGuid == null) return string.Empty;
-
-                using var searcher = new ManagementObjectSearcher(
-                    @"root\virtualization\v2",
-                    "SELECT * FROM Msvm_GuestNetworkAdapterConfiguration");
-
-                var ips = new List<string>();
-                foreach (ManagementObject obj in searcher.Get())
+            string vmGuid = vmGuidResp.Data;
+            var ipResp = await WmiApi.QueryAsync(
+                "SELECT InstanceID, IPAddresses FROM Msvm_GuestNetworkAdapterConfiguration",
+                obj => new
                 {
-                    if (!(obj["InstanceID"]?.ToString() ?? "")
-                        .StartsWith($"Microsoft:{vmGuid}\\", StringComparison.OrdinalIgnoreCase))
-                        continue;
-                    if (obj["IPAddresses"] is string[] addrs)
-                        ips.AddRange(addrs.Where(a =>
-                            IPAddress.TryParse(a, out var parsed) &&
-                            parsed.AddressFamily == AddressFamily.InterNetwork));
-                }
-                return string.Join(", ", ips);
+                    InstanceID = obj["InstanceID"]?.ToString() ?? string.Empty,
+                    IPs = obj["IPAddresses"] as string[] ?? Array.Empty<string>()
+                },
+                WmiScope.HyperV);
+
+            if (ipResp.Success && ipResp.Data != null)
+            {
+                var ips = ipResp.Data
+                    .Where(x => x.InstanceID.Contains(vmGuid, StringComparison.OrdinalIgnoreCase))
+                    .SelectMany(x => x.IPs)
+                    .Where(a => IPAddress.TryParse(a, out var parsed) &&
+                                parsed.AddressFamily == AddressFamily.InterNetwork)
+                    .ToList();
+
+                if (ips.Count > 0)
+                    return string.Join(", ", ips);
             }
-            catch { return string.Empty; }
-        });
+        }
 
         // 路径2：ARP 缓存回退
-        if (string.IsNullOrEmpty(ip))
-            ip = await GetIpFromArpCacheAsync(macAddressWithColons);
-
-        return ip;
+        return await GetIpFromArpCacheAsync(macAddressWithColons);
     }
-
     public static async Task<string> GetIpFromArpCacheAsync(string macWithColons)
     {
-        return await Task.Run(() =>
-        {
-            try
-            {
-                string clean = macWithColons.Replace(":", "").Replace("-", "").ToUpperInvariant();
-                string formatted = Regex.Replace(clean, ".{2}", "$0-").TrimEnd('-');
+        if (string.IsNullOrEmpty(macWithColons)) return string.Empty;
 
-                using var searcher = new ManagementObjectSearcher(
-                    @"root\StandardCimV2",
-                    $"SELECT IPAddress FROM MSFT_NetNeighbor WHERE LinkLayerAddress = '{formatted}' AND AddressFamily = 2 AND State <> 0");
+        string clean = macWithColons.Replace(":", "").Replace("-", "").ToUpperInvariant();
+        string formatted = Regex.Replace(clean, ".{2}", "$0-").TrimEnd('-');
 
-                foreach (ManagementObject obj in searcher.Get())
-                {
-                    string? ip = obj["IPAddress"]?.ToString();
-                    if (!string.IsNullOrEmpty(ip)) return ip;
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"ARP cache error for {macWithColons}: {ex.Message}");
-            }
-            return string.Empty;
-        });
+        var resp = await WmiApi.QueryCimAsync(
+            $"SELECT IPAddress FROM MSFT_NetNeighbor WHERE LinkLayerAddress = '{formatted}' AND AddressFamily = 2 AND State <> 0",
+            inst => inst.CimInstanceProperties["IPAddress"]?.Value?.ToString() ?? string.Empty,
+            WmiScope.StdCimV2);
+
+        if (resp.Success && resp.Data != null)
+            return resp.Data.FirstOrDefault(ip => !string.IsNullOrEmpty(ip)) ?? string.Empty;
+
+        return string.Empty;
     }
 
     #endregion
