@@ -1,7 +1,4 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-    <!-- =================================================================== -->
-    <!--                       1. 项目核心属性                               -->
-    <!-- =================================================================== -->
     <PropertyGroup>
         <OutputType>WinExe</OutputType>
         <TargetFramework>net8.0-windows</TargetFramework>
@@ -9,7 +6,7 @@
 		<UseWindowsForms>true</UseWindowsForms>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
-        <ApplicationIcon>applicationIcon.ico</ApplicationIcon>
+		<ApplicationIcon>Assets\Icon.ico</ApplicationIcon>
         <Version>1.5.0-Beta</Version>
 		<IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
         <WpfUiGenerateDiagnosticMessages>False</WpfUiGenerateDiagnosticMessages>
