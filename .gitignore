@@ -490,3 +490,4 @@ $RECYCLE.BIN/
 # Vim temporary swap files
 *.swp
 src/Properties/PublishProfiles/FolderProfile.pubxml.user
+src/Properties/PublishProfiles/FolderProfile.pubxml.user

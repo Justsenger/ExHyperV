@@ -103,51 +103,40 @@ namespace ExHyperV.Services
 
         private static async Task<AdapterInfo?> GetHostAdapterOnSwitchAsync(string switchName)
         {
-            // Msvm_InternalEthernetPort 对应 ManagementOS 的虚拟网卡
-            // ElementName 就是 Switch 名本身，不是 "vEthernet (switchName)"
             string safe = WmiApi.Escape(switchName);
             var portResp = await WmiApi.QueryAsync(
                 $"SELECT * FROM Msvm_InternalEthernetPort WHERE ElementName = '{safe}'",
                 obj => obj,
                 WmiScope.HyperV);
-
             if (!portResp.Success || portResp.Data == null || portResp.Data.Count == 0)
                 return null;
-
             using var port = portResp.Data[0];
             string rawMac = port["PermanentAddress"]?.ToString() ?? string.Empty;
             string mac = Utils.FormatMac(rawMac);
-
-            // 用 MAC 匹配 MSFT_NetAdapter，拿 InterfaceIndex 查 IP
             string cleanMac = rawMac.ToUpper();
             string ipAddresses = string.Empty;
-
             var adapterResp = await WmiApi.QueryCimAsync(
                 $"SELECT InterfaceIndex, Status FROM MSFT_NetAdapter WHERE PermanentAddress = '{cleanMac}'",
-                inst => new
+                obj => new
                 {
-                    Index = inst.CimInstanceProperties["InterfaceIndex"]?.Value?.ToString() ?? string.Empty,
-                    Status = inst.CimInstanceProperties["Status"]?.Value?.ToString() ?? string.Empty
+                    Index = obj["InterfaceIndex"]?.ToString() ?? string.Empty,
+                    Status = obj["Status"]?.ToString() ?? string.Empty
                 },
                 WmiScope.StdCimV2);
-
             string status = "Unknown";
             if (adapterResp.Success && adapterResp.Data?.Count > 0)
             {
                 status = adapterResp.Data[0].Status;
                 string ifIndex = adapterResp.Data[0].Index;
-
                 if (!string.IsNullOrEmpty(ifIndex))
                 {
-                    // 轮询等 IP 就绪，最多 2 秒
                     var sw = System.Diagnostics.Stopwatch.StartNew();
                     while (sw.ElapsedMilliseconds < 2000)
                     {
                         var ipResp = await WmiApi.QueryCimAsync(
                             $"SELECT IPAddress FROM MSFT_NetIPAddress WHERE InterfaceIndex = {ifIndex}",
-                            inst => inst.CimInstanceProperties["IPAddress"]?.Value?.ToString() ?? string.Empty,
+                            obj => obj["IPAddress"]?.ToString() ?? string.Empty,
                             WmiScope.StdCimV2);
-
                         if (ipResp.Success && ipResp.Data?.Count > 0)
                         {
                             ipAddresses = string.Join(",", ipResp.Data.Where(ip =>
@@ -159,12 +148,10 @@ namespace ExHyperV.Services
                     }
                 }
             }
-
             return new AdapterInfo(
                 ExHyperV.Properties.Resources.DisplayName_HostManagementOS,
                 mac, status, ipAddresses);
         }
-
         // ══════════════════════════════════════════════════════════════════
         //  GetNetworkInfoAsync — WmiApi
         // ══════════════════════════════════════════════════════════════════
@@ -189,8 +176,8 @@ namespace ExHyperV.Services
         {
             var response = await WmiApi.QueryCimAsync(
                 "SELECT InterfaceDescription FROM MSFT_NetAdapter WHERE ConnectorPresent = TRUE",
-                inst => new PhysicalAdapterInfo(
-                    inst.CimInstanceProperties["InterfaceDescription"]?.Value?.ToString() ?? string.Empty),
+                obj => new PhysicalAdapterInfo(
+                    obj["InterfaceDescription"]?.ToString() ?? string.Empty),
                 WmiScope.StdCimV2);
 
             if (!response.Success)
@@ -359,7 +346,7 @@ namespace ExHyperV.Services
             string safe = elementName.Replace("'", "\\'");
             var response = await WmiApi.QueryCimAsync(
                 $"SELECT InterfaceDescription FROM MSFT_NetAdapter WHERE Name = '{safe}'",
-                inst => inst.CimInstanceProperties["InterfaceDescription"]?.Value?.ToString() ?? string.Empty,
+                obj => obj["InterfaceDescription"]?.ToString() ?? string.Empty,
                 WmiScope.StdCimV2);
 
             if (response.Success && response.Data?.Count > 0 && !string.IsNullOrEmpty(response.Data[0]))
@@ -846,7 +833,7 @@ namespace ExHyperV.Services
             string safe = interfaceDescription.Replace("'", "\\'");
             var resp = await WmiApi.QueryCimAsync(
                 $"SELECT Name FROM MSFT_NetAdapter WHERE InterfaceDescription = '{safe}'",
-                inst => inst.CimInstanceProperties["Name"]?.Value?.ToString() ?? string.Empty,
+                obj => obj["Name"]?.ToString() ?? string.Empty,
                 WmiScope.StdCimV2);
 
             return (resp.Success && resp.Data?.Count > 0 && !string.IsNullOrEmpty(resp.Data[0]))

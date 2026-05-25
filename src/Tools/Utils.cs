@@ -249,7 +249,7 @@ public class Utils
 
         var resp = await WmiApi.QueryCimAsync(
             $"SELECT IPAddress FROM MSFT_NetNeighbor WHERE LinkLayerAddress = '{formatted}' AND AddressFamily = 2 AND State <> 0",
-            inst => inst.CimInstanceProperties["IPAddress"]?.Value?.ToString() ?? string.Empty,
+            obj => obj["IPAddress"]?.ToString() ?? string.Empty,
             WmiScope.StdCimV2);
 
         if (resp.Success && resp.Data != null)

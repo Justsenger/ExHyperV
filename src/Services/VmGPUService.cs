@@ -584,7 +584,7 @@ namespace ExHyperV.Services
 
                 var volResp = await WmiApi.QueryFirstCimAsync(
                     $"SELECT * FROM MSFT_Volume WHERE DriveLetter = '{assignedDriveLetter[0]}'",
-                    ci => ci.CimInstanceProperties["FileSystem"]?.Value?.ToString() ?? "",
+                    obj => obj["FileSystem"]?.ToString() ?? "",
                     WmiScope.Storage);
 
                 if (volResp.HasData && string.IsNullOrWhiteSpace(volResp.Data))

@@ -2,7 +2,6 @@
 using ExHyperV.Models;
 using ExHyperV.Tools.Api;
 using System.Management;
-using Microsoft.Management.Infrastructure;
 
 namespace ExHyperV.Services
 {
@@ -275,34 +274,38 @@ namespace ExHyperV.Services
         {
             await Task.Run(() =>
             {
-                const string hgsScope = "root\\microsoft\\windows\\hgs";
-
-                using var cimSession = CimSession.Create(null);
+                const string hgsScope = @"root\microsoft\windows\hgs";
+                var hgsMs = WmiConnectionCache.GetManagementScope(hgsScope, WmiContext.Local);
 
                 // Step 1: 取或创建 UntrustedGuardian
-                CimInstance? guardian = cimSession
-                    .EnumerateInstances(hgsScope, "MSFT_HgsGuardian")
-                    .FirstOrDefault(g => g.CimInstanceProperties["Name"]?.Value as string == "UntrustedGuardian");
+                using var guardianSearcher = new ManagementObjectSearcher(
+                    hgsMs, new ObjectQuery("SELECT * FROM MSFT_HgsGuardian WHERE Name = 'UntrustedGuardian'"));
+                using var guardianCol = guardianSearcher.Get();
+                var guardian = guardianCol.Cast<ManagementObject>().FirstOrDefault();
 
                 if (guardian == null)
                 {
-                    using var createParams = new CimMethodParametersCollection();
-                    createParams.Add(CimMethodParameter.Create("Name", "UntrustedGuardian", Microsoft.Management.Infrastructure.CimType.String, CimFlags.None));
-                    createParams.Add(CimMethodParameter.Create("GenerateCertificates", true, Microsoft.Management.Infrastructure.CimType.Boolean, CimFlags.None));
-                    using var createResult = cimSession.InvokeMethod(hgsScope, "MSFT_HgsGuardian", "NewByGenerateCertificates", createParams);
-                    guardian = createResult.OutParameters["cmdletOutput"].Value as CimInstance;
+                    using var guardianClass = new ManagementClass(
+                        hgsMs, new ManagementPath("MSFT_HgsGuardian"), null);
+                    using var createParams = guardianClass.GetMethodParameters("NewByGenerateCertificates");
+                    createParams["Name"] = "UntrustedGuardian";
+                    createParams["GenerateCertificates"] = true;
+                    using var createResult = guardianClass.InvokeMethod("NewByGenerateCertificates", createParams, null);
+                    guardian = createResult["cmdletOutput"] as ManagementObject;
                 }
 
                 if (guardian == null)
                     throw new InvalidOperationException("无法获取或创建 UntrustedGuardian");
 
                 // Step 2: 生成本地 KeyProtector
-                using var kpParams = new CimMethodParametersCollection();
-                kpParams.Add(CimMethodParameter.Create("Owner", guardian, CimFlags.None));
-                kpParams.Add(CimMethodParameter.Create("AllowUntrustedRoot", true, Microsoft.Management.Infrastructure.CimType.Boolean, CimFlags.None));
-                using var kpResult = cimSession.InvokeMethod(hgsScope, "MSFT_HgsKeyProtector", "NewByGuardians", kpParams);
-                using var kpInstance = kpResult.OutParameters["cmdletOutput"].Value as CimInstance;
-                byte[]? rawData = kpInstance?.CimInstanceProperties["RawData"]?.Value as byte[];
+                using var kpClass = new ManagementClass(
+                    hgsMs, new ManagementPath("MSFT_HgsKeyProtector"), null);
+                using var kpParams = kpClass.GetMethodParameters("NewByGuardians");
+                kpParams["AllowUntrustedRoot"] = true;
+                kpParams.Properties["Owner"].Value = guardian;  // 实测确认必须用 Properties[].Value
+                using var kpResult = kpClass.InvokeMethod("NewByGuardians", kpParams, null);
+                var kpInstance = kpResult["cmdletOutput"] as ManagementBaseObject;
+                byte[]? rawData = kpInstance?["RawData"] as byte[];
 
                 if (rawData == null || rawData.Length == 0)
                     throw new InvalidOperationException("无法生成本地 KeyProtector");
@@ -310,8 +313,7 @@ namespace ExHyperV.Services
                 // Step 3: 取 Msvm_SecuritySettingData，序列化为 XML
                 using var secSettingSearcher = new ManagementObjectSearcher(
                     hyperVScope,
-                    new ObjectQuery(
-                        $"SELECT * FROM Msvm_SecuritySettingData WHERE InstanceID LIKE 'Microsoft:{vmGuid}%'"));
+                    new ObjectQuery($"SELECT * FROM Msvm_SecuritySettingData WHERE InstanceID LIKE 'Microsoft:{vmGuid}%'"));
                 using var secSettingCol = secSettingSearcher.Get();
                 using var secSetting = secSettingCol.Cast<ManagementObject>().FirstOrDefault();
 
@@ -322,8 +324,7 @@ namespace ExHyperV.Services
 
                 // Step 4: Msvm_SecurityService.SetKeyProtector
                 using var secSvcSearcher = new ManagementObjectSearcher(
-                    hyperVScope,
-                    new ObjectQuery("SELECT * FROM Msvm_SecurityService"));
+                    hyperVScope, new ObjectQuery("SELECT * FROM Msvm_SecurityService"));
                 using var secSvcCol = secSvcSearcher.Get();
                 using var secSvc = secSvcCol.Cast<ManagementObject>().FirstOrDefault();
 
@@ -350,7 +351,6 @@ namespace ExHyperV.Services
                 if (modRet != 0 && modRet != 4096)
                     throw new InvalidOperationException($"ModifySecuritySettings 失败，返回码：{modRet}");
 
-                // 如果是异步 Job，等待完成
                 if (modRet == 4096)
                 {
                     string jobPath = modOut["Job"]?.ToString() ?? "";
@@ -370,7 +370,6 @@ namespace ExHyperV.Services
                 }
             });
         }
-
         private async Task<string> GetUniqueVmNameAsync(string baseName, string basePath)
         {
             string candidate = baseName;

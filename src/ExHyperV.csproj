@@ -16,27 +16,15 @@
         <ApplicationManifest>app.manifest</ApplicationManifest>
         <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     </PropertyGroup>
-
-	<!-- =================================================================== -->
-    <!--                       2. NuGet 包引用                               -->
-    <!-- =================================================================== -->
     <ItemGroup>
         <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
-        <PackageReference Include="Microsoft.Management.Infrastructure" Version="3.0.0" />
         <PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.135" />
         <PackageReference Include="RoyalApps.Community.Rdp.WinForms" Version="1.4.0" />
         <PackageReference Include="SSH.NET" Version="2024.1.0" />
         <PackageReference Include="System.Management" Version="10.0.8" />
         <PackageReference Include="WPF-UI" Version="4.0.3" />
     </ItemGroup>
-	
-	
-
-    <!-- =================================================================== -->
-    <!--                       3. 资源文件定义                               -->
-    <!-- =================================================================== -->
     <ItemGroup>
-        <!-- 将 Assets 文件夹下的所有文件作为嵌入资源 -->
         <Resource Include="Assets\**\*.*" />
     </ItemGroup>
     <ItemGroup>

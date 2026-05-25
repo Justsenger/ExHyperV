@@ -1,7 +1,5 @@
 ﻿using System.Diagnostics;
 using System.Management;
-using Microsoft.Management.Infrastructure;
-using Microsoft.Management.Infrastructure.Options;
 
 namespace ExHyperV.Tools.Api;
 
@@ -17,11 +15,7 @@ public static class WmiScope
     public const string StdCimV2 = @"root\StandardCimv2";
     public const string Wmi = @"root\wmi";
     public const string DeviceGuard = @"root\Microsoft\Windows\DeviceGuard";
-
-    // Storage 和 StdCimV2 只支持 CIM API，其他用 System.Management
-    internal static bool RequiresCim(string scope) =>
-        scope.Equals(Storage, StringComparison.OrdinalIgnoreCase) ||
-        scope.Equals(StdCimV2, StringComparison.OrdinalIgnoreCase);
+    public const string Hgs = @"root\microsoft\windows\hgs";
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -56,16 +50,13 @@ public sealed class WmiContext
 
 // ══════════════════════════════════════════════════════════════════
 //  连接缓存 — 内部使用
-//  System.Management 路径：按 (scope, host) 缓存 ManagementScope
-//  CIM 路径：按 (scope, host) 缓存 CimSession
+//  按 (scope, host) 缓存 ManagementScope
 // ══════════════════════════════════════════════════════════════════
 internal static class WmiConnectionCache
 {
     private static readonly Dictionary<string, ManagementScope> _mgmtCache = new();
-    private static readonly Dictionary<string, CimSession> _cimCache = new();
     private static readonly Dictionary<string, DateTime> _mgmtLastChecked = new();
     private static readonly object _mgmtLock = new();
-    private static readonly object _cimLock = new();
 
     private static readonly TimeSpan HealthCheckInterval = TimeSpan.FromSeconds(30);
 
@@ -116,64 +107,6 @@ internal static class WmiConnectionCache
         }
     }
 
-    private static readonly Dictionary<string, DateTime> _cimLastChecked = new();
-
-    public static CimSession GetCimSession(string scope, WmiContext ctx)
-    {
-        string key = $"{ctx.Host}|{scope}";
-        lock (_cimLock)
-        {
-            if (_cimCache.TryGetValue(key, out var cached))
-            {
-                if (_cimLastChecked.TryGetValue(key, out var lastChecked) &&
-                    DateTime.Now - lastChecked < HealthCheckInterval)
-                {
-                    return cached;
-                }
-
-                try
-                {
-                    cached.QueryInstances(scope, "WQL",
-                        "SELECT * FROM __Namespace WHERE Name='_test_'");
-                    _cimLastChecked[key] = DateTime.Now;
-                    return cached;
-                }
-                catch
-                {
-                    cached.Dispose();
-                    _cimCache.Remove(key);
-                    _cimLastChecked.Remove(key);
-                }
-            }
-
-            CimSession session;
-            if (ctx.IsLocal)
-            {
-                session = CimSession.Create(null);
-            }
-            else
-            {
-                var options = new WSManSessionOptions
-                {
-                    DestinationPort = 5985,
-                };
-                if (!string.IsNullOrEmpty(ctx.Username))
-                {
-                    options.AddDestinationCredentials(new CimCredential(
-                        PasswordAuthenticationMechanism.Default,
-                        null,
-                        ctx.Username,
-                        MakePsCredPassword(ctx.Password)));
-                }
-                session = CimSession.Create(ctx.Host, options);
-            }
-
-            _cimCache[key] = session;
-            _cimLastChecked[key] = DateTime.Now;
-            return session;
-        }
-    }
-
     public static void Clear()
     {
         lock (_mgmtLock)
@@ -181,27 +114,13 @@ internal static class WmiConnectionCache
             _mgmtCache.Clear();
             _mgmtLastChecked.Clear();
         }
-        lock (_cimLock)
-        {
-            foreach (var s in _cimCache.Values) s.Dispose();
-            _cimCache.Clear();
-            _cimLastChecked.Clear();
-        }
-    }
-
-    private static System.Security.SecureString MakePsCredPassword(string? password)
-    {
-        var ss = new System.Security.SecureString();
-        foreach (var c in password ?? string.Empty) ss.AppendChar(c);
-        ss.MakeReadOnly();
-        return ss;
     }
 }
 
 // ══════════════════════════════════════════════════════════════════
 //  WmiApi — 核心静态类
-//  所有 WMI/CIM 调用的唯一入口
-//  服务层不允许直接使用 ManagementObjectSearcher / CimSession
+//  所有 WMI 调用的唯一入口
+//  服务层不允许直接使用 ManagementObjectSearcher
 // ══════════════════════════════════════════════════════════════════
 public static class WmiApi
 {
@@ -209,7 +128,6 @@ public static class WmiApi
 
     /// <summary>
     /// 执行 WQL 查询，将每行映射为 <typeparamref name="T"/>。
-    /// 自动根据 scope 选择 CIM 或 ManagementObject 路径。
     /// </summary>
     public static Task<ApiResponse<List<T>>> QueryAsync<T>(
         string wql,
@@ -218,10 +136,6 @@ public static class WmiApi
         WmiContext? ctx = null)
     {
         ctx ??= WmiContext.Local;
-
-        if (WmiScope.RequiresCim(scope))
-            throw new InvalidOperationException(
-                $"Scope '{scope}' 只支持 CIM API，请使用接受 Func<CimInstance, T> 的重载。");
 
         return Task.Run(() =>
         {
@@ -266,45 +180,15 @@ public static class WmiApi
     }
 
     /// <summary>
-    /// CIM 路径查询，用于 Storage / StdCimV2 命名空间。
+    /// 同 QueryAsync，原 CIM 路径查询的替代。
+    /// Storage / StdCimV2 命名空间经过验证可直接使用旧版 API。
     /// </summary>
     public static Task<ApiResponse<List<T>>> QueryCimAsync<T>(
         string wql,
-        Func<CimInstance, T> mapper,
+        Func<ManagementObject, T> mapper,
         string scope = WmiScope.Storage,
         WmiContext? ctx = null)
-    {
-        ctx ??= WmiContext.Local;
-
-        return Task.Run(() =>
-        {
-            try
-            {
-                var session = WmiConnectionCache.GetCimSession(scope, ctx);
-                var list = new List<T>();
-
-                foreach (var instance in session.QueryInstances(scope, "WQL", wql))
-                {
-                    try { list.Add(mapper(instance)); }
-                    catch (Exception ex)
-                    {
-                        Debug.WriteLine($"[WmiApi.CimQuery] mapper error: {ex.Message}");
-                    }
-                }
-
-                return ApiResponse<List<T>>.Ok(list);
-            }
-            catch (CimException ex)
-            {
-                return ApiResponse<List<T>>.Fail(
-                    ex.Message, (int)ex.NativeErrorCode, ApiErrorSource.Wmi, ex);
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<List<T>>.Fail(ex.Message, -1, ApiErrorSource.None, ex);
-            }
-        });
-    }
+        => QueryAsync(wql, mapper, scope, ctx);
 
     // ── B. 查询单行 ───────────────────────────────────────────────
 
@@ -331,24 +215,14 @@ public static class WmiApi
     }
 
     /// <summary>
-    /// CIM 路径单行查询，用于 Storage / StdCimV2 命名空间。
+    /// 同 QueryFirstAsync，原 CIM 路径单行查询的替代。
     /// </summary>
-    public static async Task<ApiResponse<T>> QueryFirstCimAsync<T>(
+    public static Task<ApiResponse<T>> QueryFirstCimAsync<T>(
         string wql,
-        Func<CimInstance, T> mapper,
+        Func<ManagementObject, T> mapper,
         string scope = WmiScope.Storage,
         WmiContext? ctx = null)
-    {
-        var response = await QueryCimAsync(wql, mapper, scope, ctx);
-
-        if (!response.Success)
-            return ApiResponse<T>.Fail(response.Error, response.Code, response.ErrorSource);
-
-        if (response.Data == null || response.Data.Count == 0)
-            return ApiResponse<T>.Empty();
-
-        return ApiResponse<T>.Ok(response.Data[0]);
-    }
+        => QueryFirstAsync(wql, mapper, scope, ctx);
 
     // ── C. 调用方法 ───────────────────────────────────────────────
 
@@ -391,8 +265,6 @@ public static class WmiApi
             }
         }, cancellationToken);
     }
-
-
 
     /// <summary>
     /// 同 InvokeAsync，但额外返回完整的 outParams，
@@ -512,7 +384,63 @@ public static class WmiApi
         }, cancellationToken);
     }
 
+    /// <summary>
+    /// 在 WMI 类上调用静态/类方法，支持嵌入对象参数（通过 Properties[].Value 赋值）。
+    /// 用于 HGS 等需要传入嵌入实例的场景。
+    /// </summary>
+    public static Task<ApiResponse<ManagementBaseObject>> InvokeClassMethodAsync(
+        string className,
+        string methodName,
+        Action<ManagementBaseObject>? setParams = null,
+        string scope = WmiScope.HyperV,
+        WmiContext? ctx = null)
+    {
+        ctx ??= WmiContext.Local;
 
+        return Task.Run(() =>
+        {
+            try
+            {
+                var ms = WmiConnectionCache.GetManagementScope(scope, ctx);
+                using var cls = new ManagementClass(ms, new ManagementPath(className), null);
+                using var inParams = cls.GetMethodParameters(methodName);
+                setParams?.Invoke(inParams);
+
+                var outParams = cls.InvokeMethod(methodName, inParams, null);
+                if (outParams is null)
+                    return ApiResponse<ManagementBaseObject>.Fail($"Method '{methodName}' returned null");
+
+                int returnValue = Convert.ToInt32(outParams["ReturnValue"]);
+                if (returnValue != 0)
+                    return ApiResponse<ManagementBaseObject>.Fail(
+                        $"Method '{methodName}' returned code {returnValue}",
+                        returnValue, ApiErrorSource.Wmi);
+
+                return ApiResponse<ManagementBaseObject>.Ok(outParams);
+            }
+            catch (ManagementException ex)
+            {
+                return ApiResponse<ManagementBaseObject>.Fail(
+                    ex.Message, (int)ex.ErrorCode, ApiErrorSource.Wmi, ex);
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<ManagementBaseObject>.Fail(ex.Message, -1, ApiErrorSource.None, ex);
+            }
+        });
+    }
+
+    /// <summary>
+    /// 原 InvokeCimMethodAsync 的替代。
+    /// 在已有 ManagementObject 上调用方法，直接委托 InvokeOnObjectAsync。
+    /// </summary>
+    public static Task<ApiResponse> InvokeCimMethodAsync(
+        ManagementObject instance,
+        string methodName,
+        string scope,
+        Action<ManagementBaseObject>? setParams = null,
+        WmiContext? ctx = null)
+        => InvokeOnObjectAsync(instance, methodName, setParams, scope, ctx);
 
     // ── D. 改属性提交 ─────────────────────────────────────────────
 
@@ -629,51 +557,106 @@ public static class WmiApi
     }
 
     /// <summary>
-    /// CIM 关联查询。
-    /// 自动获取 CimSession，服务层无需再持有。
+    /// 原 QueryRelatedCimAsync 的替代，统一使用旧版 API。
+    /// 无 sourceRole/resultRole 版本。
     /// </summary>
     public static Task<ApiResponse<List<T>>> QueryRelatedCimAsync<T>(
-        CimInstance source,
+        ManagementObject source,
+        string relatedClass,
+        Func<ManagementObject, T> mapper,
+        string? associationClass = null,
+        string scope = WmiScope.HyperV,
+        WmiContext? ctx = null)
+        => QueryRelatedAsync(source, relatedClass, mapper, associationClass, scope, ctx);
+
+    /// <summary>
+    /// 原 QueryRelatedCimAsync 的替代，带 sourceRole/resultRole 参数。
+    /// 注意：GetRelated 第5个参数对应 resultRole，第6个对应 sourceRole（与 CIM 对调）。
+    /// 经过实测验证（test123 虚拟机，12条结果确认）。
+    /// </summary>
+    public static Task<ApiResponse<List<T>>> QueryRelatedCimAsync<T>(
+        ManagementObject source,
         string associationClass,
         string resultClass,
         string sourceRole,
         string resultRole,
-        Func<CimInstance, T> mapper,
+        Func<ManagementObject, T> mapper,
         string scope = WmiScope.HyperV,
         WmiContext? ctx = null)
     {
-        ctx ??= WmiContext.Local;
-
         return Task.Run(() =>
         {
             try
             {
-                // 内部获取 Session，符合你“服务层不允许硬编码”的要求
-                var session = WmiConnectionCache.GetCimSession(scope, ctx);
                 var list = new List<T>();
 
-                var related = session.EnumerateAssociatedInstances(
-                    scope, source, associationClass, resultClass, sourceRole, resultRole);
+                using var related = source.GetRelated(
+                    resultClass,
+                    associationClass,
+                    null, null,
+                    resultRole,    // 第5个参数传 resultRole（实测确认）
+                    sourceRole,    // 第6个参数传 sourceRole（实测确认）
+                    false, null);
 
-                foreach (var instance in related)
+                foreach (var baseObj in related)
                 {
-                    try { list.Add(mapper(instance)); }
-                    catch (Exception ex)
+                    if (baseObj is not ManagementObject obj) continue;
+                    using (obj)
                     {
-                        System.Diagnostics.Debug.WriteLine($"[WmiApi.CimQueryRelated] mapper error: {ex.Message}");
+                        try { list.Add(mapper(obj)); }
+                        catch (Exception ex)
+                        {
+                            Debug.WriteLine($"[WmiApi.QueryRelatedCim] mapper error: {ex.Message}");
+                        }
                     }
                 }
 
                 return ApiResponse<List<T>>.Ok(list);
             }
-            catch (Microsoft.Management.Infrastructure.CimException ex)
+            catch (ManagementException ex)
             {
                 return ApiResponse<List<T>>.Fail(
-                    ex.Message, (int)ex.NativeErrorCode, ApiErrorSource.Wmi, ex);
+                    ex.Message, (int)ex.ErrorCode, ApiErrorSource.Wmi, ex);
             }
             catch (Exception ex)
             {
                 return ApiResponse<List<T>>.Fail(ex.Message, -1, ApiErrorSource.None, ex);
+            }
+        });
+    }
+
+    /// <summary>
+    /// 查询单个对象，在回调里使用，对象生命周期由 WmiApi 管理。
+    /// 适用于需要对查到的对象做后续操作（如 GetRelated）的场景。
+    /// 避免 obj => obj 导致 using 释放后对象失效的问题。
+    /// </summary>
+    public static Task<ApiResponse<T>> WithFirstAsync<T>(
+        string wql,
+        Func<ManagementObject, Task<T>> callback,
+        string scope = WmiScope.HyperV,
+        WmiContext? ctx = null)
+    {
+        ctx ??= WmiContext.Local;
+        return Task.Run(async () =>
+        {
+            try
+            {
+                var ms = WmiConnectionCache.GetManagementScope(scope, ctx);
+                using var searcher = new ManagementObjectSearcher(ms, new ObjectQuery(wql));
+                using var collection = searcher.Get();
+                using var obj = collection.Cast<ManagementObject>().FirstOrDefault();
+                if (obj is null) return ApiResponse<T>.Empty();
+                var result = await callback(obj);
+                return ApiResponse<T>.Ok(result);
+            }
+            catch (ManagementException ex)
+            {
+                return ApiResponse<T>.Fail(
+                    ex.Message, (int)ex.ErrorCode, ApiErrorSource.Wmi, ex);
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<T>.Fail(ex.Message, -1, ApiErrorSource.None, ex);
             }
         });
     }
@@ -712,59 +695,6 @@ public static class WmiApi
             catch (Exception ex)
             {
                 return ApiResponse<T>.Fail(ex.Message, -1, ApiErrorSource.None, ex);
-            }
-        });
-    }
-
-    // ── G. CIM 实例方法调用 ───────────────────────────────────────
-
-    /// <summary>
-    /// 在 CIM 实例上调用方法。
-    /// 适用于 root\Microsoft\Windows\Storage 等只支持 CIM 的命名空间。
-    /// 无入参时 parameters 传 null；有入参时通过 setParams 回调填充。
-    /// </summary>
-    public static Task<ApiResponse> InvokeCimMethodAsync(
-        CimInstance instance,
-        string methodName,
-        string scope,
-        Action<CimMethodParametersCollection>? setParams = null,
-        WmiContext? ctx = null)
-    {
-        ctx ??= WmiContext.Local;
-
-        return Task.Run(() =>
-        {
-            try
-            {
-                var session = WmiConnectionCache.GetCimSession(scope, ctx);
-
-                CimMethodParametersCollection? parameters = null;
-                if (setParams != null)
-                {
-                    parameters = new CimMethodParametersCollection();
-                    setParams(parameters);
-                }
-
-                var result = session.InvokeMethod(scope, instance, methodName, parameters);
-
-                // ExtendedStatus 非空且 Message 非空表示有错误
-                if (result.OutParameters["ExtendedStatus"]?.Value is CimInstance status)
-                {
-                    string? msg = status.CimInstanceProperties["Message"]?.Value?.ToString();
-                    if (!string.IsNullOrEmpty(msg))
-                        return ApiResponse.Fail(msg, -1, ApiErrorSource.Wmi);
-                }
-
-                return ApiResponse.Ok();
-            }
-            catch (CimException ex)
-            {
-                return ApiResponse.Fail(
-                    ex.Message, (int)ex.NativeErrorCode, ApiErrorSource.Wmi, ex);
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse.Fail(ex.Message, -1, ApiErrorSource.None, ex);
             }
         });
     }
@@ -951,5 +881,4 @@ public static class ManagementObjectExtensions
         if (!obj.HasProperty(propName)) return null;
         return obj[propName]?.ToString();
     }
-
 }

@@ -4,7 +4,6 @@ using System.Text.RegularExpressions;
 using ExHyperV.Models;
 using ExHyperV.Tools;
 using ExHyperV.Tools.Api;
-using Microsoft.Management.Infrastructure;
 
 namespace ExHyperV.Services
 {
@@ -18,42 +17,39 @@ namespace ExHyperV.Services
         {
             if (vm == null) return;
 
-            var settingsResp = await WmiApi.QueryFirstCimAsync(
+            var resp = await WmiApi.WithFirstAsync(
                 $"SELECT * FROM Msvm_VirtualSystemSettingData " +
                 $"WHERE ElementName = '{WmiApi.Escape(vm.Name)}' AND VirtualSystemType = 'Microsoft:Hyper-V:System:Realized'",
-                ci => ci,
+                async settings =>
+                {
+                    var rasdResp = await WmiApi.QueryRelatedCimAsync(
+                        settings,
+                        "Msvm_VirtualSystemSettingDataComponent",
+                        "Msvm_ResourceAllocationSettingData",
+                        "GroupComponent",
+                        "PartComponent",
+                        obj => obj,
+                        WmiScope.HyperV);
+                    var sasdResp = await WmiApi.QueryRelatedCimAsync(
+                        settings,
+                        "Msvm_VirtualSystemSettingDataComponent",
+                        "Msvm_StorageAllocationSettingData",
+                        "GroupComponent",
+                        "PartComponent",
+                        obj => obj,
+                        WmiScope.HyperV);
+                    return (rasdResp, sasdResp);
+                },
                 WmiScope.HyperV);
 
-            if (!settingsResp.HasData) return;
-            var settings = settingsResp.Data!;
-
-            var rasdResp = await WmiApi.QueryRelatedCimAsync(
-                settings,
-                "Msvm_VirtualSystemSettingDataComponent",
-                "Msvm_ResourceAllocationSettingData",
-                "GroupComponent",
-                "PartComponent",
-                ci => ci,
-                WmiScope.HyperV);
-
-            var sasdResp = await WmiApi.QueryRelatedCimAsync(
-                settings,
-                "Msvm_VirtualSystemSettingDataComponent",
-                "Msvm_StorageAllocationSettingData",
-                "GroupComponent",
-                "PartComponent",
-                ci => ci,
-                WmiScope.HyperV);
-
+            if (!resp.HasData) return;
+            var (rasdResp, sasdResp) = resp.Data!;
             if (!rasdResp.Success || !sasdResp.Success) return;
 
             var allResources = rasdResp.Data!.Concat(sasdResp.Data!).ToList();
-
             Dictionary<string, int>? hvDiskMap = null;
             Dictionary<int, HostDiskInfoCache>? osDiskMap = null;
-
             var items = BuildStorageItems(allResources, ref hvDiskMap, ref osDiskMap);
-
             System.Windows.Application.Current.Dispatcher.Invoke(() =>
             {
                 vm.StorageItems.Clear();
@@ -68,7 +64,7 @@ namespace ExHyperV.Services
         }
 
         private List<VmStorageItem> BuildStorageItems(
-            List<Microsoft.Management.Infrastructure.CimInstance> allResources,
+            List<ManagementObject> allResources,
             ref Dictionary<string, int>? hvDiskMap,
             ref Dictionary<int, HostDiskInfoCache>? osDiskMap)
         {
@@ -79,16 +75,16 @@ namespace ExHyperV.Services
             var controllers = allResources
                 .Where(res =>
                 {
-                    int rt = Convert.ToInt32(res.CimInstanceProperties["ResourceType"]?.Value ?? 0);
+                    int rt = Convert.ToInt32(res["ResourceType"] ?? 0);
                     return rt == 5 || rt == 6;
                 })
-                .OrderBy(c => c.CimInstanceProperties["ResourceType"]?.Value)
+                .OrderBy(c => c["ResourceType"])
                 .ToList();
 
-            var childrenMap = new Dictionary<string, List<Microsoft.Management.Infrastructure.CimInstance>>();
+            var childrenMap = new Dictionary<string, List<ManagementObject>>();
             foreach (var res in allResources)
             {
-                var parentPath = res.CimInstanceProperties["Parent"]?.Value?.ToString();
+                var parentPath = res["Parent"]?.ToString();
                 if (string.IsNullOrEmpty(parentPath)) continue;
 
                 var match = parentRegex.Match(parentPath);
@@ -96,7 +92,7 @@ namespace ExHyperV.Services
 
                 string parentId = match.Groups[1].Value.Replace("\\\\", "\\");
                 if (!childrenMap.ContainsKey(parentId))
-                    childrenMap[parentId] = new List<Microsoft.Management.Infrastructure.CimInstance>();
+                    childrenMap[parentId] = new List<ManagementObject>();
                 childrenMap[parentId].Add(res);
             }
 
@@ -104,8 +100,8 @@ namespace ExHyperV.Services
 
             foreach (var ctrl in controllers)
             {
-                string ctrlId = ctrl.CimInstanceProperties["InstanceID"]?.Value?.ToString() ?? "";
-                int ctrlTypeVal = Convert.ToInt32(ctrl.CimInstanceProperties["ResourceType"]?.Value);
+                string ctrlId = ctrl["InstanceID"]?.ToString() ?? "";
+                int ctrlTypeVal = Convert.ToInt32(ctrl["ResourceType"]);
                 string ctrlType = ctrlTypeVal == 6 ? "SCSI" : "IDE";
                 int ctrlNum = ctrlType == "SCSI" ? scsiCounter++ : ideCounter++;
 
@@ -113,19 +109,19 @@ namespace ExHyperV.Services
 
                 foreach (var slot in slots)
                 {
-                    int resType = Convert.ToInt32(slot.CimInstanceProperties["ResourceType"]?.Value);
+                    int resType = Convert.ToInt32(slot["ResourceType"]);
                     if (resType != 16 && resType != 17) continue;
 
-                    string address = slot.CimInstanceProperties["AddressOnParent"]?.Value?.ToString() ?? "0";
+                    string address = slot["AddressOnParent"]?.ToString() ?? "0";
                     int location = int.TryParse(address, out int loc) ? loc : 0;
 
-                    string slotId = slot.CimInstanceProperties["InstanceID"]?.Value?.ToString() ?? "";
-                    Microsoft.Management.Infrastructure.CimInstance? media = null;
+                    string slotId = slot["InstanceID"]?.ToString() ?? "";
+                    ManagementObject? media = null;
                     if (childrenMap.TryGetValue(slotId, out var mediaList))
                     {
                         media = mediaList.FirstOrDefault(m =>
                         {
-                            int t = Convert.ToInt32(m.CimInstanceProperties["ResourceType"]?.Value);
+                            int t = Convert.ToInt32(m["ResourceType"]);
                             return t == 31 || t == 16 || t == 22;
                         });
                     }
@@ -139,12 +135,12 @@ namespace ExHyperV.Services
                         DiskType = "Empty"
                     };
 
-                    var slotHostRes = slot.CimInstanceProperties["HostResource"]?.Value as string[];
+                    var slotHostRes = slot["HostResource"] as string[];
                     var effectiveMedia = media ?? (slotHostRes?.Length > 0 ? slot : null);
 
                     if (effectiveMedia != null)
                     {
-                        var hostRes = effectiveMedia.CimInstanceProperties["HostResource"]?.Value as string[];
+                        var hostRes = effectiveMedia["HostResource"] as string[];
                         string rawPath = hostRes?.Length > 0 ? hostRes[0] : "";
 
                         if (!string.IsNullOrWhiteSpace(rawPath))
@@ -304,16 +300,16 @@ namespace ExHyperV.Services
             var diskResp = await WmiApi.QueryCimAsync(
                 "SELECT Number, FriendlyName, Size, IsOffline, IsSystem, IsBoot, BusType, OperationalStatus " +
                 "FROM MSFT_Disk",
-                ci =>
+                obj =>
                 {
-                    int number = Convert.ToInt32(ci.CimInstanceProperties["Number"]?.Value ?? -1);
-                    ushort busType = Convert.ToUInt16(ci.CimInstanceProperties["BusType"]?.Value ?? 0);
-                    bool isSystem = Convert.ToBoolean(ci.CimInstanceProperties["IsSystem"]?.Value ?? false);
-                    bool isBoot = Convert.ToBoolean(ci.CimInstanceProperties["IsBoot"]?.Value ?? false);
-                    bool isOffline = Convert.ToBoolean(ci.CimInstanceProperties["IsOffline"]?.Value ?? false);
-                    long sizeBytes = Convert.ToInt64(ci.CimInstanceProperties["Size"]?.Value ?? 0L);
-                    string friendlyName = ci.CimInstanceProperties["FriendlyName"]?.Value?.ToString() ?? "";
-                    var opArr = ci.CimInstanceProperties["OperationalStatus"]?.Value as ushort[];
+                    int number = Convert.ToInt32(obj["Number"] ?? -1);
+                    ushort busType = Convert.ToUInt16(obj["BusType"] ?? 0);
+                    bool isSystem = Convert.ToBoolean(obj["IsSystem"] ?? false);
+                    bool isBoot = Convert.ToBoolean(obj["IsBoot"] ?? false);
+                    bool isOffline = Convert.ToBoolean(obj["IsOffline"] ?? false);
+                    long sizeBytes = Convert.ToInt64(obj["Size"] ?? 0L);
+                    string friendlyName = obj["FriendlyName"]?.ToString() ?? "";
+                    var opArr = obj["OperationalStatus"] as ushort[];
                     string opStatus = opArr?.Length > 0 ? opArr[0].ToString() : "Unknown";
                     return new { number, busType, isSystem, isBoot, isOffline, sizeBytes, friendlyName, opStatus };
                 },
@@ -382,116 +378,104 @@ namespace ExHyperV.Services
         }
 
         // ============================================================
-        // 槽位检测（已重构为原生 WMI）
+        // 槽位检测
         // ============================================================
 
         public async Task<(string ControllerType, int ControllerNumber, int Location)>
             GetNextAvailableSlotAsync(string vmName, string driveType)
         {
-            var vmResp = await WmiApi.QueryFirstCimAsync(
+            var vmResp = await WmiApi.QueryFirstAsync(
                 $"SELECT EnabledState FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(vmName)}'",
-                ci => ci,
+                obj => Convert.ToInt32(obj["EnabledState"] ?? 0),
                 WmiScope.HyperV);
 
             if (!vmResp.HasData) return ("NONE", -1, -1);
-            int state = Convert.ToInt32(vmResp.Data!.CimInstanceProperties["EnabledState"]?.Value ?? 0);
-            bool isRunning = (state == 2);
+            bool isRunning = (vmResp.Data == 2);
 
-            var settingsResp = await WmiApi.QueryFirstCimAsync(
+            var settingsResp = await WmiApi.QueryFirstAsync(
                 $"SELECT InstanceID, VirtualSystemSubType FROM Msvm_VirtualSystemSettingData " +
                 $"WHERE ElementName = '{WmiApi.Escape(vmName)}' AND VirtualSystemType = 'Microsoft:Hyper-V:System:Realized'",
-                ci => ci,
+                obj => obj,
                 WmiScope.HyperV);
 
             if (!settingsResp.HasData) return ("NONE", -1, -1);
-            var settings = settingsResp.Data!;
-            string subType = settings.CimInstanceProperties["VirtualSystemSubType"]?.Value?.ToString() ?? "";
-            bool isGen1 = subType == "Microsoft:Hyper-V:SubType:1";
-            string settingId = settings.CimInstanceProperties["InstanceID"]?.Value?.ToString() ?? "";
 
-            var rasdResp = await WmiApi.QueryCimAsync(
-                $"SELECT ResourceType, Address, AddressOnParent, InstanceID, Parent " +
-                $"FROM Msvm_ResourceAllocationSettingData " +
-                $"WHERE InstanceID LIKE '{WmiApi.Escape(settingId)}%' " +
-                $"AND (ResourceType = 5 OR ResourceType = 6 OR ResourceType = 16 OR ResourceType = 17)",
-                ci => ci,
-                WmiScope.HyperV);
-
-            if (!rasdResp.HasData) return ("NONE", -1, -1);
-
-            var controllers = new List<(string Type, int Number, string InstanceID)>();
-            var occupiedSlots = new HashSet<string>();
-            var parentRegex = new Regex("InstanceID=\"([^\"]+)\"", RegexOptions.Compiled | RegexOptions.IgnoreCase);
-
-            foreach (var res in rasdResp.Data!)
-            {
-                int rt = Convert.ToInt32(res.CimInstanceProperties["ResourceType"]?.Value ?? 0);
-                string instanceId = res.CimInstanceProperties["InstanceID"]?.Value?.ToString() ?? "";
-
-                if (rt == 5 || rt == 6)
+            // 注意：settingsResp.Data 已被 using 释放，需用 WithFirstAsync
+            return await WmiApi.WithFirstAsync(
+                $"SELECT InstanceID, VirtualSystemSubType FROM Msvm_VirtualSystemSettingData " +
+                $"WHERE ElementName = '{WmiApi.Escape(vmName)}' AND VirtualSystemType = 'Microsoft:Hyper-V:System:Realized'",
+                async settings =>
                 {
-                    string type = rt == 5 ? "IDE" : "SCSI";
-                    int number = Convert.ToInt32(res.CimInstanceProperties["Address"]?.Value ?? 0);
-                    controllers.Add((type, number, instanceId));
-                }
-                else if (rt == 16 || rt == 17)
-                {
-                    string parentPath = res.CimInstanceProperties["Parent"]?.Value?.ToString() ?? "";
-                    string addressOnParent = res.CimInstanceProperties["AddressOnParent"]?.Value?.ToString() ?? "";
+                    string subType = settings["VirtualSystemSubType"]?.ToString() ?? "";
+                    bool isGen1 = subType == "Microsoft:Hyper-V:SubType:1";
+                    string settingId = settings["InstanceID"]?.ToString() ?? "";
 
-                    string parentId = parentPath;
-                    var match = parentRegex.Match(parentPath);
-                    if (match.Success)
-                        parentId = match.Groups[1].Value.Replace("\\\\", "\\");
+                    var rasdResp = await WmiApi.QueryAsync(
+                        $"SELECT ResourceType, Address, AddressOnParent, InstanceID, Parent " +
+                        $"FROM Msvm_ResourceAllocationSettingData " +
+                        $"WHERE InstanceID LIKE '{WmiApi.Escape(settingId)}%' " +
+                        $"AND (ResourceType = 5 OR ResourceType = 6 OR ResourceType = 16 OR ResourceType = 17)",
+                        obj => obj,
+                        WmiScope.HyperV);
 
-                    if (int.TryParse(addressOnParent, out int location))
-                        occupiedSlots.Add($"{parentId}|{location}");
-                }
-            }
+                    if (!rasdResp.HasData) return ("NONE", -1, -1);
 
-            if (isGen1 && !isRunning)
-            {
-                foreach (var ctrl in controllers.Where(c => c.Type == "IDE").OrderBy(c => c.Number))
-                {
-                    for (int i = 0; i < 2; i++)
-                        if (!occupiedSlots.Contains($"{ctrl.InstanceID}|{i}"))
-                            return ("IDE", ctrl.Number, i);
-                }
-            }
+                    var controllers = new List<(string Type, int Number, string InstanceID)>();
+                    var occupiedSlots = new HashSet<string>();
+                    var parentRegex = new Regex("InstanceID=\"([^\"]+)\"", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
-            foreach (var ctrl in controllers.Where(c => c.Type == "SCSI").OrderBy(c => c.Number))
-            {
-                for (int i = 0; i < 64; i++)
-                    if (!occupiedSlots.Contains($"{ctrl.InstanceID}|{i}"))
-                        return ("SCSI", ctrl.Number, i);
-            }
+                    foreach (var res in rasdResp.Data!)
+                    {
+                        int rt = Convert.ToInt32(res["ResourceType"] ?? 0);
+                        string instanceId = res["InstanceID"]?.ToString() ?? "";
 
-            return ("NONE", -1, -1);
+                        if (rt == 5 || rt == 6)
+                        {
+                            string type = rt == 5 ? "IDE" : "SCSI";
+                            int number = Convert.ToInt32(res["Address"] ?? 0);
+                            controllers.Add((type, number, instanceId));
+                        }
+                        else if (rt == 16 || rt == 17)
+                        {
+                            string parentPath = res["Parent"]?.ToString() ?? "";
+                            string addressOnParent = res["AddressOnParent"]?.ToString() ?? "";
+
+                            string parentId = parentPath;
+                            var match = parentRegex.Match(parentPath);
+                            if (match.Success)
+                                parentId = match.Groups[1].Value.Replace("\\\\", "\\");
+
+                            if (int.TryParse(addressOnParent, out int location))
+                                occupiedSlots.Add($"{parentId}|{location}");
+                        }
+                    }
+
+                    if (isGen1 && !isRunning)
+                    {
+                        foreach (var ctrl in controllers.Where(c => c.Type == "IDE").OrderBy(c => c.Number))
+                        {
+                            for (int i = 0; i < 2; i++)
+                                if (!occupiedSlots.Contains($"{ctrl.InstanceID}|{i}"))
+                                    return ("IDE", ctrl.Number, i);
+                        }
+                    }
+
+                    foreach (var ctrl in controllers.Where(c => c.Type == "SCSI").OrderBy(c => c.Number))
+                    {
+                        for (int i = 0; i < 64; i++)
+                            if (!occupiedSlots.Contains($"{ctrl.InstanceID}|{i}"))
+                                return ("SCSI", ctrl.Number, i);
+                    }
+
+                    return ("NONE", -1, -1);
+                },
+                WmiScope.HyperV) is { HasData: true } r ? r.Data! : ("NONE", -1, -1);
         }
 
-        // ============================================================
         // ============================================================
         // 设备增删改操作
         // ============================================================
 
-        /// <summary>
-        /// 向虚拟机添加存储设备。
-        ///
-        /// WMI 调用链（实测确认）：
-        ///   1. ISO 生成（可选）
-        ///   2. 取 VM 状态 + settings
-        ///   3. 槽位冲突检测：查 RASD InstanceID 末尾 \ctrlNum\loc\D
-        ///   4. 运行状态校验：IDE 运行中只允许 DvdDrive 热插
-        ///   5. SCSI 控制器不足时补充：AddResourceSettings + SCSI RASD XML
-        ///   6. 添加槽位 RASD：AddResourceSettings，返回槽位 __PATH
-        ///   7. 添加介质 SASD（有路径时）：AddResourceSettings，Parent=槽位路径
-        ///
-        /// 物理直通盘 vs 虚拟盘的差异（PS cmdlet 隐藏的细节）：
-        ///   虚拟盘槽位 ResourceSubType = "Microsoft:Hyper-V:Synthetic Disk Drive"
-        ///   物理直通槽位 ResourceSubType = "Microsoft:Hyper-V:Physical Disk Drive"
-        ///   介质层 ResourceSubType = "Microsoft:Hyper-V:Virtual Hard Disk"（虚拟）
-        ///                           物理直通的 HostResource 直接指向 Msvm_DiskDrive 路径
-        /// </summary>
         public async Task<(bool Success, string Message, string ActualType, int ActualNumber, int ActualLocation)>
             AddDriveAsync(
                 string vmName, string controllerType, int controllerNumber, int location, string driveType,
@@ -499,7 +483,6 @@ namespace ExHyperV.Services
                 string vhdType = "Dynamic", string parentPath = "", string sectorFormat = "Default",
                 string blockSize = "Default", string isoSourcePath = null, string isoVolumeLabel = null)
         {
-            // ── Step 0: ISO 生成（DvdDrive + isNew + 有源目录）─────────
             if (driveType == "DvdDrive" && isNew && !string.IsNullOrWhiteSpace(isoSourcePath))
             {
                 var isoResult = await CreateIsoFromDirectoryAsync(isoSourcePath, pathOrNumber, isoVolumeLabel);
@@ -509,7 +492,6 @@ namespace ExHyperV.Services
 
             try
             {
-                // ── Step 1: 取 VM 对象、状态、settings ────────────────
                 using var vmObj = WmiApi.GetVmComputerSystem(vmName);
                 if (vmObj == null)
                     return (false, $"VM '{vmName}' not found", controllerType, controllerNumber, location);
@@ -521,11 +503,9 @@ namespace ExHyperV.Services
                 if (settings == null)
                     return (false, "Cannot get VM settings", controllerType, controllerNumber, location);
 
-                // ── Step 3: 运行状态校验 ──────────────────────────────
                 if (controllerType == "IDE" && isRunning && driveType != "DvdDrive")
                     return (false, "Storage_Error_IdeHotPlugNotSupported", controllerType, controllerNumber, location);
 
-                // ── Step 4: SCSI 控制器数量检查，不足时补充 ──────────
                 if (controllerType == "SCSI")
                 {
                     var allRasdResp = await WmiApi.QueryRelatedAsync(
@@ -550,18 +530,17 @@ namespace ExHyperV.Services
                             return (false, "Storage_Error_ScsiControllerHotAddNotSupported",
                                 controllerType, controllerNumber, location);
 
-                        // 补充 SCSI 控制器到够用
                         for (int i = scsiCount; i <= controllerNumber; i++)
                         {
-                            var scsiClass = new System.Management.ManagementClass(
+                            var scsiClass = new ManagementClass(
                                 settings.Scope,
-                                new System.Management.ManagementPath("Msvm_ResourceAllocationSettingData"),
+                                new ManagementPath("Msvm_ResourceAllocationSettingData"),
                                 null);
                             using var scsiObj = scsiClass.CreateInstance();
                             scsiObj["ResourceType"] = (ushort)6;
                             scsiObj["ResourceSubType"] = "Microsoft:Hyper-V:Synthetic SCSI Controller";
                             scsiObj["AutomaticAllocation"] = true;
-                            string scsiXml = scsiObj.GetText(System.Management.TextFormat.CimDtd20);
+                            string scsiXml = scsiObj.GetText(TextFormat.CimDtd20);
 
                             var addScsiResult = await WmiApi.InvokeAsync(
                                 "SELECT * FROM Msvm_VirtualSystemManagementService",
@@ -578,7 +557,6 @@ namespace ExHyperV.Services
                                     controllerType, controllerNumber, location);
                         }
 
-                        // 重新查控制器列表（刚添加完）
                         allRasdResp = await WmiApi.QueryRelatedAsync(
                             settings,
                             "Msvm_ResourceAllocationSettingData",
@@ -594,15 +572,11 @@ namespace ExHyperV.Services
                             .ToList();
                     }
 
-                    // 取目标 SCSI 控制器的 WMI 路径（按顺序，index=controllerNumber）
                     if (controllerNumber >= scsiCtrlList.Count)
                         return (false, "Storage_Error_ScsiControllerNotFound",
                             controllerType, controllerNumber, location);
                 }
 
-                // ── Step 5: 取目标控制器的 WMI 路径 ──────────────────
-                // IDE: ResourceType=5，Address 字段 = 控制器编号（"0" 或 "1"）
-                // SCSI: ResourceType=6，按关联查询返回顺序的第 controllerNumber 个
                 var ctrlRasdResp = await WmiApi.QueryRelatedAsync(
                     settings,
                     "Msvm_ResourceAllocationSettingData",
@@ -616,7 +590,6 @@ namespace ExHyperV.Services
                 string? controllerPath = null;
                 if (controllerType == "IDE")
                 {
-                    // IDE 控制器 InstanceID 末尾格式：...\GUID\controllerNumber（只有一段数字，无 \D/\L）
                     controllerPath = ctrlRasdResp.Data?
                         .FirstOrDefault(r =>
                         {
@@ -640,7 +613,6 @@ namespace ExHyperV.Services
                     return (false, "Storage_Error_ControllerNotFound",
                         controllerType, controllerNumber, location);
 
-                // ── Step 6: 如果是 HardDisk + isNew，先创建 VHD ──────
                 if (driveType == "HardDisk" && isNew && !string.IsNullOrWhiteSpace(pathOrNumber))
                 {
                     var createResult = await CreateVhdAsync(
@@ -649,7 +621,6 @@ namespace ExHyperV.Services
                         return (false, createResult.Message, controllerType, controllerNumber, location);
                 }
 
-                // ── Step 7: 添加槽位 RASD ────────────────────────────
                 int slotResourceType = driveType == "DvdDrive" ? 16 : 17;
                 string slotSubType = driveType == "DvdDrive"
                     ? "Microsoft:Hyper-V:Synthetic DVD Drive"
@@ -657,16 +628,9 @@ namespace ExHyperV.Services
                         ? "Microsoft:Hyper-V:Physical Disk Drive"
                         : "Microsoft:Hyper-V:Synthetic Disk Drive");
 
-                // ── Step 7: 添加槽位 RASD ────────────────────────────
-                // 物理直通盘：HostResource 直接设在槽位 RASD 上（没有介质层 SASD）
-                //   HostResource 格式：Msvm_DiskDrive 的完整 WMI 对象路径
-                //   DeviceID 格式：Microsoft:GUID\diskNumber
-                // 虚拟盘/DVD：槽位 RASD 不设 HostResource，介质路径在后续 SASD 里
-
                 string? physicalHostResource = null;
                 if (isPhysical && driveType == "HardDisk")
                 {
-                    // 取 Msvm_DiskDrive 对象路径，DeviceID LIKE '%\diskNumber'
                     var diskDriveResp = await WmiApi.QueryFirstAsync(
                         $"SELECT * FROM Msvm_DiskDrive WHERE DeviceID LIKE '%\\\\{pathOrNumber}'",
                         obj => (obj["__PATH"]?.ToString() ?? obj.Path.Path),
@@ -679,9 +643,9 @@ namespace ExHyperV.Services
                     physicalHostResource = diskDriveResp.Data!;
                 }
 
-                var slotClass = new System.Management.ManagementClass(
+                var slotClass = new ManagementClass(
                     settings.Scope,
-                    new System.Management.ManagementPath("Msvm_ResourceAllocationSettingData"),
+                    new ManagementPath("Msvm_ResourceAllocationSettingData"),
                     null);
                 using var slotObj = slotClass.CreateInstance();
                 slotObj["ResourceType"] = (ushort)slotResourceType;
@@ -693,7 +657,7 @@ namespace ExHyperV.Services
                 if (physicalHostResource != null)
                     slotObj["HostResource"] = new string[] { physicalHostResource };
 
-                string slotXml = slotObj.GetText(System.Management.TextFormat.CimDtd20);
+                string slotXml = slotObj.GetText(TextFormat.CimDtd20);
 
                 var addSlotResult = await WmiApi.InvokeWithResultAsync(
                     "SELECT * FROM Msvm_VirtualSystemManagementService",
@@ -715,8 +679,6 @@ namespace ExHyperV.Services
                     return (false, "Storage_Error_SlotNotFound after AddResourceSettings",
                         controllerType, controllerNumber, location);
 
-                // ── Step 8: 添加介质 SASD（虚拟盘/DVD，有路径时）─────
-                // 物理直通盘不走这里，HostResource 已在槽位 RASD 上
                 bool hasMedia = !isPhysical && !string.IsNullOrWhiteSpace(pathOrNumber);
                 if (hasMedia)
                 {
@@ -724,9 +686,9 @@ namespace ExHyperV.Services
                         ? "Microsoft:Hyper-V:Virtual CD/DVD Disk"
                         : "Microsoft:Hyper-V:Virtual Hard Disk";
 
-                    var sasdClass = new System.Management.ManagementClass(
+                    var sasdClass = new ManagementClass(
                         settings.Scope,
-                        new System.Management.ManagementPath("Msvm_StorageAllocationSettingData"),
+                        new ManagementPath("Msvm_StorageAllocationSettingData"),
                         null);
                     using var sasdObj = sasdClass.CreateInstance();
                     sasdObj["ResourceType"] = (ushort)31;
@@ -735,7 +697,7 @@ namespace ExHyperV.Services
                     sasdObj["AutomaticAllocation"] = true;
                     sasdObj["HostResource"] = new string[] { pathOrNumber };
 
-                    string sasdXml = sasdObj.GetText(System.Management.TextFormat.CimDtd20);
+                    string sasdXml = sasdObj.GetText(TextFormat.CimDtd20);
 
                     var addMediaResult = await WmiApi.InvokeAsync(
                         "SELECT * FROM Msvm_VirtualSystemManagementService",
@@ -761,42 +723,28 @@ namespace ExHyperV.Services
             }
         }
 
-        /// <summary>
-        /// 内部：创建 VHD/VHDX 文件。
-        /// 对应 New-VHD，走 Msvm_ImageManagementService.CreateVirtualHardDisk。
-        ///
-        /// Msvm_VirtualHardDiskSettingData 关键字段（文档确认）：
-        ///   Type:   2=Fixed, 3=Dynamic, 4=Differencing
-        ///   Format: 2=VHD, 3=VHDX
-        ///   MaxInternalSize: 字节数（uint64）
-        ///   BlockSize, LogicalSectorSize, PhysicalSectorSize: 扇区参数（uint32，0=默认）
-        ///   ParentPath: 差分盘父路径
-        /// </summary>
         private async Task<(bool Success, string Message)> CreateVhdAsync(
             string path, string vhdType, int sizeGb,
             string sectorFormat, string blockSize, string parentPathStr)
         {
             try
             {
-                // 判断格式（vhd/vhdx）
                 string ext = System.IO.Path.GetExtension(path).ToLowerInvariant();
                 ushort format = ext == ".vhd" ? (ushort)2 : (ushort)3;
 
-                // Type
                 ushort type = vhdType switch
                 {
                     "Fixed" => 2,
                     "Differencing" => 4,
-                    _ => 3  // Dynamic
+                    _ => 3
                 };
 
-                // 扇区参数
                 uint logicalSector = sectorFormat switch
                 {
                     "512n" => 512,
                     "512e" => 512,
                     "4kn" => 4096,
-                    _ => 0  // 0 = 默认
+                    _ => 0
                 };
                 uint physicalSector = sectorFormat switch
                 {
@@ -806,18 +754,14 @@ namespace ExHyperV.Services
                     _ => 0
                 };
 
-                // BlockSize
                 uint blockSizeBytes = 0;
                 if (blockSize != "Default" && uint.TryParse(blockSize, out uint bs))
                     blockSizeBytes = bs;
 
-                // 构造 VirtualHardDiskSettingData XML
-                // 通过已有的 GetVirtualSystemManagementService 借用其 Scope
-                // 该对象已持有连接好的 ManagementScope，避免重复建连
                 using var svcForScope = WmiApi.GetVirtualSystemManagementService();
-                var vhdClass = new System.Management.ManagementClass(
+                var vhdClass = new ManagementClass(
                     svcForScope.Scope,
-                    new System.Management.ManagementPath("Msvm_VirtualHardDiskSettingData"),
+                    new ManagementPath("Msvm_VirtualHardDiskSettingData"),
                     null);
                 using var vhdObj = vhdClass.CreateInstance();
                 vhdObj["Type"] = type;
@@ -832,7 +776,7 @@ namespace ExHyperV.Services
                 if (type == 4 && !string.IsNullOrWhiteSpace(parentPathStr))
                     vhdObj["ParentPath"] = parentPathStr;
 
-                string vhdXml = vhdObj.GetText(System.Management.TextFormat.CimDtd20);
+                string vhdXml = vhdObj.GetText(TextFormat.CimDtd20);
 
                 var result = await WmiApi.InvokeAsync(
                     "SELECT * FROM Msvm_ImageManagementService",
@@ -850,24 +794,9 @@ namespace ExHyperV.Services
             }
         }
 
-
-        /// <summary>
-        /// 从虚拟机移除存储设备。
-        ///
-        /// 分支逻辑（与原 PowerShell 完全对应）：
-        ///   DVD + 关机 或 SCSI  → RemoveResourceSettings 移除槽位 RASD
-        ///   DVD + 运行中 IDE + 有介质 → ModifyMediaPathAsync("") 弹出介质，返回 Ejected
-        ///   DVD + 运行中 IDE + 无介质 → 报错，不支持热移除空驱动器
-        ///   HardDisk            → RemoveResourceSettings 移除槽位 RASD
-        ///                         物理盘额外调 SetDiskOfflineStatusAsync(false) 恢复联机
-        ///
-        /// RemoveResourceSettings 入参是对象路径引用数组（不是 XML），
-        /// 取槽位 RASD 的 __PATH 字符串传入即可。
-        /// </summary>
         public async Task<(bool Success, string Message)> RemoveDriveAsync(
             string vmName, VmStorageItem drive)
         {
-            // Step 1：取 VM 运行状态
             var vmResp = await WmiApi.QueryFirstAsync(
                 $"SELECT * FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(vmName)}'",
                 obj => Convert.ToInt32(obj["EnabledState"] ?? 0),
@@ -878,12 +807,10 @@ namespace ExHyperV.Services
 
             bool isRunning = vmResp.Data == 2;
 
-            // Step 2：DVD 运行中 IDE → 只能弹出介质，不能移除驱动器
             if (drive.DriveType == "DvdDrive" &&
                 isRunning &&
                 drive.ControllerType == "IDE")
             {
-                // 有介质 → 弹出
                 if (drive.DiskType != "Empty" && !string.IsNullOrEmpty(drive.PathOrDiskNumber))
                 {
                     var ejectResult = await ModifyMediaPathAsync(
@@ -894,11 +821,9 @@ namespace ExHyperV.Services
                         : ejectResult;
                 }
 
-                // 无介质 → 不支持热移除空 IDE 驱动器
                 return (false, "Storage_Error_DvdHotRemoveNotSupported");
             }
 
-            // Step 3：定位槽位 RASD，通过 VM settings 关联查询限定在当前 VM 范围
             using var vmObj = WmiApi.GetVmComputerSystem(vmName);
             if (vmObj == null)
                 return (false, $"VM '{vmName}' not found");
@@ -920,10 +845,6 @@ namespace ExHyperV.Services
             if (!rasdResp.Success || rasdResp.Data == null)
                 return (false, rasdResp.Error.Length > 0 ? rasdResp.Error : "Cannot enumerate resources");
 
-            // InstanceID 实际格式：Microsoft:VM-GUID\CTRL-GUID\0\location\D
-            // segs[^3] 固定是 "0"，不是控制器编号。
-            // 正确定位：先按控制器类型（IDE=5/SCSI=6）分组，取第 ControllerNumber 个控制器的 GUID，
-            // 再找 segs[^4] 匹配该 GUID 且 segs[^2]=location 的槽位。
             int ctrlResourceType = drive.ControllerType == "SCSI" ? 6 : 5;
             var ctrlList = rasdResp.Data
                 .Where(r => r.ResourceType == ctrlResourceType)
@@ -934,14 +855,12 @@ namespace ExHyperV.Services
                     ? "Storage_Error_DvdDriveNotFound"
                     : "Storage_Error_DiskNotFound");
 
-            // 控制器 InstanceID 格式：Microsoft:VM-GUID\CTRL-GUID\0，取 segs[^2] 即 CTRL-GUID
             var ctrlSegs = ctrlList[drive.ControllerNumber].InstanceID.Split('\\');
             string ctrlGuid = ctrlSegs.Length >= 2 ? ctrlSegs[^2] : "";
 
             var slotRasd = rasdResp.Data.FirstOrDefault(r =>
             {
                 var segs = r.InstanceID.Split('\\');
-                // 槽位格式：Microsoft:VM-GUID\CTRL-GUID\0\location\D，共5段以上
                 if (segs.Length < 5 || segs[^1] != "D") return false;
                 return segs[^4] == ctrlGuid
                     && int.TryParse(segs[^2], out int cLoc) && cLoc == drive.ControllerLocation;
@@ -952,13 +871,7 @@ namespace ExHyperV.Services
                     ? "Storage_Error_DvdDriveNotFound"
                     : "Storage_Error_DiskNotFound");
 
-            // Step 4：RemoveResourceSettings，入参是对象路径引用数组
-            // 必须先删介质层 SASD（\L），再删槽位 RASD（\D），否则 Hyper-V 报错：
-            // "仍然有一个逻辑磁盘对象连接到它"
-            // 介质 InstanceID = 槽位 InstanceID 末尾 \D 替换为 \L，格式固定。
-            // SASD 有介质时才需要删，空槽（无 \L 对象）直接删槽位即可。
-            var mediaInstanceId = slotRasd.InstanceID[..^1] + "L"; // 末尾 D → L
-            // WQL 中反斜杠是转义字符，InstanceID 里的每个 \ 必须双写
+            var mediaInstanceId = slotRasd.InstanceID[..^1] + "L";
             var mediaInstanceIdWql = mediaInstanceId.Replace(@"\", @"\\");
 
             var mediaResp = await WmiApi.QueryFirstAsync(
@@ -978,7 +891,6 @@ namespace ExHyperV.Services
                     return (false, Utils.GetFriendlyErrorMessage(removeMediaResult.Error));
             }
 
-            // 再删槽位
             var removeResult = await WmiApi.InvokeAsync(
                 "SELECT * FROM Msvm_VirtualSystemManagementService",
                 "RemoveResourceSettings",
@@ -988,7 +900,6 @@ namespace ExHyperV.Services
             if (!removeResult.Success)
                 return (false, Utils.GetFriendlyErrorMessage(removeResult.Error));
 
-            // Step 5：物理盘移除后恢复联机
             if (drive.DiskType == "Physical" && drive.DiskNumber > -1)
             {
                 await Task.Delay(500);
@@ -998,21 +909,6 @@ namespace ExHyperV.Services
             return (true, "Storage_Msg_Removed");
         }
 
-
-        // ============================================================
-        // 设备修改操作（已重构为原生 WMI）
-        // ============================================================
-
-        /// <summary>
-        /// 修改光驱挂载的 ISO 文件路径。
-        /// newIsoPath 为空表示弹出介质。
-        ///
-        /// WMI 结构（实测确认）：
-        ///   SASD 介质层：ResourceType=31, ResourceSubType="Microsoft:Hyper-V:Virtual CD/DVD Disk"
-        ///   AddressOnParent 为空，定位依赖 Parent 字段末尾的 \controllerNumber\location\D
-        ///   HostResource[0] = ISO 路径，空数组 = 弹出
-        ///   提交方法：Msvm_VirtualSystemManagementService.ModifyResourceSettings
-        /// </summary>
         public async Task<(bool Success, string Message)> ModifyDvdDrivePathAsync(
             string vmName, int controllerNumber, int controllerLocation, string newIsoPath)
         {
@@ -1021,14 +917,6 @@ namespace ExHyperV.Services
                 "Microsoft:Hyper-V:Virtual CD/DVD Disk", newIsoPath);
         }
 
-        /// <summary>
-        /// 修改虚拟硬盘挂载的 VHD/VHDX 文件路径。
-        /// 运行中的 VM（热交换）和关机 VM 均通过同一 WMI 路径处理。
-        ///
-        /// WMI 结构（与 DVD 相同层级）：
-        ///   SASD 介质层：ResourceType=31, ResourceSubType="Microsoft:Hyper-V:Virtual Hard Disk"
-        ///   定位方式同 DVD，依赖 Parent 字段末尾的 \controllerNumber\location\D
-        /// </summary>
         public async Task<(bool Success, string Message)> ModifyHardDrivePathAsync(
             string vmName, string controllerType, int controllerNumber, int controllerLocation, string newPath)
         {
@@ -1037,19 +925,10 @@ namespace ExHyperV.Services
                 "Microsoft:Hyper-V:Virtual Hard Disk", newPath);
         }
 
-        /// <summary>
-        /// 通用内部方法：按 ResourceSubType + InstanceID 坐标定位 SASD，
-        /// 修改 HostResource 后通过 ModifyResourceSettings 提交。
-        ///
-        /// InstanceID 格式（实测确认，C# 取到的是单反斜杠）：
-        ///   Microsoft:VM-GUID\SASD-GUID\controllerNumber\location\L
-        /// 按 \ 分割后：segments[^1]="L", segments[^2]=location, segments[^3]=controllerNumber
-        /// </summary>
         private async Task<(bool Success, string Message)> ModifyMediaPathAsync(
             string vmName, int controllerNumber, int controllerLocation,
             string resourceSubType, string newPath)
         {
-            // Step 1：取 VM settings 对象（用于关联查询，确保只查当前 VM 的资源）
             using var vmObj = WmiApi.GetVmComputerSystem(vmName);
             if (vmObj == null)
                 return (false, $"VM '{vmName}' not found");
@@ -1058,7 +937,6 @@ namespace ExHyperV.Services
             if (settings == null)
                 return (false, "Cannot get VM settings");
 
-            // Step 2：关联查询该 VM 的所有 SASD，按 ResourceSubType + InstanceID 坐标定位目标
             var sasdResp = await WmiApi.QueryRelatedAsync(
                 settings,
                 "Msvm_StorageAllocationSettingData",
@@ -1072,11 +950,6 @@ namespace ExHyperV.Services
             if (!sasdResp.Success || sasdResp.Data == null)
                 return (false, sasdResp.Error.Length > 0 ? sasdResp.Error : "Cannot enumerate storage resources");
 
-            // InstanceID 示例：Microsoft:VM-GUID\SASD-GUID\0\1\L
-            // 按 \ 分割：[..., "0", "1", "L"]
-            //   segments[^3] = controllerNumber
-            //   segments[^2] = location
-            //   segments[^1] = "L"（固定后缀）
             var target = sasdResp.Data.FirstOrDefault(s =>
             {
                 if (!string.Equals(s.ResourceSubType, resourceSubType,
@@ -1092,17 +965,9 @@ namespace ExHyperV.Services
                     $"Storage resource not found: subType={resourceSubType}, " +
                     $"controller={controllerNumber}, location={controllerLocation}");
 
-            // Step 3：精确定位 SASD 并修改 HostResource，提交到 ModifyResourceSettings
-            // 方法签名：ModifyResourceSettings([in] string ResourceSettings[])
-            // ResourceSettings 是序列化后的 XML 字符串数组（wrapInArray=true）
-            //
-            // 关键：WQL 中反斜杠是转义字符（MS-WMI 规范 §2.2.1），
-            // InstanceID 里的每个 \ 必须双写为 \\，否则 WMI 引擎吃掉转义符
-            // 导致 "无效查询" 或根本查不到对象。
-            // 原 PowerShell 版本用 cmdlet 直接操作对象引用，完全不走 WQL，无此问题。
             string safeId = target.InstanceID
-                .Replace("'", "\\'")    // 防 WQL 注入
-                .Replace(@"\", @"\\");  // WQL 反斜杠转义
+                .Replace("'", "\\'")
+                .Replace(@"\", @"\\");
 
             var result = await WmiApi.WithObjectAsync(
                 wql: $"SELECT * FROM Msvm_StorageAllocationSettingData WHERE InstanceID = '{safeId}'",
@@ -1123,20 +988,14 @@ namespace ExHyperV.Services
         }
 
         // ============================================================
-        // 主机物理磁盘控制（已重构为原生 WMI）
+        // 主机物理磁盘控制
         // ============================================================
 
-        /// <summary>
-        /// 设置宿主机物理硬盘的脱机/联机状态。
-        /// 文档：Root\Microsoft\Windows\Storage，MSFT_Disk.Offline() / .Online()
-        ///   签名：UInt32 Offline/Online([out] String ExtendedStatus)
-        ///   返回 0=Success；ExtendedStatus 含嵌入 MSFT_StorageExtendedStatus。
-        /// </summary>
         public async Task<ApiResponse> SetDiskOfflineStatusAsync(int diskNumber, bool isOffline)
         {
             var diskResp = await WmiApi.QueryFirstCimAsync(
                 $"SELECT * FROM MSFT_Disk WHERE Number = {diskNumber}",
-                ci => ci,
+                obj => obj,
                 WmiScope.Storage);
 
             if (!diskResp.HasData)
@@ -1187,7 +1046,7 @@ namespace ExHyperV.Services
         {
             var diskResp = await WmiApi.QueryFirstCimAsync(
                 $"SELECT * FROM MSFT_Disk WHERE Number = {diskNumber}",
-                ci => ci,
+                obj => obj,
                 WmiScope.Storage);
 
             if (!diskResp.HasData)
@@ -1197,14 +1056,14 @@ namespace ExHyperV.Services
                 diskResp.Data!,
                 "SetAttributes",
                 WmiScope.Storage,
-                p => p.Add(CimMethodParameter.Create("IsReadOnly", isReadOnly, Microsoft.Management.Infrastructure.CimType.Boolean, Microsoft.Management.Infrastructure.CimFlags.None)));
+                p => p["IsReadOnly"] = isReadOnly);
         }
 
         public async Task<(bool Success, int DiskNumber)> MountDiskImageAsync(string imagePath)
         {
             var imageResp = await WmiApi.QueryFirstCimAsync(
                 $"SELECT * FROM MSFT_DiskImage WHERE ImagePath = '{imagePath.Replace("'", "\\'")}'",
-                ci => ci,
+                obj => obj,
                 WmiScope.Storage);
 
             if (!imageResp.HasData)
@@ -1216,16 +1075,15 @@ namespace ExHyperV.Services
                 WmiScope.Storage,
                 p =>
                 {
-                    p.Add(CimMethodParameter.Create("Access", (uint)2, Microsoft.Management.Infrastructure.CimType.UInt32, Microsoft.Management.Infrastructure.CimFlags.None));
-                    p.Add(CimMethodParameter.Create("NoDriveLetter", true, Microsoft.Management.Infrastructure.CimType.Boolean, Microsoft.Management.Infrastructure.CimFlags.None));
+                    p["Access"] = (uint)2;
+                    p["NoDriveLetter"] = true;
                 });
 
             if (!mountResult.Success) return (false, -1);
 
-            // 挂载后查磁盘编号
             var diskResp = await WmiApi.QueryFirstCimAsync(
                 $"SELECT * FROM MSFT_DiskImage WHERE ImagePath = '{imagePath.Replace("'", "\\'")}'",
-                ci => Convert.ToInt32(ci.CimInstanceProperties["Number"]?.Value ?? -1),
+                obj => Convert.ToInt32(obj["Number"] ?? -1),
                 WmiScope.Storage);
 
             return (true, diskResp.Data);
@@ -1235,10 +1093,10 @@ namespace ExHyperV.Services
         {
             var imageResp = await WmiApi.QueryFirstCimAsync(
                 $"SELECT * FROM MSFT_DiskImage WHERE ImagePath = '{imagePath.Replace("'", "\\'")}'",
-                ci => ci,
+                obj => obj,
                 WmiScope.Storage);
 
-            if (!imageResp.HasData) return true; // 已经卸载
+            if (!imageResp.HasData) return true;
 
             var result = await WmiApi.InvokeCimMethodAsync(
                 imageResp.Data!,
@@ -1250,10 +1108,8 @@ namespace ExHyperV.Services
 
         public async Task<(bool Success, int DiskNumber)> MountVhdxAsync(string imagePath)
         {
-            // 1. 先卸载防止重复挂载
             await DismountVhdxAsync(imagePath);
 
-            // 2. 挂载
             var result = await WmiApi.InvokeAsync(
                 "SELECT * FROM Msvm_ImageManagementService",
                 "AttachVirtualHardDisk",
@@ -1267,12 +1123,11 @@ namespace ExHyperV.Services
 
             if (!result.Success) return (false, -1);
 
-            // 3. 轮询等待磁盘出现，最多等5秒
             for (int i = 0; i < 10; i++)
             {
                 var diskResp = await WmiApi.QueryFirstCimAsync(
                     $"SELECT * FROM MSFT_Disk WHERE Location = '{imagePath.Replace("'", "\\'").Replace("\\", "\\\\")}'",
-                    ci => Convert.ToInt32(ci.CimInstanceProperties["Number"]?.Value ?? -1),
+                    obj => Convert.ToInt32(obj["Number"] ?? -1),
                     WmiScope.Storage);
 
                 if (diskResp.HasData && diskResp.Data >= 0)
@@ -1313,11 +1168,12 @@ namespace ExHyperV.Services
             catch { return false; }
         }
 
-        public async Task<(bool Success, char DriveLetter)> AssignPartitionDriveLetterAsync(int diskNumber, int partitionNumber, char driveLetter)
+        public async Task<(bool Success, char DriveLetter)> AssignPartitionDriveLetterAsync(
+            int diskNumber, int partitionNumber, char driveLetter)
         {
             var partResp = await WmiApi.QueryFirstCimAsync(
                 $"SELECT * FROM MSFT_Partition WHERE DiskNumber = {diskNumber} AND PartitionNumber = {partitionNumber}",
-                ci => ci,
+                obj => obj,
                 WmiScope.Storage);
 
             if (!partResp.HasData)
@@ -1327,16 +1183,17 @@ namespace ExHyperV.Services
                 partResp.Data!,
                 "AddAccessPath",
                 WmiScope.Storage,
-                p => p.Add(CimMethodParameter.Create("AccessPath", $"{driveLetter}:\\", Microsoft.Management.Infrastructure.CimType.String, Microsoft.Management.Infrastructure.CimFlags.None)));
+                p => p["AccessPath"] = $"{driveLetter}:\\");
 
             return result.Success ? (true, driveLetter) : (false, '\0');
         }
 
-        public async Task<bool> RemovePartitionAccessPathAsync(int diskNumber, int partitionNumber, char driveLetter)
+        public async Task<bool> RemovePartitionAccessPathAsync(
+            int diskNumber, int partitionNumber, char driveLetter)
         {
             var partResp = await WmiApi.QueryFirstCimAsync(
                 $"SELECT * FROM MSFT_Partition WHERE DiskNumber = {diskNumber} AND PartitionNumber = {partitionNumber}",
-                ci => ci,
+                obj => obj,
                 WmiScope.Storage);
 
             if (!partResp.HasData) return true;
@@ -1345,7 +1202,7 @@ namespace ExHyperV.Services
                 partResp.Data!,
                 "RemoveAccessPath",
                 WmiScope.Storage,
-                p => p.Add(CimMethodParameter.Create("AccessPath", $"{driveLetter}:\\", Microsoft.Management.Infrastructure.CimType.String, Microsoft.Management.Infrastructure.CimFlags.None)));
+                p => p["AccessPath"] = $"{driveLetter}:\\");
 
             return result.Success;
         }
@@ -1354,26 +1211,25 @@ namespace ExHyperV.Services
         {
             var partsResp = await WmiApi.QueryCimAsync(
                 $"SELECT * FROM MSFT_Partition WHERE DiskNumber = {diskNumber}",
-                ci => ci,
+                obj => obj,
                 WmiScope.Storage);
 
             if (!partsResp.HasData) return;
 
             foreach (var part in partsResp.Data!)
             {
-                char letter = Convert.ToChar(part.CimInstanceProperties["DriveLetter"]?.Value ?? '\0');
+                char letter = Convert.ToChar(part["DriveLetter"] ?? '\0');
                 if (letter == '\0') continue;
                 await WmiApi.InvokeCimMethodAsync(
                     part,
                     "RemoveAccessPath",
                     WmiScope.Storage,
-                    p => p.Add(CimMethodParameter.Create("AccessPath", $"{letter}:\\",
-                        Microsoft.Management.Infrastructure.CimType.String,
-                        Microsoft.Management.Infrastructure.CimFlags.None)));
+                    p => p["AccessPath"] = $"{letter}:\\");
             }
         }
 
-        public async Task<(bool Success, string CtrlType, int CtrlNum, int CtrlLoc)> DetachPhysicalDiskAsync(string vmName, int diskNumber)
+        public async Task<(bool Success, string CtrlType, int CtrlNum, int CtrlLoc)>
+            DetachPhysicalDiskAsync(string vmName, int diskNumber)
         {
             using var vmObj = WmiApi.GetVmComputerSystem(vmName);
             if (vmObj == null) return (false, "", 0, 0);
@@ -1393,8 +1249,6 @@ namespace ExHyperV.Services
 
             if (!rasdResp.Success || rasdResp.Data == null) return (false, "", 0, 0);
 
-            // 查所有物理盘槽位，找匹配 diskNumber 的
-            // 物理盘槽位 HostResource 指向 Msvm_DiskDrive，其 DriveNumber = diskNumber
             var hvDiskResp = await WmiApi.QueryFirstAsync(
                 $"SELECT * FROM Msvm_DiskDrive WHERE DriveNumber = {diskNumber}",
                 obj => obj["DeviceID"]?.ToString() ?? "",
@@ -1403,17 +1257,16 @@ namespace ExHyperV.Services
             if (!hvDiskResp.HasData) return (false, "", 0, 0);
             string deviceId = hvDiskResp.Data;
 
-            // 找槽位 RASD
             RasdInfo? slotRasd = null;
             foreach (var rasd in rasdResp.Data.Where(r => r.ResourceType == 17))
             {
-                // 查这个槽位的 HostResource
                 var slotResp = await WmiApi.QueryFirstAsync(
                     $"SELECT * FROM Msvm_ResourceAllocationSettingData WHERE InstanceID = '{rasd.InstanceID.Replace(@"\", @"\\")}'",
                     obj => (obj["HostResource"] as string[])?.FirstOrDefault() ?? "",
                     WmiScope.HyperV);
 
-                if (slotResp.HasData && slotResp.Data.Contains(deviceId.Replace(@"\", @"\\"), StringComparison.OrdinalIgnoreCase))
+                if (slotResp.HasData && slotResp.Data.Contains(
+                    deviceId.Replace(@"\", @"\\"), StringComparison.OrdinalIgnoreCase))
                 {
                     slotRasd = rasd;
                     break;
@@ -1422,14 +1275,11 @@ namespace ExHyperV.Services
 
             if (slotRasd == null) return (false, "", 0, 0);
 
-            // 从 InstanceID 解析控制器信息
-            // 格式：Microsoft:VM-GUID\CTRL-GUID\0\location\D
             var segs = slotRasd.InstanceID.Split('\\');
             if (segs.Length < 5) return (false, "", 0, 0);
 
             int ctrlLoc = int.TryParse(segs[^2], out int l) ? l : 0;
 
-            // 找控制器类型和编号
             string ctrlGuid = segs[^4];
             var ctrlList = rasdResp.Data.Where(r => r.ResourceType == 5 || r.ResourceType == 6).ToList();
             var ctrl = ctrlList.FirstOrDefault(c => c.InstanceID.Contains(ctrlGuid));
@@ -1438,7 +1288,6 @@ namespace ExHyperV.Services
             string ctrlType = ctrl.ResourceType == 6 ? "SCSI" : "IDE";
             int ctrlNum = ctrlList.Where(c => c.ResourceType == ctrl.ResourceType).ToList().IndexOf(ctrl);
 
-            // 移除槽位
             var removeResult = await WmiApi.InvokeAsync(
                 "SELECT * FROM Msvm_VirtualSystemManagementService",
                 "RemoveResourceSettings",
