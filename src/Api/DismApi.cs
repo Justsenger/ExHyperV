@@ -1,6 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 
-namespace ExHyperV.Tools.Api;
+namespace ExHyperV.Api;
 
 // ══════════════════════════════════════════════════════════════════
 //  DismApi — DISM 原生 API 封装
@@ -46,7 +46,7 @@ public static class DismApi
                 session, featureNames,
                 null, DismNativeMethods.DismPackageIdentifier.DismPackageNone,
                 false, null, 0, enableAll,
-                IntPtr.Zero, IntPtr.Zero, IntPtr.Zero);
+                nint.Zero, nint.Zero, nint.Zero);
 
             return hr == 0 || hr == 3010
                 ? ApiResponse.Ok()
@@ -80,7 +80,7 @@ public static class DismApi
             hr = DismNativeMethods.DismDisableFeature(
                 session, featureNames,
                 null, removePayload,
-                IntPtr.Zero, IntPtr.Zero, IntPtr.Zero);
+                nint.Zero, nint.Zero, nint.Zero);
 
             return hr == 0 || hr == 3010
                 ? ApiResponse.Ok()
@@ -131,9 +131,9 @@ internal static class DismNativeMethods
         string[]? sourcePaths,
         uint sourcePathCount,
         [MarshalAs(UnmanagedType.Bool)] bool enableAll,
-        IntPtr cancelEvent,
-        IntPtr progress,
-        IntPtr userData);
+        nint cancelEvent,
+        nint progress,
+        nint userData);
 
     [DllImport("dismapi.dll", CharSet = CharSet.Unicode)]
     public static extern int DismDisableFeature(
@@ -141,9 +141,9 @@ internal static class DismNativeMethods
         [MarshalAs(UnmanagedType.LPWStr)] string featureName,
         [MarshalAs(UnmanagedType.LPWStr)] string? packageName,
         [MarshalAs(UnmanagedType.Bool)] bool removePayload,
-        IntPtr cancelEvent,
-        IntPtr progress,
-        IntPtr userData);
+        nint cancelEvent,
+        nint progress,
+        nint userData);
 
     [DllImport("dismapi.dll")]
     public static extern int DismCloseSession(uint session);

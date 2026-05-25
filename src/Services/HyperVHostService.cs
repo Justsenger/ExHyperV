@@ -1,5 +1,5 @@
 ﻿using System.Management;
-using ExHyperV.Tools.Api;
+using ExHyperV.Api;
 using Microsoft.Win32;
 
 namespace ExHyperV.Services

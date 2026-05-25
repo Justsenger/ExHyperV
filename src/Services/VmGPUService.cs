@@ -5,9 +5,9 @@ using System.Net.Http;
 using System.Net.Sockets;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using ExHyperV.Api;
 using ExHyperV.Models;
 using ExHyperV.Tools;
-using ExHyperV.Tools.Api;
 using Renci.SshNet;
 
 namespace ExHyperV.Services

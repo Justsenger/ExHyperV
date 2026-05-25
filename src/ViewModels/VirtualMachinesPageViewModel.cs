@@ -10,11 +10,11 @@ using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using ExHyperV.Api;
 using ExHyperV.Behaviors;
 using ExHyperV.Models;
 using ExHyperV.Services;
 using ExHyperV.Tools;
-using ExHyperV.Tools.Api;
 using Wpf.Ui.Controls;
 
 namespace ExHyperV.ViewModels
@@ -4158,7 +4158,7 @@ namespace ExHyperV.ViewModels
                 // 只有当选中且运行时才更新
                 if (SelectedVm != null && SelectedVm.IsRunning)
                 {
-                    var img = await VmThumbnailProvider.GetThumbnailAsync(SelectedVm.Name, 320, 240);
+                    var img = await VmScreenshot.CaptureAsync(SelectedVm.Name, 320, 240);
                     if (img != null)
                     {
                         Application.Current.Dispatcher.Invoke(() => SelectedVm.Thumbnail = img);

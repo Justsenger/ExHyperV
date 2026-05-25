@@ -1,6 +1,6 @@
-﻿using ExHyperV.Models;
+﻿using ExHyperV.Api;
+using ExHyperV.Models;
 using ExHyperV.Tools;
-using ExHyperV.Tools.Api;
 using System.Diagnostics;
 using System.IO;
 using System.Management;

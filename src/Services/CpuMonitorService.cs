@@ -2,8 +2,8 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
+using ExHyperV.Api;
 using ExHyperV.Models;
-using ExHyperV.Tools.Api;
 
 namespace ExHyperV.Services
 {

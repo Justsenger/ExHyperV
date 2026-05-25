@@ -1,9 +1,9 @@
 using System.IO;
 using System.Management;
 using System.Text.RegularExpressions;
+using ExHyperV.Api;
 using ExHyperV.Models;
 using ExHyperV.Tools;
-using ExHyperV.Tools.Api;
 
 namespace ExHyperV.Services
 {

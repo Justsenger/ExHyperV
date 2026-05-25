@@ -1,5 +1,5 @@
 using System.Diagnostics;
-using ExHyperV.Tools.Api;
+using ExHyperV.Api;
 
 namespace ExHyperV.Services;
 

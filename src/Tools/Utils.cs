@@ -4,7 +4,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Reflection;
 using System.Text.RegularExpressions;
-using ExHyperV.Tools.Api;
+using ExHyperV.Api;
 using Microsoft.Win32;
 using Wpf.Ui.Controls;
 

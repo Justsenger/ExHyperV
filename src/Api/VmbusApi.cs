@@ -1,7 +1,7 @@
 ﻿using System.Net.Sockets;
 using System.Runtime.InteropServices;
 
-namespace ExHyperV.Tools.Api;
+namespace ExHyperV.Api;
 
 // ══════════════════════════════════════════════════════════════════
 //  VmbusApi — 公开封装层
@@ -69,9 +69,9 @@ public static class VmbusApi
             handle,
             SIO_TCP_SET_ACK_FREQUENCY,
             ref frequency, 4,
-            IntPtr.Zero, 0,
+            nint.Zero, 0,
             out bytesReturned,
-            IntPtr.Zero, IntPtr.Zero);
+            nint.Zero, nint.Zero);
 
         return ret == 0
             ? ApiResponse.Ok()
@@ -167,9 +167,9 @@ internal static class VmbusNative
         uint dwIoControlCode,
         ref int lpvInBuffer,
         uint cbInBuffer,
-        IntPtr lpvOutBuffer,
+        nint lpvOutBuffer,
         uint cbOutBuffer,
         out uint lpcbBytesReturned,
-        IntPtr lpOverlapped,
-        IntPtr lpCompletionRoutine);
+        nint lpOverlapped,
+        nint lpCompletionRoutine);
 }

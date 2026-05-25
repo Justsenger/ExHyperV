@@ -5,7 +5,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.Win32;
 
-namespace ExHyperV.Tools.Api;
+namespace ExHyperV.Api;
 
 public static class Win32Api
 {
@@ -220,7 +220,7 @@ public static class Win32Api
             };
             tp.Privileges[0].Luid = luid;
             tp.Privileges[0].Attributes = NativeMethods.SE_PRIVILEGE_ENABLED;
-            if (!NativeMethods.AdjustTokenPrivileges(hToken, false, ref tp, 0, IntPtr.Zero, IntPtr.Zero))
+            if (!NativeMethods.AdjustTokenPrivileges(hToken, false, ref tp, 0, nint.Zero, nint.Zero))
             {
                 int err = Marshal.GetLastWin32Error();
                 return ApiResponse.Fail("AdjustTokenPrivileges failed", err, ApiErrorSource.Win32);
@@ -254,7 +254,7 @@ public static class Win32Api
         if (openRet != 0) return ApiResponse.Fail($"RegOpenKeyEx failed: {subKeyName}", openRet, ApiErrorSource.Win32);
         try
         {
-            int saveRet = NativeMethods.RegSaveKey(hKey, filePath, IntPtr.Zero);
+            int saveRet = NativeMethods.RegSaveKey(hKey, filePath, nint.Zero);
             return saveRet == 0 ? ApiResponse.Ok() : ApiResponse.Fail("RegSaveKey failed", saveRet, ApiErrorSource.Win32);
         }
         finally { NativeMethods.RegCloseKey(hKey); }
@@ -288,7 +288,7 @@ public static class Win32Api
         try
         {
             int type = 0, data = 0, size = 4;
-            int queryRet = NativeMethods.RegQueryValueEx(hKey, valueName, IntPtr.Zero, ref type, ref data, ref size);
+            int queryRet = NativeMethods.RegQueryValueEx(hKey, valueName, nint.Zero, ref type, ref data, ref size);
             return queryRet == 0 ? ApiResponse<int>.Ok(data) : ApiResponse<int>.Fail($"RegQueryValueEx failed: {valueName}", queryRet, ApiErrorSource.Win32);
         }
         finally { NativeMethods.RegCloseKey(hKey); }
@@ -326,7 +326,7 @@ internal static class NativeMethods
     public const uint DICS_FLAG_GLOBAL = 1;
 
     [DllImport("setupapi.dll", SetLastError = true, CharSet = CharSet.Auto)]
-    public static extern nint SetupDiGetClassDevs(IntPtr classGuid, string? enumerator, IntPtr hwndParent, uint flags);
+    public static extern nint SetupDiGetClassDevs(nint classGuid, string? enumerator, nint hwndParent, uint flags);
     [DllImport("setupapi.dll", SetLastError = true)]
     public static extern bool SetupDiEnumDeviceInfo(nint deviceInfoSet, uint memberIndex, ref SP_DEVINFO_DATA deviceInfoData);
     [DllImport("setupapi.dll", SetLastError = true)]
@@ -337,7 +337,7 @@ internal static class NativeMethods
     public static extern bool SetupDiDestroyDeviceInfoList(nint deviceInfoSet);
 
     [StructLayout(LayoutKind.Sequential)]
-    public struct SP_DEVINFO_DATA { public uint cbSize; public Guid ClassGuid; public uint DevInst; public IntPtr Reserved; }
+    public struct SP_DEVINFO_DATA { public uint cbSize; public Guid ClassGuid; public uint DevInst; public nint Reserved; }
     [StructLayout(LayoutKind.Sequential)]
     public struct SP_CLASSINSTALL_HEADER { public uint cbSize; public int InstallFunction; }
     [StructLayout(LayoutKind.Sequential)]
@@ -382,15 +382,15 @@ internal static class NativeMethods
     public const int REG_SZ = 1;
 
     [DllImport("advapi32.dll", SetLastError = true)]
-    public static extern bool OpenProcessToken(IntPtr processHandle, uint desiredAccess, out nint tokenHandle);
+    public static extern bool OpenProcessToken(nint processHandle, uint desiredAccess, out nint tokenHandle);
     [DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Auto)]
     public static extern bool LookupPrivilegeValue(string? lpSystemName, string lpName, out LUID lpLuid);
     [DllImport("advapi32.dll", SetLastError = true)]
-    public static extern bool AdjustTokenPrivileges(nint tokenHandle, bool disableAllPrivileges, ref TOKEN_PRIVILEGES newState, uint bufferLength, IntPtr previousState, IntPtr returnLength);
+    public static extern bool AdjustTokenPrivileges(nint tokenHandle, bool disableAllPrivileges, ref TOKEN_PRIVILEGES newState, uint bufferLength, nint previousState, nint returnLength);
     [DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Ansi)]
     public static extern int RegOpenKeyEx(nint hKey, string lpSubKey, uint ulOptions, int samDesired, out nint phkResult);
     [DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Ansi)]
-    public static extern int RegSaveKey(nint hKey, string lpFile, IntPtr lpSecurityAttributes);
+    public static extern int RegSaveKey(nint hKey, string lpFile, nint lpSecurityAttributes);
     [DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Ansi)]
     public static extern int RegReplaceKey(nint hKey, string lpSubKey, string lpNewFile, string lpOldFile);
     [DllImport("advapi32.dll", SetLastError = true)]
@@ -404,7 +404,7 @@ internal static class NativeMethods
     [DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Ansi)]
     public static extern int RegSetValueEx(nint hKey, string lpValueName, int reserved, int dwType, byte[] lpData, int cbData);
     [DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Ansi)]
-    public static extern int RegQueryValueEx(nint hKey, string lpValueName, IntPtr lpReserved, ref int lpType, ref int lpData, ref int lpcbData);
+    public static extern int RegQueryValueEx(nint hKey, string lpValueName, nint lpReserved, ref int lpType, ref int lpData, ref int lpcbData);
 
     [StructLayout(LayoutKind.Sequential)]
     public struct LUID { public uint LowPart; public int HighPart; }
@@ -421,7 +421,7 @@ internal static class NativeMethods
 
     #region kernel32
     [DllImport("kernel32.dll", SetLastError = true)]
-    public static extern IntPtr GetCurrentProcess();
+    public static extern nint GetCurrentProcess();
     [DllImport("kernel32.dll", SetLastError = true)]
     public static extern bool CloseHandle(nint hObject);
     #endregion

@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace ExHyperV.Tools.Api;
+namespace ExHyperV.Api;
 
 // ══════════════════════════════════════════════════════════════════
 //  HCS 数据模型
@@ -240,23 +240,23 @@ internal static class HcsCore
     [DllImport("vmcompute.dll", SetLastError = true,
         CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
     private static extern int HcsModifyServiceSettings(
-        string settings, out IntPtr result);
+        string settings, out nint result);
 
     [DllImport("vmcompute.dll", SetLastError = true,
         CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
     private static extern int HcsGetServiceProperties(
-        string propertyQuery, out IntPtr properties, out IntPtr result);
+        string propertyQuery, out nint properties, out nint result);
 
     // ── COM 初始化 P/Invoke ───────────────────────────────────────
 
     [DllImport("ole32.dll")]
-    private static extern int CoInitializeEx(IntPtr pvReserved, uint dwCoInit);
+    private static extern int CoInitializeEx(nint pvReserved, uint dwCoInit);
 
     [DllImport("ole32.dll")]
     private static extern void CoUninitialize();
 
     [DllImport("ole32.dll")]
-    private static extern void CoTaskMemFree(IntPtr ptr);
+    private static extern void CoTaskMemFree(nint ptr);
 
     // ── 核心通信方法 ──────────────────────────────────────────────
 
@@ -266,17 +266,17 @@ internal static class HcsCore
     /// </summary>
     public static void Invoke(string jsonPayload)
     {
-        int comResult = CoInitializeEx(IntPtr.Zero, COINIT_MULTITHREADED);
+        int comResult = CoInitializeEx(nint.Zero, COINIT_MULTITHREADED);
         // S_OK(0) 或 S_FALSE(1) 都表示 COM 已就绪
         bool comInitialized = comResult == 0 || comResult == 1;
 
-        IntPtr resultPtr = IntPtr.Zero;
+        nint resultPtr = nint.Zero;
         try
         {
             int hResult = HcsModifyServiceSettings(jsonPayload, out resultPtr);
             if (hResult != 0)
             {
-                string detail = resultPtr != IntPtr.Zero
+                string detail = resultPtr != nint.Zero
                     ? Marshal.PtrToStringUni(resultPtr) ?? string.Empty
                     : string.Empty;
                 throw new HcsException(
@@ -286,7 +286,7 @@ internal static class HcsCore
         }
         finally
         {
-            if (resultPtr != IntPtr.Zero) CoTaskMemFree(resultPtr);
+            if (resultPtr != nint.Zero) CoTaskMemFree(resultPtr);
             if (comInitialized) CoUninitialize();
         }
     }
@@ -296,17 +296,17 @@ internal static class HcsCore
     /// </summary>
     public static string Query(string jsonPayload)
     {
-        int comResult = CoInitializeEx(IntPtr.Zero, COINIT_MULTITHREADED);
+        int comResult = CoInitializeEx(nint.Zero, COINIT_MULTITHREADED);
         bool comInitialized = comResult == 0 || comResult == 1;
 
-        IntPtr propertiesPtr = IntPtr.Zero;
-        IntPtr resultPtr = IntPtr.Zero;
+        nint propertiesPtr = nint.Zero;
+        nint resultPtr = nint.Zero;
         try
         {
             int hResult = HcsGetServiceProperties(jsonPayload, out propertiesPtr, out resultPtr);
             if (hResult != 0)
             {
-                string detail = resultPtr != IntPtr.Zero
+                string detail = resultPtr != nint.Zero
                     ? Marshal.PtrToStringUni(resultPtr) ?? string.Empty
                     : string.Empty;
                 throw new HcsException(
@@ -314,14 +314,14 @@ internal static class HcsCore
                     hResult);
             }
 
-            return propertiesPtr != IntPtr.Zero
+            return propertiesPtr != nint.Zero
                 ? Marshal.PtrToStringUni(propertiesPtr) ?? string.Empty
                 : string.Empty;
         }
         finally
         {
-            if (propertiesPtr != IntPtr.Zero) CoTaskMemFree(propertiesPtr);
-            if (resultPtr != IntPtr.Zero) CoTaskMemFree(resultPtr);
+            if (propertiesPtr != nint.Zero) CoTaskMemFree(propertiesPtr);
+            if (resultPtr != nint.Zero) CoTaskMemFree(resultPtr);
             if (comInitialized) CoUninitialize();
         }
     }

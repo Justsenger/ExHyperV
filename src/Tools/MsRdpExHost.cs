@@ -471,7 +471,7 @@ namespace ExHyperV.Tools
                 }
                 catch { }
             }
-            else Task.Run(async () => await VmInputTool.SendCtrlAltDelAsync(targetVmId));
+            else Task.Run(async () => await VmKeyboard.SendCtrlAltDelAsync(targetVmId));
         }
 
         private void StopFastSniffer() { _fastResizeTimer?.Stop(); _fastResizeTimer = null; }

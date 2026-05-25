@@ -2,7 +2,7 @@
 using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
 
-namespace ExHyperV.Tools.Api;
+namespace ExHyperV.Api;
 
 // ══════════════════════════════════════════════════════════════════
 //  ComApi — 公开封装层
@@ -261,7 +261,7 @@ internal static class IcsCore
                 }
             }
 
-            return (gatewayIsCorrect && sourceAdapterName != null)
+            return gatewayIsCorrect && sourceAdapterName != null
                 ? sourceAdapterName
                 : null;
         }
