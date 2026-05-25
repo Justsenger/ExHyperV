@@ -1,218 +1,113 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-    <PropertyGroup>
-        <OutputType>WinExe</OutputType>
-        <TargetFramework>net8.0-windows</TargetFramework>
-        <UseWPF>true</UseWPF>
+	<PropertyGroup>
+		<OutputType>WinExe</OutputType>
+		<TargetFramework>net8.0-windows</TargetFramework>
+		<UseWPF>true</UseWPF>
 		<UseWindowsForms>true</UseWindowsForms>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
 		<ApplicationIcon>Assets\Icon.ico</ApplicationIcon>
-        <Version>1.5.0-Beta</Version>
+		<Version>1.5.0-Beta</Version>
 		<IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
-        <WpfUiGenerateDiagnosticMessages>False</WpfUiGenerateDiagnosticMessages>
-        <SatelliteResourceLanguages>en;zh-Hans</SatelliteResourceLanguages>
-        <DebugType Condition=" '$(Configuration)' == 'Release' ">none</DebugType>
-        <DebugSymbols Condition=" '$(Configuration)' == 'Release' ">false</DebugSymbols>
-        <ApplicationManifest>app.manifest</ApplicationManifest>
-        <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
-    </PropertyGroup>
-    <ItemGroup>
-        <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
-        <PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.135" />
-        <PackageReference Include="RoyalApps.Community.Rdp.WinForms" Version="1.4.0" />
-        <PackageReference Include="SSH.NET" Version="2024.1.0" />
-        <PackageReference Include="System.Management" Version="10.0.8" />
-        <PackageReference Include="WPF-UI" Version="4.0.3" />
-    </ItemGroup>
-    <ItemGroup>
-        <Resource Include="Assets\**\*.*" />
-    </ItemGroup>
-    <ItemGroup>
-      <None Remove="UserScripts\configure_system.sh" />
-      <None Remove="UserScripts\Ubuntu-22.04-Micro-ATP.sh" />
-      <None Remove="UserScripts\Ubuntu-22.04-Official.sh" />
-    </ItemGroup>
-    <ItemGroup>
-      <COMReference Include="IMAPI2FS">
-        <WrapperTool>tlbimp</WrapperTool>
-        <VersionMinor>0</VersionMinor>
-        <VersionMajor>1</VersionMajor>
-        <Guid>2c941fd0-975b-59be-a960-9a2a262853a5</Guid>
-        <Lcid>0</Lcid>
-        <Isolated>false</Isolated>
-        <EmbedInteropTypes>true</EmbedInteropTypes>
-      </COMReference>
-    </ItemGroup>
-
-    <!-- =================================================================== -->
-    <!--                       4. 自动生成文件配置                            -->
-    <!-- =================================================================== -->
-    <ItemGroup>
-        <Compile Update="Converters\IntListToStringConverter.cs">
-          <Generator>MSBuild:Compile</Generator>
-        </Compile>
-        <Compile Update="Models\BootOrderItem.cs">
-          <Generator>MSBuild:Compile</Generator>
-        </Compile>
-        <Compile Update="Models\SshCredentials.cs">
-          <Generator>MSBuild:Compile</Generator>
-        </Compile>
-        <Compile Update="Properties\Resources.Designer.cs">
-            <DesignTime>True</DesignTime>
-            <AutoGen>True</AutoGen>
-            <DependentUpon>Resources.resx</DependentUpon>
-        </Compile>
-        <EmbeddedResource Update="Properties\Resources.resx">
-            <Generator>PublicResXFileCodeGenerator</Generator>
-            <LastGenOutput>Resources.Designer.cs</LastGenOutput>
-        </EmbeddedResource>
-    </ItemGroup>
-    <ItemGroup>
-      <Folder Include="UserScripts\" />
-    </ItemGroup>
-
-    <!-- ========================================================================================= -->
-    <!-- ===                        ExHyperV 终极发布后清理脚本，用于修剪应用程序体积          === -->
-    <!-- ========================================================================================= -->
-    <Target Name="GodTierCleanupAfterPublish" AfterTargets="Publish">
-        <Message Text="========== 开始清理... ==========" Importance="high" />
-
-        <!-- === 第1级: 绝对安全区 (100% Safe to Remove) === -->
-        <ItemGroup>
-            <SafeToRemove Include="$(PublishDir)Microsoft.CodeAnalysis*.dll" />
-            <SafeToRemove Include="$(PublishDir)zh-Hans\Microsoft.CodeAnalysis*.resources.dll" />
-            <SafeToRemove Include="$(PublishDir)**\*.pdb" />
-        </ItemGroup>
-        <RemoveDir Directories="$(PublishDir)ref" />
-        <Delete Files="@(SafeToRemove)" />
-        <Message Text="--- [等级1] 移除： Roslyn, ref folder, and PDB files." Importance="high" />
-
-        <!-- 清理多余的 runtimes 文件夹，仅保留 win 和 win-x64 -->
+		<WpfUiGenerateDiagnosticMessages>False</WpfUiGenerateDiagnosticMessages>
+		<SatelliteResourceLanguages>en;zh-Hans</SatelliteResourceLanguages>
+		<DebugType Condition=" '$(Configuration)' == 'Release' ">none</DebugType>
+		<DebugSymbols Condition=" '$(Configuration)' == 'Release' ">false</DebugSymbols>
+		<ApplicationManifest>app.manifest</ApplicationManifest>
+		<AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+	</PropertyGroup>
+	<ItemGroup>
+		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+		<PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.135" />
+		<PackageReference Include="RoyalApps.Community.Rdp.WinForms" Version="1.4.0" />
+		<PackageReference Include="SSH.NET" Version="2024.1.0" />
+		<PackageReference Include="System.Management" Version="10.0.8" />
+		<PackageReference Include="WPF-UI" Version="4.0.3" />
+		<Resource Include="Assets\**\*.*" />
+		<COMReference Include="IMAPI2FS">
+			<WrapperTool>tlbimp</WrapperTool>
+			<VersionMinor>0</VersionMinor>
+			<VersionMajor>1</VersionMajor>
+			<Guid>2c941fd0-975b-59be-a960-9a2a262853a5</Guid>
+			<Lcid>0</Lcid>
+			<Isolated>false</Isolated>
+			<EmbedInteropTypes>true</EmbedInteropTypes>
+		</COMReference>
+		<Compile Update="Properties\Resources.Designer.cs">
+			<DesignTime>True</DesignTime>
+			<AutoGen>True</AutoGen>
+			<DependentUpon>Resources.resx</DependentUpon>
+		</Compile>
+		<EmbeddedResource Update="Properties\Resources.resx">
+			<Generator>PublicResXFileCodeGenerator</Generator>
+			<LastGenOutput>Resources.Designer.cs</LastGenOutput>
+		</EmbeddedResource>
+	</ItemGroup>
+	<Target Name="GodTierCleanupAfterPublish" AfterTargets="Publish">
 		<ItemGroup>
+			<FilesToRemove Include="$(PublishDir)Microsoft.CodeAnalysis*.dll" />
+			<FilesToRemove Include="$(PublishDir)zh-Hans\Microsoft.CodeAnalysis*.resources.dll" />
+			<FilesToRemove Include="$(PublishDir)**\*.pdb" />
+			<FilesToRemove Include="$(PublishDir)System.Data.SqlClient.dll" />
+			<FilesToRemove Include="$(PublishDir)runtimes\**\System.Data.SqlClient.dll" />
+			<FilesToRemove Include="$(PublishDir)System.Data.OleDb.dll" />
+			<FilesToRemove Include="$(PublishDir)runtimes\**\System.Data.OleDb.dll" />
+			<FilesToRemove Include="$(PublishDir)System.Data.Odbc.dll" />
+			<FilesToRemove Include="$(PublishDir)runtimes\**\System.Data.Odbc.dll" />
+			<FilesToRemove Include="$(PublishDir)System.DirectoryServices.AccountManagement.dll" />
+			<FilesToRemove Include="$(PublishDir)runtimes\**\System.DirectoryServices.AccountManagement.dll" />
+			<FilesToRemove Include="$(PublishDir)System.DirectoryServices.Protocols.dll" />
+			<FilesToRemove Include="$(PublishDir)runtimes\**\System.DirectoryServices.Protocols.dll" />
+			<FilesToRemove Include="$(PublishDir)System.Speech.dll" />
+			<FilesToRemove Include="$(PublishDir)runtimes\**\System.Speech.dll" />
+			<FilesToRemove Include="$(PublishDir)System.Web.Services.Description.dll" />
+			<FilesToRemove Include="$(PublishDir)System.ServiceModel.Syndication.dll" />
+			<FilesToRemove Include="$(PublishDir)JsonSchema.Net.dll" />
+			<FilesToRemove Include="$(PublishDir)Json.More.dll" />
+			<FilesToRemove Include="$(PublishDir)JsonPointer.Net.dll" />
+			<FilesToRemove Include="$(PublishDir)JetBrains.Annotations.dll" />
+			<FilesToRemove Include="$(PublishDir)System.IO.Ports.dll" />
+			<FilesToRemove Include="$(PublishDir)System.Net.Http.WinHttpHandler.dll" />
+			<FilesToRemove Include="$(PublishDir)Microsoft.Bcl.AsyncInterfaces.dll" />
+			<FilesToRemove Include="$(PublishDir)Microsoft.Extensions.ObjectPool.dll" />
+			<FilesToRemove Include="$(PublishDir)System.Runtime.Caching.dll" />
+			<FilesToRemove Include="$(PublishDir)System.CodeDom.dll" />
+			<FilesToRemove Include="$(PublishDir)Microsoft.Extensions.DependencyInjection.Abstractions.dll" />
+			<FilesToRemove Include="$(PublishDir)System.ServiceProcess.ServiceController.dll" />
+			<FilesToRemove Include="$(PublishDir)runtimes\**\System.ServiceProcess.ServiceController.dll" />
+			<FilesToRemove Include="$(PublishDir)System.Diagnostics.EventLog.dll" />
+			<FilesToRemove Include="$(PublishDir)runtimes\**\System.Diagnostics.EventLog.dll" />
+			<FilesToRemove Include="$(PublishDir)Markdig.Signed.dll" />
+			<FilesToRemove Include="$(PublishDir)System.Drawing.Common.dll" />
+			<FilesToRemove Include="$(PublishDir)runtimes\**\System.Drawing.Common.dll" />
+			<FilesToRemove Include="$(PublishDir)System.Private.Windows.Core.dll" />
+			<FilesToRemove Include="$(PublishDir)Microsoft.Win32.SystemEvents.dll" />
+			<FilesToRemove Include="$(PublishDir)runtimes\**\Microsoft.Win32.SystemEvents.dll" />
+			<FilesToRemove Include="$(PublishDir)System.Management.dll" />
+			<FilesToRemove Include="$(PublishDir)System.Private.ServiceModel.dll" />
+			<FilesToRemove Include="$(PublishDir)System.ServiceModel.*.dll" />
+			<FilesToRemove Include="$(PublishDir)System.ServiceModel.dll" />
+			<FilesToRemove Include="$(PublishDir)runtimes\**\System.Net.Http.WinHttpHandler.dll" />
+			<FilesToRemove Include="$(PublishDir)runtimes\**\System.IO.Ports.dll" />
+			<FilesToRemove Include="$(PublishDir)runtimes\**\sni.dll" />
+			<FilesToRemove Include="$(PublishDir)runtimes\**\pwrshplugin.dll" />
+			<FilesToRemove Include="$(PublishDir)runtimes\**\getfilesiginforedist.dll" />
+			<FilesToRemove Include="$(PublishDir)runtimes\win\lib\net8.0\Microsoft.Management.Infrastructure.CimCmdlets.dll" />
+			<FilesToRemove Include="$(PublishDir)runtimes\win\lib\net8.0\Microsoft.PowerShell.SDK.dll" />
+			<FilesToRemove Include="$(PublishDir)runtimes\win\lib\net8.0\System.Runtime.Caching.dll" />
+			<DirsToRemove Include="$(PublishDir)ref" />
+			<DirsToRemove Include="$(PublishDir)zh-Hans" />
+			<DirsToRemove Include="$(PublishDir)runtimes\win\lib\net8.0\Modules\Microsoft.PowerShell.Security" />
+			<DirsToRemove Include="$(PublishDir)runtimes\win\lib\net8.0\Modules\Microsoft.PowerShell.Diagnostics" />
+			<DirsToRemove Include="$(PublishDir)runtimes\win\lib\net8.0\Modules\PSDiagnostics" />
+			<DirsToRemove Include="$(PublishDir)runtimes\win\lib\net8.0\Modules\Microsoft.WSMan.Management" />
+			<DirsToRemove Include="$(PublishDir)runtimes\win\lib\netcoreapp2.1" />
 			<AllRuntimeDirs Include="$([System.IO.Directory]::GetDirectories('$(PublishDir)runtimes'))" />
-			<RuntimeDirsToDelete Include="@(AllRuntimeDirs)" Condition=" '%(Filename)' != 'win' AND '%(Filename)' != 'win-x64' AND '%(Filename)' != 'win-arm64' " />
+			<DirsToRemove Include="@(AllRuntimeDirs)" Condition=" '%(Filename)' != 'win' AND '%(Filename)' != 'win-x64' AND '%(Filename)' != 'win-arm64' " />
+			<MagicDlls Include="$(MSBuildProjectDirectory)\libs\*.dll" />
 		</ItemGroup>
-		<RemoveDir Directories="@(RuntimeDirsToDelete)" />
-		
-        <RemoveDir Directories="@(RuntimeDirsToDelete)" />
-        <RemoveDir Directories="$(PublishDir)zh-Hans" />
-        <Message Text="--- [等级2] 清理运行时" Importance="high" />
-
-        <!-- === 第2级: 低风险区 (Low Risk) === -->
-        <ItemGroup>
-            <!-- 数据库支持 -->
-            <LowRiskToRemove Include="$(PublishDir)System.Data.SqlClient.dll" />
-            <LowRiskToRemove Include="$(PublishDir)runtimes\**\System.Data.SqlClient.dll" />
-            <LowRiskToRemove Include="$(PublishDir)System.Data.OleDb.dll" />
-            <LowRiskToRemove Include="$(PublishDir)runtimes\**\System.Data.OleDb.dll" />
-            <LowRiskToRemove Include="$(PublishDir)System.Data.Odbc.dll" />
-            <LowRiskToRemove Include="$(PublishDir)runtimes\**\System.Data.Odbc.dll" />
-            <!-- Active Directory 支持 -->
-            <LowRiskToRemove Include="$(PublishDir)System.DirectoryServices.AccountManagement.dll" />
-            <LowRiskToRemove Include="$(PublishDir)runtimes\**\System.DirectoryServices.AccountManagement.dll" />
-            <LowRiskToRemove Include="$(PublishDir)System.DirectoryServices.Protocols.dll" />
-            <LowRiskToRemove Include="$(PublishDir)runtimes\**\System.DirectoryServices.Protocols.dll" />
-            <!-- 其他边缘功能 -->
-            <LowRiskToRemove Include="$(PublishDir)System.Speech.dll" />
-            <LowRiskToRemove Include="$(PublishDir)runtimes\**\System.Speech.dll" />
-            <LowRiskToRemove Include="$(PublishDir)System.Web.Services.Description.dll" />
-            <LowRiskToRemove Include="$(PublishDir)zh-Hans\System.Web.Services.Description.resources.dll" />
-            <LowRiskToRemove Include="$(PublishDir)System.ServiceModel.Syndication.dll" />
-            <LowRiskToRemove Include="$(PublishDir)JsonSchema.Net.dll" />
-            <LowRiskToRemove Include="$(PublishDir)Json.More.dll" />
-            <LowRiskToRemove Include="$(PublishDir)JsonPointer.Net.dll" />
-            <!-- 新增: 移除 JetBrains 代码注解库，该库仅在开发时为IDE提供提示，运行时无用 -->
-            <LowRiskToRemove Include="$(PublishDir)JetBrains.Annotations.dll" />
-                        <!-- 确认安全: 移除串行端口支持 -->
-            <LowRiskToRemove Include="$(PublishDir)System.IO.Ports.dll" />
-                        <!-- 风险较低: 移除备用的 WinHTTP 网络处理器 -->
-            <LowRiskToRemove Include="$(PublishDir)System.Net.Http.WinHttpHandler.dll" />
-            <LowRiskToRemove Include="$(PublishDir)Microsoft.Bcl.AsyncInterfaces.dll" />
-            <LowRiskToRemove Include="$(PublishDir)Microsoft.Extensions.ObjectPool.dll" />
-
-			<LowRiskToRemove Include="$(PublishDir)System.Runtime.Caching.dll" />
-			<LowRiskToRemove Include="$(PublishDir)System.CodeDom.dll" />
-			<LowRiskToRemove Include="$(PublishDir)Microsoft.Extensions.DependencyInjection.Abstractions.dll" />
-
-
-        </ItemGroup>
-        <Delete Files="@(LowRiskToRemove)" />
-        <Message Text="--- [等级3] 移除数据库等可选模块" Importance="high" />
-
-        <!-- === 第3级: 中风险区 (Medium Risk) === -->
-        <ItemGroup>
-            <!-- Windows 服务和事件日志管理 -->
-            <MediumRiskToRemove Include="$(PublishDir)System.ServiceProcess.ServiceController.dll" />
-            <MediumRiskToRemove Include="$(PublishDir)runtimes\**\System.ServiceProcess.ServiceController.dll" />
-            <MediumRiskToRemove Include="$(PublishDir)System.Diagnostics.EventLog.dll" />
-            <MediumRiskToRemove Include="$(PublishDir)runtimes\**\System.Diagnostics.EventLog.dll" />
-            <!-- Markdown 渲染 (用于富文本帮助信息) -->
-            <MediumRiskToRemove Include="$(PublishDir)Markdig.Signed.dll" />
-            <!-- 新增: GDI+ 图形库、核心窗口库和系统事件 -->
-            <MediumRiskToRemove Include="$(PublishDir)System.Drawing.Common.dll" />
-            <MediumRiskToRemove Include="$(PublishDir)runtimes\**\System.Drawing.Common.dll" />
-            <MediumRiskToRemove Include="$(PublishDir)System.Private.Windows.Core.dll" />
-            <MediumRiskToRemove Include="$(PublishDir)Microsoft.Win32.SystemEvents.dll" />
-            <MediumRiskToRemove Include="$(PublishDir)runtimes\**\Microsoft.Win32.SystemEvents.dll" />
-                        <!-- 中等风险: 移除旧的 WMI 支持库。需要严格测试 -->
-            <MediumRiskToRemove Include="$(PublishDir)System.Management.dll" />
-        </ItemGroup>
-        <Delete Files="@(MediumRiskToRemove)" />
-        <Message Text="--- [等级4] 移除部分服务、系统部件" Importance="high" />
-
-        <!-- === 第4级: 高风险区 (High Risk) === -->
-        <ItemGroup>
-            <HighRiskToRemove Include="$(PublishDir)System.Private.ServiceModel.dll" />
-            <HighRiskToRemove Include="$(PublishDir)zh-Hans\System.Private.ServiceModel.resources.dll" />
-            <!-- 
-              新增: 使用通配符 * 批量移除由 PowerShell SDK 带来的所有 WCF (ServiceModel) 相关组件。
-              这将一次性删除 System.ServiceModel.dll, System.ServiceModel.Duplex.dll, .Http.dll, .Primitives.dll 等所有相关文件。
-            -->
-            <HighRiskToRemove Include="$(PublishDir)System.ServiceModel.*.dll" />
-            <!-- 同时也清理对应的中文语言资源文件 -->
-            <HighRiskToRemove Include="$(PublishDir)zh-Hans\System.ServiceModel.*.resources.dll" />
-            <HighRiskToRemove Include="$(PublishDir)System.ServiceModel.dll" />
-        </ItemGroup>
-        <Delete Files="@(HighRiskToRemove)" />
-        <Message Text="--- [等级5] 移除WCF等系统组件" Importance="high" />
-
-<!-- === 最终魔法: 从 dll 文件夹复制优化版 DLL 进行替换 === -->
-<ItemGroup>
-    <MagicDlls Include="$(MSBuildProjectDirectory)\libs\*.dll" />
-</ItemGroup>
-<Copy SourceFiles="@(MagicDlls)" DestinationFolder="$(PublishDir)" OverwriteReadOnlyFiles="true" SkipUnchangedFiles="false" />
-
-		<Message Text="--- [等级6] 移除没有必要的dll文件，替换自定义的更小的dll" Importance="high" />
-        <!-- =================================================================== -->
-        <!--           新增: 第2.5级: Runtimes 深度清理区 (外科手术)           -->
-        <!-- =================================================================== -->
-        <ItemGroup>
-            <!-- 1. 移除不再需要的 PowerShell 模块 (保留核心 Utility, Management, CimCmdlets, Host) -->
-            <RuntimesDirsToRemove Include="$(PublishDir)runtimes\win\lib\net8.0\Modules\Microsoft.PowerShell.Security" />
-            <RuntimesDirsToRemove Include="$(PublishDir)runtimes\win\lib\net8.0\Modules\Microsoft.PowerShell.Diagnostics" />
-            <RuntimesDirsToRemove Include="$(PublishDir)runtimes\win\lib\net8.0\Modules\PSDiagnostics" />
-            <RuntimesDirsToRemove Include="$(PublishDir)runtimes\win\lib\net8.0\Modules\Microsoft.WSMan.Management" />
-
-			<RuntimesDirsToRemove Include="$(PublishDir)runtimes\win\lib\netcoreapp2.1" />
-			
-
-			<RuntimesFilesToRemove Include="$(PublishDir)runtimes\win\lib\net8.0\Microsoft.Management.Infrastructure.CimCmdlets.dll" />
-			<RuntimesFilesToRemove Include="$(PublishDir)runtimes\win\lib\net8.0\Microsoft.PowerShell.SDK.dll" />
-			<RuntimesFilesToRemove Include="$(PublishDir)runtimes\win\lib\net8.0\System.Runtime.Caching.dll" />
-
-            <!-- 2. 移除之前已确认但在 runtimes 中依然存在的 DLL -->
-            <RuntimesFilesToRemove Include="$(PublishDir)runtimes\**\System.Net.Http.WinHttpHandler.dll" />
-            <RuntimesFilesToRemove Include="$(PublishDir)runtimes\**\System.IO.Ports.dll" />
-            
-            <!-- 3. 移除特定功能的 Native DLLs -->
-            <RuntimesFilesToRemove Include="$(PublishDir)runtimes\**\sni.dll" />
-            <RuntimesFilesToRemove Include="$(PublishDir)runtimes\**\pwrshplugin.dll" />
-            <RuntimesFilesToRemove Include="$(PublishDir)runtimes\**\getfilesiginforedist.dll" />
-        </ItemGroup>
-
-        <!-- 执行文件夹和文件的删除 -->
-        <RemoveDir Directories="@(RuntimesDirsToRemove)" />
-        <Delete Files="@(RuntimesFilesToRemove)" Condition=" '%(Identity)' != '' " />
-        
-    </Target>	
+		<Delete Files="@(FilesToRemove)" />
+		<RemoveDir Directories="@(DirsToRemove)" />
+		<Copy SourceFiles="@(MagicDlls)" DestinationFolder="$(PublishDir)" OverwriteReadOnlyFiles="true" SkipUnchangedFiles="false" />
+	</Target>
 </Project>
