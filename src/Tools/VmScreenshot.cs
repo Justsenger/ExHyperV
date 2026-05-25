@@ -2,7 +2,7 @@
 using System.Management;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using ExHyperV.Tools.Api;
+using ExHyperV.Api;
 
 namespace ExHyperV.Tools
 {
