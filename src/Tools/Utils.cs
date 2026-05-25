@@ -63,8 +63,8 @@ public class Utils
         {
             imageName = "Intel.png";
             if (name.ToLower().Contains("iris")) imageName = "Intel-IrisXe.png";
-            if (name.ToLower().Contains("arc")) imageName = "Inter-ARC.png";
-            if (name.ToLower().Contains("data")) imageName = "Inter-DataCenter.png";
+            if (name.ToLower().Contains("arc")) imageName = "Intel-ARC.png";
+            if (name.ToLower().Contains("data")) imageName = "Intel-DataCenter.png";
         }
         else if (Manu.Contains("Moore"))
             imageName = "Moore.png";
