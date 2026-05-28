@@ -151,7 +151,7 @@
 
                                 <StackPanel Margin="0,12,0,10">
                                     <TextBlock Text="{x:Static properties:Resources.NetDraw}" FontSize="15" Margin="0,0,0,10" />
-                                    <tools:TopologyCanvas 
+                                    <tools:SwitchTopology 
                                         ItemsSource="{Binding ConnectedClients}"
                                         SwitchName="{Binding SwitchName}"
                                         NetworkMode="{Binding SelectedNetworkMode}"
