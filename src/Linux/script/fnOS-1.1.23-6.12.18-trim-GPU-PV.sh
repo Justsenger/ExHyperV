@@ -1,7 +1,7 @@
 #!/bin/bash
-# @Name: fnOS-1.1.23(6.12.18-trim)-HyperV-GPU-PV
-# @Description: FNOS dxgkrnl + WSL libs + reboot auto-load via root crontab
-# @Version: 3.7.0
+# @Name: fnOS-1.1.23-6.12.18-trim-HyperV-GPU-PV
+# @Description: 在Win10 22h2 Build.19045測試可用, 已測試Win11 24h2不可用, 其他版本未知
+# @Version: 3.8.0
 
 # 發生錯誤時立即終止腳本，避免後續步驟在異常狀態下繼續執行
 set -e
