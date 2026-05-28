@@ -71,10 +71,8 @@ public static class VmKeyboard
             }
         });
     }
-
     private struct KeyInfo { public int Code; public bool Shift; }
     private static readonly Dictionary<char, KeyInfo> _scanCodeMap = CreateScanCodeMap();
-
     private static Dictionary<char, KeyInfo> CreateScanCodeMap()
     {
         var map = new Dictionary<char, KeyInfo>();

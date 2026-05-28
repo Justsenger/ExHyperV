@@ -13,7 +13,6 @@ namespace ExHyperV.Tools
         public static async Task<BitmapSource?> CaptureAsync(string vmName, int desiredWidth, int desiredHeight)
         {
             if (desiredWidth <= 0 || desiredHeight <= 0) return null;
-
             return await Task.Run(() =>
             {
                 try
@@ -22,33 +21,21 @@ namespace ExHyperV.Tools
                     {
                         var settingsResp = WmiApi.QueryFirstAsync(
                             $"SELECT * FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(vmName)}'",
-                            vm =>
-                            {
+                            vm => {
                                 using var related = vm.GetRelated("Msvm_VirtualSystemSettingData");
                                 return related.Cast<ManagementObject>().FirstOrDefault()?.Path.Path ?? "";
-                            },
-                            WmiScope.HyperV).GetAwaiter().GetResult();
-
-                        if (!settingsResp.HasData || string.IsNullOrEmpty(settingsResp.Data))
-                            return null;
-
+                            }, WmiScope.HyperV).GetAwaiter().GetResult();
+                        if (!settingsResp.HasData || string.IsNullOrEmpty(settingsResp.Data)) return null;
                         targetPath = settingsResp.Data;
                         _vmSettingsPathCache[vmName] = targetPath;
                     }
-
                     var svc = WmiApi.GetVirtualSystemManagementService();
                     using var inParams = svc.GetMethodParameters("GetVirtualSystemThumbnailImage");
                     inParams["TargetSystem"] = targetPath;
                     inParams["WidthPixels"] = (ushort)desiredWidth;
                     inParams["HeightPixels"] = (ushort)desiredHeight;
                     using var outParams = svc.InvokeMethod("GetVirtualSystemThumbnailImage", inParams, null);
-
-                    if (outParams == null || (uint)outParams["ReturnValue"] != 0)
-                    {
-                        _vmSettingsPathCache.TryRemove(vmName, out _);
-                        return null;
-                    }
-
+                    if (outParams == null || (uint)outParams["ReturnValue"] != 0) { _vmSettingsPathCache.TryRemove(vmName, out _); return null; }
                     var rawBytes = (byte[])outParams["ImageData"];
                     if (rawBytes == null || rawBytes.Length == 0) return null;
                     return CreateBitmapFromRgb565(rawBytes, desiredWidth, desiredHeight);
@@ -68,15 +55,7 @@ namespace ExHyperV.Tools
             {
                 int stride = width * 2;
                 if (data.Length < stride * height) return null;
-
-                var bitmap = BitmapSource.Create(
-                    width, height,
-                    96, 96,
-                    PixelFormats.Bgr565,
-                    null,
-                    data,
-                    stride);
-
+                var bitmap = BitmapSource.Create(width, height, 96, 96, PixelFormats.Bgr565, null, data, stride);
                 bitmap.Freeze();
                 return bitmap;
             }
