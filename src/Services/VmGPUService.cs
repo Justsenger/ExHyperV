@@ -18,6 +18,7 @@ namespace ExHyperV.Services
         private readonly VmQueryService _queryService;
         private readonly VmNetworkService _networkService;
         private readonly VmStorageService _storageService;
+        private readonly VmMmioService _mmioService = new();
         public VmGPUService(VmPowerService powerService, VmQueryService queryService, VmNetworkService networkService, VmStorageService storageService)
         {
             _powerService = powerService;
@@ -318,8 +319,7 @@ namespace ExHyperV.Services
         }
         public async Task<bool> OptimizeVmForGpuAsync(string vmName)
         {
-
-            return await MMIOOptimizer.OptimizeVmAsync(vmName);
+            return await _mmioService.ConfigureMmioAsync(vmName);
         }
 
         #endregion
