@@ -53,7 +53,6 @@ public static class HcsApi
 
     /// <summary>
     /// 查询所有 CPU Group。
-    /// 等效于现有 HcsManager.GetAllCpuGroupsAsJson + 反序列化。
     /// </summary>
     public static Task<ApiResponse<List<HcsCpuGroupDetail>>> GetAllCpuGroupsAsync()
     {

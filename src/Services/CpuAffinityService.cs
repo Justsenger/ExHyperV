@@ -1,5 +1,4 @@
-﻿using System.Text.Json;
-using ExHyperV.Models;
+using ExHyperV.Api;
 using ExHyperV.Tools;
 
 namespace ExHyperV.Services
@@ -33,28 +32,16 @@ namespace ExHyperV.Services
                 return await Task.Run(() => ProcessAffinityManager.GetVmProcessAffinity(vmId));
             }
 
-            // 2. Classic/Core 模式：从 HCS CPU Group 中读取
-            try
-            {
-                string json = await Task.Run(() => HcsManager.GetVmCpuGroupAsJson(vmId));
-                using var doc = JsonDocument.Parse(json);
-                if (doc.RootElement.TryGetProperty("CpuGroupId", out var prop))
-                {
-                    if (Guid.TryParse(prop.GetString(), out Guid groupId) && groupId != Guid.Empty)
-                    {
-                        var groupDetail = await GetCpuGroupDetailsAsync(groupId);
-                        if (groupDetail?.Affinity?.LogicalProcessors != null)
-                        {
-                            return groupDetail.Affinity.LogicalProcessors.Select(u => (int)u).ToList();
-                        }
-                    }
-                }
+            // Classic/Core 模式：从 HCS CPU Group 中读取
+            var groupIdResp = await HcsApi.GetVmCpuGroupIdAsync(vmId);
+            if (!groupIdResp.HasData || groupIdResp.Data == Guid.Empty)
                 return new List<int>();
-            }
-            catch
-            {
+
+            var groupDetail = await GetCpuGroupDetailsAsync(groupIdResp.Data);
+            if (groupDetail?.Affinity?.LogicalProcessors == null)
                 return new List<int>();
-            }
+
+            return groupDetail.Affinity.LogicalProcessors.Select(u => (int)u).ToList();
         }
 
         /// <summary>
@@ -96,9 +83,17 @@ namespace ExHyperV.Services
                         if (targetGroupId == Guid.Empty) return false;
                     }
 
-                    // 将 VM 关联到该组 (如果 coreIndices 为空，则 targetGroupId 为 Guid.Empty，代表移除组限制)
-                    await Task.Run(() => HcsManager.SetVmCpuGroup(vmId, targetGroupId));
-                    return true;
+                    // 将 VM 关联到该组（targetGroupId == Empty 即解除组限制）
+                    // 走 WMI ModifyResourceSettings 改 Msvm_ProcessorSettingData.CpuGroupId
+                    string groupIdStr = targetGroupId.ToString("D");
+                    var bindResp = await WmiApi.WithObjectAsync(
+                        wql: $"SELECT * FROM Msvm_ProcessorSettingData WHERE InstanceID LIKE '%{vmId}%'",
+                        modifier: obj => obj["CpuGroupId"] = groupIdStr,
+                        submitMethod: "ModifyResourceSettings",
+                        submitParamName: "ResourceSettings",
+                        wrapInArray: true);
+
+                    return bindResp.Success;
                 }
                 catch (Exception)
                 {
@@ -108,10 +103,10 @@ namespace ExHyperV.Services
         }
 
         // ----------------------------------------------------------------------------------
-        // HCS CPU Group 辅助方法 (仅供 Classic/Core 模式使用)
+        // HCS CPU Group 辅助方法（仅供 Classic/Core 模式使用，外部无调用方 → private）
         // ----------------------------------------------------------------------------------
 
-        public async Task<Guid> FindOrCreateCpuGroupAsync(List<int> selectedCores)
+        private async Task<Guid> FindOrCreateCpuGroupAsync(List<int> selectedCores)
         {
             if (selectedCores == null || !selectedCores.Any())
             {
@@ -138,34 +133,23 @@ namespace ExHyperV.Services
 
             var sortedSelectedCores = selectedCores.Select(c => (uint)c).OrderBy(c => c).ToArray();
             var newGroupId = Guid.NewGuid();
-            await Task.Run(() => HcsManager.CreateCpuGroup(newGroupId, sortedSelectedCores));
+            var createResp = await HcsApi.CreateCpuGroupAsync(newGroupId, sortedSelectedCores);
+            if (!createResp.Success) return Guid.Empty;
 
             return newGroupId;
         }
 
-        public async Task<HcsCpuGroupDetail> GetCpuGroupDetailsAsync(Guid groupId)
+        private async Task<HcsCpuGroupDetail?> GetCpuGroupDetailsAsync(Guid groupId)
         {
             if (groupId == Guid.Empty) return null;
             var allGroups = await GetAllCpuGroupsAsync();
             return allGroups?.FirstOrDefault(g => g.GroupId == groupId);
         }
 
-        public async Task<List<HcsCpuGroupDetail>> GetAllCpuGroupsAsync()
+        private async Task<List<HcsCpuGroupDetail>?> GetAllCpuGroupsAsync()
         {
-            try
-            {
-                string jsonResult = await Task.Run(() => HcsManager.GetAllCpuGroupsAsJson());
-                if (string.IsNullOrEmpty(jsonResult)) return new List<HcsCpuGroupDetail>();
-
-                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-                var result = JsonSerializer.Deserialize<HcsQueryResult>(jsonResult, options);
-
-                return result?.Properties?.FirstOrDefault()?.CpuGroups ?? new List<HcsCpuGroupDetail>();
-            }
-            catch
-            {
-                return null;
-            }
+            var resp = await HcsApi.GetAllCpuGroupsAsync();
+            return resp.HasData ? resp.Data : null;
         }
     }
 }
