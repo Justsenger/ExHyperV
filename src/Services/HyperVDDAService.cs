@@ -446,7 +446,7 @@ namespace ExHyperV.Services
             // WMI：Set-VM -AutomaticStopAction TurnOff（AutomaticShutdownAction=2）
             // 注意：AutomaticShutdownAction 可在 VM 运行时修改，无需关机
             DdaOperation SetAutoStop(string vmName) => new(
-                Resources.string5, DdaOpType.Wmi,
+                Resources.DdaService_SetShutdownToTurnOff, DdaOpType.Wmi,
                 WmiAction: () => WmiApi.WithObjectAsync(
                     $"SELECT * FROM Msvm_VirtualSystemSettingData WHERE ElementName = '{WmiApi.Escape(vmName)}' AND VirtualSystemType = 'Microsoft:Hyper-V:System:Realized'",
                     obj => obj["AutomaticShutdownAction"] = (ushort)2,

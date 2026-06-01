@@ -166,14 +166,14 @@ namespace ExHyperV.ViewModels
         [RelayCommand]
         private async Task DisableHyperVAsync()
         {
-            ShowSnackbar(Translate("Status_Title_Info"), Properties.Resources.HostPageViewModel_1, ControlAppearance.Info, SymbolRegular.Settings24);
+            ShowSnackbar(Translate("Status_Title_Info"), Properties.Resources.HostPageViewModel_DisablingHyperV, ControlAppearance.Info, SymbolRegular.Settings24);
             bool ok = await _hostService.DisableHyperVAsync();
             if (!ok)
             {
-                ShowSnackbar(Translate("Status_Title_Error"), Properties.Resources.HostPageViewModel_2, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                ShowSnackbar(Translate("Status_Title_Error"), Properties.Resources.HostPageViewModel_DisableFailed, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
                 return;
             }
-            ShowRestartPrompt(Properties.Resources.HostPageViewModel_3);
+            ShowRestartPrompt(Properties.Resources.HostPageViewModel_DisableSuccess);
         }
 
         [RelayCommand]

@@ -35,13 +35,13 @@
 
                     <!-- 中间文字内容：使用 Run 让标题和正文同排 -->
                     <TextBlock Grid.Column="1" VerticalAlignment="Center" TextWrapping="Wrap">
-            <Run Text="{x:Static properties:Resources.USBPage_2}" 
+            <Run Text="{x:Static properties:Resources.USBPage_DriverNoticeDesc}" 
                  FontSize="16" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
                     </TextBlock>
 
                     <!-- 右侧操作按钮 -->
                     <ui:Button Grid.Column="2" 
-                   Content="{x:Static properties:Resources.USBPage_3}" 
+                   Content="{x:Static properties:Resources.USBPage_ViewGuide}" 
                    Appearance="Secondary"
                    Icon="{ui:SymbolIcon Link24}"
                    VerticalAlignment="Center"
@@ -57,10 +57,10 @@
                     <Grid>
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                             <ui:FontIcon Glyph="&#xE88E;" FontSize="24" FontFamily="{DynamicResource SegoeFluentIcons}"/>
-                            <TextBlock Text="{x:Static properties:Resources.USBPage_4}" FontSize="16" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                            <TextBlock Text="{x:Static properties:Resources.USBPage_AssignableDevices}" FontSize="16" VerticalAlignment="Center" Margin="10,0,0,0"/>
                         </StackPanel>
                         <ui:Button HorizontalAlignment="Right"
-                                   Content="{x:Static properties:Resources.USBPage_5}" 
+                                   Content="{x:Static properties:Resources.USBPage_Refresh}" 
                                    Command="{Binding LoadDataCommand}"
                                    IsEnabled="{Binding IsUiEnabled}"/>
                     </Grid>

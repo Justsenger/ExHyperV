@@ -164,8 +164,8 @@
                     </Grid.ColumnDefinitions>
                     <ui:FontIcon Grid.Column="0" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xE88E;" FontSize="24" Margin="0,0,15,0" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                        <TextBlock Text="{x:Static properties:Resources.MainWindow_1}" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" FontSize="16"/>
-                        <TextBlock Text="{x:Static properties:Resources.MainPage_2}" FontSize="13" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,4,0,0"/>
+                        <TextBlock Text="{x:Static properties:Resources.Label_UsbPassthrough}" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" FontSize="16"/>
+                        <TextBlock Text="{x:Static properties:Resources.MainPage_UsbPassthroughDesc}" FontSize="13" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,4,0,0"/>
                     </StackPanel>
                 </Grid>
             </ui:CardAction>

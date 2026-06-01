@@ -32,9 +32,9 @@ namespace ExHyperV.Services
             {
                 cts.Cancel();
                 cts.Dispose();
-                Log(string.Format(Properties.Resources.UsbVmbusService_1, busId));
+                Log(string.Format(Properties.Resources.UsbVmbus_LogStoppingTunnel, busId));
             }
-            Log(string.Format(Properties.Resources.UsbVmbusService_2, busId));
+            Log(string.Format(Properties.Resources.UsbVmbus_LogEnforceUnbind, busId));
             await RunUsbIpCommand($"unbind --busid {busId}");
             await Task.Delay(500);
         }
@@ -61,7 +61,7 @@ namespace ExHyperV.Services
             }
             catch (Exception ex)
             {
-                Log(string.Format(Properties.Resources.UsbVmbusService_3, ex.Message));
+                Log(string.Format(Properties.Resources.UsbVmbus_LogTunnelFailed, ex.Message));
                 _activeCts.TryRemove(busId, out _);
             }
         }

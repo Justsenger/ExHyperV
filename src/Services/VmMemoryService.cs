@@ -61,7 +61,7 @@ public class VmMemoryService
         }
         catch (Exception ex)
         {
-            Debug.WriteLine(string.Format(Properties.Resources.VmMemoryService_1, ex));
+            Debug.WriteLine(string.Format(Properties.Resources.VmMemoryService_ErrReadConfig, ex));
             return null;
         }
     }

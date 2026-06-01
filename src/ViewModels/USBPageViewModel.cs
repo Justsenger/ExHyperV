@@ -88,7 +88,7 @@ namespace ExHyperV.ViewModels
             foreach (var d in Devices)
             {
                 if (UsbVmbusService.ActiveTunnels.TryGetValue(d.BusId, out string vm)) d.CurrentAssignment = vm;
-                else if (d.CurrentAssignment != Properties.Resources.USBPageViewModel_1) d.CurrentAssignment = Properties.Resources.UsbDeviceModel_1;
+                else if (d.CurrentAssignment != Properties.Resources.USBPageViewModel_Connecting) d.CurrentAssignment = Properties.Resources.UsbDeviceModel_Host;
             }
         }
 
@@ -103,17 +103,17 @@ namespace ExHyperV.ViewModels
             IsUiEnabled = false;
             try
             {
-                if (selectedTarget == Properties.Resources.UsbDeviceModel_1)
+                if (selectedTarget == Properties.Resources.UsbDeviceModel_Host)
                 {
                     UsbVmbusService.ActiveTunnels.TryRemove(deviceVM.BusId, out _);
                     await _srv.StopTunnelAsync(deviceVM.BusId); // 使用 Await 版本
-                    deviceVM.CurrentAssignment = Properties.Resources.UsbDeviceModel_1;
+                    deviceVM.CurrentAssignment = Properties.Resources.UsbDeviceModel_Host;
                 }
                 else
                 {
                     // 1. 先记录意图
                     UsbVmbusService.ActiveTunnels[deviceVM.BusId] = selectedTarget;
-                    deviceVM.CurrentAssignment = Properties.Resources.USBPageViewModel_1;
+                    deviceVM.CurrentAssignment = Properties.Resources.USBPageViewModel_Connecting;
 
                     // 2. 异步执行切换，内部会处理 Stop 旧隧道 -> Start 新隧道
                     _ = Task.Run(async () => {
@@ -143,7 +143,7 @@ namespace ExHyperV.ViewModels
             catch (Exception ex)
             {
                 // 这里可以记录日志，防止由于系统环境问题导致崩溃
-                Debug.WriteLine(string.Format(Properties.Resources.USBPageViewModel_6, ex.Message));
+                Debug.WriteLine(string.Format(Properties.Resources.USBPageViewModel_OpenWebpageFailed, ex.Message));
             }
 
         }

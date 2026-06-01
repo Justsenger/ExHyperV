@@ -32,7 +32,7 @@
               Panel.ZIndex="100">
             <StackPanel VerticalAlignment="Center">
                 <ui:ProgressRing IsIndeterminate="True" Width="60" Height="60" Margin="0,0,0,20"/>
-                <TextBlock Text="{x:Static properties:Resources.VmConsoleView_1}" Foreground="Gray" FontSize="16" HorizontalAlignment="Center"/>
+                <TextBlock Text="{x:Static properties:Resources.VmConsoleView_EstablishingSession}" Foreground="Gray" FontSize="16" HorizontalAlignment="Center"/>
             </StackPanel>
         </Grid>
     </Grid>

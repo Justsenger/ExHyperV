@@ -31,7 +31,7 @@ namespace ExHyperV.Services
                             }
                             catch (Exception ex)
                             {
-                                Debug.WriteLine(string.Format(Properties.Resources.ProcessAffinityManager_1, mo["ProcessId"], ex.Message));
+                                Debug.WriteLine(string.Format(Properties.Resources.ProcessAffinity_LogVmmemAcquireFail, mo["ProcessId"], ex.Message));
                             }
                         }
                     }
@@ -39,7 +39,7 @@ namespace ExHyperV.Services
             }
             catch (Exception ex)
             {
-                Debug.WriteLine(string.Format(Properties.Resources.ProcessAffinityManager_2, ex.Message));
+                Debug.WriteLine(string.Format(Properties.Resources.ProcessAffinity_LogVmmemQueryFail, ex.Message));
             }
 
             return null;
@@ -67,7 +67,7 @@ namespace ExHyperV.Services
                 }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine(string.Format(Properties.Resources.ProcessAffinityManager_3, process.Id, ex.Message));
+                    Debug.WriteLine(string.Format(Properties.Resources.ProcessAffinity_LogGetAffinityFail, process.Id, ex.Message));
                 }
             }
             return coreIds;
@@ -95,7 +95,7 @@ namespace ExHyperV.Services
             }
             catch (Exception ex)
             {
-                Debug.WriteLine(string.Format(Properties.Resources.ProcessAffinityManager_4, ex.Message));
+                Debug.WriteLine(string.Format(Properties.Resources.ProcessAffinity_LogSetAffinityFail, ex.Message));
                 return false;
             }
         }

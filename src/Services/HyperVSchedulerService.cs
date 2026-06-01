@@ -41,7 +41,7 @@ public static class HyperVSchedulerService
         }
         catch (Exception ex)
         {
-            Debug.WriteLine(string.Format(Properties.Resources.HyperVSchedulerService_1, ex.Message));
+            Debug.WriteLine(string.Format(Properties.Resources.HyperVScheduler_LogEventLogQueryFail, ex.Message));
         }
 
         return HyperVSchedulerType.Unknown;
@@ -55,8 +55,8 @@ public static class HyperVSchedulerService
             {
                 FileName = "bcdedit.exe",
                 Arguments = $"/set hypervisorschedulertype {type.ToString().ToLower()}",
-                Verb = "runas",          // ÒÔ¹ÜÀíÔ±Éí·ÝÔËÐÐ
-                UseShellExecute = true,             // Verb=runas ±ØÐëÎª true
+                Verb = "runas",          // ï¿½Ô¹ï¿½ï¿½ï¿½Ô±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+                UseShellExecute = true,             // Verb=runas ï¿½ï¿½ï¿½ï¿½Îª true
                 WindowStyle = ProcessWindowStyle.Hidden,
             };
 
@@ -68,7 +68,7 @@ public static class HyperVSchedulerService
         }
         catch (Exception ex)
         {
-            Debug.WriteLine(string.Format(Properties.Resources.HyperVSchedulerService_2, ex.Message));
+            Debug.WriteLine(string.Format(Properties.Resources.HyperVScheduler_LogBcdeditFail, ex.Message));
             return false;
         }
     }

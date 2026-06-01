@@ -718,7 +718,7 @@
                             <ui:FontIcon FontSize="24" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xF738;" Margin="-5,0,12,0" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
                             <StackPanel VerticalAlignment="Center">
                                 <TextBlock Text="{x:Static properties:Resources.VmDashboard_DescSpacetime}" FontSize="16" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
-                                <TextBlock Text="{x:Static properties:Resources.VmDashboardView_5}" FontSize="12" Opacity="0.6" Margin="0,2,0,0" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                                <TextBlock Text="{x:Static properties:Resources.VmDashboardView_SnapshotAndSpacetime}" FontSize="12" Opacity="0.6" Margin="0,2,0,0" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
                             </StackPanel>
                         </StackPanel>
 

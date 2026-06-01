@@ -67,7 +67,7 @@ public static class VmKeyboard
             }
             catch (Exception ex)
             {
-                Debug.WriteLine(string.Format(Properties.Resources.VmInputTool_1, ex.Message));
+                Debug.WriteLine(string.Format(Properties.Resources.VmInput_ErrTextInput, ex.Message));
             }
         });
     }

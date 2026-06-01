@@ -47,7 +47,7 @@
                                Height="32"
                                Padding="0"
                                Command="{Binding StartVmCommand}"
-                               ToolTip="{x:Static properties:Resources.ConsoleWindow_1}"
+                               ToolTip="{x:Static properties:Resources.ConsoleWindow_StartVm}"
                                Visibility="{Binding IsRunning, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=Invert}"/>
 
                             <!-- 运行状态按钮组 -->
@@ -60,7 +60,7 @@
                                    Padding="0"
                                    CornerRadius="4,0,0,4"
                                    Command="{Binding ShutdownVmCommand}"
-                                   ToolTip="{x:Static properties:Resources.ConsoleWindow_2}" />
+                                   ToolTip="{x:Static properties:Resources.ConsoleWindow_ShutDown}" />
 
                                 <ui:DropDownButton Appearance="Transparent"
                                            Width="24"
@@ -72,23 +72,23 @@
                                            IsEnabled="{Binding IsNotBusy}">
                                     <ui:DropDownButton.Flyout>
                                         <ContextMenu>
-                                            <MenuItem Header="{x:Static properties:Resources.ConsoleWindow_3}" Command="{Binding ResetVmCommand}">
+                                            <MenuItem Header="{x:Static properties:Resources.ConsoleWindow_Restart}" Command="{Binding ResetVmCommand}">
                                                 <MenuItem.Icon>
                                                     <ui:SymbolIcon Symbol="ArrowSync24"/>
                                                 </MenuItem.Icon>
                                             </MenuItem>
-                                            <MenuItem Header="{x:Static properties:Resources.ConsoleWindow_4}" Command="{Binding PauseVmCommand}">
+                                            <MenuItem Header="{x:Static properties:Resources.ConsoleWindow_Pause}" Command="{Binding PauseVmCommand}">
                                                 <MenuItem.Icon>
                                                     <ui:SymbolIcon Symbol="Pause24"/>
                                                 </MenuItem.Icon>
                                             </MenuItem>
-                                            <MenuItem Header="{x:Static properties:Resources.ConsoleWindow_5}" Command="{Binding SaveVmCommand}">
+                                            <MenuItem Header="{x:Static properties:Resources.ConsoleWindow_SaveState}" Command="{Binding SaveVmCommand}">
                                                 <MenuItem.Icon>
                                                     <ui:SymbolIcon Symbol="Save24"/>
                                                 </MenuItem.Icon>
                                             </MenuItem>
                                             <Separator />
-                                            <MenuItem Header="{x:Static properties:Resources.ConsoleWindow_6}" Foreground="#FF4D4F" Command="{Binding TurnOffVmCommand}">
+                                            <MenuItem Header="{x:Static properties:Resources.ConsoleWindow_TurnOff}" Foreground="#FF4D4F" Command="{Binding TurnOffVmCommand}">
                                                 <MenuItem.Icon>
                                                     <ui:SymbolIcon Symbol="Power24" Foreground="#FF4D4F"/>
                                                 </MenuItem.Icon>
@@ -129,8 +129,8 @@
                            Margin="8,0,0,0">
                             <ui:DropDownButton.Flyout>
                                 <ContextMenu>
-                                    <MenuItem Header="{x:Static properties:Resources.ConsoleViewModel_4}" Command="{Binding SwitchSessionModeCommand}" CommandParameter="{x:Static properties:Resources.ConsoleViewModel_4}" />
-                                    <MenuItem Header="{x:Static properties:Resources.ConsoleViewModel_5}" Command="{Binding SwitchSessionModeCommand}" CommandParameter="{x:Static properties:Resources.ConsoleViewModel_5}" />
+                                    <MenuItem Header="{x:Static properties:Resources.ConsoleViewModel_BasicSession}" Command="{Binding SwitchSessionModeCommand}" CommandParameter="{x:Static properties:Resources.ConsoleViewModel_BasicSession}" />
+                                    <MenuItem Header="{x:Static properties:Resources.ConsoleViewModel_EnhancedSession}" Command="{Binding SwitchSessionModeCommand}" CommandParameter="{x:Static properties:Resources.ConsoleViewModel_EnhancedSession}" />
                                 </ContextMenu>
                             </ui:DropDownButton.Flyout>
                         </ui:DropDownButton>
@@ -141,7 +141,7 @@
                                    Padding="0"
                                    Margin="8,0,0,0"
                                    Command="{Binding SendCadCommand}"
-                                   ToolTip="{x:Static properties:Resources.ConsoleWindow_9}">
+                                   ToolTip="{x:Static properties:Resources.ConsoleWindow_SendCtrlAltDel}">
                             <ui:SymbolIcon Symbol="Keyboard24" FontSize="16" />
                         </ui:Button>
 
@@ -153,7 +153,7 @@
                                    Padding="8,0"
                                    Margin="8,0,0,0"
                                    Command="{Binding ToggleFullScreenCommand}"
-                                   ToolTip="{x:Static properties:Resources.ConsoleWindow_10}" />
+                                   ToolTip="{x:Static properties:Resources.ConsoleWindow_FullScreen}" />
                     </StackPanel>
                 </Grid>
             </ui:TitleBar.Header>

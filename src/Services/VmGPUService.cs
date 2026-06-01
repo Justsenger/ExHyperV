@@ -1111,7 +1111,7 @@ namespace ExHyperV.Services
                     var item = ParseScriptHeader(content);
                     item.IsLocal = true;
                     // 【修改点】：添加“本地”标识
-                    item.Name = string.Format(Properties.Resources.VmGPUService_1, item.Name);
+                    item.Name = string.Format(Properties.Resources.VmGPUService_LogLocal, item.Name);
                     item.SourcePathOrUrl = file;
                     item.FileName = Path.GetFileName(file);
                     allScripts.Add(item);
@@ -1137,7 +1137,7 @@ namespace ExHyperV.Services
                     {
                         item.IsLocal = false;
                         // 【修改点】：添加“在线”标识
-                        item.Name = string.Format(Properties.Resources.VmGPUService_2, item.Name);
+                        item.Name = string.Format(Properties.Resources.VmGPUService_LogOnline, item.Name);
                         item.SourcePathOrUrl = $"{ScriptBaseUrl}{item.FileName}";
                         allScripts.Add(item);
                     }
