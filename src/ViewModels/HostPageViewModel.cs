@@ -204,7 +204,7 @@ namespace ExHyperV.ViewModels
             {
                 IsSystemSwitchEnabled = false;
 
-                if (SystemSwitcher.HasPendingTask())
+                if (SystemTypeService.HasPendingTask())
                 {
                     ShowSnackbar(Translate("Status_Title_Warning"),
                         Translate("Status_Msg_RestartRequired"),
@@ -216,7 +216,7 @@ namespace ExHyperV.ViewModels
                     return;
                 }
 
-                string result = await Task.Run(() => SystemSwitcher.ExecutePatch(toServer ? 1 : 2));
+                string result = await Task.Run(() => SystemTypeService.ApplySwitch(toServer));
                 if (result == "SUCCESS") ShowRestartPrompt(Translate("Status_Msg_RestartNow"));
                 else
                 {
