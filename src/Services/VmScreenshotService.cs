@@ -4,9 +4,9 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using ExHyperV.Api;
 
-namespace ExHyperV.Tools
+namespace ExHyperV.Services
 {
-    public static class VmScreenshot
+    public static class VmScreenshotService
     {
         private static readonly ConcurrentDictionary<string, string> _vmSettingsPathCache = new();
 

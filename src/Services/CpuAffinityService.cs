@@ -33,7 +33,7 @@ namespace ExHyperV.Services
             }
 
             // Classic/Core 模式：从 HCS CPU Group 中读取
-            var groupIdResp = await HcsApi.GetVmCpuGroupIdAsync(vmId);
+            var groupIdResp = await GetVmCpuGroupIdAsync(vmId);
             if (!groupIdResp.HasData || groupIdResp.Data == Guid.Empty)
                 return new List<int>();
 
@@ -150,6 +150,20 @@ namespace ExHyperV.Services
         {
             var resp = await HcsApi.GetAllCpuGroupsAsync();
             return resp.HasData ? resp.Data : null;
+        }
+
+        /// <summary>
+        /// 读取 VM 当前所属的 CPU Group ID。
+        /// VM↔组的关联存于 WMI（Msvm_ProcessorSettingData.CpuGroupId），读写都走 WmiApi；
+        /// 组本身的增删/列举才走 HcsApi(vmcompute)。返回 Guid.Empty 表示未分配。
+        /// </summary>
+        private async Task<ApiResponse<Guid>> GetVmCpuGroupIdAsync(Guid vmId)
+        {
+            return await WmiApi.QueryFirstAsync(
+                $"SELECT CpuGroupId FROM Msvm_ProcessorSettingData WHERE InstanceID LIKE '%{vmId}%'",
+                obj => (obj["CpuGroupId"] != null &&
+                        Guid.TryParse(obj["CpuGroupId"].ToString(), out Guid g))
+                       ? g : Guid.Empty);
         }
     }
 }

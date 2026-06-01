@@ -2,9 +2,9 @@ using System.Diagnostics;
 using System.Management;
 using ExHyperV.Api;
 
-namespace ExHyperV.Tools;
+namespace ExHyperV.Services;
 
-public static class VmKeyboard
+public static class VmInputService
 {
     /// <summary>
     /// 发送真正的硬件级 Ctrl+Alt+Del

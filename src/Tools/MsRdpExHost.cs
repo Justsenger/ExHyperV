@@ -45,6 +45,10 @@ namespace ExHyperV.Tools
         public event Action? OnRdpConnected;
         public event Action<string>? OnRdpDisconnected;
 
+        // 基本会话下硬件级 Ctrl+Alt+Del 走 WMI 键盘。该操作属业务、由消费方（Views 层）接入 VmInputService，
+        // 控件本身不依赖 Services（避免 Tools→Services 上行依赖）。
+        public Func<string, Task>? SendCtrlAltDelViaWmi;
+
         public void SuspendLayout(bool suspended)
         {
             _isLayoutSuspended = suspended;
@@ -471,7 +475,7 @@ namespace ExHyperV.Tools
                 }
                 catch { }
             }
-            else Task.Run(async () => await VmKeyboard.SendCtrlAltDelAsync(targetVmId));
+            else _ = SendCtrlAltDelViaWmi?.Invoke(targetVmId);
         }
 
         private void StopFastSniffer() { _fastResizeTimer?.Stop(); _fastResizeTimer = null; }

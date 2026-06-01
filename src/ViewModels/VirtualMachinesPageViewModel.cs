@@ -4158,7 +4158,7 @@ namespace ExHyperV.ViewModels
                 // 只有当选中且运行时才更新
                 if (SelectedVm != null && SelectedVm.IsRunning)
                 {
-                    var img = await VmScreenshot.CaptureAsync(SelectedVm.Name, 320, 240);
+                    var img = await VmScreenshotService.CaptureAsync(SelectedVm.Name, 320, 240);
                     if (img != null)
                     {
                         Application.Current.Dispatcher.Invoke(() => SelectedVm.Thumbnail = img);

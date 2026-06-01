@@ -84,40 +84,6 @@ public static class HcsApi
     }
 
     /// <summary>
-    /// 查询指定 VM 当前所属的 CPU Group ID。
-    /// 返回 Guid.Empty 表示未分配。
-    /// </summary>
-    public static Task<ApiResponse<Guid>> GetVmCpuGroupIdAsync(Guid vmId)
-    {
-        return Task.Run(() =>
-        {
-            try
-            {
-                // 通过 WMI 读取 ProcessorSettingData 的 CpuGroupId 属性
-                // 注意：这里只读不写，WMI 部分由调用方（服务层）用 WmiApi 处理
-                string scope = @"root\virtualization\v2";
-                string query = $"SELECT CpuGroupId FROM Msvm_ProcessorSettingData WHERE InstanceID LIKE '%{vmId}%'";
-
-                using var searcher = new System.Management.ManagementObjectSearcher(scope, query);
-                using var collection = searcher.Get();
-                var obj = collection.Cast<System.Management.ManagementObject>().FirstOrDefault();
-
-                if (obj?["CpuGroupId"] != null &&
-                    Guid.TryParse(obj["CpuGroupId"].ToString(), out Guid groupId))
-                {
-                    return ApiResponse<Guid>.Ok(groupId);
-                }
-
-                return ApiResponse<Guid>.Ok(Guid.Empty);
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<Guid>.Fail(ex.Message, -1, ApiErrorSource.Wmi, ex);
-            }
-        });
-    }
-
-    /// <summary>
     /// 创建新的 CPU Group，绑定指定的逻辑处理器集合。
     /// </summary>
     public static Task<ApiResponse> CreateCpuGroupAsync(Guid groupId, uint[] processorIndexes)

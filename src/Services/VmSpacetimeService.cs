@@ -112,7 +112,7 @@ internal class VmSpacetimeService
             var genesisThumbnail = LoadThumbnailFromDisk(snapshotDir, SpacetimeNode.GenesisId);
             if (genesisThumbnail == null)
             {
-                genesisThumbnail = await VmScreenshot.CaptureAsync(vmName, 280, 160);
+                genesisThumbnail = await VmScreenshotService.CaptureAsync(vmName, 280, 160);
                 if (genesisThumbnail != null)
                     await SaveThumbnailToDisk(genesisThumbnail, snapshotDir, SpacetimeNode.GenesisId);
             }
@@ -151,7 +151,7 @@ internal class VmSpacetimeService
             result.AddRange(snapshots);
             result.Add(currentNode);
 
-            currentNode.Thumbnail = await VmScreenshot.CaptureAsync(vmName, 280, 160);
+            currentNode.Thumbnail = await VmScreenshotService.CaptureAsync(vmName, 280, 160);
             _ = Task.Run(async () => await DetectAndMarkWormholeAsync(vmName, result));
 
             return result;
@@ -462,7 +462,7 @@ internal class VmSpacetimeService
         var existingResponse = await WmiApi.QueryAsync(snapshotListWql, obj => obj["InstanceID"]?.ToString() ?? "");
         var existingIds = (existingResponse.Data ?? new List<string>()).ToHashSet();
 
-        BitmapSource? bitmap = externalThumb ?? await VmScreenshot.CaptureAsync(vmName, 280, 160);
+        BitmapSource? bitmap = externalThumb ?? await VmScreenshotService.CaptureAsync(vmName, 280, 160);
         string snapshotName = $"{vmName} - ({DateTime.Now:yyyy/M/d - HH:mm:ss})";
 
         // Production 快照需要 VM 运行中（需要 guest VSS 配合），关机时自动降级为 Standard
@@ -981,7 +981,7 @@ internal class VmSpacetimeService
 
     private async Task<List<SpacetimeNode>> CreateInitialSpacetimeAsync(string vmName, string snapshotDir)
     {
-        var thumb = await VmScreenshot.CaptureAsync(vmName, 280, 160);
+        var thumb = await VmScreenshotService.CaptureAsync(vmName, 280, 160);
         if (thumb != null && !string.IsNullOrEmpty(snapshotDir))
             await SaveThumbnailToDisk(thumb, snapshotDir, SpacetimeNode.GenesisId);
 
