@@ -10,7 +10,6 @@ using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using ExHyperV.Api;
 using ExHyperV.Models;
 using ExHyperV.Services;
 using ExHyperV.Tools;

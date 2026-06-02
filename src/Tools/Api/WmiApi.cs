@@ -1,7 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Management;
 
-namespace ExHyperV.Api;
+namespace ExHyperV.Tools;
 
 // ══════════════════════════════════════════════════════════════════
 //  WMI 命名空间常量

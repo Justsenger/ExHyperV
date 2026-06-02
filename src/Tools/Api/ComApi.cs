@@ -2,7 +2,7 @@
 using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
 
-namespace ExHyperV.Api;
+namespace ExHyperV.Tools;
 
 // ══════════════════════════════════════════════════════════════════
 //  ComApi — 公开封装层

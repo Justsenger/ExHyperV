@@ -1,6 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 
-namespace ExHyperV.Api;
+namespace ExHyperV.Tools;
 
 // ══════════════════════════════════════════════════════════════════
 //  DismApi — DISM 原生 API 封装

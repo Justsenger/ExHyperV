@@ -7,7 +7,6 @@ using ExHyperV.Tools;
 using ExHyperV.Models;
 using System.Runtime.InteropServices;
 using System.Collections.Concurrent;
-using ExHyperV.Api;
 
 namespace ExHyperV.Services
 {

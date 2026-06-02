@@ -1,7 +1,7 @@
 ﻿using System.Net.Sockets;
 using System.Runtime.InteropServices;
 
-namespace ExHyperV.Api;
+namespace ExHyperV.Tools;
 
 // ══════════════════════════════════════════════════════════════════
 //  VmbusApi — 公开封装层

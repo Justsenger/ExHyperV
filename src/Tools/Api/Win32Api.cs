@@ -5,7 +5,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.Win32;
 
-namespace ExHyperV.Api;
+namespace ExHyperV.Tools;
 
 public static class Win32Api
 {

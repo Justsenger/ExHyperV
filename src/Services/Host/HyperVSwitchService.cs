@@ -1,6 +1,5 @@
 ﻿using System.Diagnostics;
 using System.Management;
-using ExHyperV.Api;
 using ExHyperV.Models;
 using ExHyperV.Tools;
 

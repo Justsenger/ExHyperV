@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace ExHyperV.Api;
+namespace ExHyperV.Tools;
 
 // ══════════════════════════════════════════════════════════════════
 //  HCS 数据模型

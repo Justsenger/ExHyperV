@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics;
 
-namespace ExHyperV.Api;
+namespace ExHyperV.Tools;
 
 // ══════════════════════════════════════════════════════════════════
 //  错误来源枚举
