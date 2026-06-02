@@ -2,9 +2,9 @@ using System.IO;
 using System.Text.RegularExpressions;
 using System.Windows;
 
-namespace ExHyperV.Services
+namespace ExHyperV.Tools
 {
-    public class PciInfoService
+    public class PciIds
     {
 
         private readonly Uri _pciResourceUri = new Uri("/assets/pci.ids", UriKind.Relative);
@@ -12,7 +12,7 @@ namespace ExHyperV.Services
         private Dictionary<string, string> _vendorDatabase;
         private bool _isInitialized = false;
 
-        public PciInfoService() { }
+        public PciIds() { }
 
         public async Task EnsureInitializedAsync()
         {

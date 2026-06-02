@@ -99,7 +99,7 @@ namespace ExHyperV.Services
         #region 硬件信息与虚拟机查询
         public async Task<List<GPUInfo>> GetHostGpusAsync()
         {
-            var pciInfoProvider = new PciInfoService();
+            var pciInfoProvider = new PciIds();
             await pciInfoProvider.EnsureInitializedAsync();
 
             var gpuList = new List<GPUInfo>();
@@ -372,7 +372,7 @@ namespace ExHyperV.Services
 
                         if (hostDiskNumber != -1)
                         {
-                            var diskParser = new DiskParserService();
+                            var diskParser = new DiskParser();
                             var devicePath = $@"\\.\PhysicalDrive{hostDiskNumber}";
                             var partitions = diskParser.GetPartitions(devicePath);
 

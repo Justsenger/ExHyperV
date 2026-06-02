@@ -5,9 +5,9 @@ using System.Linq;
 using System.Diagnostics;
 using ExHyperV.Models;
 
-namespace ExHyperV.Services
+namespace ExHyperV.Tools
 {
-    public class DiskParserService
+    public class DiskParser
     {
         private static readonly Guid WindowsBasicDataGuid = new Guid("EBD0A0A2-B9E5-4433-87C0-68B6B72699C7");
         private static readonly Guid LinuxFileSystemGuid = new Guid("0FC63DAF-8483-4772-8E79-3D69D8477DE4");

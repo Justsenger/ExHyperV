@@ -26,7 +26,7 @@ namespace ExHyperV.Services
 
             await Task.Run(async () =>
             {
-                var pciInfoProvider = new PciInfoService();
+                var pciInfoProvider = new PciIds();
                 await pciInfoProvider.EnsureInitializedAsync();
 
                 try
