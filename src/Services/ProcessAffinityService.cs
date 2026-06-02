@@ -3,7 +3,7 @@ using System.Management;
 
 namespace ExHyperV.Services
 {
-    public static class ProcessAffinityManager
+    public static class ProcessAffinityService
     {
         /// <summary>
         /// 根据虚拟机的 GUID，通过查询用户名为该 GUID 的 vmmem 进程来查找其内存进程。

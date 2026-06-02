@@ -189,25 +189,25 @@ namespace ExHyperV.Services
             catch { return false; }
         }
 
-        public async Task<List<VmInfo>> GetRunningVMsAsync()
+        public async Task<List<UsbTargetVm>> GetRunningVMsAsync()
         {
             var resp = await WmiApi.QueryAsync(
                 "SELECT Name, ElementName FROM Msvm_ComputerSystem WHERE EnabledState = 2 AND Name <> ElementName",
-                obj => new VmInfo
+                obj => new UsbTargetVm
                 {
                     Name = obj["ElementName"]?.ToString() ?? "",
                     Id = Guid.TryParse(obj["Name"]?.ToString(), out var g) ? g : Guid.Empty
                 },
                 WmiScope.HyperV);
 
-            return (resp.Data ?? new List<VmInfo>())
+            return (resp.Data ?? new List<UsbTargetVm>())
                 .Where(v => !string.IsNullOrEmpty(v.Name) && v.Id != Guid.Empty)
                 .ToList();
         }
 
-        public async Task<List<UsbDeviceModel>> GetUsbIpDevicesAsync()
+        public async Task<List<UsbDevice>> GetUsbIpDevicesAsync()
         {
-            var list = new List<UsbDeviceModel>();
+            var list = new List<UsbDevice>();
             try
             {
                 var psi = new ProcessStartInfo("usbipd", "list")
@@ -228,7 +228,7 @@ namespace ExHyperV.Services
                     {
                         var m = Regex.Match(line.Trim(), @"^([0-9\-.]+)\s+([0-9a-fA-F:]+)\s+(.*?)\s{2,}");
                         if (m.Success)
-                            list.Add(new UsbDeviceModel
+                            list.Add(new UsbDevice
                             {
                                 BusId = m.Groups[1].Value.Trim(),
                                 VidPid = m.Groups[2].Value.Trim(),

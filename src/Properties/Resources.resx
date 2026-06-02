@@ -14,7 +14,7 @@
     
     ... ado.net/XML headers & schema ...
     <resheader name="resmimetype">text/microsoft-resx</resheader>
-    <resheader name="version">2.0</resheader>
+    <resheader name="Label_Version">2.0</resheader>
     <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
     <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
     <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
@@ -108,7 +108,7 @@
   <resheader name="resmimetype">
     <value>text/microsoft-resx</value>
   </resheader>
-  <resheader name="version">
+  <resheader name="Label_Version">
     <value>2.0</value>
   </resheader>
   <resheader name="reader">
@@ -120,28 +120,28 @@
   <data name="Assignabledevices" xml:space="preserve">
     <value>Assignable devices</value>
   </data>
-  <data name="attention" xml:space="preserve">
+  <data name="Common_Attention" xml:space="preserve">
     <value>Attention</value>
   </data>
-  <data name="attentionwords" xml:space="preserve">
+  <data name="Warning_DdaAssignment" xml:space="preserve">
     <value>Improperly assigning devices can cause system instability. Please proceed with caution.</value>
   </data>
-  <data name="refresh" xml:space="preserve">
+  <data name="Btn_Refresh" xml:space="preserve">
     <value>Refresh</value>
   </data>
-  <data name="exhyperv" xml:space="preserve">
+  <data name="App_Tagline" xml:space="preserve">
     <value>Easily use Hyper-V advanced features</value>
   </data>
-  <data name="systeminfo" xml:space="preserve">
+  <data name="Section_System" xml:space="preserve">
     <value>System</value>
   </data>
-  <data name="version" xml:space="preserve">
+  <data name="Label_Version" xml:space="preserve">
     <value>Version</value>
   </data>
-  <data name="arch" xml:space="preserve">
+  <data name="Label_Architecture" xml:space="preserve">
     <value>Architecture</value>
   </data>
-  <data name="model" xml:space="preserve">
+  <data name="Label_Cpu" xml:space="preserve">
     <value>CPU</value>
   </data>
   <data name="Memorycapacity" xml:space="preserve">
@@ -153,22 +153,22 @@
   <data name="DdaService_SetShutdownToTurnOff" xml:space="preserve">
     <value>Change VM shutdown action to Hard Turn Off...</value>
   </data>
-  <data name="kind" xml:space="preserve">
+  <data name="Label_Class" xml:space="preserve">
     <value>Class</value>
   </data>
   <data name="Instanceid" xml:space="preserve">
     <value>InstanceId</value>
   </data>
-  <data name="path" xml:space="preserve">
+  <data name="Label_Path" xml:space="preserve">
     <value>Path</value>
   </data>
-  <data name="removed" xml:space="preserve">
+  <data name="Status_Dismounted" xml:space="preserve">
     <value>#Dismounted</value>
   </data>
-  <data name="mounting" xml:space="preserve">
+  <data name="Status_MountingDevice" xml:space="preserve">
     <value>Mounting device...</value>
   </data>
-  <data name="cpucache" xml:space="preserve">
+  <data name="Action_EnableCpuCacheControl" xml:space="preserve">
     <value>Enable virtual machines to manage CPU cache...</value>
   </data>
   <data name="Disabledevice" xml:space="preserve">
@@ -177,67 +177,64 @@
   <data name="Dismountdevice" xml:space="preserve">
     <value>Dismounting devices...</value>
   </data>
-  <data name="none" xml:space="preserve">
-    <value>None</value>
-  </data>
-  <data name="manu" xml:space="preserve">
+  <data name="Label_Manufacturer" xml:space="preserve">
     <value>Manufacturer</value>
   </data>
-  <data name="uninstall" xml:space="preserve">
+  <data name="Btn_Uninstall" xml:space="preserve">
     <value>Uninstall</value>
   </data>
-  <data name="cancel" xml:space="preserve">
+  <data name="Btn_Cancel" xml:space="preserve">
     <value>Cancel</value>
   </data>
-  <data name="sure" xml:space="preserve">
+  <data name="Btn_Confirm" xml:space="preserve">
     <value>Confirm</value>
   </data>
   <data name="Settings" xml:space="preserve">
     <value>Settings</value>
   </data>
-  <data name="theme" xml:space="preserve">
+  <data name="Theme_Title" xml:space="preserve">
     <value>Application Theme</value>
   </data>
-  <data name="switchtheme" xml:space="preserve">
+  <data name="Theme_Switch" xml:space="preserve">
     <value>Switch between light/dark mode</value>
   </data>
-  <data name="light" xml:space="preserve">
+  <data name="Theme_Light" xml:space="preserve">
     <value>Light</value>
   </data>
-  <data name="dark" xml:space="preserve">
+  <data name="Theme_Dark" xml:space="preserve">
     <value>Dark</value>
   </data>
-  <data name="language" xml:space="preserve">
+  <data name="Lang_Title" xml:space="preserve">
     <value>Language</value>
   </data>
-  <data name="reboot" xml:space="preserve">
+  <data name="Lang_RestartHint" xml:space="preserve">
     <value>Changing the language will restart the application</value>
   </data>
-  <data name="about" xml:space="preserve">
+  <data name="About_Title" xml:space="preserve">
     <value>About</value>
   </data>
-  <data name="report" xml:space="preserve">
+  <data name="About_FeedbackLink" xml:space="preserve">
     <value>Report or feedback</value>
   </data>
-  <data name="github" xml:space="preserve">
+  <data name="About_ViewCode" xml:space="preserve">
     <value>View Code</value>
   </data>
   <data name="Main" xml:space="preserve">
     <value>Home</value>
   </data>
-  <data name="complisetting" xml:space="preserve">
+  <data name="Section_Host" xml:space="preserve">
     <value>Host</value>
   </data>
   <data name="DDA" xml:space="preserve">
     <value>PCIe Passthrough</value>
   </data>
-  <data name="enabling" xml:space="preserve">
+  <data name="Status_EnablingDevice" xml:space="preserve">
     <value>Enabling device...</value>
   </data>
-  <data name="error" xml:space="preserve">
+  <data name="Error_Title" xml:space="preserve">
     <value>Error</value>
   </data>
-  <data name="servererror" xml:space="preserve">
+  <data name="Error_NotServerForDda" xml:space="preserve">
     <value>The host system is not a server version, and the virtual machine with the PCIe Passthrough device added will not be able to start!</value>
   </data>
   <data name="VirtualSwitchList" xml:space="preserve">
@@ -307,7 +304,7 @@ Do you want to shut down the virtual machine and expand its MMIO space to 64GB?<
   <data name="Error_DeleteSwitchFailed" xml:space="preserve">
     <value>Failed to delete switch '{0}'.</value>
   </data>
-  <data name="create" xml:space="preserve">
+  <data name="Btn_Create" xml:space="preserve">
     <value>Create</value>
   </data>
   <data name="AddSwitch_DefaultName_External" xml:space="preserve">
@@ -1984,7 +1981,7 @@ The existing NAT switch is: '{0}'</value>
   <data name="Label_UsbPassthrough" xml:space="preserve">
     <value>USB Passthrough</value>
   </data>
-  <data name="UsbDeviceModel_Host" xml:space="preserve">
+  <data name="UsbDevice_Host" xml:space="preserve">
     <value>Host</value>
   </data>
   <data name="DiskParser_LogSector512" xml:space="preserve">
@@ -2362,25 +2359,25 @@ The existing NAT switch is: '{0}'</value>
   <data name="VmSpacetimeService_LogCleanScreenFailed" xml:space="preserve">
     <value>[Spacetime] Failed to clean screenshot: {0}</value>
   </data>
-  <data name="MMIOOptimizer_LogFinalResult" xml:space="preserve">
+  <data name="VmMmio_LogFinalResult" xml:space="preserve">
     <value>[MMIO] Final calculation result:</value>
   </data>
-  <data name="MMIOOptimizer_LogConfigApplied" xml:space="preserve">
+  <data name="VmMmio_LogConfigApplied" xml:space="preserve">
     <value>[MMIO] Final configuration applied successfully.</value>
   </data>
-  <data name="MMIOOptimizer_LogError" xml:space="preserve">
+  <data name="VmMmio_LogError" xml:space="preserve">
     <value>[MMIO] Error: {0}</value>
   </data>
-  <data name="SystemSwitcher_ErrInsufficientPermissions" xml:space="preserve">
+  <data name="SystemType_ErrInsufficientPermissions" xml:space="preserve">
     <value>Insufficient permissions</value>
   </data>
-  <data name="SystemSwitcher_ErrExportFailed" xml:space="preserve">
+  <data name="SystemType_ErrExportFailed" xml:space="preserve">
     <value>Export failed: {0}</value>
   </data>
-  <data name="SystemSwitcher_ErrOfflineModFailed" xml:space="preserve">
+  <data name="SystemType_ErrOfflineModFailed" xml:space="preserve">
     <value>Offline modification failed</value>
   </data>
-  <data name="SystemSwitcher_ErrReplaceFailed" xml:space="preserve">
+  <data name="SystemType_ErrReplaceFailed" xml:space="preserve">
     <value>Replacement failed: {0}</value>
   </data>
   <data name="VmPage_MemTrackEnable" xml:space="preserve">
@@ -2736,5 +2733,47 @@ The existing NAT switch is: '{0}'</value>
   </data>
   <data name="Status_Title_Warning" xml:space="preserve">
     <value>Warning</value>
+  </data>
+  <data name="Error_VmCreate_NoSystemPath" xml:space="preserve">
+    <value>DefineSystem did not return VM path</value>
+  </data>
+  <data name="Error_VmCreate_NoGuid" xml:space="preserve">
+    <value>Failed to get GUID of newly created VM</value>
+  </data>
+  <data name="Error_VmCreate_NoGuardian" xml:space="preserve">
+    <value>Failed to get or create UntrustedGuardian</value>
+  </data>
+  <data name="Error_VmCreate_NoKeyProtector" xml:space="preserve">
+    <value>Failed to generate local KeyProtector</value>
+  </data>
+  <data name="Error_VmCreate_NoSecuritySettings" xml:space="preserve">
+    <value>Failed to find SecuritySettingData for VM</value>
+  </data>
+  <data name="Error_VmCreate_NoSecurityService" xml:space="preserve">
+    <value>Failed to find Msvm_SecurityService</value>
+  </data>
+  <data name="Error_VmCreate_SetKeyProtectorFail" xml:space="preserve">
+    <value>SetKeyProtector failed, return code: {0}</value>
+  </data>
+  <data name="Error_VmCreate_ModifySecuritySettingsFail" xml:space="preserve">
+    <value>ModifySecuritySettings failed, return code: {0}</value>
+  </data>
+  <data name="Error_VmCreate_TpmJobFail" xml:space="preserve">
+    <value>TPM Job failed, state: {0}</value>
+  </data>
+  <data name="Msg_Dda_ShuttingDownVm" xml:space="preserve">
+    <value>Shutting down virtual machine...</value>
+  </data>
+  <data name="Error_Dda_CannotShutdownVm" xml:space="preserve">
+    <value>Cannot shut down virtual machine, operation aborted.</value>
+  </data>
+  <data name="Label_VlanId" xml:space="preserve">
+    <value>VLAN ID</value>
+  </data>
+  <data name="Usb_BusLabel" xml:space="preserve">
+    <value>Bus:</value>
+  </data>
+  <data name="Usb_IdLabel" xml:space="preserve">
+    <value>  ID:</value>
   </data>
 </root>

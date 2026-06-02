@@ -49,7 +49,7 @@
                 </ui:NavigationViewItem>
 
                 <ui:NavigationViewItem
-                    Content="{x:Static properties:Resources.complisetting}"
+                    Content="{x:Static properties:Resources.Section_Host}"
                     NavigationCacheMode="Enabled"
                     TargetPageType="{x:Type pages:HostPage}">
                     <ui:NavigationViewItem.Icon>

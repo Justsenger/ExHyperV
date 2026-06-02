@@ -92,7 +92,7 @@ namespace ExHyperV.ViewModels
 
         public SettingsViewModel()
         {
-            AvailableThemes = new List<string> { Resources.light, Resources.dark };
+            AvailableThemes = new List<string> { Resources.Theme_Light, Resources.Theme_Dark };
             AvailableLanguages = new List<string> { Properties.Resources.Lang_Chinese, "English" };
 
             LoadCurrentSettings();

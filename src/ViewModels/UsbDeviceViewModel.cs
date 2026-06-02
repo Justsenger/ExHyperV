@@ -1,25 +1,13 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
+using ExHyperV.Models;
 
-namespace ExHyperV.Models
+namespace ExHyperV.ViewModels
 {
-    // 虚拟机基础信息
-    public class VmInfo
-    {
-        public string Name { get; set; }
-        public Guid Id { get; set; }
-    }
-
-    // USB 设备原始数据模型
-    public class UsbDeviceModel
-    {
-        public string BusId { get; set; }
-        public string VidPid { get; set; }
-        public string Description { get; set; }
-        public string Status { get; set; }
-    }
-
-    // USB 设备视图模型 - 修复后的版本
+    /// <summary>
+    /// USB 设备的 item-level ViewModel：包装一份 <see cref="UsbDevice"/> Model，
+    /// 并维护当前分配目标（Host 或某个运行中 VM 名）+ 下拉框选项。
+    /// </summary>
     public partial class UsbDeviceViewModel : ObservableObject
     {
         // BusId 是硬件标识，通常不会变，保持只读
@@ -30,19 +18,19 @@ namespace ExHyperV.Models
         [ObservableProperty] private string _description;
         [ObservableProperty] private string _status;
 
-        // 当前分配目标 (如: Properties.Resources.UsbDeviceModel_Host 或 虚拟机名称)
+        // 当前分配目标 (如: Properties.Resources.UsbDevice_Host 或 虚拟机名称)
         [ObservableProperty] private string _currentAssignment;
 
         // 分配选项列表 - 改为 ObservableCollection 以支持动态更新下拉框内容
         public ObservableCollection<string> AssignmentOptions { get; } = new();
 
-        public UsbDeviceViewModel(UsbDeviceModel model, List<string> runningVmNames)
+        public UsbDeviceViewModel(UsbDevice model, List<string> runningVmNames)
         {
             BusId = model.BusId;
             VidPid = model.VidPid;
             Description = model.Description;
             Status = model.Status;
-            _currentAssignment = Properties.Resources.UsbDeviceModel_Host;
+            _currentAssignment = Properties.Resources.UsbDevice_Host;
 
             UpdateOptions(runningVmNames);
         }
@@ -55,7 +43,7 @@ namespace ExHyperV.Models
 
             // 更新列表内容
             AssignmentOptions.Clear();
-            AssignmentOptions.Add(Properties.Resources.UsbDeviceModel_Host);
+            AssignmentOptions.Add(Properties.Resources.UsbDevice_Host);
             foreach (var name in runningVmNames)
             {
                 AssignmentOptions.Add(name);
@@ -65,7 +53,7 @@ namespace ExHyperV.Models
             if (AssignmentOptions.Contains(current))
                 CurrentAssignment = current;
             else
-                CurrentAssignment = Properties.Resources.UsbDeviceModel_Host;
+                CurrentAssignment = Properties.Resources.UsbDevice_Host;
         }
     }
 }

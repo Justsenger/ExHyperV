@@ -29,7 +29,7 @@ namespace ExHyperV.Services
 
             if (scheduler == HyperVSchedulerType.Root)
             {
-                return await Task.Run(() => ProcessAffinityManager.GetVmProcessAffinity(vmId));
+                return await Task.Run(() => ProcessAffinityService.GetVmProcessAffinity(vmId));
             }
 
             // Classic/Core 模式：从 HCS CPU Group 中读取
@@ -67,7 +67,7 @@ namespace ExHyperV.Services
                     return false;
                 }
 
-                await Task.Run(() => ProcessAffinityManager.SetVmProcessAffinity(vmId, coreIndices));
+                await Task.Run(() => ProcessAffinityService.SetVmProcessAffinity(vmId, coreIndices));
                 return true;
             }
             else

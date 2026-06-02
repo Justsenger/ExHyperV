@@ -75,15 +75,15 @@ namespace ExHyperV.ViewModels
         // ----------------------------------------------------------------------------------
         // 视图模型属性 - 虚拟机列表与选择
         // ----------------------------------------------------------------------------------
-        [ObservableProperty] private ObservableCollection<VmInstanceInfo> _vmList = new();
-        [ObservableProperty] private VmInstanceInfo _selectedVm;
+        [ObservableProperty] private ObservableCollection<VmInstanceViewModel> _vmList = new();
+        [ObservableProperty] private VmInstanceViewModel _selectedVm;
         [ObservableProperty] private BitmapSource? _thumbnail;
 
         // ----------------------------------------------------------------------------------
         // 视图模型属性 - CPU 设置
         // ----------------------------------------------------------------------------------
         public ObservableCollection<int> PossibleVCpuCounts { get; private set; }
-        [ObservableProperty] private ObservableCollection<VmCoreModel> _affinityHostCores;
+        [ObservableProperty] private ObservableCollection<VmCoreItem> _affinityHostCores;
         [ObservableProperty] private int _affinityColumns = 8;
         [ObservableProperty] private int _affinityRows = 1;
 
@@ -214,7 +214,7 @@ namespace ExHyperV.ViewModels
             var view = CollectionViewSource.GetDefaultView(VmList);
             if (view != null)
             {
-                view.Filter = item => (item is VmInstanceInfo vm) && (string.IsNullOrEmpty(value) || vm.Name.Contains(value, StringComparison.OrdinalIgnoreCase));
+                view.Filter = item => (item is VmInstanceViewModel vm) && (string.IsNullOrEmpty(value) || vm.Name.Contains(value, StringComparison.OrdinalIgnoreCase));
                 view.Refresh();
             }
         }
@@ -293,7 +293,7 @@ namespace ExHyperV.ViewModels
 
         // 1. 触发重命名模式
         [RelayCommand]
-        private void RenameVm(VmInstanceInfo vm)
+        private void RenameVm(VmInstanceViewModel vm)
         {
             if (vm == null) return;
             vm.StartEditing();
@@ -301,14 +301,14 @@ namespace ExHyperV.ViewModels
 
         // 2. 取消重命名
         [RelayCommand]
-        private void CancelRename(VmInstanceInfo vm)
+        private void CancelRename(VmInstanceViewModel vm)
         {
             if (vm == null) return;
             vm.IsEditing = false;
         }
 
         [RelayCommand]
-        private async Task CommitRenameAsync(VmInstanceInfo vm)
+        private async Task CommitRenameAsync(VmInstanceViewModel vm)
         {
             if (vm == null || !vm.IsEditing) return;
             vm.IsEditing = false;
@@ -478,7 +478,7 @@ namespace ExHyperV.ViewModels
                 var switches = await _vmNetworkService.GetAvailableSwitchesAsync();
 
                 // 创建一个临时的列表，第一项放“未连接”
-                string noneText = Properties.Resources.none; // “未连接”的文本
+                string noneText = Properties.Resources.Common_None; // “未连接”的文本
                 var switchList = new List<string> { noneText };
                 if (switches != null) switchList.AddRange(switches);
 
@@ -508,7 +508,7 @@ namespace ExHyperV.ViewModels
             catch (Exception ex)
             {
                 // 如果报错（比如宿主没装 Hyper-V 网络组件），至少保证有一个“未连接”可选
-                AvailableSwitchNames = new ObservableCollection<string> { Properties.Resources.none };
+                AvailableSwitchNames = new ObservableCollection<string> { Properties.Resources.Common_None };
                 NewVmSelectedSwitch = AvailableSwitchNames[0];
                 Debug.WriteLine($"[CREATE-VM-NET-ERROR] {ex.Message}");
             }
@@ -728,7 +728,7 @@ namespace ExHyperV.ViewModels
         // ----------------------------------------------------------------------------------
 
         [RelayCommand]
-        private void OpenVmFolder(VmInstanceInfo vm)
+        private void OpenVmFolder(VmInstanceViewModel vm)
         {
             if (vm == null) return;
             try
@@ -759,7 +759,7 @@ namespace ExHyperV.ViewModels
         }
 
         [RelayCommand]
-        private async Task DeleteVmAsync(VmInstanceInfo vm)
+        private async Task DeleteVmAsync(VmInstanceViewModel vm)
         {
             if (vm == null) return;
             IsLoading = true;
@@ -784,7 +784,7 @@ namespace ExHyperV.ViewModels
         }
 
         [RelayCommand]
-        private async Task PurgeVmAsync(VmInstanceInfo vm)
+        private async Task PurgeVmAsync(VmInstanceViewModel vm)
         {
             if (vm == null) return;
 
@@ -892,7 +892,7 @@ namespace ExHyperV.ViewModels
             finally { IsLoading = false; }
         }
         // 当选中的虚拟机发生变化时重置视图
-        partial void OnSelectedVmChanged(VmInstanceInfo value)
+        partial void OnSelectedVmChanged(VmInstanceViewModel value)
         {
             if (value != null)
             {
@@ -905,7 +905,7 @@ namespace ExHyperV.ViewModels
             HostDisks.Clear();
         }
 
-        private async Task RefreshBootOrderForSelectedVmAsync(VmInstanceInfo vm)
+        private async Task RefreshBootOrderForSelectedVmAsync(VmInstanceViewModel vm)
         {
             if (vm == null) return;
             try
@@ -930,27 +930,11 @@ namespace ExHyperV.ViewModels
             }
         }
 
-        private VmInstanceInfo CreateVmInstance(ExHyperV.Models.VmInstanceInfo vm)
+        // 把 Service 返回的 VmInstance(Model) 包成 live VM，并接上电源控制命令。
+        // VmInstanceViewModel 构造函数已经从 Model 拷贝所有标量/集合（pass-through），无需重复 init。
+        private VmInstanceViewModel CreateVmInstance(VmInstance snapshot)
         {
-            var instance = new VmInstanceInfo(vm.Id, vm.Name)
-            {
-                OsType = vm.OsType,
-                CpuCount = vm.CpuCount,
-                MemoryGb = vm.MemoryGb,
-                Notes = vm.Notes,
-                Generation = vm.Generation,
-                Version = vm.Version,
-                GpuName = vm.GpuName
-            };
-
-            foreach (var disk in vm.Disks) instance.Disks.Add(disk);
-            if (vm.NetworkAdapters != null)
-            {
-                foreach (var net in vm.NetworkAdapters) instance.NetworkAdapters.Add(net);
-            }
-
-            instance.SyncBackendData(vm.State, vm.RawUptime);
-            instance.IpAddress = vm.IpAddress;
+            var instance = new VmInstanceViewModel(snapshot);
 
             // 绑定电源控制命令 (必须绑定，否则新发现的 VM 按钮无效)
             instance.ControlCommand = new AsyncRelayCommand<string>(async (action) => {
@@ -988,54 +972,11 @@ namespace ExHyperV.ViewModels
             {
                 var finalCollection = await Task.Run(async () => {
                     var vms = await _queryService.GetVmListAsync();
-                    var list = new ObservableCollection<VmInstanceInfo>();
-                    foreach (var vm in vms)
+                    var list = new ObservableCollection<VmInstanceViewModel>();
+                    foreach (var snapshot in vms)
                     {
-                        if (string.IsNullOrWhiteSpace(vm.Name)) continue;
-
-                        var instance = new VmInstanceInfo(vm.Id, vm.Name)
-                        {
-                            OsType = vm.OsType,
-                            CpuCount = vm.CpuCount,
-                            MemoryGb = vm.MemoryGb,
-                            Notes = vm.Notes,
-                            Generation = vm.Generation,
-                            Version = vm.Version,
-                            GpuName = vm.GpuName
-                        };
-
-                        foreach (var disk in vm.Disks) instance.Disks.Add(disk);
-
-                        instance.SyncBackendData(vm.State, vm.RawUptime);
-
-                        // 绑定电源控制命令
-                        instance.ControlCommand = new AsyncRelayCommand<string>(async (action) => {
-                            instance.SetTransientState(GetOptimisticText(action));
-                            try
-                            {
-                                await _powerService.ExecuteControlActionAsync(instance.Name, action);
-                                await SyncSingleVmStateAsync(instance);
-                                if (action == "Start" || action == "Restart")
-                                {
-                                    TryApplyAffinityForRootScheduler(instance);
-                                }
-                            }
-                            catch (Exception ex)
-                            {
-                                Application.Current.Dispatcher.Invoke(() => instance.ClearTransientState());
-                                var realEx = ex;
-                                while (realEx.InnerException != null) { realEx = realEx.InnerException; }
-                                ShowSnackbar(Properties.Resources.Error_Common_OpFail, Utils.GetFriendlyErrorMessages(realEx.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
-                            }
-                        });
-
-                        if (vm.NetworkAdapters != null)
-                        {
-                            foreach (var net in vm.NetworkAdapters) instance.NetworkAdapters.Add(net);
-                        }
-
-                        instance.IpAddress = vm.IpAddress;
-                        list.Add(instance);
+                        if (string.IsNullOrWhiteSpace(snapshot.Name)) continue;
+                        list.Add(CreateVmInstance(snapshot));
                     }
                     return list;
                 });
@@ -1050,14 +991,14 @@ namespace ExHyperV.ViewModels
                 // 配置排序规则
                 var view = CollectionViewSource.GetDefaultView(VmList);
                 view.SortDescriptions.Clear();
-                view.SortDescriptions.Add(new SortDescription(nameof(VmInstanceInfo.IsRunning), ListSortDirection.Descending));
-                view.SortDescriptions.Add(new SortDescription(nameof(VmInstanceInfo.Name), ListSortDirection.Ascending));
+                view.SortDescriptions.Add(new SortDescription(nameof(VmInstanceViewModel.IsRunning), ListSortDirection.Descending));
+                view.SortDescriptions.Add(new SortDescription(nameof(VmInstanceViewModel.Name), ListSortDirection.Ascending));
 
                 // 开启实时排序
                 if (view is System.ComponentModel.ICollectionViewLiveShaping liveView)
                 {
                     liveView.IsLiveSorting = true;
-                    liveView.LiveSortingProperties.Add(nameof(VmInstanceInfo.IsRunning));
+                    liveView.LiveSortingProperties.Add(nameof(VmInstanceViewModel.IsRunning));
                 }
 
                 if (SelectedVm == null || !VmList.Any(x => x.Name == SelectedVm.Name))
@@ -1177,8 +1118,8 @@ namespace ExHyperV.ViewModels
                     var updates = await _queryService.GetVmListAsync();
                     var memoryMap = await _queryService.GetVmRuntimeMemoryDataAsync();
 
-                    await _queryService.UpdateDiskPerformanceAsync(VmList);
-                    var gpuUsageMap = await _queryService.GetGpuPerformanceAsync(VmList);
+                    await _queryService.UpdateDiskPerformanceAsync(VmList.Select(v => v.Model));
+                    var gpuUsageMap = await _queryService.GetGpuPerformanceAsync(VmList.Select(v => v.Model));
 
                     Application.Current.Dispatcher.Invoke(() => {
                         bool needsResort = false;
@@ -1235,39 +1176,13 @@ namespace ExHyperV.ViewModels
                                     }
                                 }
 
-                                // 1. 如果名字变了且没有被锁定，更新名字
-                                if (!skipNameUpdate)
-                                {
-                                    if (vm.Name != update.Name) vm.Name = update.Name;
-                                }
-
-                                // 2. 同步配置信息 (CPU 和 内存) - 这些不受名字锁定影响，正常同步
-                                if (vm.CpuCount != update.CpuCount)
-                                    vm.CpuCount = update.CpuCount;
-
-                                if (vm.MemoryGb != update.MemoryGb)
-                                    vm.MemoryGb = update.MemoryGb;
-
-                                // 如果你的 ConfigSummary 还依赖代数或版本，建议也同步一下
-                                if (vm.Generation != update.Generation)
-                                    vm.Generation = update.Generation;
-
-                                if (vm.Version != update.Version)
-                                    vm.Version = update.Version;
-
+                                // 把 fresh model 数据合入 vm（标量/transient state/网络适配器/磁盘/GPU 摘要）
                                 bool wasRunning = vm.IsRunning;
-                                vm.Notes = update.Notes;
-
-                                vm.SyncBackendData(update.State, update.RawUptime);
-
-                                // 如果状态从关机变开机（或反之），需要重新排序
+                                bool skipNetworkAdapters = CurrentViewType == VmDetailViewType.NetworkSettings || IsLoadingSettings;
+                                vm.Apply(update, skipNameUpdate, skipNetworkAdapters);
                                 if (wasRunning != vm.IsRunning) needsResort = true;
 
-                                if (CurrentViewType != VmDetailViewType.NetworkSettings && !IsLoadingSettings)
-                                {
-                                    SyncNetworkAdaptersInternal(vm.NetworkAdapters, update.NetworkAdapters.ToList());
-                                }
-
+                                // PageVM-only side effect 1：运行时从适配器收集 IP / ARP 兜底发现
                                 if (vm.IsRunning)
                                 {
                                     var allIps = vm.NetworkAdapters.SelectMany(a => a.IpAddresses ?? new List<string>())
@@ -1294,52 +1209,9 @@ namespace ExHyperV.ViewModels
                                         }
                                     }
                                 }
-                                else
-                                {
-                                    vm.IpAddress = "---";
-                                }
+                                // Apply 已处理 !IsRunning 时 vm.IpAddress = "---"
 
-                                // --- 磁盘同步逻辑 ---
-                                var updatePaths = update.Disks.Select(d => d.Path).ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-                                for (int i = vm.Disks.Count - 1; i >= 0; i--)
-                                {
-                                    if (!updatePaths.Contains(vm.Disks[i].Path))
-                                        vm.Disks.RemoveAt(i);
-                                }
-
-                                foreach (var newDiskData in update.Disks)
-                                {
-                                    var existingDisk = vm.Disks.FirstOrDefault(d => d.Path.Equals(newDiskData.Path, StringComparison.OrdinalIgnoreCase));
-                                    if (existingDisk != null)
-                                    {
-                                        existingDisk.Name = newDiskData.Name;
-                                        existingDisk.MaxSize = newDiskData.MaxSize;
-                                        existingDisk.DiskType = newDiskData.DiskType;
-
-                                        if (vm.IsRunning && existingDisk.DiskType != "Physical" && File.Exists(existingDisk.Path))
-                                        {
-                                            try
-                                            {
-                                                long realSizeBytes = new FileInfo(existingDisk.Path).Length;
-                                                if (existingDisk.CurrentSize != realSizeBytes)
-                                                    existingDisk.CurrentSize = realSizeBytes;
-                                            }
-                                            catch { }
-                                        }
-                                        else
-                                        {
-                                            existingDisk.CurrentSize = newDiskData.CurrentSize;
-                                        }
-                                    }
-                                    else
-                                    {
-                                        vm.Disks.Add(newDiskData);
-                                    }
-                                }
-
-                                vm.GpuName = update.GpuName;
-
+                                // PageVM-only side effect 2：从 memoryMap 应用动态内存数据
                                 if (memoryMap.TryGetValue(vm.Id.ToString(), out var memData))
                                     vm.UpdateMemoryStatus(memData.AssignedMb, memData.AvailablePercent);
                                 else if (memoryMap.TryGetValue(vm.Id.ToString().ToUpper(), out var memDataUpper))
@@ -1364,7 +1236,7 @@ namespace ExHyperV.ViewModels
 
                     if (SelectedVm != null && SelectedVm.IsRunning)
                     {
-                        await _storageService.RefreshVirtualDiskSizesAsync(SelectedVm);
+                        await _storageService.RefreshVirtualDiskSizesAsync(SelectedVm.Model);
                     }
 
                     await Task.Delay(2000, token);
@@ -1377,7 +1249,7 @@ namespace ExHyperV.ViewModels
                 }
             }
         }        // 同步单个虚拟机的最新状态
-        private async Task SyncSingleVmStateAsync(VmInstanceInfo vm)
+        private async Task SyncSingleVmStateAsync(VmInstanceViewModel vm)
         {
             try
             {
@@ -1385,14 +1257,7 @@ namespace ExHyperV.ViewModels
                 var freshData = allVms.FirstOrDefault(x => x.Name == vm.Name);
                 if (freshData != null)
                 {
-                    Application.Current.Dispatcher.Invoke(() => {
-                        vm.SyncBackendData(freshData.State, freshData.RawUptime);
-                        vm.Disks.Clear();
-                        foreach (var disk in freshData.Disks) vm.Disks.Add(disk);
-                        vm.Generation = freshData.Generation;
-                        vm.Version = freshData.Version;
-                        vm.GpuName = freshData.GpuName;
-                    });
+                    Application.Current.Dispatcher.Invoke(() => vm.Apply(freshData));
                 }
             }
             catch { }
@@ -1400,8 +1265,8 @@ namespace ExHyperV.ViewModels
 
         // 处理 CPU 更新数据
         private void ProcessAndApplyCpuUpdates(List<CpuCoreMetric> rawData) { var grouped = rawData.GroupBy(x => x.VmName); foreach (var group in grouped) { var vm = VmList.FirstOrDefault(v => v.Name == group.Key); if (vm == null) continue; vm.AverageUsage = vm.IsRunning ? group.Average(x => x.Usage) : 0; UpdateVmCores(vm, group.ToList()); } }
-        private void UpdateVmCores(VmInstanceInfo vm, List<CpuCoreMetric> metrics) { var metricIds = metrics.Select(m => m.CoreId).ToHashSet(); vm.Cores.Where(c => !metricIds.Contains(c.CoreId)).ToList().ForEach(r => vm.Cores.Remove(r)); foreach (var metric in metrics) { var core = vm.Cores.FirstOrDefault(c => c.CoreId == metric.CoreId); if (core == null) { core = new VmCoreModel { CoreId = metric.CoreId }; int idx = 0; while (idx < vm.Cores.Count && vm.Cores[idx].CoreId < metric.CoreId) idx++; vm.Cores.Insert(idx, core); } core.Usage = metric.Usage; UpdateHistory(vm.Name, core); } vm.Columns = LayoutHelper.CalculateOptimalColumns(vm.Cores.Count); vm.Rows = (vm.Cores.Count > 0) ? (int)Math.Ceiling((double)vm.Cores.Count / vm.Columns) : 1; }
-        private void UpdateHistory(string vmName, VmCoreModel core) { string key = $"{vmName}_{core.CoreId}"; if (!_historyCache.TryGetValue(key, out var history)) { history = new LinkedList<double>(); for (int k = 0; k < MaxHistoryLength; k++) history.AddLast(0); _historyCache[key] = history; } history.AddLast(core.Usage); if (history.Count > MaxHistoryLength) history.RemoveFirst(); core.HistoryPoints = CalculatePoints(history); }
+        private void UpdateVmCores(VmInstanceViewModel vm, List<CpuCoreMetric> metrics) { var metricIds = metrics.Select(m => m.CoreId).ToHashSet(); vm.Cores.Where(c => !metricIds.Contains(c.CoreId)).ToList().ForEach(r => vm.Cores.Remove(r)); foreach (var metric in metrics) { var core = vm.Cores.FirstOrDefault(c => c.CoreId == metric.CoreId); if (core == null) { core = new VmCoreItem { CoreId = metric.CoreId }; int idx = 0; while (idx < vm.Cores.Count && vm.Cores[idx].CoreId < metric.CoreId) idx++; vm.Cores.Insert(idx, core); } core.Usage = metric.Usage; UpdateHistory(vm.Name, core); } vm.Columns = GridLayoutMath.CalculateOptimalColumns(vm.Cores.Count); vm.Rows = (vm.Cores.Count > 0) ? (int)Math.Ceiling((double)vm.Cores.Count / vm.Columns) : 1; }
+        private void UpdateHistory(string vmName, VmCoreItem core) { string key = $"{vmName}_{core.CoreId}"; if (!_historyCache.TryGetValue(key, out var history)) { history = new LinkedList<double>(); for (int k = 0; k < MaxHistoryLength; k++) history.AddLast(0); _historyCache[key] = history; } history.AddLast(core.Usage); if (history.Count > MaxHistoryLength) history.RemoveFirst(); core.HistoryPoints = CalculatePoints(history); }
         private PointCollection CalculatePoints(LinkedList<double> history) { double w = 100.0, h = 100.0, step = w / (MaxHistoryLength - 1); var points = new PointCollection(MaxHistoryLength + 2) { new Point(0, h) }; int i = 0; foreach (var val in history) points.Add(new Point(i++ * step, h - (val * h / 100.0))); points.Add(new Point(w, h)); points.Freeze(); return points; }
 
         // ----------------------------------------------------------------------------------
@@ -1481,17 +1346,17 @@ namespace ExHyperV.ViewModels
                 int totalCores = Environment.ProcessorCount;
                 var currentAffinity = await _cpuAffinityService.GetCpuAffinityAsync(SelectedVm.Id, SelectedVm.Notes);
 
-                var coresList = new List<VmCoreModel>();
+                var coresList = new List<VmCoreItem>();
                 for (int i = 0; i < totalCores; i++)
                 {
-                    coresList.Add(new VmCoreModel
+                    coresList.Add(new VmCoreItem
                     {
                         CoreId = i,
                         IsSelected = currentAffinity.Contains(i),
                         CoreType = CpuMonitorService.GetCoreType(i)
                     });
                 }
-                AffinityHostCores = new ObservableCollection<VmCoreModel>(coresList);
+                AffinityHostCores = new ObservableCollection<VmCoreItem>(coresList);
 
                 int bestCols = 4;
                 if (totalCores <= 4)
@@ -1584,7 +1449,7 @@ namespace ExHyperV.ViewModels
 
         // 自动应用亲和性
 
-        private void TryApplyAffinityForRootScheduler(VmInstanceInfo vm)
+        private void TryApplyAffinityForRootScheduler(VmInstanceViewModel vm)
         {
             // 仅针对 Root 调度器且虚拟机正在运行的情况
             if (HyperVSchedulerService.GetSchedulerType() != HyperVSchedulerType.Root || !vm.IsRunning)
@@ -1615,7 +1480,7 @@ namespace ExHyperV.ViewModels
                         if (!vm.IsRunning) break;
 
                         // 调用核心方法
-                        bool success = ProcessAffinityManager.SetVmProcessAffinity(vm.Id, coreIds);
+                        bool success = ProcessAffinityService.SetVmProcessAffinity(vm.Id, coreIds);
                         if (success)
                         {
                             Debug.WriteLine(string.Format(Properties.Resources.VmPage_ErrOpenFailed2, vm.Name));
@@ -1809,7 +1674,7 @@ namespace ExHyperV.ViewModels
                 IsLoadingSettings = true;
                 try
                 {
-                    await _storageService.LoadVmStorageItemsAsync(SelectedVm);
+                    await _storageService.LoadVmStorageItemsAsync(SelectedVm.Model);
                     await LoadHostDisksAsync();
                 }
                 catch (Exception ex) { ShowSnackbar(Properties.Resources.Error_Storage_LoadFail, Utils.GetFriendlyErrorMessages(ex.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24); }
@@ -1856,7 +1721,7 @@ namespace ExHyperV.ViewModels
                 {
                     // 2. 刷新磁盘物理大小 (FileSize)
                     // 调用现有的存储服务，确保 UI 上的 GB 数值得到更新
-                    await _storageService.RefreshVirtualDiskSizesAsync(SelectedVm);
+                    await _storageService.RefreshVirtualDiskSizesAsync(SelectedVm.Model);
 
                     ShowSnackbar(Properties.Resources.VmPage_ErrCloseFailed, Properties.Resources.VmPage_MsgFeatureInDev, ControlAppearance.Success, SymbolRegular.CheckmarkCircle24);
                 }
@@ -1888,7 +1753,7 @@ namespace ExHyperV.ViewModels
                 if (result.Success)
                 {
                     ShowSnackbar(Properties.Resources.Common_Success, result.Message == "Storage_Msg_Ejected" ? Properties.Resources.Msg_Storage_Ejected : Properties.Resources.Msg_Storage_Removed, ControlAppearance.Success, SymbolRegular.CheckmarkCircle24);
-                    await _storageService.LoadVmStorageItemsAsync(SelectedVm);
+                    await _storageService.LoadVmStorageItemsAsync(SelectedVm.Model);
                 }
                 else ShowSnackbar(Properties.Resources.Error_Storage_RemoveFail, result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
             }
@@ -1958,7 +1823,7 @@ namespace ExHyperV.ViewModels
                     if (result.Success)
                     {
                         ShowSnackbar(Properties.Resources.Msg_Common_ModSuccess, Properties.Resources.Msg_Storage_PathUpdated, ControlAppearance.Success, SymbolRegular.CheckmarkCircle24);
-                        await _storageService.LoadVmStorageItemsAsync(SelectedVm);
+                        await _storageService.LoadVmStorageItemsAsync(SelectedVm.Model);
                     }
                     else
                     {
@@ -2103,7 +1968,7 @@ namespace ExHyperV.ViewModels
             IsLoadingSettings = true;
             try
             {
-                await _storageService.LoadVmStorageItemsAsync(SelectedVm);
+                await _storageService.LoadVmStorageItemsAsync(SelectedVm.Model);
 
                 RefreshControllerOptions();
 
@@ -2309,7 +2174,7 @@ namespace ExHyperV.ViewModels
                 if (result.Success)
                 {
                     ShowSnackbar(Properties.Resources.Msg_Common_AddSuccess, string.Format(Properties.Resources.Msg_Storage_Connected, result.ActualType, result.ActualNumber, result.ActualLocation), ControlAppearance.Success, SymbolRegular.CheckmarkCircle24);
-                    await _storageService.LoadVmStorageItemsAsync(SelectedVm);
+                    await _storageService.LoadVmStorageItemsAsync(SelectedVm.Model);
                 }
                 else
                 {

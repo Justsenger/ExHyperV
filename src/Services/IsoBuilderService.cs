@@ -3,9 +3,13 @@ using System.IO;
 using System.Runtime.InteropServices;
 using IMAPI2FS;
 
-namespace ExHyperV.Tools
+namespace ExHyperV.Services
 {
-    public static class ImapiIsoTool
+    /// <summary>
+    /// 把一个目录构建成 ISO 文件（ISO9660 + UDF 兼容模式）。
+    /// 内部使用 IMAPI2FS COM 组件——这里直接 P/Invoke 调用，因为只有一个方法不值得单独抽 Api。
+    /// </summary>
+    public static class IsoBuilderService
     {
         public static void BuildUdfIso(string sourceDirectory, string targetIsoPath, string volumeLabel)
         {

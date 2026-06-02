@@ -204,7 +204,7 @@
 
                                             <!-- Access 模式 -->
                                             <StackPanel Orientation="Horizontal" Visibility="{Binding VlanMode, Converter={StaticResource VlanModeToVisibilityConverter}, ConverterParameter=Access}">
-                                                <TextBlock Text="VLAN ID" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                                <TextBlock Text="{x:Static properties:Resources.Label_VlanId}" VerticalAlignment="Center" Margin="0,0,8,0"/>
                                                 <ui:TextBox Text="{Binding AccessVlanId, Mode=TwoWay}" Width="70" VerticalAlignment="Center"/>
                                             </StackPanel>
 

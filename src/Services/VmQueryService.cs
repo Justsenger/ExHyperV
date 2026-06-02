@@ -60,7 +60,7 @@ namespace ExHyperV.Services
 
         // --- 核心查询方法 ---
 
-        public async Task<List<VmInstanceInfo>> GetVmListAsync()
+        public async Task<List<VmInstance>> GetVmListAsync()
         {
             const string QueryVirtualDiskAllocations = "SELECT InstanceID, Parent, HostResource, ResourceType FROM Msvm_StorageAllocationSettingData WHERE ResourceType = 31 OR ResourceType = 16";
             const string QueryPhysicalDiskAllocations = "SELECT InstanceID, Parent, HostResource, ResourceType FROM Msvm_ResourceAllocationSettingData WHERE ResourceType = 17";
@@ -253,15 +253,15 @@ namespace ExHyperV.Services
                 vmAdaptersMap[vmGuid].Add(adapter);
             }
 
-            // ── 组装 VmInstanceInfo 列表 ──────────────────────────
+            // ── 组装 VmInstance（Model）列表 ─────────────────────
             var deviceIdRegex = new Regex("DeviceID=\"([^\"]+)\"", RegexOptions.Compiled);
-            var resultList = new List<VmInstanceInfo>();
+            var resultList = new List<VmInstance>();
 
             foreach (var s in summaries)
             {
                 string vmGuidKey = s.Id.Trim('{', '}').ToUpper();
                 Guid.TryParse(s.Id, out var vmGuid);
-                var vmInfo = new VmInstanceInfo(vmGuid, s.Name);
+                var vmInfo = new VmInstance(vmGuid, s.Name);
 
                 if (vmAdaptersMap.TryGetValue(vmGuidKey, out var adapters))
                 {
@@ -358,7 +358,9 @@ namespace ExHyperV.Services
                 vmInfo.AssignedMemoryGb = Math.Round((s.MemUsage > 0 ? s.MemUsage : startupRam) / 1024.0, 1);
                 vmInfo.Notes = s.Notes;
                 vmInfo.GpuName = gpuMap.TryGetValue(vmGuidKey, out var gName) ? gName : null;
-                vmInfo.SyncBackendData(VmMapper.MapStateCodeToText(s.State), TimeSpan.FromMilliseconds(s.Uptime));
+                // Model 不做 transient 状态机；只填 raw 字段（VM 层通过 Apply→SyncBackendData 处理）
+                vmInfo.StateText = VmMapper.MapStateCodeToText(s.State);
+                vmInfo.RawUptime = TimeSpan.FromMilliseconds(s.Uptime);
                 resultList.Add(vmInfo);
             }
 
@@ -367,7 +369,7 @@ namespace ExHyperV.Services
 
         // --- 性能监控相关方法 ---
 
-        public async Task UpdateDiskPerformanceAsync(IEnumerable<VmInstanceInfo> vms)
+        public async Task UpdateDiskPerformanceAsync(IEnumerable<VmInstance> vms)
         {
             try
             {
@@ -407,7 +409,7 @@ namespace ExHyperV.Services
         }
 
         // GetGpuPerformanceAsync 使用 PerformanceCounter（.NET 原生 API），不需要迁移
-        public async Task<Dictionary<Guid, GpuUsageData>> GetGpuPerformanceAsync(IEnumerable<VmInstanceInfo> vms)
+        public async Task<Dictionary<Guid, GpuUsageData>> GetGpuPerformanceAsync(IEnumerable<VmInstance> vms)
         {
             var results = new Dictionary<Guid, GpuUsageData>();
             var gpuVms = vms.Where(vm => vm.IsRunning && vm.HasGpu).ToList();
@@ -616,7 +618,7 @@ namespace ExHyperV.Services
 
         // --- 私有辅助方法：进程与性能计数器 ---
 
-        private async Task RefreshVmPidCache(List<VmInstanceInfo> runningGpuVms)
+        private async Task RefreshVmPidCache(List<VmInstance> runningGpuVms)
         {
             _vmProcessIdCache.Clear();
             var resp = await WmiApi.QueryAsync(

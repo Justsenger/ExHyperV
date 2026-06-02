@@ -2,7 +2,7 @@
 
 namespace ExHyperV.Tools
 {
-    public static class LayoutHelper
+    public static class GridLayoutMath
     {
         /// <summary>
         /// 根据项目总数计算出最优的列数，使布局尽可能接近矩形。

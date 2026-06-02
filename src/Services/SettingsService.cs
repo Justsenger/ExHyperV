@@ -9,7 +9,6 @@ using System.Net.Http;
 namespace ExHyperV.Services
 {
 
-    public record UpdateResult(bool IsUpdateAvailable, string LatestVersion);
     internal class GitHubRelease
     {
         public string tag_name { get; set; }
@@ -136,13 +135,13 @@ namespace ExHyperV.Services
         // 获取当前主题
         public static string GetTheme()
         {
-            return ApplicationThemeManager.GetAppTheme() == ApplicationTheme.Dark ? Resources.dark : Resources.light;
+            return ApplicationThemeManager.GetAppTheme() == ApplicationTheme.Dark ? Resources.Theme_Dark : Resources.Theme_Light;
         }
 
         // 应用新主题
         public static void ApplyTheme(string themeName)
         {
-            var theme = themeName == Resources.dark ? ApplicationTheme.Dark : ApplicationTheme.Light;
+            var theme = themeName == Resources.Theme_Dark ? ApplicationTheme.Dark : ApplicationTheme.Light;
             ApplicationThemeManager.Apply(theme);
         }
     }

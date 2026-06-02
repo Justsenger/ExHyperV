@@ -1,7 +1,8 @@
 ﻿using System.IO;
-using ExHyperV.Models;
 using System.Management;
 using ExHyperV.Api;
+using ExHyperV.Models;
+using ExHyperV.Properties;
 
 namespace ExHyperV.Services
 {
@@ -153,7 +154,7 @@ namespace ExHyperV.Services
 
                 string? vmPath = defineResp.Data?.FirstOrDefault();
                 if (string.IsNullOrEmpty(vmPath))
-                    return (false, "DefineSystem 未返回 VM 路径");
+                    return (false, Resources.Error_VmCreate_NoSystemPath);
 
                 // ── Step 3: 取新 VM 的 Name（GUID）───────────────
                 string vmGuid;
@@ -164,7 +165,7 @@ namespace ExHyperV.Services
                 }
 
                 if (string.IsNullOrEmpty(vmGuid))
-                    return (false, "无法获取新建 VM 的 GUID");
+                    return (false, Resources.Error_VmCreate_NoGuid);
 
                 // ── Step 4: 处理器设置 ────────────────────────────
                 var procSettings = new VmProcessorSettings { Count = p.ProcessorCount };
@@ -185,7 +186,7 @@ namespace ExHyperV.Services
                 // ── Step 6: 网卡 ──────────────────────────────────
                 await _network.AddNetworkAdapterAsync(finalVmName);
                 if (!string.IsNullOrWhiteSpace(p.SwitchName) &&
-                    p.SwitchName != ExHyperV.Properties.Resources.none)
+                    p.SwitchName != ExHyperV.Properties.Resources.Common_None)
                 {
                     var adapters = await _network.GetNetworkAdaptersAsync(finalVmName);
                     var adapter = adapters.FirstOrDefault();
@@ -295,7 +296,7 @@ namespace ExHyperV.Services
                 }
 
                 if (guardian == null)
-                    throw new InvalidOperationException("无法获取或创建 UntrustedGuardian");
+                    throw new InvalidOperationException(Resources.Error_VmCreate_NoGuardian);
 
                 // Step 2: 生成本地 KeyProtector
                 using var kpClass = new ManagementClass(
@@ -308,7 +309,7 @@ namespace ExHyperV.Services
                 byte[]? rawData = kpInstance?["RawData"] as byte[];
 
                 if (rawData == null || rawData.Length == 0)
-                    throw new InvalidOperationException("无法生成本地 KeyProtector");
+                    throw new InvalidOperationException(Resources.Error_VmCreate_NoKeyProtector);
 
                 // Step 3: 取 Msvm_SecuritySettingData，序列化为 XML
                 using var secSettingSearcher = new ManagementObjectSearcher(
@@ -318,7 +319,7 @@ namespace ExHyperV.Services
                 using var secSetting = secSettingCol.Cast<ManagementObject>().FirstOrDefault();
 
                 if (secSetting == null)
-                    throw new InvalidOperationException("无法找到 VM 的 SecuritySettingData");
+                    throw new InvalidOperationException(Resources.Error_VmCreate_NoSecuritySettings);
 
                 string secXml = secSetting.GetText(TextFormat.CimDtd20);
 
@@ -329,7 +330,7 @@ namespace ExHyperV.Services
                 using var secSvc = secSvcCol.Cast<ManagementObject>().FirstOrDefault();
 
                 if (secSvc == null)
-                    throw new InvalidOperationException("无法找到 Msvm_SecurityService");
+                    throw new InvalidOperationException(Resources.Error_VmCreate_NoSecurityService);
 
                 using var kpInParams = secSvc.GetMethodParameters("SetKeyProtector");
                 kpInParams["SecuritySettingData"] = secXml;
@@ -337,7 +338,7 @@ namespace ExHyperV.Services
                 using var kpOut = secSvc.InvokeMethod("SetKeyProtector", kpInParams, null);
                 int kpRet = Convert.ToInt32(kpOut["ReturnValue"]);
                 if (kpRet != 0)
-                    throw new InvalidOperationException($"SetKeyProtector 失败，返回码：{kpRet}");
+                    throw new InvalidOperationException(string.Format(Resources.Error_VmCreate_SetKeyProtectorFail, kpRet));
 
                 // Step 5: TpmEnabled=true + EncryptStateAndVmMigrationTraffic=true
                 secSetting["TpmEnabled"] = true;
@@ -349,7 +350,7 @@ namespace ExHyperV.Services
                 using var modOut = secSvc.InvokeMethod("ModifySecuritySettings", modInParams, null);
                 int modRet = Convert.ToInt32(modOut["ReturnValue"]);
                 if (modRet != 0 && modRet != 4096)
-                    throw new InvalidOperationException($"ModifySecuritySettings 失败，返回码：{modRet}");
+                    throw new InvalidOperationException(string.Format(Resources.Error_VmCreate_ModifySecuritySettingsFail, modRet));
 
                 if (modRet == 4096)
                 {
@@ -363,7 +364,7 @@ namespace ExHyperV.Services
                             ushort state = (ushort)job["JobState"];
                             if (state == 7) break;
                             if (state > 7)
-                                throw new InvalidOperationException($"TPM Job 失败，状态：{state}");
+                                throw new InvalidOperationException(string.Format(Resources.Error_VmCreate_TpmJobFail, state));
                             System.Threading.Thread.Sleep(300);
                         }
                     }

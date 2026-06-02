@@ -26,7 +26,7 @@ namespace ExHyperV.Services
 
             await Task.Run(async () =>
             {
-                var pciInfoProvider = new PciInfoProvider();
+                var pciInfoProvider = new PciInfoService();
                 await pciInfoProvider.EnsureInitializedAsync();
 
                 try
@@ -87,7 +87,7 @@ namespace ExHyperV.Services
                     {
                         string pureId = GetPureId(d.InstanceId);
                         if (!string.IsNullOrEmpty(pureId) && !vmDeviceAssignments.ContainsKey(pureId))
-                            vmDeviceAssignments[pureId] = Resources.removed;
+                            vmDeviceAssignments[pureId] = Resources.Status_Dismounted;
                     }
 
                     // ── 3. 构建 DeviceInfo（只用 PCI\* 在线设备）────────
@@ -224,12 +224,12 @@ namespace ExHyperV.Services
                 // 只有当操作列表中包含 SetGuestCache（cpucache）时才需要关机
                 // SetGuestCache 是唯一强制要求 VM Off 的 ModifySystemSettings 调用
                 // 如果该 VM 的 GuestControlledCacheTypes 已经是 true，DDACommands 不会加入此步骤
-                bool needsStop = operations.Any(op => op.Message == Resources.cpucache);
+                bool needsStop = operations.Any(op => op.Message == Resources.Action_EnableCpuCacheControl);
                 if (needsStop)
                 {
-                    progress?.Report("正在关闭虚拟机...");
+                    progress?.Report(Resources.Msg_Dda_ShuttingDownVm);
                     if (!await EnsureVmStoppedAsync(targetVmName))
-                        return (false, "无法关闭虚拟机，操作终止。");
+                        return (false, Resources.Error_Dda_CannotShutdownVm);
                 }
 
                 foreach (var operation in operations)
@@ -320,7 +320,7 @@ namespace ExHyperV.Services
             // WMI：Mount-VMHostAssignableDevice
             // WmiSilent：某些设备（核显/NPU 等）不支持标准 Mount 流程，失败静默处理
             DdaOperation MountDeviceSilent(string locationPath) => new(
-                Resources.mounting, DdaOpType.WmiSilent,
+                Resources.Status_MountingDevice, DdaOpType.WmiSilent,
                 WmiAction: () => WmiApi.InvokeAsync(
                     "SELECT * FROM Msvm_AssignableDeviceService",
                     "MountAssignableDevice",
@@ -330,7 +330,7 @@ namespace ExHyperV.Services
             // WMI：Add-VMAssignableDevice
             // 流程：拿 PciExpress Default 模板 → 设置 HostResource = PCIP 设备路径 → AddResourceSettings
             DdaOperation AddDevice(string devInstanceId, string locationPath, string vmName) => new(
-                Resources.mounting, DdaOpType.Wmi,
+                Resources.Status_MountingDevice, DdaOpType.Wmi,
                 WmiAction: async () =>
                 {
                     var ms = WmiConnectionCache.GetManagementScope(WmiScope.HyperV, WmiContext.Local);
@@ -459,7 +459,7 @@ namespace ExHyperV.Services
             // WMI：Set-VM -GuestControlledCacheTypes $true
             // 注意：此字段修改需要 VM 处于 Off 状态
             DdaOperation SetGuestCache(string vmName) => new(
-                Resources.cpucache, DdaOpType.Wmi,
+                Resources.Action_EnableCpuCacheControl, DdaOpType.Wmi,
                 WmiAction: () => WmiApi.WithObjectAsync(
                     $"SELECT * FROM Msvm_VirtualSystemSettingData WHERE ElementName = '{WmiApi.Escape(vmName)}' AND VirtualSystemType = 'Microsoft:Hyper-V:System:Realized'",
                     obj => obj["GuestControlledCacheTypes"] = true,
@@ -482,13 +482,13 @@ namespace ExHyperV.Services
                 guestCacheAlreadySet = cacheResp.Success && (cacheResp.Data?.Any(x => x) ?? false);
             }
 
-            if (Nowname == Resources.removed && Vmname == Resources.Host)
+            if (Nowname == Resources.Status_Dismounted && Vmname == Resources.Host)
             {
                 // 已卸除 → 主机：Mount 静默处理，某些设备（核显/NPU）不支持标准 Mount 但实际可用
                 ops.Add(MountDeviceSilent(path));
-                ops.Add(new(Resources.enabling, DdaOpType.PnpEnable));
+                ops.Add(new(Resources.Status_EnablingDevice, DdaOpType.PnpEnable));
             }
-            else if (Nowname == Resources.removed && Vmname != Resources.Host)
+            else if (Nowname == Resources.Status_Dismounted && Vmname != Resources.Host)
             {
                 ops.Add(SetAutoStop(Vmname));
                 if (!guestCacheAlreadySet) ops.Add(SetGuestCache(Vmname));
@@ -514,7 +514,7 @@ namespace ExHyperV.Services
                 // VM → 主机：Mount 静默处理，对齐 PS 版本行为
                 ops.Add(RemoveDevice(instanceId, path, Nowname));
                 ops.Add(MountDeviceSilent(path));
-                ops.Add(new(Resources.enabling, DdaOpType.PnpEnable));
+                ops.Add(new(Resources.Status_EnablingDevice, DdaOpType.PnpEnable));
             }
 
             return ops;

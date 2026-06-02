@@ -347,16 +347,4 @@ namespace ExHyperV.Models
         [ObservableProperty]
         private List<NetworkAclRule> _aclRules = new List<NetworkAclRule>();
     }
-
-    /// <summary>
-    /// 表示一条应用于虚拟网络端口的访问控制规则。
-    /// </summary>
-    public class NetworkAclRule
-    {
-        public string Name { get; set; }
-        public string Direction { get; set; } // "Incoming" or "Outgoing"
-        public string Action { get; set; }    // "Allow", "Deny", or "Meter"
-        public string RemoteAddress { get; set; } // IP or MAC address
-        public string LocalAddress { get; set; }
-    }
 }

@@ -88,9 +88,9 @@
                                 <TextBlock Grid.Column="1" VerticalAlignment="Center" TextTrimming="CharacterEllipsis">
 <Run Text="{Binding Description}" FontSize="16"/>
 <Run Text="  " FontSize="12"/>
-<Run Text="Bus:" FontSize="11" Foreground="Gray"/>
+<Run Text="{x:Static properties:Resources.Usb_BusLabel}" FontSize="11" Foreground="Gray"/>
 <Run Text="{Binding BusId, Mode=OneWay}" FontSize="11" Foreground="Gray"/>
-<Run Text="  ID:" FontSize="11" Foreground="Gray"/>
+<Run Text="{x:Static properties:Resources.Usb_IdLabel}" FontSize="11" Foreground="Gray"/>
 <Run Text="{Binding VidPid, Mode=OneWay}" FontSize="11" Foreground="Gray"/>
                                 </TextBlock>
 

@@ -88,7 +88,7 @@ namespace ExHyperV.ViewModels
             foreach (var d in Devices)
             {
                 if (UsbVmbusService.ActiveTunnels.TryGetValue(d.BusId, out string vm)) d.CurrentAssignment = vm;
-                else if (d.CurrentAssignment != Properties.Resources.USBPageViewModel_Connecting) d.CurrentAssignment = Properties.Resources.UsbDeviceModel_Host;
+                else if (d.CurrentAssignment != Properties.Resources.USBPageViewModel_Connecting) d.CurrentAssignment = Properties.Resources.UsbDevice_Host;
             }
         }
 
@@ -103,11 +103,11 @@ namespace ExHyperV.ViewModels
             IsUiEnabled = false;
             try
             {
-                if (selectedTarget == Properties.Resources.UsbDeviceModel_Host)
+                if (selectedTarget == Properties.Resources.UsbDevice_Host)
                 {
                     UsbVmbusService.ActiveTunnels.TryRemove(deviceVM.BusId, out _);
                     await _srv.StopTunnelAsync(deviceVM.BusId); // 使用 Await 版本
-                    deviceVM.CurrentAssignment = Properties.Resources.UsbDeviceModel_Host;
+                    deviceVM.CurrentAssignment = Properties.Resources.UsbDevice_Host;
                 }
                 else
                 {

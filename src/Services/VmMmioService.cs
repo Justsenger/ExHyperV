@@ -56,7 +56,7 @@ namespace ExHyperV.Services
                 ulong finalHighSize = Math.Min(remaining, 131072UL);
                 ulong finalLowSize = 1024UL; // 固定 1GB
 
-                Debug.WriteLine(Properties.Resources.MMIOOptimizer_LogFinalResult);
+                Debug.WriteLine(Properties.Resources.VmMmio_LogFinalResult);
                 Debug.WriteLine($" - HighMmioGapBase: {finalBase}");
                 Debug.WriteLine($" - HighMmioGapSize: {finalHighSize}");
                 Debug.WriteLine($" - LowMmioGapSize: {finalLowSize}");
@@ -71,12 +71,12 @@ namespace ExHyperV.Services
                         obj["GuestControlledCacheTypes"] = true;
                     });
 
-                if (resp.Success) Debug.WriteLine(Properties.Resources.MMIOOptimizer_LogConfigApplied);
+                if (resp.Success) Debug.WriteLine(Properties.Resources.VmMmio_LogConfigApplied);
                 return resp.Success;
             }
             catch (Exception ex)
             {
-                Debug.WriteLine(string.Format(Properties.Resources.MMIOOptimizer_LogError, ex.Message));
+                Debug.WriteLine(string.Format(Properties.Resources.VmMmio_LogError, ex.Message));
                 return false;
             }
         }

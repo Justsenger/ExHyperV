@@ -4,13 +4,13 @@ using System.Windows.Controls;
 
 namespace ExHyperV.Tools
 {
-    public static class FocusHelper
+    public static class AutoFocus
     {
         public static readonly DependencyProperty IsFocusedProperty =
             DependencyProperty.RegisterAttached(
                 "IsFocused",
                 typeof(bool),
-                typeof(FocusHelper),
+                typeof(AutoFocus),
                 new UIPropertyMetadata(false, OnIsFocusedChanged));
 
         public static bool GetIsFocused(DependencyObject obj) => (bool)obj.GetValue(IsFocusedProperty);

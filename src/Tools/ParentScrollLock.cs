@@ -4,22 +4,22 @@ using System.Windows.Media;
 
 namespace ExHyperV.Tools
 {
-    public static class ScrollHelper
+    public static class ParentScrollLock
     {
         public static readonly DependencyProperty LockParentScrollProperty =
             DependencyProperty.RegisterAttached(
                 "LockParentScroll",
                 typeof(bool),
-                typeof(ScrollHelper),
+                typeof(ParentScrollLock),
                 new PropertyMetadata(false, OnLockParentScrollChanged));
 
         public static void SetLockParentScroll(DependencyObject element, bool value) => element.SetValue(LockParentScrollProperty, value);
         public static bool GetLockParentScroll(DependencyObject element) => (bool)element.GetValue(LockParentScrollProperty);
         private static readonly DependencyProperty CachedScrollerProperty =
-            DependencyProperty.RegisterAttached("CachedScroller", typeof(ScrollViewer), typeof(ScrollHelper), new PropertyMetadata(null));
+            DependencyProperty.RegisterAttached("CachedScroller", typeof(ScrollViewer), typeof(ParentScrollLock), new PropertyMetadata(null));
 
         private static readonly DependencyProperty OriginalVisibilityProperty =
-            DependencyProperty.RegisterAttached("OriginalVisibility", typeof(ScrollBarVisibility), typeof(ScrollHelper), new PropertyMetadata(ScrollBarVisibility.Auto));
+            DependencyProperty.RegisterAttached("OriginalVisibility", typeof(ScrollBarVisibility), typeof(ParentScrollLock), new PropertyMetadata(ScrollBarVisibility.Auto));
 
         private static void OnLockParentScrollChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {

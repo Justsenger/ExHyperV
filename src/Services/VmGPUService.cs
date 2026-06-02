@@ -100,7 +100,7 @@ namespace ExHyperV.Services
         #region 硬件信息与虚拟机查询
         public async Task<List<GPUInfo>> GetHostGpusAsync()
         {
-            var pciInfoProvider = new PciInfoProvider();
+            var pciInfoProvider = new PciInfoService();
             await pciInfoProvider.EnsureInitializedAsync();
 
             var gpuList = new List<GPUInfo>();
@@ -327,7 +327,7 @@ namespace ExHyperV.Services
         #region 磁盘与分区操作
         private async Task<List<VmDiskTarget>> GetAllVmHardDrivesAsync(string vmName)
         {
-            var vm = new VmInstanceInfo(Guid.Empty, vmName);
+            var vm = new VmInstance(Guid.Empty, vmName);
             await _storageService.LoadVmStorageItemsAsync(vm);
 
             Debug.WriteLine($"[GPU] StorageItems count: {vm.StorageItems.Count}");

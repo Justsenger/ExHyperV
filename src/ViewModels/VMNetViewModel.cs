@@ -37,7 +37,7 @@ namespace ExHyperV.ViewModels
                 DataContext = addSwitchVm
             };
 
-            var createConfirmed = await DialogManager.ShowContentDialogAsync(ExHyperV.Properties.Resources.Title_AddVirtualSwitch, addSwitchView);
+            var createConfirmed = await Dialogs.ShowContentDialogAsync(ExHyperV.Properties.Resources.Title_AddVirtualSwitch, addSwitchView);
 
             if (!createConfirmed)
             {
@@ -61,7 +61,7 @@ namespace ExHyperV.ViewModels
                 }
                 catch (System.Exception ex)
                 {
-                    await DialogManager.ShowAlertAsync(ExHyperV.Properties.Resources.Error_CreationFailed, ex.Message);
+                    await Dialogs.ShowAlertAsync(ExHyperV.Properties.Resources.Error_CreationFailed, ex.Message);
                 }
                 finally
                 {
@@ -70,7 +70,7 @@ namespace ExHyperV.ViewModels
             }
             else
             {
-                await DialogManager.ShowAlertAsync(ExHyperV.Properties.Resources.Validation_InputInvalid, addSwitchVm.ErrorMessage ?? Resources.Error_Unknown);
+                await Dialogs.ShowAlertAsync(ExHyperV.Properties.Resources.Validation_InputInvalid, addSwitchVm.ErrorMessage ?? Resources.Error_Unknown);
             }
         }
         [RelayCommand]
@@ -89,7 +89,7 @@ namespace ExHyperV.ViewModels
             }
             catch (System.Exception ex)
             {
-                await DialogManager.ShowAlertAsync(ExHyperV.Properties.Resources.Error_DeletionFailed, ex.Message);
+                await Dialogs.ShowAlertAsync(ExHyperV.Properties.Resources.Error_DeletionFailed, ex.Message);
             }
             finally
             {
@@ -145,7 +145,7 @@ namespace ExHyperV.ViewModels
             catch (Exception ex)
             {
                 ErrorMessage = string.Format(Properties.Resources.Error_LoadNetworkInfoFailed, ex.Message);
-                await DialogManager.ShowAlertAsync(Resources.error, ErrorMessage);
+                await Dialogs.ShowAlertAsync(Resources.Error_Title, ErrorMessage);
             }
         }
 
@@ -181,7 +181,7 @@ namespace ExHyperV.ViewModels
                 var otherNatSwitch = Switches.FirstOrDefault(s => s.SwitchId != changedSwitch.SwitchId && !s.IsDefaultSwitch && s.SelectedNetworkMode == "NAT");
                 if (otherNatSwitch != null)
                 {
-                    await DialogManager.ShowAlertAsync(ExHyperV.Properties.Resources.Error_ConfigurationConflict, string.Format(Properties.Resources.Error_OnlyOneNatNetworkAllowed, otherNatSwitch.SwitchName));
+                    await Dialogs.ShowAlertAsync(ExHyperV.Properties.Resources.Error_ConfigurationConflict, string.Format(Properties.Resources.Error_OnlyOneNatNetworkAllowed, otherNatSwitch.SwitchName));
                     await changedSwitch.RevertTo(originalSwitchInfo);
                     return;
                 }
@@ -192,7 +192,7 @@ namespace ExHyperV.ViewModels
                 var conflictingSwitch = Switches.FirstOrDefault(s => s.SwitchId != changedSwitch.SwitchId && !string.IsNullOrEmpty(s.SelectedUpstreamAdapter) && s.SelectedUpstreamAdapter == changedSwitch.SelectedUpstreamAdapter);
                 if (conflictingSwitch != null)
                 {
-                    await DialogManager.ShowAlertAsync(ExHyperV.Properties.Resources.Error_ConfigurationConflict, string.Format(Properties.Resources.Error_PhysicalAdapterInUse, changedSwitch.SelectedUpstreamAdapter, conflictingSwitch.SwitchName));
+                    await Dialogs.ShowAlertAsync(ExHyperV.Properties.Resources.Error_ConfigurationConflict, string.Format(Properties.Resources.Error_PhysicalAdapterInUse, changedSwitch.SelectedUpstreamAdapter, conflictingSwitch.SwitchName));
                     await changedSwitch.RevertTo(originalSwitchInfo);
                     return;
                 }
@@ -219,7 +219,7 @@ namespace ExHyperV.ViewModels
             }
             catch (Exception ex)
             {
-                await DialogManager.ShowAlertAsync(ExHyperV.Properties.Resources.UpdateFailed, string.Format(Properties.Resources.Error_UpdateSwitchConfigFailed, changedSwitch.SwitchName, ex.InnerException?.Message ?? ex.Message));
+                await Dialogs.ShowAlertAsync(ExHyperV.Properties.Resources.UpdateFailed, string.Format(Properties.Resources.Error_UpdateSwitchConfigFailed, changedSwitch.SwitchName, ex.InnerException?.Message ?? ex.Message));
                 await RefreshDataModels();
                 UpdateAllSwitchMenus();
             }

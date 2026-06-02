@@ -431,7 +431,7 @@
                                    MaxWidth="400"/>
                     </StackPanel>
 
-                    <ui:Button Content="{x:Static properties:Resources.sure}" 
+                    <ui:Button Content="{x:Static properties:Resources.Btn_Confirm}" 
                                Appearance="Primary" 
                                Width="120" 
                                HorizontalAlignment="Right"

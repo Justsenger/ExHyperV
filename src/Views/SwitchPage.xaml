@@ -55,7 +55,7 @@
 
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                             <ui:Button Content="{x:Static properties:Resources.Add}" Appearance="Primary" Command="{Binding AddNewSwitchCommand}" />
-                            <ui:Button Margin="8,0,0,0" Content="{x:Static properties:Resources.refresh}" Command="{Binding LoadNetworkInfoCommand}" IsEnabled="{Binding IsBusy, Converter={StaticResource InvertBool}}" />
+                            <ui:Button Margin="8,0,0,0" Content="{x:Static properties:Resources.Btn_Refresh}" Command="{Binding LoadNetworkInfoCommand}" IsEnabled="{Binding IsBusy, Converter={StaticResource InvertBool}}" />
                         </StackPanel>
                     </Grid>
                 </ui:Card>
@@ -93,7 +93,7 @@
                                     </StackPanel>
 
                                     <ui:Button HorizontalAlignment="Right"
-                                               Content="{x:Static properties:Resources.uninstall}"
+                                               Content="{x:Static properties:Resources.Btn_Uninstall}"
                                                ToolTip="{x:Static properties:Resources.Uninstallswitch}"
                                                Visibility="{Binding IsDefaultSwitch, Converter={StaticResource BoolToVis}, ConverterParameter=Invert}"
                                                Command="{Binding DataContext.DeleteSwitchCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"

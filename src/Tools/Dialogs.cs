@@ -6,7 +6,7 @@ using TextBlock = Wpf.Ui.Controls.TextBlock;
 
 namespace ExHyperV.Tools
 {
-    public static class DialogManager
+    public static class Dialogs
     {
         /// <summary>
         /// 显示确认对话框，返回用户是否确认
@@ -56,8 +56,8 @@ namespace ExHyperV.Tools
             {
                 Title = title,
                 Content = grid,
-                PrimaryButtonText = confirmButtonText ?? Properties.Resources.sure,
-                CloseButtonText = cancelButtonText ?? Properties.Resources.cancel,
+                PrimaryButtonText = confirmButtonText ?? Properties.Resources.Btn_Confirm,
+                CloseButtonText = cancelButtonText ?? Properties.Resources.Btn_Cancel,
                 DialogHost = dialogHost,
                 PrimaryButtonAppearance = isDanger ? ControlAppearance.Danger : ControlAppearance.Primary
             };
@@ -122,7 +122,7 @@ namespace ExHyperV.Tools
             {
                 Title = title,
                 Content = grid,
-                CloseButtonText = Properties.Resources.sure,
+                CloseButtonText = Properties.Resources.Btn_Confirm,
                 DialogHost = dialogHost
             };
 
@@ -146,8 +146,8 @@ namespace ExHyperV.Tools
             {
                 Title = title,
                 Content = content,
-                PrimaryButtonText = ExHyperV.Properties.Resources.create,
-                CloseButtonText = ExHyperV.Properties.Resources.cancel,
+                PrimaryButtonText = ExHyperV.Properties.Resources.Btn_Create,
+                CloseButtonText = ExHyperV.Properties.Resources.Btn_Cancel,
                 DialogHost = dialogHost,
                 VerticalContentAlignment = VerticalAlignment.Top
             };

@@ -24,14 +24,14 @@
     <Grid>
         <StackPanel Margin="10,0,10,10">
             <ui:InfoBar Margin="0,5,0,0"
-                Title="{x:Static properties:Resources.attention}"
-                Message="{x:Static properties:Resources.attentionwords}" 
+                Title="{x:Static properties:Resources.Common_Attention}"
+                Message="{x:Static properties:Resources.Warning_DdaAssignment}" 
                 IsOpen="True"
                 Severity="Warning"/>
 
             <ui:InfoBar Margin="0,5,0,0"
-                Title="{x:Static properties:Resources.error}"
-                Message="{x:Static properties:Resources.servererror}" 
+                Title="{x:Static properties:Resources.Error_Title}"
+                Message="{x:Static properties:Resources.Error_NotServerForDda}" 
                 IsOpen="{Binding ShowServerError}"
                 IsClosable="False"
                 Severity="Error"/>
@@ -44,7 +44,7 @@
                             <TextBlock Text="{x:Static properties:Resources.Assignabledevices}" FontSize="16" VerticalAlignment="Center" Margin="10,0,0,0"/>
                         </StackPanel>
                         <ui:Button HorizontalAlignment="Right"
-                                   Content="{x:Static properties:Resources.refresh}" 
+                                   Content="{x:Static properties:Resources.Btn_Refresh}" 
                                    Command="{Binding LoadDataCommand}"
                                    IsEnabled="{Binding IsUiEnabled}"/>
                     </Grid>
@@ -108,13 +108,13 @@
                                         <RowDefinition Height="32"/>
                                         <RowDefinition Height="32"/>
                                     </Grid.RowDefinitions>
-                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="{x:Static properties:Resources.kind}" FontSize="16" VerticalAlignment="Center" Margin="0,0,10,10"/>
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="{x:Static properties:Resources.Label_Class}" FontSize="16" VerticalAlignment="Center" Margin="0,0,10,10"/>
                                     <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding ClassType}" FontSize="16" VerticalAlignment="Center" Margin="0,0,10,10" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>
                                     <TextBlock Grid.Row="1" Grid.Column="0" Text="{x:Static properties:Resources.Instanceid}" FontSize="16" VerticalAlignment="Center" Margin="0,0,10,10"/>
                                     <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding InstanceId}" FontSize="16" VerticalAlignment="Center" Margin="0,0,10,10" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>
-                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="{x:Static properties:Resources.path}" FontSize="16" VerticalAlignment="Center" Margin="0,0,10,10"/>
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="{x:Static properties:Resources.Label_Path}" FontSize="16" VerticalAlignment="Center" Margin="0,0,10,10"/>
                                     <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Path}" FontSize="16" VerticalAlignment="Center" Margin="0,0,10,10" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>
-                                    <TextBlock Grid.Row="3" Grid.Column="0" Text="{x:Static properties:Resources.manu}" FontSize="16" VerticalAlignment="Center" Margin="0,0,10,10"/>
+                                    <TextBlock Grid.Row="3" Grid.Column="0" Text="{x:Static properties:Resources.Label_Manufacturer}" FontSize="16" VerticalAlignment="Center" Margin="0,0,10,10"/>
                                     <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding Vendor}" FontSize="16" VerticalAlignment="Center" Margin="0,0,10,10" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>
                                 </Grid>
                             </StackPanel>

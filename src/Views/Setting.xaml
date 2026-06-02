@@ -36,8 +36,8 @@
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
-                    <ui:TextBlock Grid.Row="0" FontTypography="Body" Text="{x:Static properties:Resources.theme}" />
-                    <ui:TextBlock Grid.Row="1" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" Text="{x:Static properties:Resources.switchtheme}" />
+                    <ui:TextBlock Grid.Row="0" FontTypography="Body" Text="{x:Static properties:Resources.Theme_Title}" />
+                    <ui:TextBlock Grid.Row="1" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" Text="{x:Static properties:Resources.Theme_Switch}" />
                 </Grid>
             </ui:CardControl.Header>
             <ComboBox
@@ -57,8 +57,8 @@
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
-                    <ui:TextBlock Grid.Row="0" FontTypography="Body" Text="{x:Static properties:Resources.language}" />
-                    <ui:TextBlock Grid.Row="1" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" Text="{x:Static properties:Resources.reboot}" />
+                    <ui:TextBlock Grid.Row="0" FontTypography="Body" Text="{x:Static properties:Resources.Lang_Title}" />
+                    <ui:TextBlock Grid.Row="1" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" Text="{x:Static properties:Resources.Lang_RestartHint}" />
                 </Grid>
             </ui:CardControl.Header>
             <ComboBox
@@ -73,7 +73,7 @@
             Margin="0,24,0,8"
             FontTypography="BodyStrong"
             Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"
-            Text="{x:Static properties:Resources.about}" />
+            Text="{x:Static properties:Resources.About_Title}" />
 
         <ui:CardExpander ContentPadding="0" IsExpanded="True">
             <ui:CardExpander.Icon>
@@ -157,7 +157,7 @@
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Text="{x:Static properties:Resources.report}" />
+                        <TextBlock Grid.Column="0" Text="{x:Static properties:Resources.About_FeedbackLink}" />
                         <ui:FontIcon
                             Grid.Column="1"
                             FontFamily="{DynamicResource SegoeFluentIcons}"
@@ -177,7 +177,7 @@
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Text="{x:Static properties:Resources.github}" />
+                        <TextBlock Grid.Column="0" Text="{x:Static properties:Resources.About_ViewCode}" />
                         <ui:FontIcon
                             Grid.Column="1"
                             FontFamily="{DynamicResource SegoeFluentIcons}"

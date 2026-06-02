@@ -8,7 +8,7 @@ namespace ExHyperV.Views.Components
 {
     public partial class VmCpuAffinityView : UserControl
     {
-        private VmCoreModel _lastToggledCore = null;
+        private VmCoreItem _lastToggledCore = null;
 
         public VmCpuAffinityView()
         {
@@ -55,7 +55,7 @@ namespace ExHyperV.Views.Components
         }
 
         // 辅助方法：通过坐标找 DataContext (核心模型)
-        private VmCoreModel GetCoreFromPosition(Point position)
+        private VmCoreItem GetCoreFromPosition(Point position)
         {
             var hitTestResult = VisualTreeHelper.HitTest(CoresItemsControl, position);
             if (hitTestResult == null) return null;
@@ -68,8 +68,8 @@ namespace ExHyperV.Views.Components
 
             if (current is ContentPresenter contentPresenter)
             {
-                // 注意这里转成 VmCoreModel，而不是原来的 SelectableCoreViewModel
-                return contentPresenter.DataContext as VmCoreModel;
+                // 注意这里转成 VmCoreItem，而不是原来的 SelectableCoreViewModel
+                return contentPresenter.DataContext as VmCoreItem;
             }
             return null;
         }

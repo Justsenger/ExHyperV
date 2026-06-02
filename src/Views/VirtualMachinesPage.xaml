@@ -10,7 +10,7 @@
     xmlns:tools="clr-namespace:ExHyperV.Tools"
     xmlns:components="clr-namespace:ExHyperV.Views.Components"
     Title="VirtualMachinesPage" mc:Ignorable="d" d:DesignHeight="750" d:DesignWidth="1100"
-    tools:ScrollHelper.LockParentScroll="True"
+    tools:ParentScrollLock.LockParentScroll="True"
     xmlns:i="http://schemas.microsoft.com/xaml/behaviors" 
     x:Name="RootPage">
 
@@ -140,7 +140,7 @@
                         </TextBlock>
 
                         <ui:TextBox Text="{Binding EditedName, UpdateSourceTrigger=PropertyChanged}"
-                            tools:FocusHelper.IsFocused="{Binding IsEditing}"
+                            tools:AutoFocus.IsFocused="{Binding IsEditing}"
                             FontSize="12" MinHeight="24" Padding="4,2" Margin="-4,0,0,0">
                             <ui:TextBox.Style>
                                 <Style TargetType="ui:TextBox" BasedOn="{StaticResource {x:Type ui:TextBox}}">

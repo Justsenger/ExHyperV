@@ -33,20 +33,20 @@ namespace ExHyperV.Services
 
                 if (!Win32Api.EnablePrivilege("SeBackupPrivilege").Success ||
                     !Win32Api.EnablePrivilege("SeRestorePrivilege").Success)
-                    return Properties.Resources.SystemSwitcher_ErrInsufficientPermissions;
+                    return Properties.Resources.SystemType_ErrInsufficientPermissions;
 
                 var saveResp = Win32Api.SaveHive("SYSTEM", HiveFile);
                 if (!saveResp.Success)
-                    return string.Format(Properties.Resources.SystemSwitcher_ErrExportFailed, saveResp.Code);
+                    return string.Format(Properties.Resources.SystemType_ErrExportFailed, saveResp.Code);
 
                 string targetType = toServer ? "ServerNT" : "WinNT";
                 if (!PatchHiveOffline(HiveFile, targetType))
-                    return Properties.Resources.SystemSwitcher_ErrOfflineModFailed;
+                    return Properties.Resources.SystemType_ErrOfflineModFailed;
 
                 var replaceResp = Win32Api.ReplaceHive("SYSTEM", HiveFile, BackupFile);
                 return replaceResp.Success
                     ? "SUCCESS"
-                    : string.Format(Properties.Resources.SystemSwitcher_ErrReplaceFailed, replaceResp.Code);
+                    : string.Format(Properties.Resources.SystemType_ErrReplaceFailed, replaceResp.Code);
             }
             catch (Exception ex) { return ex.Message; }
         }

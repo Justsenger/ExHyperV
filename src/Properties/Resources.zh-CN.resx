@@ -14,7 +14,7 @@
     
     ... ado.net/XML headers & schema ...
     <resheader name="resmimetype">text/microsoft-resx</resheader>
-    <resheader name="version">2.0</resheader>
+    <resheader name="Label_Version">2.0</resheader>
     <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
     <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
     <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
@@ -108,7 +108,7 @@
   <resheader name="resmimetype">
     <value>text/microsoft-resx</value>
   </resheader>
-  <resheader name="version">
+  <resheader name="Label_Version">
     <value>2.0</value>
   </resheader>
   <resheader name="reader">
@@ -120,28 +120,28 @@
   <data name="Assignabledevices" xml:space="preserve">
     <value>可分配设备</value>
   </data>
-  <data name="attention" xml:space="preserve">
+  <data name="Common_Attention" xml:space="preserve">
     <value>注意</value>
   </data>
-  <data name="attentionwords" xml:space="preserve">
+  <data name="Warning_DdaAssignment" xml:space="preserve">
     <value>不恰当分配设备可能导致系统不稳定，请谨慎操作！</value>
   </data>
-  <data name="refresh" xml:space="preserve">
+  <data name="Btn_Refresh" xml:space="preserve">
     <value>刷新</value>
   </data>
-  <data name="exhyperv" xml:space="preserve">
+  <data name="App_Tagline" xml:space="preserve">
     <value>轻松玩转 Hyper-V 高级功能</value>
   </data>
-  <data name="systeminfo" xml:space="preserve">
+  <data name="Section_System" xml:space="preserve">
     <value>系统信息</value>
   </data>
-  <data name="version" xml:space="preserve">
+  <data name="Label_Version" xml:space="preserve">
     <value>版本</value>
   </data>
-  <data name="arch" xml:space="preserve">
+  <data name="Label_Architecture" xml:space="preserve">
     <value>架构</value>
   </data>
-  <data name="model" xml:space="preserve">
+  <data name="Label_Cpu" xml:space="preserve">
     <value>CPU 型号</value>
   </data>
   <data name="Memorycapacity" xml:space="preserve">
@@ -153,22 +153,22 @@
   <data name="DdaService_SetShutdownToTurnOff" xml:space="preserve">
     <value>修改虚拟机的关机动作为强制断电...</value>
   </data>
-  <data name="kind" xml:space="preserve">
+  <data name="Label_Class" xml:space="preserve">
     <value>类型</value>
   </data>
   <data name="Instanceid" xml:space="preserve">
     <value>实例ID</value>
   </data>
-  <data name="path" xml:space="preserve">
+  <data name="Label_Path" xml:space="preserve">
     <value>路径</value>
   </data>
-  <data name="removed" xml:space="preserve">
+  <data name="Status_Dismounted" xml:space="preserve">
     <value>#已卸除</value>
   </data>
-  <data name="mounting" xml:space="preserve">
+  <data name="Status_MountingDevice" xml:space="preserve">
     <value>挂载设备中...</value>
   </data>
-  <data name="cpucache" xml:space="preserve">
+  <data name="Action_EnableCpuCacheControl" xml:space="preserve">
     <value>让虚拟机可管理CPU缓存...</value>
   </data>
   <data name="Disabledevice" xml:space="preserve">
@@ -177,67 +177,64 @@
   <data name="Dismountdevice" xml:space="preserve">
     <value>卸载设备中...</value>
   </data>
-  <data name="none" xml:space="preserve">
-    <value>无</value>
-  </data>
-  <data name="manu" xml:space="preserve">
+  <data name="Label_Manufacturer" xml:space="preserve">
     <value>制造商</value>
   </data>
-  <data name="uninstall" xml:space="preserve">
+  <data name="Btn_Uninstall" xml:space="preserve">
     <value>卸载</value>
   </data>
-  <data name="cancel" xml:space="preserve">
+  <data name="Btn_Cancel" xml:space="preserve">
     <value>取消</value>
   </data>
-  <data name="sure" xml:space="preserve">
+  <data name="Btn_Confirm" xml:space="preserve">
     <value>确定</value>
   </data>
   <data name="Settings" xml:space="preserve">
     <value>设置</value>
   </data>
-  <data name="theme" xml:space="preserve">
+  <data name="Theme_Title" xml:space="preserve">
     <value>应用主题</value>
   </data>
-  <data name="switchtheme" xml:space="preserve">
+  <data name="Theme_Switch" xml:space="preserve">
     <value>切换浅色/深色模式</value>
   </data>
-  <data name="light" xml:space="preserve">
+  <data name="Theme_Light" xml:space="preserve">
     <value>明亮</value>
   </data>
-  <data name="dark" xml:space="preserve">
+  <data name="Theme_Dark" xml:space="preserve">
     <value>黑暗</value>
   </data>
-  <data name="language" xml:space="preserve">
+  <data name="Lang_Title" xml:space="preserve">
     <value>语言</value>
   </data>
-  <data name="reboot" xml:space="preserve">
+  <data name="Lang_RestartHint" xml:space="preserve">
     <value>更改语言会重启应用程序</value>
   </data>
-  <data name="about" xml:space="preserve">
+  <data name="About_Title" xml:space="preserve">
     <value>关于</value>
   </data>
-  <data name="report" xml:space="preserve">
+  <data name="About_FeedbackLink" xml:space="preserve">
     <value>报告错误或提交意见</value>
   </data>
-  <data name="github" xml:space="preserve">
+  <data name="About_ViewCode" xml:space="preserve">
     <value>查看仓库</value>
   </data>
   <data name="Main" xml:space="preserve">
     <value>首页</value>
   </data>
-  <data name="complisetting" xml:space="preserve">
+  <data name="Section_Host" xml:space="preserve">
     <value>主机</value>
   </data>
   <data name="DDA" xml:space="preserve">
     <value>PCIe 直通</value>
   </data>
-  <data name="enabling" xml:space="preserve">
+  <data name="Status_EnablingDevice" xml:space="preserve">
     <value>启用设备中...</value>
   </data>
-  <data name="error" xml:space="preserve">
+  <data name="Error_Title" xml:space="preserve">
     <value>错误</value>
   </data>
-  <data name="servererror" xml:space="preserve">
+  <data name="Error_NotServerForDda" xml:space="preserve">
     <value>主机系统非服务器版本，无法使用 PCIe 直通！</value>
   </data>
   <data name="VirtualSwitchList" xml:space="preserve">
@@ -307,7 +304,7 @@
   <data name="Error_DeleteSwitchFailed" xml:space="preserve">
     <value>删除交换机“{0}”失败。</value>
   </data>
-  <data name="create" xml:space="preserve">
+  <data name="Btn_Create" xml:space="preserve">
     <value>创建</value>
   </data>
   <data name="AddSwitch_DefaultName_External" xml:space="preserve">
@@ -1984,7 +1981,7 @@
   <data name="Label_UsbPassthrough" xml:space="preserve">
     <value>USB 直通</value>
   </data>
-  <data name="UsbDeviceModel_Host" xml:space="preserve">
+  <data name="UsbDevice_Host" xml:space="preserve">
     <value>主机</value>
   </data>
   <data name="DiskParser_LogSector512" xml:space="preserve">
@@ -2362,25 +2359,25 @@
   <data name="VmSpacetimeService_LogCleanScreenFailed" xml:space="preserve">
     <value>[Spacetime] 清理截图失败: {0}</value>
   </data>
-  <data name="MMIOOptimizer_LogFinalResult" xml:space="preserve">
+  <data name="VmMmio_LogFinalResult" xml:space="preserve">
     <value>[MMIO] 最终计算结果:</value>
   </data>
-  <data name="MMIOOptimizer_LogConfigApplied" xml:space="preserve">
+  <data name="VmMmio_LogConfigApplied" xml:space="preserve">
     <value>[MMIO] 最终配置已成功应用。</value>
   </data>
-  <data name="MMIOOptimizer_LogError" xml:space="preserve">
+  <data name="VmMmio_LogError" xml:space="preserve">
     <value>[MMIO] 错误: {0}</value>
   </data>
-  <data name="SystemSwitcher_ErrInsufficientPermissions" xml:space="preserve">
+  <data name="SystemType_ErrInsufficientPermissions" xml:space="preserve">
     <value>权限不足</value>
   </data>
-  <data name="SystemSwitcher_ErrExportFailed" xml:space="preserve">
+  <data name="SystemType_ErrExportFailed" xml:space="preserve">
     <value>导出失败:{0}</value>
   </data>
-  <data name="SystemSwitcher_ErrOfflineModFailed" xml:space="preserve">
+  <data name="SystemType_ErrOfflineModFailed" xml:space="preserve">
     <value>离线修改失败</value>
   </data>
-  <data name="SystemSwitcher_ErrReplaceFailed" xml:space="preserve">
+  <data name="SystemType_ErrReplaceFailed" xml:space="preserve">
     <value>替换失败:{0}</value>
   </data>
   <data name="VmPage_MemTrackEnable" xml:space="preserve">
@@ -2734,28 +2731,49 @@
   <data name="Status_Msg_RestartRequired" xml:space="preserve">
     <value>请先重启系统，再进行此操作。</value>
   </data>
-  <data name="Status_Msg_CurrentVer_Duplicate" xml:space="preserve">
-    <value>当前识别为</value>
-  </data>
-  <data name="Status_Msg_OperationPending_Duplicate" xml:space="preserve">
-    <value>变更已挂起，重启后生效。</value>
-  </data>
-  <data name="Status_Msg_RestartNow_Duplicate" xml:space="preserve">
-    <value>系统标识已修改。是否立即重启？</value>
-  </data>
-  <data name="Status_Title_Success_Duplicate" xml:space="preserve">
-    <value>操作成功</value>
-  </data>
-  <data name="Status_Title_Info_Duplicate" xml:space="preserve">
-    <value>提示</value>
-  </data>
-  <data name="Status_Title_Error_Duplicate" xml:space="preserve">
-    <value>错误</value>
-  </data>
-  <data name="Global_Restart_Duplicate" xml:space="preserve">
-    <value>立即重启</value>
-  </data>
   <data name="Status_Title_Warning" xml:space="preserve">
     <value>警告</value>
+  </data>
+  <data name="Error_VmCreate_NoSystemPath" xml:space="preserve">
+    <value>DefineSystem 未返回 VM 路径</value>
+  </data>
+  <data name="Error_VmCreate_NoGuid" xml:space="preserve">
+    <value>无法获取新建 VM 的 GUID</value>
+  </data>
+  <data name="Error_VmCreate_NoGuardian" xml:space="preserve">
+    <value>无法获取或创建 UntrustedGuardian</value>
+  </data>
+  <data name="Error_VmCreate_NoKeyProtector" xml:space="preserve">
+    <value>无法生成本地 KeyProtector</value>
+  </data>
+  <data name="Error_VmCreate_NoSecuritySettings" xml:space="preserve">
+    <value>无法找到 VM 的 SecuritySettingData</value>
+  </data>
+  <data name="Error_VmCreate_NoSecurityService" xml:space="preserve">
+    <value>无法找到 Msvm_SecurityService</value>
+  </data>
+  <data name="Error_VmCreate_SetKeyProtectorFail" xml:space="preserve">
+    <value>SetKeyProtector 失败，返回码：{0}</value>
+  </data>
+  <data name="Error_VmCreate_ModifySecuritySettingsFail" xml:space="preserve">
+    <value>ModifySecuritySettings 失败，返回码：{0}</value>
+  </data>
+  <data name="Error_VmCreate_TpmJobFail" xml:space="preserve">
+    <value>TPM Job 失败，状态：{0}</value>
+  </data>
+  <data name="Msg_Dda_ShuttingDownVm" xml:space="preserve">
+    <value>正在关闭虚拟机...</value>
+  </data>
+  <data name="Error_Dda_CannotShutdownVm" xml:space="preserve">
+    <value>无法关闭虚拟机，操作终止。</value>
+  </data>
+  <data name="Label_VlanId" xml:space="preserve">
+    <value>VLAN ID</value>
+  </data>
+  <data name="Usb_BusLabel" xml:space="preserve">
+    <value>总线：</value>
+  </data>
+  <data name="Usb_IdLabel" xml:space="preserve">
+    <value>  ID：</value>
   </data>
 </root>

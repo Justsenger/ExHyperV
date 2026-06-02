@@ -112,7 +112,7 @@ namespace ExHyperV.ViewModels
                         TextWrapping = System.Windows.TextWrapping.Wrap,
                         MaxWidth = 400
                     },
-                    CloseButtonText = Resources.sure
+                    CloseButtonText = Resources.Btn_Confirm
                 };
                 await errorDialog.ShowDialogAsync();
             }
@@ -143,9 +143,9 @@ namespace ExHyperV.ViewModels
                 {
                     var errorDialog = new MessageBox
                     {
-                        Title = Properties.Resources.error,
+                        Title = Properties.Resources.Error_Title,
                         Content = Resources.DdaPage_Error_UpdateMmioFailed,
-                        CloseButtonText = Resources.sure
+                        CloseButtonText = Resources.Btn_Confirm
                     };
                     await errorDialog.ShowDialogAsync();
                     await LoadDataCommand.ExecuteAsync(null);
@@ -156,9 +156,9 @@ namespace ExHyperV.ViewModels
             {
                 var errorDialog = new MessageBox
                 {
-                    Title = Resources.error,
+                    Title = Resources.Error_Title,
                     Content = ExHyperV.Properties.Resources.DdaPage_Error_CheckMmioGeneric,
-                    CloseButtonText = Resources.sure
+                    CloseButtonText = Resources.Btn_Confirm
                 };
                 await errorDialog.ShowDialogAsync();
                 return false;

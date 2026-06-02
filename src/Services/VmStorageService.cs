@@ -13,7 +13,7 @@ namespace ExHyperV.Services
         // 核心数据查询
         // ============================================================
 
-        public async Task LoadVmStorageItemsAsync(VmInstanceInfo vm)
+        public async Task LoadVmStorageItemsAsync(VmInstance vm)
         {
             if (vm == null) return;
 
@@ -343,7 +343,7 @@ namespace ExHyperV.Services
         // 刷新虚拟磁盘文件大小
         // ============================================================
 
-        public async Task RefreshVirtualDiskSizesAsync(VmInstanceInfo vm)
+        public async Task RefreshVirtualDiskSizesAsync(VmInstance vm)
         {
             if (vm == null) return;
 
@@ -1032,7 +1032,7 @@ namespace ExHyperV.Services
                     if (!string.IsNullOrEmpty(targetDir) && !Directory.Exists(targetDir))
                         Directory.CreateDirectory(targetDir);
 
-                    ExHyperV.Tools.ImapiIsoTool.BuildUdfIso(sourceDirectory, targetIsoPath, finalVolumeLabel);
+                    IsoBuilderService.BuildUdfIso(sourceDirectory, targetIsoPath, finalVolumeLabel);
                     return (true, "Iso_Msg_CreateSuccess");
                 }
                 catch (Exception ex)
