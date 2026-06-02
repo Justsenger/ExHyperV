@@ -9,9 +9,13 @@ namespace ExHyperV.ViewModels
 {
     public partial class SwitchViewModel : ObservableObject
     {
+        // ===== 字段 =====
+
         private readonly HyperVSwitchService _networkService;
         private readonly List<PhysicalAdapterInfo> _allPhysicalAdapters;
         private readonly ObservableCollection<SwitchViewModel> _allSwitchViewModels;
+
+        // ===== 属性 =====
 
         [ObservableProperty] private bool _isLockedForInteraction = false;
 
@@ -34,6 +38,8 @@ namespace ExHyperV.ViewModels
         public string DropDownButtonContent => IsDefaultSwitch ? ExHyperV.Properties.Resources.Auto : SelectedNetworkMode == "Isolated" ? ExHyperV.Properties.Resources.Status_Unavailable : string.IsNullOrEmpty(SelectedUpstreamAdapter) ? ExHyperV.Properties.Resources.Placeholder_SelectNetworkAdapter : SelectedUpstreamAdapter;
         public string IconGlyph => DeviceIcons.GetGlyph("Switch", SwitchName);
 
+        // ===== 构造 =====
+
         public SwitchViewModel(SwitchInfo switchInfo, HyperVSwitchService networkService, List<PhysicalAdapterInfo> allPhysicalAdapters, ObservableCollection<SwitchViewModel> allSwitchViewModels)
         {
             _networkService = networkService;
@@ -55,6 +61,8 @@ namespace ExHyperV.ViewModels
                 }
             };
         }
+
+        // ===== 命令与逻辑 =====
 
         [RelayCommand]
         private void SetNetworkMode(string? mode)

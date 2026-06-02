@@ -12,8 +12,12 @@ namespace ExHyperV.ViewModels
 
     public partial class HostPageViewModel : ObservableObject
     {
+        // ===== 字段与状态 =====
+
         private readonly HyperVHostService _hostService = new();
         private bool _isInitialized = false;
+
+        // ===== 绑定属性 =====
 
         public CheckStatusViewModel SystemStatus { get; } = new("");
         public CheckStatusViewModel CpuStatus { get; } = new("");
@@ -35,6 +39,8 @@ namespace ExHyperV.ViewModels
             new SchedulerMode(ExHyperV.Properties.Resources.Scheduler_Core, HyperVSchedulerType.Core),
             new SchedulerMode(ExHyperV.Properties.Resources.Scheduler_Root, HyperVSchedulerType.Root)
         };
+
+        // ===== 构造与初始化检查 =====
 
         public HostPageViewModel() => _ = LoadInitialStatusAsync();
 
@@ -111,6 +117,8 @@ namespace ExHyperV.ViewModels
             catch { }
         }
 
+        // ===== 属性变更处理 =====
+
         partial void OnIsGpuStrategyEnabledChanged(bool value)
         {
             if (!_isInitialized) return;
@@ -163,6 +171,8 @@ namespace ExHyperV.ViewModels
             SwitchSystemVersion(value);
         }
 
+        // ===== 命令 =====
+
         [RelayCommand]
         private async Task DisableHyperVAsync()
         {
@@ -188,6 +198,8 @@ namespace ExHyperV.ViewModels
             }
             ShowRestartPrompt(ExHyperV.Properties.Resources.Msg_Host_EnableSuccess);
         }
+
+        // ===== 系统版本切换 =====
 
         private void InitializeProductType()
         {
@@ -227,6 +239,8 @@ namespace ExHyperV.ViewModels
             finally { IsSystemSwitchEnabled = true; }
         }
 
+
+        // ===== UI 辅助（Snackbar / 重启提示） =====
 
         private string Translate(string key) => ExHyperV.Properties.Resources.ResourceManager.GetString(key) ?? key;
 
@@ -273,6 +287,8 @@ namespace ExHyperV.ViewModels
             });
         }
     }
+
+    // ===== 检查项状态子 VM =====
 
     public partial class CheckStatusViewModel : ObservableObject
     {

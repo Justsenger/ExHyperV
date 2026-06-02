@@ -26,7 +26,7 @@ namespace ExHyperV.ViewModels
     }
     public partial class VirtualMachinesPageViewModel : ObservableObject, IDisposable
     {
-        #region 私有服务字段与依赖注入
+        // ===== 私有服务字段与依赖注入 =====
         private readonly VmQueryService _queryService;
         private readonly VmPowerService _powerService;
         private readonly VmProcessorService _vmProcessorService;
@@ -40,9 +40,8 @@ namespace ExHyperV.ViewModels
         private readonly VmBootService _vmBootService = new();
         private readonly VmSpacetimeService _spacetimeService = new();
 
-        #endregion
 
-        #region 监控与后台任务字段
+        // ===== 监控与后台任务字段 =====
         private CpuMonitorService _cpuService;
         private CancellationTokenSource _monitoringCts;
         private Task _cpuTask;
@@ -51,9 +50,8 @@ namespace ExHyperV.ViewModels
 
         private readonly Dictionary<Guid, (string NewName, DateTime Expiry)> _renameLockouts = new();
 
-        #endregion
 
-        #region 缓存与状态字段
+        // ===== 缓存与状态字段 =====
         private const int MaxHistoryLength = 60;
         private readonly Dictionary<string, LinkedList<double>> _historyCache = new();
         private VmProcessorSettings _originalSettingsCache;
@@ -61,32 +59,28 @@ namespace ExHyperV.ViewModels
         private bool _isInternalUpdating = false;
         private bool _isDiskPathManual = false; // 记录用户是否手动选择过磁盘路径
 
-        #endregion
 
-        #region 视图模型属性 - 页面状态
+        // ===== 视图模型属性 - 页面状态 =====
         [ObservableProperty] private bool _isLoading = true;
         [ObservableProperty] private bool _isLoadingSettings;
         [ObservableProperty] private VmDetailViewType _currentViewType = VmDetailViewType.Dashboard;
         [ObservableProperty] private string _searchText = string.Empty;
 
-        #endregion
 
-        #region 视图模型属性 - 虚拟机列表与选择
+        // ===== 视图模型属性 - 虚拟机列表与选择 =====
         [ObservableProperty] private ObservableCollection<VmInstanceViewModel> _vmList = new();
         [ObservableProperty] private VmInstanceViewModel _selectedVm;
         [ObservableProperty] private BitmapSource? _thumbnail;
 
-        #endregion
 
-        #region 视图模型属性 - CPU 设置
+        // ===== 视图模型属性 - CPU 设置 =====
         public ObservableCollection<int> PossibleVCpuCounts { get; private set; }
         [ObservableProperty] private ObservableCollection<VmCoreItem> _affinityHostCores;
         [ObservableProperty] private int _affinityColumns = 8;
         [ObservableProperty] private int _affinityRows = 1;
 
-        #endregion
 
-        #region 视图模型属性 - 存储管理
+        // ===== 视图模型属性 - 存储管理 =====
         [ObservableProperty] private ObservableCollection<HostDiskInfo> _hostDisks = new();
 
         // 存储向导属性
@@ -123,14 +117,12 @@ namespace ExHyperV.ViewModels
         public ObservableCollection<int> AvailableLocations { get; } = new();
         public List<int> NewDiskSizePresets { get; } = new() { 32, 64, 128, 256, 512, 1024 };
 
-        #endregion
 
-        #region 视图模型属性 - 网络设置
+        // ===== 视图模型属性 - 网络设置 =====
         [ObservableProperty] private ObservableCollection<string> _availableSwitchNames = new();
 
-        #endregion
 
-        #region 视图模型属性 - GPU 管理
+        // ===== 视图模型属性 - GPU 管理 =====
         [ObservableProperty] private ObservableCollection<GPUInfo> _hostGpus = new();
         [ObservableProperty][NotifyCanExecuteChangedFor(nameof(ConfirmAddGpuCommand))] private GPUInfo _selectedHostGpu;
         [ObservableProperty] private bool _autoInstallDrivers = true;
@@ -157,9 +149,8 @@ namespace ExHyperV.ViewModels
         [ObservableProperty] private string _gpuDeploymentLog = string.Empty;
         [ObservableProperty] private bool _showLogConsole = false;
 
-        #endregion
 
-        #region 构造函数与资源释放
+        // ===== 构造函数与资源释放 =====
 
         // Linux 部署字段
 
@@ -201,9 +192,8 @@ namespace ExHyperV.ViewModels
             _uiTimer?.Stop();
         }
 
-        #endregion
 
-        #region 导航与页面状态控制
+        // ===== 导航与页面状态控制 =====
 
         // 搜索框文本变化时的过滤逻辑
         partial void OnSearchTextChanged(string value)
@@ -245,9 +235,8 @@ namespace ExHyperV.ViewModels
             }
         }
 
-        #endregion
 
-        #region 视图模型属性 - 创建虚拟机表单
+        // ===== 视图模型属性 - 创建虚拟机表单 =====
 
         // 控制右侧界面切换
         [ObservableProperty] private bool _isCreatingVm = false;
@@ -394,9 +383,8 @@ namespace ExHyperV.ViewModels
         private bool _isNameModifiedByUser = false;
 
 
-        #endregion
 
-        #region 创建虚拟机模块
+        // ===== 创建虚拟机模块 =====
 
         // 1. 点击左侧 "+" 按钮：进入创建模式
         private void UpdateDiskPath()
@@ -720,9 +708,8 @@ namespace ExHyperV.ViewModels
 
 
 
-        #endregion
 
-        #region 虚拟机列表管理与核心操作
+        // ===== 虚拟机列表管理与核心操作 =====
 
         [RelayCommand]
         private void OpenVmFolder(VmInstanceViewModel vm)
@@ -1076,9 +1063,8 @@ namespace ExHyperV.ViewModels
             }
         }
 
-        #endregion
 
-        #region 后台监控循环与状态更新
+        // ===== 后台监控循环与状态更新 =====
 
         // 启动后台监控线程
         private void StartMonitoring()
@@ -1266,9 +1252,8 @@ namespace ExHyperV.ViewModels
         private void UpdateHistory(string vmName, VmCoreItem core) { string key = $"{vmName}_{core.CoreId}"; if (!_historyCache.TryGetValue(key, out var history)) { history = new LinkedList<double>(); for (int k = 0; k < MaxHistoryLength; k++) history.AddLast(0); _historyCache[key] = history; } history.AddLast(core.Usage); if (history.Count > MaxHistoryLength) history.RemoveFirst(); core.HistoryPoints = CalculatePoints(history); }
         private PointCollection CalculatePoints(LinkedList<double> history) { double w = 100.0, h = 100.0, step = w / (MaxHistoryLength - 1); var points = new PointCollection(MaxHistoryLength + 2) { new Point(0, h) }; int i = 0; foreach (var val in history) points.Add(new Point(i++ * step, h - (val * h / 100.0))); points.Add(new Point(w, h)); points.Freeze(); return points; }
 
-        #endregion
 
-        #region CPU 设置与亲和性模块
+        // ===== CPU 设置与亲和性模块 =====
 
         // 初始化可能的 vCPU 数量选项
         private void InitPossibleCpuCounts()
@@ -1493,9 +1478,8 @@ namespace ExHyperV.ViewModels
             });
         }
 
-        #endregion
 
-        #region 内存设置模块
+        // ===== 内存设置模块 =====
 
         // 导航至内存设置
         [RelayCommand]
@@ -1655,9 +1639,8 @@ namespace ExHyperV.ViewModels
     new { Value = (uint)2, Name = Properties.Resources.VmPage_MsgTimelineRestored }
 };
 
-        #endregion
 
-        #region 存储管理模块 - 列表与基础操作
+        // ===== 存储管理模块 - 列表与基础操作 =====
 
         // 导航至存储设置页面
         [RelayCommand]
@@ -1872,9 +1855,8 @@ namespace ExHyperV.ViewModels
             catch (Exception) { }
         }
 
-        #endregion
 
-        #region 存储管理模块 - 添加设备向导
+        // ===== 存储管理模块 - 添加设备向导 =====
 
         public int NewDiskSizeInt => int.TryParse(NewDiskSize, out int size) && size > 0 ? size : 128;
 
@@ -2419,14 +2401,12 @@ namespace ExHyperV.ViewModels
                 OnSelectedControllerTypeChanged(SelectedControllerType);
             }
         }
-        #endregion
 
-        #region 网络设置模块
+        // ===== 网络设置模块 =====
 
 
-        #endregion
 
-        #region 网络模式映射选项 (用于翻译)
+        // ===== 网络模式映射选项 (用于翻译) =====
 
         // 1. VLAN 主模式映射
         public List<object> VlanModeOptions { get; } = new()
@@ -2813,9 +2793,8 @@ namespace ExHyperV.ViewModels
             list.Last().IsLast = true;
         }
 
-        #endregion
 
-        #region GPU 管理模块 - 列表与基础操作
+        // ===== GPU 管理模块 - 列表与基础操作 =====
 
         // 导航至 GPU 管理页面
         [RelayCommand]
@@ -2955,9 +2934,8 @@ namespace ExHyperV.ViewModels
             }
         }
 
-        #endregion
 
-        #region GPU 管理模块 - 部署向导与自动化
+        // ===== GPU 管理模块 - 部署向导与自动化 =====
 
         // 导航至添加 GPU 向导
         [RelayCommand]
@@ -3544,9 +3522,8 @@ namespace ExHyperV.ViewModels
             return normalizedId.Replace('\\', '#').Replace("#", "");
         }
 
-        #endregion
 
-        #region 时空管理模块
+        // ===== 时空管理模块 =====
 
         [ObservableProperty] private ObservableCollection<SpacetimeNode> _spacetimeNodes = new();
 
@@ -3846,9 +3823,8 @@ namespace ExHyperV.ViewModels
             }
             finally { IsLoadingSettings = false; }
         }
-        #endregion
 
-        #region UI 辅助方法
+        // ===== UI 辅助方法 =====
 
         // 显示 Snackbar 通知
         private Snackbar? _currentSnackbar;
@@ -4056,6 +4032,5 @@ namespace ExHyperV.ViewModels
             catch { return defaultNameWithExt; }
         }
 
-        #endregion
     }
 }

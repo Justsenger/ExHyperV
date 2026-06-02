@@ -12,7 +12,11 @@ namespace ExHyperV.ViewModels
 {
     public partial class PCIePageViewModel : ObservableObject
     {
+        // ===== 字段 =====
+
         private readonly PCIeService _pcieService;
+
+        // ===== 绑定属性与命令 =====
 
         [ObservableProperty]
         private bool _isLoading;
@@ -27,6 +31,8 @@ namespace ExHyperV.ViewModels
         public IAsyncRelayCommand LoadDataCommand { get; }
         public IAsyncRelayCommand<object> ChangeAssignmentCommand { get; }
 
+        // ===== 构造 =====
+
         public PCIePageViewModel()
         {
             _pcieService = new PCIeService();
@@ -35,6 +41,8 @@ namespace ExHyperV.ViewModels
             ChangeAssignmentCommand = new AsyncRelayCommand<object>(ChangeAssignmentAsync);
             LoadDataCommand.Execute(null);
         }
+
+        // ===== 业务方法 =====
 
         private async Task LoadDataAsync()
         {

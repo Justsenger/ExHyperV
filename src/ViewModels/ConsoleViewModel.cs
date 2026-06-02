@@ -13,9 +13,13 @@ namespace ExHyperV.ViewModels
 {
     public partial class ConsoleViewModel : ObservableObject, IDisposable
     {
+        // ===== 字段 =====
+
         private readonly VmPowerService _powerService = new();
         private readonly VmQueryService _queryService = new();
         private DispatcherTimer _statusTimer;
+
+        // ===== 基础属性 =====
 
         [ObservableProperty] private string _vmId;
         [ObservableProperty] private string _vmName;
@@ -36,12 +40,16 @@ namespace ExHyperV.ViewModels
 
         public event EventHandler SendCadRequested;
 
+        // ===== 构造 =====
+
         public ConsoleViewModel(string vmId, string vmName)
         {
             VmId = vmId;
             VmName = vmName;
             StartStatusPolling();
         }
+        // ===== 全屏 =====
+
         [ObservableProperty] private bool _isFullScreen = false;
         [RelayCommand]
         private void ToggleFullScreen()
@@ -52,6 +60,8 @@ namespace ExHyperV.ViewModels
         }
 
         public ConsoleViewModel() { }
+
+        // ===== 状态轮询 =====
 
         private void StartStatusPolling()
         {
@@ -89,6 +99,8 @@ namespace ExHyperV.ViewModels
         private bool CanExecutePowerAction() => !IsBusy;
 
         [RelayCommand(CanExecute = nameof(CanExecutePowerAction))]
+        // ===== 电源控制 =====
+
         private async Task StartVmAsync() => await ExecutePowerActionAsync("Start");
 
         [RelayCommand(CanExecute = nameof(CanExecutePowerAction))]
@@ -132,6 +144,8 @@ namespace ExHyperV.ViewModels
             SendCadRequested?.Invoke(this, EventArgs.Empty);
         }
 
+        // ===== 分辨率 =====
+
         [ObservableProperty] private string _selectedResolution = "-";
         [ObservableProperty] private int _currentWidth;
         [ObservableProperty] private int _currentHeight;
@@ -158,6 +172,8 @@ namespace ExHyperV.ViewModels
             "1440 x 900",  "1366 x 768",  "1280 x 1024", "1280 x 800",
             "1280 x 720",  "1152 x 864",  "1024 x 768",  "800 x 600"
         };
+
+        // ===== 会话模式 =====
 
         [ObservableProperty] private string _selectedSessionMode = Properties.Resources.ConsoleViewModel_BasicSession;
         [ObservableProperty] private bool _isEnhancedMode = false;

@@ -25,13 +25,12 @@ namespace ExHyperV.ViewModels
     /// </summary>
     public partial class VmInstanceViewModel : ObservableObject
     {
-        #region Model 引用（构造时绑定，永不替换；Service 通过它访问底层数据）
+        // ===== Model 引用（构造时绑定，永不替换；Service 通过它访问底层数据） =====
 
         public VmInstance Model { get; }
 
-        #endregion
 
-        #region 编辑名称（view-only）
+        // ===== 编辑名称（view-only） =====
 
         [ObservableProperty] private bool _isEditing;
         [ObservableProperty] private string _editedName = string.Empty;
@@ -42,9 +41,8 @@ namespace ExHyperV.ViewModels
             IsEditing = true;
         }
 
-        #endregion
 
-        #region 基础字段 — [ObservableProperty] + OnXxxChanged 反写 Model
+        // ===== 基础字段 — [ObservableProperty] + OnXxxChanged 反写 Model =====
 
         [ObservableProperty] private Guid _id;
         partial void OnIdChanged(Guid value) { if (Model != null) Model.Id = value; }
@@ -108,9 +106,8 @@ namespace ExHyperV.ViewModels
         private string? _transientState;
         private string? _backendState;
 
-        #endregion
 
-        #region CPU / 内存
+        // ===== CPU / 内存 =====
 
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(ConfigSummary))]
@@ -155,9 +152,8 @@ namespace ExHyperV.ViewModels
         private readonly LinkedList<double> _memoryUsageHistory = new();
         private const int MaxHistoryLength = 60;
 
-        #endregion
 
-        #region 存储 / 网络 / 启动顺序 / GPU 分配 — pass-through 到 Model 的 ObservableCollection
+        // ===== 存储 / 网络 / 启动顺序 / GPU 分配 — pass-through 到 Model 的 ObservableCollection =====
 
         public ObservableCollection<VmDiskDetails> Disks => Model.Disks;
         public ObservableCollection<VmStorageItem> StorageItems => Model.StorageItems;
@@ -170,9 +166,8 @@ namespace ExHyperV.ViewModels
         private double _totalDiskSizeGb;
         partial void OnTotalDiskSizeGbChanged(double value) { if (Model != null) Model.TotalDiskSizeGb = value; }
 
-        #endregion
 
-        #region GPU
+        // ===== GPU =====
 
         [ObservableProperty] private string? _gpuVendor;
         partial void OnGpuVendorChanged(string? value) { if (Model != null) Model.GpuVendor = value; }
@@ -257,15 +252,13 @@ namespace ExHyperV.ViewModels
         private readonly LinkedList<double> _gpuEncodeHistory = new();
         private readonly LinkedList<double> _gpuDecodeHistory = new();
 
-        #endregion
 
-        #region 命令（由 PageVM 创建并赋值——需要 powerService 等依赖）
+        // ===== 命令（由 PageVM 创建并赋值——需要 powerService 等依赖） =====
 
         public IAsyncRelayCommand<string>? ControlCommand { get; set; }
 
-        #endregion
 
-        #region 构造：从 Model 初始化 VM（Model 引用保留，集合通过 pass-through 共享）
+        // ===== 构造：从 Model 初始化 VM（Model 引用保留，集合通过 pass-through 共享） =====
 
         public VmInstanceViewModel(VmInstance model)
         {
@@ -349,9 +342,8 @@ namespace ExHyperV.ViewModels
             RefreshGpuPoints();
         }
 
-        #endregion
 
-        #region Apply：把 fresh Model 数据合入**当前 Model**（in-place）
+        // ===== Apply：把 fresh Model 数据合入**当前 Model**（in-place） =====
         //
         // 调用方：PageVM.MonitorStateLoop 周期刷新 / SyncSingleVmStateAsync 单 VM 刷新
         // skipNameUpdate=true：PageVM 的 rename lockout 期内跳过 Name 同步
@@ -484,9 +476,8 @@ namespace ExHyperV.ViewModels
             }
         }
 
-        #endregion
 
-        #region 业务逻辑方法（内存、GPU、状态推进、计时）
+        // ===== 业务逻辑方法（内存、GPU、状态推进、计时） =====
 
         public string MemoryUsageString => _assignedMemoryGb.ToString("N1");
         public string MemoryDemandString => _demandMemoryGb.ToString("N1");
@@ -612,9 +603,8 @@ namespace ExHyperV.ViewModels
             }
         }
 
-        #endregion
 
-        #region transient 状态机：将 backend raw state（StateText）和 view 端 transient state（如 "Starting"）
+        // ===== transient 状态机：将 backend raw state（StateText）和 view 端 transient state（如 "Starting"） =====
         // 合成最终显示的 State；并由此推导 IsRunning
 
         public void SyncBackendData(string realState, TimeSpan realUptime)
@@ -687,6 +677,5 @@ namespace ExHyperV.ViewModels
 
         public void SetTransientState(string text) { _transientState = text; RefreshStateDisplay(); }
         public void ClearTransientState() { _transientState = null; RefreshStateDisplay(); }
-        #endregion
     }
 }

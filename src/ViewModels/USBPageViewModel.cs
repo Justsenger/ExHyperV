@@ -9,8 +9,12 @@ namespace ExHyperV.ViewModels
 {
     public partial class USBPageViewModel : ObservableObject
     {
+        // ===== 字段 =====
+
         private readonly UsbVmbusService _srv;
         private readonly CancellationTokenSource _viewCts = new();
+
+        // ===== 绑定属性与命令 =====
 
         [ObservableProperty] private bool _isLoading;
         [ObservableProperty] private bool _isUiEnabled = true;
@@ -18,6 +22,8 @@ namespace ExHyperV.ViewModels
         public ObservableCollection<UsbDeviceViewModel> Devices { get; } = new();
         public IAsyncRelayCommand LoadDataCommand { get; }
         public IAsyncRelayCommand<object> ChangeAssignmentCommand { get; }
+
+        // ===== 构造 =====
 
         public USBPageViewModel()
         {
@@ -32,6 +38,8 @@ namespace ExHyperV.ViewModels
             // 启动设备同步循环 (刷新手机变身后的 Description)
             _ = Task.Run(() => SyncDevicesLoopAsync(_viewCts.Token));
         }
+
+        // ===== 业务方法 =====
 
         private async Task LoadDataAsync()
         {

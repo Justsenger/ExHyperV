@@ -11,7 +11,11 @@ namespace ExHyperV.ViewModels
 {
     public partial class VMNetViewModel : ObservableObject
     {
+        // ===== 字段 =====
+
         private readonly HyperVSwitchService _networkService;
+
+        // ===== 属性 =====
 
         [ObservableProperty] private bool _isBusy = false;
         [ObservableProperty] private bool _isContentVisible = true;
@@ -22,11 +26,15 @@ namespace ExHyperV.ViewModels
         private List<PhysicalAdapterInfo> _physicalAdapters = new();
         private List<SwitchInfo> _rawSwitchInfos = new();
 
+        // ===== 构造 =====
+
         public VMNetViewModel()
         {
             _networkService = new HyperVSwitchService();
             LoadNetworkInfoCommand.Execute(null);
         }
+
+        // ===== 命令 =====
 
         [RelayCommand]
         private async Task AddNewSwitchAsync()
@@ -113,6 +121,8 @@ namespace ExHyperV.ViewModels
                 IsBusy = false;
             }
         }
+
+        // ===== 内部刷新逻辑 =====
 
         private async Task CoreRefreshLogicAsync()
         {

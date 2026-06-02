@@ -14,6 +14,8 @@ namespace ExHyperV.ViewModels
     {
         private bool _isInitializing = true;
 
+        // ===== 属性 =====
+
         [ObservableProperty] private List<string> _availableThemes;
         [ObservableProperty] private string _selectedTheme;
         [ObservableProperty] private List<string> _availableLanguages;
@@ -29,6 +31,8 @@ namespace ExHyperV.ViewModels
         [ObservableProperty]
         private bool _showUpdateIndicator;
 
+
+        // ===== 命令 =====
 
         [RelayCommand]
         private async Task CheckForUpdateAsync()
@@ -90,6 +94,8 @@ namespace ExHyperV.ViewModels
         }
         public string CopyrightInfo => "© 2026 | " + AppInfoService.Author+ " | " + AppInfoService.Version;
 
+        // ===== 构造 =====
+
         public SettingsViewModel()
         {
             AvailableThemes = new List<string> { Resources.Theme_Light, Resources.Theme_Dark };
@@ -101,6 +107,8 @@ namespace ExHyperV.ViewModels
             UpdateActionCommand = CheckForUpdateCommand;
             _ = CheckForUpdateCommand.ExecuteAsync(null);
         }
+
+        // ===== 内部方法 =====
 
         private void LoadCurrentSettings()
         {
