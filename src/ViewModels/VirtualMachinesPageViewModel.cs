@@ -11,7 +11,6 @@ using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ExHyperV.Api;
-using ExHyperV.Behaviors;
 using ExHyperV.Models;
 using ExHyperV.Services;
 using ExHyperV.Tools;

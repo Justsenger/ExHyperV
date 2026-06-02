@@ -6,7 +6,7 @@ using System.Windows.Media;
 using Microsoft.Xaml.Behaviors;
 using ExHyperV.Models;
 
-namespace ExHyperV.Behaviors
+namespace ExHyperV.Tools
 {
     public class ListBoxDragDropBehavior : Behavior<System.Windows.Controls.ListBox>
     {
