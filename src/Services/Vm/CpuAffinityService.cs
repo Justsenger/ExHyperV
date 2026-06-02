@@ -102,6 +102,13 @@ namespace ExHyperV.Services
             }
         }
 
+        /// <summary>
+        /// 同步尝试为 vmmem 进程设置一次 CPU 亲和性，返回是否成功。
+        /// vmmem 进程在 VM 刚启动时可能尚未就绪（返回 false），供 ViewModel 重试调用。
+        /// </summary>
+        public static bool TrySetVmmemAffinity(Guid vmId, List<int> coreIds)
+            => ProcessAffinityService.SetVmProcessAffinity(vmId, coreIds);
+
         // ----------------------------------------------------------------------------------
         // HCS CPU Group 辅助方法（仅供 Classic/Core 模式使用，外部无调用方 → private）
         // ----------------------------------------------------------------------------------
