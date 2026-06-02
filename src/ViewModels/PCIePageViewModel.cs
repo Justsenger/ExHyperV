@@ -8,6 +8,7 @@ using Wpf.Ui.Controls;
 using MessageBox = Wpf.Ui.Controls.MessageBox;
 using TextBlock = Wpf.Ui.Controls.TextBlock;
 
+using ExHyperV.Views;
 namespace ExHyperV.ViewModels
 {
     public partial class PCIePageViewModel : ObservableObject

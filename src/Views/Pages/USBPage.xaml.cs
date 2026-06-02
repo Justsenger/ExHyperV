@@ -1,6 +1,6 @@
 ﻿using System.Windows.Controls;
 
-namespace ExHyperV.Views.Pages
+namespace ExHyperV.Views
 {
     /// <summary>
     /// USBPage.xaml 的交互逻辑

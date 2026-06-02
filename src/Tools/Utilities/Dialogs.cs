@@ -4,6 +4,7 @@ using System.Windows.Media;
 using Wpf.Ui.Controls;
 using TextBlock = Wpf.Ui.Controls.TextBlock;
 
+using ExHyperV.Views;
 namespace ExHyperV.Tools
 {
     public static class Dialogs

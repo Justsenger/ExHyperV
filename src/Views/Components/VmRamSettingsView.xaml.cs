@@ -12,14 +12,14 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 
-namespace ExHyperV.Views.Components
+namespace ExHyperV.Views
 {
     /// <summary>
-    /// VmGPUSettingsView.xaml 的交互逻辑
+    /// VmRamSettingsView.xaml 的交互逻辑
     /// </summary>
-    public partial class VmGPUSettingsView : UserControl
+    public partial class VmRamSettingsView : UserControl
     {
-        public VmGPUSettingsView()
+        public VmRamSettingsView()
         {
             InitializeComponent();
         }

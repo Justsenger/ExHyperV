@@ -12,7 +12,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 
-namespace ExHyperV.Views.Components
+namespace ExHyperV.Views
 {
     /// <summary>
     /// VmStorageSettingsView.xaml 的交互逻辑

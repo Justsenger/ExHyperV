@@ -1,7 +1,7 @@
 ﻿using ExHyperV.Services;
 using ExHyperV.ViewModels;
 
-namespace ExHyperV.Views.Components
+namespace ExHyperV.Views
 {
     public partial class VmConsoleView : UserControl
     {

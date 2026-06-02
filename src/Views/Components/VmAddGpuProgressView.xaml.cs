@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 
-namespace ExHyperV.Views.Components
+namespace ExHyperV.Views
 {
     /// <summary>
     /// VmAddGpuProgressView.xaml 的交互逻辑

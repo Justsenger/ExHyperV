@@ -1,10 +1,10 @@
-<ui:FluentWindow x:Class="ExHyperV.MainWindow"
+<ui:FluentWindow x:Class="ExHyperV.Views.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:ExHyperV"
-        xmlns:pages="clr-namespace:ExHyperV.Views.Pages"
+        xmlns:pages="clr-namespace:ExHyperV.Views"
         xmlns:properties="clr-namespace:ExHyperV.Properties"
         mc:Ignorable="d"
         Title="ExHyperV" Height="800" Width="1100"
@@ -106,7 +106,7 @@
                 <ui:NavigationViewItem
                     Content="{x:Static properties:Resources.Settings}"
                     NavigationCacheMode="Disabled"
-                    TargetPageType="{x:Type pages:Setting}">
+                    TargetPageType="{x:Type pages:SettingsPage}">
                     <ui:NavigationViewItem.Icon>
                         <ui:FontIcon FontSize="16" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xE713;"/>
                     </ui:NavigationViewItem.Icon>

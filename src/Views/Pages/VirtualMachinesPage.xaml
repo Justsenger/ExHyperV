@@ -1,5 +1,5 @@
 <Page
-    x:Class="ExHyperV.Views.Pages.VirtualMachinesPage"
+    x:Class="ExHyperV.Views.VirtualMachinesPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -8,7 +8,7 @@
     xmlns:properties="clr-namespace:ExHyperV.Properties"
     xmlns:converters="clr-namespace:ExHyperV.Converters"
     xmlns:tools="clr-namespace:ExHyperV.Tools"
-    xmlns:components="clr-namespace:ExHyperV.Views.Components"
+    xmlns:components="clr-namespace:ExHyperV.Views"
     Title="VirtualMachinesPage" mc:Ignorable="d" d:DesignHeight="750" d:DesignWidth="1100"
     tools:ParentScrollLock.LockParentScroll="True"
     xmlns:i="http://schemas.microsoft.com/xaml/behaviors" 
@@ -462,7 +462,7 @@
                                     <Setter Property="ContentTemplate">
                                         <Setter.Value>
                                             <DataTemplate>
-                                                <components:VmRAMSettingsView/>
+                                                <components:VmRamSettingsView/>
                                             </DataTemplate>
                                         </Setter.Value>
                                     </Setter>
@@ -489,7 +489,7 @@
                                     <Setter Property="ContentTemplate">
                                         <Setter.Value>
                                             <DataTemplate>
-                                                <components:VmGPUSettingsView/>
+                                                <components:VmGpuSettingsView/>
                                             </DataTemplate>
                                         </Setter.Value>
                                     </Setter>

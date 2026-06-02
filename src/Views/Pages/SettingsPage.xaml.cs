@@ -1,10 +1,10 @@
 ﻿using ExHyperV.ViewModels;
 
-namespace ExHyperV.Views.Pages
+namespace ExHyperV.Views
 {
-    public partial class Setting
+    public partial class SettingsPage
     {
-        public Setting()
+        public SettingsPage()
         {
             InitializeComponent();
             DataContext = new SettingsViewModel();

@@ -1,9 +1,9 @@
 ﻿using System.Windows;
-using ExHyperV.Views.Pages;
+using ExHyperV.Views;
 using Wpf.Ui.Appearance;
 using Wpf.Ui.Controls;
 
-namespace ExHyperV
+namespace ExHyperV.Views
 {
     public partial class MainWindow : FluentWindow
     {

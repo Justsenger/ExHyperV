@@ -1,6 +1,6 @@
 ﻿using System.Windows.Controls;
 
-namespace ExHyperV.Views.Pages
+namespace ExHyperV.Views
 {
     public partial class PCIePage : Page
     {

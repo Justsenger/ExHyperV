@@ -1,6 +1,6 @@
 ﻿using System.Windows.Controls;
 
-namespace ExHyperV.Views.Components
+namespace ExHyperV.Views
 {
     public partial class VmCpuSettingsView : UserControl
     {

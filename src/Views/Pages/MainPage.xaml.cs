@@ -1,6 +1,6 @@
 ﻿using ExHyperV.ViewModels;
 
-namespace ExHyperV.Views.Pages
+namespace ExHyperV.Views
 {
     public partial class MainPage
     {

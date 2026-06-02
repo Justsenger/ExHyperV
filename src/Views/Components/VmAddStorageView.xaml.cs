@@ -1,6 +1,6 @@
 ﻿using System.Windows.Controls;
 
-namespace ExHyperV.Views.Components
+namespace ExHyperV.Views
 {
     /// <summary>
     /// VmAddStorageView.xaml 的交互逻辑

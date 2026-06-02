@@ -1,4 +1,4 @@
-<UserControl xmlns:properties="clr-namespace:ExHyperV.Properties" x:Class="ExHyperV.Views.Components.VmBootSettingsView"
+<UserControl xmlns:properties="clr-namespace:ExHyperV.Properties" x:Class="ExHyperV.Views.VmBootSettingsView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"

@@ -15,7 +15,7 @@ using Brushes = System.Windows.Media.Brushes;
 using Color = System.Windows.Media.Color;
 using Cursors = System.Windows.Input.Cursors;
 
-namespace ExHyperV.Views.Components
+namespace ExHyperV.Views
 {
     public partial class VmSpacetimeSettingsView : UserControl
     {

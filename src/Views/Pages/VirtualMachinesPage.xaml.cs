@@ -2,7 +2,7 @@
 using ExHyperV.ViewModels;
 using ExHyperV.Services;
 
-namespace ExHyperV.Views.Pages
+namespace ExHyperV.Views
 {
     public partial class VirtualMachinesPage : Page
     {

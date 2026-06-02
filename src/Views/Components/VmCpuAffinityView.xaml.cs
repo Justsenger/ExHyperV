@@ -4,7 +4,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using ExHyperV.Models; // 引用模型
 
-namespace ExHyperV.Views.Components
+namespace ExHyperV.Views
 {
     public partial class VmCpuAffinityView : UserControl
     {
