@@ -45,7 +45,7 @@ namespace ExHyperV.Converters
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         {
             // 这是一个单向转换器，所以反向转换会抛出异常。
-            throw new NotImplementedException();
+            return Binding.DoNothing;
         }
     }
 }

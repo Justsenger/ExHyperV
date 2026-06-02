@@ -14,7 +14,7 @@
         <converters:ByteToBooleanConverter x:Key="ByteToBoolConverter"/>
         <converters:InverseBooleanConverter x:Key="InverseBooleanConverter"/>
         <converters:BooleanToVisibilityConverter x:Key="BoolToVis" />
-        <converters:NullableToBoolIsEnabledConverter x:Key="NullableToBoolConverter" />
+        <converters:NullableToBooleanConverter x:Key="NullableToBooleanConverter" />
 
         <Style x:Key="ShutdownRequiredToggleStyle" TargetType="ui:ToggleSwitch" BasedOn="{StaticResource {x:Type ui:ToggleSwitch}}">
             <Setter Property="VerticalAlignment" Value="Center"/>
@@ -28,7 +28,7 @@
                 <MultiDataTrigger>
                     <MultiDataTrigger.Conditions>
                         <Condition Binding="{Binding SelectedVm.IsRunning}" Value="True"/>
-                        <Condition Binding="{Binding RelativeSource={RelativeSource Self}, Path=Tag, Converter={StaticResource NullableToBoolConverter}}" Value="True"/>
+                        <Condition Binding="{Binding RelativeSource={RelativeSource Self}, Path=Tag, Converter={StaticResource NullableToBooleanConverter}}" Value="True"/>
                     </MultiDataTrigger.Conditions>
                     <Setter Property="IsEnabled" Value="False"/>
                     <Setter Property="ToolTip" Value="{x:Static properties:Resources.Warn_VmOffRequired}"/>
@@ -50,7 +50,7 @@
                 <MultiDataTrigger>
                     <MultiDataTrigger.Conditions>
                         <Condition Binding="{Binding SelectedVm.IsRunning}" Value="True"/>
-                        <Condition Binding="{Binding RelativeSource={RelativeSource Self}, Path=Tag, Converter={StaticResource NullableToBoolConverter}}" Value="True"/>
+                        <Condition Binding="{Binding RelativeSource={RelativeSource Self}, Path=Tag, Converter={StaticResource NullableToBooleanConverter}}" Value="True"/>
                     </MultiDataTrigger.Conditions>
                     <Setter Property="IsEnabled" Value="False"/>
                     <Setter Property="ToolTip" Value="{x:Static properties:Resources.Warn_VmOffRequired}"/>

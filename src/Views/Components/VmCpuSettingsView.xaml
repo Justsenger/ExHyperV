@@ -14,7 +14,7 @@
         <converters:InverseBooleanConverter x:Key="InverseBooleanConverter"/>
         <converters:BooleanToVisibilityConverter x:Key="BoolToVis" />
         <converters:SmtModeToBooleanConverter x:Key="SmtModeToBooleanConverter"/>
-        <converters:NullableToBoolIsEnabledConverter x:Key="NullableToBoolConverter" />
+        <converters:NullableToBooleanConverter x:Key="NullableToBooleanConverter" />
 
         <!-- 样式 1: 严格限制样式 (运行时禁用) -->
         <!-- 用于绝大多数 CPU 高级设置 -->
@@ -33,7 +33,7 @@
                 <MultiDataTrigger>
                     <MultiDataTrigger.Conditions>
                         <Condition Binding="{Binding SelectedVm.IsRunning}" Value="True"/>
-                        <Condition Binding="{Binding RelativeSource={RelativeSource Self}, Path=Tag, Converter={StaticResource NullableToBoolConverter}}" Value="True"/>
+                        <Condition Binding="{Binding RelativeSource={RelativeSource Self}, Path=Tag, Converter={StaticResource NullableToBooleanConverter}}" Value="True"/>
                     </MultiDataTrigger.Conditions>
                     <Setter Property="IsEnabled" Value="False"/>
                     <Setter Property="ToolTip" Value="{x:Static properties:Resources.Warn_VmOffRequired}"/>

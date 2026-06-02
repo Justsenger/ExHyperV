@@ -10,7 +10,7 @@
 
     <UserControl.Resources>
         <converters:BooleanToVisibilityConverter x:Key="BoolToVis" />
-        <converters:EnumToBoolConverter x:Key="EnumToBoolConverter"/>
+        <converters:EqualityConverter x:Key="EqualityConverter"/>
         
         <!-- 完美无缝、边共享正六边形矩阵 -->
         <!-- 计算基准：六边形半径 R = 20 -->
@@ -276,7 +276,7 @@
                             <!-- 连续时空 -->
                             <RadioButton Margin="0,0,0,6" GroupName="SpacetimeMode"
                  IsChecked="{Binding SelectedSpacetimeMode, 
-                             Converter={StaticResource EnumToBoolConverter}, 
+                             Converter={StaticResource EqualityConverter}, 
                              ConverterParameter=Continuous}">
                                 <StackPanel>
                                     <TextBlock Text="{x:Static properties:Resources.VmSpacetimeSettings_TypeContinuous}" FontSize="12" FontWeight="Medium"/>
@@ -288,7 +288,7 @@
                             <!-- 静止时空 -->
                             <RadioButton GroupName="SpacetimeMode"
                  IsChecked="{Binding SelectedSpacetimeMode, 
-                             Converter={StaticResource EnumToBoolConverter}, 
+                             Converter={StaticResource EqualityConverter}, 
                              ConverterParameter=Still}">
                                 <StackPanel>
                                     <TextBlock Text="{x:Static properties:Resources.VmSpacetimeSettings_TypeStatic}" FontSize="12" FontWeight="Medium"/>
