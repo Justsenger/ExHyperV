@@ -1483,15 +1483,15 @@ namespace ExHyperV.ViewModels
                         bool success = CpuAffinityService.TrySetVmmemAffinity(vm.Id, coreIds);
                         if (success)
                         {
-                            Debug.WriteLine(string.Format(Properties.Resources.VmPage_ErrOpenFailed2, vm.Name));
+                            Debug.WriteLine(string.Format(Properties.Resources.VmPage_AffinityApplied, vm.Name));
                             break;
                         }
-                        Debug.WriteLine(string.Format(Properties.Resources.VmPage_TitlePermanentDelete, i + 1, vm.Name));
+                        Debug.WriteLine(string.Format(Properties.Resources.VmPage_AffinityApplyFailed, i + 1, vm.Name));
                     }
                 }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine(string.Format(Properties.Resources.VmPage_MsgPermanentDeleteConfirm, ex.Message));
+                    Debug.WriteLine(string.Format(Properties.Resources.VmPage_AffinityApplyException, ex.Message));
                 }
             });
         }

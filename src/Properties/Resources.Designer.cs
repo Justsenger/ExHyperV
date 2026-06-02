@@ -5938,9 +5938,9 @@ namespace ExHyperV.Properties {
         /// <summary>
         ///   查找类似 [Affinity] Auto-applied successfully: {0} 的本地化字符串。
         /// </summary>
-        public static string VmPage_ErrOpenFailed2 {
+        public static string VmPage_AffinityApplied {
             get {
-                return ResourceManager.GetString("VmPage_ErrOpenFailed2", resourceCulture);
+                return ResourceManager.GetString("VmPage_AffinityApplied", resourceCulture);
             }
         }
         
@@ -6361,9 +6361,9 @@ namespace ExHyperV.Properties {
         /// <summary>
         ///   查找类似 [Affinity] Auto-apply exception: {0} 的本地化字符串。
         /// </summary>
-        public static string VmPage_MsgPermanentDeleteConfirm {
+        public static string VmPage_AffinityApplyException {
             get {
-                return ResourceManager.GetString("VmPage_MsgPermanentDeleteConfirm", resourceCulture);
+                return ResourceManager.GetString("VmPage_AffinityApplyException", resourceCulture);
             }
         }
         
@@ -6613,9 +6613,9 @@ namespace ExHyperV.Properties {
         /// <summary>
         ///   查找类似 [Affinity] Apply failed ({0}/5): {1} - Process not ready or no permission 的本地化字符串。
         /// </summary>
-        public static string VmPage_TitlePermanentDelete {
+        public static string VmPage_AffinityApplyFailed {
             get {
-                return ResourceManager.GetString("VmPage_TitlePermanentDelete", resourceCulture);
+                return ResourceManager.GetString("VmPage_AffinityApplyFailed", resourceCulture);
             }
         }
         

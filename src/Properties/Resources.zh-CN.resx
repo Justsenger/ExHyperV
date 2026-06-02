@@ -2089,13 +2089,13 @@
   <data name="VmPage_ErrConfigDirNotFound" xml:space="preserve">
     <value>无法启动控制台: {0}</value>
   </data>
-  <data name="VmPage_ErrOpenFailed2" xml:space="preserve">
+  <data name="VmPage_AffinityApplied" xml:space="preserve">
     <value>[Affinity] 自动应用成功: {0}</value>
   </data>
-  <data name="VmPage_TitlePermanentDelete" xml:space="preserve">
+  <data name="VmPage_AffinityApplyFailed" xml:space="preserve">
     <value>[Affinity] 尝试应用失败 ({0}/5): {1} - 进程可能未就绪或无权限</value>
   </data>
-  <data name="VmPage_MsgPermanentDeleteConfirm" xml:space="preserve">
+  <data name="VmPage_AffinityApplyException" xml:space="preserve">
     <value>[Affinity] 自动应用异常: {0}</value>
   </data>
   <data name="VmPage_BtnPermanentDelete" xml:space="preserve">
