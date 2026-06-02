@@ -11,7 +11,7 @@ namespace ExHyperV.Converters
         public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
         {
             // 调用 Utils 获取图片名称
-            string imageName = Utils.GetOsImageName(value?.ToString());
+            string imageName = OsImages.GetFileName(value?.ToString());
 
             try
             {

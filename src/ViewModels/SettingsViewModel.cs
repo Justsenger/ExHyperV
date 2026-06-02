@@ -40,7 +40,7 @@ namespace ExHyperV.ViewModels
 
             try
             {
-                var result = await SettingsService.CheckForUpdateAsync(Utils.Version);
+                var result = await SettingsService.CheckForUpdateAsync(AppInfoService.Version);
 
                 if (result.IsUpdateAvailable)
                 {
@@ -88,7 +88,7 @@ namespace ExHyperV.ViewModels
             }
             catch{}
         }
-        public string CopyrightInfo => "© 2026 | " + Utils.Author+ " | " + Utils.Version;
+        public string CopyrightInfo => "© 2026 | " + AppInfoService.Author+ " | " + AppInfoService.Version;
 
         public SettingsViewModel()
         {

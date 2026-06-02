@@ -10,9 +10,9 @@ using TextBlock = Wpf.Ui.Controls.TextBlock;
 
 namespace ExHyperV.ViewModels
 {
-    public partial class DDAPageViewModel : ObservableObject
+    public partial class PCIePageViewModel : ObservableObject
     {
-        private readonly HyperVDDAService _DDAService;
+        private readonly PCIeService _pcieService;
 
         [ObservableProperty]
         private bool _isLoading;
@@ -27,9 +27,9 @@ namespace ExHyperV.ViewModels
         public IAsyncRelayCommand LoadDataCommand { get; }
         public IAsyncRelayCommand<object> ChangeAssignmentCommand { get; }
 
-        public DDAPageViewModel()
+        public PCIePageViewModel()
         {
-            _DDAService = new HyperVDDAService();
+            _pcieService = new PCIeService();
             Devices = new ObservableCollection<DeviceViewModel>();
             LoadDataCommand = new AsyncRelayCommand(LoadDataAsync);
             ChangeAssignmentCommand = new AsyncRelayCommand<object>(ChangeAssignmentAsync);
@@ -49,14 +49,14 @@ namespace ExHyperV.ViewModels
             IsLoading = true;
             try
             {
-                var serverCheckTask = _DDAService.IsServerOperatingSystemAsync();
-                var ddaInfoTask = _DDAService.GetDdaInfoAsync();
-                await Task.WhenAll(serverCheckTask, ddaInfoTask);
+                var serverCheckTask = _pcieService.IsServerOperatingSystemAsync();
+                var pcieInfoTask = _pcieService.GetPCIeInfoAsync();
+                await Task.WhenAll(serverCheckTask, pcieInfoTask);
 
                 Devices.Clear();
 
                 ShowServerError = !await serverCheckTask;
-                var (devices, vmNames) = await ddaInfoTask;
+                var (devices, vmNames) = await pcieInfoTask;
 
                 if (devices != null)
                 {
@@ -94,7 +94,7 @@ namespace ExHyperV.ViewModels
             }
 
             // 直接执行，不显示等待弹窗
-            var (success, errorMessage) = await _DDAService.ExecuteDdaOperationAsync(
+            var (success, errorMessage) = await _pcieService.ExecutePCIeOperationAsync(
                 selectedTarget,
                 deviceViewModel.Status,
                 deviceViewModel.InstanceId,
@@ -108,7 +108,7 @@ namespace ExHyperV.ViewModels
                     Title = Properties.Resources.Dialog_Title_OperationFailed,
                     Content = new TextBlock
                     {
-                        Text = string.Format(Properties.Resources.DdaPage_Error_ExecutionGeneric, errorMessage ?? Properties.Resources.Error_Unknown),
+                        Text = string.Format(Properties.Resources.PCIePage_Error_ExecutionGeneric, errorMessage ?? Properties.Resources.Error_Unknown),
                         TextWrapping = System.Windows.TextWrapping.Wrap,
                         MaxWidth = 400
                     },
@@ -123,13 +123,13 @@ namespace ExHyperV.ViewModels
 
         private async Task<bool> HandleMmioCheckAsync(string targetVmName)
         {
-            var (resultType, message) = await _DDAService.CheckMmioSpaceAsync(targetVmName);
+            var (resultType, message) = await _pcieService.CheckMmioSpaceAsync(targetVmName);
 
             if (resultType == MmioCheckResultType.NeedsConfirmation)
             {
                 var confirmDialog = new ContentDialog
                 {
-                    Title = ExHyperV.Properties.Resources.DdaPage_Title_MmioSpaceTooSmall,
+                    Title = ExHyperV.Properties.Resources.PCIePage_Title_MmioSpaceTooSmall,
                     Content = message,
                     PrimaryButtonText = ExHyperV.Properties.Resources.Button_Yes,
                     CloseButtonText = ExHyperV.Properties.Resources.Button_No,
@@ -138,13 +138,13 @@ namespace ExHyperV.ViewModels
                 var result = await confirmDialog.ShowAsync();
                 if (result != ContentDialogResult.Primary) return false;
 
-                bool updateSuccess = await _DDAService.UpdateMmioSpaceAsync(targetVmName);
+                bool updateSuccess = await _pcieService.UpdateMmioSpaceAsync(targetVmName);
                 if (!updateSuccess)
                 {
                     var errorDialog = new MessageBox
                     {
                         Title = Properties.Resources.Error_Title,
-                        Content = Resources.DdaPage_Error_UpdateMmioFailed,
+                        Content = Resources.PCIePage_Error_UpdateMmioFailed,
                         CloseButtonText = Resources.Btn_Confirm
                     };
                     await errorDialog.ShowDialogAsync();
@@ -157,7 +157,7 @@ namespace ExHyperV.ViewModels
                 var errorDialog = new MessageBox
                 {
                     Title = Resources.Error_Title,
-                    Content = ExHyperV.Properties.Resources.DdaPage_Error_CheckMmioGeneric,
+                    Content = ExHyperV.Properties.Resources.PCIePage_Error_CheckMmioGeneric,
                     CloseButtonText = Resources.Btn_Confirm
                 };
                 await errorDialog.ShowDialogAsync();

@@ -18,7 +18,7 @@ namespace ExHyperV.Converters
             string name = values[1] as string ?? "";
 
             // 1. 从 Utils 获取图片路径字符串
-            string imagePath = Utils.GetGpuImagePath(manu, name);
+            string imagePath = GpuImages.GetUri(manu, name);
 
             try
             {

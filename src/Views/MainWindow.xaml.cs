@@ -23,7 +23,7 @@ namespace ExHyperV
         private void PagePreload(object sender, RoutedEventArgs e)
         {
             //预加载所有子界面
-            RootNavigation.Navigate(typeof(DDAPage));
+            RootNavigation.Navigate(typeof(PCIePage));
             RootNavigation.Navigate(typeof(HostPage));
             RootNavigation.Navigate(typeof(SwitchPage));
             RootNavigation.Navigate(typeof(VirtualMachinesPage));

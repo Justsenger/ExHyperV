@@ -3,7 +3,7 @@ using ExHyperV.Api;
 
 namespace ExHyperV.Services;
 
-public class HyperVNUMAService
+public class HyperVNumaService
 {
     private const string SettingWql = "SELECT * FROM Msvm_VirtualSystemManagementServiceSettingData";
     private const string ServiceWql = "SELECT * FROM Msvm_VirtualSystemManagementService";
@@ -23,7 +23,7 @@ public class HyperVNUMAService
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"[HyperVNUMAService] GetNumaSpanningEnabled error: {ex.Message}");
+            Debug.WriteLine($"[HyperVNumaService] GetNumaSpanningEnabled error: {ex.Message}");
             return true;
         }
     }

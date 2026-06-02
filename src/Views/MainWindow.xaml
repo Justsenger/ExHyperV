@@ -68,10 +68,10 @@
                 </ui:NavigationViewItem>
                 
                 <ui:NavigationViewItem
-                    x:Name="dda"
-                    Content="{x:Static properties:Resources.DDA}"
+                    x:Name="pcie"
+                    Content="{x:Static properties:Resources.PCIe}"
                     NavigationCacheMode="Enabled"
-                    TargetPageType="{x:Type pages:DDAPage}">
+                    TargetPageType="{x:Type pages:PCIePage}">
                     <ui:NavigationViewItem.Icon>
                         <ui:FontIcon FontSize="16" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xF0B9;"/>
                     </ui:NavigationViewItem.Icon>

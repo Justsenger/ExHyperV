@@ -553,7 +553,7 @@ namespace ExHyperV.Services
                                 WmiScope.HyperV);
 
                             if (!addScsiResult.Success)
-                                return (false, Utils.GetFriendlyErrorMessage(addScsiResult.Error),
+                                return (false, FriendlyError.LastSentence(addScsiResult.Error),
                                     controllerType, controllerNumber, location);
                         }
 
@@ -670,7 +670,7 @@ namespace ExHyperV.Services
                     WmiScope.HyperV);
 
                 if (!addSlotResult.Success)
-                    return (false, Utils.GetFriendlyErrorMessage(addSlotResult.Error),
+                    return (false, FriendlyError.LastSentence(addSlotResult.Error),
                         controllerType, controllerNumber, location);
 
                 string? slotPath = addSlotResult.Data?.FirstOrDefault();
@@ -710,7 +710,7 @@ namespace ExHyperV.Services
                         WmiScope.HyperV);
 
                     if (!addMediaResult.Success)
-                        return (false, Utils.GetFriendlyErrorMessage(addMediaResult.Error),
+                        return (false, FriendlyError.LastSentence(addMediaResult.Error),
                             controllerType, controllerNumber, location);
                 }
 
@@ -718,7 +718,7 @@ namespace ExHyperV.Services
             }
             catch (Exception ex)
             {
-                return (false, Utils.GetFriendlyErrorMessage(ex.Message),
+                return (false, FriendlyError.LastSentence(ex.Message),
                     controllerType, controllerNumber, location);
             }
         }
@@ -786,11 +786,11 @@ namespace ExHyperV.Services
 
                 return result.Success
                     ? (true, string.Empty)
-                    : (false, Utils.GetFriendlyErrorMessage(result.Error));
+                    : (false, FriendlyError.LastSentence(result.Error));
             }
             catch (Exception ex)
             {
-                return (false, Utils.GetFriendlyErrorMessage(ex.Message));
+                return (false, FriendlyError.LastSentence(ex.Message));
             }
         }
 
@@ -888,7 +888,7 @@ namespace ExHyperV.Services
                     WmiScope.HyperV);
 
                 if (!removeMediaResult.Success)
-                    return (false, Utils.GetFriendlyErrorMessage(removeMediaResult.Error));
+                    return (false, FriendlyError.LastSentence(removeMediaResult.Error));
             }
 
             var removeResult = await WmiApi.InvokeAsync(
@@ -898,7 +898,7 @@ namespace ExHyperV.Services
                 WmiScope.HyperV);
 
             if (!removeResult.Success)
-                return (false, Utils.GetFriendlyErrorMessage(removeResult.Error));
+                return (false, FriendlyError.LastSentence(removeResult.Error));
 
             if (drive.DiskType == "Physical" && drive.DiskNumber > -1)
             {
@@ -984,7 +984,7 @@ namespace ExHyperV.Services
 
             return result.Success
                 ? (true, "Storage_Msg_Success")
-                : (false, Utils.GetFriendlyErrorMessage(result.Error));
+                : (false, FriendlyError.LastSentence(result.Error));
         }
 
         // ============================================================

@@ -8,6 +8,7 @@
 		<Nullable>enable</Nullable>
 		<ApplicationIcon>Assets\Icon.ico</ApplicationIcon>
 		<Version>1.5.0-Beta</Version>
+		<Authors>Justsenger</Authors>
 		<IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
 		<WpfUiGenerateDiagnosticMessages>False</WpfUiGenerateDiagnosticMessages>
 		<SatelliteResourceLanguages>en;zh-Hans</SatelliteResourceLanguages>

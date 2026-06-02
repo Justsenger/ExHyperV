@@ -123,7 +123,7 @@
   <data name="Common_Attention" xml:space="preserve">
     <value>Attention</value>
   </data>
-  <data name="Warning_DdaAssignment" xml:space="preserve">
+  <data name="Warning_PCIeAssignment" xml:space="preserve">
     <value>Improperly assigning devices can cause system instability. Please proceed with caution.</value>
   </data>
   <data name="Btn_Refresh" xml:space="preserve">
@@ -150,7 +150,7 @@
   <data name="Host" xml:space="preserve">
     <value>Host</value>
   </data>
-  <data name="DdaService_SetShutdownToTurnOff" xml:space="preserve">
+  <data name="PCIeService_SetShutdownToTurnOff" xml:space="preserve">
     <value>Change VM shutdown action to Hard Turn Off...</value>
   </data>
   <data name="Label_Class" xml:space="preserve">
@@ -225,7 +225,7 @@
   <data name="Section_Host" xml:space="preserve">
     <value>Host</value>
   </data>
-  <data name="DDA" xml:space="preserve">
+  <data name="PCIe" xml:space="preserve">
     <value>PCIe Passthrough</value>
   </data>
   <data name="Status_EnablingDevice" xml:space="preserve">
@@ -234,7 +234,7 @@
   <data name="Error_Title" xml:space="preserve">
     <value>Error</value>
   </data>
-  <data name="Error_NotServerForDda" xml:space="preserve">
+  <data name="Error_NotServerForPCIe" xml:space="preserve">
     <value>The host system is not a server version, and the virtual machine with the PCIe Passthrough device added will not be able to start!</value>
   </data>
   <data name="VirtualSwitchList" xml:space="preserve">
@@ -340,7 +340,7 @@ Do you want to shut down the virtual machine and expand its MMIO space to 64GB?<
   <data name="AddSwitch_Validation_OnlyOneNatAllowed" xml:space="preserve">
     <value>The system allows only one user-created NAT network.</value>
   </data>
-  <data name="DdaPage_Title_MmioSpaceTooSmall" xml:space="preserve">
+  <data name="PCIePage_Title_MmioSpaceTooSmall" xml:space="preserve">
     <value>MMIO Space Too Small</value>
   </data>
   <data name="Button_Yes" xml:space="preserve">
@@ -349,10 +349,10 @@ Do you want to shut down the virtual machine and expand its MMIO space to 64GB?<
   <data name="Button_No" xml:space="preserve">
     <value>No</value>
   </data>
-  <data name="DdaPage_Error_UpdateMmioFailed" xml:space="preserve">
+  <data name="PCIePage_Error_UpdateMmioFailed" xml:space="preserve">
     <value>Failed to update MMIO space.</value>
   </data>
-  <data name="DdaPage_Error_CheckMmioGeneric" xml:space="preserve">
+  <data name="PCIePage_Error_CheckMmioGeneric" xml:space="preserve">
     <value>Error while checking MMIO space: {0}</value>
   </data>
   <data name="Dialog_Title_OperationFailed" xml:space="preserve">
@@ -361,7 +361,7 @@ Do you want to shut down the virtual machine and expand its MMIO space to 64GB?<
   <data name="Error_Unknown" xml:space="preserve">
     <value>Unknown error</value>
   </data>
-  <data name="DdaPage_Error_ExecutionGeneric" xml:space="preserve">
+  <data name="PCIePage_Error_ExecutionGeneric" xml:space="preserve">
     <value>An error occurred during execution:
 
 {0}</value>
@@ -2032,9 +2032,6 @@ The existing NAT switch is: '{0}'</value>
   <data name="ProcessAffinity_LogSetAffinityFail" xml:space="preserve">
     <value>[ProcessAffinityManager] Set affinity failed: {0}</value>
   </data>
-  <data name="VmInput_ErrTextInput" xml:space="preserve">
-    <value>Text input exception: {0}</value>
-  </data>
   <data name="ConsoleViewModel_EnterFullScreenHint" xml:space="preserve">
     <value>Entering full screen, press Ctrl+Alt+Break to exit</value>
   </data>
@@ -2761,10 +2758,10 @@ The existing NAT switch is: '{0}'</value>
   <data name="Error_VmCreate_TpmJobFail" xml:space="preserve">
     <value>TPM Job failed, state: {0}</value>
   </data>
-  <data name="Msg_Dda_ShuttingDownVm" xml:space="preserve">
+  <data name="Msg_PCIe_ShuttingDownVm" xml:space="preserve">
     <value>Shutting down virtual machine...</value>
   </data>
-  <data name="Error_Dda_CannotShutdownVm" xml:space="preserve">
+  <data name="Error_PCIe_CannotShutdownVm" xml:space="preserve">
     <value>Cannot shut down virtual machine, operation aborted.</value>
   </data>
   <data name="Label_VlanId" xml:space="preserve">

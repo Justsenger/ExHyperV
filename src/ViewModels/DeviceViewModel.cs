@@ -12,7 +12,7 @@ namespace ExHyperV.ViewModels
         public DeviceViewModel(DeviceInfo device, List<string> allVmNames)
         {
             _device = device;
-            IconGlyph = Utils.GetIconPath(device.ClassType, device.FriendlyName);
+            IconGlyph = DeviceIcons.GetGlyph(device.ClassType, device.FriendlyName);
             AssignmentOptions = new List<string> { Resources.Host }; // 1. 首先添加“主机”
             if (allVmNames != null)
             {

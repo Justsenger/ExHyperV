@@ -20,9 +20,9 @@ namespace ExHyperV.ViewModels
 
         public MainPageViewModel()
         {
-            AppVersion = Utils.Version;
-            Author = Utils.Author;
-            BuildDate = Utils.GetLinkerTime().ToString("yyyy/MM/dd HH:mm", CultureInfo.InvariantCulture);
+            AppVersion = AppInfoService.Version;
+            Author = AppInfoService.Author;
+            BuildDate = AppInfoService.BuildTime.ToString("yyyy/MM/dd HH:mm", CultureInfo.InvariantCulture);
             _ = LoadSystemInfoAsync();
         }
 
@@ -45,7 +45,7 @@ namespace ExHyperV.ViewModels
             {
                 "VM" => typeof(VirtualMachinesPage),
                 "Host" => typeof(HostPage),
-                "PCIe" => typeof(DDAPage),
+                "PCIe" => typeof(PCIePage),
                 "Network" => typeof(SwitchPage),
                 "USB" => typeof(USBPage),
                 _ => null

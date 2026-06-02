@@ -32,7 +32,7 @@ namespace ExHyperV.ViewModels
         public string StatusText => IsDefaultSwitch ? ExHyperV.Properties.Resources.Warning_CannotModifyDefaultSwitch : IsConnected ? string.Format(Properties.Resources.Status_ConnectedTo, SelectedUpstreamAdapter) : ExHyperV.Properties.Resources.Status_UpstreamNotConnected;
         public bool IsConnected => !string.IsNullOrEmpty(SelectedUpstreamAdapter) && (SelectedNetworkMode == "Bridge" || SelectedNetworkMode == "NAT");
         public string DropDownButtonContent => IsDefaultSwitch ? ExHyperV.Properties.Resources.Auto : SelectedNetworkMode == "Isolated" ? ExHyperV.Properties.Resources.Status_Unavailable : string.IsNullOrEmpty(SelectedUpstreamAdapter) ? ExHyperV.Properties.Resources.Placeholder_SelectNetworkAdapter : SelectedUpstreamAdapter;
-        public string IconGlyph => Utils.GetIconPath("Switch", SwitchName);
+        public string IconGlyph => DeviceIcons.GetGlyph("Switch", SwitchName);
 
         public SwitchViewModel(SwitchInfo switchInfo, HyperVSwitchService networkService, List<PhysicalAdapterInfo> allPhysicalAdapters, ObservableCollection<SwitchViewModel> allSwitchViewModels)
         {

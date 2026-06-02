@@ -1,5 +1,5 @@
 using System.Text.RegularExpressions;
-namespace ExHyperV.Services
+namespace ExHyperV.Tools
 {
     /// <summary>
     /// 内部映射器：负责将 WMI/PS 的原始数据转换为 UI 易读数据

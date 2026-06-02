@@ -50,7 +50,7 @@ public class VmNetworkService
             {
                 Id = fullPortId,
                 Name = elementName,
-                MacAddress = Utils.FormatMac(port["Address"]?.ToString()),
+                MacAddress = MacAddress.Format(port["Address"]?.ToString()),
                 IsStaticMac = port.TryGet<bool>("StaticMacAddress") ?? false
             };
 
@@ -126,7 +126,7 @@ public class VmNetworkService
             if (adapter.IpAddresses != null && adapter.IpAddresses.Count > 0) continue;
             try
             {
-                string ip = await Utils.GetVmIpAddressAsync(vmName, adapter.MacAddress);
+                string ip = await VmIpService.Lookup(vmName, adapter.MacAddress);
                 if (!string.IsNullOrEmpty(ip))
                 {
                     adapter.IpAddresses = ip
@@ -140,7 +140,7 @@ public class VmNetworkService
 
     public async Task<string> GetVmIpAddressAsync(string vmName, string macAddressWithColons)
     {
-        return await Utils.GetVmIpAddressAsync(vmName, macAddressWithColons);
+        return await VmIpService.Lookup(vmName, macAddressWithColons);
     }
 
     // ── 网卡生命周期 ──────────────────────────────────────────────

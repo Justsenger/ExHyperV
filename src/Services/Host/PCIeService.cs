@@ -7,7 +7,7 @@ namespace ExHyperV.Services
 {
     public enum MmioCheckResultType { Ok, NeedsConfirmation, Error }
 
-    public class HyperVDDAService
+    public class PCIeService
     {
         private const ulong RequiredMmioBytes = 64UL * 1024 * 1024 * 1024; // 64 GiB
         private readonly VmPowerService _powerService = new();
@@ -19,7 +19,7 @@ namespace ExHyperV.Services
             return idx >= 0 ? instanceId.Substring(idx) : instanceId;
         }
 
-        public async Task<(List<DeviceInfo> Devices, List<string> VmNames)> GetDdaInfoAsync()
+        public async Task<(List<DeviceInfo> Devices, List<string> VmNames)> GetPCIeInfoAsync()
         {
             var deviceList = new List<DeviceInfo>();
             var vmNameList = new List<string>();
@@ -156,7 +156,7 @@ namespace ExHyperV.Services
                 }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine($"[DDA] EXCEPTION: {ex}");
+                    Debug.WriteLine($"[PCIe] EXCEPTION: {ex}");
                     deviceList.Clear();
                     vmNameList.Clear();
                 }
@@ -212,24 +212,24 @@ namespace ExHyperV.Services
             return setResult.Success;
         }
 
-        public async Task<(bool Success, string? ErrorMessage)> ExecuteDdaOperationAsync(
+        public async Task<(bool Success, string? ErrorMessage)> ExecutePCIeOperationAsync(
             string targetVmName, string currentVmName, string instanceId, string path,
             IProgress<string>? progress = null)
         {
             try
             {
-                var operations = DDACommands(targetVmName, instanceId, path, currentVmName);
+                var operations = PCIeCommands(targetVmName, instanceId, path, currentVmName);
                 if (operations.Count == 0) return (true, null);
 
                 // 只有当操作列表中包含 SetGuestCache（cpucache）时才需要关机
                 // SetGuestCache 是唯一强制要求 VM Off 的 ModifySystemSettings 调用
-                // 如果该 VM 的 GuestControlledCacheTypes 已经是 true，DDACommands 不会加入此步骤
+                // 如果该 VM 的 GuestControlledCacheTypes 已经是 true，PCIeCommands 不会加入此步骤
                 bool needsStop = operations.Any(op => op.Message == Resources.Action_EnableCpuCacheControl);
                 if (needsStop)
                 {
-                    progress?.Report(Resources.Msg_Dda_ShuttingDownVm);
+                    progress?.Report(Resources.Msg_PCIe_ShuttingDownVm);
                     if (!await EnsureVmStoppedAsync(targetVmName))
-                        return (false, Resources.Error_Dda_CannotShutdownVm);
+                        return (false, Resources.Error_PCIe_CannotShutdownVm);
                 }
 
                 foreach (var operation in operations)
@@ -275,34 +275,34 @@ namespace ExHyperV.Services
             return false; // 30秒超时
         }
 
-        // ── DDA 操作类型 ──────────────────────────────────────────────
-        private enum DdaOpType { Wmi, WmiSilent, PnpEnable, PnpDisable }
+        // ── PCIe 操作类型 ──────────────────────────────────────────────
+        private enum PCIeOpType { Wmi, WmiSilent, PnpEnable, PnpDisable }
 
-        private record DdaOperation(
+        private record PCIeOperation(
             string Message,
-            DdaOpType Type,
+            PCIeOpType Type,
             Func<Task<ApiResponse>>? WmiAction = null);
 
-        private async Task<string?> ExecuteOperationAsync(DdaOperation op, string instanceId)
+        private async Task<string?> ExecuteOperationAsync(PCIeOperation op, string instanceId)
         {
             switch (op.Type)
             {
-                case DdaOpType.PnpEnable:
+                case PCIeOpType.PnpEnable:
                     {
                         var r = Win32Api.EnablePnpDevice(instanceId);
                         return r.Success ? null : r.Error;
                     }
-                case DdaOpType.PnpDisable:
+                case PCIeOpType.PnpDisable:
                     {
                         var r = Win32Api.DisablePnpDevice(instanceId);
                         return r.Success ? null : r.Error;
                     }
-                case DdaOpType.Wmi:
+                case PCIeOpType.Wmi:
                     {
                         var r = await op.WmiAction!();
                         return r.Success ? null : r.Error;
                     }
-                case DdaOpType.WmiSilent:
+                case PCIeOpType.WmiSilent:
                     {
                         await op.WmiAction!();
                         await Task.Delay(1000); // 给系统时间处理设备状态
@@ -313,14 +313,14 @@ namespace ExHyperV.Services
             }
         }
 
-        private List<DdaOperation> DDACommands(string Vmname, string instanceId, string path, string Nowname)
+        private List<PCIeOperation> PCIeCommands(string Vmname, string instanceId, string path, string Nowname)
         {
-            var ops = new List<DdaOperation>();
+            var ops = new List<PCIeOperation>();
 
             // WMI：Mount-VMHostAssignableDevice
             // WmiSilent：某些设备（核显/NPU 等）不支持标准 Mount 流程，失败静默处理
-            DdaOperation MountDeviceSilent(string locationPath) => new(
-                Resources.Status_MountingDevice, DdaOpType.WmiSilent,
+            PCIeOperation MountDeviceSilent(string locationPath) => new(
+                Resources.Status_MountingDevice, PCIeOpType.WmiSilent,
                 WmiAction: () => WmiApi.InvokeAsync(
                     "SELECT * FROM Msvm_AssignableDeviceService",
                     "MountAssignableDevice",
@@ -329,8 +329,8 @@ namespace ExHyperV.Services
 
             // WMI：Add-VMAssignableDevice
             // 流程：拿 PciExpress Default 模板 → 设置 HostResource = PCIP 设备路径 → AddResourceSettings
-            DdaOperation AddDevice(string devInstanceId, string locationPath, string vmName) => new(
-                Resources.Status_MountingDevice, DdaOpType.Wmi,
+            PCIeOperation AddDevice(string devInstanceId, string locationPath, string vmName) => new(
+                Resources.Status_MountingDevice, PCIeOpType.Wmi,
                 WmiAction: async () =>
                 {
                     var ms = WmiConnectionCache.GetManagementScope(WmiScope.HyperV, WmiContext.Local);
@@ -375,8 +375,8 @@ namespace ExHyperV.Services
                 });
 
             // WMI：Dismount-VMHostAssignableDevice
-            DdaOperation DismountDevice(string devInstanceId, string locationPath) => new(
-                Resources.Dismountdevice, DdaOpType.Wmi,
+            PCIeOperation DismountDevice(string devInstanceId, string locationPath) => new(
+                Resources.Dismountdevice, PCIeOpType.Wmi,
                 WmiAction: () => WmiApi.InvokeAsync(
                     "SELECT * FROM Msvm_AssignableDeviceService",
                     "DismountAssignableDevice",
@@ -394,8 +394,8 @@ namespace ExHyperV.Services
 
             // WMI：Remove-VMAssignableDevice
             // 流程：从 VM 的 Msvm_PciExpressSettingData 找到对应 HostResource 的设备设置 → RemoveResourceSettings
-            DdaOperation RemoveDevice(string devInstanceId, string locationPath, string vmName) => new(
-                Resources.Dismountdevice, DdaOpType.Wmi,
+            PCIeOperation RemoveDevice(string devInstanceId, string locationPath, string vmName) => new(
+                Resources.Dismountdevice, PCIeOpType.Wmi,
                 WmiAction: async () =>
                 {
                     var ms = WmiConnectionCache.GetManagementScope(WmiScope.HyperV, WmiContext.Local);
@@ -445,8 +445,8 @@ namespace ExHyperV.Services
 
             // WMI：Set-VM -AutomaticStopAction TurnOff（AutomaticShutdownAction=2）
             // 注意：AutomaticShutdownAction 可在 VM 运行时修改，无需关机
-            DdaOperation SetAutoStop(string vmName) => new(
-                Resources.DdaService_SetShutdownToTurnOff, DdaOpType.Wmi,
+            PCIeOperation SetAutoStop(string vmName) => new(
+                Resources.PCIeService_SetShutdownToTurnOff, PCIeOpType.Wmi,
                 WmiAction: () => WmiApi.WithObjectAsync(
                     $"SELECT * FROM Msvm_VirtualSystemSettingData WHERE ElementName = '{WmiApi.Escape(vmName)}' AND VirtualSystemType = 'Microsoft:Hyper-V:System:Realized'",
                     obj => obj["AutomaticShutdownAction"] = (ushort)2,
@@ -458,8 +458,8 @@ namespace ExHyperV.Services
 
             // WMI：Set-VM -GuestControlledCacheTypes $true
             // 注意：此字段修改需要 VM 处于 Off 状态
-            DdaOperation SetGuestCache(string vmName) => new(
-                Resources.Action_EnableCpuCacheControl, DdaOpType.Wmi,
+            PCIeOperation SetGuestCache(string vmName) => new(
+                Resources.Action_EnableCpuCacheControl, PCIeOpType.Wmi,
                 WmiAction: () => WmiApi.WithObjectAsync(
                     $"SELECT * FROM Msvm_VirtualSystemSettingData WHERE ElementName = '{WmiApi.Escape(vmName)}' AND VirtualSystemType = 'Microsoft:Hyper-V:System:Realized'",
                     obj => obj["GuestControlledCacheTypes"] = true,
@@ -486,7 +486,7 @@ namespace ExHyperV.Services
             {
                 // 已卸除 → 主机：Mount 静默处理，某些设备（核显/NPU）不支持标准 Mount 但实际可用
                 ops.Add(MountDeviceSilent(path));
-                ops.Add(new(Resources.Status_EnablingDevice, DdaOpType.PnpEnable));
+                ops.Add(new(Resources.Status_EnablingDevice, PCIeOpType.PnpEnable));
             }
             else if (Nowname == Resources.Status_Dismounted && Vmname != Resources.Host)
             {
@@ -498,7 +498,7 @@ namespace ExHyperV.Services
             {
                 ops.Add(SetAutoStop(Vmname));
                 if (!guestCacheAlreadySet) ops.Add(SetGuestCache(Vmname));
-                ops.Add(new(Resources.Disabledevice, DdaOpType.PnpDisable));
+                ops.Add(new(Resources.Disabledevice, PCIeOpType.PnpDisable));
                 ops.Add(DismountDevice(instanceId, path));
                 ops.Add(AddDevice(instanceId, path, Vmname));
             }
@@ -514,7 +514,7 @@ namespace ExHyperV.Services
                 // VM → 主机：Mount 静默处理，对齐 PS 版本行为
                 ops.Add(RemoveDevice(instanceId, path, Nowname));
                 ops.Add(MountDeviceSilent(path));
-                ops.Add(new(Resources.Status_EnablingDevice, DdaOpType.PnpEnable));
+                ops.Add(new(Resources.Status_EnablingDevice, PCIeOpType.PnpEnable));
             }
 
             return ops;

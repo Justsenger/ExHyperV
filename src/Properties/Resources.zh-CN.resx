@@ -123,7 +123,7 @@
   <data name="Common_Attention" xml:space="preserve">
     <value>注意</value>
   </data>
-  <data name="Warning_DdaAssignment" xml:space="preserve">
+  <data name="Warning_PCIeAssignment" xml:space="preserve">
     <value>不恰当分配设备可能导致系统不稳定，请谨慎操作！</value>
   </data>
   <data name="Btn_Refresh" xml:space="preserve">
@@ -150,7 +150,7 @@
   <data name="Host" xml:space="preserve">
     <value>主机</value>
   </data>
-  <data name="DdaService_SetShutdownToTurnOff" xml:space="preserve">
+  <data name="PCIeService_SetShutdownToTurnOff" xml:space="preserve">
     <value>修改虚拟机的关机动作为强制断电...</value>
   </data>
   <data name="Label_Class" xml:space="preserve">
@@ -225,7 +225,7 @@
   <data name="Section_Host" xml:space="preserve">
     <value>主机</value>
   </data>
-  <data name="DDA" xml:space="preserve">
+  <data name="PCIe" xml:space="preserve">
     <value>PCIe 直通</value>
   </data>
   <data name="Status_EnablingDevice" xml:space="preserve">
@@ -234,7 +234,7 @@
   <data name="Error_Title" xml:space="preserve">
     <value>错误</value>
   </data>
-  <data name="Error_NotServerForDda" xml:space="preserve">
+  <data name="Error_NotServerForPCIe" xml:space="preserve">
     <value>主机系统非服务器版本，无法使用 PCIe 直通！</value>
   </data>
   <data name="VirtualSwitchList" xml:space="preserve">
@@ -340,7 +340,7 @@
   <data name="AddSwitch_Validation_OnlyOneNatAllowed" xml:space="preserve">
     <value>系统只允许存在一个用户创建的NAT网络。</value>
   </data>
-  <data name="DdaPage_Title_MmioSpaceTooSmall" xml:space="preserve">
+  <data name="PCIePage_Title_MmioSpaceTooSmall" xml:space="preserve">
     <value>MMIO空间过小</value>
   </data>
   <data name="Button_Yes" xml:space="preserve">
@@ -349,10 +349,10 @@
   <data name="Button_No" xml:space="preserve">
     <value>否</value>
   </data>
-  <data name="DdaPage_Error_UpdateMmioFailed" xml:space="preserve">
+  <data name="PCIePage_Error_UpdateMmioFailed" xml:space="preserve">
     <value>更新MMIO空间失败。</value>
   </data>
-  <data name="DdaPage_Error_CheckMmioGeneric" xml:space="preserve">
+  <data name="PCIePage_Error_CheckMmioGeneric" xml:space="preserve">
     <value>检查MMIO空间时出错：{0}</value>
   </data>
   <data name="Dialog_Title_OperationFailed" xml:space="preserve">
@@ -361,7 +361,7 @@
   <data name="Error_Unknown" xml:space="preserve">
     <value>未知错误</value>
   </data>
-  <data name="DdaPage_Error_ExecutionGeneric" xml:space="preserve">
+  <data name="PCIePage_Error_ExecutionGeneric" xml:space="preserve">
     <value>执行时遇到错误：
 
 {0}</value>
@@ -2032,9 +2032,6 @@
   <data name="ProcessAffinity_LogSetAffinityFail" xml:space="preserve">
     <value>[ProcessAffinityManager] 设置失败: {0}</value>
   </data>
-  <data name="VmInput_ErrTextInput" xml:space="preserve">
-    <value>文本输入异常: {0}</value>
-  </data>
   <data name="ConsoleViewModel_EnterFullScreenHint" xml:space="preserve">
     <value>进入全屏模式，按 Ctrl+Alt+Break 退出</value>
   </data>
@@ -2761,10 +2758,10 @@
   <data name="Error_VmCreate_TpmJobFail" xml:space="preserve">
     <value>TPM Job 失败，状态：{0}</value>
   </data>
-  <data name="Msg_Dda_ShuttingDownVm" xml:space="preserve">
+  <data name="Msg_PCIe_ShuttingDownVm" xml:space="preserve">
     <value>正在关闭虚拟机...</value>
   </data>
-  <data name="Error_Dda_CannotShutdownVm" xml:space="preserve">
+  <data name="Error_PCIe_CannotShutdownVm" xml:space="preserve">
     <value>无法关闭虚拟机，操作终止。</value>
   </data>
   <data name="Label_VlanId" xml:space="preserve">

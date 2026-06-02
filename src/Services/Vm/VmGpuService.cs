@@ -12,14 +12,14 @@ using Renci.SshNet;
 
 namespace ExHyperV.Services
 {
-    public class VmGPUService
+    public class VmGpuService
     {
         private readonly VmPowerService _powerService;
         private readonly VmQueryService _queryService;
         private readonly VmNetworkService _networkService;
         private readonly VmStorageService _storageService;
         private readonly VmMmioService _mmioService = new();
-        public VmGPUService(VmPowerService powerService, VmQueryService queryService, VmNetworkService networkService, VmStorageService storageService)
+        public VmGpuService(VmPowerService powerService, VmQueryService queryService, VmNetworkService networkService, VmStorageService storageService)
         {
             _powerService = powerService;
             _queryService = queryService;
@@ -39,8 +39,8 @@ namespace ExHyperV.Services
         {
             return Task.Run(() =>
             {
-                Utils.AddGpuAssignmentStrategyReg();
-                Utils.ApplyGpuPartitionStrictModeFix();
+                HyperVGpuPolicyService.AllowUnsupportedGpuAssignment();
+                HyperVGpuPolicyService.DisableGpuPartitionStrictMode();
             });
         }
 
@@ -1190,8 +1190,8 @@ namespace ExHyperV.Services
                     var adapters = await _networkService.GetNetworkAdaptersAsync(vmName);
                     if (adapters == null || adapters.Count == 0) return "Failed to get VM MAC Address";
                     string macAddress = adapters[0].MacAddress;
-                    string vmIpAddress = await Utils.GetVmIpAddressAsync(vmName, macAddress);
-                    string targetIp = Utils.SelectBestIpv4Address(!string.IsNullOrWhiteSpace(credentials.Host) ? credentials.Host : vmIpAddress);
+                    string vmIpAddress = await VmIpService.Lookup(vmName, macAddress);
+                    string targetIp = Ipv4.SelectBest(!string.IsNullOrWhiteSpace(credentials.Host) ? credentials.Host : vmIpAddress);
 
                     if (string.IsNullOrEmpty(targetIp)) return "No valid IPv4 address found.";
                     credentials.Host = targetIp;

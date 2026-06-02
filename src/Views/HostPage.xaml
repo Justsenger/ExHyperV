@@ -213,7 +213,7 @@
                                      
                 </ui:CardControl>
 
-                <!-- DDA 策略 -->
+                <!-- PCIe 策略 -->
                 <ui:CardControl Margin="0,0,0,8" Padding="12">
                     <ui:CardControl.Icon>
                         <ui:FontIcon FontSize="22" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xED56;"/>

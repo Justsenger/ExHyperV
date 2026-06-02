@@ -103,7 +103,7 @@ namespace ExHyperV.ViewModels
         {
             try
             {
-                bool numa = await HyperVNUMAService.GetNumaSpanningEnabledAsync();
+                bool numa = await HyperVNumaService.GetNumaSpanningEnabledAsync();
                 var sched = await Task.Run(() => HyperVSchedulerService.GetSchedulerType());
                 IsNumaSpanningEnabled = numa;
                 CurrentSchedulerType = sched == HyperVSchedulerType.Unknown ? HyperVSchedulerType.Classic : sched;
@@ -114,7 +114,7 @@ namespace ExHyperV.ViewModels
         partial void OnIsGpuStrategyEnabledChanged(bool value)
         {
             if (!_isInitialized) return;
-            if (value) Utils.AddGpuAssignmentStrategyReg(); else Utils.RemoveGpuAssignmentStrategyReg();
+            if (value) HyperVGpuPolicyService.AllowUnsupportedGpuAssignment(); else HyperVGpuPolicyService.ResetGpuAssignmentPolicy();
         }
 
         partial void OnIsNumaSpanningEnabledChanged(bool value)
@@ -122,7 +122,7 @@ namespace ExHyperV.ViewModels
             if (!_isInitialized) return;
             _ = Task.Run(async () =>
             {
-                var (ok, msg) = await HyperVNUMAService.SetNumaSpanningEnabledAsync(value);
+                var (ok, msg) = await HyperVNumaService.SetNumaSpanningEnabledAsync(value);
                 if (!ok)
                 {
                     ShowSnackbar(Translate("Status_Title_Error"), msg, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);

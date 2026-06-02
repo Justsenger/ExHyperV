@@ -70,7 +70,7 @@ namespace ExHyperV.Tools
 
         private void CreateNode(string type, string name, string ip, string mac, double x, double y, bool wrap = false)
         {
-            var icon = Utils.FontIcon1(type, "");
+            var icon = DeviceIcons.CreateFontIcon(type, "");
             icon.FontSize = IconSize;
             SetLeft(icon, x - Radius); SetTop(icon, y - Radius);
             Children.Add(icon);

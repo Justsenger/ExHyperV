@@ -1,5 +1,5 @@
 ﻿<Page
-    x:Class="ExHyperV.Views.Pages.DDAPage"
+    x:Class="ExHyperV.Views.Pages.PCIePage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -8,12 +8,12 @@
     xmlns:vm="clr-namespace:ExHyperV.ViewModels"
     xmlns:properties="clr-namespace:ExHyperV.Properties"
     xmlns:converters="clr-namespace:ExHyperV.Converters"
-    Title="DDAPage"
-    d:DataContext="{d:DesignInstance vm:DDAPageViewModel, IsDesignTimeCreatable=True}"
+    Title="PCIePage"
+    d:DataContext="{d:DesignInstance vm:PCIePageViewModel, IsDesignTimeCreatable=True}"
     mc:Ignorable="d">
 
     <Page.DataContext>
-        <vm:DDAPageViewModel/>
+        <vm:PCIePageViewModel/>
     </Page.DataContext>
 
     <Page.Resources>
@@ -25,13 +25,13 @@
         <StackPanel Margin="10,0,10,10">
             <ui:InfoBar Margin="0,5,0,0"
                 Title="{x:Static properties:Resources.Common_Attention}"
-                Message="{x:Static properties:Resources.Warning_DdaAssignment}" 
+                Message="{x:Static properties:Resources.Warning_PCIeAssignment}" 
                 IsOpen="True"
                 Severity="Warning"/>
 
             <ui:InfoBar Margin="0,5,0,0"
                 Title="{x:Static properties:Resources.Error_Title}"
-                Message="{x:Static properties:Resources.Error_NotServerForDda}" 
+                Message="{x:Static properties:Resources.Error_NotServerForPCIe}" 
                 IsOpen="{Binding ShowServerError}"
                 IsClosable="False"
                 Severity="Error"/>

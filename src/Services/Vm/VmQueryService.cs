@@ -352,7 +352,7 @@ namespace ExHyperV.Services
                     vmInfo.Version = config.Ver;
                 }
 
-                vmInfo.OsType = Utils.GetTagValue(s.Notes, "OSType") ?? "Windows";
+                vmInfo.OsType = NotesTag.Get(s.Notes, "OSType") ?? "Windows";
                 vmInfo.CpuCount = s.Cpu;
                 vmInfo.MemoryGb = Math.Round(startupRam / 1024.0, 1);
                 vmInfo.AssignedMemoryGb = Math.Round((s.MemUsage > 0 ? s.MemUsage : startupRam) / 1024.0, 1);
@@ -524,7 +524,7 @@ namespace ExHyperV.Services
                     WmiScope.HyperV);
 
                 string oldNotes = currentResp.Data ?? "";
-                string newNotes = Utils.UpdateTagValue(oldNotes, "OSType", osType);
+                string newNotes = NotesTag.Update(oldNotes, "OSType", osType);
                 if (oldNotes == newNotes) return true;
 
                 var result = await WmiApi.WithObjectAsync(

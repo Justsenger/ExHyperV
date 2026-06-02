@@ -11,7 +11,7 @@ namespace ExHyperV.Services
         public async Task<List<int>> GetCpuAffinityAsync(Guid vmId, string notes)
         {
             // 1. 优先尝试从 Notes 中解析（持久化配置）
-            string savedAffinity = Utils.GetTagValue(notes, "Affinity");
+            string savedAffinity = NotesTag.Get(notes, "Affinity");
             if (!string.IsNullOrEmpty(savedAffinity))
             {
                 try

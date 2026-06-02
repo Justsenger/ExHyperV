@@ -36,7 +36,7 @@ namespace ExHyperV.ViewModels
         private readonly CpuAffinityService _cpuAffinityService;
         private readonly VmMemoryService _vmMemoryService;
         private readonly VmStorageService _storageService;
-        private readonly VmGPUService _vmGpuService;
+        private readonly VmGpuService _vmGpuService;
         private readonly VmNetworkService _vmNetworkService;
         private readonly VmCreateService _vmCreateService = new();
         private readonly VmEditService _vmEditService = new();
@@ -178,7 +178,7 @@ namespace ExHyperV.ViewModels
             _vmMemoryService = new VmMemoryService();
             _storageService = new VmStorageService();
             _vmNetworkService = new VmNetworkService();
-            _vmGpuService = new VmGPUService(_powerService, _queryService, _vmNetworkService, _storageService);
+            _vmGpuService = new VmGpuService(_powerService, _queryService, _vmNetworkService, _storageService);
 
             InitPossibleCpuCounts();
 
@@ -778,7 +778,7 @@ namespace ExHyperV.ViewModels
             }
             catch (Exception ex)
             {
-                ShowSnackbar(Properties.Resources.VmPage_DeleteFail, Utils.GetFriendlyErrorMessages(ex.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                ShowSnackbar(Properties.Resources.VmPage_DeleteFail, FriendlyError.CleanLines(ex.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
             }
             finally { IsLoading = false; }
         }
@@ -887,7 +887,7 @@ namespace ExHyperV.ViewModels
             }
             catch (Exception ex)
             {
-                ShowSnackbar(Properties.Resources.VmPage_LogUiSaveTriggered, Utils.GetFriendlyErrorMessages(ex.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                ShowSnackbar(Properties.Resources.VmPage_LogUiSaveTriggered, FriendlyError.CleanLines(ex.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
             }
             finally { IsLoading = false; }
         }
@@ -953,14 +953,14 @@ namespace ExHyperV.ViewModels
                     Application.Current.Dispatcher.Invoke(() => instance.ClearTransientState());
                     var realEx = ex;
                     while (realEx.InnerException != null) { realEx = realEx.InnerException; }
-                    ShowSnackbar(Properties.Resources.Error_Common_OpFail, Utils.GetFriendlyErrorMessages(realEx.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                    ShowSnackbar(Properties.Resources.Error_Common_OpFail, FriendlyError.CleanLines(realEx.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
                 }
             });
 
             return instance;
         }
 
-        public List<string> AvailableOsTypes => Utils.SupportedOsTypes;
+        public List<string> AvailableOsTypes => OsImages.SupportedTypes;
 
         // 加载虚拟机列表
         [RelayCommand]
@@ -1010,7 +1010,7 @@ namespace ExHyperV.ViewModels
             }
             catch (Exception ex)
             {
-                ShowSnackbar(Properties.Resources.Error_Common_LoadFail, Utils.GetFriendlyErrorMessages(ex.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                ShowSnackbar(Properties.Resources.Error_Common_LoadFail, FriendlyError.CleanLines(ex.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
             }
             finally
             {
@@ -1069,7 +1069,7 @@ namespace ExHyperV.ViewModels
             string oldOsType = SelectedVm.OsType;
             string oldNotes = SelectedVm.Notes;
             SelectedVm.OsType = newType;
-            SelectedVm.Notes = Utils.UpdateTagValue(SelectedVm.Notes, "OSType", newType);
+            SelectedVm.Notes = NotesTag.Update(SelectedVm.Notes, "OSType", newType);
             bool success = await _queryService.SetVmOsTypeAsync(SelectedVm.Name, newType);
             if (!success)
             {
@@ -1197,7 +1197,7 @@ namespace ExHyperV.ViewModels
                                             _ = Task.Run(async () => {
                                                 try
                                                 {
-                                                    string arpIp = await Utils.GetVmIpAddressAsync(vm.Name, adapter.MacAddress);
+                                                    string arpIp = await VmIpService.Lookup(vm.Name, adapter.MacAddress);
                                                     if (!string.IsNullOrEmpty(arpIp))
                                                         Application.Current.Dispatcher.Invoke(() => {
                                                             adapter.IpAddresses = new List<string> { arpIp };
@@ -1300,7 +1300,7 @@ namespace ExHyperV.ViewModels
                     _originalSettingsCache = settings.Clone();
                 }
             }
-            catch (Exception ex) { ShowSnackbar(Properties.Resources.Error_Common_LoadFail, Utils.GetFriendlyErrorMessages(ex.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24); }
+            catch (Exception ex) { ShowSnackbar(Properties.Resources.Error_Common_LoadFail, FriendlyError.CleanLines(ex.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24); }
             finally
             {
                 await Task.Delay(200);
@@ -1321,13 +1321,13 @@ namespace ExHyperV.ViewModels
                     _originalSettingsCache = SelectedVm.Processor.Clone();
                 else
                 {
-                    ShowSnackbar(Properties.Resources.Error_Common_ApplyFail, Utils.GetFriendlyErrorMessages(result.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                    ShowSnackbar(Properties.Resources.Error_Common_ApplyFail, FriendlyError.CleanLines(result.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
                     await GoToCpuSettings();
                 }
             }
             catch (Exception ex)
             {
-                ShowSnackbar(Properties.Resources.Error_Common_SysException, Utils.GetFriendlyErrorMessages(ex.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                ShowSnackbar(Properties.Resources.Error_Common_SysException, FriendlyError.CleanLines(ex.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
                 await GoToCpuSettings();
             }
             finally { IsLoadingSettings = false; }
@@ -1388,7 +1388,7 @@ namespace ExHyperV.ViewModels
             }
             catch (Exception ex)
             {
-                ShowSnackbar(Properties.Resources.Error_Cpu_AffinityFail, Utils.GetFriendlyErrorMessages(ex.Message),
+                ShowSnackbar(Properties.Resources.Error_Cpu_AffinityFail, FriendlyError.CleanLines(ex.Message),
                     ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
             }
             finally
@@ -1413,7 +1413,7 @@ namespace ExHyperV.ViewModels
 
                 // 3. 无论当前是否应用成功，我们将配置持久化到 Notes
                 string affinityStr = selectedIndices.Count > 0 ? string.Join(",", selectedIndices) : "";
-                SelectedVm.Notes = Utils.UpdateTagValue(SelectedVm.Notes, "Affinity", affinityStr);
+                SelectedVm.Notes = NotesTag.Update(SelectedVm.Notes, "Affinity", affinityStr);
 
                 await _queryService.SetVmNotesAsync(SelectedVm.Name, SelectedVm.Notes);
 
@@ -1439,7 +1439,7 @@ namespace ExHyperV.ViewModels
             }
             catch (Exception ex)
             {
-                ShowSnackbar(Properties.Resources.Common_Error, Utils.GetFriendlyErrorMessages(ex.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                ShowSnackbar(Properties.Resources.Common_Error, FriendlyError.CleanLines(ex.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
             }
             finally
             {
@@ -1455,7 +1455,7 @@ namespace ExHyperV.ViewModels
             if (HyperVSchedulerService.GetSchedulerType() != HyperVSchedulerType.Root || !vm.IsRunning)
                 return;
 
-            string savedAffinity = Utils.GetTagValue(vm.Notes, "Affinity");
+            string savedAffinity = NotesTag.Get(vm.Notes, "Affinity");
             if (string.IsNullOrEmpty(savedAffinity))
                 return;
 
@@ -1480,7 +1480,7 @@ namespace ExHyperV.ViewModels
                         if (!vm.IsRunning) break;
 
                         // 调用核心方法
-                        bool success = ProcessAffinityService.SetVmProcessAffinity(vm.Id, coreIds);
+                        bool success = CpuAffinityService.TrySetVmmemAffinity(vm.Id, coreIds);
                         if (success)
                         {
                             Debug.WriteLine(string.Format(Properties.Resources.VmPage_ErrOpenFailed2, vm.Name));
@@ -1603,7 +1603,7 @@ namespace ExHyperV.ViewModels
 
                 if (!result.Success)
                 {
-                    ShowSnackbar(Properties.Resources.Error_Common_SaveFail, Utils.GetFriendlyErrorMessages(result.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                    ShowSnackbar(Properties.Resources.Error_Common_SaveFail, FriendlyError.CleanLines(result.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
                 }
                 else
                 {
@@ -1615,7 +1615,7 @@ namespace ExHyperV.ViewModels
             }
             catch (Exception ex)
             {
-                ShowSnackbar(Properties.Resources.Common_ExceptionLabel, Utils.GetFriendlyErrorMessages(ex.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                ShowSnackbar(Properties.Resources.Common_ExceptionLabel, FriendlyError.CleanLines(ex.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
             }
             finally { IsLoadingSettings = false; }
         }
@@ -1677,7 +1677,7 @@ namespace ExHyperV.ViewModels
                     await _storageService.LoadVmStorageItemsAsync(SelectedVm.Model);
                     await LoadHostDisksAsync();
                 }
-                catch (Exception ex) { ShowSnackbar(Properties.Resources.Error_Storage_LoadFail, Utils.GetFriendlyErrorMessages(ex.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24); }
+                catch (Exception ex) { ShowSnackbar(Properties.Resources.Error_Storage_LoadFail, FriendlyError.CleanLines(ex.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24); }
                 finally { IsLoadingSettings = false; }
             }
         }
@@ -1757,7 +1757,7 @@ namespace ExHyperV.ViewModels
                 }
                 else ShowSnackbar(Properties.Resources.Error_Storage_RemoveFail, result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
             }
-            catch (Exception ex) { ShowSnackbar(Properties.Resources.Common_Error, Utils.GetFriendlyErrorMessages(ex.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24); }
+            catch (Exception ex) { ShowSnackbar(Properties.Resources.Common_Error, FriendlyError.CleanLines(ex.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24); }
             finally { IsLoadingSettings = false; }
         }
 
@@ -1832,7 +1832,7 @@ namespace ExHyperV.ViewModels
                 }
                 catch (Exception ex)
                 {
-                    ShowSnackbar(Properties.Resources.Common_Error, Utils.GetFriendlyErrorMessages(ex.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                    ShowSnackbar(Properties.Resources.Common_Error, FriendlyError.CleanLines(ex.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
                 }
                 finally
                 {
@@ -2183,7 +2183,7 @@ namespace ExHyperV.ViewModels
             }
             catch (Exception ex)
             {
-                ShowSnackbar(Properties.Resources.Common_ExceptionLabel, Utils.GetFriendlyErrorMessages(ex.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                ShowSnackbar(Properties.Resources.Common_ExceptionLabel, FriendlyError.CleanLines(ex.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
             }
             finally
             {
@@ -2577,12 +2577,12 @@ namespace ExHyperV.ViewModels
                 }
                 else
                 {
-                    ShowSnackbar(Properties.Resources.Error_Storage_AddFail, Utils.GetFriendlyErrorMessages(result.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                    ShowSnackbar(Properties.Resources.Error_Storage_AddFail, FriendlyError.CleanLines(result.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
                 }
             }
             catch (Exception ex)
             {
-                ShowSnackbar(Properties.Resources.Error_Net_AddExc, Utils.GetFriendlyErrorMessages(ex.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                ShowSnackbar(Properties.Resources.Error_Net_AddExc, FriendlyError.CleanLines(ex.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
             }
             finally
             {
@@ -2608,12 +2608,12 @@ namespace ExHyperV.ViewModels
                 }
                 else
                 {
-                    ShowSnackbar(Properties.Resources.Error_Storage_RemoveFail, Utils.GetFriendlyErrorMessages(result.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                    ShowSnackbar(Properties.Resources.Error_Storage_RemoveFail, FriendlyError.CleanLines(result.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
                 }
             }
             catch (Exception ex)
             {
-                ShowSnackbar(Properties.Resources.Error_Net_RemoveExc, Utils.GetFriendlyErrorMessages(ex.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                ShowSnackbar(Properties.Resources.Error_Net_RemoveExc, FriendlyError.CleanLines(ex.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
             }
             finally
             {
@@ -3364,7 +3364,7 @@ namespace ExHyperV.ViewModels
                         {
                             for (int i = 0; i < 3; i++)
                             {
-                                var ip = await Utils.GetVmIpAddressAsync(SelectedVm.Name, mac);
+                                var ip = await VmIpService.Lookup(SelectedVm.Name, mac);
                                 if (!string.IsNullOrEmpty(ip)) return ip;
                                 await Task.Delay(2000);
                             }
@@ -3374,7 +3374,7 @@ namespace ExHyperV.ViewModels
 
                     if (!string.IsNullOrEmpty(vmIp))
                     {
-                        SshHost = Utils.SelectBestIpv4Address(vmIp);
+                        SshHost = Ipv4.SelectBest(vmIp);
                         AppendLog(string.Format(Properties.Resources.Msg_Gpu_IpOk, SshHost));
                     }
                     else

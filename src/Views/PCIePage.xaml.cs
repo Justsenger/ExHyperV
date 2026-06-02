@@ -2,9 +2,9 @@
 
 namespace ExHyperV.Views.Pages
 {
-    public partial class DDAPage : Page
+    public partial class PCIePage : Page
     {
-        public DDAPage()
+        public PCIePage()
         {
             InitializeComponent();
         }

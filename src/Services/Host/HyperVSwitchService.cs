@@ -61,7 +61,7 @@ namespace ExHyperV.Services
                         portSetting.Get();
 
                         string rawMac = portSetting["Address"]?.ToString() ?? string.Empty;
-                        string mac = Utils.FormatMac(rawMac);
+                        string mac = MacAddress.Format(rawMac);
 
                         // 从 portSetting 找所属 VM
                         var vmSettingsResp = await WmiApi.QueryRelatedAsync(
@@ -85,7 +85,7 @@ namespace ExHyperV.Services
 
                         if (string.IsNullOrEmpty(vmName)) return null;
 
-                        string ipAddresses = await Utils.GetVmIpAddressAsync(vmName, rawMac);
+                        string ipAddresses = await VmIpService.Lookup(vmName, rawMac);
                         return (AdapterInfo?)new AdapterInfo(vmName, mac, "Unknown", ipAddresses);
                     }
                     catch (Exception ex)
@@ -112,7 +112,7 @@ namespace ExHyperV.Services
                 return null;
             using var port = portResp.Data[0];
             string rawMac = port["PermanentAddress"]?.ToString() ?? string.Empty;
-            string mac = Utils.FormatMac(rawMac);
+            string mac = MacAddress.Format(rawMac);
             string cleanMac = rawMac.ToUpper();
             string ipAddresses = string.Empty;
             var adapterResp = await WmiApi.QueryCimAsync(

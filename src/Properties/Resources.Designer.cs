@@ -441,9 +441,9 @@ namespace ExHyperV.Properties {
         /// <summary>
         ///   查找类似 Improperly assigning devices can cause system instability. Please proceed with caution. 的本地化字符串。
         /// </summary>
-        public static string Warning_DdaAssignment {
+        public static string Warning_PCIeAssignment {
             get {
-                return ResourceManager.GetString("Warning_DdaAssignment", resourceCulture);
+                return ResourceManager.GetString("Warning_PCIeAssignment", resourceCulture);
             }
         }
         
@@ -1098,18 +1098,18 @@ namespace ExHyperV.Properties {
         /// <summary>
         ///   查找类似 PCIe Passthrough 的本地化字符串。
         /// </summary>
-        public static string DDA {
+        public static string PCIe {
             get {
-                return ResourceManager.GetString("DDA", resourceCulture);
+                return ResourceManager.GetString("PCIe", resourceCulture);
             }
         }
         
         /// <summary>
         ///   查找类似 Error while checking MMIO space: {0} 的本地化字符串。
         /// </summary>
-        public static string DdaPage_Error_CheckMmioGeneric {
+        public static string PCIePage_Error_CheckMmioGeneric {
             get {
-                return ResourceManager.GetString("DdaPage_Error_CheckMmioGeneric", resourceCulture);
+                return ResourceManager.GetString("PCIePage_Error_CheckMmioGeneric", resourceCulture);
             }
         }
         
@@ -1118,27 +1118,27 @@ namespace ExHyperV.Properties {
         ///
         ///{0} 的本地化字符串。
         /// </summary>
-        public static string DdaPage_Error_ExecutionGeneric {
+        public static string PCIePage_Error_ExecutionGeneric {
             get {
-                return ResourceManager.GetString("DdaPage_Error_ExecutionGeneric", resourceCulture);
+                return ResourceManager.GetString("PCIePage_Error_ExecutionGeneric", resourceCulture);
             }
         }
         
         /// <summary>
         ///   查找类似 Failed to update MMIO space. 的本地化字符串。
         /// </summary>
-        public static string DdaPage_Error_UpdateMmioFailed {
+        public static string PCIePage_Error_UpdateMmioFailed {
             get {
-                return ResourceManager.GetString("DdaPage_Error_UpdateMmioFailed", resourceCulture);
+                return ResourceManager.GetString("PCIePage_Error_UpdateMmioFailed", resourceCulture);
             }
         }
         
         /// <summary>
         ///   查找类似 MMIO Space Too Small 的本地化字符串。
         /// </summary>
-        public static string DdaPage_Title_MmioSpaceTooSmall {
+        public static string PCIePage_Title_MmioSpaceTooSmall {
             get {
-                return ResourceManager.GetString("DdaPage_Title_MmioSpaceTooSmall", resourceCulture);
+                return ResourceManager.GetString("PCIePage_Title_MmioSpaceTooSmall", resourceCulture);
             }
         }
         
@@ -4777,9 +4777,9 @@ namespace ExHyperV.Properties {
         /// <summary>
         ///   查找类似 The host system is not a server version, and the virtual machine with the PCIe Passthrough device added will not be able to start! 的本地化字符串。
         /// </summary>
-        public static string Error_NotServerForDda {
+        public static string Error_NotServerForPCIe {
             get {
-                return ResourceManager.GetString("Error_NotServerForDda", resourceCulture);
+                return ResourceManager.GetString("Error_NotServerForPCIe", resourceCulture);
             }
         }
         
@@ -5236,9 +5236,9 @@ namespace ExHyperV.Properties {
         /// <summary>
         ///   查找类似 Change VM shutdown action to Hard Turn Off... 的本地化字符串。
         /// </summary>
-        public static string DdaService_SetShutdownToTurnOff {
+        public static string PCIeService_SetShutdownToTurnOff {
             get {
-                return ResourceManager.GetString("DdaService_SetShutdownToTurnOff", resourceCulture);
+                return ResourceManager.GetString("PCIeService_SetShutdownToTurnOff", resourceCulture);
             }
         }
         
@@ -5770,15 +5770,6 @@ namespace ExHyperV.Properties {
         public static string VmGPUService_LogOnline {
             get {
                 return ResourceManager.GetString("VmGPUService_LogOnline", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Text input exception: {0} 的本地化字符串。
-        /// </summary>
-        public static string VmInput_ErrTextInput {
-            get {
-                return ResourceManager.GetString("VmInput_ErrTextInput", resourceCulture);
             }
         }
         
@@ -7991,12 +7982,12 @@ namespace ExHyperV.Properties {
             get { return ResourceManager.GetString("Error_VmCreate_TpmJobFail", resourceCulture); }
         }
 
-        public static string Msg_Dda_ShuttingDownVm {
-            get { return ResourceManager.GetString("Msg_Dda_ShuttingDownVm", resourceCulture); }
+        public static string Msg_PCIe_ShuttingDownVm {
+            get { return ResourceManager.GetString("Msg_PCIe_ShuttingDownVm", resourceCulture); }
         }
 
-        public static string Error_Dda_CannotShutdownVm {
-            get { return ResourceManager.GetString("Error_Dda_CannotShutdownVm", resourceCulture); }
+        public static string Error_PCIe_CannotShutdownVm {
+            get { return ResourceManager.GetString("Error_PCIe_CannotShutdownVm", resourceCulture); }
         }
 
         public static string Label_VlanId {
