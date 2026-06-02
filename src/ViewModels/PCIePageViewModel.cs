@@ -3,6 +3,7 @@ using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ExHyperV.Properties;
+using ExHyperV.Interaction;
 using ExHyperV.Services;
 using Wpf.Ui.Controls;
 using MessageBox = Wpf.Ui.Controls.MessageBox;
@@ -136,16 +137,10 @@ namespace ExHyperV.ViewModels
 
             if (resultType == MmioCheckResultType.NeedsConfirmation)
             {
-                var confirmDialog = new ContentDialog
-                {
-                    Title = ExHyperV.Properties.Resources.PCIePage_Title_MmioSpaceTooSmall,
-                    Content = message,
-                    PrimaryButtonText = ExHyperV.Properties.Resources.Button_Yes,
-                    CloseButtonText = ExHyperV.Properties.Resources.Button_No,
-                    DialogHost = ((MainWindow)Application.Current.MainWindow).ContentPresenterForDialogs
-                };
-                var result = await confirmDialog.ShowAsync();
-                if (result != ContentDialogResult.Primary) return false;
+                bool confirmed = await Dialogs.ShowConfirmAsync(
+                    ExHyperV.Properties.Resources.PCIePage_Title_MmioSpaceTooSmall, message,
+                    ExHyperV.Properties.Resources.Button_Yes, ExHyperV.Properties.Resources.Button_No);
+                if (!confirmed) return false;
 
                 bool updateSuccess = await _pcieService.UpdateMmioSpaceAsync(targetVmName);
                 if (!updateSuccess)

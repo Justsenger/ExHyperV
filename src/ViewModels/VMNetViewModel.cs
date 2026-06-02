@@ -5,6 +5,7 @@ using ExHyperV.Models;
 using ExHyperV.Properties;
 using ExHyperV.Services;
 using ExHyperV.Tools;
+using ExHyperV.Interaction;
 using ExHyperV.Views;
 
 namespace ExHyperV.ViewModels

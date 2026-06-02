@@ -1,6 +1,7 @@
 ﻿using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using ExHyperV.Interaction;
 using ExHyperV.Services;
 using ExHyperV.Tools;
 using ExHyperV.Views;
@@ -38,9 +39,6 @@ namespace ExHyperV.ViewModels
         [RelayCommand]
         private void OnNavigate(string parameter)
         {
-            var mainWindow = Application.Current.MainWindow as MainWindow;
-            if (mainWindow == null) return;
-
             Type? pageType = parameter switch
             {
                 "VM" => typeof(VirtualMachinesPage),
@@ -52,7 +50,7 @@ namespace ExHyperV.ViewModels
             };
 
             if (pageType != null)
-                mainWindow.RootNavigation.Navigate(pageType);
+                Navigation.NavigateTo(pageType);
         }
     }
 }

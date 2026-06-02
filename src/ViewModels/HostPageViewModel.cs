@@ -1,6 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ExHyperV.Services;
+using ExHyperV.Interaction;
 using ExHyperV.Tools;
 using System.Collections.ObjectModel;
 using System.Windows;
@@ -245,47 +246,10 @@ namespace ExHyperV.ViewModels
         private string Translate(string key) => ExHyperV.Properties.Resources.ResourceManager.GetString(key) ?? key;
 
         public void ShowSnackbar(string title, string msg, ControlAppearance app, SymbolRegular icon)
-        {
-            Application.Current.Dispatcher.Invoke(() =>
-            {
-                if (Application.Current.MainWindow?.FindName("SnackbarPresenter") is SnackbarPresenter p)
-                    new Snackbar(p) { Title = title, Content = msg, Appearance = app, Icon = new SymbolIcon(icon) { FontSize = 20 }, Timeout = TimeSpan.FromSeconds(4) }.Show();
-            });
-        }
+            => Notifications.ShowSnackbar(title, msg, app, icon);
 
         private void ShowRestartPrompt(string message)
-        {
-            Application.Current.Dispatcher.Invoke(() =>
-            {
-                if (Application.Current.MainWindow?.FindName("SnackbarPresenter") is not SnackbarPresenter p) return;
-
-                var grid = new System.Windows.Controls.Grid();
-                grid.VerticalAlignment = VerticalAlignment.Center;
-                grid.ColumnDefinitions.Add(new System.Windows.Controls.ColumnDefinition { Width = System.Windows.GridLength.Auto });
-                grid.ColumnDefinitions.Add(new System.Windows.Controls.ColumnDefinition { Width = new System.Windows.GridLength(1, System.Windows.GridUnitType.Star) });
-                grid.ColumnDefinitions.Add(new System.Windows.Controls.ColumnDefinition { Width = System.Windows.GridLength.Auto });
-
-                var icon = new SymbolIcon(SymbolRegular.CheckmarkCircle24) { FontSize = 24, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 12, 0) };
-                var textStack = new System.Windows.Controls.StackPanel { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0) };
-                var titleTxt = new Wpf.Ui.Controls.TextBlock { Text = Translate("Status_Title_Success"), FontWeight = FontWeights.Bold, FontSize = 14, Margin = new Thickness(0) };
-                var msgTxt = new Wpf.Ui.Controls.TextBlock { Text = message, FontSize = 12, Margin = new Thickness(0, -2, 0, 0) };
-                textStack.Children.Add(titleTxt);
-                textStack.Children.Add(msgTxt);
-
-                var btn = new Wpf.Ui.Controls.Button { Content = Translate("Global_Restart"), Appearance = ControlAppearance.Primary, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(12, 0, 10, 0) };
-                btn.Click += (s, e) => System.Diagnostics.Process.Start("shutdown", "-r -t 0");
-
-                System.Windows.Controls.Grid.SetColumn(icon, 0);
-                System.Windows.Controls.Grid.SetColumn(textStack, 1);
-                System.Windows.Controls.Grid.SetColumn(btn, 2);
-
-                grid.Children.Add(icon);
-                grid.Children.Add(textStack);
-                grid.Children.Add(btn);
-
-                new Snackbar(p) { Content = grid, Appearance = ControlAppearance.Success, Timeout = TimeSpan.FromSeconds(15) }.Show();
-            });
-        }
+            => Notifications.ShowRestartPrompt(message);
     }
 
     // ===== 检查项状态子 VM =====

@@ -12,6 +12,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ExHyperV.Models;
 using ExHyperV.Services;
+using ExHyperV.Interaction;
 using ExHyperV.Tools;
 using Wpf.Ui.Controls;
 
@@ -1019,18 +1020,8 @@ namespace ExHyperV.ViewModels
 
             try
             {
-                // 1. 实例化我们自己的沉浸式控制台窗口
-                // 传入当前选中虚拟机的 GUID (Id.ToString()) 和 名称
-                var consoleWin = new ExHyperV.Views.ConsoleWindow(
-                    SelectedVm.Id.ToString(),
-                    SelectedVm.Name
-                );
-
-                // 2. 设置所有者为当前主窗口（这样主窗口关闭时，控制台也会跟着关，且弹出位置更准确）
-                //consoleWin.Owner = Application.Current.MainWindow;
-
-                // 3. 显示窗口
-                consoleWin.Show();
+                // 打开当前选中虚拟机的沉浸式控制台窗口
+                Navigation.OpenConsoleWindow(SelectedVm.Id.ToString(), SelectedVm.Name);
 
                 // 4. (可选) 给个小反馈
                 Debug.WriteLine(string.Format(Properties.Resources.VmPage_ErrOpenFailed, SelectedVm.Name));
@@ -3827,62 +3818,8 @@ namespace ExHyperV.ViewModels
         // ===== UI 辅助方法 =====
 
         // 显示 Snackbar 通知
-        private Snackbar? _currentSnackbar;
         private void ShowSnackbar(string title, string message, ControlAppearance appearance, SymbolRegular icon)
-        {
-            // 使用 Background 优先级，同时加上 async 支持 await 操作
-            Application.Current.Dispatcher.InvokeAsync(async () => {
-                var presenter = Application.Current.MainWindow?.FindName("SnackbarPresenter") as SnackbarPresenter;
-                if (presenter != null)
-                {
-                    // 核心修复 1：暴力清空积压队列
-                    try
-                    {
-                        var queueProp = typeof(SnackbarPresenter).GetProperty("Queue", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-                        var queueObj = queueProp?.GetValue(presenter);
-                        queueObj?.GetType().GetMethod("Clear")?.Invoke(queueObj, null);
-                    }
-                    catch { }
-
-                    // 核心修复 2：使用官方推荐的 HideCurrent() 安全关闭
-                    try
-                    {
-                        await presenter.HideCurrent();
-                    }
-                    catch { }
-
-                    // --- 核心优化：动态计算弹窗留存时间 ---
-                    TimeSpan timeout;
-                    if (appearance == ControlAppearance.Danger || appearance == ControlAppearance.Caution)
-                    {
-                        int msgLength = message?.Length ?? 0;
-
-                        // 算法：每 20 个字符增加 1 秒
-                        int calculatedSeconds = msgLength / 20;
-
-                        calculatedSeconds = Math.Clamp(calculatedSeconds, 2, 60);
-
-                        timeout = TimeSpan.FromSeconds(calculatedSeconds);
-                    }
-                    else
-                    {
-                        // 成功或常规消息固定 2 秒
-                        timeout = TimeSpan.FromSeconds(2);
-                    }
-
-                    var snack = new Snackbar(presenter)
-                    {
-                        Title = title,
-                        Content = message,
-                        Appearance = appearance,
-                        Icon = new SymbolIcon(icon),
-                        Timeout = timeout
-                    };
-
-                    snack.Show();
-                }
-            }, System.Windows.Threading.DispatcherPriority.Background);
-        }
+            => Notifications.ShowSnackbar(title, message, appearance, icon);
         private string GetOptimisticText(string action) => action switch { "Start" => Properties.Resources.Status_Starting, "Restart" => Properties.Resources.Status_Restarting, "Stop" => Properties.Resources.Status_StoppingPresent, "TurnOff" => Properties.Resources.Status_Off, "Save" => Properties.Resources.Status_Saving, "Suspend" => Properties.Resources.Status_Suspending, _ => Properties.Resources.Status_Processing };
 
         // 追加日志到控制台

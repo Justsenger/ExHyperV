@@ -5,7 +5,7 @@ using Wpf.Ui.Controls;
 using TextBlock = Wpf.Ui.Controls.TextBlock;
 
 using ExHyperV.Views;
-namespace ExHyperV.Tools
+namespace ExHyperV.Interaction
 {
     public static class Dialogs
     {
