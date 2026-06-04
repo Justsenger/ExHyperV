@@ -24,7 +24,7 @@ jobs:
         run: |
           $ver = "${{ steps.get_version.outputs.VERSION }}"
           $tag = "V$ver"
-          if ((git tag -l $tag) -or ($ver -like "*beta*")) {
+          if (git tag -l $tag) {
             echo "EXISTS=true" >> $env:GITHUB_OUTPUT
           } else {
             echo "EXISTS=false" >> $env:GITHUB_OUTPUT
