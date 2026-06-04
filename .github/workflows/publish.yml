@@ -1,9 +1,23 @@
-name: 自动发布
+name: 发布
+
 on:
   push:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      release_type:
+        description: '发布类型'
+        required: true
+        type: choice
+        options:
+          - beta
+          - release
+      version:
+        description: '版本号（如 1.5.0，不含前缀 V）'
+        required: true
+        type: string
+
 jobs:
   publish:
     runs-on: windows-latest
@@ -13,51 +27,86 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - id: get_version
+
+      # ── 确定版本号和发布模式 ─────────────────────────────────────────
+      - id: config
+        shell: pwsh
+        run: |
+          $eventName = "${{ github.event_name }}"
+
+          if ($eventName -eq "push") {
+            # push 到 main：自动 alpha，版本固定为 alpha，tag 固定为 V-alpha（每次覆盖）
+            $mode    = "alpha"
+            $ver     = "alpha"
+            $tag     = "V-alpha"
+            $pre     = "true"
+            $winget  = "false"
+          } elseif ("${{ inputs.release_type }}" -eq "beta") {
+            $ver    = "${{ inputs.version }}"
+            $mode   = "beta"
+            $tag    = "V$ver-beta"
+            $pre    = "true"
+            $winget = "false"
+          } else {
+            $ver    = "${{ inputs.version }}"
+            $mode   = "release"
+            $tag    = "V$ver"
+            $pre    = "false"
+            $winget = "true"
+          }
+
+          echo "MODE=$mode"     >> $env:GITHUB_OUTPUT
+          echo "VERSION=$ver"   >> $env:GITHUB_OUTPUT
+          echo "TAG=$tag"       >> $env:GITHUB_OUTPUT
+          echo "PRERELEASE=$pre" >> $env:GITHUB_OUTPUT
+          echo "WINGET=$winget" >> $env:GITHUB_OUTPUT
+
+      # ── 读取 csproj 版本（仅 alpha 模式用于显示，其余模式用 input） ──
+      - id: get_csproj_version
+        if: steps.config.outputs.MODE == 'alpha'
         shell: pwsh
         run: |
           [xml]$project = Get-Content src/ExHyperV.csproj
           $ver = $project.Project.PropertyGroup.Version
-          echo "VERSION=$ver" >> $env:GITHUB_OUTPUT
-      - id: check_tag
-        shell: pwsh
-        run: |
-          $ver = "${{ steps.get_version.outputs.VERSION }}"
-          $tag = "V$ver"
-          if (git tag -l $tag) {
-            echo "EXISTS=true" >> $env:GITHUB_OUTPUT
-          } else {
-            echo "EXISTS=false" >> $env:GITHUB_OUTPUT
-          }
-      - if: steps.check_tag.outputs.EXISTS == 'false'
-        uses: actions/setup-dotnet@v4
+          echo "CSPROJ_VERSION=$ver" >> $env:GITHUB_OUTPUT
+
+      # ── 构建 ─────────────────────────────────────────────────────────
+      - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
-      - if: steps.check_tag.outputs.EXISTS == 'false'
+
+      - name: Build x64 and arm64
         shell: pwsh
         run: |
-          dotnet restore src/ExHyperV.csproj
-          $msbuild = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -requires Microsoft.Component.MSBuild -find MSBuild\**\Bin\MSBuild.exe | Select-Object -First 1
-          & $msbuild src/ExHyperV.csproj /p:Configuration=Release /p:PublishDir=../publish_portable/ /p:SelfContained=false /t:Publish
-          dotnet restore src/ExHyperV.csproj -r win-arm64
-          & $msbuild src/ExHyperV.csproj /p:Configuration=Release /p:PublishDir=../temp_arm64/ /p:SelfContained=false /p:RuntimeIdentifier=win-arm64 /t:Publish
+          $mode = "${{ steps.config.outputs.MODE }}"
+          $ver  = "${{ steps.config.outputs.VERSION }}"
 
-      # ── 签名：安装 SimplySign Desktop ──────────────────────────────────
-      - name: Setup Certum Code Signing (Windows)
-        if: steps.check_tag.outputs.EXISTS == 'false'
+          # alpha 模式用 csproj 中的版本号构建，其余模式覆盖版本号
+          if ($mode -eq "alpha") {
+            dotnet restore src/ExHyperV.csproj
+            $msbuild = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -requires Microsoft.Component.MSBuild -find MSBuild\**\Bin\MSBuild.exe | Select-Object -First 1
+            & $msbuild src/ExHyperV.csproj /p:Configuration=Release /p:PublishDir=../publish_portable/ /p:SelfContained=false /t:Publish
+            dotnet restore src/ExHyperV.csproj -r win-arm64
+            & $msbuild src/ExHyperV.csproj /p:Configuration=Release /p:PublishDir=../temp_arm64/ /p:SelfContained=false /p:RuntimeIdentifier=win-arm64 /t:Publish
+          } else {
+            dotnet restore src/ExHyperV.csproj
+            $msbuild = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -requires Microsoft.Component.MSBuild -find MSBuild\**\Bin\MSBuild.exe | Select-Object -First 1
+            & $msbuild src/ExHyperV.csproj /p:Configuration=Release /p:PublishDir=../publish_portable/ /p:SelfContained=false /p:Version=$ver /t:Publish
+            dotnet restore src/ExHyperV.csproj -r win-arm64
+            & $msbuild src/ExHyperV.csproj /p:Configuration=Release /p:PublishDir=../temp_arm64/ /p:SelfContained=false /p:RuntimeIdentifier=win-arm64 /p:Version=$ver /t:Publish
+          }
+
+      # ── 签名：安装 SimplySign Desktop ────────────────────────────────
+      - name: Setup Certum Code Signing
         shell: bash
         run: |
-          echo "=== SETTING UP CERTUM CODE SIGNING FOR WINDOWS ==="
           chmod +x ./.github/scripts/install-simplysign.sh
           ./.github/scripts/install-simplysign.sh
-          echo "Configuring registry for automatic login dialog..."
           powershell -ExecutionPolicy Bypass -File "./.github/scripts/configure-simplysign-registry.ps1"
-          echo "Certum signing environment ready"
         continue-on-error: true
 
-      # ── 签名：认证 SimplySign ──────────────────────────────────────────
-      - name: Authenticate Certum (Windows)
-        if: steps.check_tag.outputs.EXISTS == 'false'
+      # ── 签名：认证 SimplySign ─────────────────────────────────────────
+      - name: Authenticate Certum
         shell: bash
         env:
           CERTUM_OTP_URI: ${{ secrets.CERTUM_OTP_URI }}
@@ -65,76 +114,86 @@ jobs:
           CERTUM_CERTIFICATE_SHA1: ${{ secrets.CERTUM_CERTIFICATE_SHA1 }}
           CERTUM_EXE_PATH: ${{ secrets.CERTUM_EXE_PATH }}
         run: |
-          echo "=== CERTUM AUTHENTICATION ==="
           for attempt in $(seq 1 10); do
             echo "Authentication attempt ${attempt}/10"
             if powershell -ExecutionPolicy Bypass -File "./.github/scripts/connect-simplySign-enhanced.ps1"; then
               echo "Authentication completed"
               exit 0
             fi
-            if [ "$attempt" -lt 10 ]; then
-              echo "Authentication attempt failed, retrying in 10 seconds..."
-              sleep 10
-            fi
+            [ "$attempt" -lt 10 ] && sleep 10
           done
           echo "ERROR: Certum authentication failed after 10 attempts"
           exit 1
         continue-on-error: true
 
-      # ── 签名：对 x64 产物签名（EXE/DLL/SYS + CAT）────────────────────
-      - name: Sign Windows x64 binaries
-        if: steps.check_tag.outputs.EXISTS == 'false'
+      # ── 签名：x64 产物（EXE/DLL/SYS + CAT）──────────────────────────
+      - name: Sign x64 binaries
         shell: pwsh
         env:
           CERTUM_CERTIFICATE_SHA1: ${{ secrets.CERTUM_CERTIFICATE_SHA1 }}
         run: |
-          echo "=== SIGNING x64 BINARIES ==="
-          sleep 10
+          Start-Sleep -Seconds 10
           powershell -ExecutionPolicy Bypass -File "./.github/scripts/sign-windows.ps1" -TargetDirectory "publish_portable"
 
-      # ── 签名：将 arm64 EXE 替换到 publish_portable 后签名 ─────────────
-      - name: Sign Windows arm64 EXE
-        if: steps.check_tag.outputs.EXISTS == 'false'
+      # ── 签名：arm64 EXE ───────────────────────────────────────────────
+      - name: Sign arm64 EXE
         shell: pwsh
         env:
           CERTUM_CERTIFICATE_SHA1: ${{ secrets.CERTUM_CERTIFICATE_SHA1 }}
         run: |
-          echo "=== SIGNING arm64 EXE ==="
           powershell -ExecutionPolicy Bypass -File "./.github/scripts/sign-windows.ps1" -TargetDirectory "temp_arm64" -SkipCatGeneration
 
       # ── 打包 ──────────────────────────────────────────────────────────
-      - if: steps.check_tag.outputs.EXISTS == 'false'
+      - name: Package
         shell: pwsh
         run: |
-          $ver = "${{ steps.get_version.outputs.VERSION }}"
+          $tag = "${{ steps.config.outputs.TAG }}"
+
+          # x64 包
           Copy-Item -Path "./publish_portable" -Destination "./dist_x64" -Recurse
-          Compress-Archive -Path ./dist_x64/* -DestinationPath "ExHyperV_$($ver)_x64.zip" -Force
+          Compress-Archive -Path ./dist_x64/* -DestinationPath "ExHyperV_${tag}_x64.zip" -Force
+
+          # arm64 包：用 arm64 EXE 替换 x64 EXE，其余文件复用已签名的 x64 产物
           Copy-Item -Path "./publish_portable" -Destination "./dist_arm64" -Recurse
           Remove-Item "./dist_arm64/ExHyperV.exe" -Force
           Copy-Item -Path "./temp_arm64/ExHyperV.exe" -Destination "./dist_arm64/ExHyperV.exe"
-          # arm64 包使用 arm64 EXE + x64 的其余已签名文件，重新生成 CAT
           Remove-Item "./dist_arm64/ExHyperV.cat" -ErrorAction SilentlyContinue
-          Compress-Archive -Path ./dist_arm64/* -DestinationPath "ExHyperV_$($ver)_arm64.zip" -Force
+          Compress-Archive -Path ./dist_arm64/* -DestinationPath "ExHyperV_${tag}_arm64.zip" -Force
 
-      - if: steps.check_tag.outputs.EXISTS == 'false'
+      # ── 发布 Release（alpha 模式：删除旧 tag 后重建，实现覆盖）────────
+      - name: Delete existing alpha tag/release
+        if: steps.config.outputs.MODE == 'alpha'
+        shell: bash
+        run: |
+          TAG="${{ steps.config.outputs.TAG }}"
+          # 删除远端 tag（忽略不存在的错误）
+          git push origin :refs/tags/$TAG 2>/dev/null || true
+          # 删除 GitHub Release（忽略不存在的错误）
+          gh release delete $TAG --yes 2>/dev/null || true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: "V${{ steps.get_version.outputs.VERSION }}"
-          name: "V${{ steps.get_version.outputs.VERSION }}"
+          tag_name: "${{ steps.config.outputs.TAG }}"
+          name: "${{ steps.config.outputs.TAG }}"
           files: |
-            ExHyperV_${{ steps.get_version.outputs.VERSION }}_x64.zip
-            ExHyperV_${{ steps.get_version.outputs.VERSION }}_arm64.zip
+            ExHyperV_${{ steps.config.outputs.TAG }}_x64.zip
+            ExHyperV_${{ steps.config.outputs.TAG }}_arm64.zip
           generate_release_notes: true
           draft: false
-          prerelease: false
+          prerelease: ${{ steps.config.outputs.PRERELEASE == 'true' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # ── 提交 Winget（仅正式版）────────────────────────────────────────
       - name: Submit to Winget
-        if: steps.check_tag.outputs.EXISTS == 'false'
+        if: steps.config.outputs.WINGET == 'true'
         uses: vedantmgoyal2009/winget-releaser@v2
         with:
           identifier: Justsenger.ExHyperV
           installers-regex: '\.zip$'
           token: ${{ secrets.WINGET_TOKEN }}
-          version: ${{ steps.get_version.outputs.VERSION }}
-          release-tag: V${{ steps.get_version.outputs.VERSION }}
+          version: ${{ steps.config.outputs.VERSION }}
+          release-tag: ${{ steps.config.outputs.TAG }}

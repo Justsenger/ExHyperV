@@ -1,7 +1,7 @@
 # Sign-Windows.ps1
-# 对 Windows 可执行文件、库和驱动文件进行 Certum SimplySign 云证书签名。
-# 签名顺序：先签名 EXE/DLL/SYS，再生成 CAT，再签名 CAT。
-# 已有有效签名的文件将被跳过。
+# Signs Windows executables, libraries, and driver files with a Certum SimplySign cloud certificate.
+# Signing order: sign EXE/DLL/SYS first, then generate CAT, then sign CAT.
+# Files that already have a valid signature will be skipped.
 
 param(
     [string]$TargetDirectory = "sign_binaries",
@@ -34,7 +34,7 @@ function Get-LatestSignToolPath {
 }
 
 function Get-MakeCatPath {
-    # 在 Windows Kits 中查找 makecat.exe
+    # Search for makecat.exe in Windows Kits
     $windowsKitsBin = Join-Path ${env:ProgramFiles(x86)} "Windows Kits\10\bin"
     if (Test-Path $windowsKitsBin) {
         $candidate = Get-ChildItem -Path $windowsKitsBin -Recurse -File -Filter "makecat.exe" -ErrorAction SilentlyContinue |
@@ -85,12 +85,12 @@ function Invoke-SignFile {
         [string]$TimestampServer
     )
 
-    Write-Host "=== 签名: $([System.IO.Path]::GetFileName($FilePath)) ==="
-    Write-Host "路径: $FilePath"
+    Write-Host "=== Signing: $([System.IO.Path]::GetFileName($FilePath)) ==="
+    Write-Host "Path: $FilePath"
 
-    # 检查是否已有有效签名，跳过
+    # Skip files that already have a valid signature
     if (Test-FileHasValidSignature -FilePath $FilePath) {
-        Write-Host "SKIPPED: 文件已有有效签名，跳过"
+        Write-Host "SKIPPED: File already has a valid signature"
         Write-Host ""
         return "skipped"
     }
@@ -104,7 +104,7 @@ function Invoke-SignFile {
 
     $signed = $false
     foreach ($attempt in $attempts) {
-        Write-Host "尝试: $($attempt.Name)"
+        Write-Host "Attempt: $($attempt.Name)"
         $signOutput = & $SignTool @($attempt.Args) 2>&1
         if ($LASTEXITCODE -eq 0) {
             Write-Host "SUCCESS: $($attempt.Name)"
@@ -112,15 +112,15 @@ function Invoke-SignFile {
             break
         }
         Write-Host "FAILED: $($attempt.Name)"
-        Write-Host "signtool 返回非零退出码；详细输出已隐藏"
+        Write-Host "signtool returned a non-zero exit code; detailed output is hidden for security"
     }
 
     if ($signed) {
         $verifyOutput = & $SignTool verify /pa /v $FilePath 2>&1
         if ($LASTEXITCODE -eq 0) {
-            Write-Host "VERIFIED: 签名验证成功"
+            Write-Host "VERIFIED: Signature verification successful"
         } else {
-            Write-Host "WARNING: 签名验证失败"
+            Write-Host "WARNING: Signature verification failed"
         }
         Write-Host ""
         return "signed"
@@ -140,18 +140,18 @@ function New-CatalogFile {
     )
 
     Write-Host ""
-    Write-Host "=== 生成 CAT 目录文件 ==="
+    Write-Host "=== Generating CAT catalog file ==="
 
-    # 收集需要纳入 CAT 的文件（EXE/DLL/SYS）
+    # Collect files to include in CAT (EXE/DLL/SYS)
     $targetFiles = Get-ChildItem -Path $TargetDirectory -Recurse -File |
         Where-Object { $_.Extension -iin @(".exe", ".dll", ".sys") }
 
     if (($null -eq $targetFiles) -or ($targetFiles.Count -eq 0)) {
-        Write-Host "WARNING: 未找到可纳入 CAT 的文件，跳过 CAT 生成"
+        Write-Host "WARNING: No files found for CAT, skipping CAT generation"
         return $false
     }
 
-    # 生成 .cdf 描述文件
+    # Generate .cdf descriptor file
     $catOutputPath = Join-Path $TargetDirectory "ExHyperV.cat"
     $cdfPath = Join-Path $TargetDirectory "catalog.cdf"
 
@@ -172,95 +172,95 @@ CATATTR1=0x10010001:attr1:ExHyperV
     }
 
     $cdfContent | Out-File -FilePath $cdfPath -Encoding UTF8 -Force
-    Write-Host "已生成 CDF 文件: $cdfPath，包含 $($targetFiles.Count) 个文件"
+    Write-Host "CDF file generated: $cdfPath ($($targetFiles.Count) files)"
 
-    # 运行 makecat 生成 CAT
-    Write-Host "运行 makecat 生成 CAT 文件..."
+    # Run makecat to generate CAT
+    Write-Host "Running makecat to generate CAT file..."
     $makecatOutput = & $MakeCat $cdfPath 2>&1
     if ($LASTEXITCODE -ne 0) {
-        Write-Host "ERROR: makecat 失败，退出码 $LASTEXITCODE"
-        Write-Host "详细输出已隐藏"
+        Write-Host "ERROR: makecat failed with exit code $LASTEXITCODE"
+        Write-Host "Detailed output is hidden"
         return $false
     }
 
     if (-not (Test-Path $catOutputPath)) {
-        Write-Host "ERROR: CAT 文件未生成: $catOutputPath"
+        Write-Host "ERROR: CAT file was not generated: $catOutputPath"
         return $false
     }
 
-    Write-Host "CAT 文件已生成: $catOutputPath"
+    Write-Host "CAT file generated: $catOutputPath"
 
-    # 签名 CAT 文件
-    Write-Host "对 CAT 文件进行签名..."
+    # Sign the CAT file
+    Write-Host "Signing CAT file..."
     $result = Invoke-SignFile -FilePath $catOutputPath -SignTool $SignTool -NormalizedSha1 $NormalizedSha1 -TimestampServer $TimestampServer
     if ($result -eq "failed") {
-        Write-Host "ERROR: CAT 文件签名失败"
+        Write-Host "ERROR: CAT file signing failed"
         return $false
     }
 
-    Write-Host "CAT 文件签名完成"
+    Write-Host "CAT file signing complete"
     return $true
 }
 
 # ============================================================
-# 主流程
+# Main
 # ============================================================
 
 Write-Host "=== WINDOWS BINARY SIGNING (CERTUM SIMPLYSIGN) ==="
-Write-Host "目标目录: $TargetDirectory"
+Write-Host "Target directory: $TargetDirectory"
 
 if (-not (Test-Path $TargetDirectory)) {
-    Write-Host "ERROR: 目标目录不存在: $TargetDirectory"
+    Write-Host "ERROR: Target directory not found: $TargetDirectory"
     exit 1
 }
 
 if (-not $CertificateSHA1) {
-    Write-Host "ERROR: 未提供 CERTUM_CERTIFICATE_SHA1 环境变量"
+    Write-Host "ERROR: CERTUM_CERTIFICATE_SHA1 environment variable not provided"
     exit 1
 }
 
 $normalizedSha1 = ($CertificateSHA1 -replace "[^a-fA-F0-9]", "").ToUpperInvariant()
 if ($normalizedSha1.Length -ne 40) {
-    Write-Host "ERROR: CERTUM_CERTIFICATE_SHA1 规范化后无效"
-    Write-Host "原始长度: $($CertificateSHA1.Length)，规范化后长度: $($normalizedSha1.Length)"
+    Write-Host "ERROR: CERTUM_CERTIFICATE_SHA1 is invalid after normalization"
+    Write-Host "Raw length: $($CertificateSHA1.Length), normalized length: $($normalizedSha1.Length)"
     exit 1
 }
 
-Write-Host "签名证书指纹已接收（已隐藏）"
+Write-Host "Expected signing certificate thumbprint has been received (masked)"
 
 $targetCerts = Find-TargetCertificate -Thumbprint $normalizedSha1
 if (($null -eq $targetCerts) -or ($targetCerts.Count -eq 0)) {
-    Write-Host "ERROR: 在证书库中未找到目标证书"
-    Write-Host "认证可能失败或 CERTUM_CERTIFICATE_SHA1 不正确"
+    Write-Host "ERROR: Target certificate not found in Cert:\CurrentUser\My or Cert:\LocalMachine\My"
+    Write-Host "Authentication likely failed or CERTUM_CERTIFICATE_SHA1 is incorrect"
     Show-PrivateKeyCertificateHints
     exit 1
 }
 
 $targetWithPrivateKey = @($targetCerts | Where-Object { $_.HasPrivateKey })
 if (($null -eq $targetWithPrivateKey) -or ($targetWithPrivateKey.Count -eq 0)) {
-    Write-Host "ERROR: 目标证书存在但无可用私钥"
+    Write-Host "ERROR: Target certificate exists but has no available private key"
     Show-PrivateKeyCertificateHints
     exit 1
 }
 
-Write-Host "正在查找 signtool..."
+Write-Host "Locating signtool..."
 $signTool = Get-LatestSignToolPath
 if (-not $signTool) {
-    Write-Host "ERROR: 未找到 signtool.exe"
+    Write-Host "ERROR: signtool.exe not found"
     exit 1
 }
-Write-Host "找到 signtool: $signTool"
+Write-Host "Found signtool: $signTool"
 
-# 第一阶段：签名 EXE / DLL / SYS
+# Phase 1: Sign EXE / DLL / SYS
 Write-Host ""
-Write-Host "=== 第一阶段：签名 EXE / DLL / SYS ==="
+Write-Host "=== Phase 1: Signing EXE / DLL / SYS ==="
 $filesToSign = Get-ChildItem -Path $TargetDirectory -Recurse -File |
     Where-Object { $_.Extension -iin @(".exe", ".dll", ".sys") }
 
 if (($null -eq $filesToSign) -or ($filesToSign.Count -eq 0)) {
-    Write-Host "WARNING: 未找到可签名文件 (.exe, .dll, .sys)"
+    Write-Host "WARNING: No signable files (.exe, .dll, .sys) found"
 } else {
-    Write-Host "找到 $($filesToSign.Count) 个文件"
+    Write-Host "Found $($filesToSign.Count) files"
     $signedCount = 0
     $skippedCount = 0
     $failedCount = 0
@@ -274,28 +274,28 @@ if (($null -eq $filesToSign) -or ($filesToSign.Count -eq 0)) {
         }
     }
 
-    Write-Host "=== 第一阶段汇总 ==="
-    Write-Host "总文件数: $($filesToSign.Count)"
-    Write-Host "已签名:   $signedCount"
-    Write-Host "已跳过:   $skippedCount（已有有效签名）"
-    Write-Host "失败:     $failedCount"
+    Write-Host "=== Phase 1 Summary ==="
+    Write-Host "Total files:   $($filesToSign.Count)"
+    Write-Host "Signed:        $signedCount"
+    Write-Host "Skipped:       $skippedCount (already had valid signature)"
+    Write-Host "Failed:        $failedCount"
 
     if ($failedCount -gt 0) {
-        Write-Host "ERROR: 部分文件签名失败"
+        Write-Host "ERROR: Some files failed to sign"
         exit 1
     }
 }
 
-# 第二阶段：生成并签名 CAT
+# Phase 2: Generate and sign CAT
 if (-not $SkipCatGeneration) {
     Write-Host ""
-    Write-Host "=== 第二阶段：生成并签名 CAT ==="
+    Write-Host "=== Phase 2: Generate and sign CAT ==="
     $makeCat = Get-MakeCatPath
     if (-not $makeCat) {
-        Write-Host "WARNING: 未找到 makecat.exe，跳过 CAT 生成"
-        Write-Host "如需生成 CAT，请确保已安装 Windows Driver Kit (WDK)"
+        Write-Host "WARNING: makecat.exe not found, skipping CAT generation"
+        Write-Host "Install Windows Driver Kit (WDK) if CAT generation is required"
     } else {
-        Write-Host "找到 makecat: $makeCat"
+        Write-Host "Found makecat: $makeCat"
         $catResult = New-CatalogFile `
             -TargetDirectory (Resolve-Path $TargetDirectory).Path `
             -MakeCat $makeCat `
@@ -304,13 +304,13 @@ if (-not $SkipCatGeneration) {
             -TimestampServer $TimestampServer
 
         if (-not $catResult) {
-            Write-Host "WARNING: CAT 生成或签名失败，但不阻断整体流程"
+            Write-Host "WARNING: CAT generation or signing failed, but overall flow continues"
         }
     }
 } else {
-    Write-Host "已通过参数跳过 CAT 生成"
+    Write-Host "CAT generation skipped via parameter"
 }
 
 Write-Host ""
-Write-Host "=== 所有 WINDOWS 二进制文件签名完成 ==="
+Write-Host "=== ALL WINDOWS BINARIES SIGNED SUCCESSFULLY ==="
 exit 0
