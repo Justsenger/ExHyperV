@@ -103,7 +103,8 @@
 			<DirsToRemove Include="$(PublishDir)runtimes\win\lib\net8.0\Modules\PSDiagnostics" />
 			<DirsToRemove Include="$(PublishDir)runtimes\win\lib\net8.0\Modules\Microsoft.WSMan.Management" />
 			<DirsToRemove Include="$(PublishDir)runtimes\win\lib\netcoreapp2.1" />
-			<AllRuntimeDirs Include="$([System.IO.Directory]::GetDirectories('$(PublishDir)runtimes'))" />
+			<AllRuntimeDirs Include="$([System.IO.Directory]::GetDirectories('$(PublishDir)runtimes'))"
+							Condition="Exists('$(PublishDir)runtimes')" />
 			<DirsToRemove Include="@(AllRuntimeDirs)" Condition=" '%(Filename)' != 'win' AND '%(Filename)' != 'win-x64' AND '%(Filename)' != 'win-arm64' " />
 			<MagicDlls Include="$(MSBuildProjectDirectory)\libs\*.dll" />
 		</ItemGroup>
