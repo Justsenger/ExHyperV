@@ -41,6 +41,68 @@ jobs:
           & $msbuild src/ExHyperV.csproj /p:Configuration=Release /p:PublishDir=../publish_portable/ /p:SelfContained=false /t:Publish
           dotnet restore src/ExHyperV.csproj -r win-arm64
           & $msbuild src/ExHyperV.csproj /p:Configuration=Release /p:PublishDir=../temp_arm64/ /p:SelfContained=false /p:RuntimeIdentifier=win-arm64 /t:Publish
+
+      # ── 签名：安装 SimplySign Desktop ──────────────────────────────────
+      - name: Setup Certum Code Signing (Windows)
+        if: steps.check_tag.outputs.EXISTS == 'false'
+        shell: bash
+        run: |
+          echo "=== SETTING UP CERTUM CODE SIGNING FOR WINDOWS ==="
+          chmod +x ./.github/scripts/install-simplysign.sh
+          ./.github/scripts/install-simplysign.sh
+          echo "Configuring registry for automatic login dialog..."
+          powershell -ExecutionPolicy Bypass -File "./.github/scripts/configure-simplysign-registry.ps1"
+          echo "Certum signing environment ready"
+        continue-on-error: true
+
+      # ── 签名：认证 SimplySign ──────────────────────────────────────────
+      - name: Authenticate Certum (Windows)
+        if: steps.check_tag.outputs.EXISTS == 'false'
+        shell: bash
+        env:
+          CERTUM_OTP_URI: ${{ secrets.CERTUM_OTP_URI }}
+          CERTUM_USERNAME: ${{ secrets.CERTUM_USERNAME }}
+          CERTUM_CERTIFICATE_SHA1: ${{ secrets.CERTUM_CERTIFICATE_SHA1 }}
+          CERTUM_EXE_PATH: ${{ secrets.CERTUM_EXE_PATH }}
+        run: |
+          echo "=== CERTUM AUTHENTICATION ==="
+          for attempt in $(seq 1 10); do
+            echo "Authentication attempt ${attempt}/10"
+            if powershell -ExecutionPolicy Bypass -File "./.github/scripts/connect-simplySign-enhanced.ps1"; then
+              echo "Authentication completed"
+              exit 0
+            fi
+            if [ "$attempt" -lt 10 ]; then
+              echo "Authentication attempt failed, retrying in 10 seconds..."
+              sleep 10
+            fi
+          done
+          echo "ERROR: Certum authentication failed after 10 attempts"
+          exit 1
+        continue-on-error: true
+
+      # ── 签名：对 x64 产物签名（EXE/DLL/SYS + CAT）────────────────────
+      - name: Sign Windows x64 binaries
+        if: steps.check_tag.outputs.EXISTS == 'false'
+        shell: pwsh
+        env:
+          CERTUM_CERTIFICATE_SHA1: ${{ secrets.CERTUM_CERTIFICATE_SHA1 }}
+        run: |
+          echo "=== SIGNING x64 BINARIES ==="
+          sleep 10
+          powershell -ExecutionPolicy Bypass -File "./.github/scripts/sign-windows.ps1" -TargetDirectory "publish_portable"
+
+      # ── 签名：将 arm64 EXE 替换到 publish_portable 后签名 ─────────────
+      - name: Sign Windows arm64 EXE
+        if: steps.check_tag.outputs.EXISTS == 'false'
+        shell: pwsh
+        env:
+          CERTUM_CERTIFICATE_SHA1: ${{ secrets.CERTUM_CERTIFICATE_SHA1 }}
+        run: |
+          echo "=== SIGNING arm64 EXE ==="
+          powershell -ExecutionPolicy Bypass -File "./.github/scripts/sign-windows.ps1" -TargetDirectory "temp_arm64" -SkipCatGeneration
+
+      # ── 打包 ──────────────────────────────────────────────────────────
       - if: steps.check_tag.outputs.EXISTS == 'false'
         shell: pwsh
         run: |
@@ -50,7 +112,10 @@ jobs:
           Copy-Item -Path "./publish_portable" -Destination "./dist_arm64" -Recurse
           Remove-Item "./dist_arm64/ExHyperV.exe" -Force
           Copy-Item -Path "./temp_arm64/ExHyperV.exe" -Destination "./dist_arm64/ExHyperV.exe"
+          # arm64 包使用 arm64 EXE + x64 的其余已签名文件，重新生成 CAT
+          Remove-Item "./dist_arm64/ExHyperV.cat" -ErrorAction SilentlyContinue
           Compress-Archive -Path ./dist_arm64/* -DestinationPath "ExHyperV_$($ver)_arm64.zip" -Force
+
       - if: steps.check_tag.outputs.EXISTS == 'false'
         uses: softprops/action-gh-release@v2
         with:
