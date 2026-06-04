@@ -38,7 +38,7 @@ jobs:
             # push 到 main：自动 alpha，版本固定为 alpha，tag 固定为 V-alpha（每次覆盖）
             $mode    = "alpha"
             $ver     = "alpha"
-            $tag     = "V-alpha"
+            $tag     = "alpha"
             $pre     = "true"
             $winget  = "false"
           } elseif ("${{ inputs.release_type }}" -eq "beta") {
