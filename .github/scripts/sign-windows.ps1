@@ -82,37 +82,51 @@ function Invoke-SignFile {
         [string]$FilePath,
         [string]$SignTool,
         [string]$NormalizedSha1,
-        [string]$TimestampServer
+        [string]$TimestampServer,
+        [int]$MaxRetries = 10
     )
 
     Write-Host "=== Signing: $([System.IO.Path]::GetFileName($FilePath)) ==="
     Write-Host "Path: $FilePath"
 
-    # Skip files that already have a valid signature
+    # 跳过已有有效签名的文件
     if (Test-FileHasValidSignature -FilePath $FilePath) {
         Write-Host "SKIPPED: File already has a valid signature"
         Write-Host ""
         return "skipped"
     }
 
+    # 只使用 SHA256 的参数组合（按优先级排列）
     $attempts = @(
-        @{ Name = "SHA1 thumbprint + /td SHA256"; Args = @("sign", "/sha1", $NormalizedSha1, "/tr", $TimestampServer, "/td", "SHA256", "/fd", "SHA256", "/v", $FilePath) },
-        @{ Name = "SHA1 thumbprint in CurrentUser\My"; Args = @("sign", "/sha1", $NormalizedSha1, "/s", "My", "/tr", $TimestampServer, "/td", "SHA256", "/fd", "SHA256", "/v", $FilePath) },
-        @{ Name = "SHA1 thumbprint in LocalMachine\My"; Args = @("sign", "/sha1", $NormalizedSha1, "/sm", "/s", "My", "/tr", $TimestampServer, "/td", "SHA256", "/fd", "SHA256", "/v", $FilePath) },
-        @{ Name = "Auto-select cert (fallback)"; Args = @("sign", "/a", "/tr", $TimestampServer, "/td", "SHA256", "/fd", "SHA256", "/v", $FilePath) }
+        @{ Name = "SHA1 thumbprint /fd SHA256 /td SHA256";           Args = @("sign", "/sha1", $NormalizedSha1, "/tr", $TimestampServer, "/fd", "SHA256", "/td", "SHA256", "/v", $FilePath) },
+        @{ Name = "SHA1 thumbprint /s My /fd SHA256 /td SHA256";     Args = @("sign", "/sha1", $NormalizedSha1, "/s", "My", "/tr", $TimestampServer, "/fd", "SHA256", "/td", "SHA256", "/v", $FilePath) },
+        @{ Name = "SHA1 thumbprint /sm /s My /fd SHA256 /td SHA256"; Args = @("sign", "/sha1", $NormalizedSha1, "/sm", "/s", "My", "/tr", $TimestampServer, "/fd", "SHA256", "/td", "SHA256", "/v", $FilePath) },
+        @{ Name = "Auto-select /fd SHA256 /td SHA256 (fallback)";    Args = @("sign", "/a", "/tr", $TimestampServer, "/fd", "SHA256", "/td", "SHA256", "/v", $FilePath) }
     )
 
     $signed = $false
-    foreach ($attempt in $attempts) {
-        Write-Host "Attempt: $($attempt.Name)"
-        $signOutput = & $SignTool @($attempt.Args) 2>&1
-        if ($LASTEXITCODE -eq 0) {
-            Write-Host "SUCCESS: $($attempt.Name)"
-            $signed = $true
-            break
+
+    for ($retry = 1; $retry -le $MaxRetries; $retry++) {
+        if ($retry -gt 1) {
+            Write-Host "--- Retry $retry / $MaxRetries ---"
+            Start-Sleep -Seconds 5
         }
-        Write-Host "FAILED: $($attempt.Name)"
-        Write-Host "signtool returned a non-zero exit code; detailed output is hidden for security"
+
+        foreach ($attempt in $attempts) {
+            Write-Host "Attempt: $($attempt.Name)"
+            $signOutput = & $SignTool @($attempt.Args) 2>&1
+            if ($LASTEXITCODE -eq 0) {
+                Write-Host "SUCCESS: $($attempt.Name)"
+                $signed = $true
+                break
+            }
+            Write-Host "FAILED: $($attempt.Name)"
+            Write-Host "signtool returned a non-zero exit code; detailed output is hidden for security"
+        }
+
+        if ($signed) { break }
+
+        Write-Host "All sign attempts failed on retry $retry, waiting before next retry..."
     }
 
     if ($signed) {
@@ -125,6 +139,7 @@ function Invoke-SignFile {
         Write-Host ""
         return "signed"
     } else {
+        Write-Host "ERROR: All $MaxRetries retries exhausted for $([System.IO.Path]::GetFileName($FilePath))"
         Write-Host ""
         return "failed"
     }
