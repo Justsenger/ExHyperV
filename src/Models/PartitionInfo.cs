@@ -35,20 +35,14 @@ namespace ExHyperV.Models
 
         public double SizeInGb => SizeInBytes / (1024.0 * 1024.0 * 1024.0);
 
-        public string DisplayName => string.Format(Properties.Resources.Format_PartitionDesc, DiskDisplayName, PartitionNumber, SizeInGb); public string IconPath
+        public string DisplayName => string.Format(Properties.Resources.Format_PartitionDesc, DiskDisplayName, PartitionNumber, SizeInGb);
+
+        // 分区图标复用全局矢量资源（Vector.Windows / Vector.Linux），与全应用一致，不再用 PNG。
+        public System.Windows.Media.ImageSource IconPath => OsType switch
         {
-            get
-            {
-                switch (OsType)
-                {
-                    case OperatingSystemType.Windows:
-                        return "pack://application:,,,/Assets/Microsoft.png";
-                    case OperatingSystemType.Linux:
-                        return "pack://application:,,,/Assets/Linux.png";
-                    default:
-                        return null;
-                }
-            }
-        }
+            OperatingSystemType.Windows => ExHyperV.Tools.VectorIcons.TryGet("Windows"),
+            OperatingSystemType.Linux => ExHyperV.Tools.VectorIcons.TryGet("Linux"),
+            _ => null
+        };
     }
 }

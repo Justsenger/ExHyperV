@@ -1,8 +1,6 @@
-﻿using System;
+using System;
 using System.Windows.Data;
-using System.Windows.Media.Imaging;
 using ExHyperV.Tools;
-
 
 namespace ExHyperV.Converters
 {
@@ -10,18 +8,8 @@ namespace ExHyperV.Converters
     {
         public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
         {
-            // 调用 Utils 获取图片名称
-            string imageName = OsImages.GetFileName(value?.ToString());
-
-            try
-            {
-                return new BitmapImage(new Uri($"pack://application:,,,/Assets/{imageName}"));
-            }
-            catch
-            {
-                // 如果图片路径报错的回退方案
-                return new BitmapImage(new Uri("pack://application:,,,/Assets/Windows.png"));
-            }
+            // 原生 WPF 矢量图标；尚未迁移的类型返回 null（暂不显示）。
+            return VectorIcons.TryGet(OsImages.Canonical(value?.ToString()));
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)

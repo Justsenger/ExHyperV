@@ -1,38 +1,25 @@
 namespace ExHyperV.Tools
 {
     /// <summary>
-    /// GPU 厂商/型号 → 资源 pack:// URI（指向 Assets/ 下的 vendor logo PNG）。
+    /// GPU 厂商/型号 → 矢量资源键（Vector.Gpu.{厂商}）。
+    /// GPU-PV 仅支持 NVIDIA / AMD / Intel / 高通；其余厂商回退 Default。
     /// </summary>
     public static class GpuImages
     {
-        public static string GetUri(string manufacturer, string name)
+        public static string GetResourceKey(string manufacturer, string name)
         {
-            string imageName;
-            if (manufacturer.Contains("NVIDIA"))
-                imageName = "NVIDIA.png";
-            else if (manufacturer.Contains("Advanced"))
-                imageName = "AMD.png";
-            else if (manufacturer.Contains("Microsoft"))
-                imageName = "Microsoft.png";
-            else if (manufacturer.Contains("Intel"))
+            if (manufacturer.Contains("NVIDIA")) return "Gpu.NVIDIA";
+            if (manufacturer.Contains("Advanced")) return "Gpu.AMD";
+            if (manufacturer.Contains("Intel"))
             {
-                imageName = "Intel.png";
-                if (name.ToLower().Contains("iris")) imageName = "Intel-IrisXe.png";
-                if (name.ToLower().Contains("arc")) imageName = "Intel-ARC.png";
-                if (name.ToLower().Contains("data")) imageName = "Intel-DataCenter.png";
+                string n = name.ToLower();
+                if (n.Contains("iris")) return "Gpu.Intel-IrisXe";
+                if (n.Contains("arc")) return "Gpu.Intel-ARC";
+                if (n.Contains("data")) return "Gpu.Intel-DataCenter";
+                return "Gpu.Intel";
             }
-            else if (manufacturer.Contains("Moore"))
-                imageName = "Moore.png";
-            else if (manufacturer.Contains("Qualcomm"))
-                imageName = "Qualcomm.png";
-            else if (manufacturer.Contains("DisplayLink"))
-                imageName = "DisplayLink.png";
-            else if (manufacturer.Contains("Silicon"))
-                imageName = "Silicon.png";
-            else
-                imageName = "Default.png";
-
-            return $"pack://application:,,,/Assets/{imageName}";
+            if (manufacturer.Contains("Qualcomm")) return "Gpu.Qualcomm";
+            return "Gpu.Default";
         }
     }
 }
