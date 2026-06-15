@@ -26,11 +26,11 @@
 
         <!-- 1. Banner 区 (移除加粗，恢复圆角) -->
         <Grid Grid.Row="0" Margin="0,0,0,10">
-            <!-- 背景图片 -->
-            <ui:Image CornerRadius="15" Stretch="Uniform" Source="pack://application:,,,/Assets/banner.jpg"/>
+            <!-- 背景图片（程序化矢量「数字山湖」横幅 Vector.Banner，无位图） -->
+            <ui:Image CornerRadius="15" Stretch="Uniform" Source="{DynamicResource Vector.Banner}"/>
 
             <!-- 左侧标题文字 -->
-            <StackPanel VerticalAlignment="Center" Margin="30,5,0,-25">
+            <StackPanel VerticalAlignment="Center" Margin="30,5,0,2">
                 <TextBlock Text="ExHyperV" 
                    FontSize="42" 
                    Foreground="White"
