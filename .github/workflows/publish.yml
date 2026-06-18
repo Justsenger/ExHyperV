@@ -4,19 +4,7 @@ on:
   push:
     branches:
       - main
-  workflow_dispatch:
-    inputs:
-      release_type:
-        description: '发布类型'
-        required: true
-        type: choice
-        options:
-          - beta
-          - release
-      version:
-        description: '版本号（如 1.5.0，不含前缀 V）'
-        required: true
-        type: string
+  workflow_dispatch:        # 手动触发：正式版只能走这里（防止误发 winget）
 
 jobs:
   publish:
@@ -28,47 +16,48 @@ jobs:
         with:
           fetch-depth: 0
 
-      # ── 确定版本号和发布模式 ─────────────────────────────────────────
+      # ── 读取 csproj 版本号，按后缀决定发布渠道 ──────────────────────
       - id: config
         shell: pwsh
         run: |
           $eventName = "${{ github.event_name }}"
 
-          if ($eventName -eq "push") {
-            # push 到 main：自动 alpha，版本固定为 alpha，tag 固定为 V-alpha（每次覆盖）
-            $mode    = "alpha"
-            $ver     = "alpha"
-            $tag     = "alpha"
-            $pre     = "true"
-            $winget  = "false"
-          } elseif ("${{ inputs.release_type }}" -eq "beta") {
-            $ver    = "${{ inputs.version }}"
-            $mode   = "beta"
-            $tag    = "V$ver-beta"
-            $pre    = "true"
-            $winget = "false"
-          } else {
-            $ver    = "${{ inputs.version }}"
-            $mode   = "release"
-            $tag    = "V$ver"
-            $pre    = "false"
-            $winget = "true"
+          # 版本号唯一来源：csproj 的 <Version>（含 -alpha / -beta 后缀，供程序显示与判断内测）
+          [xml]$project = Get-Content src/ExHyperV.csproj
+          $ver = ($project.Project.PropertyGroup.Version | Where-Object { $_ } | Select-Object -First 1)
+          $ver = "$ver".Trim()
+          if ([string]::IsNullOrWhiteSpace($ver)) {
+            Write-Error "未能从 src/ExHyperV.csproj 读取 <Version>"
+            exit 1
           }
 
-          echo "MODE=$mode"     >> $env:GITHUB_OUTPUT
-          echo "VERSION=$ver"   >> $env:GITHUB_OUTPUT
-          echo "TAG=$tag"       >> $env:GITHUB_OUTPUT
-          echo "PRERELEASE=$pre" >> $env:GITHUB_OUTPUT
-          echo "WINGET=$winget" >> $env:GITHUB_OUTPUT
+          # 按后缀判断渠道：含 alpha / beta → 预发布，不上 winget；都没有 → 正式版
+          if ($ver -match '(?i)alpha') {
+            $mode = "alpha"; $pre = "true"; $winget = "false"
+          } elseif ($ver -match '(?i)beta') {
+            $mode = "beta";  $pre = "true"; $winget = "false"
+          } else {
+            $mode = "release"; $pre = "false"; $winget = "true"
+          }
 
-      # ── 读取 csproj 版本（仅 alpha 模式用于显示，其余模式用 input） ──
-      - id: get_csproj_version
-        if: steps.config.outputs.MODE == 'alpha'
-        shell: pwsh
-        run: |
-          [xml]$project = Get-Content src/ExHyperV.csproj
-          $ver = $project.Project.PropertyGroup.Version
-          echo "CSPROJ_VERSION=$ver" >> $env:GITHUB_OUTPUT
+          # 发布门槛：预发布在 push / 手动都发；正式版仅手动触发才发
+          if ($pre -eq "true") {
+            $publish = "true"
+          } elseif ($eventName -eq "workflow_dispatch") {
+            $publish = "true"
+          } else {
+            $publish = "false"   # push 了一个正式版号但没手动确认 → 只构建不发布
+          }
+
+          $tag = "V$ver"
+
+          echo "MODE=$mode"       >> $env:GITHUB_OUTPUT
+          echo "VERSION=$ver"     >> $env:GITHUB_OUTPUT
+          echo "TAG=$tag"         >> $env:GITHUB_OUTPUT
+          echo "PRERELEASE=$pre"  >> $env:GITHUB_OUTPUT
+          echo "WINGET=$winget"   >> $env:GITHUB_OUTPUT
+          echo "PUBLISH=$publish" >> $env:GITHUB_OUTPUT
+          Write-Host "版本=$ver  模式=$mode  Tag=$tag  预发布=$pre  Winget=$winget  发布=$publish"
 
       # ── 构建 ─────────────────────────────────────────────────────────
       - uses: actions/setup-dotnet@v4
@@ -78,23 +67,13 @@ jobs:
       - name: Build x64 and arm64
         shell: pwsh
         run: |
-          $mode = "${{ steps.config.outputs.MODE }}"
-          $ver  = "${{ steps.config.outputs.VERSION }}"
-
-          # alpha 模式用 csproj 中的版本号构建，其余模式覆盖版本号
-          if ($mode -eq "alpha") {
-            dotnet restore src/ExHyperV.csproj
-            $msbuild = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -requires Microsoft.Component.MSBuild -find MSBuild\**\Bin\MSBuild.exe | Select-Object -First 1
-            & $msbuild src/ExHyperV.csproj /p:Configuration=Release /p:PublishDir=../publish_portable/ /p:SelfContained=false /t:Publish
-            dotnet restore src/ExHyperV.csproj -r win-arm64
-            & $msbuild src/ExHyperV.csproj /p:Configuration=Release /p:PublishDir=../temp_arm64/ /p:SelfContained=false /p:RuntimeIdentifier=win-arm64 /t:Publish
-          } else {
-            dotnet restore src/ExHyperV.csproj
-            $msbuild = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -requires Microsoft.Component.MSBuild -find MSBuild\**\Bin\MSBuild.exe | Select-Object -First 1
-            & $msbuild src/ExHyperV.csproj /p:Configuration=Release /p:PublishDir=../publish_portable/ /p:SelfContained=false /p:Version=$ver /t:Publish
-            dotnet restore src/ExHyperV.csproj -r win-arm64
-            & $msbuild src/ExHyperV.csproj /p:Configuration=Release /p:PublishDir=../temp_arm64/ /p:SelfContained=false /p:RuntimeIdentifier=win-arm64 /p:Version=$ver /t:Publish
-          }
+          # 不覆盖版本号，直接用 csproj 的 <Version>（含 -alpha/-beta 后缀），
+          # 这样程序内通过 InformationalVersion 就能读到内测标识
+          dotnet restore src/ExHyperV.csproj
+          $msbuild = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -requires Microsoft.Component.MSBuild -find MSBuild\**\Bin\MSBuild.exe | Select-Object -First 1
+          & $msbuild src/ExHyperV.csproj /p:Configuration=Release /p:PublishDir=../publish_portable/ /p:SelfContained=false /t:Publish
+          dotnet restore src/ExHyperV.csproj -r win-arm64
+          & $msbuild src/ExHyperV.csproj /p:Configuration=Release /p:PublishDir=../temp_arm64/ /p:SelfContained=false /p:RuntimeIdentifier=win-arm64 /t:Publish
 
       # ── 签名：安装 SimplySign Desktop ────────────────────────────────
       - name: Setup Certum Code Signing
@@ -160,20 +139,23 @@ jobs:
           Remove-Item "./dist_arm64/ExHyperV.cat" -ErrorAction SilentlyContinue
           Compress-Archive -Path ./dist_arm64/* -DestinationPath "ExHyperV_${tag}_arm64.zip" -Force
 
-      # ── 发布 Release（alpha 模式：删除旧 tag 后重建，实现覆盖）────────
-      - name: Delete existing alpha tag/release
-        if: steps.config.outputs.MODE == 'alpha'
+      # ── 预发布：先删掉所有现存预发布，再创建新的 → 内测包始终只保留一个 ──
+      - name: Delete all existing prereleases
+        if: steps.config.outputs.PUBLISH == 'true' && steps.config.outputs.PRERELEASE == 'true'
         shell: bash
         run: |
-          TAG="${{ steps.config.outputs.TAG }}"
-          # 删除远端 tag（忽略不存在的错误）
-          git push origin :refs/tags/$TAG 2>/dev/null || true
-          # 删除 GitHub Release（忽略不存在的错误）
-          gh release delete $TAG --yes 2>/dev/null || true
+          # 列出所有预发布（不含正式版），逐个删除其 Release 和 tag
+          gh release list --limit 1000 --json tagName,isPrerelease --jq '.[] | select(.isPrerelease) | .tagName' | while read -r tag; do
+            [ -z "$tag" ] && continue
+            echo "Deleting old prerelease: $tag"
+            gh release delete "$tag" --yes 2>/dev/null || true
+            git push origin ":refs/tags/$tag" 2>/dev/null || true
+          done
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create Release
+        if: steps.config.outputs.PUBLISH == 'true'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: "${{ steps.config.outputs.TAG }}"
@@ -187,9 +169,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # ── 提交 Winget（仅正式版）────────────────────────────────────────
+      # ── 提交 Winget（仅正式版，且必须是手动触发）──────────────────────
       - name: Submit to Winget
-        if: steps.config.outputs.WINGET == 'true'
+        if: steps.config.outputs.PUBLISH == 'true' && steps.config.outputs.WINGET == 'true'
         uses: vedantmgoyal2009/winget-releaser@v2
         with:
           identifier: Justsenger.ExHyperV
