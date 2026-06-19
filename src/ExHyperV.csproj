@@ -20,7 +20,6 @@
 	<ItemGroup>
 		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
 		<PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.135" />
-		<PackageReference Include="RoyalApps.Community.Rdp.WinForms" Version="1.4.0" />
 		<PackageReference Include="SSH.NET" Version="2024.1.0" />
 		<PackageReference Include="System.Management" Version="10.0.8" />
 		<PackageReference Include="WPF-UI" Version="4.0.3" />
@@ -30,6 +29,15 @@
 			<VersionMinor>0</VersionMinor>
 			<VersionMajor>1</VersionMajor>
 			<Guid>2c941fd0-975b-59be-a960-9a2a262853a5</Guid>
+			<Lcid>0</Lcid>
+			<Isolated>false</Isolated>
+			<EmbedInteropTypes>true</EmbedInteropTypes>
+		</COMReference>
+		<COMReference Include="MSTSCLib">
+			<WrapperTool>tlbimp</WrapperTool>
+			<VersionMinor>0</VersionMinor>
+			<VersionMajor>1</VersionMajor>
+			<Guid>8c11efa1-92c3-11d1-bc1e-00c04fa31489</Guid>
 			<Lcid>0</Lcid>
 			<Isolated>false</Isolated>
 			<EmbedInteropTypes>true</EmbedInteropTypes>

@@ -18,6 +18,7 @@ namespace ExHyperV.ViewModels
         private readonly VmPowerService _powerService = new();
         private readonly VmQueryService _queryService = new();
         private DispatcherTimer _statusTimer;
+        private bool _polling;   // 防止上一次轮询(WMI 慢)未完成时重入
 
         // ===== 基础属性 =====
 
@@ -39,6 +40,8 @@ namespace ExHyperV.ViewModels
         public bool IsNotBusy => !IsBusy;
 
         public event EventHandler SendCadRequested;
+        /// <summary>每次状态轮询完成后触发（供消费方按 VM 运行状态同步连接，无需额外定时器）。</summary>
+        public event Action? Polled;
 
         // ===== 构造 =====
 
@@ -51,15 +54,9 @@ namespace ExHyperV.ViewModels
         // ===== 全屏 =====
 
         [ObservableProperty] private bool _isFullScreen = false;
-        [RelayCommand]
-        private void ToggleFullScreen()
-        {
-            IsFullScreen = !IsFullScreen;
-            // 如果进入全屏，可以顺便给用户一个简单提示（可选）
-            // Debug.WriteLine(Properties.Resources.ConsoleViewModel_EnterFullScreenHint);
-        }
 
-        public ConsoleViewModel() { }
+        [RelayCommand]
+        private void ToggleFullScreen() => IsFullScreen = !IsFullScreen;
 
         // ===== 状态轮询 =====
 
@@ -73,6 +70,8 @@ namespace ExHyperV.ViewModels
 
         private async Task SyncVmStateAsync()
         {
+            if (_polling) return;   // 上一次轮询(WMI 慢)未完成 → 跳过，避免重入与重叠查询
+            _polling = true;
             try
             {
                 var vms = await _queryService.GetVmListAsync();
@@ -82,12 +81,8 @@ namespace ExHyperV.ViewModels
 
                 if (currentVm != null)
                 {
-                    // 更新运行状态
-                    IsRunning = currentVm.IsRunning;
-
-                    // 更新名称
-                    if (VmName != currentVm.Name) VmName = currentVm.Name;
-
+                    IsRunning = currentVm.IsRunning;                       // 更新运行状态
+                    if (VmName != currentVm.Name) VmName = currentVm.Name; // 更新名称
                     IsLoading = false;
                 }
             }
@@ -95,6 +90,11 @@ namespace ExHyperV.ViewModels
             {
                 Debug.WriteLine(ex.Message);
             }
+            finally
+            {
+                _polling = false;
+            }
+            Polled?.Invoke();   // 通知消费方按最新 VM 运行状态同步 RDP 连接（连/断/重连）
         }
         private bool CanExecutePowerAction() => !IsBusy;
 
@@ -180,6 +180,9 @@ namespace ExHyperV.ViewModels
 
         [RelayCommand]
         private void SwitchSessionMode(string mode) => SelectedSessionMode = mode;
+
+        /// <summary>增强会话连接失败时回退到基本会话（顶部会话开关随之切回，并触发以基本会话重连）。</summary>
+        public void FallbackToBasicSession() => SelectedSessionMode = Properties.Resources.ConsoleViewModel_BasicSession;
 
         partial void OnSelectedSessionModeChanged(string value)
         {

@@ -1020,7 +1020,7 @@ namespace ExHyperV.ViewModels
 
             try
             {
-                // 打开当前选中虚拟机的沉浸式控制台窗口
+                // 打开当前选中虚拟机的沉浸式控制台窗口（现走新的 RdpClientHost）
                 Navigation.OpenConsoleWindow(SelectedVm.Id.ToString(), SelectedVm.Name);
 
                 // 4. (可选) 给个小反馈

@@ -1,0 +1,215 @@
+using System;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
+using System.Windows.Forms;
+using MSTSCLib;
+
+namespace ExHyperV.Tools
+{
+    /// <summary>
+    /// 直接托管系统 mstscax.dll 的 RDP ActiveX（CLSID = MsRdpClient9NotSafeForScripting），
+    /// 不经 RoyalApps、不经 aximp 生成的 AxInterop——自己派生 <see cref="AxHost"/>。
+    /// 标量属性走 IDispatch 晚绑定（dynamic），非脚本属性与事件走类型化 COM 接口。
+    /// </summary>
+    internal sealed class MsRdpAxHost : AxHost
+    {
+        private const string MsRdpClient9Clsid = "8b918b82-7985-4c24-89df-c33ad2bbfbcd";
+
+        public event Action? Connected;
+        public event Action<int>? Disconnected;
+        public event Action<int, int>? RemoteDesktopSizeChanged;
+        public event Action? EnteredFullScreen;
+        public event Action? LeftFullScreen;
+        public event Action<int>? FatalError;
+        public event Action? MinimizeRequested;   // 连接栏最小化按钮（容器处理全屏）
+        public event Action? CloseRequested;       // 连接栏关闭按钮（容器处理全屏）
+
+        public MsRdpAxHost() : base(MsRdpClient9Clsid) { }
+
+        // AxHost 在底层 OCX 创建完成后调用此处——是订阅 COM 事件的规范时机。
+        protected override void AttachInterfaces()
+        {
+            try
+            {
+                var evt = (IMsTscAxEvents_Event)GetOcx();
+                // 每个处理都过 Safe()——COM 事件 sink 绝不能让异常逃回 native，否则 0xC000041D 进程秒退。
+                evt.OnConnected += () => Safe(() => Connected?.Invoke());
+                evt.OnDisconnected += reason => Safe(() => Disconnected?.Invoke(reason));
+                evt.OnRemoteDesktopSizeChange += (w, h) => Safe(() => RemoteDesktopSizeChanged?.Invoke(w, h));
+                // 容器处理全屏：热键/请求经 OnRequestGo/LeaveFullScreen（非 OnEnter/Leave，那是控件自身全屏才触发）
+                evt.OnRequestGoFullScreen += () => Safe(() => EnteredFullScreen?.Invoke());
+                evt.OnRequestLeaveFullScreen += () => Safe(() => LeftFullScreen?.Invoke());
+                evt.OnFatalError += code => Safe(() => FatalError?.Invoke(code));
+                // 容器处理全屏下，连接栏的最小化/关闭按钮经事件交给容器（窗口）处理
+                evt.OnRequestContainerMinimize += () => Safe(() => MinimizeRequested?.Invoke());
+                evt.OnConfirmClose += () => { Safe(() => CloseRequested?.Invoke()); return true; };  // 返回值=允许关闭
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("[Rdp] AttachInterfaces 失败: " + ex);
+            }
+        }
+
+        public void ApplyAndConnect(RdpConnectionSettings s)
+        {
+            try
+            {
+                dynamic rdp = GetOcx();
+                rdp.Server = s.Server;
+
+                // ★ UI 父窗口句柄：控件弹出的子窗口需要有效父窗口，否则在框架回调里抛异常逃回 native → 0xC000041D。
+                // COMReference(tlbimp) 把它生成成 set_UIParentWindowHandle(ref _RemotableHandle/wireHWND)，需手填：
+                //   fContext = WDT_INPROC_CALL(0x48746457)，hInproc = HWND 低 32 位（USER 句柄恒在 32 位内）。
+                TrySet("UIParentWindowHandle", () =>
+                {
+                    var h = new _RemotableHandle { fContext = 0x48746457 };
+                    h.u.hInproc = GetAncestor(this.Handle, GA_ROOT).ToInt32();
+                    ((IMsRdpClientNonScriptable3)GetOcx()).set_UIParentWindowHandle(ref h);
+                });
+
+                dynamic adv = rdp.AdvancedSettings9;
+                adv.RDPPort = s.Port;
+                adv.AuthenticationLevel = s.AuthenticationLevel;
+                if (!string.IsNullOrEmpty(s.AuthenticationServiceClass))
+                    adv.AuthenticationServiceClass = s.AuthenticationServiceClass;
+
+                // CredSSP 与 NegotiateSecurityLayer 必须在同一个 NonScriptable3 上、先开 CredSSP 再关协商
+                // （官方 VMConnect 示例的顺序；分到不同接口设会让 NegotiateSecurityLayer 报 E_INVALIDARG）。
+                var ocx = (IMsRdpClientNonScriptable3)GetOcx();
+                TrySet("EnableCredSspSupport", () => ocx.EnableCredSspSupport = s.NetworkLevelAuthentication);
+                TrySet("NegotiateSecurityLayer", () => ocx.NegotiateSecurityLayer = s.NegotiateSecurityLayer);
+
+                // DisableCredentialsDelegation 非强类型属性，经 IMsRdpExtendedSettings 字符串属性包设置——
+                // 避免 reason=3848（凭据委派被拒）的关键，也是 stock typelib 查不到同名属性的原因。
+                if (s.DisableCredentialsDelegation)
+                    TrySet("DisableCredentialsDelegation", () =>
+                    {
+                        var ext = (IMsRdpExtendedSettings)GetOcx();
+                        object on = true;
+                        ext.set_Property("DisableCredentialsDelegation", ref on);
+                    });
+
+                // 画面原生尺寸不缩放（对齐旧实现 ResizeBehavior.Scrollbars）：周围空白由宿主黑底填充、窗口/全屏一致；
+                // 也避免 SmartSizing 那个改不掉的 #CBCBCB 信箱，并消除退出全屏时的重缩放错位。
+                TrySet("SmartSizing", () => adv.SmartSizing = false);
+                TrySet("EnableAutoReconnect", () => adv.EnableAutoReconnect = true);
+                // VMBus 无真实网络：关掉带宽/网络探测，避免连接栏"网络信息"弹窗取退化数据而原生崩溃。
+                TrySet("BandwidthDetection", () => adv.BandwidthDetection = false);
+                // 连接超时调短：localhost VMBus 正常连接 <1s，调短让连不上的会话(如不支持增强)快速放弃 → 快速回退。
+                if (s.ConnectionTimeoutSeconds > 0)
+                {
+                    TrySet("singleConnectionTimeout", () => adv.singleConnectionTimeout = s.ConnectionTimeoutSeconds);
+                    TrySet("overallConnectionTimeout", () => adv.overallConnectionTimeout = s.ConnectionTimeoutSeconds);
+                }
+                // 全屏与键鼠捕获（mstscax 原生）：容器处理全屏 → 热键时 fire OnRequestGo/LeaveFullScreen，由窗口全屏；
+                // HotKeyFullScreen=可配置 vkey → Ctrl+Alt+<key>；KeyboardHookMode=2 → 组合键仅全屏时送往 VM。
+                TrySet("ContainerHandledFullScreen", () => adv.ContainerHandledFullScreen = 1);
+                TrySet("HotKeyFullScreen", () => adv.HotKeyFullScreen = s.FullScreenHotKeyVirtualKey);
+                TrySet("KeyboardHookMode", () => rdp.SecuredSettings.KeyboardHookMode = 2);
+
+                adv.PCB = s.PreConnectionBlob ?? string.Empty;
+
+                if (s.DesktopWidth > 0 && s.DesktopHeight > 0)
+                    TrySet("Desktop", () => { rdp.DesktopWidth = s.DesktopWidth; rdp.DesktopHeight = s.DesktopHeight; });
+
+                rdp.Connect();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("[Rdp] ApplyAndConnect 异常: " + ex);
+            }
+        }
+
+        public void DisconnectSafe()
+        {
+            try
+            {
+                dynamic rdp = GetOcx();
+                if ((int)rdp.Connected != 0) rdp.Disconnect();
+            }
+            catch { /* 未连接 / OCX 未就绪 */ }
+        }
+
+        /// <summary>0=未连接 1=已连接 2=连接中（mstscax 的 Connected 取值）。</summary>
+        public int ConnectionState
+        {
+            get { try { dynamic rdp = GetOcx(); return (int)rdp.Connected; } catch { return 0; } }
+        }
+
+        /// <summary>同步控件全屏状态（容器处理全屏下，按钮发起的全屏需回灌，使 mstscax 内部状态/键盘捕获与窗口一致）。</summary>
+        public void SetFullScreen(bool fullScreen)
+        {
+            try { dynamic rdp = GetOcx(); rdp.FullScreen = fullScreen; }
+            catch (Exception ex) { Debug.WriteLine("[Rdp] SetFullScreen 失败: " + ex.Message); }
+        }
+
+        /// <summary>增强会话改分辨率（不重连）。</summary>
+        public void Resize(int width, int height)
+        {
+            if (width <= 0 || height <= 0) return;
+            try
+            {
+                dynamic rdp = GetOcx();
+                rdp.UpdateSessionDisplaySettings((uint)width, (uint)height, (uint)width, (uint)height, 0u, 100u, 1u);
+            }
+            catch (Exception ex) { Debug.WriteLine("[Rdp] Resize 失败: " + ex.Message); }
+        }
+
+        /// <summary>增强会话下发 Ctrl+Alt+Del。基本会话请走 WMI（由消费方处理）。</summary>
+        public void SendCtrlAltDelEnhanced()
+        {
+            try
+            {
+                // 用基接口 IMsRdpClientNonScriptable —— 版本化的 NonScriptable5/8 的 SendKeys 在 Win11 上可能失败/抛异常。
+                if (GetOcx() is IMsRdpClientNonScriptable ns)
+                {
+                    // 一次发齐 6 个事件：Ctrl/Alt/Del 依次按下，再 Del/Alt/Ctrl 依次抬起。无需重复、无需 Sleep。
+                    const int scCtrl = 0x1D, scAlt = 0x38, scDel = 0x53;
+                    int[] keyData =
+                    {
+                        KeyLParam(scCtrl, false, false),  // Ctrl ↓
+                        KeyLParam(scAlt,  false, false),  // Alt  ↓
+                        KeyLParam(scDel,  false, true),   // Del  ↓（扩展键）
+                        KeyLParam(scDel,  true,  true),   // Del  ↑
+                        KeyLParam(scAlt,  true,  false),  // Alt  ↑
+                        KeyLParam(scCtrl, true,  false),  // Ctrl ↑
+                    };
+                    bool[] keyUp = { false, false, false, true, true, true };
+                    SetFocus(this.Handle);   // CAD 按钮会抢走焦点，先把焦点还给 RDP 控件，再注入
+                    ns.SendKeys(keyData.Length, ref keyUp[0], ref keyData[0]);
+                }
+            }
+            catch (Exception ex) { Debug.WriteLine("[Rdp] CAD(enhanced) 失败: " + ex.Message); }
+        }
+
+        /// <summary>把扫描码编码成 WM_KEYDOWN 的 lParam（SendKeys 要求这个格式，不是裸扫描码）：
+        /// bit0-15 重复次数=1 · bit16-23 扫描码 · bit24 扩展键 · bit30/31 抬起。</summary>
+        private static int KeyLParam(int scanCode, bool keyUp, bool extended)
+        {
+            int v = 1;                              // 重复次数 = 1（不能是 0）
+            v |= (scanCode & 0xFF) << 16;           // 扫描码
+            if (extended) v |= 1 << 24;             // 扩展键标志
+            if (keyUp) v |= (1 << 30) | (1 << 31);  // 抬起：先前键态 + 转换态
+            return v;
+        }
+
+        private void TrySet(string what, Action set)
+        {
+            try { set(); }
+            catch (Exception ex) { Debug.WriteLine($"[Rdp] 设 {what} 失败: {ex.GetType().Name} — {ex.Message}"); }
+        }
+
+        // COM 事件处理的护栏：异常绝不能逃回 native 回调方（否则 0xC000041D 致命回调异常、进程秒退）。
+        private void Safe(Action handler)
+        {
+            try { handler(); }
+            catch (Exception ex) { Debug.WriteLine("[Rdp] 事件处理异常(已拦截): " + ex); }
+        }
+
+        private const uint GA_ROOT = 2;
+        [DllImport("user32.dll")]
+        private static extern IntPtr GetAncestor(IntPtr hwnd, uint gaFlags);
+        [DllImport("user32.dll")]
+        private static extern IntPtr SetFocus(IntPtr hWnd);
+    }
+}

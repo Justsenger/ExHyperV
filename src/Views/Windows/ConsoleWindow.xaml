@@ -6,19 +6,18 @@
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
     
     xmlns:converters="clr-namespace:ExHyperV.Converters"
-                 
-    xmlns:components="clr-namespace:ExHyperV.Views"
+    xmlns:tools="clr-namespace:ExHyperV.Tools"
     Title="{Binding VmName}"
-    MinWidth="550" 
-    MinHeight="340" 
+    MinWidth="550"
+    MinHeight="340"
+    Width="1100"
+    Height="820"
     WindowStartupLocation="CenterScreen"
     ExtendsContentIntoTitleBar="True"
     WindowBackdropType="Mica">
 
     <ui:FluentWindow.Resources>
         <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
-        <converters:FullScreenToStyleConverter x:Key="FullScreenToStyleConverter" />
-        <converters:FullScreenToStateConverter x:Key="FullScreenToStateConverter" />
     </ui:FluentWindow.Resources>
 
     <DockPanel LastChildFill="True" Background="Transparent">
@@ -29,14 +28,13 @@
             Padding="0"
             Visibility="{Binding IsFullScreen, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=Invert}">
             <ui:TitleBar.Header>
-                <Grid Margin="12,0,0,0" HorizontalAlignment="Stretch">
+                <Grid Margin="12,0,0,0" HorizontalAlignment="Stretch"><!-- 不设 Background：空白区落到原生标题栏(NC)，由系统处理拖动/双击最大化 -->
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                         <TextBlock Text="{Binding VmName}"
            VerticalAlignment="Center"
            Margin="0,0,16,0"
            FontSize="12"
            FontWeight="SemiBold"
-           MouseLeftButtonDown="OnHeaderMouseLeftButtonDown"
            Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
 
                         <Grid VerticalAlignment="Center">
@@ -159,7 +157,18 @@
             </ui:TitleBar.Header>
         </ui:TitleBar>
 
-        <!-- 虚拟机画面容器 -->
-        <components:VmConsoleView x:Name="ConsoleHost" />
+        <!-- 虚拟机画面：通用 RDP 宿主缩到 VM 尺寸居中，周围 RdpArea 黑底；加载时遮罩 -->
+        <Grid x:Name="RdpArea" Background="#FF202020">
+            <tools:RdpClientHost x:Name="RdpHost" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
+
+            <Grid Visibility="{Binding IsLoading, Converter={StaticResource BooleanToVisibilityConverter}, FallbackValue=Collapsed}"
+                  Background="#FF202020"
+                  Panel.ZIndex="100">
+                <StackPanel VerticalAlignment="Center">
+                    <ui:ProgressRing IsIndeterminate="True" Width="60" Height="60" Margin="0,0,0,20"/>
+                    <TextBlock Text="{x:Static properties:Resources.VmConsoleView_EstablishingSession}" Foreground="Gray" FontSize="16" HorizontalAlignment="Center"/>
+                </StackPanel>
+            </Grid>
+        </Grid>
     </DockPanel>
 </ui:FluentWindow>

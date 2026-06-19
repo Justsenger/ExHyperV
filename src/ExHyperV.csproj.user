@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
-    <_LastSelectedProfileId>C:\Users\Administrator\Documents\GitHub\ExHyperV\src\Properties\PublishProfiles\FolderProfile.pubxml</_LastSelectedProfileId>
+    <_LastSelectedProfileId>C:\Users\saniye\Documents\GitHub\ExHyperV\src\Properties\PublishProfiles\FolderProfile.pubxml</_LastSelectedProfileId>
   </PropertyGroup>
   <ItemGroup>
     <ApplicationDefinition Update="App.xaml">
@@ -9,6 +9,9 @@
     </ApplicationDefinition>
   </ItemGroup>
   <ItemGroup>
+    <Compile Update="Tools\Controls\MsRdpAxHost.cs">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Update="Views\Components\VmAddGpuProgressView.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
@@ -46,9 +49,6 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Update="Views\Components\VmStorageSettingsView.xaml.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Update="Views\Components\VmConsoleView.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
   </ItemGroup>
