@@ -35,7 +35,8 @@
            Margin="0,0,16,0"
            FontSize="12"
            FontWeight="SemiBold"
-           Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+           MouseLeftButtonDown="OnHeaderMouseLeftButtonDown"
+           Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/><!-- 文字会接住鼠标 → 显式 DragMove 才能拖窗口（穿透在 ui:TitleBar 里拖不动，对齐 1.4.3） -->
 
                         <Grid VerticalAlignment="Center">
                             <!-- 启动按钮 -->
@@ -133,13 +134,15 @@
                             </ui:DropDownButton.Flyout>
                         </ui:DropDownButton>
 
-                        <ui:Button Appearance="Transparent" 
+                        <!-- CAD 按钮仅基本会话显示：增强会话是 RDP，SAS 无法程序化发送(系统 mstscax 拒绝)，与微软 VMConnect 一致 → 隐藏 -->
+                        <ui:Button Appearance="Transparent"
                                    Width="38"
                                    Height="32"
                                    Padding="0"
                                    Margin="8,0,0,0"
                                    Command="{Binding SendCadCommand}"
-                                   ToolTip="{x:Static properties:Resources.ConsoleWindow_SendCtrlAltDel}">
+                                   ToolTip="{x:Static properties:Resources.ConsoleWindow_SendCtrlAltDel}"
+                                   Visibility="{Binding IsEnhancedMode, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=Invert}">
                             <ui:SymbolIcon Symbol="Keyboard24" FontSize="16" />
                         </ui:Button>
 
@@ -157,18 +160,9 @@
             </ui:TitleBar.Header>
         </ui:TitleBar>
 
-        <!-- 虚拟机画面：通用 RDP 宿主缩到 VM 尺寸居中，周围 RdpArea 黑底；加载时遮罩 -->
-        <Grid x:Name="RdpArea" Background="#FF202020">
+        <!-- 虚拟机画面：通用 RDP 宿主缩到 VM 尺寸居中，周围 RdpArea 黑底。连接期间的遮挡由 RdpClientHost 内部黑布(WinForms 层)负责。 -->
+        <Grid x:Name="RdpArea" Background="#FF000000">
             <tools:RdpClientHost x:Name="RdpHost" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
-
-            <Grid Visibility="{Binding IsLoading, Converter={StaticResource BooleanToVisibilityConverter}, FallbackValue=Collapsed}"
-                  Background="#FF202020"
-                  Panel.ZIndex="100">
-                <StackPanel VerticalAlignment="Center">
-                    <ui:ProgressRing IsIndeterminate="True" Width="60" Height="60" Margin="0,0,0,20"/>
-                    <TextBlock Text="{x:Static properties:Resources.VmConsoleView_EstablishingSession}" Foreground="Gray" FontSize="16" HorizontalAlignment="Center"/>
-                </StackPanel>
-            </Grid>
         </Grid>
     </DockPanel>
 </ui:FluentWindow>

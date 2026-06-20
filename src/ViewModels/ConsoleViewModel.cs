@@ -24,7 +24,6 @@ namespace ExHyperV.ViewModels
 
         [ObservableProperty] private string _vmId;
         [ObservableProperty] private string _vmName;
-        [ObservableProperty] private bool _isLoading = true;
         [ObservableProperty] private bool _isRunning;
         
         [ObservableProperty]
@@ -83,7 +82,6 @@ namespace ExHyperV.ViewModels
                 {
                     IsRunning = currentVm.IsRunning;                       // 更新运行状态
                     if (VmName != currentVm.Name) VmName = currentVm.Name; // 更新名称
-                    IsLoading = false;
                 }
             }
             catch (Exception ex)

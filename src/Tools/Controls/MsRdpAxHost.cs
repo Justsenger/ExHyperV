@@ -14,6 +14,7 @@ namespace ExHyperV.Tools
     internal sealed class MsRdpAxHost : AxHost
     {
         private const string MsRdpClient9Clsid = "8b918b82-7985-4c24-89df-c33ad2bbfbcd";
+        private bool _smartSizing;   // 当前 SmartSizing 状态缓存（SetSmartSizing 用，避免重复设值闪烁）
 
         public event Action? Connected;
         public event Action<int>? Disconnected;
@@ -89,9 +90,10 @@ namespace ExHyperV.Tools
                         ext.set_Property("DisableCredentialsDelegation", ref on);
                     });
 
-                // 画面原生尺寸不缩放（对齐旧实现 ResizeBehavior.Scrollbars）：周围空白由宿主黑底填充、窗口/全屏一致；
-                // 也避免 SmartSizing 那个改不掉的 #CBCBCB 信箱，并消除退出全屏时的重缩放错位。
+                // 初值原生不缩放：连上即清晰；之后由 SetSmartSizing 按"画面是否超出画面区"动态开关
+                // （装得下原生清晰、超出才缩放铺满）。控件宽高比始终=画面宽高比，故缩放无 #CBCBCB 信箱、鼠标映射准。
                 TrySet("SmartSizing", () => adv.SmartSizing = false);
+                _smartSizing = false;
                 TrySet("EnableAutoReconnect", () => adv.EnableAutoReconnect = true);
                 // VMBus 无真实网络：关掉带宽/网络探测，避免连接栏"网络信息"弹窗取退化数据而原生崩溃。
                 TrySet("BandwidthDetection", () => adv.BandwidthDetection = false);
@@ -103,7 +105,7 @@ namespace ExHyperV.Tools
                 }
                 // 全屏与键鼠捕获（mstscax 原生）：容器处理全屏 → 热键时 fire OnRequestGo/LeaveFullScreen，由窗口全屏；
                 // HotKeyFullScreen=可配置 vkey → Ctrl+Alt+<key>；KeyboardHookMode=2 → 组合键仅全屏时送往 VM。
-                TrySet("ContainerHandledFullScreen", () => adv.ContainerHandledFullScreen = 1);
+                TrySet("ContainerHandledFullScreen", () => adv.ContainerHandledFullScreen = 1);   // 容器(WPF 窗口)处理全屏；mstscax 自己全屏会开独立窗口、关掉后残留主窗口
                 TrySet("HotKeyFullScreen", () => adv.HotKeyFullScreen = s.FullScreenHotKeyVirtualKey);
                 TrySet("KeyboardHookMode", () => rdp.SecuredSettings.KeyboardHookMode = 2);
 
@@ -143,8 +145,17 @@ namespace ExHyperV.Tools
             catch (Exception ex) { Debug.WriteLine("[Rdp] SetFullScreen 失败: " + ex.Message); }
         }
 
-        /// <summary>增强会话改分辨率（不重连）。</summary>
-        public void Resize(int width, int height)
+        /// <summary>动态开关 SmartSizing（基本会话用：VM 分辨率超出画面区时开=缩放铺满，否则关=原生 1:1 清晰）。带缓存避免重复设值闪烁。</summary>
+        public void SetSmartSizing(bool on)
+        {
+            if (_smartSizing == on) return;
+            _smartSizing = on;
+            try { dynamic rdp = GetOcx(); rdp.AdvancedSettings9.SmartSizing = on; }
+            catch (Exception ex) { Debug.WriteLine("[Rdp] SetSmartSizing 失败: " + ex.Message); }
+        }
+
+        /// <summary>增强会话改分辨率（不重连）。命名避开 Control.Resize 事件（否则 CS0108 隐藏告警）。</summary>
+        public void SetResolution(int width, int height)
         {
             if (width <= 0 || height <= 0) return;
             try
@@ -152,45 +163,7 @@ namespace ExHyperV.Tools
                 dynamic rdp = GetOcx();
                 rdp.UpdateSessionDisplaySettings((uint)width, (uint)height, (uint)width, (uint)height, 0u, 100u, 1u);
             }
-            catch (Exception ex) { Debug.WriteLine("[Rdp] Resize 失败: " + ex.Message); }
-        }
-
-        /// <summary>增强会话下发 Ctrl+Alt+Del。基本会话请走 WMI（由消费方处理）。</summary>
-        public void SendCtrlAltDelEnhanced()
-        {
-            try
-            {
-                // 用基接口 IMsRdpClientNonScriptable —— 版本化的 NonScriptable5/8 的 SendKeys 在 Win11 上可能失败/抛异常。
-                if (GetOcx() is IMsRdpClientNonScriptable ns)
-                {
-                    // 一次发齐 6 个事件：Ctrl/Alt/Del 依次按下，再 Del/Alt/Ctrl 依次抬起。无需重复、无需 Sleep。
-                    const int scCtrl = 0x1D, scAlt = 0x38, scDel = 0x53;
-                    int[] keyData =
-                    {
-                        KeyLParam(scCtrl, false, false),  // Ctrl ↓
-                        KeyLParam(scAlt,  false, false),  // Alt  ↓
-                        KeyLParam(scDel,  false, true),   // Del  ↓（扩展键）
-                        KeyLParam(scDel,  true,  true),   // Del  ↑
-                        KeyLParam(scAlt,  true,  false),  // Alt  ↑
-                        KeyLParam(scCtrl, true,  false),  // Ctrl ↑
-                    };
-                    bool[] keyUp = { false, false, false, true, true, true };
-                    SetFocus(this.Handle);   // CAD 按钮会抢走焦点，先把焦点还给 RDP 控件，再注入
-                    ns.SendKeys(keyData.Length, ref keyUp[0], ref keyData[0]);
-                }
-            }
-            catch (Exception ex) { Debug.WriteLine("[Rdp] CAD(enhanced) 失败: " + ex.Message); }
-        }
-
-        /// <summary>把扫描码编码成 WM_KEYDOWN 的 lParam（SendKeys 要求这个格式，不是裸扫描码）：
-        /// bit0-15 重复次数=1 · bit16-23 扫描码 · bit24 扩展键 · bit30/31 抬起。</summary>
-        private static int KeyLParam(int scanCode, bool keyUp, bool extended)
-        {
-            int v = 1;                              // 重复次数 = 1（不能是 0）
-            v |= (scanCode & 0xFF) << 16;           // 扫描码
-            if (extended) v |= 1 << 24;             // 扩展键标志
-            if (keyUp) v |= (1 << 30) | (1 << 31);  // 抬起：先前键态 + 转换态
-            return v;
+            catch (Exception ex) { Debug.WriteLine("[Rdp] SetResolution 失败: " + ex.Message); }
         }
 
         private void TrySet(string what, Action set)
@@ -209,7 +182,5 @@ namespace ExHyperV.Tools
         private const uint GA_ROOT = 2;
         [DllImport("user32.dll")]
         private static extern IntPtr GetAncestor(IntPtr hwnd, uint gaFlags);
-        [DllImport("user32.dll")]
-        private static extern IntPtr SetFocus(IntPtr hWnd);
     }
 }

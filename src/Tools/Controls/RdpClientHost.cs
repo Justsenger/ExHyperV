@@ -13,6 +13,14 @@ namespace ExHyperV.Tools
     public class RdpClientHost : WindowsFormsHost
     {
         private readonly MsRdpAxHost _ax = new();
+        // 黑布：WinForms 层(HWND)，连接期间盖住 mstscax + 窗口刚弹出时的系统白底；连上(OnConnected)才掀开。
+        // ★ 必须盖在"包裹了 _ax 的容器(axWrapper)"上，而不是和裸 _ax 当兄弟——裸 ActiveX 会盖过兄弟控件（之前盖不住的原因）。
+        private readonly System.Windows.Forms.Panel _curtain = new()
+        {
+            Dock = System.Windows.Forms.DockStyle.Fill,
+            BackColor = System.Drawing.Color.Black,
+            Visible = true,
+        };
         private RdpConnectionSettings? _pending;
         private bool _ready;
 
@@ -36,8 +44,8 @@ namespace ExHyperV.Tools
 
         public RdpClientHost()
         {
-            _ax.Connected += () => Connected?.Invoke();
-            _ax.Disconnected += r => Disconnected?.Invoke(r);
+            _ax.Connected += () => { _curtain.Visible = false; Connected?.Invoke(); };        // 连上 → 掀开黑布显示画面
+            _ax.Disconnected += r => { _curtain.Visible = true; Disconnected?.Invoke(r); };   // 断开/重连 → 立即盖上黑布
             _ax.RemoteDesktopSizeChanged += (w, h) => RemoteSizeChanged?.Invoke(w, h);
             _ax.EnteredFullScreen += () => FullScreenRequested?.Invoke(true);
             _ax.LeftFullScreen += () => FullScreenRequested?.Invoke(false);
@@ -59,13 +67,22 @@ namespace ExHyperV.Tools
             var panel = new System.Windows.Forms.Panel
             {
                 Dock = System.Windows.Forms.DockStyle.Fill,
-                BackColor = System.Drawing.Color.FromArgb(0x20, 0x20, 0x20),
+                BackColor = System.Drawing.Color.Black,
+            };
+            // mstscax 包一层容器（仿 1.4.3 的 RdpControl）：黑布盖这个容器即可连同里面的裸 ActiveX 一起盖住。
+            var axWrapper = new System.Windows.Forms.Panel
+            {
+                Dock = System.Windows.Forms.DockStyle.Fill,
+                BackColor = System.Drawing.Color.Black,
             };
             _ax.Dock = System.Windows.Forms.DockStyle.Fill;
-            _ax.BackColor = System.Drawing.Color.FromArgb(0x20, 0x20, 0x20);
+            _ax.BackColor = System.Drawing.Color.Black;
             ((ISupportInitialize)_ax).BeginInit();
-            panel.Controls.Add(_ax);
+            axWrapper.Controls.Add(_ax);
             ((ISupportInitialize)_ax).EndInit();
+            panel.Controls.Add(_curtain);    // 黑布先加
+            panel.Controls.Add(axWrapper);   // 再加包了 mstscax 的容器
+            _curtain.BringToFront();          // 黑布置顶：盖住容器(及里面 ActiveX)和窗口弹出时的系统白底
             Child = panel;
 
             if (_ax.IsHandleCreated) _ready = true;
@@ -74,6 +91,7 @@ namespace ExHyperV.Tools
         /// <summary>用给定配方连接。OCX 未就绪时排队，句柄创建后自动补发。</summary>
         public void Connect(RdpConnectionSettings settings)
         {
+            _curtain.Visible = true;   // 连接前先盖上黑布，遮住 mstscax 初始化
             if (_ready || _ax.IsHandleCreated) _ax.ApplyAndConnect(settings);
             else _pending = settings;
         }
@@ -81,10 +99,10 @@ namespace ExHyperV.Tools
         public void Disconnect() => _ax.DisconnectSafe();
 
         /// <summary>增强会话改分辨率（不重连）。</summary>
-        public void Resize(int width, int height) => _ax.Resize(width, height);
+        public void Resize(int width, int height) => _ax.SetResolution(width, height);
 
-        /// <summary>增强会话发送 Ctrl+Alt+Del（基本会话请由消费方走 WMI）。</summary>
-        public void SendCtrlAltDelViaRdp() => _ax.SendCtrlAltDelEnhanced();
+        /// <summary>动态开关 SmartSizing（基本会话：VM 分辨率超出画面区时开=缩放铺满，否则关=原生清晰）。</summary>
+        public void SetSmartSizing(bool on) => _ax.SetSmartSizing(on);
 
         /// <summary>同步全屏状态给底层控件（容器处理全屏时，按钮发起的全屏需要回灌给 mstscax，
         /// 使其内部状态/键盘捕获与窗口一致；热键发起的无需，由控件自身切换）。</summary>
