@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - main
-  workflow_dispatch:        # 手动触发：正式版只能走这里（防止误发 winget）
+  workflow_dispatch:        # 手动触发：发布（含内测）只能走这里
 
 jobs:
   publish:
@@ -40,13 +40,11 @@ jobs:
             $mode = "release"; $pre = "false"; $winget = "true"
           }
 
-          # 发布门槛：预发布在 push / 手动都发；正式版仅手动触发才发
-          if ($pre -eq "true") {
-            $publish = "true"
-          } elseif ($eventName -eq "workflow_dispatch") {
+          # 发布门槛：一律仅手动触发(workflow_dispatch)才发布；push 只构建，不建 Release、不发通知
+          if ($eventName -eq "workflow_dispatch") {
             $publish = "true"
           } else {
-            $publish = "false"   # push 了一个正式版号但没手动确认 → 只构建不发布
+            $publish = "false"
           }
 
           $tag = "V$ver"
