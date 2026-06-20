@@ -104,10 +104,10 @@ namespace ExHyperV.Tools
                     TrySet("overallConnectionTimeout", () => adv.overallConnectionTimeout = s.ConnectionTimeoutSeconds);
                 }
                 // 全屏与键鼠捕获（mstscax 原生）：容器处理全屏 → 热键时 fire OnRequestGo/LeaveFullScreen，由窗口全屏；
-                // HotKeyFullScreen=可配置 vkey → Ctrl+Alt+<key>；KeyboardHookMode=2 → 组合键仅全屏时送往 VM。
+                // HotKeyFullScreen=可配置 vkey → Ctrl+Alt+<key>；KeyboardHookMode=1 → Win/Alt+Tab 等组合键只要画面有焦点就送 VM（窗口化也送，不止全屏；要切回宿主先点一下别处）。
                 TrySet("ContainerHandledFullScreen", () => adv.ContainerHandledFullScreen = 1);   // 容器(WPF 窗口)处理全屏；mstscax 自己全屏会开独立窗口、关掉后残留主窗口
                 TrySet("HotKeyFullScreen", () => adv.HotKeyFullScreen = s.FullScreenHotKeyVirtualKey);
-                TrySet("KeyboardHookMode", () => rdp.SecuredSettings.KeyboardHookMode = 2);
+                TrySet("KeyboardHookMode", () => rdp.SecuredSettings.KeyboardHookMode = 1);
 
                 adv.PCB = s.PreConnectionBlob ?? string.Empty;
 
