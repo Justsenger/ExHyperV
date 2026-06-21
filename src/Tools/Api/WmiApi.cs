@@ -397,7 +397,7 @@ public static class WmiApi
     {
         ctx ??= WmiContext.Local;
 
-        return Task.Run(() =>
+        return Task.Run(async () =>
         {
             try
             {
@@ -411,10 +411,19 @@ public static class WmiApi
                     return ApiResponse<ManagementBaseObject>.Fail($"Method '{methodName}' returned null");
 
                 int returnValue = Convert.ToInt32(outParams["ReturnValue"]);
-                if (returnValue != 0)
+                if (returnValue == 4096)   // 异步 Job：等完成（与 InvokeOnObjectAsync 一致）
+                {
+                    var jobResult = await WaitForJobAsync((string)outParams["Job"], scope, ctx, default);
+                    if (!jobResult.Success)
+                        return ApiResponse<ManagementBaseObject>.Fail(
+                            jobResult.Error, jobResult.Code, jobResult.ErrorSource);
+                }
+                else if (returnValue != 0)
+                {
                     return ApiResponse<ManagementBaseObject>.Fail(
                         $"Method '{methodName}' returned code {returnValue}",
                         returnValue, ApiErrorSource.Wmi);
+                }
 
                 return ApiResponse<ManagementBaseObject>.Ok(outParams);
             }

@@ -278,6 +278,23 @@ namespace ExHyperV.Services
                 const string hgsScope = @"root\microsoft\windows\hgs";
                 var hgsMs = WmiConnectionCache.GetManagementScope(hgsScope, WmiContext.Local);
 
+                // 异步 Job 等待（~2 分钟超时，替代原 while(true) 防挂死）
+                void WaitJob(string? jobPath)
+                {
+                    if (string.IsNullOrEmpty(jobPath)) return;
+                    using var job = new ManagementObject(hyperVScope, new ManagementPath(jobPath), null);
+                    for (int i = 0; i < 400; i++)
+                    {
+                        job.Get();
+                        ushort state = (ushort)job["JobState"];
+                        if (state == 7) return;
+                        if (state > 7)
+                            throw new InvalidOperationException(string.Format(Resources.Error_VmCreate_TpmJobFail, state));
+                        System.Threading.Thread.Sleep(300);
+                    }
+                    throw new InvalidOperationException(string.Format(Resources.Error_VmCreate_TpmJobFail, 0));
+                }
+
                 // Step 1: 取或创建 UntrustedGuardian
                 using var guardianSearcher = new ManagementObjectSearcher(
                     hgsMs, new ObjectQuery("SELECT * FROM MSFT_HgsGuardian WHERE Name = 'UntrustedGuardian'"));
@@ -337,7 +354,8 @@ namespace ExHyperV.Services
                 kpInParams["KeyProtector"] = rawData;
                 using var kpOut = secSvc.InvokeMethod("SetKeyProtector", kpInParams, null);
                 int kpRet = Convert.ToInt32(kpOut["ReturnValue"]);
-                if (kpRet != 0)
+                if (kpRet == 4096) WaitJob(kpOut["Job"]?.ToString());
+                else if (kpRet != 0)
                     throw new InvalidOperationException(string.Format(Resources.Error_VmCreate_SetKeyProtectorFail, kpRet));
 
                 // Step 5: TpmEnabled=true + EncryptStateAndVmMigrationTraffic=true
@@ -349,26 +367,9 @@ namespace ExHyperV.Services
                 modInParams["SecuritySettingData"] = updatedXml;
                 using var modOut = secSvc.InvokeMethod("ModifySecuritySettings", modInParams, null);
                 int modRet = Convert.ToInt32(modOut["ReturnValue"]);
-                if (modRet != 0 && modRet != 4096)
+                if (modRet == 4096) WaitJob(modOut["Job"]?.ToString());
+                else if (modRet != 0)
                     throw new InvalidOperationException(string.Format(Resources.Error_VmCreate_ModifySecuritySettingsFail, modRet));
-
-                if (modRet == 4096)
-                {
-                    string jobPath = modOut["Job"]?.ToString() ?? "";
-                    if (!string.IsNullOrEmpty(jobPath))
-                    {
-                        using var job = new ManagementObject(hyperVScope, new ManagementPath(jobPath), null);
-                        while (true)
-                        {
-                            job.Get();
-                            ushort state = (ushort)job["JobState"];
-                            if (state == 7) break;
-                            if (state > 7)
-                                throw new InvalidOperationException(string.Format(Resources.Error_VmCreate_TpmJobFail, state));
-                            System.Threading.Thread.Sleep(300);
-                        }
-                    }
-                }
             });
         }
         private async Task<string> GetUniqueVmNameAsync(string baseName, string basePath)

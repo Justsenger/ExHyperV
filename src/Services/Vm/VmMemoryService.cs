@@ -80,6 +80,14 @@ public class VmMemoryService
             string vmId = vmResponse.Data;
             string memWql = $"SELECT * FROM Msvm_MemorySettingData WHERE InstanceID LIKE 'Microsoft:{vmId}%' AND ResourceType = 4";
 
+            // 动态内存与 vNUMA 互斥（对齐 PS Set-VMMemory）：启用动态内存前先关 vNUMA。仅离线可改。
+            if (!isVmRunning && newSettings.DynamicMemoryEnabled)
+            {
+                var numaOff = await SetVirtualNumaEnabledAsync(vmName, false);
+                if (!numaOff.Success)
+                    return (false, string.Format(Properties.Resources.VmMemory_ModFailed, numaOff.Error));
+            }
+
             var result = await WmiApi.WithObjectAsync(
                 wql: memWql,
                 modifier: obj => ApplyMemorySettingsToWmiObject(obj, newSettings, isVmRunning),
@@ -90,6 +98,10 @@ public class VmMemoryService
             if (!result.Success)
                 return (false, string.Format(Properties.Resources.VmMemory_ModFailed, result.Error));
 
+            // 静态内存：内存改完后再开 vNUMA（与 PS 顺序一致）。
+            if (!isVmRunning && !newSettings.DynamicMemoryEnabled)
+                await SetVirtualNumaEnabledAsync(vmName, true);
+
             return (true, Properties.Resources.Msg_Memory_Applied);
         }
         catch (Exception ex)
@@ -98,11 +110,21 @@ public class VmMemoryService
         }
     }
 
+    /// <summary>切换 VM 的 VirtualNumaEnabled（vNUMA 与动态内存互斥，对齐 Set-VMMemory；仅离线可改）。</summary>
+    private static Task<ApiResponse> SetVirtualNumaEnabledAsync(string vmName, bool enabled)
+        => WmiApi.WithObjectAsync(
+            wql: $"SELECT * FROM Msvm_VirtualSystemSettingData WHERE ElementName = '{WmiApi.Escape(vmName)}' AND VirtualSystemType = 'Microsoft:Hyper-V:System:Realized'",
+            modifier: obj => { if (obj.HasProperty("VirtualNumaEnabled")) obj["VirtualNumaEnabled"] = enabled; },
+            submitMethod: "ModifySystemSettings",
+            submitParamName: "SystemSettings",
+            wrapInArray: false);
+
     // ── 业务逻辑（不改动）────────────────────────────────────────
 
     private void ApplyMemorySettingsToWmiObject(ManagementObject memData, VmMemorySettings memorySettings, bool isVmRunning)
     {
-        long alignment = 1;
+        // 默认 2MB 对齐（对齐 PS Set-VMMemory.ValidateAlignment：非大页强制 2MB；大页 1024MB 在下方按 BackingPageSize 覆盖）
+        long alignment = 2;
 
         if (memorySettings.BackingPageSize.HasValue && memData.HasProperty("BackingPageSize"))
         {
