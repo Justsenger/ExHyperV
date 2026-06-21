@@ -6,8 +6,10 @@ using ExHyperV.Tools;
 namespace ExHyperV.Services
 {
     /// <summary>
-    /// VM IP 查询：优先走 WMI Msvm_GuestNetworkAdapterConfiguration（要求集成服务在线），
-    /// 失败回退 ARP 缓存（StdCimV2 MSFT_NetNeighbor）。
+    /// VM IP 统一分层解析(所有取 IP 的路径——仪表盘 / 网络页——都走这里):
+    /// ① PktMon 被动嗅探（<see cref="ArpSnoopService"/>，网线真实 ARP=地表真相，最优先、能压陈旧值）
+    /// → ② 集成服务 WMI（Msvm_GuestNetworkAdapterConfiguration，需 guest 集成服务在线）
+    /// → ③ ARP 邻居缓存（StdCimV2 MSFT_NetNeighbor，只有宿主通信过的才有）。
     /// </summary>
     public static class VmIpService
     {
@@ -19,6 +21,10 @@ namespace ExHyperV.Services
         {
             if (string.IsNullOrEmpty(vmName) || string.IsNullOrEmpty(macAddressWithColons))
                 return string.Empty;
+
+            // 路径 0（最优先）：PktMon 被动嗅探（网线真实 ARP = 地表真相，压过集成服务可能滞后/陈旧的值）
+            if (ArpSnoopService.Instance.TryGetIp(macAddressWithColons, out var snoopIp))
+                return snoopIp;
 
             // 路径 1：WMI Msvm_GuestNetworkAdapterConfiguration（需 guest 内集成服务在线）
             var vmGuidResp = await WmiApi.QueryFirstAsync(

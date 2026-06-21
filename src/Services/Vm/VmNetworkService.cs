@@ -113,15 +113,11 @@ public class VmNetworkService
 
     public async Task FillDynamicIpsAsync(string vmName, IEnumerable<VmNetworkAdapter> adapters)
     {
-        var targets = adapters
-            .Where(a => (a.IpAddresses == null || a.IpAddresses.Count == 0)
-                     && !string.IsNullOrEmpty(a.MacAddress))
-            .ToList();
-
-        if (targets.Count == 0) return;
-
-        foreach (var adapter in targets)
+        // 只填"没 IP"的网卡:有 IP 的(集成服务报的,含 IPv6/多地址)是权威列表,绝不覆盖。
+        // 空网卡(无集成服务的 VM,如国产环境)走 Lookup(内部 嗅探→集成→邻居)补 IPv4。
+        foreach (var adapter in adapters)
         {
+            if (string.IsNullOrEmpty(adapter.MacAddress)) continue;
             if (adapter.IpAddresses != null && adapter.IpAddresses.Count > 0) continue;
             try
             {

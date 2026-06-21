@@ -74,6 +74,9 @@ namespace ExHyperV.Services
         /// <summary>驱动+ETW 是否就绪。false 时调用方应回退其它 IP 路径。</summary>
         public bool IsAvailable { get; private set; }
 
+        /// <summary>进程级单例——所有取 IP 的路径(仪表盘 / 网络页 / VmIpService)共用同一份嗅探表。</summary>
+        public static ArpSnoopService Instance { get; } = new();
+
         /// <summary>启动后台嗅探(幂等、非阻塞)。任何失败都吞掉并保持 IsAvailable=false。</summary>
         public void Start()
         {
