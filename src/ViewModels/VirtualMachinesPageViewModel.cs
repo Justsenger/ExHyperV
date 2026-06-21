@@ -3033,8 +3033,11 @@ namespace ExHyperV.ViewModels
                                     task.Description = string.Format(Properties.Resources.Msg_Gpu_ForceOff, state);
                                     AppendLog(task.Description);
                                     await _powerService.ExecuteControlActionAsync(SelectedVm.Name, "TurnOff");
+                                    var offDeadline = DateTime.UtcNow.AddSeconds(30);
                                     while (!(await _queryService.IsVmPoweredOffAsync(SelectedVm.Name)).IsOff)
                                     {
+                                        if (DateTime.UtcNow > offDeadline)
+                                            throw new Exception(Properties.Resources.Error_Gpu_PowerOffTimeout);
                                         await Task.Delay(100);
                                     }
                                 }
@@ -3073,7 +3076,6 @@ namespace ExHyperV.ViewModels
                             break;
 
                         case GpuTaskType.Driver:
-                            try
                             {
                                 task.Description = Properties.Resources.Msg_Gpu_Scanning;
                                 AppendLog(task.Description);
@@ -3109,8 +3111,8 @@ namespace ExHyperV.ViewModels
                                     else if (singlePart.OsType == OperatingSystemType.Linux)
                                     {
                                         // 2. [新增] 如果是 Linux 且单一，直接触发 SelectPartition 流程（嗅探 IP 并显示 SSH 表单）
-                                        task.Description = "Detecting Linux system, jumping to SSH setup..."; // 建议放入资源文件
-                                        AppendLog("Detected single Linux partition. Automating environment preparation...");
+                                        task.Description = Properties.Resources.Msg_Gpu_LinuxDetected;
+                                        AppendLog(Properties.Resources.Msg_Gpu_LinuxAutoPrep);
 
                                         // 异步启动 Linux 准备工作流（即你点击列表项时触发的逻辑）
                                         await SelectPartitionAndContinueAsync(singlePart);
@@ -3131,10 +3133,6 @@ namespace ExHyperV.ViewModels
                                     AppendLog(task.Description);
                                     return;
                                 }
-                            }
-                            catch (Exception)
-                            {
-                                throw;
                             }
                             break;
                     }

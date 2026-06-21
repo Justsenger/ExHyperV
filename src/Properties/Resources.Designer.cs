@@ -8001,5 +8001,17 @@ namespace ExHyperV.Properties {
         public static string Usb_IdLabel {
             get { return ResourceManager.GetString("Usb_IdLabel", resourceCulture); }
         }
+
+        public static string Error_Gpu_PowerOffTimeout {
+            get { return ResourceManager.GetString("Error_Gpu_PowerOffTimeout", resourceCulture); }
+        }
+
+        public static string Msg_Gpu_LinuxDetected {
+            get { return ResourceManager.GetString("Msg_Gpu_LinuxDetected", resourceCulture); }
+        }
+
+        public static string Msg_Gpu_LinuxAutoPrep {
+            get { return ResourceManager.GetString("Msg_Gpu_LinuxAutoPrep", resourceCulture); }
+        }
     }
 }

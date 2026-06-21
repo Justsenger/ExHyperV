@@ -2773,4 +2773,13 @@
   <data name="Usb_IdLabel" xml:space="preserve">
     <value>  ID：</value>
   </data>
+  <data name="Error_Gpu_PowerOffTimeout" xml:space="preserve">
+    <value>等待虚拟机关机超时。</value>
+  </data>
+  <data name="Msg_Gpu_LinuxDetected" xml:space="preserve">
+    <value>检测到 Linux 系统，正在跳转到 SSH 设置…</value>
+  </data>
+  <data name="Msg_Gpu_LinuxAutoPrep" xml:space="preserve">
+    <value>检测到单个 Linux 分区，正在自动准备环境…</value>
+  </data>
 </root>
