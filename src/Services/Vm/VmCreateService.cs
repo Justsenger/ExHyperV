@@ -85,11 +85,14 @@ namespace ExHyperV.Services
         }
         public async Task<(string DefaultVmPath, string DefaultVhdPath)> GetHostDefaultPathsAsync()
         {
+            // 26100 起 DefaultVirtualMachinePath 已空，改用 DefaultExternalDataRoot（实测 = Get-VMHost.VirtualMachinePath）；旧 build 回退老属性
             var resp = await WmiApi.QueryFirstAsync(
-                "SELECT DefaultVirtualMachinePath, DefaultVirtualHardDiskPath FROM Msvm_VirtualSystemManagementServiceSettingData",
+                "SELECT * FROM Msvm_VirtualSystemManagementServiceSettingData",
                 obj => (
-                    VmPath: obj["DefaultVirtualMachinePath"]?.ToString() ?? @"C:\ProgramData\Microsoft\Windows\Hyper-V",
-                    VhdPath: obj["DefaultVirtualHardDiskPath"]?.ToString() ?? ""
+                    VmPath: obj.TryGetString("DefaultExternalDataRoot")
+                            ?? obj.TryGetString("DefaultVirtualMachinePath")
+                            ?? @"C:\ProgramData\Microsoft\Windows\Hyper-V",
+                    VhdPath: obj.TryGetString("DefaultVirtualHardDiskPath") ?? ""
                 ),
                 WmiScope.HyperV);
 

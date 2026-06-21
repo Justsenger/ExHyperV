@@ -556,6 +556,16 @@ namespace ExHyperV.Services
             string state = r.Data ?? "Unknown";
             return (state == "3", state);
         }
+
+        /// <summary>获取虚拟机配置目录（ConfigurationDataRoot）；用于"打开虚拟机文件夹"。</summary>
+        public async Task<string?> GetVmConfigRootAsync(string vmName)
+        {
+            var resp = await WmiApi.QueryFirstAsync(
+                $"SELECT ConfigurationDataRoot FROM Msvm_VirtualSystemSettingData WHERE ElementName = '{WmiApi.Escape(vmName)}' AND VirtualSystemType = 'Microsoft:Hyper-V:System:Realized'",
+                obj => obj["ConfigurationDataRoot"]?.ToString(),
+                WmiScope.HyperV);
+            return resp.HasData ? resp.Data : null;
+        }
         // --- 私有辅助方法：磁盘与硬件映射 ---
 
         private (long Current, long Max, string DiskType) GetDiskSizes(string path)

@@ -40,6 +40,7 @@ namespace ExHyperV.ViewModels
         private readonly VmEditService _vmEditService = new();
         private readonly VmBootService _vmBootService = new();
         private readonly VmSpacetimeService _spacetimeService = new();
+        private readonly VmDeleteService _deleteService = new();
 
 
         // ===== 监控与后台任务字段 =====
@@ -713,20 +714,12 @@ namespace ExHyperV.ViewModels
         // ===== 虚拟机列表管理与核心操作 =====
 
         [RelayCommand]
-        private void OpenVmFolder(VmInstanceViewModel vm)
+        private async Task OpenVmFolderAsync(VmInstanceViewModel vm)
         {
             if (vm == null) return;
             try
             {
-                string? path = null;
-                using var searcher = new ManagementObjectSearcher(
-                    @"\\.\root\virtualization\v2",
-                    $"SELECT ConfigurationDataRoot FROM Msvm_VirtualSystemSettingData WHERE ElementName = '{vm.Name.Replace("'", "\\'")}' AND VirtualSystemType = 'Microsoft:Hyper-V:System:Realized'");
-                foreach (ManagementObject obj in searcher.Get())
-                {
-                    path = obj["ConfigurationDataRoot"]?.ToString();
-                    break;
-                }
+                string? path = await _queryService.GetVmConfigRootAsync(vm.Name);
 
                 if (!string.IsNullOrEmpty(path) && Directory.Exists(path))
                 {
@@ -751,15 +744,16 @@ namespace ExHyperV.ViewModels
 
             try
             {
-                await _powerService.ExecuteControlActionAsync(vm.Name, "TurnOff");
-                var vmPath = (await WmiApi.QueryFirstAsync(
-                    $"SELECT * FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(vm.Name)}'",
-                    obj => obj.Path.Path, WmiScope.HyperV)).Data;
-                await WmiApi.InvokeAsync("SELECT * FROM Msvm_VirtualSystemManagementService",
-                    "DestroySystem", p => p["AffectedSystem"] = vmPath, WmiScope.HyperV);
-
-                VmList.Remove(vm);
-                if (SelectedVm == vm) SelectedVm = VmList.FirstOrDefault();
+                var result = await _deleteService.DeleteVmAsync(vm.Name);
+                if (result.Success)
+                {
+                    VmList.Remove(vm);
+                    if (SelectedVm == vm) SelectedVm = VmList.FirstOrDefault();
+                }
+                else
+                {
+                    ShowSnackbar(Properties.Resources.VmPage_DeleteFail, FriendlyError.CleanLines(result.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                }
             }
             catch (Exception ex)
             {
@@ -788,87 +782,17 @@ namespace ExHyperV.ViewModels
             IsLoading = true;
             try
             {
-                await Task.Run(async () =>
+                var purge = await _deleteService.PurgeVmAsync(vm.Name, vm.Id);
+                if (purge.Success)
                 {
-                    string vmGuid = vm.Id.ToString();
-
-                    // 1. 收集磁盘路径 — Msvm_StorageAllocationSettingData.Path
-                    var diskResp = await WmiApi.QueryAsync(
-                        $"SELECT Path FROM Msvm_StorageAllocationSettingData WHERE InstanceID LIKE 'Microsoft:{vmGuid}%' AND ResourceSubType = 'Microsoft:Hyper-V:Virtual Hard Disk'",
-                        obj => obj["Path"]?.ToString() ?? string.Empty,
-                        WmiScope.HyperV);
-                    var diskPaths = (diskResp.Data ?? new List<string>())
-                        .Where(p => !string.IsNullOrEmpty(p))
-                        .ToList();
-
-                    // 2. 收集配置目录 — Msvm_VirtualSystemSettingData.ConfigurationDataRoot
-                    var configResp = await WmiApi.QueryFirstAsync(
-                        $"SELECT ConfigurationDataRoot FROM Msvm_VirtualSystemSettingData WHERE VirtualSystemIdentifier = '{vmGuid}' AND VirtualSystemType = 'Microsoft:Hyper-V:System:Realized'",
-                        obj => obj["ConfigurationDataRoot"]?.ToString() ?? string.Empty,
-                        WmiScope.HyperV);
-                    string? rawConfigDir = configResp.HasData ? configResp.Data : null;
-
-                    // 3. 停止
-                    await _powerService.ExecuteControlActionAsync(vm.Name, "TurnOff");
-
-                    // 4. 删除
-                    var vmPath = (await WmiApi.QueryFirstAsync(
-                        $"SELECT * FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(vm.Name)}'",
-                        obj => obj.Path.Path, WmiScope.HyperV)).Data;
-                    await WmiApi.InvokeAsync("SELECT * FROM Msvm_VirtualSystemManagementService",
-                        "DestroySystem", p => p["AffectedSystem"] = vmPath, WmiScope.HyperV);
-
-                    // 5. 删除所有 vhdx 文件
-                    foreach (var diskPath in diskPaths)
-                    {
-                        if (string.IsNullOrEmpty(diskPath)) continue;
-                        try
-                        {
-                            if (File.Exists(diskPath))
-                                File.Delete(diskPath);
-                        }
-                        catch { }
-                    }
-
-                    // 6. 尝试删除虚拟机配置文件夹
-                    if (!string.IsNullOrEmpty(rawConfigDir))
-                    {
-                        var protectedPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-    {
-        @"C:\ProgramData\Microsoft\Windows\Hyper-V",
-        @"C:\Users\Public\Documents\Hyper-V",
-        @"C:\ProgramData\Microsoft\Windows",
-        @"C:\ProgramData",
-        @"C:\Users\Public\Documents"
-    };
-
-                        // 如果 ConfigurationLocation 本身就是根目录，尝试找子目录
-                        string configDir = rawConfigDir.TrimEnd('\\', '/');
-                        if (protectedPaths.Contains(configDir))
-                        {
-                            // 尝试找以虚拟机名命名的子目录
-                            string subDir = Path.Combine(configDir, vm.Name);
-                            if (Directory.Exists(subDir))
-                                configDir = subDir;
-                            else
-                                configDir = string.Empty; // 找不到子目录，放弃删除
-                        }
-
-                        if (!string.IsNullOrEmpty(configDir) && Directory.Exists(configDir))
-                        {
-                            bool isRoot = Path.GetPathRoot(configDir).Equals(configDir, StringComparison.OrdinalIgnoreCase);
-                            if (!protectedPaths.Contains(configDir) && !isRoot)
-                            {
-                                try { Directory.Delete(configDir, recursive: true); }
-                                catch { }
-                            }
-                        }
-                    }
-                });
-
-                VmList.Remove(vm);
-                if (SelectedVm == vm) SelectedVm = VmList.FirstOrDefault();
-                ShowSnackbar(Properties.Resources.VmPage_LogStorageAddAction, string.Format(Properties.Resources.VmPage_LogStorageAutoAssign, vm.Name), ControlAppearance.Success, SymbolRegular.Delete24);
+                    VmList.Remove(vm);
+                    if (SelectedVm == vm) SelectedVm = VmList.FirstOrDefault();
+                    ShowSnackbar(Properties.Resources.VmPage_LogStorageAddAction, string.Format(Properties.Resources.VmPage_LogStorageAutoAssign, vm.Name), ControlAppearance.Success, SymbolRegular.Delete24);
+                }
+                else
+                {
+                    ShowSnackbar(Properties.Resources.VmPage_LogUiSaveTriggered, FriendlyError.CleanLines(purge.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                }
             }
             catch (Exception ex)
             {
