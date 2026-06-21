@@ -49,6 +49,10 @@ namespace ExHyperV.ViewModels
         private Task _cpuTask;
         private Task _stateTask;
         private DispatcherTimer _uiTimer;
+        // 防止监控循环对同一网卡重复并发起 IP/ARP 查询（无界堆积）
+        private readonly System.Collections.Concurrent.ConcurrentDictionary<string, byte> _ipLookupsInFlight = new();
+        // PktMon 被动嗅探 vSwitch 上的 ARP，补无集成服务 VM（如国产 Linux）的 IP；驱动不在则静默降级
+        private readonly ArpSnoopService _ipSnoop = new();
 
         private readonly Dictionary<Guid, (string NewName, DateTime Expiry)> _renameLockouts = new();
 
@@ -185,6 +189,7 @@ namespace ExHyperV.ViewModels
                 await Task.Delay(300);
                 Application.Current.Dispatcher.Invoke(() => LoadVmsCommand.Execute(null));
             });
+            Task.Run(() => _ipSnoop.Start()); // 后台启动 PktMon 嗅探，不阻塞构造
         }
 
         public void Dispose()
@@ -192,6 +197,7 @@ namespace ExHyperV.ViewModels
             _monitoringCts?.Cancel();
             _cpuService?.Dispose();
             _uiTimer?.Stop();
+            _ipSnoop.Dispose();
         }
 
 
@@ -1080,31 +1086,54 @@ namespace ExHyperV.ViewModels
                                 vm.Apply(update, skipNameUpdate, skipNetworkAdapters);
                                 if (wasRunning != vm.IsRunning) needsResort = true;
 
-                                // PageVM-only side effect 1：运行时从适配器收集 IP / ARP 兜底发现
+                                // PageVM-only side effect 1：运行时收集 IP。
+                                // 嗅探(网线真实 ARP = 最新地表真相)的 IPv4 优先于集成服务可能滞后/陈旧的值。
                                 if (vm.IsRunning)
                                 {
-                                    var allIps = vm.NetworkAdapters.SelectMany(a => a.IpAddresses ?? new List<string>())
-                                                   .Where(ip => !string.IsNullOrEmpty(ip) && !ip.Contains(":"))
-                                                   .ToList();
-                                    if (allIps.Count > 0) vm.IpAddress = allIps.First();
-
+                                    string? snoopPrimary = null;
                                     foreach (var adapter in vm.NetworkAdapters)
                                     {
-                                        if (!string.IsNullOrEmpty(adapter.MacAddress) && (adapter.IpAddresses == null || adapter.IpAddresses.Count == 0))
+                                        if (string.IsNullOrEmpty(adapter.MacAddress)) continue;
+
+                                        if (_ipSnoop.TryGetIp(adapter.MacAddress, out var snoopIp))
                                         {
-                                            _ = Task.Run(async () => {
-                                                try
-                                                {
-                                                    string arpIp = await VmIpService.Lookup(vm.Name, adapter.MacAddress);
-                                                    if (!string.IsNullOrEmpty(arpIp))
-                                                        Application.Current.Dispatcher.Invoke(() => {
-                                                            adapter.IpAddresses = new List<string> { arpIp };
-                                                            if (vm.IpAddress == "---" || string.IsNullOrWhiteSpace(vm.IpAddress)) vm.IpAddress = arpIp;
-                                                        });
-                                                }
-                                                catch { }
-                                            });
+                                            snoopPrimary ??= snoopIp;
+                                            // 只填空网卡，不覆盖集成服务给的列表(保留 IPv6/多 IP)
+                                            if (adapter.IpAddresses == null || adapter.IpAddresses.Count == 0)
+                                                adapter.IpAddresses = new List<string> { snoopIp };
+                                            continue;
                                         }
+
+                                        // 网卡仍无 IP → 异步回退集成服务/邻居缓存(同一网卡已有在飞 Lookup 就跳过，避免无界堆积)
+                                        if (adapter.IpAddresses != null && adapter.IpAddresses.Count > 0) continue;
+                                        string lookupKey = $"{vm.Id}|{adapter.MacAddress}";
+                                        if (!_ipLookupsInFlight.TryAdd(lookupKey, 0)) continue;
+                                        _ = Task.Run(async () => {
+                                            try
+                                            {
+                                                string arpIp = await VmIpService.Lookup(vm.Name, adapter.MacAddress);
+                                                if (!string.IsNullOrEmpty(arpIp))
+                                                    Application.Current.Dispatcher.Invoke(() => {
+                                                        if (adapter.IpAddresses == null || adapter.IpAddresses.Count == 0)
+                                                            adapter.IpAddresses = new List<string> { arpIp };
+                                                        if (vm.IpAddress == "---" || string.IsNullOrWhiteSpace(vm.IpAddress)) vm.IpAddress = arpIp;
+                                                    });
+                                            }
+                                            catch { }
+                                            finally { _ipLookupsInFlight.TryRemove(lookupKey, out _); }
+                                        });
+                                    }
+
+                                    // 主显示 IP:嗅探 IPv4 最优先(压过集成服务陈旧值)，否则取集成服务报的 IPv4
+                                    if (snoopPrimary != null)
+                                    {
+                                        vm.IpAddress = snoopPrimary;
+                                    }
+                                    else
+                                    {
+                                        var integ = vm.NetworkAdapters.SelectMany(a => a.IpAddresses ?? new List<string>())
+                                                       .FirstOrDefault(ip => !string.IsNullOrEmpty(ip) && !ip.Contains(":"));
+                                        if (!string.IsNullOrEmpty(integ)) vm.IpAddress = integ;
                                     }
                                 }
                                 // Apply 已处理 !IsRunning 时 vm.IpAddress = "---"
