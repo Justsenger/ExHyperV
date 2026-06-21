@@ -2452,6 +2452,18 @@ namespace ExHyperV.ViewModels
             }
         }
 
+        // 网卡操作失败后从后端重新拉取真实状态覆盖 UI（回滚"撒谎"的开关；复用智能同步避免闪烁）
+        private async Task RevertAdaptersFromBackendAsync()
+        {
+            if (SelectedVm == null) return;
+            try
+            {
+                var fresh = await _vmNetworkService.GetNetworkAdaptersAsync(SelectedVm.Name);
+                SyncNetworkAdaptersInternal(SelectedVm.NetworkAdapters, fresh);
+            }
+            catch { /* 回滚是尽力而为：拉取失败则保持现状，离开网络页时会自然重对账 */ }
+        }
+
         // 添加新的网络适配器
         [RelayCommand]
         private async Task AddNetworkAdapterAsync()
@@ -2609,6 +2621,7 @@ namespace ExHyperV.ViewModels
             if (!result.Success)
             {
                 ShowSnackbar(Properties.Resources.Error_Net_ApplyFail, result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                await RevertAdaptersFromBackendAsync();   // 失败回滚开关，避免 UI 显示与后端不一致
             }
         }
 
@@ -2621,13 +2634,11 @@ namespace ExHyperV.ViewModels
             if (!result.Success)
             {
                 ShowSnackbar(Properties.Resources.Error_Net_SecurityFail, result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                await RevertAdaptersFromBackendAsync();   // 失败回滚开关，避免 UI 显示与后端不一致
             }
         }
 
         // 引导顺序部分
-        private readonly System.Threading.SemaphoreSlim _bootOrderLock = new(1, 1);
-        private CancellationTokenSource? _bootSaveCts;
-
         [RelayCommand]
         private async Task GoToBootSettingsAsync()
         {
@@ -2663,19 +2674,14 @@ namespace ExHyperV.ViewModels
 
             try
             {
-                // 关键检查：在保存前打印 UI 集合的名称顺序
                 var currentOrder = SelectedVm.BootOrderItems.ToList();
-                string names = string.Join(" -> ", currentOrder.Select(x => x.Name));
-                Debug.WriteLine(string.Format(Properties.Resources.VmPage_MsgRollbackComplete, names));
-
-                string vmName = SelectedVm.Name;
-                bool success = await _vmBootService.SetBootOrderAsync(vmName, currentOrder);
-
-                Debug.WriteLine(string.Format(Properties.Resources.VmPage_ErrRollbackFailed, success));
+                bool success = await _vmBootService.SetBootOrderAsync(SelectedVm.Name, currentOrder);
+                if (!success)
+                    ShowSnackbar(Properties.Resources.VmBootSettings_TitleBootOrder, Properties.Resources.Error_Common_SaveFail, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
             }
             catch (Exception ex)
             {
-                Debug.WriteLine(string.Format(Properties.Resources.VmPage_BtnReset, ex.Message));
+                ShowSnackbar(Properties.Resources.VmBootSettings_TitleBootOrder, FriendlyError.CleanLines(ex.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
             }
         }
 
