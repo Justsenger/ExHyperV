@@ -13,11 +13,9 @@ namespace ExHyperV.Services
 {
     public class VmGpuService
     {
-        private readonly VmPowerService _powerService;
         private readonly VmQueryService _queryService;
-        public VmGpuService(VmPowerService powerService, VmQueryService queryService)
+        public VmGpuService(VmQueryService queryService)
         {
-            _powerService = powerService;
             _queryService = queryService;
         }
 
@@ -1183,7 +1181,7 @@ namespace ExHyperV.Services
                     if (currentState != "2")
                     {
                         Log("[ExHyperV] Starting VM...");
-                        await _powerService.ExecuteControlActionAsync(vmName, "Start");
+                        await VmPowerService.ExecuteControlActionAsync(vmName, "Start");
                         await Task.Delay(5000);
                     }
 
@@ -1269,7 +1267,7 @@ namespace ExHyperV.Services
                         if (rebootNeeded)
                         {
                             Log("!!! VM Reboot required. Restarting now...");
-                            await _powerService.ExecuteControlActionAsync(vmName, "Restart");
+                            await VmPowerService.ExecuteControlActionAsync(vmName, "Restart");
                             await Task.Delay(10000); // 等待开始关机
                             if (!await WaitForVmToBeResponsiveAsync(credentials.Host, credentials.Port, ct))
                                 return "VM failed to come back online after reboot.";

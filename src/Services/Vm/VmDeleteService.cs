@@ -9,14 +9,12 @@ namespace ExHyperV.Services;
 /// </summary>
 public class VmDeleteService
 {
-    private readonly VmPowerService _power = new();
-
     /// <summary>删除虚拟机（仅移除配置，保留磁盘文件）。等价 Remove-VM。</summary>
     public async Task<(bool Success, string Message)> DeleteVmAsync(string vmName)
     {
         try
         {
-            await _power.ExecuteControlActionAsync(vmName, "TurnOff");   // InvokeAsync 等 job 完成才返回，确保已关再 Destroy
+            await VmPowerService.ExecuteControlActionAsync(vmName, "TurnOff");   // InvokeAsync 等 job 完成才返回，确保已关再 Destroy
             return await DestroyAsync(vmName);
         }
         catch (Exception ex) { return (false, ex.Message); }
@@ -43,7 +41,7 @@ public class VmDeleteService
                 WmiScope.HyperV);
             string? rawConfigDir = configResp.HasData ? configResp.Data : null;
 
-            await _power.ExecuteControlActionAsync(vmName, "TurnOff");
+            await VmPowerService.ExecuteControlActionAsync(vmName, "TurnOff");
             var destroy = await DestroyAsync(vmName);
             if (!destroy.Success) return destroy;   // 删除失败就不动文件（VM 仍在用着盘）
 

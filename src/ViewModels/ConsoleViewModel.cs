@@ -15,7 +15,6 @@ namespace ExHyperV.ViewModels
     {
         // ===== 字段 =====
 
-        private readonly VmPowerService _powerService = new();
         private readonly VmQueryService _queryService = new();
         private DispatcherTimer _statusTimer;
         private bool _polling;   // 防止上一次轮询(WMI 慢)未完成时重入
@@ -121,7 +120,7 @@ namespace ExHyperV.ViewModels
             try
             {
                 IsBusy = true;
-                await _powerService.ExecuteControlActionAsync(VmName, action);
+                await VmPowerService.ExecuteControlActionAsync(VmName, action);
             }
             catch (Exception ex)
             {

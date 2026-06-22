@@ -12,7 +12,6 @@ internal class VmSpacetimeService
 {
     private const string SnapshotServiceWql = "SELECT * FROM Msvm_VirtualSystemSnapshotService";
     private const string ManagementServiceWql = "SELECT * FROM Msvm_VirtualSystemManagementService";
-    private readonly VmPowerService _powerService = new();
     private string GetSafeId(string id) => id.Replace(":", "_");
 
     // ============================================================
@@ -401,7 +400,7 @@ internal class VmSpacetimeService
 
             if (initialState != 3 && initialState != 6)
             {
-                await _powerService.ExecuteControlActionAsync(vmName, "Save");
+                await VmPowerService.ExecuteControlActionAsync(vmName, "Save");
                 for (int i = 0; i < 30; i++)
                 {
                     await Task.Delay(300);
@@ -426,7 +425,7 @@ internal class VmSpacetimeService
                             var s = await WmiApi.QueryFirstAsync(vmWql, obj => (ushort)(obj["EnabledState"] ?? 0));
                             if (s.Data == 3 || s.Data == 6)
                             {
-                                await _powerService.ExecuteControlActionAsync(vmName, "Start");
+                                await VmPowerService.ExecuteControlActionAsync(vmName, "Start");
                                 break;
                             }
                             await Task.Delay(1000);

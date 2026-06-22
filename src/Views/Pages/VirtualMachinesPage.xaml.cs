@@ -9,7 +9,7 @@ namespace ExHyperV.Views
         public VirtualMachinesPage()
         {
             InitializeComponent();
-            this.DataContext = new VirtualMachinesPageViewModel(new VmQueryService(), new VmPowerService());
+            this.DataContext = new VirtualMachinesPageViewModel(new VmQueryService());
         }
     }
 }

@@ -2,7 +2,7 @@
 
 namespace ExHyperV.Services
 {
-    public class VmPowerService
+    public static class VmPowerService
     {
         // RequestStateChange 状态码（来自 VMComputerSystemState 枚举，ILspy 反编译确认）
         // 2  = Running（启动）
@@ -13,7 +13,7 @@ namespace ExHyperV.Services
         // 10 = Starting（从 Off/Saved 启动，对应 Reboot 场景）
         // 11 = Reset（硬重置）
 
-        public async Task ExecuteControlActionAsync(string vmName, string action)
+        public static async Task ExecuteControlActionAsync(string vmName, string action)
         {
             string wql = $"SELECT * FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(vmName)}'";
 

@@ -10,7 +10,6 @@ namespace ExHyperV.Services
     public class PCIeService
     {
         private const ulong RequiredMmioBytes = 64UL * 1024 * 1024 * 1024; // 64 GiB
-        private readonly VmPowerService _powerService = new();
 
         private string GetPureId(string? instanceId)
         {
@@ -268,7 +267,7 @@ namespace ExHyperV.Services
             if (!stateResp.Success || stateResp.Data == null) return false;
             if (!stateResp.Data.Any(s => s == 2)) return true; // 已关机，无需操作
 
-            await _powerService.ExecuteControlActionAsync(vmName, "Stop");
+            await VmPowerService.ExecuteControlActionAsync(vmName, "Stop");
 
             // 等待关机完成（最多30秒）
             for (int i = 0; i < 30; i++)

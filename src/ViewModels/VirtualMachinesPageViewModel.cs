@@ -29,7 +29,6 @@ namespace ExHyperV.ViewModels
     {
         // ===== 私有服务字段与依赖注入 =====
         private readonly VmQueryService _queryService;
-        private readonly VmPowerService _powerService;
         private readonly VmGpuService _vmGpuService;
         private readonly VmCreateService _vmCreateService = new();
         private readonly VmSpacetimeService _spacetimeService = new();
@@ -156,11 +155,10 @@ namespace ExHyperV.ViewModels
         [ObservableProperty] private ObservableCollection<LinuxScriptItem> _availableLinuxScripts = new();
         [ObservableProperty] private LinuxScriptItem _selectedLinuxScript;
 
-        public VirtualMachinesPageViewModel(VmQueryService queryService, VmPowerService powerService)
+        public VirtualMachinesPageViewModel(VmQueryService queryService)
         {
             _queryService = queryService;
-            _powerService = powerService;
-            _vmGpuService = new VmGpuService(_powerService, _queryService);
+            _vmGpuService = new VmGpuService(_queryService);
 
             InitPossibleCpuCounts();
 
@@ -844,7 +842,7 @@ namespace ExHyperV.ViewModels
                 instance.SetTransientState(GetOptimisticText(action));
                 try
                 {
-                    await _powerService.ExecuteControlActionAsync(instance.Name, action);
+                    await VmPowerService.ExecuteControlActionAsync(instance.Name, action);
                     await SyncSingleVmStateAsync(instance);
                     if (action == "Start" || action == "Restart")
                     {
@@ -3037,7 +3035,7 @@ namespace ExHyperV.ViewModels
                                 {
                                     task.Description = string.Format(Properties.Resources.Msg_Gpu_ForceOff, state);
                                     AppendLog(task.Description);
-                                    await _powerService.ExecuteControlActionAsync(SelectedVm.Name, "TurnOff");
+                                    await VmPowerService.ExecuteControlActionAsync(SelectedVm.Name, "TurnOff");
                                     var offDeadline = DateTime.UtcNow.AddSeconds(30);
                                     while (!(await _queryService.IsVmPoweredOffAsync(SelectedVm.Name)).IsOff)
                                     {
@@ -3243,7 +3241,7 @@ namespace ExHyperV.ViewModels
                         AppendLog(driveTask.Description);
 
                         // 1. 执行开机
-                        await _powerService.ExecuteControlActionAsync(SelectedVm.Name, "Start");
+                        await VmPowerService.ExecuteControlActionAsync(SelectedVm.Name, "Start");
 
                         // 2. 【新增】立刻强制同步一次 UI 状态，不等后台循环
                         await SyncSingleVmStateAsync(SelectedVm);

@@ -8,8 +8,6 @@ namespace ExHyperV.Services
 {
     public class VmCreateService
     {
-        private readonly VmPowerService _power = new();
-
         private const string ServiceWql = "SELECT * FROM Msvm_VirtualSystemManagementService";
 
         public async Task<List<string>> GetSupportedVersionsAsync()
@@ -253,7 +251,7 @@ namespace ExHyperV.Services
 
                 // ── Step 11: 启动 ─────────────────────────────────
                 if (p.StartAfterCreation)
-                    await _power.ExecuteControlActionAsync(finalVmName, "Start");
+                    await VmPowerService.ExecuteControlActionAsync(finalVmName, "Start");
 
                 return (true, finalVmName);
             }
