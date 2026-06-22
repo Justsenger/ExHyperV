@@ -4,14 +4,6 @@ using ExHyperV.Properties;
 
 namespace ExHyperV.Models
 {
-    /// <summary>控制器槽位定位（用于 Storage Settings 添加磁盘时的 ControllerType/Number/Location 三元组）。</summary>
-    public class VmStorageSlot
-    {
-        public string ControllerType { get; set; } = "SCSI";
-        public int ControllerNumber { get; set; } = 0;
-        public int Location { get; set; } = 0;
-    }
-
     /// <summary>
     /// VM 存储清单项（绑定 Storage Settings 列表）：物理磁盘或虚拟磁盘均统一表达。
     /// 含计算属性 DisplayName/Icon/SizeDisplay/SourceTypeDisplayName 给 UI 直接绑。
@@ -59,7 +51,7 @@ namespace ExHyperV.Models
         {
             get
             {
-                if (DiskSizeGB <= 0) return "unknown";
+                if (DiskSizeGB <= 0) return Resources.Common_Unknown;
                 if (DiskSizeGB < 1.0)
                 {
                     double sizeMB = DiskSizeGB * 1024.0;
