@@ -121,7 +121,14 @@ namespace ExHyperV.Services
                     if (gpu.Name == null || gpu.InstanceId == null || gpu.Manu == null || gpu.DriverVersion == null) continue;
                     if (!gpu.InstanceId.ToUpper().StartsWith("PCI\\") && !gpu.InstanceId.ToUpper().Contains("ACPI")) continue;
                     string vendor = pciInfoProvider.GetVendorFromInstanceId(gpu.InstanceId);
-                    gpuList.Add(new GpuInfo(gpu.Name, "True", gpu.Manu, gpu.InstanceId, null, null, gpu.DriverVersion, vendor));
+                    gpuList.Add(new GpuInfo
+                    {
+                        Name = gpu.Name,
+                        Manu = gpu.Manu,
+                        InstanceId = gpu.InstanceId,
+                        DriverVersion = gpu.DriverVersion,
+                        Vendor = vendor
+                    });
                 }
             }
 
