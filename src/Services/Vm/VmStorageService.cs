@@ -6,13 +6,13 @@ using ExHyperV.Tools;
 
 namespace ExHyperV.Services
 {
-    public class VmStorageService
+    public static class VmStorageService
     {
         // ============================================================
         // 核心数据查询
         // ============================================================
 
-        public async Task LoadVmStorageItemsAsync(VmInstance vm)
+        public static async Task LoadVmStorageItemsAsync(VmInstance vm)
         {
             if (vm == null) return;
 
@@ -62,7 +62,7 @@ namespace ExHyperV.Services
             });
         }
 
-        private List<VmStorageItem> BuildStorageItems(
+        private static List<VmStorageItem> BuildStorageItems(
             List<ManagementObject> allResources,
             ref Dictionary<string, int>? hvDiskMap,
             ref Dictionary<int, HostDiskInfoCache>? osDiskMap)
@@ -217,7 +217,7 @@ namespace ExHyperV.Services
             return resultList;
         }
 
-        private (Dictionary<string, int> hvDiskMap, Dictionary<int, HostDiskInfoCache> osDiskMap)
+        private static (Dictionary<string, int> hvDiskMap, Dictionary<int, HostDiskInfoCache> osDiskMap)
             BuildDiskMaps()
         {
             var hvMap = new Dictionary<string, int>();
@@ -267,7 +267,7 @@ namespace ExHyperV.Services
         // 压缩虚拟磁盘
         // ============================================================
 
-        public async Task<ApiResponse> CompactDiskAsync(string vhdPath)
+        public static async Task<ApiResponse> CompactDiskAsync(string vhdPath)
         {
             return await WmiApi.InvokeAsync(
                 "SELECT * FROM Msvm_ImageManagementService",
@@ -284,7 +284,7 @@ namespace ExHyperV.Services
         // 主机物理磁盘列表
         // ============================================================
 
-        public async Task<ApiResponse<List<HostDiskInfo>>> GetHostDisksAsync()
+        public static async Task<ApiResponse<List<HostDiskInfo>>> GetHostDisksAsync()
         {
             var usedResp = await WmiApi.QueryAsync(
                 "SELECT DriveNumber FROM Msvm_DiskDrive WHERE DriveNumber >= 0",
@@ -336,7 +336,7 @@ namespace ExHyperV.Services
         // 刷新虚拟磁盘文件大小
         // ============================================================
 
-        public async Task RefreshVirtualDiskSizesAsync(VmInstance vm)
+        public static async Task RefreshVirtualDiskSizesAsync(VmInstance vm)
         {
             if (vm == null) return;
 
@@ -374,7 +374,7 @@ namespace ExHyperV.Services
         // 槽位检测
         // ============================================================
 
-        public async Task<(string ControllerType, int ControllerNumber, int Location)>
+        public static async Task<(string ControllerType, int ControllerNumber, int Location)>
             GetNextAvailableSlotAsync(string vmName, string driveType)
         {
             var vmResp = await WmiApi.QueryFirstAsync(
@@ -469,7 +469,7 @@ namespace ExHyperV.Services
         // 设备增删改操作
         // ============================================================
 
-        public async Task<(bool Success, string Message, string ActualType, int ActualNumber, int ActualLocation)>
+        public static async Task<(bool Success, string Message, string ActualType, int ActualNumber, int ActualLocation)>
             AddDriveAsync(
                 string vmName, string controllerType, int controllerNumber, int location, string driveType,
                 string pathOrNumber, bool isPhysical, bool isNew = false, int sizeGb = 256,
@@ -716,7 +716,7 @@ namespace ExHyperV.Services
             }
         }
 
-        private async Task<(bool Success, string Message)> CreateVhdAsync(
+        private static async Task<(bool Success, string Message)> CreateVhdAsync(
             string path, string vhdType, int sizeGb,
             string sectorFormat, string blockSize, string parentPathStr)
         {
@@ -787,7 +787,7 @@ namespace ExHyperV.Services
             }
         }
 
-        public async Task<(bool Success, string Message)> RemoveDriveAsync(
+        public static async Task<(bool Success, string Message)> RemoveDriveAsync(
             string vmName, VmStorageItem drive)
         {
             var vmResp = await WmiApi.QueryFirstAsync(
@@ -902,7 +902,7 @@ namespace ExHyperV.Services
             return (true, "Storage_Msg_Removed");
         }
 
-        public async Task<(bool Success, string Message)> ModifyDvdDrivePathAsync(
+        public static async Task<(bool Success, string Message)> ModifyDvdDrivePathAsync(
             string vmName, int controllerNumber, int controllerLocation, string newIsoPath)
         {
             return await ModifyMediaPathAsync(
@@ -910,7 +910,7 @@ namespace ExHyperV.Services
                 "Microsoft:Hyper-V:Virtual CD/DVD Disk", newIsoPath);
         }
 
-        public async Task<(bool Success, string Message)> ModifyHardDrivePathAsync(
+        public static async Task<(bool Success, string Message)> ModifyHardDrivePathAsync(
             string vmName, string controllerType, int controllerNumber, int controllerLocation, string newPath)
         {
             return await ModifyMediaPathAsync(
@@ -918,7 +918,7 @@ namespace ExHyperV.Services
                 "Microsoft:Hyper-V:Virtual Hard Disk", newPath);
         }
 
-        private async Task<(bool Success, string Message)> ModifyMediaPathAsync(
+        private static async Task<(bool Success, string Message)> ModifyMediaPathAsync(
             string vmName, int controllerNumber, int controllerLocation,
             string resourceSubType, string newPath)
         {
@@ -984,7 +984,7 @@ namespace ExHyperV.Services
         // 主机物理磁盘控制
         // ============================================================
 
-        public async Task<ApiResponse> SetDiskOfflineStatusAsync(int diskNumber, bool isOffline)
+        public static async Task<ApiResponse> SetDiskOfflineStatusAsync(int diskNumber, bool isOffline)
         {
             var diskResp = await WmiApi.QueryFirstCimAsync(
                 $"SELECT * FROM MSFT_Disk WHERE Number = {diskNumber}",
@@ -1006,7 +1006,7 @@ namespace ExHyperV.Services
         // ISO 镜像生成
         // ============================================================
 
-        private async Task<(bool Success, string Message)> CreateIsoFromDirectoryAsync(
+        private static async Task<(bool Success, string Message)> CreateIsoFromDirectoryAsync(
             string sourceDirectory, string targetIsoPath, string volumeLabel)
         {
             var sourceDirInfo = new DirectoryInfo(sourceDirectory);
@@ -1035,7 +1035,7 @@ namespace ExHyperV.Services
             });
         }
 
-        public async Task<ApiResponse> SetDiskReadOnlyAsync(int diskNumber, bool isReadOnly)
+        public static async Task<ApiResponse> SetDiskReadOnlyAsync(int diskNumber, bool isReadOnly)
         {
             var diskResp = await WmiApi.QueryFirstCimAsync(
                 $"SELECT * FROM MSFT_Disk WHERE Number = {diskNumber}",
@@ -1052,7 +1052,7 @@ namespace ExHyperV.Services
                 p => p["IsReadOnly"] = isReadOnly);
         }
 
-        public async Task<(bool Success, int DiskNumber)> MountDiskImageAsync(string imagePath)
+        public static async Task<(bool Success, int DiskNumber)> MountDiskImageAsync(string imagePath)
         {
             var imageResp = await WmiApi.QueryFirstCimAsync(
                 $"SELECT * FROM MSFT_DiskImage WHERE ImagePath = '{imagePath.Replace("'", "\\'")}'",
@@ -1082,7 +1082,7 @@ namespace ExHyperV.Services
             return (true, diskResp.Data);
         }
 
-        public async Task<bool> DismountDiskImageAsync(string imagePath)
+        public static async Task<bool> DismountDiskImageAsync(string imagePath)
         {
             var imageResp = await WmiApi.QueryFirstCimAsync(
                 $"SELECT * FROM MSFT_DiskImage WHERE ImagePath = '{imagePath.Replace("'", "\\'")}'",
@@ -1099,7 +1099,7 @@ namespace ExHyperV.Services
             return result.Success;
         }
 
-        public async Task<(bool Success, int DiskNumber)> MountVhdxAsync(string imagePath)
+        public static async Task<(bool Success, int DiskNumber)> MountVhdxAsync(string imagePath)
         {
             await DismountVhdxAsync(imagePath);
 
@@ -1131,7 +1131,7 @@ namespace ExHyperV.Services
             return (false, -1);
         }
 
-        public async Task<bool> DismountVhdxAsync(string imagePath)
+        public static async Task<bool> DismountVhdxAsync(string imagePath)
         {
             try
             {
@@ -1161,7 +1161,7 @@ namespace ExHyperV.Services
             catch { return false; }
         }
 
-        public async Task<(bool Success, char DriveLetter)> AssignPartitionDriveLetterAsync(
+        public static async Task<(bool Success, char DriveLetter)> AssignPartitionDriveLetterAsync(
             int diskNumber, int partitionNumber, char driveLetter)
         {
             var partResp = await WmiApi.QueryFirstCimAsync(
@@ -1181,7 +1181,7 @@ namespace ExHyperV.Services
             return result.Success ? (true, driveLetter) : (false, '\0');
         }
 
-        public async Task<bool> RemovePartitionAccessPathAsync(
+        public static async Task<bool> RemovePartitionAccessPathAsync(
             int diskNumber, int partitionNumber, char driveLetter)
         {
             var partResp = await WmiApi.QueryFirstCimAsync(
@@ -1200,7 +1200,7 @@ namespace ExHyperV.Services
             return result.Success;
         }
 
-        public async Task RemoveAllPartitionAccessPathsAsync(int diskNumber)
+        public static async Task RemoveAllPartitionAccessPathsAsync(int diskNumber)
         {
             var partsResp = await WmiApi.QueryCimAsync(
                 $"SELECT * FROM MSFT_Partition WHERE DiskNumber = {diskNumber}",
@@ -1221,7 +1221,7 @@ namespace ExHyperV.Services
             }
         }
 
-        public async Task<(bool Success, string CtrlType, int CtrlNum, int CtrlLoc)>
+        public static async Task<(bool Success, string CtrlType, int CtrlNum, int CtrlLoc)>
             DetachPhysicalDiskAsync(string vmName, int diskNumber)
         {
             using var vmObj = WmiApi.GetVmComputerSystem(vmName);

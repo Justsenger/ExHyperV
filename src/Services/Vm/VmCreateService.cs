@@ -8,7 +8,6 @@ namespace ExHyperV.Services
 {
     public class VmCreateService
     {
-        private readonly VmStorageService _storage = new();
         private readonly VmPowerService _power = new();
 
         private const string ServiceWql = "SELECT * FROM Msvm_VirtualSystemManagementService";
@@ -201,7 +200,7 @@ namespace ExHyperV.Services
                 // ── Step 7: 磁盘 ──────────────────────────────────
                 if (p.DiskMode == 0)
                 {
-                    await _storage.AddDriveAsync(
+                    await VmStorageService.AddDriveAsync(
                         finalVmName,
                         p.Generation == 2 ? "SCSI" : "IDE", 0, 0,
                         "HardDisk", p.VhdPath, false,
@@ -209,7 +208,7 @@ namespace ExHyperV.Services
                 }
                 else if (p.DiskMode == 1 && !string.IsNullOrEmpty(p.VhdPath))
                 {
-                    await _storage.AddDriveAsync(
+                    await VmStorageService.AddDriveAsync(
                         finalVmName,
                         p.Generation == 2 ? "SCSI" : "IDE", 0, 0,
                         "HardDisk", p.VhdPath, false);
@@ -222,7 +221,7 @@ namespace ExHyperV.Services
                     int dvdCtrlNum = p.Generation == 1 ? 1 : 0;
                     int dvdLoc = p.Generation == 1 ? 0 : 1;
 
-                    await _storage.AddDriveAsync(
+                    await VmStorageService.AddDriveAsync(
                         finalVmName, dvdCtrl, dvdCtrlNum, dvdLoc,
                         "DvdDrive", p.IsoPath, false);
                 }

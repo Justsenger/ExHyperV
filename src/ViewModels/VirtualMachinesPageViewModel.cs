@@ -30,7 +30,6 @@ namespace ExHyperV.ViewModels
         // ===== 私有服务字段与依赖注入 =====
         private readonly VmQueryService _queryService;
         private readonly VmPowerService _powerService;
-        private readonly VmStorageService _storageService;
         private readonly VmGpuService _vmGpuService;
         private readonly VmCreateService _vmCreateService = new();
         private readonly VmSpacetimeService _spacetimeService = new();
@@ -161,8 +160,7 @@ namespace ExHyperV.ViewModels
         {
             _queryService = queryService;
             _powerService = powerService;
-            _storageService = new VmStorageService();
-            _vmGpuService = new VmGpuService(_powerService, _queryService, _storageService);
+            _vmGpuService = new VmGpuService(_powerService, _queryService);
 
             InitPossibleCpuCounts();
 
@@ -1141,7 +1139,7 @@ namespace ExHyperV.ViewModels
 
                     if (SelectedVm != null && SelectedVm.IsRunning)
                     {
-                        await _storageService.RefreshVirtualDiskSizesAsync(SelectedVm.Model);
+                        await VmStorageService.RefreshVirtualDiskSizesAsync(SelectedVm.Model);
                     }
 
                     await Task.Delay(2000, token);
@@ -1576,7 +1574,7 @@ namespace ExHyperV.ViewModels
                 IsLoadingSettings = true;
                 try
                 {
-                    await _storageService.LoadVmStorageItemsAsync(SelectedVm.Model);
+                    await VmStorageService.LoadVmStorageItemsAsync(SelectedVm.Model);
                     await LoadHostDisksAsync();
                 }
                 catch (Exception ex) { ShowSnackbar(Properties.Resources.Error_Storage_LoadFail, FriendlyError.CleanLines(ex.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24); }
@@ -1590,7 +1588,7 @@ namespace ExHyperV.ViewModels
             try
             {
                 // 1. 获取 ApiResponse<List<HostDiskInfo>>
-                var response = await _storageService.GetHostDisksAsync();
+                var response = await VmStorageService.GetHostDisksAsync();
 
                 // 2. 判断是否成功且存在数据
                 if (response.HasData)
@@ -1617,13 +1615,13 @@ namespace ExHyperV.ViewModels
             {
                 // 1. 发起 WMI 压缩指令
                 // 虽然 await 会等待，但由于 vmms.exe 承载了 Job，即便 UI 崩溃，任务依然在后台跑
-                var result = await _storageService.CompactDiskAsync(item.PathOrDiskNumber);
+                var result = await VmStorageService.CompactDiskAsync(item.PathOrDiskNumber);
 
                 if (result.Success)
                 {
                     // 2. 刷新磁盘物理大小 (FileSize)
                     // 调用现有的存储服务，确保 UI 上的 GB 数值得到更新
-                    await _storageService.RefreshVirtualDiskSizesAsync(SelectedVm.Model);
+                    await VmStorageService.RefreshVirtualDiskSizesAsync(SelectedVm.Model);
 
                     ShowSnackbar(Properties.Resources.VmPage_ErrCloseFailed, Properties.Resources.VmPage_MsgFeatureInDev, ControlAppearance.Success, SymbolRegular.CheckmarkCircle24);
                 }
@@ -1651,11 +1649,11 @@ namespace ExHyperV.ViewModels
             IsLoadingSettings = true;
             try
             {
-                var result = await _storageService.RemoveDriveAsync(SelectedVm.Name, item);
+                var result = await VmStorageService.RemoveDriveAsync(SelectedVm.Name, item);
                 if (result.Success)
                 {
                     ShowSnackbar(Properties.Resources.Common_Success, result.Message == "Storage_Msg_Ejected" ? Properties.Resources.Msg_Storage_Ejected : Properties.Resources.Msg_Storage_Removed, ControlAppearance.Success, SymbolRegular.CheckmarkCircle24);
-                    await _storageService.LoadVmStorageItemsAsync(SelectedVm.Model);
+                    await VmStorageService.LoadVmStorageItemsAsync(SelectedVm.Model);
                 }
                 else ShowSnackbar(Properties.Resources.Error_Storage_RemoveFail, result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
             }
@@ -1706,7 +1704,7 @@ namespace ExHyperV.ViewModels
 
                     if (driveItem.DriveType == "DvdDrive")
                     {
-                        result = await _storageService.ModifyDvdDrivePathAsync(
+                        result = await VmStorageService.ModifyDvdDrivePathAsync(
                             SelectedVm.Name,
                             driveItem.ControllerNumber,
                             driveItem.ControllerLocation,
@@ -1714,7 +1712,7 @@ namespace ExHyperV.ViewModels
                     }
                     else
                     {
-                        result = await _storageService.ModifyHardDrivePathAsync(
+                        result = await VmStorageService.ModifyHardDrivePathAsync(
                             SelectedVm.Name,
                             driveItem.ControllerType,
                             driveItem.ControllerNumber,
@@ -1725,7 +1723,7 @@ namespace ExHyperV.ViewModels
                     if (result.Success)
                     {
                         ShowSnackbar(Properties.Resources.Msg_Common_ModSuccess, Properties.Resources.Msg_Storage_PathUpdated, ControlAppearance.Success, SymbolRegular.CheckmarkCircle24);
-                        await _storageService.LoadVmStorageItemsAsync(SelectedVm.Model);
+                        await VmStorageService.LoadVmStorageItemsAsync(SelectedVm.Model);
                     }
                     else
                     {
@@ -1869,7 +1867,7 @@ namespace ExHyperV.ViewModels
             IsLoadingSettings = true;
             try
             {
-                await _storageService.LoadVmStorageItemsAsync(SelectedVm.Model);
+                await VmStorageService.LoadVmStorageItemsAsync(SelectedVm.Model);
 
                 RefreshControllerOptions();
 
@@ -2052,9 +2050,9 @@ namespace ExHyperV.ViewModels
                 Debug.WriteLine($"[STORAGE-ACTION] 执行添加操作: {driveType} -> 控制器:{targetType} #{targetNumber} 位置:{targetLocation}");
 
                 if (isPhysical && int.TryParse(pathOrNumber, out int diskNum))
-                    await _storageService.SetDiskOfflineStatusAsync(diskNum, true);
+                    await VmStorageService.SetDiskOfflineStatusAsync(diskNum, true);
 
-                var result = await _storageService.AddDriveAsync(
+                var result = await VmStorageService.AddDriveAsync(
                     vmName: SelectedVm.Name,
                     controllerType: targetType,   // 传递界面显示的值
                     controllerNumber: targetNumber, // 传递界面显示的值
@@ -2075,7 +2073,7 @@ namespace ExHyperV.ViewModels
                 if (result.Success)
                 {
                     ShowSnackbar(Properties.Resources.Msg_Common_AddSuccess, string.Format(Properties.Resources.Msg_Storage_Connected, result.ActualType, result.ActualNumber, result.ActualLocation), ControlAppearance.Success, SymbolRegular.CheckmarkCircle24);
-                    await _storageService.LoadVmStorageItemsAsync(SelectedVm.Model);
+                    await VmStorageService.LoadVmStorageItemsAsync(SelectedVm.Model);
                 }
                 else
                 {

@@ -15,12 +15,10 @@ namespace ExHyperV.Services
     {
         private readonly VmPowerService _powerService;
         private readonly VmQueryService _queryService;
-        private readonly VmStorageService _storageService;
-        public VmGpuService(VmPowerService powerService, VmQueryService queryService, VmStorageService storageService)
+        public VmGpuService(VmPowerService powerService, VmQueryService queryService)
         {
             _powerService = powerService;
             _queryService = queryService;
-            _storageService = storageService;
         }
 
         private class VmDiskTarget
@@ -331,7 +329,7 @@ namespace ExHyperV.Services
         private async Task<List<VmDiskTarget>> GetAllVmHardDrivesAsync(string vmName)
         {
             var vm = new VmInstance(Guid.Empty, vmName);
-            await _storageService.LoadVmStorageItemsAsync(vm);
+            await VmStorageService.LoadVmStorageItemsAsync(vm);
 
             Debug.WriteLine($"[GPU] StorageItems count: {vm.StorageItems.Count}");
             foreach (var item in vm.StorageItems)
@@ -362,14 +360,14 @@ namespace ExHyperV.Services
                     {
                         if (target.IsPhysical)
                         {
-                            await _storageService.SetDiskOfflineStatusAsync(target.PhysicalDiskNumber, false);
-                            await _storageService.SetDiskReadOnlyAsync(target.PhysicalDiskNumber, true);
+                            await VmStorageService.SetDiskOfflineStatusAsync(target.PhysicalDiskNumber, false);
+                            await VmStorageService.SetDiskReadOnlyAsync(target.PhysicalDiskNumber, true);
                             await Task.Delay(500);
                             hostDiskNumber = target.PhysicalDiskNumber;
                         }
                         else
                         {
-                            var mountResult = await _storageService.MountVhdxAsync(target.Path);
+                            var mountResult = await VmStorageService.MountVhdxAsync(target.Path);
                             if (mountResult.Success)
                                 hostDiskNumber = mountResult.DiskNumber;
                         }
@@ -397,12 +395,12 @@ namespace ExHyperV.Services
                     {
                         if (target.IsPhysical)
                         {
-                            await _storageService.SetDiskReadOnlyAsync(target.PhysicalDiskNumber, false);
-                            await _storageService.SetDiskOfflineStatusAsync(target.PhysicalDiskNumber, true);
+                            await VmStorageService.SetDiskReadOnlyAsync(target.PhysicalDiskNumber, false);
+                            await VmStorageService.SetDiskOfflineStatusAsync(target.PhysicalDiskNumber, true);
                         }
                         else if (!string.IsNullOrEmpty(target.Path))
                         {
-                            await _storageService.DismountVhdxAsync(target.Path);
+                            await VmStorageService.DismountVhdxAsync(target.Path);
                         }
                     }
                 }
@@ -556,7 +554,7 @@ namespace ExHyperV.Services
                 {
                     Log(string.Format(Properties.Resources.Msg_Gpu_DismountingDisk, diskTarget.PhysicalDiskNumber));
                     hostDiskNumber = diskTarget.PhysicalDiskNumber;
-                    var detachResult = await _storageService.DetachPhysicalDiskAsync(vmName, hostDiskNumber);
+                    var detachResult = await VmStorageService.DetachPhysicalDiskAsync(vmName, hostDiskNumber);
                     if (!detachResult.Success) return Properties.Resources.Error_Gpu_DiskNotFound;
                     savedCtrlType = detachResult.CtrlType;
                     savedCtrlNum = detachResult.CtrlNum;
@@ -565,13 +563,13 @@ namespace ExHyperV.Services
 
 
 
-                    await _storageService.SetDiskOfflineStatusAsync(hostDiskNumber, false);
-                    await _storageService.SetDiskReadOnlyAsync(hostDiskNumber, false);
+                    await VmStorageService.SetDiskOfflineStatusAsync(hostDiskNumber, false);
+                    await VmStorageService.SetDiskReadOnlyAsync(hostDiskNumber, false);
 
                 }
                 else
                 {
-                    var mountResult = await _storageService.MountVhdxAsync(diskTarget.Path);
+                    var mountResult = await VmStorageService.MountVhdxAsync(diskTarget.Path);
                     if (!mountResult.Success)
                         return Properties.Resources.Error_Gpu_MountVhdFailed;
                     hostDiskNumber = mountResult.DiskNumber;
@@ -580,7 +578,7 @@ namespace ExHyperV.Services
                 Log(string.Format(Properties.Resources.Msg_Gpu_AssignTempDrive, hostDiskNumber, partition.PartitionNumber));
 
                 char suggestedLetter = GetFreeDriveLetter();
-                var assignResult = await _storageService.AssignPartitionDriveLetterAsync(hostDiskNumber, partition.PartitionNumber, suggestedLetter);
+                var assignResult = await VmStorageService.AssignPartitionDriveLetterAsync(hostDiskNumber, partition.PartitionNumber, suggestedLetter);
                 if (!assignResult.Success)
                     return string.Format(Properties.Resources.Error_Gpu_InjectFailed, "Failed to assign drive letter");
                 assignedDriveLetter = $"{suggestedLetter}:\\";
@@ -650,11 +648,11 @@ namespace ExHyperV.Services
                     Log(Properties.Resources.Msg_Gpu_Remounting);
                     try
                     {
-                        await _storageService.RemoveAllPartitionAccessPathsAsync(hostDiskNumber);
-                        await _storageService.SetDiskOfflineStatusAsync(hostDiskNumber, true);
+                        await VmStorageService.RemoveAllPartitionAccessPathsAsync(hostDiskNumber);
+                        await VmStorageService.SetDiskOfflineStatusAsync(hostDiskNumber, true);
                         await Task.Delay(1000);
 
-                        await _storageService.AddDriveAsync(
+                        await VmStorageService.AddDriveAsync(
                             vmName, savedCtrlType, savedCtrlNum, savedCtrlLoc,
                             "HardDisk", pathOrNumber: hostDiskNumber.ToString(),
                             isPhysical: true);
@@ -666,7 +664,7 @@ namespace ExHyperV.Services
                 else if (!string.IsNullOrEmpty(diskTarget?.Path))
                 {
                     Log(Properties.Resources.Msg_Gpu_Unmounting);
-                    await _storageService.DismountVhdxAsync(diskTarget.Path);
+                    await VmStorageService.DismountVhdxAsync(diskTarget.Path);
                 }
             }
         }

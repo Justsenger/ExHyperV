@@ -13,7 +13,6 @@ internal class VmSpacetimeService
     private const string SnapshotServiceWql = "SELECT * FROM Msvm_VirtualSystemSnapshotService";
     private const string ManagementServiceWql = "SELECT * FROM Msvm_VirtualSystemManagementService";
     private readonly VmPowerService _powerService = new();
-    private readonly VmStorageService _storageService = new();
     private string GetSafeId(string id) => id.Replace(":", "_");
 
     // ============================================================
@@ -273,7 +272,7 @@ internal class VmSpacetimeService
                             ControllerLocation = wCtrlLoc,
                             DiskNumber = -1
                         };
-                        await _storageService.RemoveDriveAsync(vmName, staleItem);
+                        await VmStorageService.RemoveDriveAsync(vmName, staleItem);
                     }
                 }
             }
@@ -700,7 +699,7 @@ internal class VmSpacetimeService
     private async Task<ApiResponse> AddVmHardDiskDriveAsync(
         string vmName, string ctrlType, int ctrlNum, int ctrlLoc, string vhdPath)
     {
-        var result = await _storageService.AddDriveAsync(
+        var result = await VmStorageService.AddDriveAsync(
             vmName, ctrlType, ctrlNum, ctrlLoc,
             "HardDisk", vhdPath, false);
 
@@ -725,7 +724,7 @@ internal class VmSpacetimeService
             DiskNumber = -1
         };
 
-        var result = await _storageService.RemoveDriveAsync(vmName, fakeItem);
+        var result = await VmStorageService.RemoveDriveAsync(vmName, fakeItem);
         return result.Success
             ? ApiResponse.Ok()
             : ApiResponse.Fail(result.Message);
