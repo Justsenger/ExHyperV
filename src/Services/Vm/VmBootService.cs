@@ -32,7 +32,7 @@ public class VmBootService
                     {
                         foreach (var code in bootOrder)
                         {
-                            var item = BootOrderItem.CreateGen1(code);
+                            var item = CreateGen1(code);
                             item.Description = GetGen1HardwareSummary(
                                 (int)code, allHardware, hardwareMap, childrenMap);
                             result.Add(item);
@@ -62,7 +62,6 @@ public class VmBootService
                                 var item = new BootOrderItem
                                 {
                                     Name = string.IsNullOrWhiteSpace(bs.Desc) ? bs.Element : bs.Desc,
-                                    IsGen2 = true,
                                     Reference = path
                                 };
                                 ParseGen2BootInfo(item, bs.FwPath, allHardware, hardwareMap, childrenMap);
@@ -110,7 +109,24 @@ public class VmBootService
         });
     }
 
-    // ── 业务逻辑（不改动）────────────────────────────────────────
+    // ── 业务逻辑 ────────────────────────────────────────────────
+
+    private static readonly Dictionary<int, (string Name, string Icon)> Gen1DeviceMapping = new()
+    {
+        { 0, (Properties.Resources.BootOrderItem_FloppyDisk, "\uE74E") },
+        { 1, (Properties.Resources.BootOrderItem_OpticalDrive, "\uE958") },
+        { 2, (Properties.Resources.BootOrderItem_IdeHardDisk, "\uEDA2") },
+        { 3, (Properties.Resources.BootOrderItem_PxeNetworkBoot, "\uE774") },
+        { 4, (Properties.Resources.BootOrderItem_ScsiHardDisk, "\uEDA2") }
+    };
+
+    /// <summary>按 Gen1 设备码建引导项（名称+图标查映射表；Description 由调用方补）。</summary>
+    private static BootOrderItem CreateGen1(ushort code)
+    {
+        var exists = Gen1DeviceMapping.TryGetValue(code, out var info);
+        var (name, icon) = exists ? info : (Properties.Resources.BootOrderItem_UnknownDevice, "\uE9CE");
+        return new BootOrderItem { Name = name, Icon = icon, Reference = (int)code };
+    }
 
     private string GetGen1HardwareSummary(int code, List<ManagementObject> all,
         Dictionary<string, ManagementObject> map,
