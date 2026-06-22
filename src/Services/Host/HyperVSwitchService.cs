@@ -85,7 +85,7 @@ namespace ExHyperV.Services
                         if (string.IsNullOrEmpty(vmName)) return null;
 
                         string ipAddresses = await VmIpService.Lookup(vmName, rawMac);
-                        return (AdapterInfo?)new AdapterInfo(vmName, mac, "Unknown", ipAddresses);
+                        return (AdapterInfo?)new AdapterInfo { Name = vmName, MacAddress = mac, IpAddress = Ipv4.SelectBest(ipAddresses) };
                     }
                     catch (Exception ex)
                     {
@@ -115,18 +115,12 @@ namespace ExHyperV.Services
             string cleanMac = rawMac.ToUpper();
             string ipAddresses = string.Empty;
             var adapterResp = await WmiApi.QueryCimAsync(
-                $"SELECT InterfaceIndex, Status FROM MSFT_NetAdapter WHERE PermanentAddress = '{cleanMac}'",
-                obj => new
-                {
-                    Index = obj["InterfaceIndex"]?.ToString() ?? string.Empty,
-                    Status = obj["Status"]?.ToString() ?? string.Empty
-                },
+                $"SELECT InterfaceIndex FROM MSFT_NetAdapter WHERE PermanentAddress = '{cleanMac}'",
+                obj => obj["InterfaceIndex"]?.ToString() ?? string.Empty,
                 WmiScope.StdCimV2);
-            string status = "Unknown";
             if (adapterResp.Success && adapterResp.Data?.Count > 0)
             {
-                status = adapterResp.Data[0].Status;
-                string ifIndex = adapterResp.Data[0].Index;
+                string ifIndex = adapterResp.Data[0];
                 if (!string.IsNullOrEmpty(ifIndex))
                 {
                     var sw = System.Diagnostics.Stopwatch.StartNew();
@@ -147,9 +141,12 @@ namespace ExHyperV.Services
                     }
                 }
             }
-            return new AdapterInfo(
-                ExHyperV.Properties.Resources.DisplayName_HostManagementOS,
-                mac, status, ipAddresses);
+            return new AdapterInfo
+            {
+                Name = ExHyperV.Properties.Resources.DisplayName_HostManagementOS,
+                MacAddress = mac,
+                IpAddress = Ipv4.SelectBest(ipAddresses)
+            };
         }
         // ══════════════════════════════════════════════════════════════════
         //  GetNetworkInfoAsync — WmiApi

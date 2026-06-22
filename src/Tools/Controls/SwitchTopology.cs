@@ -1,5 +1,4 @@
 ﻿using System.Collections.ObjectModel;
-using System.Net;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Shapes;
@@ -54,12 +53,6 @@ namespace ExHyperV.Tools
 
         private static void OnPropertiesChanged(DependencyObject d, DependencyPropertyChangedEventArgs e) => (d as SwitchTopology)?.Redraw();
         private void OnCollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e) => Redraw();
-
-        private static string ParseIPv4(string s) =>
-            string.IsNullOrEmpty(s) ? "" :
-            s.Trim('{', '}').Split(new[] { ',', ' ' }, StringSplitOptions.RemoveEmptyEntries)
-             .FirstOrDefault(ip => IPAddress.TryParse(ip, out var p) &&
-                                   p.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork) ?? "";
 
         private void DrawLine(double x1, double y1, double x2, double y2)
         {
@@ -143,7 +136,7 @@ namespace ExHyperV.Tools
 
             CreateNode("Switch", SwitchName, "", "", centerX, SwitchY);
 
-            var clients = ItemsSource.Select(a => (Name: a.VMName, Ip: ParseIPv4(a.IPAddresses), Mac: a.MacAddress)).ToList();
+            var clients = ItemsSource.Select(a => (Name: a.Name, Ip: a.IpAddress, Mac: a.MacAddress)).ToList();
 
             if (clients.Count == 0)
             {

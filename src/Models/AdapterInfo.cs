@@ -1,21 +1,12 @@
 ﻿namespace ExHyperV.Models
 {
     /// <summary>
-    /// 表示一个网络适配器（虚拟机的或主机的）的数据模型。
+    /// 连接在某个虚拟交换机上的端点：虚拟机网卡，或主机管理 OS 网卡。仅用于交换机拓扑图。
     /// </summary>
     public class AdapterInfo
     {
-        public string VMName { get; set; }
-        public string MacAddress { get; set; }
-        public string Status { get; set; }
-        public string IPAddresses { get; set; }
-
-        public AdapterInfo(string vMName, string macAddress, string status, string ipAddresses)
-        {
-            VMName = vMName;
-            MacAddress = macAddress;
-            Status = status;
-            IPAddresses = ipAddresses;
-        }
+        public string Name { get; set; } = string.Empty;       // VM 名，或主机管理 OS 显示名
+        public string MacAddress { get; set; } = string.Empty;
+        public string IpAddress { get; set; } = string.Empty;  // 主 IPv4（已由 Ipv4.SelectBest 择优）
     }
 }
