@@ -2962,7 +2962,7 @@ namespace ExHyperV.ViewModels
                 TaskType = GpuTaskType.Prepare,
                 Name = Properties.Resources.Task_Gpu_Prepare,
                 Description = Properties.Resources.Msg_Gpu_PreparingHost,
-                Status = ExHyperV.Models.TaskStatus.Pending  // 这里写全称
+                Status = GpuTaskStatus.Pending
             });
 
             GpuTasks.Add(new TaskItem
@@ -2970,7 +2970,7 @@ namespace ExHyperV.ViewModels
                 TaskType = GpuTaskType.ConfigCheck,
                 Name = Properties.Resources.Task_Gpu_Config,
                 Description = Properties.Resources.Msg_Gpu_CheckingConfig,
-                Status = ExHyperV.Models.TaskStatus.Pending  // 这里写全称
+                Status = GpuTaskStatus.Pending
             });
 
             GpuTasks.Add(new TaskItem
@@ -2978,7 +2978,7 @@ namespace ExHyperV.ViewModels
                 TaskType = GpuTaskType.PowerCheck,
                 Name = Properties.Resources.Task_Gpu_Power,
                 Description = Properties.Resources.Msg_Gpu_CheckingPower,
-                Status = ExHyperV.Models.TaskStatus.Pending  // 这里写全称
+                Status = GpuTaskStatus.Pending
             });
 
             GpuTasks.Add(new TaskItem
@@ -2986,7 +2986,7 @@ namespace ExHyperV.ViewModels
                 TaskType = GpuTaskType.Optimization,
                 Name = Properties.Resources.Task_Gpu_Opt,
                 Description = Properties.Resources.Msg_Gpu_Mmio,
-                Status = ExHyperV.Models.TaskStatus.Pending  // 这里写全称
+                Status = GpuTaskStatus.Pending
             });
 
             GpuTasks.Add(new TaskItem
@@ -2994,7 +2994,7 @@ namespace ExHyperV.ViewModels
                 TaskType = GpuTaskType.Assign,
                 Name = Properties.Resources.Task_Gpu_Assign,
                 Description = Properties.Resources.Msg_Gpu_Creating,
-                Status = ExHyperV.Models.TaskStatus.Pending  // 这里写全称
+                Status = GpuTaskStatus.Pending
             });
             if (AutoInstallDrivers)
             {
@@ -3003,7 +3003,7 @@ namespace ExHyperV.ViewModels
                     TaskType = GpuTaskType.Driver,
                     Name = Properties.Resources.Task_Gpu_Driver,
                     Description = Properties.Resources.Msg_Gpu_WaitingScan,
-                    Status = ExHyperV.Models.TaskStatus.Pending
+                    Status = GpuTaskStatus.Pending
                 });
             }
 
@@ -3025,7 +3025,7 @@ namespace ExHyperV.ViewModels
                 }
 
                 var task = tasks[i];
-                task.Status = ExHyperV.Models.TaskStatus.Running;
+                task.Status = GpuTaskStatus.Running;
                 AppendLog(string.Format(Properties.Resources.Msg_Gpu_ExecTask, task.Name));
                 try
                 {
@@ -3153,12 +3153,12 @@ namespace ExHyperV.ViewModels
                             }
                             break;
                     }
-                    task.Status = ExHyperV.Models.TaskStatus.Success;
+                    task.Status = GpuTaskStatus.Success;
                     AppendLog(string.Format(Properties.Resources.Msg_Gpu_TaskOk, task.Name, task.Description));
                 }
                 catch (Exception ex)
                 {
-                    task.Status = ExHyperV.Models.TaskStatus.Failed;
+                    task.Status = GpuTaskStatus.Failed;
                     task.Description = string.Format(Properties.Resources.Error_Format_FailMsg, ex.Message);
                     AppendLog(string.Format(Properties.Resources.Error_Format_StageExc, task.Name, ex.Message));
                     if (!string.IsNullOrEmpty(_currentProcessingGpuAdapterId))
@@ -3186,7 +3186,7 @@ namespace ExHyperV.ViewModels
             if (partition.OsType == OperatingSystemType.Windows)
             {
                 ShowPartitionSelector = false;
-                driveTask.Status = ExHyperV.Models.TaskStatus.Running;
+                driveTask.Status = GpuTaskStatus.Running;
                 driveTask.Description = string.Format(Properties.Resources.Msg_Gpu_SyncingPart, partition.PartitionNumber);
                 AppendLog(driveTask.Description);
 
@@ -3202,7 +3202,7 @@ namespace ExHyperV.ViewModels
 
                 if (result.Success)
                 {
-                    driveTask.Status = ExHyperV.Models.TaskStatus.Success;
+                    driveTask.Status = GpuTaskStatus.Success;
                     _currentProcessingGpuAdapterId = null;
                     await FinishWorkflowAsync();
                 }
@@ -3215,7 +3215,7 @@ namespace ExHyperV.ViewModels
                         _currentProcessingGpuAdapterId = null;
                     }
 
-                    driveTask.Status = ExHyperV.Models.TaskStatus.Failed;
+                    driveTask.Status = GpuTaskStatus.Failed;
                     driveTask.Description = result.Message;
                 }
             }
@@ -3343,7 +3343,7 @@ namespace ExHyperV.ViewModels
             ShowPartitionSelector = false;
             ShowSshForm = false;
             ShowLogConsole = true;
-            driveTask.Status = ExHyperV.Models.TaskStatus.Running;
+            driveTask.Status = GpuTaskStatus.Running;
 
             AppendLog(Properties.Resources.Msg_Gpu_DeployStart);
             AppendLog($"[Info] Selected Script: {SelectedLinuxScript.Name}");
@@ -3386,7 +3386,7 @@ namespace ExHyperV.ViewModels
             // 7. 流程结束判定
             if (result == "OK" || (result.Contains("successfully") && result.Contains("signing")))
             {
-                driveTask.Status = ExHyperV.Models.TaskStatus.Success;
+                driveTask.Status = GpuTaskStatus.Success;
                 driveTask.Description = Properties.Resources.Msg_Gpu_LinuxDeployDone;
                 _currentProcessingGpuAdapterId = null;
                 AppendLog(Properties.Resources.Msg_Gpu_LinuxDeployDone);
@@ -3402,7 +3402,7 @@ namespace ExHyperV.ViewModels
                     _currentProcessingGpuAdapterId = null;
                 }
 
-                driveTask.Status = ExHyperV.Models.TaskStatus.Failed;
+                driveTask.Status = GpuTaskStatus.Failed;
                 driveTask.Description = result;
                 AppendLog(string.Format(Properties.Resources.Error_Gpu_DeployFatal, result));
             }
@@ -3810,7 +3810,7 @@ namespace ExHyperV.ViewModels
                 var driveTask = GpuTasks.FirstOrDefault(t => t.TaskType == GpuTaskType.Driver);
                 if (driveTask != null)
                 {
-                    driveTask.Status = ExHyperV.Models.TaskStatus.Pending;
+                    driveTask.Status = GpuTaskStatus.Pending;
                     driveTask.Description = SelectedPartition.OsType == OperatingSystemType.Linux
                         ? Properties.Resources.Msg_Gpu_SshConfirm
                         : Properties.Resources.Msg_Gpu_SelectPart;

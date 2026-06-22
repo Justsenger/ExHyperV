@@ -13,7 +13,8 @@ namespace ExHyperV.Models
         Driver          // 驱动安装
     }
 
-    public enum TaskStatus { Pending, Running, Success, Failed, Warning }
+    /// <summary>GPU 任务状态（独立命名，避免撞 System.Threading.Tasks.TaskStatus）。</summary>
+    public enum GpuTaskStatus { Pending, Running, Success, Failed }
 
     public partial class TaskItem : ObservableObject
     {
@@ -22,6 +23,6 @@ namespace ExHyperV.Models
 
         [ObservableProperty] private string _name;          // 显示名称（用于 UI 展示）
         [ObservableProperty] private string _description;   // 详细描述
-        [ObservableProperty] private TaskStatus _status = TaskStatus.Pending;
+        [ObservableProperty] private GpuTaskStatus _status = GpuTaskStatus.Pending;
     }
 }
