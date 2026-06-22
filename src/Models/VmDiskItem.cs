@@ -26,8 +26,6 @@ namespace ExHyperV.Models
 
         public string PnpDeviceId { get; set; } // 物理硬盘的 PNPDeviceID（仅 Physical 类型用）
 
-        public List<VmNetworkAdapter> NetworkAdapters { get; set; } = new List<VmNetworkAdapter>();
-
         public string IoSpeedText => $"↑ {FormatIoSpeed(_readSpeedBps)}   ↓ {FormatIoSpeed(_writeSpeedBps)} ";
 
         public double UsagePercentage => _maxSize > 0 ? (double)_currentSize / _maxSize * 100 : 0;
