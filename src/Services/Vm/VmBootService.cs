@@ -5,9 +5,9 @@ using ExHyperV.Models;
 
 namespace ExHyperV.Services;
 
-public class VmBootService
+public static class VmBootService
 {
-    public async Task<List<BootOrderItem>> GetBootOrderAsync(string vmName)
+    public static async Task<List<BootOrderItem>> GetBootOrderAsync(string vmName)
     {
         return await Task.Run(() =>
         {
@@ -77,7 +77,7 @@ public class VmBootService
         });
     }
 
-    public async Task<bool> SetBootOrderAsync(string vmName, List<BootOrderItem> items)
+    public static async Task<bool> SetBootOrderAsync(string vmName, List<BootOrderItem> items)
     {
         return await Task.Run(async () =>
         {
@@ -128,7 +128,7 @@ public class VmBootService
         return new BootOrderItem { Name = name, Icon = icon, Reference = (int)code };
     }
 
-    private string GetGen1HardwareSummary(int code, List<ManagementObject> all,
+    private static string GetGen1HardwareSummary(int code, List<ManagementObject> all,
         Dictionary<string, ManagementObject> map,
         Dictionary<string, List<ManagementObject>> children)
     {
@@ -163,7 +163,7 @@ public class VmBootService
         return GetMediaFile(sorted.First(), children) ?? string.Empty;
     }
 
-    private void ParseGen2BootInfo(BootOrderItem item, string fwPath,
+    private static void ParseGen2BootInfo(BootOrderItem item, string fwPath,
         List<ManagementObject> all,
         Dictionary<string, ManagementObject> map,
         Dictionary<string, List<ManagementObject>> children)
@@ -211,7 +211,7 @@ public class VmBootService
         }
     }
 
-    private string? GetMediaFile(ManagementObject? drive,
+    private static string? GetMediaFile(ManagementObject? drive,
         Dictionary<string, List<ManagementObject>> children)
     {
         if (drive == null) return null;
@@ -237,7 +237,7 @@ public class VmBootService
         return null;
     }
 
-    private List<ManagementObject> GetVmHardware(ManagementObject settings)
+    private static List<ManagementObject> GetVmHardware(ManagementObject settings)
     {
         var list = settings.GetRelated(
             "Msvm_ResourceAllocationSettingData",
@@ -254,7 +254,7 @@ public class VmBootService
         return list;
     }
 
-    private Dictionary<string, List<ManagementObject>> BuildChildrenMap(
+    private static Dictionary<string, List<ManagementObject>> BuildChildrenMap(
         List<ManagementObject> hardware)
     {
         var map = new Dictionary<string, List<ManagementObject>>();
@@ -268,7 +268,7 @@ public class VmBootService
         return map;
     }
 
-    private string? GetParentId(ManagementObject res)
+    private static string? GetParentId(ManagementObject res)
     {
         string? p = res["Parent"]?.ToString();
         if (string.IsNullOrEmpty(p)) return null;
@@ -276,5 +276,5 @@ public class VmBootService
         return m.Success ? NormalizeId(m.Groups[1].Value) : null;
     }
 
-    private string? NormalizeId(string? id) => id?.Replace("\\\\", "\\");
+    private static string? NormalizeId(string? id) => id?.Replace("\\\\", "\\");
 }

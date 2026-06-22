@@ -38,7 +38,6 @@ namespace ExHyperV.ViewModels
         private readonly VmNetworkService _vmNetworkService;
         private readonly VmCreateService _vmCreateService = new();
         private readonly VmEditService _vmEditService = new();
-        private readonly VmBootService _vmBootService = new();
         private readonly VmSpacetimeService _spacetimeService = new();
         private readonly VmDeleteService _deleteService = new();
 
@@ -825,7 +824,7 @@ namespace ExHyperV.ViewModels
             if (vm == null) return;
             try
             {
-                var list = await _vmBootService.GetBootOrderAsync(vm.Name);
+                var list = await VmBootService.GetBootOrderAsync(vm.Name);
 
                 Application.Current.Dispatcher.Invoke(() => {
                     vm.BootOrderItems.Clear();
@@ -2665,7 +2664,7 @@ namespace ExHyperV.ViewModels
 
             try
             {
-                var list = await _vmBootService.GetBootOrderAsync(SelectedVm.Name);
+                var list = await VmBootService.GetBootOrderAsync(SelectedVm.Name);
 
                 // 更新 UI 集合
                 SelectedVm.BootOrderItems.Clear();
@@ -2692,7 +2691,7 @@ namespace ExHyperV.ViewModels
             try
             {
                 var currentOrder = SelectedVm.BootOrderItems.ToList();
-                bool success = await _vmBootService.SetBootOrderAsync(SelectedVm.Name, currentOrder);
+                bool success = await VmBootService.SetBootOrderAsync(SelectedVm.Name, currentOrder);
                 if (!success)
                     ShowSnackbar(Properties.Resources.VmBootSettings_TitleBootOrder, Properties.Resources.Error_Common_SaveFail, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
             }
