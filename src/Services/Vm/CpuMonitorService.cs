@@ -281,8 +281,7 @@ namespace ExHyperV.Services
                             {
                                 VmName = "Host",
                                 CoreId = coreId,
-                                Usage = value,
-                                IsRunning = true
+                                Usage = value
                             });
                         }
                     }
@@ -303,8 +302,7 @@ namespace ExHyperV.Services
                                 {
                                     VmName = vmName,
                                     CoreId = vCpuId,
-                                    Usage = value,
-                                    IsRunning = true
+                                    Usage = value
                                 });
                             }
                         }
@@ -323,7 +321,7 @@ namespace ExHyperV.Services
                     int count = kvp.Value;
                     for (int i = 0; i < count; i++)
                     {
-                        results.Add(new VmCoreMetric { VmName = vmName, CoreId = i, IsRunning = false });
+                        results.Add(new VmCoreMetric { VmName = vmName, CoreId = i });
                     }
                 }
             }
