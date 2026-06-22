@@ -14,7 +14,6 @@ namespace ExHyperV.Models
     public class PartitionInfo
     {
         public int PartitionNumber { get; }
-        public ulong StartOffset { get; }
         public ulong SizeInBytes { get; }
         public OperatingSystemType OsType { get; }
         public string TypeDescription { get; }
@@ -24,10 +23,9 @@ namespace ExHyperV.Models
         public bool IsPhysicalDisk { get; set; }    // 标记是否为物理直通盘
 
 
-        public PartitionInfo(int number, ulong startOffset, ulong size, OperatingSystemType osType, string typeDescription)
+        public PartitionInfo(int number, ulong size, OperatingSystemType osType, string typeDescription)
         {
             PartitionNumber = number;
-            StartOffset = startOffset;
             SizeInBytes = size;
             OsType = osType;
             TypeDescription = typeDescription;

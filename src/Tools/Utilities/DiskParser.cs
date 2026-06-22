@@ -127,7 +127,6 @@ namespace ExHyperV.Tools
                 var (osType, desc) = GetOsTypeFromGptGuid(typeGuid);
                 yield return new PartitionInfo(
                     i + 1,
-                    firstLba * (ulong)sectorSize,
                     (lastLba - firstLba + 1) * (ulong)sectorSize,
                     osType,
                     desc);
@@ -142,13 +141,11 @@ namespace ExHyperV.Tools
                 byte sysId = mbr[offset + 4];
                 if (sysId == 0x00 || sysId == 0x05 || sysId == 0x0F) continue;
 
-                uint startLba = BitConverter.ToUInt32(mbr, offset + 8);
                 uint totalSectors = BitConverter.ToUInt32(mbr, offset + 12);
 
                 var (osType, desc) = GetOsTypeFromMbrId(sysId);
                 yield return new PartitionInfo(
                     i + 1,
-                    (ulong)startLba * (ulong)sectorSize,
                     (ulong)totalSectors * (ulong)sectorSize,
                     osType,
                     desc);
