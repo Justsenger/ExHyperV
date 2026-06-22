@@ -9,7 +9,6 @@ namespace ExHyperV.Services
     public class VmCreateService
     {
         private readonly VmStorageService _storage = new();
-        private readonly VmNetworkService _network = new();
         private readonly VmPowerService _power = new();
 
         private const string ServiceWql = "SELECT * FROM Msvm_VirtualSystemManagementService";
@@ -185,17 +184,17 @@ namespace ExHyperV.Services
                 await VmMemoryService.SetVmMemorySettingsAsync(finalVmName, memSettings, false);
 
                 // ── Step 6: 网卡 ──────────────────────────────────
-                await _network.AddNetworkAdapterAsync(finalVmName);
+                await VmNetworkService.AddNetworkAdapterAsync(finalVmName);
                 if (!string.IsNullOrWhiteSpace(p.SwitchName) &&
                     p.SwitchName != ExHyperV.Properties.Resources.Common_None)
                 {
-                    var adapters = await _network.GetNetworkAdaptersAsync(finalVmName);
+                    var adapters = await VmNetworkService.GetNetworkAdaptersAsync(finalVmName);
                     var adapter = adapters.FirstOrDefault();
                     if (adapter != null)
                     {
                         adapter.IsConnected = true;
                         adapter.SwitchName = p.SwitchName;
-                        await _network.UpdateConnectionAsync(finalVmName, adapter);
+                        await VmNetworkService.UpdateConnectionAsync(finalVmName, adapter);
                     }
                 }
 

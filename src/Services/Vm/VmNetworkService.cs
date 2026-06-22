@@ -4,13 +4,13 @@ using System.Management;
 
 namespace ExHyperV.Services;
 
-public class VmNetworkService
+public static class VmNetworkService
 {
     private const string ServiceWql = "SELECT * FROM Msvm_VirtualSystemManagementService";
 
     // ── 查询 ──────────────────────────────────────────────────────
 
-    public async Task<List<VmNetworkAdapter>> GetNetworkAdaptersAsync(string vmName)
+    public static async Task<List<VmNetworkAdapter>> GetNetworkAdaptersAsync(string vmName)
     {
         var resultList = new List<VmNetworkAdapter>();
         if (string.IsNullOrEmpty(vmName)) return resultList;
@@ -99,7 +99,7 @@ public class VmNetworkService
         return resultList;
     }
 
-    public async Task<List<string>> GetAvailableSwitchesAsync()
+    public static async Task<List<string>> GetAvailableSwitchesAsync()
     {
         var response = await WmiApi.QueryAsync(
             "SELECT ElementName FROM Msvm_VirtualEthernetSwitch",
@@ -111,7 +111,7 @@ public class VmNetworkService
             .ToList()!;
     }
 
-    public async Task FillDynamicIpsAsync(string vmName, IEnumerable<VmNetworkAdapter> adapters)
+    public static async Task FillDynamicIpsAsync(string vmName, IEnumerable<VmNetworkAdapter> adapters)
     {
         // 只填"没 IP"的网卡:有 IP 的(集成服务报的,含 IPv6/多地址)是权威列表,绝不覆盖。
         // 空网卡(无集成服务的 VM,如国产环境)走 Lookup(内部 嗅探→集成→邻居)补 IPv4。
@@ -133,14 +133,14 @@ public class VmNetworkService
         }
     }
 
-    public async Task<string> GetVmIpAddressAsync(string vmName, string macAddressWithColons)
+    public static async Task<string> GetVmIpAddressAsync(string vmName, string macAddressWithColons)
     {
         return await VmIpService.Lookup(vmName, macAddressWithColons);
     }
 
     // ── 网卡生命周期 ──────────────────────────────────────────────
 
-    public async Task<(bool Success, string Message)> AddNetworkAdapterAsync(string vmName)
+    public static async Task<(bool Success, string Message)> AddNetworkAdapterAsync(string vmName)
     {
         try
         {
@@ -204,7 +204,7 @@ public class VmNetworkService
         }
     }
 
-    public async Task<(bool Success, string Message)> RemoveNetworkAdapterAsync(string vmName, string id)
+    public static async Task<(bool Success, string Message)> RemoveNetworkAdapterAsync(string vmName, string id)
     {
         string escapedId = id.Replace("\\", "\\\\");
 
@@ -225,7 +225,7 @@ public class VmNetworkService
             : (false, result.Error);
     }
 
-    public async Task<(bool Success, string Message)> UpdateConnectionAsync(
+    public static async Task<(bool Success, string Message)> UpdateConnectionAsync(
         string vmName, VmNetworkAdapter adapter)
     {
         string escapedId = adapter.Id.Replace("\\", "\\\\");
@@ -265,7 +265,7 @@ public class VmNetworkService
 
     // ── 高级特性配置 ──────────────────────────────────────────────
 
-    public async Task<(bool Success, string Message)> ApplyVlanSettingsAsync(
+    public static async Task<(bool Success, string Message)> ApplyVlanSettingsAsync(
         string vmName, VmNetworkAdapter adapter)
     {
         if (adapter.VlanMode == VlanOperationMode.Private)
@@ -325,7 +325,7 @@ public class VmNetworkService
         });
     }
 
-    public Task<(bool Success, string Message)> ApplyBandwidthSettingsAsync(
+    public static Task<(bool Success, string Message)> ApplyBandwidthSettingsAsync(
         string vmName, VmNetworkAdapter adapter)
         => EnsureAndModifyFeatureAsync(adapter.Id, "Msvm_EthernetSwitchPortBandwidthSettingData", s =>
         {
@@ -333,7 +333,7 @@ public class VmNetworkService
             s["Reservation"] = (ulong)(adapter.BandwidthReservation * 1000000);
         });
 
-    public Task<(bool Success, string Message)> ApplySecuritySettingsAsync(
+    public static Task<(bool Success, string Message)> ApplySecuritySettingsAsync(
         string vmName, VmNetworkAdapter adapter)
         => EnsureAndModifyFeatureAsync(adapter.Id, "Msvm_EthernetSwitchPortSecuritySettingData", s =>
         {
@@ -345,7 +345,7 @@ public class VmNetworkService
             s["StormLimit"] = (uint)adapter.StormLimit;
         });
 
-    public Task<(bool Success, string Message)> ApplyOffloadSettingsAsync(
+    public static Task<(bool Success, string Message)> ApplyOffloadSettingsAsync(
         string vmName, VmNetworkAdapter adapter)
         => EnsureAndModifyFeatureAsync(adapter.Id, "Msvm_EthernetSwitchPortOffloadSettingData", s =>
         {
@@ -356,7 +356,7 @@ public class VmNetworkService
 
     // ── 核心内部逻辑 ──────────────────────────────────────────────
 
-    private async Task<(bool Success, string Message)> EnsureAndModifyFeatureAsync(
+    private static async Task<(bool Success, string Message)> EnsureAndModifyFeatureAsync(
         string portId, string featureClass, Action<ManagementObject> updateAction)
     {
         try
@@ -418,7 +418,7 @@ public class VmNetworkService
 
     // ── 业务逻辑 ──────────────────────────────────────────────────
 
-    private void ParseFeatureSettings(VmNetworkAdapter adapter, ManagementObject feature)
+    private static void ParseFeatureSettings(VmNetworkAdapter adapter, ManagementObject feature)
     {
         string cls = feature.ClassPath.ClassName;
 
@@ -456,7 +456,7 @@ public class VmNetworkService
         }
     }
 
-    private async Task<string> GetSwitchNameByGuidAsync(string? guid)
+    private static async Task<string> GetSwitchNameByGuidAsync(string? guid)
     {
         if (string.IsNullOrEmpty(guid)) return Properties.Resources.Status_Unconnected;
         var response = await WmiApi.QueryFirstAsync(
@@ -465,7 +465,7 @@ public class VmNetworkService
         return response.HasData ? response.Data! : Properties.Resources.Common_UnknownSwitch;
     }
 
-    private string? GetSwitchPathByName(string switchName)
+    private static string? GetSwitchPathByName(string switchName)
     {
         using var svcForScope = WmiApi.GetVirtualSystemManagementService();
         using var searcher = new ManagementObjectSearcher(svcForScope.Scope,
@@ -474,7 +474,7 @@ public class VmNetworkService
         return col.Cast<ManagementObject>().FirstOrDefault()?.Path.Path;
     }
 
-    private ManagementObject? GetDefaultFeatureTemplate(string className)
+    private static ManagementObject? GetDefaultFeatureTemplate(string className)
     {
         using var svcForScope = WmiApi.GetVirtualSystemManagementService();
         using var searcher = new ManagementObjectSearcher(svcForScope.Scope,

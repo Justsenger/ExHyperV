@@ -15,14 +15,11 @@ namespace ExHyperV.Services
     {
         private readonly VmPowerService _powerService;
         private readonly VmQueryService _queryService;
-        private readonly VmNetworkService _networkService;
         private readonly VmStorageService _storageService;
-        private readonly VmMmioService _mmioService = new();
-        public VmGpuService(VmPowerService powerService, VmQueryService queryService, VmNetworkService networkService, VmStorageService storageService)
+        public VmGpuService(VmPowerService powerService, VmQueryService queryService, VmStorageService storageService)
         {
             _powerService = powerService;
             _queryService = queryService;
-            _networkService = networkService;
             _storageService = storageService;
         }
 
@@ -325,7 +322,7 @@ namespace ExHyperV.Services
         }
         public async Task<bool> OptimizeVmForGpuAsync(string vmName)
         {
-            return await _mmioService.ConfigureMmioAsync(vmName);
+            return await VmMmioService.ConfigureMmioAsync(vmName);
         }
 
         #endregion
@@ -1193,7 +1190,7 @@ namespace ExHyperV.Services
                     }
 
                     Log(Properties.Resources.Msg_Gpu_LinuxWaitingIp);
-                    var adapters = await _networkService.GetNetworkAdaptersAsync(vmName);
+                    var adapters = await VmNetworkService.GetNetworkAdaptersAsync(vmName);
                     if (adapters == null || adapters.Count == 0) return "Failed to get VM MAC Address";
                     string macAddress = adapters[0].MacAddress;
                     string vmIpAddress = await VmIpService.Lookup(vmName, macAddress);

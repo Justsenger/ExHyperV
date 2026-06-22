@@ -32,7 +32,6 @@ namespace ExHyperV.ViewModels
         private readonly VmPowerService _powerService;
         private readonly VmStorageService _storageService;
         private readonly VmGpuService _vmGpuService;
-        private readonly VmNetworkService _vmNetworkService;
         private readonly VmCreateService _vmCreateService = new();
         private readonly VmSpacetimeService _spacetimeService = new();
         private readonly VmDeleteService _deleteService = new();
@@ -163,8 +162,7 @@ namespace ExHyperV.ViewModels
             _queryService = queryService;
             _powerService = powerService;
             _storageService = new VmStorageService();
-            _vmNetworkService = new VmNetworkService();
-            _vmGpuService = new VmGpuService(_powerService, _queryService, _vmNetworkService, _storageService);
+            _vmGpuService = new VmGpuService(_powerService, _queryService, _storageService);
 
             InitPossibleCpuCounts();
 
@@ -460,7 +458,7 @@ namespace ExHyperV.ViewModels
                 NewVmIsolationType = "Disabled";
 
                 // --- 7. 加载虚拟交换机列表 ---
-                var switches = await _vmNetworkService.GetAvailableSwitchesAsync();
+                var switches = await VmNetworkService.GetAvailableSwitchesAsync();
 
                 // 创建一个临时的列表，第一项放“未连接”
                 string noneText = Properties.Resources.Common_None; // “未连接”的文本
@@ -2367,8 +2365,8 @@ namespace ExHyperV.ViewModels
 
             try
             {
-                var switchesTask = _vmNetworkService.GetAvailableSwitchesAsync();
-                var adaptersTask = _vmNetworkService.GetNetworkAdaptersAsync(SelectedVm.Name);
+                var switchesTask = VmNetworkService.GetAvailableSwitchesAsync();
+                var adaptersTask = VmNetworkService.GetNetworkAdaptersAsync(SelectedVm.Name);
 
                 await Task.WhenAll(switchesTask, adaptersTask);
 
@@ -2385,7 +2383,7 @@ namespace ExHyperV.ViewModels
                 if (SelectedVm.IsRunning)
                 {
                     _ = Task.Run(async () => {
-                        await _vmNetworkService.FillDynamicIpsAsync(SelectedVm.Name, SelectedVm.NetworkAdapters);
+                        await VmNetworkService.FillDynamicIpsAsync(SelectedVm.Name, SelectedVm.NetworkAdapters);
                     });
                 }
             }
@@ -2467,7 +2465,7 @@ namespace ExHyperV.ViewModels
             if (SelectedVm == null) return;
             try
             {
-                var fresh = await _vmNetworkService.GetNetworkAdaptersAsync(SelectedVm.Name);
+                var fresh = await VmNetworkService.GetNetworkAdaptersAsync(SelectedVm.Name);
                 SyncNetworkAdaptersInternal(SelectedVm.NetworkAdapters, fresh);
             }
             catch { /* 回滚是尽力而为：拉取失败则保持现状，离开网络页时会自然重对账 */ }
@@ -2481,7 +2479,7 @@ namespace ExHyperV.ViewModels
             IsLoadingSettings = true;
             try
             {
-                var result = await _vmNetworkService.AddNetworkAdapterAsync(SelectedVm.Name);
+                var result = await VmNetworkService.AddNetworkAdapterAsync(SelectedVm.Name);
 
                 if (result.Success)
                 {
@@ -2512,7 +2510,7 @@ namespace ExHyperV.ViewModels
             IsLoadingSettings = true;
             try
             {
-                var result = await _vmNetworkService.RemoveNetworkAdapterAsync(SelectedVm.Name, adapterId);
+                var result = await VmNetworkService.RemoveNetworkAdapterAsync(SelectedVm.Name, adapterId);
 
                 if (result.Success)
                 {
@@ -2542,7 +2540,7 @@ namespace ExHyperV.ViewModels
             IsLoadingSettings = true;
             try
             {
-                var result = await _vmNetworkService.UpdateConnectionAsync(SelectedVm.Name, adapter);
+                var result = await VmNetworkService.UpdateConnectionAsync(SelectedVm.Name, adapter);
                 if (!result.Success)
                 {
                     ShowSnackbar(Properties.Resources.Error_Common_OpFail, result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
@@ -2563,7 +2561,7 @@ namespace ExHyperV.ViewModels
             IsLoadingSettings = true;
             try
             {
-                var result = await _vmNetworkService.ApplyVlanSettingsAsync(SelectedVm.Name, adapter);
+                var result = await VmNetworkService.ApplyVlanSettingsAsync(SelectedVm.Name, adapter);
                 if (result.Success) ShowSnackbar(Properties.Resources.Common_Success, Properties.Resources.Msg_Net_VlanApplied, ControlAppearance.Success, SymbolRegular.CheckmarkCircle24);
                 else ShowSnackbar(Properties.Resources.Common_Failed, result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
             }
@@ -2581,7 +2579,7 @@ namespace ExHyperV.ViewModels
             IsLoadingSettings = true;
             try
             {
-                var result = await _vmNetworkService.ApplyBandwidthSettingsAsync(SelectedVm.Name, adapter);
+                var result = await VmNetworkService.ApplyBandwidthSettingsAsync(SelectedVm.Name, adapter);
                 if (result.Success) ShowSnackbar(Properties.Resources.Common_Success, Properties.Resources.Msg_Net_QosApplied, ControlAppearance.Success, SymbolRegular.CheckmarkCircle24);
                 else ShowSnackbar(Properties.Resources.Common_Failed, result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
             }
@@ -2599,14 +2597,14 @@ namespace ExHyperV.ViewModels
             IsLoadingSettings = true;
             try
             {
-                var secResult = await _vmNetworkService.ApplySecuritySettingsAsync(SelectedVm.Name, adapter);
+                var secResult = await VmNetworkService.ApplySecuritySettingsAsync(SelectedVm.Name, adapter);
                 if (!secResult.Success)
                 {
                     ShowSnackbar(Properties.Resources.Common_Failed, string.Format(Properties.Resources.Error_Net_Security, secResult.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
                     return;
                 }
 
-                var offloadResult = await _vmNetworkService.ApplyOffloadSettingsAsync(SelectedVm.Name, adapter);
+                var offloadResult = await VmNetworkService.ApplyOffloadSettingsAsync(SelectedVm.Name, adapter);
                 if (!offloadResult.Success)
                 {
                     ShowSnackbar(Properties.Resources.Common_Failed, string.Format(Properties.Resources.Error_Net_Offload, offloadResult.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
@@ -2626,7 +2624,7 @@ namespace ExHyperV.ViewModels
         private async Task ToggleOffloadSettingAsync(VmNetworkAdapter adapter)
         {
             if (SelectedVm == null || adapter == null) return;
-            var result = await _vmNetworkService.ApplyOffloadSettingsAsync(SelectedVm.Name, adapter);
+            var result = await VmNetworkService.ApplyOffloadSettingsAsync(SelectedVm.Name, adapter);
             if (!result.Success)
             {
                 ShowSnackbar(Properties.Resources.Error_Net_ApplyFail, result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
@@ -2639,7 +2637,7 @@ namespace ExHyperV.ViewModels
         private async Task ToggleSecuritySettingAsync(VmNetworkAdapter adapter)
         {
             if (SelectedVm == null || adapter == null) return;
-            var result = await _vmNetworkService.ApplySecuritySettingsAsync(SelectedVm.Name, adapter);
+            var result = await VmNetworkService.ApplySecuritySettingsAsync(SelectedVm.Name, adapter);
             if (!result.Success)
             {
                 ShowSnackbar(Properties.Resources.Error_Net_SecurityFail, result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
@@ -3261,7 +3259,7 @@ namespace ExHyperV.ViewModels
                     // 扫描 IP
                     string vmIp = await Task.Run(async () =>
                     {
-                        var adapters = await _vmNetworkService.GetNetworkAdaptersAsync(SelectedVm.Name);
+                        var adapters = await VmNetworkService.GetNetworkAdaptersAsync(SelectedVm.Name);
                         string mac = adapters?.FirstOrDefault()?.MacAddress ?? string.Empty;
                         if (!string.IsNullOrEmpty(mac))
                         {

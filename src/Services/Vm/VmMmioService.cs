@@ -16,7 +16,7 @@ namespace ExHyperV.Services
     ///   - 只需一次必然失败的启动尝试（MMIO 校验在引导前完成，客户机根本没真正启动）；
     ///   - 精度由 Hyper-V 自身判据保证，不受硬编码表粒度影响。
     /// </summary>
-    public class VmMmioService
+    public static class VmMmioService
     {
         // 探测用的超限区域：top = 2^52 字节。
         // 经实测，top 在 (2^52, 2^53) 之间会触发字段回绕而“意外启动”，2^52 是可靠干净失败的最大值；
@@ -42,7 +42,7 @@ namespace ExHyperV.Services
         /// 探测宿主 MMIO 上限并写入最优的 MMIO 间隙配置。
         /// </summary>
         /// <returns>最终设置写入成功返回 true。</returns>
-        public async Task<bool> ConfigureMmioAsync(string vmName)
+        public static async Task<bool> ConfigureMmioAsync(string vmName)
         {
             try
             {
@@ -86,7 +86,7 @@ namespace ExHyperV.Services
         /// 设一个超限区域并尝试启动，启动被拒时从错误信息解析上限。返回 0 表示无法确定（调用方应回退）。
         /// 注意：本方法会临时把 VM 的 MMIO 改成探测值，调用方必须随后写入最终配置以覆盖它。
         /// </summary>
-        private async Task<ulong> QueryHostMmioCeilingMbAsync(string vmName)
+        private static async Task<ulong> QueryHostMmioCeilingMbAsync(string vmName)
         {
             // 1. 写入超限 MMIO（沿用 ModifySystemSettings 默认路径）
             var setResp = await WmiApi.WithObjectAsync(
