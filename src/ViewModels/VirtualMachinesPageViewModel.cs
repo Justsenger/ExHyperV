@@ -2775,7 +2775,7 @@ namespace ExHyperV.ViewModels
                         (adapter.InstancePath.Contains(h.InstanceId, StringComparison.OrdinalIgnoreCase) ||
                          NormalizeDeviceId(h.InstanceId) == NormalizeDeviceId(adapter.InstancePath)));
 
-                    var assignment = new VmGpuAssignment { AdapterId = adapter.Id, InstanceId = adapter.InstancePath };
+                    var assignment = new VmGpuAssignment { AdapterId = adapter.Id };
 
                     if (matchedHostGpu != null)
                     {

@@ -9,7 +9,6 @@ namespace ExHyperV.Models
         [ObservableProperty] private string _name;           // 型号全名
         [ObservableProperty] private string _manu;           // 芯片商 (NVIDIA/AMD) -> 匹配图标用
         [ObservableProperty] private string _vendor;         // 制造商 (ASUS/MSI) -> 文字显示用
-        [ObservableProperty] private string _instanceId;
         [ObservableProperty] private string _pName;
         [ObservableProperty] private string _driverVersion;
         [ObservableProperty] private string _ram;
