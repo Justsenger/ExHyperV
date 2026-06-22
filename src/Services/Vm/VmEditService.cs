@@ -2,9 +2,9 @@ using ExHyperV.Tools;
 
 namespace ExHyperV.Services;
 
-public class VmEditService
+public static class VmEditService
 {
-    public async Task<(bool Success, string Message)> RenameVmAsync(Guid vmGuid, string newName)
+    public static async Task<(bool Success, string Message)> RenameVmAsync(Guid vmGuid, string newName)
     {
         // Msvm_ComputerSystem 里 Name 字段存的是 GUID，不是显示名
         // 先找到 VM 对应的 VirtualSystemSettingData，改 ElementName，再提交

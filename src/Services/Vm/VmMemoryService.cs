@@ -5,9 +5,9 @@ using System.Management;
 
 namespace ExHyperV.Services;
 
-public class VmMemoryService
+public static class VmMemoryService
 {
-    public async Task<VmMemorySettings?> GetVmMemorySettingsAsync(string vmName)
+    public static async Task<VmMemorySettings?> GetVmMemorySettingsAsync(string vmName)
     {
         try
         {
@@ -66,7 +66,7 @@ public class VmMemoryService
         }
     }
 
-    public async Task<(bool Success, string Message)> SetVmMemorySettingsAsync(
+    public static async Task<(bool Success, string Message)> SetVmMemorySettingsAsync(
         string vmName, VmMemorySettings newSettings, bool isVmRunning)
     {
         try
@@ -121,7 +121,7 @@ public class VmMemoryService
 
     // ── 业务逻辑（不改动）────────────────────────────────────────
 
-    private void ApplyMemorySettingsToWmiObject(ManagementObject memData, VmMemorySettings memorySettings, bool isVmRunning)
+    private static void ApplyMemorySettingsToWmiObject(ManagementObject memData, VmMemorySettings memorySettings, bool isVmRunning)
     {
         // 默认 2MB 对齐（对齐 PS Set-VMMemory.ValidateAlignment：非大页强制 2MB；大页 1024MB 在下方按 BackingPageSize 覆盖）
         long alignment = 2;

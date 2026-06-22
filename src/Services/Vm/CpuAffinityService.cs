@@ -2,12 +2,12 @@ using ExHyperV.Tools;
 
 namespace ExHyperV.Services
 {
-    public class CpuAffinityService
+    public static class CpuAffinityService
     {
         /// <summary>
         /// 获取虚拟机的 CPU 亲和性设置
         /// </summary>
-        public async Task<List<int>> GetCpuAffinityAsync(Guid vmId, string notes)
+        public static async Task<List<int>> GetCpuAffinityAsync(Guid vmId, string notes)
         {
             // 1. 优先尝试从 Notes 中解析（持久化配置）
             string savedAffinity = NotesTag.Get(notes, "Affinity");
@@ -49,7 +49,7 @@ namespace ExHyperV.Services
         /// <param name="vmId">虚拟机 ID</param>
         /// <param name="coreIndices">选中的核心索引列表</param>
         /// <param name="isVmRunning">虚拟机当前是否正在运行（Root 模式必须开启）</param>
-        public async Task<bool> SetCpuAffinityAsync(Guid vmId, List<int> coreIndices, bool isVmRunning)
+        public static async Task<bool> SetCpuAffinityAsync(Guid vmId, List<int> coreIndices, bool isVmRunning)
         {
             if (vmId == Guid.Empty) return false;
 
@@ -112,7 +112,7 @@ namespace ExHyperV.Services
         // HCS CPU Group 辅助方法（仅供 Classic/Core 模式使用，外部无调用方 → private）
         // ----------------------------------------------------------------------------------
 
-        private async Task<Guid> FindOrCreateCpuGroupAsync(List<int> selectedCores)
+        private static async Task<Guid> FindOrCreateCpuGroupAsync(List<int> selectedCores)
         {
             if (selectedCores == null || !selectedCores.Any())
             {
@@ -145,14 +145,14 @@ namespace ExHyperV.Services
             return newGroupId;
         }
 
-        private async Task<HcsCpuGroupDetail?> GetCpuGroupDetailsAsync(Guid groupId)
+        private static async Task<HcsCpuGroupDetail?> GetCpuGroupDetailsAsync(Guid groupId)
         {
             if (groupId == Guid.Empty) return null;
             var allGroups = await GetAllCpuGroupsAsync();
             return allGroups?.FirstOrDefault(g => g.GroupId == groupId);
         }
 
-        private async Task<List<HcsCpuGroupDetail>?> GetAllCpuGroupsAsync()
+        private static async Task<List<HcsCpuGroupDetail>?> GetAllCpuGroupsAsync()
         {
             var resp = await HcsApi.GetAllCpuGroupsAsync();
             return resp.HasData ? resp.Data : null;
@@ -163,7 +163,7 @@ namespace ExHyperV.Services
         /// VM↔组的关联存于 WMI（Msvm_ProcessorSettingData.CpuGroupId），读写都走 WmiApi；
         /// 组本身的增删/列举才走 HcsApi(vmcompute)。返回 Guid.Empty 表示未分配。
         /// </summary>
-        private async Task<ApiResponse<Guid>> GetVmCpuGroupIdAsync(Guid vmId)
+        private static async Task<ApiResponse<Guid>> GetVmCpuGroupIdAsync(Guid vmId)
         {
             return await WmiApi.QueryFirstAsync(
                 $"SELECT CpuGroupId FROM Msvm_ProcessorSettingData WHERE InstanceID LIKE '%{vmId}%'",

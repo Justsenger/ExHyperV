@@ -4,9 +4,9 @@ using System.Management;
 
 namespace ExHyperV.Services;
 
-public class VmProcessorService
+public static class VmProcessorService
 {
-    public async Task<VmProcessorSettings?> GetVmProcessorAsync(string vmName)
+    public static async Task<VmProcessorSettings?> GetVmProcessorAsync(string vmName)
     {
         string query = $"SELECT * FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(vmName)}'";
 
@@ -50,7 +50,7 @@ public class VmProcessorService
         return results.Data?.FirstOrDefault();
     }
 
-    public async Task<(bool Success, string Message)> SetVmProcessorAsync(
+    public static async Task<(bool Success, string Message)> SetVmProcessorAsync(
         string vmName, VmProcessorSettings newSettings)
     {
         try

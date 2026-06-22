@@ -30,14 +30,10 @@ namespace ExHyperV.ViewModels
         // ===== 私有服务字段与依赖注入 =====
         private readonly VmQueryService _queryService;
         private readonly VmPowerService _powerService;
-        private readonly VmProcessorService _vmProcessorService;
-        private readonly CpuAffinityService _cpuAffinityService;
-        private readonly VmMemoryService _vmMemoryService;
         private readonly VmStorageService _storageService;
         private readonly VmGpuService _vmGpuService;
         private readonly VmNetworkService _vmNetworkService;
         private readonly VmCreateService _vmCreateService = new();
-        private readonly VmEditService _vmEditService = new();
         private readonly VmSpacetimeService _spacetimeService = new();
         private readonly VmDeleteService _deleteService = new();
 
@@ -166,9 +162,6 @@ namespace ExHyperV.ViewModels
         {
             _queryService = queryService;
             _powerService = powerService;
-            _vmProcessorService = new VmProcessorService();
-            _cpuAffinityService = new CpuAffinityService();
-            _vmMemoryService = new VmMemoryService();
             _storageService = new VmStorageService();
             _vmNetworkService = new VmNetworkService();
             _vmGpuService = new VmGpuService(_powerService, _queryService, _vmNetworkService, _storageService);
@@ -316,7 +309,7 @@ namespace ExHyperV.ViewModels
             try
             {
                 // --- 修复点：传入 vmId 而不是 oldName ---
-                var result = await _vmEditService.RenameVmAsync(vmId, newName);
+                var result = await VmEditService.RenameVmAsync(vmId, newName);
 
                 if (result.Success)
                 {
@@ -1206,7 +1199,7 @@ namespace ExHyperV.ViewModels
             IsLoadingSettings = true;
             try
             {
-                var settings = await _vmProcessorService.GetVmProcessorAsync(SelectedVm.Name);
+                var settings = await VmProcessorService.GetVmProcessorAsync(SelectedVm.Name);
                 if (settings != null)
                 {
                     SelectedVm.Processor = settings;
@@ -1229,7 +1222,7 @@ namespace ExHyperV.ViewModels
             IsLoadingSettings = true;
             try
             {
-                var result = await Task.Run(() => _vmProcessorService.SetVmProcessorAsync(SelectedVm.Name, SelectedVm.Processor));
+                var result = await Task.Run(() => VmProcessorService.SetVmProcessorAsync(SelectedVm.Name, SelectedVm.Processor));
                 if (result.Success)
                     _originalSettingsCache = SelectedVm.Processor.Clone();
                 else
@@ -1257,7 +1250,7 @@ namespace ExHyperV.ViewModels
             try
             {
                 int totalCores = Environment.ProcessorCount;
-                var currentAffinity = await _cpuAffinityService.GetCpuAffinityAsync(SelectedVm.Id, SelectedVm.Notes);
+                var currentAffinity = await CpuAffinityService.GetCpuAffinityAsync(SelectedVm.Id, SelectedVm.Notes);
 
                 var coresList = new List<VmCoreItem>();
                 for (int i = 0; i < totalCores; i++)
@@ -1322,7 +1315,7 @@ namespace ExHyperV.ViewModels
                 var selectedIndices = AffinityHostCores.Where(c => c.IsSelected).Select(c => c.CoreId).ToList();
 
                 // 2. 调用服务应用设置 (内部会自动判断调度器类型)
-                bool success = await _cpuAffinityService.SetCpuAffinityAsync(SelectedVm.Id, selectedIndices, SelectedVm.IsRunning);
+                bool success = await CpuAffinityService.SetCpuAffinityAsync(SelectedVm.Id, selectedIndices, SelectedVm.IsRunning);
 
                 // 3. 无论当前是否应用成功，我们将配置持久化到 Notes
                 string affinityStr = selectedIndices.Count > 0 ? string.Join(",", selectedIndices) : "";
@@ -1423,7 +1416,7 @@ namespace ExHyperV.ViewModels
             _isInternalUpdating = true; // 开启拦截：加载过程中不触发任何 PropertyChanged 逻辑
             try
             {
-                var settings = await _vmMemoryService.GetVmMemorySettingsAsync(SelectedVm.Name);
+                var settings = await VmMemoryService.GetVmMemorySettingsAsync(SelectedVm.Name);
                 if (settings != null)
                 {
                     if (SelectedVm.MemorySettings != null)
@@ -1478,7 +1471,7 @@ namespace ExHyperV.ViewModels
                 IsLoadingSettings = true;
                 try
                 {
-                    var result = await _vmMemoryService.SetVmMemorySettingsAsync(SelectedVm.Name, SelectedVm.MemorySettings, false);
+                    var result = await VmMemoryService.SetVmMemorySettingsAsync(SelectedVm.Name, SelectedVm.MemorySettings, false);
                     if (!result.Success)
                     {
                         ShowSnackbar(Properties.Resources.VmPage_LogDiskSaveResult, result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
@@ -1507,7 +1500,7 @@ namespace ExHyperV.ViewModels
             IsLoadingSettings = true;
             try
             {
-                var result = await _vmMemoryService.SetVmMemorySettingsAsync(
+                var result = await VmMemoryService.SetVmMemorySettingsAsync(
                     SelectedVm.Name,
                     SelectedVm.MemorySettings,
                     SelectedVm.IsRunning // 传入当前运行状态

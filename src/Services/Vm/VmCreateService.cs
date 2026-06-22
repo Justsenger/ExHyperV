@@ -172,8 +172,7 @@ namespace ExHyperV.Services
 
                 // ── Step 4: 处理器设置 ────────────────────────────
                 var procSettings = new VmProcessorSettings { Count = p.ProcessorCount };
-                var procService = new VmProcessorService();
-                await procService.SetVmProcessorAsync(finalVmName, procSettings);
+                await VmProcessorService.SetVmProcessorAsync(finalVmName, procSettings);
 
                 // ── Step 5: 内存设置 ──────────────────────────────
                 var memSettings = new VmMemorySettings
@@ -183,8 +182,7 @@ namespace ExHyperV.Services
                     Minimum = p.EnableDynamicMemory ? p.MemoryMb / 2 : p.MemoryMb,
                     Maximum = p.EnableDynamicMemory ? p.MemoryMb * 4 : p.MemoryMb,
                 };
-                var memService = new VmMemoryService();
-                await memService.SetVmMemorySettingsAsync(finalVmName, memSettings, false);
+                await VmMemoryService.SetVmMemorySettingsAsync(finalVmName, memSettings, false);
 
                 // ── Step 6: 网卡 ──────────────────────────────────
                 await _network.AddNetworkAdapterAsync(finalVmName);
