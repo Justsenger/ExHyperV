@@ -12,10 +12,6 @@ namespace ExHyperV.ViewModels
 {
     public partial class VMNetViewModel : ObservableObject
     {
-        // ===== 字段 =====
-
-        private readonly HyperVSwitchService _networkService;
-
         // ===== 属性 =====
 
         [ObservableProperty] private bool _isBusy = false;
@@ -31,7 +27,6 @@ namespace ExHyperV.ViewModels
 
         public VMNetViewModel()
         {
-            _networkService = new HyperVSwitchService();
             LoadNetworkInfoCommand.Execute(null);
         }
 
@@ -60,7 +55,7 @@ namespace ExHyperV.ViewModels
                 {
                     string typeForService = addSwitchVm.SelectedSwitchType;
 
-                    await _networkService.CreateSwitchAsync(
+                    await HyperVSwitchService.CreateSwitchAsync(
                         addSwitchVm.SwitchName,
                         typeForService,
                         addSwitchVm.SelectedNetworkAdapter
@@ -93,7 +88,7 @@ namespace ExHyperV.ViewModels
             IsBusy = true;
             try
             {
-                await _networkService.DeleteSwitchAsync(switchToDelete.SwitchName);
+                await HyperVSwitchService.DeleteSwitchAsync(switchToDelete.SwitchName);
                 await CoreRefreshLogicAsync();
             }
             catch (System.Exception ex)
@@ -133,7 +128,7 @@ namespace ExHyperV.ViewModels
 
             try
             {
-                var (switches, adapters) = await _networkService.GetNetworkInfoAsync();
+                var (switches, adapters) = await HyperVSwitchService.GetNetworkInfoAsync();
                 _rawSwitchInfos = switches;
                 _physicalAdapters = adapters;
 
@@ -145,7 +140,7 @@ namespace ExHyperV.ViewModels
                 {
                     foreach (var switchInfo in _rawSwitchInfos)
                     {
-                        var switchVm = new SwitchViewModel(switchInfo, _networkService, _physicalAdapters, Switches);
+                        var switchVm = new SwitchViewModel(switchInfo, _physicalAdapters, Switches);
                         switchVm.PropertyChanged += OnSwitchViewModelPropertyChanged;
                         Switches.Add(switchVm);
                     }
@@ -217,7 +212,7 @@ namespace ExHyperV.ViewModels
             IsBusy = true;
             try
             {
-                await _networkService.UpdateSwitchConfigurationAsync(
+                await HyperVSwitchService.UpdateSwitchConfigurationAsync(
                     changedSwitch.SwitchName,
                     changedSwitch.SelectedNetworkMode,
                     changedSwitch.SelectedUpstreamAdapter,
@@ -242,7 +237,7 @@ namespace ExHyperV.ViewModels
 
         private async Task RefreshDataModels()
         {
-            var (switches, adapters) = await _networkService.GetNetworkInfoAsync();
+            var (switches, adapters) = await HyperVSwitchService.GetNetworkInfoAsync();
             _rawSwitchInfos = switches;
             _physicalAdapters = adapters;
 

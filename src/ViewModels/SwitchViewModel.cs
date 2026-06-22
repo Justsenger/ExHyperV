@@ -11,7 +11,6 @@ namespace ExHyperV.ViewModels
     {
         // ===== 字段 =====
 
-        private readonly HyperVSwitchService _networkService;
         private readonly List<string> _allPhysicalAdapters;
         private readonly ObservableCollection<SwitchViewModel> _allSwitchViewModels;
 
@@ -40,9 +39,8 @@ namespace ExHyperV.ViewModels
 
         // ===== 构造 =====
 
-        public SwitchViewModel(SwitchInfo switchInfo, HyperVSwitchService networkService, List<string> allPhysicalAdapters, ObservableCollection<SwitchViewModel> allSwitchViewModels)
+        public SwitchViewModel(SwitchInfo switchInfo, List<string> allPhysicalAdapters, ObservableCollection<SwitchViewModel> allSwitchViewModels)
         {
-            _networkService = networkService;
             _allPhysicalAdapters = allPhysicalAdapters;
             _allSwitchViewModels = allSwitchViewModels;
 
@@ -122,7 +120,7 @@ namespace ExHyperV.ViewModels
         private async Task UpdateTopologyAsync()
         {
             if (string.IsNullOrEmpty(SwitchName)) return;
-            var clients = await _networkService.GetFullSwitchNetworkStateAsync(SwitchName);
+            var clients = await HyperVSwitchService.GetFullSwitchNetworkStateAsync(SwitchName);
             ConnectedClients.Clear();
             foreach (var client in clients) { ConnectedClients.Add(client); }
         }

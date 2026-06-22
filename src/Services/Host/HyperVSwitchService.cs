@@ -5,7 +5,7 @@ using ExHyperV.Tools;
 
 namespace ExHyperV.Services
 {
-    public class HyperVSwitchService
+    public static class HyperVSwitchService
     {
         // ── VM 适配器查询 ─────────────────────────────────────────────────
         private static async Task<List<AdapterInfo>> GetVmAdaptersOnSwitchAsync(string switchGuid, string switchName)
@@ -151,7 +151,7 @@ namespace ExHyperV.Services
         // ══════════════════════════════════════════════════════════════════
         //  GetNetworkInfoAsync — WmiApi
         // ══════════════════════════════════════════════════════════════════
-        public async Task<(List<SwitchInfo> Switches, List<string> PhysicalAdapters)> GetNetworkInfoAsync()
+        public static async Task<(List<SwitchInfo> Switches, List<string> PhysicalAdapters)> GetNetworkInfoAsync()
         {
             try
             {
@@ -187,7 +187,7 @@ namespace ExHyperV.Services
         }
 
         // ── 虚拟交换机列表 ───────────────────────────────────────────────
-        private async Task<List<SwitchInfo>> GetSwitchListAsync()
+        private static async Task<List<SwitchInfo>> GetSwitchListAsync()
         {
             var switchObjects = await WmiApi.QueryAsync(
                 "SELECT * FROM Msvm_VirtualEthernetSwitch",
@@ -209,7 +209,7 @@ namespace ExHyperV.Services
             return results.Where(s => s != null).Cast<SwitchInfo>().ToList();
         }
 
-        private async Task<SwitchInfo?> ParseSwitchInfoAsync(ManagementObject switchObj)
+        private static async Task<SwitchInfo?> ParseSwitchInfoAsync(ManagementObject switchObj)
         {
             string switchName = switchObj["ElementName"]?.ToString() ?? string.Empty;
             if (string.IsNullOrEmpty(switchName)) return null;
@@ -355,7 +355,7 @@ namespace ExHyperV.Services
         // ══════════════════════════════════════════════════════════════════
         //  CreateSwitchAsync — WmiApi
         // ══════════════════════════════════════════════════════════════════
-        public async Task CreateSwitchAsync(string name, string type, string? adapterDescription)
+        public static async Task CreateSwitchAsync(string name, string type, string? adapterDescription)
         {
             try
             {
@@ -470,7 +470,7 @@ namespace ExHyperV.Services
         // ══════════════════════════════════════════════════════════════════
         //  DeleteSwitchAsync — WmiApi + ComApi
         // ══════════════════════════════════════════════════════════════════
-        public async Task DeleteSwitchAsync(string switchName)
+        public static async Task DeleteSwitchAsync(string switchName)
         {
             try
             {
@@ -508,7 +508,7 @@ namespace ExHyperV.Services
         // ══════════════════════════════════════════════════════════════════
         //  UpdateSwitchConfigurationAsync — WmiApi + ComApi
         // ══════════════════════════════════════════════════════════════════
-        public async Task UpdateSwitchConfigurationAsync(
+        public static async Task UpdateSwitchConfigurationAsync(
             string switchName, string mode, string? adapterDescription,
             bool allowManagementOS, bool enableDhcp)
         {
@@ -529,7 +529,7 @@ namespace ExHyperV.Services
             }
         }
 
-        private async Task SetBridgeModeAsync(string switchName, string? adapterDescription, bool allowManagementOS = true)
+        private static async Task SetBridgeModeAsync(string switchName, string? adapterDescription, bool allowManagementOS = true)
         {
             if (string.IsNullOrEmpty(adapterDescription))
                 throw new ArgumentException("Bridge mode requires a physical adapter.");
@@ -579,7 +579,7 @@ namespace ExHyperV.Services
             if (!result.Success) throw new InvalidOperationException(result.Error);
         }
 
-        private async Task SetNatModeAsync(string switchName, string? adapterDescription)
+        private static async Task SetNatModeAsync(string switchName, string? adapterDescription)
         {
             if (string.IsNullOrEmpty(adapterDescription))
                 throw new ArgumentException("NAT mode requires a physical adapter.");
@@ -597,7 +597,7 @@ namespace ExHyperV.Services
             if (!icsResult.Success) throw new InvalidOperationException(icsResult.Error);
         }
 
-        private async Task SetIsolatedModeAsync(string switchName, bool allowManagementOS)
+        private static async Task SetIsolatedModeAsync(string switchName, bool allowManagementOS)
         {
             var ms = WmiConnectionCache.GetManagementScope(WmiScope.HyperV, WmiContext.Local);
             using var switchObj = await GetSwitchObjectAsync(switchName);
@@ -840,7 +840,7 @@ namespace ExHyperV.Services
         // ══════════════════════════════════════════════════════════════════
         //  GetFullSwitchNetworkStateAsync — WmiApi + CimApi
         // ══════════════════════════════════════════════════════════════════
-        public async Task<List<AdapterInfo>> GetFullSwitchNetworkStateAsync(string switchName)
+        public static async Task<List<AdapterInfo>> GetFullSwitchNetworkStateAsync(string switchName)
         {
             try
             {
