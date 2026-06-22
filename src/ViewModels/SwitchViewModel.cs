@@ -12,7 +12,7 @@ namespace ExHyperV.ViewModels
         // ===== 字段 =====
 
         private readonly HyperVSwitchService _networkService;
-        private readonly List<PhysicalAdapterInfo> _allPhysicalAdapters;
+        private readonly List<string> _allPhysicalAdapters;
         private readonly ObservableCollection<SwitchViewModel> _allSwitchViewModels;
 
         // ===== 属性 =====
@@ -40,7 +40,7 @@ namespace ExHyperV.ViewModels
 
         // ===== 构造 =====
 
-        public SwitchViewModel(SwitchInfo switchInfo, HyperVSwitchService networkService, List<PhysicalAdapterInfo> allPhysicalAdapters, ObservableCollection<SwitchViewModel> allSwitchViewModels)
+        public SwitchViewModel(SwitchInfo switchInfo, HyperVSwitchService networkService, List<string> allPhysicalAdapters, ObservableCollection<SwitchViewModel> allSwitchViewModels)
         {
             _networkService = networkService;
             _allPhysicalAdapters = allPhysicalAdapters;
@@ -113,7 +113,7 @@ namespace ExHyperV.ViewModels
             var currentSelection = this.SelectedUpstreamAdapter;
             MenuItems.Clear();
             if (_allPhysicalAdapters == null) return;
-            var allPhysicalAdapterNames = _allPhysicalAdapters.Select(p => p.InterfaceDescription).ToList();
+            var allPhysicalAdapterNames = _allPhysicalAdapters.ToList();
             foreach (var name in allPhysicalAdapterNames) { MenuItems.Add(name); }
             if (!string.IsNullOrEmpty(currentSelection) && !MenuItems.Contains(currentSelection)) { MenuItems.Add(currentSelection); }
         }

@@ -151,7 +151,7 @@ namespace ExHyperV.Services
         // ══════════════════════════════════════════════════════════════════
         //  GetNetworkInfoAsync — WmiApi
         // ══════════════════════════════════════════════════════════════════
-        public async Task<(List<SwitchInfo> Switches, List<PhysicalAdapterInfo> PhysicalAdapters)> GetNetworkInfoAsync()
+        public async Task<(List<SwitchInfo> Switches, List<string> PhysicalAdapters)> GetNetworkInfoAsync()
         {
             try
             {
@@ -168,22 +168,21 @@ namespace ExHyperV.Services
         }
 
         // ── 物理网卡列表 ─────────────────────────────────────────────────
-        private static async Task<List<PhysicalAdapterInfo>> GetPhysicalAdaptersAsync()
+        private static async Task<List<string>> GetPhysicalAdaptersAsync()
         {
             var response = await WmiApi.QueryCimAsync(
                 "SELECT InterfaceDescription FROM MSFT_NetAdapter WHERE ConnectorPresent = TRUE",
-                obj => new PhysicalAdapterInfo(
-                    obj["InterfaceDescription"]?.ToString() ?? string.Empty),
+                obj => obj["InterfaceDescription"]?.ToString() ?? string.Empty,
                 WmiScope.StdCimV2);
 
             if (!response.Success)
             {
                 Debug.WriteLine($"[NetworkService] GetPhysicalAdapters WMI error: {response.Error}");
-                return new List<PhysicalAdapterInfo>();
+                return new List<string>();
             }
 
-            return (response.Data ?? new List<PhysicalAdapterInfo>())
-                .Where(a => !string.IsNullOrWhiteSpace(a.InterfaceDescription))
+            return (response.Data ?? new List<string>())
+                .Where(a => !string.IsNullOrWhiteSpace(a))
                 .ToList();
         }
 

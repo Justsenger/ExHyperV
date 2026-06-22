@@ -24,7 +24,7 @@ namespace ExHyperV.ViewModels
 
         public ObservableCollection<SwitchViewModel> Switches { get; } = new();
 
-        private List<PhysicalAdapterInfo> _physicalAdapters = new();
+        private List<string> _physicalAdapters = new();
         private List<SwitchInfo> _rawSwitchInfos = new();
 
         // ===== 构造 =====

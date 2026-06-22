@@ -7,7 +7,7 @@ namespace ExHyperV.ViewModels
     public partial class AddSwitchViewModel : ObservableObject
     {
         private readonly IEnumerable<SwitchViewModel> _existingSwitches;
-        private readonly IEnumerable<PhysicalAdapterInfo> _allPhysicalAdapters;
+        private readonly IEnumerable<string> _allPhysicalAdapters;
 
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(IsNetworkAdapterSelectionEnabled))]
@@ -29,16 +29,16 @@ namespace ExHyperV.ViewModels
         public bool IsComboBoxEnabled => IsNetworkAdapterSelectionEnabled && AvailableNetworkAdapters.Any();
 
 
-        public AddSwitchViewModel(IEnumerable<SwitchViewModel> existingSwitches, IEnumerable<PhysicalAdapterInfo> allPhysicalAdapters)
+        public AddSwitchViewModel(IEnumerable<SwitchViewModel> existingSwitches, IEnumerable<string> allPhysicalAdapters)
         {
             _existingSwitches = existingSwitches;
             _allPhysicalAdapters = allPhysicalAdapters;
 
             foreach (var adapter in _allPhysicalAdapters)
             {
-                if (!_existingSwitches.Any(s => s.SelectedUpstreamAdapter == adapter.InterfaceDescription))
+                if (!_existingSwitches.Any(s => s.SelectedUpstreamAdapter == adapter))
                 {
-                    AvailableNetworkAdapters.Add(adapter.InterfaceDescription);
+                    AvailableNetworkAdapters.Add(adapter);
                 }
             }
             OnPropertyChanged(nameof(ComboBoxPlaceholderText));
