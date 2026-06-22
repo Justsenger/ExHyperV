@@ -87,7 +87,7 @@ namespace ExHyperV.ViewModels
             {
                 SelectedNetworkMode = GetModeFromSwitchType(switchInfo.SwitchType);
                 SelectedUpstreamAdapter = switchInfo.NetAdapterInterfaceDescription;
-                IsHostConnectionAllowed = bool.TryParse(switchInfo.AllowManagementOS, out var result) && result;
+                IsHostConnectionAllowed = switchInfo.AllowManagementOS;
                 if (_isDefaultSwitch) { SelectedNetworkMode = "NAT"; }
                 UpdateUiLogic();
                 await UpdateTopologyAsync();

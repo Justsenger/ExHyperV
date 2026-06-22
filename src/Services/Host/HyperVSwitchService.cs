@@ -284,12 +284,14 @@ namespace ExHyperV.Services
                     interfaceDescription = icsResponse.Data;
             }
 
-            return new SwitchInfo(
-                switchName,
-                switchType,
-                allowManagementOS.ToString(),
-                string.IsNullOrEmpty(switchId) ? switchGuid : switchId,
-                interfaceDescription);
+            return new SwitchInfo
+            {
+                SwitchName = switchName,
+                SwitchType = switchType,
+                AllowManagementOS = allowManagementOS,
+                Id = string.IsNullOrEmpty(switchId) ? switchGuid : switchId,
+                NetAdapterInterfaceDescription = interfaceDescription
+            };
         }
 
         private enum PortConnectionKind { Nothing, Internal, External, VirtualMachine }
