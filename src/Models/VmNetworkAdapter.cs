@@ -336,15 +336,5 @@ namespace ExHyperV.Models
         private ulong _bandwidthLimit;
 
 
-        // ==========================================
-        // 7. 访问控制列表 (ACLs - Port Firewall)
-        // (数据源: Msvm_EthernetSwitchPortAclSettingData)
-        // ==========================================
-
-        /// <summary>
-        /// 应用于此端口的访问控制规则列表。
-        /// </summary>
-        [ObservableProperty]
-        private List<NetworkAclRule> _aclRules = new List<NetworkAclRule>();
     }
 }
