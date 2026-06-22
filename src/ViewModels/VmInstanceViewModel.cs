@@ -155,7 +155,7 @@ namespace ExHyperV.ViewModels
 
         // ===== 存储 / 网络 / 启动顺序 / GPU 分配 — pass-through 到 Model 的 ObservableCollection =====
 
-        public ObservableCollection<VmDiskDetails> Disks => Model.Disks;
+        public ObservableCollection<VmDiskItem> Disks => Model.Disks;
         public ObservableCollection<VmStorageItem> StorageItems => Model.StorageItems;
         public ObservableCollection<VmNetworkAdapter> NetworkAdapters => Model.NetworkAdapters;
         public ObservableCollection<BootOrderItem> BootOrderItems => Model.BootOrderItems;
@@ -430,8 +430,8 @@ namespace ExHyperV.ViewModels
 
         // ─── 磁盘合并（lifted from VirtualMachinesPageViewModel.MonitorStateLoop）──
         private static void ReconcileDisks(
-            ObservableCollection<VmDiskDetails> currentList,
-            IEnumerable<VmDiskDetails> newList,
+            ObservableCollection<VmDiskItem> currentList,
+            IEnumerable<VmDiskItem> newList,
             bool runningRefresh)
         {
             if (newList == null) return;

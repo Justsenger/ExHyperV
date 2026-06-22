@@ -51,7 +51,7 @@
                          HorizontalContentAlignment="Stretch"
                          ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                 <ui:ListView.ItemTemplate>
-                    <DataTemplate DataType="{x:Type models:GPUInfo}">
+                    <DataTemplate DataType="{x:Type models:GpuInfo}">
                         <Grid Margin="0,10">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto" />

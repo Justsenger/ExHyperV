@@ -1,6 +1,6 @@
 namespace ExHyperV.Models
 {
-    public class GPUInfo
+    public class GpuInfo
     {
         public string Name { get; set; } //显卡名称
         public string Valid { get; set; } //是否联机
@@ -63,7 +63,7 @@ namespace ExHyperV.Models
             }
         }
         // 构造函数
-        public GPUInfo(string name, string valid, string manu, string instanceId, string pname, string ram, string driverversion, string vendor)
+        public GpuInfo(string name, string valid, string manu, string instanceId, string pname, string ram, string driverversion, string vendor)
         {
             Name = name;
             Valid = valid;

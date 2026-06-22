@@ -10,7 +10,7 @@ namespace ExHyperV.Models
     /// - 不继承 ObservableObject、不持命令、不带 WPF 渲染类型（PointCollection/BitmapSource）
     /// - 集合用 <see cref="ObservableCollection{T}"/>——与 VM 共享同一实例，Services mutate 后 UI 自动刷新
     ///   （ObservableCollection 本身是 .NET BCL 类型，非 WPF-specific，Model 持有它不违背"纯数据"原则）
-    /// - 叶子类型（VmDiskDetails 等）本身可以是 ObservableObject——它们承担 leaf-level UI binding affinity
+    /// - 叶子类型（VmDiskItem 等）本身可以是 ObservableObject——它们承担 leaf-level UI binding affinity
     /// - 不做 transient 状态机：直接持有 backend 给出的 StateText/RawUptime；transient 行为属于 VM 层
     /// - 计算属性 IsRunning / HasGpu 是静态派生，便于 Service 读取/过滤
     /// </summary>
@@ -47,7 +47,7 @@ namespace ExHyperV.Models
 
         // ── 存储 facts ────────────────────────────────────────────
         public double TotalDiskSizeGb { get; set; }
-        public ObservableCollection<VmDiskDetails> Disks { get; } = new();
+        public ObservableCollection<VmDiskItem> Disks { get; } = new();
         public ObservableCollection<VmStorageItem> StorageItems { get; } = new();
         public ObservableCollection<VmNetworkAdapter> NetworkAdapters { get; } = new();
         public ObservableCollection<BootOrderItem> BootOrderItems { get; } = new();

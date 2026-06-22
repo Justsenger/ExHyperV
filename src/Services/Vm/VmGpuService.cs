@@ -97,12 +97,12 @@ namespace ExHyperV.Services
         }
 
         #region 硬件信息与虚拟机查询
-        public async Task<List<GPUInfo>> GetHostGpusAsync()
+        public async Task<List<GpuInfo>> GetHostGpusAsync()
         {
             var pciInfoProvider = new PciIds();
             await pciInfoProvider.EnsureInitializedAsync();
 
-            var gpuList = new List<GPUInfo>();
+            var gpuList = new List<GpuInfo>();
 
             // 1. Win32_VideoController
             var gpuResp = await WmiApi.QueryAsync(
@@ -121,7 +121,7 @@ namespace ExHyperV.Services
                     if (gpu.Name == null || gpu.InstanceId == null || gpu.Manu == null || gpu.DriverVersion == null) continue;
                     if (!gpu.InstanceId.ToUpper().StartsWith("PCI\\") && !gpu.InstanceId.ToUpper().Contains("ACPI")) continue;
                     string vendor = pciInfoProvider.GetVendorFromInstanceId(gpu.InstanceId);
-                    gpuList.Add(new GPUInfo(gpu.Name, "True", gpu.Manu, gpu.InstanceId, null, null, gpu.DriverVersion, vendor));
+                    gpuList.Add(new GpuInfo(gpu.Name, "True", gpu.Manu, gpu.InstanceId, null, null, gpu.DriverVersion, vendor));
                 }
             }
 

@@ -6,7 +6,7 @@ namespace ExHyperV.Models
     /// 虚拟机磁盘的实时数据（带 UI 计算属性）：
     /// Service 写入大小/速率字段时，UI 通过本类自身的 PropertyChanged 自动刷新。
     /// </summary>
-    public partial class VmDiskDetails : ObservableObject
+    public partial class VmDiskItem : ObservableObject
     {
         [ObservableProperty] private string _name;
         [ObservableProperty] private string _path;

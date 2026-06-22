@@ -257,9 +257,9 @@ namespace ExHyperV.Services
             }
         }
 
-        public List<CpuCoreMetric> GetCpuUsage()
+        public List<VmCoreMetric> GetCpuUsage()
         {
-            var results = new List<CpuCoreMetric>();
+            var results = new List<VmCoreMetric>();
             var activeVmNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             var currentCounters = _counters.ToArray();
@@ -277,7 +277,7 @@ namespace ExHyperV.Services
                     {
                         if (int.TryParse(instanceName.Substring(5), out int coreId))
                         {
-                            results.Add(new CpuCoreMetric
+                            results.Add(new VmCoreMetric
                             {
                                 VmName = "Host",
                                 CoreId = coreId,
@@ -299,7 +299,7 @@ namespace ExHyperV.Services
                             {
                                 int vCpuId = int.Parse(match.Groups[1].Value);
                                 activeVmNames.Add(vmName);
-                                results.Add(new CpuCoreMetric
+                                results.Add(new VmCoreMetric
                                 {
                                     VmName = vmName,
                                     CoreId = vCpuId,
@@ -323,7 +323,7 @@ namespace ExHyperV.Services
                     int count = kvp.Value;
                     for (int i = 0; i < count; i++)
                     {
-                        results.Add(new CpuCoreMetric { VmName = vmName, CoreId = i, IsRunning = false });
+                        results.Add(new VmCoreMetric { VmName = vmName, CoreId = i, IsRunning = false });
                     }
                 }
             }

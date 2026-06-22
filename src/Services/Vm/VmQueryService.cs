@@ -303,7 +303,7 @@ namespace ExHyperV.Services
 
                         if (dNum != -1 && osDiskMap.TryGetValue(dNum, out var hostInfo))
                         {
-                            vmInfo.Disks.Add(new VmDiskDetails
+                            vmInfo.Disks.Add(new VmDiskItem
                             {
                                 Name = hostInfo.Model,
                                 Path = $"PhysicalDrive{dNum}",
@@ -318,7 +318,7 @@ namespace ExHyperV.Services
                     {
                         long size = 0;
                         try { if (File.Exists(cleanPath)) size = new FileInfo(cleanPath).Length; } catch { }
-                        vmInfo.Disks.Add(new VmDiskDetails
+                        vmInfo.Disks.Add(new VmDiskItem
                         {
                             Name = Path.GetFileName(cleanPath),
                             Path = cleanPath,
@@ -330,7 +330,7 @@ namespace ExHyperV.Services
                     else
                     {
                         var (current, max, diskType) = GetDiskSizes(cleanPath);
-                        vmInfo.Disks.Add(new VmDiskDetails
+                        vmInfo.Disks.Add(new VmDiskItem
                         {
                             Name = Path.GetFileName(cleanPath),
                             Path = cleanPath,
