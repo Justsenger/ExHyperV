@@ -29,7 +29,7 @@ namespace ExHyperV.ViewModels
 
         private async Task LoadSystemInfoAsync()
         {
-            var info = await new SystemInfoService().GetSystemInfoAsync();
+            var info = await SystemInfoService.GetSystemInfoAsync();
             Caption = info.Caption;
             OSArchitecture = info.OSArchitecture;
             CpuModel = info.CpuModel;

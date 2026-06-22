@@ -2,7 +2,7 @@
 
 namespace ExHyperV.Services
 {
-    public class SystemInfoService
+    public static class SystemInfoService
     {
         public record SystemInfo(
             string Caption,
@@ -10,9 +10,9 @@ namespace ExHyperV.Services
             string CpuModel,
             string MemCap);
 
-        public Task<SystemInfo> GetSystemInfoAsync() => Task.Run(GetSystemInfo);
+        public static Task<SystemInfo> GetSystemInfoAsync() => Task.Run(GetSystemInfo);
 
-        private SystemInfo GetSystemInfo()
+        private static SystemInfo GetSystemInfo()
         {
             string osCaption = "N/A";
             string osArch = "N/A";
