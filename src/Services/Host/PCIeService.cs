@@ -7,18 +7,18 @@ namespace ExHyperV.Services
 {
     public enum MmioCheckResultType { Ok, NeedsConfirmation, Error }
 
-    public class PCIeService
+    public static class PCIeService
     {
         private const ulong RequiredMmioBytes = 64UL * 1024 * 1024 * 1024; // 64 GiB
 
-        private string GetPureId(string? instanceId)
+        private static string GetPureId(string? instanceId)
         {
             if (string.IsNullOrEmpty(instanceId)) return string.Empty;
             int idx = instanceId.IndexOf(@"\VEN_", StringComparison.OrdinalIgnoreCase);
             return idx >= 0 ? instanceId.Substring(idx) : instanceId;
         }
 
-        public async Task<(List<DeviceInfo> Devices, List<string> VmNames)> GetPCIeInfoAsync()
+        public static async Task<(List<DeviceInfo> Devices, List<string> VmNames)> GetPCIeInfoAsync()
         {
             var deviceList = new List<DeviceInfo>();
             var vmNameList = new List<string>();
@@ -172,10 +172,10 @@ namespace ExHyperV.Services
             return (deviceList, vmNameList);
         }
 
-        public Task<bool> IsServerOperatingSystemAsync()
+        public static Task<bool> IsServerOperatingSystemAsync()
             => Task.FromResult(HyperVHostService.IsServerSystem());
 
-        public async Task<(MmioCheckResultType Result, string Message)> CheckMmioSpaceAsync(string vmName)
+        public static async Task<(MmioCheckResultType Result, string Message)> CheckMmioSpaceAsync(string vmName)
         {
             string escapedVmName = WmiApi.Escape(vmName);
             var resp = await WmiApi.QueryAsync(
@@ -202,7 +202,7 @@ namespace ExHyperV.Services
             catch (Exception ex) { return (MmioCheckResultType.Error, ex.Message); }
         }
 
-        public async Task<bool> UpdateMmioSpaceAsync(string vmName)
+        public static async Task<bool> UpdateMmioSpaceAsync(string vmName)
         {
             if (!await EnsureVmStoppedAsync(vmName)) return false;
 
@@ -219,7 +219,7 @@ namespace ExHyperV.Services
             return setResult.Success;
         }
 
-        public async Task<(bool Success, string? ErrorMessage)> ExecutePCIeOperationAsync(
+        public static async Task<(bool Success, string? ErrorMessage)> ExecutePCIeOperationAsync(
             string targetVmName, string currentVmName, string instanceId, string path,
             IProgress<string>? progress = null)
         {
@@ -255,7 +255,7 @@ namespace ExHyperV.Services
             catch (Exception ex) { return (false, ex.Message); }
         }
 
-        private async Task<bool> EnsureVmStoppedAsync(string vmName)
+        private static async Task<bool> EnsureVmStoppedAsync(string vmName)
         {
             string escapedVmName = WmiApi.Escape(vmName);
 
@@ -290,7 +290,7 @@ namespace ExHyperV.Services
             PCIeOpType Type,
             Func<Task<ApiResponse>>? WmiAction = null);
 
-        private async Task<string?> ExecuteOperationAsync(PCIeOperation op, string instanceId)
+        private static async Task<string?> ExecuteOperationAsync(PCIeOperation op, string instanceId)
         {
             switch (op.Type)
             {
@@ -320,7 +320,7 @@ namespace ExHyperV.Services
             }
         }
 
-        private List<PCIeOperation> PCIeCommands(string Vmname, string instanceId, string path, string Nowname)
+        private static List<PCIeOperation> PCIeCommands(string Vmname, string instanceId, string path, string Nowname)
         {
             var ops = new List<PCIeOperation>();
 

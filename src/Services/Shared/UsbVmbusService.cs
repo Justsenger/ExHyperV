@@ -10,7 +10,7 @@ using System.Collections.Concurrent;
 
 namespace ExHyperV.Services
 {
-    public class UsbVmbusService
+    public static class UsbVmbusService
     {
         public static ConcurrentDictionary<string, string> ActiveTunnels { get; } = new();
         private static readonly ConcurrentDictionary<string, CancellationTokenSource> _activeCts = new();
@@ -18,14 +18,14 @@ namespace ExHyperV.Services
         private static readonly Guid ServiceId = Guid.Parse("45784879-7065-7256-5553-4250726F7879");
         private const int ProxyBufSize = 512 * 1024;
 
-        public UsbVmbusService()
+        static UsbVmbusService()
         {
             try { Process.GetCurrentProcess().PriorityClass = ProcessPriorityClass.RealTime; } catch { }
         }
 
-        private void Log(string msg) => Debug.WriteLine($"[ExHyperV-USB] [{DateTime.Now:HH:mm:ss.fff}] {msg}");
+        private static void Log(string msg) => Debug.WriteLine($"[ExHyperV-USB] [{DateTime.Now:HH:mm:ss.fff}] {msg}");
 
-        public async Task StopTunnelAsync(string busId)
+        public static async Task StopTunnelAsync(string busId)
         {
             if (_activeCts.TryRemove(busId, out var cts))
             {
@@ -38,7 +38,7 @@ namespace ExHyperV.Services
             await Task.Delay(500);
         }
 
-        public async Task AutoRecoverTunnel(string busId, string vmName)
+        public static async Task AutoRecoverTunnel(string busId, string vmName)
         {
             if (_activeCts.ContainsKey(busId)) await StopTunnelAsync(busId);
 
@@ -65,7 +65,7 @@ namespace ExHyperV.Services
             }
         }
 
-        public async Task StartTunnelAsync(Guid vmId, string busId, CancellationToken ct)
+        public static async Task StartTunnelAsync(Guid vmId, string busId, CancellationToken ct)
         {
             // 创建 VMBus socket
             var hvResp = VmbusApi.CreateVmbusSocket();
@@ -127,7 +127,7 @@ namespace ExHyperV.Services
             }
         }
 
-        private unsafe void StartNativePump(nint sIn, nint sOut, string label, Action onFault, CancellationToken ct)
+        private static unsafe void StartNativePump(nint sIn, nint sOut, string label, Action onFault, CancellationToken ct)
         {
             new Thread(() =>
             {
@@ -155,7 +155,7 @@ namespace ExHyperV.Services
             { IsBackground = true, Name = $"NativePump_{label}" }.Start();
         }
 
-        public async Task WatchdogLoopAsync(CancellationToken globalCt)
+        public static async Task WatchdogLoopAsync(CancellationToken globalCt)
         {
             while (!globalCt.IsCancellationRequested)
             {
@@ -168,10 +168,10 @@ namespace ExHyperV.Services
             }
         }
 
-        public async Task<bool> EnsureDeviceSharedAsync(string busId)
+        public static async Task<bool> EnsureDeviceSharedAsync(string busId)
             => await RunUsbIpCommand($"bind --busid {busId}");
 
-        private async Task<bool> RunUsbIpCommand(string args)
+        private static async Task<bool> RunUsbIpCommand(string args)
         {
             try
             {
@@ -188,7 +188,7 @@ namespace ExHyperV.Services
             catch { return false; }
         }
 
-        public async Task<List<UsbTargetVm>> GetRunningVMsAsync()
+        public static async Task<List<UsbTargetVm>> GetRunningVMsAsync()
         {
             var resp = await WmiApi.QueryAsync(
                 "SELECT Name, ElementName FROM Msvm_ComputerSystem WHERE EnabledState = 2 AND Name <> ElementName",
@@ -204,7 +204,7 @@ namespace ExHyperV.Services
                 .ToList();
         }
 
-        public async Task<List<UsbDevice>> GetUsbIpDevicesAsync()
+        public static async Task<List<UsbDevice>> GetUsbIpDevicesAsync()
         {
             var list = new List<UsbDevice>();
             try
@@ -241,7 +241,7 @@ namespace ExHyperV.Services
             return list;
         }
 
-        public void EnsureServiceRegistered()
+        public static void EnsureServiceRegistered()
         {
             try
             {

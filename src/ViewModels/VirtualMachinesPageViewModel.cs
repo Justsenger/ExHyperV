@@ -30,9 +30,6 @@ namespace ExHyperV.ViewModels
         // ===== 私有服务字段与依赖注入 =====
         private readonly VmQueryService _queryService;
         private readonly VmGpuService _vmGpuService;
-        private readonly VmCreateService _vmCreateService = new();
-        private readonly VmSpacetimeService _spacetimeService = new();
-        private readonly VmDeleteService _deleteService = new();
 
 
         // ===== 监控与后台任务字段 =====
@@ -421,7 +418,7 @@ namespace ExHyperV.ViewModels
             {
                 // --- 3. 动态探测宿主机默认路径 (核心：拒绝硬编码) ---
                 // 调用 Service 通过 (Get-VMHost).VirtualMachinePath 获取真实路径
-                var hostPaths = await _vmCreateService.GetHostDefaultPathsAsync();
+                var hostPaths = await VmCreateService.GetHostDefaultPathsAsync();
 
                 // 设置 UI 显示的根路径 (例如 C:\ProgramData\Microsoft\Windows\Hyper-V)
                 NewVmStoragePath = hostPaths.DefaultVmPath;
@@ -435,7 +432,7 @@ namespace ExHyperV.ViewModels
                 UpdateDiskPath();
 
                 // --- 5. 探测系统支持的配置版本 ---
-                var allVersions = await _vmCreateService.GetSupportedVersionsAsync();
+                var allVersions = await VmCreateService.GetSupportedVersionsAsync();
                 SupportedVersions = new ObservableCollection<string>(allVersions);
 
                 // 核心逻辑：在已降序排列的列表中，寻找第一个小于 200 的稳定版本作为默认值
@@ -446,7 +443,7 @@ namespace ExHyperV.ViewModels
                 SelectedVersion = defaultStable ?? SupportedVersions.FirstOrDefault();
 
                 // --- 6. 探测机密计算 (Isolation) 支持情况 ---
-                var (supported, types) = await _vmCreateService.GetIsolationSupportAsync();
+                var (supported, types) = await VmCreateService.GetIsolationSupportAsync();
                 IsIsolationSupported = supported;
                 SupportedIsolationTypes = new ObservableCollection<string>(types);
 
@@ -649,7 +646,7 @@ namespace ExHyperV.ViewModels
 
             try
             {
-                var result = await _vmCreateService.CreateVirtualMachineAsync(request);
+                var result = await VmCreateService.CreateVirtualMachineAsync(request);
 
                 if (result.Success)
                 {
@@ -736,7 +733,7 @@ namespace ExHyperV.ViewModels
 
             try
             {
-                var result = await _deleteService.DeleteVmAsync(vm.Name);
+                var result = await VmDeleteService.DeleteVmAsync(vm.Name);
                 if (result.Success)
                 {
                     VmList.Remove(vm);
@@ -774,7 +771,7 @@ namespace ExHyperV.ViewModels
             IsLoading = true;
             try
             {
-                var purge = await _deleteService.PurgeVmAsync(vm.Name, vm.Id);
+                var purge = await VmDeleteService.PurgeVmAsync(vm.Name, vm.Id);
                 if (purge.Success)
                 {
                     VmList.Remove(vm);
@@ -3445,306 +3442,6 @@ namespace ExHyperV.ViewModels
         }
 
 
-        // ===== 时空管理模块 =====
-
-        [ObservableProperty] private ObservableCollection<SpacetimeNode> _spacetimeNodes = new();
-
-        [ObservableProperty]
-        [NotifyCanExecuteChangedFor(nameof(TeleportCommand))]
-        [NotifyCanExecuteChangedFor(nameof(OpenWormholeCommand))]
-        [NotifyCanExecuteChangedFor(nameof(ParallelSpacetimeCommand))]
-        [NotifyCanExecuteChangedFor(nameof(AnnihilateCommand))]
-        [NotifyCanExecuteChangedFor(nameof(ConvergenceCommand))]
-        [NotifyCanExecuteChangedFor(nameof(CloseWormholeCommand))]
-        private SpacetimeNode? _selectedSpacetimeNode;
-        [ObservableProperty]
-        private SpacetimeMode _selectedSpacetimeMode = SpacetimeMode.Continuous;
-
-        [ObservableProperty]
-        private bool _isCheckpointsEnabled = true;
-
-        // 防止 GoToSpacetimeSettingsAsync 加载时触发 setter 又去写回 Hyper-V
-        private bool _isLoadingCheckpointState = false;
-
-        partial void OnIsCheckpointsEnabledChanged(bool value)
-        {
-            if (_isLoadingCheckpointState || SelectedVm == null) return;
-
-            _ = Task.Run(async () =>
-            {
-                var result = await _spacetimeService.SetCheckpointsEnabledAsync(SelectedVm.Name, value);
-                if (!result.Success)
-                {
-                    // 失败时回滚 UI 状态
-                    Application.Current.Dispatcher.Invoke(() =>
-                    {
-                        _isLoadingCheckpointState = true;
-                        IsCheckpointsEnabled = !value;
-                        _isLoadingCheckpointState = false;
-                        ShowSnackbar(Properties.Resources.VmPage_MsgProcessReset, result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
-                    });
-                }
-                else
-                {
-                }
-            });
-        }
-
-
-
-        /// <summary>
-        /// 判定逻辑：只有选中的是真实的历史快照节点（非现世指针、非虚拟根节点）时，才允许执行穿梭、删除等操作。
-        /// </summary>
-        private bool CanOperateHistoricalNode => SelectedSpacetimeNode != null &&
-                                                SelectedSpacetimeNode.NodeType == SpacetimeNodeType.Snapshot;
-
-        [RelayCommand]
-        private async Task CommitSpacetimeRenameAsync(SpacetimeNode node)
-        {
-            if (node == null || !node.IsEditing) return;
-            node.IsEditing = false;
-            if (string.IsNullOrWhiteSpace(node.EditedName) || node.EditedName == node.Name) return;
-
-            // 起源和当前节点禁止改名
-            if (node.IsLogicalNode) return;
-
-            IsLoadingSettings = true;
-            try
-            {
-                var result = await _spacetimeService.RenameSnapshotAsync(node.Path, node.EditedName);
-                if (result.Success)
-                {
-                    node.Name = node.EditedName;
-                    OnPropertyChanged(nameof(SpacetimeNodes));
-                }
-                else
-                {
-                    ShowSnackbar(Properties.Resources.VmPage_LogDiskSaveResult, result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
-                }
-            }
-            finally
-            {
-                IsLoadingSettings = false;
-            }
-        }
-        [RelayCommand]
-        private void CancelSpacetimeRename(SpacetimeNode node)
-        {
-            if (node != null) node.IsEditing = false;
-        }
-
-        [RelayCommand]
-        private async Task GoToSpacetimeSettingsAsync()
-        {
-            if (SelectedVm == null) return;
-            CurrentViewType = VmDetailViewType.SpacetimeSettings;
-            IsLoadingSettings = true;
-            try
-            {
-                _isLoadingCheckpointState = true;
-                IsCheckpointsEnabled = await _spacetimeService.GetCheckpointsEnabledAsync(SelectedVm.Name);
-                _isLoadingCheckpointState = false;
-
-                var nodes = await _spacetimeService.GetSpacetimeNodesAsync(SelectedVm.Name);
-
-                // --- 逻辑优化：处理纯净态（仅有起源和当前时空） ---
-                var snapshots = nodes.Where(n => n.NodeType == SpacetimeNodeType.Snapshot).ToList();
-                if (!snapshots.Any())
-                {
-                    var genesis = nodes.FirstOrDefault(n => n.NodeType == SpacetimeNodeType.Genesis);
-                    var current = nodes.FirstOrDefault(n => n.NodeType == SpacetimeNodeType.Current);
-                    if (genesis != null && current != null)
-                    {
-                        // 1. 将起源的时间（原始 VHDX 时间）赋予当前
-                        current.CreatedDate = genesis.CreatedDate;
-                        // 2. 将当前设为根节点（去掉父 ID）
-                        current.ParentId = null;
-                        // 3. 移除起源节点
-                        nodes.Remove(genesis);
-                    }
-                }
-
-                // 更新集合
-                SpacetimeNodes = new ObservableCollection<SpacetimeNode>(nodes);
-
-                // 优先选中“当前”节点（现在它可能是唯一的根，也可能是快照链的末端）
-                var currentNode = nodes.FirstOrDefault(n => n.NodeType == SpacetimeNodeType.Current);
-                if (currentNode != null)
-                {
-                    SelectedSpacetimeNode = currentNode;
-                }
-            }
-            catch (Exception ex)
-            {
-                ShowSnackbar(Properties.Resources.VmPage_ErrRetrieveFailed2, ex.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
-            }
-            finally
-            {
-                IsLoadingSettings = false;
-            }
-        }
-        // 捕捉瞬间 (创建快照)
-        [RelayCommand]
-        private async Task CaptureMomentAsync()
-        {
-            if (SelectedVm == null) return;
-
-            var currentFrame = SelectedVm.Thumbnail;
-
-            // 核心改进：使用 IsLoadingSettings 开启局部遮罩，不锁死左侧列表
-            IsLoadingSettings = true;
-            try
-            {
-                var result = await _spacetimeService.CaptureMomentAsync(
-                    SelectedVm.Name,
-                    SelectedSpacetimeMode
-                );
-
-                if (result.Success)
-                {
-                    // 关键点：给 WMI 数据库一点点沉降时间，防止立刻刷新读不到新生成的快照文件
-                    await Task.Delay(1000);
-
-                    // 重新获取节点，由于在 finally 之前调用，遮罩会一直持续到节点树重新画好
-                    await GoToSpacetimeSettingsAsync();
-
-                    ShowSnackbar(Properties.Resources.VmPage_MsgOperationOk5, Properties.Resources.VmPage_MsgSpacetimeCreated2, ControlAppearance.Success, SymbolRegular.CheckmarkCircle24);
-                }
-                else
-                {
-                    ShowSnackbar(Properties.Resources.VmPage_MsgProcessReset, result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
-                }
-            }
-            finally
-            {
-                IsLoadingSettings = false;
-            }
-        }
-
-        // 穿梭 (应用快照)
-        [RelayCommand(CanExecute = nameof(CanOperateHistoricalNode))]
-        private async Task Teleport()
-        {
-            if (SelectedSpacetimeNode == null || SelectedVm == null) return;
-            IsLoadingSettings = true;
-            try
-            {
-                // 穿梭前关闭所有虫洞
-                var wormholeNodes = SpacetimeNodes?.Where(n => n.IsWormhole).ToList();
-                if (wormholeNodes != null && wormholeNodes.Any())
-                {
-                    foreach (var wNode in wormholeNodes)
-                        await _spacetimeService.CloseWormholeAsync(SelectedVm.Name, wNode);
-                }
-
-                string targetName = SelectedSpacetimeNode.Name;
-                var result = await _spacetimeService.TeleportAsync(SelectedSpacetimeNode, SelectedVm.Name);
-                if (result.Success)
-                {
-                    await Task.Delay(500);
-                    await GoToSpacetimeSettingsAsync();
-                    ShowSnackbar(Properties.Resources.VmPage_MsgOperationOk5, string.Format(Properties.Resources.VmPage_MsgTraveledTo2, targetName), ControlAppearance.Success, SymbolRegular.ArrowClockwise24);
-                }
-                else
-                {
-                    ShowSnackbar(Properties.Resources.VmPage_MsgProcessReset, result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
-                }
-            }
-            finally { IsLoadingSettings = false; }
-        }
-
-        [RelayCommand(CanExecute = nameof(CanOperateHistoricalNode))]
-        private async Task Annihilate()
-        {
-            if (SelectedSpacetimeNode == null || SelectedVm == null) return;
-
-            IsLoadingSettings = true;
-            try
-            {
-                var result = await _spacetimeService.AnnihilateAsync(SelectedVm.Name, SelectedSpacetimeNode);
-                if (result.Success)
-                {
-                    await Task.Delay(800);
-                    await GoToSpacetimeSettingsAsync();
-                    ShowSnackbar(Properties.Resources.VmPage_MsgOperationOk5, Properties.Resources.VmPage_MsgSpacetimeAnnihilated2, ControlAppearance.Success, SymbolRegular.Delete24);
-                }
-            }
-            finally { IsLoadingSettings = false; }
-        }
-
-        // 开启虫洞
-        [RelayCommand(CanExecute = nameof(CanOperateHistoricalNode))]
-        private async Task OpenWormhole()
-        {
-            if (SelectedSpacetimeNode == null || SelectedVm == null) return;
-            IsLoadingSettings = true;
-            try
-            {
-                var result = await _spacetimeService.OpenWormholeAsync(SelectedVm.Name, SelectedSpacetimeNode);
-                if (result.Success)
-                {
-                    string openedNodeId = SelectedSpacetimeNode.Id;
-                    await GoToSpacetimeSettingsAsync();
-                    var wormholeNode = SpacetimeNodes.FirstOrDefault(n => n.Id == openedNodeId);
-                    if (wormholeNode != null) SelectedSpacetimeNode = wormholeNode;
-                    ShowSnackbar(Properties.Resources.VmSpacetimeService_MsgWormholeOpened, string.Format(Properties.Resources.VmPage_MsgConnectedTo2, SelectedSpacetimeNode.Name), ControlAppearance.Success, SymbolRegular.Link24);
-                }
-                else
-                {
-                    ShowSnackbar(Properties.Resources.VmPage_ErrOpenFailed4, result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
-                }
-            }
-            finally { IsLoadingSettings = false; }
-        }
-
-        [RelayCommand(CanExecute = nameof(CanOperateHistoricalNode))]
-        private async Task CloseWormhole()
-        {
-            if (SelectedSpacetimeNode == null || SelectedVm == null) return;
-            IsLoadingSettings = true;
-            try
-            {
-                var result = await _spacetimeService.CloseWormholeAsync(SelectedVm.Name, SelectedSpacetimeNode);
-                if (result.Success)
-                {
-                    await GoToSpacetimeSettingsAsync();
-                    ShowSnackbar(Properties.Resources.VmPage_MsgWormholeClosed2, Properties.Resources.VmPage_MsgTimelineRestored2, ControlAppearance.Success, SymbolRegular.LinkDismiss24);
-                }
-                else
-                {
-                    ShowSnackbar(Properties.Resources.VmPage_ErrCloseFailed2, result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
-                }
-            }
-            finally { IsLoadingSettings = false; }
-        }
-
-        // 平行宇宙
-        [RelayCommand(CanExecute = nameof(CanOperateHistoricalNode))]
-        private void ParallelSpacetime()
-        {
-            ShowSnackbar(Properties.Resources.VmPage_MsgFeatureInDev2, Properties.Resources.VmPage_MsgParallelUniverse2, ControlAppearance.Info, SymbolRegular.Copy24);
-        }
-
-        // 时空收束
-        [RelayCommand(CanExecute = nameof(CanOperateHistoricalNode))]
-        private async Task Convergence()
-        {
-            if (SelectedSpacetimeNode == null || SelectedVm == null) return;
-
-            // 同样改为局部加载
-            IsLoadingSettings = true;
-            try
-            {
-                var result = await _spacetimeService.ConvergeAsync(SelectedVm.Name, SelectedSpacetimeNode);
-                if (result.Success)
-                {
-                    await Task.Delay(800);
-                    await GoToSpacetimeSettingsAsync();
-                    ShowSnackbar(Properties.Resources.VmPage_MsgOperationOk5, Properties.Resources.VmPage_MsgSpacetimeConverged2, ControlAppearance.Success, SymbolRegular.Merge24);
-                }
-            }
-            finally { IsLoadingSettings = false; }
-        }
 
         // ===== UI 辅助方法 =====
 

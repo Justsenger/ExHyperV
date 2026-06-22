@@ -6,11 +6,11 @@ using ExHyperV.Properties;
 
 namespace ExHyperV.Services
 {
-    public class VmCreateService
+    public static class VmCreateService
     {
         private const string ServiceWql = "SELECT * FROM Msvm_VirtualSystemManagementService";
 
-        public async Task<List<string>> GetSupportedVersionsAsync()
+        public static async Task<List<string>> GetSupportedVersionsAsync()
         {
             var capsResp = await WmiApi.QueryFirstAsync(
                 "SELECT * FROM Msvm_VirtualSystemManagementCapabilities",
@@ -37,7 +37,7 @@ namespace ExHyperV.Services
 
         private sealed record IsolationItem(string InstanceID, bool IsolationEnabled, int IsolationType);
 
-        public async Task<(bool Supported, List<string> Types)> GetIsolationSupportAsync()
+        public static async Task<(bool Supported, List<string> Types)> GetIsolationSupportAsync()
         {
             var capsResp = await WmiApi.QueryFirstAsync(
                 "SELECT * FROM Msvm_VirtualSystemManagementCapabilities",
@@ -79,7 +79,7 @@ namespace ExHyperV.Services
 
             return (true, isolationTypes);
         }
-        public async Task<(string DefaultVmPath, string DefaultVhdPath)> GetHostDefaultPathsAsync()
+        public static async Task<(string DefaultVmPath, string DefaultVhdPath)> GetHostDefaultPathsAsync()
         {
             // 26100 起 DefaultVirtualMachinePath 已空，改用 DefaultExternalDataRoot（实测 = Get-VMHost.VirtualMachinePath）；旧 build 回退老属性
             var resp = await WmiApi.QueryFirstAsync(
@@ -98,7 +98,7 @@ namespace ExHyperV.Services
             return (@"C:\ProgramData\Microsoft\Windows\Hyper-V", "");
         }
 
-        public async Task<(bool Success, string Message)> CreateVirtualMachineAsync(VmCreationParams p)
+        public static async Task<(bool Success, string Message)> CreateVirtualMachineAsync(VmCreationParams p)
         {
             string finalVmName = p.IsManualName ? p.Name : await GetUniqueVmNameAsync(p.Name, p.Path);
             try
@@ -268,7 +268,7 @@ namespace ExHyperV.Services
         //   3. Msvm_SecurityService.SetKeyProtector（传入 SecuritySettingData XML + RawData）
         //   4. Msvm_SecuritySettingData: TpmEnabled=true, EncryptStateAndVmMigrationTraffic=true
         //      → Msvm_SecurityService.ModifySecuritySettings
-        private async Task EnableTpmAsync(string vmName, string vmGuid, ManagementScope hyperVScope)
+        private static async Task EnableTpmAsync(string vmName, string vmGuid, ManagementScope hyperVScope)
         {
             await Task.Run(() =>
             {
@@ -369,7 +369,7 @@ namespace ExHyperV.Services
                     throw new InvalidOperationException(string.Format(Resources.Error_VmCreate_ModifySecuritySettingsFail, modRet));
             });
         }
-        private async Task<string> GetUniqueVmNameAsync(string baseName, string basePath)
+        private static async Task<string> GetUniqueVmNameAsync(string baseName, string basePath)
         {
             string candidate = baseName;
             int i = 2;
@@ -378,7 +378,7 @@ namespace ExHyperV.Services
             return candidate;
         }
 
-        private async Task<bool> VmNameExistsAsync(string name)
+        private static async Task<bool> VmNameExistsAsync(string name)
         {
             var resp = await WmiApi.QueryFirstAsync(
                 $"SELECT Name FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(name)}' AND Caption = 'Virtual Machine'",

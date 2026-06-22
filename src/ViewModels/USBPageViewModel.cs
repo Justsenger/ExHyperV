@@ -11,7 +11,6 @@ namespace ExHyperV.ViewModels
     {
         // ===== 字段 =====
 
-        private readonly UsbVmbusService _srv;
         private readonly CancellationTokenSource _viewCts = new();
 
         // ===== 绑定属性与命令 =====
@@ -27,14 +26,13 @@ namespace ExHyperV.ViewModels
 
         public USBPageViewModel()
         {
-            _srv = new UsbVmbusService();
             LoadDataCommand = new AsyncRelayCommand(LoadDataAsync);
             ChangeAssignmentCommand = new AsyncRelayCommand<object>(ChangeAssignmentAsync);
 
             LoadDataCommand.Execute(null);
 
             // 启动后台监控循环 (维持手机连接)
-            _ = Task.Run(() => _srv.WatchdogLoopAsync(_viewCts.Token));
+            _ = Task.Run(() => UsbVmbusService.WatchdogLoopAsync(_viewCts.Token));
             // 启动设备同步循环 (刷新手机变身后的 Description)
             _ = Task.Run(() => SyncDevicesLoopAsync(_viewCts.Token));
         }
@@ -46,7 +44,7 @@ namespace ExHyperV.ViewModels
             IsLoading = true;
             try
             {
-                _srv.EnsureServiceRegistered();
+                UsbVmbusService.EnsureServiceRegistered();
                 await RefreshListInternal();
             }
             finally { IsLoading = false; }
@@ -63,8 +61,8 @@ namespace ExHyperV.ViewModels
 
         private async Task RefreshListInternal()
         {
-            var vms = await _srv.GetRunningVMsAsync();
-            var usbDevices = await _srv.GetUsbIpDevicesAsync();
+            var vms = await UsbVmbusService.GetRunningVMsAsync();
+            var usbDevices = await UsbVmbusService.GetUsbIpDevicesAsync();
             var vmNames = vms.Select(v => v.Name).ToList();
 
             // 增量更新 UI 列表
@@ -114,7 +112,7 @@ namespace ExHyperV.ViewModels
                 if (selectedTarget == Properties.Resources.UsbDevice_Host)
                 {
                     UsbVmbusService.ActiveTunnels.TryRemove(deviceVM.BusId, out _);
-                    await _srv.StopTunnelAsync(deviceVM.BusId); // 使用 Await 版本
+                    await UsbVmbusService.StopTunnelAsync(deviceVM.BusId); // 使用 Await 版本
                     deviceVM.CurrentAssignment = Properties.Resources.UsbDevice_Host;
                 }
                 else
@@ -125,7 +123,7 @@ namespace ExHyperV.ViewModels
 
                     // 2. 异步执行切换，内部会处理 Stop 旧隧道 -> Start 新隧道
                     _ = Task.Run(async () => {
-                        await _srv.AutoRecoverTunnel(deviceVM.BusId, selectedTarget);
+                        await UsbVmbusService.AutoRecoverTunnel(deviceVM.BusId, selectedTarget);
                     });
                 }
             }

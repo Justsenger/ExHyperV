@@ -7,10 +7,10 @@ namespace ExHyperV.Services;
 /// 虚拟机删除 / 彻底删除。从 VirtualMachinesPageViewModel 抽出的 inline WMI（DestroySystem + 文件清理），
 /// 使 VM 层只调服务、删除逻辑可复用可测。删除前先关机（DestroySystem 要求 VM 已关）。
 /// </summary>
-public class VmDeleteService
+public static class VmDeleteService
 {
     /// <summary>删除虚拟机（仅移除配置，保留磁盘文件）。等价 Remove-VM。</summary>
-    public async Task<(bool Success, string Message)> DeleteVmAsync(string vmName)
+    public static async Task<(bool Success, string Message)> DeleteVmAsync(string vmName)
     {
         try
         {
@@ -21,7 +21,7 @@ public class VmDeleteService
     }
 
     /// <summary>彻底删除：移除配置 + 删磁盘文件 + 删配置目录（带受保护路径防误删）。仅在 DestroySystem 成功后才动文件。</summary>
-    public async Task<(bool Success, string Message)> PurgeVmAsync(string vmName, Guid vmId)
+    public static async Task<(bool Success, string Message)> PurgeVmAsync(string vmName, Guid vmId)
     {
         try
         {

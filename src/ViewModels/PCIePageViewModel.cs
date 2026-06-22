@@ -14,10 +14,6 @@ namespace ExHyperV.ViewModels
 {
     public partial class PCIePageViewModel : ObservableObject
     {
-        // ===== 字段 =====
-
-        private readonly PCIeService _pcieService;
-
         // ===== 绑定属性与命令 =====
 
         [ObservableProperty]
@@ -37,7 +33,6 @@ namespace ExHyperV.ViewModels
 
         public PCIePageViewModel()
         {
-            _pcieService = new PCIeService();
             Devices = new ObservableCollection<DeviceViewModel>();
             LoadDataCommand = new AsyncRelayCommand(LoadDataAsync);
             ChangeAssignmentCommand = new AsyncRelayCommand<object>(ChangeAssignmentAsync);
@@ -59,8 +54,8 @@ namespace ExHyperV.ViewModels
             IsLoading = true;
             try
             {
-                var serverCheckTask = _pcieService.IsServerOperatingSystemAsync();
-                var pcieInfoTask = _pcieService.GetPCIeInfoAsync();
+                var serverCheckTask = PCIeService.IsServerOperatingSystemAsync();
+                var pcieInfoTask = PCIeService.GetPCIeInfoAsync();
                 await Task.WhenAll(serverCheckTask, pcieInfoTask);
 
                 Devices.Clear();
@@ -104,7 +99,7 @@ namespace ExHyperV.ViewModels
             }
 
             // 直接执行，不显示等待弹窗
-            var (success, errorMessage) = await _pcieService.ExecutePCIeOperationAsync(
+            var (success, errorMessage) = await PCIeService.ExecutePCIeOperationAsync(
                 selectedTarget,
                 deviceViewModel.Status,
                 deviceViewModel.InstanceId,
@@ -133,7 +128,7 @@ namespace ExHyperV.ViewModels
 
         private async Task<bool> HandleMmioCheckAsync(string targetVmName)
         {
-            var (resultType, message) = await _pcieService.CheckMmioSpaceAsync(targetVmName);
+            var (resultType, message) = await PCIeService.CheckMmioSpaceAsync(targetVmName);
 
             if (resultType == MmioCheckResultType.NeedsConfirmation)
             {
@@ -142,7 +137,7 @@ namespace ExHyperV.ViewModels
                     ExHyperV.Properties.Resources.Button_Yes, ExHyperV.Properties.Resources.Button_No);
                 if (!confirmed) return false;
 
-                bool updateSuccess = await _pcieService.UpdateMmioSpaceAsync(targetVmName);
+                bool updateSuccess = await PCIeService.UpdateMmioSpaceAsync(targetVmName);
                 if (!updateSuccess)
                 {
                     var errorDialog = new MessageBox

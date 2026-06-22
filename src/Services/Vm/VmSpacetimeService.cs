@@ -8,17 +8,17 @@ using ExHyperV.Tools;
 
 namespace ExHyperV.Services;
 
-internal class VmSpacetimeService
+internal static class VmSpacetimeService
 {
     private const string SnapshotServiceWql = "SELECT * FROM Msvm_VirtualSystemSnapshotService";
     private const string ManagementServiceWql = "SELECT * FROM Msvm_VirtualSystemManagementService";
-    private string GetSafeId(string id) => id.Replace(":", "_");
+    private static string GetSafeId(string id) => id.Replace(":", "_");
 
     // ============================================================
     // 时空节点查询
     // ============================================================
 
-    public async Task<List<SpacetimeNode>> GetSpacetimeNodesAsync(string vmName)
+    public static async Task<List<SpacetimeNode>> GetSpacetimeNodesAsync(string vmName)
     {
         try
         {
@@ -164,7 +164,7 @@ internal class VmSpacetimeService
     // 虫洞检测
     // ============================================================
 
-    private async Task DetectAndMarkWormholeAsync(string vmName, List<SpacetimeNode> nodes)
+    private static async Task DetectAndMarkWormholeAsync(string vmName, List<SpacetimeNode> nodes)
     {
         try
         {
@@ -214,7 +214,7 @@ internal class VmSpacetimeService
     // 虫洞开启
     // ============================================================
 
-    public async Task<(bool Success, string Message)> OpenWormholeAsync(string vmName, SpacetimeNode targetNode)
+    public static async Task<(bool Success, string Message)> OpenWormholeAsync(string vmName, SpacetimeNode targetNode)
     {
         var existsResult = await CheckAnyWormholeExistsAsync(vmName);
         System.Diagnostics.Debug.WriteLine($"[OpenWormhole] CheckAnyWormholeExists={existsResult}");
@@ -321,7 +321,7 @@ internal class VmSpacetimeService
     // 虫洞关闭
     // ============================================================
 
-    public async Task<(bool Success, string Message)> CloseWormholeAsync(string vmName, SpacetimeNode node)
+    public static async Task<(bool Success, string Message)> CloseWormholeAsync(string vmName, SpacetimeNode node)
     {
         if (!node.IsWormhole)
             return (false, Properties.Resources.VmSpacetimeService_ErrNoActiveWormhole);
@@ -358,7 +358,7 @@ internal class VmSpacetimeService
     // 快照操作
     // ============================================================
 
-    public async Task<(bool Success, string Message)> RenameSnapshotAsync(string snapshotPath, string newName)
+    public static async Task<(bool Success, string Message)> RenameSnapshotAsync(string snapshotPath, string newName)
     {
         try
         {
@@ -386,7 +386,7 @@ internal class VmSpacetimeService
         }
     }
 
-    public async Task<(bool Success, string Message)> TeleportAsync(SpacetimeNode node, string vmName)
+    public static async Task<(bool Success, string Message)> TeleportAsync(SpacetimeNode node, string vmName)
     {
         if (node.NodeType != SpacetimeNodeType.Snapshot)
             return (false, Properties.Resources.VmSpacetimeService_ErrOnlyHistoricalNode);
@@ -443,7 +443,7 @@ internal class VmSpacetimeService
         }
     }
 
-    public async Task<(bool Success, string Message)> CaptureMomentAsync(
+    public static async Task<(bool Success, string Message)> CaptureMomentAsync(
         string vmName, SpacetimeMode mode, BitmapSource? externalThumb = null)
     {
         var vmResponse = await WmiApi.QueryFirstAsync(
@@ -540,7 +540,7 @@ internal class VmSpacetimeService
         return (true, Properties.Resources.VmSpacetimeService_MsgAnchorSet);
     }
 
-    public async Task<(bool Success, string Message)> AnnihilateAsync(string vmName, SpacetimeNode node)
+    public static async Task<(bool Success, string Message)> AnnihilateAsync(string vmName, SpacetimeNode node)
     {
         if (node.IsLogicalNode)
             return (false, Properties.Resources.VmSpacetimeService_ErrOriginCurrentNoAnnihilate);
@@ -558,7 +558,7 @@ internal class VmSpacetimeService
         return (false, string.Format(Properties.Resources.VmSpacetimeService_ErrAnnihilateFailed, result.Error));
     }
 
-    public async Task<(bool Success, string Message)> ConvergeAsync(string vmName, SpacetimeNode node)
+    public static async Task<(bool Success, string Message)> ConvergeAsync(string vmName, SpacetimeNode node)
     {
         if (node.IsLogicalNode)
             return (false, Properties.Resources.VmSpacetimeService_ErrOriginCurrentNoConverge);
@@ -578,7 +578,7 @@ internal class VmSpacetimeService
         return (false, string.Format(Properties.Resources.VmSpacetimeService_ErrConvergeFailed, result.Error));
     }
 
-    public async Task<bool> GetCheckpointsEnabledAsync(string vmName)
+    public static async Task<bool> GetCheckpointsEnabledAsync(string vmName)
     {
         try
         {
@@ -600,7 +600,7 @@ internal class VmSpacetimeService
         }
     }
 
-    public async Task<(bool Success, string Message)> SetCheckpointsEnabledAsync(string vmName, bool enabled)
+    public static async Task<(bool Success, string Message)> SetCheckpointsEnabledAsync(string vmName, bool enabled)
     {
         try
         {
@@ -633,7 +633,7 @@ internal class VmSpacetimeService
     // ============================================================
 
     /// <summary>获取虚拟机所有 SCSI 磁盘的文件路径。</summary>
-    private async Task<List<string>> GetVmScsiDiskPathsAsync(string vmGuid)
+    private static async Task<List<string>> GetVmScsiDiskPathsAsync(string vmGuid)
     {
         var response = await WmiApi.QueryAsync(
             $"SELECT InstanceID, HostResource FROM Msvm_StorageAllocationSettingData WHERE ResourceType = 31 AND InstanceID LIKE 'Microsoft:{vmGuid}%'",
@@ -644,7 +644,7 @@ internal class VmSpacetimeService
     }
 
     /// <summary>获取指定磁盘路径对应的控制器槽位信息。</summary>
-    private async Task<(string CtrlType, int CtrlNum, int CtrlLoc)> GetDiskSlotInfoAsync(
+    private static async Task<(string CtrlType, int CtrlNum, int CtrlLoc)> GetDiskSlotInfoAsync(
         string vmGuid, string diskPath)
     {
         var sasdResponse = await WmiApi.QueryAsync(
@@ -695,7 +695,7 @@ internal class VmSpacetimeService
     /// <summary>
     /// 添加虚拟磁盘到虚拟机。直接复用 VmStorageService.AddDriveAsync。
     /// </summary>
-    private async Task<ApiResponse> AddVmHardDiskDriveAsync(
+    private static async Task<ApiResponse> AddVmHardDiskDriveAsync(
         string vmName, string ctrlType, int ctrlNum, int ctrlLoc, string vhdPath)
     {
         var result = await VmStorageService.AddDriveAsync(
@@ -710,7 +710,7 @@ internal class VmSpacetimeService
     /// <summary>
     /// 从虚拟机移除虚拟磁盘。直接复用 VmStorageService.RemoveDriveAsync。
     /// </summary>
-    private async Task<ApiResponse> RemoveVmHardDiskDriveAsync(
+    private static async Task<ApiResponse> RemoveVmHardDiskDriveAsync(
         string vmName, string ctrlType, int ctrlNum, int ctrlLoc)
     {
         var fakeItem = new VmStorageItem
@@ -733,7 +733,7 @@ internal class VmSpacetimeService
     // 空闲槽位查找
     // ============================================================
 
-    private async Task<(string, int, int)> FindFreeScsiSlotAsync(string vmName)
+    private static async Task<(string, int, int)> FindFreeScsiSlotAsync(string vmName)
     {
         try
         {
@@ -767,7 +767,7 @@ internal class VmSpacetimeService
         catch { return ("SCSI", -1, -1); }
     }
 
-    private async Task<bool> CheckAnyWormholeExistsAsync(string vmName)
+    private static async Task<bool> CheckAnyWormholeExistsAsync(string vmName)
     {
         try
         {
@@ -782,7 +782,7 @@ internal class VmSpacetimeService
         catch { return false; }
     }
 
-    private async Task<bool> IsNodeInCurrentChainAsync(string vmName, string targetVhdPath)
+    private static async Task<bool> IsNodeInCurrentChainAsync(string vmName, string targetVhdPath)
     {
         try
         {
@@ -818,7 +818,7 @@ internal class VmSpacetimeService
     /// <summary>
     /// 创建差分磁盘。走 WmiApi.InvokeAsync，不再直接持有 ManagementScope。
     /// </summary>
-    private async Task<(bool Success, string Message)> CreateDifferencingDiskAsync(
+    private static async Task<(bool Success, string Message)> CreateDifferencingDiskAsync(
         string newPath, string parentPath)
     {
         try
@@ -860,7 +860,7 @@ internal class VmSpacetimeService
     /// 获取 VHD 的父路径。
     /// 借用 GetVirtualSystemManagementService 而非直接持有 ManagementScope。
     /// </summary>
-    private async Task<string> GetVhdParentPathAsync(string vhdPath)
+    private static async Task<string> GetVhdParentPathAsync(string vhdPath)
     {
         return await Task.Run(() =>
         {
@@ -892,7 +892,7 @@ internal class VmSpacetimeService
     /// 沿差分链向上追溯到根盘路径。
     /// 借用 GetVirtualSystemManagementService 而非直接持有 ManagementScope。
     /// </summary>
-    private string TraceToGenesisPath(string childPath)
+    private static string TraceToGenesisPath(string childPath)
     {
         string currentPath = childPath;
         // GetVirtualHardDiskSettingData 属于 Msvm_ImageManagementService
@@ -931,7 +931,7 @@ internal class VmSpacetimeService
     // 私有辅助（不改动）
     // ============================================================
 
-    private async Task<string?> GetSnapshotDirectoryAsync(string vmName)
+    private static async Task<string?> GetSnapshotDirectoryAsync(string vmName)
     {
         try
         {
@@ -944,7 +944,7 @@ internal class VmSpacetimeService
         catch { return null; }
     }
 
-    private async Task<string?> GetSnapshotDirectoryByGuidAsync(string vmGuid)
+    private static async Task<string?> GetSnapshotDirectoryByGuidAsync(string vmGuid)
     {
         try
         {
@@ -957,7 +957,7 @@ internal class VmSpacetimeService
         catch { return null; }
     }
 
-    private void DeleteThumbnailFile(string snapshotDir, string nodeId)
+    private static void DeleteThumbnailFile(string snapshotDir, string nodeId)
     {
         try
         {
@@ -976,7 +976,7 @@ internal class VmSpacetimeService
         }
     }
 
-    private async Task<List<SpacetimeNode>> CreateInitialSpacetimeAsync(string vmName, string snapshotDir)
+    private static async Task<List<SpacetimeNode>> CreateInitialSpacetimeAsync(string vmName, string snapshotDir)
     {
         var thumb = await VmScreenshotService.CaptureAsync(vmName, 280, 160);
         if (thumb != null && !string.IsNullOrEmpty(snapshotDir))
@@ -989,7 +989,7 @@ internal class VmSpacetimeService
         };
     }
 
-    private BitmapSource? LoadThumbnailFromDisk(string snapshotDir, string id)
+    private static BitmapSource? LoadThumbnailFromDisk(string snapshotDir, string id)
     {
         try
         {
@@ -1006,7 +1006,7 @@ internal class VmSpacetimeService
         catch { return null; }
     }
 
-    private async Task SaveThumbnailToDisk(BitmapSource bitmap, string snapshotDir, string id)
+    private static async Task SaveThumbnailToDisk(BitmapSource bitmap, string snapshotDir, string id)
     {
         try
         {
@@ -1023,7 +1023,7 @@ internal class VmSpacetimeService
         catch { }
     }
 
-    private string? ExtractInstanceId(string? path)
+    private static string? ExtractInstanceId(string? path)
     {
         if (string.IsNullOrEmpty(path)) return null;
         var match = Regex.Match(path, "InstanceID=\"([^\"]+)\"", RegexOptions.IgnoreCase);
