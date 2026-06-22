@@ -120,7 +120,15 @@ namespace ExHyperV.Services
 
                         string path = pciDev.FirstLocationPath ?? "";
                         string vendor = pciInfoProvider.GetVendorFromInstanceId(pciDev.InstanceId, pciDev.Class);
-                        deviceList.Add(new DeviceInfo(pciDev.FriendlyName, status, pciDev.Class, pciDev.InstanceId, path, vendor));
+                        deviceList.Add(new DeviceInfo
+                        {
+                            FriendlyName = pciDev.FriendlyName,
+                            Status = status,
+                            ClassType = pciDev.Class,
+                            InstanceId = pciDev.InstanceId,
+                            Path = path,
+                            Vendor = vendor
+                        });
                     }
 
                     // 按类型排序

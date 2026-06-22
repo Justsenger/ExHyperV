@@ -1,31 +1,17 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.ComponentModel;
+
 namespace ExHyperV.Models
 {
-    //可分配硬件设备的数据模型。
-    public class DeviceInfo : ObservableObject
+    /// <summary>可分配的 PCIe 硬件设备（PCIe 页用）。除 Status 外均 init-only 不可变。</summary>
+    public partial class DeviceInfo : ObservableObject
     {
-        public string FriendlyName { get; }
-        public string ClassType { get; }
-        public string InstanceId { get; }
-        public string Path { get; }
-        public string Vendor { get; }
+        public string FriendlyName { get; init; } = string.Empty;
+        public string ClassType { get; init; } = string.Empty;
+        public string InstanceId { get; init; } = string.Empty;
+        public string Path { get; init; } = string.Empty;
+        public string Vendor { get; init; } = string.Empty;
 
-        private string _status;
-        public string Status
-        {
-            get => _status;
-            set => SetProperty(ref _status, value);
-        }
-
-        // 构造函数
-        public DeviceInfo(string friendlyName, string status, string classType, string instanceId, string path, string vendor)
-        {
-            FriendlyName = friendlyName;
-            _status = status;
-            ClassType = classType;
-            InstanceId = instanceId;
-            Path = path;
-            Vendor = vendor;
-        }
+        /// <summary>设备当前分配目标：主机（Resources.Host）或某 VM 名；用户在 PCIe 页可改。</summary>
+        [ObservableProperty] private string _status = string.Empty;
     }
 }
