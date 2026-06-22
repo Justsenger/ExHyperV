@@ -15,7 +15,6 @@ namespace ExHyperV.ViewModels
     {
         // ===== 字段与状态 =====
 
-        private readonly HyperVHostService _hostService = new();
         private bool _isInitialized = false;
 
         // ===== 绑定属性 =====
@@ -78,7 +77,7 @@ namespace ExHyperV.ViewModels
 
         private async Task CheckHyperVInfoAsync()
         {
-            var (isReady, isInstalled, statusText) = await _hostService.GetHyperVStatusAsync();
+            var (isReady, isInstalled, statusText) = await HyperVHostService.GetHyperVStatusAsync();
             HyperVStatus.IsInstalled = isInstalled;
             HyperVStatus.IsSuccess = isReady;
             HyperVStatus.StatusText = statusText;
@@ -99,7 +98,7 @@ namespace ExHyperV.ViewModels
 
         private async Task InitializeVersionPolicyAsync()
         {
-            IsGpuStrategyEnabled = await Task.Run(() => _hostService.GetGpuStrategyEnabled());
+            IsGpuStrategyEnabled = await Task.Run(() => HyperVHostService.GetGpuStrategyEnabled());
             InitializeProductType();
             await LoadAdvancedConfigAsync();
             IsGpuStrategyToggleEnabled = true;
@@ -178,7 +177,7 @@ namespace ExHyperV.ViewModels
         private async Task DisableHyperVAsync()
         {
             ShowSnackbar(Translate("Status_Title_Info"), Properties.Resources.HostPageViewModel_DisablingHyperV, ControlAppearance.Info, SymbolRegular.Settings24);
-            bool ok = await _hostService.DisableHyperVAsync();
+            bool ok = await HyperVHostService.DisableHyperVAsync();
             if (!ok)
             {
                 ShowSnackbar(Translate("Status_Title_Error"), Properties.Resources.HostPageViewModel_DisableFailed, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
@@ -191,7 +190,7 @@ namespace ExHyperV.ViewModels
         private async Task EnableHyperVAsync()
         {
             ShowSnackbar(Translate("Status_Title_Info"), ExHyperV.Properties.Resources.Msg_Host_EnableHyperV, ControlAppearance.Info, SymbolRegular.Settings24);
-            bool ok = await _hostService.EnableHyperVAsync();
+            bool ok = await HyperVHostService.EnableHyperVAsync();
             if (!ok)
             {
                 ShowSnackbar(Translate("Status_Title_Error"), ExHyperV.Properties.Resources.Error_Host_EnableFail, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);

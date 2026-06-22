@@ -3,7 +3,7 @@ using ExHyperV.Tools;
 
 namespace ExHyperV.Services;
 
-public class HyperVNumaService
+public static class HyperVNumaService
 {
     private const string SettingWql = "SELECT * FROM Msvm_VirtualSystemManagementServiceSettingData";
     private const string ServiceWql = "SELECT * FROM Msvm_VirtualSystemManagementService";

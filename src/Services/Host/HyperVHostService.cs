@@ -7,7 +7,7 @@ namespace ExHyperV.Services
     /// <summary>
     /// 提供 Hyper-V 环境检测、状态查询及功能管理服务。
     /// </summary>
-    public class HyperVHostService
+    public static class HyperVHostService
     {
         // ── 环境检测 ────────────────────────────────────────────────
 
@@ -101,7 +101,7 @@ namespace ExHyperV.Services
 
         // ── Hyper-V 状态 ────────────────────────────────────────────
 
-        public bool IsHyperVWmiNamespaceAvailable()
+        public static bool IsHyperVWmiNamespaceAvailable()
         {
             try
             {
@@ -115,7 +115,7 @@ namespace ExHyperV.Services
             catch { return false; }
         }
 
-        public async Task<(bool IsReady, bool IsInstalled, string StatusText)> GetHyperVStatusAsync()
+        public static async Task<(bool IsReady, bool IsInstalled, string StatusText)> GetHyperVStatusAsync()
         {
             var hTask = Task.Run(IsHypervisorPresent);
             var vTask = Task.Run(GetVmmsStatus);
@@ -132,7 +132,7 @@ namespace ExHyperV.Services
 
         // ── GPU / DISM ──────────────────────────────────────────────
 
-        public bool GetGpuStrategyEnabled()
+        public static bool GetGpuStrategyEnabled()
         {
             try
             {
@@ -148,7 +148,7 @@ namespace ExHyperV.Services
         /// <summary>
         /// 禁用 Hyper-V。Microsoft-Hyper-V-All 涵盖所有子组件，removePayload=false 保留文件可重新启用。
         /// </summary>
-        public async Task<bool> DisableHyperVAsync()
+        public static async Task<bool> DisableHyperVAsync()
         {
             var result = await DismApi.DisableFeatureAsync("Microsoft-Hyper-V-All", removePayload: false);
             return result.Success;
@@ -157,7 +157,7 @@ namespace ExHyperV.Services
         /// <summary>
         /// 启用 Hyper-V。Microsoft-Hyper-V-All + enableAll=true 自动处理所有子组件依赖。
         /// </summary>
-        public async Task<bool> EnableHyperVAsync()
+        public static async Task<bool> EnableHyperVAsync()
         {
             var result = await DismApi.EnableFeatureAsync("Microsoft-Hyper-V-All", enableAll: true);
             return result.Success;
@@ -165,7 +165,7 @@ namespace ExHyperV.Services
 
         // ── 内部 ────────────────────────────────────────────────────
 
-        private string BuildHyperVStatusText(bool hypervisor, int vmmsStatus, bool wmiReady)
+        private static string BuildHyperVStatusText(bool hypervisor, int vmmsStatus, bool wmiReady)
         {
             if (hypervisor && vmmsStatus == 1 && wmiReady)
                 return string.Empty;
