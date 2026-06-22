@@ -297,7 +297,7 @@ namespace ExHyperV.Services
                     : Enumerable.Empty<int>());
 
             var diskResp = await WmiApi.QueryCimAsync(
-                "SELECT Number, FriendlyName, Size, IsOffline, IsSystem, IsBoot, BusType, OperationalStatus " +
+                "SELECT Number, FriendlyName, Size, IsSystem, IsBoot, BusType " +
                 "FROM MSFT_Disk",
                 obj =>
                 {
@@ -305,12 +305,9 @@ namespace ExHyperV.Services
                     ushort busType = Convert.ToUInt16(obj["BusType"] ?? 0);
                     bool isSystem = Convert.ToBoolean(obj["IsSystem"] ?? false);
                     bool isBoot = Convert.ToBoolean(obj["IsBoot"] ?? false);
-                    bool isOffline = Convert.ToBoolean(obj["IsOffline"] ?? false);
                     long sizeBytes = Convert.ToInt64(obj["Size"] ?? 0L);
                     string friendlyName = obj["FriendlyName"]?.ToString() ?? "";
-                    var opArr = obj["OperationalStatus"] as ushort[];
-                    string opStatus = opArr?.Length > 0 ? opArr[0].ToString() : "Unknown";
-                    return new { number, busType, isSystem, isBoot, isOffline, sizeBytes, friendlyName, opStatus };
+                    return new { number, busType, isSystem, isBoot, sizeBytes, friendlyName };
                 },
                 WmiScope.Storage);
 
@@ -328,10 +325,7 @@ namespace ExHyperV.Services
                 {
                     Number = d.number,
                     FriendlyName = d.friendlyName,
-                    SizeGB = Math.Round(d.sizeBytes / 1073741824.0, 2),
-                    IsOffline = d.isOffline,
-                    IsSystem = d.isSystem,
-                    OperationalStatus = d.opStatus
+                    SizeGB = Math.Round(d.sizeBytes / 1073741824.0, 2)
                 })
                 .ToList();
 
