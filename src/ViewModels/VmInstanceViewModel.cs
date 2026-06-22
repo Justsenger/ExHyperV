@@ -83,17 +83,7 @@ namespace ExHyperV.ViewModels
         partial void OnIpAddressChanged(string value)
         {
             if (Model != null) Model.IpAddress = value;
-
-            if (string.IsNullOrEmpty(value) || value == "---")
-            {
-                IpAddressDisplay = value;
-                return;
-            }
-            var ips = value.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries);
-            var ipv4 = ips.FirstOrDefault(ip => ip.Contains(".") && !ip.Contains(":"));
-            IpAddressDisplay = !string.IsNullOrWhiteSpace(ipv4)
-                ? ipv4.Trim()
-                : (ips.FirstOrDefault()?.Trim() ?? value);
+            RecomputeIpAddressDisplay(value);
         }
 
         [ObservableProperty] private string _macAddress = "00:00:00:00:00:00";
@@ -141,12 +131,6 @@ namespace ExHyperV.ViewModels
         private double _demandMemoryGb;
         partial void OnDemandMemoryGbChanged(double value) { if (Model != null) Model.DemandMemoryGb = value; }
 
-        [ObservableProperty] private int _availableMemoryPercent;
-        partial void OnAvailableMemoryPercentChanged(int value) { if (Model != null) Model.AvailableMemoryPercent = value; }
-
-        [ObservableProperty] private int _memoryPressure;
-        partial void OnMemoryPressureChanged(int value) { if (Model != null) Model.MemoryPressure = value; }
-
         [ObservableProperty] private PointCollection? _memoryHistoryPoints;
 
         private readonly LinkedList<double> _memoryUsageHistory = new();
@@ -168,15 +152,6 @@ namespace ExHyperV.ViewModels
 
 
         // ===== GPU =====
-
-        [ObservableProperty] private string? _gpuVendor;
-        partial void OnGpuVendorChanged(string? value) { if (Model != null) Model.GpuVendor = value; }
-
-        [ObservableProperty] private string? _physicalGpuId;
-        partial void OnPhysicalGpuIdChanged(string? value) { if (Model != null) Model.PhysicalGpuId = value; }
-
-        [ObservableProperty] private string? _hostDriverVersion;
-        partial void OnHostDriverVersionChanged(string? value) { if (Model != null) Model.HostDriverVersion = value; }
 
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(HasGpu))]
@@ -215,19 +190,6 @@ namespace ExHyperV.ViewModels
         public void RefreshGpuSummary() => OnPropertyChanged(nameof(GpuDisplayLabel));
 
         public bool HasGpu => (AssignedGpus != null && AssignedGpus.Count > 0) || !string.IsNullOrEmpty(GpuName);
-
-        // MMIO 地址空间配置
-        [ObservableProperty] private string? _lowMMIO;
-        partial void OnLowMMIOChanged(string? value) { if (Model != null) Model.LowMMIO = value; }
-
-        [ObservableProperty] private string? _highMMIO;
-        partial void OnHighMMIOChanged(string? value) { if (Model != null) Model.HighMMIO = value; }
-
-        [ObservableProperty] private string? _highMMIOBase;
-        partial void OnHighMMIOBaseChanged(string? value) { if (Model != null) Model.HighMMIOBase = value; }
-
-        [ObservableProperty] private string? _guestControlled;
-        partial void OnGuestControlledChanged(string? value) { if (Model != null) Model.GuestControlled = value; }
 
         // GPU 实时监控
         [ObservableProperty][NotifyPropertyChangedFor(nameof(GpuMaxUsage))] private double _gpu3dUsage;
@@ -276,19 +238,10 @@ namespace ExHyperV.ViewModels
             _memoryGb = model.MemoryGb;
             _assignedMemoryGb = model.AssignedMemoryGb;
             _demandMemoryGb = model.DemandMemoryGb;
-            _availableMemoryPercent = model.AvailableMemoryPercent;
-            _memoryPressure = model.MemoryPressure;
             _totalDiskSizeGb = model.TotalDiskSizeGb;
             _ipAddress = model.IpAddress;
             _macAddress = model.MacAddress;
-            _gpuVendor = model.GpuVendor;
-            _physicalGpuId = model.PhysicalGpuId;
-            _hostDriverVersion = model.HostDriverVersion;
             _gpuName = model.GpuName;
-            _lowMMIO = model.LowMMIO;
-            _highMMIO = model.HighMMIO;
-            _highMMIOBase = model.HighMMIOBase;
-            _guestControlled = model.GuestControlled;
             _isGpuActive = model.IsGpuActive;
             _processor = model.Processor;
             _memorySettings = model.MemorySettings;

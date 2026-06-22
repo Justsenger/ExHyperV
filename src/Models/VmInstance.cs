@@ -38,8 +38,6 @@ namespace ExHyperV.Models
         public double MemoryGb { get; set; }
         public double AssignedMemoryGb { get; set; }
         public double DemandMemoryGb { get; set; }
-        public int AvailableMemoryPercent { get; set; }
-        public int MemoryPressure { get; set; }
 
         // ── 网络 facts ────────────────────────────────────────────
         public string IpAddress { get; set; } = "---";
@@ -53,18 +51,9 @@ namespace ExHyperV.Models
         public ObservableCollection<BootOrderItem> BootOrderItems { get; } = new();
 
         // ── GPU facts ─────────────────────────────────────────────
-        public string? GpuVendor { get; set; }
-        public string? PhysicalGpuId { get; set; }
-        public string? HostDriverVersion { get; set; }
         public string? GpuName { get; set; }
         public ObservableCollection<VmGpuAssignment> AssignedGpus { get; } = new();
         public bool IsGpuActive { get; set; }
-
-        // MMIO 配置
-        public string? LowMMIO { get; set; }
-        public string? HighMMIO { get; set; }
-        public string? HighMMIOBase { get; set; }
-        public string? GuestControlled { get; set; }
 
         // ── 详细 settings（叶子 ObservableObject，作为 Model 的子对象）──
         public VmProcessorSettings? Processor { get; set; }
