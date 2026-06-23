@@ -4,7 +4,6 @@
              xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:b="http://schemas.microsoft.com/xaml/behaviors"
              xmlns:behaviors="clr-namespace:ExHyperV.Tools"
              mc:Ignorable="d" d:DesignHeight="600" d:DesignWidth="800">
 
@@ -41,23 +40,16 @@
                  ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                  IsHitTestVisible="{Binding SelectedVm.CanChangeBootOrder}">
 
-            <b:Interaction.Behaviors>
-                <behaviors:ListBoxDragDropBehavior 
-                    MoveItemCommand="{Binding ReorderBootItemCommand}"
-                    DropCompletedCommand="{Binding SaveBootOrderCommand}"/>
-            </b:Interaction.Behaviors>
+            <behaviors:ListBoxDragDrop.MoveItemCommand>
+                <Binding Path="ReorderBootItemCommand"/>
+            </behaviors:ListBoxDragDrop.MoveItemCommand>
+            <behaviors:ListBoxDragDrop.DropCompletedCommand>
+                <Binding Path="SaveBootOrderCommand"/>
+            </behaviors:ListBoxDragDrop.DropCompletedCommand>
 
             <ListBox.ItemsPanel>
                 <ItemsPanelTemplate>
-                    <StackPanel x:Name="ItemsPanel" IsItemsHost="True">
-                        <b:Interaction.Behaviors>
-                            <b:FluidMoveBehavior AppliesTo="Children" Duration="0:0:0.3">
-                                <b:FluidMoveBehavior.EaseY>
-                                    <CubicEase EasingMode="EaseOut"/>
-                                </b:FluidMoveBehavior.EaseY>
-                            </b:FluidMoveBehavior>
-                        </b:Interaction.Behaviors>
-                    </StackPanel>
+                    <StackPanel x:Name="ItemsPanel" IsItemsHost="True" behaviors:FluidMove.IsEnabled="True"/>
                 </ItemsPanelTemplate>
             </ListBox.ItemsPanel>
 

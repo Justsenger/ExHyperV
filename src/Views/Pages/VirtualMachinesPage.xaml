@@ -11,7 +11,6 @@
     xmlns:components="clr-namespace:ExHyperV.Views"
     Title="VirtualMachinesPage" mc:Ignorable="d" d:DesignHeight="750" d:DesignWidth="1100"
     tools:ParentScrollLock.LockParentScroll="True"
-    xmlns:i="http://schemas.microsoft.com/xaml/behaviors" 
     x:Name="RootPage">
 
     <Page.Resources>
@@ -152,11 +151,13 @@
                                 <KeyBinding Key="Enter" Command="{Binding DataContext.CommitRenameCommand, ElementName=RootPage}" CommandParameter="{Binding}"/>
                                 <KeyBinding Key="Esc" Command="{Binding DataContext.CancelRenameCommand, ElementName=RootPage}" CommandParameter="{Binding}"/>
                             </ui:TextBox.InputBindings>
-                            <i:Interaction.Triggers>
-                                <i:EventTrigger EventName="LostFocus">
-                                    <i:InvokeCommandAction Command="{Binding DataContext.CommitRenameCommand, ElementName=RootPage}" CommandParameter="{Binding}"/>
-                                </i:EventTrigger>
-                            </i:Interaction.Triggers>
+                            <tools:EventToCommand.EventName>LostFocus</tools:EventToCommand.EventName>
+                            <tools:EventToCommand.Command>
+                                <Binding Path="DataContext.CommitRenameCommand" ElementName="RootPage"/>
+                            </tools:EventToCommand.Command>
+                            <tools:EventToCommand.CommandParameter>
+                                <Binding/>
+                            </tools:EventToCommand.CommandParameter>
                         </ui:TextBox>
                     </Grid>
                 </Grid>

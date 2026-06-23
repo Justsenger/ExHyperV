@@ -3,7 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
              xmlns:d="http://schemas.expression/blend/2008"
-             xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
+             xmlns:tools="clr-namespace:ExHyperV.Tools"
              xmlns:converters="clr-namespace:ExHyperV.Converters"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d" d:DesignHeight="850" d:DesignWidth="1100">
@@ -244,12 +244,13 @@
                                                 <KeyBinding Key="Esc" Command="{Binding CancelSpacetimeRenameCommand}"
                         CommandParameter="{Binding SelectedSpacetimeNode}"/>
                                             </ui:TextBox.InputBindings>
-                                            <i:Interaction.Triggers>
-                                                <i:EventTrigger EventName="LostFocus">
-                                                    <i:InvokeCommandAction Command="{Binding CommitSpacetimeRenameCommand}"
-                                       CommandParameter="{Binding SelectedSpacetimeNode}"/>
-                                                </i:EventTrigger>
-                                            </i:Interaction.Triggers>
+                                            <tools:EventToCommand.EventName>LostFocus</tools:EventToCommand.EventName>
+                                            <tools:EventToCommand.Command>
+                                                <Binding Path="CommitSpacetimeRenameCommand"/>
+                                            </tools:EventToCommand.Command>
+                                            <tools:EventToCommand.CommandParameter>
+                                                <Binding Path="SelectedSpacetimeNode"/>
+                                            </tools:EventToCommand.CommandParameter>
                                         </ui:TextBox>
                                     </Grid>
                                     <TextBlock x:Name="SelectedNodeTimeText" Height="16" Text="{Binding SelectedSpacetimeNode.CreatedDate, StringFormat=\{0:yyyy/MM/dd HH:mm:ss\}}" FontSize="11" Opacity="0.6" Margin="0,4,0,0"/>

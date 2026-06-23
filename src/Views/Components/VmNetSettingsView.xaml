@@ -8,7 +8,7 @@
              xmlns:models="clr-namespace:ExHyperV.Models"
              xmlns:converters="clr-namespace:ExHyperV.Converters"
              xmlns:sys="clr-namespace:System;assembly=mscorlib"
-             xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
+             xmlns:tools="clr-namespace:ExHyperV.Tools"
              mc:Ignorable="d" 
              d:DesignHeight="1600" d:DesignWidth="1000"
              d:DataContext="{d:DesignInstance vm:VirtualMachinesPageViewModel}">
@@ -138,11 +138,13 @@
                                                   SelectedValue="{Binding SwitchName, Mode=TwoWay}"
                                                   ItemsSource="{Binding DataContext.AvailableSwitchNames, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                   IsEnabled="{Binding IsConnected}">
-                                            <i:Interaction.Triggers>
-                                                <i:EventTrigger EventName="SelectionChanged">
-                                                    <i:InvokeCommandAction Command="{Binding DataContext.UpdateAdapterConnectionCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"/>
-                                                </i:EventTrigger>
-                                            </i:Interaction.Triggers>
+                                            <tools:EventToCommand.EventName>SelectionChanged</tools:EventToCommand.EventName>
+                                            <tools:EventToCommand.Command>
+                                                <Binding Path="DataContext.UpdateAdapterConnectionCommand" RelativeSource="{RelativeSource AncestorType=UserControl}"/>
+                                            </tools:EventToCommand.Command>
+                                            <tools:EventToCommand.CommandParameter>
+                                                <Binding/>
+                                            </tools:EventToCommand.CommandParameter>
                                         </ComboBox>
 
                                         <TextBlock Grid.Row="1" Text="{x:Static properties:Resources.Label_MacAddress}" VerticalAlignment="Center" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
