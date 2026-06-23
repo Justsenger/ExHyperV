@@ -234,6 +234,12 @@ namespace ExHyperV.ViewModels
                     _isInitialized = false; IsServerSystem = !toServer; _isInitialized = true;
                 }
             }
+            catch (Exception ex)
+            {
+                // async void：未捕获异常会直接崩溃 UI 线程；兜底上报并回滚开关状态
+                ShowSnackbar(Properties.Resources.Status_Title_Error, ex.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                _isInitialized = false; IsServerSystem = !toServer; _isInitialized = true;
+            }
             finally { IsSystemSwitchEnabled = true; }
         }
 

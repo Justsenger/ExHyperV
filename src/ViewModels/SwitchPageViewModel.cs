@@ -120,6 +120,9 @@ namespace ExHyperV.ViewModels
         private async Task CoreRefreshLogicAsync()
         {
             ErrorMessage = null;
+            // 退订旧 SwitchViewModel 的事件再清空，避免被丢弃的实例仍响应 PropertyChanged 触发误配置
+            foreach (var oldVm in Switches)
+                oldVm.PropertyChanged -= OnSwitchViewModelPropertyChanged;
             Switches.Clear();
 
             try
