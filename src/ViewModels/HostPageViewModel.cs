@@ -75,8 +75,7 @@ namespace ExHyperV.ViewModels
 
         private async Task CheckHyperVInfoAsync()
         {
-            var (isReady, isInstalled, statusText) = await HyperVHostService.GetHyperVStatusAsync();
-            HyperVStatus.IsInstalled = isInstalled;
+            var (isReady, _, statusText) = await HyperVHostService.GetHyperVStatusAsync();
             HyperVStatus.IsSuccess = isReady;
             HyperVStatus.StatusText = statusText;
             HyperVStatus.IsChecking = false;
@@ -131,7 +130,7 @@ namespace ExHyperV.ViewModels
                 var (ok, msg) = await HyperVNumaService.SetNumaSpanningEnabledAsync(value);
                 if (!ok)
                 {
-                    ShowSnackbar(Translate("Status_Title_Error"), msg, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                    ShowSnackbar(Properties.Resources.Status_Title_Error, msg, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
                     Application.Current.Dispatcher.Invoke(() =>
                     {
                         _isInitialized = false;
@@ -151,7 +150,7 @@ namespace ExHyperV.ViewModels
                     ShowRestartPrompt(Properties.Resources.Msg_Host_SchedulerChanged);
                 else
                 {
-                    ShowSnackbar(Translate("Status_Title_Error"), Properties.Resources.Error_Host_SchedulerFail, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                    ShowSnackbar(Properties.Resources.Status_Title_Error, Properties.Resources.Error_Host_SchedulerFail, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
                     var actual = HyperVSchedulerService.GetSchedulerType();
                     Application.Current.Dispatcher.Invoke(() =>
                     {
@@ -174,11 +173,11 @@ namespace ExHyperV.ViewModels
         [RelayCommand]
         private async Task DisableHyperVAsync()
         {
-            ShowSnackbar(Translate("Status_Title_Info"), Properties.Resources.HostPageViewModel_DisablingHyperV, ControlAppearance.Info, SymbolRegular.Settings24);
+            ShowSnackbar(Properties.Resources.Status_Title_Info, Properties.Resources.HostPageViewModel_DisablingHyperV, ControlAppearance.Info, SymbolRegular.Settings24);
             bool ok = await HyperVHostService.DisableHyperVAsync();
             if (!ok)
             {
-                ShowSnackbar(Translate("Status_Title_Error"), Properties.Resources.HostPageViewModel_DisableFailed, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                ShowSnackbar(Properties.Resources.Status_Title_Error, Properties.Resources.HostPageViewModel_DisableFailed, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
                 return;
             }
             ShowRestartPrompt(Properties.Resources.HostPageViewModel_DisableSuccess);
@@ -187,11 +186,11 @@ namespace ExHyperV.ViewModels
         [RelayCommand]
         private async Task EnableHyperVAsync()
         {
-            ShowSnackbar(Translate("Status_Title_Info"), Properties.Resources.Msg_Host_EnableHyperV, ControlAppearance.Info, SymbolRegular.Settings24);
+            ShowSnackbar(Properties.Resources.Status_Title_Info, Properties.Resources.Msg_Host_EnableHyperV, ControlAppearance.Info, SymbolRegular.Settings24);
             bool ok = await HyperVHostService.EnableHyperVAsync();
             if (!ok)
             {
-                ShowSnackbar(Translate("Status_Title_Error"), Properties.Resources.Error_Host_EnableFail, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                ShowSnackbar(Properties.Resources.Status_Title_Error, Properties.Resources.Error_Host_EnableFail, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
                 return;
             }
             ShowRestartPrompt(Properties.Resources.Msg_Host_EnableSuccess);
@@ -206,7 +205,7 @@ namespace ExHyperV.ViewModels
         }
 
         private void UpdateSystemDesc(bool isServer) =>
-            SystemVersionDesc = $"{Translate("Status_Msg_CurrentVer")}: {(isServer ? Translate("Status_Edition_Server") : Translate("Status_Edition_Workstation"))}";
+            SystemVersionDesc = $"{Properties.Resources.Status_Msg_CurrentVer}: {(isServer ? Properties.Resources.Status_Edition_Server : Properties.Resources.Status_Edition_Workstation)}";
 
         private async void SwitchSystemVersion(bool toServer)
         {
@@ -216,8 +215,8 @@ namespace ExHyperV.ViewModels
 
                 if (SystemTypeService.HasPendingTask())
                 {
-                    ShowSnackbar(Translate("Status_Title_Warning"),
-                        Translate("Status_Msg_RestartRequired"),
+                    ShowSnackbar(Properties.Resources.Status_Title_Warning,
+                        Properties.Resources.Status_Msg_RestartRequired,
                         ControlAppearance.Caution,
                         SymbolRegular.Warning24);
                     _isInitialized = false;
@@ -227,10 +226,10 @@ namespace ExHyperV.ViewModels
                 }
 
                 string result = await Task.Run(() => SystemTypeService.ApplySwitch(toServer));
-                if (result == "SUCCESS") ShowRestartPrompt(Translate("Status_Msg_RestartNow"));
+                if (result == "SUCCESS") ShowRestartPrompt(Properties.Resources.Status_Msg_RestartNow);
                 else
                 {
-                    ShowSnackbar(Translate("Status_Title_Error"), result, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                    ShowSnackbar(Properties.Resources.Status_Title_Error, result, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
                     _isInitialized = false; IsServerSystem = !toServer; _isInitialized = true;
                 }
             }
@@ -240,9 +239,7 @@ namespace ExHyperV.ViewModels
 
         // ===== UI 辅助（Snackbar / 重启提示） =====
 
-        private string Translate(string key) => Properties.Resources.ResourceManager.GetString(key) ?? key;
-
-        public void ShowSnackbar(string title, string msg, ControlAppearance app, SymbolRegular icon)
+        private void ShowSnackbar(string title, string msg, ControlAppearance app, SymbolRegular icon)
             => Notifications.ShowSnackbar(title, msg, app, icon);
 
         private void ShowRestartPrompt(string message)
@@ -256,7 +253,6 @@ namespace ExHyperV.ViewModels
         [ObservableProperty] private bool _isChecking = true;
         [ObservableProperty] private string _statusText;
         [ObservableProperty] private bool? _isSuccess;
-        [ObservableProperty] private bool _isInstalled;
         public string IconGlyph => IsSuccess switch { true => "\uEC61", false => "\uEB90", _ => "\uE946" };
         public System.Windows.Media.Brush IconColor => IsSuccess switch
         {
