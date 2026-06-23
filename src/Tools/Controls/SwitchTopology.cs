@@ -18,8 +18,8 @@ namespace ExHyperV.Tools
         public string SwitchName { get => (string)GetValue(SwitchNameProperty); set => SetValue(SwitchNameProperty, value); }
 
         public static readonly DependencyProperty NetworkModeProperty =
-            DependencyProperty.Register("NetworkMode", typeof(string), typeof(SwitchTopology), new PropertyMetadata("Isolated", OnPropertiesChanged));
-        public string NetworkMode { get => (string)GetValue(NetworkModeProperty); set => SetValue(NetworkModeProperty, value); }
+            DependencyProperty.Register("NetworkMode", typeof(SwitchMode), typeof(SwitchTopology), new PropertyMetadata(SwitchMode.Isolated, OnPropertiesChanged));
+        public SwitchMode NetworkMode { get => (SwitchMode)GetValue(NetworkModeProperty); set => SetValue(NetworkModeProperty, value); }
 
         public static readonly DependencyProperty UpstreamAdapterProperty =
             DependencyProperty.Register("UpstreamAdapter", typeof(string), typeof(SwitchTopology), new PropertyMetadata(string.Empty, OnPropertiesChanged));
@@ -110,7 +110,7 @@ namespace ExHyperV.Tools
             if (ItemsSource == null) return;
 
             bool isDefaultSwitch = SwitchName == "Default Switch";
-            bool hasUpstream = (NetworkMode == "Bridge" || NetworkMode == "NAT") &&
+            bool hasUpstream = (NetworkMode == SwitchMode.Bridge || NetworkMode == SwitchMode.NAT) &&
                                (!string.IsNullOrEmpty(UpstreamAdapter) || isDefaultSwitch);
             bool isMultiRow = ItemsSource.Count > 6;
 

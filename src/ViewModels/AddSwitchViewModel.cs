@@ -1,5 +1,6 @@
 ﻿using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
+using ExHyperV.Models;
 
 namespace ExHyperV.ViewModels
 {
@@ -10,7 +11,7 @@ namespace ExHyperV.ViewModels
 
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(IsNetworkAdapterSelectionEnabled))]
-        private string _selectedSwitchType = "External";
+        private SwitchMode _selectedSwitchType = SwitchMode.Bridge;
 
         [ObservableProperty]
         private string _switchName = ExHyperV.Properties.Resources.AddSwitch_DefaultName_External;
@@ -22,10 +23,7 @@ namespace ExHyperV.ViewModels
         private string? _errorMessage;
 
         public ObservableCollection<string> AvailableNetworkAdapters { get; } = new();
-        public bool IsNetworkAdapterSelectionEnabled => _selectedSwitchType == "External" || _selectedSwitchType == "NAT";
-        public string ComboBoxPlaceholderText => AvailableNetworkAdapters.Any() ? ExHyperV.Properties.Resources.AddSwitch_Placeholder_SelectAdapter : ExHyperV.Properties.Resources.AddSwitch_Placeholder_NoAdaptersAvailable;
-
-        public bool IsComboBoxEnabled => IsNetworkAdapterSelectionEnabled && AvailableNetworkAdapters.Any();
+        public bool IsNetworkAdapterSelectionEnabled => _selectedSwitchType == SwitchMode.Bridge || _selectedSwitchType == SwitchMode.NAT;
 
 
         public AddSwitchViewModel(IEnumerable<SwitchViewModel> existingSwitches, IEnumerable<string> allPhysicalAdapters)
@@ -40,17 +38,15 @@ namespace ExHyperV.ViewModels
                     AvailableNetworkAdapters.Add(adapter);
                 }
             }
-            OnPropertyChanged(nameof(ComboBoxPlaceholderText));
-            OnPropertyChanged(nameof(IsComboBoxEnabled));
         }
 
-        partial void OnSelectedSwitchTypeChanged(string value)
+        partial void OnSelectedSwitchTypeChanged(SwitchMode value)
         {
             SwitchName = value switch
             {
-                "External" => ExHyperV.Properties.Resources.AddSwitch_DefaultName_External,
-                "NAT" => ExHyperV.Properties.Resources.AddSwitch_DefaultName_NAT,
-                "Internal" => ExHyperV.Properties.Resources.AddSwitch_DefaultName_Internal,
+                SwitchMode.Bridge => ExHyperV.Properties.Resources.AddSwitch_DefaultName_External,
+                SwitchMode.NAT => ExHyperV.Properties.Resources.AddSwitch_DefaultName_NAT,
+                SwitchMode.Isolated => ExHyperV.Properties.Resources.AddSwitch_DefaultName_Internal,
                 _ => ExHyperV.Properties.Resources.AddSwitch_DefaultName_Generic
             };
         }
@@ -78,9 +74,9 @@ namespace ExHyperV.ViewModels
                 ErrorMessage = ExHyperV.Properties.Resources.AddSwitch_Validation_AdapterRequiredForExternalOrNat;
                 return false;
             }
-            if (_selectedSwitchType == "NAT")
+            if (_selectedSwitchType == SwitchMode.NAT)
             {
-                if (_existingSwitches.Any(s => !s.IsDefaultSwitch && s.SelectedNetworkMode == "NAT"))
+                if (_existingSwitches.Any(s => !s.IsDefaultSwitch && s.SelectedNetworkMode == SwitchMode.NAT))
                 {
                     ErrorMessage = ExHyperV.Properties.Resources.AddSwitch_Validation_OnlyOneNatAllowed;
                     return false;

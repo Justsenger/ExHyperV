@@ -52,7 +52,7 @@ namespace ExHyperV.ViewModels
                 IsBusy = true;
                 try
                 {
-                    string typeForService = addSwitchVm.SelectedSwitchType;
+                    var typeForService = addSwitchVm.SelectedSwitchType;
 
                     await HyperVSwitchService.CreateSwitchAsync(
                         addSwitchVm.SwitchName,
@@ -181,9 +181,9 @@ namespace ExHyperV.ViewModels
             var originalSwitchInfo = _rawSwitchInfos.FirstOrDefault(s => s.Id == changedSwitch.SwitchId);
             if (originalSwitchInfo == null) return;
 
-            if (changedSwitch.SelectedNetworkMode == "NAT")
+            if (changedSwitch.SelectedNetworkMode == SwitchMode.NAT)
             {
-                var otherNatSwitch = Switches.FirstOrDefault(s => s.SwitchId != changedSwitch.SwitchId && !s.IsDefaultSwitch && s.SelectedNetworkMode == "NAT");
+                var otherNatSwitch = Switches.FirstOrDefault(s => s.SwitchId != changedSwitch.SwitchId && !s.IsDefaultSwitch && s.SelectedNetworkMode == SwitchMode.NAT);
                 if (otherNatSwitch != null)
                 {
                     await Dialogs.ShowAlertAsync(ExHyperV.Properties.Resources.Error_ConfigurationConflict, string.Format(Properties.Resources.Error_OnlyOneNatNetworkAllowed, otherNatSwitch.SwitchName));
@@ -192,7 +192,7 @@ namespace ExHyperV.ViewModels
                 }
             }
 
-            if ((changedSwitch.SelectedNetworkMode == "Bridge" || changedSwitch.SelectedNetworkMode == "NAT") && !string.IsNullOrEmpty(changedSwitch.SelectedUpstreamAdapter))
+            if ((changedSwitch.SelectedNetworkMode == SwitchMode.Bridge || changedSwitch.SelectedNetworkMode == SwitchMode.NAT) && !string.IsNullOrEmpty(changedSwitch.SelectedUpstreamAdapter))
             {
                 var conflictingSwitch = Switches.FirstOrDefault(s => s.SwitchId != changedSwitch.SwitchId && !string.IsNullOrEmpty(s.SelectedUpstreamAdapter) && s.SelectedUpstreamAdapter == changedSwitch.SelectedUpstreamAdapter);
                 if (conflictingSwitch != null)
@@ -203,7 +203,7 @@ namespace ExHyperV.ViewModels
                 }
             }
 
-            if ((changedSwitch.SelectedNetworkMode == "Bridge" || changedSwitch.SelectedNetworkMode == "NAT") && string.IsNullOrEmpty(changedSwitch.SelectedUpstreamAdapter))
+            if ((changedSwitch.SelectedNetworkMode == SwitchMode.Bridge || changedSwitch.SelectedNetworkMode == SwitchMode.NAT) && string.IsNullOrEmpty(changedSwitch.SelectedUpstreamAdapter))
             {
                 return;
             }

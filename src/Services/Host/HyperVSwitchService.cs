@@ -266,7 +266,7 @@ namespace ExHyperV.Services
                 }
             }
 
-            string switchType = hasExternal ? "External" : hasInternal ? "Internal" : "Private";
+            SwitchMode switchType = hasExternal ? SwitchMode.Bridge : SwitchMode.Isolated;
             bool allowManagementOS = hasInternal;
 
             string interfaceDescription = string.Empty;
@@ -277,7 +277,7 @@ namespace ExHyperV.Services
             var icsResponse = ComApi.GetIcsSourceAdapter(switchName);
             if (icsResponse.Success && icsResponse.Data != null)
             {
-                switchType = "NAT";
+                switchType = SwitchMode.NAT;
                 // GetIcsSourceAdapter 返回适配器显示名（如 "WLAN"），转换为 InterfaceDescription
                 interfaceDescription = await ResolveInterfaceDescriptionAsync(icsResponse.Data);
                 if (string.IsNullOrEmpty(interfaceDescription))
@@ -355,27 +355,27 @@ namespace ExHyperV.Services
         // ══════════════════════════════════════════════════════════════════
         //  CreateSwitchAsync — WmiApi
         // ══════════════════════════════════════════════════════════════════
-        public static async Task CreateSwitchAsync(string name, string type, string? adapterDescription)
+        public static async Task CreateSwitchAsync(string name, SwitchMode mode, string? adapterDescription)
         {
             try
             {
-                switch (type.ToUpper())
+                switch (mode)
                 {
-                    case "EXTERNAL":
+                    case SwitchMode.Bridge:
                         if (string.IsNullOrEmpty(adapterDescription))
                             throw new ArgumentException(Properties.Resources.Error_ExternalSwitchRequiresPhysicalAdapter);
-                        // External Switch 不预加 Internal 端口，避免产生 vEthernet ()
+                        // 桥接(外部)交换机不预加 Internal 端口，避免产生 vEthernet ()
                         // 用户可通过 Host Connection 开关事后开启
                         await CreateSwitchWmiAsync(name, isExternal: true, adapterDescription, allowManagementOS: true);
                         break;
 
-                    case "NAT":
+                    case SwitchMode.NAT:
                         await CreateSwitchWmiAsync(name, isExternal: false, null, allowManagementOS: true);
                         await Task.Delay(3000);
-                        await UpdateSwitchConfigurationAsync(name, "NAT", adapterDescription, true, true);
+                        await UpdateSwitchConfigurationAsync(name, SwitchMode.NAT, adapterDescription, true, true);
                         break;
 
-                    case "INTERNAL":
+                    case SwitchMode.Isolated:
                     default:
                         await CreateSwitchWmiAsync(name, isExternal: false, null, allowManagementOS: true);
                         break;
@@ -509,18 +509,18 @@ namespace ExHyperV.Services
         //  UpdateSwitchConfigurationAsync — WmiApi + ComApi
         // ══════════════════════════════════════════════════════════════════
         public static async Task UpdateSwitchConfigurationAsync(
-            string switchName, string mode, string? adapterDescription,
+            string switchName, SwitchMode mode, string? adapterDescription,
             bool allowManagementOS, bool enableDhcp)
         {
             switch (mode)
             {
-                case "Bridge":
+                case SwitchMode.Bridge:
                     await SetBridgeModeAsync(switchName, adapterDescription, allowManagementOS);
                     break;
-                case "NAT":
+                case SwitchMode.NAT:
                     await SetNatModeAsync(switchName, adapterDescription);
                     break;
-                case "Isolated":
+                case SwitchMode.Isolated:
                     await SetIsolatedModeAsync(switchName, allowManagementOS);
                     break;
                 default:

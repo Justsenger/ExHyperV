@@ -20,7 +20,7 @@ namespace ExHyperV.ViewModels
 
         [ObservableProperty] private string _switchName;
         [ObservableProperty] private string _switchId;
-        [ObservableProperty][NotifyPropertyChangedFor(nameof(StatusText)), NotifyPropertyChangedFor(nameof(IsConnected))] private string _selectedNetworkMode;
+        [ObservableProperty][NotifyPropertyChangedFor(nameof(StatusText)), NotifyPropertyChangedFor(nameof(IsConnected))] private SwitchMode _selectedNetworkMode;
         [ObservableProperty][NotifyPropertyChangedFor(nameof(StatusText)), NotifyPropertyChangedFor(nameof(IsConnected)), NotifyPropertyChangedFor(nameof(DropDownButtonContent))] private string? _selectedUpstreamAdapter;
         [ObservableProperty] private bool _isHostConnectionAllowed;
         [ObservableProperty] private bool _isUpstreamSelectionEnabled;
@@ -33,8 +33,8 @@ namespace ExHyperV.ViewModels
         public bool IsReverting { get; private set; } = false;
 
         public string StatusText => IsDefaultSwitch ? ExHyperV.Properties.Resources.Warning_CannotModifyDefaultSwitch : IsConnected ? string.Format(Properties.Resources.Status_ConnectedTo, SelectedUpstreamAdapter) : ExHyperV.Properties.Resources.Status_UpstreamNotConnected;
-        public bool IsConnected => !string.IsNullOrEmpty(SelectedUpstreamAdapter) && (SelectedNetworkMode == "Bridge" || SelectedNetworkMode == "NAT");
-        public string DropDownButtonContent => IsDefaultSwitch ? ExHyperV.Properties.Resources.Auto : SelectedNetworkMode == "Isolated" ? ExHyperV.Properties.Resources.Status_Unavailable : string.IsNullOrEmpty(SelectedUpstreamAdapter) ? ExHyperV.Properties.Resources.Placeholder_SelectNetworkAdapter : SelectedUpstreamAdapter;
+        public bool IsConnected => !string.IsNullOrEmpty(SelectedUpstreamAdapter) && (SelectedNetworkMode == SwitchMode.Bridge || SelectedNetworkMode == SwitchMode.NAT);
+        public string DropDownButtonContent => IsDefaultSwitch ? ExHyperV.Properties.Resources.Auto : SelectedNetworkMode == SwitchMode.Isolated ? ExHyperV.Properties.Resources.Status_Unavailable : string.IsNullOrEmpty(SelectedUpstreamAdapter) ? ExHyperV.Properties.Resources.Placeholder_SelectNetworkAdapter : SelectedUpstreamAdapter;
         public string IconGlyph => DeviceIcons.GetGlyph("Switch", SwitchName);
 
         // ===== 构造 =====
@@ -65,11 +65,11 @@ namespace ExHyperV.ViewModels
         [RelayCommand]
         private void SetNetworkMode(string? mode)
         {
-            if (string.IsNullOrEmpty(mode) || SelectedNetworkMode == mode)
+            if (!Enum.TryParse<SwitchMode>(mode, out var parsed) || SelectedNetworkMode == parsed)
             {
                 return;
             }
-            SelectedNetworkMode = mode;
+            SelectedNetworkMode = parsed;
         }
 
         [RelayCommand]
@@ -83,10 +83,10 @@ namespace ExHyperV.ViewModels
             IsReverting = true;
             try
             {
-                SelectedNetworkMode = GetModeFromSwitchType(switchInfo.SwitchType);
+                SelectedNetworkMode = switchInfo.SwitchType;
                 SelectedUpstreamAdapter = switchInfo.NetAdapterInterfaceDescription;
                 IsHostConnectionAllowed = switchInfo.AllowManagementOS;
-                if (_isDefaultSwitch) { SelectedNetworkMode = "NAT"; }
+                if (_isDefaultSwitch) { SelectedNetworkMode = SwitchMode.NAT; }
                 UpdateUiLogic();
                 await UpdateTopologyAsync();
             }
@@ -98,8 +98,8 @@ namespace ExHyperV.ViewModels
 
         private void UpdateUiLogic()
         {
-            IsUpstreamSelectionEnabled = (SelectedNetworkMode == "Bridge" || SelectedNetworkMode == "NAT") && !IsDefaultSwitch;
-            IsHostConnectionToggleEnabled = SelectedNetworkMode == "Isolated" && !IsDefaultSwitch;
+            IsUpstreamSelectionEnabled = (SelectedNetworkMode == SwitchMode.Bridge || SelectedNetworkMode == SwitchMode.NAT) && !IsDefaultSwitch;
+            IsHostConnectionToggleEnabled = SelectedNetworkMode == SwitchMode.Isolated && !IsDefaultSwitch;
             if (!IsHostConnectionToggleEnabled && !IsDefaultSwitch)
             {
                 IsHostConnectionAllowed = true;
@@ -124,12 +124,5 @@ namespace ExHyperV.ViewModels
             ConnectedClients.Clear();
             foreach (var client in clients) { ConnectedClients.Add(client); }
         }
-
-        public static string GetModeFromSwitchType(string switchType) => switchType switch
-        {
-            "External" => "Bridge",
-            "NAT" => "NAT",
-            _ => "Isolated"
-        };
     }
     }

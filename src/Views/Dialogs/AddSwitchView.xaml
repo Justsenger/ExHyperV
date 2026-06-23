@@ -36,9 +36,9 @@
 				</Grid.ColumnDefinitions>
 				<TextBlock Grid.Column="0" Text="{x:Static properties:Resources.SwitchMode}" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
 				<StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-					<RadioButton Content="{x:Static properties:Resources.External}" Margin="0,0,15,0" IsChecked="{Binding SelectedSwitchType, Converter={StaticResource Equality}, ConverterParameter=External}" Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+					<RadioButton Content="{x:Static properties:Resources.External}" Margin="0,0,15,0" IsChecked="{Binding SelectedSwitchType, Converter={StaticResource Equality}, ConverterParameter=Bridge}" Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
 					<RadioButton Content="NAT" Margin="0,0,15,0" IsChecked="{Binding SelectedSwitchType, Converter={StaticResource Equality}, ConverterParameter=NAT}" Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
-					<RadioButton Content="{x:Static properties:Resources.Noupstream}" IsChecked="{Binding SelectedSwitchType, Converter={StaticResource Equality}, ConverterParameter=Internal}" Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+					<RadioButton Content="{x:Static properties:Resources.Noupstream}" IsChecked="{Binding SelectedSwitchType, Converter={StaticResource Equality}, ConverterParameter=Isolated}" Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
 				</StackPanel>
 			</Grid>
 
