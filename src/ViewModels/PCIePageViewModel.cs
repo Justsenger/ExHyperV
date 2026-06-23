@@ -21,21 +21,18 @@ namespace ExHyperV.ViewModels
         private bool _isUiEnabled = true;
 
         public ObservableCollection<DeviceViewModel> Devices { get; }
-        public IAsyncRelayCommand LoadDataCommand { get; }
-        public IAsyncRelayCommand<object> ChangeAssignmentCommand { get; }
 
         // ===== 构造 =====
 
         public PCIePageViewModel()
         {
             Devices = new ObservableCollection<DeviceViewModel>();
-            LoadDataCommand = new AsyncRelayCommand(LoadDataAsync);
-            ChangeAssignmentCommand = new AsyncRelayCommand<object>(ChangeAssignmentAsync);
             LoadDataCommand.Execute(null);
         }
 
         // ===== 业务方法 =====
 
+        [RelayCommand]
         private async Task LoadDataAsync()
         {
             if (System.ComponentModel.DesignerProperties.GetIsInDesignMode(new System.Windows.DependencyObject()))
@@ -71,6 +68,7 @@ namespace ExHyperV.ViewModels
             }
         }
 
+        [RelayCommand]
         private async Task ChangeAssignmentAsync(object parameter)
         {
             if (parameter is not object[] parameters || parameters.Length < 2 ||
