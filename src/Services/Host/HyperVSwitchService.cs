@@ -817,7 +817,7 @@ namespace ExHyperV.Services
         {
             // 宿主机的 Msvm_ComputerSystem 用 Name = 主机名 查询（非虚拟机）
             // Caption = "Hosting Computer System" 是另一个可靠的过滤条件
-            string hostName = System.Environment.MachineName;
+            string hostName = WmiApi.Escape(System.Environment.MachineName);
             using var searcher = new ManagementObjectSearcher(ms,
                 new ObjectQuery($"SELECT * FROM Msvm_ComputerSystem WHERE Name = '{hostName}'"));
             using var col = searcher.Get();

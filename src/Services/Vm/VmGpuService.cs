@@ -203,7 +203,7 @@ namespace ExHyperV.Services
                     obj => obj["Notes"] is string[] arr ? string.Join("\n", arr) : obj["Notes"]?.ToString() ?? "");
                 string vmNotes = notesResp.Data ?? "";
 
-                string query = $"SELECT * FROM Msvm_ComputerSystem WHERE ElementName = '{vmName}'";
+                string query = $"SELECT * FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(vmName)}'";
                 using var searcher = new ManagementObjectSearcher(scopePath, query);
                 using var vmCollection = searcher.Get();
                 var computerSystem = vmCollection.Cast<ManagementObject>().FirstOrDefault();
