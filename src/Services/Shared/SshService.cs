@@ -51,7 +51,8 @@ namespace ExHyperV.Services
                 {
                     string actualCommand = command.Substring(5).Trim(); 
                     string escapedCommand = actualCommand.Replace("'", "'\\''");
-                    commandToExecute = $"echo '{credentials.Password}' | sudo -S -p '' bash -c '{escapedCommand}'";
+                    string escapedPassword = credentials.Password.Replace("'", "'\\''");
+                    commandToExecute = $"echo '{escapedPassword}' | sudo -S -p '' bash -c '{escapedCommand}'";
                 }
                 var sshCommand = client.CreateCommand(commandToExecute);
                 sshCommand.CommandTimeout = commandTimeout ?? TimeSpan.FromMinutes(30);
@@ -93,7 +94,8 @@ namespace ExHyperV.Services
                 {
                     string actualCommand = command.Substring(5).Trim();
                     string escapedCommand = actualCommand.Replace("'", "'\\''");
-                    commandToExecute = $"echo '{credentials.Password}' | sudo -S -p '' bash -c '{escapedCommand}'";
+                    string escapedPassword = credentials.Password.Replace("'", "'\\''");
+                    commandToExecute = $"echo '{escapedPassword}' | sudo -S -p '' bash -c '{escapedCommand}'";
                 }
 
                 var sshCommand = client.CreateCommand(commandToExecute);

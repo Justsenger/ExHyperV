@@ -20,7 +20,8 @@ namespace ExHyperV.Services
 
         static UsbVmbusService()
         {
-            try { Process.GetCurrentProcess().PriorityClass = ProcessPriorityClass.RealTime; } catch { }
+            // High 足以保证 USB 转发低延迟；RealTime 会饿死系统输入/磁盘线程，有整机卡死风险，绝不用于用户态进程
+            try { Process.GetCurrentProcess().PriorityClass = ProcessPriorityClass.High; } catch { }
         }
 
         private static void Log(string msg) => Debug.WriteLine($"[ExHyperV-USB] [{DateTime.Now:HH:mm:ss.fff}] {msg}");
