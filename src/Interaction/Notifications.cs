@@ -79,7 +79,8 @@ namespace ExHyperV.Interaction
                 textStack.Children.Add(msgTxt);
 
                 var btn = new Wpf.Ui.Controls.Button { Content = Properties.Resources.Global_Restart, Appearance = ControlAppearance.Primary, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(12, 0, 10, 0) };
-                btn.Click += (s, e) => System.Diagnostics.Process.Start("shutdown", "-r -t 0");
+                // shutdown.exe 启动失败（权限/环境异常）不应让 UI 线程崩溃；失败时用户可手动重启
+                btn.Click += (s, e) => { try { System.Diagnostics.Process.Start("shutdown", "-r -t 0"); } catch { } };
 
                 System.Windows.Controls.Grid.SetColumn(icon, 0);
                 System.Windows.Controls.Grid.SetColumn(textStack, 1);

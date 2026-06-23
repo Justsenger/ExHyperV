@@ -126,7 +126,9 @@ namespace ExHyperV.Services
             var exePath = Process.GetCurrentProcess().MainModule?.FileName;
             if (exePath != null)
             {
-                Process.Start(exePath);
+                // 重启失败（被杀软拦截/文件锁）则不关闭当前实例，避免关到无实例可用
+                try { Process.Start(exePath); }
+                catch { return; }
             }
             Application.Current.Shutdown();
         }
