@@ -47,7 +47,6 @@ namespace ExHyperV.ViewModels
         // ===== 缓存与状态字段 =====
         private const int MaxHistoryLength = 60;
         private readonly Dictionary<string, LinkedList<double>> _historyCache = new();
-        private VmProcessorSettings _originalSettingsCache;
         private VmMemorySettings _originalMemorySettingsCache;
         private bool _isInternalUpdating = false;
         private bool _isDiskPathManual = false; // 记录用户是否手动选择过磁盘路径
@@ -246,7 +245,6 @@ namespace ExHyperV.ViewModels
                 _ = RefreshBootOrderForSelectedVmAsync(value);
             }
             CurrentViewType = VmDetailViewType.Dashboard;
-            _originalSettingsCache = null;
             _originalMemorySettingsCache = null;
             HostDisks.Clear();
         }

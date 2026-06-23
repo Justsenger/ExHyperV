@@ -44,7 +44,6 @@ namespace ExHyperV.ViewModels
                 if (settings != null)
                 {
                     SelectedVm.Processor = settings;
-                    _originalSettingsCache = settings.Clone();
                 }
             }
             catch (Exception ex) { ShowSnackbar(Properties.Resources.Error_Common_LoadFail, FriendlyError.CleanLines(ex.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24); }
@@ -64,9 +63,7 @@ namespace ExHyperV.ViewModels
             try
             {
                 var result = await Task.Run(() => VmProcessorService.SetVmProcessorAsync(SelectedVm.Name, SelectedVm.Processor));
-                if (result.Success)
-                    _originalSettingsCache = SelectedVm.Processor.Clone();
-                else
+                if (!result.Success)
                 {
                     ShowSnackbar(Properties.Resources.Error_Common_ApplyFail, FriendlyError.CleanLines(result.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
                     await GoToCpuSettingsAsync();
