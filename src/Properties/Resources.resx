@@ -2083,9 +2083,6 @@ The existing NAT switch is: '{0}'</value>
   <data name="VmPage_MsgCreatingVm" xml:space="preserve">
     <value>Cancel</value>
   </data>
-  <data name="VmPage_ErrOpenFailed" xml:space="preserve">
-    <value>[CONSOLE] Opening immersive console for {0}...</value>
-  </data>
   <data name="VmPage_ErrConfigDirNotFound" xml:space="preserve">
     <value>Cannot start console: {0}</value>
   </data>
@@ -2097,36 +2094,6 @@ The existing NAT switch is: '{0}'</value>
   </data>
   <data name="VmPage_AffinityApplyException" xml:space="preserve">
     <value>[Affinity] Auto-apply exception: {0}</value>
-  </data>
-  <data name="VmPage_BtnPermanentDelete" xml:space="preserve">
-    <value>[DEBUG-STORAGE] [Trigger] Type manual change -&gt; {0}</value>
-  </data>
-  <data name="VmPage_BtnCancel" xml:space="preserve">
-    <value>[DEBUG-STORAGE] [Trigger] Number manual change -&gt; {0}</value>
-  </data>
-  <data name="VmPage_MsgDeleteComplete" xml:space="preserve">
-    <value>[DEBUG-STORAGE] [Notify] SelectedLocation current: {0}</value>
-  </data>
-  <data name="VmPage_ErrModifyFailed" xml:space="preserve">
-    <value>[DEBUG-STORAGE] Number refresh complete -&gt; {0}</value>
-  </data>
-  <data name="VmPage_MemMapPhysical" xml:space="preserve">
-    <value>[DEBUG-STORAGE] Location refresh complete -&gt; {0}</value>
-  </data>
-  <data name="VmPage_MemMapVirtual" xml:space="preserve">
-    <value>[DEBUG-STORAGE] &lt;&lt;&lt; Auto-allocation UI sync complete</value>
-  </data>
-  <data name="VmPage_MemMapHybrid" xml:space="preserve">
-    <value>[DEBUG-STORAGE] SetSlot exception: {0}</value>
-  </data>
-  <data name="VmPage_MemGranAutoAssign" xml:space="preserve">
-    <value>[DEBUG-STORAGE] Refreshing [Number] list, type: {0}</value>
-  </data>
-  <data name="VmPage_MemGranStandard" xml:space="preserve">
-    <value>[DEBUG-STORAGE] Refreshing [Location] list: {0}, #{1}</value>
-  </data>
-  <data name="VmPage_MemGranLargePage" xml:space="preserve">
-    <value>[DEBUG-STORAGE] Location reset after manual switch to: {0}</value>
   </data>
   <data name="VmPage_MemGranHugePage" xml:space="preserve">
     <value>Please check deployment scheme and Host IP</value>
@@ -2463,15 +2430,6 @@ The existing NAT switch is: '{0}'</value>
   </data>
   <data name="VmPage_MsgOperationOk4" xml:space="preserve">
     <value>System exception</value>
-  </data>
-  <data name="VmPage_MsgRollbackComplete" xml:space="preserve">
-    <value>[VM-LOG] UI triggered save, current preview order: {0}</value>
-  </data>
-  <data name="VmPage_ErrRollbackFailed" xml:space="preserve">
-    <value>[VM-LOG] Disk save result: {0}</value>
-  </data>
-  <data name="VmPage_BtnReset" xml:space="preserve">
-    <value>[VM-LOG] Error during save: {0}</value>
   </data>
   <data name="VmPage_MsgProcessReset" xml:space="preserve">
     <value>Operation failed</value>

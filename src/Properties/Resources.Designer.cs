@@ -5809,32 +5809,8 @@ namespace ExHyperV.Properties {
             }
         }
         
-        /// <summary>
-        ///   查找类似 [DEBUG-STORAGE] [Trigger] Number manual change -&gt; {0} 的本地化字符串。
-        /// </summary>
-        public static string VmPage_BtnCancel {
-            get {
-                return ResourceManager.GetString("VmPage_BtnCancel", resourceCulture);
-            }
-        }
         
-        /// <summary>
-        ///   查找类似 [DEBUG-STORAGE] [Trigger] Type manual change -&gt; {0} 的本地化字符串。
-        /// </summary>
-        public static string VmPage_BtnPermanentDelete {
-            get {
-                return ResourceManager.GetString("VmPage_BtnPermanentDelete", resourceCulture);
-            }
-        }
         
-        /// <summary>
-        ///   查找类似 [VM-LOG] Error during save: {0} 的本地化字符串。
-        /// </summary>
-        public static string VmPage_BtnReset {
-            get {
-                return ResourceManager.GetString("VmPage_BtnReset", resourceCulture);
-            }
-        }
         
         /// <summary>
         ///   查找类似 Reset 的本地化字符串。
@@ -5908,14 +5884,6 @@ namespace ExHyperV.Properties {
             }
         }
         
-        /// <summary>
-        ///   查找类似 [DEBUG-STORAGE] Number refresh complete -&gt; {0} 的本地化字符串。
-        /// </summary>
-        public static string VmPage_ErrModifyFailed {
-            get {
-                return ResourceManager.GetString("VmPage_ErrModifyFailed", resourceCulture);
-            }
-        }
         
         /// <summary>
         ///   查找类似 Hybrid Mapping Mode 的本地化字符串。
@@ -5926,14 +5894,6 @@ namespace ExHyperV.Properties {
             }
         }
         
-        /// <summary>
-        ///   查找类似 [CONSOLE] Opening immersive console for {0}... 的本地化字符串。
-        /// </summary>
-        public static string VmPage_ErrOpenFailed {
-            get {
-                return ResourceManager.GetString("VmPage_ErrOpenFailed", resourceCulture);
-            }
-        }
         
         /// <summary>
         ///   查找类似 [Affinity] Auto-applied successfully: {0} 的本地化字符串。
@@ -6007,14 +5967,6 @@ namespace ExHyperV.Properties {
             }
         }
         
-        /// <summary>
-        ///   查找类似 [VM-LOG] Disk save result: {0} 的本地化字符串。
-        /// </summary>
-        public static string VmPage_ErrRollbackFailed {
-            get {
-                return ResourceManager.GetString("VmPage_ErrRollbackFailed", resourceCulture);
-            }
-        }
         
         /// <summary>
         ///   查找类似 Rollback failed: {0} 的本地化字符串。
@@ -6106,14 +6058,6 @@ namespace ExHyperV.Properties {
             }
         }
         
-        /// <summary>
-        ///   查找类似 [DEBUG-STORAGE] Refreshing [Number] list, type: {0} 的本地化字符串。
-        /// </summary>
-        public static string VmPage_MemGranAutoAssign {
-            get {
-                return ResourceManager.GetString("VmPage_MemGranAutoAssign", resourceCulture);
-            }
-        }
         
         /// <summary>
         ///   查找类似 [User Reset] Unfinished GPU partitioning detected, rolling back... 的本地化字符串。
@@ -6142,14 +6086,6 @@ namespace ExHyperV.Properties {
             }
         }
         
-        /// <summary>
-        ///   查找类似 [DEBUG-STORAGE] Location reset after manual switch to: {0} 的本地化字符串。
-        /// </summary>
-        public static string VmPage_MemGranLargePage {
-            get {
-                return ResourceManager.GetString("VmPage_MemGranLargePage", resourceCulture);
-            }
-        }
         
         /// <summary>
         ///   查找类似 [User Reset] Rollback failed: {0} 的本地化字符串。
@@ -6160,14 +6096,6 @@ namespace ExHyperV.Properties {
             }
         }
         
-        /// <summary>
-        ///   查找类似 [DEBUG-STORAGE] Refreshing [Location] list: {0}, #{1} 的本地化字符串。
-        /// </summary>
-        public static string VmPage_MemGranStandard {
-            get {
-                return ResourceManager.GetString("VmPage_MemGranStandard", resourceCulture);
-            }
-        }
         
         /// <summary>
         ///   查找类似 [User Reset] Partition removed successfully. 的本地化字符串。
@@ -6178,32 +6106,8 @@ namespace ExHyperV.Properties {
             }
         }
         
-        /// <summary>
-        ///   查找类似 [DEBUG-STORAGE] SetSlot exception: {0} 的本地化字符串。
-        /// </summary>
-        public static string VmPage_MemMapHybrid {
-            get {
-                return ResourceManager.GetString("VmPage_MemMapHybrid", resourceCulture);
-            }
-        }
         
-        /// <summary>
-        ///   查找类似 [DEBUG-STORAGE] Location refresh complete -&gt; {0} 的本地化字符串。
-        /// </summary>
-        public static string VmPage_MemMapPhysical {
-            get {
-                return ResourceManager.GetString("VmPage_MemMapPhysical", resourceCulture);
-            }
-        }
         
-        /// <summary>
-        ///   查找类似 [DEBUG-STORAGE] &lt;&lt;&lt; Auto-allocation UI sync complete 的本地化字符串。
-        /// </summary>
-        public static string VmPage_MemMapVirtual {
-            get {
-                return ResourceManager.GetString("VmPage_MemMapVirtual", resourceCulture);
-            }
-        }
         
         /// <summary>
         ///   查找类似 Starting virtual machine... 的本地化字符串。
@@ -6268,14 +6172,6 @@ namespace ExHyperV.Properties {
             }
         }
         
-        /// <summary>
-        ///   查找类似 [DEBUG-STORAGE] [Notify] SelectedLocation current: {0} 的本地化字符串。
-        /// </summary>
-        public static string VmPage_MsgDeleteComplete {
-            get {
-                return ResourceManager.GetString("VmPage_MsgDeleteComplete", resourceCulture);
-            }
-        }
         
         /// <summary>
         ///   查找类似 About to permanently delete &quot;{0}&quot;, including all virtual hard disk files and the configuration directory.\n\n⚠️ Please confirm there are no other files in the VM configuration directory. This action cannot be undone! 的本地化字符串。
@@ -6385,14 +6281,6 @@ namespace ExHyperV.Properties {
             }
         }
         
-        /// <summary>
-        ///   查找类似 [VM-LOG] UI triggered save, current preview order: {0} 的本地化字符串。
-        /// </summary>
-        public static string VmPage_MsgRollbackComplete {
-            get {
-                return ResourceManager.GetString("VmPage_MsgRollbackComplete", resourceCulture);
-            }
-        }
         
         /// <summary>
         ///   查找类似 Rollback complete. 的本地化字符串。
