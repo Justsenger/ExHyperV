@@ -1,6 +1,5 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Diagnostics;
 using System.IO;
 using System.Windows.Data;
 using System.Windows.Media;
@@ -33,8 +32,6 @@ namespace ExHyperV.ViewModels
         // ===== 监控与后台任务字段 =====
         private CpuMonitorService _cpuService;
         private CancellationTokenSource _monitoringCts;
-        private Task _cpuTask;
-        private Task _stateTask;
         private DispatcherTimer _uiTimer;
         // 防止监控循环对同一网卡重复并发起 IP/ARP 查询（无界堆积）
         private readonly System.Collections.Concurrent.ConcurrentDictionary<string, byte> _ipLookupsInFlight = new();
@@ -357,9 +354,6 @@ namespace ExHyperV.ViewModels
             {
                 // 打开当前选中虚拟机的沉浸式控制台窗口（现走新的 RdpClientHost）
                 Navigation.OpenConsoleWindow(SelectedVm.Id.ToString(), SelectedVm.Name);
-
-                // 4. (可选) 给个小反馈
-                Debug.WriteLine(string.Format(Properties.Resources.VmPage_ErrOpenFailed, SelectedVm.Name));
             }
             catch (Exception ex)
             {
@@ -397,8 +391,8 @@ namespace ExHyperV.ViewModels
         {
             if (_monitoringCts != null) return;
             _monitoringCts = new CancellationTokenSource();
-            _cpuTask = Task.Run(() => MonitorCpuLoop(_monitoringCts.Token));
-            _stateTask = Task.Run(() => MonitorStateLoop(_monitoringCts.Token));
+            _ = Task.Run(() => MonitorCpuLoop(_monitoringCts.Token));
+            _ = Task.Run(() => MonitorStateLoop(_monitoringCts.Token));
             // 新增：独立的缩略图任务，避免阻塞状态同步
             _ = Task.Run(() => MonitorThumbnailLoop(_monitoringCts.Token));
         }
