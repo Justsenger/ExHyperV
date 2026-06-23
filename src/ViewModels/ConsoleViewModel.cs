@@ -33,7 +33,7 @@ namespace ExHyperV.ViewModels
 
         public bool IsNotBusy => !IsBusy;
 
-        public event EventHandler SendCadRequested;
+        public event EventHandler? SendCadRequested;
         /// <summary>每次状态轮询完成后触发（供消费方按 VM 运行状态同步连接，无需额外定时器）。</summary>
         public event Action? Polled;
 
@@ -89,11 +89,11 @@ namespace ExHyperV.ViewModels
             }
             Polled?.Invoke();   // 通知消费方按最新 VM 运行状态同步 RDP 连接（连/断/重连）
         }
+        // ===== 电源控制 =====
+
         private bool CanExecutePowerAction() => !IsBusy;
 
         [RelayCommand(CanExecute = nameof(CanExecutePowerAction))]
-        // ===== 电源控制 =====
-
         private async Task StartVmAsync() => await ExecutePowerActionAsync("Start");
 
         [RelayCommand(CanExecute = nameof(CanExecutePowerAction))]
