@@ -13,7 +13,6 @@ namespace ExHyperV.ViewModels
         // ===== 属性 =====
 
         [ObservableProperty] private bool _isBusy = false;
-        [ObservableProperty] private bool _isContentVisible = true;
         [ObservableProperty] private string? _errorMessage;
 
         public ObservableCollection<SwitchViewModel> Switches { get; } = new();
@@ -121,7 +120,6 @@ namespace ExHyperV.ViewModels
         private async Task CoreRefreshLogicAsync()
         {
             ErrorMessage = null;
-            IsContentVisible = false;
             Switches.Clear();
 
             try
@@ -143,7 +141,6 @@ namespace ExHyperV.ViewModels
                         Switches.Add(switchVm);
                     }
                     UpdateAllSwitchMenus();
-                    IsContentVisible = true;
                 }
             }
             catch (Exception ex)
