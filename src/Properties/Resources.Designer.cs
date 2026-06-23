@@ -7810,6 +7810,10 @@ namespace ExHyperV.Properties {
             get { return ResourceManager.GetString("Error_VmCreate_NoGuid", resourceCulture); }
         }
 
+        public static string Error_VmCreate_RollbackFailed {
+            get { return ResourceManager.GetString("Error_VmCreate_RollbackFailed", resourceCulture); }
+        }
+
         public static string Error_VmCreate_NoGuardian {
             get { return ResourceManager.GetString("Error_VmCreate_NoGuardian", resourceCulture); }
         }

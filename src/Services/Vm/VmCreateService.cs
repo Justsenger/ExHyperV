@@ -277,8 +277,19 @@ namespace ExHyperV.Services
                 // 回滚:DefineSystem 之后任一步骤失败会留下半成品 VM,删掉它再上报错误(回滚失败不掩盖原始错误)
                 if (vmCreated)
                 {
-                    try { await VmDeleteService.DeleteVmAsync(finalVmName); }
-                    catch { }
+                    try
+                    {
+                        var rollback = await VmDeleteService.DeleteVmAsync(finalVmName);
+                        if (!rollback.Success)
+                            return (false, ex.Message + Environment.NewLine +
+                                string.Format(Properties.Resources.Error_VmCreate_RollbackFailed, finalVmName, rollback.Message));
+                    }
+                    catch (Exception rollbackEx)
+                    {
+                        // 回滚删除也失败：孤儿半成品 VM 残留，明确告知用户手动清理，同时保留原始错误
+                        return (false, ex.Message + Environment.NewLine +
+                            string.Format(Properties.Resources.Error_VmCreate_RollbackFailed, finalVmName, rollbackEx.Message));
+                    }
                 }
                 return (false, ex.Message);
             }

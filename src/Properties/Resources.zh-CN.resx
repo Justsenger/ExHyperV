@@ -2683,6 +2683,9 @@
   <data name="Error_VmCreate_NoGuid" xml:space="preserve">
     <value>无法获取新建 VM 的 GUID</value>
   </data>
+  <data name="Error_VmCreate_RollbackFailed" xml:space="preserve">
+    <value>创建失败，且未能自动删除半成品虚拟机「{0}」，请手动删除。（回滚错误：{1}）</value>
+  </data>
   <data name="Error_VmCreate_NoGuardian" xml:space="preserve">
     <value>无法获取或创建 UntrustedGuardian</value>
   </data>
