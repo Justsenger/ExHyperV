@@ -548,9 +548,11 @@ namespace ExHyperV.ViewModels
                         }
                     });
 
-                    if (SelectedVm != null && SelectedVm.IsRunning)
+                    // 后台线程：先快照 SelectedVm 再用，避免与 UI 线程改选中项竞态导致 NRE
+                    var selForDisk = SelectedVm;
+                    if (selForDisk != null && selForDisk.IsRunning)
                     {
-                        await VmStorageService.RefreshVirtualDiskSizesAsync(SelectedVm.Model);
+                        await VmStorageService.RefreshVirtualDiskSizesAsync(selForDisk.Model);
                     }
 
                     await Task.Delay(2000, token);
@@ -594,24 +596,28 @@ namespace ExHyperV.ViewModels
         private void CopyToClipboard(string text)
         {
             if (string.IsNullOrWhiteSpace(text) || text == "---" || text == "00-00-00-00-00-00") return;
-            Clipboard.SetText(text);
+            // 剪贴板可能被其它进程短暂占用，SetText 会抛 COMException；吞掉避免复制崩溃
+            try { Clipboard.SetText(text); }
+            catch { }
         }
         private async Task MonitorThumbnailLoop(CancellationToken token)
         {
             while (!token.IsCancellationRequested)
             {
+                // 后台线程：先快照 SelectedVm 再用，避免与 UI 线程改选中项竞态导致 NRE
+                var sel = SelectedVm;
                 // 只有当选中且运行时才更新
-                if (SelectedVm != null && SelectedVm.IsRunning)
+                if (sel != null && sel.IsRunning)
                 {
-                    var img = await VmScreenshotService.CaptureAsync(SelectedVm.Name, 320, 240);
+                    var img = await VmScreenshotService.CaptureAsync(sel.Name, 320, 240);
                     if (img != null)
                     {
-                        Application.Current.Dispatcher.Invoke(() => SelectedVm.Thumbnail = img);
+                        Application.Current.Dispatcher.Invoke(() => sel.Thumbnail = img);
                     }
                 }
-                else if (SelectedVm != null && !SelectedVm.IsRunning && SelectedVm.Thumbnail != null)
+                else if (sel != null && !sel.IsRunning && sel.Thumbnail != null)
                 {
-                    Application.Current.Dispatcher.Invoke(() => SelectedVm.Thumbnail = null);
+                    Application.Current.Dispatcher.Invoke(() => sel.Thumbnail = null);
                 }
 
                 // 缩略图不需要太高的刷新率，1.5秒或2秒一次即可，避免占用过多WMI资源
