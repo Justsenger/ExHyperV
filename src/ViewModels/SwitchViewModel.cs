@@ -32,9 +32,9 @@ namespace ExHyperV.ViewModels
 
         public bool IsReverting { get; private set; } = false;
 
-        public string StatusText => IsDefaultSwitch ? ExHyperV.Properties.Resources.Warning_CannotModifyDefaultSwitch : IsConnected ? string.Format(Properties.Resources.Status_ConnectedTo, SelectedUpstreamAdapter) : ExHyperV.Properties.Resources.Status_UpstreamNotConnected;
+        public string StatusText => IsDefaultSwitch ? Properties.Resources.Warning_CannotModifyDefaultSwitch : IsConnected ? string.Format(Properties.Resources.Status_ConnectedTo, SelectedUpstreamAdapter) : Properties.Resources.Status_UpstreamNotConnected;
         public bool IsConnected => !string.IsNullOrEmpty(SelectedUpstreamAdapter) && (SelectedNetworkMode == SwitchMode.Bridge || SelectedNetworkMode == SwitchMode.NAT);
-        public string DropDownButtonContent => IsDefaultSwitch ? ExHyperV.Properties.Resources.Auto : SelectedNetworkMode == SwitchMode.Isolated ? ExHyperV.Properties.Resources.Status_Unavailable : string.IsNullOrEmpty(SelectedUpstreamAdapter) ? ExHyperV.Properties.Resources.Placeholder_SelectNetworkAdapter : SelectedUpstreamAdapter;
+        public string DropDownButtonContent => IsDefaultSwitch ? Properties.Resources.Auto : SelectedNetworkMode == SwitchMode.Isolated ? Properties.Resources.Status_Unavailable : string.IsNullOrEmpty(SelectedUpstreamAdapter) ? Properties.Resources.Placeholder_SelectNetworkAdapter : SelectedUpstreamAdapter;
         public string IconGlyph => DeviceIcons.GetGlyph("Switch", SwitchName);
 
         // ===== 构造 =====

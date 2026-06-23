@@ -14,7 +14,7 @@ namespace ExHyperV.ViewModels
         private SwitchMode _selectedSwitchType = SwitchMode.Bridge;
 
         [ObservableProperty]
-        private string _switchName = ExHyperV.Properties.Resources.AddSwitch_DefaultName_External;
+        private string _switchName = Properties.Resources.AddSwitch_DefaultName_External;
 
         [ObservableProperty]
         private string? _selectedNetworkAdapter;
@@ -44,10 +44,10 @@ namespace ExHyperV.ViewModels
         {
             SwitchName = value switch
             {
-                SwitchMode.Bridge => ExHyperV.Properties.Resources.AddSwitch_DefaultName_External,
-                SwitchMode.NAT => ExHyperV.Properties.Resources.AddSwitch_DefaultName_NAT,
-                SwitchMode.Isolated => ExHyperV.Properties.Resources.AddSwitch_DefaultName_Internal,
-                _ => ExHyperV.Properties.Resources.AddSwitch_DefaultName_Generic
+                SwitchMode.Bridge => Properties.Resources.AddSwitch_DefaultName_External,
+                SwitchMode.NAT => Properties.Resources.AddSwitch_DefaultName_NAT,
+                SwitchMode.Isolated => Properties.Resources.AddSwitch_DefaultName_Internal,
+                _ => Properties.Resources.AddSwitch_DefaultName_Generic
             };
         }
 
@@ -56,7 +56,7 @@ namespace ExHyperV.ViewModels
             ErrorMessage = null;
             if (string.IsNullOrWhiteSpace(SwitchName))
             {
-                ErrorMessage = ExHyperV.Properties.Resources.AddSwitch_Validation_NameCannotBeEmpty;
+                ErrorMessage = Properties.Resources.AddSwitch_Validation_NameCannotBeEmpty;
                 return false;
             }
             if (_existingSwitches.Any(s => s.SwitchName.Equals(SwitchName, System.StringComparison.OrdinalIgnoreCase)))
@@ -66,19 +66,19 @@ namespace ExHyperV.ViewModels
             }
             if (IsNetworkAdapterSelectionEnabled && !AvailableNetworkAdapters.Any())
             {
-                ErrorMessage = ExHyperV.Properties.Resources.AddSwitch_Validation_NoAdaptersForExternalOrNat;
+                ErrorMessage = Properties.Resources.AddSwitch_Validation_NoAdaptersForExternalOrNat;
                 return false;
             }
             if (IsNetworkAdapterSelectionEnabled && string.IsNullOrEmpty(SelectedNetworkAdapter))
             {
-                ErrorMessage = ExHyperV.Properties.Resources.AddSwitch_Validation_AdapterRequiredForExternalOrNat;
+                ErrorMessage = Properties.Resources.AddSwitch_Validation_AdapterRequiredForExternalOrNat;
                 return false;
             }
             if (_selectedSwitchType == SwitchMode.NAT)
             {
                 if (_existingSwitches.Any(s => !s.IsDefaultSwitch && s.SelectedNetworkMode == SwitchMode.NAT))
                 {
-                    ErrorMessage = ExHyperV.Properties.Resources.AddSwitch_Validation_OnlyOneNatAllowed;
+                    ErrorMessage = Properties.Resources.AddSwitch_Validation_OnlyOneNatAllowed;
                     return false;
                 }
             }

@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using ExHyperV.Properties;
 using ExHyperV.Services;
 
 namespace ExHyperV.ViewModels
@@ -36,7 +35,7 @@ namespace ExHyperV.ViewModels
             IsCheckingForUpdate = true;
             IsUpdateActionEnabled = false;
             ShowUpdateIndicator = false;
-            UpdateStatusText = ExHyperV.Properties.Resources.Status_CheckingForUpdates;
+            UpdateStatusText = Properties.Resources.Status_CheckingForUpdates;
 
             try
             {
@@ -58,7 +57,7 @@ namespace ExHyperV.ViewModels
                 }
                 else
                 {
-                    UpdateStatusText = ExHyperV.Properties.Resources.Info_AlreadyLatestVersion;
+                    UpdateStatusText = Properties.Resources.Info_AlreadyLatestVersion;
                     UpdateActionIcon = "\uE73E";
                     UpdateActionCommand = CheckForUpdateCommand;
                 }
@@ -94,7 +93,7 @@ namespace ExHyperV.ViewModels
 
         public SettingsPageViewModel()
         {
-            AvailableThemes = new List<string> { Resources.Theme_Light, Resources.Theme_Dark };
+            AvailableThemes = new List<string> { Properties.Resources.Theme_Light, Properties.Resources.Theme_Dark };
             AvailableLanguages = new List<string> { Properties.Resources.Lang_Chinese, "English" };
 
             LoadCurrentSettings();

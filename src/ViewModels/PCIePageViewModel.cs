@@ -1,7 +1,6 @@
 ﻿using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using ExHyperV.Properties;
 using ExHyperV.Interaction;
 using ExHyperV.Services;
 using MessageBox = Wpf.Ui.Controls.MessageBox;
@@ -84,7 +83,7 @@ namespace ExHyperV.ViewModels
             IsUiEnabled = false;
 
             // MMIO空间检查流程
-            if (selectedTarget != Resources.Host)
+            if (selectedTarget != Properties.Resources.Host)
             {
                 bool canProceed = await HandleMmioCheckAsync(selectedTarget);
                 if (!canProceed)
@@ -113,7 +112,7 @@ namespace ExHyperV.ViewModels
                         TextWrapping = System.Windows.TextWrapping.Wrap,
                         MaxWidth = 400
                     },
-                    CloseButtonText = Resources.Btn_Confirm
+                    CloseButtonText = Properties.Resources.Btn_Confirm
                 };
                 await errorDialog.ShowDialogAsync();
             }
@@ -129,8 +128,8 @@ namespace ExHyperV.ViewModels
             if (resultType == MmioCheckResultType.NeedsConfirmation)
             {
                 bool confirmed = await Dialogs.ShowConfirmAsync(
-                    ExHyperV.Properties.Resources.PCIePage_Title_MmioSpaceTooSmall, message,
-                    ExHyperV.Properties.Resources.Button_Yes, ExHyperV.Properties.Resources.Button_No);
+                    Properties.Resources.PCIePage_Title_MmioSpaceTooSmall, message,
+                    Properties.Resources.Button_Yes, Properties.Resources.Button_No);
                 if (!confirmed) return false;
 
                 bool updateSuccess = await PCIeService.UpdateMmioSpaceAsync(targetVmName);
@@ -139,8 +138,8 @@ namespace ExHyperV.ViewModels
                     var errorDialog = new MessageBox
                     {
                         Title = Properties.Resources.Error_Title,
-                        Content = Resources.PCIePage_Error_UpdateMmioFailed,
-                        CloseButtonText = Resources.Btn_Confirm
+                        Content = Properties.Resources.PCIePage_Error_UpdateMmioFailed,
+                        CloseButtonText = Properties.Resources.Btn_Confirm
                     };
                     await errorDialog.ShowDialogAsync();
                     await LoadDataCommand.ExecuteAsync(null);
@@ -151,9 +150,9 @@ namespace ExHyperV.ViewModels
             {
                 var errorDialog = new MessageBox
                 {
-                    Title = Resources.Error_Title,
-                    Content = ExHyperV.Properties.Resources.PCIePage_Error_CheckMmioGeneric,
-                    CloseButtonText = Resources.Btn_Confirm
+                    Title = Properties.Resources.Error_Title,
+                    Content = Properties.Resources.PCIePage_Error_CheckMmioGeneric,
+                    CloseButtonText = Properties.Resources.Btn_Confirm
                 };
                 await errorDialog.ShowDialogAsync();
                 return false;

@@ -73,12 +73,12 @@ namespace ExHyperV.Interaction
 
                 var icon = new SymbolIcon(SymbolRegular.CheckmarkCircle24) { FontSize = 24, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 12, 0) };
                 var textStack = new System.Windows.Controls.StackPanel { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0) };
-                var titleTxt = new Wpf.Ui.Controls.TextBlock { Text = ExHyperV.Properties.Resources.Status_Title_Success, FontWeight = FontWeights.Bold, FontSize = 14, Margin = new Thickness(0) };
+                var titleTxt = new Wpf.Ui.Controls.TextBlock { Text = Properties.Resources.Status_Title_Success, FontWeight = FontWeights.Bold, FontSize = 14, Margin = new Thickness(0) };
                 var msgTxt = new Wpf.Ui.Controls.TextBlock { Text = message, FontSize = 12, Margin = new Thickness(0, -2, 0, 0) };
                 textStack.Children.Add(titleTxt);
                 textStack.Children.Add(msgTxt);
 
-                var btn = new Wpf.Ui.Controls.Button { Content = ExHyperV.Properties.Resources.Global_Restart, Appearance = ControlAppearance.Primary, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(12, 0, 10, 0) };
+                var btn = new Wpf.Ui.Controls.Button { Content = Properties.Resources.Global_Restart, Appearance = ControlAppearance.Primary, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(12, 0, 10, 0) };
                 btn.Click += (s, e) => System.Diagnostics.Process.Start("shutdown", "-r -t 0");
 
                 System.Windows.Controls.Grid.SetColumn(icon, 0);

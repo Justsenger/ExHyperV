@@ -1,6 +1,5 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using ExHyperV.Models;
-using ExHyperV.Properties;
 using ExHyperV.Tools;
 
 namespace ExHyperV.ViewModels
@@ -13,7 +12,7 @@ namespace ExHyperV.ViewModels
         {
             _device = device;
             IconGlyph = DeviceIcons.GetGlyph(device.ClassType, device.FriendlyName);
-            AssignmentOptions = new List<string> { Resources.Host }; // 1. 首先添加“主机”
+            AssignmentOptions = new List<string> { Properties.Resources.Host }; // 1. 首先添加“主机”
             if (allVmNames != null)
             {
                 AssignmentOptions.AddRange(allVmNames); // 2. 然后添加所有虚拟机名称

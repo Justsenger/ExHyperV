@@ -86,7 +86,7 @@ namespace ExHyperV.Services
                     return c;
                 }
             }
-            throw new IOException(ExHyperV.Properties.Resources.Error_NoAvailableDriveLetters);
+            throw new IOException(Properties.Resources.Error_NoAvailableDriveLetters);
         }
 
         #region 硬件信息与虚拟机查询

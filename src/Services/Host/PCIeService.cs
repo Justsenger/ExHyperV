@@ -1,7 +1,6 @@
 ﻿using System.Diagnostics;
 using ExHyperV.Tools;
 using ExHyperV.Models;
-using ExHyperV.Properties;
 
 namespace ExHyperV.Services
 {
@@ -86,7 +85,7 @@ namespace ExHyperV.Services
                     {
                         string pureId = GetPureId(d.InstanceId);
                         if (!string.IsNullOrEmpty(pureId) && !vmDeviceAssignments.ContainsKey(pureId))
-                            vmDeviceAssignments[pureId] = Resources.Status_Dismounted;
+                            vmDeviceAssignments[pureId] = Properties.Resources.Status_Dismounted;
                     }
 
                     // ── 3. 构建 DeviceInfo（只用 PCI\* 在线设备）────────
@@ -114,7 +113,7 @@ namespace ExHyperV.Services
                         }
                         else
                         {
-                            status = Resources.Host;
+                            status = Properties.Resources.Host;
                         }
 
                         string path = pciDev.FirstLocationPath ?? "";
@@ -231,12 +230,12 @@ namespace ExHyperV.Services
                 // 只有当操作列表中包含 SetGuestCache（cpucache）时才需要关机
                 // SetGuestCache 是唯一强制要求 VM Off 的 ModifySystemSettings 调用
                 // 如果该 VM 的 GuestControlledCacheTypes 已经是 true，PCIeCommands 不会加入此步骤
-                bool needsStop = operations.Any(op => op.Message == Resources.Action_EnableCpuCacheControl);
+                bool needsStop = operations.Any(op => op.Message == Properties.Resources.Action_EnableCpuCacheControl);
                 if (needsStop)
                 {
-                    progress?.Report(Resources.Msg_PCIe_ShuttingDownVm);
+                    progress?.Report(Properties.Resources.Msg_PCIe_ShuttingDownVm);
                     if (!await EnsureVmStoppedAsync(targetVmName))
-                        return (false, Resources.Error_PCIe_CannotShutdownVm);
+                        return (false, Properties.Resources.Error_PCIe_CannotShutdownVm);
                 }
 
                 foreach (var operation in operations)
@@ -245,7 +244,7 @@ namespace ExHyperV.Services
                     var error = await ExecuteOperationAsync(operation, instanceId);
                     if (error != null)
                     {
-                        if (targetVmName == Resources.Host)
+                        if (targetVmName == Properties.Resources.Host)
                             Win32Api.EnablePnpDevice(instanceId);
                         return (false, error);
                     }
@@ -327,7 +326,7 @@ namespace ExHyperV.Services
             // WMI：Mount-VMHostAssignableDevice
             // WmiSilent：某些设备（核显/NPU 等）不支持标准 Mount 流程，失败静默处理
             PCIeOperation MountDeviceSilent(string locationPath) => new(
-                Resources.Status_MountingDevice, PCIeOpType.WmiSilent,
+                Properties.Resources.Status_MountingDevice, PCIeOpType.WmiSilent,
                 WmiAction: () => WmiApi.InvokeAsync(
                     "SELECT * FROM Msvm_AssignableDeviceService",
                     "MountAssignableDevice",
@@ -337,7 +336,7 @@ namespace ExHyperV.Services
             // WMI：Add-VMAssignableDevice
             // 流程：拿 PciExpress Default 模板 → 设置 HostResource = PCIP 设备路径 → AddResourceSettings
             PCIeOperation AddDevice(string devInstanceId, string locationPath, string vmName) => new(
-                Resources.Status_MountingDevice, PCIeOpType.Wmi,
+                Properties.Resources.Status_MountingDevice, PCIeOpType.Wmi,
                 WmiAction: async () =>
                 {
                     var ms = WmiConnectionCache.GetManagementScope(WmiScope.HyperV, WmiContext.Local);
@@ -383,7 +382,7 @@ namespace ExHyperV.Services
 
             // WMI：Dismount-VMHostAssignableDevice
             PCIeOperation DismountDevice(string devInstanceId, string locationPath) => new(
-                Resources.Dismountdevice, PCIeOpType.Wmi,
+                Properties.Resources.Dismountdevice, PCIeOpType.Wmi,
                 WmiAction: () => WmiApi.InvokeAsync(
                     "SELECT * FROM Msvm_AssignableDeviceService",
                     "DismountAssignableDevice",
@@ -402,7 +401,7 @@ namespace ExHyperV.Services
             // WMI：Remove-VMAssignableDevice
             // 流程：从 VM 的 Msvm_PciExpressSettingData 找到对应 HostResource 的设备设置 → RemoveResourceSettings
             PCIeOperation RemoveDevice(string devInstanceId, string locationPath, string vmName) => new(
-                Resources.Dismountdevice, PCIeOpType.Wmi,
+                Properties.Resources.Dismountdevice, PCIeOpType.Wmi,
                 WmiAction: async () =>
                 {
                     var ms = WmiConnectionCache.GetManagementScope(WmiScope.HyperV, WmiContext.Local);
@@ -453,7 +452,7 @@ namespace ExHyperV.Services
             // WMI：Set-VM -AutomaticStopAction TurnOff（AutomaticShutdownAction=2）
             // 注意：AutomaticShutdownAction 可在 VM 运行时修改，无需关机
             PCIeOperation SetAutoStop(string vmName) => new(
-                Resources.PCIeService_SetShutdownToTurnOff, PCIeOpType.Wmi,
+                Properties.Resources.PCIeService_SetShutdownToTurnOff, PCIeOpType.Wmi,
                 WmiAction: () => WmiApi.WithObjectAsync(
                     $"SELECT * FROM Msvm_VirtualSystemSettingData WHERE ElementName = '{WmiApi.Escape(vmName)}' AND VirtualSystemType = 'Microsoft:Hyper-V:System:Realized'",
                     obj => obj["AutomaticShutdownAction"] = (ushort)2,
@@ -466,7 +465,7 @@ namespace ExHyperV.Services
             // WMI：Set-VM -GuestControlledCacheTypes $true
             // 注意：此字段修改需要 VM 处于 Off 状态
             PCIeOperation SetGuestCache(string vmName) => new(
-                Resources.Action_EnableCpuCacheControl, PCIeOpType.Wmi,
+                Properties.Resources.Action_EnableCpuCacheControl, PCIeOpType.Wmi,
                 WmiAction: () => WmiApi.WithObjectAsync(
                     $"SELECT * FROM Msvm_VirtualSystemSettingData WHERE ElementName = '{WmiApi.Escape(vmName)}' AND VirtualSystemType = 'Microsoft:Hyper-V:System:Realized'",
                     obj => obj["GuestControlledCacheTypes"] = true,
@@ -478,7 +477,7 @@ namespace ExHyperV.Services
 
             // ── 检查 GuestControlledCacheTypes 是否已设置，已设置则跳过（同时避免关机）──
             bool guestCacheAlreadySet = false;
-            if (Vmname != Resources.Host)
+            if (Vmname != Properties.Resources.Host)
             {
                 string escapedVm = WmiApi.Escape(Vmname);
                 var cacheResp = WmiApi.QueryAsync(
@@ -489,39 +488,39 @@ namespace ExHyperV.Services
                 guestCacheAlreadySet = cacheResp.Success && (cacheResp.Data?.Any(x => x) ?? false);
             }
 
-            if (Nowname == Resources.Status_Dismounted && Vmname == Resources.Host)
+            if (Nowname == Properties.Resources.Status_Dismounted && Vmname == Properties.Resources.Host)
             {
                 // 已卸除 → 主机：Mount 静默处理，某些设备（核显/NPU）不支持标准 Mount 但实际可用
                 ops.Add(MountDeviceSilent(path));
-                ops.Add(new(Resources.Status_EnablingDevice, PCIeOpType.PnpEnable));
+                ops.Add(new(Properties.Resources.Status_EnablingDevice, PCIeOpType.PnpEnable));
             }
-            else if (Nowname == Resources.Status_Dismounted && Vmname != Resources.Host)
+            else if (Nowname == Properties.Resources.Status_Dismounted && Vmname != Properties.Resources.Host)
             {
                 ops.Add(SetAutoStop(Vmname));
                 if (!guestCacheAlreadySet) ops.Add(SetGuestCache(Vmname));
                 ops.Add(AddDevice(instanceId, path, Vmname));
             }
-            else if (Nowname == Resources.Host)
+            else if (Nowname == Properties.Resources.Host)
             {
                 ops.Add(SetAutoStop(Vmname));
                 if (!guestCacheAlreadySet) ops.Add(SetGuestCache(Vmname));
-                ops.Add(new(Resources.Disabledevice, PCIeOpType.PnpDisable));
+                ops.Add(new(Properties.Resources.Disabledevice, PCIeOpType.PnpDisable));
                 ops.Add(DismountDevice(instanceId, path));
                 ops.Add(AddDevice(instanceId, path, Vmname));
             }
-            else if (Vmname != Resources.Host && Nowname != Resources.Host)
+            else if (Vmname != Properties.Resources.Host && Nowname != Properties.Resources.Host)
             {
                 ops.Add(SetAutoStop(Vmname));
                 if (!guestCacheAlreadySet) ops.Add(SetGuestCache(Vmname));
                 ops.Add(RemoveDevice(instanceId, path, Nowname));
                 ops.Add(AddDevice(instanceId, path, Vmname));
             }
-            else if (Vmname == Resources.Host && Nowname != Resources.Host)
+            else if (Vmname == Properties.Resources.Host && Nowname != Properties.Resources.Host)
             {
                 // VM → 主机：Mount 静默处理，对齐 PS 版本行为
                 ops.Add(RemoveDevice(instanceId, path, Nowname));
                 ops.Add(MountDeviceSilent(path));
-                ops.Add(new(Resources.Status_EnablingDevice, PCIeOpType.PnpEnable));
+                ops.Add(new(Properties.Resources.Status_EnablingDevice, PCIeOpType.PnpEnable));
             }
 
             return ops;

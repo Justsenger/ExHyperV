@@ -143,7 +143,7 @@ namespace ExHyperV.Services
             }
             return new AdapterInfo
             {
-                Name = ExHyperV.Properties.Resources.DisplayName_HostManagementOS,
+                Name = Properties.Resources.DisplayName_HostManagementOS,
                 MacAddress = mac,
                 IpAddress = Ipv4.SelectBest(ipAddresses)
             };

@@ -24,7 +24,7 @@ namespace ExHyperV.Tools
 
             if (resourceInfo == null)
             {
-                throw new FileNotFoundException(ExHyperV.Properties.Resources.Error_EmbeddedWpfResourceNotFound, _pciResourceUri.ToString());
+                throw new FileNotFoundException(Properties.Resources.Error_EmbeddedWpfResourceNotFound, _pciResourceUri.ToString());
             }
 
             using (var stream = resourceInfo.Stream)

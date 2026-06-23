@@ -147,8 +147,8 @@ namespace ExHyperV.Interaction
             {
                 Title = title,
                 Content = content,
-                PrimaryButtonText = ExHyperV.Properties.Resources.Btn_Create,
-                CloseButtonText = ExHyperV.Properties.Resources.Btn_Cancel,
+                PrimaryButtonText = Properties.Resources.Btn_Create,
+                CloseButtonText = Properties.Resources.Btn_Cancel,
                 DialogHost = dialogHost,
                 VerticalContentAlignment = VerticalAlignment.Top
             };

@@ -170,13 +170,13 @@ namespace ExHyperV.Services
             if (hypervisor && vmmsStatus == 1 && wmiReady)
                 return string.Empty;
             var missing = new List<string>();
-            if (!hypervisor) missing.Add(ExHyperV.Properties.Resources.HostPageViewModel_HypervisorInactive);
-            if (vmmsStatus == 0) missing.Add(ExHyperV.Properties.Resources.HostPageViewModel_VmmsMissing);
-            else if (vmmsStatus != 1) missing.Add(ExHyperV.Properties.Resources.HostPageViewModel_VmmsNotRunning);
-            if (!wmiReady) missing.Add(ExHyperV.Properties.Resources.HostPageViewModel_WmiNamespaceMissing);
+            if (!hypervisor) missing.Add(Properties.Resources.HostPageViewModel_HypervisorInactive);
+            if (vmmsStatus == 0) missing.Add(Properties.Resources.HostPageViewModel_VmmsMissing);
+            else if (vmmsStatus != 1) missing.Add(Properties.Resources.HostPageViewModel_VmmsNotRunning);
+            if (!wmiReady) missing.Add(Properties.Resources.HostPageViewModel_WmiNamespaceMissing);
             return missing.Count > 0
-                ? string.Format(ExHyperV.Properties.Resources.HostPageViewModel_MissingComponents, string.Join("；", missing))
-                : ExHyperV.Properties.Resources.HostPageViewModel_StatusUnknown;
+                ? string.Format(Properties.Resources.HostPageViewModel_MissingComponents, string.Join("；", missing))
+                : Properties.Resources.HostPageViewModel_StatusUnknown;
         }
     }
 }

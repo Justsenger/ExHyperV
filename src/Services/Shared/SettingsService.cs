@@ -2,7 +2,6 @@ using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using System.Xml.Linq;
-using ExHyperV.Properties;
 using Wpf.Ui.Appearance;
 using System.Net.Http;
 
@@ -55,7 +54,7 @@ namespace ExHyperV.Services
                 }
                 catch (Exception)
                 {
-                    throw new Exception(ExHyperV.Properties.Resources.Error_CheckForUpdateFailed);
+                    throw new Exception(Properties.Resources.Error_CheckForUpdateFailed);
                 }
             }
 
@@ -135,13 +134,13 @@ namespace ExHyperV.Services
         // 获取当前主题
         public static string GetTheme()
         {
-            return ApplicationThemeManager.GetAppTheme() == ApplicationTheme.Dark ? Resources.Theme_Dark : Resources.Theme_Light;
+            return ApplicationThemeManager.GetAppTheme() == ApplicationTheme.Dark ? Properties.Resources.Theme_Dark : Properties.Resources.Theme_Light;
         }
 
         // 应用新主题
         public static void ApplyTheme(string themeName)
         {
-            var theme = themeName == Resources.Theme_Dark ? ApplicationTheme.Dark : ApplicationTheme.Light;
+            var theme = themeName == Properties.Resources.Theme_Dark ? ApplicationTheme.Dark : ApplicationTheme.Light;
             ApplicationThemeManager.Apply(theme);
         }
     }

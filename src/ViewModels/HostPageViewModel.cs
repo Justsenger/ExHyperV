@@ -33,9 +33,9 @@ namespace ExHyperV.ViewModels
 
         public ObservableCollection<SchedulerMode> SchedulerModes { get; } = new()
         {
-            new SchedulerMode(ExHyperV.Properties.Resources.Scheduler_Classic, HyperVSchedulerType.Classic),
-            new SchedulerMode(ExHyperV.Properties.Resources.Scheduler_Core, HyperVSchedulerType.Core),
-            new SchedulerMode(ExHyperV.Properties.Resources.Scheduler_Root, HyperVSchedulerType.Root)
+            new SchedulerMode(Properties.Resources.Scheduler_Classic, HyperVSchedulerType.Classic),
+            new SchedulerMode(Properties.Resources.Scheduler_Core, HyperVSchedulerType.Core),
+            new SchedulerMode(Properties.Resources.Scheduler_Root, HyperVSchedulerType.Root)
         };
 
         // ===== 构造与初始化检查 =====
@@ -62,7 +62,7 @@ namespace ExHyperV.ViewModels
             else
             {
                 VersionStatus.IsSuccess = false;
-                VersionStatus.StatusText = baseVersion + ExHyperV.Properties.Resources.Status_Msg_GpuPvNotSupported;
+                VersionStatus.StatusText = baseVersion + Properties.Resources.Status_Msg_GpuPvNotSupported;
             }
             VersionStatus.IsChecking = false;
         });
@@ -148,10 +148,10 @@ namespace ExHyperV.ViewModels
             _ = Task.Run(async () =>
             {
                 if (await HyperVSchedulerService.SetSchedulerTypeAsync(value))
-                    ShowRestartPrompt(ExHyperV.Properties.Resources.Msg_Host_SchedulerChanged);
+                    ShowRestartPrompt(Properties.Resources.Msg_Host_SchedulerChanged);
                 else
                 {
-                    ShowSnackbar(Translate("Status_Title_Error"), ExHyperV.Properties.Resources.Error_Host_SchedulerFail, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                    ShowSnackbar(Translate("Status_Title_Error"), Properties.Resources.Error_Host_SchedulerFail, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
                     var actual = HyperVSchedulerService.GetSchedulerType();
                     Application.Current.Dispatcher.Invoke(() =>
                     {
@@ -187,14 +187,14 @@ namespace ExHyperV.ViewModels
         [RelayCommand]
         private async Task EnableHyperVAsync()
         {
-            ShowSnackbar(Translate("Status_Title_Info"), ExHyperV.Properties.Resources.Msg_Host_EnableHyperV, ControlAppearance.Info, SymbolRegular.Settings24);
+            ShowSnackbar(Translate("Status_Title_Info"), Properties.Resources.Msg_Host_EnableHyperV, ControlAppearance.Info, SymbolRegular.Settings24);
             bool ok = await HyperVHostService.EnableHyperVAsync();
             if (!ok)
             {
-                ShowSnackbar(Translate("Status_Title_Error"), ExHyperV.Properties.Resources.Error_Host_EnableFail, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                ShowSnackbar(Translate("Status_Title_Error"), Properties.Resources.Error_Host_EnableFail, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
                 return;
             }
-            ShowRestartPrompt(ExHyperV.Properties.Resources.Msg_Host_EnableSuccess);
+            ShowRestartPrompt(Properties.Resources.Msg_Host_EnableSuccess);
         }
 
         // ===== 系统版本切换 =====
@@ -240,7 +240,7 @@ namespace ExHyperV.ViewModels
 
         // ===== UI 辅助（Snackbar / 重启提示） =====
 
-        private string Translate(string key) => ExHyperV.Properties.Resources.ResourceManager.GetString(key) ?? key;
+        private string Translate(string key) => Properties.Resources.ResourceManager.GetString(key) ?? key;
 
         public void ShowSnackbar(string title, string msg, ControlAppearance app, SymbolRegular icon)
             => Notifications.ShowSnackbar(title, msg, app, icon);

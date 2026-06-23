@@ -1,6 +1,5 @@
 using System.IO;
 using CommunityToolkit.Mvvm.ComponentModel;
-using ExHyperV.Properties;
 
 namespace ExHyperV.Models
 {
@@ -36,14 +35,14 @@ namespace ExHyperV.Models
                 if (_diskType == "Virtual" && !string.IsNullOrEmpty(_pathOrDiskNumber))
                 {
                     try { return Path.GetFileName(_pathOrDiskNumber); }
-                    catch { return Resources.Model_Drive_VirtualDisk; }
+                    catch { return Properties.Resources.Model_Drive_VirtualDisk; }
                 }
 
-                return _driveType == "HardDisk" ? Resources.Model_Drive_VirtualHardDisk : Resources.Model_Drive_OpticalDrive;
+                return _driveType == "HardDisk" ? Properties.Resources.Model_Drive_VirtualHardDisk : Properties.Resources.Model_Drive_OpticalDrive;
             }
         }
 
-        public string SourceTypeDisplayName => _diskType == "Physical" ? Resources.Model_Drive_SourcePhysical : Resources.Model_Drive_SourceVirtual;
+        public string SourceTypeDisplayName => _diskType == "Physical" ? Properties.Resources.Model_Drive_SourcePhysical : Properties.Resources.Model_Drive_SourceVirtual;
 
         public string Icon => _driveType == "HardDisk" ? "" : "";
 
@@ -51,7 +50,7 @@ namespace ExHyperV.Models
         {
             get
             {
-                if (DiskSizeGB <= 0) return Resources.Common_Unknown;
+                if (DiskSizeGB <= 0) return Properties.Resources.Common_Unknown;
                 if (DiskSizeGB < 1.0)
                 {
                     double sizeMB = DiskSizeGB * 1024.0;
