@@ -65,8 +65,6 @@ namespace ExHyperV.ViewModels
                     AvailableSwitchNames = new ObservableCollection<string>(switchesTask.Result);
                 }
 
-                var firstAdapter = adaptersTask.Result.FirstOrDefault();
-                System.Diagnostics.Debug.WriteLine($"[DEBUG] GoToNetworkSettingsAsync is syncing. IsConnected = {firstAdapter?.IsConnected}");
                 SyncNetworkAdaptersInternal(SelectedVm.NetworkAdapters, adaptersTask.Result);
 
                 // IP 探测
