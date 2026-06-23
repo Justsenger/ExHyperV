@@ -13,8 +13,6 @@
              d:DataContext="{d:DesignInstance vm:VirtualMachinesPageViewModel}">
 
     <UserControl.Resources>
-        <converters:EqualityToVisibilityConverter x:Key="EqualityToVisibilityConverter" />
-        <converters:GpuImagePathConverter x:Key="GpuImagePathConverter"/>
     </UserControl.Resources>
 
     <Grid>

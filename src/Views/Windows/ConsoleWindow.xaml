@@ -17,7 +17,6 @@
     WindowBackdropType="Mica">
 
     <ui:FluentWindow.Resources>
-        <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
     </ui:FluentWindow.Resources>
 
     <DockPanel LastChildFill="True" Background="Transparent">
@@ -26,7 +25,7 @@
             DockPanel.Dock="Top" 
             Height="42" 
             Padding="0"
-            Visibility="{Binding IsFullScreen, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=Invert}">
+            Visibility="{Binding IsFullScreen, Converter={StaticResource BoolToVis}, ConverterParameter=Invert}">
             <ui:TitleBar.Header>
                 <Grid Margin="12,0,0,0" HorizontalAlignment="Stretch"><!-- 不设 Background：空白区落到原生标题栏(NC)，由系统处理拖动/双击最大化 -->
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
@@ -47,11 +46,11 @@
                                Padding="0"
                                Command="{Binding StartVmCommand}"
                                ToolTip="{x:Static properties:Resources.ConsoleWindow_StartVm}"
-                               Visibility="{Binding IsRunning, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=Invert}"/>
+                               Visibility="{Binding IsRunning, Converter={StaticResource BoolToVis}, ConverterParameter=Invert}"/>
 
                             <!-- 运行状态按钮组 -->
                             <StackPanel Orientation="Horizontal"
-                                Visibility="{Binding IsRunning, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                Visibility="{Binding IsRunning, Converter={StaticResource BoolToVis}}">
                                 <ui:Button Icon="{ui:SymbolIcon Symbol=Power24}"
                                    Appearance="Transparent"
                                    Width="36"
@@ -142,7 +141,7 @@
                                    Margin="8,0,0,0"
                                    Command="{Binding SendCadCommand}"
                                    ToolTip="{x:Static properties:Resources.ConsoleWindow_SendCtrlAltDel}"
-                                   Visibility="{Binding IsEnhancedMode, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=Invert}">
+                                   Visibility="{Binding IsEnhancedMode, Converter={StaticResource BoolToVis}, ConverterParameter=Invert}">
                             <ui:SymbolIcon Symbol="Keyboard24" FontSize="16" />
                         </ui:Button>
 

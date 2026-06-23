@@ -10,7 +10,6 @@
              d:DesignHeight="750" d:DesignWidth="800">
 
     <UserControl.Resources>
-        <converters:DiskTypeToTextConverter x:Key="DiskTypeToTextConverter" />
         <DrawingBrush x:Key="FineGridBrush" Viewport="0,0,10,10" ViewportUnits="Absolute" TileMode="Tile">
             <DrawingBrush.Drawing>
                 <GeometryDrawing>
@@ -376,7 +375,7 @@
 
                 <Grid Margin="-5">
                     <!-- 1. 正常活动状态 -->
-                    <UniformGrid x:Name="GpuEnginesGrid" Rows="1" Columns="4">
+                    <UniformGrid Rows="1" Columns="4">
                         <UniformGrid.Style>
                             <Style TargetType="UniformGrid">
                                 <Setter Property="Visibility" Value="Collapsed"/>
@@ -458,7 +457,7 @@
                     </UniformGrid>
 
                     <!-- 2. 驱动未就绪状态 -->
-                    <Border x:Name="GpuNotReady" Padding="30">
+                    <Border Padding="30">
                         <Border.Style>
                             <Style TargetType="Border">
                                 <Setter Property="Visibility" Value="Collapsed"/>
@@ -480,7 +479,7 @@
                     </Border>
 
                     <!-- 3. 未开机状态 -->
-                    <Border x:Name="VmOffStatus" Padding="30">
+                    <Border Padding="30">
                         <Border.Style>
                             <Style TargetType="Border">
                                 <Setter Property="Visibility" Value="Collapsed"/>
@@ -499,7 +498,7 @@
                     </Border>
 
                     <!-- 4. 未分配状态 -->
-                    <Border x:Name="NoGpuStatus" Padding="30">
+                    <Border Padding="30">
                         <Border.Style>
                             <Style TargetType="Border">
                                 <Setter Property="Visibility" Value="Collapsed"/>

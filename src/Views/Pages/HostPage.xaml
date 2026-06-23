@@ -8,8 +8,6 @@
     Title="HostPage">
 
     <Page.Resources>
-        <converters:BooleanToVisibilityConverter x:Key="BoolToVis" />
-        <converters:StringToVisibilityConverter x:Key="StringToVisibilityConverter" />
     </Page.Resources>
 
     <Grid Margin="24">

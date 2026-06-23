@@ -18,7 +18,6 @@
 
     <Page.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis"/>
-        <converters:CommandParameterConverter x:Key="CommandParameterConverter"/>
     </Page.Resources>
 
     <Grid>

@@ -9,8 +9,6 @@
              mc:Ignorable="d" d:DesignHeight="850" d:DesignWidth="1100">
 
     <UserControl.Resources>
-        <converters:BooleanToVisibilityConverter x:Key="BoolToVis" />
-        <converters:EqualityConverter x:Key="EqualityConverter"/>
         
         <!-- 完美无缝、边共享正六边形矩阵 -->
         <!-- 计算基准：六边形半径 R = 20 -->
@@ -116,7 +114,7 @@
 
                     <!-- 2. 新增：时空重构遮罩层 (科技感十足) -->
                     <!-- 当 IsLoadingSettings 为 True 时显示 -->
-                    <Grid x:Name="ReconstructOverlay" 
+                    <Grid 
               Visibility="{Binding IsLoadingSettings, Converter={StaticResource BoolToVis}}"
               Panel.ZIndex="100">
                         <Border Background="{ui:ThemeResource ApplicationBackgroundBrush}" Opacity="0.6"/>

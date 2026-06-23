@@ -13,7 +13,6 @@
              d:DataContext="{d:DesignInstance vm:VirtualMachinesPageViewModel}">
 
     <UserControl.Resources>
-        <converters:GpuImagePathConverter x:Key="GpuImagePathConverter"/>
     </UserControl.Resources>
 
     <Grid>

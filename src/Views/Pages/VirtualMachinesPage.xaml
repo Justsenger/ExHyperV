@@ -15,10 +15,6 @@
     x:Name="RootPage">
 
     <Page.Resources>
-        <converters:BooleanToVisibilityConverter x:Key="BoolToVis" />
-        <converters:InverseBooleanConverter x:Key="InverseBooleanConverter"/>
-        <converters:VmNameToIconConverter x:Key="VmNameToIconConverter" />
-        <converters:OsTypeToImageConverter x:Key="OsTypeToImageConverter" />
 
 
 
@@ -167,7 +163,7 @@
             </Border>
         </DataTemplate>
         <DataTemplate x:Key="VmDetailTemplate">
-            <Grid x:Name="DetailRootGrid">
+            <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>

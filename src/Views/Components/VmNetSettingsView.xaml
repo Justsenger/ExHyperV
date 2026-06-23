@@ -14,9 +14,6 @@
              d:DataContext="{d:DesignInstance vm:VirtualMachinesPageViewModel}">
 
     <UserControl.Resources>
-        <converters:BooleanToVisibilityConverter x:Key="BoolToVis" />
-        <converters:IntListToStringConverter x:Key="IntListConverter"/>
-        <converters:VlanModeToVisibilityConverter x:Key="VlanModeToVisibilityConverter"/>
 
         <x:Array x:Key="BandwidthPresets" Type="sys:String">
             <sys:String>0</sys:String>

@@ -3,12 +3,29 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="clr-namespace:ExHyperV"
              xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+             xmlns:converters="clr-namespace:ExHyperV.Converters"
              StartupUri="Views/Windows/MainWindow.xaml">
     <Application.Resources>
         <ResourceDictionary>
-            <SolidColorBrush x:Key="OrangeBrush" Color="#FFA500" />
-            <SolidColorBrush x:Key="RedBrush" Color="#FF4500" />
             <FontFamily x:Key="SegoeFluentIcons">pack://application:,,,/Assets/#Segoe Fluent Icons, Segoe MDL2 Assets</FontFamily>
+
+            <!-- 全局转换器（从各页面收拢，统一声明一次、键名统一） -->
+            <converters:BooleanToVisibilityConverter x:Key="BoolToVis" />
+            <converters:InverseBooleanConverter x:Key="InverseBooleanConverter" />
+            <converters:EqualityConverter x:Key="EqualityConverter" />
+            <converters:EqualityToVisibilityConverter x:Key="EqualityToVisibilityConverter" />
+            <converters:StringToVisibilityConverter x:Key="StringToVisibilityConverter" />
+            <converters:NullableToBooleanConverter x:Key="NullableToBooleanConverter" />
+            <converters:ByteToBooleanConverter x:Key="ByteToBoolConverter" />
+            <converters:SmtModeToBooleanConverter x:Key="SmtModeToBooleanConverter" />
+            <converters:CommandParameterConverter x:Key="CommandParameterConverter" />
+            <converters:DiskTypeToTextConverter x:Key="DiskTypeToTextConverter" />
+            <converters:IntListToStringConverter x:Key="IntListConverter" />
+            <converters:VlanModeToVisibilityConverter x:Key="VlanModeToVisibilityConverter" />
+            <converters:OsTypeToImageConverter x:Key="OsTypeToImageConverter" />
+            <converters:GpuImagePathConverter x:Key="GpuImagePathConverter" />
+            <converters:VmNameToIconConverter x:Key="VmNameToIconConverter" />
+
             <ResourceDictionary.MergedDictionaries>
                 <ui:ThemesDictionary Theme="Light" />
                 <ui:ControlsDictionary />

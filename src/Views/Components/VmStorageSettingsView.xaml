@@ -11,9 +11,6 @@
                  d:DataContext="{d:DesignInstance vm:VirtualMachinesPageViewModel}">
 
     <UserControl.Resources>
-        <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
-        <converters:InverseBooleanConverter x:Key="InverseBooleanConverter"/>
-        <converters:EqualityConverter x:Key="EqualityConverter" />
     </UserControl.Resources>
 
     <Grid>
@@ -55,7 +52,7 @@
 
         <!-- 2. 加载进度条 -->
         <ProgressBar Grid.Row="1" IsIndeterminate="True" VerticalAlignment="Top" Height="2" Margin="0,-2,0,0"
-                         Visibility="{Binding IsLoadingSettings, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                         Visibility="{Binding IsLoadingSettings, Converter={StaticResource BoolToVis}}"/>
 
         <!-- 3. 内容区域 -->
         <ScrollViewer Grid.Row="2" Padding="24,12,24,24" VerticalScrollBarVisibility="Auto">
@@ -97,7 +94,7 @@
                                             <!-- 直接利用你现有的 BooleanToVisibilityConverter -->
                                             <ui:ProgressRing Width="18" Height="18" 
                      IsIndeterminate="True"
-                     Visibility="{Binding IsOptimizing, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                     Visibility="{Binding IsOptimizing, Converter={StaticResource BoolToVis}}"/>
                                         </Grid>
                                         <!-- 修改2：文件名和容量放在同一行 -->
                                         <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="16,0,0,0">

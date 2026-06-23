@@ -8,9 +8,6 @@
     xmlns:sys="clr-namespace:System;assembly=mscorlib">
 
     <UserControl.Resources>
-        <converters:BooleanToVisibilityConverter x:Key="BoolToVis" />
-        <converters:EqualityConverter x:Key="EqualityConverter" />
-        <converters:EqualityToVisibilityConverter x:Key="EqualityToVis" />
     </UserControl.Resources>
 
     <Grid Background="{ui:ThemeResource ApplicationBackgroundBrush}">
@@ -175,7 +172,7 @@
                         </Grid>
 
                         <!-- 模式0：新建磁盘 (容量与路径同行) -->
-                        <Grid Visibility="{Binding NewVmDiskMode, Converter={StaticResource EqualityToVis}, ConverterParameter=0}" Margin="0,10,0,0">
+                        <Grid Visibility="{Binding NewVmDiskMode, Converter={StaticResource EqualityToVisibilityConverter}, ConverterParameter=0}" Margin="0,10,0,0">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="160"/>
                                 <ColumnDefinition Width="24"/>
@@ -208,7 +205,7 @@
                         </Grid>
 
                         <!-- 模式1：现有磁盘 -->
-                        <StackPanel Visibility="{Binding NewVmDiskMode, Converter={StaticResource EqualityToVis}, ConverterParameter=1}" Margin="0,10,0,0">
+                        <StackPanel Visibility="{Binding NewVmDiskMode, Converter={StaticResource EqualityToVisibilityConverter}, ConverterParameter=1}" Margin="0,10,0,0">
                             <TextBlock Text="{x:Static properties:Resources.Xaml_ExistDiskPath}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,8"/>
                             <Grid>
                                 <Grid.ColumnDefinitions>
@@ -222,7 +219,7 @@
 
                         <!-- 模式2：稍后附加 -->
                         <TextBlock Text="{x:Static properties:Resources.Xaml_CreateWithoutDisk}" 
-                                   Visibility="{Binding NewVmDiskMode, Converter={StaticResource EqualityToVis}, ConverterParameter=2}"
+                                   Visibility="{Binding NewVmDiskMode, Converter={StaticResource EqualityToVisibilityConverter}, ConverterParameter=2}"
                                    Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" FontSize="13" Margin="0,10,0,0"/>
                     </StackPanel>
                 </Border>

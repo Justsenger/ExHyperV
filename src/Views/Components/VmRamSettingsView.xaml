@@ -11,10 +11,6 @@
              d:DesignHeight="1550" d:DesignWidth="1000">
 
     <UserControl.Resources>
-        <converters:ByteToBooleanConverter x:Key="ByteToBoolConverter"/>
-        <converters:InverseBooleanConverter x:Key="InverseBooleanConverter"/>
-        <converters:BooleanToVisibilityConverter x:Key="BoolToVis" />
-        <converters:NullableToBooleanConverter x:Key="NullableToBooleanConverter" />
 
         <Style x:Key="ShutdownRequiredToggleStyle" TargetType="ui:ToggleSwitch" BasedOn="{StaticResource {x:Type ui:ToggleSwitch}}">
             <Setter Property="VerticalAlignment" Value="Center"/>

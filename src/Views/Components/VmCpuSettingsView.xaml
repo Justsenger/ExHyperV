@@ -11,10 +11,6 @@
              mc:Ignorable="d"
              d:DesignHeight="1200" d:DesignWidth="1000">
     <UserControl.Resources>
-        <converters:InverseBooleanConverter x:Key="InverseBooleanConverter"/>
-        <converters:BooleanToVisibilityConverter x:Key="BoolToVis" />
-        <converters:SmtModeToBooleanConverter x:Key="SmtModeToBooleanConverter"/>
-        <converters:NullableToBooleanConverter x:Key="NullableToBooleanConverter" />
 
         <!-- 样式 1: 严格限制样式 (运行时禁用) -->
         <!-- 用于绝大多数 CPU 高级设置 -->

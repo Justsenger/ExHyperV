@@ -11,7 +11,6 @@
              d:DesignHeight="600" d:DesignWidth="800">
 
     <UserControl.Resources>
-        <converters:BooleanToVisibilityConverter x:Key="BoolToVis" />
 
         <Style x:Key="SelectableCoreBoxStyle" TargetType="CheckBox">
             <Setter Property="Margin" Value="4"/>

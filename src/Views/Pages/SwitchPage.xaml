@@ -15,9 +15,6 @@
     mc:Ignorable="d">
 
     <Page.Resources>
-        <converters:BooleanToVisibilityConverter x:Key="BoolToVis" />
-        <converters:InverseBooleanConverter x:Key="InvertBool" />
-        <converters:EqualityConverter x:Key="Equality" />
     </Page.Resources>
 
     <Grid>
@@ -55,7 +52,7 @@
 
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                             <ui:Button Content="{x:Static properties:Resources.Add}" Appearance="Primary" Command="{Binding AddNewSwitchCommand}" />
-                            <ui:Button Margin="8,0,0,0" Content="{x:Static properties:Resources.Btn_Refresh}" Command="{Binding LoadNetworkInfoCommand}" IsEnabled="{Binding IsBusy, Converter={StaticResource InvertBool}}" />
+                            <ui:Button Margin="8,0,0,0" Content="{x:Static properties:Resources.Btn_Refresh}" Command="{Binding LoadNetworkInfoCommand}" IsEnabled="{Binding IsBusy, Converter={StaticResource InverseBooleanConverter}}" />
                         </StackPanel>
                     </Grid>
                 </ui:Card>
@@ -115,19 +112,19 @@
 
                                     <TextBlock Grid.Row="0" Grid.Column="0" Text="{x:Static properties:Resources.NetMode}" VerticalAlignment="Center" FontSize="15" Margin="0,0,0,4"/>
                                     <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,0,4"
-                                                IsEnabled="{Binding IsLockedForInteraction, Converter={StaticResource InvertBool}}">
+                                                IsEnabled="{Binding IsLockedForInteraction, Converter={StaticResource InverseBooleanConverter}}">
                                         <RadioButton Content="{x:Static properties:Resources.Bridge}" Padding="8,6,8,4" GroupName="{Binding SwitchId}" 
-                                                     IsChecked="{Binding SelectedNetworkMode, Converter={StaticResource Equality}, ConverterParameter=Bridge, Mode=OneWay}"
+                                                     IsChecked="{Binding SelectedNetworkMode, Converter={StaticResource EqualityConverter}, ConverterParameter=Bridge, Mode=OneWay}"
                                                      Command="{Binding SetNetworkModeCommand}" CommandParameter="Bridge"
-                                                     IsEnabled="{Binding IsDefaultSwitch, Converter={StaticResource InvertBool}}"/>
+                                                     IsEnabled="{Binding IsDefaultSwitch, Converter={StaticResource InverseBooleanConverter}}"/>
                                         <RadioButton Content="{x:Static properties:Resources.NAT}" Padding="8,6,8,4" GroupName="{Binding SwitchId}" 
-                                                     IsChecked="{Binding SelectedNetworkMode, Converter={StaticResource Equality}, ConverterParameter=NAT, Mode=OneWay}"
+                                                     IsChecked="{Binding SelectedNetworkMode, Converter={StaticResource EqualityConverter}, ConverterParameter=NAT, Mode=OneWay}"
                                                      Command="{Binding SetNetworkModeCommand}" CommandParameter="NAT"
-                                                     IsEnabled="{Binding IsDefaultSwitch, Converter={StaticResource InvertBool}}"/>
+                                                     IsEnabled="{Binding IsDefaultSwitch, Converter={StaticResource InverseBooleanConverter}}"/>
                                         <RadioButton Content="{x:Static properties:Resources.Isolate}" Padding="8,6,8,4" GroupName="{Binding SwitchId}" 
-                                                     IsChecked="{Binding SelectedNetworkMode, Converter={StaticResource Equality}, ConverterParameter=Isolated, Mode=OneWay}"
+                                                     IsChecked="{Binding SelectedNetworkMode, Converter={StaticResource EqualityConverter}, ConverterParameter=Isolated, Mode=OneWay}"
                                                      Command="{Binding SetNetworkModeCommand}" CommandParameter="Isolated"
-                                                     IsEnabled="{Binding IsDefaultSwitch, Converter={StaticResource InvertBool}}"/>
+                                                     IsEnabled="{Binding IsDefaultSwitch, Converter={StaticResource InverseBooleanConverter}}"/>
                                     </StackPanel>
 
                                     <TextBlock Grid.Row="1" Grid.Column="0" Text="{x:Static properties:Resources.Internet}" VerticalAlignment="Center" FontSize="15" Margin="0,0,0,8"/>

@@ -14,7 +14,6 @@
              d:DataContext="{d:DesignInstance vm:VirtualMachinesPageViewModel}">
 
     <UserControl.Resources>
-        <converters:BooleanToVisibilityConverter x:Key="BoolToVis" />
     </UserControl.Resources>
 
     <Grid Margin="24">
@@ -108,7 +107,7 @@
                          Visibility="{Binding ShowPartitionSelector, Converter={StaticResource BoolToVis}}">
                     <Grid>
                         <!-- 1. 分区列表界面 -->
-                        <Grid x:Name="PartitionListGrid">
+                        <Grid>
                             <Grid.Style>
                                 <Style TargetType="Grid">
                                     <Setter Property="Visibility" Value="Visible"/>
@@ -152,7 +151,7 @@
                         </Grid>
 
                         <!-- 2. SSH 凭据表单界面 -->
-                        <Border x:Name="SshFormBorder" Padding="24">
+                        <Border Padding="24">
                             <Border.Style>
                                 <Style TargetType="Border">
                                     <Setter Property="Visibility" Value="Collapsed"/>

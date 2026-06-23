@@ -12,10 +12,6 @@
              d:DataContext="{d:DesignInstance vm:VirtualMachinesPageViewModel}">
 
     <UserControl.Resources>
-        <converters:EqualityConverter x:Key="EqualityConverter" />
-        <converters:InverseBooleanConverter x:Key="InverseBooleanConverter"/>
-        <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
-        <converters:EqualityToVisibilityConverter x:Key="EqualityToVisibilityConverter" />
 
         <Style TargetType="ui:ToggleSwitch" BasedOn="{StaticResource {x:Type ui:ToggleSwitch}}">
             <Setter Property="VerticalAlignment" Value="Center"/>
@@ -384,7 +380,7 @@
 
                         <!-- 物理磁盘列表 (IsPhysicalSource = True) -->
                         <!-- 重点修复：使用 Converter 直接控制可见性，避免 Style Trigger 失效留白 -->
-                        <StackPanel Visibility="{Binding IsPhysicalSource, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <StackPanel Visibility="{Binding IsPhysicalSource, Converter={StaticResource BoolToVis}}">
                             <TextBlock Text="{x:Static properties:Resources.AddDisk_NoAvailablePhysical}" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"
                                        HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,24"
                                        Visibility="{Binding HostDisks.Count, Converter={StaticResource EqualityToVisibilityConverter}, ConverterParameter=0}"/>

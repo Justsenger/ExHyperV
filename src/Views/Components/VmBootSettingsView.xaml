@@ -31,7 +31,7 @@
             </ui:Button>
         </Grid>
 
-        <ListBox x:Name="BootListBox" 
+        <ListBox 
                  Grid.Row="1" 
                  Margin="24,4,24,24" 
                  Background="Transparent" 
@@ -70,7 +70,7 @@
                     <Setter Property="Template">
                         <Setter.Value>
                             <ControlTemplate TargetType="ListBoxItem">
-                                <Border x:Name="OuterBorder" Background="Transparent" BorderThickness="0">
+                                <Border Background="Transparent" BorderThickness="0">
                                     <ContentPresenter />
                                 </Border>
                             </ControlTemplate>

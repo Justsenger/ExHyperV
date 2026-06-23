@@ -13,8 +13,6 @@
 
 	<UserControl.Resources>
 		<ResourceDictionary>
-			<converters:EqualityConverter x:Key="Equality" />
-			<converters:StringToVisibilityConverter x:Key="StringToVisibilityConverter"/>
 		</ResourceDictionary>
 	</UserControl.Resources>
 
@@ -36,9 +34,9 @@
 				</Grid.ColumnDefinitions>
 				<TextBlock Grid.Column="0" Text="{x:Static properties:Resources.SwitchMode}" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
 				<StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-					<RadioButton Content="{x:Static properties:Resources.External}" Margin="0,0,15,0" IsChecked="{Binding SelectedSwitchType, Converter={StaticResource Equality}, ConverterParameter=Bridge}" Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
-					<RadioButton Content="NAT" Margin="0,0,15,0" IsChecked="{Binding SelectedSwitchType, Converter={StaticResource Equality}, ConverterParameter=NAT}" Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
-					<RadioButton Content="{x:Static properties:Resources.Noupstream}" IsChecked="{Binding SelectedSwitchType, Converter={StaticResource Equality}, ConverterParameter=Isolated}" Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+					<RadioButton Content="{x:Static properties:Resources.External}" Margin="0,0,15,0" IsChecked="{Binding SelectedSwitchType, Converter={StaticResource EqualityConverter}, ConverterParameter=Bridge}" Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+					<RadioButton Content="NAT" Margin="0,0,15,0" IsChecked="{Binding SelectedSwitchType, Converter={StaticResource EqualityConverter}, ConverterParameter=NAT}" Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+					<RadioButton Content="{x:Static properties:Resources.Noupstream}" IsChecked="{Binding SelectedSwitchType, Converter={StaticResource EqualityConverter}, ConverterParameter=Isolated}" Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
 				</StackPanel>
 			</Grid>
 
