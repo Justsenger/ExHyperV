@@ -284,54 +284,6 @@ namespace ExHyperV.Services
         // 主机物理磁盘列表
         // ============================================================
 
-        public static async Task<ApiResponse<List<HostDiskInfo>>> GetHostDisksAsync()
-        {
-            var usedResp = await WmiApi.QueryAsync(
-                "SELECT DriveNumber FROM Msvm_DiskDrive WHERE DriveNumber >= 0",
-                obj => WmiApi.Prop<int>(obj, "DriveNumber", -1),
-                WmiScope.HyperV);
-
-            var usedDiskNumbers = new HashSet<int>(
-                usedResp.Success && usedResp.Data != null
-                    ? usedResp.Data.Where(n => n >= 0)
-                    : Enumerable.Empty<int>());
-
-            var diskResp = await WmiApi.QueryCimAsync(
-                "SELECT Number, FriendlyName, Size, IsSystem, IsBoot, BusType " +
-                "FROM MSFT_Disk",
-                obj =>
-                {
-                    int number = Convert.ToInt32(obj["Number"] ?? -1);
-                    ushort busType = Convert.ToUInt16(obj["BusType"] ?? 0);
-                    bool isSystem = Convert.ToBoolean(obj["IsSystem"] ?? false);
-                    bool isBoot = Convert.ToBoolean(obj["IsBoot"] ?? false);
-                    long sizeBytes = Convert.ToInt64(obj["Size"] ?? 0L);
-                    string friendlyName = obj["FriendlyName"]?.ToString() ?? "";
-                    return new { number, busType, isSystem, isBoot, sizeBytes, friendlyName };
-                },
-                WmiScope.Storage);
-
-            if (!diskResp.Success)
-                return ApiResponse<List<HostDiskInfo>>.Fail(
-                    diskResp.Error, diskResp.Code, diskResp.ErrorSource);
-
-            var result = diskResp.Data!
-                .Where(d => d.number >= 0
-                         && d.busType != 7
-                         && !d.isSystem
-                         && !d.isBoot
-                         && !usedDiskNumbers.Contains(d.number))
-                .Select(d => new HostDiskInfo
-                {
-                    Number = d.number,
-                    FriendlyName = d.friendlyName,
-                    SizeGB = Math.Round(d.sizeBytes / 1073741824.0, 2)
-                })
-                .ToList();
-
-            return ApiResponse<List<HostDiskInfo>>.Ok(result);
-        }
-
         // ============================================================
         // 刷新虚拟磁盘文件大小
         // ============================================================
@@ -896,7 +848,7 @@ namespace ExHyperV.Services
             if (drive.DiskType == "Physical" && drive.DiskNumber > -1)
             {
                 await Task.Delay(500);
-                await SetDiskOfflineStatusAsync(drive.DiskNumber, false);
+                await HostDiskService.SetDiskOfflineStatusAsync(drive.DiskNumber, false);
             }
 
             return (true, "Storage_Msg_Removed");
@@ -984,24 +936,6 @@ namespace ExHyperV.Services
         // 主机物理磁盘控制
         // ============================================================
 
-        public static async Task<ApiResponse> SetDiskOfflineStatusAsync(int diskNumber, bool isOffline)
-        {
-            var diskResp = await WmiApi.QueryFirstCimAsync(
-                $"SELECT * FROM MSFT_Disk WHERE Number = {diskNumber}",
-                obj => obj,
-                WmiScope.Storage);
-
-            if (!diskResp.HasData)
-                return ApiResponse.Fail($"Disk {diskNumber} not found", -1, ApiErrorSource.Wmi);
-
-            string methodName = isOffline ? "Offline" : "Online";
-
-            return await WmiApi.InvokeCimMethodAsync(
-                diskResp.Data!,
-                methodName,
-                WmiScope.Storage);
-        }
-
         // ============================================================
         // ISO 镜像生成
         // ============================================================
@@ -1033,23 +967,6 @@ namespace ExHyperV.Services
                     return (false, $"Iso_Error_BuildFailed: {ex.Message}");
                 }
             });
-        }
-
-        public static async Task<ApiResponse> SetDiskReadOnlyAsync(int diskNumber, bool isReadOnly)
-        {
-            var diskResp = await WmiApi.QueryFirstCimAsync(
-                $"SELECT * FROM MSFT_Disk WHERE Number = {diskNumber}",
-                obj => obj,
-                WmiScope.Storage);
-
-            if (!diskResp.HasData)
-                return ApiResponse.Fail($"Disk {diskNumber} not found", -1, ApiErrorSource.Wmi);
-
-            return await WmiApi.InvokeCimMethodAsync(
-                diskResp.Data!,
-                "SetAttributes",
-                WmiScope.Storage,
-                p => p["IsReadOnly"] = isReadOnly);
         }
 
         public static async Task<(bool Success, int DiskNumber)> MountDiskImageAsync(string imagePath)

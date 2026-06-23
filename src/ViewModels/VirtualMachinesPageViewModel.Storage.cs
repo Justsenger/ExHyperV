@@ -78,7 +78,7 @@ namespace ExHyperV.ViewModels
             try
             {
                 // 1. 获取 ApiResponse<List<HostDiskInfo>>
-                var response = await VmStorageService.GetHostDisksAsync();
+                var response = await HostDiskService.GetHostDisksAsync();
 
                 // 2. 判断是否成功且存在数据
                 if (response.HasData)
@@ -530,7 +530,7 @@ namespace ExHyperV.ViewModels
 
 
                 if (isPhysical && int.TryParse(pathOrNumber, out int diskNum))
-                    await VmStorageService.SetDiskOfflineStatusAsync(diskNum, true);
+                    await HostDiskService.SetDiskOfflineStatusAsync(diskNum, true);
 
                 var result = await VmStorageService.AddDriveAsync(
                     vmName: SelectedVm.Name,

@@ -22,7 +22,7 @@ namespace ExHyperV.ViewModels
         AddGpuSelect,
         AddGpuProgress, NetworkSettings, BootSettings, SpacetimeSettings
     }
-    public partial class VirtualMachinesPageViewModel : ObservableObject, IDisposable
+    public partial class VirtualMachinesPageViewModel : PageViewModelBase, IDisposable
     {
         // ===== 私有服务字段与依赖注入 =====
         private readonly VmQueryService _queryService;
@@ -586,9 +586,6 @@ namespace ExHyperV.ViewModels
 
         // ===== UI 辅助方法 =====
 
-        // 显示 Snackbar 通知
-        private void ShowSnackbar(string title, string message, ControlAppearance appearance, SymbolRegular icon)
-            => Notifications.ShowSnackbar(title, message, appearance, icon);
         private string GetOptimisticText(string action) => action switch { "Start" => Properties.Resources.Status_Starting, "Restart" => Properties.Resources.Status_Restarting, "Stop" => Properties.Resources.Status_StoppingPresent, "TurnOff" => Properties.Resources.Status_Off, "Save" => Properties.Resources.Status_Saving, "Suspend" => Properties.Resources.Status_Suspending, _ => Properties.Resources.Status_Processing };
 
 

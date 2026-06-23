@@ -358,8 +358,8 @@ namespace ExHyperV.Services
                     {
                         if (target.IsPhysical)
                         {
-                            await VmStorageService.SetDiskOfflineStatusAsync(target.PhysicalDiskNumber, false);
-                            await VmStorageService.SetDiskReadOnlyAsync(target.PhysicalDiskNumber, true);
+                            await HostDiskService.SetDiskOfflineStatusAsync(target.PhysicalDiskNumber, false);
+                            await HostDiskService.SetDiskReadOnlyAsync(target.PhysicalDiskNumber, true);
                             await Task.Delay(500);
                             hostDiskNumber = target.PhysicalDiskNumber;
                         }
@@ -393,8 +393,8 @@ namespace ExHyperV.Services
                     {
                         if (target.IsPhysical)
                         {
-                            await VmStorageService.SetDiskReadOnlyAsync(target.PhysicalDiskNumber, false);
-                            await VmStorageService.SetDiskOfflineStatusAsync(target.PhysicalDiskNumber, true);
+                            await HostDiskService.SetDiskReadOnlyAsync(target.PhysicalDiskNumber, false);
+                            await HostDiskService.SetDiskOfflineStatusAsync(target.PhysicalDiskNumber, true);
                         }
                         else if (!string.IsNullOrEmpty(target.Path))
                         {
@@ -561,8 +561,8 @@ namespace ExHyperV.Services
 
 
 
-                    await VmStorageService.SetDiskOfflineStatusAsync(hostDiskNumber, false);
-                    await VmStorageService.SetDiskReadOnlyAsync(hostDiskNumber, false);
+                    await HostDiskService.SetDiskOfflineStatusAsync(hostDiskNumber, false);
+                    await HostDiskService.SetDiskReadOnlyAsync(hostDiskNumber, false);
 
                 }
                 else
@@ -647,7 +647,7 @@ namespace ExHyperV.Services
                     try
                     {
                         await VmStorageService.RemoveAllPartitionAccessPathsAsync(hostDiskNumber);
-                        await VmStorageService.SetDiskOfflineStatusAsync(hostDiskNumber, true);
+                        await HostDiskService.SetDiskOfflineStatusAsync(hostDiskNumber, true);
                         await Task.Delay(1000);
 
                         await VmStorageService.AddDriveAsync(
@@ -1078,7 +1078,7 @@ namespace ExHyperV.Services
             return @"C:\Windows\System32\DriverStore\FileRepository";
         }
 
-        private async Task UploadLocalFilesAsync(SshService sshService, SshCredentials credentials, string remoteDirectory)
+        private async Task UploadLocalFilesAsync(SshCredentials credentials, string remoteDirectory)
         {
             string systemWslLibPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "lxss", "lib");
 
@@ -1088,7 +1088,7 @@ namespace ExHyperV.Services
                 foreach (var filePath in allFiles)
                 {
                     string fileName = Path.GetFileName(filePath);
-                    await sshService.UploadFileAsync(credentials, filePath, $"{remoteDirectory}/{fileName}");
+                    await SshService.UploadFileAsync(credentials, filePath, $"{remoteDirectory}/{fileName}");
                 }
             }
         }
@@ -1172,7 +1172,6 @@ namespace ExHyperV.Services
             return Task.Run(async () =>
             {
                 void Log(string msg) => progressCallback?.Invoke(msg);
-                var sshService = new SshService();
 
                 try
                 {
@@ -1209,8 +1208,8 @@ namespace ExHyperV.Services
 
                     Log("Uploading Driver and WSL Libraries...");
                     string sourceDriverPath = FindGpuDriverSourcePath(string.Empty);
-                    await sshService.UploadDirectoryAsync(credentials, sourceDriverPath, $"{remoteTempDir}/drivers");
-                    await UploadLocalFilesAsync(sshService, credentials, $"{remoteTempDir}/lib");
+                    await SshService.UploadDirectoryAsync(credentials, sourceDriverPath, $"{remoteTempDir}/drivers");
+                    await UploadLocalFilesAsync(credentials, $"{remoteTempDir}/lib");
 
                     // --- 阶段 3: 处理自选脚本 ---
                     string remoteScriptPath = $"{remoteTempDir}/{script.FileName}";
@@ -1227,7 +1226,7 @@ namespace ExHyperV.Services
                     if (script.IsLocal)
                     {
                         Log($"Uploading local script: {script.Name}");
-                        await sshService.UploadFileAsync(credentials, script.SourcePathOrUrl, remoteScriptPath);
+                        await SshService.UploadFileAsync(credentials, script.SourcePathOrUrl, remoteScriptPath);
                     }
                     else
                     {
@@ -1235,9 +1234,9 @@ namespace ExHyperV.Services
                         // 使用 sh -c 包裹，确保环境变量对后面的命令生效
                         string downloadCmd = $"{proxyEnv}sh -c \"wget -q -O {remoteScriptPath} {script.SourcePathOrUrl} || curl -fL {script.SourcePathOrUrl} -o {remoteScriptPath}\"";
 
-                        await sshService.ExecuteSingleCommandAsync(credentials, downloadCmd, Log);
+                        await SshService.ExecuteSingleCommandAsync(credentials, downloadCmd, Log);
                     }
-                    await sshService.ExecuteSingleCommandAsync(credentials, $"chmod +x {remoteScriptPath}", Log);
+                    await SshService.ExecuteSingleCommandAsync(credentials, $"chmod +x {remoteScriptPath}", Log);
                     // --- 阶段 4: 状态机执行循环 ---
                     bool isSuccess = false;
                     int maxAttempts = 3;
@@ -1256,7 +1255,7 @@ namespace ExHyperV.Services
 
                         Log($"[Attempt {attempt}] Executing script...");
 
-                        await sshService.ExecuteCommandAndCaptureOutputAsync(credentials, execCmd, line =>
+                        await SshService.ExecuteCommandAndCaptureOutputAsync(credentials, execCmd, line =>
                         {
                             Log(line);
                             if (line.Contains("[STATUS: SUCCESS]")) isSuccess = true;

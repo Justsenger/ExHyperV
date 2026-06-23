@@ -10,7 +10,7 @@ namespace ExHyperV.ViewModels
 {
     public record SchedulerMode(string Name, HyperVSchedulerType Type);
 
-    public partial class HostPageViewModel : ObservableObject
+    public partial class HostPageViewModel : PageViewModelBase
     {
         // ===== 字段与状态 =====
 
@@ -238,13 +238,6 @@ namespace ExHyperV.ViewModels
         }
 
 
-        // ===== UI 辅助（Snackbar / 重启提示） =====
-
-        private void ShowSnackbar(string title, string msg, ControlAppearance app, SymbolRegular icon)
-            => Notifications.ShowSnackbar(title, msg, app, icon);
-
-        private void ShowRestartPrompt(string message)
-            => Notifications.ShowRestartPrompt(message);
     }
 
     // ===== 检查项状态子 VM =====
