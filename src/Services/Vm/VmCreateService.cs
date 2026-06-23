@@ -171,7 +171,9 @@ namespace ExHyperV.Services
 
                 // ── Step 4: 处理器设置 ────────────────────────────
                 var procSettings = new VmProcessorSettings { Count = p.ProcessorCount };
-                await VmProcessorService.SetVmProcessorAsync(finalVmName, procSettings);
+                var procResult = await VmProcessorService.SetVmProcessorAsync(finalVmName, procSettings);
+                if (!procResult.Success)
+                    throw new InvalidOperationException(procResult.Message);
 
                 // ── Step 5: 内存设置 ──────────────────────────────
                 var memSettings = new VmMemorySettings
@@ -181,10 +183,14 @@ namespace ExHyperV.Services
                     Minimum = p.EnableDynamicMemory ? p.MemoryMb / 2 : p.MemoryMb,
                     Maximum = p.EnableDynamicMemory ? p.MemoryMb * 4 : p.MemoryMb,
                 };
-                await VmMemoryService.SetVmMemorySettingsAsync(finalVmName, memSettings, false);
+                var memResult = await VmMemoryService.SetVmMemorySettingsAsync(finalVmName, memSettings, false);
+                if (!memResult.Success)
+                    throw new InvalidOperationException(memResult.Message);
 
                 // ── Step 6: 网卡 ──────────────────────────────────
-                await VmNetworkService.AddNetworkAdapterAsync(finalVmName);
+                var addNicResult = await VmNetworkService.AddNetworkAdapterAsync(finalVmName);
+                if (!addNicResult.Success)
+                    throw new InvalidOperationException(addNicResult.Message);
                 if (!string.IsNullOrWhiteSpace(p.SwitchName) &&
                     p.SwitchName != Properties.Resources.Common_None)
                 {
@@ -194,25 +200,31 @@ namespace ExHyperV.Services
                     {
                         adapter.IsConnected = true;
                         adapter.SwitchName = p.SwitchName;
-                        await VmNetworkService.UpdateConnectionAsync(finalVmName, adapter);
+                        var connResult = await VmNetworkService.UpdateConnectionAsync(finalVmName, adapter);
+                        if (!connResult.Success)
+                            throw new InvalidOperationException(connResult.Message);
                     }
                 }
 
                 // ── Step 7: 磁盘 ──────────────────────────────────
                 if (p.DiskMode == 0)
                 {
-                    await VmStorageService.AddDriveAsync(
+                    var diskResult = await VmStorageService.AddDriveAsync(
                         finalVmName,
                         p.Generation == 2 ? "SCSI" : "IDE", 0, 0,
                         "HardDisk", p.VhdPath, false,
                         isNew: true, sizeGb: (int)p.DiskSizeGb);
+                    if (!diskResult.Success)
+                        throw new InvalidOperationException(diskResult.Message);
                 }
                 else if (p.DiskMode == 1 && !string.IsNullOrEmpty(p.VhdPath))
                 {
-                    await VmStorageService.AddDriveAsync(
+                    var diskResult = await VmStorageService.AddDriveAsync(
                         finalVmName,
                         p.Generation == 2 ? "SCSI" : "IDE", 0, 0,
                         "HardDisk", p.VhdPath, false);
+                    if (!diskResult.Success)
+                        throw new InvalidOperationException(diskResult.Message);
                 }
 
                 // ── Step 8: DVD ───────────────────────────────────
@@ -222,9 +234,11 @@ namespace ExHyperV.Services
                     int dvdCtrlNum = p.Generation == 1 ? 1 : 0;
                     int dvdLoc = p.Generation == 1 ? 0 : 1;
 
-                    await VmStorageService.AddDriveAsync(
+                    var dvdResult = await VmStorageService.AddDriveAsync(
                         finalVmName, dvdCtrl, dvdCtrlNum, dvdLoc,
                         "DvdDrive", p.IsoPath, false);
+                    if (!dvdResult.Success)
+                        throw new InvalidOperationException(dvdResult.Message);
                 }
 
                 // ── Step 9: Gen2 安全启动 ─────────────────────────
