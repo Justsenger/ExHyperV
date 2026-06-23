@@ -90,6 +90,11 @@ namespace ExHyperV.ViewModels
                         _originalMemorySettingsCache = SelectedVm.MemorySettings.Clone();
                     }
                 }
+                catch (Exception ex)
+                {
+                    // async void 事件处理器：未捕获异常（如缓存为空时 Restore/Clone 抛 NRE）会崩 UI 线程；兜底上报
+                    ShowSnackbar(Properties.Resources.VmPage_ModifyFail, ex.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                }
                 finally
                 {
                     IsLoadingSettings = false;

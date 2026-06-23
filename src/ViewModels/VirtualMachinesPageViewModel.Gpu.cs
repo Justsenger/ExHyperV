@@ -787,8 +787,13 @@ namespace ExHyperV.ViewModels
         {
             if (!string.IsNullOrEmpty(GpuDeploymentLog))
             {
-                Clipboard.SetText(GpuDeploymentLog);
-                ShowSnackbar(Properties.Resources.Msg_Common_CopyOk, Properties.Resources.Msg_Gpu_LogCopy, ControlAppearance.Success, SymbolRegular.Copy24);
+                // 剪贴板可能被其它进程占用，SetText 会抛 COMException；成功才提示，失败不崩
+                try
+                {
+                    Clipboard.SetText(GpuDeploymentLog);
+                    ShowSnackbar(Properties.Resources.Msg_Common_CopyOk, Properties.Resources.Msg_Gpu_LogCopy, ControlAppearance.Success, SymbolRegular.Copy24);
+                }
+                catch { }
             }
         }
         // ✅ 增加重置/重试命令逻辑
