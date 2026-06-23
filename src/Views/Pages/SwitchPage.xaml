@@ -11,7 +11,7 @@
     xmlns:models="clr-namespace:ExHyperV.Models"
     xmlns:tools="clr-namespace:ExHyperV.Tools"
     Title="SwitchPage"
-    d:DataContext="{d:DesignInstance Type=viewModels:VMNetViewModel, IsDesignTimeCreatable=True}"
+    d:DataContext="{d:DesignInstance Type=viewModels:SwitchPageViewModel, IsDesignTimeCreatable=True}"
     mc:Ignorable="d">
 
     <Page.Resources>

@@ -9,7 +9,7 @@
     xmlns:converters="clr-namespace:ExHyperV.Converters"
     xmlns:vm="clr-namespace:ExHyperV.ViewModels"
     mc:Ignorable="d"
-    d:DataContext="{d:DesignInstance Type=vm:SettingsViewModel, IsDesignTimeCreatable=True}"
+    d:DataContext="{d:DesignInstance Type=vm:SettingsPageViewModel, IsDesignTimeCreatable=True}"
     Title="Setting"
     d:DesignHeight="700"
     d:DesignWidth="1000">

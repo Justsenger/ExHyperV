@@ -5920,9 +5920,9 @@ namespace ExHyperV.Properties {
         /// <summary>
         ///   查找类似 Hybrid Mapping Mode 的本地化字符串。
         /// </summary>
-        public static string VmPage_ErrModifyFailed2 {
+        public static string VmPage_BackingTypeHybrid {
             get {
-                return ResourceManager.GetString("VmPage_ErrModifyFailed2", resourceCulture);
+                return ResourceManager.GetString("VmPage_BackingTypeHybrid", resourceCulture);
             }
         }
         
@@ -5947,9 +5947,9 @@ namespace ExHyperV.Properties {
         /// <summary>
         ///   查找类似 Access Denied 的本地化字符串。
         /// </summary>
-        public static string VmPage_ErrOpenFailed3 {
+        public static string VmPage_SgxLaunchAccessDenied {
             get {
-                return ResourceManager.GetString("VmPage_ErrOpenFailed3", resourceCulture);
+                return ResourceManager.GetString("VmPage_SgxLaunchAccessDenied", resourceCulture);
             }
         }
         
@@ -5965,18 +5965,18 @@ namespace ExHyperV.Properties {
         /// <summary>
         ///   查找类似 Virtual Mapping Mode 的本地化字符串。
         /// </summary>
-        public static string VmPage_ErrOperationFailed {
+        public static string VmPage_BackingTypeVirtual {
             get {
-                return ResourceManager.GetString("VmPage_ErrOperationFailed", resourceCulture);
+                return ResourceManager.GetString("VmPage_BackingTypeVirtual", resourceCulture);
             }
         }
         
         /// <summary>
         ///   查找类似 Huge Page Granularity 的本地化字符串。
         /// </summary>
-        public static string VmPage_ErrOperationFailed2 {
+        public static string VmPage_MemGranularityHuge {
             get {
-                return ResourceManager.GetString("VmPage_ErrOperationFailed2", resourceCulture);
+                return ResourceManager.GetString("VmPage_MemGranularityHuge", resourceCulture);
             }
         }
         
@@ -5992,9 +5992,9 @@ namespace ExHyperV.Properties {
         /// <summary>
         ///   查找类似 System Auto-Assign 的本地化字符串。
         /// </summary>
-        public static string VmPage_ErrRetrieveFailed {
+        public static string VmPage_MemGranularityAuto {
             get {
-                return ResourceManager.GetString("VmPage_ErrRetrieveFailed", resourceCulture);
+                return ResourceManager.GetString("VmPage_MemGranularityAuto", resourceCulture);
             }
         }
         
@@ -6073,9 +6073,9 @@ namespace ExHyperV.Properties {
         /// <summary>
         ///   查找类似 Physical Mapping Mode 的本地化字符串。
         /// </summary>
-        public static string VmPage_LogSaveError {
+        public static string VmPage_BackingTypePhysical {
             get {
-                return ResourceManager.GetString("VmPage_LogSaveError", resourceCulture);
+                return ResourceManager.GetString("VmPage_BackingTypePhysical", resourceCulture);
             }
         }
         
@@ -6244,9 +6244,9 @@ namespace ExHyperV.Properties {
         /// <summary>
         ///   查找类似 Configure by Processor Node 的本地化字符串。
         /// </summary>
-        public static string VmPage_MsgConnectedTo {
+        public static string VmPage_MemTrackingPerNode {
             get {
-                return ResourceManager.GetString("VmPage_MsgConnectedTo", resourceCulture);
+                return ResourceManager.GetString("VmPage_MemTrackingPerNode", resourceCulture);
             }
         }
         
@@ -6307,9 +6307,9 @@ namespace ExHyperV.Properties {
         /// <summary>
         ///   查找类似 Standard Granularity 的本地化字符串。
         /// </summary>
-        public static string VmPage_MsgOperationOk {
+        public static string VmPage_MemGranularityStandard {
             get {
-                return ResourceManager.GetString("VmPage_MsgOperationOk", resourceCulture);
+                return ResourceManager.GetString("VmPage_MemGranularityStandard", resourceCulture);
             }
         }
         
@@ -6415,9 +6415,9 @@ namespace ExHyperV.Properties {
         /// <summary>
         ///   查找类似 Disable Tracking 的本地化字符串。
         /// </summary>
-        public static string VmPage_MsgSpacetimeAnnihilated {
+        public static string VmPage_MemTrackingDisable {
             get {
-                return ResourceManager.GetString("VmPage_MsgSpacetimeAnnihilated", resourceCulture);
+                return ResourceManager.GetString("VmPage_MemTrackingDisable", resourceCulture);
             }
         }
         
@@ -6442,9 +6442,9 @@ namespace ExHyperV.Properties {
         /// <summary>
         ///   查找类似 Large Page Granularity 的本地化字符串。
         /// </summary>
-        public static string VmPage_MsgSpacetimeCreated {
+        public static string VmPage_MemGranularityLarge {
             get {
-                return ResourceManager.GetString("VmPage_MsgSpacetimeCreated", resourceCulture);
+                return ResourceManager.GetString("VmPage_MemGranularityLarge", resourceCulture);
             }
         }
         
@@ -6460,9 +6460,9 @@ namespace ExHyperV.Properties {
         /// <summary>
         ///   查找类似 Read/Write 的本地化字符串。
         /// </summary>
-        public static string VmPage_MsgTimelineRestored {
+        public static string VmPage_SgxLaunchReadWrite {
             get {
-                return ResourceManager.GetString("VmPage_MsgTimelineRestored", resourceCulture);
+                return ResourceManager.GetString("VmPage_SgxLaunchReadWrite", resourceCulture);
             }
         }
         
@@ -6487,9 +6487,9 @@ namespace ExHyperV.Properties {
         /// <summary>
         ///   查找类似 Read Only 的本地化字符串。
         /// </summary>
-        public static string VmPage_MsgWormholeClosed {
+        public static string VmPage_SgxLaunchReadOnly {
             get {
-                return ResourceManager.GetString("VmPage_MsgWormholeClosed", resourceCulture);
+                return ResourceManager.GetString("VmPage_SgxLaunchReadOnly", resourceCulture);
             }
         }
         
@@ -6505,9 +6505,9 @@ namespace ExHyperV.Properties {
         /// <summary>
         ///   查找类似 Enable Tracking 的本地化字符串。
         /// </summary>
-        public static string VmPage_MsgWormholeOpened {
+        public static string VmPage_MemTrackingEnable {
             get {
-                return ResourceManager.GetString("VmPage_MsgWormholeOpened", resourceCulture);
+                return ResourceManager.GetString("VmPage_MemTrackingEnable", resourceCulture);
             }
         }
         

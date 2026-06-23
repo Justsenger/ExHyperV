@@ -8,7 +8,7 @@ namespace ExHyperV.Views
         public SwitchPage()
         {
             InitializeComponent();
-            DataContext = new VMNetViewModel();
+            DataContext = new SwitchPageViewModel();
         }
     }
 }

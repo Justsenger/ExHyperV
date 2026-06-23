@@ -10,7 +10,7 @@ using System;
 
 namespace ExHyperV.ViewModels
 {
-    public partial class SettingsViewModel : ObservableObject
+    public partial class SettingsPageViewModel : ObservableObject
     {
         private bool _isInitializing = true;
 
@@ -96,7 +96,7 @@ namespace ExHyperV.ViewModels
 
         // ===== 构造 =====
 
-        public SettingsViewModel()
+        public SettingsPageViewModel()
         {
             AvailableThemes = new List<string> { Resources.Theme_Light, Resources.Theme_Dark };
             AvailableLanguages = new List<string> { Properties.Resources.Lang_Chinese, "English" };

@@ -2413,43 +2413,43 @@
   <data name="VmPage_LogDiskSaveResult" xml:space="preserve">
     <value>修改失败</value>
   </data>
-  <data name="VmPage_LogSaveError" xml:space="preserve">
+  <data name="VmPage_BackingTypePhysical" xml:space="preserve">
     <value>物理映射模式</value>
   </data>
-  <data name="VmPage_ErrOperationFailed" xml:space="preserve">
+  <data name="VmPage_BackingTypeVirtual" xml:space="preserve">
     <value>虚拟映射模式</value>
   </data>
-  <data name="VmPage_ErrModifyFailed2" xml:space="preserve">
+  <data name="VmPage_BackingTypeHybrid" xml:space="preserve">
     <value>混合映射模式</value>
   </data>
-  <data name="VmPage_ErrRetrieveFailed" xml:space="preserve">
+  <data name="VmPage_MemGranularityAuto" xml:space="preserve">
     <value>系统自动分配</value>
   </data>
-  <data name="VmPage_MsgOperationOk" xml:space="preserve">
+  <data name="VmPage_MemGranularityStandard" xml:space="preserve">
     <value>标准粒度</value>
   </data>
-  <data name="VmPage_MsgSpacetimeCreated" xml:space="preserve">
+  <data name="VmPage_MemGranularityLarge" xml:space="preserve">
     <value>大页粒度</value>
   </data>
-  <data name="VmPage_ErrOperationFailed2" xml:space="preserve">
+  <data name="VmPage_MemGranularityHuge" xml:space="preserve">
     <value>巨型页粒度</value>
   </data>
-  <data name="VmPage_MsgSpacetimeAnnihilated" xml:space="preserve">
+  <data name="VmPage_MemTrackingDisable" xml:space="preserve">
     <value>关闭跟踪</value>
   </data>
-  <data name="VmPage_MsgWormholeOpened" xml:space="preserve">
+  <data name="VmPage_MemTrackingEnable" xml:space="preserve">
     <value>开启跟踪</value>
   </data>
-  <data name="VmPage_MsgConnectedTo" xml:space="preserve">
+  <data name="VmPage_MemTrackingPerNode" xml:space="preserve">
     <value>按处理器节点配置</value>
   </data>
-  <data name="VmPage_ErrOpenFailed3" xml:space="preserve">
+  <data name="VmPage_SgxLaunchAccessDenied" xml:space="preserve">
     <value>禁止访问</value>
   </data>
-  <data name="VmPage_MsgWormholeClosed" xml:space="preserve">
+  <data name="VmPage_SgxLaunchReadOnly" xml:space="preserve">
     <value>仅限读取</value>
   </data>
-  <data name="VmPage_MsgTimelineRestored" xml:space="preserve">
+  <data name="VmPage_SgxLaunchReadWrite" xml:space="preserve">
     <value>允许读写</value>
   </data>
   <data name="VmPage_ErrCloseFailed" xml:space="preserve">

@@ -145,39 +145,39 @@ namespace ExHyperV.ViewModels
 
         public List<object> BackingTypeOptions { get; } = new()
 {
-    new { Value = (byte)0, Name = Properties.Resources.VmPage_LogSaveError },
-    new { Value = (byte)1, Name = Properties.Resources.VmPage_ErrOperationFailed },
-    new { Value = (byte)2, Name = Properties.Resources.VmPage_ErrModifyFailed2 }
+    new { Value = (byte)0, Name = Properties.Resources.VmPage_BackingTypePhysical },
+    new { Value = (byte)1, Name = Properties.Resources.VmPage_BackingTypeVirtual },
+    new { Value = (byte)2, Name = Properties.Resources.VmPage_BackingTypeHybrid }
 };
 
         public List<object> MemoryByteGranularityOptions { get; } = new()
 {
-    new { Value = (byte)0, Name = Properties.Resources.VmPage_ErrRetrieveFailed },
-    new { Value = (byte)1, Name = Properties.Resources.VmPage_MsgOperationOk },
-    new { Value = (byte)2, Name = Properties.Resources.VmPage_MsgSpacetimeCreated },
-    new { Value = (byte)3, Name = Properties.Resources.VmPage_ErrOperationFailed2 }
+    new { Value = (byte)0, Name = Properties.Resources.VmPage_MemGranularityAuto },
+    new { Value = (byte)1, Name = Properties.Resources.VmPage_MemGranularityStandard },
+    new { Value = (byte)2, Name = Properties.Resources.VmPage_MemGranularityLarge },
+    new { Value = (byte)3, Name = Properties.Resources.VmPage_MemGranularityHuge }
 };
         public List<object> MemoryUintGranularityOptions { get; } = new()
 {
-    new { Value = (uint)0, Name = Properties.Resources.VmPage_ErrRetrieveFailed },
-    new { Value = (uint)1, Name = Properties.Resources.VmPage_MsgOperationOk },
-    new { Value = (uint)2, Name = Properties.Resources.VmPage_MsgSpacetimeCreated },
-    new { Value = (uint)3, Name = Properties.Resources.VmPage_ErrOperationFailed2 }
+    new { Value = (uint)0, Name = Properties.Resources.VmPage_MemGranularityAuto },
+    new { Value = (uint)1, Name = Properties.Resources.VmPage_MemGranularityStandard },
+    new { Value = (uint)2, Name = Properties.Resources.VmPage_MemGranularityLarge },
+    new { Value = (uint)3, Name = Properties.Resources.VmPage_MemGranularityHuge }
 };
 
 
         public List<object> MemoryTrackingStateOptions { get; } = new()
 {
-    new { Value = (byte)0, Name = Properties.Resources.VmPage_MsgSpacetimeAnnihilated },
-    new { Value = (byte)1, Name = Properties.Resources.VmPage_MsgWormholeOpened },
-    new { Value = (byte)2, Name = Properties.Resources.VmPage_MsgConnectedTo }
+    new { Value = (byte)0, Name = Properties.Resources.VmPage_MemTrackingDisable },
+    new { Value = (byte)1, Name = Properties.Resources.VmPage_MemTrackingEnable },
+    new { Value = (byte)2, Name = Properties.Resources.VmPage_MemTrackingPerNode }
 };
 
         public List<object> SgxLaunchControlOptions { get; } = new()
 {
-    new { Value = (uint)0, Name = Properties.Resources.VmPage_ErrOpenFailed3 },
-    new { Value = (uint)1, Name = Properties.Resources.VmPage_MsgWormholeClosed },
-    new { Value = (uint)2, Name = Properties.Resources.VmPage_MsgTimelineRestored }
+    new { Value = (uint)0, Name = Properties.Resources.VmPage_SgxLaunchAccessDenied },
+    new { Value = (uint)1, Name = Properties.Resources.VmPage_SgxLaunchReadOnly },
+    new { Value = (uint)2, Name = Properties.Resources.VmPage_SgxLaunchReadWrite }
 };
 
 

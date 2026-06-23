@@ -10,7 +10,7 @@ using ExHyperV.Views;
 
 namespace ExHyperV.ViewModels
 {
-    public partial class VMNetViewModel : ObservableObject
+    public partial class SwitchPageViewModel : ObservableObject
     {
         // ===== 属性 =====
 
@@ -25,7 +25,7 @@ namespace ExHyperV.ViewModels
 
         // ===== 构造 =====
 
-        public VMNetViewModel()
+        public SwitchPageViewModel()
         {
             LoadNetworkInfoCommand.Execute(null);
         }

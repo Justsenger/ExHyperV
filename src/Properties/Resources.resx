@@ -2413,43 +2413,43 @@ The existing NAT switch is: '{0}'</value>
   <data name="VmPage_LogDiskSaveResult" xml:space="preserve">
     <value>Modification failed</value>
   </data>
-  <data name="VmPage_LogSaveError" xml:space="preserve">
+  <data name="VmPage_BackingTypePhysical" xml:space="preserve">
     <value>Physical Mapping Mode</value>
   </data>
-  <data name="VmPage_ErrOperationFailed" xml:space="preserve">
+  <data name="VmPage_BackingTypeVirtual" xml:space="preserve">
     <value>Virtual Mapping Mode</value>
   </data>
-  <data name="VmPage_ErrModifyFailed2" xml:space="preserve">
+  <data name="VmPage_BackingTypeHybrid" xml:space="preserve">
     <value>Hybrid Mapping Mode</value>
   </data>
-  <data name="VmPage_ErrRetrieveFailed" xml:space="preserve">
+  <data name="VmPage_MemGranularityAuto" xml:space="preserve">
     <value>System Auto-Assign</value>
   </data>
-  <data name="VmPage_MsgOperationOk" xml:space="preserve">
+  <data name="VmPage_MemGranularityStandard" xml:space="preserve">
     <value>Standard Granularity</value>
   </data>
-  <data name="VmPage_MsgSpacetimeCreated" xml:space="preserve">
+  <data name="VmPage_MemGranularityLarge" xml:space="preserve">
     <value>Large Page Granularity</value>
   </data>
-  <data name="VmPage_ErrOperationFailed2" xml:space="preserve">
+  <data name="VmPage_MemGranularityHuge" xml:space="preserve">
     <value>Huge Page Granularity</value>
   </data>
-  <data name="VmPage_MsgSpacetimeAnnihilated" xml:space="preserve">
+  <data name="VmPage_MemTrackingDisable" xml:space="preserve">
     <value>Disable Tracking</value>
   </data>
-  <data name="VmPage_MsgWormholeOpened" xml:space="preserve">
+  <data name="VmPage_MemTrackingEnable" xml:space="preserve">
     <value>Enable Tracking</value>
   </data>
-  <data name="VmPage_MsgConnectedTo" xml:space="preserve">
+  <data name="VmPage_MemTrackingPerNode" xml:space="preserve">
     <value>Configure by Processor Node</value>
   </data>
-  <data name="VmPage_ErrOpenFailed3" xml:space="preserve">
+  <data name="VmPage_SgxLaunchAccessDenied" xml:space="preserve">
     <value>Access Denied</value>
   </data>
-  <data name="VmPage_MsgWormholeClosed" xml:space="preserve">
+  <data name="VmPage_SgxLaunchReadOnly" xml:space="preserve">
     <value>Read Only</value>
   </data>
-  <data name="VmPage_MsgTimelineRestored" xml:space="preserve">
+  <data name="VmPage_SgxLaunchReadWrite" xml:space="preserve">
     <value>Read/Write</value>
   </data>
   <data name="VmPage_ErrCloseFailed" xml:space="preserve">

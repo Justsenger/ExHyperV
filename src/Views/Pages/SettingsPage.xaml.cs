@@ -7,7 +7,7 @@ namespace ExHyperV.Views
         public SettingsPage()
         {
             InitializeComponent();
-            DataContext = new SettingsViewModel();
+            DataContext = new SettingsPageViewModel();
         }
     }
 }
