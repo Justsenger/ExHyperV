@@ -414,11 +414,15 @@ namespace ExHyperV.Views
         protected override void OnClosed(EventArgs e)
         {
             base.OnClosed(e);
+            _closing = true;        // 抑制 Dispose 期间可能再触发的 OnDisconnected 走自动重连
             RdpHost.Disconnect();   // 断开 RDP 会话（否则 mstscax/VMBus 会话残留到 GC）
             _vm.SendCadRequested -= OnSendCadRequested;
             _vm.PropertyChanged -= OnViewModelPropertyChanged;
             _vm.Polled -= OnVmPolled;
             _vm.Dispose();
+            // ★ 确定性释放 mstscax COM 控件：WindowsFormsHost.Dispose → 容器 → AxHost → 释放底层 OCX。
+            // WPF 不会在窗口关闭时自动 Dispose WindowsFormsHost（已知泄漏点）；不显式释放则反复开关控制台累积 COM/句柄。
+            RdpHost.Dispose();
         }
 
         // ── WndProc：WM_GETMINMAXINFO（全屏铺满整个显示器）+ WM_EXITSIZEMOVE（拖动结束 → 增强会话协商分辨率）──
