@@ -18,16 +18,11 @@ namespace ExHyperV.ViewModels
         [ObservableProperty] private bool _isUiEnabled = true;
 
         public ObservableCollection<UsbDeviceViewModel> Devices { get; } = new();
-        public IAsyncRelayCommand LoadDataCommand { get; }
-        public IAsyncRelayCommand<object> ChangeAssignmentCommand { get; }
 
         // ===== 构造 =====
 
         public USBPageViewModel()
         {
-            LoadDataCommand = new AsyncRelayCommand(LoadDataAsync);
-            ChangeAssignmentCommand = new AsyncRelayCommand<object>(ChangeAssignmentAsync);
-
             LoadDataCommand.Execute(null);
 
             // 启动后台监控循环 (维持手机连接)
@@ -38,6 +33,7 @@ namespace ExHyperV.ViewModels
 
         // ===== 业务方法 =====
 
+        [RelayCommand]
         private async Task LoadDataAsync()
         {
             IsLoading = true;
@@ -65,7 +61,6 @@ namespace ExHyperV.ViewModels
             var vmNames = vms.Select(v => v.Name).ToList();
 
             // 增量更新 UI 列表
-            var currentBusIds = Devices.Select(d => d.BusId).ToList();
             var newBusIds = usbDevices.Select(d => d.BusId).ToList();
 
             for (int i = Devices.Count - 1; i >= 0; i--)
@@ -97,6 +92,7 @@ namespace ExHyperV.ViewModels
             }
         }
 
+        [RelayCommand]
         private async Task ChangeAssignmentAsync(object parameter)
         {
             if (parameter is not object[] parameters || parameters.Length < 2 ||
