@@ -12,16 +12,16 @@ namespace ExHyperV.ViewModels
         // ===== 属性 =====
 
         [ObservableProperty] private List<string> _availableThemes;
-        [ObservableProperty] private string _selectedTheme;
+        [ObservableProperty] private string _selectedTheme = string.Empty;
         [ObservableProperty] private List<string> _availableLanguages;
-        [ObservableProperty] private string _selectedLanguage;
+        [ObservableProperty] private string _selectedLanguage = string.Empty;
 
-        [ObservableProperty] private string _updateStatusText;
+        [ObservableProperty] private string _updateStatusText = string.Empty;
         [ObservableProperty] private bool _isCheckingForUpdate;
-        [ObservableProperty] private string _updateActionIcon;
+        [ObservableProperty] private string _updateActionIcon = string.Empty;
         [ObservableProperty] private IRelayCommand _updateActionCommand;
         [ObservableProperty] private bool _isUpdateActionEnabled;
-        private string _latestVersionTag;
+        private string _latestVersionTag = string.Empty;
 
         [ObservableProperty]
         private bool _showUpdateIndicator;

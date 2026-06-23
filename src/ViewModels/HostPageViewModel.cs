@@ -27,7 +27,7 @@ namespace ExHyperV.ViewModels
         [ObservableProperty] private bool _isGpuStrategyToggleEnabled = false;
         [ObservableProperty] private bool _isServerSystem;
         [ObservableProperty] private bool _isSystemSwitchEnabled = false;
-        [ObservableProperty] private string _systemVersionDesc;
+        [ObservableProperty] private string _systemVersionDesc = string.Empty;
         [ObservableProperty] private bool _isNumaSpanningEnabled;
         [ObservableProperty] private HyperVSchedulerType _currentSchedulerType;
 
@@ -251,7 +251,7 @@ namespace ExHyperV.ViewModels
     public partial class CheckStatusViewModel : ObservableObject
     {
         [ObservableProperty] private bool _isChecking = true;
-        [ObservableProperty] private string _statusText;
+        [ObservableProperty] private string _statusText = string.Empty;
         [ObservableProperty] private bool? _isSuccess;
         public string IconGlyph => IsSuccess switch { true => "\uEC61", false => "\uEB90", _ => "\uE946" };
         public System.Windows.Media.Brush IconColor => IsSuccess switch

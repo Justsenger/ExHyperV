@@ -30,8 +30,8 @@ namespace ExHyperV.ViewModels
 
 
         // ===== 监控与后台任务字段 =====
-        private CpuMonitorService _cpuService;
-        private CancellationTokenSource _monitoringCts;
+        private CpuMonitorService _cpuService = null!;
+        private CancellationTokenSource? _monitoringCts;
         private DispatcherTimer _uiTimer;
         // 防止监控循环对同一网卡重复并发起 IP/ARP 查询（无界堆积）
         private readonly System.Collections.Concurrent.ConcurrentDictionary<string, byte> _ipLookupsInFlight = new();

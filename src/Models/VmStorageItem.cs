@@ -9,21 +9,21 @@ namespace ExHyperV.Models
     /// </summary>
     public partial class VmStorageItem : ObservableObject
     {
-        [ObservableProperty] private string _driveType;
-        [ObservableProperty] private string _diskType;
-        [ObservableProperty] private string _pathOrDiskNumber;
+        [ObservableProperty] private string _driveType = string.Empty;
+        [ObservableProperty] private string _diskType = string.Empty;
+        [ObservableProperty] private string _pathOrDiskNumber = string.Empty;
         [ObservableProperty] private int _controllerLocation;
-        [ObservableProperty] private string _controllerType;
+        [ObservableProperty] private string _controllerType = string.Empty;
         [ObservableProperty] private int _controllerNumber;
         [ObservableProperty] private bool _isOptimizing;
         [ObservableProperty] private int _diskNumber;
-        [ObservableProperty] private string _diskModel;
+        [ObservableProperty] private string _diskModel = string.Empty;
 
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(SizeDisplay))] // 当 DiskSizeGB 改变时通知 SizeDisplay 更新
         private double _diskSizeGB;
 
-        [ObservableProperty] private string _serialNumber;
+        [ObservableProperty] private string _serialNumber = string.Empty;
 
         public string DisplayName
         {

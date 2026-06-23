@@ -124,8 +124,8 @@ namespace ExHyperV.Tools
 
     public class DragMoveArgs
     {
-        public BootOrderItem Source { get; set; }
-        public BootOrderItem Target { get; set; }
+        public BootOrderItem Source { get; set; } = null!;
+        public BootOrderItem Target { get; set; } = null!;
         public double RelativeY { get; set; }
         public double Threshold { get; set; }
     }

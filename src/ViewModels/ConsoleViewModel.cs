@@ -12,7 +12,7 @@ namespace ExHyperV.ViewModels
         // ===== 字段 =====
 
         private readonly VmQueryService _queryService = new();
-        private DispatcherTimer _statusTimer;
+        private DispatcherTimer _statusTimer = null!;
         private bool _polling;   // 防止上一次轮询(WMI 慢)未完成时重入
 
         // ===== 基础属性 =====

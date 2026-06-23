@@ -10,7 +10,7 @@ namespace ExHyperV.Services
 
     internal class GitHubRelease
     {
-        public string tag_name { get; set; }
+        public string tag_name { get; set; } = string.Empty;
     }
     public static class SettingsService
     {

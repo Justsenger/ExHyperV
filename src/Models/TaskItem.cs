@@ -21,8 +21,8 @@ namespace ExHyperV.Models
         // 关键：逻辑标识符，这个永远不会变，也不受语言影响
         public GpuTaskType TaskType { get; set; }
 
-        [ObservableProperty] private string _name;          // 显示名称（用于 UI 展示）
-        [ObservableProperty] private string _description;   // 详细描述
+        [ObservableProperty] private string _name = string.Empty;          // 显示名称（用于 UI 展示）
+        [ObservableProperty] private string _description = string.Empty;   // 详细描述
         [ObservableProperty] private GpuTaskStatus _status = GpuTaskStatus.Pending;
     }
 }

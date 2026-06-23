@@ -8,9 +8,9 @@ namespace ExHyperV.Models
     /// </summary>
     public partial class VmDiskItem : ObservableObject
     {
-        [ObservableProperty] private string _name;
-        [ObservableProperty] private string _path;
-        [ObservableProperty] private string _diskType;
+        [ObservableProperty] private string _name = string.Empty;
+        [ObservableProperty] private string _path = string.Empty;
+        [ObservableProperty] private string _diskType = string.Empty;
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(UsagePercentage))] // 关键：通知进度条刷新
         [NotifyPropertyChangedFor(nameof(UsageText))]       // 关键：通知百分比文字刷新
@@ -24,7 +24,7 @@ namespace ExHyperV.Models
         [NotifyPropertyChangedFor(nameof(IoSpeedText))]
         private long _writeSpeedBps; // 字节每秒
 
-        public string PnpDeviceId { get; set; } // 物理硬盘的 PNPDeviceID（仅 Physical 类型用）
+        public string PnpDeviceId { get; set; } = string.Empty; // 物理硬盘的 PNPDeviceID（仅 Physical 类型用）
 
         public string IoSpeedText => $"↑ {FormatIoSpeed(ReadSpeedBps)}   ↓ {FormatIoSpeed(WriteSpeedBps)} ";
 

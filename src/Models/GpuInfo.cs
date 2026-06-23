@@ -9,8 +9,8 @@ namespace ExHyperV.Models
         public string DriverVersion { get; init; } = string.Empty; // 驱动版本
         public string Vendor { get; init; } = string.Empty;        // 板卡厂商（ASUS/MSI 等，文字显示用）
 
-        public string Pname { get; set; }   // 可分区路径（GetHostGpusAsync 二次填充）
-        public string Ram { get; set; }     // 显存字节串，如 "4294967296"（二次填充）
+        public string Pname { get; set; } = string.Empty;   // 可分区路径（GetHostGpusAsync 二次填充）
+        public string Ram { get; set; } = string.Empty;     // 显存字节串，如 "4294967296"（二次填充）
 
         /// <summary>清洗后的设备路径（优先 Pname，回退 InstanceId）：去 \\?\ 前缀、截断 #{guid}、# 还原为 \。</summary>
         public string PathDisplay

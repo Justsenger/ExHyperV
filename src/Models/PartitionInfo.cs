@@ -18,8 +18,8 @@ namespace ExHyperV.Models
         public OperatingSystemType OsType { get; }
         public string TypeDescription { get; }
 
-        public string DiskPath { get; set; }        // 所属 VHDX 路径或物理磁盘编号
-        public string DiskDisplayName { get; set; } // 友好显示：如 "Disk 0 (System.vhdx)"
+        public string DiskPath { get; set; } = string.Empty;        // 所属 VHDX 路径或物理磁盘编号
+        public string DiskDisplayName { get; set; } = string.Empty; // 友好显示：如 "Disk 0 (System.vhdx)"
         public bool IsPhysicalDisk { get; set; }    // 标记是否为物理直通盘
 
 

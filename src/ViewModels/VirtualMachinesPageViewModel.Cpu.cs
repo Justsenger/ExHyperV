@@ -12,8 +12,8 @@ namespace ExHyperV.ViewModels
     public partial class VirtualMachinesPageViewModel
     {
         // ===== 视图模型属性 - CPU 设置 =====
-        public ObservableCollection<int> PossibleVCpuCounts { get; private set; }
-        [ObservableProperty] private ObservableCollection<VmCoreItem> _affinityHostCores;
+        public ObservableCollection<int> PossibleVCpuCounts { get; private set; } = new();
+        [ObservableProperty] private ObservableCollection<VmCoreItem> _affinityHostCores = new();
         [ObservableProperty] private int _affinityColumns = 8;
         [ObservableProperty] private int _affinityRows = 1;
 

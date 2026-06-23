@@ -64,13 +64,13 @@ namespace ExHyperV.Models
         /// WMI 实例的唯一标识符 (InstanceID)。
         /// </summary>
         [ObservableProperty]
-        private string _id;
+        private string _id = string.Empty;
 
         /// <summary>
         /// 用户在 Hyper-V 中设置的适配器名称 (ElementName)。
         /// </summary>
         [ObservableProperty]
-        private string _name;
+        private string _name = string.Empty;
 
         /// <summary>
         /// 指示网卡是否已连接（模拟网线插拔）。
@@ -112,7 +112,7 @@ namespace ExHyperV.Models
         /// 网卡的 MAC 地址。
         /// </summary>
         [ObservableProperty]
-        private string _macAddress;
+        private string _macAddress = string.Empty;
 
         /// <summary>
         /// 指示 MAC 地址是否为静态配置。
@@ -126,7 +126,7 @@ namespace ExHyperV.Models
         /// WMI: Msvm_EthernetPortAllocationSettingData.TestReplicaSwitchName
         /// </summary>
         [ObservableProperty]
-        private string _testReplicaSwitchName;
+        private string _testReplicaSwitchName = string.Empty;
 
         /// <summary>
         /// 指示此网络适配器是否受故障转移群集监控。

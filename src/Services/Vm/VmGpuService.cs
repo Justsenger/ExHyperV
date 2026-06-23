@@ -22,7 +22,7 @@ namespace ExHyperV.Services
         private class VmDiskTarget
         {
             public bool IsPhysical { get; set; }
-            public string Path { get; set; }        // 虚拟文件的VHDX 路径
+            public string Path { get; set; } = string.Empty;        // 虚拟文件的VHDX 路径
             public int PhysicalDiskNumber { get; set; } // 物理硬盘的 Disk Number (e.g. 0, 1, 2)
         }
         private const string ScriptBaseUrl = "https://raw.githubusercontent.com/Justsenger/ExHyperV/main/src/Linux/script/";

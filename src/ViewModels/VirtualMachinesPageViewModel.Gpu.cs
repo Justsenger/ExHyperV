@@ -528,7 +528,9 @@ namespace ExHyperV.ViewModels
             }
             else if (partition.OsType == OperatingSystemType.Linux)
             {
+#pragma warning disable MVVMTK0034 // 故意直接写字段:避免在 OnSelectedPartitionChanged 触发链中重入
                 _selectedPartition = partition;
+#pragma warning restore MVVMTK0034
                 IsLoadingSettings = true;
 
                 // UI 状态转换：保持卡片开启，但切换到 SSH 表单 Grid

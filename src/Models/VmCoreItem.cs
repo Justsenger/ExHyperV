@@ -14,7 +14,7 @@ namespace ExHyperV.Models
     {
         [ObservableProperty] private int _coreId;
         [ObservableProperty] private double _usage;
-        [ObservableProperty] private PointCollection _historyPoints;
+        [ObservableProperty] private PointCollection _historyPoints = new();
         [ObservableProperty] private CoreType _coreType = CoreType.Unknown;
         [ObservableProperty] private bool _isSelected;
     }
