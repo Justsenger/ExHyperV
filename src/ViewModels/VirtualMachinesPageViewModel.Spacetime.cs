@@ -48,9 +48,6 @@ namespace ExHyperV.ViewModels
                         ShowSnackbar(Properties.Resources.VmPage_MsgProcessReset, result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
                     });
                 }
-                else
-                {
-                }
             });
         }
 
