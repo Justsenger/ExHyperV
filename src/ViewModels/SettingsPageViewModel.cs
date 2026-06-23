@@ -1,12 +1,8 @@
 using System.Diagnostics;
-using System.Collections.Generic;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ExHyperV.Properties;
 using ExHyperV.Services;
-using ExHyperV.Tools;
-using System.Threading.Tasks;
-using System;
 
 namespace ExHyperV.ViewModels
 {

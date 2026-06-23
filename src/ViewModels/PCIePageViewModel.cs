@@ -1,15 +1,11 @@
 ﻿using System.Collections.ObjectModel;
-using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ExHyperV.Properties;
 using ExHyperV.Interaction;
 using ExHyperV.Services;
-using Wpf.Ui.Controls;
 using MessageBox = Wpf.Ui.Controls.MessageBox;
 using TextBlock = Wpf.Ui.Controls.TextBlock;
-
-using ExHyperV.Views;
 namespace ExHyperV.ViewModels
 {
     public partial class PCIePageViewModel : ObservableObject

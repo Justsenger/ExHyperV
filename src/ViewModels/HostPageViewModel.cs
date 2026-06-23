@@ -2,9 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ExHyperV.Services;
 using ExHyperV.Interaction;
-using ExHyperV.Tools;
 using System.Collections.ObjectModel;
-using System.Windows;
 using Wpf.Ui.Controls;
 
 namespace ExHyperV.ViewModels

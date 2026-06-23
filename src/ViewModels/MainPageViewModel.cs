@@ -3,9 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ExHyperV.Interaction;
 using ExHyperV.Services;
-using ExHyperV.Tools;
 using ExHyperV.Views;
-using System.Windows;
 
 namespace ExHyperV.ViewModels
 {

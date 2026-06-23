@@ -1,7 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
-using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using ExHyperV.Models;
@@ -10,7 +9,6 @@ using ExHyperV.Services;
 namespace ExHyperV.ViewModels
 {
     /// <summary>
-    /// 虚拟机的 item-level ViewModel（替代旧的 ExHyperV.Models.VmInstanceInfo）。
     ///
     /// 设计：
     /// - 包装 <see cref="VmInstance"/> Model：构造时绑定，**生命期内 Model 引用不变**

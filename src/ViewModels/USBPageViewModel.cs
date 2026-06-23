@@ -1,7 +1,6 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using ExHyperV.Models;
 using ExHyperV.Services;
 using System.Diagnostics;
 
