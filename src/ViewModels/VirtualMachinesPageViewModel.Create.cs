@@ -31,22 +31,7 @@ namespace ExHyperV.ViewModels
         // 当基础路径变化时，自动更新磁盘路径
         partial void OnNewVmStoragePathChanged(string value)
         {
-            UpdatePaths();
-        }
-
-        private void UpdatePaths()
-        {
-            if (string.IsNullOrWhiteSpace(NewVmName)) return;
-
-            // 磁盘路径始终跟随：根目录 \ 虚拟机名 \ 虚拟机名.vhdx
-            // 这样即使 NewVmStoragePath 是 "C:\Virtual Machines"，
-            // 磁盘也会正确放在 "C:\Virtual Machines\test\test.vhdx"
-            try
-            {
-                string basePath = string.IsNullOrWhiteSpace(NewVmStoragePath) ? @"C:\Virtual Machines" : NewVmStoragePath;
-                NewVmNewDiskPath = Path.Combine(basePath, NewVmName, $"{NewVmName}.vhdx");
-            }
-            catch { }
+            UpdateDiskPath();
         }
 
 
@@ -182,6 +167,7 @@ namespace ExHyperV.ViewModels
             IsCreatingVm = true;
             SelectedVm = null;
             _isNameModifiedByUser = false; // 重置用户手动修改名称的标记
+            _isDiskPathManual = false;     // 重置用户手动选择磁盘路径的标记
 
             // --- 2. 基础配置默认值初始化 ---
             NewVmGeneration = 2;
