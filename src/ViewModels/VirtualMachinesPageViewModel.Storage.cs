@@ -1,5 +1,4 @@
 using System.Collections.ObjectModel;
-using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -322,7 +321,6 @@ namespace ExHyperV.ViewModels
         {
             if (_isInternalUpdating || value == null) return;
 
-            Debug.WriteLine(string.Format(Properties.Resources.VmPage_BtnPermanentDelete, value));
             RefreshAvailableNumbers(value);
 
             // 手动切换时也使用跳变技巧，确保 UI 同步
@@ -338,16 +336,8 @@ namespace ExHyperV.ViewModels
             // 如果是内部设定的跳变值 -2，或者是锁定状态，绝对不要去刷新位置列表，否则会造成闪烁或死循环
             if (value == -2 || _isInternalUpdating) return;
 
-            Debug.WriteLine(string.Format(Properties.Resources.VmPage_BtnCancel, value));
             UpdateAvailableLocations();
         }
-
-        // 增加位置变更监听（用于观察是否有 UI 回传 null/默认值的情况）
-        partial void OnSelectedLocationChanged(int value)
-        {
-            Debug.WriteLine(string.Format(Properties.Resources.VmPage_MsgDeleteComplete, value));
-        }
-
 
         // 导航至添加存储向导
         [RelayCommand]
@@ -538,7 +528,6 @@ namespace ExHyperV.ViewModels
                 int targetNumber = SelectedControllerNumber;
                 int targetLocation = SelectedLocation;
 
-                Debug.WriteLine($"[STORAGE-ACTION] 执行添加操作: {driveType} -> 控制器:{targetType} #{targetNumber} 位置:{targetLocation}");
 
                 if (isPhysical && int.TryParse(pathOrNumber, out int diskNum))
                     await VmStorageService.SetDiskOfflineStatusAsync(diskNum, true);
@@ -659,7 +648,6 @@ namespace ExHyperV.ViewModels
         // 设置当前选中的插槽
         private void SetSlot(string type, int ctrlNum, int loc)
         {
-            Debug.WriteLine($"[DEBUG-STORAGE] >>> 开始自动分配: {type} #{ctrlNum} Loc:{loc}");
 
             _isInternalUpdating = true; // 锁定拦截器
             try
@@ -679,7 +667,6 @@ namespace ExHyperV.ViewModels
                     // 用 -2 强制触发 PropertyChanged，因为 -1 可能已经是当前 UI 的内部错误状态
                     SelectedControllerNumber = -2;
                     SelectedControllerNumber = targetNum;
-                    Debug.WriteLine(string.Format(Properties.Resources.VmPage_ErrModifyFailed, SelectedControllerNumber));
 
                     // --- 强刷 [位置] ---
                     SelectedLocation = -2;
@@ -691,27 +678,23 @@ namespace ExHyperV.ViewModels
                     {
                         SelectedLocation = AvailableLocations[0];
                     }
-                    Debug.WriteLine(string.Format(Properties.Resources.VmPage_MemMapPhysical, SelectedLocation));
 
                     IsSlotValid = true;
                     SlotWarningMessage = string.Empty;
 
                     // 全部完成后解锁
                     _isInternalUpdating = false;
-                    Debug.WriteLine(Properties.Resources.VmPage_MemMapVirtual);
 
                 }), System.Windows.Threading.DispatcherPriority.Loaded);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 _isInternalUpdating = false;
-                Debug.WriteLine(string.Format(Properties.Resources.VmPage_MemMapHybrid, ex.Message));
             }
         }
 
         private void RefreshAvailableNumbers(string type)
         {
-            Debug.WriteLine(string.Format(Properties.Resources.VmPage_MemGranAutoAssign, type));
             AvailableControllerNumbers.Clear();
             int maxCtrl = (type == "IDE") ? 2 : 4;
             for (int i = 0; i < maxCtrl; i++)
@@ -722,7 +705,6 @@ namespace ExHyperV.ViewModels
         {
             if (SelectedVm == null || type == null) return;
 
-            Debug.WriteLine(string.Format(Properties.Resources.VmPage_MemGranStandard, type, ctrlNum));
             var usedLocations = SelectedVm.StorageItems
                 .Where(i => i.ControllerType == type && i.ControllerNumber == ctrlNum)
                 .Select(i => i.ControllerLocation)
@@ -758,7 +740,6 @@ namespace ExHyperV.ViewModels
             if (!AvailableLocations.Contains(SelectedLocation))
             {
                 SelectedLocation = AvailableLocations[0];
-                Debug.WriteLine(string.Format(Properties.Resources.VmPage_MemGranLargePage, SelectedLocation));
             }
         }
         // 刷新控制器选项
