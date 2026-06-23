@@ -51,7 +51,7 @@ namespace ExHyperV.ViewModels
                 }
                 else if (result.IsInnerTest) // 直接在这里合并判断
                 {
-                    UpdateStatusText = Properties.Resources.Label_Beta; // 或者从资源文件读
+                    UpdateStatusText = Properties.Resources.Label_Beta;
                     UpdateActionIcon = "\uF196"; // 实验室/烧瓶图标
                     UpdateActionCommand = CheckForUpdateCommand;
                 }
@@ -85,7 +85,7 @@ namespace ExHyperV.ViewModels
             {
                 Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
             }
-            catch{}
+            catch (Exception ex) { Debug.WriteLine(ex.Message); }
         }
         public string CopyrightInfo => "© 2026 | " + AppInfoService.Author+ " | " + AppInfoService.Version;
 
