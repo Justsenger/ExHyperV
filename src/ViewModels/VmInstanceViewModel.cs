@@ -91,7 +91,6 @@ namespace ExHyperV.ViewModels
 
         // ─── transient 状态机的内部锚点 ───────────────────────────
         private TimeSpan _anchorUptime;
-        public TimeSpan RawUptime => _anchorUptime;
         private DateTime _anchorLocalTime;
         private string? _transientState;
         private string? _backendState;
