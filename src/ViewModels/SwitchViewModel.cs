@@ -12,7 +12,6 @@ namespace ExHyperV.ViewModels
         // ===== 字段 =====
 
         private readonly List<string> _allPhysicalAdapters;
-        private readonly ObservableCollection<SwitchViewModel> _allSwitchViewModels;
 
         // ===== 属性 =====
 
@@ -39,10 +38,9 @@ namespace ExHyperV.ViewModels
 
         // ===== 构造 =====
 
-        public SwitchViewModel(SwitchInfo switchInfo, List<string> allPhysicalAdapters, ObservableCollection<SwitchViewModel> allSwitchViewModels)
+        public SwitchViewModel(SwitchInfo switchInfo, List<string> allPhysicalAdapters)
         {
             _allPhysicalAdapters = allPhysicalAdapters;
-            _allSwitchViewModels = allSwitchViewModels;
 
             _switchName = switchInfo.SwitchName;
             _switchId = switchInfo.Id;
@@ -116,7 +114,6 @@ namespace ExHyperV.ViewModels
             if (!string.IsNullOrEmpty(currentSelection) && !MenuItems.Contains(currentSelection)) { MenuItems.Add(currentSelection); }
         }
 
-        [RelayCommand]
         private async Task UpdateTopologyAsync()
         {
             if (string.IsNullOrEmpty(SwitchName)) return;

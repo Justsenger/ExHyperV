@@ -136,7 +136,7 @@ namespace ExHyperV.ViewModels
                 {
                     foreach (var switchInfo in _rawSwitchInfos)
                     {
-                        var switchVm = new SwitchViewModel(switchInfo, _physicalAdapters, Switches);
+                        var switchVm = new SwitchViewModel(switchInfo, _physicalAdapters);
                         switchVm.PropertyChanged += OnSwitchViewModelPropertyChanged;
                         Switches.Add(switchVm);
                     }
