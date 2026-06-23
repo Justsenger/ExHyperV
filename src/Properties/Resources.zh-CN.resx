@@ -2080,9 +2080,6 @@
   <data name="USBPageViewModel_OpenWebpageFailed" xml:space="preserve">
     <value>无法打开网页: {0}</value>
   </data>
-  <data name="VmPage_MsgCreatingVm" xml:space="preserve">
-    <value>取消</value>
-  </data>
   <data name="VmPage_ErrConfigDirNotFound" xml:space="preserve">
     <value>无法启动控制台: {0}</value>
   </data>
@@ -2095,22 +2092,22 @@
   <data name="VmPage_AffinityApplyException" xml:space="preserve">
     <value>[Affinity] 自动应用异常: {0}</value>
   </data>
-  <data name="VmPage_MemGranHugePage" xml:space="preserve">
+  <data name="VmPage_GpuCheckDeploy" xml:space="preserve">
     <value>请检查部署方案及主机IP</value>
   </data>
-  <data name="VmPage_MemGranAutoAssign2" xml:space="preserve">
+  <data name="VmPage_GpuUserRollback" xml:space="preserve">
     <value>[User Reset] 检测到未完成的分区分配，正在回滚...</value>
   </data>
-  <data name="VmPage_MemGranStandard2" xml:space="preserve">
+  <data name="VmPage_GpuUserRollbackDone" xml:space="preserve">
     <value>[User Reset] 分区已成功移除。</value>
   </data>
-  <data name="VmPage_MemGranLargePage2" xml:space="preserve">
+  <data name="VmPage_GpuUserRollbackFail" xml:space="preserve">
     <value>[User Reset] 回滚失败: {0}</value>
   </data>
-  <data name="VmPage_MemGranHugePage2" xml:space="preserve">
+  <data name="VmPage_GpuResetDone" xml:space="preserve">
     <value>流程已重置</value>
   </data>
-  <data name="VmPage_MemTrackDisable" xml:space="preserve">
+  <data name="VmPage_GpuResetDesc" xml:space="preserve">
     <value>您可以重新选择显卡或修改配置参数</value>
   </data>
   <data name="ConsoleWindow_StartVm" xml:space="preserve">
@@ -2344,40 +2341,34 @@
   <data name="SystemType_ErrReplaceFailed" xml:space="preserve">
     <value>替换失败:{0}</value>
   </data>
-  <data name="VmPage_MemTrackEnable" xml:space="preserve">
+  <data name="VmPage_CreatingVm" xml:space="preserve">
     <value>正在创建虚拟机...</value>
   </data>
-  <data name="VmPage_MemTrackByProcessorNode" xml:space="preserve">
+  <data name="VmPage_StartingVm" xml:space="preserve">
     <value>正在启动虚拟机...</value>
   </data>
-  <data name="VmPage_SgxAccessDenied" xml:space="preserve">
+  <data name="VmPage_OpenFail" xml:space="preserve">
     <value>打开失败</value>
   </data>
-  <data name="VmPage_SgxReadOnly" xml:space="preserve">
+  <data name="VmPage_ConfigDirNotFound" xml:space="preserve">
     <value>找不到虚拟机配置目录</value>
   </data>
-  <data name="VmPage_MsgOptimizeComplete" xml:space="preserve">
+  <data name="VmPage_PurgeTitle" xml:space="preserve">
     <value>彻底删除虚拟机</value>
   </data>
-  <data name="VmPage_MsgDiskReclaimOk" xml:space="preserve">
+  <data name="VmPage_PurgeConfirm" xml:space="preserve">
     <value>即将彻底删除「{0}」，包括所有虚拟硬盘文件和配置目录。\n\n⚠️ 请确认虚拟机配置目录中是否存在其他文件，删除后无法恢复！</value>
   </data>
-  <data name="VmPage_ErrOptimizeFailed" xml:space="preserve">
+  <data name="VmPage_PurgeBtn" xml:space="preserve">
     <value>彻底删除</value>
   </data>
-  <data name="VmPage_ErrSystemException" xml:space="preserve">
-    <value>取消</value>
-  </data>
-  <data name="VmPage_LogStorageAddAction" xml:space="preserve">
+  <data name="VmPage_DeleteSuccess" xml:space="preserve">
     <value>删除完成</value>
   </data>
-  <data name="VmPage_LogStorageAutoAssign" xml:space="preserve">
+  <data name="VmPage_PurgeDoneDesc" xml:space="preserve">
     <value>「{0}」已彻底清除</value>
   </data>
-  <data name="VmPage_LogUiSaveTriggered" xml:space="preserve">
-    <value>删除失败</value>
-  </data>
-  <data name="VmPage_LogDiskSaveResult" xml:space="preserve">
+  <data name="VmPage_ModifyFail" xml:space="preserve">
     <value>修改失败</value>
   </data>
   <data name="VmPage_BackingTypePhysical" xml:space="preserve">
@@ -2419,19 +2410,16 @@
   <data name="VmPage_SgxLaunchReadWrite" xml:space="preserve">
     <value>允许读写</value>
   </data>
-  <data name="VmPage_ErrCloseFailed" xml:space="preserve">
+  <data name="VmPage_OptimizeSuccess" xml:space="preserve">
     <value>优化完成</value>
   </data>
-  <data name="VmPage_MsgFeatureInDev" xml:space="preserve">
+  <data name="VmPage_OptimizeSuccessDesc" xml:space="preserve">
     <value>虚拟磁盘空间已成功回收</value>
   </data>
-  <data name="VmPage_MsgParallelUniverse" xml:space="preserve">
+  <data name="VmPage_OptimizeFail" xml:space="preserve">
     <value>优化失败</value>
   </data>
-  <data name="VmPage_MsgOperationOk4" xml:space="preserve">
-    <value>系统异常</value>
-  </data>
-  <data name="VmPage_MsgProcessReset" xml:space="preserve">
+  <data name="VmPage_OperationFail" xml:space="preserve">
     <value>操作失败</value>
   </data>
   <data name="VmPage_ErrRetrieveFailed2" xml:space="preserve">

@@ -79,7 +79,7 @@ namespace ExHyperV.ViewModels
                     var result = await VmMemoryService.SetVmMemorySettingsAsync(SelectedVm.Name, SelectedVm.MemorySettings, false);
                     if (!result.Success)
                     {
-                        ShowSnackbar(Properties.Resources.VmPage_LogDiskSaveResult, result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                        ShowSnackbar(Properties.Resources.VmPage_ModifyFail, result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
 
                         // 核心修复：使用真正纯净的初始缓存进行弹回恢复
                         SelectedVm.MemorySettings.Restore(_originalMemorySettingsCache);

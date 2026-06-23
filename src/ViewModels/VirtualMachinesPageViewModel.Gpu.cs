@@ -628,7 +628,7 @@ namespace ExHyperV.ViewModels
             // 2. 验证
             if (SelectedLinuxScript == null || string.IsNullOrWhiteSpace(SshHost))
             {
-                ShowSnackbar(Properties.Resources.Error_Common_Verify, Properties.Resources.VmPage_MemGranHugePage, ControlAppearance.Caution, SymbolRegular.Warning24);
+                ShowSnackbar(Properties.Resources.Error_Common_Verify, Properties.Resources.VmPage_GpuCheckDeploy, ControlAppearance.Caution, SymbolRegular.Warning24);
                 return;
             }
 
@@ -825,7 +825,7 @@ namespace ExHyperV.ViewModels
                     SelectedPartition = null;
                 }
 
-                AppendLog($"--- {Properties.Resources.Label_Progress} ({Properties.Resources.VmPage_MemGranHugePage2}) ---");
+                AppendLog($"--- {Properties.Resources.Label_Progress} ({Properties.Resources.VmPage_GpuResetDone}) ---");
                 return;
             }
             // --- 场景 2: “硬重置”（彻底回滚，回到选显卡第一步） ---
@@ -834,16 +834,16 @@ namespace ExHyperV.ViewModels
             // 1. 如果当前有正在处理的分区 ID（说明已经分配但未成功），执行物理回滚
             if (!string.IsNullOrEmpty(_currentProcessingGpuAdapterId))
             {
-                AppendLog(Properties.Resources.VmPage_MemGranAutoAssign2); // Properties.Resources.VmPage_MsgRollingBackGpu2
+                AppendLog(Properties.Resources.VmPage_GpuUserRollback); // Properties.Resources.VmPage_MsgRollingBackGpu2
                 try
                 {
                     await _vmGpuService.RemoveGpuPartitionAsync(SelectedVm.Name, _currentProcessingGpuAdapterId);
                     _currentProcessingGpuAdapterId = null;
-                    AppendLog(Properties.Resources.VmPage_MemGranStandard2); // Properties.Resources.VmPage_MsgRollbackComplete2
+                    AppendLog(Properties.Resources.VmPage_GpuUserRollbackDone); // Properties.Resources.VmPage_MsgRollbackComplete2
                 }
                 catch (Exception ex)
                 {
-                    AppendLog(string.Format(Properties.Resources.VmPage_MemGranLargePage2, ex.Message)); // Properties.Resources.VmPage_ErrRollbackFailed2
+                    AppendLog(string.Format(Properties.Resources.VmPage_GpuUserRollbackFail, ex.Message)); // Properties.Resources.VmPage_ErrRollbackFailed2
                 }
             }
 
@@ -859,8 +859,8 @@ namespace ExHyperV.ViewModels
 
             // 4. 弹出全局重置提示
             ShowSnackbar(
-                Properties.Resources.VmPage_MemGranHugePage2, // Properties.Resources.VmPage_BtnReset2
-                Properties.Resources.VmPage_MemTrackDisable, // Properties.Resources.VmPage_MsgProcessReset2
+                Properties.Resources.VmPage_GpuResetDone, // Properties.Resources.VmPage_BtnReset2
+                Properties.Resources.VmPage_GpuResetDesc, // Properties.Resources.VmPage_MsgProcessReset2
                 Wpf.Ui.Controls.ControlAppearance.Info,
                 Wpf.Ui.Controls.SymbolRegular.ArrowCounterclockwise24);
         }

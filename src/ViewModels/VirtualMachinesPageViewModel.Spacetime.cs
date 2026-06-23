@@ -45,7 +45,7 @@ namespace ExHyperV.ViewModels
                         _isLoadingCheckpointState = true;
                         IsCheckpointsEnabled = !value;
                         _isLoadingCheckpointState = false;
-                        ShowSnackbar(Properties.Resources.VmPage_MsgProcessReset, result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                        ShowSnackbar(Properties.Resources.VmPage_OperationFail, result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
                     });
                 }
             });
@@ -80,7 +80,7 @@ namespace ExHyperV.ViewModels
                 }
                 else
                 {
-                    ShowSnackbar(Properties.Resources.VmPage_LogDiskSaveResult, result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                    ShowSnackbar(Properties.Resources.VmPage_ModifyFail, result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
                 }
             }
             finally
@@ -173,7 +173,7 @@ namespace ExHyperV.ViewModels
                 }
                 else
                 {
-                    ShowSnackbar(Properties.Resources.VmPage_MsgProcessReset, result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                    ShowSnackbar(Properties.Resources.VmPage_OperationFail, result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
                 }
             }
             finally
@@ -208,7 +208,7 @@ namespace ExHyperV.ViewModels
                 }
                 else
                 {
-                    ShowSnackbar(Properties.Resources.VmPage_MsgProcessReset, result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                    ShowSnackbar(Properties.Resources.VmPage_OperationFail, result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
                 }
             }
             finally { IsLoadingSettings = false; }

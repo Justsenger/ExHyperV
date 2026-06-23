@@ -2080,9 +2080,6 @@ The existing NAT switch is: '{0}'</value>
   <data name="USBPageViewModel_OpenWebpageFailed" xml:space="preserve">
     <value>Unable to open webpage: {0}</value>
   </data>
-  <data name="VmPage_MsgCreatingVm" xml:space="preserve">
-    <value>Cancel</value>
-  </data>
   <data name="VmPage_ErrConfigDirNotFound" xml:space="preserve">
     <value>Cannot start console: {0}</value>
   </data>
@@ -2095,22 +2092,22 @@ The existing NAT switch is: '{0}'</value>
   <data name="VmPage_AffinityApplyException" xml:space="preserve">
     <value>[Affinity] Auto-apply exception: {0}</value>
   </data>
-  <data name="VmPage_MemGranHugePage" xml:space="preserve">
+  <data name="VmPage_GpuCheckDeploy" xml:space="preserve">
     <value>Please check deployment scheme and Host IP</value>
   </data>
-  <data name="VmPage_MemGranAutoAssign2" xml:space="preserve">
+  <data name="VmPage_GpuUserRollback" xml:space="preserve">
     <value>[User Reset] Unfinished GPU partitioning detected, rolling back...</value>
   </data>
-  <data name="VmPage_MemGranStandard2" xml:space="preserve">
+  <data name="VmPage_GpuUserRollbackDone" xml:space="preserve">
     <value>[User Reset] Partition removed successfully.</value>
   </data>
-  <data name="VmPage_MemGranLargePage2" xml:space="preserve">
+  <data name="VmPage_GpuUserRollbackFail" xml:space="preserve">
     <value>[User Reset] Rollback failed: {0}</value>
   </data>
-  <data name="VmPage_MemGranHugePage2" xml:space="preserve">
+  <data name="VmPage_GpuResetDone" xml:space="preserve">
     <value>Process reset</value>
   </data>
-  <data name="VmPage_MemTrackDisable" xml:space="preserve">
+  <data name="VmPage_GpuResetDesc" xml:space="preserve">
     <value>You can re-select the GPU or modify parameters</value>
   </data>
   <data name="ConsoleWindow_StartVm" xml:space="preserve">
@@ -2344,40 +2341,34 @@ The existing NAT switch is: '{0}'</value>
   <data name="SystemType_ErrReplaceFailed" xml:space="preserve">
     <value>Replacement failed: {0}</value>
   </data>
-  <data name="VmPage_MemTrackEnable" xml:space="preserve">
+  <data name="VmPage_CreatingVm" xml:space="preserve">
     <value>Creating virtual machine...</value>
   </data>
-  <data name="VmPage_MemTrackByProcessorNode" xml:space="preserve">
+  <data name="VmPage_StartingVm" xml:space="preserve">
     <value>Starting virtual machine...</value>
   </data>
-  <data name="VmPage_SgxAccessDenied" xml:space="preserve">
+  <data name="VmPage_OpenFail" xml:space="preserve">
     <value>Failed to open</value>
   </data>
-  <data name="VmPage_SgxReadOnly" xml:space="preserve">
+  <data name="VmPage_ConfigDirNotFound" xml:space="preserve">
     <value>VM configuration directory not found</value>
   </data>
-  <data name="VmPage_MsgOptimizeComplete" xml:space="preserve">
+  <data name="VmPage_PurgeTitle" xml:space="preserve">
     <value>Permanently Delete VM</value>
   </data>
-  <data name="VmPage_MsgDiskReclaimOk" xml:space="preserve">
+  <data name="VmPage_PurgeConfirm" xml:space="preserve">
     <value>About to permanently delete "{0}", including all virtual hard disk files and the configuration directory.\n\n⚠️ Please confirm there are no other files in the VM configuration directory. This action cannot be undone!</value>
   </data>
-  <data name="VmPage_ErrOptimizeFailed" xml:space="preserve">
+  <data name="VmPage_PurgeBtn" xml:space="preserve">
     <value>Permanently Delete</value>
   </data>
-  <data name="VmPage_ErrSystemException" xml:space="preserve">
-    <value>Cancel</value>
-  </data>
-  <data name="VmPage_LogStorageAddAction" xml:space="preserve">
+  <data name="VmPage_DeleteSuccess" xml:space="preserve">
     <value>Deletion complete</value>
   </data>
-  <data name="VmPage_LogStorageAutoAssign" xml:space="preserve">
+  <data name="VmPage_PurgeDoneDesc" xml:space="preserve">
     <value>"{0}" has been permanently removed</value>
   </data>
-  <data name="VmPage_LogUiSaveTriggered" xml:space="preserve">
-    <value>Deletion failed</value>
-  </data>
-  <data name="VmPage_LogDiskSaveResult" xml:space="preserve">
+  <data name="VmPage_ModifyFail" xml:space="preserve">
     <value>Modification failed</value>
   </data>
   <data name="VmPage_BackingTypePhysical" xml:space="preserve">
@@ -2419,19 +2410,16 @@ The existing NAT switch is: '{0}'</value>
   <data name="VmPage_SgxLaunchReadWrite" xml:space="preserve">
     <value>Read/Write</value>
   </data>
-  <data name="VmPage_ErrCloseFailed" xml:space="preserve">
+  <data name="VmPage_OptimizeSuccess" xml:space="preserve">
     <value>Optimization complete</value>
   </data>
-  <data name="VmPage_MsgFeatureInDev" xml:space="preserve">
+  <data name="VmPage_OptimizeSuccessDesc" xml:space="preserve">
     <value>Virtual disk space reclaimed successfully</value>
   </data>
-  <data name="VmPage_MsgParallelUniverse" xml:space="preserve">
+  <data name="VmPage_OptimizeFail" xml:space="preserve">
     <value>Optimization failed</value>
   </data>
-  <data name="VmPage_MsgOperationOk4" xml:space="preserve">
-    <value>System exception</value>
-  </data>
-  <data name="VmPage_MsgProcessReset" xml:space="preserve">
+  <data name="VmPage_OperationFail" xml:space="preserve">
     <value>Operation failed</value>
   </data>
   <data name="VmPage_ErrRetrieveFailed2" xml:space="preserve">

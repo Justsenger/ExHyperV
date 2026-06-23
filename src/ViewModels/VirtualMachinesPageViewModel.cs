@@ -160,12 +160,12 @@ namespace ExHyperV.ViewModels
                 }
                 else
                 {
-                    ShowSnackbar(Properties.Resources.VmPage_SgxAccessDenied, Properties.Resources.VmPage_SgxReadOnly, ControlAppearance.Caution, SymbolRegular.Warning24);
+                    ShowSnackbar(Properties.Resources.VmPage_OpenFail, Properties.Resources.VmPage_ConfigDirNotFound, ControlAppearance.Caution, SymbolRegular.Warning24);
                 }
             }
             catch (Exception ex)
             {
-                ShowSnackbar(Properties.Resources.VmPage_SgxAccessDenied, ex.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                ShowSnackbar(Properties.Resources.VmPage_OpenFail, ex.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
             }
         }
 
@@ -203,10 +203,10 @@ namespace ExHyperV.ViewModels
             // 二次确认弹窗
             var dialog = new Wpf.Ui.Controls.MessageBox
             {
-                Title = Properties.Resources.VmPage_MsgOptimizeComplete,
-                Content = string.Format(Properties.Resources.VmPage_MsgDiskReclaimOk, vm.Name),
-                PrimaryButtonText = Properties.Resources.VmPage_ErrOptimizeFailed,
-                CloseButtonText = Properties.Resources.VmPage_ErrSystemException,
+                Title = Properties.Resources.VmPage_PurgeTitle,
+                Content = string.Format(Properties.Resources.VmPage_PurgeConfirm, vm.Name),
+                PrimaryButtonText = Properties.Resources.VmPage_PurgeBtn,
+                CloseButtonText = Properties.Resources.Button_Cancel,
             };
 
             var result = await dialog.ShowDialogAsync();
@@ -220,16 +220,16 @@ namespace ExHyperV.ViewModels
                 {
                     VmList.Remove(vm);
                     if (SelectedVm == vm) SelectedVm = VmList.FirstOrDefault();
-                    ShowSnackbar(Properties.Resources.VmPage_LogStorageAddAction, string.Format(Properties.Resources.VmPage_LogStorageAutoAssign, vm.Name), ControlAppearance.Success, SymbolRegular.Delete24);
+                    ShowSnackbar(Properties.Resources.VmPage_DeleteSuccess, string.Format(Properties.Resources.VmPage_PurgeDoneDesc, vm.Name), ControlAppearance.Success, SymbolRegular.Delete24);
                 }
                 else
                 {
-                    ShowSnackbar(Properties.Resources.VmPage_LogUiSaveTriggered, FriendlyError.CleanLines(purge.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                    ShowSnackbar(Properties.Resources.VmPage_DeleteFail, FriendlyError.CleanLines(purge.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
                 }
             }
             catch (Exception ex)
             {
-                ShowSnackbar(Properties.Resources.VmPage_LogUiSaveTriggered, FriendlyError.CleanLines(ex.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                ShowSnackbar(Properties.Resources.VmPage_DeleteFail, FriendlyError.CleanLines(ex.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
             }
             finally { IsLoading = false; }
         }

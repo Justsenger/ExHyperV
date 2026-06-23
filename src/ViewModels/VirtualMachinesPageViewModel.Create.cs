@@ -266,7 +266,7 @@ namespace ExHyperV.ViewModels
                 IsLoadingSettings = false;
             }
         }
-        // 2. 点击 Properties.Resources.VmPage_MsgCreatingVm 按钮：退出创建模式
+        // 2. 点击 Properties.Resources.Button_Cancel 按钮：退出创建模式
         [RelayCommand]
         private void CancelCreate()
         {
@@ -412,7 +412,7 @@ namespace ExHyperV.ViewModels
 
             // --- 3. 执行创建流程 ---
             IsLoadingSettings = true;
-            CreatingStatusText = Properties.Resources.VmPage_MemTrackEnable;
+            CreatingStatusText = Properties.Resources.VmPage_CreatingVm;
 
             try
             {
@@ -420,7 +420,7 @@ namespace ExHyperV.ViewModels
 
                 if (result.Success)
                 {
-                    CreatingStatusText = Properties.Resources.VmPage_MemTrackByProcessorNode;
+                    CreatingStatusText = Properties.Resources.VmPage_StartingVm;
                     string actualCreatedName = result.Message;
                     ShowSnackbar(
                          Properties.Resources.VmPage_CreateSuccess,

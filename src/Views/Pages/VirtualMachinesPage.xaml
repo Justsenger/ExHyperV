@@ -77,7 +77,7 @@
                         </ui:MenuItem>
 
                         <Separator/>
-                        <ui:MenuItem Header="{x:Static properties:Resources.VmPage_ErrOptimizeFailed}"
+                        <ui:MenuItem Header="{x:Static properties:Resources.VmPage_PurgeBtn}"
              Command="{Binding PlacementTarget.Tag.PurgeVmCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
              CommandParameter="{Binding}"
              Foreground="{ui:ThemeResource SystemFillColorCriticalBrush}">

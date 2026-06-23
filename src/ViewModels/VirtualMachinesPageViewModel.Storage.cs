@@ -113,16 +113,16 @@ namespace ExHyperV.ViewModels
                     // 调用现有的存储服务，确保 UI 上的 GB 数值得到更新
                     await VmStorageService.RefreshVirtualDiskSizesAsync(SelectedVm.Model);
 
-                    ShowSnackbar(Properties.Resources.VmPage_ErrCloseFailed, Properties.Resources.VmPage_MsgFeatureInDev, ControlAppearance.Success, SymbolRegular.CheckmarkCircle24);
+                    ShowSnackbar(Properties.Resources.VmPage_OptimizeSuccess, Properties.Resources.VmPage_OptimizeSuccessDesc, ControlAppearance.Success, SymbolRegular.CheckmarkCircle24);
                 }
                 else
                 {
-                    ShowSnackbar(Properties.Resources.VmPage_MsgParallelUniverse, result.Error, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                    ShowSnackbar(Properties.Resources.VmPage_OptimizeFail, result.Error, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
                 }
             }
             catch (Exception ex)
             {
-                ShowSnackbar(Properties.Resources.VmPage_MsgOperationOk4, ex.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                ShowSnackbar(Properties.Resources.VmPage_SysExp, ex.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
             }
             finally
             {

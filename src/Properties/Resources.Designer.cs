@@ -5860,9 +5860,9 @@ namespace ExHyperV.Properties {
         /// <summary>
         ///   查找类似 Optimization complete 的本地化字符串。
         /// </summary>
-        public static string VmPage_ErrCloseFailed {
+        public static string VmPage_OptimizeSuccess {
             get {
-                return ResourceManager.GetString("VmPage_ErrCloseFailed", resourceCulture);
+                return ResourceManager.GetString("VmPage_OptimizeSuccess", resourceCulture);
             }
         }
         
@@ -5943,9 +5943,9 @@ namespace ExHyperV.Properties {
         /// <summary>
         ///   查找类似 Permanently Delete 的本地化字符串。
         /// </summary>
-        public static string VmPage_ErrOptimizeFailed {
+        public static string VmPage_PurgeBtn {
             get {
-                return ResourceManager.GetString("VmPage_ErrOptimizeFailed", resourceCulture);
+                return ResourceManager.GetString("VmPage_PurgeBtn", resourceCulture);
             }
         }
         
@@ -5977,14 +5977,6 @@ namespace ExHyperV.Properties {
             }
         }
         
-        /// <summary>
-        ///   查找类似 Cancel 的本地化字符串。
-        /// </summary>
-        public static string VmPage_ErrSystemException {
-            get {
-                return ResourceManager.GetString("VmPage_ErrSystemException", resourceCulture);
-            }
-        }
         
         /// <summary>
         ///   查找类似 The specified existing virtual hard disk file does not exist. Please check the path. 的本地化字符串。
@@ -6016,9 +6008,9 @@ namespace ExHyperV.Properties {
         /// <summary>
         ///   查找类似 Modification failed 的本地化字符串。
         /// </summary>
-        public static string VmPage_LogDiskSaveResult {
+        public static string VmPage_ModifyFail {
             get {
-                return ResourceManager.GetString("VmPage_LogDiskSaveResult", resourceCulture);
+                return ResourceManager.GetString("VmPage_ModifyFail", resourceCulture);
             }
         }
         
@@ -6034,55 +6026,47 @@ namespace ExHyperV.Properties {
         /// <summary>
         ///   查找类似 Deletion complete 的本地化字符串。
         /// </summary>
-        public static string VmPage_LogStorageAddAction {
+        public static string VmPage_DeleteSuccess {
             get {
-                return ResourceManager.GetString("VmPage_LogStorageAddAction", resourceCulture);
+                return ResourceManager.GetString("VmPage_DeleteSuccess", resourceCulture);
             }
         }
         
         /// <summary>
         ///   查找类似 &quot;{0}&quot; has been permanently removed 的本地化字符串。
         /// </summary>
-        public static string VmPage_LogStorageAutoAssign {
+        public static string VmPage_PurgeDoneDesc {
             get {
-                return ResourceManager.GetString("VmPage_LogStorageAutoAssign", resourceCulture);
+                return ResourceManager.GetString("VmPage_PurgeDoneDesc", resourceCulture);
             }
         }
         
-        /// <summary>
-        ///   查找类似 Deletion failed 的本地化字符串。
-        /// </summary>
-        public static string VmPage_LogUiSaveTriggered {
-            get {
-                return ResourceManager.GetString("VmPage_LogUiSaveTriggered", resourceCulture);
-            }
-        }
         
         
         /// <summary>
         ///   查找类似 [User Reset] Unfinished GPU partitioning detected, rolling back... 的本地化字符串。
         /// </summary>
-        public static string VmPage_MemGranAutoAssign2 {
+        public static string VmPage_GpuUserRollback {
             get {
-                return ResourceManager.GetString("VmPage_MemGranAutoAssign2", resourceCulture);
+                return ResourceManager.GetString("VmPage_GpuUserRollback", resourceCulture);
             }
         }
         
         /// <summary>
         ///   查找类似 Please check deployment scheme and Host IP 的本地化字符串。
         /// </summary>
-        public static string VmPage_MemGranHugePage {
+        public static string VmPage_GpuCheckDeploy {
             get {
-                return ResourceManager.GetString("VmPage_MemGranHugePage", resourceCulture);
+                return ResourceManager.GetString("VmPage_GpuCheckDeploy", resourceCulture);
             }
         }
         
         /// <summary>
         ///   查找类似 Process reset 的本地化字符串。
         /// </summary>
-        public static string VmPage_MemGranHugePage2 {
+        public static string VmPage_GpuResetDone {
             get {
-                return ResourceManager.GetString("VmPage_MemGranHugePage2", resourceCulture);
+                return ResourceManager.GetString("VmPage_GpuResetDone", resourceCulture);
             }
         }
         
@@ -6090,9 +6074,9 @@ namespace ExHyperV.Properties {
         /// <summary>
         ///   查找类似 [User Reset] Rollback failed: {0} 的本地化字符串。
         /// </summary>
-        public static string VmPage_MemGranLargePage2 {
+        public static string VmPage_GpuUserRollbackFail {
             get {
-                return ResourceManager.GetString("VmPage_MemGranLargePage2", resourceCulture);
+                return ResourceManager.GetString("VmPage_GpuUserRollbackFail", resourceCulture);
             }
         }
         
@@ -6100,9 +6084,9 @@ namespace ExHyperV.Properties {
         /// <summary>
         ///   查找类似 [User Reset] Partition removed successfully. 的本地化字符串。
         /// </summary>
-        public static string VmPage_MemGranStandard2 {
+        public static string VmPage_GpuUserRollbackDone {
             get {
-                return ResourceManager.GetString("VmPage_MemGranStandard2", resourceCulture);
+                return ResourceManager.GetString("VmPage_GpuUserRollbackDone", resourceCulture);
             }
         }
         
@@ -6112,27 +6096,27 @@ namespace ExHyperV.Properties {
         /// <summary>
         ///   查找类似 Starting virtual machine... 的本地化字符串。
         /// </summary>
-        public static string VmPage_MemTrackByProcessorNode {
+        public static string VmPage_StartingVm {
             get {
-                return ResourceManager.GetString("VmPage_MemTrackByProcessorNode", resourceCulture);
+                return ResourceManager.GetString("VmPage_StartingVm", resourceCulture);
             }
         }
         
         /// <summary>
         ///   查找类似 You can re-select the GPU or modify parameters 的本地化字符串。
         /// </summary>
-        public static string VmPage_MemTrackDisable {
+        public static string VmPage_GpuResetDesc {
             get {
-                return ResourceManager.GetString("VmPage_MemTrackDisable", resourceCulture);
+                return ResourceManager.GetString("VmPage_GpuResetDesc", resourceCulture);
             }
         }
         
         /// <summary>
         ///   查找类似 Creating virtual machine... 的本地化字符串。
         /// </summary>
-        public static string VmPage_MemTrackEnable {
+        public static string VmPage_CreatingVm {
             get {
-                return ResourceManager.GetString("VmPage_MemTrackEnable", resourceCulture);
+                return ResourceManager.GetString("VmPage_CreatingVm", resourceCulture);
             }
         }
         
@@ -6163,31 +6147,23 @@ namespace ExHyperV.Properties {
             }
         }
         
-        /// <summary>
-        ///   查找类似 Cancel 的本地化字符串。
-        /// </summary>
-        public static string VmPage_MsgCreatingVm {
-            get {
-                return ResourceManager.GetString("VmPage_MsgCreatingVm", resourceCulture);
-            }
-        }
         
         
         /// <summary>
         ///   查找类似 About to permanently delete &quot;{0}&quot;, including all virtual hard disk files and the configuration directory.\n\n⚠️ Please confirm there are no other files in the VM configuration directory. This action cannot be undone! 的本地化字符串。
         /// </summary>
-        public static string VmPage_MsgDiskReclaimOk {
+        public static string VmPage_PurgeConfirm {
             get {
-                return ResourceManager.GetString("VmPage_MsgDiskReclaimOk", resourceCulture);
+                return ResourceManager.GetString("VmPage_PurgeConfirm", resourceCulture);
             }
         }
         
         /// <summary>
         ///   查找类似 Virtual disk space reclaimed successfully 的本地化字符串。
         /// </summary>
-        public static string VmPage_MsgFeatureInDev {
+        public static string VmPage_OptimizeSuccessDesc {
             get {
-                return ResourceManager.GetString("VmPage_MsgFeatureInDev", resourceCulture);
+                return ResourceManager.GetString("VmPage_OptimizeSuccessDesc", resourceCulture);
             }
         }
         
@@ -6209,14 +6185,6 @@ namespace ExHyperV.Properties {
             }
         }
         
-        /// <summary>
-        ///   查找类似 System exception 的本地化字符串。
-        /// </summary>
-        public static string VmPage_MsgOperationOk4 {
-            get {
-                return ResourceManager.GetString("VmPage_MsgOperationOk4", resourceCulture);
-            }
-        }
         
         /// <summary>
         ///   查找类似 Operation successful 的本地化字符串。
@@ -6230,18 +6198,18 @@ namespace ExHyperV.Properties {
         /// <summary>
         ///   查找类似 Permanently Delete VM 的本地化字符串。
         /// </summary>
-        public static string VmPage_MsgOptimizeComplete {
+        public static string VmPage_PurgeTitle {
             get {
-                return ResourceManager.GetString("VmPage_MsgOptimizeComplete", resourceCulture);
+                return ResourceManager.GetString("VmPage_PurgeTitle", resourceCulture);
             }
         }
         
         /// <summary>
         ///   查找类似 Optimization failed 的本地化字符串。
         /// </summary>
-        public static string VmPage_MsgParallelUniverse {
+        public static string VmPage_OptimizeFail {
             get {
-                return ResourceManager.GetString("VmPage_MsgParallelUniverse", resourceCulture);
+                return ResourceManager.GetString("VmPage_OptimizeFail", resourceCulture);
             }
         }
         
@@ -6266,9 +6234,9 @@ namespace ExHyperV.Properties {
         /// <summary>
         ///   查找类似 Operation failed 的本地化字符串。
         /// </summary>
-        public static string VmPage_MsgProcessReset {
+        public static string VmPage_OperationFail {
             get {
-                return ResourceManager.GetString("VmPage_MsgProcessReset", resourceCulture);
+                return ResourceManager.GetString("VmPage_OperationFail", resourceCulture);
             }
         }
         
@@ -6474,18 +6442,18 @@ namespace ExHyperV.Properties {
         /// <summary>
         ///   查找类似 Failed to open 的本地化字符串。
         /// </summary>
-        public static string VmPage_SgxAccessDenied {
+        public static string VmPage_OpenFail {
             get {
-                return ResourceManager.GetString("VmPage_SgxAccessDenied", resourceCulture);
+                return ResourceManager.GetString("VmPage_OpenFail", resourceCulture);
             }
         }
         
         /// <summary>
         ///   查找类似 VM configuration directory not found 的本地化字符串。
         /// </summary>
-        public static string VmPage_SgxReadOnly {
+        public static string VmPage_ConfigDirNotFound {
             get {
-                return ResourceManager.GetString("VmPage_SgxReadOnly", resourceCulture);
+                return ResourceManager.GetString("VmPage_ConfigDirNotFound", resourceCulture);
             }
         }
         
