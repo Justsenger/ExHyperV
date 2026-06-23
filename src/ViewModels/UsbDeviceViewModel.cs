@@ -16,7 +16,6 @@ namespace ExHyperV.ViewModels
         // 以下属性在手机切换模式（如从 MTP 变 ADB）时会变，需设为可观察
         [ObservableProperty] private string _vidPid;
         [ObservableProperty] private string _description;
-        [ObservableProperty] private string _status;
 
         // 当前分配目标 (如: Properties.Resources.UsbDevice_Host 或 虚拟机名称)
         [ObservableProperty] private string _currentAssignment;
@@ -29,7 +28,6 @@ namespace ExHyperV.ViewModels
             BusId = model.BusId;
             VidPid = model.VidPid;
             Description = model.Description;
-            Status = model.Status;
             _currentAssignment = Properties.Resources.UsbDevice_Host;
 
             UpdateOptions(runningVmNames);

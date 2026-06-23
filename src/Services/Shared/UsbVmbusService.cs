@@ -231,8 +231,7 @@ namespace ExHyperV.Services
                             {
                                 BusId = m.Groups[1].Value.Trim(),
                                 VidPid = m.Groups[2].Value.Trim(),
-                                Description = m.Groups[3].Value.Trim(),
-                                Status = "Ready"
+                                Description = m.Groups[3].Value.Trim()
                             });
                     }
                 }
