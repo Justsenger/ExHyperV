@@ -1,5 +1,6 @@
 ﻿using ExHyperV.Models;
 using ExHyperV.Tools;
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.IO;
 using System.Management;
@@ -24,9 +25,9 @@ namespace ExHyperV.Services
 
         // --- 静态变量与缓存 ---
 
-        private static readonly Dictionary<string, string> _switchNameCache = new(StringComparer.OrdinalIgnoreCase);
+        private static readonly ConcurrentDictionary<string, string> _switchNameCache = new(StringComparer.OrdinalIgnoreCase);
         private static readonly Dictionary<string, (long Current, long Max, string Type)> _diskSizeCache = new();
-        private static Dictionary<Guid, int> _vmProcessIdCache = new();
+        private static readonly ConcurrentDictionary<Guid, int> _vmProcessIdCache = new();
         private static DateTime _processIdCacheTimestamp = DateTime.MinValue;
         private List<PerformanceCounter> _gpuCounters = new();
         private static readonly Regex GpuInstanceRegex = new Regex(@"pid_(\d+).*engtype_([a-zA-Z0-9]+)", RegexOptions.Compiled | RegexOptions.IgnoreCase);

@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ExHyperV.Services;
 using ExHyperV.Interaction;
+using ExHyperV.Tools;
 using System.Collections.ObjectModel;
 using Wpf.Ui.Controls;
 
@@ -40,7 +41,7 @@ namespace ExHyperV.ViewModels
 
         // ===== 构造与初始化检查 =====
 
-        public HostPageViewModel() => _ = LoadInitialStatusAsync();
+        public HostPageViewModel() => LoadInitialStatusAsync().SafeFireAndForget();
 
         private async Task LoadInitialStatusAsync()
         {

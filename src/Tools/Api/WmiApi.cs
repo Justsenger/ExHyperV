@@ -761,9 +761,10 @@ public static class WmiApi
     // ── 辅助工具 ──────────────────────────────────────────────────
 
     /// <summary>
-    /// 转义 WQL 字符串中的单引号，防止注入。
+    /// 转义 WQL 字符串字面量，防止注入/查询破坏。必须先转反斜杠（WQL 转义符）再转撇号——
+    /// 否则尾随反斜杠会吃掉闭合撇号、截断后续 AND 子句、改写 WHERE 语义。
     /// </summary>
-    public static string Escape(string value) => value.Replace("'", "\\'");
+    public static string Escape(string value) => value.Replace("\\", "\\\\").Replace("'", "\\'");
 
     /// <summary>安全读取 ManagementObject 属性，失败返回默认值。</summary>
     public static T? Prop<T>(ManagementObject obj, string name, T? defaultValue = default)

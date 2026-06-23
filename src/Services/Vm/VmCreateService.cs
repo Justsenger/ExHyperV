@@ -100,6 +100,7 @@ namespace ExHyperV.Services
         public static async Task<(bool Success, string Message)> CreateVirtualMachineAsync(VmCreationParams p)
         {
             string finalVmName = p.IsManualName ? p.Name : await GetUniqueVmNameAsync(p.Name, p.Path);
+            bool vmCreated = false;   // DefineSystem 成功后置 true;失败回滚的依据
             try
             {
                 // ── Step 1: 创建目录 ──────────────────────────────
@@ -153,6 +154,9 @@ namespace ExHyperV.Services
                 string? vmPath = defineResp.Data?.FirstOrDefault();
                 if (string.IsNullOrEmpty(vmPath))
                     return (false, Properties.Resources.Error_VmCreate_NoSystemPath);
+
+                // VM 已在 Hyper-V 中创建——此后任一步骤失败都需回滚删除,避免留孤儿半成品
+                vmCreated = true;
 
                 // ── Step 3: 取新 VM 的 Name（GUID）───────────────
                 string vmGuid;
@@ -256,6 +260,12 @@ namespace ExHyperV.Services
             }
             catch (Exception ex)
             {
+                // 回滚:DefineSystem 之后任一步骤失败会留下半成品 VM,删掉它再上报错误(回滚失败不掩盖原始错误)
+                if (vmCreated)
+                {
+                    try { await VmDeleteService.DeleteVmAsync(finalVmName); }
+                    catch { }
+                }
                 return (false, ex.Message);
             }
         }

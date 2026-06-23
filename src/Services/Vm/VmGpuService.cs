@@ -1248,7 +1248,8 @@ namespace ExHyperV.Services
 
                         bool rebootNeeded = false;
                         string graphicsArg = credentials.InstallGraphics ? "true" : "false";
-                        string proxyArg = credentials.UseProxy ? $"\"http://{credentials.ProxyHost}:{credentials.ProxyPort}\"" : "\"\"";
+                        // 代理地址单引号包裹 + 转义,防 ProxyHost 含 $()/反引号注入(与上面密码同款转义);正常主机名行为等价
+                        string proxyArg = credentials.UseProxy ? $"'http://{credentials.ProxyHost.Replace("'", "'\\''")}:{credentials.ProxyPort}'" : "\"\"";
 
                         // 使用 sudo -E 保证代理变量能传递给 apt
                         string execCmd = $"echo '{credentials.Password.Replace("'", "'\\''")}' | sudo -S -E -p '' bash {remoteScriptPath} deploy {graphicsArg} {proxyArg}";

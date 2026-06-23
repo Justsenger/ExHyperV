@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ExHyperV.Interaction;
 using ExHyperV.Services;
+using ExHyperV.Tools;
 using ExHyperV.Views;
 
 namespace ExHyperV.ViewModels
@@ -17,7 +18,7 @@ namespace ExHyperV.ViewModels
         public MainPageViewModel()
         {
             AppVersion = AppInfoService.Version;
-            _ = LoadSystemInfoAsync();
+            LoadSystemInfoAsync().SafeFireAndForget();
         }
 
         private async Task LoadSystemInfoAsync()

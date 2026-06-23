@@ -1119,7 +1119,7 @@ namespace ExHyperV.Services
             for (int i = 0; i < 10; i++)
             {
                 var diskResp = await WmiApi.QueryFirstCimAsync(
-                    $"SELECT * FROM MSFT_Disk WHERE Location = '{imagePath.Replace("'", "\\'").Replace("\\", "\\\\")}'",
+                    $"SELECT * FROM MSFT_Disk WHERE Location = '{WmiApi.Escape(imagePath)}'",
                     obj => Convert.ToInt32(obj["Number"] ?? -1),
                     WmiScope.Storage);
 
