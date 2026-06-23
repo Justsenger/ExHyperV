@@ -23,7 +23,7 @@ namespace ExHyperV.ViewModels
         private string? _errorMessage;
 
         public ObservableCollection<string> AvailableNetworkAdapters { get; } = new();
-        public bool IsNetworkAdapterSelectionEnabled => _selectedSwitchType == SwitchMode.Bridge || _selectedSwitchType == SwitchMode.NAT;
+        public bool IsNetworkAdapterSelectionEnabled => SelectedSwitchType == SwitchMode.Bridge || SelectedSwitchType == SwitchMode.NAT;
 
 
         public AddSwitchViewModel(IEnumerable<SwitchViewModel> existingSwitches, IEnumerable<string> allPhysicalAdapters)
@@ -74,7 +74,7 @@ namespace ExHyperV.ViewModels
                 ErrorMessage = Properties.Resources.AddSwitch_Validation_AdapterRequiredForExternalOrNat;
                 return false;
             }
-            if (_selectedSwitchType == SwitchMode.NAT)
+            if (SelectedSwitchType == SwitchMode.NAT)
             {
                 if (_existingSwitches.Any(s => !s.IsDefaultSwitch && s.SelectedNetworkMode == SwitchMode.NAT))
                 {

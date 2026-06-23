@@ -44,7 +44,7 @@ namespace ExHyperV.ViewModels
 
             _switchName = switchInfo.SwitchName;
             _switchId = switchInfo.Id;
-            _isDefaultSwitch = _switchName == "Default Switch";
+            IsDefaultSwitch = _switchName == "Default Switch";
 
             _ = RevertTo(switchInfo);
 
@@ -84,7 +84,7 @@ namespace ExHyperV.ViewModels
                 SelectedNetworkMode = switchInfo.SwitchType;
                 SelectedUpstreamAdapter = switchInfo.NetAdapterInterfaceDescription;
                 IsHostConnectionAllowed = switchInfo.AllowManagementOS;
-                if (_isDefaultSwitch) { SelectedNetworkMode = SwitchMode.NAT; }
+                if (IsDefaultSwitch) { SelectedNetworkMode = SwitchMode.NAT; }
                 UpdateUiLogic();
                 await UpdateTopologyAsync();
             }

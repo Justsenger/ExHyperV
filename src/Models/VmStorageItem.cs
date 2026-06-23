@@ -29,22 +29,22 @@ namespace ExHyperV.Models
         {
             get
             {
-                if (_diskType == "Physical" && !string.IsNullOrEmpty(_diskModel))
-                    return _diskModel;
+                if (DiskType == "Physical" && !string.IsNullOrEmpty(DiskModel))
+                    return DiskModel;
 
-                if (_diskType == "Virtual" && !string.IsNullOrEmpty(_pathOrDiskNumber))
+                if (DiskType == "Virtual" && !string.IsNullOrEmpty(PathOrDiskNumber))
                 {
-                    try { return Path.GetFileName(_pathOrDiskNumber); }
+                    try { return Path.GetFileName(PathOrDiskNumber); }
                     catch { return Properties.Resources.Model_Drive_VirtualDisk; }
                 }
 
-                return _driveType == "HardDisk" ? Properties.Resources.Model_Drive_VirtualHardDisk : Properties.Resources.Model_Drive_OpticalDrive;
+                return DriveType == "HardDisk" ? Properties.Resources.Model_Drive_VirtualHardDisk : Properties.Resources.Model_Drive_OpticalDrive;
             }
         }
 
-        public string SourceTypeDisplayName => _diskType == "Physical" ? Properties.Resources.Model_Drive_SourcePhysical : Properties.Resources.Model_Drive_SourceVirtual;
+        public string SourceTypeDisplayName => DiskType == "Physical" ? Properties.Resources.Model_Drive_SourcePhysical : Properties.Resources.Model_Drive_SourceVirtual;
 
-        public string Icon => _driveType == "HardDisk" ? "" : "";
+        public string Icon => DriveType == "HardDisk" ? "" : "";
 
         public string SizeDisplay
         {

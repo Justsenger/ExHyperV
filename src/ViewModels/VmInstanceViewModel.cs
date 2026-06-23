@@ -231,17 +231,17 @@ namespace ExHyperV.ViewModels
             _generation = model.Generation;
             _version = model.Version;
             _osType = model.OsType;
-            _cpuCount = model.CpuCount;
-            _memoryGb = model.MemoryGb;
-            _assignedMemoryGb = model.AssignedMemoryGb;
-            _demandMemoryGb = model.DemandMemoryGb;
+            CpuCount = model.CpuCount;
+            MemoryGb = model.MemoryGb;
+            AssignedMemoryGb = model.AssignedMemoryGb;
+            DemandMemoryGb = model.DemandMemoryGb;
             _totalDiskSizeGb = model.TotalDiskSizeGb;
             _ipAddress = model.IpAddress;
             _macAddress = model.MacAddress;
             _gpuName = model.GpuName;
             _isGpuActive = model.IsGpuActive;
             _processor = model.Processor;
-            _memorySettings = model.MemorySettings;
+            MemorySettings = model.MemorySettings;
 
             // ── IpAddressDisplay 派生（构造时跳过了 setter 钩子的 display 计算）──
             RecomputeIpAddressDisplay(_ipAddress);
@@ -429,25 +429,25 @@ namespace ExHyperV.ViewModels
 
         // ===== 业务逻辑方法（内存、GPU、状态推进、计时） =====
 
-        public string MemoryUsageString => _assignedMemoryGb.ToString("N1");
-        public string MemoryDemandString => _demandMemoryGb.ToString("N1");
+        public string MemoryUsageString => AssignedMemoryGb.ToString("N1");
+        public string MemoryDemandString => DemandMemoryGb.ToString("N1");
 
         public string MemoryLimitString
         {
             get
             {
-                if (_memorySettings != null)
+                if (MemorySettings != null)
                 {
-                    double limitMb = _memorySettings.DynamicMemoryEnabled ? _memorySettings.Maximum : _memorySettings.Startup;
+                    double limitMb = MemorySettings.DynamicMemoryEnabled ? MemorySettings.Maximum : MemorySettings.Startup;
                     return (limitMb / 1024.0).ToString("N1");
                 }
-                return _memoryGb > 0 ? _memoryGb.ToString("N1") : "0.0";
+                return MemoryGb > 0 ? MemoryGb.ToString("N1") : "0.0";
             }
         }
 
         public void UpdateMemoryStatus(long assignedMb, int availablePercent)
         {
-            if (!_isRunning || assignedMb == 0)
+            if (!IsRunning || assignedMb == 0)
             {
                 AssignedMemoryGb = 0; DemandMemoryGb = 0; UpdateHistoryPoints(0); return;
             }
@@ -549,7 +549,7 @@ namespace ExHyperV.ViewModels
                         .OrderByDescending(g => g)
                         .Select(g => g >= 1 ? $"{g:0.#} GB" : $"{g * 1024:0} MB"));
                 }
-                return string.Format(Properties.Resources.Format_VmSummary, _cpuCount, _memoryGb, diskPart);
+                return string.Format(Properties.Resources.Format_VmSummary, CpuCount, MemoryGb, diskPart);
             }
         }
 
@@ -585,7 +585,7 @@ namespace ExHyperV.ViewModels
 
         public void TickUptime()
         {
-            if (!_isRunning) { Uptime = "00:00:00"; return; }
+            if (!IsRunning) { Uptime = "00:00:00"; return; }
             var currentTotal = _anchorUptime + (DateTime.Now - _anchorLocalTime);
             Uptime = currentTotal.TotalDays >= 1
                 ? $"{(int)currentTotal.TotalDays}.{currentTotal.Hours:D2}:{currentTotal.Minutes:D2}:{currentTotal.Seconds:D2}"

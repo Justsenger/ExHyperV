@@ -26,10 +26,10 @@ namespace ExHyperV.Models
 
         public string PnpDeviceId { get; set; } // 物理硬盘的 PNPDeviceID（仅 Physical 类型用）
 
-        public string IoSpeedText => $"↑ {FormatIoSpeed(_readSpeedBps)}   ↓ {FormatIoSpeed(_writeSpeedBps)} ";
+        public string IoSpeedText => $"↑ {FormatIoSpeed(ReadSpeedBps)}   ↓ {FormatIoSpeed(WriteSpeedBps)} ";
 
-        public double UsagePercentage => _maxSize > 0 ? (double)_currentSize / _maxSize * 100 : 0;
-        public string UsageText => $"{FormatBytes(_currentSize)} / {FormatBytes(_maxSize)}";
+        public double UsagePercentage => MaxSize > 0 ? (double)CurrentSize / MaxSize * 100 : 0;
+        public string UsageText => $"{FormatBytes(CurrentSize)} / {FormatBytes(MaxSize)}";
 
         private string FormatBytes(long bytes)
         {

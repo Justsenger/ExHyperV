@@ -107,9 +107,9 @@ namespace ExHyperV.ViewModels
 
         private void LoadCurrentSettings()
         {
-            _selectedTheme = SettingsService.GetTheme();
+            SelectedTheme = SettingsService.GetTheme();
             string langCode = SettingsService.GetLanguage();
-            _selectedLanguage = langCode == "zh-CN" ? Properties.Resources.Lang_Chinese : "English";
+            SelectedLanguage = langCode == "zh-CN" ? Properties.Resources.Lang_Chinese : "English";
         }
 
         partial void OnSelectedThemeChanged(string value)
