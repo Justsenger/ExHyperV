@@ -81,6 +81,14 @@ namespace ExHyperV.Views
             _liveTimer.Start();
             ApplicationThemeManager.Changed -= OnThemeChanged;   // 幂等：防 Loaded 多次触发（缓存页往返）重复订阅
             ApplicationThemeManager.Changed += OnThemeChanged;
+            if (_boundVm != null)
+            {
+                // 与 OnViewUnloaded 的退订对称、幂等重订阅：防卸载后同实例再次 Loaded（可视树临时移除/往返）丢失更新
+                _boundVm.PropertyChanged -= OnVmPropertyChanged;
+                _boundVm.PropertyChanged += OnVmPropertyChanged;
+                UnsubscribeNodeEvents(_boundVm.SpacetimeNodes);
+                SubscribeNodeEvents(_boundVm.SpacetimeNodes);
+            }
             if (_needsInitialCenter) RenderSpacetimeFlow();
         }
 
@@ -88,6 +96,12 @@ namespace ExHyperV.Views
         {
             _liveTimer.Stop();
             ApplicationThemeManager.Changed -= OnThemeChanged;
+            // 退订 VM 与节点事件：否则长生命期的页 VM(单例)经事件钉住本应被丢弃的视图实例(每次切到时空面板都重建一个)
+            if (_boundVm != null)
+            {
+                _boundVm.PropertyChanged -= OnVmPropertyChanged;
+                UnsubscribeNodeEvents(_boundVm.SpacetimeNodes);
+            }
         }
 
         private void OnThemeChanged(ApplicationTheme theme, Color color) => Dispatcher.Invoke(RenderSpacetimeFlow);
