@@ -179,7 +179,8 @@ public static class VmMemoryService
             {
                 memData.TrySet("MaxMemoryBlocksPerNumaNode", memorySettings.MaxMemoryBlocksPerNumaNode);
             }
-            else if (memorySettings.BackingPageSize > 0 && memData.HasProperty("MaxMemoryBlocksPerNumaNode"))
+            else if (memorySettings.BackingPageSize > 0 && memData.HasProperty("MaxMemoryBlocksPerNumaNode")
+                     && memData["MaxMemoryBlocksPerNumaNode"] != null)
             {
                 ulong current = (ulong)memData["MaxMemoryBlocksPerNumaNode"];
                 ulong corrected = (current / (ulong)alignment) * (ulong)alignment;
