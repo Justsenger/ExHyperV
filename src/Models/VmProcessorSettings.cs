@@ -26,27 +26,5 @@ namespace ExHyperV.Models
         [ObservableProperty] private bool? _allowAcountMcount;
         [ObservableProperty] private bool? _enableSocketTopology;
         [ObservableProperty] private string? _cpuBrandString;
-
-        public VmProcessorSettings Clone() => (VmProcessorSettings)this.MemberwiseClone();
-
-        public void Restore(VmProcessorSettings other)
-        {
-            if (other == null) return;
-            _count = other.Count;
-            _reserve = other.Reserve;
-            _maximum = other.Maximum;
-            _relativeWeight = other.RelativeWeight;
-            _exposeVirtualizationExtensions = other.ExposeVirtualizationExtensions;
-            _enableHostResourceProtection = other.EnableHostResourceProtection;
-            _compatibilityForMigrationEnabled = other.CompatibilityForMigrationEnabled;
-            _compatibilityForOlderOperatingSystemsEnabled = other.CompatibilityForOlderOperatingSystemsEnabled;
-            _smtMode = other.SmtMode;
-            _disableSpeculationControls = other.DisableSpeculationControls;
-            _hideHypervisorPresent = other.HideHypervisorPresent;
-            _enablePerfmonArchPmu = other.EnablePerfmonArchPmu;
-            _allowAcountMcount = other.AllowAcountMcount;
-            _enableSocketTopology = other.EnableSocketTopology;
-            _cpuBrandString = other.CpuBrandString;
-        }
     }
 }

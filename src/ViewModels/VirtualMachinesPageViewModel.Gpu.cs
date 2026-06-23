@@ -20,7 +20,7 @@ namespace ExHyperV.ViewModels
         [ObservableProperty] private ObservableCollection<PartitionInfo> _detectedPartitions = new();
         [ObservableProperty] private PartitionInfo? _selectedPartition;
         [ObservableProperty] private bool _showSshForm = false;
-        [ObservableProperty] private string? _currentProcessingGpuAdapterId;
+        private string? _currentProcessingGpuAdapterId;
         private bool _needConfig = false;
 
         // Linux SSH 凭据

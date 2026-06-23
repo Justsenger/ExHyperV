@@ -21,8 +21,6 @@ namespace ExHyperV.Views
     {
         private Dictionary<string, List<SpacetimeNode>> _treeMap = new();
         private Dictionary<string, int> _subtreeLeafCount = new(); // 存储每个节点的叶子总数
-        private Point _dragStartPos;
-        private Point _dragStartOffset;
         private Point _selectedNodePos;
         private Point _currentNodePos;
         private bool _isDragging = false;
