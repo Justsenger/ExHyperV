@@ -48,7 +48,6 @@ namespace ExHyperV.Views
                     }
                 }
             };
-            _liveTimer.Start();
 
             this.DataContextChanged += (s, e) => {
                 if (_boundVm != null)
@@ -70,14 +69,28 @@ namespace ExHyperV.Views
                 }
             };
 
-            this.Loaded += (s, e) => {
-                if (_needsInitialCenter) RenderSpacetimeFlow();
-            };
-            ApplicationThemeManager.Changed += (theme, color) =>
-            {
-                Dispatcher.Invoke(RenderSpacetimeFlow);
-            };
+            this.Loaded += OnViewLoaded;
+            this.Unloaded += OnViewUnloaded;
         }
+
+        // 本视图由 VirtualMachinesPage 的 ContentControl 用 DataTemplate 承载，每次切到时空面板都重建一个新实例。
+        // _liveTimer(被 Dispatcher 计时队列强引用)与静态事件 ApplicationThemeManager.Changed 若不在卸载时拆掉，
+        // 会永久钉住每个废弃实例（静态事件尤甚），且隐藏视图仍每秒空转渲染。故配对称的 Loaded/Unloaded 收尾。
+        private void OnViewLoaded(object sender, RoutedEventArgs e)
+        {
+            _liveTimer.Start();
+            ApplicationThemeManager.Changed -= OnThemeChanged;   // 幂等：防 Loaded 多次触发（缓存页往返）重复订阅
+            ApplicationThemeManager.Changed += OnThemeChanged;
+            if (_needsInitialCenter) RenderSpacetimeFlow();
+        }
+
+        private void OnViewUnloaded(object sender, RoutedEventArgs e)
+        {
+            _liveTimer.Stop();
+            ApplicationThemeManager.Changed -= OnThemeChanged;
+        }
+
+        private void OnThemeChanged(ApplicationTheme theme, Color color) => Dispatcher.Invoke(RenderSpacetimeFlow);
 
         private void OnVmPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
