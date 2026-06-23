@@ -51,7 +51,9 @@ namespace ExHyperV.Services
                     for (int i = 0; i < totalBlocks; i++)
                     {
                         stream.Read(buffer, blockSize, pRead);
-                        fs.Write(buffer, 0, blockSize);
+                        int bytesRead = Marshal.ReadInt32(pRead);
+                        if (bytesRead <= 0) break;          // 流提前结束
+                        fs.Write(buffer, 0, bytesRead);     // 按实际读取字节写，避免末块不足 blockSize 时写入上一块残留
                     }
                 }
                 finally
