@@ -57,14 +57,9 @@ namespace ExHyperV.ViewModels
             finally { IsLoadingSettings = false; }
         }
 
-        // 保存逻辑
+        // 保存逻辑（拖放松手时由 ListBox 行为的 DropCompletedCommand 自动触发，无保存按钮）
         [RelayCommand]
         private async Task SaveBootOrderAsync()
-        {
-            await SilentSaveBootOrderAsync();
-        }
-
-        public async Task SilentSaveBootOrderAsync()
         {
             if (SelectedVm == null || SelectedVm.BootOrderItems == null) return;
 
