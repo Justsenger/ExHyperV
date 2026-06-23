@@ -16,14 +16,15 @@
 		<DebugSymbols Condition=" '$(Configuration)' == 'Release' ">false</DebugSymbols>
 		<ApplicationManifest>app.manifest</ApplicationManifest>
 		<AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+		<!-- MSTSCLib(mstscax.dll RDP 控件)的 get_UIParentWindowHandle 返回窗口句柄 HWND，COM 封送器固有提示其按指针传递；控件工作正常，降级此 MSBuild 警告为消息以消除约 30 条 MSB3305 -->
+		<MSBuildWarningsAsMessages>$(MSBuildWarningsAsMessages);MSB3305</MSBuildWarningsAsMessages>
 	</PropertyGroup>
 	<ItemGroup>
 		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
-		<PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.135" />
 		<PackageReference Include="SSH.NET" Version="2024.1.0" />
 		<PackageReference Include="System.Management" Version="10.0.8" />
 		<PackageReference Include="WPF-UI" Version="4.0.3" />
-		<Resource Include="Assets\**\*.*" Exclude="Assets\**\*.xaml" />
+		<Resource Include="Assets\**\*.*" Exclude="Assets\**\*.xaml;Assets\Icon.ico" />
 		<COMReference Include="IMAPI2FS">
 			<WrapperTool>tlbimp</WrapperTool>
 			<VersionMinor>0</VersionMinor>
