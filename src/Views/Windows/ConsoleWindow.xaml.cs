@@ -135,6 +135,21 @@ namespace ExHyperV.Views
             HwndSource.FromHwnd(new WindowInteropHelper(this).Handle)?.AddHook(TopResizeHook);
         }
 
+        // Ctrl+Alt+Enter 全屏切换的 WPF 兜底：用过缩放下拉后焦点落在工具栏(WPF)上时，mstscax 的 HotKeyFullScreen 收不到键
+        // （它只在画面有焦点时拦截）→ 在窗口级补捕获，使焦点在 WPF 侧也能切全屏。画面有焦点时按键直达 mstscax 的 HWND、不进此处，
+        // 交由其自身热键处理，二者不冲突。Alt 参与组合时 e.Key 会是 Key.System、真实键在 e.SystemKey，需还原。
+        protected override void OnPreviewKeyDown(System.Windows.Input.KeyEventArgs e)
+        {
+            base.OnPreviewKeyDown(e);
+            var key = (e.Key == Key.System) ? e.SystemKey : e.Key;
+            if (key == Key.Enter &&
+                (Keyboard.Modifiers & (ModifierKeys.Control | ModifierKeys.Alt)) == (ModifierKeys.Control | ModifierKeys.Alt))
+            {
+                _vm.IsFullScreen = !_vm.IsFullScreen;
+                e.Handled = true;
+            }
+        }
+
         // 增强 + 窗口化时，窗口顶部 TopResizeGrip 像素内 → HTTOP，使顶边可上下拉动改分辨率（底边被任务栏盖住时的退路）。
         private IntPtr TopResizeHook(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
         {
