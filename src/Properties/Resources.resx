@@ -726,9 +726,6 @@ The existing NAT switch is: '{0}'</value>
   <data name="Global_Restart" xml:space="preserve">
     <value>Restart Now</value>
   </data>
-  <data name="Status_Title_Error" xml:space="preserve">
-    <value>Error</value>
-  </data>
   <data name="Status_Title_Info" xml:space="preserve">
     <value>Information</value>
   </data>
@@ -885,9 +882,6 @@ The existing NAT switch is: '{0}'</value>
   <data name="Error_Cpu_ConfigNotFound" xml:space="preserve">
     <value>VM or Processor config not found.</value>
   </data>
-  <data name="Common_Success" xml:space="preserve">
-    <value>Success</value>
-  </data>
   <data name="Scheduler_Classic" xml:space="preserve">
     <value>Classic</value>
   </data>
@@ -936,14 +930,8 @@ The existing NAT switch is: '{0}'</value>
   <data name="Error_Common_ApplyFail" xml:space="preserve">
     <value>Apply Failed</value>
   </data>
-  <data name="Error_Common_SysException" xml:space="preserve">
-    <value>System Exception</value>
-  </data>
   <data name="Error_Cpu_AffinityFail" xml:space="preserve">
     <value>Failed to load affinity.</value>
-  </data>
-  <data name="Msg_Common_SaveSuccess" xml:space="preserve">
-    <value>Saved successfully</value>
   </data>
   <data name="Msg_Cpu_AffinityApplied" xml:space="preserve">
     <value>CPU affinity applied.</value>
@@ -960,12 +948,6 @@ The existing NAT switch is: '{0}'</value>
   <data name="Error_Cpu_ApplyFail" xml:space="preserve">
     <value>Cannot apply settings. Check HCS permissions.</value>
   </data>
-  <data name="Common_Error" xml:space="preserve">
-    <value>Error</value>
-  </data>
-  <data name="Common_ExceptionLabel" xml:space="preserve">
-    <value>Exception</value>
-  </data>
   <data name="Error_Storage_LoadFail" xml:space="preserve">
     <value>Failed to load storage</value>
   </data>
@@ -977,9 +959,6 @@ The existing NAT switch is: '{0}'</value>
   </data>
   <data name="Error_Storage_RemoveFail" xml:space="preserve">
     <value>Remove failed</value>
-  </data>
-  <data name="Common_Restricted" xml:space="preserve">
-    <value>Operation Restricted</value>
   </data>
   <data name="Error_Storage_PhysicalMod" xml:space="preserve">
     <value>Passthrough disks cannot be modified. Remove and re-add.</value>
@@ -999,9 +978,6 @@ The existing NAT switch is: '{0}'</value>
   <data name="Title_SelectVhd" xml:space="preserve">
     <value>Select Virtual Disk File</value>
   </data>
-  <data name="Msg_Common_ModSuccess" xml:space="preserve">
-    <value>Modified Successfully</value>
-  </data>
   <data name="Msg_Storage_PathUpdated" xml:space="preserve">
     <value>Storage path updated</value>
   </data>
@@ -1017,14 +993,8 @@ The existing NAT switch is: '{0}'</value>
   <data name="Button_Browse" xml:space="preserve">
     <value>Browse...</value>
   </data>
-  <data name="Error_Storage_Collision" xml:space="preserve">
-    <value>Slot Collision</value>
-  </data>
   <data name="Error_Storage_Occupied" xml:space="preserve">
     <value>Slot is occupied. Select another one.</value>
-  </data>
-  <data name="Error_Common_Args" xml:space="preserve">
-    <value>Missing Arguments</value>
   </data>
   <data name="Error_Storage_SelectTarget" xml:space="preserve">
     <value>Please select a storage device/file.</value>
@@ -1064,9 +1034,6 @@ The existing NAT switch is: '{0}'</value>
   </data>
   <data name="Filter_IsoExt" xml:space="preserve">
     <value>ISO Image (*.iso)|*.iso</value>
-  </data>
-  <data name="Msg_Common_AddSuccess" xml:space="preserve">
-    <value>Added Successfully</value>
   </data>
   <data name="Msg_Storage_Connected" xml:space="preserve">
     <value>Device connected to {0} {1}:{2}</value>
@@ -1125,9 +1092,6 @@ The existing NAT switch is: '{0}'</value>
   <data name="Error_Net_AddExc" xml:space="preserve">
     <value>Add Exception</value>
   </data>
-  <data name="Msg_Net_Removed" xml:space="preserve">
-    <value>Removed Successfully</value>
-  </data>
   <data name="Msg_Net_AdapterRemoved" xml:space="preserve">
     <value>Network adapter removed.</value>
   </data>
@@ -1136,9 +1100,6 @@ The existing NAT switch is: '{0}'</value>
   </data>
   <data name="Msg_Net_VlanApplied" xml:space="preserve">
     <value>VLAN settings applied</value>
-  </data>
-  <data name="Common_Failed" xml:space="preserve">
-    <value>Failed</value>
   </data>
   <data name="Msg_Net_QosApplied" xml:space="preserve">
     <value>QoS settings applied</value>
@@ -1169,9 +1130,6 @@ The existing NAT switch is: '{0}'</value>
   </data>
   <data name="Error_Gpu_RemoveFail" xml:space="preserve">
     <value>Failed to remove GPU partition. Check permissions.</value>
-  </data>
-  <data name="Error_Common_OpException" xml:space="preserve">
-    <value>Operation Exception</value>
   </data>
   <data name="Msg_Gpu_WorkStart" xml:space="preserve">
     <value>&gt;&gt;&gt; Configuring GPU for VM [{0}]</value>
@@ -1290,9 +1248,6 @@ The existing NAT switch is: '{0}'</value>
   <data name="Warn_Gpu_EnvExc" xml:space="preserve">
     <value>[Warning] Env exception: {0}</value>
   </data>
-  <data name="Error_Common_Verify" xml:space="preserve">
-    <value>Verification Failed</value>
-  </data>
   <data name="Msg_Gpu_DeployStart" xml:space="preserve">
     <value>&gt;&gt;&gt; Starting Linux deployment</value>
   </data>
@@ -1311,9 +1266,6 @@ The existing NAT switch is: '{0}'</value>
   <data name="Msg_Gpu_SelectPart" xml:space="preserve">
     <value>Select target partition...</value>
   </data>
-  <data name="Msg_Common_ConfigSuccess" xml:space="preserve">
-    <value>Configuration Successful</value>
-  </data>
   <data name="Msg_Gpu_Ready" xml:space="preserve">
     <value>{0} is ready.</value>
   </data>
@@ -1325,9 +1277,6 @@ The existing NAT switch is: '{0}'</value>
   </data>
   <data name="Status_Processing" xml:space="preserve">
     <value>Processing</value>
-  </data>
-  <data name="Msg_Common_CopyOk" xml:space="preserve">
-    <value>Copied Successfully</value>
   </data>
   <data name="Msg_Gpu_LogCopy" xml:space="preserve">
     <value>Log copied to clipboard</value>
@@ -1839,9 +1788,6 @@ The existing NAT switch is: '{0}'</value>
   <data name="VmPage_RenameFail" xml:space="preserve">
     <value>Rename failed</value>
   </data>
-  <data name="VmPage_SysExp" xml:space="preserve">
-    <value>System exception</value>
-  </data>
   <data name="VmPage_Default" xml:space="preserve">
     <value>Default</value>
   </data>
@@ -1883,9 +1829,6 @@ The existing NAT switch is: '{0}'</value>
   </data>
   <data name="VmPage_IsoNotFound" xml:space="preserve">
     <value>The specified ISO image file does not exist</value>
-  </data>
-  <data name="VmPage_CreateSuccess" xml:space="preserve">
-    <value>Creation Successful</value>
   </data>
   <data name="VmPage_VmCreated" xml:space="preserve">
     <value>Virtual machine {0} has been successfully created and configured.</value>
@@ -2415,9 +2358,6 @@ The existing NAT switch is: '{0}'</value>
   <data name="VmPage_PurgeBtn" xml:space="preserve">
     <value>Permanently Delete</value>
   </data>
-  <data name="VmPage_DeleteSuccess" xml:space="preserve">
-    <value>Deletion complete</value>
-  </data>
   <data name="VmPage_PurgeDoneDesc" xml:space="preserve">
     <value>"{0}" has been permanently removed</value>
   </data>
@@ -2463,9 +2403,6 @@ The existing NAT switch is: '{0}'</value>
   <data name="VmPage_SgxLaunchReadWrite" xml:space="preserve">
     <value>Read/Write</value>
   </data>
-  <data name="VmPage_OptimizeSuccess" xml:space="preserve">
-    <value>Optimization complete</value>
-  </data>
   <data name="VmPage_OptimizeSuccessDesc" xml:space="preserve">
     <value>Virtual disk space reclaimed successfully</value>
   </data>
@@ -2477,9 +2414,6 @@ The existing NAT switch is: '{0}'</value>
   </data>
   <data name="VmPage_ErrRetrieveFailed2" xml:space="preserve">
     <value>Retrieval failed</value>
-  </data>
-  <data name="VmPage_MsgOperationOk5" xml:space="preserve">
-    <value>Operation successful</value>
   </data>
   <data name="VmPage_MsgSpacetimeCreated2" xml:space="preserve">
     <value>Spacetime created successfully</value>
@@ -2495,9 +2429,6 @@ The existing NAT switch is: '{0}'</value>
   </data>
   <data name="VmPage_ErrOpenFailed4" xml:space="preserve">
     <value>Failed to open</value>
-  </data>
-  <data name="VmPage_MsgWormholeClosed2" xml:space="preserve">
-    <value>Wormhole closed</value>
   </data>
   <data name="VmPage_MsgTimelineRestored2" xml:space="preserve">
     <value>Timeline restored to normal</value>
@@ -2726,9 +2657,6 @@ The existing NAT switch is: '{0}'</value>
   </data>
   <data name="Status_Msg_RestartRequired" xml:space="preserve">
     <value>A restart is required before making further changes.</value>
-  </data>
-  <data name="Status_Title_Warning" xml:space="preserve">
-    <value>Warning</value>
   </data>
   <data name="Error_VmCreate_NoSystemPath" xml:space="preserve">
     <value>DefineSystem did not return VM path</value>

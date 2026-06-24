@@ -781,33 +781,6 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
-        ///   查找类似 Error 的本地化字符串。
-        /// </summary>
-        public static string Common_Error {
-            get {
-                return ResourceManager.GetString("Common_Error", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Exception 的本地化字符串。
-        /// </summary>
-        public static string Common_ExceptionLabel {
-            get {
-                return ResourceManager.GetString("Common_ExceptionLabel", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Failed 的本地化字符串。
-        /// </summary>
-        public static string Common_Failed {
-            get {
-                return ResourceManager.GetString("Common_Failed", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   查找类似 Modify 的本地化字符串。
         /// </summary>
         public static string Common_Modify {
@@ -853,29 +826,11 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
-        ///   查找类似 Operation Restricted 的本地化字符串。
-        /// </summary>
-        public static string Common_Restricted {
-            get {
-                return ResourceManager.GetString("Common_Restricted", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   查找类似 Select 的本地化字符串。
         /// </summary>
         public static string Common_Select {
             get {
                 return ResourceManager.GetString("Common_Select", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Success 的本地化字符串。
-        /// </summary>
-        public static string Common_Success {
-            get {
-                return ResourceManager.GetString("Common_Success", resourceCulture);
             }
         }
         
@@ -1584,15 +1539,6 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
-        ///   查找类似 Missing Arguments 的本地化字符串。
-        /// </summary>
-        public static string Error_Common_Args {
-            get {
-                return ResourceManager.GetString("Error_Common_Args", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   查找类似 Load Failed 的本地化字符串。
         /// </summary>
         public static string Error_Common_LoadFail {
@@ -1629,15 +1575,6 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
-        ///   查找类似 Operation Exception 的本地化字符串。
-        /// </summary>
-        public static string Error_Common_OpException {
-            get {
-                return ResourceManager.GetString("Error_Common_OpException", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   查找类似 Operation Failed 的本地化字符串。
         /// </summary>
         public static string Error_Common_OpFail {
@@ -1652,24 +1589,6 @@ namespace ExHyperV.Properties {
         public static string Error_Common_SaveFail {
             get {
                 return ResourceManager.GetString("Error_Common_SaveFail", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 System Exception 的本地化字符串。
-        /// </summary>
-        public static string Error_Common_SysException {
-            get {
-                return ResourceManager.GetString("Error_Common_SysException", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Verification Failed 的本地化字符串。
-        /// </summary>
-        public static string Error_Common_Verify {
-            get {
-                return ResourceManager.GetString("Error_Common_Verify", resourceCulture);
             }
         }
         
@@ -2167,15 +2086,6 @@ namespace ExHyperV.Properties {
         public static string Error_Storage_AddFail {
             get {
                 return ResourceManager.GetString("Error_Storage_AddFail", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Slot Collision 的本地化字符串。
-        /// </summary>
-        public static string Error_Storage_Collision {
-            get {
-                return ResourceManager.GetString("Error_Storage_Collision", resourceCulture);
             }
         }
         
@@ -3946,56 +3856,11 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
-        ///   查找类似 Added Successfully 的本地化字符串。
-        /// </summary>
-        public static string Msg_Common_AddSuccess {
-            get {
-                return ResourceManager.GetString("Msg_Common_AddSuccess", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   查找类似 Settings Applied 的本地化字符串。
         /// </summary>
         public static string Msg_Common_Applied {
             get {
                 return ResourceManager.GetString("Msg_Common_Applied", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Configuration Successful 的本地化字符串。
-        /// </summary>
-        public static string Msg_Common_ConfigSuccess {
-            get {
-                return ResourceManager.GetString("Msg_Common_ConfigSuccess", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Copied Successfully 的本地化字符串。
-        /// </summary>
-        public static string Msg_Common_CopyOk {
-            get {
-                return ResourceManager.GetString("Msg_Common_CopyOk", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Modified Successfully 的本地化字符串。
-        /// </summary>
-        public static string Msg_Common_ModSuccess {
-            get {
-                return ResourceManager.GetString("Msg_Common_ModSuccess", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Saved successfully 的本地化字符串。
-        /// </summary>
-        public static string Msg_Common_SaveSuccess {
-            get {
-                return ResourceManager.GetString("Msg_Common_SaveSuccess", resourceCulture);
             }
         }
         
@@ -4509,15 +4374,6 @@ namespace ExHyperV.Properties {
         public static string Msg_Net_QosApplied {
             get {
                 return ResourceManager.GetString("Msg_Net_QosApplied", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Removed Successfully 的本地化字符串。
-        /// </summary>
-        public static string Msg_Net_Removed {
-            get {
-                return ResourceManager.GetString("Msg_Net_Removed", resourceCulture);
             }
         }
         
@@ -5218,15 +5074,6 @@ namespace ExHyperV.Properties {
         /// <summary>
         ///   查找类似 Error 的本地化字符串。
         /// </summary>
-        public static string Status_Title_Error {
-            get {
-                return ResourceManager.GetString("Status_Title_Error", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Error 的本地化字符串。
-        /// </summary>
         public static string Status_Title_Error_Duplicate_1_ {
             get {
                 return ResourceManager.GetString("Status_Title_Error_Duplicate[1]", resourceCulture);
@@ -5266,15 +5113,6 @@ namespace ExHyperV.Properties {
         public static string Status_Title_Success_Duplicate_1_ {
             get {
                 return ResourceManager.GetString("Status_Title_Success_Duplicate[1]", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Warning 的本地化字符串。
-        /// </summary>
-        public static string Status_Title_Warning {
-            get {
-                return ResourceManager.GetString("Status_Title_Warning", resourceCulture);
             }
         }
         
@@ -5948,15 +5786,6 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
-        ///   查找类似 Creation Successful 的本地化字符串。
-        /// </summary>
-        public static string VmPage_CreateSuccess {
-            get {
-                return ResourceManager.GetString("VmPage_CreateSuccess", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   查找类似 Default 的本地化字符串。
         /// </summary>
         public static string VmPage_Default {
@@ -5971,15 +5800,6 @@ namespace ExHyperV.Properties {
         public static string VmPage_DeleteFail {
             get {
                 return ResourceManager.GetString("VmPage_DeleteFail", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Optimization complete 的本地化字符串。
-        /// </summary>
-        public static string VmPage_OptimizeSuccess {
-            get {
-                return ResourceManager.GetString("VmPage_OptimizeSuccess", resourceCulture);
             }
         }
         
@@ -6141,15 +5961,6 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
-        ///   查找类似 Deletion complete 的本地化字符串。
-        /// </summary>
-        public static string VmPage_DeleteSuccess {
-            get {
-                return ResourceManager.GetString("VmPage_DeleteSuccess", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   查找类似 &quot;{0}&quot; has been permanently removed 的本地化字符串。
         /// </summary>
         public static string VmPage_PurgeDoneDesc {
@@ -6302,15 +6113,6 @@ namespace ExHyperV.Properties {
             }
         }
         
-        
-        /// <summary>
-        ///   查找类似 Operation successful 的本地化字符串。
-        /// </summary>
-        public static string VmPage_MsgOperationOk5 {
-            get {
-                return ResourceManager.GetString("VmPage_MsgOperationOk5", resourceCulture);
-            }
-        }
         
         /// <summary>
         ///   查找类似 Permanently Delete VM 的本地化字符串。
@@ -6467,15 +6269,6 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
-        ///   查找类似 Wormhole closed 的本地化字符串。
-        /// </summary>
-        public static string VmPage_MsgWormholeClosed2 {
-            get {
-                return ResourceManager.GetString("VmPage_MsgWormholeClosed2", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   查找类似 Enable Tracking 的本地化字符串。
         /// </summary>
         public static string VmPage_MemTrackingEnable {
@@ -6571,15 +6364,6 @@ namespace ExHyperV.Properties {
         public static string VmPage_ConfigDirNotFound {
             get {
                 return ResourceManager.GetString("VmPage_ConfigDirNotFound", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 System exception 的本地化字符串。
-        /// </summary>
-        public static string VmPage_SysExp {
-            get {
-                return ResourceManager.GetString("VmPage_SysExp", resourceCulture);
             }
         }
         

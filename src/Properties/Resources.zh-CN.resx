@@ -726,9 +726,6 @@
   <data name="Global_Restart" xml:space="preserve">
     <value>立即重启</value>
   </data>
-  <data name="Status_Title_Error" xml:space="preserve">
-    <value>错误</value>
-  </data>
   <data name="Status_Title_Info" xml:space="preserve">
     <value>提示</value>
   </data>
@@ -885,9 +882,6 @@
   <data name="Error_Cpu_ConfigNotFound" xml:space="preserve">
     <value>找不到虚拟机或处理器配置。</value>
   </data>
-  <data name="Common_Success" xml:space="preserve">
-    <value>成功</value>
-  </data>
   <data name="Scheduler_Classic" xml:space="preserve">
     <value>经典 (Classic)</value>
   </data>
@@ -936,14 +930,8 @@
   <data name="Error_Common_ApplyFail" xml:space="preserve">
     <value>应用失败</value>
   </data>
-  <data name="Error_Common_SysException" xml:space="preserve">
-    <value>系统异常</value>
-  </data>
   <data name="Error_Cpu_AffinityFail" xml:space="preserve">
     <value>加载亲和性失败</value>
-  </data>
-  <data name="Msg_Common_SaveSuccess" xml:space="preserve">
-    <value>保存成功</value>
   </data>
   <data name="Msg_Cpu_AffinityApplied" xml:space="preserve">
     <value>CPU 亲和性已应用。</value>
@@ -960,12 +948,6 @@
   <data name="Error_Cpu_ApplyFail" xml:space="preserve">
     <value>无法应用设置，请检查 HCS 权限或调度器状态。</value>
   </data>
-  <data name="Common_Error" xml:space="preserve">
-    <value>错误</value>
-  </data>
-  <data name="Common_ExceptionLabel" xml:space="preserve">
-    <value>异常</value>
-  </data>
   <data name="Error_Storage_LoadFail" xml:space="preserve">
     <value>加载存储失败</value>
   </data>
@@ -977,9 +959,6 @@
   </data>
   <data name="Error_Storage_RemoveFail" xml:space="preserve">
     <value>移除失败</value>
-  </data>
-  <data name="Common_Restricted" xml:space="preserve">
-    <value>操作受限</value>
   </data>
   <data name="Error_Storage_PhysicalMod" xml:space="preserve">
     <value>物理直通磁盘无法修改路径，请移除后重新添加。</value>
@@ -999,9 +978,6 @@
   <data name="Title_SelectVhd" xml:space="preserve">
     <value>选择虚拟磁盘文件</value>
   </data>
-  <data name="Msg_Common_ModSuccess" xml:space="preserve">
-    <value>修改成功</value>
-  </data>
   <data name="Msg_Storage_PathUpdated" xml:space="preserve">
     <value>存储路径已更新</value>
   </data>
@@ -1017,14 +993,8 @@
   <data name="Button_Browse" xml:space="preserve">
     <value>浏览...</value>
   </data>
-  <data name="Error_Storage_Collision" xml:space="preserve">
-    <value>位置冲突</value>
-  </data>
   <data name="Error_Storage_Occupied" xml:space="preserve">
     <value>该插槽已被占用，请选择其他位置。</value>
-  </data>
-  <data name="Error_Common_Args" xml:space="preserve">
-    <value>缺少参数</value>
   </data>
   <data name="Error_Storage_SelectTarget" xml:space="preserve">
     <value>请选择存储设备或文件。</value>
@@ -1064,9 +1034,6 @@
   </data>
   <data name="Filter_IsoExt" xml:space="preserve">
     <value>ISO 镜像 (*.iso)|*.iso</value>
-  </data>
-  <data name="Msg_Common_AddSuccess" xml:space="preserve">
-    <value>添加成功</value>
   </data>
   <data name="Msg_Storage_Connected" xml:space="preserve">
     <value>设备已连接到 {0} {1}:{2}</value>
@@ -1125,9 +1092,6 @@
   <data name="Error_Net_AddExc" xml:space="preserve">
     <value>添加异常</value>
   </data>
-  <data name="Msg_Net_Removed" xml:space="preserve">
-    <value>移除成功</value>
-  </data>
   <data name="Msg_Net_AdapterRemoved" xml:space="preserve">
     <value>网络适配器已移除</value>
   </data>
@@ -1136,9 +1100,6 @@
   </data>
   <data name="Msg_Net_VlanApplied" xml:space="preserve">
     <value>VLAN 设置已应用</value>
-  </data>
-  <data name="Common_Failed" xml:space="preserve">
-    <value>失败</value>
   </data>
   <data name="Msg_Net_QosApplied" xml:space="preserve">
     <value>流量控制设置已应用</value>
@@ -1169,9 +1130,6 @@
   </data>
   <data name="Error_Gpu_RemoveFail" xml:space="preserve">
     <value>未能成功移除 GPU 分区，请检查权限。</value>
-  </data>
-  <data name="Error_Common_OpException" xml:space="preserve">
-    <value>操作异常</value>
   </data>
   <data name="Msg_Gpu_WorkStart" xml:space="preserve">
     <value>&gt;&gt;&gt; 开始为虚拟机 [{0}] 配置 GPU 分区</value>
@@ -1290,9 +1248,6 @@
   <data name="Warn_Gpu_EnvExc" xml:space="preserve">
     <value>[警告] 获取环境异常: {0}</value>
   </data>
-  <data name="Error_Common_Verify" xml:space="preserve">
-    <value>验证失败</value>
-  </data>
   <data name="Msg_Gpu_DeployStart" xml:space="preserve">
     <value>&gt;&gt;&gt; 开始 Linux 部署流程</value>
   </data>
@@ -1311,9 +1266,6 @@
   <data name="Msg_Gpu_SelectPart" xml:space="preserve">
     <value>请选择目标分区进行适配...</value>
   </data>
-  <data name="Msg_Common_ConfigSuccess" xml:space="preserve">
-    <value>配置成功</value>
-  </data>
   <data name="Msg_Gpu_Ready" xml:space="preserve">
     <value>{0} 已准备就绪</value>
   </data>
@@ -1325,9 +1277,6 @@
   </data>
   <data name="Status_Processing" xml:space="preserve">
     <value>正在处理</value>
-  </data>
-  <data name="Msg_Common_CopyOk" xml:space="preserve">
-    <value>复制成功</value>
   </data>
   <data name="Msg_Gpu_LogCopy" xml:space="preserve">
     <value>配置日志已拷贝到剪贴板</value>
@@ -1839,9 +1788,6 @@
   <data name="VmPage_RenameFail" xml:space="preserve">
     <value>重命名失败</value>
   </data>
-  <data name="VmPage_SysExp" xml:space="preserve">
-    <value>系统异常</value>
-  </data>
   <data name="VmPage_Default" xml:space="preserve">
     <value>默认</value>
   </data>
@@ -1883,9 +1829,6 @@
   </data>
   <data name="VmPage_IsoNotFound" xml:space="preserve">
     <value>指定的 ISO 镜像文件不存在</value>
-  </data>
-  <data name="VmPage_CreateSuccess" xml:space="preserve">
-    <value>创建成功</value>
   </data>
   <data name="VmPage_VmCreated" xml:space="preserve">
     <value>虚拟机 {0} 已成功创建并配置。</value>
@@ -2415,9 +2358,6 @@
   <data name="VmPage_PurgeBtn" xml:space="preserve">
     <value>彻底删除</value>
   </data>
-  <data name="VmPage_DeleteSuccess" xml:space="preserve">
-    <value>删除完成</value>
-  </data>
   <data name="VmPage_PurgeDoneDesc" xml:space="preserve">
     <value>「{0}」已彻底清除</value>
   </data>
@@ -2463,9 +2403,6 @@
   <data name="VmPage_SgxLaunchReadWrite" xml:space="preserve">
     <value>允许读写</value>
   </data>
-  <data name="VmPage_OptimizeSuccess" xml:space="preserve">
-    <value>优化完成</value>
-  </data>
   <data name="VmPage_OptimizeSuccessDesc" xml:space="preserve">
     <value>虚拟磁盘空间已成功回收</value>
   </data>
@@ -2477,9 +2414,6 @@
   </data>
   <data name="VmPage_ErrRetrieveFailed2" xml:space="preserve">
     <value>检索失败</value>
-  </data>
-  <data name="VmPage_MsgOperationOk5" xml:space="preserve">
-    <value>操作成功</value>
   </data>
   <data name="VmPage_MsgSpacetimeCreated2" xml:space="preserve">
     <value>已成功创建时空</value>
@@ -2495,9 +2429,6 @@
   </data>
   <data name="VmPage_ErrOpenFailed4" xml:space="preserve">
     <value>开启失败</value>
-  </data>
-  <data name="VmPage_MsgWormholeClosed2" xml:space="preserve">
-    <value>虫洞已关闭</value>
   </data>
   <data name="VmPage_MsgTimelineRestored2" xml:space="preserve">
     <value>时间线已恢复正常</value>
@@ -2726,9 +2657,6 @@
   </data>
   <data name="Status_Msg_RestartRequired" xml:space="preserve">
     <value>请先重启系统，再进行此操作。</value>
-  </data>
-  <data name="Status_Title_Warning" xml:space="preserve">
-    <value>警告</value>
   </data>
   <data name="Error_VmCreate_NoSystemPath" xml:space="preserve">
     <value>DefineSystem 未返回 VM 路径</value>
