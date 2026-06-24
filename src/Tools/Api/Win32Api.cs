@@ -165,6 +165,38 @@ public static class Win32Api
         return results;
     }
 
+    /// <summary>
+    /// 枚举"在位"(present)的显示类 GPU：Name / 完整 InstanceId / 厂商 / 驱动版本。
+    /// FILTER_PRESENT 天然排除幻影(phantom)设备——与 Win32_VideoController 的"有活动驱动适配器"语义一致；
+    /// 读 PnP 静态属性库、不实探显示驱动，替代偶发数秒慢的 Win32_VideoController。
+    /// (已在系统上用同序列原生 CM_* 实测核对：仅列在位 GPU，DriverVersion 取自 DEVPKEY {a8b865dd…}/3。)
+    /// </summary>
+    public static List<(string InstanceId, string Name, string Manufacturer, string DriverVersion)> GetPresentDisplayAdapters()
+    {
+        var result = new List<(string, string, string, string)>();
+        if (NativeMethods.CM_Get_Device_ID_List_Size(out uint bufferLen, null, NativeMethods.CM_GETIDLIST_FILTER_PRESENT) != NativeMethods.CR_SUCCESS || bufferLen == 0)
+            return result;
+        char[] buf = new char[bufferLen];
+        if (NativeMethods.CM_Get_Device_ID_List(null, buf, bufferLen, NativeMethods.CM_GETIDLIST_FILTER_PRESENT) != NativeMethods.CR_SUCCESS)
+            return result;
+
+        var common = new Guid("A45C254E-DF1C-4EFD-8020-67D146A850E0"); // DEVPKEY_Device_* 公共 fmtid
+        foreach (var instanceId in ParseMultiString(buf))
+        {
+            string u = instanceId.ToUpperInvariant();
+            if (!u.StartsWith("PCI\\") && !u.Contains("ACPI")) continue;
+            if (NativeMethods.CM_Locate_DevNode(out uint devInst, instanceId, NativeMethods.CM_LOCATE_DEVNODE_NORMAL) != NativeMethods.CR_SUCCESS) continue;
+            if (GetDevNodeStringProperty(devInst, instanceId, common, 9) != "Display") continue;          // Class
+            string name = GetDevNodeStringProperty(devInst, instanceId, common, 14);                       // FriendlyName
+            if (string.IsNullOrEmpty(name)) name = GetDevNodeStringProperty(devInst, instanceId, common, 2); // DeviceDesc
+            string manu = GetDevNodeStringProperty(devInst, instanceId, common, 13);                       // Manufacturer
+            string driverVersion = GetDevNodeStringProperty(devInst, instanceId,
+                new Guid("A8B865DD-2E3D-4094-AD97-E593A70C75D6"), 3);                                      // DEVPKEY_Device_DriverVersion
+            result.Add((instanceId, name, manu, driverVersion));
+        }
+        return result;
+    }
+
     // ── cfgmgr32 属性查询 ─────────────────────────────────────────
 
     private static string GetDevNodeStringProperty(uint devInst, string instanceId, Guid fmtid, uint pid)
@@ -367,6 +399,7 @@ internal static class NativeMethods
     public const uint CM_LOCATE_DEVNODE_PHANTOM = 0x00000001;
     public const uint CM_DISABLE_UI_NOT_OK = 0x00000004; // 0x4=UI_NOT_OK(polite禁用);0x2 实为 CM_DISABLE_HARDWARE,软件枚举设备(USB4_MS_CM 等)不支持硬件禁用会失败
     public const uint CM_GETIDLIST_FILTER_NONE = 0x00000000;
+    public const uint CM_GETIDLIST_FILTER_PRESENT = 0x00000100;
     public const uint CM_GETIDLIST_FILTER_ENUMERATOR = 0x00000002;
     public const uint DN_HAS_PROBLEM = 0x00000400;
 

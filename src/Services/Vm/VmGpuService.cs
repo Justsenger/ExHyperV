@@ -96,32 +96,21 @@ namespace ExHyperV.Services
 
             var gpuList = new List<GpuInfo>();
 
-            // 1. Win32_VideoController
-            var gpuResp = await WmiApi.QueryAsync(
-                "SELECT PNPDeviceID, Name, AdapterCompatibility, DriverVersion FROM Win32_VideoController",
-                obj => new {
-                    Name = obj["Name"]?.ToString(),
-                    InstanceId = obj["PNPDeviceID"]?.ToString(),
-                    Manu = obj["AdapterCompatibility"]?.ToString(),
-                    DriverVersion = obj["DriverVersion"]?.ToString()
-                }, WmiScope.CimV2);
-
-            if (gpuResp.HasData)
+            // 1. 设备列表 + 完整 InstanceId + 厂商 + 驱动版本：走原生 CfgMgr 的"在位"枚举(Win32Api.GetPresentDisplayAdapters)。
+            //    替代偶发数秒慢的 Win32_VideoController(它实探显示驱动、GPU 空闲会被唤醒)；FILTER_PRESENT 天然排除幻影设备。
+            //    已在系统上用原生 CM_* 实测核对：仅列在位 GPU、DriverVersion 取自正确 DEVPKEY，与 Win32_VideoController 数据一致。
+            var displayAdapters = await Task.Run(() => Win32Api.GetPresentDisplayAdapters());
+            foreach (var (instanceId, name, manu, driverVersion) in displayAdapters)
             {
-                foreach (var gpu in gpuResp.Data)
+                if (string.IsNullOrEmpty(name)) continue;
+                gpuList.Add(new GpuInfo
                 {
-                    if (gpu.Name == null || gpu.InstanceId == null || gpu.Manu == null || gpu.DriverVersion == null) continue;
-                    if (!gpu.InstanceId.ToUpper().StartsWith("PCI\\") && !gpu.InstanceId.ToUpper().Contains("ACPI")) continue;
-                    string vendor = pciInfoProvider.GetVendorFromInstanceId(gpu.InstanceId);
-                    gpuList.Add(new GpuInfo
-                    {
-                        Name = gpu.Name,
-                        Manu = gpu.Manu,
-                        InstanceId = gpu.InstanceId,
-                        DriverVersion = gpu.DriverVersion,
-                        Vendor = vendor
-                    });
-                }
+                    Name = name,
+                    Manu = string.IsNullOrEmpty(manu) ? pciInfoProvider.GetVendorFromInstanceId(instanceId) : manu,
+                    InstanceId = instanceId,
+                    DriverVersion = driverVersion,
+                    Vendor = pciInfoProvider.GetVendorFromInstanceId(instanceId)
+                });
             }
 
             // 2. GPU RAM 注册表
