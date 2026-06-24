@@ -166,6 +166,23 @@ namespace ExHyperV.ViewModels
             "1280 x 720",  "1152 x 864",  "1024 x 768",  "800 x 600"
         };
 
+        // ===== 缩放（仅基本会话）=====
+        // 基本会话是固定分辨率的合成显示，只能拉伸缩放（放大必糊）；增强会话画面已原生跟随窗口，无需缩放。
+        // 档值：本地化"适应窗口" + 纯比例字符串。窗口端 LayoutRdpHost 解析后摆放 RdpHost + 开关滚动条。
+        [ObservableProperty] private string _selectedZoom = "100%";
+
+        public ObservableCollection<string> ZoomOptions { get; } = new()
+        {
+            Properties.Resources.ConsoleWindow_ZoomFit,
+            "200%", "150%", "125%", "100%", "75%", "50%", "25%"
+        };
+
+        [RelayCommand]
+        private void ChangeZoom(string zoom)
+        {
+            if (!string.IsNullOrEmpty(zoom)) SelectedZoom = zoom;
+        }
+
         // ===== 会话模式 =====
 
         [ObservableProperty] private string _selectedSessionMode = Properties.Resources.ConsoleViewModel_BasicSession;

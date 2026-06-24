@@ -2134,6 +2134,12 @@
   <data name="ConsoleWindow_FullScreen" xml:space="preserve">
     <value>全屏模式 (Ctrl+Alt+Space)</value>
   </data>
+  <data name="ConsoleWindow_ZoomFit" xml:space="preserve">
+    <value>适应窗口</value>
+  </data>
+  <data name="ConsoleWindow_ZoomHint" xml:space="preserve">
+    <value>放大是拉伸固定分辨率画面，可能发虚。想要更大且清晰，请改用更高分辨率。</value>
+  </data>
   <data name="HostPage_Disable" xml:space="preserve">
     <value>禁用</value>
   </data>

@@ -995,6 +995,24 @@ namespace ExHyperV.Properties {
                 return ResourceManager.GetString("ConsoleWindow_FullScreen", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   查找类似 适应窗口 的本地化字符串。
+        /// </summary>
+        public static string ConsoleWindow_ZoomFit {
+            get {
+                return ResourceManager.GetString("ConsoleWindow_ZoomFit", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   查找类似 放大是拉伸固定分辨率画面，可能发虚。想要更大且清晰，请改用更高分辨率。 的本地化字符串。
+        /// </summary>
+        public static string ConsoleWindow_ZoomHint {
+            get {
+                return ResourceManager.GetString("ConsoleWindow_ZoomHint", resourceCulture);
+            }
+        }
         
         /// <summary>
         ///   查找类似 Shut Down 的本地化字符串。

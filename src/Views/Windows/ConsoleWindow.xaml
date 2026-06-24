@@ -8,7 +8,7 @@
     xmlns:converters="clr-namespace:ExHyperV.Converters"
     xmlns:tools="clr-namespace:ExHyperV.Tools"
     Title="{Binding VmName}"
-    MinWidth="550"
+    MinWidth="680"
     MinHeight="340"
     Width="1100"
     Height="820"
@@ -119,7 +119,30 @@
                             </ui:DropDownButton.Flyout>
                         </ui:DropDownButton>
 
-                        <ui:DropDownButton Content="{Binding SelectedSessionMode}" 
+                        <!-- 缩放下拉：仅基本会话显示（增强会话画面原生跟随窗口、缩放无意义）。放大是拉伸、会糊。 -->
+                        <ui:DropDownButton Content="{Binding SelectedZoom}"
+                                   Icon="{ui:SymbolIcon Symbol=ZoomIn24}"
+                                   Appearance="Transparent"
+                                   FontSize="16"
+                                   Height="32"
+                                   Padding="8,0"
+                                   Margin="8,0,0,0"
+                                   ToolTip="{x:Static properties:Resources.ConsoleWindow_ZoomHint}"
+                                   Visibility="{Binding IsEnhancedMode, Converter={StaticResource BoolToVis}, ConverterParameter=Invert}">
+                            <ui:DropDownButton.Flyout>
+                                <ContextMenu ItemsSource="{Binding ZoomOptions}">
+                                    <ContextMenu.ItemContainerStyle>
+                                        <Style TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
+                                            <Setter Property="Header" Value="{Binding}" />
+                                            <Setter Property="Command" Value="{Binding DataContext.ChangeZoomCommand, RelativeSource={RelativeSource AncestorType=ui:FluentWindow}}" />
+                                            <Setter Property="CommandParameter" Value="{Binding}" />
+                                        </Style>
+                                    </ContextMenu.ItemContainerStyle>
+                                </ContextMenu>
+                            </ui:DropDownButton.Flyout>
+                        </ui:DropDownButton>
+
+                        <ui:DropDownButton Content="{Binding SelectedSessionMode}"
                            Appearance="Transparent" 
                            FontSize="11" 
                            Height="32"
@@ -161,7 +184,12 @@
 
         <!-- 虚拟机画面：通用 RDP 宿主缩到 VM 尺寸居中，周围 RdpArea 黑底。连接期间的遮挡由 RdpClientHost 内部黑布(WinForms 层)负责。 -->
         <Grid x:Name="RdpArea" Background="#FF000000">
-            <tools:RdpClientHost x:Name="RdpHost" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
+            <!-- 包一层 ScrollViewer：基本会话放大超出画面区时由 LayoutRdpHost 切到 Auto 滚动；
+                 其余情况(全屏/增强/适应窗口/100%/缩小)为 Disabled，约束到视口、行为同普通容器。 -->
+            <ScrollViewer x:Name="RdpScroll" Background="Transparent"
+                          HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Disabled">
+                <tools:RdpClientHost x:Name="RdpHost" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
+            </ScrollViewer>
         </Grid>
     </DockPanel>
 </ui:FluentWindow>
