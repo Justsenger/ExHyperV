@@ -54,7 +54,8 @@ namespace ExHyperV.ViewModels
             var (ok, msg) = await VmConsoleService.SetConsoleSupportAsync(SelectedVm.Name, enable);
             if (ok)
             {
-                ShowSuccess(Properties.Resources.VmAdvanced_ConsoleTitle);
+                // 正文带上开/关结果，否则只显示功能名("控制台支持")同样读着莫名其妙
+                ShowSuccess($"{Properties.Resources.VmAdvanced_ConsoleTitle}：{(enable ? Properties.Resources.Button_Enable : Properties.Resources.Common_Disabled)}");
             }
             else
             {
@@ -94,7 +95,8 @@ namespace ExHyperV.ViewModels
             if (ok)
             {
                 if (type == 3) SelectedVideoResolution = $"{w} x {h}";   // 回显取偶后实际应用的值
-                ShowSuccess(Properties.Resources.VmAdvanced_ResolutionTitle);
+                // 正文带上实际生效的值，否则只显示功能名("基本会话默认分辨率")读着莫名其妙
+                ShowSuccess($"{Properties.Resources.VmAdvanced_ResolutionTitle}：{(type == 3 ? $"{w} x {h}" : Properties.Resources.VmAdvanced_ResolutionAuto)}");
             }
             else
                 ShowError($"{Properties.Resources.VmAdvanced_ResolutionTitle}：{msg}");
