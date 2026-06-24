@@ -2722,6 +2722,9 @@
   <data name="VmAdvanced_ConsoleDisabledHint" xml:space="preserve">
     <value>该虚拟机已禁用控制台支持，请经串流或 RDP 访问。</value>
   </data>
+  <data name="VmAdvanced_ConsoleGen1" xml:space="preserve">
+    <value>第 1 代虚拟机无法禁用控制台支持（合成鼠标无法移除，与原生 Hyper-V 行为一致）。</value>
+  </data>
   <data name="Error_VmCreate_NoGuardian" xml:space="preserve">
     <value>无法获取或创建 UntrustedGuardian</value>
   </data>

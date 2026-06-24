@@ -51,6 +51,18 @@ namespace ExHyperV.ViewModels
 
         private async Task ApplyConsoleSupportAsync(bool enable)
         {
+            // 第 1 代虚拟机无法移除合成鼠标(0x80041016，原生 Disable-VMConsoleSupport 同样失败)，禁用控制台不可行
+            // → 直接提示并回弹，不发注定失败的 WMI 调用
+            if (!enable && SelectedVm.Generation == 1)
+            {
+                ShowSnackbar(Properties.Resources.VmAdvanced_ConsoleTitle, Properties.Resources.VmAdvanced_ConsoleGen1,
+                    ControlAppearance.Caution, SymbolRegular.Warning24);
+                _suppressConsoleApply = true;
+                IsConsoleSupportEnabled = true;
+                _suppressConsoleApply = false;
+                return;
+            }
+
             var (ok, msg) = await VmConsoleService.SetConsoleSupportAsync(SelectedVm.Name, enable);
             if (ok)
             {
