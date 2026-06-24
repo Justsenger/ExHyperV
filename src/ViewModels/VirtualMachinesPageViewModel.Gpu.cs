@@ -205,7 +205,7 @@ namespace ExHyperV.ViewModels
             }
             catch (Exception ex)
             {
-                ShowError("Failed to load GPU or Scripts: " + ex.Message);
+                ShowError($"{Properties.Resources.Error_Common_LoadFail}：{ex.Message}");
             }
             finally
             {

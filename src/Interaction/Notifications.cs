@@ -66,30 +66,22 @@ namespace ExHyperV.Interaction
             {
                 if (Application.Current.MainWindow?.FindName("SnackbarPresenter") is not SnackbarPresenter p) return;
 
-                var grid = new System.Windows.Controls.Grid { VerticalAlignment = VerticalAlignment.Center };
-                grid.ColumnDefinitions.Add(new System.Windows.Controls.ColumnDefinition { Width = GridLength.Auto });
-                grid.ColumnDefinitions.Add(new System.Windows.Controls.ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-                grid.ColumnDefinitions.Add(new System.Windows.Controls.ColumnDefinition { Width = GridLength.Auto });
-
-                var icon = new SymbolIcon(SymbolRegular.CheckmarkCircle24) { FontSize = 24, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 12, 0) };
-                var textStack = new System.Windows.Controls.StackPanel { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0) };
-                var titleTxt = new Wpf.Ui.Controls.TextBlock { Text = Properties.Resources.Status_Title_Success, FontWeight = FontWeights.Bold, FontSize = 14, Margin = new Thickness(0) };
-                var msgTxt = new Wpf.Ui.Controls.TextBlock { Text = message, FontSize = 12, Margin = new Thickness(0, -2, 0, 0) };
-                textStack.Children.Add(titleTxt);
-                textStack.Children.Add(msgTxt);
-
-                var btn = new Wpf.Ui.Controls.Button { Content = Properties.Resources.Global_Restart, Appearance = ControlAppearance.Primary, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(12, 0, 10, 0) };
+                // 标题/图标走 Snackbar 标准槽位，与三态提示完全一致(操作成功 + ✓圈 + 24px)；正文 = 消息 + 立即重启按钮
+                var content = new System.Windows.Controls.StackPanel { Orientation = System.Windows.Controls.Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
+                content.Children.Add(new Wpf.Ui.Controls.TextBlock { Text = message, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 12, 0) });
+                var btn = new Wpf.Ui.Controls.Button { Content = Properties.Resources.Global_Restart, Appearance = ControlAppearance.Primary, VerticalAlignment = VerticalAlignment.Center };
                 // shutdown.exe 启动失败（权限/环境异常）不应让 UI 线程崩溃；失败时用户可手动重启
                 btn.Click += (s, e) => { try { System.Diagnostics.Process.Start("shutdown", "-r -t 0"); } catch { } };
+                content.Children.Add(btn);
 
-                System.Windows.Controls.Grid.SetColumn(icon, 0);
-                System.Windows.Controls.Grid.SetColumn(textStack, 1);
-                System.Windows.Controls.Grid.SetColumn(btn, 2);
-                grid.Children.Add(icon);
-                grid.Children.Add(textStack);
-                grid.Children.Add(btn);
-
-                new Snackbar(p) { Content = grid, Appearance = ControlAppearance.Success, Timeout = TimeSpan.FromSeconds(15) }.Show();
+                new Snackbar(p)
+                {
+                    Title = Properties.Resources.Status_Title_Success,
+                    Content = content,
+                    Appearance = ControlAppearance.Success,
+                    Icon = new SymbolIcon(SymbolRegular.CheckmarkCircle24) { FontSize = 24 },
+                    Timeout = TimeSpan.FromSeconds(15)
+                }.Show();
             });
         }
     }
