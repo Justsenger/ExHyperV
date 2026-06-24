@@ -54,6 +54,7 @@ namespace ExHyperV.ViewModels
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(ConfigSummary))]
         [NotifyPropertyChangedFor(nameof(CanChangeBootOrder))]
+        [NotifyPropertyChangedFor(nameof(CanToggleConsoleSupport))]
         private int _generation;
         partial void OnGenerationChanged(int value) { if (Model != null) Model.Generation = value; }
 
@@ -68,9 +69,13 @@ namespace ExHyperV.ViewModels
 
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(CanChangeBootOrder))]
+        [NotifyPropertyChangedFor(nameof(CanToggleConsoleSupport))]
         private bool _isRunning;
 
         public bool CanChangeBootOrder => !(Generation == 1 && IsRunning);
+
+        // 控制台支持开关仅适用于第 2 代虚拟机（Enable/Disable-VMConsoleSupport 官方仅 Gen2 可用），且需关机时改
+        public bool CanToggleConsoleSupport => Generation == 2 && !IsRunning;
 
         [ObservableProperty] private BitmapSource? _thumbnail;
 

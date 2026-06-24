@@ -49,7 +49,7 @@
                         </StackPanel>
                         <ui:ToggleSwitch Grid.Column="1" VerticalAlignment="Center"
                                          IsChecked="{Binding IsConsoleSupportEnabled, Mode=TwoWay}"
-                                         IsEnabled="{Binding SelectedVm.IsRunning, Converter={StaticResource InverseBooleanConverter}}"/>
+                                         IsEnabled="{Binding SelectedVm.CanToggleConsoleSupport}"/>
                     </Grid>
                 </Border>
 
