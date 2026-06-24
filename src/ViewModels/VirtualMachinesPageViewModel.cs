@@ -258,7 +258,14 @@ namespace ExHyperV.ViewModels
                 instance.SetTransientState(GetOptimisticText(action));
                 try
                 {
-                    await VmPowerService.ExecuteControlActionAsync(instance.Name, action);
+                    var result = await VmPowerService.ExecuteControlActionAsync(instance.Name, action);
+                    if (!result.Success)
+                    {
+                        // 引擎拒绝了操作(配置错误/资源不足/GPU 分区不可用等)——清乐观态 + 弹出引擎原因，别静默
+                        Application.Current.Dispatcher.Invoke(() => instance.ClearTransientState());
+                        ShowError(FriendlyError.CleanLines(result.Error));
+                        return;
+                    }
                     await SyncSingleVmStateAsync(instance);
                     if (action == "Start" || action == "Restart")
                     {

@@ -116,7 +116,10 @@ namespace ExHyperV.ViewModels
             try
             {
                 IsBusy = true;
-                await VmPowerService.ExecuteControlActionAsync(VmName, action);
+                var result = await VmPowerService.ExecuteControlActionAsync(VmName, action);
+                // 控制台是独立窗口，主窗 snackbar 会错位，故此处记日志而非弹窗(VM 页电源按钮已 ShowError 弹引擎错误)
+                if (!result.Success)
+                    Debug.WriteLine(string.Format(Properties.Resources.ConsoleViewModel_OperationFailed, result.Error));
             }
             catch (Exception ex)
             {
