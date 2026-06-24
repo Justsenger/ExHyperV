@@ -156,11 +156,41 @@ namespace ExHyperV.Services
 
         /// <summary>
         /// 启用 Hyper-V。Microsoft-Hyper-V-All + enableAll=true 自动处理所有子组件依赖。
+        /// 并显式将 hypervisorlaunchtype 设回 auto：用户若曾手动设为 off（为跑其它虚拟化软件），
+        /// 功能其实仍处启用态、DISM 启用是空操作，但监控程序开机不加载，必须显式恢复（issue #211）。
         /// </summary>
         public static async Task<bool> EnableHyperVAsync()
         {
             var result = await DismApi.EnableFeatureAsync("Microsoft-Hyper-V-All", enableAll: true);
-            return result.Success;
+            bool launchOk = await SetHypervisorLaunchTypeAsync("auto");
+            return result.Success && launchOk;
+        }
+
+        /// <summary>
+        /// 设置 bcdedit 的 hypervisorlaunchtype（auto/off），控制虚拟机监控程序是否在启动时加载。
+        /// 仅启用 Hyper-V 功能不足以让其运行——该值为 off 时监控程序不会加载。
+        /// </summary>
+        private static async Task<bool> SetHypervisorLaunchTypeAsync(string mode)
+        {
+            try
+            {
+                var psi = new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = "bcdedit.exe",
+                    Arguments = $"/set hypervisorlaunchtype {mode}",
+                    Verb = "runas",                 // 提权执行（应用已提权时不再弹 UAC）
+                    UseShellExecute = true,         // Verb=runas 要求为 true
+                    WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden,
+                };
+                using var process = System.Diagnostics.Process.Start(psi);
+                if (process == null) return false;
+                await process.WaitForExitAsync();
+                return process.ExitCode == 0;
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         // ── 内部 ────────────────────────────────────────────────────
