@@ -19,6 +19,10 @@
 		<!-- MSTSCLib(mstscax.dll RDP 控件)的 get_UIParentWindowHandle 返回窗口句柄 HWND，COM 封送器固有提示其按指针传递；控件工作正常，降级此 MSBuild 警告为消息以消除约 30 条 MSB3305 -->
 		<MSBuildWarningsAsMessages>$(MSBuildWarningsAsMessages);MSB3305</MSBuildWarningsAsMessages>
 	</PropertyGroup>
+	<!-- Authors 仅进 NuGet 元数据、不会自动生成运行时特性；显式发布为 AssemblyMetadata("Authors") 供 AppInfoService 读取，否则"关于"页作者回落为 Unknown -->
+	<ItemGroup>
+		<AssemblyMetadata Include="Authors" Value="$(Authors)" />
+	</ItemGroup>
 	<ItemGroup>
 		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
 		<PackageReference Include="SSH.NET" Version="2024.1.0" />
