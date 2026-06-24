@@ -161,7 +161,13 @@ namespace ExHyperV.Tools
             try
             {
                 dynamic rdp = GetOcx();
-                rdp.UpdateSessionDisplaySettings((uint)width, (uint)height, (uint)width, (uint)height, 0u, 100u, 1u);
+                // 参数复刻 VMConnect 的 RdpViewerControl：物理尺寸用毫米(非像素)、desktopScaleFactor=显示器 DPI%、
+                // deviceScaleFactor=100。★旧代码末位传 1 是非法值(合法仅 100/140/180)，会让分辨率协商被拒 → 画面不随分辨率刷新+灰信箱。
+                uint dpi = (uint)Math.Max(96, DeviceDpi);
+                uint desktopScaleFactor = (uint)Math.Round(dpi / 96.0 * 100.0);
+                uint physW = (uint)Math.Round(width * 25.4 / dpi);
+                uint physH = (uint)Math.Round(height * 25.4 / dpi);
+                rdp.UpdateSessionDisplaySettings((uint)width, (uint)height, physW, physH, 0u, desktopScaleFactor, 100u);
             }
             catch (Exception ex) { Debug.WriteLine("[Rdp] SetResolution 失败: " + ex.Message); }
         }
