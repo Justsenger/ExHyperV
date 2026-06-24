@@ -150,7 +150,9 @@ public static class VmNetworkService
 
     // ── 网卡生命周期 ──────────────────────────────────────────────
 
-    public static async Task<(bool Success, string Message)> AddNetworkAdapterAsync(string vmName)
+    // 整体放进 Task.Run：首个 await 前的同步 WMI(GetVmComputerSystem/GetVirtualSystemManagementService/searcher.Get)
+    // 都在调用线程；加网卡从 UI 线程 await 调到会卡。
+    public static Task<(bool Success, string Message)> AddNetworkAdapterAsync(string vmName) => Task.Run(async () =>
     {
         try
         {
@@ -212,7 +214,7 @@ public static class VmNetworkService
         {
             return (false, ex.Message);
         }
-    }
+    });
 
     public static async Task<(bool Success, string Message)> RemoveNetworkAdapterAsync(string vmName, string id)
     {

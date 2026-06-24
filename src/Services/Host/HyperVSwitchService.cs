@@ -389,8 +389,10 @@ namespace ExHyperV.Services
             }
         }
 
-        private static async Task CreateSwitchWmiAsync(
-            string name, bool isExternal, string? adapterInterfaceDescription, bool allowManagementOS)
+        // 整体放进 Task.Run：首个 await 前的同步 WMI(GetManagementScope/ManagementClass.CreateInstance)及
+        // GetHostComputerSystemPath(searcher.Get) 都在调用线程；新建交换机从 UI 线程 await 调到会卡。
+        private static Task CreateSwitchWmiAsync(
+            string name, bool isExternal, string? adapterInterfaceDescription, bool allowManagementOS) => Task.Run(async () =>
         {
             var ms = WmiConnectionCache.GetManagementScope(WmiScope.HyperV, WmiContext.Local);
 
@@ -465,7 +467,7 @@ namespace ExHyperV.Services
             else
             {
             }
-        }
+        });
 
         // ══════════════════════════════════════════════════════════════════
         //  DeleteSwitchAsync — WmiApi + ComApi
