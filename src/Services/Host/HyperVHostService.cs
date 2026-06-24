@@ -157,15 +157,20 @@ namespace ExHyperV.Services
         }
 
         /// <summary>
-        /// 启用 Hyper-V。Microsoft-Hyper-V-All + enableAll=true 自动处理所有子组件依赖。
-        /// 并显式将 hypervisorlaunchtype 设回 auto：用户若曾手动设为 off（为跑其它虚拟化软件），
-        /// 功能其实仍处启用态、DISM 启用是空操作，但监控程序开机不加载，必须显式恢复（issue #211）。
+        /// 启用 Hyper-V，并显式将 hypervisorlaunchtype 设回 auto（监控程序开机加载）。
+        /// 功能名按系统分支：客户端用伞包 Microsoft-Hyper-V-All（含管理工具）；
+        /// Windows Server 上**不存在**该名，须用 Microsoft-Hyper-V（平台功能，含 vmms + WMI 管理层，足够本应用使用）。
+        /// 容错：禁用只关 launchtype、从不卸载 → 再启用时平台本就装着（vmms 已注册）；
+        /// 此时 DISM 即便因"已启用/名称差异"返回非零，只要 launchtype 设上、vmms 在，就算成功（重启即生效），不误报失败。
+        /// issue #211。
         /// </summary>
         public static async Task<bool> EnableHyperVAsync()
         {
-            var result = await DismApi.EnableFeatureAsync("Microsoft-Hyper-V-All", enableAll: true);
+            string feature = IsServerSystem() ? "Microsoft-Hyper-V" : "Microsoft-Hyper-V-All";
+            var dism = await DismApi.EnableFeatureAsync(feature, enableAll: true);
             bool launchOk = await SetHypervisorLaunchTypeAsync("auto");
-            return result.Success && launchOk;
+            bool featurePresent = dism.Success || await Task.Run(() => GetVmmsStatus() != 0);
+            return launchOk && featurePresent;
         }
 
         /// <summary>
