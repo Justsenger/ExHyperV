@@ -27,13 +27,21 @@ public static class VmNetworkService
             $"SELECT ElementName, InstanceID, Address, StaticMacAddress FROM Msvm_SyntheticEthernetPortSettingData WHERE InstanceID LIKE 'Microsoft:{vmGuid}%'",
             obj => (ManagementObject)obj);
 
+        // 旧版/模拟网卡（Gen1、旧系统在 Hyper-V 管理器里添加的"旧版网络适配器"）属独立的 Emulated 类，
+        // 与合成网卡分两张表——只查合成会完全漏掉它们（issue #216）。用 SELECT * 兼容其列差异，两类合并。
+        var emulatedPortsTask = WmiApi.QueryAsync(
+            $"SELECT * FROM Msvm_EmulatedEthernetPortSettingData WHERE InstanceID LIKE 'Microsoft:{vmGuid}%'",
+            obj => (ManagementObject)obj);
+
         var allocsTask = WmiApi.QueryAsync(
             $"SELECT EnabledState, InstanceID, HostResource FROM Msvm_EthernetPortAllocationSettingData WHERE InstanceID LIKE 'Microsoft:{vmGuid}%'",
             obj => (ManagementObject)obj);
 
-        await Task.WhenAll(portsTask, allocsTask);
+        await Task.WhenAll(portsTask, emulatedPortsTask, allocsTask);
 
-        var allPorts = portsTask.Result.Data ?? new List<ManagementObject>();
+        var allPorts = (portsTask.Result.Data ?? new List<ManagementObject>())
+            .Concat(emulatedPortsTask.Result.Data ?? new List<ManagementObject>())
+            .ToList();
         var allAllocs = allocsTask.Result.Data ?? new List<ManagementObject>();
 
         foreach (var port in allPorts)
