@@ -301,6 +301,12 @@ namespace ExHyperV.Views
             }
             this.Width = scrW;
             this.Height = scrH + TitleBarHeight;
+            // 高缩放下窗口接近工作区大小，原位置不变会冲出屏幕(标题栏/边角够不到、即"冲烂") → 钳回工作区内保持完整可见
+            var area = SystemParameters.WorkArea;
+            if (this.Left + this.Width > area.Right) this.Left = Math.Max(area.Left, area.Right - this.Width);
+            if (this.Top + this.Height > area.Bottom) this.Top = Math.Max(area.Top, area.Bottom - this.Height);
+            if (this.Left < area.Left) this.Left = area.Left;
+            if (this.Top < area.Top) this.Top = area.Top;
         }
 
         /// <summary>摆放 RDP 宿主：全屏/增强铺满或贴合；基本会话按所选缩放档把画面缩放居中。
@@ -396,7 +402,7 @@ namespace ExHyperV.Views
             return int.TryParse(z.TrimEnd('%', ' '), out int p) ? ClampZoom(p) : 100;
         }
 
-        private static int ClampZoom(int pct) => Math.Max(25, Math.Min(300, pct));   // 上限放到 300 试 mstscax 认不认（其自定义对话框上限是 200，预期会被钳回）
+        private static int ClampZoom(int pct) => Math.Max(25, Math.Min(500, pct));   // 实测 mstscax 支持 >200，上限放到 500
 
         /// <summary>增强会话进入时：若画面四周余量不足 EnhancedResizeBorder，放大窗口补足——
         /// 画面分辨率保持不变（避免来宾端把非标准分辨率吸附回标准值），靠窗口比画面大一圈来露出可抓取的缩放边。</summary>
