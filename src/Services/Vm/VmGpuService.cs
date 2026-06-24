@@ -32,7 +32,6 @@ namespace ExHyperV.Services
             return Task.Run(() =>
             {
                 HyperVGpuPolicyService.AllowUnsupportedGpuAssignment();
-                HyperVGpuPolicyService.DisableGpuPartitionStrictMode();
             });
         }
 

@@ -10,7 +10,6 @@ namespace ExHyperV.Services
     public static class HyperVGpuPolicyService
     {
         private const string GpuAssignmentPolicyKey = @"SOFTWARE\Policies\Microsoft\Windows\HyperV";
-        private const string VirtualizationKey = @"SOFTWARE\Microsoft\WindowsNT\CurrentVersion\Virtualization";
 
         /// <summary>
         /// 允许不受支持的 GPU 分配（关闭两个 require-secure/supported 限制）。
@@ -44,23 +43,6 @@ namespace ExHyperV.Services
             catch (Exception ex)
             {
                 Debug.WriteLine($"ResetGpuAssignmentPolicy failed: {ex.Message}");
-            }
-        }
-
-        /// <summary>
-        /// 关闭 Hyper-V 的 GPU partition 严格模式。
-        /// 修复 Windows 更新后某些 GPU-P 场景失效的问题。
-        /// </summary>
-        public static void DisableGpuPartitionStrictMode()
-        {
-            try
-            {
-                using var key = Registry.LocalMachine.CreateSubKey(VirtualizationKey);
-                key.SetValue("DisableGpuPartitionStrictMode", 1, RegistryValueKind.DWord);
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"DisableGpuPartitionStrictMode failed: {ex.Message}");
             }
         }
     }
