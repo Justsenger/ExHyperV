@@ -396,7 +396,7 @@ namespace ExHyperV.Views
             return int.TryParse(z.TrimEnd('%', ' '), out int p) ? ClampZoom(p) : 100;
         }
 
-        private static int ClampZoom(int pct) => Math.Max(25, Math.Min(200, pct));
+        private static int ClampZoom(int pct) => Math.Max(25, Math.Min(300, pct));   // 上限放到 300 试 mstscax 认不认（其自定义对话框上限是 200，预期会被钳回）
 
         /// <summary>增强会话进入时：若画面四周余量不足 EnhancedResizeBorder，放大窗口补足——
         /// 画面分辨率保持不变（避免来宾端把非标准分辨率吸附回标准值），靠窗口比画面大一圈来露出可抓取的缩放边。</summary>

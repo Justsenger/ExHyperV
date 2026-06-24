@@ -174,7 +174,7 @@ namespace ExHyperV.ViewModels
         public ObservableCollection<string> ZoomOptions { get; } = new()
         {
             Properties.Resources.ConsoleWindow_ZoomAuto,
-            "200%", "150%", "125%", "100%", "75%", "50%", "25%"
+            "300%", "200%", "150%", "125%", "100%", "75%", "50%", "25%"
         };
 
         [RelayCommand]
