@@ -205,7 +205,11 @@ namespace ExHyperV.Services
                 .ToList();
         }
 
-        public static async Task<List<UsbDevice>> GetUsbIpDevicesAsync()
+        // 整个方法体放进 Task.Run：Process.Start("usbipd") 是同步调用，在 async 方法首个 await 之前会跑在
+        // 调用线程上。本方法常被 UI 线程经 SyncDevicesLoop 的 Dispatcher.InvokeAsync(RefreshListInternal) 调到，
+        // usbipd 进程创建一卡（驱动/服务状态、Defender 扫新进程）就冻住界面(未响应)。移到线程池后 UI 线程只 await、
+        // 消息泵照转。与 WmiApi.QueryAsync 的 Task.Run 同一套路。
+        public static Task<List<UsbDevice>> GetUsbIpDevicesAsync() => Task.Run(async () =>
         {
             var list = new List<UsbDevice>();
             try
@@ -239,7 +243,7 @@ namespace ExHyperV.Services
             }
             catch { }
             return list;
-        }
+        });
 
         public static void EnsureServiceRegistered()
         {
