@@ -57,6 +57,9 @@ namespace ExHyperV.Views
             RdpHost.Connected += () => Dispatcher.BeginInvoke(new Action(() =>
             {
                 _enhancedConnecting = false;   // 已连上（增强成功，或本就是基本）
+                // 增强会话靠动态分辨率跟随窗口、画面恒 1:1，缩放须归 100——否则会残留基本会话设过的 ZoomLevel，
+                // 切到增强后画面被放大、溢出窗口并出现滚动条（ZoomLevel 是 OCX 级属性，跨会话模式重连仍保留）。
+                if (_vm.IsEnhancedMode) RdpHost.SetZoomLevel(100);
                 if (_pendingEnhancedInset && _vm.IsEnhancedMode && !_vm.IsFullScreen)
                 {
                     _pendingEnhancedInset = false;
