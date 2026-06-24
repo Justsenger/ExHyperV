@@ -4,7 +4,10 @@ using ExHyperV.Models;
 
 namespace ExHyperV.Services
 {
-    public enum MmioCheckResultType { Ok, NeedsConfirmation, Error }
+    public enum MmioCheckResultType { Ok, NeedsExpansion, Error }
+
+    /// <summary>存储控制器名下的一块物理磁盘（用于直通前判断系统盘/脱机）。</summary>
+    public readonly record struct ControllerDisk(int Number, string FriendlyName, bool IsSystem, bool IsBoot, bool IsOffline);
 
     public static class PCIeService
     {
@@ -25,6 +28,47 @@ namespace ExHyperV.Services
             if (string.IsNullOrEmpty(locationPath)) return string.Empty;
             return System.Text.RegularExpressions.Regex.Replace(
                 locationPath, @"#PCI\(([0-9A-Fa-f]{2})[0-9A-Fa-f]{2}\)$", "#PCI(${1}00)");
+        }
+
+        /// <summary>
+        /// 列出某 PCI 存储控制器名下的物理磁盘（用 Win32_DiskDrive.Parent == 控制器 InstanceId 映射，
+        /// 再从 MSFT_Disk 取系统/启动/在线状态）。供直通前判断:系统盘拒绝、在线数据盘先脱机。
+        /// </summary>
+        public static async Task<List<ControllerDisk>> GetControllerDisksAsync(string controllerInstanceId)
+        {
+            var result = new List<ControllerDisk>();
+            if (string.IsNullOrEmpty(controllerInstanceId)) return result;
+
+            // 1. 该控制器名下的磁盘号（磁盘 PnP 父级 == 控制器）
+            var ddResp = await WmiApi.QueryAsync(
+                "SELECT Index, PNPDeviceID FROM Win32_DiskDrive",
+                obj => new { Number = Convert.ToInt32(obj["Index"] ?? -1), Pnp = obj["PNPDeviceID"]?.ToString() ?? "" },
+                WmiScope.CimV2);
+            if (!ddResp.Success || ddResp.Data == null) return result;
+
+            var diskNumbers = new HashSet<int>();
+            foreach (var d in ddResp.Data)
+            {
+                if (d.Number < 0 || string.IsNullOrEmpty(d.Pnp)) continue;
+                if (string.Equals(Win32Api.GetDeviceParent(d.Pnp), controllerInstanceId, StringComparison.OrdinalIgnoreCase))
+                    diskNumbers.Add(d.Number);
+            }
+            if (diskNumbers.Count == 0) return result;
+
+            // 2. 这些磁盘的系统/启动/在线状态
+            var mdResp = await WmiApi.QueryCimAsync(
+                "SELECT Number, FriendlyName, IsSystem, IsBoot, IsOffline FROM MSFT_Disk",
+                obj => new ControllerDisk(
+                    Convert.ToInt32(obj["Number"] ?? -1),
+                    obj["FriendlyName"]?.ToString() ?? string.Empty,
+                    Convert.ToBoolean(obj["IsSystem"] ?? false),
+                    Convert.ToBoolean(obj["IsBoot"] ?? false),
+                    Convert.ToBoolean(obj["IsOffline"] ?? false)),
+                WmiScope.Storage);
+            if (mdResp.Success && mdResp.Data != null)
+                result.AddRange(mdResp.Data.Where(x => diskNumbers.Contains(x.Number)));
+
+            return result;
         }
 
         public static async Task<(List<DeviceInfo> Devices, List<string> VmNames)> GetPCIeInfoAsync()
@@ -187,7 +231,7 @@ namespace ExHyperV.Services
         public static Task<bool> IsServerOperatingSystemAsync()
             => Task.FromResult(HyperVHostService.IsServerSystem());
 
-        public static async Task<(MmioCheckResultType Result, string Message)> CheckMmioSpaceAsync(string vmName)
+        public static async Task<MmioCheckResultType> CheckMmioSpaceAsync(string vmName)
         {
             string escapedVmName = WmiApi.Escape(vmName);
             var resp = await WmiApi.QueryAsync(
@@ -197,22 +241,16 @@ namespace ExHyperV.Services
                 WmiScope.HyperV);
 
             if (!resp.Success || resp.Data == null || resp.Data.Count == 0)
-                return (MmioCheckResultType.Error, Properties.Resources.Error_CannotGetVmInfo);
+                return MmioCheckResultType.Error;
 
             try
             {
                 ulong highMmioGapSizeMb = Convert.ToUInt64(resp.Data[0]);
                 // 阈值复用 GPU-PV 的 MMIO 计算（按宿主物理地址宽度）；读不到时回退 64GB
                 ulong requiredMb = VmMmioService.ComputeMmioPlan()?.HighSizeMb ?? (64UL * 1024UL);
-                if (highMmioGapSizeMb < requiredMb)
-                {
-                    long currentMmioGB = (long)(highMmioGapSizeMb / 1024UL);
-                    string message = string.Format(Properties.Resources.Warning_LowMmioSpace_ConfirmExpand, vmName, currentMmioGB);
-                    return (MmioCheckResultType.NeedsConfirmation, message);
-                }
-                return (MmioCheckResultType.Ok, Properties.Resources.Info_MmioSpaceSufficient);
+                return highMmioGapSizeMb < requiredMb ? MmioCheckResultType.NeedsExpansion : MmioCheckResultType.Ok;
             }
-            catch (Exception ex) { return (MmioCheckResultType.Error, ex.Message); }
+            catch { return MmioCheckResultType.Error; }
         }
 
         public static async Task<bool> UpdateMmioSpaceAsync(string vmName)

@@ -2351,6 +2351,33 @@ namespace ExHyperV.Properties {
         }
 
         /// <summary>
+        ///   查找类似 This storage controller hosts the system or boot disk 的本地化字符串。
+        /// </summary>
+        public static string PCIePage_Msg_StorageHasSystemDisk {
+            get {
+                return ResourceManager.GetString("PCIePage_Msg_StorageHasSystemDisk", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   查找类似 Take Disks Offline 的本地化字符串。
+        /// </summary>
+        public static string PCIePage_Title_StorageOffline {
+            get {
+                return ResourceManager.GetString("PCIePage_Title_StorageOffline", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   查找类似 This storage controller hosts the following online disks 的本地化字符串。
+        /// </summary>
+        public static string PCIePage_Msg_StorageOffline {
+            get {
+                return ResourceManager.GetString("PCIePage_Msg_StorageOffline", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   查找类似 {0} is the only graphics card on the host... 的本地化字符串。
         /// </summary>
         public static string PCIePage_Msg_LastGpuWarning {
@@ -4419,6 +4446,33 @@ namespace ExHyperV.Properties {
         public static string Msg_Host_SchedulerChanged {
             get {
                 return ResourceManager.GetString("Msg_Host_SchedulerChanged", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   查找类似 Host native NVMe setting changed. Reboot required. 的本地化字符串。
+        /// </summary>
+        public static string Msg_Host_NativeNvmeChanged {
+            get {
+                return ResourceManager.GetString("Msg_Host_NativeNvmeChanged", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   查找类似 Host Native NVMe 的本地化字符串。
+        /// </summary>
+        public static string Menu_NativeNvme {
+            get {
+                return ResourceManager.GetString("Menu_NativeNvme", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   查找类似 Enable the Windows Server 2025 native multi-queue NVMe driver... 的本地化字符串。
+        /// </summary>
+        public static string Desc_NativeNvme {
+            get {
+                return ResourceManager.GetString("Desc_NativeNvme", resourceCulture);
             }
         }
         

@@ -367,6 +367,23 @@ Do you want to shut down the virtual machine and expand its MMIO space to 64GB?<
   <data name="PCIePage_Title_LastGpuWarning" xml:space="preserve">
     <value>Warning: Host May Lose Video Output!</value>
   </data>
+  <data name="PCIePage_Msg_StorageHasSystemDisk" xml:space="preserve">
+    <value>This storage controller hosts the system or boot disk:
+
+{0}
+
+It cannot be passed through (doing so would make the host unbootable).</value>
+  </data>
+  <data name="PCIePage_Title_StorageOffline" xml:space="preserve">
+    <value>Take Disks Offline</value>
+  </data>
+  <data name="PCIePage_Msg_StorageOffline" xml:space="preserve">
+    <value>This storage controller hosts the following online disks:
+
+{0}
+
+They must be taken offline before passthrough (the host will lose access to them). Continue?</value>
+  </data>
   <data name="PCIePage_Msg_LastGpuWarning" xml:space="preserve">
     <value>{0} is the only graphics card on the host.
 After passthrough the host will lose video output and the physical display may go black.
@@ -892,6 +909,9 @@ The existing NAT switch is: '{0}'</value>
   <data name="Msg_Host_SchedulerChanged" xml:space="preserve">
     <value>Scheduler type changed. Reboot required.</value>
   </data>
+  <data name="Msg_Host_NativeNvmeChanged" xml:space="preserve">
+    <value>NVMe driver setting changed. Reboot required.</value>
+  </data>
   <data name="Error_Host_SchedulerFail" xml:space="preserve">
     <value>Failed to set scheduler type.</value>
   </data>
@@ -1371,6 +1391,12 @@ The existing NAT switch is: '{0}'</value>
   </data>
   <data name="Desc_UnlockHard" xml:space="preserve">
     <value>Fix issues caused by hardware security checks</value>
+  </data>
+  <data name="Menu_NativeNvme" xml:space="preserve">
+    <value>Enable NVMe Driver</value>
+  </data>
+  <data name="Desc_NativeNvme" xml:space="preserve">
+    <value>Use the native multi-queue NVMe driver instead of SCSI</value>
   </data>
   <data name="Menu_SwitchServer" xml:space="preserve">
     <value>Switch to Server Edition</value>

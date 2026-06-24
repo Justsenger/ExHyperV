@@ -367,6 +367,23 @@
   <data name="PCIePage_Title_LastGpuWarning" xml:space="preserve">
     <value>警告：主机可能会失去视频输出！</value>
   </data>
+  <data name="PCIePage_Msg_StorageHasSystemDisk" xml:space="preserve">
+    <value>该存储控制器挂着系统盘或启动盘：
+
+{0}
+
+无法直通（直通会使宿主无法启动）。</value>
+  </data>
+  <data name="PCIePage_Title_StorageOffline" xml:space="preserve">
+    <value>脱机磁盘后直通</value>
+  </data>
+  <data name="PCIePage_Msg_StorageOffline" xml:space="preserve">
+    <value>该存储控制器挂着以下在线磁盘：
+
+{0}
+
+直通前需先将它们脱机（脱机后宿主将无法访问这些盘）。是否继续？</value>
+  </data>
   <data name="PCIePage_Msg_LastGpuWarning" xml:space="preserve">
     <value>「{0}」是主机当前唯一的显卡。
 直通后主机将失去视频输出，物理屏幕可能黑屏。
@@ -892,6 +909,9 @@
   <data name="Msg_Host_SchedulerChanged" xml:space="preserve">
     <value>调度器类型已更改，请重启系统生效。</value>
   </data>
+  <data name="Msg_Host_NativeNvmeChanged" xml:space="preserve">
+    <value>NVMe 驱动设置已更改，请重启系统生效。</value>
+  </data>
   <data name="Error_Host_SchedulerFail" xml:space="preserve">
     <value>设置调度器类型失败。</value>
   </data>
@@ -1371,6 +1391,12 @@
   </data>
   <data name="Desc_UnlockHard" xml:space="preserve">
     <value>修复因硬件安全检查导致的问题</value>
+  </data>
+  <data name="Menu_NativeNvme" xml:space="preserve">
+    <value>启用 NVMe 驱动</value>
+  </data>
+  <data name="Desc_NativeNvme" xml:space="preserve">
+    <value>使用 NVMe 原生多队列驱动，而不是 SCSI</value>
   </data>
   <data name="Menu_SwitchServer" xml:space="preserve">
     <value>切换系统为服务器版本</value>

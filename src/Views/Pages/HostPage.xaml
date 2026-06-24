@@ -242,7 +242,23 @@
                     <ui:ToggleSwitch IsChecked="{Binding IsServerSystem, Mode=TwoWay}"
                      IsEnabled="{Binding IsSystemSwitchEnabled}"/>
                 </ui:CardControl>
-                
+
+                <!-- 宿主原生 NVMe (Windows Server 2025 / Win11 24H2+) -->
+                <ui:CardControl Margin="0,0,0,8" Padding="12"
+                                Visibility="{Binding IsNativeNvmeSupported, Converter={StaticResource BoolToVis}}">
+                    <ui:CardControl.Icon>
+                        <ui:FontIcon FontSize="22" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xEEA1;"/>
+                    </ui:CardControl.Icon>
+                    <ui:CardControl.Header>
+                        <StackPanel>
+                            <TextBlock Text="{x:Static properties:Resources.Menu_NativeNvme}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                            <TextBlock Text="{x:Static properties:Resources.Desc_NativeNvme}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                        </StackPanel>
+                    </ui:CardControl.Header>
+                    <ui:ToggleSwitch IsChecked="{Binding IsNativeNvmeEnabled, Mode=TwoWay}"
+                                     IsEnabled="{Binding IsNativeNvmeToggleEnabled}"/>
+                </ui:CardControl>
+
             </StackPanel>
         </StackPanel>
     </Grid>

@@ -26,6 +26,9 @@ namespace ExHyperV.ViewModels
 
         [ObservableProperty] private bool _isGpuStrategyEnabled;
         [ObservableProperty] private bool _isGpuStrategyToggleEnabled = false;
+        [ObservableProperty] private bool _isNativeNvmeEnabled;
+        [ObservableProperty] private bool _isNativeNvmeToggleEnabled = false;
+        [ObservableProperty] private bool _isNativeNvmeSupported;
         [ObservableProperty] private bool _isServerSystem;
         [ObservableProperty] private bool _isSystemSwitchEnabled = false;
         [ObservableProperty] private string _systemVersionDesc = string.Empty;
@@ -97,9 +100,12 @@ namespace ExHyperV.ViewModels
         private async Task InitializeVersionPolicyAsync()
         {
             IsGpuStrategyEnabled = await Task.Run(() => HyperVHostService.GetGpuStrategyEnabled());
+            IsNativeNvmeSupported = Environment.OSVersion.Version.Build >= 26100; // WS2025 / Win11 24H2 起才有原生 NVMe
+            IsNativeNvmeEnabled = await Task.Run(() => HostNvmeService.IsNativeNvmeEnabled());
             InitializeProductType();
             await LoadAdvancedConfigAsync();
             IsGpuStrategyToggleEnabled = true;
+            IsNativeNvmeToggleEnabled = true;
             IsSystemSwitchEnabled = true;
         }
 
@@ -121,6 +127,13 @@ namespace ExHyperV.ViewModels
         {
             if (!_isInitialized) return;
             if (value) HyperVGpuPolicyService.AllowUnsupportedGpuAssignment(); else HyperVGpuPolicyService.ResetGpuAssignmentPolicy();
+        }
+
+        partial void OnIsNativeNvmeEnabledChanged(bool value)
+        {
+            if (!_isInitialized) return;
+            if (value) HostNvmeService.EnableNativeNvme(); else HostNvmeService.DisableNativeNvme();
+            ShowRestartPrompt(Properties.Resources.Msg_Host_NativeNvmeChanged);
         }
 
         partial void OnIsNumaSpanningEnabledChanged(bool value)

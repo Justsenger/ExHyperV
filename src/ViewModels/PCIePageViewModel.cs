@@ -81,10 +81,10 @@ namespace ExHyperV.ViewModels
             IsUiEnabled = false;
             try
             {
-                // MMIO空间检查流程
+                // MMIO 空间不足时按算法自动扩展（不询问用户）
                 if (selectedTarget != Properties.Resources.Host)
                 {
-                    bool canProceed = await HandleMmioCheckAsync(selectedTarget);
+                    bool canProceed = await EnsureMmioSpaceAsync(selectedTarget);
                     if (!canProceed) return;
                 }
 
@@ -101,6 +101,50 @@ namespace ExHyperV.ViewModels
                         Properties.Resources.Button_Yes, Properties.Resources.Button_No,
                         isDanger: true, showIcon: false, maxWidth: 340);
                     if (!proceed) return;
+                }
+
+                // ── 存储控制器：直通到 VM 前处理名下磁盘（系统/启动盘拒绝；在线数据盘先脱机）──
+                if (selectedTarget != Properties.Resources.Host
+                    && deviceViewModel.Status == Properties.Resources.Host
+                    && (string.Equals(deviceViewModel.ClassType, "SCSIAdapter", StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(deviceViewModel.ClassType, "HDC", StringComparison.OrdinalIgnoreCase)))
+                {
+                    var disks = await PCIeService.GetControllerDisksAsync(deviceViewModel.InstanceId);
+
+                    // 系统盘/启动盘 → 硬拒绝（直通会使宿主无法启动）
+                    var critical = disks.Where(d => d.IsSystem || d.IsBoot).ToList();
+                    if (critical.Count > 0)
+                    {
+                        var dlg = new MessageBox
+                        {
+                            Title = Properties.Resources.Error_Title,
+                            Content = new TextBlock
+                            {
+                                Text = string.Format(Properties.Resources.PCIePage_Msg_StorageHasSystemDisk,
+                                    string.Join("\n", critical.Select(d => $"• #{d.Number} {d.FriendlyName}"))),
+                                TextWrapping = System.Windows.TextWrapping.Wrap,
+                                MaxWidth = 360
+                            },
+                            CloseButtonText = Properties.Resources.Btn_Confirm
+                        };
+                        await dlg.ShowDialogAsync();
+                        return;
+                    }
+
+                    // 在线数据盘 → 确认后脱机
+                    var onlineDisks = disks.Where(d => !d.IsOffline).ToList();
+                    if (onlineDisks.Count > 0)
+                    {
+                        string diskList = string.Join("\n", onlineDisks.Select(d => $"• #{d.Number} {d.FriendlyName}"));
+                        bool proceed = await Dialogs.ShowConfirmAsync(
+                            Properties.Resources.PCIePage_Title_StorageOffline,
+                            string.Format(Properties.Resources.PCIePage_Msg_StorageOffline, diskList),
+                            Properties.Resources.Button_Yes, Properties.Resources.Button_No, showIcon: false);
+                        if (!proceed) return;
+
+                        foreach (var d in onlineDisks)
+                            await HostDiskService.SetDiskOfflineStatusAsync(d.Number, true);
+                    }
                 }
 
                 // ── 关联设备捆绑：移动显卡时，把与它当前在同一处的同卡设备（板载声卡等）一并带往目标 ──
@@ -148,6 +192,21 @@ namespace ExHyperV.ViewModels
                     }
                 }
 
+                // 存储控制器返还主机后：等磁盘随控制器重新枚举（轮询最多 ~6 秒），把之前脱机的盘重新联机
+                if (success && selectedTarget == Properties.Resources.Host
+                    && (string.Equals(deviceViewModel.ClassType, "SCSIAdapter", StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(deviceViewModel.ClassType, "HDC", StringComparison.OrdinalIgnoreCase)))
+                {
+                    List<ControllerDisk> disks = new();
+                    for (int i = 0; i < 4 && disks.Count == 0; i++)
+                    {
+                        await Task.Delay(1500);
+                        disks = await PCIeService.GetControllerDisksAsync(deviceViewModel.InstanceId);
+                    }
+                    foreach (var d in disks.Where(d => d.IsOffline && !d.IsSystem && !d.IsBoot))
+                        await HostDiskService.SetDiskOfflineStatusAsync(d.Number, false);
+                }
+
                 if (errors.Count > 0)
                 {
                     var errorDialog = new MessageBox
@@ -173,17 +232,13 @@ namespace ExHyperV.ViewModels
             }
         }
 
-        private async Task<bool> HandleMmioCheckAsync(string targetVmName)
+        private async Task<bool> EnsureMmioSpaceAsync(string targetVmName)
         {
-            var (resultType, message) = await PCIeService.CheckMmioSpaceAsync(targetVmName);
+            var result = await PCIeService.CheckMmioSpaceAsync(targetVmName);
 
-            if (resultType == MmioCheckResultType.NeedsConfirmation)
+            if (result == MmioCheckResultType.NeedsExpansion)
             {
-                bool confirmed = await Dialogs.ShowConfirmAsync(
-                    Properties.Resources.PCIePage_Title_MmioSpaceTooSmall, message,
-                    Properties.Resources.Button_Yes, Properties.Resources.Button_No);
-                if (!confirmed) return false;
-
+                // MMIO 不足直接按算法扩展（需 VM 关机，与后续 DDA 步骤一致），不再询问用户
                 bool updateSuccess = await PCIeService.UpdateMmioSpaceAsync(targetVmName);
                 if (!updateSuccess)
                 {
@@ -198,7 +253,7 @@ namespace ExHyperV.ViewModels
                     return false;
                 }
             }
-            else if (resultType == MmioCheckResultType.Error)
+            else if (result == MmioCheckResultType.Error)
             {
                 var errorDialog = new MessageBox
                 {
