@@ -349,7 +349,7 @@ internal static class NativeMethods
     public const int CR_BUFFER_SMALL = 0x0000001A;
     public const uint CM_LOCATE_DEVNODE_NORMAL = 0x00000000;
     public const uint CM_LOCATE_DEVNODE_PHANTOM = 0x00000001;
-    public const uint CM_DISABLE_UI_NOT_OK = 0x00000002;
+    public const uint CM_DISABLE_UI_NOT_OK = 0x00000004; // 0x4=UI_NOT_OK(polite禁用);0x2 实为 CM_DISABLE_HARDWARE,软件枚举设备(USB4_MS_CM 等)不支持硬件禁用会失败
     public const uint CM_GETIDLIST_FILTER_NONE = 0x00000000;
     public const uint CM_GETIDLIST_FILTER_ENUMERATOR = 0x00000002;
     public const uint DN_HAS_PROBLEM = 0x00000400;
