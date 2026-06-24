@@ -2702,10 +2702,16 @@ The existing NAT switch is: '{0}'</value>
     <value>Basic Session Default Resolution</value>
   </data>
   <data name="VmAdvanced_ResolutionHint" xml:space="preserve">
-    <value>Display resolution under basic (non-enhanced) session. Change while the VM is off; takes effect on next boot.</value>
+    <value>Display resolution under basic (non-enhanced) session. Pick a preset or type a custom value (e.g. 1280 x 720). Change while the VM is off; takes effect on next boot.</value>
   </data>
   <data name="VmAdvanced_ResolutionAuto" xml:space="preserve">
     <value>Default (Auto)</value>
+  </data>
+  <data name="VmAdvanced_Apply" xml:space="preserve">
+    <value>Apply</value>
+  </data>
+  <data name="VmAdvanced_ResolutionInvalid" xml:space="preserve">
+    <value>Enter a valid resolution, e.g. 1280 x 720</value>
   </data>
   <data name="Error_VmCreate_NoGuardian" xml:space="preserve">
     <value>Failed to get or create UntrustedGuardian</value>

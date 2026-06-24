@@ -46,8 +46,9 @@ public static class VmVideoService
                 ctrl["ResolutionType"] = (byte)resolutionType;   // UInt8
                 if (resolutionType == 3)
                 {
-                    ctrl["HorizontalResolution"] = (ushort)width;  // UInt16
-                    ctrl["VerticalResolution"] = (ushort)height;   // UInt16
+                    // Set-VMVideo 要求宽高为偶数，向下取偶以免"必须是偶数"报错
+                    ctrl["HorizontalResolution"] = (ushort)(width & ~1);   // UInt16
+                    ctrl["VerticalResolution"] = (ushort)(height & ~1);    // UInt16
                 }
                 return ctrl.GetText(TextFormat.CimDtd20);
             });

@@ -2702,10 +2702,16 @@
     <value>基本会话默认分辨率</value>
   </data>
   <data name="VmAdvanced_ResolutionHint" xml:space="preserve">
-    <value>基本(非增强)会话下虚拟机的显示分辨率，需关机修改、下次开机生效。</value>
+    <value>基本(非增强)会话下的显示分辨率，可选预设或手动输入自定义值(如 1280 x 720)；需关机修改、下次开机生效。</value>
   </data>
   <data name="VmAdvanced_ResolutionAuto" xml:space="preserve">
     <value>默认（自适应）</value>
+  </data>
+  <data name="VmAdvanced_Apply" xml:space="preserve">
+    <value>应用</value>
+  </data>
+  <data name="VmAdvanced_ResolutionInvalid" xml:space="preserve">
+    <value>请输入有效分辨率，如 1280 x 720</value>
   </data>
   <data name="Error_VmCreate_NoGuardian" xml:space="preserve">
     <value>无法获取或创建 UntrustedGuardian</value>

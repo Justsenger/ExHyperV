@@ -47,10 +47,14 @@
                             <TextBlock Text="{x:Static properties:Resources.VmAdvanced_ResolutionTitle}" FontSize="15" FontWeight="Medium" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
                             <TextBlock Text="{x:Static properties:Resources.VmAdvanced_ResolutionHint}" FontSize="13" Opacity="0.55" Margin="0,4,0,0" TextWrapping="Wrap" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
                         </StackPanel>
-                        <ComboBox Grid.Column="1" MinWidth="150" VerticalAlignment="Center"
-                                  ItemsSource="{Binding VideoResolutionOptions}"
-                                  SelectedItem="{Binding SelectedVideoResolution, Mode=TwoWay}"
-                                  IsEnabled="{Binding SelectedVm.IsRunning, Converter={StaticResource InverseBooleanConverter}}"/>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center"
+                                    IsEnabled="{Binding SelectedVm.IsRunning, Converter={StaticResource InverseBooleanConverter}}">
+                            <ComboBox MinWidth="150" IsEditable="True"
+                                      ItemsSource="{Binding VideoResolutionOptions}"
+                                      Text="{Binding SelectedVideoResolution, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                            <ui:Button Content="{x:Static properties:Resources.VmAdvanced_Apply}" Margin="8,0,0,0"
+                                       Command="{Binding ApplyVideoResolutionCommand}"/>
+                        </StackPanel>
                     </Grid>
                 </Border>
 
