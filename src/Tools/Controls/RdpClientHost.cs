@@ -104,6 +104,9 @@ namespace ExHyperV.Tools
         /// <summary>动态开关 SmartSizing（基本会话：VM 分辨率超出画面区时开=缩放铺满，否则关=原生清晰）。</summary>
         public void SetSmartSizing(bool on) => _ax.SetSmartSizing(on);
 
+        /// <summary>基本会话缩放：设 mstscax 原生 ZoomLevel(百分比)。复刻 VMConnect 的 IMsRdpExtendedSettings("ZoomLevel")。</summary>
+        public void SetZoomLevel(uint percent) => _ax.SetZoomLevel(percent);
+
         /// <summary>同步全屏状态给底层控件（容器处理全屏时，按钮发起的全屏需要回灌给 mstscax，
         /// 使其内部状态/键盘捕获与窗口一致；热键发起的无需，由控件自身切换）。</summary>
         public void SetFullScreen(bool fullScreen) => _ax.SetFullScreen(fullScreen);

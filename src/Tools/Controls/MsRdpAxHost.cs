@@ -166,6 +166,20 @@ namespace ExHyperV.Tools
             catch (Exception ex) { Debug.WriteLine("[Rdp] SetResolution 失败: " + ex.Message); }
         }
 
+        /// <summary>基本会话缩放：设 mstscax 原生 ZoomLevel(百分比，如 100/150/200)。经 IMsRdpExtendedSettings 字符串属性包热设，
+        /// 由控件内部缩放——这正是微软 VMConnect "查看→缩放" 的真正机制（SmartSizing 只能缩不能放，放大必须走这里）。
+        /// 仅基本会话生效、全屏无效（调用方在全屏时传 100）。</summary>
+        public void SetZoomLevel(uint percent)
+        {
+            try
+            {
+                var ext = (IMsRdpExtendedSettings)GetOcx();
+                object v = percent;
+                ext.set_Property("ZoomLevel", ref v);
+            }
+            catch (Exception ex) { Debug.WriteLine("[Rdp] SetZoomLevel 失败: " + ex.Message); }
+        }
+
         private void TrySet(string what, Action set)
         {
             try { set(); }

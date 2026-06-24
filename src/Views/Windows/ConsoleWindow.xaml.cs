@@ -171,7 +171,8 @@ namespace ExHyperV.Views
                 case nameof(ConsoleViewModel.IsFullScreen):
                     if (_vm.IsFullScreen) EnterFullScreen(); else ExitFullScreen();  // 窗口
                     if (!_syncingFs) RdpHost.SetFullScreen(_vm.IsFullScreen);        // 按钮发起的才回灌 mstscax
-                    LayoutRdpHost();                                                 // RDP 宿主：全屏铺满 / 窗口化缩到 VM 居中
+                    if (!_vm.IsEnhancedMode) ApplyBasicZoom();                       // 基本会话：进全屏回 100%、退全屏还原缩放档（同 VMConnect）
+                    else LayoutRdpHost();                                            // 增强：全屏铺满 / 窗口化缩到 VM 居中
                     break;
 
                 case nameof(ConsoleViewModel.CurrentWidth):
@@ -319,19 +320,18 @@ namespace ExHyperV.Views
             double dpiY = src.CompositionTarget.TransformToDevice.M22;
             if (!_vm.IsEnhancedMode)
             {
-                // 基本会话：固定分辨率的合成显示，按所选缩放档把画面缩放居中（解析见 ParseZoom）。
-                // 放大靠 ApplyBasicZoom 把窗口撑到 原生×比例 → 此处 fitScale 即等于该比例、画面正好铺满窗口；
-                // 窗口被工作区钳住时回落到"适应"(scale=fitScale)，绝不超出画面区（airspace 下无法滚动）。
+                // 基本会话：缩放由 mstscax 原生 ZoomLevel 负责（在 ApplyBasicZoom 里热设），此处只把宿主控件摆成
+                // min(画面区, 原生×缩放%)——与 VMConnect 同款：装得下则控件=缩放尺寸居中、周围 RdpArea 黑底；
+                // 超出则控件=画面区、由控件内部出滚动条。SmartSizing 必须关：缩放走 ZoomLevel，二者互斥
+                // （留着会和 ZoomLevel 打架、并在控件大于画面时糊上 mstscax 的 #CBCBCB 信箱）。
                 int areaW = (int)Math.Round(RdpArea.ActualWidth * dpiX);
                 int areaH = (int)Math.Round(RdpArea.ActualHeight * dpiY);
-                double fitScale = Math.Min(areaW / (double)vmW, areaH / (double)vmH);
-                var (fit, factor) = ParseZoom(_vm.SelectedZoom);
-                double scale = fit ? fitScale : Math.Min(factor, fitScale);
-                RdpHost.SetSmartSizing(Math.Abs(scale - 1.0) > 0.01);
+                double sc = BasicZoomPercent() / 100.0;
+                RdpHost.SetSmartSizing(false);
                 RdpHost.HorizontalAlignment = HorizontalAlignment.Center;
                 RdpHost.VerticalAlignment = VerticalAlignment.Center;
-                RdpHost.Width = vmW * scale / dpiX;
-                RdpHost.Height = vmH * scale / dpiY;
+                RdpHost.Width = Math.Min(areaW, vmW * sc) / dpiX;
+                RdpHost.Height = Math.Min(areaH, vmH * sc) / dpiY;
                 return;
             }
             // 增强 + 窗口化/最大化：画面原生。但若来宾把分辨率吸附到比画面区大的标准值
@@ -364,24 +364,33 @@ namespace ExHyperV.Views
         private void ApplyBasicZoom()
         {
             if (_vm.IsEnhancedMode) return;
-            var (fit, factor) = ParseZoom(_vm.SelectedZoom);
-            if (!fit && !_vm.IsFullScreen && this.WindowState == WindowState.Normal
+            int pct = BasicZoomPercent();
+            RdpHost.SetZoomLevel((uint)pct);   // mstscax 原生缩放：真正能放大的机制（连接中热设；未连/全屏则被底层忽略）
+            if (!_vm.IsFullScreen && this.WindowState == WindowState.Normal
                 && _vm.CurrentWidth > 0 && _vm.CurrentHeight > 0)
             {
-                // 改窗口尺寸 → 触发 RdpArea.SizeChanged → LayoutRdpHost 重排；下面再调一次兜底（尺寸不变时不触发 SizeChanged）。
-                FitToResolution((int)Math.Round(_vm.CurrentWidth * factor), (int)Math.Round(_vm.CurrentHeight * factor));
+                // 窗口随缩放（VMConnect 同款；MinWidth/MinHeight 兜底防过小）→ SizeChanged → LayoutRdpHost 重排。
+                FitToResolution(_vm.CurrentWidth * pct / 100, _vm.CurrentHeight * pct / 100);
             }
             LayoutRdpHost();
         }
 
-        /// <summary>解析缩放档：返回 (适应窗口, 比例)。"适应窗口"/空 → (true, _)；"N%" → (false, N/100)；无法解析兜底 100%。</summary>
-        private (bool fit, double factor) ParseZoom(string? zoom)
+        /// <summary>当前基本会话缩放百分比(25–200)：全屏→100（ZoomLevel 全屏无效，画面原生居中）；
+        /// "自动"/空 → 显示器 DPI%；"N%" → N；无法解析兜底 100。</summary>
+        private int BasicZoomPercent()
         {
-            if (string.IsNullOrEmpty(zoom) || zoom == Properties.Resources.ConsoleWindow_ZoomFit)
-                return (true, 1.0);
-            var s = zoom.TrimEnd('%', ' ');
-            return (double.TryParse(s, out double pct) && pct > 0) ? (false, pct / 100.0) : (false, 1.0);
+            if (_vm.IsFullScreen) return 100;
+            string z = _vm.SelectedZoom;
+            if (string.IsNullOrEmpty(z) || z == Properties.Resources.ConsoleWindow_ZoomAuto)
+            {
+                var s = PresentationSource.FromVisual(this);
+                double dpi = s?.CompositionTarget?.TransformToDevice.M11 ?? 1.0;
+                return ClampZoom((int)Math.Round(dpi * 100));
+            }
+            return int.TryParse(z.TrimEnd('%', ' '), out int p) ? ClampZoom(p) : 100;
         }
+
+        private static int ClampZoom(int pct) => Math.Max(25, Math.Min(200, pct));
 
         /// <summary>增强会话进入时：若画面四周余量不足 EnhancedResizeBorder，放大窗口补足——
         /// 画面分辨率保持不变（避免来宾端把非标准分辨率吸附回标准值），靠窗口比画面大一圈来露出可抓取的缩放边。</summary>

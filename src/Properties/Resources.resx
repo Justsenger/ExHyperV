@@ -2134,11 +2134,11 @@ The existing NAT switch is: '{0}'</value>
   <data name="ConsoleWindow_FullScreen" xml:space="preserve">
     <value>Full Screen (Ctrl+Alt+Space)</value>
   </data>
-  <data name="ConsoleWindow_ZoomFit" xml:space="preserve">
-    <value>Fit to window</value>
+  <data name="ConsoleWindow_ZoomAuto" xml:space="preserve">
+    <value>Auto</value>
   </data>
   <data name="ConsoleWindow_ZoomHint" xml:space="preserve">
-    <value>Zooming in stretches a fixed-resolution image and may look blurry. For a larger, sharper picture, raise the resolution instead.</value>
+    <value>Zoom stretches the image, so zooming in may look blurry (same as the native console). Auto follows the display scale.</value>
   </data>
   <data name="HostPage_Disable" xml:space="preserve">
     <value>Disable</value>

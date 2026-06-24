@@ -999,9 +999,9 @@ namespace ExHyperV.Properties {
         /// <summary>
         ///   查找类似 适应窗口 的本地化字符串。
         /// </summary>
-        public static string ConsoleWindow_ZoomFit {
+        public static string ConsoleWindow_ZoomAuto {
             get {
-                return ResourceManager.GetString("ConsoleWindow_ZoomFit", resourceCulture);
+                return ResourceManager.GetString("ConsoleWindow_ZoomAuto", resourceCulture);
             }
         }
 
