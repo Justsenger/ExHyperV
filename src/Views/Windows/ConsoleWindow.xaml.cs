@@ -375,8 +375,8 @@ namespace ExHyperV.Views
             LayoutRdpHost();
         }
 
-        /// <summary>当前基本会话缩放百分比(25–200)：全屏→100（ZoomLevel 全屏无效，画面原生居中）；
-        /// "自动"/空 → 显示器 DPI%；"N%" → N；无法解析兜底 100。</summary>
+        /// <summary>当前基本会话缩放百分比(25–200)：全屏→100（实测全屏放大会让 mstscax 连接栏消失、退不出去，
+        /// 故全屏强制 100、退出全屏再还原档位，与 VMConnect 一致）；"自动"/空 → 显示器 DPI%；"N%" → N；兜底 100。</summary>
         private int BasicZoomPercent()
         {
             if (_vm.IsFullScreen) return 100;
