@@ -2690,19 +2690,19 @@ The existing NAT switch is: '{0}'</value>
     <value>Advanced</value>
   </data>
   <data name="VmAdvanced_Hint" xml:space="preserve">
-    <value>Console, display and other advanced settings</value>
+    <value>Display settings and advanced parameters</value>
   </data>
   <data name="VmDashboard_DescAdvanced" xml:space="preserve">
     <value>Advanced</value>
   </data>
   <data name="VmDashboard_HintAdvanced" xml:space="preserve">
-    <value>Console support, display resolution, etc.</value>
+    <value>Display settings and advanced parameters</value>
   </data>
   <data name="VmAdvanced_ResolutionTitle" xml:space="preserve">
     <value>Basic Session Default Resolution</value>
   </data>
   <data name="VmAdvanced_ResolutionHint" xml:space="preserve">
-    <value>Display resolution under basic (non-enhanced) session. Pick a preset or type a custom value (e.g. 1280 x 720). Change while the VM is off; takes effect on next boot.</value>
+    <value>Default, preset, or manual entry; width and height must be even.</value>
   </data>
   <data name="VmAdvanced_ResolutionAuto" xml:space="preserve">
     <value>Default (Auto)</value>
@@ -2717,7 +2717,7 @@ The existing NAT switch is: '{0}'</value>
     <value>Console Support</value>
   </data>
   <data name="VmAdvanced_ConsoleHint" xml:space="preserve">
-    <value>When off, the VM has no synthetic display and cannot be accessed via the console — suitable when you access it via streaming/RDP. Change while the VM is off.</value>
+    <value>Generation 2 VMs only. When off, the VM cannot be accessed via the console — suitable for streaming/RDP.</value>
   </data>
   <data name="VmAdvanced_ConsoleDisabledHint" xml:space="preserve">
     <value>Console support is disabled for this VM. Access it via streaming or RDP.</value>

@@ -2690,19 +2690,19 @@
     <value>高级</value>
   </data>
   <data name="VmAdvanced_Hint" xml:space="preserve">
-    <value>控制台、显示等高级设定</value>
+    <value>显示设置与高级参数</value>
   </data>
   <data name="VmDashboard_DescAdvanced" xml:space="preserve">
     <value>高级</value>
   </data>
   <data name="VmDashboard_HintAdvanced" xml:space="preserve">
-    <value>控制台支持、显示分辨率等</value>
+    <value>显示设置与高级参数</value>
   </data>
   <data name="VmAdvanced_ResolutionTitle" xml:space="preserve">
     <value>基本会话默认分辨率</value>
   </data>
   <data name="VmAdvanced_ResolutionHint" xml:space="preserve">
-    <value>基本(非增强)会话下的显示分辨率，可选预设或手动输入自定义值(如 1280 x 720)；需关机修改、下次开机生效。</value>
+    <value>默认、预设或手动输入，宽高不可为奇数。</value>
   </data>
   <data name="VmAdvanced_ResolutionAuto" xml:space="preserve">
     <value>默认（自适应）</value>
@@ -2717,7 +2717,7 @@
     <value>控制台支持</value>
   </data>
   <data name="VmAdvanced_ConsoleHint" xml:space="preserve">
-    <value>关闭后该虚拟机将没有合成显示、无法经控制台访问，适合已配置串流/RDP 直连的场景；需关机修改。</value>
+    <value>仅第 2 代虚拟机有效。关闭后无法经控制台访问，适合串流/RDP 直连。</value>
   </data>
   <data name="VmAdvanced_ConsoleDisabledHint" xml:space="preserve">
     <value>该虚拟机已禁用控制台支持，请经串流或 RDP 访问。</value>
