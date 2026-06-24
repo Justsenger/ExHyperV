@@ -57,12 +57,10 @@ namespace ExHyperV.Views
             RdpHost.Connected += () => Dispatcher.BeginInvoke(new Action(() =>
             {
                 _enhancedConnecting = false;   // 已连上（增强成功，或本就是基本）
-                // 连上即按会话类型校正缩放（不能依赖 RemoteSizeChange——增强/基本同分辨率切换时它不触发）：
-                // 增强会话靠动态分辨率跟随窗口、画面恒 1:1，ZoomLevel 须归 100；基本会话则应用当前缩放档。
-                // ZoomLevel 是 OCX 级属性、跨会话模式重连仍保留，不在此校正就会串味
-                // （基本→增强：画面溢出+滚动条；增强→基本：下拉显示缩放档但画面停在 100% + 灰信箱）。
-                if (_vm.IsEnhancedMode) RdpHost.SetZoomLevel(100);
-                else ApplyBasicZoom();
+                // 基本会话连上即应用当前缩放档（不能依赖 RemoteSizeChange——同分辨率重连时它不触发）。
+                // 增强会话连上后【绝不】碰 ZoomLevel：mid-session 设 ZoomLevel 会和动态分辨率(UpdateSessionDisplaySettings)
+                // 打架，致画面不随分辨率刷新、还被缩成灰信箱。进增强前的归零已在 IsEnhancedMode 分支(断开重连之前)做好。
+                if (!_vm.IsEnhancedMode) ApplyBasicZoom();
                 if (_pendingEnhancedInset && _vm.IsEnhancedMode && !_vm.IsFullScreen)
                 {
                     _pendingEnhancedInset = false;
@@ -174,6 +172,10 @@ namespace ExHyperV.Views
             switch (e.PropertyName)
             {
                 case nameof(ConsoleViewModel.IsEnhancedMode):
+                    // 切到增强【前】把 OCX 的 ZoomLevel 归 100：此刻仍是已连的基本会话、马上要断开重连，在这里设安全。
+                    // 必须早于进入增强——增强靠动态分辨率，不能带基本会话残留的缩放；且一旦进了增强再 mid-session 设
+                    // ZoomLevel 会和动态分辨率打架(画面不随分辨率刷新+灰信箱)，故归零只能在断开重连之前做、之后绝不碰。
+                    if (_vm.IsEnhancedMode) RdpHost.SetZoomLevel(100);
                     _pendingEnhancedInset = _vm.IsEnhancedMode;      // 进入增强：连上后放大窗口露出可抓取边
                     SyncConnection(forceReconnect: true);            // 换 PCB，须断后重连
                     if (!_vm.IsFullScreen) ApplyWindowedLayout();
