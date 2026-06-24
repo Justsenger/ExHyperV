@@ -2686,6 +2686,27 @@ The existing NAT switch is: '{0}'</value>
   <data name="Error_VmCreate_RollbackFailed" xml:space="preserve">
     <value>Creation failed and the half-created VM '{0}' could not be removed automatically — please delete it manually. (Rollback error: {1})</value>
   </data>
+  <data name="VmAdvanced_Title" xml:space="preserve">
+    <value>Advanced</value>
+  </data>
+  <data name="VmAdvanced_Hint" xml:space="preserve">
+    <value>Console, display and other advanced settings</value>
+  </data>
+  <data name="VmDashboard_DescAdvanced" xml:space="preserve">
+    <value>Advanced</value>
+  </data>
+  <data name="VmDashboard_HintAdvanced" xml:space="preserve">
+    <value>Console support, display resolution, etc.</value>
+  </data>
+  <data name="VmAdvanced_ResolutionTitle" xml:space="preserve">
+    <value>Basic Session Default Resolution</value>
+  </data>
+  <data name="VmAdvanced_ResolutionHint" xml:space="preserve">
+    <value>Display resolution under basic (non-enhanced) session. Change while the VM is off; takes effect on next boot.</value>
+  </data>
+  <data name="VmAdvanced_ResolutionAuto" xml:space="preserve">
+    <value>Default (Auto)</value>
+  </data>
   <data name="Error_VmCreate_NoGuardian" xml:space="preserve">
     <value>Failed to get or create UntrustedGuardian</value>
   </data>

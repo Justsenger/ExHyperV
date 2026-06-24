@@ -7814,6 +7814,34 @@ namespace ExHyperV.Properties {
             get { return ResourceManager.GetString("Error_VmCreate_RollbackFailed", resourceCulture); }
         }
 
+        public static string VmAdvanced_Title {
+            get { return ResourceManager.GetString("VmAdvanced_Title", resourceCulture); }
+        }
+
+        public static string VmAdvanced_Hint {
+            get { return ResourceManager.GetString("VmAdvanced_Hint", resourceCulture); }
+        }
+
+        public static string VmDashboard_DescAdvanced {
+            get { return ResourceManager.GetString("VmDashboard_DescAdvanced", resourceCulture); }
+        }
+
+        public static string VmDashboard_HintAdvanced {
+            get { return ResourceManager.GetString("VmDashboard_HintAdvanced", resourceCulture); }
+        }
+
+        public static string VmAdvanced_ResolutionTitle {
+            get { return ResourceManager.GetString("VmAdvanced_ResolutionTitle", resourceCulture); }
+        }
+
+        public static string VmAdvanced_ResolutionHint {
+            get { return ResourceManager.GetString("VmAdvanced_ResolutionHint", resourceCulture); }
+        }
+
+        public static string VmAdvanced_ResolutionAuto {
+            get { return ResourceManager.GetString("VmAdvanced_ResolutionAuto", resourceCulture); }
+        }
+
         public static string Error_VmCreate_NoGuardian {
             get { return ResourceManager.GetString("Error_VmCreate_NoGuardian", resourceCulture); }
         }

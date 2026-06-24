@@ -2686,6 +2686,27 @@
   <data name="Error_VmCreate_RollbackFailed" xml:space="preserve">
     <value>创建失败，且未能自动删除半成品虚拟机「{0}」，请手动删除。（回滚错误：{1}）</value>
   </data>
+  <data name="VmAdvanced_Title" xml:space="preserve">
+    <value>高级</value>
+  </data>
+  <data name="VmAdvanced_Hint" xml:space="preserve">
+    <value>控制台、显示等高级设定</value>
+  </data>
+  <data name="VmDashboard_DescAdvanced" xml:space="preserve">
+    <value>高级</value>
+  </data>
+  <data name="VmDashboard_HintAdvanced" xml:space="preserve">
+    <value>控制台支持、显示分辨率等</value>
+  </data>
+  <data name="VmAdvanced_ResolutionTitle" xml:space="preserve">
+    <value>基本会话默认分辨率</value>
+  </data>
+  <data name="VmAdvanced_ResolutionHint" xml:space="preserve">
+    <value>基本(非增强)会话下虚拟机的显示分辨率，需关机修改、下次开机生效。</value>
+  </data>
+  <data name="VmAdvanced_ResolutionAuto" xml:space="preserve">
+    <value>默认（自适应）</value>
+  </data>
   <data name="Error_VmCreate_NoGuardian" xml:space="preserve">
     <value>无法获取或创建 UntrustedGuardian</value>
   </data>
