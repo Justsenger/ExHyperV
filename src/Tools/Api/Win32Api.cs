@@ -58,6 +58,17 @@ public static class Win32Api
         return GetDevNodeStringProperty(devInst, instanceId, new Guid("4340A6C5-93FA-4706-972C-7B648008A5A7"), 8); // DEVPKEY_Device_Parent
     }
 
+    /// <summary>取设备的厂商与驱动版本（DEVPKEY_Device_Manufacturer / DriverVersion）。取不到返回空串。</summary>
+    public static (string Manufacturer, string DriverVersion) GetDeviceDriverInfo(string instanceId)
+    {
+        if (string.IsNullOrWhiteSpace(instanceId)) return (string.Empty, string.Empty);
+        if (NativeMethods.CM_Locate_DevNode(out uint devInst, instanceId, NativeMethods.CM_LOCATE_DEVNODE_PHANTOM) != NativeMethods.CR_SUCCESS)
+            return (string.Empty, string.Empty);
+        string manu = GetDevNodeStringProperty(devInst, instanceId, new Guid("A45C254E-DF1C-4EFD-8020-67D146A850E0"), 13);  // DEVPKEY_Device_Manufacturer
+        string ver = GetDevNodeStringProperty(devInst, instanceId, new Guid("2BD67D8B-8BEB-48D5-87E0-6CDA3428040A"), 3);    // DEVPKEY_Device_DriverVersion
+        return (manu, ver);
+    }
+
     // ── PnP 设备枚举 ─────────────────────────────────────────────
 
     /// <summary>

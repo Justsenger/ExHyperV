@@ -96,33 +96,31 @@ namespace ExHyperV.Services
 
             var gpuList = new List<GpuInfo>();
 
-            // 1. Win32_VideoController
-            var gpuResp = await WmiApi.QueryAsync(
-                "SELECT PNPDeviceID, Name, AdapterCompatibility, DriverVersion FROM Win32_VideoController",
-                obj => new {
-                    Name = obj["Name"]?.ToString(),
-                    InstanceId = obj["PNPDeviceID"]?.ToString(),
-                    Manu = obj["AdapterCompatibility"]?.ToString(),
-                    DriverVersion = obj["DriverVersion"]?.ToString()
-                }, WmiScope.CimV2);
-
-            if (gpuResp.HasData)
+            // 1. 设备列表 + 完整 InstanceId：走原生 CfgMgr(Win32Api.GetAllDevices)，不再用 Win32_VideoController。
+            //    后者由 CIMWin32 实探显示驱动，GPU 空闲时要先唤醒它 → 偶发数秒卡；CfgMgr 读 PnP 静态属性库，稳定快。
+            //    厂商/驱动版本经 DEVPKEY 取(GetDeviceDriverInfo)；完整 InstanceId 是第 3 步匹配 Msvm_PartitionableGpu 必需。
+            var cfgGpus = await Task.Run(() =>
             {
-                foreach (var gpu in gpuResp.Data)
+                var list = new List<GpuInfo>();
+                foreach (var dev in Win32Api.GetAllDevices())
                 {
-                    if (gpu.Name == null || gpu.InstanceId == null || gpu.Manu == null || gpu.DriverVersion == null) continue;
-                    if (!gpu.InstanceId.ToUpper().StartsWith("PCI\\") && !gpu.InstanceId.ToUpper().Contains("ACPI")) continue;
-                    string vendor = pciInfoProvider.GetVendorFromInstanceId(gpu.InstanceId);
-                    gpuList.Add(new GpuInfo
+                    if (!string.Equals(dev.Class, "Display", StringComparison.OrdinalIgnoreCase)) continue;
+                    string instanceId = dev.InstanceId ?? string.Empty;
+                    if (!instanceId.ToUpper().StartsWith("PCI\\") && !instanceId.ToUpper().Contains("ACPI")) continue;
+                    if (string.IsNullOrEmpty(dev.FriendlyName)) continue;
+                    var (manu, driverVersion) = Win32Api.GetDeviceDriverInfo(instanceId);
+                    list.Add(new GpuInfo
                     {
-                        Name = gpu.Name,
-                        Manu = gpu.Manu,
-                        InstanceId = gpu.InstanceId,
-                        DriverVersion = gpu.DriverVersion,
-                        Vendor = vendor
+                        Name = dev.FriendlyName,
+                        Manu = string.IsNullOrEmpty(manu) ? pciInfoProvider.GetVendorFromInstanceId(instanceId) : manu,
+                        InstanceId = instanceId,
+                        DriverVersion = driverVersion,
+                        Vendor = pciInfoProvider.GetVendorFromInstanceId(instanceId)
                     });
                 }
-            }
+                return list;
+            });
+            gpuList.AddRange(cfgGpus);
 
             // 2. GPU RAM 注册表
             try
