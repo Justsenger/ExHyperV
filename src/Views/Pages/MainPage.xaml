@@ -105,7 +105,7 @@
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
-                    <ui:FontIcon Grid.Column="0" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xE737;" FontSize="24" Margin="0,0,15,0" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                    <ui:FontIcon Grid.Column="0" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xE90F;" FontSize="24" Margin="0,0,15,0" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
                         <TextBlock Text="{x:Static properties:Resources.Menu_HostConfig}" FontSize="16"/>
                         <TextBlock Text="{x:Static properties:Resources.Desc_HostConfig}" FontSize="13" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" Margin="0,4,0,0"/>

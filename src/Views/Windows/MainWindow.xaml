@@ -49,7 +49,7 @@
                     NavigationCacheMode="Enabled"
                     TargetPageType="{x:Type pages:HostPage}">
                     <ui:NavigationViewItem.Icon>
-                        <ui:FontIcon FontSize="16" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xE737;"/>
+                        <ui:FontIcon FontSize="16" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xE90F;"/>
                     </ui:NavigationViewItem.Icon>
                 </ui:NavigationViewItem>
                 
