@@ -36,11 +36,17 @@ public static class Win32Api
             ? NativeMethods.CM_Enable_DevNode(devInst, 0)
             : NativeMethods.CM_Disable_DevNode(devInst, NativeMethods.CM_DISABLE_UI_NOT_OK);
 
-        return cr == NativeMethods.CR_SUCCESS
-            ? ApiResponse.Ok()
-            : ApiResponse.Fail(
-                $"{(enable ? "CM_Enable_DevNode" : "CM_Disable_DevNode")} failed for '{instanceId}'",
-                cr, ApiErrorSource.Win32);
+        if (cr == NativeMethods.CR_SUCCESS)
+            return ApiResponse.Ok();
+
+        // 设备本身不可禁用（USB4 主机路由器、板载老式 PCI 设备等）→ 无法从主机分离直通。
+        // 与旧 PowerShell 版本一致，给出「不支持」提示，而非裸 CM_Disable_DevNode 失败名。
+        if (!enable && cr == NativeMethods.CR_NOT_DISABLEABLE)
+            return ApiResponse.Fail(Properties.Resources.Error_DeviceNotAssignable, cr, ApiErrorSource.Win32);
+
+        return ApiResponse.Fail(
+            $"{(enable ? "CM_Enable_DevNode" : "CM_Disable_DevNode")} failed for '{instanceId}'",
+            cr, ApiErrorSource.Win32);
     }
 
     // ── PnP 设备枚举 ─────────────────────────────────────────────
@@ -347,6 +353,7 @@ internal static class NativeMethods
     #region cfgmgr32
     public const int CR_SUCCESS = 0x00000000;
     public const int CR_BUFFER_SMALL = 0x0000001A;
+    public const int CR_NOT_DISABLEABLE = 0x00000028; // 设备不可禁用（USB4 主机路由器、板载老式 PCI 等）→ 无法直通，等价旧 PS「不支持」
     public const uint CM_LOCATE_DEVNODE_NORMAL = 0x00000000;
     public const uint CM_LOCATE_DEVNODE_PHANTOM = 0x00000001;
     public const uint CM_DISABLE_UI_NOT_OK = 0x00000004; // 0x4=UI_NOT_OK(polite禁用);0x2 实为 CM_DISABLE_HARDWARE,软件枚举设备(USB4_MS_CM 等)不支持硬件禁用会失败

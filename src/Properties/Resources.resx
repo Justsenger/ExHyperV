@@ -361,6 +361,27 @@ Do you want to shut down the virtual machine and expand its MMIO space to 64GB?<
   <data name="Error_Unknown" xml:space="preserve">
     <value>Unknown error</value>
   </data>
+  <data name="Error_DeviceNotAssignable" xml:space="preserve">
+    <value>This device does not support passthrough assignment.</value>
+  </data>
+  <data name="PCIePage_Title_LastGpuWarning" xml:space="preserve">
+    <value>Warning: Host May Lose Video Output!</value>
+  </data>
+  <data name="PCIePage_Msg_LastGpuWarning" xml:space="preserve">
+    <value>{0} is the only graphics card on the host.
+After passthrough the host will lose video output and the physical display may go black.
+Continue?</value>
+  </data>
+  <data name="PCIePage_Title_CompanionDevice" xml:space="preserve">
+    <value>Confirm Companion Devices</value>
+  </data>
+  <data name="PCIePage_Msg_CompanionDevice" xml:space="preserve">
+    <value>{0} also has the following associated devices:
+
+{1}
+
+Connect them to "{2}" as well?</value>
+  </data>
   <data name="PCIePage_Error_ExecutionGeneric" xml:space="preserve">
     <value>An error occurred during execution:
 

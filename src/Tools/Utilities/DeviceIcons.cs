@@ -29,6 +29,8 @@ namespace ExHyperV.Tools
                 case "SCSIAdapter":
                 case "HDC":
                     return "\xEDA2";
+                case "ComputeAccelerator": // NPU/AI 加速器（Intel AI Boost / AMD Ryzen AI / 高通 Hexagon 在 Windows 上均归此 PnP 类）
+                    return "\xEEA1";       // Segoe Fluent “CPU” 处理器图标
                 default:
                     return friendlyName.Contains("Audio")
                         ? "\xE995"

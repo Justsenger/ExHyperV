@@ -12,7 +12,7 @@ namespace ExHyperV.Interaction
         /// <summary>
         /// 显示确认对话框，返回用户是否确认
         /// </summary>
-        public static async Task<bool> ShowConfirmAsync(string title, string message, string confirmButtonText = null, string cancelButtonText = null, bool isDanger = false)
+        public static async Task<bool> ShowConfirmAsync(string title, string message, string confirmButtonText = null, string cancelButtonText = null, bool isDanger = false, bool showIcon = true, double maxWidth = 0)
         {
             if (Application.Current.MainWindow is not MainWindow mainWindow)
             {
@@ -25,38 +25,51 @@ namespace ExHyperV.Interaction
                 return false;
             }
 
-            var grid = new Grid();
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(40) });
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-
-            var icon = new FontIcon
-            {
-                FontFamily = Application.Current.FindResource("SegoeFluentIcons") as FontFamily,
-                Glyph = isDanger ? "\uE7BA" : "\uE946", // Warning icon for danger, Info icon otherwise
-                FontSize = 28,
-                VerticalAlignment = VerticalAlignment.Center,
-                Foreground = isDanger ? new SolidColorBrush(System.Windows.Media.Color.FromRgb(196, 43, 28)) : null
-            };
-
             var contentTextBlock = new TextBlock
             {
                 Text = message,
                 TextWrapping = TextWrapping.Wrap,
                 FontSize = 14,
                 LineHeight = 24,
+                TextAlignment = TextAlignment.Left,
+                HorizontalAlignment = HorizontalAlignment.Stretch,
                 VerticalAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(12, 0, 0, 0)
+                Margin = showIcon ? new Thickness(12, 0, 0, 0) : new Thickness(0)
             };
+            if (maxWidth > 0) contentTextBlock.MaxWidth = maxWidth; // 收窄对话框宽度
 
-            Grid.SetColumn(icon, 0);
-            Grid.SetColumn(contentTextBlock, 1);
-            grid.Children.Add(icon);
-            grid.Children.Add(contentTextBlock);
+            // showIcon=false: no icon, text left-aligned and full width (flush with the title)
+            object dialogContent;
+            if (showIcon)
+            {
+                var grid = new Grid();
+                grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(40) });
+                grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+                var icon = new FontIcon
+                {
+                    FontFamily = Application.Current.FindResource("SegoeFluentIcons") as FontFamily,
+                    Glyph = isDanger ? "\uE814" : "\uE946", // Warning icon for danger, Info icon otherwise
+                    FontSize = 28,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Foreground = isDanger ? new SolidColorBrush(System.Windows.Media.Color.FromRgb(196, 43, 28)) : null
+                };
+
+                Grid.SetColumn(icon, 0);
+                Grid.SetColumn(contentTextBlock, 1);
+                grid.Children.Add(icon);
+                grid.Children.Add(contentTextBlock);
+                dialogContent = grid;
+            }
+            else
+            {
+                dialogContent = contentTextBlock;
+            }
 
             var dialog = new ContentDialog
             {
                 Title = title,
-                Content = grid,
+                Content = dialogContent,
                 PrimaryButtonText = confirmButtonText ?? Properties.Resources.Btn_Confirm,
                 CloseButtonText = cancelButtonText ?? Properties.Resources.Btn_Cancel,
                 DialogHost = dialogHost,

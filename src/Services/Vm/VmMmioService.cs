@@ -45,25 +45,26 @@ namespace ExHyperV.Services
                     return false;
                 }
 
-                // 基础地址 = 上限的一半
-                ulong finalBase = ceilingMb / 2;
-                // 空间大小 = 128GB(131072MB) 与 (上限 - 基础地址 - 1GB) 的较小值
-                ulong remaining = ceilingMb - finalBase - 1024;
-                ulong finalHighSize = Math.Min(remaining, 131072UL);
-                ulong finalLowSize = 1024UL; // 固定 1GB
+                var plan = ComputeMmioPlan();
+                if (plan is null)
+                {
+                    Debug.WriteLine("[VmMmio] 无法读取宿主物理地址宽度，跳过 MMIO 配置。");
+                    return false;
+                }
+                var p = plan.Value;
 
                 Debug.WriteLine(Properties.Resources.VmMmio_LogFinalResult);
-                Debug.WriteLine($" - HighMmioGapBase: {finalBase}");
-                Debug.WriteLine($" - HighMmioGapSize: {finalHighSize}");
-                Debug.WriteLine($" - LowMmioGapSize: {finalLowSize}");
+                Debug.WriteLine($" - HighMmioGapBase: {p.BaseMb}");
+                Debug.WriteLine($" - HighMmioGapSize: {p.HighSizeMb}");
+                Debug.WriteLine($" - LowMmioGapSize: {p.LowSizeMb}");
 
                 var resp = await WmiApi.WithObjectAsync(
                     wql: RealizedSettingsWql(vmName),
                     modifier: obj =>
                     {
-                        obj["HighMmioGapBase"] = finalBase;
-                        obj["HighMmioGapSize"] = finalHighSize;
-                        obj["LowMmioGapSize"] = finalLowSize;
+                        obj["HighMmioGapBase"] = p.BaseMb;
+                        obj["HighMmioGapSize"] = p.HighSizeMb;
+                        obj["LowMmioGapSize"] = p.LowSizeMb;
                         obj["GuestControlledCacheTypes"] = true;
                     });
 
@@ -75,6 +76,24 @@ namespace ExHyperV.Services
                 Debug.WriteLine(string.Format(Properties.Resources.VmMmio_LogError, ex.Message));
                 return false;
             }
+        }
+
+        /// <summary>MMIO 间隙方案（单位 MB）：高位基址、高位大小、低位大小。</summary>
+        public readonly record struct MmioPlan(ulong BaseMb, ulong HighSizeMb, ulong LowSizeMb);
+
+        /// <summary>
+        /// 按宿主物理地址宽度计算最优 MMIO 间隙：base = 上限/2、
+        /// highSize = min(上限 - base - 1GB, 128GB)、lowSize = 1GB。
+        /// 读不到上限或位宽不合理时返回 null（调用方据此回退）。
+        /// </summary>
+        public static MmioPlan? ComputeMmioPlan()
+        {
+            ulong ceilingMb = QueryHostMmioCeilingMb();
+            if (ceilingMb == 0) return null;
+            ulong finalBase = ceilingMb / 2;
+            ulong remaining = ceilingMb - finalBase - 1024;
+            ulong finalHighSize = Math.Min(remaining, 131072UL);
+            return new MmioPlan(finalBase, finalHighSize, 1024UL);
         }
 
         /// <summary>

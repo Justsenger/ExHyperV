@@ -361,6 +361,27 @@
   <data name="Error_Unknown" xml:space="preserve">
     <value>未知错误</value>
   </data>
+  <data name="Error_DeviceNotAssignable" xml:space="preserve">
+    <value>此设备不支持直通分配。</value>
+  </data>
+  <data name="PCIePage_Title_LastGpuWarning" xml:space="preserve">
+    <value>警告：主机可能会失去视频输出！</value>
+  </data>
+  <data name="PCIePage_Msg_LastGpuWarning" xml:space="preserve">
+    <value>「{0}」是主机当前唯一的显卡。
+直通后主机将失去视频输出，物理屏幕可能黑屏。
+是否继续？</value>
+  </data>
+  <data name="PCIePage_Title_CompanionDevice" xml:space="preserve">
+    <value>关联设备确认</value>
+  </data>
+  <data name="PCIePage_Msg_CompanionDevice" xml:space="preserve">
+    <value>{0} 还关联以下设备：
+
+{1}
+
+是否同样连接到「{2}」？</value>
+  </data>
   <data name="PCIePage_Error_ExecutionGeneric" xml:space="preserve">
     <value>执行时遇到错误：
 

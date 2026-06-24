@@ -8,13 +8,23 @@ namespace ExHyperV.Services
 
     public static class PCIeService
     {
-        private const ulong RequiredMmioBytes = 64UL * 1024 * 1024 * 1024; // 64 GiB
-
         private static string GetPureId(string? instanceId)
         {
             if (string.IsNullOrEmpty(instanceId)) return string.Empty;
             int idx = instanceId.IndexOf(@"\VEN_", StringComparison.OrdinalIgnoreCase);
             return idx >= 0 ? instanceId.Substring(idx) : instanceId;
+        }
+
+        /// <summary>
+        /// 同卡键：把 LocationPath 末段 PCI(设备号+功能号) 的功能号清零，
+        /// 使同一物理多功能设备的各功能（如显卡 fn0 与板载声卡 fn1）归并到同一键。
+        /// 例："PCIROOT(0)#PCI(0600)#PCI(0001)" → "PCIROOT(0)#PCI(0600)#PCI(0000)"
+        /// </summary>
+        public static string CardKey(string? locationPath)
+        {
+            if (string.IsNullOrEmpty(locationPath)) return string.Empty;
+            return System.Text.RegularExpressions.Regex.Replace(
+                locationPath, @"#PCI\(([0-9A-Fa-f]{2})[0-9A-Fa-f]{2}\)$", "#PCI(${1}00)");
         }
 
         public static async Task<(List<DeviceInfo> Devices, List<string> VmNames)> GetPCIeInfoAsync()
@@ -141,21 +151,24 @@ namespace ExHyperV.Services
                                 name.Contains("显卡", StringComparison.OrdinalIgnoreCase) ||
                                 name.Contains("Graphics", StringComparison.OrdinalIgnoreCase))
                                 return 0;
+                            // NPU/AI 加速器：紧随显卡置于顶部，但不抢显卡的最前位（当前能直通、尚不可用）
+                            if (cls.Equals("ComputeAccelerator", StringComparison.OrdinalIgnoreCase))
+                                return 1;
                             if (name.Contains("Audio", StringComparison.OrdinalIgnoreCase) ||
                                 name.Contains("声音", StringComparison.OrdinalIgnoreCase) ||
                                 cls.Equals("Media", StringComparison.OrdinalIgnoreCase) ||
                                 cls.Equals("Sound", StringComparison.OrdinalIgnoreCase))
-                                return 1;
+                                return 2;
                             if (cls.Equals("Net", StringComparison.OrdinalIgnoreCase) ||
                                 cls.Equals("NetClient", StringComparison.OrdinalIgnoreCase))
-                                return 2;
-                            if (cls.Equals("USB", StringComparison.OrdinalIgnoreCase))
                                 return 3;
+                            if (cls.Equals("USB", StringComparison.OrdinalIgnoreCase))
+                                return 4;
                             if (cls.Equals("SCSIAdapter", StringComparison.OrdinalIgnoreCase) ||
                                 cls.Equals("HDC", StringComparison.OrdinalIgnoreCase) ||
                                 cls.Equals("DiskDrive", StringComparison.OrdinalIgnoreCase))
-                                return 4;
-                            return 5;
+                                return 5;
+                            return 6;
                         }
                         return GetOrder(a).CompareTo(GetOrder(b));
                     });
@@ -189,10 +202,11 @@ namespace ExHyperV.Services
             try
             {
                 ulong highMmioGapSizeMb = Convert.ToUInt64(resp.Data[0]);
-                ulong currentMmioBytes = highMmioGapSizeMb * 1048576UL;
-                if (currentMmioBytes < RequiredMmioBytes)
+                // 阈值复用 GPU-PV 的 MMIO 计算（按宿主物理地址宽度）；读不到时回退 64GB
+                ulong requiredMb = VmMmioService.ComputeMmioPlan()?.HighSizeMb ?? (64UL * 1024UL);
+                if (highMmioGapSizeMb < requiredMb)
                 {
-                    long currentMmioGB = (long)(currentMmioBytes / (1024 * 1024 * 1024));
+                    long currentMmioGB = (long)(highMmioGapSizeMb / 1024UL);
                     string message = string.Format(Properties.Resources.Warning_LowMmioSpace_ConfirmExpand, vmName, currentMmioGB);
                     return (MmioCheckResultType.NeedsConfirmation, message);
                 }
@@ -205,17 +219,8 @@ namespace ExHyperV.Services
         {
             if (!await EnsureVmStoppedAsync(vmName)) return false;
 
-            ulong requiredMb = RequiredMmioBytes / 1048576UL;
-            var setResult = await WmiApi.WithObjectAsync(
-                wql: $"SELECT * FROM Msvm_VirtualSystemSettingData WHERE ElementName = '{WmiApi.Escape(vmName)}' AND VirtualSystemType = 'Microsoft:Hyper-V:System:Realized'",
-                modifier: obj => obj["HighMmioGapSize"] = requiredMb,
-                submitMethod: "ModifySystemSettings",
-                submitParamName: "SystemSettings",
-                wrapInArray: false,
-                scope: WmiScope.HyperV,
-                serviceWql: "SELECT * FROM Msvm_VirtualSystemManagementService");
-
-            return setResult.Success;
+            // 复用 GPU-PV 的 MMIO 配置：base=上限/2、highSize=min(剩余,128GB)、low=1GB，不再写死 64GB
+            return await VmMmioService.ConfigureMmioAsync(vmName);
         }
 
         public static async Task<(bool Success, string? ErrorMessage)> ExecutePCIeOperationAsync(

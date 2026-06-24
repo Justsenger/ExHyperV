@@ -2331,6 +2331,51 @@ namespace ExHyperV.Properties {
                 return ResourceManager.GetString("Error_Unknown", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   查找类似 This device does not support passthrough assignment. 的本地化字符串。
+        /// </summary>
+        public static string Error_DeviceNotAssignable {
+            get {
+                return ResourceManager.GetString("Error_DeviceNotAssignable", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   查找类似 Warning: Host May Lose Video Output! 的本地化字符串。
+        /// </summary>
+        public static string PCIePage_Title_LastGpuWarning {
+            get {
+                return ResourceManager.GetString("PCIePage_Title_LastGpuWarning", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   查找类似 {0} is the only graphics card on the host... 的本地化字符串。
+        /// </summary>
+        public static string PCIePage_Msg_LastGpuWarning {
+            get {
+                return ResourceManager.GetString("PCIePage_Msg_LastGpuWarning", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   查找类似 Confirm Companion Devices 的本地化字符串。
+        /// </summary>
+        public static string PCIePage_Title_CompanionDevice {
+            get {
+                return ResourceManager.GetString("PCIePage_Title_CompanionDevice", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   查找类似 {0} also includes the following companion devices: 的本地化字符串。
+        /// </summary>
+        public static string PCIePage_Msg_CompanionDevice {
+            get {
+                return ResourceManager.GetString("PCIePage_Msg_CompanionDevice", resourceCulture);
+            }
+        }
         
         /// <summary>
         ///   查找类似 Failed to update configuration for switch &apos;{0}&apos;: {1} 的本地化字符串。
