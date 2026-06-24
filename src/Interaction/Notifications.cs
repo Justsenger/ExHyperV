@@ -85,6 +85,8 @@ namespace ExHyperV.Interaction
                 {
                     Title = Properties.Resources.Status_Title_Success,
                     Content = content,
+                    // 内容区显式撑满，ContentPresenter 才会把上面的 Grid 拉到全宽，自动列里的按钮方能真正贴右
+                    HorizontalContentAlignment = HorizontalAlignment.Stretch,
                     Appearance = ControlAppearance.Success,
                     Icon = new SymbolIcon(SymbolRegular.CheckmarkCircle24) { FontSize = 24 },
                     Timeout = TimeSpan.FromSeconds(15)
