@@ -346,9 +346,18 @@ namespace ExHyperV.ViewModels
 
         // 修改原本启动外部 vmconnect.exe 的逻辑
         [RelayCommand]
-        private void OpenNativeConnect()
+        private async Task OpenNativeConnectAsync()
         {
             if (SelectedVm == null) return;
+
+            // 已禁用控制台支持(无合成显示)的 VM：打开控制台只会黑屏/连不上，明确提示而非打开
+            if (!await VmConsoleService.IsConsoleSupportEnabledAsync(SelectedVm.Name))
+            {
+                ShowSnackbar(Properties.Resources.Error_Vm_StartFail,
+                    Properties.Resources.VmAdvanced_ConsoleDisabledHint,
+                    ControlAppearance.Caution, SymbolRegular.Warning24);
+                return;
+            }
 
             try
             {

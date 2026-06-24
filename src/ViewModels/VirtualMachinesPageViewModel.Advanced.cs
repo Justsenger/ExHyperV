@@ -19,6 +19,10 @@ namespace ExHyperV.ViewModels
 
         [ObservableProperty] private string _selectedVideoResolution = string.Empty;
 
+        // 控制台支持开关（增删合成显示控制器）
+        [ObservableProperty] private bool _isConsoleSupportEnabled = true;
+        private bool _suppressConsoleApply;
+
         [RelayCommand]
         private async Task GoToAdvancedSettingsAsync()
         {
@@ -31,8 +35,36 @@ namespace ExHyperV.ViewModels
                 SelectedVideoResolution = (ok && type == 3 && w > 0 && h > 0)
                     ? $"{w} x {h}"
                     : Properties.Resources.VmAdvanced_ResolutionAuto;
+
+                _suppressConsoleApply = true;
+                IsConsoleSupportEnabled = await VmConsoleService.IsConsoleSupportEnabledAsync(SelectedVm.Name);
+                _suppressConsoleApply = false;
             }
             finally { IsLoadingSettings = false; }
+        }
+
+        partial void OnIsConsoleSupportEnabledChanged(bool value)
+        {
+            if (_suppressConsoleApply || SelectedVm == null) return;
+            _ = ApplyConsoleSupportAsync(value);
+        }
+
+        private async Task ApplyConsoleSupportAsync(bool enable)
+        {
+            var (ok, msg) = await VmConsoleService.SetConsoleSupportAsync(SelectedVm.Name, enable);
+            if (ok)
+            {
+                ShowSnackbar(Properties.Resources.VmAdvanced_ConsoleTitle, Properties.Resources.Common_Success,
+                    ControlAppearance.Success, SymbolRegular.CheckmarkCircle24);
+            }
+            else
+            {
+                ShowSnackbar(Properties.Resources.VmAdvanced_ConsoleTitle, msg,
+                    ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                _suppressConsoleApply = true;
+                IsConsoleSupportEnabled = !enable;   // 失败回弹开关
+                _suppressConsoleApply = false;
+            }
         }
 
         // 应用：可填预设或自定义 "宽x高"（x/×/空格/* 等分隔符均接受）；空或"自适应"=Default(自适应)

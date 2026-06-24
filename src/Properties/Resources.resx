@@ -2713,6 +2713,15 @@ The existing NAT switch is: '{0}'</value>
   <data name="VmAdvanced_ResolutionInvalid" xml:space="preserve">
     <value>Enter a valid resolution, e.g. 1280 x 720</value>
   </data>
+  <data name="VmAdvanced_ConsoleTitle" xml:space="preserve">
+    <value>Console Support</value>
+  </data>
+  <data name="VmAdvanced_ConsoleHint" xml:space="preserve">
+    <value>When off, the VM has no synthetic display and cannot be accessed via the console — suitable when you access it via streaming/RDP. Change while the VM is off.</value>
+  </data>
+  <data name="VmAdvanced_ConsoleDisabledHint" xml:space="preserve">
+    <value>Console support is disabled for this VM. Access it via streaming or RDP.</value>
+  </data>
   <data name="Error_VmCreate_NoGuardian" xml:space="preserve">
     <value>Failed to get or create UntrustedGuardian</value>
   </data>

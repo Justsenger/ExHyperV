@@ -7850,6 +7850,18 @@ namespace ExHyperV.Properties {
             get { return ResourceManager.GetString("VmAdvanced_ResolutionInvalid", resourceCulture); }
         }
 
+        public static string VmAdvanced_ConsoleTitle {
+            get { return ResourceManager.GetString("VmAdvanced_ConsoleTitle", resourceCulture); }
+        }
+
+        public static string VmAdvanced_ConsoleHint {
+            get { return ResourceManager.GetString("VmAdvanced_ConsoleHint", resourceCulture); }
+        }
+
+        public static string VmAdvanced_ConsoleDisabledHint {
+            get { return ResourceManager.GetString("VmAdvanced_ConsoleDisabledHint", resourceCulture); }
+        }
+
         public static string Error_VmCreate_NoGuardian {
             get { return ResourceManager.GetString("Error_VmCreate_NoGuardian", resourceCulture); }
         }

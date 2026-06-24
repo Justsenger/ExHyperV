@@ -2713,6 +2713,15 @@
   <data name="VmAdvanced_ResolutionInvalid" xml:space="preserve">
     <value>请输入有效分辨率，如 1280 x 720</value>
   </data>
+  <data name="VmAdvanced_ConsoleTitle" xml:space="preserve">
+    <value>控制台支持</value>
+  </data>
+  <data name="VmAdvanced_ConsoleHint" xml:space="preserve">
+    <value>关闭后该虚拟机将没有合成显示、无法经控制台访问，适合已配置串流/RDP 直连的场景；需关机修改。</value>
+  </data>
+  <data name="VmAdvanced_ConsoleDisabledHint" xml:space="preserve">
+    <value>该虚拟机已禁用控制台支持，请经串流或 RDP 访问。</value>
+  </data>
   <data name="Error_VmCreate_NoGuardian" xml:space="preserve">
     <value>无法获取或创建 UntrustedGuardian</value>
   </data>
