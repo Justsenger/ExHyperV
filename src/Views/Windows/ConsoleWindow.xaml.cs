@@ -36,6 +36,7 @@ namespace ExHyperV.Views
         private bool _enhancedConnecting;         // 本次连接是否在尝试增强会话——没连上就断 → 回退基本会话
         private bool _pendingEnhancedInset;       // 切到增强后：连上(Connected)时把窗口放大一圈，立刻露出可抓取缩放边（增强复用基本分辨率时无 RemoteSizeChange，故挂在 Connected）
         private bool _userResizing;               // 用户正拖动改窗口大小(WM_ENTER..EXITSIZEMOVE 之间)——期间 RdpArea.SizeChanged 不协商，拖完在 WM_EXITSIZEMOVE 协商一次，避免每像素刷新
+        private bool _windowFollowsResolution;    // 下拉改分辨率后置位：待画面真的变到新分辨率(RemoteSizeChanged)再让窗口跟随确认值；拖动会清掉(窗口归用户掌控)
         private WindowStyle _origWindowStyle;                     // 全屏前的 WindowStyle，退出恢复
         private WindowBackdropType _origBackdrop;                 // 全屏前的背景类型(Mica)，退出恢复
         private System.Windows.Media.Brush? _origBackground;      // 全屏前的窗口底色，退出恢复
@@ -98,6 +99,14 @@ namespace ExHyperV.Views
             RdpHost.RemoteSizeChanged += (w, h) => Dispatcher.BeginInvoke(new Action(() =>
             {
                 _vm.CurrentWidth = w; _vm.CurrentHeight = h;
+                // 画面"真的"变到新分辨率了：若此前是下拉发起的协商，现在才让窗口跟随这个确认值(增强、窗口化)。
+                // 拖动发起的协商不在此跟随(标记已在 WM_ENTERSIZEMOVE 清掉)，窗口仍由用户掌控。
+                if (_windowFollowsResolution)
+                {
+                    _windowFollowsResolution = false;
+                    if (_vm.IsEnhancedMode && !_vm.IsFullScreen && this.WindowState == WindowState.Normal)
+                        FitToResolution(w, h);
+                }
                 LayoutRdpHost();
             }));
             RdpHost.FullScreenRequested += fs => Dispatcher.BeginInvoke(new Action(() =>
@@ -185,9 +194,10 @@ namespace ExHyperV.Views
                 case nameof(ConsoleViewModel.RequestHeight):
                     if (_vm.IsEnhancedMode && _vm.RequestWidth > 0 && _vm.RequestHeight > 0)
                     {
+                        // 只发协商请求；窗口【不在此】跟着改——否则登录界面等协商被忽略时，窗口空撑大、画面顶格留黑边。
+                        // 置标记：等画面真的变到新分辨率(RemoteSizeChanged)再让窗口跟随确认值。
+                        _windowFollowsResolution = true;
                         RdpHost.Resize(_vm.RequestWidth, _vm.RequestHeight);          // 顶部分辨率下拉 → mstscax 协商新分辨率
-                        if (!_vm.IsFullScreen)
-                            FitToResolution(_vm.RequestWidth, _vm.RequestHeight);     // 并把窗口调到该分辨率。仅下拉走此路；拖动协商走 WM_EXITSIZEMOVE，窗口由用户拖动、代码不插手
                     }
                     break;
 
@@ -530,6 +540,7 @@ namespace ExHyperV.Views
             else if (msg == WM_ENTERSIZEMOVE)
             {
                 _userResizing = true;    // 用户开始拖动改大小：期间不在 SizeChanged 协商
+                _windowFollowsResolution = false;   // 拖动发起的协商不让窗口跟随(用户在掌控窗口尺寸)
             }
             else if (msg == WM_EXITSIZEMOVE)
             {

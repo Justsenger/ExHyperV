@@ -229,8 +229,8 @@ namespace ExHyperV.ViewModels
             var parts = resolutionText.Split('x');
             if (parts.Length == 2 && int.TryParse(parts[0].Trim(), out int w) && int.TryParse(parts[1].Trim(), out int h))
             {
-                CurrentWidth = w;
-                CurrentHeight = h;
+                // 只发"请求"，不预设 CurrentWidth/Height —— 后者代表"画面实际分辨率"，仅由 RemoteSizeChanged
+                // (画面真正重渲染后)更新。否则增强登录界面/切回基本时协商被忽略，画面区却按请求值撑大 → mstscax 灰/白信箱。
                 RequestWidth = w;
                 RequestHeight = h;
             }
