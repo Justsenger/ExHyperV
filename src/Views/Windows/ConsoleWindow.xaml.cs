@@ -390,11 +390,11 @@ namespace ExHyperV.Views
             LayoutRdpHost();
         }
 
-        /// <summary>当前基本会话缩放百分比(25–200)：全屏→100（实测全屏放大会让 mstscax 连接栏消失、退不出去，
-        /// 故全屏强制 100、退出全屏再还原档位，与 VMConnect 一致）；"自动"/空 → 显示器 DPI%；"N%" → N；兜底 100。</summary>
+        /// <summary>当前基本会话缩放百分比(25–500)："自动"/空 → 显示器 DPI%；"N%" → N；兜底 100。
+        /// 全屏不再强制 100：进全屏瞬间先归 100 让 mstscax 把连接栏布局好(见 IsFullScreen 分支)、SetFullScreen 后再 bump 回此档，
+        /// 试验"全屏既缩放又留连接栏"。逃生键 Ctrl+Alt+Enter 始终可退、不怕困住。</summary>
         private int BasicZoomPercent()
         {
-            if (_vm.IsFullScreen) return 100;
             string z = _vm.SelectedZoom;
             if (string.IsNullOrEmpty(z) || z == Properties.Resources.ConsoleWindow_ZoomAuto)
             {
