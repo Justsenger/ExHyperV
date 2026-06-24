@@ -66,12 +66,19 @@ namespace ExHyperV.Interaction
             {
                 if (Application.Current.MainWindow?.FindName("SnackbarPresenter") is not SnackbarPresenter p) return;
 
-                // 标题/图标走 Snackbar 标准槽位，与三态提示完全一致(操作成功 + ✓圈 + 24px)；正文 = 消息 + 立即重启按钮
-                var content = new System.Windows.Controls.StackPanel { Orientation = System.Windows.Controls.Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
-                content.Children.Add(new Wpf.Ui.Controls.TextBlock { Text = message, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 12, 0) });
-                var btn = new Wpf.Ui.Controls.Button { Content = Properties.Resources.Global_Restart, Appearance = ControlAppearance.Primary, VerticalAlignment = VerticalAlignment.Center };
+                // 标题/图标走 Snackbar 标准槽位，与三态提示一致(操作成功 + ✓圈 + 24px)。
+                // 正文 = 消息(撑满左侧) + 立即重启按钮(靠最右)：用 Grid 星列+自动列，按钮才贴右边(StackPanel 会左对齐)。
+                // 消息用原生 TextBlock 不设字号 → 继承内容区字体，和普通提示的正文一致(Wpf.Ui.TextBlock 有固定默认字号会偏大、显得标题正文不一致)。
+                var content = new System.Windows.Controls.Grid { HorizontalAlignment = HorizontalAlignment.Stretch };
+                content.ColumnDefinitions.Add(new System.Windows.Controls.ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                content.ColumnDefinitions.Add(new System.Windows.Controls.ColumnDefinition { Width = GridLength.Auto });
+                var msgText = new System.Windows.Controls.TextBlock { Text = message, TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center };
+                var btn = new Wpf.Ui.Controls.Button { Content = Properties.Resources.Global_Restart, Appearance = ControlAppearance.Primary, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(16, 0, 0, 0) };
                 // shutdown.exe 启动失败（权限/环境异常）不应让 UI 线程崩溃；失败时用户可手动重启
                 btn.Click += (s, e) => { try { System.Diagnostics.Process.Start("shutdown", "-r -t 0"); } catch { } };
+                System.Windows.Controls.Grid.SetColumn(msgText, 0);
+                System.Windows.Controls.Grid.SetColumn(btn, 1);
+                content.Children.Add(msgText);
                 content.Children.Add(btn);
 
                 new Snackbar(p)
