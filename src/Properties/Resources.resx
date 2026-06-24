@@ -2722,9 +2722,6 @@ The existing NAT switch is: '{0}'</value>
   <data name="VmAdvanced_ConsoleDisabledHint" xml:space="preserve">
     <value>Console support is disabled for this VM. Access it via streaming or RDP.</value>
   </data>
-  <data name="VmAdvanced_ConsoleGen1" xml:space="preserve">
-    <value>Console support cannot be disabled on Generation 1 VMs (the synthetic mouse cannot be removed — same as native Hyper-V).</value>
-  </data>
   <data name="Error_VmCreate_NoGuardian" xml:space="preserve">
     <value>Failed to get or create UntrustedGuardian</value>
   </data>

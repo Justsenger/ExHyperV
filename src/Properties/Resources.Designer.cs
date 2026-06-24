@@ -7862,10 +7862,6 @@ namespace ExHyperV.Properties {
             get { return ResourceManager.GetString("VmAdvanced_ConsoleDisabledHint", resourceCulture); }
         }
 
-        public static string VmAdvanced_ConsoleGen1 {
-            get { return ResourceManager.GetString("VmAdvanced_ConsoleGen1", resourceCulture); }
-        }
-
         public static string Error_VmCreate_NoGuardian {
             get { return ResourceManager.GetString("Error_VmCreate_NoGuardian", resourceCulture); }
         }
