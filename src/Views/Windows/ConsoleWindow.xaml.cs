@@ -176,12 +176,11 @@ namespace ExHyperV.Views
 
                 case nameof(ConsoleViewModel.CurrentWidth):
                 case nameof(ConsoleViewModel.CurrentHeight):
-                    if (!_vm.IsFullScreen && !_vm.IsEnhancedMode)
-                        FitToResolution(_vm.CurrentWidth, _vm.CurrentHeight);   // 基本会话：窗口跟随 VM 分辨率（增强靠下拉/拖动两条专属路径，不在此处动窗口）
+                    if (!_vm.IsEnhancedMode) ApplyBasicZoom();   // 基本会话：窗口跟随 VM 分辨率 × 当前缩放档（增强靠下拉/拖动两条专属路径）
                     break;
 
                 case nameof(ConsoleViewModel.SelectedZoom):
-                    if (!_vm.IsEnhancedMode) LayoutRdpHost();   // 基本会话缩放档变更 → 重排画面
+                    ApplyBasicZoom();   // 基本会话缩放档变更 → 调整窗口尺寸(显式比例放大窗口) + 重排画面
                     break;
             }
         }
@@ -297,8 +296,8 @@ namespace ExHyperV.Views
             this.Height = scrH + TitleBarHeight;
         }
 
-        /// <summary>摆放 RDP 宿主：全屏/增强铺满或贴合；基本会话按所选缩放档（适应窗口/比例）缩放并按需滚动。
-        /// SmartSizing 把画面拉伸到 RdpHost 控件尺寸，控件宽高比=画面宽高比 → 无内部 #CBCBCB 信箱、鼠标映射准。</summary>
+        /// <summary>摆放 RDP 宿主：全屏/增强铺满或贴合；基本会话按所选缩放档把画面缩放居中。
+        /// 显式比例的"放大"由 ApplyBasicZoom 改窗口尺寸实现；此处只把画面缩到画面区内（mstscax 是 airspace、无法滚动，故不溢出）。</summary>
         private void LayoutRdpHost()
         {
             if (_vm.IsFullScreen && _vm.IsEnhancedMode)
@@ -310,7 +309,6 @@ namespace ExHyperV.Views
                 RdpHost.VerticalAlignment = VerticalAlignment.Stretch;
                 RdpHost.Width = double.NaN;
                 RdpHost.Height = double.NaN;
-                SetScroll(false);
                 return;
             }
             int vmW = _vm.CurrentWidth, vmH = _vm.CurrentHeight;
@@ -321,47 +319,24 @@ namespace ExHyperV.Views
             double dpiY = src.CompositionTarget.TransformToDevice.M22;
             if (!_vm.IsEnhancedMode)
             {
-                // 基本会话：固定分辨率的合成显示，按用户所选缩放档摆放（解析见 ParseZoom）。
+                // 基本会话：固定分辨率的合成显示，按所选缩放档把画面缩放居中（解析见 ParseZoom）。
+                // 放大靠 ApplyBasicZoom 把窗口撑到 原生×比例 → 此处 fitScale 即等于该比例、画面正好铺满窗口；
+                // 窗口被工作区钳住时回落到"适应"(scale=fitScale)，绝不超出画面区（airspace 下无法滚动）。
                 int areaW = (int)Math.Round(RdpArea.ActualWidth * dpiX);
                 int areaH = (int)Math.Round(RdpArea.ActualHeight * dpiY);
+                double fitScale = Math.Min(areaW / (double)vmW, areaH / (double)vmH);
                 var (fit, factor) = ParseZoom(_vm.SelectedZoom);
+                double scale = fit ? fitScale : Math.Min(factor, fitScale);
+                RdpHost.SetSmartSizing(Math.Abs(scale - 1.0) > 0.01);
                 RdpHost.HorizontalAlignment = HorizontalAlignment.Center;
                 RdpHost.VerticalAlignment = VerticalAlignment.Center;
-                if (fit)
-                {
-                    // 适应窗口：保宽高比缩放铺满画面区（小则放大、大则缩小）；比例≈1 时关 SmartSizing 走原生清晰。
-                    double scale = Math.Min(areaW / (double)vmW, areaH / (double)vmH);
-                    RdpHost.SetSmartSizing(Math.Abs(scale - 1.0) > 0.01);
-                    SetScroll(false);
-                    RdpHost.Width = vmW * scale / dpiX;
-                    RdpHost.Height = vmH * scale / dpiY;
-                }
-                else if (factor > 0.99 && factor < 1.01)
-                {
-                    // 100%：原生 1:1 居中清晰；画面超出画面区则按比例缩小铺满（整体可见、不滚动——保持既有默认行为）。
-                    bool fits = vmW <= areaW + 2 && vmH <= areaH + 2;
-                    RdpHost.SetSmartSizing(!fits);
-                    SetScroll(false);
-                    double scale = fits ? 1.0 : Math.Min(areaW / (double)vmW, areaH / (double)vmH);
-                    RdpHost.Width = vmW * scale / dpiX;
-                    RdpHost.Height = vmH * scale / dpiY;
-                }
-                else
-                {
-                    // 显式比例(25/50/75/125/150/200%)：画面=原生×比例，SmartSizing 拉伸到该尺寸；
-                    // 放大超出画面区 → 开滚动条平移查看；缩小则居中、周围 RdpArea 黑底。
-                    double tW = vmW * factor, tH = vmH * factor;
-                    RdpHost.SetSmartSizing(true);
-                    SetScroll(tW > areaW + 2 || tH > areaH + 2);
-                    RdpHost.Width = tW / dpiX;
-                    RdpHost.Height = tH / dpiY;
-                }
+                RdpHost.Width = vmW * scale / dpiX;
+                RdpHost.Height = vmH * scale / dpiY;
                 return;
             }
             // 增强 + 窗口化/最大化：画面原生。但若来宾把分辨率吸附到比画面区大的标准值
             // （如最大化要 1920×990、来宾回 1920×1080），居中摆放会向上溢出盖住标题栏 →
             // 此时开 SmartSizing 把画面缩进画面区、保宽高比、居中（标题栏安全、整体可见、鼠标映射准）。
-            SetScroll(false);   // 增强会话靠协商分辨率贴合窗口，从不滚动
             int eAreaW = (int)Math.Round(RdpArea.ActualWidth * dpiX);
             int eAreaH = (int)Math.Round(RdpArea.ActualHeight * dpiY);
             bool eFits = vmW <= eAreaW + 2 && vmH <= eAreaH + 2;
@@ -384,13 +359,19 @@ namespace ExHyperV.Views
             }
         }
 
-        /// <summary>切换画面滚动条：放大超出画面区时 Auto（可平移查看）；否则 Disabled
-        /// （约束子项到视口、行为同普通容器，全屏/增强的 Stretch 与居中正常）。</summary>
-        private void SetScroll(bool on)
+        /// <summary>基本会话缩放：显式比例 → 把窗口缩放到 原生×比例（FitToResolution 内部钳到工作区）；
+        /// 适应窗口/最大化/全屏 → 不动窗口、仅按当前画面区重排。放大靠撑大窗口实现——mstscax 是 airspace、无法用 ScrollViewer 滚动。</summary>
+        private void ApplyBasicZoom()
         {
-            var v = on ? System.Windows.Controls.ScrollBarVisibility.Auto : System.Windows.Controls.ScrollBarVisibility.Disabled;
-            if (RdpScroll.HorizontalScrollBarVisibility != v) RdpScroll.HorizontalScrollBarVisibility = v;
-            if (RdpScroll.VerticalScrollBarVisibility != v) RdpScroll.VerticalScrollBarVisibility = v;
+            if (_vm.IsEnhancedMode) return;
+            var (fit, factor) = ParseZoom(_vm.SelectedZoom);
+            if (!fit && !_vm.IsFullScreen && this.WindowState == WindowState.Normal
+                && _vm.CurrentWidth > 0 && _vm.CurrentHeight > 0)
+            {
+                // 改窗口尺寸 → 触发 RdpArea.SizeChanged → LayoutRdpHost 重排；下面再调一次兜底（尺寸不变时不触发 SizeChanged）。
+                FitToResolution((int)Math.Round(_vm.CurrentWidth * factor), (int)Math.Round(_vm.CurrentHeight * factor));
+            }
+            LayoutRdpHost();
         }
 
         /// <summary>解析缩放档：返回 (适应窗口, 比例)。"适应窗口"/空 → (true, _)；"N%" → (false, N/100)；无法解析兜底 100%。</summary>

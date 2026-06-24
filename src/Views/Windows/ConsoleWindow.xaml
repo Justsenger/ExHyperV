@@ -8,7 +8,7 @@
     xmlns:converters="clr-namespace:ExHyperV.Converters"
     xmlns:tools="clr-namespace:ExHyperV.Tools"
     Title="{Binding VmName}"
-    MinWidth="680"
+    MinWidth="780"
     MinHeight="340"
     Width="1100"
     Height="820"
@@ -184,12 +184,7 @@
 
         <!-- 虚拟机画面：通用 RDP 宿主缩到 VM 尺寸居中，周围 RdpArea 黑底。连接期间的遮挡由 RdpClientHost 内部黑布(WinForms 层)负责。 -->
         <Grid x:Name="RdpArea" Background="#FF000000">
-            <!-- 包一层 ScrollViewer：基本会话放大超出画面区时由 LayoutRdpHost 切到 Auto 滚动；
-                 其余情况(全屏/增强/适应窗口/100%/缩小)为 Disabled，约束到视口、行为同普通容器。 -->
-            <ScrollViewer x:Name="RdpScroll" Background="Transparent"
-                          HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Disabled">
-                <tools:RdpClientHost x:Name="RdpHost" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
-            </ScrollViewer>
+            <tools:RdpClientHost x:Name="RdpHost" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
         </Grid>
     </DockPanel>
 </ui:FluentWindow>
