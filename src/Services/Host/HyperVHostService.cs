@@ -146,12 +146,14 @@ namespace ExHyperV.Services
         }
 
         /// <summary>
-        /// 禁用 Hyper-V。Microsoft-Hyper-V-All 涵盖所有子组件，removePayload=false 保留文件可重新启用。
+        /// 禁用 Hyper-V：不卸载平台，仅 bcdedit /set hypervisorlaunchtype off 关闭监控程序的开机加载。
+        /// 保留 WMI 管理层与全部 VM/交换机配置（应用仍可用、再启用秒级），也是与 VMware/VBox 等共存的标准做法。
+        /// 卸载整个 Microsoft-Hyper-V-All 会一并移除本应用依赖的管理层、且重装很慢，故不采用。
+        /// 与 EnableHyperVAsync 的 hypervisorlaunchtype auto 对称（issue #211 延伸）。
         /// </summary>
         public static async Task<bool> DisableHyperVAsync()
         {
-            var result = await DismApi.DisableFeatureAsync("Microsoft-Hyper-V-All", removePayload: false);
-            return result.Success;
+            return await SetHypervisorLaunchTypeAsync("off");
         }
 
         /// <summary>
