@@ -32,7 +32,9 @@ public static class VmConsoleService
     }
 
     // 启用/禁用控制台支持。Disable 依 cmdlet 顺序删 鼠标→键盘→显示；Enable 缺则补 显示→键盘→鼠标。需 VM 关机；幂等。
-    public static async Task<(bool Success, string Message)> SetConsoleSupportAsync(string vmName, bool enable)
+    // 整体放进 Task.Run：首个 await 前的同步 WMI(GetVmComputerSystem/GetVirtualSystemManagementService)及循环里的
+    // FindForVm/FindDefaultTemplate(searcher.Get) 都跑在调用线程上；被控制台开关在 UI 线程 await 调到就卡界面。
+    public static Task<(bool Success, string Message)> SetConsoleSupportAsync(string vmName, bool enable) => Task.Run(async () =>
     {
         if (string.IsNullOrEmpty(vmName)) return (false, "VM name is empty");
 
@@ -70,7 +72,7 @@ public static class VmConsoleService
             }
         }
         return (true, string.Empty);
-    }
+    });
 
     // 查该 VM 现有的设备设置 __PATH（无则 null）
     private static string? FindForVm(ManagementScope scope, string cls, string vmGuid, string? subType)

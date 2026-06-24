@@ -10,7 +10,9 @@ public static class VmNetworkService
 
     // ── 查询 ──────────────────────────────────────────────────────
 
-    public static async Task<List<VmNetworkAdapter>> GetNetworkAdaptersAsync(string vmName)
+    // 整体放进 Task.Run：await 后的续体(逐网卡 ASSOCIATORS 查询 searcher.Get)默认回 UI 线程，
+    // 被网络设置页在 UI 线程 await 调到、网卡一多就卡。挪线程池。
+    public static Task<List<VmNetworkAdapter>> GetNetworkAdaptersAsync(string vmName) => Task.Run(async () =>
     {
         var resultList = new List<VmNetworkAdapter>();
         if (string.IsNullOrEmpty(vmName)) return resultList;
@@ -105,7 +107,7 @@ public static class VmNetworkService
         }
 
         return resultList;
-    }
+    });
 
     public static async Task<List<string>> GetAvailableSwitchesAsync()
     {

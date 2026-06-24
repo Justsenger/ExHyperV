@@ -46,9 +46,14 @@ namespace ExHyperV.Services
             if (!rasdResp.Success || !sasdResp.Success) return;
 
             var allResources = rasdResp.Data!.Concat(sasdResp.Data!).ToList();
-            Dictionary<string, int>? hvDiskMap = null;
-            Dictionary<int, HostDiskInfoCache>? osDiskMap = null;
-            var items = BuildStorageItems(allResources, ref hvDiskMap, ref osDiskMap);
+            // BuildStorageItems→BuildDiskMaps 内含同步 WMI(.GetAwaiter().GetResult())，挪线程池，别在 UI 线程跑。
+            // ref 局部声明在 lambda 内规避"ref 变量不能被闭包捕获"。
+            var items = await Task.Run(() =>
+            {
+                Dictionary<string, int>? hvDiskMap = null;
+                Dictionary<int, HostDiskInfoCache>? osDiskMap = null;
+                return BuildStorageItems(allResources, ref hvDiskMap, ref osDiskMap);
+            });
             System.Windows.Application.Current.Dispatcher.Invoke(() =>
             {
                 vm.StorageItems.Clear();
