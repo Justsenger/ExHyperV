@@ -81,12 +81,12 @@ namespace ExHyperV.ViewModels
                 }
                 else
                 {
-                    ShowSnackbar(Properties.Resources.VmPage_RenameFail, result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                    ShowError($"{Properties.Resources.VmPage_RenameFail}：{result.Message}");
                 }
             }
             catch (Exception ex)
             {
-                ShowSnackbar(Properties.Resources.VmPage_SysExp, ex.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                ShowError(ex.Message);
             }
             finally
             {
@@ -342,7 +342,7 @@ namespace ExHyperV.ViewModels
             // --- 1. 基础验证：名称 ---
             if (string.IsNullOrWhiteSpace(NewVmName))
             {
-                ShowSnackbar(Properties.Resources.VmPage_CreateFail, Properties.Resources.VmPage_NameEmpty, ControlAppearance.Caution, SymbolRegular.Warning24);
+                ShowTip(Properties.Resources.VmPage_NameEmpty);
                 return;
             }
 
@@ -355,7 +355,7 @@ namespace ExHyperV.ViewModels
             {
                 if (string.IsNullOrWhiteSpace(NewVmNewDiskPath))
                 {
-                    ShowSnackbar(Properties.Resources.VmPage_CreateFail, Properties.Resources.VmPage_SelectVhdSave, ControlAppearance.Caution, SymbolRegular.Warning24);
+                    ShowTip(Properties.Resources.VmPage_SelectVhdSave);
                     return;
                 }
             }
@@ -363,13 +363,13 @@ namespace ExHyperV.ViewModels
             {
                 if (string.IsNullOrWhiteSpace(NewVmExistingDiskPath))
                 {
-                    ShowSnackbar(Properties.Resources.VmPage_CreateFail, Properties.Resources.VmPage_SelectExistVhdPath, ControlAppearance.Caution, SymbolRegular.Warning24);
+                    ShowTip(Properties.Resources.VmPage_SelectExistVhdPath);
                     return;
                 }
 
                 if (!File.Exists(NewVmExistingDiskPath))
                 {
-                    ShowSnackbar(Properties.Resources.VmPage_CreateFail, Properties.Resources.VmPage_ExistVhdNotFound, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                    ShowTip(Properties.Resources.VmPage_ExistVhdNotFound);
                     return;
                 }
             }
@@ -377,7 +377,7 @@ namespace ExHyperV.ViewModels
             // --- 4. ISO 镜像验证 (如果有输入) ---
             if (!string.IsNullOrWhiteSpace(NewVmIsoPath) && !File.Exists(NewVmIsoPath))
             {
-                ShowSnackbar(Properties.Resources.VmPage_CreateFail, Properties.Resources.VmPage_IsoNotFound, ControlAppearance.Caution, SymbolRegular.Warning24);
+                ShowTip(Properties.Resources.VmPage_IsoNotFound);
                 return;
             }
             // --- 2. 组装专用 Model ---
@@ -422,11 +422,7 @@ namespace ExHyperV.ViewModels
                 {
                     CreatingStatusText = Properties.Resources.VmPage_StartingVm;
                     string actualCreatedName = result.Message;
-                    ShowSnackbar(
-                         Properties.Resources.VmPage_CreateSuccess,
-                         string.Format(Properties.Resources.VmPage_VmCreated, actualCreatedName), // 使用真实名称
-                         ControlAppearance.Success,
-                         SymbolRegular.CheckmarkCircle24);
+                    ShowSuccess(string.Format(Properties.Resources.VmPage_VmCreated, actualCreatedName));
                     // 退出创建模式
                     IsCreatingVm = false;
 
@@ -439,12 +435,12 @@ namespace ExHyperV.ViewModels
                 }
                 else
                 {
-                    ShowSnackbar(Properties.Resources.VmPage_CreateFail, result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                    ShowError($"{Properties.Resources.VmPage_CreateFail}：{result.Message}");
                 }
             }
             catch (Exception ex)
             {
-                ShowSnackbar(Properties.Resources.VmPage_SysExp, ex.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                ShowError(ex.Message);
             }
             finally
             {

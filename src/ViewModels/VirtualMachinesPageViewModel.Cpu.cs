@@ -46,7 +46,7 @@ namespace ExHyperV.ViewModels
                     SelectedVm.Processor = settings;
                 }
             }
-            catch (Exception ex) { ShowSnackbar(Properties.Resources.Error_Common_LoadFail, FriendlyError.CleanLines(ex.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24); }
+            catch (Exception ex) { ShowError($"{Properties.Resources.Error_Common_LoadFail}：{FriendlyError.CleanLines(ex.Message)}"); }
             finally
             {
                 await Task.Delay(200);
@@ -65,13 +65,13 @@ namespace ExHyperV.ViewModels
                 var result = await Task.Run(() => VmProcessorService.SetVmProcessorAsync(SelectedVm.Name, SelectedVm.Processor));
                 if (!result.Success)
                 {
-                    ShowSnackbar(Properties.Resources.Error_Common_ApplyFail, FriendlyError.CleanLines(result.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                    ShowError($"{Properties.Resources.Error_Common_ApplyFail}：{FriendlyError.CleanLines(result.Message)}");
                     await GoToCpuSettingsAsync();
                 }
             }
             catch (Exception ex)
             {
-                ShowSnackbar(Properties.Resources.Error_Common_SysException, FriendlyError.CleanLines(ex.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                ShowError(FriendlyError.CleanLines(ex.Message));
                 await GoToCpuSettingsAsync();
             }
             finally { IsLoadingSettings = false; }
@@ -132,8 +132,7 @@ namespace ExHyperV.ViewModels
             }
             catch (Exception ex)
             {
-                ShowSnackbar(Properties.Resources.Error_Cpu_AffinityFail, FriendlyError.CleanLines(ex.Message),
-                    ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                ShowError($"{Properties.Resources.Error_Cpu_AffinityFail}：{FriendlyError.CleanLines(ex.Message)}");
             }
             finally
             {
@@ -163,7 +162,7 @@ namespace ExHyperV.ViewModels
 
                 if (success)
                 {
-                    ShowSnackbar(Properties.Resources.Msg_Common_SaveSuccess, Properties.Resources.Msg_Cpu_AffinityApplied, ControlAppearance.Success, SymbolRegular.CheckmarkCircle24);
+                    ShowSuccess(Properties.Resources.Msg_Cpu_AffinityApplied);
                     await GoToCpuSettingsAsync();
                 }
                 else
@@ -172,18 +171,18 @@ namespace ExHyperV.ViewModels
                     var scheduler = HyperVSchedulerService.GetSchedulerType();
                     if (scheduler == HyperVSchedulerType.Root && !SelectedVm.IsRunning)
                     {
-                        ShowSnackbar(Properties.Resources.Msg_Cpu_AffinityQueued, Properties.Resources.Msg_Cpu_RootNotice, ControlAppearance.Info, SymbolRegular.Clock24);
+                        ShowTip($"{Properties.Resources.Msg_Cpu_AffinityQueued}：{Properties.Resources.Msg_Cpu_RootNotice}");
                         await GoToCpuSettingsAsync();
                     }
                     else
                     {
-                        ShowSnackbar(Properties.Resources.Error_Common_SaveFail, Properties.Resources.Error_Cpu_ApplyFail, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                        ShowError(Properties.Resources.Error_Cpu_ApplyFail);
                     }
                 }
             }
             catch (Exception ex)
             {
-                ShowSnackbar(Properties.Resources.Common_Error, FriendlyError.CleanLines(ex.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                ShowError(FriendlyError.CleanLines(ex.Message));
             }
             finally
             {

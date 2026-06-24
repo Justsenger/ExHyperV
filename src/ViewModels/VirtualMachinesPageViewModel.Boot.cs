@@ -68,11 +68,11 @@ namespace ExHyperV.ViewModels
                 var currentOrder = SelectedVm.BootOrderItems.ToList();
                 bool success = await VmBootService.SetBootOrderAsync(SelectedVm.Name, currentOrder);
                 if (!success)
-                    ShowSnackbar(Properties.Resources.VmBootSettings_TitleBootOrder, Properties.Resources.Error_Common_SaveFail, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                    ShowError($"{Properties.Resources.VmBootSettings_TitleBootOrder}：{Properties.Resources.Error_Common_SaveFail}");
             }
             catch (Exception ex)
             {
-                ShowSnackbar(Properties.Resources.VmBootSettings_TitleBootOrder, FriendlyError.CleanLines(ex.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                ShowError($"{Properties.Resources.VmBootSettings_TitleBootOrder}：{FriendlyError.CleanLines(ex.Message)}");
             }
         }
 

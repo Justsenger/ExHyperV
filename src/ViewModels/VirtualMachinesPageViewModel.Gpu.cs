@@ -55,7 +55,7 @@ namespace ExHyperV.ViewModels
             }
             catch (Exception ex)
             {
-                ShowSnackbar(Properties.Resources.Error_Common_LoadFail, Properties.Resources.Error_Gpu_ReadInfo + ex.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                ShowError(Properties.Resources.Error_Gpu_ReadInfo + ex.Message);
             }
             finally
             {
@@ -131,7 +131,7 @@ namespace ExHyperV.ViewModels
             }
             catch (Exception ex)
             {
-                ShowSnackbar(Properties.Resources.Error_Gpu_RefreshFail, ex.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                ShowError($"{Properties.Resources.Error_Gpu_RefreshFail}：{ex.Message}");
             }
         }
 
@@ -159,19 +159,19 @@ namespace ExHyperV.ViewModels
                         }
                     });
 
-                    ShowSnackbar(Properties.Resources.Common_Success, Properties.Resources.Msg_Gpu_PartitionRemoved, ControlAppearance.Success, SymbolRegular.Checkmark24);
+                    ShowSuccess(Properties.Resources.Msg_Gpu_PartitionRemoved);
 
                     await Task.Delay(2000);
                     await RefreshCurrentVmGpuAssignments();
                 }
                 else
                 {
-                    ShowSnackbar(Properties.Resources.Error_Storage_RemoveFail, Properties.Resources.Error_Gpu_RemoveFail, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                    ShowError(Properties.Resources.Error_Gpu_RemoveFail);
                 }
             }
             catch (Exception ex)
             {
-                ShowSnackbar(Properties.Resources.Error_Common_OpException, ex.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                ShowError(ex.Message);
             }
             finally
             {
@@ -205,7 +205,7 @@ namespace ExHyperV.ViewModels
             }
             catch (Exception ex)
             {
-                ShowSnackbar(Properties.Resources.Common_Error, "Failed to load GPU or Scripts: " + ex.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                ShowError("Failed to load GPU or Scripts: " + ex.Message);
             }
             finally
             {
@@ -476,7 +476,7 @@ namespace ExHyperV.ViewModels
                         AppendLog(Properties.Resources.Msg_Gpu_PartitionRemoved);
                     }
 
-                    ShowSnackbar(Properties.Resources.Error_Common_OpFail, string.Format(Properties.Resources.Error_Format_StageError, task.Name), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                    ShowError(string.Format(Properties.Resources.Error_Format_StageError, task.Name));
                     return;
                 }
             }
@@ -606,7 +606,7 @@ namespace ExHyperV.ViewModels
                 }
                 catch (Exception ex)
                 {
-                    ShowSnackbar(Properties.Resources.Error_Gpu_EnvFail, ex.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                    ShowError($"{Properties.Resources.Error_Gpu_EnvFail}：{ex.Message}");
                     AppendLog(string.Format(Properties.Resources.Warn_Gpu_EnvExc, ex.Message));
                 }
                 finally
@@ -630,7 +630,7 @@ namespace ExHyperV.ViewModels
             // 2. 验证
             if (SelectedLinuxScript == null || string.IsNullOrWhiteSpace(SshHost))
             {
-                ShowSnackbar(Properties.Resources.Error_Common_Verify, Properties.Resources.VmPage_GpuCheckDeploy, ControlAppearance.Caution, SymbolRegular.Warning24);
+                ShowTip(Properties.Resources.VmPage_GpuCheckDeploy);
                 return;
             }
 
@@ -642,7 +642,7 @@ namespace ExHyperV.ViewModels
                 proxyHost = SshProxyHost?.Trim() ?? string.Empty;
                 if (!int.TryParse(SshProxyPort, out int port) || string.IsNullOrWhiteSpace(proxyHost))
                 {
-                    ShowSnackbar(Properties.Resources.Error_Common_Verify, Properties.Resources.Validation_ProxyIpAndPortMismatch, ControlAppearance.Danger, SymbolRegular.Warning24);
+                    ShowTip(Properties.Resources.Validation_ProxyIpAndPortMismatch);
                     return;
                 }
                 proxyPort = port;
@@ -749,11 +749,7 @@ namespace ExHyperV.ViewModels
 
             CurrentViewType = VmDetailViewType.GpuSettings;
 
-            ShowSnackbar(
-                Properties.Resources.Msg_Common_ConfigSuccess,
-                string.Format(Properties.Resources.Msg_Gpu_Ready, gpuName),
-                ControlAppearance.Success,
-                SymbolRegular.CheckmarkCircle24);
+            ShowSuccess(string.Format(Properties.Resources.Msg_Gpu_Ready, gpuName));
         }
 
         // 设备 ID 格式化辅助
@@ -791,7 +787,7 @@ namespace ExHyperV.ViewModels
                 try
                 {
                     Clipboard.SetText(GpuDeploymentLog);
-                    ShowSnackbar(Properties.Resources.Msg_Common_CopyOk, Properties.Resources.Msg_Gpu_LogCopy, ControlAppearance.Success, SymbolRegular.Copy24);
+                    ShowSuccess(Properties.Resources.Msg_Gpu_LogCopy);
                 }
                 catch { }
             }
@@ -865,11 +861,7 @@ namespace ExHyperV.ViewModels
             await GoToAddGpuAsync();
 
             // 4. 弹出全局重置提示
-            ShowSnackbar(
-                Properties.Resources.VmPage_GpuResetDone, // Properties.Resources.VmPage_BtnReset2
-                Properties.Resources.VmPage_GpuResetDesc, // Properties.Resources.VmPage_MsgProcessReset2
-                Wpf.Ui.Controls.ControlAppearance.Info,
-                Wpf.Ui.Controls.SymbolRegular.ArrowCounterclockwise24);
+            ShowTip(Properties.Resources.VmPage_GpuResetDesc);
         }
     }
 }

@@ -45,7 +45,7 @@ namespace ExHyperV.ViewModels
                         _isLoadingCheckpointState = true;
                         IsCheckpointsEnabled = !value;
                         _isLoadingCheckpointState = false;
-                        ShowSnackbar(Properties.Resources.VmPage_OperationFail, result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                        ShowError(result.Message);
                     });
                 }
             });
@@ -80,7 +80,7 @@ namespace ExHyperV.ViewModels
                 }
                 else
                 {
-                    ShowSnackbar(Properties.Resources.VmPage_ModifyFail, result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                    ShowError($"{Properties.Resources.VmPage_ModifyFail}：{result.Message}");
                 }
             }
             finally
@@ -137,7 +137,7 @@ namespace ExHyperV.ViewModels
             }
             catch (Exception ex)
             {
-                ShowSnackbar(Properties.Resources.VmPage_ErrRetrieveFailed2, ex.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                ShowError($"{Properties.Resources.VmPage_ErrRetrieveFailed2}：{ex.Message}");
             }
             finally
             {
@@ -169,11 +169,11 @@ namespace ExHyperV.ViewModels
                     // 重新获取节点，由于在 finally 之前调用，遮罩会一直持续到节点树重新画好
                     await GoToSpacetimeSettingsAsync();
 
-                    ShowSnackbar(Properties.Resources.VmPage_MsgOperationOk5, Properties.Resources.VmPage_MsgSpacetimeCreated2, ControlAppearance.Success, SymbolRegular.CheckmarkCircle24);
+                    ShowSuccess(Properties.Resources.VmPage_MsgSpacetimeCreated2);
                 }
                 else
                 {
-                    ShowSnackbar(Properties.Resources.VmPage_OperationFail, result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                    ShowError(result.Message);
                 }
             }
             finally
@@ -204,11 +204,11 @@ namespace ExHyperV.ViewModels
                 {
                     await Task.Delay(500);
                     await GoToSpacetimeSettingsAsync();
-                    ShowSnackbar(Properties.Resources.VmPage_MsgOperationOk5, string.Format(Properties.Resources.VmPage_MsgTraveledTo2, targetName), ControlAppearance.Success, SymbolRegular.ArrowClockwise24);
+                    ShowSuccess(string.Format(Properties.Resources.VmPage_MsgTraveledTo2, targetName));
                 }
                 else
                 {
-                    ShowSnackbar(Properties.Resources.VmPage_OperationFail, result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                    ShowError(result.Message);
                 }
             }
             finally { IsLoadingSettings = false; }
@@ -227,7 +227,7 @@ namespace ExHyperV.ViewModels
                 {
                     await Task.Delay(800);
                     await GoToSpacetimeSettingsAsync();
-                    ShowSnackbar(Properties.Resources.VmPage_MsgOperationOk5, Properties.Resources.VmPage_MsgSpacetimeAnnihilated2, ControlAppearance.Success, SymbolRegular.Delete24);
+                    ShowSuccess(Properties.Resources.VmPage_MsgSpacetimeAnnihilated2);
                 }
             }
             finally { IsLoadingSettings = false; }
@@ -248,11 +248,11 @@ namespace ExHyperV.ViewModels
                     await GoToSpacetimeSettingsAsync();
                     var wormholeNode = SpacetimeNodes.FirstOrDefault(n => n.Id == openedNodeId);
                     if (wormholeNode != null) SelectedSpacetimeNode = wormholeNode;
-                    ShowSnackbar(Properties.Resources.VmSpacetimeService_MsgWormholeOpened, string.Format(Properties.Resources.VmPage_MsgConnectedTo2, SelectedSpacetimeNode.Name), ControlAppearance.Success, SymbolRegular.Link24);
+                    ShowSuccess(string.Format(Properties.Resources.VmPage_MsgConnectedTo2, SelectedSpacetimeNode.Name));
                 }
                 else
                 {
-                    ShowSnackbar(Properties.Resources.VmPage_ErrOpenFailed4, result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                    ShowError($"{Properties.Resources.VmPage_ErrOpenFailed4}：{result.Message}");
                 }
             }
             finally { IsLoadingSettings = false; }
@@ -269,11 +269,11 @@ namespace ExHyperV.ViewModels
                 if (result.Success)
                 {
                     await GoToSpacetimeSettingsAsync();
-                    ShowSnackbar(Properties.Resources.VmPage_MsgWormholeClosed2, Properties.Resources.VmPage_MsgTimelineRestored2, ControlAppearance.Success, SymbolRegular.LinkDismiss24);
+                    ShowSuccess(Properties.Resources.VmPage_MsgTimelineRestored2);
                 }
                 else
                 {
-                    ShowSnackbar(Properties.Resources.VmPage_ErrCloseFailed2, result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                    ShowError($"{Properties.Resources.VmPage_ErrCloseFailed2}：{result.Message}");
                 }
             }
             finally { IsLoadingSettings = false; }
@@ -283,7 +283,7 @@ namespace ExHyperV.ViewModels
         [RelayCommand(CanExecute = nameof(CanOperateHistoricalNode))]
         private void ParallelSpacetime()
         {
-            ShowSnackbar(Properties.Resources.VmPage_MsgFeatureInDev2, Properties.Resources.VmPage_MsgParallelUniverse2, ControlAppearance.Info, SymbolRegular.Copy24);
+            ShowTip($"{Properties.Resources.VmPage_MsgFeatureInDev2}：{Properties.Resources.VmPage_MsgParallelUniverse2}");
         }
 
         // 时空收束
@@ -301,7 +301,7 @@ namespace ExHyperV.ViewModels
                 {
                     await Task.Delay(800);
                     await GoToSpacetimeSettingsAsync();
-                    ShowSnackbar(Properties.Resources.VmPage_MsgOperationOk5, Properties.Resources.VmPage_MsgSpacetimeConverged2, ControlAppearance.Success, SymbolRegular.Merge24);
+                    ShowSuccess(Properties.Resources.VmPage_MsgSpacetimeConverged2);
                 }
             }
             finally { IsLoadingSettings = false; }

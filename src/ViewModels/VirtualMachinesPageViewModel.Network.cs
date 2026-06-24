@@ -77,7 +77,7 @@ namespace ExHyperV.ViewModels
             }
             catch (Exception ex)
             {
-                ShowSnackbar(Properties.Resources.Error_Common_LoadFail, ex.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                ShowError($"{Properties.Resources.Error_Common_LoadFail}：{ex.Message}");
             }
             finally
             {
@@ -171,17 +171,17 @@ namespace ExHyperV.ViewModels
 
                 if (result.Success)
                 {
-                    ShowSnackbar(Properties.Resources.Msg_Common_AddSuccess, Properties.Resources.Msg_Net_Added, ControlAppearance.Success, SymbolRegular.CheckmarkCircle24);
+                    ShowSuccess(Properties.Resources.Msg_Net_Added);
                     await GoToNetworkSettingsAsync();
                 }
                 else
                 {
-                    ShowSnackbar(Properties.Resources.Error_Storage_AddFail, FriendlyError.CleanLines(result.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                    ShowError($"{Properties.Resources.Error_Storage_AddFail}：{FriendlyError.CleanLines(result.Message)}");
                 }
             }
             catch (Exception ex)
             {
-                ShowSnackbar(Properties.Resources.Error_Net_AddExc, FriendlyError.CleanLines(ex.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                ShowError($"{Properties.Resources.Error_Net_AddExc}：{FriendlyError.CleanLines(ex.Message)}");
             }
             finally
             {
@@ -202,17 +202,17 @@ namespace ExHyperV.ViewModels
 
                 if (result.Success)
                 {
-                    ShowSnackbar(Properties.Resources.Msg_Net_Removed, Properties.Resources.Msg_Net_AdapterRemoved, ControlAppearance.Success, SymbolRegular.Delete24);
+                    ShowSuccess(Properties.Resources.Msg_Net_AdapterRemoved);
                     await GoToNetworkSettingsAsync();
                 }
                 else
                 {
-                    ShowSnackbar(Properties.Resources.Error_Storage_RemoveFail, FriendlyError.CleanLines(result.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                    ShowError($"{Properties.Resources.Error_Storage_RemoveFail}：{FriendlyError.CleanLines(result.Message)}");
                 }
             }
             catch (Exception ex)
             {
-                ShowSnackbar(Properties.Resources.Error_Net_RemoveExc, FriendlyError.CleanLines(ex.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                ShowError($"{Properties.Resources.Error_Net_RemoveExc}：{FriendlyError.CleanLines(ex.Message)}");
             }
             finally
             {
@@ -231,7 +231,7 @@ namespace ExHyperV.ViewModels
                 var result = await VmNetworkService.UpdateConnectionAsync(SelectedVm.Name, adapter);
                 if (!result.Success)
                 {
-                    ShowSnackbar(Properties.Resources.Error_Common_OpFail, result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                    ShowError(result.Message);
                     adapter.IsConnected = !adapter.IsConnected;
                 }
             }
@@ -250,8 +250,8 @@ namespace ExHyperV.ViewModels
             try
             {
                 var result = await VmNetworkService.ApplyVlanSettingsAsync(SelectedVm.Name, adapter);
-                if (result.Success) ShowSnackbar(Properties.Resources.Common_Success, Properties.Resources.Msg_Net_VlanApplied, ControlAppearance.Success, SymbolRegular.CheckmarkCircle24);
-                else ShowSnackbar(Properties.Resources.Common_Failed, result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                if (result.Success) ShowSuccess(Properties.Resources.Msg_Net_VlanApplied);
+                else ShowError(result.Message);
             }
             finally
             {
@@ -268,8 +268,8 @@ namespace ExHyperV.ViewModels
             try
             {
                 var result = await VmNetworkService.ApplyBandwidthSettingsAsync(SelectedVm.Name, adapter);
-                if (result.Success) ShowSnackbar(Properties.Resources.Common_Success, Properties.Resources.Msg_Net_QosApplied, ControlAppearance.Success, SymbolRegular.CheckmarkCircle24);
-                else ShowSnackbar(Properties.Resources.Common_Failed, result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                if (result.Success) ShowSuccess(Properties.Resources.Msg_Net_QosApplied);
+                else ShowError(result.Message);
             }
             finally
             {
@@ -288,18 +288,18 @@ namespace ExHyperV.ViewModels
                 var secResult = await VmNetworkService.ApplySecuritySettingsAsync(SelectedVm.Name, adapter);
                 if (!secResult.Success)
                 {
-                    ShowSnackbar(Properties.Resources.Common_Failed, string.Format(Properties.Resources.Error_Net_Security, secResult.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                    ShowError(string.Format(Properties.Resources.Error_Net_Security, secResult.Message));
                     return;
                 }
 
                 var offloadResult = await VmNetworkService.ApplyOffloadSettingsAsync(SelectedVm.Name, adapter);
                 if (!offloadResult.Success)
                 {
-                    ShowSnackbar(Properties.Resources.Common_Failed, string.Format(Properties.Resources.Error_Net_Offload, offloadResult.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                    ShowError(string.Format(Properties.Resources.Error_Net_Offload, offloadResult.Message));
                     return;
                 }
 
-                ShowSnackbar(Properties.Resources.Common_Success, Properties.Resources.Msg_Common_Applied, ControlAppearance.Success, SymbolRegular.CheckmarkCircle24);
+                ShowSuccess(Properties.Resources.Msg_Common_Applied);
             }
             finally
             {
@@ -315,7 +315,7 @@ namespace ExHyperV.ViewModels
             var result = await VmNetworkService.ApplyOffloadSettingsAsync(SelectedVm.Name, adapter);
             if (!result.Success)
             {
-                ShowSnackbar(Properties.Resources.Error_Net_ApplyFail, result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                ShowError($"{Properties.Resources.Error_Net_ApplyFail}：{result.Message}");
                 await RevertAdaptersFromBackendAsync();   // 失败回滚开关，避免 UI 显示与后端不一致
             }
         }
@@ -328,7 +328,7 @@ namespace ExHyperV.ViewModels
             var result = await VmNetworkService.ApplySecuritySettingsAsync(SelectedVm.Name, adapter);
             if (!result.Success)
             {
-                ShowSnackbar(Properties.Resources.Error_Net_SecurityFail, result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                ShowError($"{Properties.Resources.Error_Net_SecurityFail}：{result.Message}");
                 await RevertAdaptersFromBackendAsync();   // 失败回滚开关，避免 UI 显示与后端不一致
             }
         }

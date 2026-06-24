@@ -160,12 +160,12 @@ namespace ExHyperV.ViewModels
                 }
                 else
                 {
-                    ShowSnackbar(Properties.Resources.VmPage_OpenFail, Properties.Resources.VmPage_ConfigDirNotFound, ControlAppearance.Caution, SymbolRegular.Warning24);
+                    ShowError($"{Properties.Resources.VmPage_OpenFail}：{Properties.Resources.VmPage_ConfigDirNotFound}");
                 }
             }
             catch (Exception ex)
             {
-                ShowSnackbar(Properties.Resources.VmPage_OpenFail, ex.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                ShowError($"{Properties.Resources.VmPage_OpenFail}：{ex.Message}");
             }
         }
 
@@ -185,12 +185,12 @@ namespace ExHyperV.ViewModels
                 }
                 else
                 {
-                    ShowSnackbar(Properties.Resources.VmPage_DeleteFail, FriendlyError.CleanLines(result.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                    ShowError($"{Properties.Resources.VmPage_DeleteFail}：{FriendlyError.CleanLines(result.Message)}");
                 }
             }
             catch (Exception ex)
             {
-                ShowSnackbar(Properties.Resources.VmPage_DeleteFail, FriendlyError.CleanLines(ex.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                ShowError($"{Properties.Resources.VmPage_DeleteFail}：{FriendlyError.CleanLines(ex.Message)}");
             }
             finally { IsLoading = false; }
         }
@@ -220,16 +220,16 @@ namespace ExHyperV.ViewModels
                 {
                     VmList.Remove(vm);
                     if (SelectedVm == vm) SelectedVm = VmList.FirstOrDefault();
-                    ShowSnackbar(Properties.Resources.VmPage_DeleteSuccess, string.Format(Properties.Resources.VmPage_PurgeDoneDesc, vm.Name), ControlAppearance.Success, SymbolRegular.Delete24);
+                    ShowSuccess(string.Format(Properties.Resources.VmPage_PurgeDoneDesc, vm.Name));
                 }
                 else
                 {
-                    ShowSnackbar(Properties.Resources.VmPage_DeleteFail, FriendlyError.CleanLines(purge.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                    ShowError($"{Properties.Resources.VmPage_DeleteFail}：{FriendlyError.CleanLines(purge.Message)}");
                 }
             }
             catch (Exception ex)
             {
-                ShowSnackbar(Properties.Resources.VmPage_DeleteFail, FriendlyError.CleanLines(ex.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                ShowError($"{Properties.Resources.VmPage_DeleteFail}：{FriendlyError.CleanLines(ex.Message)}");
             }
             finally { IsLoading = false; }
         }
@@ -270,7 +270,7 @@ namespace ExHyperV.ViewModels
                     Application.Current.Dispatcher.Invoke(() => instance.ClearTransientState());
                     var realEx = ex;
                     while (realEx.InnerException != null) { realEx = realEx.InnerException; }
-                    ShowSnackbar(Properties.Resources.Error_Common_OpFail, FriendlyError.CleanLines(realEx.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                    ShowError(FriendlyError.CleanLines(realEx.Message));
                 }
             });
 
@@ -327,7 +327,7 @@ namespace ExHyperV.ViewModels
             }
             catch (Exception ex)
             {
-                ShowSnackbar(Properties.Resources.Error_Common_LoadFail, FriendlyError.CleanLines(ex.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                ShowError($"{Properties.Resources.Error_Common_LoadFail}：{FriendlyError.CleanLines(ex.Message)}");
             }
             finally
             {
@@ -353,9 +353,7 @@ namespace ExHyperV.ViewModels
             // 已禁用控制台支持(无合成显示)的 VM：打开控制台只会黑屏/连不上，明确提示而非打开
             if (!await VmConsoleService.IsConsoleSupportEnabledAsync(SelectedVm.Name))
             {
-                ShowSnackbar(Properties.Resources.Error_Vm_StartFail,
-                    Properties.Resources.VmAdvanced_ConsoleDisabledHint,
-                    ControlAppearance.Caution, SymbolRegular.Warning24);
+                ShowTip(Properties.Resources.VmAdvanced_ConsoleDisabledHint);
                 return;
             }
 
@@ -366,11 +364,7 @@ namespace ExHyperV.ViewModels
             }
             catch (Exception ex)
             {
-                ShowSnackbar(
-                    Properties.Resources.Error_Vm_StartFail,
-                    string.Format(Properties.Resources.VmPage_ErrConfigDirNotFound, ex.Message),
-                    ControlAppearance.Danger,
-                    SymbolRegular.ErrorCircle24);
+                ShowError(string.Format(Properties.Resources.VmPage_ErrConfigDirNotFound, ex.Message));
             }
         }
 
@@ -388,7 +382,7 @@ namespace ExHyperV.ViewModels
             {
                 SelectedVm.OsType = oldOsType;
                 SelectedVm.Notes = oldNotes;
-                ShowSnackbar(Properties.Resources.Error_Common_ModFailShort, Properties.Resources.Error_Common_NoPermission, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                ShowError($"{Properties.Resources.Error_Common_ModFailShort}：{Properties.Resources.Error_Common_NoPermission}");
             }
         }
 

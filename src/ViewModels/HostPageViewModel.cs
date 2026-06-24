@@ -131,7 +131,7 @@ namespace ExHyperV.ViewModels
                 var (ok, msg) = await HyperVNumaService.SetNumaSpanningEnabledAsync(value);
                 if (!ok)
                 {
-                    ShowSnackbar(Properties.Resources.Status_Title_Error, msg, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                    ShowError(msg);
                     Application.Current.Dispatcher.Invoke(() =>
                     {
                         _isInitialized = false;
@@ -151,7 +151,7 @@ namespace ExHyperV.ViewModels
                     ShowRestartPrompt(Properties.Resources.Msg_Host_SchedulerChanged);
                 else
                 {
-                    ShowSnackbar(Properties.Resources.Status_Title_Error, Properties.Resources.Error_Host_SchedulerFail, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                    ShowError(Properties.Resources.Error_Host_SchedulerFail);
                     var actual = HyperVSchedulerService.GetSchedulerType();
                     Application.Current.Dispatcher.Invoke(() =>
                     {
@@ -174,11 +174,11 @@ namespace ExHyperV.ViewModels
         [RelayCommand]
         private async Task DisableHyperVAsync()
         {
-            ShowSnackbar(Properties.Resources.Status_Title_Info, Properties.Resources.HostPageViewModel_DisablingHyperV, ControlAppearance.Info, SymbolRegular.Settings24);
+            ShowTip(Properties.Resources.HostPageViewModel_DisablingHyperV);
             bool ok = await HyperVHostService.DisableHyperVAsync();
             if (!ok)
             {
-                ShowSnackbar(Properties.Resources.Status_Title_Error, Properties.Resources.HostPageViewModel_DisableFailed, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                ShowError(Properties.Resources.HostPageViewModel_DisableFailed);
                 return;
             }
             ShowRestartPrompt(Properties.Resources.HostPageViewModel_DisableSuccess);
@@ -187,11 +187,11 @@ namespace ExHyperV.ViewModels
         [RelayCommand]
         private async Task EnableHyperVAsync()
         {
-            ShowSnackbar(Properties.Resources.Status_Title_Info, Properties.Resources.Msg_Host_EnableHyperV, ControlAppearance.Info, SymbolRegular.Settings24);
+            ShowTip(Properties.Resources.Msg_Host_EnableHyperV);
             bool ok = await HyperVHostService.EnableHyperVAsync();
             if (!ok)
             {
-                ShowSnackbar(Properties.Resources.Status_Title_Error, Properties.Resources.Error_Host_EnableFail, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                ShowError(Properties.Resources.Error_Host_EnableFail);
                 return;
             }
             ShowRestartPrompt(Properties.Resources.Msg_Host_EnableSuccess);
@@ -216,10 +216,7 @@ namespace ExHyperV.ViewModels
 
                 if (SystemTypeService.HasPendingTask())
                 {
-                    ShowSnackbar(Properties.Resources.Status_Title_Warning,
-                        Properties.Resources.Status_Msg_RestartRequired,
-                        ControlAppearance.Caution,
-                        SymbolRegular.Warning24);
+                    ShowTip(Properties.Resources.Status_Msg_RestartRequired);
                     _isInitialized = false;
                     IsServerSystem = !toServer;
                     _isInitialized = true;
@@ -230,14 +227,14 @@ namespace ExHyperV.ViewModels
                 if (result == "SUCCESS") ShowRestartPrompt(Properties.Resources.Status_Msg_RestartNow);
                 else
                 {
-                    ShowSnackbar(Properties.Resources.Status_Title_Error, result, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                    ShowError(result);
                     _isInitialized = false; IsServerSystem = !toServer; _isInitialized = true;
                 }
             }
             catch (Exception ex)
             {
                 // async void：未捕获异常会直接崩溃 UI 线程；兜底上报并回滚开关状态
-                ShowSnackbar(Properties.Resources.Status_Title_Error, ex.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                ShowError(ex.Message);
                 _isInitialized = false; IsServerSystem = !toServer; _isInitialized = true;
             }
             finally { IsSystemSwitchEnabled = true; }

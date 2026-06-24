@@ -67,7 +67,7 @@ namespace ExHyperV.ViewModels
                     await VmStorageService.LoadVmStorageItemsAsync(SelectedVm.Model);
                     await LoadHostDisksAsync();
                 }
-                catch (Exception ex) { ShowSnackbar(Properties.Resources.Error_Storage_LoadFail, FriendlyError.CleanLines(ex.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24); }
+                catch (Exception ex) { ShowError($"{Properties.Resources.Error_Storage_LoadFail}：{FriendlyError.CleanLines(ex.Message)}"); }
                 finally { IsLoadingSettings = false; }
             }
         }
@@ -113,16 +113,16 @@ namespace ExHyperV.ViewModels
                     // 调用现有的存储服务，确保 UI 上的 GB 数值得到更新
                     await VmStorageService.RefreshVirtualDiskSizesAsync(SelectedVm.Model);
 
-                    ShowSnackbar(Properties.Resources.VmPage_OptimizeSuccess, Properties.Resources.VmPage_OptimizeSuccessDesc, ControlAppearance.Success, SymbolRegular.CheckmarkCircle24);
+                    ShowSuccess(Properties.Resources.VmPage_OptimizeSuccessDesc);
                 }
                 else
                 {
-                    ShowSnackbar(Properties.Resources.VmPage_OptimizeFail, result.Error, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                    ShowError($"{Properties.Resources.VmPage_OptimizeFail}：{result.Error}");
                 }
             }
             catch (Exception ex)
             {
-                ShowSnackbar(Properties.Resources.VmPage_SysExp, ex.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                ShowError(ex.Message);
             }
             finally
             {
@@ -142,12 +142,12 @@ namespace ExHyperV.ViewModels
                 var result = await VmStorageService.RemoveDriveAsync(SelectedVm.Name, item);
                 if (result.Success)
                 {
-                    ShowSnackbar(Properties.Resources.Common_Success, result.Message == "Storage_Msg_Ejected" ? Properties.Resources.Msg_Storage_Ejected : Properties.Resources.Msg_Storage_Removed, ControlAppearance.Success, SymbolRegular.CheckmarkCircle24);
+                    ShowSuccess(result.Message == "Storage_Msg_Ejected" ? Properties.Resources.Msg_Storage_Ejected : Properties.Resources.Msg_Storage_Removed);
                     await VmStorageService.LoadVmStorageItemsAsync(SelectedVm.Model);
                 }
-                else ShowSnackbar(Properties.Resources.Error_Storage_RemoveFail, result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                else ShowError($"{Properties.Resources.Error_Storage_RemoveFail}：{result.Message}");
             }
-            catch (Exception ex) { ShowSnackbar(Properties.Resources.Common_Error, FriendlyError.CleanLines(ex.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24); }
+            catch (Exception ex) { ShowError(FriendlyError.CleanLines(ex.Message)); }
             finally { IsLoadingSettings = false; }
         }
 
@@ -165,13 +165,13 @@ namespace ExHyperV.ViewModels
 
             if (driveItem.DiskType == "Physical")
             {
-                ShowSnackbar(Properties.Resources.Common_Restricted, Properties.Resources.Error_Storage_PhysicalMod, ControlAppearance.Danger, SymbolRegular.Warning24);
+                ShowTip(Properties.Resources.Error_Storage_PhysicalMod);
                 return;
             }
 
             if (driveItem.DriveType == "HardDisk" && SelectedVm.IsRunning && driveItem.ControllerType == "IDE")
             {
-                ShowSnackbar(Properties.Resources.Common_Restricted, Properties.Resources.Error_Storage_VhdRunning, ControlAppearance.Danger, SymbolRegular.Warning24);
+                ShowTip(Properties.Resources.Error_Storage_VhdRunning);
                 return;
             }
 
@@ -212,17 +212,17 @@ namespace ExHyperV.ViewModels
 
                     if (result.Success)
                     {
-                        ShowSnackbar(Properties.Resources.Msg_Common_ModSuccess, Properties.Resources.Msg_Storage_PathUpdated, ControlAppearance.Success, SymbolRegular.CheckmarkCircle24);
+                        ShowSuccess(Properties.Resources.Msg_Storage_PathUpdated);
                         await VmStorageService.LoadVmStorageItemsAsync(SelectedVm.Model);
                     }
                     else
                     {
-                        ShowSnackbar(Properties.Resources.Error_Common_ModFailShort, result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                        ShowError($"{Properties.Resources.Error_Common_ModFailShort}：{result.Message}");
                     }
                 }
                 catch (Exception ex)
                 {
-                    ShowSnackbar(Properties.Resources.Common_Error, FriendlyError.CleanLines(ex.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                    ShowError(FriendlyError.CleanLines(ex.Message));
                 }
                 finally
                 {
@@ -377,7 +377,7 @@ namespace ExHyperV.ViewModels
 
             if (collision)
             {
-                ShowSnackbar(Properties.Resources.Error_Storage_Collision, Properties.Resources.Error_Storage_Occupied, ControlAppearance.Danger, SymbolRegular.Warning24);
+                ShowTip(Properties.Resources.Error_Storage_Occupied);
                 return;
             }
 
@@ -386,7 +386,7 @@ namespace ExHyperV.ViewModels
 
             if (string.IsNullOrEmpty(target) && !IsNewDisk)
             {
-                ShowSnackbar(Properties.Resources.Error_Common_Args, Properties.Resources.Error_Storage_SelectTarget, ControlAppearance.Caution, SymbolRegular.Warning24);
+                ShowTip(Properties.Resources.Error_Storage_SelectTarget);
                 return;
             }
 
@@ -395,13 +395,13 @@ namespace ExHyperV.ViewModels
             {
                 if (string.IsNullOrWhiteSpace(IsoSourceFolderPath))
                 {
-                    ShowSnackbar(Properties.Resources.Error_Common_Args, Properties.Resources.Error_Storage_IsoSource, ControlAppearance.Caution, SymbolRegular.Warning24);
+                    ShowTip(Properties.Resources.Error_Storage_IsoSource);
                     return;
                 }
 
                 if (string.IsNullOrWhiteSpace(IsoOutputPath))
                 {
-                    ShowSnackbar(Properties.Resources.Error_Common_Args, Properties.Resources.Error_Storage_IsoPath, ControlAppearance.Caution, SymbolRegular.Warning24);
+                    ShowTip(Properties.Resources.Error_Storage_IsoPath);
                     return;
                 }
 
@@ -416,14 +416,14 @@ namespace ExHyperV.ViewModels
                     }
                     catch (Exception ex)
                     {
-                        ShowSnackbar(Properties.Resources.Common_Error, string.Format(Properties.Resources.Error_Storage_DirFail, ex.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                        ShowError(string.Format(Properties.Resources.Error_Storage_DirFail, ex.Message));
                         return;
                     }
                 }
 
                 if (!Directory.Exists(IsoSourceFolderPath))
                 {
-                    ShowSnackbar(Properties.Resources.Common_Error, Properties.Resources.Error_Storage_SourceNoExist, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                    ShowTip(Properties.Resources.Error_Storage_SourceNoExist);
                     return;
                 }
             }
@@ -552,17 +552,17 @@ namespace ExHyperV.ViewModels
 
                 if (result.Success)
                 {
-                    ShowSnackbar(Properties.Resources.Msg_Common_AddSuccess, string.Format(Properties.Resources.Msg_Storage_Connected, result.ActualType, result.ActualNumber, result.ActualLocation), ControlAppearance.Success, SymbolRegular.CheckmarkCircle24);
+                    ShowSuccess(string.Format(Properties.Resources.Msg_Storage_Connected, result.ActualType, result.ActualNumber, result.ActualLocation));
                     await VmStorageService.LoadVmStorageItemsAsync(SelectedVm.Model);
                 }
                 else
                 {
-                    ShowSnackbar(Properties.Resources.Error_Storage_AddFail, result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                    ShowError($"{Properties.Resources.Error_Storage_AddFail}：{result.Message}");
                 }
             }
             catch (Exception ex)
             {
-                ShowSnackbar(Properties.Resources.Common_ExceptionLabel, FriendlyError.CleanLines(ex.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                ShowError(FriendlyError.CleanLines(ex.Message));
             }
             finally
             {

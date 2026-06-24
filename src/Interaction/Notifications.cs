@@ -51,7 +51,7 @@ namespace ExHyperV.Interaction
                     Title = title,
                     Content = message,
                     Appearance = appearance,
-                    Icon = new SymbolIcon(icon),
+                    Icon = new SymbolIcon(icon) { FontSize = 24 },   // 统一放大到 24（原默认偏小）
                     Timeout = timeout
                 }.Show();
             }, DispatcherPriority.Background);

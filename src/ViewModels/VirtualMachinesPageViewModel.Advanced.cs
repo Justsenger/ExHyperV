@@ -54,13 +54,11 @@ namespace ExHyperV.ViewModels
             var (ok, msg) = await VmConsoleService.SetConsoleSupportAsync(SelectedVm.Name, enable);
             if (ok)
             {
-                ShowSnackbar(Properties.Resources.VmAdvanced_ConsoleTitle, Properties.Resources.Common_Success,
-                    ControlAppearance.Success, SymbolRegular.CheckmarkCircle24);
+                ShowSuccess(Properties.Resources.VmAdvanced_ConsoleTitle);
             }
             else
             {
-                ShowSnackbar(Properties.Resources.VmAdvanced_ConsoleTitle, msg,
-                    ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                ShowError($"{Properties.Resources.VmAdvanced_ConsoleTitle}：{msg}");
                 _suppressConsoleApply = true;
                 IsConsoleSupportEnabled = !enable;   // 失败回弹开关
                 _suppressConsoleApply = false;
@@ -85,8 +83,7 @@ namespace ExHyperV.ViewModels
                 if (parts.Length != 2 || !int.TryParse(parts[0], out w) || !int.TryParse(parts[1], out h)
                     || w < 200 || w > 7680 || h < 200 || h > 4320)
                 {
-                    ShowSnackbar(Properties.Resources.VmAdvanced_ResolutionTitle, Properties.Resources.VmAdvanced_ResolutionInvalid,
-                        ControlAppearance.Caution, SymbolRegular.Warning24);
+                    ShowTip(Properties.Resources.VmAdvanced_ResolutionInvalid);
                     return;
                 }
                 w &= ~1; h &= ~1;   // 宽高需为偶数（Set-VMVideo 要求），向下取偶
@@ -97,12 +94,10 @@ namespace ExHyperV.ViewModels
             if (ok)
             {
                 if (type == 3) SelectedVideoResolution = $"{w} x {h}";   // 回显取偶后实际应用的值
-                ShowSnackbar(Properties.Resources.VmAdvanced_ResolutionTitle, Properties.Resources.Common_Success,
-                    ControlAppearance.Success, SymbolRegular.CheckmarkCircle24);
+                ShowSuccess(Properties.Resources.VmAdvanced_ResolutionTitle);
             }
             else
-                ShowSnackbar(Properties.Resources.VmAdvanced_ResolutionTitle, msg,
-                    ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                ShowError($"{Properties.Resources.VmAdvanced_ResolutionTitle}：{msg}");
         }
     }
 }

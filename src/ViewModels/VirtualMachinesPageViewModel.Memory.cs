@@ -34,7 +34,7 @@ namespace ExHyperV.ViewModels
             }
             catch (Exception ex)
             {
-                ShowSnackbar(Properties.Resources.Common_Error, ex.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                ShowError(ex.Message);
             }
             finally
             {
@@ -79,7 +79,7 @@ namespace ExHyperV.ViewModels
                     var result = await VmMemoryService.SetVmMemorySettingsAsync(SelectedVm.Name, SelectedVm.MemorySettings, false);
                     if (!result.Success)
                     {
-                        ShowSnackbar(Properties.Resources.VmPage_ModifyFail, result.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                        ShowError($"{Properties.Resources.VmPage_ModifyFail}：{result.Message}");
 
                         // 核心修复：使用真正纯净的初始缓存进行弹回恢复
                         SelectedVm.MemorySettings.Restore(_originalMemorySettingsCache);
@@ -93,7 +93,7 @@ namespace ExHyperV.ViewModels
                 catch (Exception ex)
                 {
                     // async void 事件处理器：未捕获异常（如缓存为空时 Restore/Clone 抛 NRE）会崩 UI 线程；兜底上报
-                    ShowSnackbar(Properties.Resources.VmPage_ModifyFail, ex.Message, ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                    ShowError($"{Properties.Resources.VmPage_ModifyFail}：{ex.Message}");
                 }
                 finally
                 {
@@ -118,7 +118,7 @@ namespace ExHyperV.ViewModels
 
                 if (!result.Success)
                 {
-                    ShowSnackbar(Properties.Resources.Error_Common_SaveFail, FriendlyError.CleanLines(result.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                    ShowError($"{Properties.Resources.Error_Common_SaveFail}：{FriendlyError.CleanLines(result.Message)}");
                 }
                 else
                 {
@@ -130,7 +130,7 @@ namespace ExHyperV.ViewModels
             }
             catch (Exception ex)
             {
-                ShowSnackbar(Properties.Resources.Common_ExceptionLabel, FriendlyError.CleanLines(ex.Message), ControlAppearance.Danger, SymbolRegular.ErrorCircle24);
+                ShowError(FriendlyError.CleanLines(ex.Message));
             }
             finally { IsLoadingSettings = false; }
         }
