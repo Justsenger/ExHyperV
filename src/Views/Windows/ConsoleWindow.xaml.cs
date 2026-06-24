@@ -176,8 +176,11 @@ namespace ExHyperV.Views
 
                 case nameof(ConsoleViewModel.IsFullScreen):
                     if (_vm.IsFullScreen) EnterFullScreen(); else ExitFullScreen();  // 窗口
+                    // ★ 进全屏：必须在 mstscax 进入全屏(SetFullScreen)之前把缩放归 100。连接栏的布局只在"进全屏那一刻"计算，
+                    // 若此刻 ZoomLevel≠100，连接栏会按缩放态布局而消失、退不出去；事后再设 100 也救不回。退全屏不在此动(由 ApplyBasicZoom 还原档)。
+                    if (_vm.IsFullScreen && !_vm.IsEnhancedMode) RdpHost.SetZoomLevel(100);
                     if (!_syncingFs) RdpHost.SetFullScreen(_vm.IsFullScreen);        // 按钮发起的才回灌 mstscax
-                    if (!_vm.IsEnhancedMode) ApplyBasicZoom();                       // 基本会话：进全屏回 100%、退全屏还原缩放档（同 VMConnect）
+                    if (!_vm.IsEnhancedMode) ApplyBasicZoom();                       // 基本会话：进全屏布局(缩放已 100)、退全屏还原缩放档（同 VMConnect）
                     else LayoutRdpHost();                                            // 增强：全屏铺满 / 窗口化缩到 VM 居中
                     break;
 
