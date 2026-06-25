@@ -758,6 +758,35 @@
 
                 <Grid Height="0"/>
             </ui:CardExpander>
+
+            <!-- 安全 (Security) 折叠卡片 -->
+            <ui:CardExpander Margin="0,0,0,8" IsExpanded="False">
+                <ui:CardExpander.Header>
+                    <Grid MinHeight="38" Margin="8,0,12,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="15"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                            <ui:SymbolIcon Symbol="ShieldCheckmark24" FontSize="22" Margin="-2,0,12,0" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="{x:Static properties:Resources.VmSecurity_Title}" FontSize="16" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                                <TextBlock Text="{x:Static properties:Resources.VmSecurity_Hint}" FontSize="12" Opacity="0.6" Margin="0,2,0,0" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                            </StackPanel>
+                        </StackPanel>
+
+                        <ui:Button Grid.Column="4" Appearance="Transparent" Padding="8,4" Command="{Binding DataContext.GoToSecuritySettingsCommand, RelativeSource={RelativeSource AncestorType=UserControl}}">
+                            <ui:SymbolIcon Symbol="Settings24" FontSize="18" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                        </ui:Button>
+                    </Grid>
+                </ui:CardExpander.Header>
+
+                <Grid Height="0"/>
+            </ui:CardExpander>
         </StackPanel>
     </ScrollViewer>
 </UserControl>

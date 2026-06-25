@@ -2748,4 +2748,40 @@ The existing NAT switch is: '{0}'</value>
   <data name="Msg_Gpu_LinuxAutoPrep" xml:space="preserve">
     <value>Detected single Linux partition. Automating environment preparation...</value>
   </data>
+  <data name="VmSecurity_Title" xml:space="preserve">
+    <value>Security</value>
+  </data>
+  <data name="VmSecurity_Hint" xml:space="preserve">
+    <value>Secure Boot and encryption protection</value>
+  </data>
+  <data name="VmSecurity_SecureBoot" xml:space="preserve">
+    <value>Secure Boot</value>
+  </data>
+  <data name="VmSecurity_Encryption" xml:space="preserve">
+    <value>Encryption Support</value>
+  </data>
+  <data name="VmSecurity_SecureBootDesc" xml:space="preserve">
+    <value>Help prevent unauthorized code from running at startup</value>
+  </data>
+  <data name="VmSecurity_TpmDesc" xml:space="preserve">
+    <value>Trusted Platform Module providing cryptographic services to the VM</value>
+  </data>
+  <data name="VmSecurity_Template" xml:space="preserve">
+    <value>Secure Boot Template</value>
+  </data>
+  <data name="VmSecurity_EncryptMigration" xml:space="preserve">
+    <value>Encrypt state and VM migration traffic</value>
+  </data>
+  <data name="VmSecurity_EncryptMigrationDesc" xml:space="preserve">
+    <value>Encrypt the VM's saved state and live-migration traffic</value>
+  </data>
+  <data name="VmSecurity_PolicySection" xml:space="preserve">
+    <value>Security Policy</value>
+  </data>
+  <data name="VmSecurity_Shielding" xml:space="preserve">
+    <value>Enable Shielding</value>
+  </data>
+  <data name="VmSecurity_ShieldingDesc" xml:space="preserve">
+    <value>Mark the VM as shielded; forces TPM and encryption on</value>
+  </data>
 </root>

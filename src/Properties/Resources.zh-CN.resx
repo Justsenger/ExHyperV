@@ -2748,4 +2748,40 @@
   <data name="Msg_Gpu_LinuxAutoPrep" xml:space="preserve">
     <value>检测到单个 Linux 分区，正在自动准备环境…</value>
   </data>
+  <data name="VmSecurity_Title" xml:space="preserve">
+    <value>安全</value>
+  </data>
+  <data name="VmSecurity_Hint" xml:space="preserve">
+    <value>安全启动与加密防护</value>
+  </data>
+  <data name="VmSecurity_SecureBoot" xml:space="preserve">
+    <value>安全启动</value>
+  </data>
+  <data name="VmSecurity_Encryption" xml:space="preserve">
+    <value>加密支持</value>
+  </data>
+  <data name="VmSecurity_SecureBootDesc" xml:space="preserve">
+    <value>帮助防止启动时运行未经授权的代码</value>
+  </data>
+  <data name="VmSecurity_TpmDesc" xml:space="preserve">
+    <value>可为虚拟机提供加密服务的受信任的平台模块</value>
+  </data>
+  <data name="VmSecurity_Template" xml:space="preserve">
+    <value>安全模板</value>
+  </data>
+  <data name="VmSecurity_EncryptMigration" xml:space="preserve">
+    <value>加密状态和虚拟机迁移流量</value>
+  </data>
+  <data name="VmSecurity_EncryptMigrationDesc" xml:space="preserve">
+    <value>加密虚拟机的保存状态与实时迁移流量</value>
+  </data>
+  <data name="VmSecurity_PolicySection" xml:space="preserve">
+    <value>安全策略</value>
+  </data>
+  <data name="VmSecurity_Shielding" xml:space="preserve">
+    <value>启用防护</value>
+  </data>
+  <data name="VmSecurity_ShieldingDesc" xml:space="preserve">
+    <value>将虚拟机标记为受防护，会强制启用 TPM 与加密</value>
+  </data>
 </root>

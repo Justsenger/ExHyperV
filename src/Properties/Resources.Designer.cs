@@ -7822,5 +7822,101 @@ namespace ExHyperV.Properties {
         public static string Msg_Gpu_LinuxAutoPrep {
             get { return ResourceManager.GetString("Msg_Gpu_LinuxAutoPrep", resourceCulture); }
         }
+        /// <summary>
+        ///   查找类似 安全 的本地化字符串。
+        /// </summary>
+        public static string VmSecurity_Title {
+            get {
+                return ResourceManager.GetString("VmSecurity_Title", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   查找类似 安全启动、TPM、加密与防护 的本地化字符串。
+        /// </summary>
+        public static string VmSecurity_Hint {
+            get {
+                return ResourceManager.GetString("VmSecurity_Hint", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   查找类似 安全启动 的本地化字符串。
+        /// </summary>
+        public static string VmSecurity_SecureBoot {
+            get {
+                return ResourceManager.GetString("VmSecurity_SecureBoot", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   查找类似 加密支持 的本地化字符串。
+        /// </summary>
+        public static string VmSecurity_Encryption {
+            get {
+                return ResourceManager.GetString("VmSecurity_Encryption", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   帮助防止启动时运行未经授权的代码
+        /// </summary>
+        public static string VmSecurity_SecureBootDesc {
+            get {
+                return ResourceManager.GetString("VmSecurity_SecureBootDesc", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   可为虚拟机提供加密服务的受信任的平台模块
+        /// </summary>
+        public static string VmSecurity_TpmDesc {
+            get {
+                return ResourceManager.GetString("VmSecurity_TpmDesc", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   模板
+        /// </summary>
+        public static string VmSecurity_Template {
+            get {
+                return ResourceManager.GetString("VmSecurity_Template", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   加密状态和虚拟机迁移流量
+        /// </summary>
+        public static string VmSecurity_EncryptMigration {
+            get {
+                return ResourceManager.GetString("VmSecurity_EncryptMigration", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   加密虚拟机的保存状态与实时迁移流量
+        /// </summary>
+        public static string VmSecurity_EncryptMigrationDesc {
+            get {
+                return ResourceManager.GetString("VmSecurity_EncryptMigrationDesc", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   安全策略
+        /// </summary>
+        public static string VmSecurity_PolicySection {
+            get {
+                return ResourceManager.GetString("VmSecurity_PolicySection", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   启用防护
+        /// </summary>
+        public static string VmSecurity_Shielding {
+            get {
+                return ResourceManager.GetString("VmSecurity_Shielding", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   将虚拟机标记为受防护，会强制启用 TPM 与加密
+        /// </summary>
+        public static string VmSecurity_ShieldingDesc {
+            get {
+                return ResourceManager.GetString("VmSecurity_ShieldingDesc", resourceCulture);
+            }
+        }
     }
 }

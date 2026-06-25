@@ -70,12 +70,16 @@ namespace ExHyperV.ViewModels
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(CanChangeBootOrder))]
         [NotifyPropertyChangedFor(nameof(CanToggleConsoleSupport))]
+        [NotifyPropertyChangedFor(nameof(CanEditSecurity))]
         private bool _isRunning;
 
         public bool CanChangeBootOrder => !(Generation == 1 && IsRunning);
 
         // 控制台支持开关仅适用于第 2 代虚拟机（Enable/Disable-VMConsoleSupport 官方仅 Gen2 可用），且需关机时改
         public bool CanToggleConsoleSupport => Generation == 2 && !IsRunning;
+
+        // 安全启动 / vTPM 仅第 2 代可用，且需关机时改（与创建页的安全特性一致）
+        public bool CanEditSecurity => Generation == 2 && !IsRunning;
 
         [ObservableProperty] private BitmapSource? _thumbnail;
 

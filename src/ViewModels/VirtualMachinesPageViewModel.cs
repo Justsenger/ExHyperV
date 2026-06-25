@@ -20,7 +20,7 @@ namespace ExHyperV.ViewModels
         Dashboard, CpuSettings, CpuAffinity, MemorySettings, StorageSettings, AddStorage,
         GpuSettings,
         AddGpuSelect,
-        AddGpuProgress, NetworkSettings, BootSettings, SpacetimeSettings, Advanced
+        AddGpuProgress, NetworkSettings, BootSettings, SpacetimeSettings, Advanced, Security
     }
     public partial class VirtualMachinesPageViewModel : PageViewModelBase, IDisposable
     {
