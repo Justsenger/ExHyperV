@@ -788,6 +788,9 @@ ARM 没有 Ring 环，用的是异常级别（Exception Levels）：
 ![](https://img.shields.io/badge/达人-LinearKF-24292e?style=for-the-badge&logo=expertsexchange&logoColor=FFBF00&labelColor=24292e&color=FFBF00)
 ![](https://img.shields.io/badge/达人-User--7bdd5-24292e?style=for-the-badge&logo=expertsexchange&logoColor=FFBF00&labelColor=24292e&color=FFBF00)
 ![](https://img.shields.io/badge/达人-Glushkov-24292e?style=for-the-badge&logo=expertsexchange&logoColor=FFBF00&labelColor=24292e&color=FFBF00)
+![](https://img.shields.io/badge/达人-Cz-24292e?style=for-the-badge&logo=expertsexchange&logoColor=FFBF00&labelColor=24292e&color=FFBF00)
+![](https://img.shields.io/badge/达人-Ermo-24292e?style=for-the-badge&logo=expertsexchange&logoColor=FFBF00&labelColor=24292e&color=FFBF00)
+
 ---
 
 ### 🔹 初心
