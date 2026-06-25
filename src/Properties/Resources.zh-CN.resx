@@ -1960,7 +1960,7 @@
     <value>检查虚拟机配置...</value>
   </data>
   <data name="Msg_Gpu_ConfigNeeded" xml:space="preserve">
-    <value>将会修改虚拟机设置。</value>
+    <value>设置已完成。</value>
   </data>
   <data name="Msg_Gpu_ConfigOk" xml:space="preserve">
     <value>虚拟机设置OK。</value>

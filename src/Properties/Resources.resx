@@ -1960,7 +1960,7 @@ The existing NAT switch is: '{0}'</value>
     <value>Checking VM configuration...</value>
   </data>
   <data name="Msg_Gpu_ConfigNeeded" xml:space="preserve">
-    <value>Pending configure.</value>
+    <value>Settings configured.</value>
   </data>
   <data name="Msg_Gpu_ConfigOk" xml:space="preserve">
     <value>VM config is OK.</value>
