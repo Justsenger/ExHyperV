@@ -6,18 +6,13 @@ namespace ExHyperV.Tools;
 
 // ══════════════════════════════════════════════════════════════════
 //  ComApi — 公开封装层
-//  所有 COM 对象调用的唯一入口
-//  ICS 操作必须在 STA 线程执行，ComApi 内部统一处理，调用方不感知
 // ══════════════════════════════════════════════════════════════════
 public static class ComApi
 {
     // ── ICS 网络共享 ──────────────────────────────────────────────
-    // 替换 NetworkService / Utils.UpdateSwitchConfigurationAsync 里
-    // 通过 PowerShell 调用 HNetCfg.HNetShare 的所有操作
 
     /// <summary>
     /// 禁用所有网络适配器上的 ICS 共享。
-    /// 等效于 PS 脚本里遍历所有连接并调用 DisableSharing()。
     /// </summary>
     public static ApiResponse DisableAllIcsSharing()
     {

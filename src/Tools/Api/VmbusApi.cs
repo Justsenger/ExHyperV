@@ -6,7 +6,6 @@ namespace ExHyperV.Tools;
 // ══════════════════════════════════════════════════════════════════
 //  VmbusApi — 公开封装层
 //  VMBus socket 的底层连接建立
-//  业务逻辑（隧道管理、看门狗、自动恢复）留在 UsbVmbusService
 // ══════════════════════════════════════════════════════════════════
 public static class VmbusApi
 {
@@ -15,7 +14,7 @@ public static class VmbusApi
     public const int SOCK_STREAM = 1;
     public const int HV_PROTOCOL_RAW = 1;
 
-    // TCP 优化常量（供 UsbVmbusService 使用）
+    // TCP 优化常量
     public const uint SIO_TCP_SET_ACK_FREQUENCY = 0x98000017;
     public const int IPPROTO_TCP = 6;
     public const int TCP_NODELAY = 0x0001;
@@ -57,8 +56,6 @@ public static class VmbusApi
         => VmbusNative.closesocket(handle);
 
     // ── TCP socket 优化 ───────────────────────────────────────────
-    // 供 UsbVmbusService 对 TCP 侧的 socket 进行性能调优
-
     /// <summary>
     /// 设置 TCP ACK 频率（减少延迟，提升小包吞吐）。
     /// </summary>
@@ -139,7 +136,6 @@ public static class VmbusApi
 
 // ══════════════════════════════════════════════════════════════════
 //  VmbusNative — ws2_32.dll P/Invoke 声明
-//  VmbusApi 以外的代码不应直接引用
 // ══════════════════════════════════════════════════════════════════
 internal static class VmbusNative
 {

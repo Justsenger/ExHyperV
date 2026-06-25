@@ -40,7 +40,7 @@ public static class Win32Api
             return ApiResponse.Ok();
 
         // 设备本身不可禁用（USB4 主机路由器、板载老式 PCI 设备等）→ 无法从主机分离直通。
-        // 与旧 PowerShell 版本一致，给出「不支持」提示，而非裸 CM_Disable_DevNode 失败名。
+        // 给出「不支持」提示，而非裸 CM_Disable_DevNode 失败名。
         if (!enable && cr == NativeMethods.CR_NOT_DISABLEABLE)
             return ApiResponse.Fail(Properties.Resources.Error_DeviceNotAssignable, cr, ApiErrorSource.Win32);
 
@@ -167,9 +167,6 @@ public static class Win32Api
 
     /// <summary>
     /// 枚举"在位"(present)的显示类 GPU：Name / 完整 InstanceId / 厂商 / 驱动版本。
-    /// FILTER_PRESENT 天然排除幻影(phantom)设备——与 Win32_VideoController 的"有活动驱动适配器"语义一致；
-    /// 读 PnP 静态属性库、不实探显示驱动，替代偶发数秒慢的 Win32_VideoController。
-    /// (已在系统上用同序列原生 CM_* 实测核对：仅列在位 GPU，DriverVersion 取自 DEVPKEY {a8b865dd…}/3。)
     /// </summary>
     public static List<(string InstanceId, string Name, string Manufacturer, string DriverVersion)> GetPresentDisplayAdapters()
     {
@@ -394,10 +391,10 @@ internal static class NativeMethods
     #region cfgmgr32
     public const int CR_SUCCESS = 0x00000000;
     public const int CR_BUFFER_SMALL = 0x0000001A;
-    public const int CR_NOT_DISABLEABLE = 0x00000028; // 设备不可禁用（USB4 主机路由器、板载老式 PCI 等）→ 无法直通，等价旧 PS「不支持」
+    public const int CR_NOT_DISABLEABLE = 0x00000028; // 设备不可禁用 
     public const uint CM_LOCATE_DEVNODE_NORMAL = 0x00000000;
     public const uint CM_LOCATE_DEVNODE_PHANTOM = 0x00000001;
-    public const uint CM_DISABLE_UI_NOT_OK = 0x00000004; // 0x4=UI_NOT_OK(polite禁用);0x2 实为 CM_DISABLE_HARDWARE,软件枚举设备(USB4_MS_CM 等)不支持硬件禁用会失败
+    public const uint CM_DISABLE_UI_NOT_OK = 0x00000004;
     public const uint CM_GETIDLIST_FILTER_NONE = 0x00000000;
     public const uint CM_GETIDLIST_FILTER_PRESENT = 0x00000100;
     public const uint CM_GETIDLIST_FILTER_ENUMERATOR = 0x00000002;

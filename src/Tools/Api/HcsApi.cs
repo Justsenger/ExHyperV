@@ -153,7 +153,7 @@ public static class HcsApi
     }
 
     /// <summary>
-    /// 设置 CPU Group 的 CPU 占用上限（百分比 * 100，例如 5000 = 50%）。
+    /// 设置 CPU Group 的 CPU 占用上限。
     /// </summary>
     public static Task<ApiResponse> SetCpuGroupCapAsync(Guid groupId, ushort cpuCap)
     {
