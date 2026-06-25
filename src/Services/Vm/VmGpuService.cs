@@ -601,26 +601,32 @@ namespace ExHyperV.Services
                     await p.WaitForExitAsync();
                 }
 
-                PromoteRegistryDefinedFiles(assignedDriveLetter); // 微软注册表文件提取
+                // 同步重活（注册表提取 + 各厂商 Promote*：内部对每个文件 spawn cmd.exe 并同步 WaitForExit 几十~上百次）
+                // 挪到后台线程——否则作为 robocopy await 之后的续体跑在 UI 线程上，会冻结主界面（转圈/窗口都卡死）。
+                // Log 回调仍在 UI 续体里执行（这些 Task.Run 之间的代码在 UI 线程），更新 task.Description 安全、无需 Dispatcher。
+                await Task.Run(() => PromoteRegistryDefinedFiles(assignedDriveLetter)); // 微软注册表文件提取
 
                 if (gpuManu.Contains("NVIDIA", StringComparison.OrdinalIgnoreCase))
                 {
                     Log(Properties.Resources.Msg_Gpu_InjectingReg);
-                    NvidiaReg(assignedDriveLetter);
-                    PromoteNvidiaFiles(assignedDriveLetter);
+                    await Task.Run(() =>
+                    {
+                        NvidiaReg(assignedDriveLetter);
+                        PromoteNvidiaFiles(assignedDriveLetter);
+                    });
                     await NvidiaProgramFoldersAsync(assignedDriveLetter, Log);
                 }
                 else if (gpuManu.Contains("Intel", StringComparison.OrdinalIgnoreCase))
                 {
-                    PromoteIntelGpuFiles(assignedDriveLetter);
+                    await Task.Run(() => PromoteIntelGpuFiles(assignedDriveLetter));
                 }
                 else if (gpuManu.Contains("AMD", StringComparison.OrdinalIgnoreCase) || gpuManu.Contains("Advanced", StringComparison.OrdinalIgnoreCase))
                 {
-                    PromoteAmdGpuFiles(assignedDriveLetter);
+                    await Task.Run(() => PromoteAmdGpuFiles(assignedDriveLetter));
                 }
                 else if (gpuManu.Contains("Qualcomm", StringComparison.OrdinalIgnoreCase) || gpuManu.Contains("QCOM", StringComparison.OrdinalIgnoreCase))
                 {
-                    PromoteQualcommGpuFiles(assignedDriveLetter);
+                    await Task.Run(() => PromoteQualcommGpuFiles(assignedDriveLetter));
                 }
 
 
