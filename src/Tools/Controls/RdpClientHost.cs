@@ -8,13 +8,12 @@ namespace ExHyperV.Tools
     /// 通用 RDP 宿主控件：在 WPF 里直接托管系统 mstscax ActiveX，依赖原生事件而非轮询。
     /// 不含 Hyper-V 专有逻辑——连接配方由调用方通过 <see cref="RdpConnectionSettings"/> 注入；
     /// 不反向依赖 ViewModel（全屏等状态以事件/方法暴露，由消费方桥接）。
-    /// 取代旧的 MsRdpExHost（491 行 + 20ms 轮询 + FindWindowEx + 键盘钩子轮询 + 手搓重连 + DataContext 倒置）。
     /// </summary>
     public class RdpClientHost : WindowsFormsHost
     {
         private readonly MsRdpAxHost _ax = new();
         // 黑布：WinForms 层(HWND)，连接期间盖住 mstscax + 窗口刚弹出时的系统白底；连上(OnConnected)才掀开。
-        // ★ 必须盖在"包裹了 _ax 的容器(axWrapper)"上，而不是和裸 _ax 当兄弟——裸 ActiveX 会盖过兄弟控件（之前盖不住的原因）。
+        // ★ 必须盖在"包裹了 _ax 的容器(axWrapper)"上，而不是和裸 _ax 当兄弟——裸 ActiveX 会盖过兄弟控件。
         private readonly System.Windows.Forms.Panel _curtain = new()
         {
             Dock = System.Windows.Forms.DockStyle.Fill,
