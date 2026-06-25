@@ -15,6 +15,7 @@ namespace ExHyperV.Tools
     {
         private const string MsRdpClient9Clsid = "8b918b82-7985-4c24-89df-c33ad2bbfbcd";
         private bool _smartSizing;   // 当前 SmartSizing 状态缓存（SetSmartSizing 用，避免重复设值闪烁）
+        private uint _zoomLevel;     // 当前 ZoomLevel% 缓存（SetZoomLevel 用，基本会话每次布局都会调，仅比例真变时才穿透 OCX）
 
         public event Action? Connected;
         public event Action<int>? Disconnected;
@@ -177,6 +178,8 @@ namespace ExHyperV.Tools
         /// 仅基本会话生效、全屏无效（调用方在全屏时传 100）。</summary>
         public void SetZoomLevel(uint percent)
         {
+            if (_zoomLevel == percent) return;   // 去重：LayoutRdpHost 每次布局都调，仅比例真变时穿透 OCX，避免拖动时每帧热设卡顿
+            _zoomLevel = percent;
             try
             {
                 var ext = (IMsRdpExtendedSettings)GetOcx();

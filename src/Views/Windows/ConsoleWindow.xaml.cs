@@ -362,13 +362,18 @@ namespace ExHyperV.Views
             double dpiY = src.CompositionTarget.TransformToDevice.M22;
             if (!_vm.IsEnhancedMode)
             {
-                // 基本会话：缩放由 mstscax 原生 ZoomLevel 负责（在 ApplyBasicZoom 里热设），此处只把宿主控件摆成
-                // min(画面区, 原生×缩放%)——与 VMConnect 同款：装得下则控件=缩放尺寸居中、周围 RdpArea 黑底；
-                // 超出则控件=画面区、由控件内部出滚动条。SmartSizing 必须关：缩放走 ZoomLevel，二者互斥
-                // （留着会和 ZoomLevel 打架、并在控件大于画面时糊上 mstscax 的 #CBCBCB 信箱）。
+                // 基本会话：缩放走 mstscax 原生 ZoomLevel，此处按"实际能装下的有效比例"热设 + 把宿主控件摆成对应尺寸居中。
+                // 有效比例 = 缩放档≤100% 取 min(档, 画面区能装下的比例)、>100% 放大档取档本身：
+                //   · ≤100%(含自适应)：用户要看「整幅画面」，宿主工作区比画面小时收缩到刚好放下——不溢出、不出滚动条
+                //     （回归旧 SmartSizing 行为；此前固定 ZoomLevel=档 致大画面遇小窗口溢出+自带滚动条）；
+                //   · >100%：用户要「放大看局部」，画面本就该比窗口大，允许溢出+控件内滚动条（VMConnect 同款）。
+                // SmartSizing 必须关：缩放走 ZoomLevel，二者互斥（留着会打架、并在控件大于画面时糊上 mstscax 的 #CBCBCB 信箱）。
                 int areaW = (int)Math.Round(RdpArea.ActualWidth * dpiX);
                 int areaH = (int)Math.Round(RdpArea.ActualHeight * dpiY);
-                double sc = BasicZoomPercent() / 100.0;
+                double userScale = BasicZoomPercent() / 100.0;
+                double fitScale = Math.Min(areaW / (double)vmW, areaH / (double)vmH);
+                double sc = userScale <= 1.0 ? Math.Min(userScale, fitScale) : userScale;
+                RdpHost.SetZoomLevel((uint)Math.Max(1, (int)Math.Round(sc * 100)));   // 有效比例（MsRdpAxHost 内缓存去重，仅真变时穿透 OCX）
                 RdpHost.SetSmartSizing(false);
                 RdpHost.HorizontalAlignment = HorizontalAlignment.Center;
                 RdpHost.VerticalAlignment = VerticalAlignment.Center;
@@ -407,11 +412,11 @@ namespace ExHyperV.Views
         {
             if (_vm.IsEnhancedMode) return;
             int pct = BasicZoomPercent();
-            RdpHost.SetZoomLevel((uint)pct);   // mstscax 原生缩放：真正能放大的机制（连接中热设；未连/全屏则被底层忽略）
+            // ZoomLevel 不在此设——改由 LayoutRdpHost 按"实际能装下的有效比例"热设（窗口装不下时收缩、不溢出）。此处只把窗口撑到 原生×档。
             if (!_vm.IsFullScreen && this.WindowState == WindowState.Normal
                 && _vm.CurrentWidth > 0 && _vm.CurrentHeight > 0)
             {
-                // 窗口随缩放（VMConnect 同款；MinWidth/MinHeight 兜底防过小）→ SizeChanged → LayoutRdpHost 重排。
+                // 窗口随缩放（VMConnect 同款；MinWidth/MinHeight 兜底防过小；FitToResolution 内部再钳到工作区）→ SizeChanged → LayoutRdpHost 重排。
                 FitToResolution(_vm.CurrentWidth * pct / 100, _vm.CurrentHeight * pct / 100);
             }
             LayoutRdpHost();
