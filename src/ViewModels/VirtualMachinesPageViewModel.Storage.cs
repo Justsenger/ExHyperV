@@ -143,7 +143,7 @@ namespace ExHyperV.ViewModels
                 var result = await VmStorageService.RemoveDriveAsync(SelectedVm.Name, item);
                 if (result.Success)
                 {
-                    ShowSuccess(result.Message == "Storage_Msg_Ejected" ? Properties.Resources.Msg_Storage_Ejected : Properties.Resources.Msg_Storage_Removed);
+                    ShowSuccess(result.Message);
                     await VmStorageService.LoadVmStorageItemsAsync(SelectedVm.Model);
                 }
                 else ShowError($"{Properties.Resources.Error_Storage_RemoveFail}：{result.Message}");

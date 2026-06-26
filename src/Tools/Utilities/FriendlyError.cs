@@ -9,13 +9,11 @@ namespace ExHyperV.Tools
     public static class FriendlyError
     {
         /// <summary>
-        /// 从原始消息里取最后一句（按 。或 . 切）；若含 "Storage_Error_X" / "Storage_Msg_X" 资源 key 模式则直接返回 key 名。
+        /// 从原始消息里取最后一句（按 。或 . 切）。
         /// </summary>
         public static string LastSentence(string rawMessage)
         {
-            if (string.IsNullOrWhiteSpace(rawMessage)) return "Storage_Error_Unknown";
-            var match = Regex.Match(rawMessage, @"Storage_(Error|Msg)_[A-Za-z0-9_]+");
-            if (match.Success) return match.Value;
+            if (string.IsNullOrWhiteSpace(rawMessage)) return Properties.Resources.Error_Storage_Unknown;
             string cleanMsg = Regex.Replace(rawMessage.Trim(), @"[\(\（].*?ID\s+[a-fA-F0-9-]{36}.*?[\)\）]", "")
                                    .Replace("\r", "").Replace("\n", " ");
             var parts = cleanMsg.Split(new[] { '。', '.' }, StringSplitOptions.RemoveEmptyEntries)

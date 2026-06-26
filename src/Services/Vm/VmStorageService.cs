@@ -454,7 +454,7 @@ namespace ExHyperV.Services
                     return (false, "Cannot get VM settings", controllerType, controllerNumber, location);
 
                 if (controllerType == "IDE" && isRunning && driveType != "DvdDrive")
-                    return (false, "Storage_Error_IdeHotPlugNotSupported", controllerType, controllerNumber, location);
+                    return (false, Properties.Resources.Error_Storage_IdeHotAdd, controllerType, controllerNumber, location);
 
                 if (controllerType == "SCSI")
                 {
@@ -477,7 +477,7 @@ namespace ExHyperV.Services
                     if (controllerNumber >= scsiCount)
                     {
                         if (isRunning)
-                            return (false, "Storage_Error_ScsiControllerHotAddNotSupported",
+                            return (false, Properties.Resources.Error_Storage_ScsiHotAdd,
                                 controllerType, controllerNumber, location);
 
                         for (int i = scsiCount; i <= controllerNumber; i++)
@@ -523,7 +523,7 @@ namespace ExHyperV.Services
                     }
 
                     if (controllerNumber >= scsiCtrlList.Count)
-                        return (false, "Storage_Error_ScsiControllerNotFound",
+                        return (false, Properties.Resources.Error_Storage_NoScsi,
                             controllerType, controllerNumber, location);
                 }
 
@@ -560,7 +560,7 @@ namespace ExHyperV.Services
                 }
 
                 if (controllerPath == null)
-                    return (false, "Storage_Error_ControllerNotFound",
+                    return (false, Properties.Resources.Error_Storage_ControllerNotFound,
                         controllerType, controllerNumber, location);
 
                 if (driveType == "HardDisk" && isNew && !string.IsNullOrWhiteSpace(pathOrNumber))
@@ -626,7 +626,7 @@ namespace ExHyperV.Services
                 string? slotPath = addSlotResult.Data?.FirstOrDefault();
 
                 if (slotPath == null)
-                    return (false, "Storage_Error_SlotNotFound after AddResourceSettings",
+                    return (false, Properties.Resources.Error_Storage_NoSlots,
                         controllerType, controllerNumber, location);
 
                 bool hasMedia = !isPhysical && !string.IsNullOrWhiteSpace(pathOrNumber);
@@ -664,7 +664,7 @@ namespace ExHyperV.Services
                             controllerType, controllerNumber, location);
                 }
 
-                return (true, "Storage_Msg_Success", controllerType, controllerNumber, location);
+                return (true, string.Empty, controllerType, controllerNumber, location);
             }
             catch (Exception ex)
             {
@@ -767,11 +767,11 @@ namespace ExHyperV.Services
                         vmName, drive.ControllerNumber, drive.ControllerLocation,
                         "Microsoft:Hyper-V:Virtual CD/DVD Disk", "");
                     return ejectResult.Success
-                        ? (true, "Storage_Msg_Ejected")
+                        ? (true, Properties.Resources.Msg_Storage_Ejected)
                         : ejectResult;
                 }
 
-                return (false, "Storage_Error_DvdHotRemoveNotSupported");
+                return (false, Properties.Resources.Error_Storage_DvdHotRemove);
             }
 
             using var vmObj = WmiApi.GetVmComputerSystem(vmName);
@@ -802,8 +802,8 @@ namespace ExHyperV.Services
 
             if (drive.ControllerNumber >= ctrlList.Count)
                 return (false, drive.DriveType == "DvdDrive"
-                    ? "Storage_Error_DvdDriveNotFound"
-                    : "Storage_Error_DiskNotFound");
+                    ? Properties.Resources.Error_Storage_DvdNotFound
+                    : Properties.Resources.Error_Storage_DiskNotFound);
 
             var ctrlSegs = ctrlList[drive.ControllerNumber].InstanceID.Split('\\');
             string ctrlGuid = ctrlSegs.Length >= 2 ? ctrlSegs[^2] : "";
@@ -818,8 +818,8 @@ namespace ExHyperV.Services
 
             if (slotRasd == null)
                 return (false, drive.DriveType == "DvdDrive"
-                    ? "Storage_Error_DvdDriveNotFound"
-                    : "Storage_Error_DiskNotFound");
+                    ? Properties.Resources.Error_Storage_DvdNotFound
+                    : Properties.Resources.Error_Storage_DiskNotFound);
 
             var mediaInstanceId = slotRasd.InstanceID[..^1] + "L";
             var mediaInstanceIdWql = mediaInstanceId.Replace(@"\", @"\\");
@@ -856,7 +856,7 @@ namespace ExHyperV.Services
                 await HostDiskService.SetDiskOfflineStatusAsync(drive.DiskNumber, false);
             }
 
-            return (true, "Storage_Msg_Removed");
+            return (true, Properties.Resources.Msg_Storage_Removed);
         }
 
         public static async Task<(bool Success, string Message)> ModifyDvdDrivePathAsync(
@@ -933,7 +933,7 @@ namespace ExHyperV.Services
                 serviceWql: "SELECT * FROM Msvm_VirtualSystemManagementService");
 
             return result.Success
-                ? (true, "Storage_Msg_Success")
+                ? (true, string.Empty)
                 : (false, FriendlyError.LastSentence(result.Error));
         }
 
@@ -949,7 +949,7 @@ namespace ExHyperV.Services
             string sourceDirectory, string targetIsoPath, string volumeLabel)
         {
             var sourceDirInfo = new DirectoryInfo(sourceDirectory);
-            if (!sourceDirInfo.Exists) return (false, "Iso_Error_SourceDirNotFound");
+            if (!sourceDirInfo.Exists) return (false, Properties.Resources.Error_Storage_SourceNoExist);
 
             string finalVolumeLabel = string.IsNullOrWhiteSpace(volumeLabel)
                 ? sourceDirInfo.Name : volumeLabel;
@@ -965,11 +965,11 @@ namespace ExHyperV.Services
                         Directory.CreateDirectory(targetDir);
 
                     IsoBuilderService.BuildUdfIso(sourceDirectory, targetIsoPath, finalVolumeLabel);
-                    return (true, "Iso_Msg_CreateSuccess");
+                    return (true, string.Empty);
                 }
                 catch (Exception ex)
                 {
-                    return (false, $"Iso_Error_BuildFailed: {ex.Message}");
+                    return (false, string.Format(Properties.Resources.Error_Storage_IsoBuildFail, ex.Message));
                 }
             });
         }

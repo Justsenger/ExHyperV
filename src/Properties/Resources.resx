@@ -1059,6 +1059,30 @@ The existing NAT switch is: '{0}'</value>
   <data name="Error_Storage_CtrlFull" xml:space="preserve">
     <value>Controller {0} #{1} is full.</value>
   </data>
+  <data name="Error_Storage_ControllerNotFound" xml:space="preserve">
+    <value>Target storage controller not found.</value>
+  </data>
+  <data name="Error_Storage_DvdNotFound" xml:space="preserve">
+    <value>Target DVD drive not found.</value>
+  </data>
+  <data name="Error_Storage_DiskNotFound" xml:space="preserve">
+    <value>Target disk not found.</value>
+  </data>
+  <data name="Error_Storage_IdeHotAdd" xml:space="preserve">
+    <value>IDE devices cannot be added while the VM is running. Please shut down the VM first.</value>
+  </data>
+  <data name="Error_Storage_DvdHotRemove" xml:space="preserve">
+    <value>Cannot remove an IDE DVD drive while the VM is running. Please shut down the VM first.</value>
+  </data>
+  <data name="Error_Storage_ScsiHotAdd" xml:space="preserve">
+    <value>Cannot add a new SCSI controller while the VM is running. Please shut down the VM first.</value>
+  </data>
+  <data name="Error_Storage_Unknown" xml:space="preserve">
+    <value>An unknown storage error occurred.</value>
+  </data>
+  <data name="Error_Storage_IsoBuildFail" xml:space="preserve">
+    <value>Failed to create ISO image: {0}</value>
+  </data>
   <data name="Net_Mode_Access" xml:space="preserve">
     <value>Access</value>
   </data>

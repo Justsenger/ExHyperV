@@ -1059,6 +1059,30 @@
   <data name="Error_Storage_CtrlFull" xml:space="preserve">
     <value>控制器 {0} #{1} 已满</value>
   </data>
+  <data name="Error_Storage_ControllerNotFound" xml:space="preserve">
+    <value>未找到目标存储控制器。</value>
+  </data>
+  <data name="Error_Storage_DvdNotFound" xml:space="preserve">
+    <value>未找到目标光驱。</value>
+  </data>
+  <data name="Error_Storage_DiskNotFound" xml:space="preserve">
+    <value>未找到目标磁盘。</value>
+  </data>
+  <data name="Error_Storage_IdeHotAdd" xml:space="preserve">
+    <value>IDE 设备无法在虚拟机运行时添加，请先关机。</value>
+  </data>
+  <data name="Error_Storage_DvdHotRemove" xml:space="preserve">
+    <value>无法在虚拟机运行时移除 IDE 光驱，请先关机。</value>
+  </data>
+  <data name="Error_Storage_ScsiHotAdd" xml:space="preserve">
+    <value>无法在虚拟机运行时添加新的 SCSI 控制器，请先关机。</value>
+  </data>
+  <data name="Error_Storage_Unknown" xml:space="preserve">
+    <value>发生未知存储错误。</value>
+  </data>
+  <data name="Error_Storage_IsoBuildFail" xml:space="preserve">
+    <value>创建 ISO 镜像失败：{0}</value>
+  </data>
   <data name="Net_Mode_Access" xml:space="preserve">
     <value>接入</value>
   </data>

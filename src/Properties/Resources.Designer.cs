@@ -2178,6 +2178,78 @@ namespace ExHyperV.Properties {
                 return ResourceManager.GetString("Error_Storage_NoSlots", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   查找类似 Target storage controller not found. 的本地化字符串。
+        /// </summary>
+        public static string Error_Storage_ControllerNotFound {
+            get {
+                return ResourceManager.GetString("Error_Storage_ControllerNotFound", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   查找类似 Target DVD drive not found. 的本地化字符串。
+        /// </summary>
+        public static string Error_Storage_DvdNotFound {
+            get {
+                return ResourceManager.GetString("Error_Storage_DvdNotFound", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   查找类似 Target disk not found. 的本地化字符串。
+        /// </summary>
+        public static string Error_Storage_DiskNotFound {
+            get {
+                return ResourceManager.GetString("Error_Storage_DiskNotFound", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   查找类似 IDE devices cannot be added while the VM is running. 的本地化字符串。
+        /// </summary>
+        public static string Error_Storage_IdeHotAdd {
+            get {
+                return ResourceManager.GetString("Error_Storage_IdeHotAdd", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   查找类似 Cannot remove an IDE DVD drive while the VM is running. 的本地化字符串。
+        /// </summary>
+        public static string Error_Storage_DvdHotRemove {
+            get {
+                return ResourceManager.GetString("Error_Storage_DvdHotRemove", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   查找类似 Cannot add a new SCSI controller while the VM is running. 的本地化字符串。
+        /// </summary>
+        public static string Error_Storage_ScsiHotAdd {
+            get {
+                return ResourceManager.GetString("Error_Storage_ScsiHotAdd", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   查找类似 An unknown storage error occurred. 的本地化字符串。
+        /// </summary>
+        public static string Error_Storage_Unknown {
+            get {
+                return ResourceManager.GetString("Error_Storage_Unknown", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   查找类似 Failed to create ISO image: {0} 的本地化字符串。
+        /// </summary>
+        public static string Error_Storage_IsoBuildFail {
+            get {
+                return ResourceManager.GetString("Error_Storage_IsoBuildFail", resourceCulture);
+            }
+        }
         
         /// <summary>
         ///   查找类似 Slot is occupied. Select another one. 的本地化字符串。
