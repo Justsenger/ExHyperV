@@ -1005,6 +1005,9 @@ The existing NAT switch is: '{0}'</value>
   <data name="Error_Storage_FileExists" xml:space="preserve">
     <value>Target file already exists. Use a different name or delete it first.</value>
   </data>
+  <data name="Error_Storage_ParentRequired" xml:space="preserve">
+    <value>A differencing disk requires an existing parent disk file.</value>
+  </data>
   <data name="Error_Storage_IsoSource" xml:space="preserve">
     <value>Source folder required for ISO creation.</value>
   </data>

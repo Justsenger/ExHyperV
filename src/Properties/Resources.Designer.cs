@@ -2376,6 +2376,15 @@ namespace ExHyperV.Properties {
                 return ResourceManager.GetString("Error_Storage_FileExists", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   查找类似 新建差异磁盘需指定存在的父磁盘文件。 的本地化字符串。
+        /// </summary>
+        public static string Error_Storage_ParentRequired {
+            get {
+                return ResourceManager.GetString("Error_Storage_ParentRequired", resourceCulture);
+            }
+        }
         
         /// <summary>
         ///   查找类似 Source folder does not exist. 的本地化字符串。

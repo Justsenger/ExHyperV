@@ -1005,6 +1005,9 @@
   <data name="Error_Storage_FileExists" xml:space="preserve">
     <value>目标文件已存在，请改用其他文件名或先删除它。</value>
   </data>
+  <data name="Error_Storage_ParentRequired" xml:space="preserve">
+    <value>新建差异磁盘需指定存在的父磁盘文件。</value>
+  </data>
   <data name="Error_Storage_IsoSource" xml:space="preserve">
     <value>创建 ISO 时必须指定源文件夹。</value>
   </data>

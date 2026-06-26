@@ -383,6 +383,14 @@ namespace ExHyperV.ViewModels
                 }
             }
 
+            // 新建差异磁盘必须有存在的父磁盘——否则要到 CreateVhd(type=4) 才抛底层原始码
+            if (IsNewDisk && DeviceType == "HardDisk" && SelectedVhdType == "Differencing"
+                && (string.IsNullOrWhiteSpace(ParentPath) || !File.Exists(ParentPath)))
+            {
+                ShowTip(Properties.Resources.Error_Storage_ParentRequired);
+                return;
+            }
+
             // 验证 ISO 创建参数
             if (DeviceType == "DvdDrive" && IsNewDisk)
             {
@@ -499,8 +507,12 @@ namespace ExHyperV.ViewModels
                 int targetLocation = SelectedLocation;
 
 
+                int offlinedDisk = -1;   // 记录为添加而脱机的物理盘号，添加失败时还原上线
                 if (isPhysical && int.TryParse(pathOrNumber, out int diskNum))
+                {
                     await HostDiskService.SetDiskOfflineStatusAsync(diskNum, true);
+                    offlinedDisk = diskNum;
+                }
 
                 var result = await VmStorageService.AddDriveAsync(
                     vmName: SelectedVm.Name,
@@ -527,6 +539,8 @@ namespace ExHyperV.ViewModels
                 }
                 else
                 {
+                    if (offlinedDisk >= 0)   // 添加失败：把刚为此脱机的物理盘还原上线，别让用户主机的盘卡在脱机
+                        await HostDiskService.SetDiskOfflineStatusAsync(offlinedDisk, false);
                     ShowError($"{Properties.Resources.Error_Storage_AddFail}：{result.Message}");
                 }
             }

@@ -328,101 +328,6 @@ namespace ExHyperV.Services
         }
 
         // ============================================================
-        // 槽位检测
-        // ============================================================
-
-        public static async Task<(string ControllerType, int ControllerNumber, int Location)>
-            GetNextAvailableSlotAsync(string vmName, string driveType)
-        {
-            var vmResp = await WmiApi.QueryFirstAsync(
-                $"SELECT EnabledState FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(vmName)}'",
-                obj => Convert.ToInt32(obj["EnabledState"] ?? 0),
-                WmiScope.HyperV);
-
-            if (!vmResp.HasData) return ("NONE", -1, -1);
-            bool isRunning = (vmResp.Data == 2);
-
-            var settingsResp = await WmiApi.QueryFirstAsync(
-                $"SELECT InstanceID, VirtualSystemSubType FROM Msvm_VirtualSystemSettingData " +
-                $"WHERE ElementName = '{WmiApi.Escape(vmName)}' AND VirtualSystemType = 'Microsoft:Hyper-V:System:Realized'",
-                obj => obj,
-                WmiScope.HyperV);
-
-            if (!settingsResp.HasData) return ("NONE", -1, -1);
-
-            // 注意：settingsResp.Data 已被 using 释放，需用 WithFirstAsync
-            return await WmiApi.WithFirstAsync(
-                $"SELECT InstanceID, VirtualSystemSubType FROM Msvm_VirtualSystemSettingData " +
-                $"WHERE ElementName = '{WmiApi.Escape(vmName)}' AND VirtualSystemType = 'Microsoft:Hyper-V:System:Realized'",
-                async settings =>
-                {
-                    string subType = settings["VirtualSystemSubType"]?.ToString() ?? "";
-                    bool isGen1 = subType == "Microsoft:Hyper-V:SubType:1";
-                    string settingId = settings["InstanceID"]?.ToString() ?? "";
-
-                    var rasdResp = await WmiApi.QueryAsync(
-                        $"SELECT ResourceType, Address, AddressOnParent, InstanceID, Parent " +
-                        $"FROM Msvm_ResourceAllocationSettingData " +
-                        $"WHERE InstanceID LIKE '{WmiApi.Escape(settingId)}%' " +
-                        $"AND (ResourceType = 5 OR ResourceType = 6 OR ResourceType = 16 OR ResourceType = 17)",
-                        obj => obj,
-                        WmiScope.HyperV);
-
-                    if (!rasdResp.HasData) return ("NONE", -1, -1);
-
-                    var controllers = new List<(string Type, int Number, string InstanceID)>();
-                    var occupiedSlots = new HashSet<string>();
-                    var parentRegex = new Regex("InstanceID=\"([^\"]+)\"", RegexOptions.Compiled | RegexOptions.IgnoreCase);
-
-                    foreach (var res in rasdResp.Data!)
-                    {
-                        int rt = Convert.ToInt32(res["ResourceType"] ?? 0);
-                        string instanceId = res["InstanceID"]?.ToString() ?? "";
-
-                        if (rt == 5 || rt == 6)
-                        {
-                            string type = rt == 5 ? "IDE" : "SCSI";
-                            int number = Convert.ToInt32(res["Address"] ?? 0);
-                            controllers.Add((type, number, instanceId));
-                        }
-                        else if (rt == 16 || rt == 17)
-                        {
-                            string parentPath = res["Parent"]?.ToString() ?? "";
-                            string addressOnParent = res["AddressOnParent"]?.ToString() ?? "";
-
-                            string parentId = parentPath;
-                            var match = parentRegex.Match(parentPath);
-                            if (match.Success)
-                                parentId = match.Groups[1].Value.Replace("\\\\", "\\");
-
-                            if (int.TryParse(addressOnParent, out int location))
-                                occupiedSlots.Add($"{parentId}|{location}");
-                        }
-                    }
-
-                    if (isGen1 && !isRunning)
-                    {
-                        foreach (var ctrl in controllers.Where(c => c.Type == "IDE").OrderBy(c => c.Number))
-                        {
-                            for (int i = 0; i < 2; i++)
-                                if (!occupiedSlots.Contains($"{ctrl.InstanceID}|{i}"))
-                                    return ("IDE", ctrl.Number, i);
-                        }
-                    }
-
-                    foreach (var ctrl in controllers.Where(c => c.Type == "SCSI").OrderBy(c => c.Number))
-                    {
-                        for (int i = 0; i < 64; i++)
-                            if (!occupiedSlots.Contains($"{ctrl.InstanceID}|{i}"))
-                                return ("SCSI", ctrl.Number, i);
-                    }
-
-                    return ("NONE", -1, -1);
-                },
-                WmiScope.HyperV) is { HasData: true } r ? r.Data! : ("NONE", -1, -1);
-        }
-
-        // ============================================================
         // 设备增删改操作
         // ============================================================
 
@@ -660,8 +565,16 @@ namespace ExHyperV.Services
                         WmiScope.HyperV);
 
                     if (!addMediaResult.Success)
+                    {
+                        // 媒体挂载失败：回滚上面刚加成功的空 slot，否则 VM 上会留一个无媒体空盘
+                        await WmiApi.InvokeAsync(
+                            "SELECT * FROM Msvm_VirtualSystemManagementService",
+                            "RemoveResourceSettings",
+                            p => p["ResourceSettings"] = new string[] { slotPath },
+                            WmiScope.HyperV);
                         return (false, FriendlyError.LastSentence(addMediaResult.Error),
                             controllerType, controllerNumber, location);
+                    }
                 }
 
                 return (true, string.Empty, controllerType, controllerNumber, location);
