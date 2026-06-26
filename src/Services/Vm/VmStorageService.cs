@@ -747,7 +747,7 @@ namespace ExHyperV.Services
                 if (drive.DiskType != "Empty" && !string.IsNullOrEmpty(drive.PathOrDiskNumber))
                 {
                     var ejectResult = await ModifyMediaPathAsync(
-                        vmName, drive.ControllerNumber, drive.ControllerLocation,
+                        vmName, drive.ControllerType, drive.ControllerNumber, drive.ControllerLocation,
                         "Microsoft:Hyper-V:Virtual CD/DVD Disk", "");
                     return ejectResult.Success
                         ? (true, Properties.Resources.Msg_Storage_Ejected)
@@ -843,10 +843,10 @@ namespace ExHyperV.Services
         }
 
         public static async Task<(bool Success, string Message)> ModifyDvdDrivePathAsync(
-            string vmName, int controllerNumber, int controllerLocation, string newIsoPath)
+            string vmName, string controllerType, int controllerNumber, int controllerLocation, string newIsoPath)
         {
             return await ModifyMediaPathAsync(
-                vmName, controllerNumber, controllerLocation,
+                vmName, controllerType, controllerNumber, controllerLocation,
                 "Microsoft:Hyper-V:Virtual CD/DVD Disk", newIsoPath);
         }
 
@@ -854,12 +854,12 @@ namespace ExHyperV.Services
             string vmName, string controllerType, int controllerNumber, int controllerLocation, string newPath)
         {
             return await ModifyMediaPathAsync(
-                vmName, controllerNumber, controllerLocation,
+                vmName, controllerType, controllerNumber, controllerLocation,
                 "Microsoft:Hyper-V:Virtual Hard Disk", newPath);
         }
 
         private static async Task<(bool Success, string Message)> ModifyMediaPathAsync(
-            string vmName, int controllerNumber, int controllerLocation,
+            string vmName, string controllerType, int controllerNumber, int controllerLocation,
             string resourceSubType, string newPath)
         {
             using var vmObj = WmiApi.GetVmComputerSystem(vmName);
@@ -893,29 +893,103 @@ namespace ExHyperV.Services
                     && int.TryParse(segments[^2], out int cLoc) && cLoc == controllerLocation;
             });
 
-            if (target == null)
+            // 已挂着媒体 → 改/清路径（HostResource）
+            if (target != null)
+            {
+                string safeId = target.InstanceID
+                    .Replace("'", "\\'")
+                    .Replace(@"\", @"\\");
+
+                var result = await WmiApi.WithObjectAsync(
+                    wql: $"SELECT * FROM Msvm_StorageAllocationSettingData WHERE InstanceID = '{safeId}'",
+                    modifier: obj =>
+                    {
+                        obj["HostResource"] = string.IsNullOrWhiteSpace(newPath)
+                            ? new string[0]
+                            : new string[] { newPath };
+                    },
+                    submitMethod: "ModifyResourceSettings",
+                    submitParamName: "ResourceSettings",
+                    wrapInArray: true,
+                    serviceWql: "SELECT * FROM Msvm_VirtualSystemManagementService");
+
+                return result.Success
+                    ? (true, string.Empty)
+                    : (false, FriendlyError.LastSentence(result.Error));
+            }
+
+            // 空驱动器（slot 在、无 SASD）：清空=无操作；插入新媒体=给现有 slot 新建一个 SASD 挂上（此前直接报"未找到目标存储资源"）。
+            if (string.IsNullOrWhiteSpace(newPath))
+                return (true, string.Empty);
+
+            var rasdResp = await WmiApi.QueryRelatedAsync(
+                settings,
+                "Msvm_ResourceAllocationSettingData",
+                obj => new RasdInfo(
+                    obj["InstanceID"]?.ToString() ?? "",
+                    Convert.ToInt32(obj["ResourceType"] ?? 0),
+                    (obj["__PATH"]?.ToString() ?? obj.Path.Path)),
+                "Msvm_VirtualSystemSettingDataComponent",
+                WmiScope.HyperV);
+
+            if (!rasdResp.Success || rasdResp.Data == null)
+                return (false, rasdResp.Error.Length > 0 ? rasdResp.Error : Properties.Resources.Error_Vm_EnumResources);
+
+            // 定位现有 slot：先按 控制器类型/编号 取控制器 InstanceID，再按 ctrlGuid+位置 段位匹配 slot（与 RemoveDrive/回滚 同款、可靠）
+            int ctrlResourceType = controllerType == "SCSI" ? 6 : 5;
+            var ctrlList = rasdResp.Data.Where(r => r.ResourceType == ctrlResourceType).ToList();
+            string? ctrlInstanceId = controllerType == "IDE"
+                ? ctrlList.FirstOrDefault(r =>
+                  {
+                      var segs = r.InstanceID.Split('\\');
+                      return segs.Length >= 1 && int.TryParse(segs[^1], out int n) && n == controllerNumber;
+                  })?.InstanceID
+                : ctrlList.ElementAtOrDefault(controllerNumber)?.InstanceID;
+
+            if (ctrlInstanceId == null)
+                return (false, Properties.Resources.Error_Storage_ControllerNotFound);
+
+            var ctrlSegs = ctrlInstanceId.Split('\\');
+            string ctrlGuid = ctrlSegs.Length >= 2 ? ctrlSegs[^2] : "";
+            int slotResourceType = resourceSubType.Contains("CD/DVD", StringComparison.OrdinalIgnoreCase) ? 16 : 17;
+
+            var slot = rasdResp.Data.FirstOrDefault(r =>
+            {
+                if (r.ResourceType != slotResourceType) return false;
+                var segs = r.InstanceID.Split('\\');
+                return segs.Length >= 5 && segs[^1] == "D" && segs[^4] == ctrlGuid
+                    && int.TryParse(segs[^2], out int cLoc) && cLoc == controllerLocation;
+            });
+
+            if (slot == null)
                 return (false, Properties.Resources.Error_Storage_ResNotFound);
 
-            string safeId = target.InstanceID
-                .Replace("'", "\\'")
-                .Replace(@"\", @"\\");
+            var sasdClass = new ManagementClass(
+                settings.Scope,
+                new ManagementPath("Msvm_StorageAllocationSettingData"),
+                null);
+            using var sasdObj = sasdClass.CreateInstance();
+            sasdObj["ResourceType"] = (ushort)31;
+            sasdObj["ResourceSubType"] = resourceSubType;
+            sasdObj["Parent"] = slot.ObjPath;
+            sasdObj["AutomaticAllocation"] = true;
+            sasdObj["HostResource"] = new string[] { newPath };
 
-            var result = await WmiApi.WithObjectAsync(
-                wql: $"SELECT * FROM Msvm_StorageAllocationSettingData WHERE InstanceID = '{safeId}'",
-                modifier: obj =>
+            string sasdXml = sasdObj.GetText(TextFormat.CimDtd20);
+
+            var addResult = await WmiApi.InvokeAsync(
+                "SELECT * FROM Msvm_VirtualSystemManagementService",
+                "AddResourceSettings",
+                p =>
                 {
-                    obj["HostResource"] = string.IsNullOrWhiteSpace(newPath)
-                        ? new string[0]
-                        : new string[] { newPath };
+                    p["AffectedConfiguration"] = settings.Path.Path;
+                    p["ResourceSettings"] = new string[] { sasdXml };
                 },
-                submitMethod: "ModifyResourceSettings",
-                submitParamName: "ResourceSettings",
-                wrapInArray: true,
-                serviceWql: "SELECT * FROM Msvm_VirtualSystemManagementService");
+                WmiScope.HyperV);
 
-            return result.Success
+            return addResult.Success
                 ? (true, string.Empty)
-                : (false, FriendlyError.LastSentence(result.Error));
+                : (false, FriendlyError.LastSentence(addResult.Error));
         }
 
         // ============================================================

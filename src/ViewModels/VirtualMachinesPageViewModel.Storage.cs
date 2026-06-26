@@ -60,17 +60,15 @@ namespace ExHyperV.ViewModels
             if (SelectedVm == null) return;
             CurrentViewType = VmDetailViewType.StorageSettings;
 
-            if (SelectedVm.StorageItems.Count == 0)
+            // 每次进入都重拉，同步外部(Hyper-V 管理器 / PowerShell 等)对该 VM 存储的改动——不再只在首次(Count==0)加载、留陈旧缓存
+            IsLoadingSettings = true;
+            try
             {
-                IsLoadingSettings = true;
-                try
-                {
-                    await VmStorageService.LoadVmStorageItemsAsync(SelectedVm.Model);
-                    await LoadHostDisksAsync();
-                }
-                catch (Exception ex) { ShowError($"{Properties.Resources.Error_Storage_LoadFail}：{FriendlyError.CleanLines(ex.Message)}"); }
-                finally { IsLoadingSettings = false; }
+                await VmStorageService.LoadVmStorageItemsAsync(SelectedVm.Model);
+                await LoadHostDisksAsync();
             }
+            catch (Exception ex) { ShowError($"{Properties.Resources.Error_Storage_LoadFail}：{FriendlyError.CleanLines(ex.Message)}"); }
+            finally { IsLoadingSettings = false; }
         }
 
         // 加载宿主机物理磁盘列表
@@ -193,6 +191,7 @@ namespace ExHyperV.ViewModels
                 {
                     result = await VmStorageService.ModifyDvdDrivePathAsync(
                         SelectedVm.Name,
+                        driveItem.ControllerType,
                         driveItem.ControllerNumber,
                         driveItem.ControllerLocation,
                         picked);
