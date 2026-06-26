@@ -358,6 +358,19 @@ namespace ExHyperV.Services
                 if (settings == null)
                     return (false, Properties.Resources.Error_Vm_GetSettings, controllerType, controllerNumber, location);
 
+                // 本次调用累积的副作用，任一步失败由 Fail() 逆序回滚——保证"全有或全无"，不残留控制器/VHD文件/空 slot。
+                var createdControllers = new List<string>();   // 自动补建的 SCSI 控制器(__PATH)
+                string? createdVhd = null;                      // 新建落地的 .vhdx 文件路径
+                bool slotCreated = false;                       // slot 是否已建成
+                string? ctrlInstanceId = null;                  // 选中控制器 InstanceID(回滚定位 slot 用)
+                int slotResourceType = driveType == "DvdDrive" ? 16 : 17;
+
+                async Task<(bool, string, string, int, int)> Fail(string msg)
+                {
+                    await RollbackAddAsync(settings, slotCreated, ctrlInstanceId, location, slotResourceType, createdVhd, createdControllers);
+                    return (false, msg, controllerType, controllerNumber, location);
+                }
+
                 if (controllerType == "IDE" && isRunning && driveType != "DvdDrive")
                     return (false, Properties.Resources.Error_Storage_IdeHotAdd, controllerType, controllerNumber, location);
 
@@ -385,6 +398,7 @@ namespace ExHyperV.Services
                             return (false, Properties.Resources.Error_Storage_ScsiHotAdd,
                                 controllerType, controllerNumber, location);
 
+                        string? scsiErr = null;
                         for (int i = scsiCount; i <= controllerNumber; i++)
                         {
                             var scsiClass = new ManagementClass(
@@ -408,8 +422,10 @@ namespace ExHyperV.Services
                                 WmiScope.HyperV);
 
                             if (!addScsiResult.Success)
-                                return (false, FriendlyError.LastSentence(addScsiResult.Error),
-                                    controllerType, controllerNumber, location);
+                            {
+                                scsiErr = FriendlyError.LastSentence(addScsiResult.Error);
+                                break;   // 中途失败：跳出，下面统一重查记录已建的控制器再回滚
+                            }
                         }
 
                         allRasdResp = await WmiApi.QueryRelatedAsync(
@@ -425,11 +441,16 @@ namespace ExHyperV.Services
                         scsiCtrlList = (allRasdResp.Data ?? [])
                             .Where(r => r.ResourceType == 6)
                             .ToList();
+
+                        // 末尾新增的即本次补建的控制器(含中途失败前已建成的)，失败时回滚删掉
+                        createdControllers.AddRange(scsiCtrlList.Skip(scsiCount).Select(c => c.ObjPath));
+
+                        if (scsiErr != null)
+                            return await Fail(scsiErr);
                     }
 
                     if (controllerNumber >= scsiCtrlList.Count)
-                        return (false, Properties.Resources.Error_Storage_NoScsi,
-                            controllerType, controllerNumber, location);
+                        return await Fail(Properties.Resources.Error_Storage_NoScsi);
                 }
 
                 var ctrlRasdResp = await WmiApi.QueryRelatedAsync(
@@ -445,38 +466,39 @@ namespace ExHyperV.Services
                 string? controllerPath = null;
                 if (controllerType == "IDE")
                 {
-                    controllerPath = ctrlRasdResp.Data?
-                        .FirstOrDefault(r =>
-                        {
-                            if (r.ResourceType != 5) return false;
-                            var segs = r.InstanceID.Split('\\');
-                            return segs.Length >= 1
-                                && int.TryParse(segs[^1], out int n)
-                                && n == controllerNumber;
-                        })
-                        ?.ObjPath;
+                    var ctrl = ctrlRasdResp.Data?.FirstOrDefault(r =>
+                    {
+                        if (r.ResourceType != 5) return false;
+                        var segs = r.InstanceID.Split('\\');
+                        return segs.Length >= 1
+                            && int.TryParse(segs[^1], out int n)
+                            && n == controllerNumber;
+                    });
+                    controllerPath = ctrl?.ObjPath;
+                    ctrlInstanceId = ctrl?.InstanceID;
                 }
                 else
                 {
                     var scsiList = ctrlRasdResp.Data?
                         .Where(r => r.ResourceType == 6)
                         .ToList();
-                    controllerPath = scsiList?.ElementAtOrDefault(controllerNumber)?.ObjPath;
+                    var ctrl = scsiList?.ElementAtOrDefault(controllerNumber);
+                    controllerPath = ctrl?.ObjPath;
+                    ctrlInstanceId = ctrl?.InstanceID;
                 }
 
                 if (controllerPath == null)
-                    return (false, Properties.Resources.Error_Storage_ControllerNotFound,
-                        controllerType, controllerNumber, location);
+                    return await Fail(Properties.Resources.Error_Storage_ControllerNotFound);
 
                 if (driveType == "HardDisk" && isNew && !string.IsNullOrWhiteSpace(pathOrNumber))
                 {
                     var createResult = await CreateVhdAsync(
                         pathOrNumber, vhdType, sizeGb, sectorFormat, blockSize, parentPath);
                     if (!createResult.Success)
-                        return (false, createResult.Message, controllerType, controllerNumber, location);
+                        return await Fail(createResult.Message);
+                    createdVhd = pathOrNumber;   // 本次新建落地的文件，后续失败要删掉
                 }
 
-                int slotResourceType = driveType == "DvdDrive" ? 16 : 17;
                 string slotSubType = driveType == "DvdDrive"
                     ? "Microsoft:Hyper-V:Synthetic DVD Drive"
                     : (isPhysical
@@ -492,8 +514,7 @@ namespace ExHyperV.Services
                         WmiScope.HyperV);
 
                     if (!diskDriveResp.HasData)
-                        return (false, string.Format(Properties.Resources.Error_Storage_PhysDiskNotFound, pathOrNumber),
-                            controllerType, controllerNumber, location);
+                        return await Fail(string.Format(Properties.Resources.Error_Storage_PhysDiskNotFound, pathOrNumber));
 
                     physicalHostResource = diskDriveResp.Data!;
                 }
@@ -525,14 +546,14 @@ namespace ExHyperV.Services
                     WmiScope.HyperV);
 
                 if (!addSlotResult.Success)
-                    return (false, FriendlyError.LastSentence(addSlotResult.Error),
-                        controllerType, controllerNumber, location);
+                    return await Fail(FriendlyError.LastSentence(addSlotResult.Error));
 
                 string? slotPath = addSlotResult.Data?.FirstOrDefault();
 
                 if (slotPath == null)
-                    return (false, Properties.Resources.Error_Storage_NoSlots,
-                        controllerType, controllerNumber, location);
+                    return await Fail(Properties.Resources.Error_Storage_NoSlots);
+
+                slotCreated = true;
 
                 bool hasMedia = !isPhysical && !string.IsNullOrWhiteSpace(pathOrNumber);
                 if (hasMedia)
@@ -565,16 +586,7 @@ namespace ExHyperV.Services
                         WmiScope.HyperV);
 
                     if (!addMediaResult.Success)
-                    {
-                        // 媒体挂载失败：回滚上面刚加成功的空 slot，否则 VM 上会留一个无媒体空盘
-                        await WmiApi.InvokeAsync(
-                            "SELECT * FROM Msvm_VirtualSystemManagementService",
-                            "RemoveResourceSettings",
-                            p => p["ResourceSettings"] = new string[] { slotPath },
-                            WmiScope.HyperV);
-                        return (false, FriendlyError.LastSentence(addMediaResult.Error),
-                            controllerType, controllerNumber, location);
-                    }
+                        return await Fail(FriendlyError.LastSentence(addMediaResult.Error));
                 }
 
                 return (true, string.Empty, controllerType, controllerNumber, location);
@@ -583,6 +595,64 @@ namespace ExHyperV.Services
             {
                 return (false, FriendlyError.LastSentence(ex.Message),
                     controllerType, controllerNumber, location);
+            }
+        }
+
+        // 添加失败的回滚：逆序删除本次调用已建立的副作用（slot → 新建的 .vhdx 文件 → 自动补建的控制器）。
+        // 全程 best-effort（各步独立 try），不让回滚自身失败掩盖原错误。slot 用 InstanceID 段位重新定位（与 RemoveDrive 同款、可靠），
+        // 不依赖 AddResourceSettings 返回的 ResultingResourceSettings 路径（其转义格式未必被 RemoveResourceSettings 接受）。
+        private static async Task RollbackAddAsync(
+            ManagementObject settings, bool slotCreated, string? ctrlInstanceId, int location, int slotResourceType,
+            string? createdVhd, List<string> createdControllers)
+        {
+            if (slotCreated && !string.IsNullOrEmpty(ctrlInstanceId))
+            {
+                try
+                {
+                    var ctrlSegs = ctrlInstanceId.Split('\\');
+                    string ctrlGuid = ctrlSegs.Length >= 2 ? ctrlSegs[^2] : "";
+                    var resp = await WmiApi.QueryRelatedAsync(
+                        settings,
+                        "Msvm_ResourceAllocationSettingData",
+                        obj => new RasdInfo(
+                            obj["InstanceID"]?.ToString() ?? "",
+                            Convert.ToInt32(obj["ResourceType"] ?? 0),
+                            (obj["__PATH"]?.ToString() ?? obj.Path.Path)),
+                        "Msvm_VirtualSystemSettingDataComponent",
+                        WmiScope.HyperV);
+                    var slot = resp.Data?.FirstOrDefault(r =>
+                    {
+                        if (r.ResourceType != slotResourceType) return false;
+                        var segs = r.InstanceID.Split('\\');
+                        return segs.Length >= 5 && segs[^1] == "D" && segs[^4] == ctrlGuid
+                            && int.TryParse(segs[^2], out int cLoc) && cLoc == location;
+                    });
+                    if (slot != null)
+                        await WmiApi.InvokeAsync(
+                            "SELECT * FROM Msvm_VirtualSystemManagementService",
+                            "RemoveResourceSettings",
+                            p => p["ResourceSettings"] = new string[] { slot.ObjPath },
+                            WmiScope.HyperV);
+                }
+                catch { }
+            }
+
+            if (!string.IsNullOrEmpty(createdVhd))
+            {
+                try { if (File.Exists(createdVhd)) File.Delete(createdVhd); } catch { }
+            }
+
+            foreach (var ctrlPath in createdControllers)
+            {
+                try
+                {
+                    await WmiApi.InvokeAsync(
+                        "SELECT * FROM Msvm_VirtualSystemManagementService",
+                        "RemoveResourceSettings",
+                        p => p["ResourceSettings"] = new string[] { ctrlPath },
+                        WmiScope.HyperV);
+                }
+                catch { }
             }
         }
 
