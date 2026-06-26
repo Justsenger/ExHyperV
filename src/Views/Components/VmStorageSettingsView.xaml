@@ -135,6 +135,10 @@
                                                             <DataTrigger Binding="{Binding PathOrDiskNumber}" Value="{x:Null}">
                                                                 <Setter Property="Visibility" Value="Collapsed"/>
                                                             </DataTrigger>
+                                                            <!-- 物理盘无文件路径，定位无意义，按钮整颗隐藏（不是禁用变灰） -->
+                                                            <DataTrigger Binding="{Binding DiskType}" Value="Physical">
+                                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                            </DataTrigger>
                                                         </Style.Triggers>
                                                     </Style>
                                                 </ui:Button.Style>

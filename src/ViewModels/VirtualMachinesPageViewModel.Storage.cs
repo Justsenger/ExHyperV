@@ -324,6 +324,7 @@ namespace ExHyperV.ViewModels
             try
             {
                 await VmStorageService.LoadVmStorageItemsAsync(SelectedVm.Model);
+                await LoadHostDisksAsync();   // 每次进添加界面都重拉宿主物理盘列表，否则刚加过(已脱机)的盘还留在列表里被重复添加
 
                 RefreshControllerOptions();
 
@@ -359,8 +360,7 @@ namespace ExHyperV.ViewModels
             // 根据设备类型和新建标志验证路径
             string target = IsPhysicalSource ? SelectedPhysicalDisk?.Number.ToString() : FilePath;
 
-            // 除"新建 ISO"(用 IsoOutputPath 落地、见下方单独校验)外，target 即落地路径/盘号，必须非空。
-            // 新建硬盘也要 FilePath(要保存到的 .vhdx)——原来用 !IsNewDisk 把所有新建一并放过了，致不填路径也能挂上一个空盘。
+            // 只有"新建 ISO"用 IsoOutputPath 落地、FilePath 可空(下方单独校验)；其余(新建硬盘、挂载现有、物理盘)target 都是落地路径或盘号，必须非空。
             bool isNewIso = DeviceType == "DvdDrive" && IsNewDisk;
             if (string.IsNullOrEmpty(target) && !isNewIso)
             {
