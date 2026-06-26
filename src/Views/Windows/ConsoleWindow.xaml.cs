@@ -20,7 +20,7 @@ namespace ExHyperV.Views
     public partial class ConsoleWindow : FluentWindow
     {
         private const double TitleBarHeight = 42;   // 与 XAML ui:TitleBar 高度一致
-        // 全屏热键配置点：Ctrl+Alt+<虚拟键>，默认 Enter(0x0D)。常用：Enter=0x0D / Space=0x20 / Break=0x03 / Pause=0x13。
+        // 全屏热键 Ctrl+Alt+<虚拟键>，默认 Enter(0x0D)。由本窗口 Raw Input 接管(见 HandleRawInput)，此 vk 供其比对。
         private const int FullScreenHotKeyVk = 0x0D;
         // 连接超时：localhost VMBus 正常连接 <1s，2s 余量足够；连不上(如不支持增强)即在此时限内放弃 → 快速回退基本会话。
         private const int ConnectTimeoutSeconds = 2;
@@ -129,7 +129,16 @@ namespace ExHyperV.Views
         protected override void OnSourceInitialized(EventArgs e)
         {
             base.OnSourceInitialized(e);
-            HwndSource.FromHwnd(new WindowInteropHelper(this).Handle)?.AddHook(WndProc);
+            _selfHwnd = new WindowInteropHelper(this).Handle;
+            HwndSource.FromHwnd(_selfHwnd)?.AddHook(WndProc);
+            RegisterFsRawInput();   // 注册键盘 Raw Input：接管 Ctrl+Alt+Enter 全屏热键（见底部 HandleRawInput）
+        }
+
+        // 多控制台：Raw Input 注册是进程级、每 (usagePage,usage) 单一目标窗口；本控制台获得前台时(重)认领，使前台窗口的热键生效。
+        protected override void OnActivated(EventArgs e)
+        {
+            base.OnActivated(e);
+            RegisterFsRawInput();
         }
 
         // 顶边缩放钩子在 ContentRendered（晚于 TitleBar 的 Loaded）注册 → 处于 FIFO 末位、末位 handled 取胜，
@@ -140,21 +149,6 @@ namespace ExHyperV.Views
             if (_topHookAdded) return;
             _topHookAdded = true;
             HwndSource.FromHwnd(new WindowInteropHelper(this).Handle)?.AddHook(TopResizeHook);
-        }
-
-        // Ctrl+Alt+Enter 全屏切换的 WPF 兜底：用过缩放下拉后焦点落在工具栏(WPF)上时，mstscax 的 HotKeyFullScreen 收不到键
-        // （它只在画面有焦点时拦截）→ 在窗口级补捕获，使焦点在 WPF 侧也能切全屏。画面有焦点时按键直达 mstscax 的 HWND、不进此处，
-        // 交由其自身热键处理，二者不冲突。Alt 参与组合时 e.Key 会是 Key.System、真实键在 e.SystemKey，需还原。
-        protected override void OnPreviewKeyDown(System.Windows.Input.KeyEventArgs e)
-        {
-            base.OnPreviewKeyDown(e);
-            var key = (e.Key == Key.System) ? e.SystemKey : e.Key;
-            if (key == Key.Enter &&
-                (Keyboard.Modifiers & (ModifierKeys.Control | ModifierKeys.Alt)) == (ModifierKeys.Control | ModifierKeys.Alt))
-            {
-                _vm.IsFullScreen = !_vm.IsFullScreen;
-                e.Handled = true;
-            }
         }
 
         // 增强 + 窗口化时，窗口顶部 TopResizeGrip 像素内 → HTTOP，使顶边可上下拉动改分辨率（底边被任务栏盖住时的退路）。
@@ -263,7 +257,7 @@ namespace ExHyperV.Views
                 NetworkLevelAuthentication = true,
                 NegotiateSecurityLayer = false,
                 DisableCredentialsDelegation = true,
-                FullScreenHotKeyVirtualKey = FullScreenHotKeyVk,
+                FullScreenHotKeyVirtualKey = 0,   // 禁用 mstscax 自带全屏热键(ZoomLevel≠100 时不进全屏)，改由本窗口 Raw Input 接管
                 ConnectionTimeoutSeconds = ConnectTimeoutSeconds,
                 DesktopWidth = enhanced ? reuseWidth : 0,
                 DesktopHeight = enhanced ? reuseHeight : 0,
@@ -531,6 +525,7 @@ namespace ExHyperV.Views
 
         private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
         {
+            if (msg == WM_INPUT) { HandleRawInput(lParam); return IntPtr.Zero; }   // Raw Input 键盘：接管 Ctrl+Alt+Enter 全屏热键(不置 handled，留默认清理)
             if (msg == WM_NCHITTEST && _vm.IsFullScreen)
             {
                 handled = true;
@@ -587,5 +582,50 @@ namespace ExHyperV.Views
         private const int SM_CXSIZEFRAME = 32, SM_CYSIZEFRAME = 33, SM_CXPADDEDBORDER = 92;   // 最大化全屏纠正客户区内缩用
         [DllImport("user32.dll")] private static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);   // 顶边缩放命中测试取窗口顶坐标
         [DllImport("dwmapi.dll")] private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref uint value, int size);
+
+        // ── Ctrl+Alt+Enter 全屏热键：Raw Input 接管 ──
+        // 不用 mstscax 自带 HotKeyFullScreen：它在 ZoomLevel≠100 时不进全屏(内部 UI_GoFullScreen 有 zoom!=100 即 return 的判断)。
+        // 也不用键盘钩子：画面是 airspace、有焦点时 mstscax 的键盘钩子先吃掉键，本地钩子排不到它前面、收不到。Raw Input 是独立投递
+        // 通道，本窗口前台时无论焦点在画面还是工具栏都能收到 → 翻 IsFullScreen(进全屏前归 ZoomLevel=100 已在 IsFullScreen 处理里做)。
+        // Raw Input 只读、无法吞键，故来宾仍会收到这串按键。多控制台：注册是进程级、单一目标窗口 → OnActivated 重注册，谁前台谁认领。
+        private IntPtr _selfHwnd;
+        private bool _fsHotkeyArmed;          // 去重：按住 Enter 的自动重复只触发一次，松开复位
+        private readonly byte[] _rawInputBuf = new byte[64];   // RAWINPUT(键盘)x64 下 ≤40 字节，64 足够；复用避免每键分配
+
+        private void RegisterFsRawInput()
+        {
+            if (_selfHwnd == IntPtr.Zero) return;
+            var rid = new RAWINPUTDEVICE { usUsagePage = 0x01, usUsage = 0x06, dwFlags = 0, hwndTarget = _selfHwnd };
+            RegisterRawInputDevices(new[] { rid }, 1, (uint)Marshal.SizeOf<RAWINPUTDEVICE>());
+        }
+
+        private void HandleRawInput(IntPtr hRawInput)
+        {
+            uint size = (uint)_rawInputBuf.Length;
+            int hdr = IntPtr.Size == 8 ? 24 : 16;   // RAWINPUTHEADER 大小(x64=24)，RAWKEYBOARD 紧随其后
+            uint got = GetRawInputData(hRawInput, RID_INPUT, _rawInputBuf, ref size, (uint)hdr);
+            if (got == unchecked((uint)-1) || got < hdr + 16) return;
+            if (BitConverter.ToInt32(_rawInputBuf, 0) != RIM_TYPEKEYBOARD) return;
+            ushort vkey = BitConverter.ToUInt16(_rawInputBuf, hdr + 6);     // RAWKEYBOARD.VKey
+            uint message = BitConverter.ToUInt32(_rawInputBuf, hdr + 8);    // RAWKEYBOARD.Message
+            if (vkey != FullScreenHotKeyVk) return;
+            if (message == WM_KEYUP || message == WM_SYSKEYUP) { _fsHotkeyArmed = false; return; }
+            if (message != WM_KEYDOWN && message != WM_SYSKEYDOWN) return;
+            if ((GetKeyState(0x11) & 0x8000) == 0 || (GetKeyState(0x12) & 0x8000) == 0) return;   // 需 Ctrl(0x11)+Alt(0x12) 同按
+            if (GetForegroundWindow() != _selfHwnd) return;   // 仅本控制台在前台时接管(多控制台兜底)
+            if (_fsHotkeyArmed) return;   // 自动重复去重
+            _fsHotkeyArmed = true;
+            _vm.IsFullScreen = !_vm.IsFullScreen;
+        }
+
+        private const int WM_INPUT = 0x00FF, WM_KEYDOWN = 0x0100, WM_KEYUP = 0x0101, WM_SYSKEYDOWN = 0x0104, WM_SYSKEYUP = 0x0105;
+        private const uint RID_INPUT = 0x10000003;
+        private const int RIM_TYPEKEYBOARD = 1;
+        [StructLayout(LayoutKind.Sequential)]
+        private struct RAWINPUTDEVICE { public ushort usUsagePage; public ushort usUsage; public uint dwFlags; public IntPtr hwndTarget; }
+        [DllImport("user32.dll", SetLastError = true)] private static extern bool RegisterRawInputDevices([In] RAWINPUTDEVICE[] pRawInputDevices, uint uiNumDevices, uint cbSize);
+        [DllImport("user32.dll")] private static extern uint GetRawInputData(IntPtr hRawInput, uint uiCommand, [Out] byte[] pData, ref uint pcbSize, uint cbSizeHeader);
+        [DllImport("user32.dll")] private static extern short GetKeyState(int nVirtKey);
+        [DllImport("user32.dll")] private static extern IntPtr GetForegroundWindow();
     }
 }
