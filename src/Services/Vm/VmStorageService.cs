@@ -444,14 +444,14 @@ namespace ExHyperV.Services
             {
                 using var vmObj = WmiApi.GetVmComputerSystem(vmName);
                 if (vmObj == null)
-                    return (false, $"VM '{vmName}' not found", controllerType, controllerNumber, location);
+                    return (false, string.Format(Properties.Resources.Error_Vm_NotFound, vmName), controllerType, controllerNumber, location);
 
                 int enabledState = WmiApi.Prop<int>(vmObj, "EnabledState", 0);
                 bool isRunning = enabledState == 2;
 
                 using var settings = WmiApi.GetVmSettings(vmObj);
                 if (settings == null)
-                    return (false, "Cannot get VM settings", controllerType, controllerNumber, location);
+                    return (false, Properties.Resources.Error_Vm_GetSettings, controllerType, controllerNumber, location);
 
                 if (controllerType == "IDE" && isRunning && driveType != "DvdDrive")
                     return (false, Properties.Resources.Error_Storage_IdeHotAdd, controllerType, controllerNumber, location);
@@ -587,7 +587,7 @@ namespace ExHyperV.Services
                         WmiScope.HyperV);
 
                     if (!diskDriveResp.HasData)
-                        return (false, $"Physical disk {pathOrNumber} not found in Hyper-V",
+                        return (false, string.Format(Properties.Resources.Error_Storage_PhysDiskNotFound, pathOrNumber),
                             controllerType, controllerNumber, location);
 
                     physicalHostResource = diskDriveResp.Data!;
@@ -753,7 +753,7 @@ namespace ExHyperV.Services
                 WmiScope.HyperV);
 
             if (!vmResp.HasData)
-                return (false, $"VM '{vmName}' not found");
+                return (false, string.Format(Properties.Resources.Error_Vm_NotFound, vmName));
 
             bool isRunning = vmResp.Data == 2;
 
@@ -776,11 +776,11 @@ namespace ExHyperV.Services
 
             using var vmObj = WmiApi.GetVmComputerSystem(vmName);
             if (vmObj == null)
-                return (false, $"VM '{vmName}' not found");
+                return (false, string.Format(Properties.Resources.Error_Vm_NotFound, vmName));
 
             using var settings = WmiApi.GetVmSettings(vmObj);
             if (settings == null)
-                return (false, "Cannot get VM settings");
+                return (false, Properties.Resources.Error_Vm_GetSettings);
 
             var rasdResp = await WmiApi.QueryRelatedAsync(
                 settings,
@@ -793,7 +793,7 @@ namespace ExHyperV.Services
                 WmiScope.HyperV);
 
             if (!rasdResp.Success || rasdResp.Data == null)
-                return (false, rasdResp.Error.Length > 0 ? rasdResp.Error : "Cannot enumerate resources");
+                return (false, rasdResp.Error.Length > 0 ? rasdResp.Error : Properties.Resources.Error_Vm_EnumResources);
 
             int ctrlResourceType = drive.ControllerType == "SCSI" ? 6 : 5;
             var ctrlList = rasdResp.Data
@@ -881,11 +881,11 @@ namespace ExHyperV.Services
         {
             using var vmObj = WmiApi.GetVmComputerSystem(vmName);
             if (vmObj == null)
-                return (false, $"VM '{vmName}' not found");
+                return (false, string.Format(Properties.Resources.Error_Vm_NotFound, vmName));
 
             using var settings = WmiApi.GetVmSettings(vmObj);
             if (settings == null)
-                return (false, "Cannot get VM settings");
+                return (false, Properties.Resources.Error_Vm_GetSettings);
 
             var sasdResp = await WmiApi.QueryRelatedAsync(
                 settings,
@@ -898,7 +898,7 @@ namespace ExHyperV.Services
                 "Msvm_VirtualSystemSettingDataComponent");
 
             if (!sasdResp.Success || sasdResp.Data == null)
-                return (false, sasdResp.Error.Length > 0 ? sasdResp.Error : "Cannot enumerate storage resources");
+                return (false, sasdResp.Error.Length > 0 ? sasdResp.Error : Properties.Resources.Error_Vm_EnumResources);
 
             var target = sasdResp.Data.FirstOrDefault(s =>
             {
@@ -911,9 +911,7 @@ namespace ExHyperV.Services
             });
 
             if (target == null)
-                return (false,
-                    $"Storage resource not found: subType={resourceSubType}, " +
-                    $"controller={controllerNumber}, location={controllerLocation}");
+                return (false, Properties.Resources.Error_Storage_ResNotFound);
 
             string safeId = target.InstanceID
                 .Replace("'", "\\'")

@@ -1083,6 +1083,30 @@
   <data name="Error_Storage_IsoBuildFail" xml:space="preserve">
     <value>创建 ISO 镜像失败：{0}</value>
   </data>
+  <data name="VmPage_StartFail" xml:space="preserve">
+    <value>启动失败</value>
+  </data>
+  <data name="Error_Vm_NotFound" xml:space="preserve">
+    <value>未找到虚拟机 {0}。</value>
+  </data>
+  <data name="Error_Vm_NameEmpty" xml:space="preserve">
+    <value>虚拟机名称为空。</value>
+  </data>
+  <data name="Error_Vm_GetSettings" xml:space="preserve">
+    <value>无法获取虚拟机配置。</value>
+  </data>
+  <data name="Error_Vm_EnumResources" xml:space="preserve">
+    <value>无法枚举虚拟机资源。</value>
+  </data>
+  <data name="Error_Storage_PhysDiskNotFound" xml:space="preserve">
+    <value>在 Hyper-V 中未找到物理磁盘 {0}。</value>
+  </data>
+  <data name="Error_Storage_ResNotFound" xml:space="preserve">
+    <value>未找到目标存储资源。</value>
+  </data>
+  <data name="Error_Video_NoController" xml:space="preserve">
+    <value>未找到合成显示控制器。</value>
+  </data>
   <data name="Net_Mode_Access" xml:space="preserve">
     <value>接入</value>
   </data>

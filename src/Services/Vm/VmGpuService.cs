@@ -436,7 +436,7 @@ namespace ExHyperV.Services
                 var vmSettingResp = await WmiApi.QueryFirstAsync(
                     $"SELECT * FROM Msvm_VirtualSystemSettingData WHERE ElementName = '{WmiApi.Escape(vmName)}' AND VirtualSystemType = 'Microsoft:Hyper-V:System:Realized'",
                     obj => obj.Path.Path);
-                if (!vmSettingResp.HasData) return (false, "VM setting not found");
+                if (!vmSettingResp.HasData) return (false, Properties.Resources.Error_Vm_GetSettings);
 
                 // 5. AddResourceSettings
                 var result = await WmiApi.InvokeAsync(

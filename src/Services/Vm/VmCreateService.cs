@@ -268,10 +268,8 @@ namespace ExHyperV.Services
                     await EnableTpmAsync(finalVmName, vmGuid, svcForScope.Scope);
                 }
 
-                // ── Step 11: 启动 ─────────────────────────────────
-                if (p.StartAfterCreation)
-                    await VmPowerService.ExecuteControlActionAsync(finalVmName, "Start");
-
+                // 启动交由调用方(ConfirmCreateAsync)处理：创建已成功，启动作为独立后续步骤，
+                // 由 UI 检查引擎返回并在失败(如内存不足)时弹出原因——在此 await 而不看结果会静默吞掉失败。
                 return (true, finalVmName);
             }
             catch (Exception ex)

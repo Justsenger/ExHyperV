@@ -32,7 +32,7 @@ public static class VmVideoService
     // type：2/3/4；Single(3) 时按 width×height 固定，其余忽略宽高
     public static async Task<(bool Success, string Message)> SetResolutionAsync(string vmName, int resolutionType, int width, int height)
     {
-        if (string.IsNullOrEmpty(vmName)) return (false, "VM name is empty");
+        if (string.IsNullOrEmpty(vmName)) return (false, Properties.Resources.Error_Vm_NameEmpty);
 
         var vmResp = await WmiApi.QueryFirstAsync(
             $"SELECT Name FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(vmName)}'",
@@ -53,7 +53,7 @@ public static class VmVideoService
                 return ctrl.GetText(TextFormat.CimDtd20);
             });
         if (!xmlResp.HasData || string.IsNullOrEmpty(xmlResp.Data))
-            return (false, "Synthetic display controller not found");
+            return (false, Properties.Resources.Error_Video_NoController);
 
         var result = await WmiApi.InvokeAsync(
             ServiceWql, "ModifyResourceSettings",

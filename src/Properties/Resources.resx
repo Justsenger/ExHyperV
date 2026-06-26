@@ -1083,6 +1083,30 @@ The existing NAT switch is: '{0}'</value>
   <data name="Error_Storage_IsoBuildFail" xml:space="preserve">
     <value>Failed to create ISO image: {0}</value>
   </data>
+  <data name="VmPage_StartFail" xml:space="preserve">
+    <value>Failed to start</value>
+  </data>
+  <data name="Error_Vm_NotFound" xml:space="preserve">
+    <value>VM '{0}' not found.</value>
+  </data>
+  <data name="Error_Vm_NameEmpty" xml:space="preserve">
+    <value>VM name is empty.</value>
+  </data>
+  <data name="Error_Vm_GetSettings" xml:space="preserve">
+    <value>Cannot get VM settings.</value>
+  </data>
+  <data name="Error_Vm_EnumResources" xml:space="preserve">
+    <value>Cannot enumerate VM resources.</value>
+  </data>
+  <data name="Error_Storage_PhysDiskNotFound" xml:space="preserve">
+    <value>Physical disk {0} not found in Hyper-V.</value>
+  </data>
+  <data name="Error_Storage_ResNotFound" xml:space="preserve">
+    <value>Target storage resource not found.</value>
+  </data>
+  <data name="Error_Video_NoController" xml:space="preserve">
+    <value>Synthetic display controller not found.</value>
+  </data>
   <data name="Net_Mode_Access" xml:space="preserve">
     <value>Access</value>
   </data>

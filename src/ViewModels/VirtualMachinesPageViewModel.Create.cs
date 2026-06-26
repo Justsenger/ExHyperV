@@ -7,6 +7,7 @@ using CommunityToolkit.Mvvm.Input;
 using ExHyperV.Interaction;
 using ExHyperV.Models;
 using ExHyperV.Services;
+using ExHyperV.Tools;
 using Wpf.Ui.Controls;
 
 namespace ExHyperV.ViewModels
@@ -406,7 +407,6 @@ namespace ExHyperV.ViewModels
 
                 if (result.Success)
                 {
-                    CreatingStatusText = Properties.Resources.VmPage_StartingVm;
                     string actualCreatedName = result.Message;
                     ShowSuccess(string.Format(Properties.Resources.VmPage_VmCreated, actualCreatedName));
                     // 退出创建模式
@@ -418,6 +418,16 @@ namespace ExHyperV.ViewModels
                     // 尝试选中新创建的虚拟机
                     var newVm = VmList.FirstOrDefault(v => v.Name.Equals(actualCreatedName, StringComparison.OrdinalIgnoreCase));
                     if (newVm != null) SelectedVm = newVm;
+
+                    // 启动从 VmCreateService 移到此处：创建成功后单独启动并检查引擎返回，
+                    // 失败(如内存不足)弹出原因而非静默吞掉——对齐电源按钮(VirtualMachinesPageViewModel:298)。
+                    if (request.StartAfterCreation)
+                    {
+                        CreatingStatusText = Properties.Resources.VmPage_StartingVm;
+                        var startResult = await VmPowerService.ExecuteControlActionAsync(actualCreatedName, "Start");
+                        if (!startResult.Success)
+                            ShowError($"{Properties.Resources.VmPage_StartFail}：{FriendlyError.CleanLines(startResult.Error)}");
+                    }
                 }
                 else
                 {

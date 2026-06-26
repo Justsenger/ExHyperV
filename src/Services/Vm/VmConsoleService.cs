@@ -36,7 +36,7 @@ public static class VmConsoleService
     // FindForVm/FindDefaultTemplate(searcher.Get) 都跑在调用线程上；被控制台开关在 UI 线程 await 调到就卡界面。
     public static Task<(bool Success, string Message)> SetConsoleSupportAsync(string vmName, bool enable) => Task.Run(async () =>
     {
-        if (string.IsNullOrEmpty(vmName)) return (false, "VM name is empty");
+        if (string.IsNullOrEmpty(vmName)) return (false, Properties.Resources.Error_Vm_NameEmpty);
 
         using var vm = WmiApi.GetVmComputerSystem(vmName);
         if (vm == null) return (false, Properties.Resources.Error_Net_VmNotFound);

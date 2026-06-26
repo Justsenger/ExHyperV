@@ -2250,6 +2250,78 @@ namespace ExHyperV.Properties {
                 return ResourceManager.GetString("Error_Storage_IsoBuildFail", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   查找类似 Failed to start 的本地化字符串。
+        /// </summary>
+        public static string VmPage_StartFail {
+            get {
+                return ResourceManager.GetString("VmPage_StartFail", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   查找类似 VM '{0}' not found. 的本地化字符串。
+        /// </summary>
+        public static string Error_Vm_NotFound {
+            get {
+                return ResourceManager.GetString("Error_Vm_NotFound", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   查找类似 VM name is empty. 的本地化字符串。
+        /// </summary>
+        public static string Error_Vm_NameEmpty {
+            get {
+                return ResourceManager.GetString("Error_Vm_NameEmpty", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   查找类似 Cannot get VM settings. 的本地化字符串。
+        /// </summary>
+        public static string Error_Vm_GetSettings {
+            get {
+                return ResourceManager.GetString("Error_Vm_GetSettings", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   查找类似 Cannot enumerate VM resources. 的本地化字符串。
+        /// </summary>
+        public static string Error_Vm_EnumResources {
+            get {
+                return ResourceManager.GetString("Error_Vm_EnumResources", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   查找类似 Physical disk {0} not found in Hyper-V. 的本地化字符串。
+        /// </summary>
+        public static string Error_Storage_PhysDiskNotFound {
+            get {
+                return ResourceManager.GetString("Error_Storage_PhysDiskNotFound", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   查找类似 Target storage resource not found. 的本地化字符串。
+        /// </summary>
+        public static string Error_Storage_ResNotFound {
+            get {
+                return ResourceManager.GetString("Error_Storage_ResNotFound", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   查找类似 Synthetic display controller not found. 的本地化字符串。
+        /// </summary>
+        public static string Error_Video_NoController {
+            get {
+                return ResourceManager.GetString("Error_Video_NoController", resourceCulture);
+            }
+        }
         
         /// <summary>
         ///   查找类似 Slot is occupied. Select another one. 的本地化字符串。
