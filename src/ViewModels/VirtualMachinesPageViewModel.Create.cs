@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
+using System.Runtime.InteropServices;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ExHyperV.Interaction;
@@ -137,6 +138,10 @@ namespace ExHyperV.ViewModels
 
         // 3. 这是一个只读的计算属性，用于 UI 绑定
         public bool CanEnableIsolation => IsIsolationSupported && NewVmGeneration == 2;
+
+        // ARM64 的 Hyper-V 不提供 IDE 控制器，无法承载第 1 代虚拟机（建机会卡在加盘步 Storage_Error_ControllerNotFound），
+        // 据此禁用第 1 代选项。OS 架构运行期不变，故为只读计算属性、无需变更通知。
+        public bool CanUseGen1 => RuntimeInformation.OSArchitecture != Architecture.Arm64;
 
         // 存储探测到的类型列表
         [ObservableProperty]

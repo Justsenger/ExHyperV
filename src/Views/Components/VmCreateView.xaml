@@ -71,7 +71,7 @@
                         <ui:FontIcon Glyph="&#xE8C8;" FontSize="20" FontFamily="{DynamicResource SegoeFluentIcons}" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
                     </ui:CardControl.Icon>
                     <StackPanel Orientation="Horizontal">
-                        <RadioButton Content="{x:Static properties:Resources.Xaml_Gen1}" IsChecked="{Binding NewVmGeneration, Converter={StaticResource EqualityConverter}, ConverterParameter=1}" Margin="0,0,24,0"/>
+                        <RadioButton Content="{x:Static properties:Resources.Xaml_Gen1}" IsEnabled="{Binding CanUseGen1}" IsChecked="{Binding NewVmGeneration, Converter={StaticResource EqualityConverter}, ConverterParameter=1}" Margin="0,0,24,0"/>
                         <RadioButton Content="{x:Static properties:Resources.Xaml_Gen2}" IsChecked="{Binding NewVmGeneration, Converter={StaticResource EqualityConverter}, ConverterParameter=2}"/>
                     </StackPanel>
                 </ui:CardControl>
