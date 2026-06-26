@@ -999,6 +999,12 @@ The existing NAT switch is: '{0}'</value>
   <data name="Error_Storage_SelectTarget" xml:space="preserve">
     <value>Please select a storage device/file.</value>
   </data>
+  <data name="Error_Storage_FileNotExist" xml:space="preserve">
+    <value>Cannot find the file to attach. Please check the path.</value>
+  </data>
+  <data name="Error_Storage_FileExists" xml:space="preserve">
+    <value>Target file already exists. Use a different name or delete it first.</value>
+  </data>
   <data name="Error_Storage_IsoSource" xml:space="preserve">
     <value>Source folder required for ISO creation.</value>
   </data>

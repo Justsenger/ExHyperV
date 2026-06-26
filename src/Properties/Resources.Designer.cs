@@ -2358,6 +2358,24 @@ namespace ExHyperV.Properties {
                 return ResourceManager.GetString("Error_Storage_SelectTarget", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   查找类似 找不到要挂载的文件，请检查路径是否正确。 的本地化字符串。
+        /// </summary>
+        public static string Error_Storage_FileNotExist {
+            get {
+                return ResourceManager.GetString("Error_Storage_FileNotExist", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   查找类似 目标文件已存在，请改用其他文件名或先删除它。 的本地化字符串。
+        /// </summary>
+        public static string Error_Storage_FileExists {
+            get {
+                return ResourceManager.GetString("Error_Storage_FileExists", resourceCulture);
+            }
+        }
         
         /// <summary>
         ///   查找类似 Source folder does not exist. 的本地化字符串。

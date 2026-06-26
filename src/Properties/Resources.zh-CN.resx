@@ -999,6 +999,12 @@
   <data name="Error_Storage_SelectTarget" xml:space="preserve">
     <value>请选择存储设备或文件。</value>
   </data>
+  <data name="Error_Storage_FileNotExist" xml:space="preserve">
+    <value>找不到要挂载的文件，请检查路径是否正确。</value>
+  </data>
+  <data name="Error_Storage_FileExists" xml:space="preserve">
+    <value>目标文件已存在，请改用其他文件名或先删除它。</value>
+  </data>
   <data name="Error_Storage_IsoSource" xml:space="preserve">
     <value>创建 ISO 时必须指定源文件夹。</value>
   </data>

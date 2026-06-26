@@ -368,6 +368,21 @@ namespace ExHyperV.ViewModels
                 return;
             }
 
+            // 虚拟文件的路径预检查：挂载现有(.vhdx/.iso)文件须在、新建硬盘目标须不存在——否则底层只甩 0x80070002(找不到)/0x80070050(已存在) 原始码
+            if (!IsPhysicalSource)
+            {
+                if (!IsNewDisk && !File.Exists(FilePath))
+                {
+                    ShowTip(Properties.Resources.Error_Storage_FileNotExist);
+                    return;
+                }
+                if (IsNewDisk && DeviceType == "HardDisk" && File.Exists(FilePath))
+                {
+                    ShowTip(Properties.Resources.Error_Storage_FileExists);
+                    return;
+                }
+            }
+
             // 验证 ISO 创建参数
             if (DeviceType == "DvdDrive" && IsNewDisk)
             {
