@@ -359,7 +359,10 @@ namespace ExHyperV.ViewModels
             // 根据设备类型和新建标志验证路径
             string target = IsPhysicalSource ? SelectedPhysicalDisk?.Number.ToString() : FilePath;
 
-            if (string.IsNullOrEmpty(target) && !IsNewDisk)
+            // 除"新建 ISO"(用 IsoOutputPath 落地、见下方单独校验)外，target 即落地路径/盘号，必须非空。
+            // 新建硬盘也要 FilePath(要保存到的 .vhdx)——原来用 !IsNewDisk 把所有新建一并放过了，致不填路径也能挂上一个空盘。
+            bool isNewIso = DeviceType == "DvdDrive" && IsNewDisk;
+            if (string.IsNullOrEmpty(target) && !isNewIso)
             {
                 ShowTip(Properties.Resources.Error_Storage_SelectTarget);
                 return;
