@@ -172,7 +172,8 @@ namespace ExHyperV.ViewModels
         // ===== 缩放（仅基本会话）=====
         // 基本会话是固定分辨率的合成显示，只能拉伸缩放（放大必糊）；增强会话画面已原生跟随窗口，无需缩放。
         // 档值：本地化"适应窗口" + 纯比例字符串。窗口端 LayoutRdpHost 解析后摆放 RdpHost + 开关滚动条。
-        [ObservableProperty] private string _selectedZoom = "100%";
+        // 默认"自动"：进控制台即按"不超屏的最大档"铺满（分辨率未到前 AutoZoomPercent 兜底 100，画面一报分辨率即跳到挑中的档）。
+        [ObservableProperty] private string _selectedZoom = Properties.Resources.ConsoleWindow_ZoomAuto;
 
         public ObservableCollection<string> ZoomOptions { get; } = new()
         {

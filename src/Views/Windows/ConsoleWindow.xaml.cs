@@ -422,19 +422,36 @@ namespace ExHyperV.Views
             LayoutRdpHost();
         }
 
-        /// <summary>当前基本会话缩放百分比(25–500)："自动"/空 → 显示器 DPI%；"N%" → N；兜底 100。
+        /// <summary>当前基本会话缩放百分比(25–500)："自动"/空 → 后台算"不超屏的最大档"(见 AutoZoomPercent)；"N%" → N；兜底 100。
         /// 全屏不再强制 100：进全屏瞬间先归 100 让 mstscax 把连接栏布局好(见 IsFullScreen 分支)、SetFullScreen 后再 bump 回此档，
         /// 试验"全屏既缩放又留连接栏"。逃生键 Ctrl+Alt+Enter 始终可退、不怕困住。</summary>
         private int BasicZoomPercent()
         {
             string z = _vm.SelectedZoom;
             if (string.IsNullOrEmpty(z) || z == Properties.Resources.ConsoleWindow_ZoomAuto)
-            {
-                var s = PresentationSource.FromVisual(this);
-                double dpi = s?.CompositionTarget?.TransformToDevice.M11 ?? 1.0;
-                return ClampZoom((int)Math.Round(dpi * 100));
-            }
+                return AutoZoomPercent();
             return int.TryParse(z.TrimEnd('%', ' '), out int p) ? ClampZoom(p) : 100;
+        }
+
+        // "自动"缩放：纯内存算术挑档——从大到小遍历缩放档，取第一个"画面×该档 + 标题栏"能完整放进工作区(不超屏)的。
+        // 只读 VM 分辨率/工作区/DPI 几个即时值在内存里比大小，绝不逐档应用到 UI（无闪烁、不撑窗口、不触发布局往返），微秒级返回。
+        // 结果恒落在 ZoomOptions 现有档位上(非连续魔法数)；VM 分辨率未知回落 100，连最小档都塞不下用 25。
+        private static readonly int[] AutoZoomCandidates = { 500, 400, 300, 200, 150, 125, 100, 75, 50, 25 };
+        private int AutoZoomPercent()
+        {
+            int vmW = _vm.CurrentWidth, vmH = _vm.CurrentHeight;
+            if (vmW <= 0 || vmH <= 0) return 100;
+            var src = PresentationSource.FromVisual(this);
+            double dpiX = src?.CompositionTarget?.TransformToDevice.M11 ?? 1.0;
+            double dpiY = src?.CompositionTarget?.TransformToDevice.M22 ?? 1.0;
+            var wa = SystemParameters.WorkArea;   // 工作区(DIP)，即时读、不触发布局
+            foreach (int p in AutoZoomCandidates)
+            {
+                double winW = vmW * (p / 100.0) / dpiX;
+                double winH = vmH * (p / 100.0) / dpiY + TitleBarHeight;
+                if (winW <= wa.Width && winH <= wa.Height) return p;
+            }
+            return 25;
         }
 
         private static int ClampZoom(int pct) => Math.Max(25, Math.Min(500, pct));   // 实测 mstscax 支持 >200，上限放到 500
