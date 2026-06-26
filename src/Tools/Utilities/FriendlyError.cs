@@ -15,12 +15,21 @@ namespace ExHyperV.Tools
         {
             if (string.IsNullOrWhiteSpace(rawMessage)) return Properties.Resources.Error_Storage_Unknown;
             string cleanMsg = Regex.Replace(rawMessage.Trim(), @"[\(\（].*?ID\s+[a-fA-F0-9-]{36}.*?[\)\）]", "")
-                                   .Replace("\r", "").Replace("\n", " ");
-            var parts = cleanMsg.Split(new[] { '。', '.' }, StringSplitOptions.RemoveEmptyEntries)
-                                .Select(s => s.Trim())
-                                .Where(s => !string.IsNullOrWhiteSpace(s))
-                                .ToList();
-            return (parts.Count >= 2 && parts.Last().Length > 2) ? parts.Last() + "。" : cleanMsg;
+                                   .Replace("\r", " ").Replace("\n", " ").Trim();
+            // 断句只认中文句号/分号、以及"英文句点后接空白或结尾"——不能裸按 '.' 切：Windows 路径/文件名(.vhdx)、
+            // 版本号里全是点，裸切会把 "F:\x.vhdx" 劈碎，末段常只剩个 "(0x….)" 错误码，真正原因(如差异盘父盘丢失)反被丢掉。
+            var parts = Regex.Split(cleanMsg, @"[。；;]|\.(?=\s|$)")
+                             .Select(s => s.Trim())
+                             .Where(s => !string.IsNullOrWhiteSpace(s))
+                             .ToList();
+            if (parts.Count == 0) return cleanMsg;
+            // 从后往前取第一句有实质内容的：剥掉引号/括号/0x 错误码后仍有文字才算原因句，跳过 "(0x….)" 这种纯尾巴
+            for (int i = parts.Count - 1; i >= 0; i--)
+            {
+                string stripped = Regex.Replace(parts[i], @"0x[0-9a-fA-F]+|[""“”'（）()\s]", "");
+                if (stripped.Length > 2) return parts[i] + "。";
+            }
+            return cleanMsg;
         }
 
         /// <summary>
