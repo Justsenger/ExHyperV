@@ -179,13 +179,19 @@ namespace ExHyperV.Services
             BitConverter.GetBytes(1u).CopyTo(buf, 40);          // Wnode.ClientContext=1(QPC)
             BitConverter.GetBytes(0x00020000u).CopyTo(buf, 44); // Wnode.Flags=WNODE_FLAG_TRACED_GUID
             BitConverter.GetBytes(0x100u).CopyTo(buf, 64);      // LogFileMode=REAL_TIME
+            BitConverter.GetBytes(1u).CopyTo(buf, 68);          // FlushTimer=1s：实时会话每秒 flush，使无流量时 ProcessTrace 也周期醒来、能响应 CloseTrace 退出
             BitConverter.GetBytes(sz).CopyTo(buf, 116);         // LoggerNameOffset=120
             Encoding.Unicode.GetBytes(name).CopyTo(buf, sz);
             return buf;
         }
 
+        private int _cleaned;
+
         private void Cleanup()
         {
+            if (Interlocked.Exchange(ref _cleaned, 1) != 0) return; // 多入口(App.OnExit / ProcessExit / Dispose)防重复清理
+
+            // 1) 先断驱动捕获，停止帧源
             try
             {
                 if (_dev != null && !_dev.IsInvalid)
@@ -197,9 +203,20 @@ namespace ExHyperV.Services
             catch { }
             try { PktmonRemoveAllFilters(); } catch { }
             try { _dev?.Dispose(); } catch { }
-            try { if (_consumerHandle != 0) CloseTrace(_consumerHandle); } catch { }
-            try { if (_ctrlHandle != 0) ControlTraceW(_ctrlHandle, SessionName, BuildProps(SessionName), 1); } catch { }
             _dev = null;
+
+            // 2) 停 ETW 会话——唤醒卡在 ProcessTrace 的 pump 线程的主手段
+            try { if (_ctrlHandle != 0) ControlTraceW(_ctrlHandle, SessionName, BuildProps(SessionName), 1); } catch { }
+            _ctrlHandle = 0;
+
+            // 3) 关消费者句柄——配合 FlushTimer，确保 ProcessTrace 能返回
+            try { if (_consumerHandle != 0) CloseTrace(_consumerHandle); } catch { }
+            _consumerHandle = 0;
+
+            // 4) 等 pump 线程真正退出，超时兜底——绝不无限等，即便 ETW 行为异常也不让清理本身卡死
+            try { _pump?.Join(3000); } catch { }
+            _pump = null;
+
             IsAvailable = false;
         }
 
