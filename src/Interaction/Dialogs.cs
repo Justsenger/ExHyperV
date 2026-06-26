@@ -170,5 +170,38 @@ namespace ExHyperV.Interaction
 
             return result == ContentDialogResult.Primary;
         }
+
+        // ===== 文件系统选择器 =====
+        // 封装 Microsoft.Win32 的打开/保存/选目录对话框，VM 不再各自 new 一遍样板。
+        // 统一约定：返回选中的路径；用户取消一律返回 null（调用方据此决定是否更新绑定）。
+
+        /// <summary>打开文件选择框。title 传 null 用系统默认标题。</summary>
+        public static string? PickOpenFile(string? title, string filter, string? initialDir = null)
+        {
+            var dlg = new Microsoft.Win32.OpenFileDialog { Filter = filter };
+            if (!string.IsNullOrWhiteSpace(title)) dlg.Title = title;
+            if (!string.IsNullOrWhiteSpace(initialDir)) dlg.InitialDirectory = initialDir;
+            return dlg.ShowDialog() == true ? dlg.FileName : null;
+        }
+
+        /// <summary>保存文件选择框。</summary>
+        public static string? PickSaveFile(string? title, string filter, string? defaultExt = null, string? initialDir = null, string? fileName = null)
+        {
+            var dlg = new Microsoft.Win32.SaveFileDialog { Filter = filter };
+            if (!string.IsNullOrWhiteSpace(title)) dlg.Title = title;
+            if (!string.IsNullOrWhiteSpace(defaultExt)) dlg.DefaultExt = defaultExt;
+            if (!string.IsNullOrWhiteSpace(initialDir)) dlg.InitialDirectory = initialDir;
+            if (!string.IsNullOrWhiteSpace(fileName)) dlg.FileName = fileName;
+            return dlg.ShowDialog() == true ? dlg.FileName : null;
+        }
+
+        /// <summary>选择文件夹。</summary>
+        public static string? PickFolder(string? title = null, string? initialDir = null)
+        {
+            var dlg = new Microsoft.Win32.OpenFolderDialog();
+            if (!string.IsNullOrWhiteSpace(title)) dlg.Title = title;
+            if (!string.IsNullOrWhiteSpace(initialDir)) dlg.InitialDirectory = initialDir;
+            return dlg.ShowDialog() == true ? dlg.FolderName : null;
+        }
     }
 }

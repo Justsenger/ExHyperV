@@ -99,7 +99,9 @@ namespace ExHyperV.Services
 
         public static async Task<(bool Success, string Message)> CreateVirtualMachineAsync(VmCreationParams p)
         {
-            string finalVmName = p.IsManualName ? p.Name : await GetUniqueVmNameAsync(p.Name, p.Path);
+            // 总是查重(含手动命名)：撞到已存在的文件夹 / 在册同名 VM 时自动改名 "test3 (2)"…，
+            // 避开 DefineSystem/建 VHD 的 ERROR_FILE_EXISTS(0x80070050)。用户预期：同名也应自动改名而非报错。
+            string finalVmName = await GetUniqueVmNameAsync(p.Name, p.Path);
             bool vmCreated = false;   // DefineSystem 成功后置 true;失败回滚的依据
             try
             {
@@ -415,7 +417,7 @@ namespace ExHyperV.Services
         private static async Task<bool> VmNameExistsAsync(string name)
         {
             var resp = await WmiApi.QueryFirstAsync(
-                $"SELECT Name FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(name)}' AND Caption = 'Virtual Machine'",
+                $"SELECT Name FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(name)}'",
                 obj => obj["Name"]?.ToString(),
                 WmiScope.HyperV);
             return resp.HasData;

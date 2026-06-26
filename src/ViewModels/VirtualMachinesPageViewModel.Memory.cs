@@ -10,6 +10,9 @@ namespace ExHyperV.ViewModels
     {
         // ===== 内存设置模块 =====
 
+        // 进内存页时缓存的"原始设置"，失败时据此回弹；仅本模块使用（原误置于核心 .cs）。
+        private VmMemorySettings _originalMemorySettingsCache = null!;
+
         // 导航至内存设置
         [RelayCommand]
         private async Task GoToMemorySettingsAsync()
@@ -18,34 +21,35 @@ namespace ExHyperV.ViewModels
             CurrentViewType = VmDetailViewType.MemorySettings;
             IsLoadingSettings = true;
 
-            _isInternalUpdating = true; // 开启拦截：加载过程中不触发任何 PropertyChanged 逻辑
-            try
+            using (SuppressApply()) // 加载过程中不触发任何 PropertyChanged 逻辑
             {
-                var settings = await VmMemoryService.GetVmMemorySettingsAsync(SelectedVm.Name);
-                if (settings != null)
+                try
                 {
-                    if (SelectedVm.MemorySettings != null)
-                        SelectedVm.MemorySettings.PropertyChanged -= MemorySettings_PropertyChanged;
+                    var settings = await VmMemoryService.GetVmMemorySettingsAsync(SelectedVm.Name);
+                    if (settings != null)
+                    {
+                        if (SelectedVm.MemorySettings != null)
+                            SelectedVm.MemorySettings.PropertyChanged -= MemorySettings_PropertyChanged;
 
-                    SelectedVm.MemorySettings = settings;
-                    _originalMemorySettingsCache = settings.Clone(); // 加载成功时缓存原始状态
-                    SelectedVm.MemorySettings.PropertyChanged += MemorySettings_PropertyChanged;
+                        SelectedVm.MemorySettings = settings;
+                        _originalMemorySettingsCache = settings.Clone(); // 加载成功时缓存原始状态
+                        SelectedVm.MemorySettings.PropertyChanged += MemorySettings_PropertyChanged;
+                    }
                 }
-            }
-            catch (Exception ex)
-            {
-                ShowError(ex.Message);
-            }
-            finally
-            {
-                await Task.Delay(100);
-                _isInternalUpdating = false; // 加载完毕，恢复监听
-                IsLoadingSettings = false;
+                catch (Exception ex)
+                {
+                    ShowError(ex.Message);
+                }
+                finally
+                {
+                    await Task.Delay(100);
+                    IsLoadingSettings = false;
+                }
             }
         }
         private async void MemorySettings_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
-            if (_isInternalUpdating || IsLoadingSettings || SelectedVm?.MemorySettings == null)
+            if (IsApplySuppressed || IsLoadingSettings || SelectedVm?.MemorySettings == null)
                 return;
 
             var fastTrackProps = new[] {
@@ -72,33 +76,34 @@ namespace ExHyperV.ViewModels
 
                 // 移除以前错误的 var backup = SelectedVm.MemorySettings.Clone();
 
-                _isInternalUpdating = true;
-                IsLoadingSettings = true;
-                try
+                using (SuppressApply())
                 {
-                    var result = await VmMemoryService.SetVmMemorySettingsAsync(SelectedVm.Name, SelectedVm.MemorySettings, false);
-                    if (!result.Success)
+                    IsLoadingSettings = true;
+                    try
                     {
-                        ShowError($"{Properties.Resources.VmPage_ModifyFail}：{result.Message}");
+                        var result = await VmMemoryService.SetVmMemorySettingsAsync(SelectedVm.Name, SelectedVm.MemorySettings, false);
+                        if (!result.Success)
+                        {
+                            ShowError($"{Properties.Resources.VmPage_ModifyFail}：{result.Message}");
 
-                        // 核心修复：使用真正纯净的初始缓存进行弹回恢复
-                        SelectedVm.MemorySettings.Restore(_originalMemorySettingsCache);
+                            // 核心修复：使用真正纯净的初始缓存进行弹回恢复
+                            SelectedVm.MemorySettings.Restore(_originalMemorySettingsCache);
+                        }
+                        else
+                        {
+                            // 如果修改成功，需要更新基准缓存为当前状态，否则下次别的选项失败时，会把这次成功的修改也弹回去
+                            _originalMemorySettingsCache = SelectedVm.MemorySettings.Clone();
+                        }
                     }
-                    else
+                    catch (Exception ex)
                     {
-                        // 如果修改成功，需要更新基准缓存为当前状态，否则下次别的选项失败时，会把这次成功的修改也弹回去
-                        _originalMemorySettingsCache = SelectedVm.MemorySettings.Clone();
+                        // async void 事件处理器：未捕获异常（如缓存为空时 Restore/Clone 抛 NRE）会崩 UI 线程；兜底上报
+                        ShowError($"{Properties.Resources.VmPage_ModifyFail}：{ex.Message}");
                     }
-                }
-                catch (Exception ex)
-                {
-                    // async void 事件处理器：未捕获异常（如缓存为空时 Restore/Clone 抛 NRE）会崩 UI 线程；兜底上报
-                    ShowError($"{Properties.Resources.VmPage_ModifyFail}：{ex.Message}");
-                }
-                finally
-                {
-                    IsLoadingSettings = false;
-                    _isInternalUpdating = false;
+                    finally
+                    {
+                        IsLoadingSettings = false;
+                    }
                 }
             }
         }

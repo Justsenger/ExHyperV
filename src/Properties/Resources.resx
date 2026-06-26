@@ -2350,10 +2350,10 @@ The existing NAT switch is: '{0}'</value>
     <value>VM configuration directory not found</value>
   </data>
   <data name="VmPage_PurgeTitle" xml:space="preserve">
-    <value>Permanently Delete VM</value>
+    <value>Permanently Delete</value>
   </data>
   <data name="VmPage_PurgeConfirm" xml:space="preserve">
-    <value>About to permanently delete "{0}", including all virtual hard disk files and the configuration directory.\n\n⚠️ Please confirm there are no other files in the VM configuration directory. This action cannot be undone!</value>
+    <value>The following directories and files will be permanently deleted and cannot be recovered:</value>
   </data>
   <data name="VmPage_PurgeBtn" xml:space="preserve">
     <value>Permanently Delete</value>

@@ -27,7 +27,6 @@ namespace ExHyperV.ViewModels
         [NotifyPropertyChangedFor(nameof(CanEditSecureBootTemplate))]
         private bool _shieldingEnabled;
         [ObservableProperty] private SecureBootTemplate? _selectedSecureBootTemplate;
-        private bool _suppressSecurityApply;
         private SecureBootTemplate? _appliedTemplate;
 
         // 模板能否改"无法预判"——锁只在 vTPM 被【开机】初始化后才生效(实测: 启了 vTPM 但没开机的 VM 仍能改;
@@ -59,24 +58,25 @@ namespace ExHyperV.ViewModels
             IsLoadingSettings = true;
             try
             {
-                _suppressSecurityApply = true;
+                // 用 using 包住程序性赋值：即使中途抛异常也保证还原抑制态（旧码把复位写在 try 末尾，异常会永久卡住抑制）。
+                using (SuppressApply())
+                {
+                    // 模板列表向主机实拿(本地化名 + 正确 GUID)，每次进页刷新
+                    var templates = await VmSecurityService.GetSecureBootTemplatesAsync();
+                    SecureBootTemplates.Clear();
+                    foreach (var (name, guid) in templates)
+                        SecureBootTemplates.Add(new SecureBootTemplate(name, guid));
 
-                // 模板列表向主机实拿(本地化名 + 正确 GUID)，每次进页刷新
-                var templates = await VmSecurityService.GetSecureBootTemplatesAsync();
-                SecureBootTemplates.Clear();
-                foreach (var (name, guid) in templates)
-                    SecureBootTemplates.Add(new SecureBootTemplate(name, guid));
-
-                var info = await VmSecurityService.GetSecuritySettingsAsync(SelectedVm.Name);
-                SecureBootEnabled = info.SecureBootEnabled;
-                TpmEnabled = info.TpmEnabled;
-                EncryptionEnabled = info.EncryptEnabled;
-                ShieldingEnabled = info.Shielded;
-                SelectedSecureBootTemplate =
-                    SecureBootTemplates.FirstOrDefault(t => info.SecureBootTemplateId.Contains(t.Guid, StringComparison.OrdinalIgnoreCase))
-                    ?? SecureBootTemplates.FirstOrDefault();
-                _appliedTemplate = SelectedSecureBootTemplate;
-                _suppressSecurityApply = false;
+                    var info = await VmSecurityService.GetSecuritySettingsAsync(SelectedVm.Name);
+                    SecureBootEnabled = info.SecureBootEnabled;
+                    TpmEnabled = info.TpmEnabled;
+                    EncryptionEnabled = info.EncryptEnabled;
+                    ShieldingEnabled = info.Shielded;
+                    SelectedSecureBootTemplate =
+                        SecureBootTemplates.FirstOrDefault(t => info.SecureBootTemplateId.Contains(t.Guid, StringComparison.OrdinalIgnoreCase))
+                        ?? SecureBootTemplates.FirstOrDefault();
+                    _appliedTemplate = SelectedSecureBootTemplate;
+                }
             }
             finally { IsLoadingSettings = false; }
         }
@@ -84,13 +84,13 @@ namespace ExHyperV.ViewModels
         // 改动即应用；成功不弹提示(控件本身即反馈)，失败弹引擎原因并回弹。
         partial void OnSecureBootEnabledChanged(bool value)
         {
-            if (_suppressSecurityApply || SelectedVm == null) return;
+            if (IsApplySuppressed || SelectedVm == null) return;
             _ = ApplySecurityAsync(() => VmSecurityService.SetSecureBootAsync(SelectedVm.Name, value), () => SecureBootEnabled = !value);
         }
 
         partial void OnTpmEnabledChanged(bool value)
         {
-            if (_suppressSecurityApply || SelectedVm == null) return;
+            if (IsApplySuppressed || SelectedVm == null) return;
             _ = ApplyTpmAsync(value);
         }
 
@@ -100,20 +100,18 @@ namespace ExHyperV.ViewModels
             var (ok, msg) = await VmSecurityService.SetTpmAsync(SelectedVm.Name, value);
             if (ok) { await LoadSecurityStateAsync(); return; }
             ShowError($"{Properties.Resources.Xaml_SecurityFeat}：{msg}");
-            _suppressSecurityApply = true;
-            TpmEnabled = !value;
-            _suppressSecurityApply = false;
+            using (SuppressApply()) TpmEnabled = !value;
         }
 
         partial void OnEncryptionEnabledChanged(bool value)
         {
-            if (_suppressSecurityApply || SelectedVm == null) return;
+            if (IsApplySuppressed || SelectedVm == null) return;
             _ = ApplySecurityAsync(() => VmSecurityService.SetEncryptionAsync(SelectedVm.Name, value), () => EncryptionEnabled = !value);
         }
 
         partial void OnShieldingEnabledChanged(bool value)
         {
-            if (_suppressSecurityApply || SelectedVm == null) return;
+            if (IsApplySuppressed || SelectedVm == null) return;
             _ = ApplyShieldingAsync(value);
         }
 
@@ -123,14 +121,12 @@ namespace ExHyperV.ViewModels
             var (ok, msg) = await VmSecurityService.SetShieldingAsync(SelectedVm.Name, value);
             if (ok) { await LoadSecurityStateAsync(); return; }
             ShowError($"{Properties.Resources.Xaml_SecurityFeat}：{msg}");
-            _suppressSecurityApply = true;
-            ShieldingEnabled = !value;
-            _suppressSecurityApply = false;
+            using (SuppressApply()) ShieldingEnabled = !value;
         }
 
         partial void OnSelectedSecureBootTemplateChanged(SecureBootTemplate? value)
         {
-            if (_suppressSecurityApply || SelectedVm == null || value == null) return;
+            if (IsApplySuppressed || SelectedVm == null || value == null) return;
             _ = ApplyTemplateAsync(value);
         }
 
@@ -141,9 +137,7 @@ namespace ExHyperV.ViewModels
             if (ok) { _appliedTemplate = value; return; }
 
             ShowError($"{Properties.Resources.Xaml_SecurityFeat}：{msg}");
-            _suppressSecurityApply = true;
-            SelectedSecureBootTemplate = _appliedTemplate;
-            _suppressSecurityApply = false;
+            using (SuppressApply()) SelectedSecureBootTemplate = _appliedTemplate;
         }
 
         private async Task ApplySecurityAsync(Func<Task<(bool Success, string Message)>> action, Action? revert)
@@ -153,9 +147,7 @@ namespace ExHyperV.ViewModels
 
             ShowError($"{Properties.Resources.Xaml_SecurityFeat}：{msg}");
             if (revert == null) return;
-            _suppressSecurityApply = true;
-            revert();
-            _suppressSecurityApply = false;
+            using (SuppressApply()) revert();
         }
     }
 }

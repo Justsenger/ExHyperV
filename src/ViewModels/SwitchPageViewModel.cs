@@ -8,7 +8,7 @@ using ExHyperV.Views;
 
 namespace ExHyperV.ViewModels
 {
-    public partial class SwitchPageViewModel : ObservableObject
+    public partial class SwitchPageViewModel : PageViewModelBase
     {
         // ===== 属性 =====
 

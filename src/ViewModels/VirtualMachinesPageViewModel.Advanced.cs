@@ -21,7 +21,6 @@ namespace ExHyperV.ViewModels
 
         // 控制台支持开关（增删合成显示控制器）
         [ObservableProperty] private bool _isConsoleSupportEnabled = true;
-        private bool _suppressConsoleApply;
 
         [RelayCommand]
         private async Task GoToAdvancedSettingsAsync()
@@ -36,16 +35,15 @@ namespace ExHyperV.ViewModels
                     ? $"{w} x {h}"
                     : Properties.Resources.VmAdvanced_ResolutionAuto;
 
-                _suppressConsoleApply = true;
-                IsConsoleSupportEnabled = await VmConsoleService.IsConsoleSupportEnabledAsync(SelectedVm.Name);
-                _suppressConsoleApply = false;
+                using (SuppressApply())
+                    IsConsoleSupportEnabled = await VmConsoleService.IsConsoleSupportEnabledAsync(SelectedVm.Name);
             }
             finally { IsLoadingSettings = false; }
         }
 
         partial void OnIsConsoleSupportEnabledChanged(bool value)
         {
-            if (_suppressConsoleApply || SelectedVm == null) return;
+            if (IsApplySuppressed || SelectedVm == null) return;
             _ = ApplyConsoleSupportAsync(value);
         }
 
@@ -60,9 +58,8 @@ namespace ExHyperV.ViewModels
             else
             {
                 ShowError($"{Properties.Resources.VmAdvanced_ConsoleTitle}：{msg}");
-                _suppressConsoleApply = true;
-                IsConsoleSupportEnabled = !enable;   // 失败回弹开关
-                _suppressConsoleApply = false;
+                using (SuppressApply())
+                    IsConsoleSupportEnabled = !enable;   // 失败回弹开关
             }
         }
 

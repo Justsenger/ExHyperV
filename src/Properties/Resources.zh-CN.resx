@@ -2350,10 +2350,10 @@
     <value>找不到虚拟机配置目录</value>
   </data>
   <data name="VmPage_PurgeTitle" xml:space="preserve">
-    <value>彻底删除虚拟机</value>
+    <value>彻底删除</value>
   </data>
   <data name="VmPage_PurgeConfirm" xml:space="preserve">
-    <value>即将彻底删除「{0}」，包括所有虚拟硬盘文件和配置目录。\n\n⚠️ 请确认虚拟机配置目录中是否存在其他文件，删除后无法恢复！</value>
+    <value>下列目录与文件将永久删除且无法恢复：</value>
   </data>
   <data name="VmPage_PurgeBtn" xml:space="preserve">
     <value>彻底删除</value>

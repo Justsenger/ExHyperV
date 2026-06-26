@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using ExHyperV.Interaction;
 using ExHyperV.Models;
 using ExHyperV.Services;
 using ExHyperV.Tools;
@@ -781,16 +782,9 @@ namespace ExHyperV.ViewModels
         [RelayCommand]
         private void CopyLog()
         {
-            if (!string.IsNullOrEmpty(GpuDeploymentLog))
-            {
-                // 剪贴板可能被其它进程占用，SetText 会抛 COMException；成功才提示，失败不崩
-                try
-                {
-                    Clipboard.SetText(GpuDeploymentLog);
-                    ShowSuccess(Properties.Resources.Msg_Gpu_LogCopy);
-                }
-                catch { }
-            }
+            // 复制走 Shell 门面（内部吞 COMException）；成功才提示
+            if (!string.IsNullOrEmpty(GpuDeploymentLog) && Shell.CopyToClipboard(GpuDeploymentLog))
+                ShowSuccess(Properties.Resources.Msg_Gpu_LogCopy);
         }
         // ✅ 增加重置/重试命令逻辑
 

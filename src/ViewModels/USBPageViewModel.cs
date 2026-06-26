@@ -1,12 +1,12 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using ExHyperV.Interaction;
 using ExHyperV.Services;
-using System.Diagnostics;
 
 namespace ExHyperV.ViewModels
 {
-    public partial class USBPageViewModel : ObservableObject
+    public partial class USBPageViewModel : PageViewModelBase
     {
         // ===== 字段 =====
 
@@ -128,25 +128,6 @@ namespace ExHyperV.ViewModels
         /// 跳转到指定的 URL 网页
         /// </summary>
         [RelayCommand]
-        private void OpenUrl(string url)
-        {
-            if (string.IsNullOrWhiteSpace(url)) return;
-
-            try
-            {
-                // 在 .NET Core / .NET 5+ 中，需要设置 UseShellExecute 为 true 才能直接打开 URL
-                Process.Start(new ProcessStartInfo
-                {
-                    FileName = url,
-                    UseShellExecute = true
-                });
-            }
-            catch (Exception ex)
-            {
-                // 这里可以记录日志，防止由于系统环境问题导致崩溃
-                Debug.WriteLine(string.Format(Properties.Resources.USBPageViewModel_OpenWebpageFailed, ex.Message));
-            }
-
-        }
+        private void OpenUrl(string url) => Shell.OpenUrl(url);
     }
 }

@@ -1,11 +1,11 @@
-using System.Diagnostics;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using ExHyperV.Interaction;
 using ExHyperV.Services;
 
 namespace ExHyperV.ViewModels
 {
-    public partial class SettingsPageViewModel : ObservableObject
+    public partial class SettingsPageViewModel : PageViewModelBase
     {
         private bool _isInitializing = true;
 
@@ -80,12 +80,7 @@ namespace ExHyperV.ViewModels
             if (string.IsNullOrEmpty(_latestVersionTag)) return;
 
             var url = $"https://github.com/Justsenger/ExHyperV/releases/tag/{_latestVersionTag}";
-
-            try
-            {
-                Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
-            }
-            catch (Exception ex) { Debug.WriteLine(ex.Message); }
+            Shell.OpenUrl(url);
         }
         public string CopyrightInfo => "© 2026 | " + AppInfoService.Author+ " | " + AppInfoService.Version;
 

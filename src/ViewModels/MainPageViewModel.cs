@@ -7,7 +7,7 @@ using ExHyperV.Views;
 
 namespace ExHyperV.ViewModels
 {
-    public partial class MainPageViewModel : ObservableObject
+    public partial class MainPageViewModel : PageViewModelBase
     {
         [ObservableProperty] private string? _caption;
         [ObservableProperty] private string? _oSArchitecture;

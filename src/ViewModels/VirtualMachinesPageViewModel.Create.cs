@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.IO;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using ExHyperV.Interaction;
 using ExHyperV.Models;
 using ExHyperV.Services;
 using Wpf.Ui.Controls;
@@ -141,6 +142,7 @@ namespace ExHyperV.ViewModels
         [ObservableProperty]
         private ObservableCollection<string> _supportedIsolationTypes = new() { "Disabled" };
         private bool _isNameModifiedByUser = false;
+        private bool _isDiskPathManual = false; // 用户是否手动选过磁盘路径（手动后不再自动联动）；仅本模块使用（原误置于核心 .cs）
 
 
 
@@ -283,31 +285,20 @@ namespace ExHyperV.ViewModels
         [RelayCommand]
         private void BrowseNewVmPath()
         {
-            var dialog = new Microsoft.Win32.OpenFolderDialog
-            {
-                Title = Properties.Resources.VmPage_SelectConfigDir,
-                InitialDirectory = string.IsNullOrWhiteSpace(NewVmStoragePath) ? string.Empty : NewVmStoragePath
-            };
-            if (dialog.ShowDialog() == true)
-            {
-                NewVmStoragePath = dialog.FolderName;
-            }
+            var picked = Dialogs.PickFolder(Properties.Resources.VmPage_SelectConfigDir,
+                string.IsNullOrWhiteSpace(NewVmStoragePath) ? null : NewVmStoragePath);
+            if (picked != null) NewVmStoragePath = picked;
         }
 
 
         [RelayCommand]
         private void BrowseNewDiskLocation()
         {
-            var dialog = new Microsoft.Win32.SaveFileDialog
+            var picked = Dialogs.PickSaveFile(Properties.Resources.VmPage_SelectNewVhdPath, Properties.Resources.VmPage_VhdFilter,
+                null, GetDir(NewVmNewDiskPath), GetFileName(NewVmNewDiskPath, $"{NewVmName}.vhdx"));
+            if (picked != null)
             {
-                Title = Properties.Resources.VmPage_SelectNewVhdPath,
-                Filter = Properties.Resources.VmPage_VhdFilter,
-                InitialDirectory = GetDir(NewVmNewDiskPath),
-                FileName = GetFileName(NewVmNewDiskPath, $"{NewVmName}.vhdx")
-            };
-            if (dialog.ShowDialog() == true)
-            {
-                NewVmNewDiskPath = dialog.FileName;
+                NewVmNewDiskPath = picked;
                 _isDiskPathManual = true; // 关键：标记用户已手动选择
             }
         }
@@ -315,25 +306,15 @@ namespace ExHyperV.ViewModels
         [RelayCommand]
         private void BrowseExistingDisk()
         {
-            var dialog = new Microsoft.Win32.OpenFileDialog
-            {
-                Title = Properties.Resources.VmPage_SelectExistVhd,
-                Filter = Properties.Resources.VmPage_VhdFilterBoth,
-                InitialDirectory = GetDir(NewVmExistingDiskPath)
-            };
-            if (dialog.ShowDialog() == true) NewVmExistingDiskPath = dialog.FileName;
+            var picked = Dialogs.PickOpenFile(Properties.Resources.VmPage_SelectExistVhd, Properties.Resources.VmPage_VhdFilterBoth, GetDir(NewVmExistingDiskPath));
+            if (picked != null) NewVmExistingDiskPath = picked;
         }
 
         [RelayCommand]
         private void BrowseIsoImage()
         {
-            var dialog = new Microsoft.Win32.OpenFileDialog
-            {
-                Title = Properties.Resources.VmPage_SelectIso,
-                Filter = Properties.Resources.VmPage_IsoFilter,
-                InitialDirectory = GetDir(NewVmIsoPath)
-            };
-            if (dialog.ShowDialog() == true) NewVmIsoPath = dialog.FileName;
+            var picked = Dialogs.PickOpenFile(Properties.Resources.VmPage_SelectIso, Properties.Resources.VmPage_IsoFilter, GetDir(NewVmIsoPath));
+            if (picked != null) NewVmIsoPath = picked;
         }
 
         [RelayCommand]

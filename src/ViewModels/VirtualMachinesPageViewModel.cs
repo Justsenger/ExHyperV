@@ -44,9 +44,8 @@ namespace ExHyperV.ViewModels
         // ===== 缓存与状态字段 =====
         private const int MaxHistoryLength = 60;
         private readonly Dictionary<string, LinkedList<double>> _historyCache = new();
-        private VmMemorySettings _originalMemorySettingsCache;
-        private bool _isInternalUpdating = false;
-        private bool _isDiskPathManual = false; // 记录用户是否手动选择过磁盘路径
+        // 程序性赋值抑制统一改用基类 SuppressApply()/IsApplySuppressed（原 _isInternalUpdating）。
+        // _originalMemorySettingsCache 归 Memory.cs、_isDiskPathManual 归 Create.cs（功能私有，不再堆在核心）。
 
 
         // ===== 视图模型属性 - 页面状态 =====
@@ -156,7 +155,7 @@ namespace ExHyperV.ViewModels
 
                 if (!string.IsNullOrEmpty(path) && Directory.Exists(path))
                 {
-                    System.Diagnostics.Process.Start("explorer.exe", path);
+                    Shell.Reveal(path);
                 }
                 else
                 {
@@ -200,12 +199,50 @@ namespace ExHyperV.ViewModels
         {
             if (vm == null) return;
 
-            // 二次确认弹窗
+            // 二次确认弹窗：预先算出"将删除的目录与文件"清单直接展示——替代口头提醒用户自己去查目录里有没有其他文件。
+            var preview = await VmDeleteService.PreviewPurgeAsync(vm.Id);
+            var list = new System.Text.StringBuilder();
+            if (!string.IsNullOrEmpty(preview.ConfigDir))
+            {
+                list.AppendLine("· " + preview.ConfigDir);
+                int shown = 0;
+                foreach (var f in preview.ConfigDirFiles)
+                {
+                    if (shown++ >= 40) { list.AppendLine($"     · … (+{preview.ConfigDirFiles.Count - 40})"); break; }
+                    list.AppendLine("     · " + System.IO.Path.GetFileName(f));
+                }
+            }
+            foreach (var d in preview.ExternalDiskFiles)
+                list.AppendLine("· " + d);
+            if (list.Length == 0) list.Append(vm.Name);
+
+            // 正文用原生控件：上方告警文字（自动换行）+ 下方等宽、可滚动的清单（路径长/文件多都不撑爆弹窗）。
+            var body = new System.Windows.Controls.StackPanel();
+            body.Children.Add(new System.Windows.Controls.TextBlock
+            {
+                Text = Properties.Resources.VmPage_PurgeConfirm,
+                TextWrapping = System.Windows.TextWrapping.Wrap,
+                Margin = new System.Windows.Thickness(0, 0, 0, 8),
+            });
+            body.Children.Add(new System.Windows.Controls.ScrollViewer
+            {
+                MaxHeight = 220,
+                VerticalScrollBarVisibility = System.Windows.Controls.ScrollBarVisibility.Auto,
+                HorizontalScrollBarVisibility = System.Windows.Controls.ScrollBarVisibility.Auto,
+                Content = new System.Windows.Controls.TextBlock
+                {
+                    Text = list.ToString().TrimEnd(),
+                    FontFamily = new System.Windows.Media.FontFamily("Consolas"),
+                    FontSize = 12,
+                },
+            });
+
             var dialog = new Wpf.Ui.Controls.MessageBox
             {
                 Title = Properties.Resources.VmPage_PurgeTitle,
-                Content = string.Format(Properties.Resources.VmPage_PurgeConfirm, vm.Name),
+                Content = body,
                 PrimaryButtonText = Properties.Resources.VmPage_PurgeBtn,
+                PrimaryButtonAppearance = Wpf.Ui.Controls.ControlAppearance.Danger,   // 左侧确认按钮红色（危险操作）；右侧取消保持默认
                 CloseButtonText = Properties.Resources.Button_Cancel,
             };
 
@@ -606,9 +643,7 @@ namespace ExHyperV.ViewModels
         private void CopyToClipboard(string text)
         {
             if (string.IsNullOrWhiteSpace(text) || text == "---" || text == "00-00-00-00-00-00") return;
-            // 剪贴板可能被其它进程短暂占用，SetText 会抛 COMException；吞掉避免复制崩溃
-            try { Clipboard.SetText(text); }
-            catch { }
+            Shell.CopyToClipboard(text);
         }
         private async Task MonitorThumbnailLoop(CancellationToken token)
         {

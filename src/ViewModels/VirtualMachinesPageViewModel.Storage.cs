@@ -3,6 +3,7 @@ using System.IO;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using ExHyperV.Interaction;
 using ExHyperV.Models;
 using ExHyperV.Services;
 using ExHyperV.Tools;
@@ -178,56 +179,51 @@ namespace ExHyperV.ViewModels
             string filter = driveItem.DriveType == "DvdDrive"
                 ? Properties.Resources.Filter_Iso
                 : Properties.Resources.Filter_Vhd;
+            string title = driveItem.DriveType == "DvdDrive" ? Properties.Resources.Title_SelectIso : Properties.Resources.Title_SelectVhd;
 
-            var openFileDialog = new Microsoft.Win32.OpenFileDialog
+            var picked = Dialogs.PickOpenFile(title, filter);
+            if (picked == null) return;
+
+            IsLoadingSettings = true;
+            try
             {
-                Title = driveItem.DriveType == "DvdDrive" ? Properties.Resources.Title_SelectIso : Properties.Resources.Title_SelectVhd,
-                Filter = filter
-            };
+                (bool Success, string Message) result;
 
-            if (openFileDialog.ShowDialog() == true)
+                if (driveItem.DriveType == "DvdDrive")
+                {
+                    result = await VmStorageService.ModifyDvdDrivePathAsync(
+                        SelectedVm.Name,
+                        driveItem.ControllerNumber,
+                        driveItem.ControllerLocation,
+                        picked);
+                }
+                else
+                {
+                    result = await VmStorageService.ModifyHardDrivePathAsync(
+                        SelectedVm.Name,
+                        driveItem.ControllerType,
+                        driveItem.ControllerNumber,
+                        driveItem.ControllerLocation,
+                        picked);
+                }
+
+                if (result.Success)
+                {
+                    ShowSuccess(Properties.Resources.Msg_Storage_PathUpdated);
+                    await VmStorageService.LoadVmStorageItemsAsync(SelectedVm.Model);
+                }
+                else
+                {
+                    ShowError($"{Properties.Resources.Error_Common_ModFailShort}：{result.Message}");
+                }
+            }
+            catch (Exception ex)
             {
-                IsLoadingSettings = true;
-                try
-                {
-                    (bool Success, string Message) result;
-
-                    if (driveItem.DriveType == "DvdDrive")
-                    {
-                        result = await VmStorageService.ModifyDvdDrivePathAsync(
-                            SelectedVm.Name,
-                            driveItem.ControllerNumber,
-                            driveItem.ControllerLocation,
-                            openFileDialog.FileName);
-                    }
-                    else
-                    {
-                        result = await VmStorageService.ModifyHardDrivePathAsync(
-                            SelectedVm.Name,
-                            driveItem.ControllerType,
-                            driveItem.ControllerNumber,
-                            driveItem.ControllerLocation,
-                            openFileDialog.FileName);
-                    }
-
-                    if (result.Success)
-                    {
-                        ShowSuccess(Properties.Resources.Msg_Storage_PathUpdated);
-                        await VmStorageService.LoadVmStorageItemsAsync(SelectedVm.Model);
-                    }
-                    else
-                    {
-                        ShowError($"{Properties.Resources.Error_Common_ModFailShort}：{result.Message}");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    ShowError(FriendlyError.CleanLines(ex.Message));
-                }
-                finally
-                {
-                    IsLoadingSettings = false;
-                }
+                ShowError(FriendlyError.CleanLines(ex.Message));
+            }
+            finally
+            {
+                IsLoadingSettings = false;
             }
         }
 
@@ -240,30 +236,9 @@ namespace ExHyperV.ViewModels
             return true;
         }
 
-        // 在资源管理器中打开所在文件夹
+        // 在资源管理器中定位（文件高亮 / 目录打开，统一走 Shell 门面）
         [RelayCommand(CanExecute = nameof(CanOpenFolder))]
-        private void OpenFolder(string path)
-        {
-            if (string.IsNullOrWhiteSpace(path)) return;
-            try
-            {
-                if (int.TryParse(path, out _) || path.StartsWith("PhysicalDisk", StringComparison.OrdinalIgnoreCase)) return;
-
-                if (System.IO.File.Exists(path) || System.IO.Directory.Exists(path))
-                {
-                    System.Diagnostics.Process.Start("explorer.exe", $"/select,\"{path}\"");
-                }
-                else
-                {
-                    string directory = System.IO.Path.GetDirectoryName(path);
-                    if (System.IO.Directory.Exists(directory))
-                    {
-                        System.Diagnostics.Process.Start("explorer.exe", directory);
-                    }
-                }
-            }
-            catch (Exception) { }
-        }
+        private void OpenFolder(string path) => Shell.Reveal(path);
 
 
         // ===== 存储管理模块 - 添加设备向导 =====
@@ -319,7 +294,7 @@ namespace ExHyperV.ViewModels
         // 属性变更监听 - 控制器类型
         partial void OnSelectedControllerTypeChanged(string value)
         {
-            if (_isInternalUpdating || value == null) return;
+            if (IsApplySuppressed || value == null) return;
 
             RefreshAvailableNumbers(value);
 
@@ -334,7 +309,7 @@ namespace ExHyperV.ViewModels
         partial void OnSelectedControllerNumberChanged(int value)
         {
             // 如果是内部设定的跳变值 -2，或者是锁定状态，绝对不要去刷新位置列表，否则会造成闪烁或死循环
-            if (value == -2 || _isInternalUpdating) return;
+            if (value == -2 || IsApplySuppressed) return;
 
             UpdateAvailableLocations();
         }
@@ -450,70 +425,47 @@ namespace ExHyperV.ViewModels
         [RelayCommand]
         private void BrowseFile()
         {
+            string? picked;
             if (IsNewDisk && DeviceType == "HardDisk")
             {
-                var saveDialog = new Microsoft.Win32.SaveFileDialog
-                {
-                    Title = Properties.Resources.Title_CreateVhd,
-                    Filter = Properties.Resources.Filter_VhdExt,
-                    DefaultExt = ".vhdx",
-                    InitialDirectory = GetDir(FilePath),
-                    FileName = GetFileName(FilePath, Properties.Resources.Default_VhdName)
-                };
-                if (saveDialog.ShowDialog() == true) FilePath = saveDialog.FileName;
+                picked = Dialogs.PickSaveFile(Properties.Resources.Title_CreateVhd, Properties.Resources.Filter_VhdExt,
+                    ".vhdx", GetDir(FilePath), GetFileName(FilePath, Properties.Resources.Default_VhdName));
             }
             else
             {
-                var openDialog = new Microsoft.Win32.OpenFileDialog
-                {
-                    Title = DeviceType == "HardDisk" ? Properties.Resources.Title_OpenVhd : Properties.Resources.Title_SelectIso,
-                    Filter = DeviceType == "HardDisk" ? Properties.Resources.Filter_VhdOnly : Properties.Resources.Filter_IsoOnly,
-                    InitialDirectory = GetDir(FilePath)
-                };
-                if (openDialog.ShowDialog() == true) FilePath = openDialog.FileName;
+                picked = Dialogs.PickOpenFile(
+                    DeviceType == "HardDisk" ? Properties.Resources.Title_OpenVhd : Properties.Resources.Title_SelectIso,
+                    DeviceType == "HardDisk" ? Properties.Resources.Filter_VhdOnly : Properties.Resources.Filter_IsoOnly,
+                    GetDir(FilePath));
             }
+            if (picked != null) FilePath = picked;
         }
 
         // 浏览文件夹 (用于ISO制作)
         [RelayCommand]
         private void BrowseFolder()
         {
-            var dialog = new Microsoft.Win32.OpenFolderDialog
-            {
-                InitialDirectory = string.IsNullOrWhiteSpace(IsoSourceFolderPath) ? string.Empty : IsoSourceFolderPath
-            };
-            if (dialog.ShowDialog() == true) IsoSourceFolderPath = dialog.FolderName;
+            var picked = Dialogs.PickFolder(initialDir: string.IsNullOrWhiteSpace(IsoSourceFolderPath) ? null : IsoSourceFolderPath);
+            if (picked != null) IsoSourceFolderPath = picked;
         }
 
         // 浏览父级磁盘
         [RelayCommand]
         private void BrowseParentFile()
         {
-            var dialog = new Microsoft.Win32.OpenFileDialog
-            {
-                Filter = Properties.Resources.Filter_VhdOnly,
-                InitialDirectory = string.IsNullOrWhiteSpace(ParentPath) ? string.Empty : System.IO.Path.GetDirectoryName(ParentPath)
-            };
-            if (dialog.ShowDialog() == true) ParentPath = dialog.FileName;
+            var picked = Dialogs.PickOpenFile(null, Properties.Resources.Filter_VhdOnly,
+                string.IsNullOrWhiteSpace(ParentPath) ? null : System.IO.Path.GetDirectoryName(ParentPath));
+            if (picked != null) ParentPath = picked;
         }
 
         // 浏览保存ISO路径
         [RelayCommand]
         private void BrowseSaveIso()
         {
-            var saveDialog = new Microsoft.Win32.SaveFileDialog
-            {
-                Title = Properties.Resources.Title_SaveIso,
-                Filter = Properties.Resources.Filter_IsoExt,
-                DefaultExt = ".iso",
-                InitialDirectory = string.IsNullOrWhiteSpace(IsoOutputPath) ? string.Empty : System.IO.Path.GetDirectoryName(IsoOutputPath),
-                FileName = string.IsNullOrWhiteSpace(IsoOutputPath) ? $"{IsoVolumeLabel}.iso" : System.IO.Path.GetFileName(IsoOutputPath)
-            };
-
-            if (saveDialog.ShowDialog() == true)
-            {
-                IsoOutputPath = saveDialog.FileName;
-            }
+            var picked = Dialogs.PickSaveFile(Properties.Resources.Title_SaveIso, Properties.Resources.Filter_IsoExt, ".iso",
+                string.IsNullOrWhiteSpace(IsoOutputPath) ? null : System.IO.Path.GetDirectoryName(IsoOutputPath),
+                string.IsNullOrWhiteSpace(IsoOutputPath) ? $"{IsoVolumeLabel}.iso" : System.IO.Path.GetFileName(IsoOutputPath));
+            if (picked != null) IsoOutputPath = picked;
         }
 
         // 添加驱动器的包装函数
@@ -648,8 +600,8 @@ namespace ExHyperV.ViewModels
         // 设置当前选中的插槽
         private void SetSlot(string type, int ctrlNum, int loc)
         {
-
-            _isInternalUpdating = true; // 锁定拦截器
+            // 抑制跨 Dispatcher 回调：手动持有抑制域，待 Loaded 回调全部刷完再 Dispose（异常路径也 Dispose）。
+            var suppression = SuppressApply();
             try
             {
                 // 1. 设置接口类型并立即刷新列表数据源
@@ -683,13 +635,13 @@ namespace ExHyperV.ViewModels
                     SlotWarningMessage = string.Empty;
 
                     // 全部完成后解锁
-                    _isInternalUpdating = false;
+                    suppression.Dispose();
 
                 }), System.Windows.Threading.DispatcherPriority.Loaded);
             }
             catch (Exception)
             {
-                _isInternalUpdating = false;
+                suppression.Dispose();
             }
         }
 
@@ -720,7 +672,7 @@ namespace ExHyperV.ViewModels
         // 更新可用的位置列表
         private void UpdateAvailableLocations()
         {
-            if (_isInternalUpdating) return;
+            if (IsApplySuppressed) return;
             if (SelectedVm == null || string.IsNullOrEmpty(SelectedControllerType)) return;
 
             IsSlotValid = true;

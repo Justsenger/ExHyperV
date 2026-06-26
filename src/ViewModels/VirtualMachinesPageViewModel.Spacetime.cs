@@ -27,12 +27,9 @@ namespace ExHyperV.ViewModels
         [ObservableProperty]
         private bool _isCheckpointsEnabled = true;
 
-        // 防止 GoToSpacetimeSettingsAsync 加载时触发 setter 又去写回 Hyper-V
-        private bool _isLoadingCheckpointState = false;
-
         partial void OnIsCheckpointsEnabledChanged(bool value)
         {
-            if (_isLoadingCheckpointState || SelectedVm == null) return;
+            if (IsApplySuppressed || SelectedVm == null) return;
 
             _ = Task.Run(async () =>
             {
@@ -42,9 +39,7 @@ namespace ExHyperV.ViewModels
                     // 失败时回滚 UI 状态
                     Application.Current.Dispatcher.Invoke(() =>
                     {
-                        _isLoadingCheckpointState = true;
-                        IsCheckpointsEnabled = !value;
-                        _isLoadingCheckpointState = false;
+                        using (SuppressApply()) IsCheckpointsEnabled = !value;
                         ShowError(result.Message);
                     });
                 }
@@ -102,9 +97,8 @@ namespace ExHyperV.ViewModels
             IsLoadingSettings = true;
             try
             {
-                _isLoadingCheckpointState = true;
-                IsCheckpointsEnabled = await VmSpacetimeService.GetCheckpointsEnabledAsync(SelectedVm.Name);
-                _isLoadingCheckpointState = false;
+                using (SuppressApply())
+                    IsCheckpointsEnabled = await VmSpacetimeService.GetCheckpointsEnabledAsync(SelectedVm.Name);
 
                 var nodes = await VmSpacetimeService.GetSpacetimeNodesAsync(SelectedVm.Name);
 

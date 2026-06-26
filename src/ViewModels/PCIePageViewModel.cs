@@ -7,7 +7,7 @@ using MessageBox = Wpf.Ui.Controls.MessageBox;
 using TextBlock = Wpf.Ui.Controls.TextBlock;
 namespace ExHyperV.ViewModels
 {
-    public partial class PCIePageViewModel : ObservableObject
+    public partial class PCIePageViewModel : PageViewModelBase
     {
         // ===== 绑定属性与命令 =====
 
