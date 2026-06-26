@@ -129,7 +129,7 @@ public static class VmDeleteService
 
     // 销毁前确保 VM 已关机：保存态(.VMRS)/运行态不先关，DestroySystem 可能只注销却残留配置/状态文件。
     // 只认 EnabledState==3（CIM 标准 Disabled=已关）；非 3 一律 TurnOff 再回确认。
-    // ★ 绝不带 `Caption = 'Virtual Machine'` 过滤——该 Caption 在中文等本地化系统上被翻译，等值匹配永远查不到（实测踩坑）。
+    // 绝不带 `Caption = 'Virtual Machine'` 过滤——该 Caption 在中文等本地化系统上被翻译，等值匹配永远查不到（实测）。
     private static async Task<(bool Success, string Message)> EnsureOffAsync(string vmName)
     {
         var state = await WmiApi.QueryFirstAsync(

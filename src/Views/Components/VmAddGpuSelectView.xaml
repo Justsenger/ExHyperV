@@ -73,7 +73,7 @@
                                 <TextBlock Text="{Binding Name}" FontSize="16" FontWeight="Normal"
                                            Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
 
-                                <!-- 3. 换行修复：TextWrapping="Wrap" 配合外层 Disabled 滚动条 -->
+                                <!-- 3. TextWrapping="Wrap" 配合外层 Disabled 滚动条 -->
                                 <TextBlock Text="{Binding PathDisplay, Mode=OneWay}" 
                                            FontSize="13" 
                                            Margin="0,12,0,0" 

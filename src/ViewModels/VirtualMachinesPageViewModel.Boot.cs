@@ -87,7 +87,7 @@ namespace ExHyperV.ViewModels
 
             if (oldIndex == -1 || newIndex == -1) return;
 
-            // 之前的 1/3 阈值逻辑迁移到这里进行最终判定
+            // 1/3 阈值判定拖放最终落点
             if (newIndex > oldIndex) // 向下拖
             {
                 if (args.RelativeY < args.Threshold) return;

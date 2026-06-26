@@ -22,7 +22,7 @@ namespace ExHyperV.Interaction
                 var presenter = Application.Current.MainWindow?.FindName("SnackbarPresenter") as SnackbarPresenter;
                 if (presenter == null) return;
 
-                // 暴力清空积压队列
+                // 清空积压队列
                 try
                 {
                     var queueProp = typeof(SnackbarPresenter).GetProperty("Queue", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);

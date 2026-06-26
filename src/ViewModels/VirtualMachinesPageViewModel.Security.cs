@@ -29,7 +29,7 @@ namespace ExHyperV.ViewModels
         [ObservableProperty] private SecureBootTemplate? _selectedSecureBootTemplate;
         private SecureBootTemplate? _appliedTemplate;
 
-        // 模板能否改"无法预判"——锁只在 vTPM 被【开机】初始化后才生效(实测: 启了 vTPM 但没开机的 VM 仍能改;
+        // 模板能否改"无法预判"——锁只在 vTPM 被开机初始化后才生效(实测: 启了 vTPM 但没开机的 VM 仍能改;
         // KP 存在/TpmEnabled 都不代表锁)。故不预判置灰，只按"安全启动开"启用；真锁住的由 ApplyTemplateAsync 试改失败→弹引擎错+回退兜底。
         // 防护开时一并锁：受防护态安全启动被强制为开，否则模板下拉仍可点、点了必失败(vTPM 已初始化)。
         public bool CanEditSecureBootTemplate => SecureBootEnabled && !ShieldingEnabled;

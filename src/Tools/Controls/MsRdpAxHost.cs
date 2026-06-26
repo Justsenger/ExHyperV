@@ -59,7 +59,7 @@ namespace ExHyperV.Tools
                 dynamic rdp = GetOcx();
                 rdp.Server = s.Server;
 
-                // ★ UI 父窗口句柄：控件弹出的子窗口需要有效父窗口，否则在框架回调里抛异常逃回 native → 0xC000041D。
+                // UI 父窗口句柄：控件弹出的子窗口需要有效父窗口，否则在框架回调里抛异常逃回 native → 0xC000041D。
                 // COMReference(tlbimp) 把它生成成 set_UIParentWindowHandle(ref _RemotableHandle/wireHWND)，需手填：
                 //   fContext = WDT_INPROC_CALL(0x48746457)，hInproc = HWND 低 32 位（USER 句柄恒在 32 位内）。
                 TrySet("UIParentWindowHandle", () =>
@@ -82,7 +82,7 @@ namespace ExHyperV.Tools
                 TrySet("NegotiateSecurityLayer", () => ocx.NegotiateSecurityLayer = s.NegotiateSecurityLayer);
 
                 // DisableCredentialsDelegation 非强类型属性，经 IMsRdpExtendedSettings 字符串属性包设置——
-                // 避免 reason=3848（凭据委派被拒）的关键，也是 stock typelib 查不到同名属性的原因。
+                // 避免 reason=3848（凭据委派被拒），也是 stock typelib 查不到同名属性的原因。
                 if (s.DisableCredentialsDelegation)
                     TrySet("DisableCredentialsDelegation", () =>
                     {
@@ -163,7 +163,7 @@ namespace ExHyperV.Tools
             {
                 dynamic rdp = GetOcx();
                 // 参数复刻 VMConnect 的 RdpViewerControl：物理尺寸用毫米(非像素)、desktopScaleFactor=显示器 DPI%、
-                // deviceScaleFactor=100。★旧代码末位传 1 是非法值(合法仅 100/140/180)，会让分辨率协商被拒 → 画面不随分辨率刷新+灰信箱。
+                // deviceScaleFactor=100。末位传 1 是非法值(合法仅 100/140/180)，会让分辨率协商被拒 → 画面不随分辨率刷新+灰信箱。
                 uint dpi = (uint)Math.Max(96, DeviceDpi);
                 uint desktopScaleFactor = (uint)Math.Round(dpi / 96.0 * 100.0);
                 uint physW = (uint)Math.Round(width * 25.4 / dpi);

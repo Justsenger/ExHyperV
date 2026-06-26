@@ -146,7 +146,7 @@ namespace ExHyperV.ViewModels
 
             var currentFrame = SelectedVm.Thumbnail;
 
-            // 核心改进：使用 IsLoadingSettings 开启局部遮罩，不锁死左侧列表
+            // 用 IsLoadingSettings 开局部遮罩，不锁死左侧列表
             IsLoadingSettings = true;
             try
             {
@@ -157,7 +157,7 @@ namespace ExHyperV.ViewModels
 
                 if (result.Success)
                 {
-                    // 关键点：给 WMI 数据库一点点沉降时间，防止立刻刷新读不到新生成的快照文件
+                    // 给 WMI 一点沉降时间，防止立刻刷新读不到新快照
                     await Task.Delay(1000);
 
                     // 重新获取节点，由于在 finally 之前调用，遮罩会一直持续到节点树重新画好

@@ -14,7 +14,7 @@ namespace ExHyperV.Services
         // 11 = Reset（硬重置）
 
         // 回传引擎真实成败：RequestStateChange 经 WmiApi.InvokeAsync 会等异步 Job 完成并带回其 ErrorDescription。
-        // 旧版返回 void、把 ApiResponse 丢了 → 启动失败(配置错误/资源不足/GPU 分区不可用等)全静默。调用方据此弹错。
+        // 返回 ApiResponse 而非 void：启动失败(配置错误/资源不足/GPU 分区不可用等)不再静默，调用方据此弹错。
         public static async Task<ApiResponse> ExecuteControlActionAsync(string vmName, string action)
         {
             string wql = $"SELECT * FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(vmName)}'";

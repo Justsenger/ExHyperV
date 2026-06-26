@@ -475,7 +475,7 @@ namespace ExHyperV.ViewModels
             IsLoadingSettings = true;
             try
             {
-                // --- 核心修复：直接读取 UI 属性，不再调用后端 GetNextAvailableSlotAsync ---
+                // 直接读 UI 属性，不调后端 GetNextAvailableSlotAsync
                 string targetType = SelectedControllerType;
                 int targetNumber = SelectedControllerNumber;
                 int targetLocation = SelectedLocation;
@@ -537,7 +537,7 @@ namespace ExHyperV.ViewModels
                 if (isRunning)
                 {
                     IsSlotValid = false;
-                    SlotWarningMessage = Properties.Resources.Error_Storage_Gen1Dvd; // 修复点
+                    SlotWarningMessage = Properties.Resources.Error_Storage_Gen1Dvd;
                     return;
                 }
                 for (int c = 0; c < 2; c++)
@@ -548,7 +548,7 @@ namespace ExHyperV.ViewModels
                     }
                 }
                 IsSlotValid = false;
-                SlotWarningMessage = Properties.Resources.Error_Storage_Gen1IdeFull; // 修复点
+                SlotWarningMessage = Properties.Resources.Error_Storage_Gen1IdeFull;
                 return;
             }
 
@@ -562,7 +562,7 @@ namespace ExHyperV.ViewModels
                     }
                 }
                 IsSlotValid = false;
-                SlotWarningMessage = isRunning ? Properties.Resources.Error_Storage_NoScsiRunning : Properties.Resources.Error_Storage_NoScsi; // 修复点
+                SlotWarningMessage = isRunning ? Properties.Resources.Error_Storage_NoScsiRunning : Properties.Resources.Error_Storage_NoScsi;
                 return;
             }
 
@@ -586,7 +586,7 @@ namespace ExHyperV.ViewModels
             }
 
             IsSlotValid = false;
-            SlotWarningMessage = Properties.Resources.Error_Storage_NoSlots; // 修复点
+            SlotWarningMessage = Properties.Resources.Error_Storage_NoSlots;
         }
         // 检查插槽是否被占用
         private bool IsSlotOccupied(string type, int ctrlNum, int loc)
@@ -609,7 +609,7 @@ namespace ExHyperV.ViewModels
                 RefreshAvailableNumbers(type);
                 RefreshAvailableLocations(type, ctrlNum);
 
-                // 2. 关键步骤：使用 Dispatcher 确保 UI 已处理完 ItemsSource 的变更通知
+                // 2. 用 Dispatcher 等 UI 处理完 ItemsSource 变更通知再设值
                 // 使用 Loaded 优先级，这会等待 ComboBox 完成内部项的生成
                 Application.Current.Dispatcher.BeginInvoke(new Action(() => {
 
@@ -683,7 +683,6 @@ namespace ExHyperV.ViewModels
             {
                 SelectedLocation = -1;
                 IsSlotValid = false;
-                // 修复点：使用格式化资源
                 SlotWarningMessage = string.Format(Properties.Resources.Error_Storage_CtrlFull, SelectedControllerType, SelectedControllerNumber);
                 return;
             }
@@ -704,7 +703,7 @@ namespace ExHyperV.ViewModels
 
             AvailableControllerTypes.Clear();
 
-            // --- 核心物理约束逻辑 ---
+            // --- 物理约束逻辑 ---
             if (isGen1)
             {
                 if (isDvd)

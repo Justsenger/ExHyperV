@@ -37,7 +37,7 @@
             </Grid>
         </DataTemplate>
 
-        <!-- [新增] 纯白/纯空模板：用于创建模式下的底层占位 -->
+        <!-- 纯白/纯空模板：用于创建模式下的底层占位 -->
         <DataTemplate x:Key="VmBlankTemplate">
             <Grid Background="Transparent"/>
         </DataTemplate>

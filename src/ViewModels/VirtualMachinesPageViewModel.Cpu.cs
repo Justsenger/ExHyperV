@@ -222,7 +222,7 @@ namespace ExHyperV.ViewModels
                         // 再次检查是否还在运行，防止中途关机
                         if (!vm.IsRunning) break;
 
-                        // 调用核心方法
+                        // 应用亲和性到 vmmem 进程
                         bool success = CpuAffinityService.TrySetVmmemAffinity(vm.Id, coreIds);
                         if (success)
                         {

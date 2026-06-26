@@ -216,9 +216,9 @@ namespace ExHyperV.ViewModels
 
         // 取消添加 GPU
         [RelayCommand]
-        private async Task CancelAddGpuAsync() // 【修改为 async Task】
+        private async Task CancelAddGpuAsync()
         {
-            // 【新增：处理中途取消的回滚】
+            // 处理中途取消的回滚
             if (!string.IsNullOrEmpty(_currentProcessingGpuAdapterId) && SelectedVm != null)
             {
                 try
@@ -435,7 +435,7 @@ namespace ExHyperV.ViewModels
                                     }
                                     else if (singlePart.OsType == OperatingSystemType.Linux)
                                     {
-                                        // 2. [新增] 如果是 Linux 且单一，直接触发 SelectPartition 流程（嗅探 IP 并显示 SSH 表单）
+                                        // 2. Linux 且单一分区：直接触发 SelectPartition 流程（嗅探 IP 并显示 SSH 表单）
                                         task.Description = Properties.Resources.Msg_Gpu_LinuxDetected;
                                         AppendLog(Properties.Resources.Msg_Gpu_LinuxAutoPrep);
 
@@ -567,7 +567,7 @@ namespace ExHyperV.ViewModels
                         // 1. 执行开机
                         await VmPowerService.ExecuteControlActionAsync(SelectedVm.Name, "Start");
 
-                        // 2. 【新增】立刻强制同步一次 UI 状态，不等后台循环
+                        // 2. 立刻强制同步一次 UI 状态，不等后台循环
                         await SyncSingleVmStateAsync(SelectedVm);
 
                         await Task.Delay(3000); // 给系统一点反应时间
@@ -736,7 +736,7 @@ namespace ExHyperV.ViewModels
             // 确保在 UI 线程刷新
             await RefreshCurrentVmGpuAssignments();
 
-            // --- 核心修复：非空安全获取显卡名称 ---
+            // 非空安全获取显卡名称
             string gpuName = "GPU";
             if (SelectedHostGpu != null)
             {
@@ -786,7 +786,6 @@ namespace ExHyperV.ViewModels
             if (!string.IsNullOrEmpty(GpuDeploymentLog) && Shell.CopyToClipboard(GpuDeploymentLog))
                 ShowSuccess(Properties.Resources.Msg_Gpu_LogCopy);
         }
-        // ✅ 增加重置/重试命令逻辑
 
         [RelayCommand]
         private async Task ResetGpuDeploymentAsync()
@@ -818,7 +817,7 @@ namespace ExHyperV.ViewModels
                     ShowPartitionSelector = true;
                     ShowSshForm = false;
 
-                    // --- 关键改进：清空选中项，允许用户重新点击同一个分区 ---
+                    // 清空选中项，允许重新点击同一分区
                     SelectedPartition = null;
                 }
 

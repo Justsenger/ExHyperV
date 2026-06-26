@@ -75,7 +75,7 @@
 
                                             <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="16" VerticalAlignment="Center"/>
 
-                                            <!-- ✅ 卸载按钮：增加右边距 Margin="0,0,28,0" 以避开右侧自带的展开箭头图标 -->
+                                            <!-- 卸载按钮：右边距 Margin="0,0,28,0" 避开右侧展开箭头图标 -->
                                             <ui:Button Grid.Column="2" 
                                                        Content="{x:Static properties:Resources.Button_Uninstall}" 
                                                        Appearance="Secondary" 

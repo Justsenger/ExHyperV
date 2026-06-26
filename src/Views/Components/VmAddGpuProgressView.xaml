@@ -32,7 +32,7 @@
                        Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
 
             <StackPanel Grid.Column="1" Orientation="Horizontal">
-                <!-- ✅ 重置/重试按钮：随时重置整个流程 -->
+                <!-- 重置/重试按钮：随时重置整个流程 -->
                 <ui:Button Appearance="Transparent" Padding="8" Margin="0,0,4,0"
                            ToolTip="{x:Static properties:Resources.VmAddGpuProgress_ResetDeployment}"
                            Command="{Binding ResetGpuDeploymentCommand}">
@@ -102,7 +102,7 @@
                 </ItemsControl>
 
 
-                <!-- ✅ 交互层：分区选择/SSH 面板 -->
+                <!-- 交互层：分区选择/SSH 面板 -->
                 <ui:Card Margin="0,16,0,0" Padding="0" 
                          Visibility="{Binding ShowPartitionSelector, Converter={StaticResource BoolToVis}}">
                     <Grid>

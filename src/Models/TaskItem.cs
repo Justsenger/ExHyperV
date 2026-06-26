@@ -18,7 +18,7 @@ namespace ExHyperV.Models
 
     public partial class TaskItem : ObservableObject
     {
-        // 关键：逻辑标识符，这个永远不会变，也不受语言影响
+        // 逻辑标识符，稳定、不随语言变化
         public GpuTaskType TaskType { get; set; }
 
         [ObservableProperty] private string _name = string.Empty;          // 显示名称（用于 UI 展示）

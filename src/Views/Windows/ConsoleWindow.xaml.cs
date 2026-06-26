@@ -203,7 +203,7 @@ namespace ExHyperV.Views
 
                 case nameof(ConsoleViewModel.IsFullScreen):
                     if (_vm.IsFullScreen) EnterFullScreen(); else ExitFullScreen();  // 窗口
-                    // ★ 进全屏：必须在 mstscax 进入全屏(SetFullScreen)之前把缩放归 100。连接栏的布局只在"进全屏那一刻"计算，
+                    // 进全屏：必须在 mstscax 进入全屏(SetFullScreen)之前把缩放归 100。连接栏的布局只在"进全屏那一刻"计算，
                     // 若此刻 ZoomLevel≠100，连接栏会按缩放态布局而消失、退不出去；事后再设 100 也救不回。退全屏不在此动(由 ApplyBasicZoom 还原档)。
                     if (_vm.IsFullScreen && !_vm.IsEnhancedMode) RdpHost.SetZoomLevel(100);
                     if (!_syncingFs) RdpHost.SetFullScreen(_vm.IsFullScreen);        // 按钮发起的才回灌 mstscax
@@ -494,7 +494,7 @@ namespace ExHyperV.Views
             _vm.PropertyChanged -= OnViewModelPropertyChanged;
             _vm.Polled -= OnVmPolled;
             _vm.Dispose();
-            // ★ 确定性释放 mstscax COM 控件：WindowsFormsHost.Dispose → 容器 → AxHost → 释放底层 OCX。
+            // 确定性释放 mstscax COM 控件：WindowsFormsHost.Dispose → 容器 → AxHost → 释放底层 OCX。
             // WPF 不会在窗口关闭时自动 Dispose WindowsFormsHost（已知泄漏点）；不显式释放则反复开关控制台累积 COM/句柄。
             RdpHost.Dispose();
         }

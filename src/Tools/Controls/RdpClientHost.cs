@@ -13,7 +13,7 @@ namespace ExHyperV.Tools
     {
         private readonly MsRdpAxHost _ax = new();
         // 黑布：WinForms 层(HWND)，连接期间盖住 mstscax + 窗口刚弹出时的系统白底；连上(OnConnected)才掀开。
-        // ★ 必须盖在"包裹了 _ax 的容器(axWrapper)"上，而不是和裸 _ax 当兄弟——裸 ActiveX 会盖过兄弟控件。
+        // 必须盖在"包裹了 _ax 的容器(axWrapper)"上，而不是和裸 _ax 当兄弟——裸 ActiveX 会盖过兄弟控件。
         private readonly System.Windows.Forms.Panel _curtain = new()
         {
             Dock = System.Windows.Forms.DockStyle.Fill,
@@ -52,7 +52,7 @@ namespace ExHyperV.Tools
             _ax.CloseRequested += () => CloseRequested?.Invoke();
             _ax.FatalError += code => FatalError?.Invoke(code);
 
-            // ★ 必须在 BeginInit/EndInit 之前订阅——EndInit 可能同步创建句柄，晚订阅会错过事件。
+            // 必须在 BeginInit/EndInit 之前订阅——EndInit 可能同步创建句柄，晚订阅会错过事件。
             _ax.HandleCreated += (s, e) =>
             {
                 _ready = true;

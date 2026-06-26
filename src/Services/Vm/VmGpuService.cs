@@ -1103,7 +1103,7 @@ namespace ExHyperV.Services
                     string content = await File.ReadAllTextAsync(file);
                     var item = ParseScriptHeader(content);
                     item.IsLocal = true;
-                    // 【修改点】：添加“本地”标识
+                    // 添加“本地”标识
                     item.Name = string.Format(Properties.Resources.VmGPUService_LogLocal, item.Name);
                     item.SourcePathOrUrl = file;
                     item.FileName = Path.GetFileName(file);
@@ -1129,7 +1129,7 @@ namespace ExHyperV.Services
                     foreach (var item in remoteScripts)
                     {
                         item.IsLocal = false;
-                        // 【修改点】：添加“在线”标识
+                        // 添加“在线”标识
                         item.Name = string.Format(Properties.Resources.VmGPUService_LogOnline, item.Name);
                         item.SourcePathOrUrl = $"{ScriptBaseUrl}{item.FileName}";
                         allScripts.Add(item);

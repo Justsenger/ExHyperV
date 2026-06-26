@@ -89,7 +89,7 @@ namespace ExHyperV.Models
             get => _switchName;
             set
             {
-                // 核心铁律：如果内存里已经是真实的交换机名，绝对拒绝“空值”或“错误占位符”的覆盖
+                // 内存里已是真实交换机名时，拒绝空值或错误占位符的覆盖
                 if (!string.IsNullOrEmpty(_switchName) && _switchName != Properties.Resources.Status_Unconnected)
                 {
                     // 如果新值是空的、未连接、或者带 WMI_ 前缀的错误，直接丢弃，保留旧值

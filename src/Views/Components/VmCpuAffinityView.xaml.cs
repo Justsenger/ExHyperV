@@ -54,7 +54,7 @@ namespace ExHyperV.Views
             (sender as IInputElement)?.ReleaseMouseCapture();
         }
 
-        // 辅助方法：通过坐标找 DataContext (核心模型)
+        // 辅助：通过坐标找 DataContext
         private VmCoreItem GetCoreFromPosition(Point position)
         {
             var hitTestResult = VisualTreeHelper.HitTest(CoresItemsControl, position);

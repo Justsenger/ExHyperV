@@ -117,7 +117,7 @@
                                             </TextBlock>
                                         </StackPanel>
                                         <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="0,0,12,0">
-                                            <!-- 新增：打开文件夹按钮 -->
+                                            <!-- 打开文件夹按钮 -->
                                             <ui:Button Icon="{ui:SymbolIcon Symbol=Share24, FontSize=18}" 
                ToolTip="{x:Static properties:Resources.Button_OpenFolder}"
                Appearance="Secondary" 

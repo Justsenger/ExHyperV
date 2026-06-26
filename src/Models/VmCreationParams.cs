@@ -5,7 +5,7 @@
         // --- 常规 ---
         public string Name { get; set; } = "NewVM";
 
-        // 新增：标记用户是否手动修改了名称
+        // 标记用户是否手动修改了名称
         public bool IsManualName { get; set; }
         public string Path { get; set; } = string.Empty;
         public string Version { get; set; } = "8.0";

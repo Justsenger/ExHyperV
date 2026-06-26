@@ -9,7 +9,7 @@ namespace ExHyperV.Services
     public static class VmStorageService
     {
         // ============================================================
-        // 核心数据查询
+        // 数据查询
         // ============================================================
 
         public static async Task LoadVmStorageItemsAsync(VmInstance vm)

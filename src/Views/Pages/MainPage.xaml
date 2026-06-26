@@ -44,7 +44,7 @@
                    Margin="5,10,0,0"/>
             </StackPanel>
 
-            <!-- 右下角版本号 (新增) -->
+            <!-- 右下角版本号 -->
             <TextBlock Text="{Binding AppVersion}"
                HorizontalAlignment="Right"
                VerticalAlignment="Bottom"

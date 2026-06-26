@@ -98,7 +98,7 @@ namespace ExHyperV.Services
         }
 
         /// <summary>启用/关闭"防护(Shielding)"。需 VM 关机。
-        /// 启用走【级联】(仿微软 Set-VMSecurityPolicy -Shielded $true)：先确保 vTPM(建/复用 KP)，再开 加密 + ShieldingRequested。
+        /// 启用走级联(仿微软 Set-VMSecurityPolicy -Shielded $true)：先确保 vTPM(建/复用 KP)，再开 加密 + ShieldingRequested。
         /// 不再要求"先开 TPM"前置。关闭仅置 ShieldingRequested=false(不动 TPM/加密)。</summary>
         public static async Task<(bool Success, string Message)> SetShieldingAsync(string vmName, bool enabled)
         {
@@ -115,7 +115,7 @@ namespace ExHyperV.Services
         }
 
         /// <summary>启用/禁用 vTPM。需 VM 关机。
-        /// 启用：已有真 KP 则【复用】只翻 TpmEnabled；仅首次(无 KP)才铸钥。**只设 TpmEnabled、不连带加密**(加密是独立开关)。
+        /// 启用：已有真 KP 则复用、只翻 TpmEnabled；仅首次(无 KP)才铸钥。只设 TpmEnabled、不连带加密(加密是独立开关)。
         /// 绝不在已有 KP 时重铸：NewByGuardians 每次生成全新数据加密密钥，重铸换钥会使已加密状态解不开 → 启动 0xC000A002。
         /// 微软 Enable-VMTPM 同理：只翻标志、从不铸 KP、也不碰加密。禁用：仅置 TpmEnabled=false。</summary>
         public static async Task<(bool Success, string Message)> SetTpmAsync(string vmName, bool enabled)

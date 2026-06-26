@@ -1,4 +1,4 @@
-﻿// GlobalUsings.cs - 终极停火协议
+﻿// GlobalUsings.cs — 重名类型统一别名
 // 强制所有重名类型在本项目中默认指向 WPF 引擎
 
 global using Application = System.Windows.Application;

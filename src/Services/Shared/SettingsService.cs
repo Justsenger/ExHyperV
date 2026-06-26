@@ -68,7 +68,7 @@ namespace ExHyperV.Services
 
             if (Version.TryParse(cleanCurrentStr, out var currentVer) && Version.TryParse(cleanLatestStr, out var latestVer))
             {
-                // 这里是核心合并逻辑：
+                // 合并逻辑：
                 bool isUpdateAvailable = latestVer > currentVer;  // 服务器大 -> 有更新
                 bool isInnerTest = currentVer > latestVer;        // 本地大 -> 内测版
 

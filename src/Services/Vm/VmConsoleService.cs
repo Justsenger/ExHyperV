@@ -17,7 +17,7 @@ public static class VmConsoleService
     private const string MouseSubType = "Microsoft:Hyper-V:Synthetic Mouse";
     private const string KeyboardSubType = "Microsoft:Hyper-V:Synthetic Keyboard";
 
-    // 控制台支持是否启用 = 该 VM 是否存在合成显示控制器（控制台画面的关键设备）
+    // 控制台支持是否启用 = 该 VM 是否存在合成显示控制器（控制台画面所需）
     public static async Task<bool> IsConsoleSupportEnabledAsync(string vmName)
     {
         if (string.IsNullOrEmpty(vmName)) return false;

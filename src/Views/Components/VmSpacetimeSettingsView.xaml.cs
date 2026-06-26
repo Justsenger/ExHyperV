@@ -53,7 +53,7 @@ namespace ExHyperV.Views
                 if (_boundVm != null)
                 {
                     _boundVm.PropertyChanged -= OnVmPropertyChanged;
-                    UnsubscribeNodeEvents(_boundVm.SpacetimeNodes); // ★ 新增
+                    UnsubscribeNodeEvents(_boundVm.SpacetimeNodes);
                 }
 
                 if (DataContext is VirtualMachinesPageViewModel vm)
@@ -113,8 +113,8 @@ namespace ExHyperV.Views
             if (e.PropertyName == nameof(VirtualMachinesPageViewModel.SpacetimeNodes))
             {
                 Debug.WriteLine($"[DRAG] !!! SpacetimeNodes changed -> RenderSpacetimeFlow (isDragging={_isDragging})");
-                UnsubscribeNodeEvents(_boundVm?.SpacetimeNodes); // ★ 先解绑旧的
-                SubscribeNodeEvents(_boundVm?.SpacetimeNodes);   // ★ 再绑定新的
+                UnsubscribeNodeEvents(_boundVm?.SpacetimeNodes); // 先解绑旧的
+                SubscribeNodeEvents(_boundVm?.SpacetimeNodes);   // 再绑定新的
                 RenderSpacetimeFlow();
             }
             else if (e.PropertyName == nameof(VirtualMachinesPageViewModel.SelectedSpacetimeNode))
@@ -682,7 +682,7 @@ namespace ExHyperV.Views
 
             Point currentPos = e.GetPosition(this);
 
-            // 关键守卫：如果没有有效的上一帧位置（说明 MouseDown 没触发就来了 Move），
+            // 守卫：没有有效的上一帧位置（MouseDown 没触发就来了 Move）时，
             // 当前帧不动作，只记录位置，等下一帧用真实位移
             if (!_hasLastPos)
             {
@@ -728,7 +728,7 @@ namespace ExHyperV.Views
         {
             bool wasDragging = _isDragging;
             _isDragging = false;
-            _hasLastPos = false;   // ← 关键：松开就清掉，下次必须重新 MouseDown 才能拖
+            _hasLastPos = false;   // 松开清掉，下次须重新 MouseDown 才能拖
 
             if (CanvasContainer.IsMouseCaptured)
             {

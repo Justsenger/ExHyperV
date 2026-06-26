@@ -78,7 +78,7 @@
             </StackPanel>
             
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                <!-- 新增：导出按钮 -->
+                <!-- 导出按钮 -->
                 <ui:Button Appearance="Transparent" Padding="12,8" Margin="0,0,8,0"
            Click="ExportButton_Click">
                     <StackPanel Orientation="Horizontal">
@@ -112,7 +112,7 @@
                         <Canvas x:Name="SpacetimeCanvas" Width="3000" Height="2000" Background="Transparent"/>
                     </ScrollViewer>
 
-                    <!-- 2. 新增：时空重构遮罩层 (科技感十足) -->
+                    <!-- 2. 时空重构遮罩层 -->
                     <!-- 当 IsLoadingSettings 为 True 时显示 -->
                     <Grid 
               Visibility="{Binding IsLoadingSettings, Converter={StaticResource BoolToVis}}"

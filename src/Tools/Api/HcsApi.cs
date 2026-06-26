@@ -223,7 +223,7 @@ internal static class HcsCore
     [DllImport("ole32.dll")]
     private static extern void CoTaskMemFree(nint ptr);
 
-    // ── 核心通信方法 ──────────────────────────────────────────────
+    // ── 通信方法 ──────────────────────────────────────────────
 
     /// <summary>
     /// 向 HCS 发送修改指令（CreateGroup、DeleteGroup、SetProperty 等）。

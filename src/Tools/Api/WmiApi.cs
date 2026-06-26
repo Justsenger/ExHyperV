@@ -118,7 +118,7 @@ internal static class WmiConnectionCache
 }
 
 // ══════════════════════════════════════════════════════════════════
-//  WmiApi — 核心静态类
+//  WmiApi — 静态类
 //  所有 WMI 调用的唯一入口
 //  服务层不允许直接使用 ManagementObjectSearcher
 // ══════════════════════════════════════════════════════════════════
@@ -566,7 +566,7 @@ public static class WmiApi
     }
 
     /// <summary>
-    /// 原 QueryRelatedCimAsync 的替代，统一使用旧版 API。
+    /// QueryRelated 的旧版 API 实现。
     /// 无 sourceRole/resultRole 版本。
     /// </summary>
     public static Task<ApiResponse<List<T>>> QueryRelatedCimAsync<T>(

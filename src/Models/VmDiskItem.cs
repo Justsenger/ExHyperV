@@ -12,8 +12,8 @@ namespace ExHyperV.Models
         [ObservableProperty] private string _path = string.Empty;
         [ObservableProperty] private string _diskType = string.Empty;
         [ObservableProperty]
-        [NotifyPropertyChangedFor(nameof(UsagePercentage))] // 关键：通知进度条刷新
-        [NotifyPropertyChangedFor(nameof(UsageText))]       // 关键：通知百分比文字刷新
+        [NotifyPropertyChangedFor(nameof(UsagePercentage))] // 通知进度条刷新
+        [NotifyPropertyChangedFor(nameof(UsageText))]       // 通知百分比文字刷新
         private long _currentSize;
         [ObservableProperty] private long _maxSize;
         [ObservableProperty]

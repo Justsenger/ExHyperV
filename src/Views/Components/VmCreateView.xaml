@@ -93,7 +93,7 @@
                         </ui:FontIcon>
                     </ui:CardControl.Icon>
                     <StackPanel Orientation="Horizontal">
-                        <!-- 核心修改：ItemsSource 绑定到 PossibleVCpuCounts -->
+                        <!-- ItemsSource 绑定到 PossibleVCpuCounts -->
                         <ComboBox IsEditable="True" 
                                   ItemsSource="{Binding PossibleVCpuCounts}"
                                   Text="{Binding NewVmProcessorCount, UpdateSourceTrigger=PropertyChanged}" 

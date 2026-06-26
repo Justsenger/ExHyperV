@@ -143,7 +143,7 @@ namespace ExHyperV.ViewModels
         }
 
 
-        // ===== 虚拟机列表管理与核心操作 =====
+        // ===== 虚拟机列表与操作 =====
 
         [RelayCommand]
         private async Task OpenVmFolderAsync(VmInstanceViewModel vm)
@@ -388,7 +388,7 @@ namespace ExHyperV.ViewModels
 
 
 
-        // 修改原本启动外部 vmconnect.exe 的逻辑
+        // 打开沉浸式控制台窗口（取代外部 vmconnect.exe）
         [RelayCommand]
         private async Task OpenNativeConnectAsync()
         {
@@ -440,7 +440,7 @@ namespace ExHyperV.ViewModels
             _monitoringCts = new CancellationTokenSource();
             _ = Task.Run(() => MonitorCpuLoop(_monitoringCts.Token));
             _ = Task.Run(() => MonitorStateLoop(_monitoringCts.Token));
-            // 新增：独立的缩略图任务，避免阻塞状态同步
+            // 独立的缩略图任务，避免阻塞状态同步
             _ = Task.Run(() => MonitorThumbnailLoop(_monitoringCts.Token));
         }
 
@@ -505,7 +505,7 @@ namespace ExHyperV.ViewModels
                             var vm = VmList.FirstOrDefault(v => v.Id == update.Id);
                             if (vm != null)
                             {
-                                // --- [新增] 重命名锁定保护拦截逻辑 ---
+                                // 重命名锁定保护拦截
                                 bool skipNameUpdate = false;
                                 lock (_renameLockouts)
                                 {

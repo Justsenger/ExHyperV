@@ -74,8 +74,6 @@ namespace ExHyperV.ViewModels
             {
                 if (SelectedVm.IsRunning) return;
 
-                // 移除以前错误的 var backup = SelectedVm.MemorySettings.Clone();
-
                 using (SuppressApply())
                 {
                     IsLoadingSettings = true;
@@ -86,7 +84,7 @@ namespace ExHyperV.ViewModels
                         {
                             ShowError($"{Properties.Resources.VmPage_ModifyFail}：{result.Message}");
 
-                            // 核心修复：使用真正纯净的初始缓存进行弹回恢复
+                            // 用纯净的初始缓存弹回恢复
                             SelectedVm.MemorySettings.Restore(_originalMemorySettingsCache);
                         }
                         else

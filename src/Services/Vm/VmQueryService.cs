@@ -58,7 +58,7 @@ namespace ExHyperV.Services
         private sealed record PerfItem(string WmiName, ulong Read, ulong Write);
         private sealed record MemRuntimeItem(string Id, VmDynamicMemoryData Data);
 
-        // --- 核心查询方法 ---
+        // --- 查询方法 ---
 
         public async Task<List<VmInstance>> GetVmListAsync()
         {

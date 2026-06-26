@@ -108,7 +108,7 @@ namespace ExHyperV.Services
 
                 nint tcpHandle = tcp.SafeHandle.DangerousGetHandle();
 
-                // 【配置同步】黄金 8KB，千万别改
+                // 配置同步缓冲固定 8KB，勿改
                 int optSmall = 8192;
                 VmbusApi.SetAckFrequency(tcpHandle, 1);
                 VmbusApi.SetNoDelay(tcpHandle);

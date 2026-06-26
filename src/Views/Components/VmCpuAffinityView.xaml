@@ -99,7 +99,7 @@
         <ProgressBar Grid.Row="1" IsIndeterminate="True" VerticalAlignment="Top" Height="2" Margin="0,-2,0,0"
                      Visibility="{Binding IsLoadingSettings, Converter={StaticResource BoolToVis}}"/>
 
-        <!-- 核心显示区域 -->
+        <!-- 显示区域 -->
         <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
             <Border Padding="24,0,24,0">
                 <ItemsControl x:Name="CoresItemsControl"
@@ -111,7 +111,7 @@
 
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
-                            <!-- 【已修改】使用自定义的 StretchUniformGrid 替换原生 UniformGrid -->
+                            <!-- 用自定义 StretchUniformGrid 替换原生 UniformGrid -->
                             <tools:StretchUniformGrid Columns="{Binding AffinityColumns}" 
                                                       Rows="{Binding AffinityRows}"/>
                         </ItemsPanelTemplate>

@@ -366,7 +366,7 @@ public static class VmNetworkService
             s["IPSecOffloadLimit"] = (uint)(adapter.IpsecOffloadEnabled ? 512 : 0);
         });
 
-    // ── 核心内部逻辑 ──────────────────────────────────────────────
+    // ── 内部逻辑 ──────────────────────────────────────────────
 
     private static async Task<(bool Success, string Message)> EnsureAndModifyFeatureAsync(
         string portId, string featureClass, Action<ManagementObject> updateAction)

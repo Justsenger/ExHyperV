@@ -69,7 +69,7 @@ namespace ExHyperV.ViewModels
             IsLoading = true;
             try
             {
-                // --- 修复点：传入 vmId 而不是 oldName ---
+                // 传 vmId 而非 oldName（VM 可能已改名）
                 var result = await VmEditService.RenameVmAsync(vmId, newName);
 
                 if (result.Success)
@@ -188,7 +188,7 @@ namespace ExHyperV.ViewModels
 
             try
             {
-                // --- 3. 动态探测宿主机默认路径 (核心：拒绝硬编码) ---
+                // 3. 动态探测宿主机默认路径（不硬编码）
                 // 调用 Service 通过 (Get-VMHost).VirtualMachinePath 获取真实路径
                 var hostPaths = await VmCreateService.GetHostDefaultPathsAsync();
 
@@ -207,7 +207,7 @@ namespace ExHyperV.ViewModels
                 var allVersions = await VmCreateService.GetSupportedVersionsAsync();
                 SupportedVersions = new ObservableCollection<string>(allVersions);
 
-                // 核心逻辑：在已降序排列的列表中，寻找第一个小于 200 的稳定版本作为默认值
+                // 在已降序的列表里取第一个小于 200 的稳定版本作默认值
                 var defaultStable = allVersions.FirstOrDefault(v =>
                     double.TryParse(v, out double verNum) && verNum < 200);
 
@@ -299,7 +299,7 @@ namespace ExHyperV.ViewModels
             if (picked != null)
             {
                 NewVmNewDiskPath = picked;
-                _isDiskPathManual = true; // 关键：标记用户已手动选择
+                _isDiskPathManual = true; // 标记用户已手动选择
             }
         }
 
@@ -340,7 +340,7 @@ namespace ExHyperV.ViewModels
                     return;
                 }
             }
-            else if (NewVmDiskMode == 1) // 现有磁盘 (修复点)
+            else if (NewVmDiskMode == 1) // 现有磁盘
             {
                 if (string.IsNullOrWhiteSpace(NewVmExistingDiskPath))
                 {

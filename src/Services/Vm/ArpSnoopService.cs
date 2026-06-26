@@ -12,7 +12,7 @@ namespace ExHyperV.Services
     ///   CreateFile(\\.\PktMonDev) → PktmonAddFilter(ARP) → DeviceIoControl(0x220404, capture_type=1) 抓全包
     ///   → 驱动把帧打到 ETW provider {4D4F80D9-…} → 自建原生 ETW 消费者(advapi32 StartTrace/OpenTrace/ProcessTrace)
     ///   → 解析 ARP → MAC→IP（带 TTL）。
-    /// 关键:start buffer 的 capture_type 必须 =1(=0 只计数无帧)。
+    /// start buffer 的 capture_type 必须 =1(=0 只计数无帧)。
     ///
     /// 依赖 PktMon 驱动(Win10 1809+/Server2019+)。驱动/DLL 不在(老系统/阉割版)→ <see cref="IsAvailable"/>=false，
     /// 静默降级,由调用方回退到集成服务/邻居缓存。详见桌面 pktmon-reverse.md。
