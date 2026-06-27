@@ -656,7 +656,7 @@ namespace ExHyperV.ViewModels
             driveTask.Status = GpuTaskStatus.Running;
 
             AppendLog(Properties.Resources.Msg_Gpu_DeployStart);
-            AppendLog($"[Info] Selected Script: {SelectedLinuxScript.Name}");
+            AppendLog(string.Format(Properties.Resources.Log_Gpu_SelectedScript, SelectedLinuxScript.Name));
             if (UseSshProxy) AppendLog(string.Format(Properties.Resources.Msg_Gpu_UsingProxy, proxyHost, proxyPort));
 
             // 5. 组装凭据 (强制 KeepGlobalProxySetting 为 false)
@@ -794,66 +794,38 @@ namespace ExHyperV.ViewModels
             _gpuDeploymentCts = new CancellationTokenSource();
             IsLoadingSettings = false;
 
-            if (SelectedPartition != null)
+            // 始终硬重置——回到初始状态（与按钮 tooltip"回到初始状态"一致）。
+            // 旧版按 SelectedPartition≠null 走"软重置"，但单 Linux 分区下 SelectedPartition 被直接赋值且从不清空，
+            // 软重置只是把已 Pending 的 Driver 再设 Pending + 保持已显示的表单 → 界面零变化、看着像按钮失灵（用户实测确认）。
+
+            // 1. 若已分配但未完成，物理回滚 GPU 分区
+            if (!string.IsNullOrEmpty(_currentProcessingGpuAdapterId) && SelectedVm != null)
             {
-                // --- 场景 1: 软重置 ---
-                var driveTask = GpuTasks.FirstOrDefault(t => t.TaskType == GpuTaskType.Driver);
-                if (driveTask != null)
-                {
-                    driveTask.Status = GpuTaskStatus.Pending;
-                    driveTask.Description = SelectedPartition.OsType == OperatingSystemType.Linux
-                        ? Properties.Resources.Msg_Gpu_SshConfirm
-                        : Properties.Resources.Msg_Gpu_SelectPart;
-                }
-
-                if (SelectedPartition.OsType == OperatingSystemType.Linux)
-                {
-                    ShowPartitionSelector = true;
-                    ShowSshForm = true;
-                }
-                else
-                {
-                    // Windows 流程重置
-                    ShowPartitionSelector = true;
-                    ShowSshForm = false;
-
-                    // 清空选中项，允许重新点击同一分区
-                    SelectedPartition = null;
-                }
-
-                AppendLog($"--- {Properties.Resources.Label_Progress} ({Properties.Resources.VmPage_GpuResetDone}) ---");
-                return;
-            }
-            // --- 场景 2: “硬重置”（彻底回滚，回到选显卡第一步） ---
-            // 触发条件：还没有选定分区就挂了，或者用户在还没选分区时点击了重置
-
-            // 1. 如果当前有正在处理的分区 ID（说明已经分配但未成功），执行物理回滚
-            if (!string.IsNullOrEmpty(_currentProcessingGpuAdapterId))
-            {
-                AppendLog(Properties.Resources.VmPage_GpuUserRollback); // Properties.Resources.VmPage_MsgRollingBackGpu2
+                AppendLog(Properties.Resources.VmPage_GpuUserRollback);
                 try
                 {
                     await _vmGpuService.RemoveGpuPartitionAsync(SelectedVm.Name, _currentProcessingGpuAdapterId);
                     _currentProcessingGpuAdapterId = null;
-                    AppendLog(Properties.Resources.VmPage_GpuUserRollbackDone); // Properties.Resources.VmPage_MsgRollbackComplete2
+                    AppendLog(Properties.Resources.VmPage_GpuUserRollbackDone);
                 }
                 catch (Exception ex)
                 {
-                    AppendLog(string.Format(Properties.Resources.VmPage_GpuUserRollbackFail, ex.Message)); // Properties.Resources.VmPage_ErrRollbackFailed2
+                    AppendLog(string.Format(Properties.Resources.VmPage_GpuUserRollbackFail, ex.Message));
                 }
             }
 
-            // 2. 重置所有 UI 状态
+            // 2. 清空所有 UI 状态（含直接赋值的 SelectedPartition）
             GpuTasks.Clear();
             GpuDeploymentLog = string.Empty;
             ShowPartitionSelector = false;
             ShowSshForm = false;
             ShowLogConsole = false;
+            SelectedPartition = null;
 
-            // 3. 彻底重来，重新初始化数据并跳转回选择界面
+            // 3. 重新初始化并跳回选显卡第一步
             await GoToAddGpuAsync();
 
-            // 4. 弹出全局重置提示
+            // 4. 全局重置提示
             ShowTip(Properties.Resources.VmPage_GpuResetDesc);
         }
     }

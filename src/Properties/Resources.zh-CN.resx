@@ -2853,4 +2853,52 @@
   <data name="VmSecurity_ShieldingDesc" xml:space="preserve">
     <value>将虚拟机标记为受防护，会强制启用 TPM 与加密</value>
   </data>
+  <data name="Log_Gpu_SelectedScript" xml:space="preserve">
+    <value>[信息] 已选脚本：{0}</value>
+  </data>
+  <data name="Log_Gpu_Syncing" xml:space="preserve">
+    <value>正在同步：{0} -&gt; {1}</value>
+  </data>
+  <data name="Log_Gpu_StartingVm" xml:space="preserve">
+    <value>[ExHyperV] 正在启动虚拟机…</value>
+  </data>
+  <data name="Log_Gpu_UploadingDriverWsl" xml:space="preserve">
+    <value>正在上传驱动与 WSL 库…</value>
+  </data>
+  <data name="Log_Gpu_UploadingLocalScript" xml:space="preserve">
+    <value>正在上传本地脚本：{0}</value>
+  </data>
+  <data name="Log_Gpu_DownloadingScript" xml:space="preserve">
+    <value>正在虚拟机内下载远程脚本：{0}</value>
+  </data>
+  <data name="Log_Gpu_ExecutingAttempt" xml:space="preserve">
+    <value>[第 {0} 次] 正在执行脚本…</value>
+  </data>
+  <data name="Log_Gpu_RebootRequired" xml:space="preserve">
+    <value>需要重启虚拟机，正在重启…</value>
+  </data>
+  <data name="Log_Gpu_VmBackOnline" xml:space="preserve">
+    <value>虚拟机已恢复在线，继续部署…</value>
+  </data>
+  <data name="Error_Gpu_NoMac" xml:space="preserve">
+    <value>未能获取虚拟机 MAC 地址。</value>
+  </data>
+  <data name="Error_Gpu_NoIpv4" xml:space="preserve">
+    <value>未找到有效的 IPv4 地址。</value>
+  </data>
+  <data name="Msg_Gpu_Cancelled" xml:space="preserve">
+    <value>已取消</value>
+  </data>
+  <data name="Error_Gpu_RebootNoResponse" xml:space="preserve">
+    <value>虚拟机重启后未能恢复在线。</value>
+  </data>
+  <data name="Error_Gpu_ScriptNoSuccess" xml:space="preserve">
+    <value>脚本执行失败（未收到成功信号）。</value>
+  </data>
+  <data name="Error_Gpu_MaxReboots" xml:space="preserve">
+    <value>已达最大重启次数。</value>
+  </data>
+  <data name="Error_Gpu_LinuxGeneric" xml:space="preserve">
+    <value>错误：{0}</value>
+  </data>
 </root>

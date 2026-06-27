@@ -2853,4 +2853,52 @@ The existing NAT switch is: '{0}'</value>
   <data name="VmSecurity_ShieldingDesc" xml:space="preserve">
     <value>Mark the VM as shielded; forces TPM and encryption on</value>
   </data>
+  <data name="Log_Gpu_SelectedScript" xml:space="preserve">
+    <value>[Info] Selected script: {0}</value>
+  </data>
+  <data name="Log_Gpu_Syncing" xml:space="preserve">
+    <value>Syncing: {0} -&gt; {1}</value>
+  </data>
+  <data name="Log_Gpu_StartingVm" xml:space="preserve">
+    <value>[ExHyperV] Starting VM...</value>
+  </data>
+  <data name="Log_Gpu_UploadingDriverWsl" xml:space="preserve">
+    <value>Uploading driver and WSL libraries...</value>
+  </data>
+  <data name="Log_Gpu_UploadingLocalScript" xml:space="preserve">
+    <value>Uploading local script: {0}</value>
+  </data>
+  <data name="Log_Gpu_DownloadingScript" xml:space="preserve">
+    <value>Downloading remote script inside VM: {0}</value>
+  </data>
+  <data name="Log_Gpu_ExecutingAttempt" xml:space="preserve">
+    <value>[Attempt {0}] Executing script...</value>
+  </data>
+  <data name="Log_Gpu_RebootRequired" xml:space="preserve">
+    <value>VM reboot required. Restarting now...</value>
+  </data>
+  <data name="Log_Gpu_VmBackOnline" xml:space="preserve">
+    <value>VM is back online. Resuming deployment...</value>
+  </data>
+  <data name="Error_Gpu_NoMac" xml:space="preserve">
+    <value>Failed to get VM MAC address.</value>
+  </data>
+  <data name="Error_Gpu_NoIpv4" xml:space="preserve">
+    <value>No valid IPv4 address found.</value>
+  </data>
+  <data name="Msg_Gpu_Cancelled" xml:space="preserve">
+    <value>Cancelled</value>
+  </data>
+  <data name="Error_Gpu_RebootNoResponse" xml:space="preserve">
+    <value>VM failed to come back online after reboot.</value>
+  </data>
+  <data name="Error_Gpu_ScriptNoSuccess" xml:space="preserve">
+    <value>Script execution failed (no success signal).</value>
+  </data>
+  <data name="Error_Gpu_MaxReboots" xml:space="preserve">
+    <value>Maximum reboot attempts reached.</value>
+  </data>
+  <data name="Error_Gpu_LinuxGeneric" xml:space="preserve">
+    <value>Error: {0}</value>
+  </data>
 </root>

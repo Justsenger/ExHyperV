@@ -8125,5 +8125,133 @@ namespace ExHyperV.Properties {
                 return ResourceManager.GetString("VmSecurity_ShieldingDesc", resourceCulture);
             }
         }
+        /// <summary>
+        ///   Looks up a localized string similar to [Info] Selected script: {0}.
+        /// </summary>
+        public static string Log_Gpu_SelectedScript {
+            get {
+                return ResourceManager.GetString("Log_Gpu_SelectedScript", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to Syncing: {0} -> {1}.
+        /// </summary>
+        public static string Log_Gpu_Syncing {
+            get {
+                return ResourceManager.GetString("Log_Gpu_Syncing", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to [ExHyperV] Starting VM....
+        /// </summary>
+        public static string Log_Gpu_StartingVm {
+            get {
+                return ResourceManager.GetString("Log_Gpu_StartingVm", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to Uploading driver and WSL libraries....
+        /// </summary>
+        public static string Log_Gpu_UploadingDriverWsl {
+            get {
+                return ResourceManager.GetString("Log_Gpu_UploadingDriverWsl", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to Uploading local script: {0}.
+        /// </summary>
+        public static string Log_Gpu_UploadingLocalScript {
+            get {
+                return ResourceManager.GetString("Log_Gpu_UploadingLocalScript", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to Downloading remote script inside VM: {0}.
+        /// </summary>
+        public static string Log_Gpu_DownloadingScript {
+            get {
+                return ResourceManager.GetString("Log_Gpu_DownloadingScript", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to [Attempt {0}] Executing script....
+        /// </summary>
+        public static string Log_Gpu_ExecutingAttempt {
+            get {
+                return ResourceManager.GetString("Log_Gpu_ExecutingAttempt", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to VM reboot required. Restarting now....
+        /// </summary>
+        public static string Log_Gpu_RebootRequired {
+            get {
+                return ResourceManager.GetString("Log_Gpu_RebootRequired", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to VM is back online. Resuming deployment....
+        /// </summary>
+        public static string Log_Gpu_VmBackOnline {
+            get {
+                return ResourceManager.GetString("Log_Gpu_VmBackOnline", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to Failed to get VM MAC address..
+        /// </summary>
+        public static string Error_Gpu_NoMac {
+            get {
+                return ResourceManager.GetString("Error_Gpu_NoMac", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to No valid IPv4 address found..
+        /// </summary>
+        public static string Error_Gpu_NoIpv4 {
+            get {
+                return ResourceManager.GetString("Error_Gpu_NoIpv4", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to Cancelled.
+        /// </summary>
+        public static string Msg_Gpu_Cancelled {
+            get {
+                return ResourceManager.GetString("Msg_Gpu_Cancelled", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to VM failed to come back online after reboot..
+        /// </summary>
+        public static string Error_Gpu_RebootNoResponse {
+            get {
+                return ResourceManager.GetString("Error_Gpu_RebootNoResponse", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to Script execution failed (no success signal)..
+        /// </summary>
+        public static string Error_Gpu_ScriptNoSuccess {
+            get {
+                return ResourceManager.GetString("Error_Gpu_ScriptNoSuccess", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to Maximum reboot attempts reached..
+        /// </summary>
+        public static string Error_Gpu_MaxReboots {
+            get {
+                return ResourceManager.GetString("Error_Gpu_MaxReboots", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to Error: {0}.
+        /// </summary>
+        public static string Error_Gpu_LinuxGeneric {
+            get {
+                return ResourceManager.GetString("Error_Gpu_LinuxGeneric", resourceCulture);
+            }
+        }
     }
 }

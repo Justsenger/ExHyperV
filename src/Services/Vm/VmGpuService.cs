@@ -285,22 +285,21 @@ namespace ExHyperV.Services
         {
             try
             {
+                // 读裸 WMI 的真实属性：HighMmioGapSize(MB) + GuestControlledCacheTypes。
+                // 旧实现读 HighMemoryMappedIoSpace/HighMemoryMappedIoBaseAddress(字节)——那是 PowerShell Get-VM 对象的属性，
+                // Msvm_VirtualSystemSettingData 上【根本不存在】(实测 6 台 VM 全 <属性不存在>) → 恒判"未配置" → 每次添加都白白强制关机+重优化。
                 var r = await WmiApi.QueryFirstAsync(
-                    $"SELECT * FROM Msvm_VirtualSystemSettingData WHERE ElementName = '{WmiApi.Escape(vmName)}' AND VirtualSystemType = 'Microsoft:Hyper-V:System:Realized'",
-                    obj =>
-                    {
-                        ulong highMMIO = Convert.ToUInt64(obj["HighMemoryMappedIoSpace"] ?? 0);
-                        ulong baseAddr = Convert.ToUInt64(obj["HighMemoryMappedIoBaseAddress"] ?? 0);
-                        bool cacheEnabled = Convert.ToBoolean(obj["GuestControlledCacheTypes"] ?? false);
-                        return (highMMIO, baseAddr, cacheEnabled);
-                    });
+                    $"SELECT HighMmioGapSize, GuestControlledCacheTypes FROM Msvm_VirtualSystemSettingData WHERE ElementName = '{WmiApi.Escape(vmName)}' AND VirtualSystemType = 'Microsoft:Hyper-V:System:Realized'",
+                    obj => (
+                        HighMmioMb: Convert.ToUInt64(obj["HighMmioGapSize"] ?? 0),
+                        Cache: Convert.ToBoolean(obj["GuestControlledCacheTypes"] ?? false)));
 
                 if (!r.HasData) return false;
-                var (h, b, c) = r.Data;
-                if (h < 32212254720) return false;
-                if (b == 68182605824 || b == 36507222016) return false;
-                if (!c) return false;
-                return true;
+                if (!r.Data.Cache) return false;
+
+                // 与 ConfigureMmio 会写入的目标比对(同一 ComputeMmioPlan、主机自适应)：已 >= 目标高位 MMIO 间隙即视为达标、无需重配。
+                ulong targetMb = VmMmioService.ComputeMmioPlan()?.HighSizeMb ?? 30720UL; // 读不到主机上限时回退 30GB(MB)
+                return r.Data.HighMmioMb >= targetMb;
             }
             catch { return false; }
         }
@@ -1043,7 +1042,7 @@ namespace ExHyperV.Services
 
                 string targetPath = Path.Combine(assignedDriveLetter, relativePath);
 
-                Log?.Invoke(string.Format("Syncing: {0} -> {1}", sourcePath, targetPath));
+                Log?.Invoke(string.Format(Properties.Resources.Log_Gpu_Syncing, sourcePath, targetPath));
 
                 if (!Directory.Exists(targetPath))
                 {
@@ -1173,19 +1172,19 @@ namespace ExHyperV.Services
                     var currentState = await _queryService.GetVmStateAsync(vmName);
                     if (currentState != "2")
                     {
-                        Log("[ExHyperV] Starting VM...");
+                        Log(Properties.Resources.Log_Gpu_StartingVm);
                         await VmPowerService.ExecuteControlActionAsync(vmName, "Start");
                         await Task.Delay(5000);
                     }
 
                     Log(Properties.Resources.Msg_Gpu_LinuxWaitingIp);
                     var adapters = await VmNetworkService.GetNetworkAdaptersAsync(vmName);
-                    if (adapters == null || adapters.Count == 0) return "Failed to get VM MAC Address";
+                    if (adapters == null || adapters.Count == 0) return Properties.Resources.Error_Gpu_NoMac;
                     string macAddress = adapters[0].MacAddress;
                     string vmIpAddress = await VmIpService.Lookup(vmName, macAddress);
                     string targetIp = Ipv4.SelectBest(!string.IsNullOrWhiteSpace(credentials.Host) ? credentials.Host : vmIpAddress);
 
-                    if (string.IsNullOrEmpty(targetIp)) return "No valid IPv4 address found.";
+                    if (string.IsNullOrEmpty(targetIp)) return Properties.Resources.Error_Gpu_NoIpv4;
                     credentials.Host = targetIp;
 
                     if (!await WaitForVmToBeResponsiveAsync(credentials.Host, credentials.Port, ct))
@@ -1200,7 +1199,7 @@ namespace ExHyperV.Services
                         client.Disconnect();
                     }
 
-                    Log("Uploading Driver and WSL Libraries...");
+                    Log(Properties.Resources.Log_Gpu_UploadingDriverWsl);
                     string sourceDriverPath = FindGpuDriverSourcePath(string.Empty);
                     await SshService.UploadDirectoryAsync(credentials, sourceDriverPath, $"{remoteTempDir}/drivers");
                     await UploadLocalFilesAsync(credentials, $"{remoteTempDir}/lib");
@@ -1219,12 +1218,12 @@ namespace ExHyperV.Services
 
                     if (script.IsLocal)
                     {
-                        Log($"Uploading local script: {script.Name}");
+                        Log(string.Format(Properties.Resources.Log_Gpu_UploadingLocalScript, script.Name));
                         await SshService.UploadFileAsync(credentials, script.SourcePathOrUrl, remoteScriptPath);
                     }
                     else
                     {
-                        Log($"Downloading remote script inside VM: {script.Name}");
+                        Log(string.Format(Properties.Resources.Log_Gpu_DownloadingScript, script.Name));
                         // 使用 sh -c 包裹，确保环境变量对后面的命令生效
                         string downloadCmd = $"{proxyEnv}sh -c \"wget -q -O {remoteScriptPath} {script.SourcePathOrUrl} || curl -fL {script.SourcePathOrUrl} -o {remoteScriptPath}\"";
 
@@ -1237,7 +1236,7 @@ namespace ExHyperV.Services
 
                     for (int attempt = 1; attempt <= maxAttempts; attempt++)
                     {
-                        if (ct.IsCancellationRequested) return "Cancelled";
+                        if (ct.IsCancellationRequested) return Properties.Resources.Msg_Gpu_Cancelled;
 
                         bool rebootNeeded = false;
                         string graphicsArg = credentials.InstallGraphics ? "true" : "false";
@@ -1247,7 +1246,7 @@ namespace ExHyperV.Services
                         // 使用 sudo -E 保证代理变量能传递给 apt
                         string execCmd = $"echo '{credentials.Password.Replace("'", "'\\''")}' | sudo -S -E -p '' bash {remoteScriptPath} deploy {graphicsArg} {proxyArg}";
 
-                        Log($"[Attempt {attempt}] Executing script...");
+                        Log(string.Format(Properties.Resources.Log_Gpu_ExecutingAttempt, attempt));
 
                         await SshService.ExecuteCommandAndCaptureOutputAsync(credentials, execCmd, line =>
                         {
@@ -1260,24 +1259,24 @@ namespace ExHyperV.Services
 
                         if (rebootNeeded)
                         {
-                            Log("!!! VM Reboot required. Restarting now...");
+                            Log(Properties.Resources.Log_Gpu_RebootRequired);
                             await VmPowerService.ExecuteControlActionAsync(vmName, "Restart");
                             await Task.Delay(10000); // 等待开始关机
                             if (!await WaitForVmToBeResponsiveAsync(credentials.Host, credentials.Port, ct))
-                                return "VM failed to come back online after reboot.";
+                                return Properties.Resources.Error_Gpu_RebootNoResponse;
 
-                            Log("VM is back online. Resuming deployment...");
+                            Log(Properties.Resources.Log_Gpu_VmBackOnline);
                             continue; // 重新进入循环执行同一脚本
                         }
 
                         // 如果既没成功也没重启信号，通常是脚本内部报错 set -e 触发了
-                        if (!isSuccess) return "Script execution failed (no success signal).";
+                        if (!isSuccess) return Properties.Resources.Error_Gpu_ScriptNoSuccess;
                     }
 
-                    return isSuccess ? "OK" : "Maximum reboot attempts reached.";
+                    return isSuccess ? "OK" : Properties.Resources.Error_Gpu_MaxReboots;
 
                 }
-                catch (Exception ex) { return $"Error: {ex.Message}"; }
+                catch (Exception ex) { return string.Format(Properties.Resources.Error_Gpu_LinuxGeneric, ex.Message); }
             });
         }
         #endregion
