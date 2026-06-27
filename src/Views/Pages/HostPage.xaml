@@ -16,62 +16,32 @@
                 <ui:TextBlock Text="{x:Static properties:Resources.Menu_Env}" FontSize="28" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" />
             </StackPanel>
 
-            <!-- 第一部分：运行环境 -->
+            <!-- 第一部分：环境检测 -->
             <StackPanel Margin="0,0,0,16">
-                <ui:TextBlock Text="{x:Static properties:Resources.Menu_Runtime}" 
+                <ui:TextBlock Text="{x:Static properties:Resources.Label_ReqGeneral}"
                               Margin="0,0,0,8"
                               Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
 
-                <!-- 1. CPU 虚拟化 -->
-                <!-- 修改：Padding 设为 16，增加高度 -->
+                <!-- CPU 虚拟化 -->
                 <ui:Card Padding="16" Margin="0,0,0,4">
                     <Grid>
                         <Grid.ColumnDefinitions>
-                            <!-- 第一列：现在放状态图标 -->
                             <ColumnDefinition Width="Auto"/>
-                            <!-- 第二列：文字 -->
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-
-                        <!-- 状态图标 (原右侧移到左侧) -->
                         <StackPanel Grid.Column="0" Orientation="Horizontal" Margin="0,0,12,0">
-                            <ui:ProgressRing Width="16" Height="16" IsIndeterminate="True" 
+                            <ui:ProgressRing Width="16" Height="16" IsIndeterminate="True"
                                              Visibility="{Binding CpuStatus.IsChecking, Converter={StaticResource BoolToVis}}"/>
-                            <ui:FontIcon FontSize="20" FontFamily="{DynamicResource SegoeFluentIcons}" 
-                                         Glyph="{Binding CpuStatus.IconGlyph}" 
-                                         Foreground="{Binding CpuStatus.IconColor}" 
+                            <ui:FontIcon FontSize="20" FontFamily="{DynamicResource SegoeFluentIcons}"
+                                         Glyph="{Binding CpuStatus.IconGlyph}"
+                                         Foreground="{Binding CpuStatus.IconColor}"
                                          Visibility="{Binding CpuStatus.IsChecking, Converter={StaticResource BoolToVis}, ConverterParameter=Invert}"/>
                         </StackPanel>
-
-                        <!-- 文字 -->
                         <TextBlock Grid.Column="1" Text="{x:Static properties:Resources.Menu_CpuVirt}" VerticalAlignment="Center" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
                     </Grid>
                 </ui:Card>
 
-                <!-- 2. IOMMU -->
-                <ui:Card Padding="16" Margin="0,0,0,4">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-
-                        <!-- 状态图标 -->
-                        <StackPanel Grid.Column="0" Orientation="Horizontal" Margin="0,0,12,0">
-                            <ui:ProgressRing Width="16" Height="16" IsIndeterminate="True" 
-                                             Visibility="{Binding IommuStatus.IsChecking, Converter={StaticResource BoolToVis}}"/>
-                            <ui:FontIcon FontSize="20" FontFamily="{DynamicResource SegoeFluentIcons}" 
-                                         Glyph="{Binding IommuStatus.IconGlyph}" 
-                                         Foreground="{Binding IommuStatus.IconColor}" 
-                                         Visibility="{Binding IommuStatus.IsChecking, Converter={StaticResource BoolToVis}, ConverterParameter=Invert}"/>
-                        </StackPanel>
-
-                        <!-- 文字 -->
-                        <TextBlock Grid.Column="1" Text="{x:Static properties:Resources.Menu_Iommu}" VerticalAlignment="Center" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
-                    </Grid>
-                </ui:Card>
-
-                <!-- 3. Hyper-V 服务 -->
+                <!-- Hyper-V 服务 -->
                 <ui:Card Padding="16" Margin="0,0,0,4">
                     <Grid>
                         <Grid.ColumnDefinitions>
@@ -79,67 +49,52 @@
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
-
-                        <!-- 状态图标 -->
                         <StackPanel Grid.Column="0" Orientation="Horizontal" Margin="0,0,12,0">
-                            <ui:ProgressRing Width="16" Height="16" IsIndeterminate="True" 
+                            <ui:ProgressRing Width="16" Height="16" IsIndeterminate="True"
                                              Visibility="{Binding HyperVStatus.IsChecking, Converter={StaticResource BoolToVis}}"/>
-                            <ui:FontIcon FontSize="20" FontFamily="{DynamicResource SegoeFluentIcons}" 
-                                         Glyph="{Binding HyperVStatus.IconGlyph}" 
-                                         Foreground="{Binding HyperVStatus.IconColor}" 
+                            <ui:FontIcon FontSize="20" FontFamily="{DynamicResource SegoeFluentIcons}"
+                                         Glyph="{Binding HyperVStatus.IconGlyph}"
+                                         Foreground="{Binding HyperVStatus.IconColor}"
                                          Visibility="{Binding HyperVStatus.IsChecking, Converter={StaticResource BoolToVis}, ConverterParameter=Invert}"/>
                         </StackPanel>
-
-                        <!-- 文字 -->
                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
                             <TextBlock Text="{x:Static properties:Resources.Menu_HyperVService}" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
-                            <TextBlock 
-    Text="{Binding HyperVStatus.StatusText}" 
-    Visibility="{Binding HyperVStatus.StatusText, Converter={StaticResource StringToVisibilityConverter}}" 
-    FontSize="12" 
-    Margin="0,2,0,0" 
-    TextWrapping="Wrap" 
-    Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" />
+                            <TextBlock Text="{Binding HyperVStatus.StatusText}"
+                                       Visibility="{Binding HyperVStatus.StatusText, Converter={StaticResource StringToVisibilityConverter}}"
+                                       FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"
+                                       Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
                         </StackPanel>
-
-                        <!-- 按钮容器 -->
-                        <StackPanel Grid.Column="2" Orientation="Horizontal">
-                            <!-- 启用/修复按钮：只要状态不是 Success (绿勾)，就显示 -->
-                            <ui:Button 
-        Content="{x:Static properties:Resources.Button_Enable}" 
-        Appearance="Primary"
-        Visibility="{Binding HyperVStatus.IsSuccess, Converter={StaticResource BoolToVis}, ConverterParameter=Invert}"
-        Command="{Binding EnableHyperVCommand}"/>
-
-                            <!-- 禁用按钮：只有当状态完全正常 (Success) 时，才显示 -->
-                            <ui:Button 
-        Content="{x:Static properties:Resources.HostPage_Disable}" 
-        Appearance="Secondary"
-        Visibility="{Binding HyperVStatus.IsSuccess, Converter={StaticResource BoolToVis}}"
-        Command="{Binding DisableHyperVCommand}"/>
+                        <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                            <ui:Button Content="{x:Static properties:Resources.Button_Enable}" Appearance="Primary"
+                                       Visibility="{Binding HyperVStatus.IsSuccess, Converter={StaticResource BoolToVis}, ConverterParameter=Invert}"
+                                       Command="{Binding EnableHyperVCommand}"/>
+                            <ui:Button Content="{x:Static properties:Resources.HostPage_Disable}" Appearance="Secondary"
+                                       Visibility="{Binding HyperVStatus.IsSuccess, Converter={StaticResource BoolToVis}}"
+                                       Command="{Binding DisableHyperVCommand}"/>
                         </StackPanel>
                     </Grid>
                 </ui:Card>
 
-                <!-- 4. 系统版本 -->
+                <!-- GPU-PV 要求 -->
+                <ui:TextBlock Text="{x:Static properties:Resources.Label_ReqGpuPv}"
+                              Margin="0,16,0,8"
+                              Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+
+                <!-- 系统版本 -->
                 <ui:Card Padding="16" Margin="0,0,0,4">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-
-                        <!-- 状态图标 -->
                         <StackPanel Grid.Column="0" Orientation="Horizontal" Margin="0,0,12,0">
-                            <ui:ProgressRing Width="16" Height="16" IsIndeterminate="True" 
+                            <ui:ProgressRing Width="16" Height="16" IsIndeterminate="True"
                                              Visibility="{Binding VersionStatus.IsChecking, Converter={StaticResource BoolToVis}}"/>
-                            <ui:FontIcon FontSize="20" FontFamily="{DynamicResource SegoeFluentIcons}" 
-                                         Glyph="{Binding VersionStatus.IconGlyph}" 
-                                         Foreground="{Binding VersionStatus.IconColor}" 
+                            <ui:FontIcon FontSize="20" FontFamily="{DynamicResource SegoeFluentIcons}"
+                                         Glyph="{Binding VersionStatus.IconGlyph}"
+                                         Foreground="{Binding VersionStatus.IconColor}"
                                          Visibility="{Binding VersionStatus.IsChecking, Converter={StaticResource BoolToVis}, ConverterParameter=Invert}"/>
                         </StackPanel>
-
-                        <!-- 文字 -->
                         <TextBlock Grid.Column="1" VerticalAlignment="Center">
                             <Run Text="{x:Static properties:Resources.Label_SysVer}" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
                             <Run Text="{Binding VersionStatus.StatusText}" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
@@ -147,33 +102,77 @@
                     </Grid>
                 </ui:Card>
 
-                <!-- 5. Windows Server 环境 -->
+                <!-- PCIe 直通要求（仅 DDA 需要） -->
+                <ui:TextBlock Text="{x:Static properties:Resources.Label_ReqPcie}"
+                              Margin="0,16,0,8"
+                              Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+
+                <!-- IOMMU / SMMU（x86=IOMMU，ARM=SMMU，IommuLabel 按架构切换） -->
                 <ui:Card Padding="16" Margin="0,0,0,4">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-
-                        <!-- 状态图标 -->
                         <StackPanel Grid.Column="0" Orientation="Horizontal" Margin="0,0,12,0">
-                            <ui:ProgressRing Width="16" Height="16" IsIndeterminate="True" 
+                            <ui:ProgressRing Width="16" Height="16" IsIndeterminate="True"
+                                             Visibility="{Binding IommuStatus.IsChecking, Converter={StaticResource BoolToVis}}"/>
+                            <ui:FontIcon FontSize="20" FontFamily="{DynamicResource SegoeFluentIcons}"
+                                         Glyph="{Binding IommuStatus.IconGlyph}"
+                                         Foreground="{Binding IommuStatus.IconColor}"
+                                         Visibility="{Binding IommuStatus.IsChecking, Converter={StaticResource BoolToVis}, ConverterParameter=Invert}"/>
+                        </StackPanel>
+                        <TextBlock Grid.Column="1" Text="{Binding IommuLabel}" VerticalAlignment="Center" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                    </Grid>
+                </ui:Card>
+
+                <!-- 属于 Windows Server 系统 -->
+                <ui:Card Padding="16" Margin="0,0,0,4">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" Orientation="Horizontal" Margin="0,0,12,0">
+                            <ui:ProgressRing Width="16" Height="16" IsIndeterminate="True"
                                              Visibility="{Binding SystemStatus.IsChecking, Converter={StaticResource BoolToVis}}"/>
-                            <ui:FontIcon FontSize="20" FontFamily="{DynamicResource SegoeFluentIcons}" 
-                                         Glyph="{Binding SystemStatus.IconGlyph}" 
-                                         Foreground="{Binding SystemStatus.IconColor}" 
+                            <ui:FontIcon FontSize="20" FontFamily="{DynamicResource SegoeFluentIcons}"
+                                         Glyph="{Binding SystemStatus.IconGlyph}"
+                                         Foreground="{Binding SystemStatus.IconColor}"
                                          Visibility="{Binding SystemStatus.IsChecking, Converter={StaticResource BoolToVis}, ConverterParameter=Invert}"/>
                         </StackPanel>
-
-                        <!-- 文字 -->
                         <TextBlock Grid.Column="1" Text="{x:Static properties:Resources.Label_ServerSys}" VerticalAlignment="Center" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                    </Grid>
+                </ui:Card>
+
+                <!-- USB 直通要求（仅检测宿主侧） -->
+                <ui:TextBlock Text="{x:Static properties:Resources.Label_ReqUsb}"
+                              Margin="0,16,0,8"
+                              Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+
+                <!-- usbipd-win -->
+                <ui:Card Padding="16" Margin="0,0,0,4">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" Orientation="Horizontal" Margin="0,0,12,0">
+                            <ui:ProgressRing Width="16" Height="16" IsIndeterminate="True"
+                                             Visibility="{Binding UsbStatus.IsChecking, Converter={StaticResource BoolToVis}}"/>
+                            <ui:FontIcon FontSize="20" FontFamily="{DynamicResource SegoeFluentIcons}"
+                                         Glyph="{Binding UsbStatus.IconGlyph}"
+                                         Foreground="{Binding UsbStatus.IconColor}"
+                                         Visibility="{Binding UsbStatus.IsChecking, Converter={StaticResource BoolToVis}, ConverterParameter=Invert}"/>
+                        </StackPanel>
+                        <TextBlock Grid.Column="1" Text="{x:Static properties:Resources.Label_UsbipdInstalled}" VerticalAlignment="Center" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
                     </Grid>
                 </ui:Card>
             </StackPanel>
 
-            <!-- 第二部分：高级设定 (保持原样，仅做参考) -->
+            <!-- 第二部分：高级设定 -->
             <StackPanel>
-                <ui:TextBlock Text="{x:Static properties:Resources.Menu_Advanced}" 
+                <ui:TextBlock Text="{x:Static properties:Resources.Menu_Advanced}"
                               Margin="0,0,0,8"
                               Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
 
@@ -186,12 +185,11 @@
                         <TextBlock Text="{x:Static properties:Resources.Menu_Scheduler}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
                     </ui:CardControl.Header>
 
-                    <ComboBox Width="140" 
+                    <ComboBox Width="140"
                               ItemsSource="{Binding SchedulerModes}"
                               DisplayMemberPath="Name"
                               SelectedValuePath="Type"
                               SelectedValue="{Binding CurrentSchedulerType, Mode=TwoWay}">
-                              
                     </ComboBox>
                 </ui:CardControl>
 
@@ -208,7 +206,6 @@
                     </ui:CardControl.Header>
 
                     <ui:ToggleSwitch IsChecked="{Binding IsNumaSpanningEnabled, Mode=TwoWay}"/>
-                                     
                 </ui:CardControl>
 
                 <!-- PCIe 策略 -->
@@ -226,7 +223,7 @@
                                      IsEnabled="{Binding IsGpuStrategyToggleEnabled}"/>
                 </ui:CardControl>
 
-                <!-- 系统切换 (服务器版本切换) Card -->
+                <!-- 系统切换 (服务器版本切换) -->
                 <ui:CardControl Margin="0,0,0,8" Padding="12">
                     <ui:CardControl.Icon>
                         <ui:FontIcon FontSize="22" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xE8D7;"/>
@@ -237,10 +234,8 @@
                             <TextBlock Text="{x:Static properties:Resources.Desc_SwitchServer}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
                         </StackPanel>
                     </ui:CardControl.Header>
-
-                 
                     <ui:ToggleSwitch IsChecked="{Binding IsServerSystem, Mode=TwoWay}"
-                     IsEnabled="{Binding IsSystemSwitchEnabled}"/>
+                                     IsEnabled="{Binding IsSystemSwitchEnabled}"/>
                 </ui:CardControl>
 
                 <!-- 宿主原生 NVMe (Windows Server 2025 / Win11 24H2+) -->

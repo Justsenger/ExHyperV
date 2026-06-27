@@ -255,5 +255,25 @@ namespace ExHyperV.Services
             }
             catch { }
         }
+
+        // 宿主侧 USB 直通前置：usbipd-win 是否已安装。查服务注册表项（每个 Windows 服务在此都有键）+ 默认安装路径兜底；
+        // 不起进程、不依赖 PATH。仅检测宿主——虚拟机侧（usbip-win2 / USBProxy）由用户自理，不在此列。
+        public static bool IsUsbipdInstalled()
+        {
+            try
+            {
+                using var svc = Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Services\usbipd");
+                if (svc != null) return true;
+            }
+            catch { }
+            try
+            {
+                string pf = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
+                if (!string.IsNullOrEmpty(pf) && System.IO.File.Exists(System.IO.Path.Combine(pf, "usbipd-win", "usbipd.exe")))
+                    return true;
+            }
+            catch { }
+            return false;
+        }
     }
 }

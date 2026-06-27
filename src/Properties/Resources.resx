@@ -1377,11 +1377,29 @@ The existing NAT switch is: '{0}'</value>
   <data name="Menu_Runtime" xml:space="preserve">
     <value>Runtime Environment</value>
   </data>
+  <data name="Label_ReqGeneral" xml:space="preserve">
+    <value>General requirements</value>
+  </data>
+  <data name="Label_ReqGpuPv" xml:space="preserve">
+    <value>GPU-PV requirements</value>
+  </data>
+  <data name="Label_ReqPcie" xml:space="preserve">
+    <value>PCIe passthrough requirements</value>
+  </data>
+  <data name="Label_ReqUsb" xml:space="preserve">
+    <value>USB passthrough requirements</value>
+  </data>
+  <data name="Label_UsbipdInstalled" xml:space="preserve">
+    <value>usbipd-win installed</value>
+  </data>
   <data name="Menu_CpuVirt" xml:space="preserve">
     <value>CPU Virtualization</value>
   </data>
   <data name="Menu_Iommu" xml:space="preserve">
     <value>IOMMU Status</value>
+  </data>
+  <data name="Menu_Iommu_Smmu" xml:space="preserve">
+    <value>SMMU Status</value>
   </data>
   <data name="Menu_HyperVService" xml:space="preserve">
     <value>Hyper-V Service</value>

@@ -1377,11 +1377,29 @@
   <data name="Menu_Runtime" xml:space="preserve">
     <value>运行环境</value>
   </data>
+  <data name="Label_ReqGeneral" xml:space="preserve">
+    <value>通用要求</value>
+  </data>
+  <data name="Label_ReqGpuPv" xml:space="preserve">
+    <value>GPU-PV 要求</value>
+  </data>
+  <data name="Label_ReqPcie" xml:space="preserve">
+    <value>PCIe 直通要求</value>
+  </data>
+  <data name="Label_ReqUsb" xml:space="preserve">
+    <value>USB 直通要求</value>
+  </data>
+  <data name="Label_UsbipdInstalled" xml:space="preserve">
+    <value>已安装 usbipd-win</value>
+  </data>
   <data name="Menu_CpuVirt" xml:space="preserve">
     <value>CPU 虚拟化</value>
   </data>
   <data name="Menu_Iommu" xml:space="preserve">
     <value>IOMMU 状态</value>
+  </data>
+  <data name="Menu_Iommu_Smmu" xml:space="preserve">
+    <value>SMMU 状态</value>
   </data>
   <data name="Menu_HyperVService" xml:space="preserve">
     <value>Hyper-V 服务</value>

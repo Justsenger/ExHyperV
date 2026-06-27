@@ -3854,6 +3854,15 @@ namespace ExHyperV.Properties {
                 return ResourceManager.GetString("Menu_Iommu", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   查找类似 SMMU 状态 的本地化字符串。
+        /// </summary>
+        public static string Menu_Iommu_Smmu {
+            get {
+                return ResourceManager.GetString("Menu_Iommu_Smmu", resourceCulture);
+            }
+        }
         
         /// <summary>
         ///   查找类似 Virtual Switch 的本地化字符串。
@@ -3888,6 +3897,51 @@ namespace ExHyperV.Properties {
         public static string Menu_Runtime {
             get {
                 return ResourceManager.GetString("Menu_Runtime", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   查找类似 通用要求 的本地化字符串。
+        /// </summary>
+        public static string Label_ReqGeneral {
+            get {
+                return ResourceManager.GetString("Label_ReqGeneral", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   查找类似 GPU-PV 要求 的本地化字符串。
+        /// </summary>
+        public static string Label_ReqGpuPv {
+            get {
+                return ResourceManager.GetString("Label_ReqGpuPv", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   查找类似 PCIe 直通要求 的本地化字符串。
+        /// </summary>
+        public static string Label_ReqPcie {
+            get {
+                return ResourceManager.GetString("Label_ReqPcie", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   查找类似 USB 直通要求 的本地化字符串。
+        /// </summary>
+        public static string Label_ReqUsb {
+            get {
+                return ResourceManager.GetString("Label_ReqUsb", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   查找类似 已安装 usbipd-win 的本地化字符串。
+        /// </summary>
+        public static string Label_UsbipdInstalled {
+            get {
+                return ResourceManager.GetString("Label_UsbipdInstalled", resourceCulture);
             }
         }
         

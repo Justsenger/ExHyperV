@@ -23,6 +23,13 @@ namespace ExHyperV.ViewModels
         public CheckStatusViewModel HyperVStatus { get; } = new("");
         public CheckStatusViewModel VersionStatus { get; } = new("");
         public CheckStatusViewModel IommuStatus { get; } = new("");
+        public CheckStatusViewModel UsbStatus { get; } = new("");
+
+        // IOMMU 在 ARM 上叫 SMMU（System MMU），按架构显示正确名称；检测逻辑（DeviceGuard DMA 保护）跨架构通用。
+        public string IommuLabel =>
+            System.Runtime.InteropServices.RuntimeInformation.OSArchitecture == System.Runtime.InteropServices.Architecture.Arm64
+                ? Properties.Resources.Menu_Iommu_Smmu
+                : Properties.Resources.Menu_Iommu;
 
         [ObservableProperty] private bool _isGpuStrategyEnabled;
         [ObservableProperty] private bool _isGpuStrategyToggleEnabled = false;
@@ -48,7 +55,7 @@ namespace ExHyperV.ViewModels
 
         private async Task LoadInitialStatusAsync()
         {
-            await Task.WhenAll(CheckSystemInfoAsync(), CheckCpuInfoAsync(), CheckHyperVInfoAsync(), CheckServerInfoAsync(), CheckIommuAsync());
+            await Task.WhenAll(CheckSystemInfoAsync(), CheckCpuInfoAsync(), CheckHyperVInfoAsync(), CheckServerInfoAsync(), CheckIommuAsync(), CheckUsbInfoAsync());
             await InitializeVersionPolicyAsync();
             _isInitialized = true;
         }
@@ -95,6 +102,12 @@ namespace ExHyperV.ViewModels
         {
             SystemStatus.IsSuccess = await Task.Run(() => HyperVHostService.IsServerSystem());
             SystemStatus.IsChecking = false;
+        }
+
+        private async Task CheckUsbInfoAsync()
+        {
+            UsbStatus.IsSuccess = await Task.Run(() => UsbVmbusService.IsUsbipdInstalled());
+            UsbStatus.IsChecking = false;
         }
 
         private async Task InitializeVersionPolicyAsync()
