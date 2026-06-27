@@ -6338,14 +6338,6 @@ namespace ExHyperV.Properties {
             }
         }
         
-        /// <summary>
-        ///   查找类似 Feature under development 的本地化字符串。
-        /// </summary>
-        public static string VmPage_MsgFeatureInDev2 {
-            get {
-                return ResourceManager.GetString("VmPage_MsgFeatureInDev2", resourceCulture);
-            }
-        }
         
         /// <summary>
         ///   查找类似 Standard Granularity 的本地化字符串。
@@ -6375,14 +6367,6 @@ namespace ExHyperV.Properties {
             }
         }
         
-        /// <summary>
-        ///   查找类似 Parallel Universe: Create a new VM instance based on this spacetime 的本地化字符串。
-        /// </summary>
-        public static string VmPage_MsgParallelUniverse2 {
-            get {
-                return ResourceManager.GetString("VmPage_MsgParallelUniverse2", resourceCulture);
-            }
-        }
         
         /// <summary>
         ///   查找类似 [Affinity] Auto-apply exception: {0} 的本地化字符串。
@@ -7339,14 +7323,6 @@ namespace ExHyperV.Properties {
             }
         }
         
-        /// <summary>
-        ///   查找类似 Open Parallel Universe 的本地化字符串。
-        /// </summary>
-        public static string VmSpacetimeSettings_BtnParallelUniverse {
-            get {
-                return ResourceManager.GetString("VmSpacetimeSettings_BtnParallelUniverse", resourceCulture);
-            }
-        }
         
         /// <summary>
         ///   查找类似 Travel 的本地化字符串。

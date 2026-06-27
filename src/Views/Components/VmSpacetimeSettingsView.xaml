@@ -362,7 +362,7 @@
                             </ui:Button>
                         </StackPanel>
 
-                        <!-- B-2. 正常态：穿梭、虫洞、平行、收束、删除 -->
+                        <!-- B-2. 正常态：穿梭、虫洞、收束、删除 -->
                         <StackPanel>
                             <StackPanel.Style>
                                 <Style TargetType="StackPanel">
@@ -390,13 +390,6 @@
                                 <StackPanel Orientation="Horizontal">
                                     <ui:SymbolIcon Symbol="Link24" FontSize="16"/>
                                     <TextBlock Text="{x:Static properties:Resources.VmSpacetimeSettings_BtnOpenWormhole}" VerticalAlignment="Center" Margin="10,0,0,0"/>
-                                </StackPanel>
-                            </ui:Button>
-                            <ui:Button Margin="0,0,0,6" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
-               Padding="10,8" Command="{Binding ParallelSpacetimeCommand}">
-                                <StackPanel Orientation="Horizontal">
-                                    <ui:SymbolIcon Symbol="BranchFork24" FontSize="16"/>
-                                    <TextBlock Text="{x:Static properties:Resources.VmSpacetimeSettings_BtnParallelUniverse}" VerticalAlignment="Center" Margin="10,0,0,0"/>
                                 </StackPanel>
                             </ui:Button>
                             <ui:Button Margin="0,0,0,6" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"

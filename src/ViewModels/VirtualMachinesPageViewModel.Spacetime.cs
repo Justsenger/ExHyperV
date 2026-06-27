@@ -16,7 +16,6 @@ namespace ExHyperV.ViewModels
         [ObservableProperty]
         [NotifyCanExecuteChangedFor(nameof(TeleportCommand))]
         [NotifyCanExecuteChangedFor(nameof(OpenWormholeCommand))]
-        [NotifyCanExecuteChangedFor(nameof(ParallelSpacetimeCommand))]
         [NotifyCanExecuteChangedFor(nameof(AnnihilateCommand))]
         [NotifyCanExecuteChangedFor(nameof(ConvergenceCommand))]
         [NotifyCanExecuteChangedFor(nameof(CloseWormholeCommand))]
@@ -285,13 +284,6 @@ namespace ExHyperV.ViewModels
                 }
             }
             finally { IsLoadingSettings = false; }
-        }
-
-        // 平行宇宙
-        [RelayCommand(CanExecute = nameof(CanOperateHistoricalNode))]
-        private void ParallelSpacetime()
-        {
-            ShowTip($"{Properties.Resources.VmPage_MsgFeatureInDev2}：{Properties.Resources.VmPage_MsgParallelUniverse2}");
         }
 
         // 时空收束

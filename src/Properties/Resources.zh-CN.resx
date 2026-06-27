@@ -2517,12 +2517,6 @@
   <data name="VmPage_ErrCloseFailed2" xml:space="preserve">
     <value>关闭失败</value>
   </data>
-  <data name="VmPage_MsgFeatureInDev2" xml:space="preserve">
-    <value>功能研发中</value>
-  </data>
-  <data name="VmPage_MsgParallelUniverse2" xml:space="preserve">
-    <value>平行宇宙：基于此时空创建新的虚拟机实例</value>
-  </data>
   <data name="VmPage_MsgSpacetimeConverged2" xml:space="preserve">
     <value>时空已收束至上一节点</value>
   </data>
@@ -2693,9 +2687,6 @@
   </data>
   <data name="VmSpacetimeSettings_BtnOpenWormhole" xml:space="preserve">
     <value>开启虫洞</value>
-  </data>
-  <data name="VmSpacetimeSettings_BtnParallelUniverse" xml:space="preserve">
-    <value>开启平行宇宙</value>
   </data>
   <data name="VmSpacetimeSettings_BtnConverge" xml:space="preserve">
     <value>时空收束</value>

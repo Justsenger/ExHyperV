@@ -2517,12 +2517,6 @@ The existing NAT switch is: '{0}'</value>
   <data name="VmPage_ErrCloseFailed2" xml:space="preserve">
     <value>Failed to close</value>
   </data>
-  <data name="VmPage_MsgFeatureInDev2" xml:space="preserve">
-    <value>Feature under development</value>
-  </data>
-  <data name="VmPage_MsgParallelUniverse2" xml:space="preserve">
-    <value>Parallel Universe: Create a new VM instance based on this spacetime</value>
-  </data>
   <data name="VmPage_MsgSpacetimeConverged2" xml:space="preserve">
     <value>Spacetime converged to the previous node</value>
   </data>
@@ -2693,9 +2687,6 @@ The existing NAT switch is: '{0}'</value>
   </data>
   <data name="VmSpacetimeSettings_BtnOpenWormhole" xml:space="preserve">
     <value>Open Wormhole</value>
-  </data>
-  <data name="VmSpacetimeSettings_BtnParallelUniverse" xml:space="preserve">
-    <value>Open Parallel Universe</value>
   </data>
   <data name="VmSpacetimeSettings_BtnConverge" xml:space="preserve">
     <value>Spacetime Convergence</value>
