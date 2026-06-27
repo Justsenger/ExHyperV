@@ -99,6 +99,43 @@ namespace ExHyperV.Services
             catch { return false; }
         }
 
+        /// <summary>
+        /// 当前 SKU 是否适用"切换服务器版本"黑魔法(WinNT→ServerNT 欺骗 Hypervisor 解锁 PCIe 直通)。
+        /// 不适用(置灰)：真 Server(已是 Server，但企业多会话 ServerRdsh 属客户端、排除在外)、
+        /// 家庭版全系(Core*，不含 Hyper-V)、标准专业版/企业版(无衍生功能)。
+        /// 其余含 Hyper-V 的衍生客户端版(专业教育/工作站/单语言/中文、教育、企业 LTSC/G/多会话、IoT 企业)→ 适用。
+        /// 判定走 EditionID(真实 SKU)而非 ProductType——后者正是黑魔法改的值，用它会致被切的客户端版无法切回。
+        /// </summary>
+        public static bool IsServerSwitchApplicable()
+        {
+            try
+            {
+                using var key = Registry.LocalMachine
+                    .OpenSubKey(@"SOFTWARE\Microsoft\Windows NT\CurrentVersion");
+                string edition = key?.GetValue("EditionID")?.ToString() ?? "";
+                if (edition.Length == 0) return false;
+
+                // 真 Server：EditionID 以 Server 开头（ServerRdsh=企业多会话除外，它是客户端）
+                if (edition.StartsWith("Server", StringComparison.OrdinalIgnoreCase) &&
+                    !edition.Equals("ServerRdsh", StringComparison.OrdinalIgnoreCase))
+                    return false;
+
+                // 家庭版全系列：不含 Hyper-V，黑魔法无前提
+                if (edition.StartsWith("Core", StringComparison.OrdinalIgnoreCase))
+                    return false;
+
+                // 标准专业版 / 企业版（精确匹配；放行 ProfessionalEducation/EnterpriseS 等衍生版）
+                if (edition.Equals("Professional", StringComparison.OrdinalIgnoreCase) ||
+                    edition.Equals("ProfessionalN", StringComparison.OrdinalIgnoreCase) ||
+                    edition.Equals("Enterprise", StringComparison.OrdinalIgnoreCase) ||
+                    edition.Equals("EnterpriseN", StringComparison.OrdinalIgnoreCase))
+                    return false;
+
+                return true;
+            }
+            catch { return false; }
+        }
+
         // ── Hyper-V 状态 ────────────────────────────────────────────
 
         public static bool IsHyperVWmiNamespaceAvailable()

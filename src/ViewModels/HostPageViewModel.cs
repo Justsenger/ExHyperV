@@ -106,8 +106,9 @@ namespace ExHyperV.ViewModels
             await LoadAdvancedConfigAsync();
             IsGpuStrategyToggleEnabled = true;
             IsNativeNvmeToggleEnabled = true;
-            // 切换服务器版本是给"非 Server 系统"准备的黑魔法；本机已是 Server 则无意义，开关置灰
-            IsSystemSwitchEnabled = !IsServerSystem;
+            // 切换服务器版本(黑魔法)仅对特定客户端 SKU 生效；真 Server/家庭版/标准专业版/企业版等不适用，开关置灰。
+            // 判定走 EditionID(真实 SKU)而非 ProductType——后者正是黑魔法改的值，用它会致被切的客户端版无法切回。
+            IsSystemSwitchEnabled = HyperVHostService.IsServerSwitchApplicable();
         }
 
         private async Task LoadAdvancedConfigAsync()
@@ -251,7 +252,7 @@ namespace ExHyperV.ViewModels
                 ShowError(ex.Message);
                 _isInitialized = false; IsServerSystem = !toServer; _isInitialized = true;
             }
-            finally { IsSystemSwitchEnabled = !IsServerSystem; }
+            finally { IsSystemSwitchEnabled = HyperVHostService.IsServerSwitchApplicable(); }
         }
 
 
