@@ -23,6 +23,15 @@ namespace ExHyperV.Tools
 
         public static bool IsRunning(ushort code) => code == 2;
 
+        // VM 是否处于"活动"状态：已开机、CPU 仍在执行（含启动/关闭/保存/挂起/恢复等过渡态）。
+        // 用于 UI 判定亮监控/计时、Service 过滤可取性能数据的 VM。
+        // 关键：合并磁盘(32772)/等待启动(32771)/已休眠(32783)/未知(0) 等均非活动——避免关机态被误判为运行。
+        public static bool IsActiveState(ushort code) => code switch
+        {
+            2 or 4 or 10 or 32770 or 32773 or 32774 or 32776 or 32777 or 32780 or 32781 or 32782 => true,
+            _ => false
+        };
+
         public static string MapStateCodeToText(ushort code)
         {
             return code switch

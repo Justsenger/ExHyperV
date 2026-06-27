@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using ExHyperV.Tools;
 
 namespace ExHyperV.Models
 {
@@ -29,6 +30,9 @@ namespace ExHyperV.Models
         // ── 状态（raw，由 backend WMI 给出；VM 层负责 transient 处理）──
         /// <summary>Hyper-V 当前状态文本（已通过 VmMapper 映射，如 "Running"/"Off"/"Saved"…）</summary>
         public string StateText { get; set; } = string.Empty;
+
+        /// <summary>Hyper-V 原始状态码（EnabledState）；IsRunning 据此判定，不依赖本地化文本</summary>
+        public ushort StateCode { get; set; }
 
         /// <summary>VM 已运行时长（来自 Msvm_SummaryInformation.UpTime）</summary>
         public TimeSpan RawUptime { get; set; }
@@ -61,12 +65,8 @@ namespace ExHyperV.Models
 
         // ── 计算派生 ──────────────────────────────────────────────
 
-        /// <summary>从 StateText 静态派生是否在运行（不考虑 transient 过渡态）</summary>
-        public bool IsRunning =>
-            !string.IsNullOrEmpty(StateText) &&
-            StateText != Properties.Resources.Status_Off && StateText != "Off" &&
-            StateText != Properties.Resources.Status_Suspended && StateText != "Paused" &&
-            StateText != Properties.Resources.Status_Saved && StateText != "Saved";
+        /// <summary>是否处于活动状态（按原始状态码白名单判定，不考虑 transient 过渡态）</summary>
+        public bool IsRunning => VmMapper.IsActiveState(StateCode);
 
         /// <summary>是否分配了 GPU（按 GpuName 或 AssignedGpus 任一非空判定）</summary>
         public bool HasGpu => !string.IsNullOrEmpty(GpuName) || AssignedGpus.Count > 0;

@@ -5,6 +5,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using ExHyperV.Models;
 using ExHyperV.Services;
+using ExHyperV.Tools;
 
 namespace ExHyperV.ViewModels
 {
@@ -101,6 +102,7 @@ namespace ExHyperV.ViewModels
         private DateTime _anchorLocalTime;
         private string? _transientState;
         private string? _backendState;
+        private ushort _backendCode;
 
 
         // ===== CPU / 内存 =====
@@ -257,7 +259,7 @@ namespace ExHyperV.ViewModels
 
             // ── GPU 历史队列初始化 + transient 状态推进 ──────────
             InitializeGpuHistory();
-            SyncBackendData(model.StateText, model.RawUptime);
+            SyncBackendData(model.StateText, model.StateCode, model.RawUptime);
 
             // ── Disks 集合变化时刷新总磁盘大小与 ConfigSummary ──
             Disks.CollectionChanged += (s, e) =>
@@ -321,7 +323,7 @@ namespace ExHyperV.ViewModels
             Notes = fresh.Notes;
 
             // ── 2. 推进 transient 状态机 ──────────────────────────
-            SyncBackendData(fresh.StateText, fresh.RawUptime);
+            SyncBackendData(fresh.StateText, fresh.StateCode, fresh.RawUptime);
 
             // ── 3. IP：未运行清回 "---"（运行时的 ARP 发现侧路在 PageVM）──
             if (!IsRunning) IpAddress = "---";
@@ -333,6 +335,11 @@ namespace ExHyperV.ViewModels
 
             // ── 5. 磁盘 in-place 合并（按 Path 匹配；运行中实时读真实文件大小）──
             ReconcileDisks(Disks, fresh.Disks, runningRefresh: IsRunning);
+
+            // 磁盘容量(MaxSize)可能在合并中变化(扩容/换盘)，而元素属性变化不触发集合事件——
+            // 这里重算总量，其 setter 经 NotifyPropertyChangedFor 带动 ConfigSummary 刷新(只靠增删的 CollectionChanged 会漏)
+            double freshTotalGb = Disks.Sum(d => d.MaxSize) / 1073741824.0;
+            if (Math.Abs(TotalDiskSizeGb - freshTotalGb) > 0.0001) TotalDiskSizeGb = freshTotalGb;
 
             // ── 6. GPU 摘要名 ─────────────────────────────────────
             GpuName = fresh.GpuName;
@@ -571,18 +578,20 @@ namespace ExHyperV.ViewModels
         // ===== transient 状态机：将 backend raw state（StateText）和 view 端 transient state（如 "Starting"） =====
         // 合成最终显示的 State；并由此推导 IsRunning
 
-        public void SyncBackendData(string realState, TimeSpan realUptime)
+        public void SyncBackendData(string realState, ushort realCode, TimeSpan realUptime)
         {
             bool wasRunning = this.IsRunning;
 
             _backendState = realState;
+            _backendCode = realCode;
             _anchorUptime = realUptime;
             _anchorLocalTime = DateTime.Now;
 
-            // 同步进 Model（StateText / RawUptime 是 Service 读取的字段）
+            // 同步进 Model（StateText / StateCode / RawUptime 是 Service 读取的字段）
             if (Model != null)
             {
                 Model.StateText = realState;
+                Model.StateCode = realCode;
                 Model.RawUptime = realUptime;
             }
 
@@ -609,11 +618,9 @@ namespace ExHyperV.ViewModels
         private void RefreshStateDisplay()
         {
             State = _transientState ?? _backendState ?? string.Empty;
-            IsRunning = !string.IsNullOrEmpty(State) && !new[] {
-                Properties.Resources.Status_Off, "Off",
-                Properties.Resources.Status_Suspended, "Paused",
-                Properties.Resources.Status_Saved, "Saved"
-            }.Contains(State);
+            // 乐观态期间(用户刚发起操作)一律视为活动；否则按后端原始状态码白名单判定，
+            // 避免"合并磁盘/未知/等待启动"等非运行态被误判为运行(原字符串黑名单只排除 Off/Paused/Saved，会漏)
+            IsRunning = _transientState != null || VmMapper.IsActiveState(_backendCode);
 
             if (!IsRunning)
             {

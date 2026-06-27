@@ -360,6 +360,7 @@ namespace ExHyperV.Services
                 vmInfo.GpuName = gpuMap.TryGetValue(vmGuidKey, out var gName) ? gName : null;
                 // Model 不做 transient 状态机；只填 raw 字段（VM 层通过 Apply→SyncBackendData 处理）
                 vmInfo.StateText = VmMapper.MapStateCodeToText(s.State);
+                vmInfo.StateCode = s.State;
                 vmInfo.RawUptime = TimeSpan.FromMilliseconds(s.Uptime);
                 resultList.Add(vmInfo);
             }
