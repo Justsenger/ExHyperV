@@ -73,27 +73,28 @@ namespace ExHyperV.ViewModels
         {
             if (parameter is not object[] parameters || parameters.Length < 2 ||
                 parameters[0] is not DeviceViewModel deviceViewModel ||
-                parameters[1] is not string selectedTarget)
+                parameters[1] is not AssignmentTarget target)
                 return;
 
+            string selectedTarget = target.Key; // Key 是身份（主机=HostKey、虚拟机=名）；Display 仅用于界面显示
             if (deviceViewModel.Status == selectedTarget) return;
 
             IsUiEnabled = false;
             try
             {
                 // MMIO 空间不足时按算法自动扩展（不询问用户）
-                if (selectedTarget != Properties.Resources.Host)
+                if (selectedTarget != PCIeService.HostKey)
                 {
                     bool canProceed = await EnsureMmioSpaceAsync(selectedTarget);
                     if (!canProceed) return;
                 }
 
                 // ── 最后一张显卡警告：直通主机当前唯一的显卡 → 主机将失去视频输出（物理屏幕黑屏风险）──
-                if (selectedTarget != Properties.Resources.Host
-                    && deviceViewModel.Status == Properties.Resources.Host
+                if (selectedTarget != PCIeService.HostKey
+                    && deviceViewModel.Status == PCIeService.HostKey
                     && string.Equals(deviceViewModel.ClassType, "Display", StringComparison.OrdinalIgnoreCase)
                     && Devices.Count(d => string.Equals(d.ClassType, "Display", StringComparison.OrdinalIgnoreCase)
-                                          && d.Status == Properties.Resources.Host) <= 1)
+                                          && d.Status == PCIeService.HostKey) <= 1)
                 {
                     bool proceed = await Dialogs.ShowConfirmAsync(
                         Properties.Resources.PCIePage_Title_LastGpuWarning,
@@ -104,8 +105,10 @@ namespace ExHyperV.ViewModels
                 }
 
                 // ── 存储控制器：直通到 VM 前处理名下磁盘（系统/启动盘拒绝；在线数据盘先脱机）──
-                if (selectedTarget != Properties.Resources.Host
-                    && deviceViewModel.Status == Properties.Resources.Host
+                // 记录本次为直通而脱机的盘号；直通失败时控制器仍在主机，需把它们重新联机
+                var offlinedDisks = new List<int>();
+                if (selectedTarget != PCIeService.HostKey
+                    && deviceViewModel.Status == PCIeService.HostKey
                     && (string.Equals(deviceViewModel.ClassType, "SCSIAdapter", StringComparison.OrdinalIgnoreCase)
                         || string.Equals(deviceViewModel.ClassType, "HDC", StringComparison.OrdinalIgnoreCase)))
                 {
@@ -143,7 +146,10 @@ namespace ExHyperV.ViewModels
                         if (!proceed) return;
 
                         foreach (var d in onlineDisks)
+                        {
                             await HostDiskService.SetDiskOfflineStatusAsync(d.Number, true);
+                            offlinedDisks.Add(d.Number);
+                        }
                     }
                 }
 
@@ -181,6 +187,11 @@ namespace ExHyperV.ViewModels
                 if (!success)
                     errors.Add($"{deviceViewModel.FriendlyName}: {errorMessage ?? Properties.Resources.Error_Unknown}");
 
+                // 直通失败：控制器仍在主机，把先前为直通而脱机的数据盘重新联机，避免主机丢失访问
+                if (!success && offlinedDisks.Count > 0)
+                    foreach (var num in offlinedDisks)
+                        await HostDiskService.SetDiskOfflineStatusAsync(num, false);
+
                 if (success)
                 {
                     foreach (var companion in companions)
@@ -193,7 +204,7 @@ namespace ExHyperV.ViewModels
                 }
 
                 // 存储控制器返还主机后：等磁盘随控制器重新枚举（轮询最多 ~6 秒），把之前脱机的盘重新联机
-                if (success && selectedTarget == Properties.Resources.Host
+                if (success && selectedTarget == PCIeService.HostKey
                     && (string.Equals(deviceViewModel.ClassType, "SCSIAdapter", StringComparison.OrdinalIgnoreCase)
                         || string.Equals(deviceViewModel.ClassType, "HDC", StringComparison.OrdinalIgnoreCase)))
                 {

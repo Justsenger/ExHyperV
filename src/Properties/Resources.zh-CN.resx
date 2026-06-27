@@ -150,6 +150,9 @@
   <data name="Host" xml:space="preserve">
     <value>主机</value>
   </data>
+  <data name="Host_Physical" xml:space="preserve">
+    <value>主机（物理机）</value>
+  </data>
   <data name="PCIeService_SetShutdownToTurnOff" xml:space="preserve">
     <value>修改虚拟机的关机动作为强制断电...</value>
   </data>

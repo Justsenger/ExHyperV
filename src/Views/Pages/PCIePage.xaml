@@ -78,7 +78,7 @@
                                             <ContextMenu ItemsSource="{Binding AssignmentOptions}">
                                                 <ContextMenu.ItemContainerStyle>
                                                     <Style TargetType="MenuItem">
-                                                        <Setter Property="Header" Value="{Binding}"/>
+                                                        <Setter Property="Header" Value="{Binding Display}"/>
                                                         <Setter Property="Command" Value="{Binding DataContext.ChangeAssignmentCommand, RelativeSource={RelativeSource AncestorType=Page}}"/>
                                                         <Setter Property="CommandParameter">
                                                             <Setter.Value>

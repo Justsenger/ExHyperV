@@ -150,6 +150,9 @@
   <data name="Host" xml:space="preserve">
     <value>Host</value>
   </data>
+  <data name="Host_Physical" xml:space="preserve">
+    <value>Host (physical)</value>
+  </data>
   <data name="PCIeService_SetShutdownToTurnOff" xml:space="preserve">
     <value>Change VM shutdown action to Hard Turn Off...</value>
   </data>

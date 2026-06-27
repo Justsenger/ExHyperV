@@ -2682,6 +2682,15 @@ namespace ExHyperV.Properties {
                 return ResourceManager.GetString("Host", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   查找类似 主机（物理机） 的本地化字符串。
+        /// </summary>
+        public static string Host_Physical {
+            get {
+                return ResourceManager.GetString("Host_Physical", resourceCulture);
+            }
+        }
         
         /// <summary>
         ///   查找类似 Host Connection 的本地化字符串。
