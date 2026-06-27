@@ -63,17 +63,16 @@ namespace ExHyperV.ViewModels
         {
             if (SelectedVm == null || SelectedVm.BootOrderItems == null) return;
 
-            try
-            {
-                var currentOrder = SelectedVm.BootOrderItems.ToList();
-                bool success = await VmBootService.SetBootOrderAsync(SelectedVm.Name, currentOrder);
-                if (!success)
-                    ShowError($"{Properties.Resources.VmBootSettings_TitleBootOrder}：{Properties.Resources.Error_Common_SaveFail}");
-            }
-            catch (Exception ex)
-            {
-                ShowError($"{Properties.Resources.VmBootSettings_TitleBootOrder}：{FriendlyError.CleanLines(ex.Message)}");
-            }
+            var vm = SelectedVm;   // await 期间用户可能切走，捕获当前 VM，回滚刷到正确对象
+            var (success, message) = await VmBootService.SetBootOrderAsync(vm.Name, vm.BootOrderItems.ToList());
+            if (success) return;
+
+            // 保存失败：拖动已把 UI 改成新顺序、后端却没动 → 显示真实原因，再从后端重新拉取回滚 UI，避免列表显示假序
+            string reason = string.IsNullOrWhiteSpace(message)
+                ? Properties.Resources.Error_Common_SaveFail
+                : FriendlyError.CleanLines(message);
+            ShowError($"{Properties.Resources.VmBootSettings_TitleBootOrder}：{reason}");
+            await RefreshBootOrderForSelectedVmAsync(vm);
         }
 
         [RelayCommand]

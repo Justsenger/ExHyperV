@@ -77,17 +77,18 @@ public static class VmBootService
         });
     }
 
-    public static async Task<bool> SetBootOrderAsync(string vmName, List<BootOrderItem> items)
+    // 返回 (是否成功, 失败原因)：原因透出给前端显示，失败时前端据此回滚 UI 顺序到后端真值。
+    public static async Task<(bool Success, string Message)> SetBootOrderAsync(string vmName, List<BootOrderItem> items)
     {
         return await Task.Run(async () =>
         {
             try
             {
                 using var vm = WmiApi.GetVmComputerSystem(vmName);
-                if (vm == null) return false;
+                if (vm == null) return (false, Properties.Resources.Error_Net_VmNotFound);
 
                 using var settings = WmiApi.GetVmSettings(vm);
-                if (settings == null) return false;
+                if (settings == null) return (false, Properties.Resources.Error_Net_VmNotFound);
 
                 bool isGen2 = settings["VirtualSystemSubType"]?.ToString() == "Microsoft:Hyper-V:SubType:2";
 
@@ -103,9 +104,9 @@ public static class VmBootService
                     "ModifySystemSettings",
                     p => p["SystemSettings"] = xml);
 
-                return result.Success;
+                return result.Success ? (true, string.Empty) : (false, result.Error);
             }
-            catch { return false; }
+            catch (Exception ex) { return (false, ex.Message); }
         });
     }
 
