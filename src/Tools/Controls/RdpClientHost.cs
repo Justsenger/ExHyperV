@@ -97,6 +97,28 @@ namespace ExHyperV.Tools
 
         public void Disconnect() => _ax.DisconnectSafe();
 
+        /// <summary>
+        /// 关窗前安全拆除：断开 → 泵消息等会话静默(ConnectionState→0) → Dispose。
+        /// 须在窗口销毁前(OnClosing)调用：此时 UI 线程仍能泵消息，OnDisconnected 得以落地、会话线程退出，
+        /// 随后 Dispose 走到 AxHost.InPlaceDeactivate 时控件已静默、无需等内部状态，不会死锁。
+        /// 改在 OnClosed(WmDestroy 期)Dispose 则线程不泵消息且会话未静默，InPlaceDeactivate 死等 → UI 线程死锁。
+        /// </summary>
+        public void ShutdownAndDispose()
+        {
+            try
+            {
+                _ax.DisconnectSafe();
+                var deadline = DateTime.UtcNow.AddSeconds(3);   // localhost VMBus 断开通常 <1s，3s 为上限
+                while (_ax.ConnectionState != 0 && DateTime.UtcNow < deadline)
+                {
+                    System.Windows.Forms.Application.DoEvents();   // 泵 Win32 消息，让 OnDisconnected(COM 事件)落地
+                    System.Threading.Thread.Sleep(15);
+                }
+            }
+            catch { /* OCX 未就绪/已断开 */ }
+            Dispose();   // 会话已静默，InPlaceDeactivate 可干净完成
+        }
+
         /// <summary>增强会话改分辨率（不重连）。</summary>
         public void Resize(int width, int height) => _ax.SetResolution(width, height);
 

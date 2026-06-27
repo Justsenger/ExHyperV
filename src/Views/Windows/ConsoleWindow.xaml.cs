@@ -488,18 +488,28 @@ namespace ExHyperV.Views
                 this.DragMove();
         }
 
+        private bool _rdpTornDown;   // RdpHost 拆除只跑一次(OnClosing 正常 / OnClosed 兜底)
+
+        // 在 OnClosing(窗口销毁前、UI 线程仍能泵消息)拆除 RdpHost；拖到 OnClosed(WmDestroy 期)再 Dispose mstscax
+        // 会因 InPlaceDeactivate 泵不到消息而死锁。细节见 RdpClientHost.ShutdownAndDispose。
+        protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
+        {
+            base.OnClosing(e);
+            if (e.Cancel || _rdpTornDown) return;
+            _rdpTornDown = true;
+            _closing = true;            // 抑制断开后的自动重连
+            RdpHost.ShutdownAndDispose();
+        }
+
         protected override void OnClosed(EventArgs e)
         {
             base.OnClosed(e);
-            _closing = true;        // 抑制 Dispose 期间可能再触发的 OnDisconnected 走自动重连
-            RdpHost.Disconnect();   // 断开 RDP 会话（否则 mstscax/VMBus 会话残留到 GC）
+            _closing = true;
+            if (!_rdpTornDown) { _rdpTornDown = true; RdpHost.ShutdownAndDispose(); }  // 兜底：OnClosing 未跑到时
             _vm.SendCadRequested -= OnSendCadRequested;
             _vm.PropertyChanged -= OnViewModelPropertyChanged;
             _vm.Polled -= OnVmPolled;
             _vm.Dispose();
-            // 确定性释放 mstscax COM 控件：WindowsFormsHost.Dispose → 容器 → AxHost → 释放底层 OCX。
-            // WPF 不会在窗口关闭时自动 Dispose WindowsFormsHost（已知泄漏点）；不显式释放则反复开关控制台累积 COM/句柄。
-            RdpHost.Dispose();
         }
 
         // ── WndProc：WM_GETMINMAXINFO（全屏铺满整个显示器）+ WM_EXITSIZEMOVE（拖动结束 → 增强会话协商分辨率）──
