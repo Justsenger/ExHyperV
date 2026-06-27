@@ -8265,5 +8265,13 @@ namespace ExHyperV.Properties {
                 return ResourceManager.GetString("Error_Gpu_LinuxGeneric", resourceCulture);
             }
         }
+        /// <summary>
+        ///   Looks up a localized string similar to A wormhole is open — close it before you can create / delete / converge spacetimes..
+        /// </summary>
+        public static string VmSpacetimeSettings_HintCloseWormholeFirst {
+            get {
+                return ResourceManager.GetString("VmSpacetimeSettings_HintCloseWormholeFirst", resourceCulture);
+            }
+        }
     }
 }

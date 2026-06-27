@@ -2904,4 +2904,7 @@ The existing NAT switch is: '{0}'</value>
   <data name="Error_Gpu_LinuxGeneric" xml:space="preserve">
     <value>Error: {0}</value>
   </data>
+  <data name="VmSpacetimeSettings_HintCloseWormholeFirst" xml:space="preserve">
+    <value>A wormhole is open — close it before you can create / delete / converge spacetimes.</value>
+  </data>
 </root>

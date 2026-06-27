@@ -297,10 +297,30 @@
                             </RadioButton>
                         </StackPanel>
 
+                        <!-- 虫洞开启时的全局提示：改树操作(创建/删除/收束)需先关闭虫洞 -->
+                        <Border CornerRadius="6" Padding="10,8" Margin="0,0,0,10"
+                                Background="{ui:ThemeResource SystemFillColorCautionBackgroundBrush}">
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding HasOpenWormhole}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <StackPanel Orientation="Horizontal">
+                                <ui:SymbolIcon Symbol="Warning24" FontSize="14" Foreground="#FFD700"/>
+                                <TextBlock Text="{x:Static properties:Resources.VmSpacetimeSettings_HintCloseWormholeFirst}" FontSize="12"
+                                           Foreground="#FFD700" VerticalAlignment="Center" Margin="6,0,0,0" TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </Border>
+
                         <!-- A. [当前] 节点特有操作：创建时空 -->
                         <ui:Button Margin="0,0,0,6" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="10,8" 
                                    Command="{Binding CaptureMomentCommand}"
-                                   IsEnabled="{Binding IsCheckpointsEnabled}">
+                                   IsEnabled="{Binding CanCreateMoment}">
                             <ui:Button.Style>
                                 <Style TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
                                     <!-- 将默认的 Primary 外观放在 Setter 中，使得触发器可以覆盖它 -->

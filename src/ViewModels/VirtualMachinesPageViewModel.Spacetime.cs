@@ -11,7 +11,12 @@ namespace ExHyperV.ViewModels
     {
         // ===== 时空管理模块 =====
 
-        [ObservableProperty] private ObservableCollection<SpacetimeNode> _spacetimeNodes = new();
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(HasOpenWormhole))]
+        [NotifyPropertyChangedFor(nameof(CanCreateMoment))]
+        [NotifyCanExecuteChangedFor(nameof(AnnihilateCommand))]
+        [NotifyCanExecuteChangedFor(nameof(ConvergenceCommand))]
+        private ObservableCollection<SpacetimeNode> _spacetimeNodes = new();
 
         [ObservableProperty]
         [NotifyCanExecuteChangedFor(nameof(TeleportCommand))]
@@ -24,6 +29,7 @@ namespace ExHyperV.ViewModels
         private SpacetimeMode _selectedSpacetimeMode = SpacetimeMode.Continuous;
 
         [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(CanCreateMoment))]
         private bool _isCheckpointsEnabled = true;
 
         partial void OnIsCheckpointsEnabledChanged(bool value)
@@ -55,6 +61,12 @@ namespace ExHyperV.ViewModels
         // 开虫洞:该快照尚无虫洞;关虫洞:该快照已有虫洞——按当前状态精确门控(避免点错按钮再弹错)
         private bool CanOpenWormhole => CanOperateHistoricalNode && !SelectedSpacetimeNode!.IsWormhole;
         private bool CanCloseWormhole => CanOperateHistoricalNode && SelectedSpacetimeNode!.IsWormhole;
+
+        // 任一节点开着虫洞 → VM 磁盘配置临时偏离检查点树；改树操作必须先关虫洞，否则把含临时盘的脏配置卷进树→损坏。
+        public bool HasOpenWormhole => SpacetimeNodes?.Any(n => n.IsWormhole) == true;
+        // 创建时空:需检查点开启 且 无虫洞。湮灭/收束:历史快照 且 无虫洞(穿梭例外——它会先自动关所有虫洞)。
+        public bool CanCreateMoment => IsCheckpointsEnabled && !HasOpenWormhole;
+        private bool CanMutateHistoricalNode => CanOperateHistoricalNode && !HasOpenWormhole;
 
         [RelayCommand]
         private async Task CommitSpacetimeRenameAsync(SpacetimeNode node)
@@ -145,6 +157,7 @@ namespace ExHyperV.ViewModels
         private async Task CaptureMomentAsync()
         {
             if (SelectedVm == null) return;
+            if (HasOpenWormhole) return;   // 双保险:虫洞开着不许创建——按钮已置灰,避免把含临时盘的脏配置拍进检查点
 
             var currentFrame = SelectedVm.Thumbnail;
 
@@ -217,7 +230,7 @@ namespace ExHyperV.ViewModels
             finally { IsLoadingSettings = false; }
         }
 
-        [RelayCommand(CanExecute = nameof(CanOperateHistoricalNode))]
+        [RelayCommand(CanExecute = nameof(CanMutateHistoricalNode))]
         private async Task Annihilate()
         {
             if (SelectedSpacetimeNode == null || SelectedVm == null) return;
@@ -287,7 +300,7 @@ namespace ExHyperV.ViewModels
         }
 
         // 时空收束
-        [RelayCommand(CanExecute = nameof(CanOperateHistoricalNode))]
+        [RelayCommand(CanExecute = nameof(CanMutateHistoricalNode))]
         private async Task Convergence()
         {
             if (SelectedSpacetimeNode == null || SelectedVm == null) return;

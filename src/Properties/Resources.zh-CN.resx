@@ -2904,4 +2904,7 @@
   <data name="Error_Gpu_LinuxGeneric" xml:space="preserve">
     <value>错误：{0}</value>
   </data>
+  <data name="VmSpacetimeSettings_HintCloseWormholeFirst" xml:space="preserve">
+    <value>虫洞开启中，需先关闭虫洞才能创建 / 删除 / 收束时空。</value>
+  </data>
 </root>
