@@ -172,8 +172,9 @@ namespace ExHyperV.ViewModels
         // ===== 缩放（仅基本会话）=====
         // 基本会话是固定分辨率的合成显示，只能拉伸缩放（放大必糊）；增强会话画面已原生跟随窗口，无需缩放。
         // 档值：本地化"适应窗口" + 纯比例字符串。窗口端 LayoutRdpHost 解析后摆放 RdpHost + 开关滚动条。
-        // 默认"自动"：进控制台即按"不超屏的最大档"铺满（分辨率未到前 AutoZoomPercent 兜底 100，画面一报分辨率即跳到挑中的档）。
-        [ObservableProperty] private string _selectedZoom = Properties.Resources.ConsoleWindow_ZoomAuto;
+        // 默认 100%：mstscax 自带全屏热键(Ctrl+Alt+Enter)仅在 ZoomLevel=100 时有效，默认 100% 让热键开箱即用；
+        // "自动"会挑非 100% 档、致热键被 mstscax 的 zoom!=100 guard 挡住。用户仍可手动选自动/其它档。
+        [ObservableProperty] private string _selectedZoom = "100%";
 
         public ObservableCollection<string> ZoomOptions { get; } = new()
         {
