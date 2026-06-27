@@ -621,6 +621,9 @@ The existing NAT switch is: '{0}'</value>
   <data name="AddDisk_NoAvailablePhysical" xml:space="preserve">
     <value>No available physical devices</value>
   </data>
+  <data name="AddDisk_NoAvailableOptical" xml:space="preserve">
+    <value>No physical optical drive available</value>
+  </data>
   <data name="AddDisk_Number" xml:space="preserve">
     <value>Number</value>
   </data>

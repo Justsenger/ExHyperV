@@ -149,6 +149,15 @@ namespace ExHyperV.Properties {
                 return ResourceManager.GetString("AddDisk_NoAvailablePhysical", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   查找类似 无可用物理光驱 的本地化字符串。
+        /// </summary>
+        public static string AddDisk_NoAvailableOptical {
+            get {
+                return ResourceManager.GetString("AddDisk_NoAvailableOptical", resourceCulture);
+            }
+        }
         
         /// <summary>
         ///   查找类似 Number 的本地化字符串。

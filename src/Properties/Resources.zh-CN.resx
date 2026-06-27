@@ -621,6 +621,9 @@
   <data name="AddDisk_NoAvailablePhysical" xml:space="preserve">
     <value>无可用物理设备</value>
   </data>
+  <data name="AddDisk_NoAvailableOptical" xml:space="preserve">
+    <value>无可用物理光驱</value>
+  </data>
   <data name="AddDisk_Number" xml:space="preserve">
     <value>编号</value>
   </data>

@@ -35,6 +35,10 @@ namespace ExHyperV.ViewModels
 
         // 选中的物理磁盘与控制器
         [ObservableProperty] private HostDiskInfo _selectedPhysicalDisk;
+
+        // 物理光驱直通(仅第1代)
+        [ObservableProperty] private ObservableCollection<HostOpticalInfo> _hostOpticals = new();
+        [ObservableProperty] private HostOpticalInfo _selectedPhysicalOptical;
         [ObservableProperty] private string _selectedControllerType = "SCSI";
         [ObservableProperty] private int _selectedControllerNumber = 0;
         [ObservableProperty] private int _selectedLocation = 0;
@@ -43,6 +47,11 @@ namespace ExHyperV.ViewModels
         [ObservableProperty] private string _slotWarningMessage = string.Empty;
         [ObservableProperty][NotifyPropertyChangedFor(nameof(SlotWarningVisibility))] private bool _isSlotValid = true;
         public Visibility SlotWarningVisibility => IsSlotValid ? Visibility.Collapsed : Visibility.Visible;
+
+        // 物理来源时:类型=硬盘→物理磁盘列表、类型=光盘→物理光驱列表;物理光驱仅第1代(第2代隐藏"光盘"类型项)
+        public Visibility PhysicalDiskListVisibility => (IsPhysicalSource && DeviceType == "HardDisk") ? Visibility.Visible : Visibility.Collapsed;
+        public Visibility PhysicalOpticalListVisibility => (IsPhysicalSource && DeviceType == "DvdDrive") ? Visibility.Visible : Visibility.Collapsed;
+        public Visibility OpticalTypeOptionVisibility => (!IsPhysicalSource || SelectedVm?.Generation == 1) ? Visibility.Visible : Visibility.Collapsed;
 
         // 存储只读集合
         public ObservableCollection<string> AvailableControllerTypes { get; } = new();
@@ -283,11 +292,46 @@ namespace ExHyperV.ViewModels
 
             OnPropertyChanged(nameof(FilePathPlaceholder));
             OnPropertyChanged(nameof(BrowseButtonText));
+            OnPropertyChanged(nameof(PhysicalDiskListVisibility));
+            OnPropertyChanged(nameof(PhysicalOpticalListVisibility));
 
             RefreshControllerOptions();
 
             if (AutoAssign) CalculateBestSlot();
             else UpdateAvailableLocations();
+
+            if (IsPhysicalSource && value == "DvdDrive") _ = LoadHostOpticalsAsync();
+        }
+
+        // 属性变更监听 - 来源(虚拟文件/物理设备)
+        partial void OnIsPhysicalSourceChanged(bool value)
+        {
+            if (value)
+            {
+                IsNewDisk = false;   // 物理来源不"新建"(新建开关也隐藏)，免得残留 true 影响后续校验
+                // 第 2 代物理来源不支持物理光驱：把类型拉回硬盘(光盘类型项也会隐藏)
+                if (SelectedVm?.Generation != 1 && DeviceType == "DvdDrive")
+                    DeviceType = "HardDisk";
+            }
+
+            OnPropertyChanged(nameof(PhysicalDiskListVisibility));
+            OnPropertyChanged(nameof(PhysicalOpticalListVisibility));
+            OnPropertyChanged(nameof(OpticalTypeOptionVisibility));
+
+            if (value && DeviceType == "DvdDrive") _ = LoadHostOpticalsAsync();
+        }
+
+        // 加载宿主物理光驱列表(物理来源 + 光盘,仅第1代)
+        private async Task LoadHostOpticalsAsync()
+        {
+            try
+            {
+                var response = await HostDiskService.GetHostOpticalDrivesAsync();
+                if (response.HasData)
+                    Application.Current.Dispatcher.Invoke(
+                        () => HostOpticals = new ObservableCollection<HostOpticalInfo>(response.Data!));
+            }
+            catch { }
         }
 
         // 属性变更监听 - 控制器类型
@@ -360,8 +404,11 @@ namespace ExHyperV.ViewModels
                 return;
             }
 
-            // 根据设备类型和新建标志验证路径
-            string target = IsPhysicalSource ? SelectedPhysicalDisk?.Number.ToString() : FilePath;
+            // 落地标识：物理光驱=宿主光驱 PNPDeviceID、物理硬盘=磁盘号、虚拟=文件路径
+            bool isPhysicalOptical = IsPhysicalSource && DeviceType == "DvdDrive";
+            string target = isPhysicalOptical
+                ? SelectedPhysicalOptical?.PnpDeviceId
+                : (IsPhysicalSource ? SelectedPhysicalDisk?.Number.ToString() : FilePath);
 
             // 只有"新建 ISO"用 IsoOutputPath 落地、FilePath 可空(下方单独校验)；其余(新建硬盘、挂载现有、物理盘)target 都是落地路径或盘号，必须非空。
             bool isNewIso = DeviceType == "DvdDrive" && IsNewDisk;
