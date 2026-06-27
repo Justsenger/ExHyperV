@@ -2234,6 +2234,15 @@ namespace ExHyperV.Properties {
         }
 
         /// <summary>
+        ///   查找类似 无法在虚拟机运行时移除 IDE 硬盘，请先关机。 的本地化字符串。
+        /// </summary>
+        public static string Error_Storage_IdeHotRemove {
+            get {
+                return ResourceManager.GetString("Error_Storage_IdeHotRemove", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   查找类似 Cannot add a new SCSI controller while the VM is running. 的本地化字符串。
         /// </summary>
         public static string Error_Storage_ScsiHotAdd {

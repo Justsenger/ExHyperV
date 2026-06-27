@@ -1086,6 +1086,9 @@
   <data name="Error_Storage_DvdHotRemove" xml:space="preserve">
     <value>无法在虚拟机运行时移除 IDE 光驱，请先关机。</value>
   </data>
+  <data name="Error_Storage_IdeHotRemove" xml:space="preserve">
+    <value>无法在虚拟机运行时移除 IDE 硬盘，请先关机。</value>
+  </data>
   <data name="Error_Storage_ScsiHotAdd" xml:space="preserve">
     <value>无法在虚拟机运行时添加新的 SCSI 控制器，请先关机。</value>
   </data>

@@ -1086,6 +1086,9 @@ The existing NAT switch is: '{0}'</value>
   <data name="Error_Storage_DvdHotRemove" xml:space="preserve">
     <value>Cannot remove an IDE DVD drive while the VM is running. Please shut down the VM first.</value>
   </data>
+  <data name="Error_Storage_IdeHotRemove" xml:space="preserve">
+    <value>Cannot remove an IDE hard disk while the VM is running. Please shut down the VM first.</value>
+  </data>
   <data name="Error_Storage_ScsiHotAdd" xml:space="preserve">
     <value>Cannot add a new SCSI controller while the VM is running. Please shut down the VM first.</value>
   </data>

@@ -759,6 +759,10 @@ namespace ExHyperV.Services
                 return (false, Properties.Resources.Error_Storage_DvdHotRemove);
             }
 
+            // 运行中不能删 IDE 硬盘(IDE 不支持热插拔)——与添加的 IdeHotAdd 对称
+            if (drive.DriveType == "HardDisk" && isRunning && drive.ControllerType == "IDE")
+                return (false, Properties.Resources.Error_Storage_IdeHotRemove);
+
             using var vmObj = WmiApi.GetVmComputerSystem(vmName);
             if (vmObj == null)
                 return (false, string.Format(Properties.Resources.Error_Vm_NotFound, vmName));
