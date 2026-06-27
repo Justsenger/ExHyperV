@@ -757,24 +757,28 @@ internal static class VmSpacetimeService
             if (vm == null) return ("SCSI", -1, -1);
             string vmGuid = vm["Name"]?.ToString() ?? "";
 
-            var usedResponse = await WmiApi.QueryAsync(
-                $"SELECT Parent, AddressOnParent FROM Msvm_ResourceAllocationSettingData WHERE ResourceType = 17 AND InstanceID LIKE 'Microsoft:{vmGuid}%'",
-                obj => $"{obj["Parent"]}_{obj["AddressOnParent"]}");
-
-            var usedRaw = usedResponse.Data ?? new List<string>();
+            // 占槽的是【任何驱动器】：磁盘(17)和 DVD(16)都算——原实现只查 17、漏了 DVD，Gen2 的 SCSI 上挂着 DVD 时该槽被误判空。
+            // 控制器匹配用 Parent 里的 InstanceID 精确比对(去 \\ 转义)——原实现 u.Contains(controllerId) 因 Parent 是双反斜杠、
+            // 控制器 InstanceID 是单反斜杠，恒不匹配 → 永远 0 命中 → 永远返回 (0,0) 撞启动盘(实测命中=0、报"位置正在使用")。
+            var driveResponse = await WmiApi.QueryAsync(
+                $"SELECT Parent, AddressOnParent FROM Msvm_ResourceAllocationSettingData WHERE (ResourceType = 16 OR ResourceType = 17) AND InstanceID LIKE 'Microsoft:{vmGuid}%'",
+                obj => (
+                    ParentId: ExtractInstanceId(obj["Parent"]?.ToString())?.Replace("\\\\", "\\") ?? "",
+                    Loc: int.TryParse(obj["AddressOnParent"]?.ToString(), out int l) ? l : -1));
+            var drives = driveResponse.Data ?? new();
 
             var ctrlResponse = await WmiApi.QueryAsync(
                 $"SELECT InstanceID FROM Msvm_ResourceAllocationSettingData WHERE ResourceType = 6 AND InstanceID LIKE 'Microsoft:{vmGuid}%'",
                 obj => obj["InstanceID"]?.ToString() ?? "");
-
             var controllers = ctrlResponse.Data ?? new List<string>();
 
             for (int c = 0; c < controllers.Count; c++)
             {
-                for (int l = 0; l < 64; l++)
+                for (int loc = 0; loc < 64; loc++)
                 {
-                    bool used = usedRaw.Any(u => u.Contains(controllers[c]) && u.EndsWith($"_{l}"));
-                    if (!used) return ("SCSI", c, l);
+                    bool used = drives.Any(d => d.Loc == loc &&
+                        string.Equals(d.ParentId, controllers[c], StringComparison.OrdinalIgnoreCase));
+                    if (!used) return ("SCSI", c, loc);
                 }
             }
 
