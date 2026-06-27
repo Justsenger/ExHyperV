@@ -555,7 +555,9 @@ namespace ExHyperV.Services
 
                 slotCreated = true;
 
-                bool hasMedia = !isPhysical && !string.IsNullOrWhiteSpace(pathOrNumber);
+                // 物理光驱直通也走 SASD(HostResource = 宿主光驱 PNPDeviceID)，与挂 ISO 同路径；物理硬盘的 HostResource 在 slot 上、不经此处。
+                bool isPhysicalOptical = isPhysical && driveType == "DvdDrive";
+                bool hasMedia = (!isPhysical || isPhysicalOptical) && !string.IsNullOrWhiteSpace(pathOrNumber);
                 if (hasMedia)
                 {
                     string mediaSubType = driveType == "DvdDrive"

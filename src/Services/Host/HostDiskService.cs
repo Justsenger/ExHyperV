@@ -57,6 +57,29 @@ namespace ExHyperV.Services
             return ApiResponse<List<HostDiskInfo>>.Ok(result);
         }
 
+        /// <summary>枚举宿主物理光驱(Win32_CDROMDrive)——用于"物理光驱直通到第 1 代 VM"。
+        /// 直通时取 PNPDeviceID 作为 DVD 的 SASD HostResource(与微软 Add-VMDvdDrive 物理直通同款)。</summary>
+        public static async Task<ApiResponse<List<HostOpticalInfo>>> GetHostOpticalDrivesAsync()
+        {
+            var resp = await WmiApi.QueryAsync(
+                "SELECT DeviceID, Drive, PNPDeviceID, Caption FROM Win32_CDROMDrive",
+                obj => new HostOpticalInfo
+                {
+                    PnpDeviceId = obj["PNPDeviceID"]?.ToString() ?? string.Empty,
+                    Drive = obj["Drive"]?.ToString() ?? string.Empty,
+                    Model = obj["Caption"]?.ToString() ?? string.Empty
+                },
+                WmiScope.CimV2);
+
+            if (!resp.Success)
+                return ApiResponse<List<HostOpticalInfo>>.Fail(resp.Error, resp.Code, resp.ErrorSource);
+
+            var result = (resp.Data ?? new List<HostOpticalInfo>())
+                .Where(o => !string.IsNullOrWhiteSpace(o.PnpDeviceId))
+                .ToList();
+            return ApiResponse<List<HostOpticalInfo>>.Ok(result);
+        }
+
         public static async Task<ApiResponse> SetDiskOfflineStatusAsync(int diskNumber, bool isOffline)
         {
             var diskResp = await WmiApi.QueryFirstCimAsync(
