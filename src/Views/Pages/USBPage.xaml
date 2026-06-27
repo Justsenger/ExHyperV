@@ -55,7 +55,7 @@
                 <ui:Card BorderThickness="1" Padding="10">
                     <Grid>
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <ui:FontIcon Glyph="&#xE88E;" FontSize="24" FontFamily="{DynamicResource SegoeFluentIcons}"/>
+                            <ui:FontIcon Glyph="&#xECF0;" FontSize="24" FontFamily="{DynamicResource SegoeFluentIcons}"/>
                             <TextBlock Text="{x:Static properties:Resources.USBPage_AssignableDevices}" FontSize="16" VerticalAlignment="Center" Margin="10,0,0,0"/>
                         </StackPanel>
                         <ui:Button HorizontalAlignment="Right"
@@ -79,7 +79,7 @@
                                 </Grid.ColumnDefinitions>
 
                                 <ui:FontIcon Grid.Column="0" 
-                                 Glyph="&#xE88E;" 
+                                 Glyph="&#xECF0;" 
                                  FontSize="24" 
                                  FontFamily="{DynamicResource SegoeFluentIcons}" 
                                  Margin="0,0,15,0"/>

@@ -88,8 +88,8 @@
     NavigationCacheMode="Enabled"
     TargetPageType="{x:Type pages:USBPage}">
                     <ui:NavigationViewItem.Icon>
-                        <!-- 使用 USB 相关的图标 -->
-                        <ui:FontIcon FontSize="16" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xE88E;"/>
+                        <!-- USB 图标，与 PCIe 页 USB 控制器一致（DeviceIcons 的 USB glyph ECF0） -->
+                        <ui:FontIcon FontSize="16" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xECF0;"/>
                     </ui:NavigationViewItem.Icon>
                 </ui:NavigationViewItem>
 
