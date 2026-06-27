@@ -1164,6 +1164,12 @@ The existing NAT switch is: '{0}'</value>
   <data name="Msg_Net_VlanApplied" xml:space="preserve">
     <value>VLAN settings applied</value>
   </data>
+  <data name="Msg_Net_MacApplied" xml:space="preserve">
+    <value>MAC address applied</value>
+  </data>
+  <data name="Error_Net_MacInvalid" xml:space="preserve">
+    <value>Invalid MAC address (12 hex digits required).</value>
+  </data>
   <data name="Msg_Net_QosApplied" xml:space="preserve">
     <value>QoS settings applied</value>
   </data>

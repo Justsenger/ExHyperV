@@ -277,6 +277,35 @@ public static class VmNetworkService
 
     // ── 高级特性配置 ──────────────────────────────────────────────
 
+    // 改静态 MAC：写 Msvm_SyntheticEthernetPortSettingData 的 Address + StaticMacAddress(本身不是 feature，用 ModifyResourceSettings)。
+    // 输入空=改回动态(系统分配)。仅合成网卡；运行中能否改由 Hyper-V 决定，失败回原始码。
+    public static async Task<(bool Success, string Message)> SetMacAddressAsync(
+        string vmName, VmNetworkAdapter adapter, string newMac)
+    {
+        string? norm = MacAddress.Normalize(newMac);
+        if (norm == null)
+            return (false, Properties.Resources.Error_Net_MacInvalid);
+
+        bool toStatic = norm.Length == 12;
+        string safeId = adapter.Id.Replace(@"\", @"\\").Replace("'", "\\'");
+
+        var result = await WmiApi.WithObjectAsync(
+            wql: $"SELECT * FROM Msvm_SyntheticEthernetPortSettingData WHERE InstanceID = '{safeId}'",
+            modifier: obj =>
+            {
+                obj["StaticMacAddress"] = toStatic;
+                if (toStatic) obj["Address"] = norm;
+            },
+            submitMethod: "ModifyResourceSettings",
+            submitParamName: "ResourceSettings",
+            wrapInArray: true,
+            serviceWql: ServiceWql);
+
+        return result.Success
+            ? (true, string.Empty)
+            : (false, FriendlyError.LastSentence(result.Error));
+    }
+
     public static async Task<(bool Success, string Message)> ApplyVlanSettingsAsync(
         string vmName, VmNetworkAdapter adapter)
     {

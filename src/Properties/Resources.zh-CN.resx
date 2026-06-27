@@ -1164,6 +1164,12 @@
   <data name="Msg_Net_VlanApplied" xml:space="preserve">
     <value>VLAN 设置已应用</value>
   </data>
+  <data name="Msg_Net_MacApplied" xml:space="preserve">
+    <value>MAC 地址已应用</value>
+  </data>
+  <data name="Error_Net_MacInvalid" xml:space="preserve">
+    <value>MAC 地址格式不正确（需 12 位十六进制）。</value>
+  </data>
   <data name="Msg_Net_QosApplied" xml:space="preserve">
     <value>流量控制设置已应用</value>
   </data>

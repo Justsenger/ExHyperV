@@ -148,14 +148,12 @@
                                         </ComboBox>
 
                                         <TextBlock Grid.Row="1" Text="{x:Static properties:Resources.Label_MacAddress}" VerticalAlignment="Center" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
-                                        <ui:Button Grid.Row="1" Grid.Column="1" Appearance="Transparent" Margin="0,0,0,12" HorizontalAlignment="Left"
-                                                   Command="{Binding DataContext.CopyToClipboardCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                   CommandParameter="{Binding MacAddress}">
-                                            <StackPanel Orientation="Horizontal">
-                                                <TextBlock Text="{Binding MacAddress}" FontFamily="Consolas" FontSize="13"/>
-                                                <ui:SymbolIcon Symbol="Copy24" FontSize="12" Margin="8,0,0,0" Foreground="{ui:ThemeResource TextFillColorTertiaryBrush}"/>
-                                            </StackPanel>
-                                        </ui:Button>
+                                        <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Margin="0,0,0,12">
+                                            <ui:TextBox Text="{Binding MacAddress, UpdateSourceTrigger=PropertyChanged}" FontFamily="Consolas" FontSize="13" Width="160" VerticalAlignment="Center"/>
+                                            <ui:Button Content="{x:Static properties:Resources.Button_Apply}" Appearance="Primary" Margin="8,0,0,0" VerticalAlignment="Center"
+                                                       Command="{Binding DataContext.ApplyMacAddressCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                       CommandParameter="{Binding}"/>
+                                        </StackPanel>
 
                                         <TextBlock Grid.Row="2" Text="{x:Static properties:Resources.Label_IpAddress}" VerticalAlignment="Top" Margin="0,5,0,0" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
                                         <ItemsControl Grid.Row="2" Grid.Column="1" ItemsSource="{Binding IpAddresses}">

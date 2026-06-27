@@ -67,12 +67,19 @@ namespace ExHyperV.ViewModels
 
                 SyncNetworkAdaptersInternal(SelectedVm.NetworkAdapters, adaptersTask.Result);
 
-                // IP 探测
+                // IP 探测：仅运行中向 guest 探 IP；关机则清掉运行时缓存的旧 IP——
+                // GetNetworkAdapters 不带 IP、且 SyncNetworkAdaptersInternal 只在非空时更新 IP，
+                // 不主动清的话关机后会一直显示上次运行时的 IPv4/IPv6。
                 if (SelectedVm.IsRunning)
                 {
                     _ = Task.Run(async () => {
                         await VmNetworkService.FillDynamicIpsAsync(SelectedVm.Name, SelectedVm.NetworkAdapters);
                     });
+                }
+                else
+                {
+                    foreach (var a in SelectedVm.NetworkAdapters)
+                        a.IpAddresses = new List<string>();
                 }
             }
             catch (Exception ex)
@@ -234,6 +241,28 @@ namespace ExHyperV.ViewModels
                     ShowError(result.Message);
                     adapter.IsConnected = !adapter.IsConnected;
                 }
+            }
+            finally
+            {
+                IsLoadingSettings = false;
+            }
+        }
+
+        // 应用 MAC 地址（改静态 MAC；输入空=改回动态）
+        [RelayCommand]
+        private async Task ApplyMacAddressAsync(VmNetworkAdapter adapter)
+        {
+            if (SelectedVm == null || adapter == null) return;
+            IsLoadingSettings = true;
+            try
+            {
+                var result = await VmNetworkService.SetMacAddressAsync(SelectedVm.Name, adapter, adapter.MacAddress);
+                if (result.Success)
+                {
+                    ShowSuccess(Properties.Resources.Msg_Net_MacApplied);
+                    await RevertAdaptersFromBackendAsync();   // 重拉后端真实 MAC(规范化显示 + 静态/动态状态)
+                }
+                else ShowError($"{Properties.Resources.Error_Net_ApplyFail}：{result.Message}");
             }
             finally
             {

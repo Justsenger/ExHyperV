@@ -13,5 +13,13 @@ namespace ExHyperV.Tools
             if (clean.Length != 12) return rawMac;
             return Regex.Replace(clean, ".{2}", "$0:").TrimEnd(':');
         }
+
+        /// <summary>规范化为 12 位无分隔大写 hex（写入 WMI Address 用）。空串=动态(返回 "")；非 12 位=非法(返回 null)。</summary>
+        public static string? Normalize(string? rawMac)
+        {
+            if (string.IsNullOrWhiteSpace(rawMac)) return string.Empty;
+            string clean = Regex.Replace(rawMac.ToUpperInvariant(), "[^0-9A-F]", "");
+            return clean.Length == 12 ? clean : null;
+        }
     }
 }

@@ -4574,6 +4574,24 @@ namespace ExHyperV.Properties {
                 return ResourceManager.GetString("Msg_Net_VlanApplied", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   查找类似 MAC 地址已应用 的本地化字符串。
+        /// </summary>
+        public static string Msg_Net_MacApplied {
+            get {
+                return ResourceManager.GetString("Msg_Net_MacApplied", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   查找类似 MAC 地址格式不正确（需 12 位十六进制）。 的本地化字符串。
+        /// </summary>
+        public static string Error_Net_MacInvalid {
+            get {
+                return ResourceManager.GetString("Error_Net_MacInvalid", resourceCulture);
+            }
+        }
         
         /// <summary>
         ///   查找类似 Settings Updated 的本地化字符串。
