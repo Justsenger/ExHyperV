@@ -2790,6 +2790,9 @@
   <data name="VmAdvanced_ConsoleTitle" xml:space="preserve">
     <value>控制台支持</value>
   </data>
+  <data name="VmAdvanced_NumLockTitle" xml:space="preserve">
+    <value>开机时启用数字小键盘</value>
+  </data>
   <data name="VmAdvanced_ConsoleHint" xml:space="preserve">
     <value>仅第 2 代虚拟机有效。关闭后无法经控制台访问，适合串流/RDP 直连。</value>
   </data>

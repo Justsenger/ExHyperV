@@ -22,6 +22,9 @@ namespace ExHyperV.ViewModels
         // 控制台支持开关（增删合成显示控制器）
         [ObservableProperty] private bool _isConsoleSupportEnabled = true;
 
+        // 启动时 NumLock（BIOSNumLock 固件设置；仅关机可改，UI 按 IsRunning 置灰、失败回弹）
+        [ObservableProperty] private bool _isBootNumLockEnabled;
+
         [RelayCommand]
         private async Task GoToAdvancedSettingsAsync()
         {
@@ -36,7 +39,10 @@ namespace ExHyperV.ViewModels
                     : Properties.Resources.VmAdvanced_ResolutionAuto;
 
                 using (SuppressApply())
+                {
                     IsConsoleSupportEnabled = await VmConsoleService.IsConsoleSupportEnabledAsync(SelectedVm.Name);
+                    IsBootNumLockEnabled = await VmBootService.GetBootNumLockAsync(SelectedVm.Name);
+                }
             }
             finally { IsLoadingSettings = false; }
         }
@@ -60,6 +66,25 @@ namespace ExHyperV.ViewModels
                 ShowError($"{Properties.Resources.VmAdvanced_ConsoleTitle}：{msg}");
                 using (SuppressApply())
                     IsConsoleSupportEnabled = !enable;   // 失败回弹开关
+            }
+        }
+
+        partial void OnIsBootNumLockEnabledChanged(bool value)
+        {
+            if (IsApplySuppressed || SelectedVm == null) return;
+            _ = ApplyBootNumLockAsync(value);
+        }
+
+        private async Task ApplyBootNumLockAsync(bool enable)
+        {
+            var (ok, msg) = await VmBootService.SetBootNumLockAsync(SelectedVm.Name, enable);
+            if (ok)
+                ShowSuccess($"{Properties.Resources.VmAdvanced_NumLockTitle}：{(enable ? Properties.Resources.Button_Enable : Properties.Resources.Common_Disabled)}");
+            else
+            {
+                ShowError($"{Properties.Resources.VmAdvanced_NumLockTitle}：{msg}");
+                using (SuppressApply())
+                    IsBootNumLockEnabled = !enable;   // 失败回弹
             }
         }
 

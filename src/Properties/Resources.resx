@@ -2790,6 +2790,9 @@ The existing NAT switch is: '{0}'</value>
   <data name="VmAdvanced_ConsoleTitle" xml:space="preserve">
     <value>Console Support</value>
   </data>
+  <data name="VmAdvanced_NumLockTitle" xml:space="preserve">
+    <value>Enable NumLock at boot</value>
+  </data>
   <data name="VmAdvanced_ConsoleHint" xml:space="preserve">
     <value>Generation 2 VMs only. When off, the VM cannot be accessed via the console — suitable for streaming/RDP.</value>
   </data>

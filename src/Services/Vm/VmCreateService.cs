@@ -133,6 +133,9 @@ namespace ExHyperV.Services
                 vssd["SnapshotDataRoot"] = Path.Combine(p.Path, finalVmName);
                 vssd["SwapFileDataRoot"] = Path.Combine(p.Path, finalVmName);
 
+                // 新建即默认启动时 NumLock 开（Gen2 默认关，会致控制台连上把宿主 NumLock 带掉）；TrySetAlways 内置 HasProperty 守卫，防个别 build 无此属性
+                vssd.TrySetAlways("BIOSNumLock", true);
+
                 if (p.Generation == 2 && p.IsolationType != "Disabled" &&
                     !string.IsNullOrEmpty(p.IsolationType))
                 {

@@ -8037,6 +8037,10 @@ namespace ExHyperV.Properties {
             get { return ResourceManager.GetString("VmAdvanced_ConsoleTitle", resourceCulture); }
         }
 
+        public static string VmAdvanced_NumLockTitle {
+            get { return ResourceManager.GetString("VmAdvanced_NumLockTitle", resourceCulture); }
+        }
+
         public static string VmAdvanced_ConsoleHint {
             get { return ResourceManager.GetString("VmAdvanced_ConsoleHint", resourceCulture); }
         }
