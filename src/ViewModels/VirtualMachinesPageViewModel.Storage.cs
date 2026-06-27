@@ -297,11 +297,15 @@ namespace ExHyperV.ViewModels
 
             RefreshAvailableNumbers(value);
 
-            // 手动切换时也使用跳变技巧，确保 UI 同步
-            SelectedControllerNumber = -2;
-            SelectedControllerNumber = AvailableControllerNumbers.FirstOrDefault();
-
-            UpdateAvailableLocations();
+            // 切控制器类型会让"编号"和"位置"两个 ComboBox 的 ItemsSource 同时重建；若在此同步设值，
+            // 会被容器的异步重建冲掉——表现为 1 代关自动分配、硬盘切光驱时位置丢空。
+            // 延迟到 Loaded 优先级、等容器生成后再用跳变设值（与 SetSlot 同款保护）。
+            Application.Current.Dispatcher.BeginInvoke(new Action(() =>
+            {
+                SelectedControllerNumber = -2;
+                SelectedControllerNumber = AvailableControllerNumbers.FirstOrDefault();
+                UpdateAvailableLocations();
+            }), System.Windows.Threading.DispatcherPriority.Loaded);
         }
 
         // 属性变更监听 - 控制器编号
@@ -718,11 +722,11 @@ namespace ExHyperV.ViewModels
                 return;
             }
 
-            // 如果当前位置不在新列表中，重置为第一个可用位置
-            if (!AvailableLocations.Contains(SelectedLocation))
-            {
-                SelectedLocation = AvailableLocations[0];
-            }
+            // 跳变 -2 再设目标，强制位置 ComboBox 刷新 SelectedItem——ItemsSource 刚 Clear+重填，
+            // 目标若与当前值相同则直设不触发更新、ComboBox 会停在空选中态（位置显示丢空的另一半原因）。
+            int target = AvailableLocations.Contains(SelectedLocation) ? SelectedLocation : AvailableLocations[0];
+            SelectedLocation = -2;
+            SelectedLocation = target;
         }
         // 刷新控制器选项
         private void RefreshControllerOptions()
