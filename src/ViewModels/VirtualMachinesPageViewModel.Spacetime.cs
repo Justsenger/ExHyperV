@@ -53,6 +53,9 @@ namespace ExHyperV.ViewModels
         /// </summary>
         private bool CanOperateHistoricalNode => SelectedSpacetimeNode != null &&
                                                 SelectedSpacetimeNode.NodeType == SpacetimeNodeType.Snapshot;
+        // 开虫洞:该快照尚无虫洞;关虫洞:该快照已有虫洞——按当前状态精确门控(避免点错按钮再弹错)
+        private bool CanOpenWormhole => CanOperateHistoricalNode && !SelectedSpacetimeNode!.IsWormhole;
+        private bool CanCloseWormhole => CanOperateHistoricalNode && SelectedSpacetimeNode!.IsWormhole;
 
         [RelayCommand]
         private async Task CommitSpacetimeRenameAsync(SpacetimeNode node)
@@ -184,12 +187,19 @@ namespace ExHyperV.ViewModels
             IsLoadingSettings = true;
             try
             {
-                // 穿梭前关闭所有虫洞
+                // 穿梭前关闭所有虫洞；关失败则中止——否则带着挂着的临时盘应用快照会状态错乱
                 var wormholeNodes = SpacetimeNodes?.Where(n => n.IsWormhole).ToList();
                 if (wormholeNodes != null && wormholeNodes.Any())
                 {
                     foreach (var wNode in wormholeNodes)
-                        await VmSpacetimeService.CloseWormholeAsync(SelectedVm.Name, wNode);
+                    {
+                        var closeRes = await VmSpacetimeService.CloseWormholeAsync(SelectedVm.Name, wNode);
+                        if (!closeRes.Success)
+                        {
+                            ShowError(closeRes.Message);
+                            return;
+                        }
+                    }
                 }
 
                 string targetName = SelectedSpacetimeNode.Name;
@@ -223,12 +233,16 @@ namespace ExHyperV.ViewModels
                     await GoToSpacetimeSettingsAsync();
                     ShowSuccess(Properties.Resources.VmPage_MsgSpacetimeAnnihilated2);
                 }
+                else
+                {
+                    ShowError(result.Message);
+                }
             }
             finally { IsLoadingSettings = false; }
         }
 
         // 开启虫洞
-        [RelayCommand(CanExecute = nameof(CanOperateHistoricalNode))]
+        [RelayCommand(CanExecute = nameof(CanOpenWormhole))]
         private async Task OpenWormhole()
         {
             if (SelectedSpacetimeNode == null || SelectedVm == null) return;
@@ -252,7 +266,7 @@ namespace ExHyperV.ViewModels
             finally { IsLoadingSettings = false; }
         }
 
-        [RelayCommand(CanExecute = nameof(CanOperateHistoricalNode))]
+        [RelayCommand(CanExecute = nameof(CanCloseWormhole))]
         private async Task CloseWormhole()
         {
             if (SelectedSpacetimeNode == null || SelectedVm == null) return;
@@ -296,6 +310,10 @@ namespace ExHyperV.ViewModels
                     await Task.Delay(800);
                     await GoToSpacetimeSettingsAsync();
                     ShowSuccess(Properties.Resources.VmPage_MsgSpacetimeConverged2);
+                }
+                else
+                {
+                    ShowError(result.Message);
                 }
             }
             finally { IsLoadingSettings = false; }

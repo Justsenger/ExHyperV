@@ -149,7 +149,8 @@ internal static class VmSpacetimeService
             result.Add(currentNode);
 
             currentNode.Thumbnail = await VmScreenshotService.CaptureAsync(vmName, 280, 160);
-            _ = Task.Run(async () => await DetectAndMarkWormholeAsync(vmName, result));
+            // 同步等检测完成再返回：虫洞标记在节点绑定到 UI 之前落定，避免后台线程改已绑定的 IsWormhole(跨线程更新)
+            await DetectAndMarkWormholeAsync(vmName, result);
 
             return result;
         }
@@ -239,9 +240,12 @@ internal static class VmSpacetimeService
         if (string.IsNullOrEmpty(diskDir))
             return (false, Properties.Resources.VmSpacetimeService_ErrCannotDetermineDiskDir);
 
-        // 清理上次未正常关闭的虫洞残留：先从 VM 卸载，再删文件
+        // 清理上次未正常关闭的虫洞残留：先从 VM 卸载、删 tmp，再把被改名的父盘改回
         if (File.Exists(tmpDisk))
         {
+            // 先记下 tmp 的父盘(某 _renamed.vhdx)，卸载+删 tmp 后改回 .avhdx，否则那个快照盘永久缺失
+            string staleParent = await GetVhdParentPathAsync(tmpDisk);
+
             // 尝试找到并卸载残留的虫洞盘
             var vmGuidResp = await WmiApi.QueryFirstAsync(
                 $"SELECT Name FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(vmName)}'",
@@ -276,6 +280,15 @@ internal static class VmSpacetimeService
                 }
             }
             try { File.Delete(tmpDisk); } catch { }
+
+            // 还原被改名的父盘：_renamed.vhdx → .avhdx（best-effort：取不到/已存在则跳过，不会比旧实现更糟）
+            if (!string.IsNullOrEmpty(staleParent) &&
+                staleParent.EndsWith("_renamed.vhdx", StringComparison.OrdinalIgnoreCase))
+            {
+                string restored = staleParent.Replace("_renamed.vhdx", ".avhdx", StringComparison.OrdinalIgnoreCase);
+                if (File.Exists(staleParent) && !File.Exists(restored))
+                    try { File.Move(staleParent, restored); } catch { }
+            }
         }
 
         var (ctrlType, ctrlNum, ctrlLoc) = await FindFreeScsiSlotAsync(vmName);
@@ -683,13 +696,16 @@ internal static class VmSpacetimeService
         if (!ctrlIdMatch.Success) return ("SCSI", 0, ctrlLoc);
 
         string ctrlId = ctrlIdMatch.Groups[1].Value.Replace("\\\\", "\\");
-        string escapedCtrlId = ctrlId.Replace("\\", "\\\\").Replace("'", "\\'");
 
-        var ctrlResponse = await WmiApi.QueryFirstAsync(
-            $"SELECT Address FROM Msvm_ResourceAllocationSettingData WHERE InstanceID = '{escapedCtrlId}'",
-            obj => Convert.ToInt32(obj["Address"] ?? 0));
+        // 控制器号取“在 SCSI 控制器列表中的索引”——与 FindFreeScsiSlot/AddDrive/存储加载一致(全用索引、非 WMI Address)。
+        // 单控制器下 Address 恰好=索引 0，旧实现碰巧对；多控制器+跨会话(重启后检测到的虫洞)才暴露错位。
+        var ctrlListResp = await WmiApi.QueryAsync(
+            $"SELECT InstanceID FROM Msvm_ResourceAllocationSettingData WHERE ResourceType = 6 AND InstanceID LIKE 'Microsoft:{vmGuid}%'",
+            obj => obj["InstanceID"]?.ToString() ?? "");
+        var ctrlList = ctrlListResp.Data ?? new List<string>();
+        int ctrlIdx = ctrlList.FindIndex(id => string.Equals(id, ctrlId, StringComparison.OrdinalIgnoreCase));
 
-        return ("SCSI", ctrlResponse.Data, ctrlLoc);
+        return ("SCSI", ctrlIdx >= 0 ? ctrlIdx : 0, ctrlLoc);
     }
 
     /// <summary>
