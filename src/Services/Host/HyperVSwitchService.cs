@@ -364,15 +364,15 @@ namespace ExHyperV.Services
                     case SwitchMode.Bridge:
                         if (string.IsNullOrEmpty(adapterDescription))
                             throw new ArgumentException(Properties.Resources.Error_ExternalSwitchRequiresPhysicalAdapter);
-                        // 桥接(外部)交换机不预加 Internal 端口，避免产生 vEthernet ()
-                        // 用户可通过 Host Connection 开关事后开启
+                        // 桥接：外部端口 + 主机管理端口都加，宿主与虚拟机一同接入该外部交换机
+                        // (会生成 vEthernet (交换机名) 主机网卡；桥接下主机连接固定开启，无单独开关)
                         await CreateSwitchWmiAsync(name, isExternal: true, adapterDescription, allowManagementOS: true);
                         break;
 
                     case SwitchMode.NAT:
                         await CreateSwitchWmiAsync(name, isExternal: false, null, allowManagementOS: true);
                         await Task.Delay(3000);
-                        await UpdateSwitchConfigurationAsync(name, SwitchMode.NAT, adapterDescription, true, true);
+                        await UpdateSwitchConfigurationAsync(name, SwitchMode.NAT, adapterDescription, true);
                         break;
 
                     case SwitchMode.Isolated:
@@ -464,9 +464,6 @@ namespace ExHyperV.Services
                 if (!addResult.Success)
                     throw new InvalidOperationException(addResult.Error);
             }
-            else
-            {
-            }
         });
 
         // ══════════════════════════════════════════════════════════════════
@@ -476,11 +473,12 @@ namespace ExHyperV.Services
         {
             try
             {
-                // ICS 清理加超时保护，避免桥接状态下枚举网络连接卡死
-                var icsTask = ComApi.DisableAllIcsSharingAsync();
+                // 仅当被删交换机自身配了 ICS(NAT)时才清理；超时保护避免枚举网络连接卡死
+                // (无条件 DisableAll 会连带关掉别的 NAT 交换机——ICS 全局只有一份共享)
+                var icsTask = DisableIcsIfPresentAsync(switchName);
                 await Task.WhenAny(icsTask, Task.Delay(5000));
                 if (!icsTask.IsCompleted)
-                    Debug.WriteLine("[DeleteSwitch] DisableAllIcsSharing timeout, continuing anyway.");
+                    Debug.WriteLine("[DeleteSwitch] ICS cleanup timeout, continuing anyway.");
 
                 var switchResp = await WmiApi.QueryAsync(
                     $"SELECT * FROM Msvm_VirtualEthernetSwitch WHERE ElementName = '{WmiApi.Escape(switchName)}'",
@@ -512,7 +510,7 @@ namespace ExHyperV.Services
         // ══════════════════════════════════════════════════════════════════
         public static async Task UpdateSwitchConfigurationAsync(
             string switchName, SwitchMode mode, string? adapterDescription,
-            bool allowManagementOS, bool enableDhcp)
+            bool allowManagementOS)
         {
             switch (mode)
             {
@@ -531,12 +529,22 @@ namespace ExHyperV.Services
             }
         }
 
+        // 仅当本交换机当前确实配了 ICS(即它就是那台 NAT 交换机)时才清理。
+        // ICS 全局只有一份共享,无条件 DisableAll 会把别的 NAT 交换机也一并关掉;
+        // 判断复用工具自身的 NAT 检测函数 GetIcsSourceAdapter。
+        private static async Task DisableIcsIfPresentAsync(string switchName)
+        {
+            var ics = await ComApi.GetIcsSourceAdapterAsync(switchName);
+            if (ics.Success && ics.Data != null)
+                await ComApi.DisableAllIcsSharingAsync();
+        }
+
         private static async Task SetBridgeModeAsync(string switchName, string? adapterDescription, bool allowManagementOS = true)
         {
             if (string.IsNullOrEmpty(adapterDescription))
                 throw new ArgumentException("Bridge mode requires a physical adapter.");
 
-            await ComApi.DisableAllIcsSharingAsync();
+            await DisableIcsIfPresentAsync(switchName);
 
             var ms = WmiConnectionCache.GetManagementScope(WmiScope.HyperV, WmiContext.Local);
             using var switchObj = await GetSwitchObjectAsync(switchName);
@@ -604,7 +612,7 @@ namespace ExHyperV.Services
             var ms = WmiConnectionCache.GetManagementScope(WmiScope.HyperV, WmiContext.Local);
             using var switchObj = await GetSwitchObjectAsync(switchName);
             await EnsureInternalModeAsync(switchObj, ms, switchName);
-            await ComApi.DisableAllIcsSharingAsync();
+            await DisableIcsIfPresentAsync(switchName);
 
             bool hasInternal = await HasInternalPortAsync(switchObj);
 

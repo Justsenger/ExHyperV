@@ -214,8 +214,7 @@ namespace ExHyperV.ViewModels
                     changedSwitch.SwitchName,
                     changedSwitch.SelectedNetworkMode,
                     changedSwitch.SelectedUpstreamAdapter,
-                    changedSwitch.IsHostConnectionAllowed,
-                    false
+                    changedSwitch.IsHostConnectionAllowed
                 );
 
                 await RefreshDataModels();
