@@ -1899,6 +1899,18 @@
   <data name="VmPage_IsoNotFound" xml:space="preserve">
     <value>指定的 ISO 镜像文件不存在</value>
   </data>
+  <data name="VmPage_InvalidCpuCount" xml:space="preserve">
+    <value>处理器数量必须为大于 0 的整数</value>
+  </data>
+  <data name="VmPage_InvalidMemory" xml:space="preserve">
+    <value>启动内存必须为不小于 32 的整数（MB）</value>
+  </data>
+  <data name="VmPage_InvalidDiskSize" xml:space="preserve">
+    <value>磁盘容量必须为大于 0 的整数（GB）</value>
+  </data>
+  <data name="VmPage_CreateOptionsLoadFail" xml:space="preserve">
+    <value>加载创建选项时出错，部分默认值可能不准确</value>
+  </data>
   <data name="VmPage_VmCreated" xml:space="preserve">
     <value>虚拟机 {0} 已成功创建并配置。</value>
   </data>

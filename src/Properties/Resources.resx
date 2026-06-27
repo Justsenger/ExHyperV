@@ -1899,6 +1899,18 @@ The existing NAT switch is: '{0}'</value>
   <data name="VmPage_IsoNotFound" xml:space="preserve">
     <value>The specified ISO image file does not exist</value>
   </data>
+  <data name="VmPage_InvalidCpuCount" xml:space="preserve">
+    <value>Processor count must be an integer greater than 0</value>
+  </data>
+  <data name="VmPage_InvalidMemory" xml:space="preserve">
+    <value>Startup memory must be an integer no less than 32 (MB)</value>
+  </data>
+  <data name="VmPage_InvalidDiskSize" xml:space="preserve">
+    <value>Disk capacity must be an integer greater than 0 (GB)</value>
+  </data>
+  <data name="VmPage_CreateOptionsLoadFail" xml:space="preserve">
+    <value>Failed to load creation options; some defaults may be inaccurate</value>
+  </data>
   <data name="VmPage_VmCreated" xml:space="preserve">
     <value>Virtual machine {0} has been successfully created and configured.</value>
   </data>

@@ -6148,6 +6148,42 @@ namespace ExHyperV.Properties {
                 return ResourceManager.GetString("VmPage_IsoNotFound", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   查找类似 处理器数量必须为大于 0 的整数 的本地化字符串。
+        /// </summary>
+        public static string VmPage_InvalidCpuCount {
+            get {
+                return ResourceManager.GetString("VmPage_InvalidCpuCount", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   查找类似 启动内存必须为不小于 32 的整数（MB） 的本地化字符串。
+        /// </summary>
+        public static string VmPage_InvalidMemory {
+            get {
+                return ResourceManager.GetString("VmPage_InvalidMemory", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   查找类似 磁盘容量必须为大于 0 的整数（GB） 的本地化字符串。
+        /// </summary>
+        public static string VmPage_InvalidDiskSize {
+            get {
+                return ResourceManager.GetString("VmPage_InvalidDiskSize", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   查找类似 加载创建选项时出错，部分默认值可能不准确 的本地化字符串。
+        /// </summary>
+        public static string VmPage_CreateOptionsLoadFail {
+            get {
+                return ResourceManager.GetString("VmPage_CreateOptionsLoadFail", resourceCulture);
+            }
+        }
         
         /// <summary>
         ///   查找类似 Modification failed 的本地化字符串。

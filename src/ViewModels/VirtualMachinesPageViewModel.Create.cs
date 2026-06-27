@@ -23,11 +23,6 @@ namespace ExHyperV.ViewModels
         // 当名称变化时，自动更新磁盘路径
         partial void OnNewVmNameChanged(string value)
         {
-            // 如果这个变化不是在初始化过程中发生的，则标记为用户手动修改
-            if (!IsLoadingSettings)
-            {
-                _isNameModifiedByUser = true;
-            }
             UpdateDiskPath();
         }
 
@@ -147,7 +142,6 @@ namespace ExHyperV.ViewModels
         // 存储探测到的类型列表
         [ObservableProperty]
         private ObservableCollection<string> _supportedIsolationTypes = new() { "Disabled" };
-        private bool _isNameModifiedByUser = false;
         private bool _isDiskPathManual = false; // 用户是否手动选过磁盘路径（手动后不再自动联动）；仅本模块使用（原误置于核心 .cs）
 
 
@@ -174,7 +168,6 @@ namespace ExHyperV.ViewModels
             IsLoadingSettings = true;
             IsCreatingVm = true;
             SelectedVm = null;
-            _isNameModifiedByUser = false; // 重置用户手动修改名称的标记
             _isDiskPathManual = false;     // 重置用户手动选择磁盘路径的标记
 
             // --- 2. 基础配置默认值初始化 ---
@@ -261,9 +254,10 @@ namespace ExHyperV.ViewModels
             }
             catch (Exception ex)
             {
-                // 如果报错（比如宿主没装 Hyper-V 网络组件），至少保证有一个“未连接”可选
+                // 探测失败（如宿主没装 Hyper-V 网络组件）：保证至少有“未连接”可选，并提示用户部分选项可能不准确
                 AvailableSwitchNames = new ObservableCollection<string> { Properties.Resources.Common_None };
                 NewVmSelectedSwitch = AvailableSwitchNames[0];
+                ShowError($"{Properties.Resources.VmPage_CreateOptionsLoadFail}：{FriendlyError.CleanLines(ex.Message)}");
                 Debug.WriteLine($"[CREATE-VM-NET-ERROR] {ex.Message}");
             }
 
@@ -333,11 +327,7 @@ namespace ExHyperV.ViewModels
                 return;
             }
 
-            // --- 2. 存储路径验证 ---
-            string rootPath = string.IsNullOrWhiteSpace(NewVmStoragePath) ? @"C:\Virtual Machines" : NewVmStoragePath;
-            string targetVmDir = Path.Combine(rootPath, NewVmName);
-
-            // --- 3. 磁盘模式深度验证 ---
+            // --- 2. 磁盘模式深度验证 ---
             if (NewVmDiskMode == 0) // 新建磁盘
             {
                 if (string.IsNullOrWhiteSpace(NewVmNewDiskPath))
@@ -367,18 +357,34 @@ namespace ExHyperV.ViewModels
                 ShowTip(Properties.Resources.VmPage_IsoNotFound);
                 return;
             }
-            // --- 2. 组装专用 Model ---
+
+            // --- 5. 计算资源数值校验（IsEditable 下拉可输入任意串，挡掉非法/0/负数，避免静默回退默认值或建机失败）---
+            if (!int.TryParse(NewVmProcessorCount, out var cpuCount) || cpuCount < 1)
+            {
+                ShowTip(Properties.Resources.VmPage_InvalidCpuCount);
+                return;
+            }
+            if (!long.TryParse(NewVmMemoryMb, out var memoryMb) || memoryMb < 32)
+            {
+                ShowTip(Properties.Resources.VmPage_InvalidMemory);
+                return;
+            }
+            if (NewVmDiskMode == 0 && (!long.TryParse(NewVmDiskSizeGb, out var diskSize) || diskSize < 1))
+            {
+                ShowTip(Properties.Resources.VmPage_InvalidDiskSize);
+                return;
+            }
+
+            // --- 组装专用 Model（数值已校验，直接用解析结果）---
             var request = new VmCreationParams
             {
                 Name = NewVmName,
-                IsManualName = _isNameModifiedByUser, // 告诉 Service 是否要加后缀
                 Path = NewVmStoragePath,
                 Version = SelectedVersion,
                 Generation = NewVmGeneration,
 
-                // 解析 UI 字符串 (ComboBox IsEditable=True)
-                ProcessorCount = int.TryParse(NewVmProcessorCount, out var cpu) ? cpu : 4,
-                MemoryMb = long.TryParse(NewVmMemoryMb, out var mem) ? mem : 4096,
+                ProcessorCount = cpuCount,
+                MemoryMb = memoryMb,
                 EnableDynamicMemory = NewVmDynamicMemory,
 
                 // 安全设置
@@ -390,6 +396,7 @@ namespace ExHyperV.ViewModels
                 DiskMode = NewVmDiskMode,
                 DiskSizeGb = long.TryParse(NewVmDiskSizeGb, out var ds) ? ds : 128,
                 VhdPath = NewVmDiskMode == 0 ? NewVmNewDiskPath : NewVmExistingDiskPath,
+                IsDiskPathManual = _isDiskPathManual,
                 IsoPath = NewVmIsoPath,
 
                 // 网络与动作

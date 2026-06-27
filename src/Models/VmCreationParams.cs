@@ -5,8 +5,6 @@
         // --- 常规 ---
         public string Name { get; set; } = "NewVM";
 
-        // 标记用户是否手动修改了名称
-        public bool IsManualName { get; set; }
         public string Path { get; set; } = string.Empty;
         public string Version { get; set; } = "8.0";
         public int Generation { get; set; } = 2;
@@ -25,6 +23,7 @@
         public int DiskMode { get; set; } = 0; // 0:新建, 1:现有, 2:稍后
         public long DiskSizeGb { get; set; } = 128;
         public string VhdPath { get; set; } = string.Empty; // 对应 NewVmNewDiskPath 或 NewVmExistingDiskPath
+        public bool IsDiskPathManual { get; set; } // 模式0用户是否手选过保存位置：true 则 Service 不覆盖 VhdPath
         public string IsoPath { get; set; } = string.Empty;
 
         // --- 网络 ---

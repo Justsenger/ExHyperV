@@ -110,7 +110,9 @@ namespace ExHyperV.Services
                 if (!Directory.Exists(vmHomeFolder))
                     Directory.CreateDirectory(vmHomeFolder);
 
-                if (p.DiskMode == 0)
+                // 新建磁盘：用户没手选保存位置时，默认放进 VM 目录、并跟随查重改名后的最终名；
+                // 手选过(IsDiskPathManual)则尊重用户选的完整路径，不覆盖。
+                if (p.DiskMode == 0 && !p.IsDiskPathManual)
                     p.VhdPath = Path.Combine(vmHomeFolder, $"{finalVmName}.vhdx");
 
                 // ── Step 2: DefineSystem 创建 VM ──────────────────
@@ -153,12 +155,13 @@ namespace ExHyperV.Services
                 if (!defineResp.Success)
                     return (false, defineResp.Error);
 
+                // DefineSystem 已成功，VM 此刻可能/已在 Hyper-V 中创建——此后任一步骤(含下面取路径/GUID)失败都
+                // 必须走 catch 回滚删除，避免留孤儿半成品。故标志位提前到这里、后续失败一律 throw 而非 return。
+                vmCreated = true;
+
                 string? vmPath = defineResp.Data?.FirstOrDefault();
                 if (string.IsNullOrEmpty(vmPath))
-                    return (false, Properties.Resources.Error_VmCreate_NoSystemPath);
-
-                // VM 已在 Hyper-V 中创建——此后任一步骤失败都需回滚删除,避免留孤儿半成品
-                vmCreated = true;
+                    throw new InvalidOperationException(Properties.Resources.Error_VmCreate_NoSystemPath);
 
                 // ── Step 3: 取新 VM 的 Name（GUID）───────────────
                 string vmGuid;
@@ -169,7 +172,7 @@ namespace ExHyperV.Services
                 }
 
                 if (string.IsNullOrEmpty(vmGuid))
-                    return (false, Properties.Resources.Error_VmCreate_NoGuid);
+                    throw new InvalidOperationException(Properties.Resources.Error_VmCreate_NoGuid);
 
                 // ── Step 4: 处理器设置 ────────────────────────────
                 var procSettings = new VmProcessorSettings { Count = p.ProcessorCount };
