@@ -106,7 +106,8 @@ namespace ExHyperV.ViewModels
             await LoadAdvancedConfigAsync();
             IsGpuStrategyToggleEnabled = true;
             IsNativeNvmeToggleEnabled = true;
-            IsSystemSwitchEnabled = true;
+            // 切换服务器版本是给"非 Server 系统"准备的黑魔法；本机已是 Server 则无意义，开关置灰
+            IsSystemSwitchEnabled = !IsServerSystem;
         }
 
         private async Task LoadAdvancedConfigAsync()
@@ -250,7 +251,7 @@ namespace ExHyperV.ViewModels
                 ShowError(ex.Message);
                 _isInitialized = false; IsServerSystem = !toServer; _isInitialized = true;
             }
-            finally { IsSystemSwitchEnabled = true; }
+            finally { IsSystemSwitchEnabled = !IsServerSystem; }
         }
 
 
