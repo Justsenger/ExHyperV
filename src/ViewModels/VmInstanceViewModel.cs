@@ -456,9 +456,14 @@ namespace ExHyperV.ViewModels
 
         public void UpdateMemoryStatus(long assignedMb, int availablePercent)
         {
-            if (!IsRunning || assignedMb == 0)
+            if (!IsRunning)
             {
                 AssignedMemoryGb = 0; DemandMemoryGb = 0; UpdateHistoryPoints(0); return;
+            }
+            if (assignedMb == 0)
+            {
+                // 运行中但 guest 没报告内存使用(静态内存 / 无集成服务，查不到 demand)——按满额(已分配全部)显示，而非 0
+                AssignedMemoryGb = MemoryGb; DemandMemoryGb = MemoryGb; UpdateHistoryPoints(100); return;
             }
             AssignedMemoryGb = assignedMb / 1024.0;
             double usedPercentage = (100 - availablePercent) / 100.0;
