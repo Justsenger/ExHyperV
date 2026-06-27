@@ -53,8 +53,6 @@ public static class VmNetworkService
 
             if (string.IsNullOrEmpty(fullPortId)) continue;
 
-            string deviceGuid = fullPortId.Split('\\').Last();
-
             var adapter = new VmNetworkAdapter
             {
                 Id = fullPortId,
@@ -63,8 +61,10 @@ public static class VmNetworkService
                 IsStaticMac = port.TryGet<bool>("StaticMacAddress") ?? false
             };
 
+            // allocation 的 InstanceID = port + "\<段>"(实测:合成 port 2 段、旧版 3 段含 \0，allocation 都在其后再多一段)。
+            // 用前缀匹配，别再 Split.Last()+Contains——旧版 Split.Last() 取到的是 "0"、Contains 会乱匹配到别的网卡。
             var allocation = allAllocs.FirstOrDefault(a =>
-                a["InstanceID"]?.ToString().Contains(deviceGuid, StringComparison.OrdinalIgnoreCase) == true);
+                (a["InstanceID"]?.ToString() ?? "").StartsWith(fullPortId + "\\", StringComparison.OrdinalIgnoreCase));
 
             if (allocation != null)
             {
@@ -221,7 +221,7 @@ public static class VmNetworkService
         string escapedId = id.Replace("\\", "\\\\");
 
         var pathResponse = await WmiApi.QueryFirstAsync(
-            $"SELECT * FROM Msvm_SyntheticEthernetPortSettingData WHERE InstanceID = '{escapedId}'",
+            $"SELECT * FROM {PortSettingClass(id)} WHERE InstanceID = '{escapedId}'",
             obj => obj.Path.Path);
 
         if (!pathResponse.HasData)
@@ -243,7 +243,7 @@ public static class VmNetworkService
         string escapedId = adapter.Id.Replace("\\", "\\\\");
 
         var xmlResponse = await WmiApi.QueryFirstAsync(
-            $"SELECT * FROM Msvm_SyntheticEthernetPortSettingData WHERE InstanceID = '{escapedId}'",
+            $"SELECT * FROM {PortSettingClass(adapter.Id)} WHERE InstanceID = '{escapedId}'",
             port =>
             {
                 using var allocation = port.GetRelated("Msvm_EthernetPortAllocationSettingData")
@@ -277,8 +277,8 @@ public static class VmNetworkService
 
     // ── 高级特性配置 ──────────────────────────────────────────────
 
-    // 改静态 MAC：写 Msvm_SyntheticEthernetPortSettingData 的 Address + StaticMacAddress(本身不是 feature，用 ModifyResourceSettings)。
-    // 输入空=改回动态(系统分配)。仅合成网卡；运行中能否改由 Hyper-V 决定，失败回原始码。
+    // 改静态 MAC：写网卡 setting(合成/旧版按 PortSettingClass 派发到对应类)的 Address + StaticMacAddress(本身不是 feature，用 ModifyResourceSettings)。
+    // 输入空=改回动态(系统分配)。运行中能否改由 Hyper-V 决定，失败回原始码。
     public static async Task<(bool Success, string Message)> SetMacAddressAsync(
         string vmName, VmNetworkAdapter adapter, string newMac)
     {
@@ -289,28 +289,16 @@ public static class VmNetworkService
         bool toStatic = norm.Length == 12;
         string safeId = adapter.Id.Replace(@"\", @"\\").Replace("'", "\\'");
 
-        void Apply(ManagementObject obj)
-        {
-            obj["StaticMacAddress"] = toStatic;
-            if (toStatic) obj["Address"] = norm;
-        }
-
-        // 先按合成网卡改；查不到(旧版/模拟网卡在 Emulated 类)再回退试 Emulated
+        // 按网卡类型派发到对应 setting 类(旧版=Emulated、合成=Synthetic;段数判断见 PortSettingClass)，一次定位、错误即真因。
         var result = await WmiApi.WithObjectAsync(
-            wql: $"SELECT * FROM Msvm_SyntheticEthernetPortSettingData WHERE InstanceID = '{safeId}'",
-            modifier: Apply,
+            wql: $"SELECT * FROM {PortSettingClass(adapter.Id)} WHERE InstanceID = '{safeId}'",
+            modifier: obj =>
+            {
+                obj["StaticMacAddress"] = toStatic;
+                if (toStatic) obj["Address"] = norm;
+            },
             submitMethod: "ModifyResourceSettings", submitParamName: "ResourceSettings",
             wrapInArray: true, serviceWql: ServiceWql);
-
-        if (!result.Success)
-        {
-            var emu = await WmiApi.WithObjectAsync(
-                wql: $"SELECT * FROM Msvm_EmulatedEthernetPortSettingData WHERE InstanceID = '{safeId}'",
-                modifier: Apply,
-                submitMethod: "ModifyResourceSettings", submitParamName: "ResourceSettings",
-                wrapInArray: true, serviceWql: ServiceWql);
-            if (emu.Success) result = emu;
-        }
 
         return result.Success
             ? (true, string.Empty)
@@ -408,6 +396,13 @@ public static class VmNetworkService
 
     // ── 内部逻辑 ──────────────────────────────────────────────
 
+    // 网卡 setting 所在的 WMI 类:旧版网卡 InstanceID 3 段(Microsoft:VMGUID\DEVICEGUID\0)属 Emulated 类，
+    // 合成网卡 2 段(Microsoft:VMGUID\DEVICEGUID)属 Synthetic 类。按段数派发(本机实测确认)。
+    private static string PortSettingClass(string instanceId) =>
+        (instanceId ?? "").Split('\\').Length >= 3
+            ? "Msvm_EmulatedEthernetPortSettingData"
+            : "Msvm_SyntheticEthernetPortSettingData";
+
     private static async Task<(bool Success, string Message)> EnsureAndModifyFeatureAsync(
         string portId, string featureClass, Action<ManagementObject> updateAction)
     {
@@ -416,7 +411,7 @@ public static class VmNetworkService
             string escapedId = portId.Replace("\\", "\\\\");
 
             var xmlInfo = await WmiApi.QueryFirstAsync(
-                $"SELECT * FROM Msvm_SyntheticEthernetPortSettingData WHERE InstanceID = '{escapedId}'",
+                $"SELECT * FROM {PortSettingClass(portId)} WHERE InstanceID = '{escapedId}'",
                 port =>
                 {
                     using var allocation = port.GetRelated("Msvm_EthernetPortAllocationSettingData")
