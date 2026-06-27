@@ -835,7 +835,9 @@ namespace ExHyperV.Services
             if (!removeResult.Success)
                 return (false, FriendlyError.LastSentence(removeResult.Error));
 
-            if (drive.DiskType == "Physical" && drive.DiskNumber > -1)
+            // 仅物理硬盘直通才需把宿主盘还原上线；物理光驱(DvdDrive)也是 DiskType=="Physical" 但无关联磁盘号(默认 0)，
+            // 不加 DriveType 限定会误把宿主磁盘 0 上线。
+            if (drive.DiskType == "Physical" && drive.DriveType == "HardDisk" && drive.DiskNumber > -1)
             {
                 await Task.Delay(500);
                 await HostDiskService.SetDiskOfflineStatusAsync(drive.DiskNumber, false);
