@@ -110,6 +110,27 @@ public static class VmBootService
         });
     }
 
+    // 将安装介质(ISO)所在的光盘引导项移到引导顺序首位。复用 GetBootOrderAsync/SetBootOrderAsync，
+    // Gen1/Gen2 通用：两代下光盘引导项的 Description 均为挂载的介质文件名(以 .iso 结尾)，据此定位。
+    // 创建带 ISO 的虚拟机后调用，避免默认网络(PXE)优先导致首次开机空等/落到空盘。
+    // 尽力而为：无 ISO 项或它已在首位时直接成功返回(无需改动)；读不到引导项时返回失败原因，但内部不抛异常。
+    public static async Task<(bool Success, string Message)> SetIsoFirstAsync(string vmName)
+    {
+        var order = await GetBootOrderAsync(vmName);
+        if (order.Count == 0) return (false, Properties.Resources.Error_Net_VmNotFound);
+
+        int idx = order.FindIndex(i =>
+            i.Description?.EndsWith(".iso", StringComparison.OrdinalIgnoreCase) == true);
+
+        if (idx <= 0) return (true, string.Empty); // 没有 ISO 引导项，或它已在首位：无需改动
+
+        var iso = order[idx];
+        order.RemoveAt(idx);
+        order.Insert(0, iso);
+
+        return await SetBootOrderAsync(vmName, order);
+    }
+
     // ── 业务逻辑 ────────────────────────────────────────────────
 
     private static readonly Dictionary<int, (string Name, string Icon)> Gen1DeviceMapping = new()

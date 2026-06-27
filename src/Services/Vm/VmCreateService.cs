@@ -271,6 +271,16 @@ namespace ExHyperV.Services
                     await EnableTpmAsync(finalVmName, vmGuid, svcForScope.Scope);
                 }
 
+                // ── Step 11: ISO 优先引导 ─────────────────────────
+                // 带安装介质时把光盘引导项提到引导首位(Gen1/Gen2 通用)，避免默认网络(PXE)优先
+                // 导致首次开机空等/落到空盘。须在此(VM 已配置完、Step 8~10 设置不再覆盖引导序、
+                // 且调用方启动 VM 之前)设置才能在首次开机生效。复用 VmBootService；尽力而为：
+                // 其内部已吞异常不会抛出，故不会触发上面的建机回滚，失败也仅影响首启顺序。
+                if (!string.IsNullOrWhiteSpace(p.IsoPath) && File.Exists(p.IsoPath))
+                {
+                    await VmBootService.SetIsoFirstAsync(finalVmName);
+                }
+
                 // 启动交由调用方(ConfirmCreateAsync)处理：创建已成功，启动作为独立后续步骤，
                 // 由 UI 检查引擎返回并在失败(如内存不足)时弹出原因——在此 await 而不看结果会静默吞掉失败。
                 return (true, finalVmName);
