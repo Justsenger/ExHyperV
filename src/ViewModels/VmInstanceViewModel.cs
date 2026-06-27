@@ -628,6 +628,12 @@ namespace ExHyperV.ViewModels
                 UpdateSingleGpuHistory(_gpuEncodeHistory, 0);
                 UpdateSingleGpuHistory(_gpuDecodeHistory, 0);
                 RefreshGpuPoints();
+
+                // 关机/暂停/保存：清掉运行时缓存的 guest IP——否则停留在网络页时不随状态清，要退出再进才清
+                // (只在有 IP 时清，避免每次轮询都重设空表触发刷新)
+                foreach (var nic in NetworkAdapters)
+                    if (nic.IpAddresses != null && nic.IpAddresses.Count > 0)
+                        nic.IpAddresses = new List<string>();
             }
         }
 

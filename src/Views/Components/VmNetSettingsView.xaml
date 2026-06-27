@@ -149,10 +149,17 @@
 
                                         <TextBlock Grid.Row="1" Text="{x:Static properties:Resources.Label_MacAddress}" VerticalAlignment="Center" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
                                         <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Margin="0,0,0,12">
-                                            <ui:TextBox Text="{Binding MacAddress, UpdateSourceTrigger=PropertyChanged}" FontFamily="Consolas" FontSize="13" Width="160" VerticalAlignment="Center"/>
+                                            <ui:TextBox Text="{Binding MacAddress, UpdateSourceTrigger=PropertyChanged}" FontFamily="Consolas" FontSize="13" Width="190" VerticalAlignment="Center"
+                                                        IsEnabled="{Binding DataContext.SelectedVm.IsRunning, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource InverseBooleanConverter}}"/>
                                             <ui:Button Content="{x:Static properties:Resources.Button_Apply}" Appearance="Primary" Margin="8,0,0,0" VerticalAlignment="Center"
+                                                       IsEnabled="{Binding DataContext.SelectedVm.IsRunning, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource InverseBooleanConverter}}"
                                                        Command="{Binding DataContext.ApplyMacAddressCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                        CommandParameter="{Binding}"/>
+                                            <ui:Button Appearance="Transparent" Margin="4,0,0,0" VerticalAlignment="Center" Padding="6,0"
+                                                       Command="{Binding DataContext.CopyToClipboardCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                       CommandParameter="{Binding MacAddress}">
+                                                <ui:SymbolIcon Symbol="Copy24" FontSize="14" Foreground="{ui:ThemeResource TextFillColorTertiaryBrush}"/>
+                                            </ui:Button>
                                         </StackPanel>
 
                                         <TextBlock Grid.Row="2" Text="{x:Static properties:Resources.Label_IpAddress}" VerticalAlignment="Top" Margin="0,5,0,0" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>

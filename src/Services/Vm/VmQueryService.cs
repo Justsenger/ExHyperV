@@ -266,7 +266,7 @@ namespace ExHyperV.Services
                 if (vmAdaptersMap.TryGetValue(vmGuidKey, out var adapters))
                 {
                     foreach (var a in adapters) vmInfo.NetworkAdapters.Add(a);
-                    vmInfo.MacAddress = adapters.FirstOrDefault()?.MacAddress ?? "00-00-00-00-00-00";
+                    vmInfo.MacAddress = adapters.FirstOrDefault()?.MacAddress ?? "00:00:00:00:00:00";
                     vmInfo.IpAddress = adapters
                         .SelectMany(a => a.IpAddresses ?? Enumerable.Empty<string>())
                         .FirstOrDefault(ip => !string.IsNullOrWhiteSpace(ip) && !ip.Contains(':'))
@@ -685,6 +685,6 @@ namespace ExHyperV.Services
 
         private static string FormatMac(string raw) =>
             string.IsNullOrEmpty(raw) ? "" :
-            Regex.Replace(raw.Replace(":", "").Replace("-", ""), "(.{2})", "$1-").TrimEnd('-').ToUpperInvariant();
+            Regex.Replace(raw.Replace(":", "").Replace("-", ""), "(.{2})", "$1:").TrimEnd(':').ToUpperInvariant();   // 冒号分隔，与 MacAddress.Format 统一（实时刷新与网络页一致）
     }
 }

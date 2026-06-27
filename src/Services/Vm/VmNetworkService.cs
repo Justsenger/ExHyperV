@@ -289,17 +289,28 @@ public static class VmNetworkService
         bool toStatic = norm.Length == 12;
         string safeId = adapter.Id.Replace(@"\", @"\\").Replace("'", "\\'");
 
+        void Apply(ManagementObject obj)
+        {
+            obj["StaticMacAddress"] = toStatic;
+            if (toStatic) obj["Address"] = norm;
+        }
+
+        // 先按合成网卡改；查不到(旧版/模拟网卡在 Emulated 类)再回退试 Emulated
         var result = await WmiApi.WithObjectAsync(
             wql: $"SELECT * FROM Msvm_SyntheticEthernetPortSettingData WHERE InstanceID = '{safeId}'",
-            modifier: obj =>
-            {
-                obj["StaticMacAddress"] = toStatic;
-                if (toStatic) obj["Address"] = norm;
-            },
-            submitMethod: "ModifyResourceSettings",
-            submitParamName: "ResourceSettings",
-            wrapInArray: true,
-            serviceWql: ServiceWql);
+            modifier: Apply,
+            submitMethod: "ModifyResourceSettings", submitParamName: "ResourceSettings",
+            wrapInArray: true, serviceWql: ServiceWql);
+
+        if (!result.Success)
+        {
+            var emu = await WmiApi.WithObjectAsync(
+                wql: $"SELECT * FROM Msvm_EmulatedEthernetPortSettingData WHERE InstanceID = '{safeId}'",
+                modifier: Apply,
+                submitMethod: "ModifyResourceSettings", submitParamName: "ResourceSettings",
+                wrapInArray: true, serviceWql: ServiceWql);
+            if (emu.Success) result = emu;
+        }
 
         return result.Success
             ? (true, string.Empty)
