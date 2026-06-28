@@ -111,6 +111,8 @@ namespace ExHyperV.ViewModels
         [RelayCommand]
         private async Task ApplyMemorySettingsAsync()
         {
+            // 内存加密开关(ToggleSwitch.Command)等在导航离开时卸载会误触发本命令；运行态改内存会被拒。仅在仍处于内存页时执行。
+            if (CurrentViewType != VmDetailViewType.MemorySettings) return;
             if (SelectedVm?.MemorySettings == null) return;
             IsLoadingSettings = true;
             try

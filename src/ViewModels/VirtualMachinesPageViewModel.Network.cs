@@ -231,6 +231,9 @@ namespace ExHyperV.ViewModels
         [RelayCommand]
         private async Task UpdateAdapterConnectionAsync(VmNetworkAdapter adapter)
         {
+            // 导航离开网络页时，交换机下拉(SelectionChanged)/连接开关(Toggled)会在卸载瞬间误触发本命令，
+            // 静默改或断开网卡连接(运行态可热改、不报错，更隐蔽)。仅在仍处于网络页时执行。
+            if (CurrentViewType != VmDetailViewType.NetworkSettings) return;
             if (SelectedVm == null || adapter == null) return;
             IsLoadingSettings = true;
             try
@@ -340,6 +343,7 @@ namespace ExHyperV.ViewModels
         [RelayCommand]
         private async Task ToggleOffloadSettingAsync(VmNetworkAdapter adapter)
         {
+            if (CurrentViewType != VmDetailViewType.NetworkSettings) return; // 同上：挡导航离开时开关卸载的误触发
             if (SelectedVm == null || adapter == null) return;
             var result = await VmNetworkService.ApplyOffloadSettingsAsync(SelectedVm.Name, adapter);
             if (!result.Success)
@@ -353,6 +357,7 @@ namespace ExHyperV.ViewModels
         [RelayCommand]
         private async Task ToggleSecuritySettingAsync(VmNetworkAdapter adapter)
         {
+            if (CurrentViewType != VmDetailViewType.NetworkSettings) return; // 同上：挡导航离开时开关卸载的误触发
             if (SelectedVm == null || adapter == null) return;
             var result = await VmNetworkService.ApplySecuritySettingsAsync(SelectedVm.Name, adapter);
             if (!result.Success)
