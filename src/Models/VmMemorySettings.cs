@@ -22,6 +22,7 @@ namespace ExHyperV.Models
         [ObservableProperty] private int _buffer;
         [ObservableProperty] private int _priority;
         [ObservableProperty] private byte? _backingPageSize;
+        [ObservableProperty] private bool? _hugePagesEnabled;   // 巨页：独立 WMI 属性，与 BackingPageSize 并存(设 true 需 VM 内存按大页对齐)
 
         // --- 实验性功能 ---
         [ObservableProperty] private byte? _backingType;              // 内存后端类型
@@ -68,6 +69,7 @@ namespace ExHyperV.Models
             Buffer = other.Buffer;
             Priority = other.Priority;
             BackingPageSize = other.BackingPageSize;
+            HugePagesEnabled = other.HugePagesEnabled;
             MemoryEncryptionPolicy = other.MemoryEncryptionPolicy;
 
             // 实验性功能补齐

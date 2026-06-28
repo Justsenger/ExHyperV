@@ -67,7 +67,8 @@ namespace ExHyperV.ViewModels
                 nameof(VmMemorySettings.CxlEnabled),
                 nameof(VmMemorySettings.EnableGpaPinning),
                 nameof(VmMemorySettings.DynMemOperationAlignment),
-                nameof(VmMemorySettings.MaxMemoryBlocksPerNumaNode)
+                nameof(VmMemorySettings.MaxMemoryBlocksPerNumaNode),
+                nameof(VmMemorySettings.HugePagesEnabled)
             };
 
             if (fastTrackProps.Contains(e.PropertyName))

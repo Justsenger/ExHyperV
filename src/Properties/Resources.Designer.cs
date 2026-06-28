@@ -6908,6 +6908,24 @@ namespace ExHyperV.Properties {
                 return ResourceManager.GetString("VmRAMSettings_NeedVirtualBacking", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   查找类似 巨页（HugePages） 的本地化字符串。
+        /// </summary>
+        public static string VmRAMSettings_LabelHugePages {
+            get {
+                return ResourceManager.GetString("VmRAMSettings_LabelHugePages", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   查找类似 用大页内存后备 guest RAM，降低 TLB 缺失 的本地化字符串。
+        /// </summary>
+        public static string VmRAMSettings_DescHugePages {
+            get {
+                return ResourceManager.GetString("VmRAMSettings_DescHugePages", resourceCulture);
+            }
+        }
         
         /// <summary>
         ///   查找类似 Independent Compressed Memory Pool 的本地化字符串。

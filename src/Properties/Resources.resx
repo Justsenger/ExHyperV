@@ -2634,6 +2634,12 @@ The existing NAT switch is: '{0}'</value>
   <data name="VmRAMSettings_NeedVirtualBacking" xml:space="preserve">
     <value>This feature requires virtual memory backing (set Memory Mapping Mode to Virtual above)</value>
   </data>
+  <data name="VmRAMSettings_LabelHugePages" xml:space="preserve">
+    <value>Huge Pages</value>
+  </data>
+  <data name="VmRAMSettings_DescHugePages" xml:space="preserve">
+    <value>Back guest RAM with huge pages to reduce TLB misses; requires VM memory aligned to 1GB</value>
+  </data>
   <data name="VmRAMSettings_ToggleEpf" xml:space="preserve">
     <value>Para-virtualized Paging Optimization</value>
   </data>

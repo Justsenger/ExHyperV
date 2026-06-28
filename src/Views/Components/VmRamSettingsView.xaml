@@ -221,6 +221,24 @@
 
                         <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
 
+                        <!-- 巨页 (HugePages) -->
+                        <Grid Margin="24,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="{x:Static properties:Resources.VmRAMSettings_LabelHugePages}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
+                                <TextBlock Text="{x:Static properties:Resources.VmRAMSettings_DescHugePages}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                            </StackPanel>
+                            <ui:ToggleSwitch Grid.Column="1"
+                                             Style="{StaticResource ShutdownRequiredToggleStyle}"
+                                             Tag="{Binding SelectedVm.MemorySettings.HugePagesEnabled}"
+                                             IsChecked="{Binding SelectedVm.MemorySettings.HugePagesEnabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                        </Grid>
+
+                        <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
+
                         <Grid Margin="24,16">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>

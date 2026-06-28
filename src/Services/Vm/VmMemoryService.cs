@@ -32,6 +32,7 @@ public static class VmMemoryService
                 s.Buffer = obj["TargetMemoryBuffer"] != null ? Convert.ToInt32(obj["TargetMemoryBuffer"]) : 20;
 
                 s.BackingPageSize = obj.TryGetByte("BackingPageSize");
+                s.HugePagesEnabled = obj.TryGet<bool>("HugePagesEnabled");
                 s.MemoryEncryptionPolicy = obj.TryGetByte("MemoryEncryptionPolicy");
 
                 s.EnableColdHint = obj.TryGet<bool>("EnableColdHint");
@@ -135,6 +136,9 @@ public static class VmMemoryService
             else if (pageSize == 2) alignment = 1024;
         }
 
+        // 巨页(HugePagesEnabled)要求 VM 内存按 1G(1024MB) 对齐——实测未对齐会被 Hyper-V 拒("内存值未正确对齐")
+        if (memorySettings.HugePagesEnabled == true) alignment = 1024;
+
         ulong Align(long value, long alg)
         {
             if (value <= 0) return (ulong)alg;
@@ -174,12 +178,16 @@ public static class VmMemoryService
             memData.TrySet("EnableEpf", memorySettings.EnableEpf);
             memData.TrySet("EnablePrivateCompressionStore", memorySettings.EnablePrivateCompressionStore);
 
-            // NUMA 节点对齐修正（防止 6962 错误）
+            // NUMA 节点块数对齐（防 6962/"未正确对齐"）：开巨页(BackingPageSize>0 或 HugePagesEnabled)时
+            // MaxMemoryBlocksPerNumaNode 必须按页粒度(alignment)对齐——实测开 HugePagesEnabled 而块数(如 46310)未对齐会被 Hyper-V 拒。
+            bool needBlockAlign = memorySettings.BackingPageSize > 0 || memorySettings.HugePagesEnabled == true;
             if (memorySettings.MaxMemoryBlocksPerNumaNode.HasValue)
             {
-                memData.TrySet("MaxMemoryBlocksPerNumaNode", memorySettings.MaxMemoryBlocksPerNumaNode);
+                ulong val = memorySettings.MaxMemoryBlocksPerNumaNode.Value;
+                if (needBlockAlign) { val = (val / (ulong)alignment) * (ulong)alignment; if (val == 0) val = (ulong)alignment; }
+                memData.TrySet("MaxMemoryBlocksPerNumaNode", (ulong?)val);
             }
-            else if (memorySettings.BackingPageSize > 0 && memData.HasProperty("MaxMemoryBlocksPerNumaNode")
+            else if (needBlockAlign && memData.HasProperty("MaxMemoryBlocksPerNumaNode")
                      && memData["MaxMemoryBlocksPerNumaNode"] != null)
             {
                 ulong current = (ulong)memData["MaxMemoryBlocksPerNumaNode"];
@@ -206,6 +214,7 @@ public static class VmMemoryService
 
             memData.TrySet("EnableGpaPinning", memorySettings.EnableGpaPinning);
             memData.TrySet("CxlEnabled", memorySettings.CxlEnabled);
+            memData.TrySet("HugePagesEnabled", memorySettings.HugePagesEnabled);
         }
         else
         {
