@@ -87,6 +87,10 @@ namespace ExHyperV.ViewModels
         private async Task ApplyChangesAsync()
         {
             if (IsLoadingSettings || SelectedVm?.Processor == null) return;
+            // 离开 CPU 设置页时，页内 ComboBox(EventToCommand SelectionChanged)/ToggleSwitch(Command Toggled)
+            // 会在卸载瞬间被误触发并打到本命令；运行态下这会下发整个 Processor 而被 Hyper-V 拒("无法修改 Processor")。
+            // 仅当仍停留在 CPU 设置页时才执行，挡掉一切导航离开后的卸载误触发。
+            if (CurrentViewType != VmDetailViewType.CpuSettings) return;
             IsLoadingSettings = true;
             try
             {
