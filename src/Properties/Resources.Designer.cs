@@ -6910,7 +6910,7 @@ namespace ExHyperV.Properties {
         }
 
         /// <summary>
-        ///   查找类似 巨页（HugePages） 的本地化字符串。
+        ///   查找类似 巨页内存 的本地化字符串。
         /// </summary>
         public static string VmRAMSettings_LabelHugePages {
             get {
@@ -6919,7 +6919,7 @@ namespace ExHyperV.Properties {
         }
 
         /// <summary>
-        ///   查找类似 用大页内存后备 guest RAM，降低 TLB 缺失 的本地化字符串。
+        ///   查找类似 以 1GB 大页支持虚拟机内存，提升大内存虚拟机的访问性能 的本地化字符串。
         /// </summary>
         public static string VmRAMSettings_DescHugePages {
             get {

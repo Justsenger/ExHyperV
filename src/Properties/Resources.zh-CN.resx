@@ -2635,10 +2635,10 @@
     <value>此功能需虚拟内存后端（请将上方“内存映射模式”设为“虚拟”）</value>
   </data>
   <data name="VmRAMSettings_LabelHugePages" xml:space="preserve">
-    <value>巨页（HugePages）</value>
+    <value>巨页内存</value>
   </data>
   <data name="VmRAMSettings_DescHugePages" xml:space="preserve">
-    <value>用大页内存后备 guest RAM，降低 TLB 缺失；开启需 VM 内存按 1GB 对齐</value>
+    <value>以 1GB 大页支持虚拟机内存，提升大内存虚拟机的访问性能</value>
   </data>
   <data name="VmRAMSettings_ToggleEpf" xml:space="preserve">
     <value>半虚拟化分页优化</value>

@@ -2638,7 +2638,7 @@ The existing NAT switch is: '{0}'</value>
     <value>Huge Pages</value>
   </data>
   <data name="VmRAMSettings_DescHugePages" xml:space="preserve">
-    <value>Back guest RAM with huge pages to reduce TLB misses; requires VM memory aligned to 1GB</value>
+    <value>Back VM memory with 1GB huge pages to improve performance for large-memory VMs</value>
   </data>
   <data name="VmRAMSettings_ToggleEpf" xml:space="preserve">
     <value>Para-virtualized Paging Optimization</value>
