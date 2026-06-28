@@ -49,6 +49,13 @@ namespace ExHyperV.Models
 
         [ObservableProperty] private byte? _memoryEncryptionPolicy;
 
+        // 开启 SGX 必须有 EPC 大小(≥2MB)，否则提交被 Hyper-V 拒（"SGX 内存无效，请分配至少 2 MB"）；无有效值时补合法默认。
+        partial void OnSgxEnabledChanged(bool? value)
+        {
+            if (value == true && (SgxSize == null || SgxSize.Value < 2))
+                SgxSize = 2;
+        }
+
         public VmMemorySettings Clone() => (VmMemorySettings)this.MemberwiseClone();
 
         public void Restore(VmMemorySettings other)

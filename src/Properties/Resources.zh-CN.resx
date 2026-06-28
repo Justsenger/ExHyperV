@@ -2631,6 +2631,9 @@
   <data name="VmRAMSettings_ToggleColdHint" xml:space="preserve">
     <value>内存活跃度提示</value>
   </data>
+  <data name="VmRAMSettings_NeedVirtualBacking" xml:space="preserve">
+    <value>此功能需虚拟内存后端（请将上方“内存映射模式”设为“虚拟”）</value>
+  </data>
   <data name="VmRAMSettings_ToggleEpf" xml:space="preserve">
     <value>半虚拟化分页优化</value>
   </data>

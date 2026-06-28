@@ -35,6 +35,16 @@
             </Style.Triggers>
         </Style>
 
+        <Style x:Key="EnlightenmentToggleStyle" TargetType="ui:ToggleSwitch" BasedOn="{StaticResource ShutdownRequiredToggleStyle}">
+            <Style.Triggers>
+                <!-- 物理后端(BackingType=0)不支持内存增强提示/EPF/压缩存储(实测设了被 Hyper-V 拒)，置灰并引导先改虚拟后端 -->
+                <DataTrigger Binding="{Binding SelectedVm.MemorySettings.BackingType}" Value="0">
+                    <Setter Property="IsEnabled" Value="False"/>
+                    <Setter Property="ToolTip" Value="{x:Static properties:Resources.VmRAMSettings_NeedVirtualBacking}"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
         <Style x:Key="ShutdownRequiredComboBoxStyle" TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
             <Setter Property="ToolTipService.ShowOnDisabled" Value="True"/>
             <Setter Property="ToolTipService.InitialShowDelay" Value="50"/>
@@ -375,14 +385,14 @@
                                 <TextBlock Text="{x:Static properties:Resources.VmRAMSettings_LabelMemOptimization}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
                             </StackPanel>
                             <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                                <ui:ToggleSwitch Content="{x:Static properties:Resources.VmRAMSettings_ToggleColdHint}" Margin="0,0,12,0" 
-                                 Style="{StaticResource ShutdownRequiredToggleStyle}" Tag="True"
+                                <ui:ToggleSwitch Content="{x:Static properties:Resources.VmRAMSettings_ToggleColdHint}" Margin="0,0,12,0"
+                                 Style="{StaticResource EnlightenmentToggleStyle}" Tag="{Binding SelectedVm.MemorySettings.EnableColdHint}"
                                  IsChecked="{Binding SelectedVm.MemorySettings.EnableColdHint, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
-                                <ui:ToggleSwitch Content="{x:Static properties:Resources.VmRAMSettings_ToggleEpf}" Margin="0,0,12,0" 
-                                 Style="{StaticResource ShutdownRequiredToggleStyle}" Tag="True"
+                                <ui:ToggleSwitch Content="{x:Static properties:Resources.VmRAMSettings_ToggleEpf}" Margin="0,0,12,0"
+                                 Style="{StaticResource EnlightenmentToggleStyle}" Tag="{Binding SelectedVm.MemorySettings.EnableEpf}"
                                  IsChecked="{Binding SelectedVm.MemorySettings.EnableEpf, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
-                                <ui:ToggleSwitch Content="{x:Static properties:Resources.VmRAMSettings_ToggleCompressStore}" 
-                                 Style="{StaticResource ShutdownRequiredToggleStyle}" Tag="True"
+                                <ui:ToggleSwitch Content="{x:Static properties:Resources.VmRAMSettings_ToggleCompressStore}"
+                                 Style="{StaticResource EnlightenmentToggleStyle}" Tag="{Binding SelectedVm.MemorySettings.EnablePrivateCompressionStore}"
                                  IsChecked="{Binding SelectedVm.MemorySettings.EnablePrivateCompressionStore, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
                             </StackPanel>
                         </Grid>
