@@ -2931,4 +2931,145 @@ The existing NAT switch is: '{0}'</value>
   <data name="VmSpacetimeSettings_HintCloseWormholeFirst" xml:space="preserve">
     <value>A wormhole is open — close it before you can create / delete / converge spacetimes.</value>
   </data>
+  <data name="Cpu_ApicMode" xml:space="preserve">
+    <value>APIC Mode</value>
+  </data>
+  <data name="Cpu_ApicModeDesc" xml:space="preserve">
+    <value>Switches the VM's interrupt controller mode, affecting compatibility and scalability</value>
+  </data>
+  <data name="Cpu_L3CacheWays" xml:space="preserve">
+    <value>L3 Cache Ways</value>
+  </data>
+  <data name="Cpu_L3CacheWaysDesc" xml:space="preserve">
+    <value>Makes the VM see a specific L3 cache geometry, for migration consistency</value>
+  </data>
+  <data name="Cpu_L3DistPolicy" xml:space="preserve">
+    <value>L3 Processor Distribution Policy</value>
+  </data>
+  <data name="Cpu_L3DistPolicyDesc" xml:space="preserve">
+    <value>Controls how vCPUs spread across physical cache domains, affecting cache affinity</value>
+  </data>
+  <data name="Cpu_PageShatter" xml:space="preserve">
+    <value>Large-Page Shattering</value>
+  </data>
+  <data name="Cpu_PageShatterDesc" xml:space="preserve">
+    <value>Decides whether second-level address translation uses large pages, affecting memory performance</value>
+  </data>
+  <data name="Cpu_IgnoreHostMaxFreq" xml:space="preserve">
+    <value>Ignore Host Max Frequency</value>
+  </data>
+  <data name="Cpu_IgnoreHostMaxFreqDesc" xml:space="preserve">
+    <value>Removes the host's max-frequency limit for this VM</value>
+  </data>
+  <data name="Cpu_PerfmonPmu" xml:space="preserve">
+    <value>Expose PMU</value>
+  </data>
+  <data name="Cpu_PerfmonPmuDesc" xml:space="preserve">
+    <value>Lets the VM access hardware performance counters; requires host support</value>
+  </data>
+  <data name="Cpu_PerfmonLbr" xml:space="preserve">
+    <value>Expose LBR</value>
+  </data>
+  <data name="Cpu_PerfmonLbrDesc" xml:space="preserve">
+    <value>Lets the VM read branch history for performance debugging</value>
+  </data>
+  <data name="Cpu_PerfmonPebs" xml:space="preserve">
+    <value>Expose PEBS</value>
+  </data>
+  <data name="Cpu_PerfmonPebsDesc" xml:space="preserve">
+    <value>Lets the VM use precise event sampling to analyze performance</value>
+  </data>
+  <data name="Cpu_PerfmonIpt" xml:space="preserve">
+    <value>Expose Intel PT</value>
+  </data>
+  <data name="Cpu_PerfmonIptDesc" xml:space="preserve">
+    <value>Lets the VM use processor trace to record execution flow</value>
+  </data>
+  <data name="Cpu_FreqCap" xml:space="preserve">
+    <value>Max Frequency (MHz)</value>
+  </data>
+  <data name="Cpu_FreqCapDesc" xml:space="preserve">
+    <value>Sets the VM CPU's maximum frequency; requires host frequency scaling</value>
+  </data>
+  <data name="Cpu_FreqMin" xml:space="preserve">
+    <value>Min Frequency (MHz)</value>
+  </data>
+  <data name="Cpu_FreqMinDesc" xml:space="preserve">
+    <value>Sets the VM CPU's minimum frequency; requires host frequency scaling</value>
+  </data>
+  <data name="Cpu_FreqDesired" xml:space="preserve">
+    <value>Desired Frequency (MHz)</value>
+  </data>
+  <data name="Cpu_FreqDesiredDesc" xml:space="preserve">
+    <value>Sets the VM CPU's target frequency; requires host frequency scaling</value>
+  </data>
+  <data name="Cpu_Epp" xml:space="preserve">
+    <value>Energy/Perf Preference</value>
+  </data>
+  <data name="Cpu_EppDesc" xml:space="preserve">
+    <value>Energy-performance preference 0-255: lower favors performance, higher favors power saving</value>
+  </data>
+  <data name="Cpu_ActivityWindow" xml:space="preserve">
+    <value>Activity Window</value>
+  </data>
+  <data name="Cpu_ActivityWindowDesc" xml:space="preserve">
+    <value>Time window the CPU uses to evaluate load and auto-scale; smaller reacts faster</value>
+  </data>
+  <data name="Cpu_ExtVirtExt" xml:space="preserve">
+    <value>Extended Virtualization Ext.</value>
+  </data>
+  <data name="Cpu_ExtVirtExtDesc" xml:space="preserve">
+    <value>Enables hardware isolation for confidential VMs; requires CPU support</value>
+  </data>
+  <data name="Cpu_MaxHwIsoGuests" xml:space="preserve">
+    <value>Max HW-Isolated Guests</value>
+  </data>
+  <data name="Cpu_MaxHwIsoGuestsDesc" xml:space="preserve">
+    <value>Limits the number of nested hardware-isolated VMs; requires CPU support</value>
+  </data>
+  <data name="Cpu_MaxClusterPerSocket" xml:space="preserve">
+    <value>Clusters (CCX) per Socket</value>
+  </data>
+  <data name="Cpu_MaxClusterPerSocketDesc" xml:space="preserve">
+    <value>Emulates AMD core-complex (CCX) topology for the VM; AMD only</value>
+  </data>
+  <data name="Cpu_MaxProcPerL3" xml:space="preserve">
+    <value>Processors per L3 (CCX)</value>
+  </data>
+  <data name="Cpu_MaxProcPerL3Desc" xml:space="preserve">
+    <value>Emulates AMD L3-sharing topology for the VM; AMD only</value>
+  </data>
+  <data name="CpuEnum_Apic_Default" xml:space="preserve">
+    <value>Auto</value>
+  </data>
+  <data name="CpuEnum_Apic_Legacy" xml:space="preserve">
+    <value>xAPIC (Legacy)</value>
+  </data>
+  <data name="CpuEnum_Apic_X2Apic" xml:space="preserve">
+    <value>x2APIC</value>
+  </data>
+  <data name="CpuEnum_Apic_Apic" xml:space="preserve">
+    <value>APIC</value>
+  </data>
+  <data name="CpuEnum_L3_SmallToLarge" xml:space="preserve">
+    <value>Small to Large</value>
+  </data>
+  <data name="CpuEnum_L3_LargeToSmall" xml:space="preserve">
+    <value>Large to Small</value>
+  </data>
+  <data name="CpuEnum_L3_EvenSmallToLarge" xml:space="preserve">
+    <value>Even, Small to Large</value>
+  </data>
+  <data name="CpuEnum_L3_EvenLargeToSmall" xml:space="preserve">
+    <value>Even, Large to Small</value>
+  </data>
+  <data name="CpuEnum_Shatter_Default" xml:space="preserve">
+    <value>Default</value>
+  </data>
+  <data name="CpuEnum_Shatter_AlwaysEnabled" xml:space="preserve">
+    <value>Always Shatter (4K)</value>
+  </data>
+  <data name="CpuEnum_Shatter_AlwaysDisabled" xml:space="preserve">
+    <value>Never Shatter (large pages)</value>
+  </data>
 </root>

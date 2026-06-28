@@ -8340,5 +8340,185 @@ namespace ExHyperV.Properties {
                 return ResourceManager.GetString("VmSpacetimeSettings_HintCloseWormholeFirst", resourceCulture);
             }
         }
+        public static string Cpu_ApicMode {
+            get {
+                return ResourceManager.GetString("Cpu_ApicMode", resourceCulture);
+            }
+        }
+        public static string Cpu_ApicModeDesc {
+            get {
+                return ResourceManager.GetString("Cpu_ApicModeDesc", resourceCulture);
+            }
+        }
+        public static string Cpu_L3CacheWays {
+            get {
+                return ResourceManager.GetString("Cpu_L3CacheWays", resourceCulture);
+            }
+        }
+        public static string Cpu_L3CacheWaysDesc {
+            get {
+                return ResourceManager.GetString("Cpu_L3CacheWaysDesc", resourceCulture);
+            }
+        }
+        public static string Cpu_L3DistPolicy {
+            get {
+                return ResourceManager.GetString("Cpu_L3DistPolicy", resourceCulture);
+            }
+        }
+        public static string Cpu_L3DistPolicyDesc {
+            get {
+                return ResourceManager.GetString("Cpu_L3DistPolicyDesc", resourceCulture);
+            }
+        }
+        public static string Cpu_PageShatter {
+            get {
+                return ResourceManager.GetString("Cpu_PageShatter", resourceCulture);
+            }
+        }
+        public static string Cpu_PageShatterDesc {
+            get {
+                return ResourceManager.GetString("Cpu_PageShatterDesc", resourceCulture);
+            }
+        }
+        public static string Cpu_IgnoreHostMaxFreq {
+            get {
+                return ResourceManager.GetString("Cpu_IgnoreHostMaxFreq", resourceCulture);
+            }
+        }
+        public static string Cpu_IgnoreHostMaxFreqDesc {
+            get {
+                return ResourceManager.GetString("Cpu_IgnoreHostMaxFreqDesc", resourceCulture);
+            }
+        }
+        public static string Cpu_PerfmonPmu {
+            get {
+                return ResourceManager.GetString("Cpu_PerfmonPmu", resourceCulture);
+            }
+        }
+        public static string Cpu_PerfmonPmuDesc {
+            get {
+                return ResourceManager.GetString("Cpu_PerfmonPmuDesc", resourceCulture);
+            }
+        }
+        public static string Cpu_PerfmonLbr {
+            get {
+                return ResourceManager.GetString("Cpu_PerfmonLbr", resourceCulture);
+            }
+        }
+        public static string Cpu_PerfmonLbrDesc {
+            get {
+                return ResourceManager.GetString("Cpu_PerfmonLbrDesc", resourceCulture);
+            }
+        }
+        public static string Cpu_PerfmonPebs {
+            get {
+                return ResourceManager.GetString("Cpu_PerfmonPebs", resourceCulture);
+            }
+        }
+        public static string Cpu_PerfmonPebsDesc {
+            get {
+                return ResourceManager.GetString("Cpu_PerfmonPebsDesc", resourceCulture);
+            }
+        }
+        public static string Cpu_PerfmonIpt {
+            get {
+                return ResourceManager.GetString("Cpu_PerfmonIpt", resourceCulture);
+            }
+        }
+        public static string Cpu_PerfmonIptDesc {
+            get {
+                return ResourceManager.GetString("Cpu_PerfmonIptDesc", resourceCulture);
+            }
+        }
+        public static string Cpu_FreqCap {
+            get {
+                return ResourceManager.GetString("Cpu_FreqCap", resourceCulture);
+            }
+        }
+        public static string Cpu_FreqCapDesc {
+            get {
+                return ResourceManager.GetString("Cpu_FreqCapDesc", resourceCulture);
+            }
+        }
+        public static string Cpu_FreqMin {
+            get {
+                return ResourceManager.GetString("Cpu_FreqMin", resourceCulture);
+            }
+        }
+        public static string Cpu_FreqMinDesc {
+            get {
+                return ResourceManager.GetString("Cpu_FreqMinDesc", resourceCulture);
+            }
+        }
+        public static string Cpu_FreqDesired {
+            get {
+                return ResourceManager.GetString("Cpu_FreqDesired", resourceCulture);
+            }
+        }
+        public static string Cpu_FreqDesiredDesc {
+            get {
+                return ResourceManager.GetString("Cpu_FreqDesiredDesc", resourceCulture);
+            }
+        }
+        public static string Cpu_Epp {
+            get {
+                return ResourceManager.GetString("Cpu_Epp", resourceCulture);
+            }
+        }
+        public static string Cpu_EppDesc {
+            get {
+                return ResourceManager.GetString("Cpu_EppDesc", resourceCulture);
+            }
+        }
+        public static string Cpu_ActivityWindow {
+            get {
+                return ResourceManager.GetString("Cpu_ActivityWindow", resourceCulture);
+            }
+        }
+        public static string Cpu_ActivityWindowDesc {
+            get {
+                return ResourceManager.GetString("Cpu_ActivityWindowDesc", resourceCulture);
+            }
+        }
+        public static string Cpu_ExtVirtExt {
+            get {
+                return ResourceManager.GetString("Cpu_ExtVirtExt", resourceCulture);
+            }
+        }
+        public static string Cpu_ExtVirtExtDesc {
+            get {
+                return ResourceManager.GetString("Cpu_ExtVirtExtDesc", resourceCulture);
+            }
+        }
+        public static string Cpu_MaxHwIsoGuests {
+            get {
+                return ResourceManager.GetString("Cpu_MaxHwIsoGuests", resourceCulture);
+            }
+        }
+        public static string Cpu_MaxHwIsoGuestsDesc {
+            get {
+                return ResourceManager.GetString("Cpu_MaxHwIsoGuestsDesc", resourceCulture);
+            }
+        }
+        public static string Cpu_MaxClusterPerSocket {
+            get {
+                return ResourceManager.GetString("Cpu_MaxClusterPerSocket", resourceCulture);
+            }
+        }
+        public static string Cpu_MaxClusterPerSocketDesc {
+            get {
+                return ResourceManager.GetString("Cpu_MaxClusterPerSocketDesc", resourceCulture);
+            }
+        }
+        public static string Cpu_MaxProcPerL3 {
+            get {
+                return ResourceManager.GetString("Cpu_MaxProcPerL3", resourceCulture);
+            }
+        }
+        public static string Cpu_MaxProcPerL3Desc {
+            get {
+                return ResourceManager.GetString("Cpu_MaxProcPerL3Desc", resourceCulture);
+            }
+        }
     }
 }

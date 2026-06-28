@@ -151,12 +151,12 @@ When enabled, it passes through the CPU's VT-x/AMD-V instruction set extensions,
 After enabling Nested Virtualization and Hyper-V features in the VM, the VM's Task Manager will show L1/L2/L3 cache topology and will no longer be marked as "Virtual Machine: Yes," which helps with avoiding virtualization detection.
 
 <div align="center">
-<img width="616" height="532" alt="image" src="https://github.com/user-attachments/assets/00c838f1-91ef-42db-bf21-34c5b49b08b9" />
+<img width="616" height="487" alt="image" src="https://github.com/Justsenger/ExHyperV/blob/main/img/NestedVirtualization.png?raw=true" />
 </div>
 
 ##### Migration Compatibility
 
-When enabled, it masks advanced CPU instruction sets (such as AES, AVX, AVX2, FMA3, SHA, SSE4A, etc.) to facilitate live migration on hosts with different hardware. Ordinary users do not need to enable this.
+When enabled, it masks part of the CPU instruction set—exactly which part depends on [cpu-migration-compatibility.md](doc/cpu-migration-compatibility.md)—to facilitate live migration across hosts with different hardware. Ordinary users do not need to enable this.
 
 ##### Legacy System Compatibility
 
@@ -168,7 +168,7 @@ When enabled, the virtual machine can perceive that its vCPUs appear as paired l
 
 ##### Expose Architecture Performance Monitoring Unit
 
-When enabled, it passes through the CPU's hardware counters, allowing development tools inside the virtual machine to directly access physical CPU performance monitoring hardware.
+When enabled, it passes through the CPU's hardware counters, allowing development tools inside the virtual machine to directly access physical CPU performance monitoring hardware. Requires host support.
 
 ##### Expose Frequency Monitoring Registers
 
@@ -176,11 +176,22 @@ When enabled, allows the virtual machine operating system to read the actual fre
 
 ##### Disable Side-Channel Attack Mitigations
 
-When enabled, turns off software patches for vulnerabilities like Spectre and Meltdown. This slightly improves performance but reduces virtualization security.
+When enabled, disables the IBRS / IBRS_ALL / STIBP / IBPB / SSBD / MD_CLEAR / TSX_CTRL features. This slightly improves performance but reduces virtualization security.
 
 ##### Enable Socket Topology
 
-When enabled, simulates multiple physical sockets for the virtual machine. May be useful for systems with multiple physical processors.
+When enabled, the virtual machine's socket topology follows the host's physical sockets, so the VM can perform NUMA scheduling based on the real sockets.
+
+##### APIC Mode
+
+- Auto (default, let Hyper-V choose)
+- xAPIC (legacy, MMIO access, 8-bit APIC ID → addresses up to 255)
+- x2APIC (newer, MSR access, 32-bit APIC ID → addresses a huge number of processors)
+- Apic (both xAPIC and x2APIC coexist; the VM boots in xAPIC and can switch to x2APIC at runtime)
+
+##### Custom CPU Name
+
+Allows customizing the CPU name, a maximum 48-byte ASCII string. Requires at least Build 20348.
 
 ##### CPU Pinning
 
@@ -193,9 +204,67 @@ If you find the scheduler performance poor, or have concerns about Intel's hybri
 > [!CAUTION]
 > The following are experimental features. Use with caution.
 
-##### Custom CPU Name
+##### L3 Cache Ways
 
-Allows customizing the CPU name, a maximum 48-byte ASCII string. Requires at least Build 20348.
+Manually specify the L3 cache ways the virtual machine sees. When hosts in a cluster have different L3 geometries, fixing the VM's L3 ways to a constant lets cache-topology-aware software inside the VM see consistent cache information before and after migration.
+
+##### L3 Processor Distribution Policy
+
+Decides how vCPUs use the L3 domains. Four policies (Small to Large / Large to Small / Even·Small to Large / Even·Large to Small):
+
+- "Small to Large / Large to Small": prefer allocating the smaller / larger L3 domain.
+- "Even": spread vCPUs across the L3 domains as evenly as possible.
+
+##### Page Shattering
+
+Decides the shattering policy of SLAT (Second-Level Address Translation).
+
+- Always shatter: SLAT always uses 4KB small pages.
+- Never shatter: use large pages whenever possible.
+- Default: decided by the platform and isolation mode.
+
+##### Ignore Host Max Frequency
+
+Lifts the host's frequency cap on the virtual machine. Requires CPU support for frequency-scaling delegation.
+
+##### Expose PMU / LBR / PEBS / IPT
+
+Passes the physical CPU's performance-monitoring hardware through to the virtual machine, for use by profiling and debugging tools inside the VM. Requires host support.
+
+- PMU: hardware performance counters (cycles, instructions, cache hits / misses, branch mispredicts, etc.).
+- LBR: Last Branch Record, reconstructs hot call paths.
+- PEBS: Precise Event-Based Sampling, pins events to the exact triggering instruction.
+- IPT: Processor Trace, low-overhead recording of the full execution control flow.
+
+##### Frequency Cap / Floor / Target (MHz)
+
+Set the virtual machine's CPU running frequency. Requires CPU support for frequency-scaling delegation.
+
+- Cap: frequency will not exceed this value.
+- Floor: frequency will not fall below this value.
+- Target: run as close to this frequency as possible (overrides EPP and the auto-frequency window).
+
+##### Energy Performance Preference (EPP)
+
+An energy-performance preference from 0 to 255; lower favors performance, higher favors power saving. Requires CPU support for frequency-scaling delegation.
+
+##### Auto Frequency Window
+
+The time window over which the CPU evaluates load and auto-scales frequency; the smaller it is, the faster it reacts. Requires CPU support for frequency-scaling delegation.
+
+##### Extended Virtualization Extensions / Max Hardware-Isolated Guests
+
+Enables hardware isolation for confidential VMs. Requires the CPU to provide confidential-computing capability (Intel TDX / AMD SEV-SNP).
+
+- Extended Virtualization Extensions: enables hardware isolation for confidential VMs.
+- Max Hardware-Isolated Guests: limits the number of nested hardware-isolated VMs.
+
+##### CCX per Socket / Processors per L3
+
+Emulates AMD's core-complex (CCX) and L3-sharing topology for the virtual machine. AMD platforms only.
+
+- CCX per Socket: how many core complexes each socket is divided into.
+- Processors per L3: how many cores share one L3 domain.
 
 ---
 ### Memory

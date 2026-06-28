@@ -2931,4 +2931,145 @@
   <data name="VmSpacetimeSettings_HintCloseWormholeFirst" xml:space="preserve">
     <value>虫洞开启中，需先关闭虫洞才能创建 / 删除 / 收束时空。</value>
   </data>
+  <data name="Cpu_ApicMode" xml:space="preserve">
+    <value>APIC 模式</value>
+  </data>
+  <data name="Cpu_ApicModeDesc" xml:space="preserve">
+    <value>切换虚拟机的中断控制器模式，影响兼容性与可扩展性</value>
+  </data>
+  <data name="Cpu_L3CacheWays" xml:space="preserve">
+    <value>L3 缓存路数</value>
+  </data>
+  <data name="Cpu_L3CacheWaysDesc" xml:space="preserve">
+    <value>让虚拟机看到指定的 L3 缓存几何，用于迁移一致性</value>
+  </data>
+  <data name="Cpu_L3DistPolicy" xml:space="preserve">
+    <value>L3 处理器分布策略</value>
+  </data>
+  <data name="Cpu_L3DistPolicyDesc" xml:space="preserve">
+    <value>控制 vCPU 如何分布到物理缓存域，影响缓存亲和</value>
+  </data>
+  <data name="Cpu_PageShatter" xml:space="preserve">
+    <value>大页拆分</value>
+  </data>
+  <data name="Cpu_PageShatterDesc" xml:space="preserve">
+    <value>决定二级地址翻译是否用大页，影响内存性能</value>
+  </data>
+  <data name="Cpu_IgnoreHostMaxFreq" xml:space="preserve">
+    <value>忽略宿主频率上限</value>
+  </data>
+  <data name="Cpu_IgnoreHostMaxFreqDesc" xml:space="preserve">
+    <value>解除宿主对该虚拟机频率上限的约束</value>
+  </data>
+  <data name="Cpu_PerfmonPmu" xml:space="preserve">
+    <value>暴露 PMU</value>
+  </data>
+  <data name="Cpu_PerfmonPmuDesc" xml:space="preserve">
+    <value>让虚拟机访问硬件性能计数器，需宿主支持</value>
+  </data>
+  <data name="Cpu_PerfmonLbr" xml:space="preserve">
+    <value>暴露 LBR</value>
+  </data>
+  <data name="Cpu_PerfmonLbrDesc" xml:space="preserve">
+    <value>让虚拟机读取分支历史用于性能调试</value>
+  </data>
+  <data name="Cpu_PerfmonPebs" xml:space="preserve">
+    <value>暴露 PEBS</value>
+  </data>
+  <data name="Cpu_PerfmonPebsDesc" xml:space="preserve">
+    <value>让虚拟机使用精确事件采样分析性能</value>
+  </data>
+  <data name="Cpu_PerfmonIpt" xml:space="preserve">
+    <value>暴露 Intel PT</value>
+  </data>
+  <data name="Cpu_PerfmonIptDesc" xml:space="preserve">
+    <value>让虚拟机用处理器追踪记录执行流</value>
+  </data>
+  <data name="Cpu_FreqCap" xml:space="preserve">
+    <value>频率上限 (MHz)</value>
+  </data>
+  <data name="Cpu_FreqCapDesc" xml:space="preserve">
+    <value>设定虚拟机 CPU 的频率上限，需宿主支持调频</value>
+  </data>
+  <data name="Cpu_FreqMin" xml:space="preserve">
+    <value>频率下限 (MHz)</value>
+  </data>
+  <data name="Cpu_FreqMinDesc" xml:space="preserve">
+    <value>设定虚拟机 CPU 的频率下限，需宿主支持调频</value>
+  </data>
+  <data name="Cpu_FreqDesired" xml:space="preserve">
+    <value>目标频率 (MHz)</value>
+  </data>
+  <data name="Cpu_FreqDesiredDesc" xml:space="preserve">
+    <value>设定虚拟机 CPU 的目标频率，需宿主支持调频</value>
+  </data>
+  <data name="Cpu_Epp" xml:space="preserve">
+    <value>能效偏好 (EPP)</value>
+  </data>
+  <data name="Cpu_EppDesc" xml:space="preserve">
+    <value>0–255 的能效偏好，越小越重性能、越大越省电</value>
+  </data>
+  <data name="Cpu_ActivityWindow" xml:space="preserve">
+    <value>自动调频窗口</value>
+  </data>
+  <data name="Cpu_ActivityWindowDesc" xml:space="preserve">
+    <value>CPU 评估负载、自动调频的时间窗，值越小反应越快</value>
+  </data>
+  <data name="Cpu_ExtVirtExt" xml:space="preserve">
+    <value>扩展虚拟化扩展</value>
+  </data>
+  <data name="Cpu_ExtVirtExtDesc" xml:space="preserve">
+    <value>为机密虚拟机开启硬件隔离，需 CPU 支持</value>
+  </data>
+  <data name="Cpu_MaxHwIsoGuests" xml:space="preserve">
+    <value>最大硬件隔离子机数</value>
+  </data>
+  <data name="Cpu_MaxHwIsoGuestsDesc" xml:space="preserve">
+    <value>限制嵌套硬件隔离虚拟机的数量，需 CPU 支持</value>
+  </data>
+  <data name="Cpu_MaxClusterPerSocket" xml:space="preserve">
+    <value>每插槽 CCX 数</value>
+  </data>
+  <data name="Cpu_MaxClusterPerSocketDesc" xml:space="preserve">
+    <value>为虚拟机模拟 AMD 的核簇(CCX)拓扑，仅 AMD 有效</value>
+  </data>
+  <data name="Cpu_MaxProcPerL3" xml:space="preserve">
+    <value>每 L3 处理器数</value>
+  </data>
+  <data name="Cpu_MaxProcPerL3Desc" xml:space="preserve">
+    <value>为虚拟机模拟 AMD 的 L3 共享拓扑，仅 AMD 有效</value>
+  </data>
+  <data name="CpuEnum_Apic_Default" xml:space="preserve">
+    <value>自动</value>
+  </data>
+  <data name="CpuEnum_Apic_Legacy" xml:space="preserve">
+    <value>xAPIC（传统）</value>
+  </data>
+  <data name="CpuEnum_Apic_X2Apic" xml:space="preserve">
+    <value>x2APIC</value>
+  </data>
+  <data name="CpuEnum_Apic_Apic" xml:space="preserve">
+    <value>APIC</value>
+  </data>
+  <data name="CpuEnum_L3_SmallToLarge" xml:space="preserve">
+    <value>由小到大</value>
+  </data>
+  <data name="CpuEnum_L3_LargeToSmall" xml:space="preserve">
+    <value>由大到小</value>
+  </data>
+  <data name="CpuEnum_L3_EvenSmallToLarge" xml:space="preserve">
+    <value>均匀·由小到大</value>
+  </data>
+  <data name="CpuEnum_L3_EvenLargeToSmall" xml:space="preserve">
+    <value>均匀·由大到小</value>
+  </data>
+  <data name="CpuEnum_Shatter_Default" xml:space="preserve">
+    <value>默认</value>
+  </data>
+  <data name="CpuEnum_Shatter_AlwaysEnabled" xml:space="preserve">
+    <value>始终拆分（全 4K）</value>
+  </data>
+  <data name="CpuEnum_Shatter_AlwaysDisabled" xml:space="preserve">
+    <value>从不拆分（保留大页）</value>
+  </data>
 </root>

@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Management;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ExHyperV.Models;
@@ -16,6 +17,16 @@ namespace ExHyperV.ViewModels
         [ObservableProperty] private ObservableCollection<VmCoreItem> _affinityHostCores = new();
         [ObservableProperty] private int _affinityColumns = 8;
         [ObservableProperty] private int _affinityRows = 1;
+
+        // 新增 CPU 字段的枚举下拉源（绑 ComboBox.ItemsSource）
+        public Array ApicModeValues { get; } = Enum.GetValues(typeof(VmApicMode));
+        public Array L3DistributionPolicyValues { get; } = Enum.GetValues(typeof(L3DistributionPolicy));
+        public Array PageShatterModeValues { get; } = Enum.GetValues(typeof(PageShatterMode));
+
+        // 能力门控标志（按宿主硬件置灰：AMD-only / 硬件隔离）
+        [ObservableProperty] private bool _isAmdHost;
+        [ObservableProperty] private bool _isHwIsolationSupported;
+        private bool _cpuCapsInit;
 
 
         // ===== CPU 设置与亲和性模块 =====
@@ -40,6 +51,23 @@ namespace ExHyperV.ViewModels
             IsLoadingSettings = true;
             try
             {
+                if (!_cpuCapsInit)
+                {
+                    _cpuCapsInit = true;
+                    try
+                    {
+                        using var s = new ManagementObjectSearcher("SELECT Manufacturer FROM Win32_Processor");
+                        var mfr = s.Get().Cast<ManagementBaseObject>().FirstOrDefault()?["Manufacturer"]?.ToString();
+                        IsAmdHost = string.Equals(mfr, "AuthenticAMD", StringComparison.OrdinalIgnoreCase);
+                    }
+                    catch { }
+                    try
+                    {
+                        var iso = await VmCreateService.GetIsolationSupportAsync();
+                        IsHwIsolationSupported = iso.Supported && (iso.Types.Contains("SNP") || iso.Types.Contains("TDX"));
+                    }
+                    catch { }
+                }
                 var settings = await VmProcessorService.GetVmProcessorAsync(SelectedVm.Name);
                 if (settings != null)
                 {

@@ -18,6 +18,7 @@
             <converters:NullableToBooleanConverter x:Key="NullableToBooleanConverter" />
             <converters:ByteToBooleanConverter x:Key="ByteToBoolConverter" />
             <converters:SmtModeToBooleanConverter x:Key="SmtModeToBooleanConverter" />
+            <converters:CpuEnumDisplayConverter x:Key="CpuEnumDisplayConverter" />
             <converters:CommandParameterConverter x:Key="CommandParameterConverter" />
             <converters:DiskTypeToTextConverter x:Key="DiskTypeToTextConverter" />
             <converters:IntListToStringConverter x:Key="IntListConverter" />

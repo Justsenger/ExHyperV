@@ -44,6 +44,28 @@ public static class VmProcessorService
                 AllowAcountMcount = procData.TryGet<bool>("AllowAcountMcount"),
                 EnableSocketTopology = procData.TryGet<bool>("EnableSocketTopology"),
                 CpuBrandString = procData.TryGetString("CpuBrandString"),
+
+                ApicMode = (VmApicMode?)procData.TryGetByte("ApicMode"),
+                L3CacheWays = procData.TryGet<uint>("L3CacheWays"),
+                L3DistributionPolicy = (L3DistributionPolicy?)procData.TryGetByte("L3ProcessorDistributionPolicy"),
+                PageShatterMode = (PageShatterMode?)procData.TryGetByte("EnablePageShattering"),
+
+                PerfCpuFreqCapMhz = Nz(procData.TryGet<uint>("PerfCpuFreqCapMhz")),
+                PerfCpuFreqMinMhz = Nz(procData.TryGet<uint>("PerfCpuFreqMinMhz")),
+                PerfCpuFreqDesiredMhz = Nz(procData.TryGet<uint>("PerfCpuFreqDesiredMhz")),
+                PerfCpuEnergyPerformancePreference = Nz(procData.TryGet<uint>("PerfCpuEnergyPerformancePreference")),
+                PerfCpuAutonomousActivityWindow = Nz(procData.TryGet<uint>("PerfCpuAutonomousActivityWindow")),
+                PerfCpuIgnoreHostMaxFrequency = procData.TryGet<bool>("PerfCpuIgnoreHostMaxFrequency"),
+
+                EnablePerfmonPmu = procData.TryGet<bool>("EnablePerfmonPmu"),
+                EnablePerfmonLbr = procData.TryGet<bool>("EnablePerfmonLbr"),
+                EnablePerfmonPebs = procData.TryGet<bool>("EnablePerfmonPebs"),
+                EnablePerfmonIpt = procData.TryGet<bool>("EnablePerfmonIpt"),
+
+                ExtendedVirtualizationExtensions = Nz(procData.TryGet<uint>("ExtendedVirtualizationExtensions")),
+                MaxHwIsolatedGuests = Nz(procData.TryGet<uint>("MaxHwIsolatedGuests")),
+                MaxClusterCountPerSocket = Nz(procData.TryGet<uint>("MaxClusterCountPerSocket")),
+                MaxProcessorCountPerL3 = Nz(procData.TryGet<uint>("MaxProcessorCountPerL3")),
             };
         });
 
@@ -95,11 +117,36 @@ public static class VmProcessorService
                 procData.TrySet("AllowAcountMcount", newSettings.AllowAcountMcount);
                 procData.TrySet("EnableSocketTopology", newSettings.EnableSocketTopology);
 
-                // CpuBrandString ���ַ���д null�����Ʒ���ַ�����
+                // CpuBrandString 清空必须写空字符串而非 null：
+                // null 在 CIM-DTD 序列化时不带 <VALUE> 元素，ModifyResourceSettings 视为"未指定/不修改"→ 清不掉；
+                // 空字符串会序列化成 <VALUE></VALUE>，provider 才会真正把自定义名清除（来宾恢复真实 CPU 名）。
                 if (procData.HasProperty("CpuBrandString"))
                     procData["CpuBrandString"] = string.IsNullOrWhiteSpace(newSettings.CpuBrandString)
-                        ? null
+                        ? string.Empty
                         : newSettings.CpuBrandString;
+
+                // ── 新增 CPU 字段（TrySet 自带 HasProperty 守卫：旧 build 无此属性则跳过）──
+                if (newSettings.ApicMode is { } am) procData.TrySet<byte>("ApicMode", (byte)am);
+                if (newSettings.L3DistributionPolicy is { } dp) procData.TrySet<byte>("L3ProcessorDistributionPolicy", (byte)dp);
+                if (newSettings.PageShatterMode is { } ps) procData.TrySet<byte>("EnablePageShattering", (byte)ps);
+                procData.TrySet("L3CacheWays", newSettings.L3CacheWays);
+
+                procData.TrySet("PerfCpuFreqCapMhz", newSettings.PerfCpuFreqCapMhz);
+                procData.TrySet("PerfCpuFreqMinMhz", newSettings.PerfCpuFreqMinMhz);
+                procData.TrySet("PerfCpuFreqDesiredMhz", newSettings.PerfCpuFreqDesiredMhz);
+                procData.TrySet("PerfCpuEnergyPerformancePreference", newSettings.PerfCpuEnergyPerformancePreference);
+                procData.TrySet("PerfCpuAutonomousActivityWindow", newSettings.PerfCpuAutonomousActivityWindow);
+                procData.TrySet("PerfCpuIgnoreHostMaxFrequency", newSettings.PerfCpuIgnoreHostMaxFrequency);
+
+                procData.TrySet("EnablePerfmonPmu", newSettings.EnablePerfmonPmu);
+                procData.TrySet("EnablePerfmonLbr", newSettings.EnablePerfmonLbr);
+                procData.TrySet("EnablePerfmonPebs", newSettings.EnablePerfmonPebs);
+                procData.TrySet("EnablePerfmonIpt", newSettings.EnablePerfmonIpt);
+
+                procData.TrySet("ExtendedVirtualizationExtensions", newSettings.ExtendedVirtualizationExtensions);
+                procData.TrySet("MaxHwIsolatedGuests", newSettings.MaxHwIsolatedGuests);
+                procData.TrySet("MaxClusterCountPerSocket", newSettings.MaxClusterCountPerSocket);
+                procData.TrySet("MaxProcessorCountPerL3", newSettings.MaxProcessorCountPerL3);
 
                 return procData.GetText(TextFormat.CimDtd20);
             });
@@ -122,6 +169,9 @@ public static class VmProcessorService
             return (false, string.Format(Properties.Resources.VmProcessor_Exception, ex.Message));
         }
     }
+
+    // uint 字段未设置时 WMI 返回 0xFFFFFFFF（如 AMD CCX 拓扑字段），归一为 null → UI 显示空白
+    private static uint? Nz(uint? v) => v == uint.MaxValue ? (uint?)null : v;
 
     private static SmtMode ConvertHwThreadsToSmtMode(uint hwThreads)
         => hwThreads == 1 ? SmtMode.SingleThread : SmtMode.MultiThread;
