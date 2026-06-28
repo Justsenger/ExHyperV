@@ -298,8 +298,15 @@ namespace ExHyperV.ViewModels
                     var result = await VmPowerService.ExecuteControlActionAsync(instance.Name, action);
                     if (!result.Success)
                     {
-                        // 引擎拒绝了操作(配置错误/资源不足/GPU 分区不可用等)——清乐观态 + 弹出引擎原因，别静默
+                        // 引擎拒绝了操作(配置错误/资源不足/GPU 分区不可用等)——清乐观态
                         Application.Current.Dispatcher.Invoke(() => instance.ClearTransientState());
+                        // 反应式修复:开机失败且该 VM 存在悬空 GPU-PV(钉死的物理 GPU 已不在主机)时,弹确认→清除→重试。
+                        // 这类记录在 WMI 层完全隐形、官方 cmdlet 删不掉,只能走 .vmcx 引擎(见 VmGpuRepairService)。
+                        if ((action == "Start" || action == "Restart")
+                            && await TryRepairStaleGpuPvAndRetryAsync(instance, action, result.Error))
+                        {
+                            return; // 已介入处理,不再弹通用报错
+                        }
                         ShowError(FriendlyError.CleanLines(result.Error));
                         return;
                     }
@@ -319,6 +326,70 @@ namespace ExHyperV.ViewModels
             });
 
             return instance;
+        }
+
+        // 开机失败 → 若该 VM 存在悬空 GPU-PV(钉死的物理 GPU 已不在主机),弹确认 → 引擎清除 → 重试开机。
+        // 返回 true = 已介入处理(调用方不再弹通用报错);false = 无悬空 GPU-PV / 检测失败,走通用报错。
+        private async Task<bool> TryRepairStaleGpuPvAndRetryAsync(VmInstanceViewModel instance, string action, string startError)
+        {
+            List<VmGpuRepairService.StaleGpuPartition> stale;
+            try { stale = await VmGpuRepairService.FindStaleGpuPartitionsAsync(instance.Name); }
+            catch { return false; }
+            if (stale.Count == 0) return false;
+
+            // 仅当本次开机失败确实由 GPU 分区引起时才提示修复,避免把内存不足等其它原因误报成 GPU 问题。
+            // 判据(本地化无关):失败错误文本含设备名 "GPU Partition"(本地化消息里仍为英文),
+            // 或含某个失效分区的实例 GUID。两者皆无 → 本次失败另有其因(如 0x8007000E 内存不足)→ 交回通用报错。
+            string err = startError ?? string.Empty;
+            bool gpuImplicated = err.IndexOf("GPU Partition", StringComparison.OrdinalIgnoreCase) >= 0
+                || stale.Any(s => err.IndexOf(s.Instance, StringComparison.OrdinalIgnoreCase) >= 0);
+            if (!gpuImplicated) return false;
+
+            // 区分两种失配:同一张卡仍在主机但路径变了(可重指,保住 GPU)vs 卡已不在(只能清除)
+            bool allRebind = stale.All(s => !string.IsNullOrEmpty(s.RebindPath));
+            string title, message, confirmText;
+            if (allRebind)
+            {
+                title = "检测到 GPU 路径变化";
+                message = $"虚拟机「{instance.Name}」的 GPU 仍在主机上,但设备路径已变化,导致无法开机。\n\n是否更新指向并重试?";
+                confirmText = "更新并重试";
+            }
+            else
+            {
+                title = "检测到失效的 GPU 分区";
+                message = $"虚拟机「{instance.Name}」分配的 GPU 在当前主机已不存在,导致无法开机。\n\n是否清除并重试?";
+                confirmText = "清除并重试";
+            }
+            bool ok = await Dialogs.ShowConfirmAsync(
+                title, message, confirmText, "取消",
+                isDanger: true, showIcon: false, maxWidth: 340);
+            if (!ok) return true; // 用户取消:已介入,不再弹通用报错
+
+            var (success, repairMsg, rebound, removed) = await VmGpuRepairService.RepairAsync(instance.Name, stale);
+            if (!success)
+            {
+                ShowError(string.IsNullOrEmpty(repairMsg) ? "修复失效 GPU 分区失败。" : repairMsg);
+                return true;
+            }
+            ShowSuccess(
+                (rebound > 0 && removed == 0) ? $"已更新 {rebound} 个 GPU 指向,正在重试开机…" :
+                (removed > 0 && rebound == 0) ? $"已清除 {removed} 个失效 GPU 分区,正在重试开机…" :
+                "已修复 GPU 配置,正在重试开机…");
+
+            // 重试开机(引擎就地改 .vmcx 即生效,无需停 vmms)
+            instance.SetTransientState(GetOptimisticText(action));
+            var retry = await VmPowerService.ExecuteControlActionAsync(instance.Name, action);
+            if (!retry.Success)
+            {
+                Application.Current.Dispatcher.Invoke(() => instance.ClearTransientState());
+                ShowError(FriendlyError.CleanLines(retry.Error));
+            }
+            else
+            {
+                await SyncSingleVmStateAsync(instance);
+                if (action == "Start" || action == "Restart") TryApplyAffinityForRootScheduler(instance);
+            }
+            return true;
         }
 
         public List<string> AvailableOsTypes => OsImages.SupportedTypes;
