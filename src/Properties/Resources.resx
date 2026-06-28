@@ -2647,10 +2647,10 @@ The existing NAT switch is: '{0}'</value>
     <value>Independent Compressed Memory Pool</value>
   </data>
   <data name="VmRAMSettings_LabelNumaBlockLimit" xml:space="preserve">
-    <value>NUMA Node Memory Block Limit</value>
+    <value>Max Memory Per Node (MB)</value>
   </data>
   <data name="VmRAMSettings_DescNumaBlockLimit" xml:space="preserve">
-    <value>Manually limit the maximum number of memory blocks observable by a single virtual NUMA node</value>
+    <value>Limit the maximum memory of a single virtual NUMA node; must be ≥32MB and a multiple of 2MB (auto-aligned otherwise)</value>
   </data>
   <data name="VmRAMSettings_LabelDynMemStep" xml:space="preserve">
     <value>Dynamic Memory Adjustment Step</value>

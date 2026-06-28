@@ -67,8 +67,9 @@ namespace ExHyperV.ViewModels
                 nameof(VmMemorySettings.CxlEnabled),
                 nameof(VmMemorySettings.EnableGpaPinning),
                 nameof(VmMemorySettings.DynMemOperationAlignment),
-                nameof(VmMemorySettings.MaxMemoryBlocksPerNumaNode),
                 nameof(VmMemorySettings.HugePagesEnabled)
+                // MaxMemoryBlocksPerNumaNode 不在此：改数字仅写 model，由"应用"按钮统一下发。
+                // 其 NumberBox 的 Value 绑定须带 UpdateSourceTrigger=PropertyChanged，否则吃默认 LostFocus、应用时读到旧值。
             };
 
             if (fastTrackProps.Contains(e.PropertyName))

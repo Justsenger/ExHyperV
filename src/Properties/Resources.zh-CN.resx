@@ -2647,10 +2647,10 @@
     <value>独立压缩内存池</value>
   </data>
   <data name="VmRAMSettings_LabelNumaBlockLimit" xml:space="preserve">
-    <value>NUMA 节点内存块限制</value>
+    <value>每节点最大内存 (MB)</value>
   </data>
   <data name="VmRAMSettings_DescNumaBlockLimit" xml:space="preserve">
-    <value>手动限制单个虚拟 NUMA 节点可观察的最大内存块数</value>
+    <value>限制单个虚拟 NUMA 节点的最大内存，须不低于 32MB 且为 2MB 的倍数（不符会自动对齐）</value>
   </data>
   <data name="VmRAMSettings_LabelDynMemStep" xml:space="preserve">
     <value>动态内存调整步长</value>

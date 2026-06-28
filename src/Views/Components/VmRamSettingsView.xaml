@@ -368,8 +368,8 @@
                                         <TextBlock Text="{x:Static properties:Resources.VmRAMSettings_DescSgxMemSize}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
                                     </StackPanel>
                                     <ui:NumberBox Grid.Column="1"
-                          Value="{Binding SelectedVm.MemorySettings.SgxSize, Mode=TwoWay}" 
-                          Minimum="2" ClearButtonEnabled="False" 
+                          Value="{Binding SelectedVm.MemorySettings.SgxSize, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                          Minimum="2" ClearButtonEnabled="False"
                           SpinButtonPlacementMode="Compact" Margin="180,0,0,0"/>
                                 </Grid>
 
@@ -416,22 +416,25 @@
                         </Grid>
                         <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
 
-                        <!-- 5. NUMA 拓扑控制 -->
+                        <!-- 5. NUMA 节点最大内存：改数字只写 model，点"应用"才下发。
+                             Value 须带 UpdateSourceTrigger=PropertyChanged（NumberBox 默认 LostFocus，应用时会读到旧值）。 -->
                         <Grid Margin="24,16">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="180"/>
+                                <ColumnDefinition Width="160"/>
                                 <ColumnDefinition Width="80"/>
                             </Grid.ColumnDefinitions>
                             <StackPanel VerticalAlignment="Center">
                                 <TextBlock Text="{x:Static properties:Resources.VmRAMSettings_LabelNumaBlockLimit}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
                                 <TextBlock Text="{x:Static properties:Resources.VmRAMSettings_DescNumaBlockLimit}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
                             </StackPanel>
-                            <ui:NumberBox Grid.Column="1" 
-                          Value="{Binding SelectedVm.MemorySettings.MaxMemoryBlocksPerNumaNode, Mode=TwoWay}"
-                          Minimum="1" SpinButtonPlacementMode="Compact"/>
+                            <ui:NumberBox Grid.Column="1"
+                          Value="{Binding SelectedVm.MemorySettings.MaxMemoryBlocksPerNumaNode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                          Minimum="32" SmallChange="2" SpinButtonPlacementMode="Compact"
+                          IsEnabled="{Binding SelectedVm.IsRunning, Converter={StaticResource InverseBooleanConverter}}"/>
                             <ui:Button Grid.Column="2" Content="{x:Static properties:Resources.VmRAMSettings_BtnApply}" Margin="8,0,0,0" Width="72"
-                       Command="{Binding ApplyMemorySettingsCommand}" Appearance="Primary"/>
+                       Command="{Binding ApplyMemorySettingsCommand}" Appearance="Primary"
+                       IsEnabled="{Binding SelectedVm.IsRunning, Converter={StaticResource InverseBooleanConverter}}"/>
                         </Grid>
                         <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
 

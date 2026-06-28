@@ -136,7 +136,7 @@ public static class VmMemoryService
             else if (pageSize == 2) alignment = 1024;
         }
 
-        // 巨页(HugePagesEnabled)要求 VM 内存按 1G(1024MB) 对齐——实测未对齐会被 Hyper-V 拒("内存值未正确对齐")
+        // 开启巨页(HugePagesEnabled)时按 1G(1024MB) 粒度对齐——实测未对齐会被 Hyper-V 拒("内存值未正确对齐")
         if (memorySettings.HugePagesEnabled == true) alignment = 1024;
 
         ulong Align(long value, long alg)
@@ -178,21 +178,23 @@ public static class VmMemoryService
             memData.TrySet("EnableEpf", memorySettings.EnableEpf);
             memData.TrySet("EnablePrivateCompressionStore", memorySettings.EnablePrivateCompressionStore);
 
-            // NUMA 节点块数对齐（防 6962/"未正确对齐"）：开巨页(BackingPageSize>0 或 HugePagesEnabled)时
-            // MaxMemoryBlocksPerNumaNode 必须按页粒度(alignment)对齐——实测开 HugePagesEnabled 而块数(如 46310)未对齐会被 Hyper-V 拒。
+            // MaxMemoryBlocksPerNumaNode 实为"每 vNUMA 节点最大内存(MB)"：须 ≥32 且按 2MB 对齐
+            // （开巨页/大页后端时改按页粒度 alignment 对齐），否则 Hyper-V 拒（"未正确对齐"/"最小 32 MB"）。
+            // 无论用户是否显式设、无论页大小，这里统一向下取整到合法值，保证任意输入都能落地。
             bool needBlockAlign = memorySettings.BackingPageSize > 0 || memorySettings.HugePagesEnabled == true;
+            ulong blockAlign = needBlockAlign ? (ulong)alignment : 2;
             if (memorySettings.MaxMemoryBlocksPerNumaNode.HasValue)
             {
-                ulong val = memorySettings.MaxMemoryBlocksPerNumaNode.Value;
-                if (needBlockAlign) { val = (val / (ulong)alignment) * (ulong)alignment; if (val == 0) val = (ulong)alignment; }
+                ulong val = (memorySettings.MaxMemoryBlocksPerNumaNode.Value / blockAlign) * blockAlign;
+                if (val < 32) val = ((32 + blockAlign - 1) / blockAlign) * blockAlign;
                 memData.TrySet("MaxMemoryBlocksPerNumaNode", (ulong?)val);
             }
             else if (needBlockAlign && memData.HasProperty("MaxMemoryBlocksPerNumaNode")
                      && memData["MaxMemoryBlocksPerNumaNode"] != null)
             {
                 ulong current = (ulong)memData["MaxMemoryBlocksPerNumaNode"];
-                ulong corrected = (current / (ulong)alignment) * (ulong)alignment;
-                if (corrected == 0) corrected = (ulong)alignment;
+                ulong corrected = (current / blockAlign) * blockAlign;
+                if (corrected < 32) corrected = ((32 + blockAlign - 1) / blockAlign) * blockAlign;
                 memData["MaxMemoryBlocksPerNumaNode"] = corrected;
             }
 
