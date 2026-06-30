@@ -170,9 +170,18 @@ namespace ExHyperV.Services
         // ── 物理网卡列表 ─────────────────────────────────────────────────
         private static async Task<List<string>> GetPhysicalAdaptersAsync()
         {
+            // 同一物理网卡(尤其蜂窝模组/WiFi)会暴露多个共用同一 InterfaceDescription 的 NDIS 接口,
+            // 含 InterfaceOperationalStatus=6(NotPresent)的占位接口;它们 ConnectorPresent 也都是 TRUE
+            // (同一块物理硬件),只按 ConnectorPresent 过滤会重复 N 次。实测:arm64/Surface 5G 模组 11+WiFi 4 = 15
+            // 个接口收敛为 2 块物理设备;x64 单接口网卡分组后不变(零影响)。故按物理设备(PnPDeviceID)去重、
+            // 每块取 OperStatus 最优(Up=1 < Down=2 < NotPresent=6)的接口描述。
             var response = await WmiApi.QueryCimAsync(
-                "SELECT InterfaceDescription FROM MSFT_NetAdapter WHERE ConnectorPresent = TRUE",
-                obj => obj["InterfaceDescription"]?.ToString() ?? string.Empty,
+                "SELECT InterfaceDescription, PnPDeviceID, InterfaceOperationalStatus FROM MSFT_NetAdapter WHERE ConnectorPresent = TRUE",
+                obj => (
+                    Desc: obj["InterfaceDescription"]?.ToString() ?? string.Empty,
+                    Pnp: obj["PnPDeviceID"]?.ToString() ?? string.Empty,
+                    Oper: Convert.ToInt32(obj["InterfaceOperationalStatus"] ?? 0)
+                ),
                 WmiScope.StdCimV2);
 
             if (!response.Success)
@@ -181,8 +190,10 @@ namespace ExHyperV.Services
                 return new List<string>();
             }
 
-            return (response.Data ?? new List<string>())
-                .Where(a => !string.IsNullOrWhiteSpace(a))
+            return (response.Data ?? new())
+                .Where(a => !string.IsNullOrWhiteSpace(a.Desc) && !string.IsNullOrWhiteSpace(a.Pnp))
+                .GroupBy(a => a.Pnp)
+                .Select(g => g.OrderBy(a => a.Oper).First().Desc)
                 .ToList();
         }
 
