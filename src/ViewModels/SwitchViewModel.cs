@@ -12,6 +12,7 @@ namespace ExHyperV.ViewModels
         // ===== 字段 =====
 
         private readonly List<string> _allPhysicalAdapters;
+        private readonly List<string> _bridgeableAdapters;
 
         // ===== 属性 =====
 
@@ -38,9 +39,10 @@ namespace ExHyperV.ViewModels
 
         // ===== 构造 =====
 
-        public SwitchViewModel(SwitchInfo switchInfo, List<string> allPhysicalAdapters)
+        public SwitchViewModel(SwitchInfo switchInfo, List<string> allPhysicalAdapters, List<string> bridgeableAdapters)
         {
             _allPhysicalAdapters = allPhysicalAdapters;
+            _bridgeableAdapters = bridgeableAdapters;
 
             _switchName = switchInfo.SwitchName;
             _switchId = switchInfo.Id;
@@ -53,6 +55,7 @@ namespace ExHyperV.ViewModels
                 if (e.PropertyName == nameof(SelectedNetworkMode))
                 {
                     UpdateUiLogic();
+                    UpdateMenuItems();   // 桥接↔NAT 切换时重建网卡列表(桥接排不可二层桥的蜂窝/WWAN)
                     OnPropertyChanged(nameof(DropDownButtonContent));
                 }
             };
@@ -108,9 +111,10 @@ namespace ExHyperV.ViewModels
         {
             var currentSelection = this.SelectedUpstreamAdapter;
             MenuItems.Clear();
-            if (_allPhysicalAdapters == null) return;
-            var allPhysicalAdapterNames = _allPhysicalAdapters.ToList();
-            foreach (var name in allPhysicalAdapterNames) { MenuItems.Add(name); }
+            // 桥接只列可二层桥的网卡(蜂窝/WWAN 不在 Msvm_ExternalEthernetPort/WiFiPort);NAT 列全部物理网卡
+            var source = SelectedNetworkMode == SwitchMode.Bridge ? _bridgeableAdapters : _allPhysicalAdapters;
+            if (source == null) return;
+            foreach (var name in source) { MenuItems.Add(name); }
             if (!string.IsNullOrEmpty(currentSelection) && !MenuItems.Contains(currentSelection)) { MenuItems.Add(currentSelection); }
         }
 
