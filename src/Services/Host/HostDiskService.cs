@@ -11,15 +11,25 @@ namespace ExHyperV.Services
     {
         public static async Task<ApiResponse<List<HostDiskInfo>>> GetHostDisksAsync()
         {
-            var usedResp = await WmiApi.QueryAsync(
-                "SELECT DriveNumber FROM Msvm_DiskDrive WHERE DriveNumber >= 0",
-                obj => WmiApi.Prop<int>(obj, "DriveNumber", -1),
+            // 要排除的只是【已挂给某个 VM】的物理盘，而非"所有可直通的盘"。
+            // 关键：Msvm_DiskDrive 枚举的是宿主上【可直通的物理盘】(脱机盘都在，含已挂+未挂)——
+            // 微软 Add-VMHardDiskDrive 判定盘号可否直通正是查它(反编译 WmiHostComputerSystem.PhysicalHardDrives
+            // = "select * from Msvm_DiskDrive")。早前把整张 Msvm_DiskDrive 当"已用"排除，导致用户按 Hyper-V 习惯
+            // 手动脱机的盘被全部隐藏(issue #226)。已挂盘号应取自物理盘直通 RASD 的 HostResource(指向 Msvm_DiskDrive)。
+            var attachedResp = await WmiApi.QueryAsync(
+                "SELECT HostResource FROM Msvm_ResourceAllocationSettingData WHERE ResourceSubType = 'Microsoft:Hyper-V:Physical Disk Drive'",
+                obj => (obj["HostResource"] as string[])?.FirstOrDefault() ?? string.Empty,
                 WmiScope.HyperV);
 
-            var usedDiskNumbers = new HashSet<int>(
-                usedResp.Success && usedResp.Data != null
-                    ? usedResp.Data.Where(n => n >= 0)
-                    : Enumerable.Empty<int>());
+            var usedDiskNumbers = new HashSet<int>();
+            if (attachedResp.Success && attachedResp.Data != null)
+                foreach (var hr in attachedResp.Data)
+                {
+                    if (string.IsNullOrEmpty(hr)) continue;   // Definition 模板(Default/Minimum/Maximum/Increment)的 HostResource 为空
+                    // HostResource 形如 ...:Msvm_DiskDrive...DeviceID="Microsoft:{GUID}\3"，末尾数字即宿主盘号
+                    var m = System.Text.RegularExpressions.Regex.Match(hr, "DeviceID=\"[^\"]*?(\\d+)\"");
+                    if (m.Success && int.TryParse(m.Groups[1].Value, out int dn)) usedDiskNumbers.Add(dn);
+                }
 
             var diskResp = await WmiApi.QueryCimAsync(
                 "SELECT Number, FriendlyName, Size, IsSystem, IsBoot, BusType " +
