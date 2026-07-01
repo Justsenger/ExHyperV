@@ -1,6 +1,9 @@
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using ExHyperV.Interaction;
 using ExHyperV.Services;
 using ExHyperV.Tools;
+using ExHyperV.Views;
 
 namespace ExHyperV.ViewModels
 {
@@ -25,6 +28,23 @@ namespace ExHyperV.ViewModels
             OSArchitecture = info.OSArchitecture;
             CpuModel = info.CpuModel;
             MemCap = info.MemCap;
+        }
+
+        [RelayCommand]
+        private void OnNavigate(string parameter)
+        {
+            Type? pageType = parameter switch
+            {
+                "VM" => typeof(VirtualMachinesPage),
+                "Host" => typeof(HostPage),
+                "PCIe" => typeof(PCIePage),
+                "Network" => typeof(SwitchPage),
+                "USB" => typeof(USBPage),
+                _ => null
+            };
+
+            if (pageType != null)
+                Navigation.NavigateTo(pageType);
         }
     }
 }
