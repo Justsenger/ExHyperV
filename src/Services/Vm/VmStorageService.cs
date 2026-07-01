@@ -168,8 +168,17 @@ namespace ExHyperV.Services
                                     var devMatch = deviceIdRegex.Match(rawPath);
                                     int dNum = -1;
                                     if (devMatch.Success)
-                                        hvDiskMap.TryGetValue(
-                                            devMatch.Groups[1].Value.Replace("\\\\", "\\"), out dNum);
+                                    {
+                                        string devId = devMatch.Groups[1].Value.Replace("\\\\", "\\");
+                                        // 盘被手动联机后，宿主 Msvm_DiskDrive 只含脱机盘、这里查不到该 DeviceID。
+                                        // 不能只靠 TryGetValue 的 out：查不到会把 dNum 置 0(默认值)，错映射到磁盘 0(常为系统盘)。
+                                        // 故查不到时从 DeviceID 末尾(…\N)解析盘号——那是挂载时记录的、不随联机/脱机变。
+                                        if (!hvDiskMap.TryGetValue(devId, out dNum))
+                                        {
+                                            var tail = Regex.Match(devId, @"\\(\d+)$");
+                                            dNum = tail.Success ? int.Parse(tail.Groups[1].Value) : -1;
+                                        }
+                                    }
                                     else if (rawPath.ToUpper().Contains("PHYSICALDRIVE"))
                                     {
                                         var numMatch = Regex.Match(rawPath, @"PHYSICALDRIVE(\d+)",
