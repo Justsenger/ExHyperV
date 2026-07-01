@@ -5457,7 +5457,16 @@ namespace ExHyperV.Properties {
                 return ResourceManager.GetString("Storage_Slot", resourceCulture);
             }
         }
-        
+
+        /// <summary>
+        ///   查找类似 磁盘已联机，直通已失效。将磁盘脱机可恢复，或删除此项以移除直通。 的本地化字符串。
+        /// </summary>
+        public static string Storage_PassthroughStale {
+            get {
+                return ResourceManager.GetString("Storage_PassthroughStale", resourceCulture);
+            }
+        }
+
         /// <summary>
         ///   查找类似 Change VM shutdown action to Hard Turn Off... 的本地化字符串。
         /// </summary>

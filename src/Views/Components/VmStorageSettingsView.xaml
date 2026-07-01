@@ -217,6 +217,7 @@
                                             <RowDefinition Height="Auto"/>
                                             <RowDefinition Height="Auto"/>
                                             <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
                                         </Grid.RowDefinitions>
 
                                         <TextBlock Grid.Row="0" Grid.Column="0" Text="{x:Static properties:Resources.Common_Type}" Margin="0,0,0,10" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
@@ -243,6 +244,22 @@
                                                 </Style>
                                             </TextBlock.Style>
                                         </TextBlock>
+
+                                        <!-- 物理盘直通悬空(磁盘被手动联机)时的失效警告横幅 -->
+                                        <Border Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,12,0,0" Padding="10,8" CornerRadius="4"
+                                                Background="#26E8A317" BorderBrush="#66E8A317" BorderThickness="1">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsPassthroughStale}" Value="True">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                            <TextBlock Text="{x:Static properties:Resources.Storage_PassthroughStale}" TextWrapping="Wrap" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                                        </Border>
                                     </Grid>
                                 </Border>
                             </ui:CardExpander>

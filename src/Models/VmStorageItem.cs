@@ -19,6 +19,10 @@ namespace ExHyperV.Models
         [ObservableProperty] private int _diskNumber;
         [ObservableProperty] private string _diskModel = string.Empty;
 
+        // 物理盘直通悬空:HostResource 钉的盘已被手动联机、从可直通池(Msvm_DiskDrive)消失，直通失效(Hyper-V 显示"物理驱动器找不到"、VM 开机失败)。展开区显示失效横幅。
+        [ObservableProperty]
+        private bool _isPassthroughStale;
+
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(SizeDisplay))] // 当 DiskSizeGB 改变时通知 SizeDisplay 更新
         private double _diskSizeGB;

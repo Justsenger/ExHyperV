@@ -170,11 +170,13 @@ namespace ExHyperV.Services
                                     if (devMatch.Success)
                                     {
                                         string devId = devMatch.Groups[1].Value.Replace("\\\\", "\\");
-                                        // 盘被手动联机后，宿主 Msvm_DiskDrive 只含脱机盘、这里查不到该 DeviceID。
+                                        // hvDiskMap 来自 Msvm_DiskDrive(只含脱机盘)。查得到=盘仍脱机、直通有效;
+                                        // 查不到=盘已被手动联机、从可直通池消失 → 直通【悬空失效】(Hyper-V 显示"找不到"、VM 开机失败)。
+                                        // 悬空时仍从 DeviceID 末尾(…\N)解析盘号(挂载时记录、不随联机变)，用于告诉用户是哪块盘失效——
                                         // 不能只靠 TryGetValue 的 out：查不到会把 dNum 置 0(默认值)，错映射到磁盘 0(常为系统盘)。
-                                        // 故查不到时从 DeviceID 末尾(…\N)解析盘号——那是挂载时记录的、不随联机/脱机变。
                                         if (!hvDiskMap.TryGetValue(devId, out dNum))
                                         {
+                                            driveItem.IsPassthroughStale = true;
                                             var tail = Regex.Match(devId, @"\\(\d+)$");
                                             dNum = tail.Success ? int.Parse(tail.Groups[1].Value) : -1;
                                         }

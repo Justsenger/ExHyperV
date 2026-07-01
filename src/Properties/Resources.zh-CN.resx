@@ -705,6 +705,9 @@
   <data name="Storage_Slot" xml:space="preserve">
     <value>插槽</value>
   </data>
+  <data name="Storage_PassthroughStale" xml:space="preserve">
+    <value>磁盘已联机，直通已失效。将磁盘脱机可恢复，或删除此项以移除直通。</value>
+  </data>
   <data name="Model_Drive_OpticalDrive" xml:space="preserve">
     <value>光驱</value>
   </data>

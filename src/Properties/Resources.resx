@@ -705,6 +705,9 @@ The existing NAT switch is: '{0}'</value>
   <data name="Storage_Slot" xml:space="preserve">
     <value>Slot</value>
   </data>
+  <data name="Storage_PassthroughStale" xml:space="preserve">
+    <value>Disk is online — pass-through is broken. Set the disk offline to restore, or delete this entry to remove it.</value>
+  </data>
   <data name="Model_Drive_OpticalDrive" xml:space="preserve">
     <value>Optical Drive</value>
   </data>
