@@ -170,9 +170,18 @@ namespace ExHyperV.Services
         // ── 物理网卡列表 ─────────────────────────────────────────────────
         private static async Task<List<string>> GetPhysicalAdaptersAsync()
         {
+            // 同一物理网卡(尤其蜂窝模组/WiFi)会暴露多个共用同一 InterfaceDescription 的 NDIS 接口,
+            // 含 InterfaceOperationalStatus=6(NotPresent)的占位接口;它们 ConnectorPresent 也都是 TRUE
+            // (同一块物理硬件),只按 ConnectorPresent 过滤会重复 N 次。实测:arm64/Surface 5G 模组 11+WiFi 4 = 15
+            // 个接口收敛为 2 块物理设备;x64 单接口网卡分组后不变(零影响)。故按物理设备(PnPDeviceID)去重、
+            // 每块取 OperStatus 最优(Up=1 < Down=2 < NotPresent=6)的接口描述。
             var response = await WmiApi.QueryCimAsync(
-                "SELECT InterfaceDescription FROM MSFT_NetAdapter WHERE ConnectorPresent = TRUE",
-                obj => obj["InterfaceDescription"]?.ToString() ?? string.Empty,
+                "SELECT InterfaceDescription, PnPDeviceID, InterfaceOperationalStatus FROM MSFT_NetAdapter WHERE ConnectorPresent = TRUE",
+                obj => (
+                    Desc: obj["InterfaceDescription"]?.ToString() ?? string.Empty,
+                    Pnp: obj["PnPDeviceID"]?.ToString() ?? string.Empty,
+                    Oper: Convert.ToInt32(obj["InterfaceOperationalStatus"] ?? 0)
+                ),
                 WmiScope.StdCimV2);
 
             if (!response.Success)
@@ -181,9 +190,35 @@ namespace ExHyperV.Services
                 return new List<string>();
             }
 
-            return (response.Data ?? new List<string>())
-                .Where(a => !string.IsNullOrWhiteSpace(a))
+            return (response.Data ?? new())
+                .Where(a => !string.IsNullOrWhiteSpace(a.Desc) && !string.IsNullOrWhiteSpace(a.Pnp))
+                .GroupBy(a => a.Pnp)
+                .Select(g => g.OrderBy(a => a.Oper).First().Desc)
                 .ToList();
+        }
+
+        /// <summary>
+        /// 可桥接的物理网卡(外部/桥接交换机用):Hyper-V 认的 Msvm_ExternalEthernetPort(有线)+
+        /// Msvm_WiFiPort(WiFi)的 Name,与真实物理网卡(GetPhysicalAdapters)的交集。
+        /// 蜂窝/WWAN 两类端口皆无(点对点接口不支持二层桥接)→ 自然排除;调试网卡等非物理项也被交集滤掉。
+        /// </summary>
+        public static async Task<List<string>> GetBridgeableAdaptersAsync()
+        {
+            var ethResp = await WmiApi.QueryAsync(
+                "SELECT Name FROM Msvm_ExternalEthernetPort",
+                obj => obj["Name"]?.ToString() ?? string.Empty, WmiScope.HyperV);
+            var wifiResp = await WmiApi.QueryAsync(
+                "SELECT Name FROM Msvm_WiFiPort",
+                obj => obj["Name"]?.ToString() ?? string.Empty, WmiScope.HyperV);
+
+            var bridgeable = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            if (ethResp.Success && ethResp.Data != null)
+                foreach (var n in ethResp.Data) if (!string.IsNullOrEmpty(n)) bridgeable.Add(n);
+            if (wifiResp.Success && wifiResp.Data != null)
+                foreach (var n in wifiResp.Data) if (!string.IsNullOrEmpty(n)) bridgeable.Add(n);
+
+            var physical = await GetPhysicalAdaptersAsync();
+            return physical.Where(p => bridgeable.Contains(p)).ToList();
         }
 
         // ── 虚拟交换机列表 ───────────────────────────────────────────────
@@ -837,14 +872,26 @@ namespace ExHyperV.Services
 
         private static async Task<string> ResolveAdapterNameAsync(string interfaceDescription)
         {
-            string safe = interfaceDescription.Replace("'", "\\'");
             var resp = await WmiApi.QueryCimAsync(
-                $"SELECT Name FROM MSFT_NetAdapter WHERE InterfaceDescription = '{safe}'",
-                obj => obj["Name"]?.ToString() ?? string.Empty,
+                $"SELECT Name, InterfaceOperationalStatus FROM MSFT_NetAdapter WHERE InterfaceDescription = '{WmiApi.Escape(interfaceDescription)}'",
+                obj => (
+                    Name: obj["Name"]?.ToString() ?? string.Empty,
+                    Oper: Convert.ToInt32(obj["InterfaceOperationalStatus"] ?? 0)
+                ),
                 WmiScope.StdCimV2);
 
-            return (resp.Success && resp.Data?.Count > 0 && !string.IsNullOrEmpty(resp.Data[0]))
-                ? resp.Data[0] : interfaceDescription;
+            // 同描述名多接口(蜂窝/WiFi)会返回多行,取 OperStatus 最优(Up=1 < Down=2 < NotPresent=6)的
+            // 连接态接口名——否则取到 Data[0] 可能是 NotPresent 幽灵接口(HNetCfg 里不存在,ICS EnableSharing 会失败)。
+            if (resp.Success && resp.Data != null)
+            {
+                string best = resp.Data
+                    .Where(a => !string.IsNullOrEmpty(a.Name))
+                    .OrderBy(a => a.Oper)
+                    .Select(a => a.Name)
+                    .FirstOrDefault() ?? string.Empty;
+                if (!string.IsNullOrEmpty(best)) return best;
+            }
+            return interfaceDescription;
         }
 
         // ══════════════════════════════════════════════════════════════════

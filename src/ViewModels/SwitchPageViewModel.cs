@@ -18,6 +18,7 @@ namespace ExHyperV.ViewModels
         public ObservableCollection<SwitchViewModel> Switches { get; } = new();
 
         private List<string> _physicalAdapters = new();
+        private List<string> _bridgeableAdapters = new();
         private List<SwitchInfo> _rawSwitchInfos = new();
 
         // ===== 构造 =====
@@ -32,7 +33,8 @@ namespace ExHyperV.ViewModels
         [RelayCommand]
         private async Task AddNewSwitchAsync()
         {
-            var addSwitchVm = new AddSwitchViewModel(Switches, _physicalAdapters);
+            _bridgeableAdapters = await HyperVSwitchService.GetBridgeableAdaptersAsync();
+            var addSwitchVm = new AddSwitchViewModel(Switches, _physicalAdapters, _bridgeableAdapters);
             var addSwitchView = new AddSwitchView
             {
                 DataContext = addSwitchVm
@@ -130,6 +132,7 @@ namespace ExHyperV.ViewModels
                 var (switches, adapters) = await HyperVSwitchService.GetNetworkInfoAsync();
                 _rawSwitchInfos = switches;
                 _physicalAdapters = adapters;
+                _bridgeableAdapters = await HyperVSwitchService.GetBridgeableAdaptersAsync();
 
                 if (!_rawSwitchInfos.Any())
                 {
@@ -139,7 +142,7 @@ namespace ExHyperV.ViewModels
                 {
                     foreach (var switchInfo in _rawSwitchInfos)
                     {
-                        var switchVm = new SwitchViewModel(switchInfo, _physicalAdapters);
+                        var switchVm = new SwitchViewModel(switchInfo, _physicalAdapters, _bridgeableAdapters);
                         switchVm.PropertyChanged += OnSwitchViewModelPropertyChanged;
                         Switches.Add(switchVm);
                     }
@@ -237,6 +240,7 @@ namespace ExHyperV.ViewModels
             var (switches, adapters) = await HyperVSwitchService.GetNetworkInfoAsync();
             _rawSwitchInfos = switches;
             _physicalAdapters = adapters;
+            _bridgeableAdapters = await HyperVSwitchService.GetBridgeableAdaptersAsync();
 
             var updateTasks = new List<Task>();
             foreach (var vm in Switches)

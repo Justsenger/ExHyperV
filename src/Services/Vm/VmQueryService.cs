@@ -352,7 +352,8 @@ namespace ExHyperV.Services
                     vmInfo.Version = config.Ver;
                 }
 
-                vmInfo.OsType = NotesTag.Get(s.Notes, "OSType") ?? "Windows";
+                var osTypeTag = NotesTag.Get(s.Notes, "OSType");
+                vmInfo.OsType = string.IsNullOrEmpty(osTypeTag) ? "Windows" : osTypeTag;
                 vmInfo.CpuCount = s.Cpu;
                 vmInfo.MemoryGb = Math.Round(startupRam / 1024.0, 1);
                 vmInfo.AssignedMemoryGb = Math.Round((s.MemUsage > 0 ? s.MemUsage : startupRam) / 1024.0, 1);

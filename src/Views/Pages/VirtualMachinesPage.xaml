@@ -370,7 +370,8 @@
                             <StackPanel Grid.Row="3" Orientation="Horizontal">
                                 <ComboBox VerticalAlignment="Center"
           ItemsSource="{Binding DataContext.AvailableOsTypes, Source={x:Reference RootPage}}"
-          SelectedItem="{Binding OsType, Mode=TwoWay}"
+          SelectedItem="{Binding OsType, Mode=OneWay}"
+          SelectionChanged="OnOsTypeSelectionChanged"
           MaxDropDownHeight="300"
           Padding="10,6,4,6">
                                     <ComboBox.ItemTemplate>

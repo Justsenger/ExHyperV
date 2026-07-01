@@ -848,6 +848,7 @@ ARM 没有 Ring 环，用的是异常级别（Exception Levels）：
 ### 🌌 传说
 ![](https://img.shields.io/badge/传说-USER--09837-24292e?style=for-the-badge&logo=starship&logoColor=BE64FF&labelColor=24292e&color=BE64FF)
 <a href="https://github.com/PIKACHUIM"><img src="https://img.shields.io/badge/传说-PIKACHUIM-24292e?style=for-the-badge&logo=starship&logoColor=BE64FF&labelColor=24292e&color=BE64FF" /></a> 
+![](https://img.shields.io/badge/传说-USER--d6636-24292e?style=for-the-badge&logo=starship&logoColor=BE64FF&labelColor=24292e&color=BE64FF)
 
 ---
 
@@ -859,6 +860,7 @@ ARM 没有 Ring 环，用的是异常级别（Exception Levels）：
 ![](https://img.shields.io/badge/达人-Glushkov-24292e?style=for-the-badge&logo=expertsexchange&logoColor=FFBF00&labelColor=24292e&color=FFBF00)
 ![](https://img.shields.io/badge/达人-Cz-24292e?style=for-the-badge&logo=expertsexchange&logoColor=FFBF00&labelColor=24292e&color=FFBF00)
 ![](https://img.shields.io/badge/达人-Ermo-24292e?style=for-the-badge&logo=expertsexchange&logoColor=FFBF00&labelColor=24292e&color=FFBF00)
+![](https://img.shields.io/badge/达人-User--05ddd-24292e?style=for-the-badge&logo=expertsexchange&logoColor=FFBF00&labelColor=24292e&color=FFBF00)
 
 ---
 

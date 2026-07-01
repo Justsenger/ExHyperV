@@ -8,6 +8,7 @@ namespace ExHyperV.ViewModels
     {
         private readonly IEnumerable<SwitchViewModel> _existingSwitches;
         private readonly IEnumerable<string> _allPhysicalAdapters;
+        private readonly IEnumerable<string> _bridgeableAdapters;
 
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(IsNetworkAdapterSelectionEnabled))]
@@ -26,18 +27,28 @@ namespace ExHyperV.ViewModels
         public bool IsNetworkAdapterSelectionEnabled => SelectedSwitchType == SwitchMode.Bridge || SelectedSwitchType == SwitchMode.NAT;
 
 
-        public AddSwitchViewModel(IEnumerable<SwitchViewModel> existingSwitches, IEnumerable<string> allPhysicalAdapters)
+        public AddSwitchViewModel(IEnumerable<SwitchViewModel> existingSwitches, IEnumerable<string> allPhysicalAdapters, IEnumerable<string> bridgeableAdapters)
         {
             _existingSwitches = existingSwitches;
             _allPhysicalAdapters = allPhysicalAdapters;
+            _bridgeableAdapters = bridgeableAdapters;
+            RebuildAvailableAdapters();
+        }
 
-            foreach (var adapter in _allPhysicalAdapters)
+        // 按交换机类型分源:外部/桥接只列可桥接网卡(蜂窝/WWAN 不可二层桥);NAT 列全部可上网物理网卡。
+        // 同时排除已被现有交换机占用的上游。
+        private void RebuildAvailableAdapters()
+        {
+            var source = SelectedSwitchType == SwitchMode.Bridge ? _bridgeableAdapters : _allPhysicalAdapters;
+            string? keep = SelectedNetworkAdapter;
+            AvailableNetworkAdapters.Clear();
+            foreach (var adapter in source)
             {
                 if (!_existingSwitches.Any(s => s.SelectedUpstreamAdapter == adapter))
-                {
                     AvailableNetworkAdapters.Add(adapter);
-                }
             }
+            // 类型切换后,原选中项若已不在新列表里则清空
+            SelectedNetworkAdapter = (keep != null && AvailableNetworkAdapters.Contains(keep)) ? keep : null;
         }
 
         partial void OnSelectedSwitchTypeChanged(SwitchMode value)
@@ -49,6 +60,7 @@ namespace ExHyperV.ViewModels
                 SwitchMode.Isolated => Properties.Resources.AddSwitch_DefaultName_Internal,
                 _ => Properties.Resources.AddSwitch_DefaultName_Generic
             };
+            RebuildAvailableAdapters();   // 桥接↔NAT 切换时重建网卡列表(桥接排蜂窝)
         }
 
         public bool Validate()
