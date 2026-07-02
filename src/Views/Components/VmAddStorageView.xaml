@@ -388,8 +388,14 @@
                                          Margin="0,16,0,0" BorderThickness="0" Background="Transparent" MaxHeight="200">
                                 <ui:ListView.ItemContainerStyle>
                                     <Style TargetType="{x:Type ui:ListViewItem}" BasedOn="{StaticResource {x:Type ui:ListViewItem}}">
-                                        <!-- 不可直通(系统盘/已分配/只读/USB)的项置灰、不可选中 -->
+                                        <!-- 不可直通(系统盘/已分配/只读/USB)的项:禁选 + 明显变暗。
+                                             深色主题下 IsEnabled=false 本身几乎看不出差别,必须叠 Opacity 才有"置灰"观感。 -->
                                         <Setter Property="IsEnabled" Value="{Binding CanPassthrough}"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding CanPassthrough}" Value="False">
+                                                <Setter Property="Opacity" Value="0.4"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
                                     </Style>
                                 </ui:ListView.ItemContainerStyle>
                                 <ui:ListView.ItemTemplate>
