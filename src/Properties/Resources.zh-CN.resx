@@ -1074,6 +1074,9 @@
   <data name="Error_Storage_AddFail" xml:space="preserve">
     <value>添加失败</value>
   </data>
+  <data name="Error_Storage_OfflineFail" xml:space="preserve">
+    <value>脱机失败：该磁盘可能正被使用（有分区挂载中）。请先在磁盘管理中将其脱机，或选择其他磁盘。</value>
+  </data>
   <data name="Error_Storage_Gen1Dvd" xml:space="preserve">
     <value>第 1 代虚拟机的光盘无法在运行状态下添加（IDE 不支持热插拔）。请先关机。</value>
   </data>

@@ -2097,6 +2097,15 @@ namespace ExHyperV.Properties {
                 return ResourceManager.GetString("Error_Storage_AddFail", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   查找类似 脱机失败：该磁盘可能正被使用（有分区挂载中）。请先在磁盘管理中将其脱机，或选择其他磁盘。 的本地化字符串。
+        /// </summary>
+        public static string Error_Storage_OfflineFail {
+            get {
+                return ResourceManager.GetString("Error_Storage_OfflineFail", resourceCulture);
+            }
+        }
         
         /// <summary>
         ///   查找类似 Controller {0} #{1} is full. 的本地化字符串。

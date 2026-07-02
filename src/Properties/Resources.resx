@@ -1074,6 +1074,9 @@ The existing NAT switch is: '{0}'</value>
   <data name="Error_Storage_AddFail" xml:space="preserve">
     <value>Add Failed</value>
   </data>
+  <data name="Error_Storage_OfflineFail" xml:space="preserve">
+    <value>Failed to take the disk offline — it may be in use (mounted volumes). Take it offline in Disk Management first, or choose another disk.</value>
+  </data>
   <data name="Error_Storage_Gen1Dvd" xml:space="preserve">
     <value>Gen1 VM DVD cannot be added while running (IDE no hot-swap).</value>
   </data>
