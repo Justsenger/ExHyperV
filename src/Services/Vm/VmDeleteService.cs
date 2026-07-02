@@ -75,10 +75,11 @@ public static class VmDeleteService
     // 收集"将清理的目标"：VHD 文件路径 + 配置目录。Preview 与 Purge 共用，保证显示与实删一致。
     private static async Task<(List<string> DiskPaths, string? ConfigDir)> CollectPurgeTargetsAsync(string vmGuid)
     {
-        // VHD 路径取法对齐 VmQueryService（能查到盘的那套）：按 ResourceType(31/16) 取存储分配，
+        // 只收【虚拟硬盘】(ResourceType 31)的文件来删。
+        // 绝不收 ResourceType 16(虚拟 DVD)——它的 HostResource 是用户挂载的 ISO 镜像,彻底删除 VM 不该动用户的 ISO。
         // 路径在 HostResource 数组里（不是 "Path" 属性），且 VM GUID 出现在 InstanceID 或 Parent 中部（非固定前缀）。
         var diskResp = await WmiApi.QueryAsync(
-            "SELECT InstanceID, Parent, HostResource, ResourceType FROM Msvm_StorageAllocationSettingData WHERE ResourceType = 31 OR ResourceType = 16",
+            "SELECT InstanceID, Parent, HostResource, ResourceType FROM Msvm_StorageAllocationSettingData WHERE ResourceType = 31",
             obj => (
                 Id: obj["InstanceID"]?.ToString() ?? string.Empty,
                 Parent: obj["Parent"]?.ToString() ?? string.Empty,
@@ -89,7 +90,9 @@ public static class VmDeleteService
         var diskPaths = (diskResp.Data ?? new List<(string Id, string Parent, string[] Host)>())
             .Where(d => d.Id.ToUpperInvariant().Contains(guidKey) || d.Parent.ToUpperInvariant().Contains(guidKey))
             .SelectMany(d => d.Host)
-            .Where(p => !string.IsNullOrEmpty(p))
+            // 排除物理盘直通(HostResource 是 Msvm_DiskDrive 引用、非文件),防御性:虚拟硬盘 31 里正常不含它。
+            .Where(p => !string.IsNullOrEmpty(p)
+                     && p.IndexOf("Msvm_DiskDrive", StringComparison.OrdinalIgnoreCase) < 0)
             .Distinct()
             .ToList();
 
