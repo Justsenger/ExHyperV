@@ -589,8 +589,11 @@ namespace ExHyperV.ViewModels
                 }
                 else
                 {
-                    if (offlinedDisk >= 0)   // 添加失败：把刚为此脱机的物理盘还原上线，别让用户主机的盘卡在脱机
+                    if (offlinedDisk >= 0)   // 添加失败：把刚为此脱机的物理盘还原上线 + 清只读，别让主机的盘卡在脱机/只读
+                    {
                         await HostDiskService.SetDiskOfflineStatusAsync(offlinedDisk, false);
+                        await HostDiskService.SetDiskReadOnlyAsync(offlinedDisk, false);
+                    }
                     ShowError($"{Properties.Resources.Error_Storage_AddFail}：{result.Message}");
                 }
             }

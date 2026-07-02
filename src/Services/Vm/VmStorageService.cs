@@ -855,7 +855,10 @@ namespace ExHyperV.Services
             if (drive.DiskType == "Physical" && drive.DriveType == "HardDisk" && drive.DiskNumber > -1)
             {
                 await Task.Delay(500);
-                await HostDiskService.SetDiskOfflineStatusAsync(drive.DiskNumber, false);
+                await HostDiskService.SetDiskOfflineStatusAsync(drive.DiskNumber, false);   // 联机
+                // Hyper-V 挂 pass-through 物理盘会把宿主盘置为只读(独占保护)；拿回宿主后必须清掉，
+                // 否则宿主看到的是只读盘、无法写(对齐 GPU 直通拿回 VmGpuService 的处理)。
+                await HostDiskService.SetDiskReadOnlyAsync(drive.DiskNumber, false);
             }
 
             return (true, Properties.Resources.Msg_Storage_Removed);
