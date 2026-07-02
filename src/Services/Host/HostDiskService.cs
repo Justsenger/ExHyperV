@@ -9,40 +9,50 @@ namespace ExHyperV.Services
     /// </summary>
     public static class HostDiskService
     {
+        // 列出宿主上【全部】物理硬盘，逐块标注状态(可直通/系统盘/已分配给某VM/在线需脱机/只读/USB不支持)；
+        // 不可直通的由 CanPassthrough=false 交给 UI 置灰。这样用户看得到每块盘的真实状态，而不是"能直通的才显示"。
         public static async Task<ApiResponse<List<HostDiskInfo>>> GetHostDisksAsync()
         {
-            // 要排除的只是【已挂给某个 VM】的物理盘，而非"所有可直通的盘"。
-            // 关键：Msvm_DiskDrive 枚举的是宿主上【可直通的物理盘】(脱机盘都在，含已挂+未挂)——
-            // 微软 Add-VMHardDiskDrive 判定盘号可否直通正是查它(反编译 WmiHostComputerSystem.PhysicalHardDrives
-            // = "select * from Msvm_DiskDrive")。早前把整张 Msvm_DiskDrive 当"已用"排除，导致用户按 Hyper-V 习惯
-            // 手动脱机的盘被全部隐藏(issue #226)。已挂盘号应取自物理盘直通 RASD 的 HostResource(指向 Msvm_DiskDrive)。
-            var attachedResp = await WmiApi.QueryAsync(
-                "SELECT HostResource FROM Msvm_ResourceAllocationSettingData WHERE ResourceSubType = 'Microsoft:Hyper-V:Physical Disk Drive'",
-                obj => (obj["HostResource"] as string[])?.FirstOrDefault() ?? string.Empty,
+            // VM 配置 GUID → VM 名(一次查全,供"已分配给谁"关联)
+            var vmNames = new Dictionary<string, string>();
+            var vmResp = await WmiApi.QueryAsync(
+                "SELECT ConfigurationID, ElementName FROM Msvm_VirtualSystemSettingData WHERE VirtualSystemType = 'Microsoft:Hyper-V:System:Realized'",
+                obj => (Id: obj["ConfigurationID"]?.ToString() ?? string.Empty, Name: obj["ElementName"]?.ToString() ?? string.Empty),
                 WmiScope.HyperV);
+            if (vmResp.Success && vmResp.Data != null)
+                foreach (var vm in vmResp.Data)
+                    if (!string.IsNullOrEmpty(vm.Id)) vmNames[vm.Id.ToUpperInvariant()] = vm.Name;
 
-            var usedDiskNumbers = new HashSet<int>();
+            // 已挂给某 VM 的盘号 → VM 名：物理盘直通 RASD 的 HostResource 解析盘号、InstanceID 里的 GUID 关联 VM。
+            var assignedTo = new Dictionary<int, string>();
+            var attachedResp = await WmiApi.QueryAsync(
+                "SELECT InstanceID, HostResource FROM Msvm_ResourceAllocationSettingData WHERE ResourceSubType = 'Microsoft:Hyper-V:Physical Disk Drive'",
+                obj => (Inst: obj["InstanceID"]?.ToString() ?? string.Empty, Hr: (obj["HostResource"] as string[])?.FirstOrDefault() ?? string.Empty),
+                WmiScope.HyperV);
             if (attachedResp.Success && attachedResp.Data != null)
-                foreach (var hr in attachedResp.Data)
+                foreach (var a in attachedResp.Data)
                 {
-                    if (string.IsNullOrEmpty(hr)) continue;   // Definition 模板(Default/Minimum/Maximum/Increment)的 HostResource 为空
-                    // HostResource 形如 ...:Msvm_DiskDrive...DeviceID="Microsoft:{GUID}\3"，末尾数字即宿主盘号
-                    var m = System.Text.RegularExpressions.Regex.Match(hr, "DeviceID=\"[^\"]*?(\\d+)\"");
-                    if (m.Success && int.TryParse(m.Groups[1].Value, out int dn)) usedDiskNumbers.Add(dn);
+                    if (string.IsNullOrEmpty(a.Hr)) continue;   // Definition 模板(Default/Minimum/…)的 HostResource 为空
+                    var dm = System.Text.RegularExpressions.Regex.Match(a.Hr, "DeviceID=\"[^\"]*?(\\d+)\"");
+                    if (!dm.Success || !int.TryParse(dm.Groups[1].Value, out int dn)) continue;
+                    string vmName = string.Empty;
+                    var gm = System.Text.RegularExpressions.Regex.Match(a.Inst, "([0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12})");
+                    if (gm.Success) vmNames.TryGetValue(gm.Groups[1].Value.ToUpperInvariant(), out vmName);
+                    assignedTo[dn] = vmName ?? string.Empty;
                 }
 
             var diskResp = await WmiApi.QueryCimAsync(
-                "SELECT Number, FriendlyName, Size, IsSystem, IsBoot, BusType " +
-                "FROM MSFT_Disk",
-                obj =>
+                "SELECT Number, FriendlyName, Size, IsSystem, IsBoot, BusType, IsOffline, IsReadOnly FROM MSFT_Disk",
+                obj => new
                 {
-                    int number = Convert.ToInt32(obj["Number"] ?? -1);
-                    ushort busType = Convert.ToUInt16(obj["BusType"] ?? 0);
-                    bool isSystem = Convert.ToBoolean(obj["IsSystem"] ?? false);
-                    bool isBoot = Convert.ToBoolean(obj["IsBoot"] ?? false);
-                    long sizeBytes = Convert.ToInt64(obj["Size"] ?? 0L);
-                    string friendlyName = obj["FriendlyName"]?.ToString() ?? "";
-                    return new { number, busType, isSystem, isBoot, sizeBytes, friendlyName };
+                    number = Convert.ToInt32(obj["Number"] ?? -1),
+                    busType = Convert.ToUInt16(obj["BusType"] ?? 0),
+                    isSystem = Convert.ToBoolean(obj["IsSystem"] ?? false),
+                    isBoot = Convert.ToBoolean(obj["IsBoot"] ?? false),
+                    isOffline = Convert.ToBoolean(obj["IsOffline"] ?? false),
+                    isReadOnly = Convert.ToBoolean(obj["IsReadOnly"] ?? false),
+                    sizeBytes = Convert.ToInt64(obj["Size"] ?? 0L),
+                    friendlyName = obj["FriendlyName"]?.ToString() ?? ""
                 },
                 WmiScope.Storage);
 
@@ -51,16 +61,33 @@ namespace ExHyperV.Services
                     diskResp.Error, diskResp.Code, diskResp.ErrorSource);
 
             var result = diskResp.Data!
-                .Where(d => d.number >= 0
-                         && d.busType != 7
-                         && !d.isSystem
-                         && !d.isBoot
-                         && !usedDiskNumbers.Contains(d.number))
-                .Select(d => new HostDiskInfo
+                .Where(d => d.number >= 0)
+                .OrderBy(d => d.number)
+                .Select(d =>
                 {
-                    Number = d.number,
-                    FriendlyName = d.friendlyName,
-                    SizeGB = Math.Round(d.sizeBytes / 1073741824.0, 2)
+                    // 优先级:系统盘 > 已分配 > 只读 > USB > 脱机可直通 > 在线(将脱机)
+                    string status;
+                    bool can;
+                    if (d.isSystem || d.isBoot) { can = false; status = Properties.Resources.Storage_DiskStatus_System; }
+                    else if (assignedTo.TryGetValue(d.number, out var vm))
+                    {
+                        can = false;
+                        status = string.Format(Properties.Resources.Storage_DiskStatus_Assigned,
+                            string.IsNullOrEmpty(vm) ? "VM" : vm);
+                    }
+                    else if (d.isReadOnly) { can = false; status = Properties.Resources.Storage_DiskStatus_ReadOnly; }
+                    else if (d.busType == 7) { can = false; status = Properties.Resources.Storage_DiskStatus_Usb; }
+                    // 脱机/在线未挂都算"可用"(在线盘添加时会自动脱机)
+                    else { can = true; status = Properties.Resources.Storage_DiskStatus_Available; }
+
+                    return new HostDiskInfo
+                    {
+                        Number = d.number,
+                        FriendlyName = d.friendlyName,
+                        SizeGB = Math.Round(d.sizeBytes / 1073741824.0, 2),
+                        Status = status,
+                        CanPassthrough = can
+                    };
                 })
                 .ToList();
 

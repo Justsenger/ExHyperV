@@ -5467,6 +5467,36 @@ namespace ExHyperV.Properties {
             }
         }
 
+        public static string Storage_DiskStatus_Available {
+            get {
+                return ResourceManager.GetString("Storage_DiskStatus_Available", resourceCulture);
+            }
+        }
+
+        public static string Storage_DiskStatus_System {
+            get {
+                return ResourceManager.GetString("Storage_DiskStatus_System", resourceCulture);
+            }
+        }
+
+        public static string Storage_DiskStatus_Assigned {
+            get {
+                return ResourceManager.GetString("Storage_DiskStatus_Assigned", resourceCulture);
+            }
+        }
+
+        public static string Storage_DiskStatus_ReadOnly {
+            get {
+                return ResourceManager.GetString("Storage_DiskStatus_ReadOnly", resourceCulture);
+            }
+        }
+
+        public static string Storage_DiskStatus_Usb {
+            get {
+                return ResourceManager.GetString("Storage_DiskStatus_Usb", resourceCulture);
+            }
+        }
+
         /// <summary>
         ///   查找类似 Change VM shutdown action to Hard Turn Off... 的本地化字符串。
         /// </summary>

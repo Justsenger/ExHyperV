@@ -384,8 +384,14 @@
                                        HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,24"
                                        Visibility="{Binding HostDisks.Count, Converter={StaticResource EqualityToVisibilityConverter}, ConverterParameter=0}"/>
 
-                            <ui:ListView ItemsSource="{Binding HostDisks}" SelectedItem="{Binding SelectedPhysicalDisk}" 
+                            <ui:ListView ItemsSource="{Binding HostDisks}" SelectedItem="{Binding SelectedPhysicalDisk}"
                                          Margin="0,16,0,0" BorderThickness="0" Background="Transparent" MaxHeight="200">
+                                <ui:ListView.ItemContainerStyle>
+                                    <Style TargetType="{x:Type ui:ListViewItem}" BasedOn="{StaticResource {x:Type ui:ListViewItem}}">
+                                        <!-- 不可直通(系统盘/已分配/只读/USB)的项置灰、不可选中 -->
+                                        <Setter Property="IsEnabled" Value="{Binding CanPassthrough}"/>
+                                    </Style>
+                                </ui:ListView.ItemContainerStyle>
                                 <ui:ListView.ItemTemplate>
                                     <DataTemplate>
                                         <Grid Margin="8,6">
@@ -395,7 +401,15 @@
                                             </Grid.ColumnDefinitions>
                                             <ui:FontIcon Glyph="&#xEDA2;" FontFamily="{StaticResource SegoeFluentIcons}" FontSize="24" VerticalAlignment="Center" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
                                             <StackPanel Grid.Column="1" Margin="16,0,0,0">
-                                                <TextBlock Text="{Binding FriendlyName}" FontWeight="Medium" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="{Binding FriendlyName}" FontWeight="Medium" VerticalAlignment="Center" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                                                    <!-- 状态标签 -->
+                                                    <Border Margin="8,0,0,0" Padding="6,1" CornerRadius="3" VerticalAlignment="Center"
+                                                            Background="{ui:ThemeResource ControlFillColorSecondaryBrush}"
+                                                            BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                                                        <TextBlock Text="{Binding Status}" FontSize="11" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                                                    </Border>
+                                                </StackPanel>
                                                 <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
                                                     <TextBlock Text="{x:Static properties:Resources.Common_Disk}" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
                                                     <TextBlock Text="{Binding Number}" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="4,0,0,0"/>

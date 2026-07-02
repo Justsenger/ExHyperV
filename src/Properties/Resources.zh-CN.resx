@@ -708,6 +708,21 @@
   <data name="Storage_PassthroughStale" xml:space="preserve">
     <value>磁盘已联机，直通已失效。将磁盘脱机可恢复，或删除此项以移除直通。</value>
   </data>
+  <data name="Storage_DiskStatus_Available" xml:space="preserve">
+    <value>可用</value>
+  </data>
+  <data name="Storage_DiskStatus_System" xml:space="preserve">
+    <value>系统/启动盘</value>
+  </data>
+  <data name="Storage_DiskStatus_Assigned" xml:space="preserve">
+    <value>已分配给 {0}</value>
+  </data>
+  <data name="Storage_DiskStatus_ReadOnly" xml:space="preserve">
+    <value>只读，不可直通</value>
+  </data>
+  <data name="Storage_DiskStatus_Usb" xml:space="preserve">
+    <value>USB，不支持直通</value>
+  </data>
   <data name="Model_Drive_OpticalDrive" xml:space="preserve">
     <value>光驱</value>
   </data>
