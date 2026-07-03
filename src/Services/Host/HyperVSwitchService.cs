@@ -633,7 +633,8 @@ namespace ExHyperV.Services
             using var switchObj = await GetSwitchObjectAsync(switchName);
             await EnsureInternalModeAsync(switchObj, ms, switchName);
 
-            await ComApi.DisableAllIcsSharingAsync();
+            // 不在此先全局清场：清除由 EnableIcsSharing 内部在两个目标确认存在后执行——
+            // 先清后验会在 vEthernet 未就绪等失败场景下白白关掉现有 NAT(可能属于别的交换机)且无法恢复。
 
             string vEthernetName = $"vEthernet ({switchName})";
             string physicalAdapterName = await ResolveAdapterNameAsync(adapterDescription);
