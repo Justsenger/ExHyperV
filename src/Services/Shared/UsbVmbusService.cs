@@ -77,11 +77,13 @@ namespace ExHyperV.Services
             var hv = VmbusApi.WrapHandle(hvHandle);
             Socket? tcp = null;
 
+            // 句柄唯一所有者是托管 Socket(hv/tcp)：取消与收尾统一走 Dispose(幂等)，泵线程只借用
+            // 裸句柄、断线只报告不关闭——句柄号会被系统复用，多方 closesocket 会误关进程内无关连接。
             var completion = new TaskCompletionSource<bool>();
             ct.Register(() =>
             {
-                VmbusApi.CloseSocket(hvHandle);
-                if (tcp != null) VmbusApi.CloseSocket(tcp.SafeHandle.DangerousGetHandle());
+                try { hv.Dispose(); } catch { }
+                try { tcp?.Dispose(); } catch { }
                 completion.TrySetResult(true);
             });
 
@@ -148,9 +150,7 @@ namespace ExHyperV.Services
                 finally
                 {
                     NativeMemory.AlignedFree(bufferPtr);
-                    VmbusApi.CloseSocket(sIn);
-                    VmbusApi.CloseSocket(sOut);
-                    onFault?.Invoke();
+                    onFault?.Invoke();   // 只报告断线；句柄由 StartTunnelAsync 收尾统一 Dispose
                 }
             })
             { IsBackground = true, Name = $"NativePump_{label}" }.Start();
