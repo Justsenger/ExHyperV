@@ -38,7 +38,9 @@ namespace ExHyperV.ViewModels
         [ObservableProperty] private bool _isNativeNvmeSupported;
         [ObservableProperty] private bool _isServerSystem;
         [ObservableProperty] private bool _isSystemSwitchEnabled = false;
-        [ObservableProperty] private string _systemVersionDesc = string.Empty;
+
+        // 有挂起的版本切换任务（重启前不可再切，开关保持禁用）
+        private bool _hasPendingSwitch = false;
         [ObservableProperty] private bool _isNumaSpanningEnabled;
         [ObservableProperty] private HyperVSchedulerType _currentSchedulerType;
 
@@ -121,7 +123,8 @@ namespace ExHyperV.ViewModels
             IsNativeNvmeToggleEnabled = true;
             // 切换服务器版本(黑魔法)仅对特定客户端 SKU 生效；真 Server/家庭版/标准专业版/企业版等不适用，开关置灰。
             // 判定走 EditionID(真实 SKU)而非 ProductType——后者正是黑魔法改的值，用它会致被切的客户端版无法切回。
-            IsSystemSwitchEnabled = HyperVHostService.IsServerSwitchApplicable();
+            // 已有挂起切换任务时同样置灰：挂起的替换无法取消也无法覆盖，重启生效前不可再切。
+            IsSystemSwitchEnabled = !_hasPendingSwitch && HyperVHostService.IsServerSwitchApplicable();
         }
 
         private async Task LoadAdvancedConfigAsync()
@@ -229,12 +232,17 @@ namespace ExHyperV.ViewModels
 
         private void InitializeProductType()
         {
-            IsServerSystem = HyperVHostService.IsServerSystem();
-            UpdateSystemDesc(IsServerSystem);
+            // 有挂起的切换任务时，开关显示"重启后的目标状态"而非当前 ProductType——
+            // 灰在目标位置传达"操作已被接受、等重启"；方向未知(外部替换)则保守停在当前值。
+            string? pending = SystemTypeService.GetPendingTarget();
+            _hasPendingSwitch = pending != null;
+            IsServerSystem = pending switch
+            {
+                "ServerNT" => true,
+                "WinNT" => false,
+                _ => HyperVHostService.IsServerSystem(),
+            };
         }
-
-        private void UpdateSystemDesc(bool isServer) =>
-            SystemVersionDesc = $"{Properties.Resources.Status_Msg_CurrentVer}: {(isServer ? Properties.Resources.Status_Edition_Server : Properties.Resources.Status_Edition_Workstation)}";
 
         private async void SwitchSystemVersion(bool toServer)
         {
@@ -242,30 +250,53 @@ namespace ExHyperV.ViewModels
             {
                 IsSystemSwitchEnabled = false;
 
-                if (SystemTypeService.HasPendingTask())
+                string? pending = SystemTypeService.GetPendingTarget();
+                if (pending != null)
                 {
                     ShowTip(Properties.Resources.Status_Msg_RestartRequired);
-                    _isInitialized = false;
-                    IsServerSystem = !toServer;
-                    _isInitialized = true;
-                    return;
+                    ShowPendingState(pending, toServer);
+                    return;   // 挂起任务无法取消或覆盖，重启前保持禁用
                 }
 
                 string result = await Task.Run(() => SystemTypeService.ApplySwitch(toServer));
-                if (result == "SUCCESS") ShowRestartPrompt(Properties.Resources.Status_Msg_RestartNow);
-                else
+                if (result == "SUCCESS")
                 {
-                    ShowError(result);
-                    _isInitialized = false; IsServerSystem = !toServer; _isInitialized = true;
+                    _hasPendingSwitch = true;
+                    ShowRestartPrompt(Properties.Resources.Status_Msg_RestartNow);
+                    return;   // 开关停在目标位置并保持禁用（待重启态）
                 }
+                if (result == "PENDING")
+                {
+                    ShowTip(Properties.Resources.Status_Msg_RestartRequired);
+                    ShowPendingState(SystemTypeService.GetPendingTarget(), toServer);
+                    return;
+                }
+
+                ShowError(result);
+                _isInitialized = false; IsServerSystem = !toServer; _isInitialized = true;
+                IsSystemSwitchEnabled = HyperVHostService.IsServerSwitchApplicable();
             }
             catch (Exception ex)
             {
                 // async void：未捕获异常会直接崩溃 UI 线程；兜底上报并回滚开关状态
                 ShowError(ex.Message);
                 _isInitialized = false; IsServerSystem = !toServer; _isInitialized = true;
+                IsSystemSwitchEnabled = HyperVHostService.IsServerSwitchApplicable();
             }
-            finally { IsSystemSwitchEnabled = HyperVHostService.IsServerSwitchApplicable(); }
+        }
+
+        // 挂起态：开关摆到真实目标位置（方向未知则回滚到拨动前），不触发再次切换、保持禁用
+        private void ShowPendingState(string? pendingTarget, bool attempted)
+        {
+            _hasPendingSwitch = true;
+            _isInitialized = false;
+            IsServerSystem = pendingTarget switch
+            {
+                "ServerNT" => true,
+                "WinNT" => false,
+                _ => !attempted,
+            };
+            _isInitialized = true;
         }
 
 

@@ -5586,6 +5586,15 @@ namespace ExHyperV.Properties {
                 return ResourceManager.GetString("SystemType_ErrReplaceFailed", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   查找类似 The working file is in use: a switch awaiting restart may exist, or security software is holding it 的本地化字符串。
+        /// </summary>
+        public static string SystemType_ErrWorkFileLocked {
+            get {
+                return ResourceManager.GetString("SystemType_ErrWorkFileLocked", resourceCulture);
+            }
+        }
         
         /// <summary>
         ///   查找类似 Assign GPU 的本地化字符串。

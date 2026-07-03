@@ -2460,6 +2460,9 @@ The existing NAT switch is: '{0}'</value>
   <data name="SystemType_ErrReplaceFailed" xml:space="preserve">
     <value>Replacement failed: {0}</value>
   </data>
+  <data name="SystemType_ErrWorkFileLocked" xml:space="preserve">
+    <value>The working file is in use: a switch awaiting restart may exist, or security software is holding it</value>
+  </data>
   <data name="VmPage_CreatingVm" xml:space="preserve">
     <value>Creating virtual machine...</value>
   </data>

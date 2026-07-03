@@ -308,10 +308,12 @@ public static class Win32Api
         finally { NativeMethods.RegCloseKey(hKey); }
     }
 
+    // ERROR_ACCESS_DENIED(5) = 同一键已有挂起的替换任务(重启前二次替换被内核拒绝)，
+    // 不再并入成功——由调用方按 code==5 翻译为"挂起"语义。
     public static ApiResponse ReplaceHive(string subKeyName, string newHivePath, string backupPath)
     {
         int ret = NativeMethods.RegReplaceKey(NativeMethods.HKEY_LOCAL_MACHINE, subKeyName, newHivePath, backupPath);
-        return ret == 0 || ret == 5 ? ApiResponse.Ok() : ApiResponse.Fail("RegReplaceKey failed", ret, ApiErrorSource.Win32);
+        return ret == 0 ? ApiResponse.Ok() : ApiResponse.Fail("RegReplaceKey failed", ret, ApiErrorSource.Win32);
     }
 
     public static ApiResponse SetHiveStringValue(string subKeyName, string valueName, string value)
