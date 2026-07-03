@@ -413,22 +413,35 @@ public static class WmiApi
                 if (outParams is null)
                     return ApiResponse<ManagementBaseObject>.Fail($"Method '{methodName}' returned null");
 
-                int returnValue = Convert.ToInt32(outParams["ReturnValue"]);
-                if (returnValue == 4096)   // 异步 Job：等完成（与 InvokeOnObjectAsync 一致）
+                // 成功时 outParams 的所有权转给调用方；失败/异常路径在此释放
+                try
                 {
-                    var jobResult = await WaitForJobAsync((string)outParams["Job"], scope, ctx, default);
-                    if (!jobResult.Success)
+                    int returnValue = Convert.ToInt32(outParams["ReturnValue"]);
+                    if (returnValue == 4096)   // 异步 Job：等完成（与 InvokeOnObjectAsync 一致）
+                    {
+                        var jobResult = await WaitForJobAsync((string)outParams["Job"], scope, ctx, default);
+                        if (!jobResult.Success)
+                        {
+                            outParams.Dispose();
+                            return ApiResponse<ManagementBaseObject>.Fail(
+                                jobResult.Error, jobResult.Code, jobResult.ErrorSource);
+                        }
+                    }
+                    else if (returnValue != 0)
+                    {
+                        outParams.Dispose();
                         return ApiResponse<ManagementBaseObject>.Fail(
-                            jobResult.Error, jobResult.Code, jobResult.ErrorSource);
-                }
-                else if (returnValue != 0)
-                {
-                    return ApiResponse<ManagementBaseObject>.Fail(
-                        $"Method '{methodName}' returned code {returnValue}",
-                        returnValue, ApiErrorSource.Wmi);
-                }
+                            $"Method '{methodName}' returned code {returnValue}",
+                            returnValue, ApiErrorSource.Wmi);
+                    }
 
-                return ApiResponse<ManagementBaseObject>.Ok(outParams);
+                    return ApiResponse<ManagementBaseObject>.Ok(outParams);
+                }
+                catch
+                {
+                    outParams.Dispose();
+                    throw;
+                }
             }
             catch (ManagementException ex)
             {
