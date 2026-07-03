@@ -297,7 +297,7 @@ public static class WmiApi
                 using var inParams = target.GetMethodParameters(methodName);
                 setParams?.Invoke(inParams);
 
-                var outParams = target.InvokeMethod(methodName, inParams, null);
+                using var outParams = target.InvokeMethod(methodName, inParams, null);
                 if (outParams is null)
                     return ApiResponse<string[]>.Fail($"Method '{methodName}' returned null");
 
@@ -305,13 +305,17 @@ public static class WmiApi
 
                 if (returnValue == 4096)
                 {
-                    var jobResult = await WaitForJobAsync(
-                        (string)outParams["Job"], scope, ctx, cancellationToken);
+                    string jobPath = (string)outParams["Job"];
+                    var jobResult = await WaitForJobAsync(jobPath, scope, ctx, cancellationToken);
                     if (!jobResult.Success)
                         return ApiResponse<string[]>.Fail(
                             jobResult.Error, jobResult.Code, jobResult.ErrorSource);
+
+                    // 异步 Job 路径下 outParams 的结果字段不填充(实测立即读/Job 完成后读均为 null)，
+                    // 结果须从 Job 的 Msvm_AffectedJobElement 关联取——与微软管理库同款取法。
+                    return ApiResponse<string[]>.Ok(QueryJobAffectedPaths(ms, jobPath, resultField));
                 }
-                else if (returnValue != 0)
+                if (returnValue != 0)
                 {
                     return ApiResponse<string[]>.Fail(
                         $"Method '{methodName}' returned code {returnValue}",
@@ -322,7 +326,6 @@ public static class WmiApi
                 var resulting = raw is string[] arr ? arr :
                                 raw is string s ? new[] { s } :
                                 Array.Empty<string>();
-                outParams.Dispose();
                 return ApiResponse<string[]>.Ok(resulting);
             }
             catch (ManagementException ex)
@@ -785,7 +788,35 @@ public static class WmiApi
     /// <summary>清理所有连接缓存（进程退出或测试时使用）。</summary>
     public static void ClearConnectionCache() => WmiConnectionCache.Clear();
 
-    // ── 内部：异步 Job 等待 ───────────────────────────────────────
+    // ── 内部：异步 Job 等待与结果获取 ─────────────────────────────
+
+    /// <summary>
+    /// 异步 Job 完成后按 resultField 语义从 Msvm_AffectedJobElement 关联取结果对象路径。
+    /// 关联里混着 Msvm_ComputerSystem 与各类设置对象：ResultingSystem 取前者，其余(如
+    /// ResultingResourceSettings)取后者。
+    /// </summary>
+    private static string[] QueryJobAffectedPaths(ManagementScope ms, string jobPath, string resultField)
+    {
+        int colon = jobPath.IndexOf(":Msvm_", StringComparison.OrdinalIgnoreCase);
+        string rel = colon >= 0 ? jobPath.Substring(colon + 1) : jobPath;
+        using var searcher = new ManagementObjectSearcher(ms, new ObjectQuery(
+            $"ASSOCIATORS OF {{{rel}}} WHERE AssocClass=Msvm_AffectedJobElement"));
+        using var col = searcher.Get();
+        var systems = new List<string>();
+        var others = new List<string>();
+        foreach (ManagementBaseObject baseObj in col)
+        {
+            if (baseObj is not ManagementObject obj) continue;
+            using (obj)
+            {
+                if (string.Equals(obj.ClassPath.ClassName, "Msvm_ComputerSystem", StringComparison.OrdinalIgnoreCase))
+                    systems.Add(obj.Path.Path);
+                else
+                    others.Add(obj.Path.Path);
+            }
+        }
+        return resultField == "ResultingSystem" ? systems.ToArray() : others.ToArray();
+    }
 
     private static async Task<ApiResponse> WaitForJobAsync(
         string jobPath,
@@ -793,7 +824,9 @@ public static class WmiApi
         WmiContext ctx,
         CancellationToken cancellationToken)
     {
-        using var timeoutCts = new CancellationTokenSource(TimeSpan.FromMinutes(2));
+        // 上限 30 分钟：大固定 VHD 创建/快照合并等长任务远超旧的 2 分钟，过早超时会误报失败
+        // 并诱发上层回滚，而引擎侧 Job 仍在继续。主动取消语义由 cancellationToken 承担。
+        using var timeoutCts = new CancellationTokenSource(TimeSpan.FromMinutes(30));
         using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(
             cancellationToken, timeoutCts.Token);
 
@@ -807,7 +840,8 @@ public static class WmiApi
                 job.Get();
                 ushort jobState = (ushort)job["JobState"];
 
-                if (jobState == 7) return ApiResponse.Ok();
+                // 7=Completed、32768=CompletedWithWarnings：微软管理库两者同判成功(带警告的操作已完成)
+                if (jobState == 7 || jobState == 32768) return ApiResponse.Ok();
 
                 if (jobState > 7)
                 {
@@ -821,13 +855,13 @@ public static class WmiApi
             }
 
             return timeoutCts.Token.IsCancellationRequested
-                ? ApiResponse.Fail("Operation timed out (2 min)", -1, ApiErrorSource.Wmi)
+                ? ApiResponse.Fail("Timed out waiting for the job; it may still be running in the background", -1, ApiErrorSource.Wmi)
                 : ApiResponse.Fail("Operation cancelled", -1, ApiErrorSource.None);
         }
         catch (OperationCanceledException)
         {
             return timeoutCts.Token.IsCancellationRequested
-                ? ApiResponse.Fail("Operation timed out (2 min)", -1, ApiErrorSource.Wmi)
+                ? ApiResponse.Fail("Timed out waiting for the job; it may still be running in the background", -1, ApiErrorSource.Wmi)
                 : ApiResponse.Fail("Operation cancelled", -1, ApiErrorSource.None);
         }
         catch (ManagementException ex)
