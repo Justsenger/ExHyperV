@@ -76,14 +76,18 @@ public static class Win32Api
             using var searcher = new System.Management.ManagementObjectSearcher(
                 @"root\cimv2",
                 "SELECT DeviceID, Name, PNPClass, Service FROM Win32_PnPEntity");
-            foreach (System.Management.ManagementObject obj in searcher.Get())
+            using var collection = searcher.Get();
+            foreach (System.Management.ManagementObject obj in collection)
             {
-                string devId = obj["DeviceID"]?.ToString() ?? "";
-                if (string.IsNullOrEmpty(devId)) continue;
-                pnpEntityMap[devId] = (
-                    obj["Name"]?.ToString() ?? "",
-                    obj["PNPClass"]?.ToString() ?? "",
-                    obj["Service"]?.ToString() ?? "");
+                using (obj)
+                {
+                    string devId = obj["DeviceID"]?.ToString() ?? "";
+                    if (string.IsNullOrEmpty(devId)) continue;
+                    pnpEntityMap[devId] = (
+                        obj["Name"]?.ToString() ?? "",
+                        obj["PNPClass"]?.ToString() ?? "",
+                        obj["Service"]?.ToString() ?? "");
+                }
             }
         }
         catch (Exception ex)
