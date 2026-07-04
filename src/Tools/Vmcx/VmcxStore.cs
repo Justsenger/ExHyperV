@@ -5,14 +5,13 @@
 //       foreach (var n in s.Enumerate()) ...
 //       using (var w = s.BeginWrite()) { w.SetInteger(p, v); w.Commit(); }
 //   }
+// 本文件为 GPU-PV/DDA 类幽灵设备修复所需的最小集;编辑器全量能力(建设备/挂盘/任意类型读写)
+// 在独立项目 ExHyperV-Edit,扩展编辑功能时从那边整体引入。
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 
 namespace ExHyperV.Vmcx {
-
-/// <summary>.vmcx 值类型(= 官方 KeyValueStoreKeyType,与二进制格式类型码一致)。</summary>
-public enum VmcxValueType { Tombstone=1, Int32=2, Integer=3, Int64=4, Double=5, String=6, Raw=7, Boolean=8, Reference=9 }
 
 /// <summary>.vmcx 节点(值或子节点)。</summary>
 public struct VmcxNode {
@@ -23,8 +22,8 @@ public struct VmcxNode {
 }
 
 /// <summary>
-/// 打开一个 .vmcx 进行读/写。基于官方 VmDataStore.dll。支持任意类型/长度改值、增键(含深层子树)、
-/// 删键(含递归删子树)、不变量感知的 RemoveDevice、ValidateManifest。
+/// 打开一个 .vmcx 进行读/写。基于官方 VmDataStore.dll。支持改值、删键、
+/// 不变量感知的 RemoveDevice、ValidateManifest。
 /// </summary>
 public sealed class VmcxStore : IDisposable {
     [DllImport("kernel32", CharSet=CharSet.Unicode)] static extern IntPtr LoadLibrary(string s);
@@ -41,19 +40,13 @@ public sealed class VmcxStore : IDisposable {
     [UnmanagedFunctionPointer(CallingConvention.StdCall)] delegate uint DRel(IntPtr self);
     [UnmanagedFunctionPointer(CallingConvention.StdCall)] delegate int DGetI(IntPtr self, IntPtr key, out long v);
     [UnmanagedFunctionPointer(CallingConvention.StdCall)] delegate int DSetI(IntPtr self, IntPtr key, long v);
-    [UnmanagedFunctionPointer(CallingConvention.StdCall)] delegate int DGetD(IntPtr self, IntPtr key, out double v);
-    [UnmanagedFunctionPointer(CallingConvention.StdCall)] delegate int DSetD(IntPtr self, IntPtr key, double v);
-    [UnmanagedFunctionPointer(CallingConvention.StdCall)] delegate int DGetB(IntPtr self, IntPtr key, out byte v);
-    [UnmanagedFunctionPointer(CallingConvention.StdCall)] delegate int DSetB(IntPtr self, IntPtr key, byte v);
     [UnmanagedFunctionPointer(CallingConvention.StdCall)] delegate int DGetS(IntPtr self, IntPtr key, out IntPtr v);
     [UnmanagedFunctionPointer(CallingConvention.StdCall)] delegate int DSetS(IntPtr self, IntPtr key, IntPtr v);
     [UnmanagedFunctionPointer(CallingConvention.StdCall)] delegate int DRemove(IntPtr self, IntPtr key);
-    [UnmanagedFunctionPointer(CallingConvention.StdCall)] delegate int DGetType(IntPtr self, IntPtr key, out int t);
-    [UnmanagedFunctionPointer(CallingConvention.StdCall)] delegate int DSetFromStr(IntPtr self, IntPtr key, int type, IntPtr v);
     [UnmanagedFunctionPointer(CallingConvention.StdCall)] delegate int DOut(IntPtr self, out IntPtr o);
     [UnmanagedFunctionPointer(CallingConvention.StdCall)] delegate int DByte(IntPtr self, out byte b);
 
-    const int SET_INT=6, GET_INT=7, SET_BOOL=10, GET_BOOL=11, SET_DBL=12, GET_DBL=13, SET_STR=14, GET_STR=15, REMOVE=21, GET_TYPE=22, SET_FROMSTR=23;
+    const int SET_INT=6, GET_INT=7, SET_STR=14, GET_STR=15, REMOVE=21;
     const int OFF_LOCK=0x110, OFF_UNLOCK=0x118, OFF_CLOSE=0x128, OFF_COMMIT=0x148;
     static readonly Guid IID_STATICS = new Guid("04ce619a-6775-4f29-be77-b4e2bc2dda3a");
     static readonly Guid IID_KVS     = new Guid("6de696aa-007c-4612-8392-7e2143eef6db");
@@ -100,11 +93,7 @@ public sealed class VmcxStore : IDisposable {
     }
 
     public long   GetInteger(string keyPath){ long v=0; Hr(WithKey(keyPath, k=>D<DGetI>(Slot(_ikv,GET_INT))(_ikv,k, out v)), "GetInteger"); return v; }
-    public bool   GetBoolean(string keyPath){ byte v=0; Hr(WithKey(keyPath, k=>D<DGetB>(Slot(_ikv,GET_BOOL))(_ikv,k, out v)), "GetBoolean"); return v!=0; }
-    public double GetDouble (string keyPath){ double v=0; Hr(WithKey(keyPath, k=>D<DGetD>(Slot(_ikv,GET_DBL))(_ikv,k, out v)), "GetDouble"); return v; }
     public string GetString (string keyPath){ IntPtr h=IntPtr.Zero; Hr(WithKey(keyPath, k=>D<DGetS>(Slot(_ikv,GET_STR))(_ikv,k, out h)), "GetString"); return FromHStr(h); }
-    /// <summary>查询某键的值类型。</summary>
-    public VmcxValueType GetValueType(string keyPath){ int t=0; Hr(WithKey(keyPath, k=>D<DGetType>(Slot(_ikv,GET_TYPE))(_ikv,k, out t)), "GetEntryType"); return (VmcxValueType)t; }
 
     int WithKey(string keyPath, Func<IntPtr,int> call){ IntPtr h=MakeHStr(keyPath); try { return call(h); } finally { WindowsDeleteString(h); } }
 
@@ -188,80 +177,6 @@ public sealed class VmcxStore : IDisposable {
     }
     static string VdevPath(int i){ return "/configuration/manifest/vdev"+i.ToString("D3"); }
 
-    /// <summary>按 VmcxSchema 模板从零追加一个设备:新 vdev(=size+1,追加末尾) + manifest 条目 + 数据节点 + size+1。
-    /// 返回新实例 GUID。parameters 提供模板 RequiredParams(如 DDA 的 "devicepath")。
-    /// ★ 须 VM 关机;改完直接 Start-VM 即生效;别 Restart vmms、别对该 VM 做改设备的 WMI(否则 data.vmcx 覆盖)。</summary>
-    public string AddDevice(string deviceType, System.Collections.Generic.IDictionary<string,string> parameters = null) {
-        deviceType = VmcxSchema.ResolveTypeAlias(deviceType).Trim('{','}').ToLowerInvariant();
-        VmcxSchema.DeviceTemplate tmpl;
-        if (!VmcxSchema.DeviceTemplates.TryGetValue(deviceType, out tmpl))
-            throw new VmcxException("无此设备类型的模板(可建: scsi/nic/dda/gpu): "+deviceType, -1);
-        if (tmpl.RequiredParams != null)
-            foreach (var p in tmpl.RequiredParams)
-                if (parameters == null || !parameters.ContainsKey(p))
-                    throw new VmcxException("建该设备缺必需参数: "+p, -1);
-        long size = GetInteger("/configuration/manifest/size");
-        int newVdev = (int)size + 1;
-        string inst = Guid.NewGuid().ToString();
-        string settingGuid = Guid.NewGuid().ToString().ToUpperInvariant(); // 供 $S(NIC Setting)用
-        using (var w = BeginWrite()) {
-            string vp = VdevPath(newVdev);
-            w.SetString (vp+"/device",   deviceType);
-            w.SetInteger(vp+"/flags",    1);
-            w.SetString (vp+"/instance", inst);
-            w.SetString (vp+"/name",     tmpl.Name);
-            string dn = "/configuration/_"+inst+"_";
-            foreach (var tk in tmpl.Keys) {
-                string key = tk.Key.Replace("$S", settingGuid);
-                string val = ResolveTemplateValue(tk.Value, settingGuid, parameters);
-                w.SetFromString(dn+"/"+key, tk.Type, val);
-            }
-            w.SetInteger("/configuration/manifest/size", size+1);
-            w.Commit();
-        }
-        return inst;
-    }
-    static string ResolveTemplateValue(string v, string settingGuid, System.Collections.Generic.IDictionary<string,string> p) {
-        if (v == null) return "";
-        if (v == "$B") return "{"+Guid.NewGuid().ToString().ToUpperInvariant()+"}";
-        if (v == "$S") return settingGuid;
-        if (v == "$MAC") { var r=new Random(Guid.NewGuid().GetHashCode()); return string.Format("00-15-5D-{0:X2}-{1:X2}-{2:X2}", r.Next(256), r.Next(256), r.Next(256)); }
-        if (v.StartsWith("$P:")) { string n=v.Substring(3); return (p!=null && p.ContainsKey(n)) ? p[n] : ""; }
-        return v;
-    }
-
-    /// <summary>在 SCSI 控制器下挂接一个盘/光驱(挂接型,非独立设备:写控制器数据节点下的 controllerC/driveD)。
-    /// driveType: "vhd"=硬盘 / "iso"|"dvd"=光驱。pathname=介质文件路径(光驱可空)。自动选空闲 drive 号。返回 drive 节点路径。
-    /// ★ 须 VM 关机;改完直接 Start-VM 生效。</summary>
-    public string AddDrive(string scsiInstanceGuid, string driveType, string pathname, int controller = 0) {
-        string g = scsiInstanceGuid.Trim('{','}','_',' ').ToLowerInvariant();
-        string ctlNode = "/configuration/_"+g+"_/controller"+controller;
-        var used = new System.Collections.Generic.HashSet<int>();
-        foreach (var n in Enumerate()) {
-            var m = System.Text.RegularExpressions.Regex.Match(n.Path, "^"+System.Text.RegularExpressions.Regex.Escape(ctlNode)+"/drive(\\d+)/");
-            if (m.Success) used.Add(int.Parse(m.Groups[1].Value));
-        }
-        int drive = 0; while (used.Contains(drive)) drive++;
-        string dn = ctlNode + "/drive" + drive;
-        bool iso = driveType != null && (driveType.IndexOf("iso", StringComparison.OrdinalIgnoreCase) >= 0 || driveType.IndexOf("dvd", StringComparison.OrdinalIgnoreCase) >= 0);
-        using (var w = BeginWrite()) {
-            w.SetString (dn+"/pathname", pathname ?? "");
-            w.SetString (dn+"/type", iso ? "ISO" : "VHD");
-            if (!iso) {  // 硬盘的额外默认键(实测)
-                w.SetInteger(dn+"/caching_mode", 0);
-                w.SetBoolean(dn+"/ignore_flushes", false);
-                w.SetInteger(dn+"/iops_limit", 0);
-                w.SetInteger(dn+"/iops_reservation", 0);
-                w.SetBoolean(dn+"/persistent_reservations_supported", false);
-                w.SetString (dn+"/qos_policy_id", "00000000-0000-0000-0000-000000000000");
-                w.SetInteger(dn+"/weight", 100);
-                w.SetInteger(dn+"/write_hardening_method", 0);
-            }
-            w.Commit();
-        }
-        return dn;
-    }
-
     /// <summary>校验 manifest 不变量,返回问题列表(空=健康):size 不符 / 编号空洞 / 孤儿数据节点。</summary>
     public List<string> ValidateManifest() {
         var issues = new List<string>();
@@ -340,11 +255,8 @@ public sealed class VmcxStore : IDisposable {
     }
 
     internal void DoSetInteger(string k, long v){ Hr(WithKey(k, h=>D<DSetI>(Slot(_ikv,SET_INT))(_ikv,h,v)), "SetInteger"); }
-    internal void DoSetBoolean(string k, bool v){ Hr(WithKey(k, h=>D<DSetB>(Slot(_ikv,SET_BOOL))(_ikv,h,(byte)(v?1:0))), "SetBoolean"); }
-    internal void DoSetDouble (string k, double v){ Hr(WithKey(k, h=>D<DSetD>(Slot(_ikv,SET_DBL))(_ikv,h,v)), "SetDouble"); }
     internal void DoSetString (string k, string v){ IntPtr hv=MakeHStr(v); try { Hr(WithKey(k, h=>D<DSetS>(Slot(_ikv,SET_STR))(_ikv,h,hv)), "SetString"); } finally { WindowsDeleteString(hv); } }
     internal void DoRemove    (string k){ Hr(WithKey(k, h=>D<DRemove>(Slot(_ikv,REMOVE))(_ikv,h)), "Remove"); }
-    internal void DoSetFromString(string k, VmcxValueType type, string v){ IntPtr hv=MakeHStr(v); try { Hr(WithKey(k, h=>D<DSetFromStr>(Slot(_ikv,SET_FROMSTR))(_ikv,h,(int)type,hv)), "SetValueFromString"); } finally { WindowsDeleteString(hv); } }
     internal void DoCommit(){ int hr=D<DVoid>(SlotOff(_hvs, OFF_COMMIT))(_hvs); if(hr!=0 && hr!=1) throw new VmcxException("Commit 失败 hr=0x"+hr.ToString("X8"), hr); } // hr==1(S_FALSE)=无改动可提交,非错误
     internal void DoUnlock(){ try { D<DVoid>(SlotOff(_hvs, OFF_UNLOCK))(_hvs); } catch { } }
 
@@ -362,11 +274,8 @@ public sealed class VmcxWriter : IDisposable {
     readonly VmcxStore _s; bool _done;
     internal VmcxWriter(VmcxStore s){ _s = s; }
     public void SetInteger(string keyPath, long v){ _s.DoSetInteger(keyPath, v); }
-    public void SetBoolean(string keyPath, bool v){ _s.DoSetBoolean(keyPath, v); }
-    public void SetDouble (string keyPath, double v){ _s.DoSetDouble(keyPath, v); }
     public void SetString (string keyPath, string v){ _s.DoSetString(keyPath, v); }
     public void Remove    (string keyPath){ _s.DoRemove(keyPath); }
-    public void SetFromString(string keyPath, VmcxValueType type, string value){ _s.DoSetFromString(keyPath, type, value); }
     public void Commit(){ _s.DoCommit(); }
     public void Dispose(){ if(_done) return; _done = true; _s.DoUnlock(); }
 }
