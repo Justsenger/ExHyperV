@@ -97,17 +97,7 @@ public static class Win32Api
         Debug.WriteLine($"[Win32Api.GetAllDevices] Win32_PnPEntity: {pnpEntityMap.Count} ({sw.ElapsedMilliseconds}ms)");
 
         // 2. CM_Get_Device_ID_List：FILTER_NONE 枚举所有设备（含分配给VM的Unknown设备）
-        var allIds = new List<string>();
-        uint bufferLen = 0;
-        int cr = NativeMethods.CM_Get_Device_ID_List_Size(
-            out bufferLen, null, NativeMethods.CM_GETIDLIST_FILTER_NONE);
-        if (cr == NativeMethods.CR_SUCCESS && bufferLen > 0)
-        {
-            char[] buf = new char[bufferLen];
-            cr = NativeMethods.CM_Get_Device_ID_List(null, buf, bufferLen, NativeMethods.CM_GETIDLIST_FILTER_NONE);
-            if (cr == NativeMethods.CR_SUCCESS)
-                allIds = ParseMultiString(buf);
-        }
+        var allIds = GetDeviceIdList(NativeMethods.CM_GETIDLIST_FILTER_NONE);
         Debug.WriteLine($"[Win32Api.GetAllDevices] CM all devices: {allIds.Count} ({sw.ElapsedMilliseconds}ms)");
 
         // 3. 并行查每个设备属性
@@ -175,14 +165,10 @@ public static class Win32Api
     public static List<(string InstanceId, string Name, string Manufacturer, string DriverVersion)> GetPresentDisplayAdapters()
     {
         var result = new List<(string, string, string, string)>();
-        if (NativeMethods.CM_Get_Device_ID_List_Size(out uint bufferLen, null, NativeMethods.CM_GETIDLIST_FILTER_PRESENT) != NativeMethods.CR_SUCCESS || bufferLen == 0)
-            return result;
-        char[] buf = new char[bufferLen];
-        if (NativeMethods.CM_Get_Device_ID_List(null, buf, bufferLen, NativeMethods.CM_GETIDLIST_FILTER_PRESENT) != NativeMethods.CR_SUCCESS)
-            return result;
+        var ids = GetDeviceIdList(NativeMethods.CM_GETIDLIST_FILTER_PRESENT);
 
         var common = new Guid("A45C254E-DF1C-4EFD-8020-67D146A850E0"); // DEVPKEY_Device_* 公共 fmtid
-        foreach (var instanceId in ParseMultiString(buf))
+        foreach (var instanceId in ids)
         {
             string u = instanceId.ToUpperInvariant();
             if (!u.StartsWith("PCI\\") && !u.Contains("ACPI")) continue;
@@ -196,6 +182,22 @@ public static class Win32Api
             result.Add((instanceId, name, manu, driverVersion));
         }
         return result;
+    }
+
+    // CM_Get_Device_ID_List 两步式枚举在"取大小"与"取列表"之间存在竞态：空隙中设备树膨胀会返回
+    // CR_BUFFER_SMALL——本应用的 DDA 操作本身就触发设备重枚举，故按微软推荐循环重试而非放弃返回空。
+    private static List<string> GetDeviceIdList(uint filterFlags)
+    {
+        for (int attempt = 0; attempt < 4; attempt++)
+        {
+            int cr = NativeMethods.CM_Get_Device_ID_List_Size(out uint bufferLen, null, filterFlags);
+            if (cr != NativeMethods.CR_SUCCESS || bufferLen == 0) return new List<string>();
+            char[] buf = new char[bufferLen];
+            cr = NativeMethods.CM_Get_Device_ID_List(null, buf, bufferLen, filterFlags);
+            if (cr == NativeMethods.CR_SUCCESS) return ParseMultiString(buf);
+            if (cr != NativeMethods.CR_BUFFER_SMALL) return new List<string>();
+        }
+        return new List<string>();
     }
 
     // ── cfgmgr32 属性查询 ─────────────────────────────────────────
