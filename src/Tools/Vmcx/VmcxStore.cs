@@ -104,29 +104,42 @@ public sealed class VmcxStore : IDisposable {
 
     int WithKey(string keyPath, Func<IntPtr,int> call){ IntPtr h=MakeHStr(keyPath); try { return call(h); } finally { WindowsDeleteString(h); } }
 
-    /// <summary>枚举整棵树(值 + 容器节点),路径为全路径。</summary>
+    /// <summary>枚举整棵树(值 + 容器节点),路径为全路径。
+    /// 每步 COM 调用都检查 HRESULT(失败抛 VmcxException 而非闷头读空指针崩进程——损坏文件正是修复场景的常态输入);
+    /// iter/i0 的释放放在 finally,异常路径不泄漏 COM 引用。</summary>
     public List<VmcxNode> Enumerate() {
         var result = new List<VmcxNode>();
-        Guid it = IID_ITER; IntPtr i0;
-        Hr(D<DQI>(Slot(_store, 0))(_store, ref it, out i0), "QI IIterable");
-        IntPtr iter; Hr(D<DOut>(Slot(i0, 6))(i0, out iter), "First");
-        var getCur = D<DOut>(Slot(iter, 6)); var hasCur = D<DByte>(Slot(iter, 7)); var moveN = D<DByte>(Slot(iter, 8));
-        byte has; hasCur(iter, out has); int guard = 0;
-        while (has != 0 && guard++ < 1000000) {
-            IntPtr node; getCur(iter, out node);
-            byte isv; D<DByte>(Slot(node, 7))(node, out isv);
-            IntPtr hk, ht, hv;
-            D<DOut>(Slot(node, 9))(node, out hk);
-            D<DOut>(Slot(node, 11))(node, out ht);
-            D<DOut>(Slot(node, 12))(node, out hv);
-            result.Add(new VmcxNode { Path = FromHStr(hk), Type = FromHStr(ht), Value = FromHStr(hv), IsValue = isv != 0 });
-            // 释放本轮拥有的资源(out HSTRING 与 Current 节点均归调用方所有),否则长生命周期(GUI)会累积泄漏。
-            WindowsDeleteString(hk); WindowsDeleteString(ht); WindowsDeleteString(hv);
-            if (node != IntPtr.Zero) D<DRel>(Slot(node, 2))(node);
-            moveN(iter, out has);
+        Guid it = IID_ITER; IntPtr i0 = IntPtr.Zero, iter = IntPtr.Zero;
+        try {
+            Hr(D<DQI>(Slot(_store, 0))(_store, ref it, out i0), "QI IIterable");
+            Hr(D<DOut>(Slot(i0, 6))(i0, out iter), "First");
+            var getCur = D<DOut>(Slot(iter, 6)); var hasCur = D<DByte>(Slot(iter, 7)); var moveN = D<DByte>(Slot(iter, 8));
+            byte has; Hr(hasCur(iter, out has), "HasCurrent"); int guard = 0;
+            while (has != 0 && guard++ < 1000000) {
+                IntPtr node = IntPtr.Zero;
+                Hr(getCur(iter, out node), "Current");
+                if (node == IntPtr.Zero) throw new VmcxException("Current 返回空节点", -1);
+                try {
+                    byte isv; Hr(D<DByte>(Slot(node, 7))(node, out isv), "IsValue");
+                    IntPtr hk = IntPtr.Zero, ht = IntPtr.Zero, hv = IntPtr.Zero;
+                    try {
+                        Hr(D<DOut>(Slot(node, 9))(node, out hk), "Key");
+                        Hr(D<DOut>(Slot(node, 11))(node, out ht), "TypeName");
+                        Hr(D<DOut>(Slot(node, 12))(node, out hv), "ValueText");
+                        result.Add(new VmcxNode { Path = FromHStr(hk), Type = FromHStr(ht), Value = FromHStr(hv), IsValue = isv != 0 });
+                    } finally {
+                        // 释放本轮拥有的资源(out HSTRING 与 Current 节点均归调用方所有),否则长生命周期(GUI)会累积泄漏。
+                        if (hk != IntPtr.Zero) WindowsDeleteString(hk);
+                        if (ht != IntPtr.Zero) WindowsDeleteString(ht);
+                        if (hv != IntPtr.Zero) WindowsDeleteString(hv);
+                    }
+                } finally { D<DRel>(Slot(node, 2))(node); }
+                Hr(moveN(iter, out has), "MoveNext");
+            }
+        } finally {
+            if (iter != IntPtr.Zero) D<DRel>(Slot(iter, 2))(iter);
+            if (i0   != IntPtr.Zero) D<DRel>(Slot(i0, 2))(i0);
         }
-        if (iter != IntPtr.Zero) D<DRel>(Slot(iter, 2))(iter);
-        if (i0   != IntPtr.Zero) D<DRel>(Slot(i0, 2))(i0);
         return result;
     }
 
