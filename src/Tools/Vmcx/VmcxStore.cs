@@ -143,24 +143,54 @@ public sealed class VmcxStore : IDisposable {
         return result;
     }
 
-    /// <summary>不变量感知地删除一个设备:删数据节点 + manifest 条目 + size−1 + 重排 vdev 连续编号。返回被删 vdev 编号。</summary>
+    /// <summary>不变量感知地删除一个设备:先原子维护 manifest(摘条目+压缩重排+size),后删数据节点。返回被删 vdev 编号。
+    /// 顺序刻意为"先清单后数据"——中途中断的残留是无 manifest 条目的孤儿数据(无害,VM 照常启动),
+    /// 而非"清单挂条目却无数据"的幽灵(致命,VM 起不来)。重排为压缩式全量重写:对编号空洞的
+    /// 坏输入(上次中断/外部工具产物)免疫,size 按实数写,任何输入都收敛为连续健康清单。</summary>
     public int RemoveDevice(string instanceGuid) {
         string g = instanceGuid.Trim('{','}','_',' ').ToLowerInvariant();
         var nodes = Enumerate();
-        var vdevNum = new SortedDictionary<int,string>();
+        var entries = new SortedDictionary<int, string[]>();   // 编号 → [device,flags,instance,name]
         foreach (var n in nodes) {
             if (!n.IsValue) continue;
-            var m = System.Text.RegularExpressions.Regex.Match(n.Path, @"^/configuration/manifest/vdev(\d+)/instance$");
-            if (m.Success) vdevNum[int.Parse(m.Groups[1].Value)] = (n.Value??"").Trim('{','}').ToLowerInvariant();
+            var m = System.Text.RegularExpressions.Regex.Match(n.Path, @"^/configuration/manifest/vdev(\d+)/(device|flags|instance|name)$");
+            if (!m.Success) continue;
+            int num = int.Parse(m.Groups[1].Value);
+            string[] e;
+            if (!entries.TryGetValue(num, out e)) { e = new string[4]; entries[num] = e; }
+            int idx = m.Groups[2].Value == "device" ? 0 : m.Groups[2].Value == "flags" ? 1 : m.Groups[2].Value == "instance" ? 2 : 3;
+            e[idx] = n.Value ?? "";
         }
         int K = -1;
-        foreach (var kv in vdevNum) if (kv.Value == g) { K = kv.Key; break; }
+        foreach (var kv in entries)
+            if (((kv.Value[2] ?? "").Trim('{','}').ToLowerInvariant()) == g) { K = kv.Key; break; }
         if (K < 0) throw new VmcxException("未找到 instance="+instanceGuid+" 的 manifest 条目", -1);
-        var nums = new List<int>(vdevNum.Keys);
-        int maxN = nums[nums.Count-1];
-        string devNode = "/configuration/_"+g+"_";
-        // ① 删设备数据子树。★VDEVVersion 是设备节点的粘键:它在"多删同一事务"或"它正好清空节点"的那一删里删不掉。
+        int maxN = 0; foreach (var kv in entries) if (kv.Key > maxN) maxN = kv.Key;
+
+        // ① manifest 原子维护:剩余条目压缩重写为 1..N 连续,多余尾部删除,size=实际条目数。
+        using (var w = BeginWrite()) {
+            int dst = 0;
+            foreach (var kv in entries) {
+                if (kv.Key == K) continue;
+                dst++;
+                string vp = VdevPath(dst);
+                w.SetString (vp+"/device",   kv.Value[0] ?? "");
+                long fl; if (!long.TryParse(kv.Value[1], out fl)) fl = 1;
+                w.SetInteger(vp+"/flags",    fl);
+                w.SetString (vp+"/instance", kv.Value[2] ?? "");
+                w.SetString (vp+"/name",     kv.Value[3] ?? "");
+            }
+            for (int i = dst+1; i <= maxN; i++) {
+                string vp = VdevPath(i);
+                foreach (var f in new[]{"/device","/flags","/instance","/name"}) { try { w.Remove(vp+f); } catch {} }
+            }
+            w.SetInteger("/configuration/manifest/size", dst);
+            w.Commit();
+        }
+
+        // ② 删设备数据子树。★VDEVVersion 是设备节点的粘键:它在"多删同一事务"或"它正好清空节点"的那一删里删不掉。
         //   实测可靠做法:节点尚有别的子键时,把 VDEVVersion 单独一个事务先删;其余值再一并删(随最后一个删除而节点消失)。
+        string devNode = "/configuration/_"+g+"_";
         var leaves = new List<string>();
         foreach (var n in nodes) if (n.IsValue && n.Path.StartsWith(devNode+"/", StringComparison.OrdinalIgnoreCase)) leaves.Add(n.Path);
         foreach (var lf in leaves) if (lf.EndsWith("/VDEVVersion", StringComparison.OrdinalIgnoreCase))
@@ -176,22 +206,6 @@ public sealed class VmcxStore : IDisposable {
                 if (n.IsValue && n.Path.StartsWith(devNode+"/", StringComparison.OrdinalIgnoreCase)) rem.Add(n.Path);
             if (rem.Count == 0) break;
             foreach (var lf in rem) using (var w = BeginWrite()) { w.Remove(lf); w.Commit(); }
-        }
-        // ② manifest 维护(renumber 补空号 + size−1),单独事务。
-        using (var w = BeginWrite()) {
-            for (int M = K+1; M <= maxN; M++) {
-                if (!vdevNum.ContainsKey(M)) continue;
-                string dst = VdevPath(M-1), src = VdevPath(M);
-                w.SetString (dst+"/device",   GetString (src+"/device"));
-                w.SetInteger(dst+"/flags",    GetInteger(src+"/flags"));
-                w.SetString (dst+"/instance", GetString (src+"/instance"));
-                w.SetString (dst+"/name",     GetString (src+"/name"));
-            }
-            string lastV = VdevPath(maxN);
-            foreach (var f in new[]{"/device","/flags","/instance","/name"}) { try { w.Remove(lastV+f); } catch {} }
-            long size = GetInteger("/configuration/manifest/size");
-            w.SetInteger("/configuration/manifest/size", size-1);
-            w.Commit();
         }
         return K;
     }
