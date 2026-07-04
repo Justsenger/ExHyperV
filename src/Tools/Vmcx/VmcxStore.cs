@@ -93,7 +93,14 @@ public sealed class VmcxStore : IDisposable {
     }
 
     public long   GetInteger(string keyPath){ long v=0; Hr(WithKey(keyPath, k=>D<DGetI>(Slot(_ikv,GET_INT))(_ikv,k, out v)), "GetInteger"); return v; }
-    public string GetString (string keyPath){ IntPtr h=IntPtr.Zero; Hr(WithKey(keyPath, k=>D<DGetS>(Slot(_ikv,GET_STR))(_ikv,k, out h)), "GetString"); return FromHStr(h); }
+    // out HSTRING 归调用方所有:复制成托管串后须 WindowsDeleteString 归还(与 Enumerate 同一约定;NULL 句柄删除为 no-op)
+    public string GetString (string keyPath){
+        IntPtr h = IntPtr.Zero;
+        try {
+            Hr(WithKey(keyPath, k=>D<DGetS>(Slot(_ikv,GET_STR))(_ikv,k, out h)), "GetString");
+            return FromHStr(h);
+        } finally { if (h != IntPtr.Zero) WindowsDeleteString(h); }
+    }
 
     int WithKey(string keyPath, Func<IntPtr,int> call){ IntPtr h=MakeHStr(keyPath); try { return call(h); } finally { WindowsDeleteString(h); } }
 
