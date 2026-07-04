@@ -9,6 +9,18 @@ namespace ExHyperV.Tools;
 // ══════════════════════════════════════════════════════════════════
 public static class VmbusApi
 {
+    // 裸 P/Invoke socket() 不触发 .NET 的 Winsock 初始化(WSAStartup)：若它是进程首个网络动作，
+    // 必失败 WSANOTINITIALISED=10093（Framework 4.8 与 .NET 8 双实测）。此前能工作靠的是进程里
+    // 其它功能(检查更新/SSH 等)碰巧先用过托管网络。这里主动碰一次托管 Socket 完成初始化，不再赌时序。
+    static VmbusApi()
+    {
+        try
+        {
+            using var _ = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+        }
+        catch { }
+    }
+
     // VMBus 地址族和协议常量
     public const int AF_HYPERV = 34;
     public const int SOCK_STREAM = 1;
