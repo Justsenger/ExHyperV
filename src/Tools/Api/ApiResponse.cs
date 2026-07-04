@@ -67,7 +67,7 @@ public class ApiResponse<T>
 
     public bool HasData => Success && !IsEmpty && Data is not null;
 
-    public static implicit operator bool(ApiResponse<T> response) => response.Success;
+    public static implicit operator bool(ApiResponse<T>? response) => response is not null && response.Success;
 
     public override string ToString() =>
         Success
@@ -111,7 +111,7 @@ public sealed class ApiResponse
         };
     }
 
-    public static implicit operator bool(ApiResponse response) => response.Success;
+    public static implicit operator bool(ApiResponse? response) => response is not null && response.Success;
 
     public override string ToString() =>
         Success
