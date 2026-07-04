@@ -298,8 +298,8 @@ internal static class HcsCore
 // ══════════════════════════════════════════════════════════════════
 public sealed class HcsException : Exception
 {
-    public new int HResult { get; }
-
+    // 直接写基类 HResult(setter 为 protected)：用 new 遮蔽会产生两份 HResult，
+    // catch(Exception) 读到的是从未赋值的基类默认码 0x80131500 而非真实错误码(实测确认)。
     public HcsException(string message, int hResult) : base(message)
     {
         HResult = hResult;
