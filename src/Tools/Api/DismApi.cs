@@ -9,6 +9,10 @@ namespace ExHyperV.Tools;
 // ══════════════════════════════════════════════════════════════════
 public static class DismApi
 {
+    // DISM 是进程级全局会话(DismInitialize/DismShutdown 全局配对)：并发操作会互相 Shutdown 拆台，
+    // 用信号量串行化。当前仅"启用/禁用 Hyper-V"单按钮使用，属廉价保险。
+    private static readonly SemaphoreSlim _gate = new(1, 1);
+
     // ── 公开接口 ──────────────────────────────────────────────────
 
     /// <summary>
@@ -16,7 +20,11 @@ public static class DismApi
     /// featureNames 可以用分号分隔多个功能名。
     /// </summary>
     public static async Task<ApiResponse> EnableFeatureAsync(string featureNames, bool enableAll = true)
-        => await Task.Run(() => EnableFeature(featureNames, enableAll));
+    {
+        await _gate.WaitAsync();
+        try { return await Task.Run(() => EnableFeature(featureNames, enableAll)); }
+        finally { _gate.Release(); }
+    }
 
     /// <summary>
     /// 禁用一个或多个 Windows 可选功能。
@@ -24,7 +32,11 @@ public static class DismApi
     /// removePayload=false 保留组件文件，可以重新启用。
     /// </summary>
     public static async Task<ApiResponse> DisableFeatureAsync(string featureNames, bool removePayload = false)
-        => await Task.Run(() => DisableFeature(featureNames, removePayload));
+    {
+        await _gate.WaitAsync();
+        try { return await Task.Run(() => DisableFeature(featureNames, removePayload)); }
+        finally { _gate.Release(); }
+    }
 
     // ── 内部实现 ──────────────────────────────────────────────────
 
