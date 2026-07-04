@@ -753,7 +753,7 @@ public static class WmiApi
     {
         ctx ??= WmiContext.Local;
         var ms = WmiConnectionCache.GetManagementScope(scope, ctx);
-        string safe = vmName.Replace("'", "\\'");
+        string safe = Escape(vmName);
         using var searcher = new ManagementObjectSearcher(
             ms, new ObjectQuery(
                 $"SELECT * FROM Msvm_ComputerSystem WHERE ElementName = '{safe}'"));
