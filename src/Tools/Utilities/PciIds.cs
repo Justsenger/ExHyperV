@@ -9,7 +9,8 @@ namespace ExHyperV.Tools
 
         private readonly Uri _pciResourceUri = new Uri("/assets/pci.ids", UriKind.Relative);
         private static readonly Regex VendorRegex = new Regex(@"^([0-9a-f]{4})\s+(.+)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
-        private Dictionary<string, string> _vendorDatabase;
+        // 字段处即初始化:未调 EnsureInitializedAsync 就查,只是空表返回 Unknown,不再 NullReferenceException
+        private Dictionary<string, string> _vendorDatabase = new();
         private bool _isInitialized = false;
 
         public PciIds() { }
