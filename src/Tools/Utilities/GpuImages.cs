@@ -12,7 +12,7 @@ namespace ExHyperV.Tools
             if (manufacturer.Contains("Advanced")) return "Gpu.AMD";
             if (manufacturer.Contains("Intel"))
             {
-                string n = name.ToLowerInvariant();   // 不用 ToLower():土耳其语/阿塞拜疆语区域 'I'→'ı'(无点) 会让 "Iris" 认不出、退回通用 Intel 图标
+                string n = name.ToLowerInvariant();   // 不用 ToLower():土耳其语区域 'I' 会转成 'ı',"Iris" 认不出
                 if (n.Contains("iris")) return "Gpu.Intel-IrisXe";
                 if (n.Contains("arc")) return "Gpu.Intel-ARC";
                 if (n.Contains("data")) return "Gpu.Intel-DataCenter";
