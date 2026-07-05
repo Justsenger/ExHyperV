@@ -17,7 +17,10 @@ namespace ExHyperV.Tools
                 .Split(new[] { ',', ';', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
                 .Select(NormalizeCandidate)
                 .Where(candidate => !string.IsNullOrWhiteSpace(candidate))
-                .Select(candidate => IPAddress.TryParse(candidate, out var addr) && addr.AddressFamily == AddressFamily.InterNetwork ? addr : null)
+                // 只认标准四段点分十进制:回写须与输入一致。IPAddress.TryParse 仍沿用 inet_aton 老语义,会把简写/整数/进制/前导零悄悄改写成另一个地址("192.168.1"→192.168.0.1、"10"→0.0.0.10),回写比对可挡下
+                .Select(candidate => IPAddress.TryParse(candidate, out var addr)
+                                     && addr.AddressFamily == AddressFamily.InterNetwork
+                                     && addr.ToString() == candidate ? addr : null)
                 .Where(addr => addr != null)
                 .Cast<IPAddress>()
                 .Distinct()
