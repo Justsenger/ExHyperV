@@ -36,5 +36,19 @@ namespace ExHyperV.Tools
 
             return sa;
         }
+
+        // Serialize 的逆:从 SOCKADDR_HV 偏移 4/20 各取 16 字节还原 VmId/ServiceId。
+        // 读取 RemoteEndPoint/LocalEndPoint 或用 ReceiveFrom 时由 Socket 调用;不重写则基类默认抛 NotSupportedException。
+        public override EndPoint Create(SocketAddress socketAddress)
+        {
+            if (socketAddress.Size < 36) return this;   // 地址过短:兜底返回自身,不越界
+
+            byte[] vmIdBytes = new byte[16];
+            byte[] svcIdBytes = new byte[16];
+            for (int i = 0; i < 16; i++) vmIdBytes[i] = socketAddress[4 + i];
+            for (int i = 0; i < 16; i++) svcIdBytes[i] = socketAddress[20 + i];
+
+            return new HyperVEndPoint(new Guid(vmIdBytes), new Guid(svcIdBytes));
+        }
     }
 }
