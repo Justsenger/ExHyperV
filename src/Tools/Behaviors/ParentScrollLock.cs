@@ -42,6 +42,7 @@ namespace ExHyperV.Tools
         {
             var page = sender as Page;
             if (page == null) return;
+            if (page.GetValue(CachedScrollerProperty) != null) return;   // 已锁就别再存原值:防重复 Loaded 把 Disabled 当原始值记下
             var scroller = FindParent<ScrollViewer>(page);
             if (scroller != null)
             {
