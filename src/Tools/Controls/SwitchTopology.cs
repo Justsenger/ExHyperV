@@ -25,6 +25,11 @@ namespace ExHyperV.Tools
             DependencyProperty.Register("UpstreamAdapter", typeof(string), typeof(SwitchTopology), new PropertyMetadata(string.Empty, OnPropertiesChanged));
         public string UpstreamAdapter { get => (string)GetValue(UpstreamAdapterProperty); set => SetValue(UpstreamAdapterProperty, value); }
 
+        // 由 ViewModel 按 GUID 算好后绑进来,别在这里靠名字自己猜(见 SwitchViewModel.DefaultSwitchId)
+        public static readonly DependencyProperty IsDefaultSwitchProperty =
+            DependencyProperty.Register("IsDefaultSwitch", typeof(bool), typeof(SwitchTopology), new PropertyMetadata(false, OnPropertiesChanged));
+        public bool IsDefaultSwitch { get => (bool)GetValue(IsDefaultSwitchProperty); set => SetValue(IsDefaultSwitchProperty, value); }
+
         private const double IconSize = 28;
         private const double NodeSpacing = 120;
         private const double LineThickness = 1.5;
@@ -109,7 +114,7 @@ namespace ExHyperV.Tools
             Children.Clear();
             if (ItemsSource == null) return;
 
-            bool isDefaultSwitch = SwitchName == "Default Switch";
+            bool isDefaultSwitch = IsDefaultSwitch;
             bool hasUpstream = (NetworkMode == SwitchMode.Bridge || NetworkMode == SwitchMode.NAT) &&
                                (!string.IsNullOrEmpty(UpstreamAdapter) || isDefaultSwitch);
             bool isMultiRow = ItemsSource.Count > 6;

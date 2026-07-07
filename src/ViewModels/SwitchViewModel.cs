@@ -14,6 +14,9 @@ namespace ExHyperV.ViewModels
         private readonly List<string> _allPhysicalAdapters;
         private readonly List<string> _bridgeableAdapters;
 
+        // 默认交换机(HCN/ICS 创建、每台机器同一 GUID);按 Id 判、免本地化与用户同名交换机骗过;WMI 返回大写故忽略大小写
+        private const string DefaultSwitchId = "c08cb7b8-9b3c-408e-8e30-5e16a3aeb444";
+
         // ===== 属性 =====
 
         [ObservableProperty] private bool _isLockedForInteraction = false;
@@ -46,7 +49,7 @@ namespace ExHyperV.ViewModels
 
             _switchName = switchInfo.SwitchName;
             _switchId = switchInfo.Id;
-            IsDefaultSwitch = _switchName == "Default Switch";
+            IsDefaultSwitch = string.Equals(_switchId?.Trim('{', '}'), DefaultSwitchId, StringComparison.OrdinalIgnoreCase);
 
             _ = RevertTo(switchInfo);
 
