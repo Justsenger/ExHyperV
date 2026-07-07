@@ -136,14 +136,105 @@ namespace ExHyperV.Services
         // 获取当前主题
         public static string GetTheme()
         {
-            return ApplicationThemeManager.GetAppTheme() == ApplicationTheme.Dark ? Properties.Resources.Theme_Dark : Properties.Resources.Theme_Light;
+            if (_isFollowingSystem)
+                return Properties.Resources.Theme_System;
+
+            return ApplicationThemeManager.GetAppTheme() == ApplicationTheme.Dark
+                ? Properties.Resources.Theme_Dark
+                : Properties.Resources.Theme_Light;
+        }
+
+        // 从XML加载主题设置
+        public static string GetSavedThemeCode()
+        {
+            if (!File.Exists(ConfigFilePath)) return "system";
+
+            try
+            {
+                XDocument configDoc = XDocument.Load(ConfigFilePath);
+                return configDoc.Root?.Element("Theme")?.Value ?? "system";
+            }
+            catch
+            {
+                return "system";
+            }
+        }
+
+        // 保存主题设置
+        private static void SaveThemeCode(string themeCode)
+        {
+            XDocument configDoc;
+            if (File.Exists(ConfigFilePath))
+            {
+                configDoc = XDocument.Load(ConfigFilePath);
+                var themeElement = configDoc.Root?.Element("Theme");
+                if (themeElement != null)
+                {
+                    themeElement.Value = themeCode;
+                }
+                else
+                {
+                    configDoc.Root?.Add(new XElement("Theme", themeCode));
+                }
+            }
+            else
+            {
+                configDoc = new XDocument(new XElement("Config", new XElement("Theme", themeCode)));
+            }
+            configDoc.Save(ConfigFilePath);
+        }
+
+        // 是否正在跟随系统主题
+        private static bool _isFollowingSystem = true;
+
+        // 根据保存的主题设置初始化主题
+        public static void ApplySavedTheme(Window? window = null)
+        {
+            var themeName = GetSavedThemeCode() switch
+            {
+                "dark" => Properties.Resources.Theme_Dark,
+                "light" => Properties.Resources.Theme_Light,
+                _ => Properties.Resources.Theme_System,
+            };
+
+            ApplyTheme(themeName, window, saveTheme: false);
         }
 
         // 应用新主题
-        public static void ApplyTheme(string themeName)
+        public static void ApplyTheme(string themeName, Window? window = null, bool saveTheme = true)
         {
-            var theme = themeName == Properties.Resources.Theme_Dark ? ApplicationTheme.Dark : ApplicationTheme.Light;
-            ApplicationThemeManager.Apply(theme);
+            if (themeName == Properties.Resources.Theme_System)
+            {
+                // 跟随系统主题
+                _isFollowingSystem = true;
+
+                var sysTheme = SystemThemeManager.GetCachedSystemTheme() == SystemTheme.Dark
+                    ? ApplicationTheme.Dark
+                    : ApplicationTheme.Light;
+                ApplicationThemeManager.Apply(sysTheme);
+
+                if (window != null)
+                    SystemThemeWatcher.Watch(window);
+
+                if (saveTheme)
+                    SaveThemeCode("system");
+            }
+            else
+            {
+                // 手动选择 Light/Dark
+                _isFollowingSystem = false;
+
+                if (window != null)
+                    SystemThemeWatcher.UnWatch(window);
+
+                var theme = themeName == Properties.Resources.Theme_Dark
+                    ? ApplicationTheme.Dark
+                    : ApplicationTheme.Light;
+                ApplicationThemeManager.Apply(theme);
+
+                if (saveTheme)
+                    SaveThemeCode(themeName == Properties.Resources.Theme_Dark ? "dark" : "light");
+            }
         }
     }
 }

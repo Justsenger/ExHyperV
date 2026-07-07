@@ -1,6 +1,6 @@
 ﻿using System.Windows;
+using ExHyperV.Services;
 using ExHyperV.Views;
-using Wpf.Ui.Appearance;
 using Wpf.Ui.Controls;
 
 namespace ExHyperV.Views
@@ -12,12 +12,9 @@ namespace ExHyperV.Views
             InitializeComponent();
             Loaded += PagePreload;
 
-            if (SystemThemeManager.GetCachedSystemTheme() == SystemTheme.Dark)
-            { //根据系统主题自动切换
-                ApplicationThemeManager.Apply(ApplicationTheme.Dark);
-            }
-            else { ApplicationThemeManager.Apply(ApplicationTheme.Light); }
-
+            //根据保存的设置初始化主题
+            SettingsService.ApplySavedTheme(this);
+            
         }
 
         private void PagePreload(object sender, RoutedEventArgs e)
