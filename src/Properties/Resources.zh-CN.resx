@@ -207,6 +207,9 @@
   <data name="Theme_Dark" xml:space="preserve">
     <value>黑暗</value>
   </data>
+  <data name="Theme_System" xml:space="preserve">
+    <value>跟随系统</value>
+  </data>
   <data name="Lang_Title" xml:space="preserve">
     <value>语言</value>
   </data>

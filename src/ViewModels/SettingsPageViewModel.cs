@@ -88,7 +88,12 @@ namespace ExHyperV.ViewModels
 
         public SettingsPageViewModel()
         {
-            AvailableThemes = new List<string> { Properties.Resources.Theme_Light, Properties.Resources.Theme_Dark };
+            AvailableThemes = new List<string>
+            {
+                Properties.Resources.Theme_System,
+                Properties.Resources.Theme_Light,
+                Properties.Resources.Theme_Dark
+            };
             AvailableLanguages = new List<string> { Properties.Resources.Lang_Chinese, "English" };
 
             LoadCurrentSettings();
@@ -110,7 +115,8 @@ namespace ExHyperV.ViewModels
         partial void OnSelectedThemeChanged(string value)
         {
             if (_isInitializing || value == null) return;
-            SettingsService.ApplyTheme(value);
+            var mainWindow = System.Windows.Application.Current?.MainWindow;
+            SettingsService.ApplyTheme(value, mainWindow);
         }
 
         partial void OnSelectedLanguageChanged(string value)

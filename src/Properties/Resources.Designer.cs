@@ -1067,7 +1067,16 @@ namespace ExHyperV.Properties {
                 return ResourceManager.GetString("Theme_Dark", resourceCulture);
             }
         }
-        
+
+        /// <summary>
+        ///   查找类似 Follow System 的本地化字符串。
+        /// </summary>
+        public static string Theme_System {
+            get {
+                return ResourceManager.GetString("Theme_System", resourceCulture);
+            }
+        }
+
         /// <summary>
         ///   查找类似 Loading data... 的本地化字符串。
         /// </summary>
