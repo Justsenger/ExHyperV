@@ -187,8 +187,9 @@ namespace ExHyperV.Services
         // 是否正在跟随系统主题
         private static bool _isFollowingSystem = true;
 
-        // 根据保存的主题设置初始化主题
-        public static void ApplySavedTheme(Window? window = null)
+        // 启动时按保存偏好上色。故意不在此挂系统主题监听——启动挂会与预加载抢渲染致 Mica 不生效(#146);
+        // 监听改由 EnableSystemThemeWatch 在预加载后延后挂。
+        public static void ApplySavedTheme()
         {
             var themeName = GetSavedThemeCode() switch
             {
@@ -197,7 +198,14 @@ namespace ExHyperV.Services
                 _ => Properties.Resources.Theme_System,
             };
 
-            ApplyTheme(themeName, window, saveTheme: false);
+            ApplyTheme(themeName, window: null, saveTheme: false);   // window=null:只上色、设 _isFollowingSystem,不挂监听
+        }
+
+        // 预加载/首帧渲染完成后再挂系统主题监听(仅跟随模式);延后是为错开 #146 的启动渲染竞争
+        public static void EnableSystemThemeWatch(Window window)
+        {
+            if (_isFollowingSystem && window != null)
+                SystemThemeWatcher.Watch(window);
         }
 
         // 应用新主题

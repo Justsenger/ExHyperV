@@ -12,9 +12,8 @@ namespace ExHyperV.Views
             InitializeComponent();
             Loaded += PagePreload;
 
-            //根据保存的设置初始化主题
-            SettingsService.ApplySavedTheme(this);
-            
+            //仅按保存偏好上色;系统主题监听延到 PagePreload 后挂,避开 #146 启动渲染竞争
+            SettingsService.ApplySavedTheme();
         }
 
         private void PagePreload(object sender, RoutedEventArgs e)
@@ -27,6 +26,10 @@ namespace ExHyperV.Views
             RootNavigation.Navigate(typeof(USBPage));
             RootNavigation.Navigate(typeof(MainPage));
 
+            //预加载/首帧后再挂系统主题监听(跟随模式),与 #146 的 Loaded 渲染竞争错开
+            Dispatcher.BeginInvoke(
+                new Action(() => SettingsService.EnableSystemThemeWatch(this)),
+                System.Windows.Threading.DispatcherPriority.Background);
         }
 
 
