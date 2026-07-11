@@ -120,7 +120,7 @@ namespace ExHyperV.ViewModels
             InitializeProductType();
             await LoadAdvancedConfigAsync();
             IsGpuStrategyToggleEnabled = true;
-            IsNativeNvmeToggleEnabled = true;
+            IsNativeNvmeToggleEnabled = IsNativeNvmeSupported;   // 不支持的系统(Win10 等)开关置灰而非隐藏
             // 切换服务器版本(黑魔法)仅对特定客户端 SKU 生效；真 Server/家庭版/标准专业版/企业版等不适用，开关置灰。
             // 判定走 EditionID(真实 SKU)而非 ProductType——后者正是黑魔法改的值，用它会致被切的客户端版无法切回。
             // 已有挂起切换任务时同样置灰：挂起的替换无法取消也无法覆盖，重启生效前不可再切。
@@ -206,7 +206,9 @@ namespace ExHyperV.ViewModels
         private async Task DisableHyperVAsync()
         {
             ShowTip(Properties.Resources.HostPageViewModel_DisablingHyperV);
-            bool ok = await HyperVHostService.DisableHyperVAsync();
+            var op = HyperVHostService.DisableHyperVAsync();
+            await Task.WhenAll(op, Task.Delay(1000));   // "操作中"提示至少停留 1s，不被结果一闪而过
+            bool ok = await op;
             if (!ok)
             {
                 ShowError(Properties.Resources.HostPageViewModel_DisableFailed);
@@ -219,7 +221,9 @@ namespace ExHyperV.ViewModels
         private async Task EnableHyperVAsync()
         {
             ShowTip(Properties.Resources.Msg_Host_EnableHyperV);
-            bool ok = await HyperVHostService.EnableHyperVAsync();
+            var op = HyperVHostService.EnableHyperVAsync();
+            await Task.WhenAll(op, Task.Delay(1000));   // "操作中"提示至少停留 1s，不被结果一闪而过
+            bool ok = await op;
             if (!ok)
             {
                 ShowError(Properties.Resources.Error_Host_EnableFail);
