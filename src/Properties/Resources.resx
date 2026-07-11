@@ -1467,6 +1467,15 @@ The existing NAT switch is: '{0}'</value>
   <data name="Desc_SwitchServer" xml:space="preserve">
     <value>Magic Tweak (Not available for Pro/Home/Ent editions)</value>
   </data>
+  <data name="SwitchServer_ConfirmTitle" xml:space="preserve">
+    <value>Switch to Server Edition?</value>
+  </data>
+  <data name="SwitchServer_ConfirmMsg" xml:space="preserve">
+    <value>After switching to Server edition, some drivers and applications may not work correctly, and in extreme cases the system may fail to start normally; by continuing, you accept the associated risks. Continue?</value>
+  </data>
+  <data name="SwitchServer_ConfirmBtn" xml:space="preserve">
+    <value>Confirm</value>
+  </data>
   <data name="Menu_VMManagement" xml:space="preserve">
     <value>VM Management</value>
   </data>

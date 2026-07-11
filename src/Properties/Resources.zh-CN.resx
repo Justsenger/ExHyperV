@@ -1467,6 +1467,15 @@
   <data name="Desc_SwitchServer" xml:space="preserve">
     <value>黑魔法，专业版/家庭版/企业版无效</value>
   </data>
+  <data name="SwitchServer_ConfirmTitle" xml:space="preserve">
+    <value>切换系统为服务器版本？</value>
+  </data>
+  <data name="SwitchServer_ConfirmMsg" xml:space="preserve">
+    <value>切换为服务器版本后，部分驱动、应用程序可能出现异常，极端情况下可能导致系统无法正常启动，继续即表示你自愿承担相关风险。确定继续吗？</value>
+  </data>
+  <data name="SwitchServer_ConfirmBtn" xml:space="preserve">
+    <value>确认</value>
+  </data>
   <data name="Menu_VMManagement" xml:space="preserve">
     <value>虚拟机管理</value>
   </data>

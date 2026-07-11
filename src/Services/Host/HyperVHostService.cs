@@ -108,6 +108,8 @@ namespace ExHyperV.Services
         /// </summary>
         public static bool IsServerSwitchApplicable()
         {
+            return true;   // 已取消版本限制：放行全部 SKU；下方原 EditionID 判定保留，需恢复限制删此行即可
+#pragma warning disable CS0162 // 原判定暂不可达，保留备用
             try
             {
                 using var key = Registry.LocalMachine
@@ -134,6 +136,7 @@ namespace ExHyperV.Services
                 return true;
             }
             catch { return false; }
+#pragma warning restore CS0162
         }
 
         // ── Hyper-V 状态 ────────────────────────────────────────────

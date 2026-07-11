@@ -3989,6 +3989,33 @@ namespace ExHyperV.Properties {
                 return ResourceManager.GetString("Menu_SwitchServer", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   查找类似 Switch to Server Edition? 的本地化字符串。
+        /// </summary>
+        public static string SwitchServer_ConfirmTitle {
+            get {
+                return ResourceManager.GetString("SwitchServer_ConfirmTitle", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   查找切换服务器版本前的确认警告文案。
+        /// </summary>
+        public static string SwitchServer_ConfirmMsg {
+            get {
+                return ResourceManager.GetString("SwitchServer_ConfirmMsg", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   查找类似 Switch 的本地化字符串。
+        /// </summary>
+        public static string SwitchServer_ConfirmBtn {
+            get {
+                return ResourceManager.GetString("SwitchServer_ConfirmBtn", resourceCulture);
+            }
+        }
         
         /// <summary>
         ///   查找类似 Unlock Hardware Limits 的本地化字符串。
