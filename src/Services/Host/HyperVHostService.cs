@@ -185,30 +185,8 @@ namespace ExHyperV.Services
         // 读 BCD 的 hypervisorlaunchtype 是否非 Off。IsHypervisorActive 在无 CPUID(ARM64/x86)时的退路。
         private static bool IsHypervisorLaunchEnabled()
         {
-            try
-            {
-                var psi = new System.Diagnostics.ProcessStartInfo
-                {
-                    FileName = "bcdedit.exe",
-                    Arguments = "/enum {current}",
-                    UseShellExecute = false,
-                    RedirectStandardOutput = true,
-                    CreateNoWindow = true,
-                };
-                using var process = System.Diagnostics.Process.Start(psi);
-                if (process == null) return true;
-                string output = process.StandardOutput.ReadToEnd();
-                process.WaitForExit();
-                foreach (var raw in output.Split('\n'))
-                {
-                    string line = raw.Trim();
-                    // 键名与值（Off/Auto）均不本地化；缺此行 = 默认 Auto = 启用。
-                    if (line.StartsWith("hypervisorlaunchtype", StringComparison.OrdinalIgnoreCase))
-                        return line.IndexOf("off", StringComparison.OrdinalIgnoreCase) < 0;
-                }
-                return true;
-            }
-            catch { return true; }
+            var v = Bcdedit.ReadValue("hypervisorlaunchtype");   // 缺省(null)=默认 Auto=启用
+            return v == null || !v.Equals("off", StringComparison.OrdinalIgnoreCase);
         }
 
         // Hyper-V 监控程序是否"真在本机运行"。VM 内 HypervisorPresent 被宿主污染恒 true 不能用。
@@ -278,32 +256,9 @@ namespace ExHyperV.Services
             return launchOk && featurePresent;
         }
 
-        /// <summary>
-        /// 设置 bcdedit 的 hypervisorlaunchtype（auto/off），控制虚拟机监控程序是否在启动时加载。
-        /// 仅启用 Hyper-V 功能不足以让其运行——该值为 off 时监控程序不会加载。
-        /// </summary>
-        private static async Task<bool> SetHypervisorLaunchTypeAsync(string mode)
-        {
-            try
-            {
-                var psi = new System.Diagnostics.ProcessStartInfo
-                {
-                    FileName = "bcdedit.exe",
-                    Arguments = $"/set hypervisorlaunchtype {mode}",
-                    Verb = "runas",                 // 提权执行（应用已提权时不再弹 UAC）
-                    UseShellExecute = true,         // Verb=runas 要求为 true
-                    WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden,
-                };
-                using var process = System.Diagnostics.Process.Start(psi);
-                if (process == null) return false;
-                await process.WaitForExitAsync();
-                return process.ExitCode == 0;
-            }
-            catch
-            {
-                return false;
-            }
-        }
+        // 设置 hypervisorlaunchtype（auto/off），控制虚拟机监控程序是否开机加载（off 时不加载，仅装功能不够）。
+        private static Task<bool> SetHypervisorLaunchTypeAsync(string mode)
+            => Bcdedit.SetValueAsync("hypervisorlaunchtype", mode);
 
         // ── 内部 ────────────────────────────────────────────────────
 
