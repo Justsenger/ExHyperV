@@ -221,6 +221,42 @@ namespace ExHyperV.Services
             catch { }
         }
 
+        // ===== 宿主 MMIO 上限缓存（MB） =====
+        // 首次 boot-probe 测得的宿主物理地址上限，持久化后不再重探（只认第一次测得的结果）。
+
+        public static ulong? GetMmioCeilingMb()
+        {
+            if (!File.Exists(ConfigFilePath)) return null;
+            try
+            {
+                XDocument configDoc = XDocument.Load(ConfigFilePath);
+                var v = configDoc.Root?.Element("MmioCeilingMb")?.Value;
+                return ulong.TryParse(v, out ulong mb) && mb > 0 ? mb : null;
+            }
+            catch { return null; }
+        }
+
+        public static void SaveMmioCeilingMb(ulong ceilingMb)
+        {
+            try
+            {
+                XDocument configDoc;
+                if (File.Exists(ConfigFilePath))
+                {
+                    configDoc = XDocument.Load(ConfigFilePath);
+                    var el = configDoc.Root?.Element("MmioCeilingMb");
+                    if (el != null) el.Value = ceilingMb.ToString();
+                    else configDoc.Root?.Add(new XElement("MmioCeilingMb", ceilingMb.ToString()));
+                }
+                else
+                {
+                    configDoc = new XDocument(new XElement("Config", new XElement("MmioCeilingMb", ceilingMb.ToString())));
+                }
+                configDoc.Save(ConfigFilePath);
+            }
+            catch { }
+        }
+
         // 是否正在跟随系统主题
         private static bool _isFollowingSystem = true;
 
