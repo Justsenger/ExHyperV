@@ -90,7 +90,7 @@
             </ui:CardExpander.Header>
             <StackPanel>
                 <ui:Anchor
-    Padding="16,12"
+    Padding="16"
     HorizontalAlignment="Stretch"
     HorizontalContentAlignment="Stretch"
     Background="Transparent"
@@ -168,7 +168,7 @@
                     HorizontalAlignment="Stretch"
                     HorizontalContentAlignment="Stretch"
                     Background="Transparent"
-                    BorderThickness="0,1,0,1"
+                    BorderThickness="0,1,0,0"
                     CornerRadius="0"
                     NavigateUri="https://github.com/Justsenger/ExHyperV">
                     <Grid>
@@ -188,7 +188,7 @@
                     HorizontalAlignment="Stretch"
                     HorizontalContentAlignment="Stretch"
                     Background="Transparent"
-                    BorderThickness="0,1,0,1"
+                    BorderThickness="0,1,0,0"
                     CornerRadius="0"
                     NavigateUri="https://afdian.com/a/saniye">
                     <Grid>
