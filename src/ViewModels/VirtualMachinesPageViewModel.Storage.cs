@@ -532,7 +532,13 @@ namespace ExHyperV.ViewModels
         private void BrowseFolder()
         {
             var picked = Dialogs.PickFolder(initialDir: string.IsNullOrWhiteSpace(IsoSourceFolderPath) ? null : IsoSourceFolderPath);
-            if (picked != null) IsoSourceFolderPath = picked;
+            if (picked != null)
+            {
+                IsoSourceFolderPath = picked;
+                // 选定文件夹后,卷标签自动跟随文件夹名(合法化)
+                var folderName = Path.GetFileName(picked.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+                IsoVolumeLabel = IsoBuilderService.SanitizeVolumeLabel(folderName);
+            }
         }
 
         // 浏览父级磁盘
