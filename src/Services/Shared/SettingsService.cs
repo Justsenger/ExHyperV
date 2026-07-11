@@ -102,25 +102,26 @@ namespace ExHyperV.Services
         {
             string languageCode = languageName == Properties.Resources.Lang_Chinese ? "zh-CN" : "en-US";
 
-            XDocument configDoc;
-            if (File.Exists(ConfigFilePath))
+            // 配置写不了(只读目录/权限/文件损坏)不应崩溃：无法持久化就不重启(重启也读不到新语言)，静默放弃。
+            try
             {
-                configDoc = XDocument.Load(ConfigFilePath);
-                var languageElement = configDoc.Root?.Element("Language");
-                if (languageElement != null)
+                XDocument configDoc;
+                if (File.Exists(ConfigFilePath))
                 {
-                    languageElement.Value = languageCode;
+                    configDoc = XDocument.Load(ConfigFilePath);
+                    var languageElement = configDoc.Root?.Element("Language");
+                    if (languageElement != null)
+                        languageElement.Value = languageCode;
+                    else
+                        configDoc.Root?.Add(new XElement("Language", languageCode));
                 }
                 else
                 {
-                    configDoc.Root?.Add(new XElement("Language", languageCode));
+                    configDoc = new XDocument(new XElement("Config", new XElement("Language", languageCode)));
                 }
+                configDoc.Save(ConfigFilePath);
             }
-            else
-            {
-                configDoc = new XDocument(new XElement("Config", new XElement("Language", languageCode)));
-            }
-            configDoc.Save(ConfigFilePath);
+            catch { return; }
 
             // 重启应用
             var exePath = Process.GetCurrentProcess().MainModule?.FileName;
@@ -163,25 +164,26 @@ namespace ExHyperV.Services
         // 保存主题设置
         private static void SaveThemeCode(string themeCode)
         {
-            XDocument configDoc;
-            if (File.Exists(ConfigFilePath))
+            // 配置写不了不应崩溃：主题已应用到界面，仅静默跳过持久化。
+            try
             {
-                configDoc = XDocument.Load(ConfigFilePath);
-                var themeElement = configDoc.Root?.Element("Theme");
-                if (themeElement != null)
+                XDocument configDoc;
+                if (File.Exists(ConfigFilePath))
                 {
-                    themeElement.Value = themeCode;
+                    configDoc = XDocument.Load(ConfigFilePath);
+                    var themeElement = configDoc.Root?.Element("Theme");
+                    if (themeElement != null)
+                        themeElement.Value = themeCode;
+                    else
+                        configDoc.Root?.Add(new XElement("Theme", themeCode));
                 }
                 else
                 {
-                    configDoc.Root?.Add(new XElement("Theme", themeCode));
+                    configDoc = new XDocument(new XElement("Config", new XElement("Theme", themeCode)));
                 }
+                configDoc.Save(ConfigFilePath);
             }
-            else
-            {
-                configDoc = new XDocument(new XElement("Config", new XElement("Theme", themeCode)));
-            }
-            configDoc.Save(ConfigFilePath);
+            catch { }
         }
 
         // ===== 控制台默认缩放档 =====
