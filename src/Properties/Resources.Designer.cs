@@ -2828,15 +2828,6 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
-        ///   查找类似 [HyperVSchedulerService] Failed to execute bcdedit via Utils.RunScriptSTA: {0} 的本地化字符串。
-        /// </summary>
-        public static string HyperVScheduler_LogBcdeditFail {
-            get {
-                return ResourceManager.GetString("HyperVScheduler_LogBcdeditFail", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   查找类似 You are already using the latest version. 的本地化字符串。
         /// </summary>
         public static string Info_AlreadyLatestVersion {

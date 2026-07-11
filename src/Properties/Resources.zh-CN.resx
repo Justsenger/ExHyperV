@@ -2124,9 +2124,6 @@
   <data name="HyperVScheduler_LogEventLogQueryFail" xml:space="preserve">
     <value>[HyperVSchedulerService] 查询事件日志失败: {0}</value>
   </data>
-  <data name="HyperVScheduler_LogBcdeditFail" xml:space="preserve">
-    <value>[HyperVSchedulerService] 使用 Utils.RunScriptSTA 执行 bcdedit 失败: {0}</value>
-  </data>
   <data name="UsbVmbus_LogStoppingTunnel" xml:space="preserve">
     <value>[StopTunnel] 正在停止旧隧道: {0}</value>
   </data>

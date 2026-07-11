@@ -2124,9 +2124,6 @@ The existing NAT switch is: '{0}'</value>
   <data name="HyperVScheduler_LogEventLogQueryFail" xml:space="preserve">
     <value>[HyperVSchedulerService] Failed to query event log: {0}</value>
   </data>
-  <data name="HyperVScheduler_LogBcdeditFail" xml:space="preserve">
-    <value>[HyperVSchedulerService] Failed to execute bcdedit via Utils.RunScriptSTA: {0}</value>
-  </data>
   <data name="UsbVmbus_LogStoppingTunnel" xml:space="preserve">
     <value>[StopTunnel] Stopping old tunnel: {0}</value>
   </data>
