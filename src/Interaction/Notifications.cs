@@ -13,48 +13,21 @@ namespace ExHyperV.Interaction
     {
         /// <summary>
         /// 显示 Snackbar 通知。危险/警告类按消息长度动态延时（2~60s），其余固定 2s。
-        /// 显示前清空积压队列并关闭当前条，避免堆叠。
         /// </summary>
         public static void ShowSnackbar(string title, string message, ControlAppearance appearance, SymbolRegular icon)
         {
-            Application.Current.Dispatcher.InvokeAsync(async () =>
+            TimeSpan timeout = (appearance == ControlAppearance.Danger || appearance == ControlAppearance.Caution)
+                ? TimeSpan.FromSeconds(Math.Clamp((message?.Length ?? 0) / 20, 2, 60))   // 每 20 字符 +1 秒
+                : TimeSpan.FromSeconds(2);
+
+            Dispatch(presenter => new Snackbar(presenter)
             {
-                var presenter = Application.Current.MainWindow?.FindName("SnackbarPresenter") as SnackbarPresenter;
-                if (presenter == null) return;
-
-                // 清空积压队列
-                try
-                {
-                    var queueProp = typeof(SnackbarPresenter).GetProperty("Queue", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-                    var queueObj = queueProp?.GetValue(presenter);
-                    queueObj?.GetType().GetMethod("Clear")?.Invoke(queueObj, null);
-                }
-                catch { }
-
-                // 安全关闭当前条
-                try { await presenter.HideCurrent(); } catch { }
-
-                TimeSpan timeout;
-                if (appearance == ControlAppearance.Danger || appearance == ControlAppearance.Caution)
-                {
-                    int msgLength = message?.Length ?? 0;
-                    int calculatedSeconds = Math.Clamp(msgLength / 20, 2, 60); // 每 20 字符 +1 秒
-                    timeout = TimeSpan.FromSeconds(calculatedSeconds);
-                }
-                else
-                {
-                    timeout = TimeSpan.FromSeconds(2);
-                }
-
-                new Snackbar(presenter)
-                {
-                    Title = title,
-                    Content = message,
-                    Appearance = appearance,
-                    Icon = new SymbolIcon(icon) { FontSize = 24 },   // 统一放大到 24（原默认偏小）
-                    Timeout = timeout
-                }.Show();
-            }, DispatcherPriority.Background);
+                Title = title,
+                Content = message,
+                Appearance = appearance,
+                Icon = new SymbolIcon(icon) { FontSize = 24 },   // 统一放大到 24（原默认偏小）
+                Timeout = timeout
+            }.Show());
         }
 
         /// <summary>
@@ -62,10 +35,8 @@ namespace ExHyperV.Interaction
         /// </summary>
         public static void ShowRestartPrompt(string message)
         {
-            Application.Current.Dispatcher.Invoke(() =>
+            Dispatch(presenter =>
             {
-                if (Application.Current.MainWindow?.FindName("SnackbarPresenter") is not SnackbarPresenter p) return;
-
                 // 标题+描述自绘进正文、紧凑竖排;右侧行动组[立即重启 + 关闭]底对齐到描述底。
                 //  - 标题不走模板 Title 槽:那样标题↔描述的间距由模板定、偏宽;自绘能收紧,且让描述底与按钮底齐平。
                 //  - 模板自带的关闭 X 在第三列、按整卡居中,与描述不同高;关掉它(IsCloseButtonEnabled=false),把强化方框关闭并入本组。
@@ -88,7 +59,7 @@ namespace ExHyperV.Interaction
                 restartBtn.Click += (s, e) => { try { System.Diagnostics.Process.Start("shutdown", "-r -t 0"); } catch { } };
                 // 关闭:与重启等高的小方块(34×34),Dismiss 图标缩小居中;比模板那个细边 X 有手感
                 var closeBtn = new Wpf.Ui.Controls.Button { Icon = new SymbolIcon(SymbolRegular.Dismiss24) { FontSize = 16 }, Appearance = ControlAppearance.Secondary, VerticalAlignment = VerticalAlignment.Bottom, Margin = new Thickness(8, 0, 0, 0), Width = 34, Height = 34, Padding = new Thickness(0) };
-                closeBtn.Click += async (s, e) => { try { await p.HideCurrent(); } catch { } };
+                closeBtn.Click += async (s, e) => { try { await presenter.HideCurrent(); } catch { } };
                 actions.Children.Add(restartBtn);
                 actions.Children.Add(closeBtn);
 
@@ -97,7 +68,7 @@ namespace ExHyperV.Interaction
                 content.Children.Add(textStack);
                 content.Children.Add(actions);
 
-                new Snackbar(p)
+                new Snackbar(presenter)
                 {
                     // 标题已自绘进 content,不再用模板 Title 槽
                     Content = content,
@@ -109,6 +80,31 @@ namespace ExHyperV.Interaction
                     Timeout = TimeSpan.FromSeconds(15)
                 }.Show();
             });
+        }
+
+        // 所有 snackbar 统一经此:同一 Background 优先级 + "清队列 → 关当前 → 再显示"。
+        // 两条通道曾用不同优先级(Background/Normal),致先调的进度提示后执行、顶掉后到的重启提示;统一后按调用 FIFO。
+        private static void Dispatch(Action<SnackbarPresenter> show)
+        {
+            Application.Current.Dispatcher.InvokeAsync(async () =>
+            {
+                if (Application.Current.MainWindow?.FindName("SnackbarPresenter") is not SnackbarPresenter presenter) return;
+                ClearQueue(presenter);
+                try { await presenter.HideCurrent(); } catch { }   // 安全关闭当前条
+                show(presenter);
+            }, DispatcherPriority.Background);
+        }
+
+        // 清空积压队列(SnackbarPresenter.Queue 非公开),避免堆叠。
+        private static void ClearQueue(SnackbarPresenter presenter)
+        {
+            try
+            {
+                var queueProp = typeof(SnackbarPresenter).GetProperty("Queue", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                var queueObj = queueProp?.GetValue(presenter);
+                queueObj?.GetType().GetMethod("Clear")?.Invoke(queueObj, null);
+            }
+            catch { }
         }
     }
 }
