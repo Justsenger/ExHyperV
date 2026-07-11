@@ -1,4 +1,5 @@
 ﻿using System.Management;
+using System.Runtime.InteropServices;
 using ExHyperV.Tools;
 using Microsoft.Win32;
 
@@ -12,21 +13,47 @@ namespace ExHyperV.Services
         // ── 环境检测 ────────────────────────────────────────────────
 
         /// <summary>
-        /// 检测 CPU 虚拟化是否可用（BIOS 开启且 CPU 支持）。
-        /// 逻辑：如果 Hypervisor 正在运行，则虚拟化必定开启；否则检查 CPU 固件标志。
+        /// 检测 CPU 虚拟化是否可用。ARM64 读 VMMonitorModeExtensions；x64 走 CPUID。
+        /// 旧逻辑"有 hypervisor 即已启用"在来宾里恒 true 会误报，故弃用。
         /// </summary>
         public static bool IsVirtualizationEnabled()
         {
             try
             {
-                if (IsHypervisorPresent()) return true;
-                var response = WmiApi.QueryAsync(
-                    "SELECT VirtualizationFirmwareEnabled FROM Win32_Processor",
-                    obj => obj["VirtualizationFirmwareEnabled"] is bool enabled && enabled,
-                    WmiScope.CimV2).GetAwaiter().GetResult();
-                return response.Success && (response.Data?.Any(x => x) ?? false);
+                // ARM 无 CPUID；该标志不被 hypervisor 掩盖，宿主 true / 来宾无嵌套 false。
+                if (RuntimeInformation.OSArchitecture == Architecture.Arm64)
+                    return VmMonitorModeExtensionsEnabled();
+
+                if (!CpuId.Supported)   // 非 x64 进程，跑不了 x64 CPUID 机器码
+                    return IsHypervisorPresent() || VirtualizationFirmwareEnabled();
+
+                if (!CpuId.HypervisorPresent())         // 物理机无 Hyper-V → 读 BIOS 标志
+                    return VirtualizationFirmwareEnabled();
+                if (CpuId.IsHyperVRootPartition())      // 物理机跑着 Hyper-V（VFE/VMX 被掩盖）→ 已启用
+                    return true;
+                return CpuId.HardwareVirtualizationExposed();   // 来宾：VMX/SVM 反映嵌套是否透传
             }
             catch { return false; }
+        }
+
+        // Win32_Processor.VirtualizationFirmwareEnabled：固件/BIOS 是否启用虚拟化。x64 物理机无 Hyper-V 时用。
+        private static bool VirtualizationFirmwareEnabled()
+        {
+            var response = WmiApi.QueryAsync(
+                "SELECT VirtualizationFirmwareEnabled FROM Win32_Processor",
+                obj => obj["VirtualizationFirmwareEnabled"] is bool enabled && enabled,
+                WmiScope.CimV2).GetAwaiter().GetResult();
+            return response.Success && (response.Data?.Any(x => x) ?? false);
+        }
+
+        // Win32_Processor.VMMonitorModeExtensions：ARM64 用。宿主 true / 来宾无嵌套 false，不被 hypervisor 掩盖。
+        private static bool VmMonitorModeExtensionsEnabled()
+        {
+            var response = WmiApi.QueryAsync(
+                "SELECT VMMonitorModeExtensions FROM Win32_Processor",
+                obj => obj["VMMonitorModeExtensions"] is bool enabled && enabled,
+                WmiScope.CimV2).GetAwaiter().GetResult();
+            return response.Success && (response.Data?.Any(x => x) ?? false);
         }
 
         /// <summary>
