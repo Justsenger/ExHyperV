@@ -43,6 +43,10 @@ namespace ExHyperV.ViewModels
         {
             VmId = vmId;
             VmName = vmName;
+            // 打开控制台时优先用配置里保存的缩放档（语言中立："auto"→当前语言的适应窗口，百分比直用）；无/无效则保持默认 100%。
+            var savedZoom = SettingsService.GetDefaultZoom();
+            if (savedZoom == ZoomAutoToken) SelectedZoom = Properties.Resources.ConsoleWindow_ZoomAuto;
+            else if (!string.IsNullOrEmpty(savedZoom) && ZoomOptions.Contains(savedZoom)) SelectedZoom = savedZoom;
             StartStatusPolling();
         }
         // ===== 全屏 =====
@@ -182,10 +186,16 @@ namespace ExHyperV.ViewModels
             "500%", "400%", "300%", "200%", "150%", "125%", "100%", "75%", "50%", "25%"
         };
 
+        // 配置里存语言中立值：本地化"适应窗口"存 "auto"，百分比本身中立 → 切中英文后配置仍对得上。
+        private const string ZoomAutoToken = "auto";
+
         [RelayCommand]
         private void ChangeZoom(string zoom)
         {
-            if (!string.IsNullOrEmpty(zoom)) SelectedZoom = zoom;
+            if (string.IsNullOrEmpty(zoom)) return;
+            SelectedZoom = zoom;
+            // 记住用户手动选择，下次打开控制台沿用；"适应窗口"存中立 token 而非本地化字符串
+            SettingsService.SaveDefaultZoom(zoom == Properties.Resources.ConsoleWindow_ZoomAuto ? ZoomAutoToken : zoom);
         }
 
         // ===== 会话模式 =====

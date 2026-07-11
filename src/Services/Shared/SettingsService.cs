@@ -184,6 +184,41 @@ namespace ExHyperV.Services
             configDoc.Save(ConfigFilePath);
         }
 
+        // ===== 控制台默认缩放档 =====
+        // 保存用户上次手动选择的缩放（如 "150%" 或本地化"适应窗口"）；下次打开控制台优先用它。
+
+        public static string? GetDefaultZoom()
+        {
+            if (!File.Exists(ConfigFilePath)) return null;
+            try
+            {
+                XDocument configDoc = XDocument.Load(ConfigFilePath);
+                return configDoc.Root?.Element("DefaultZoom")?.Value;
+            }
+            catch { return null; }
+        }
+
+        public static void SaveDefaultZoom(string zoom)
+        {
+            try
+            {
+                XDocument configDoc;
+                if (File.Exists(ConfigFilePath))
+                {
+                    configDoc = XDocument.Load(ConfigFilePath);
+                    var el = configDoc.Root?.Element("DefaultZoom");
+                    if (el != null) el.Value = zoom;
+                    else configDoc.Root?.Add(new XElement("DefaultZoom", zoom));
+                }
+                else
+                {
+                    configDoc = new XDocument(new XElement("Config", new XElement("DefaultZoom", zoom)));
+                }
+                configDoc.Save(ConfigFilePath);
+            }
+            catch { }
+        }
+
         // 是否正在跟随系统主题
         private static bool _isFollowingSystem = true;
 
