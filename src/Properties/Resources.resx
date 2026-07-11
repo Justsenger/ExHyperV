@@ -910,13 +910,13 @@ The existing NAT switch is: '{0}'</value>
     <value>VM or Processor config not found.</value>
   </data>
   <data name="Scheduler_Classic" xml:space="preserve">
-    <value>Classic Scheduler</value>
+    <value>Classic</value>
   </data>
   <data name="Scheduler_Core" xml:space="preserve">
-    <value>Core Scheduler</value>
+    <value>Core</value>
   </data>
   <data name="Scheduler_Root" xml:space="preserve">
-    <value>Root Scheduler</value>
+    <value>Root</value>
   </data>
   <data name="Msg_Host_EnableHyperV" xml:space="preserve">
     <value>Enabling Hyper-V services...</value>
