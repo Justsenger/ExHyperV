@@ -262,25 +262,29 @@ namespace ExHyperV.ViewModels
                     return;   // 挂起任务无法取消或覆盖，重启前保持禁用
                 }
 
-                // 危险操作：切换前二次确认（同「彻底删除虚拟机」的红色确认弹窗）。取消则回拨开关、重新启用，不执行切换。
-                var confirm = new Wpf.Ui.Controls.MessageBox
+                // 危险操作：仅「切到服务器版本」前二次确认（红色弹窗，同「彻底删除虚拟机」）。取消则回拨开关、重新启用。
+                // 切回客户端（工作站）无此风险，直接执行、不打扰。
+                if (toServer)
                 {
-                    Title = Properties.Resources.SwitchServer_ConfirmTitle,
-                    Content = new System.Windows.Controls.TextBlock
+                    var confirm = new Wpf.Ui.Controls.MessageBox
                     {
-                        Text = Properties.Resources.SwitchServer_ConfirmMsg,
-                        TextWrapping = System.Windows.TextWrapping.Wrap,
-                    },
-                    PrimaryButtonText = Properties.Resources.SwitchServer_ConfirmBtn,
-                    PrimaryButtonAppearance = Wpf.Ui.Controls.ControlAppearance.Danger,
-                    CloseButtonText = Properties.Resources.Button_Cancel,
-                };
-                Interaction.Dialogs.ForceDangerButtonWhiteForeground(confirm);   // Danger 主按钮亮色主题下红底黑字，强制刷白
-                if (await confirm.ShowDialogAsync() != Wpf.Ui.Controls.MessageBoxResult.Primary)
-                {
-                    _isInitialized = false; IsServerSystem = !toServer; _isInitialized = true;
-                    IsSystemSwitchEnabled = HyperVHostService.IsServerSwitchApplicable();
-                    return;
+                        Title = Properties.Resources.SwitchServer_ConfirmTitle,
+                        Content = new System.Windows.Controls.TextBlock
+                        {
+                            Text = Properties.Resources.SwitchServer_ConfirmMsg,
+                            TextWrapping = System.Windows.TextWrapping.Wrap,
+                        },
+                        PrimaryButtonText = Properties.Resources.SwitchServer_ConfirmBtn,
+                        PrimaryButtonAppearance = Wpf.Ui.Controls.ControlAppearance.Danger,
+                        CloseButtonText = Properties.Resources.Button_Cancel,
+                    };
+                    Interaction.Dialogs.ForceDangerButtonWhiteForeground(confirm);   // Danger 主按钮亮色主题下红底黑字，强制刷白
+                    if (await confirm.ShowDialogAsync() != Wpf.Ui.Controls.MessageBoxResult.Primary)
+                    {
+                        _isInitialized = false; IsServerSystem = !toServer; _isInitialized = true;
+                        IsSystemSwitchEnabled = HyperVHostService.IsServerSwitchApplicable();
+                        return;
+                    }
                 }
 
                 string result = await Task.Run(() => SystemTypeService.ApplySwitch(toServer));
