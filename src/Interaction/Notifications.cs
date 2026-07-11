@@ -57,9 +57,9 @@ namespace ExHyperV.Interaction
                 var restartBtn = new Wpf.Ui.Controls.Button { Content = Properties.Resources.Global_Restart, Appearance = ControlAppearance.Light, VerticalAlignment = VerticalAlignment.Bottom, Height = 34, Padding = new Thickness(16, 0, 16, 0) };
                 // shutdown.exe 启动失败(权限/环境异常)不应让 UI 线程崩溃;失败时用户可手动重启
                 restartBtn.Click += (s, e) => { try { System.Diagnostics.Process.Start("shutdown", "-r -t 0"); } catch { } };
-                // 关闭:与重启等高的小方块(34×34),Dismiss 图标缩小居中;比模板那个细边 X 有手感。
-                // 负右 margin 把按钮往右拉,抵消模板右内边距,使 X 到卡片右缘的间隙≈与重启的左间隙(对称)。
-                var closeBtn = new Wpf.Ui.Controls.Button { Icon = new SymbolIcon(SymbolRegular.Dismiss24) { FontSize = 16 }, Appearance = ControlAppearance.Secondary, VerticalAlignment = VerticalAlignment.Bottom, Margin = new Thickness(8, 0, -8, 0), Width = 34, Height = 34, Padding = new Thickness(0) };
+                // 关闭:与重启等高的小方块(34×34),Dismiss 图标缩小居中。
+                // 模板卡片 Padding=12、按钮左 margin=8;负右 margin -4 把 X 拉到距右缘 12-4=8,与左间隙对称。
+                var closeBtn = new Wpf.Ui.Controls.Button { Icon = new SymbolIcon(SymbolRegular.Dismiss24) { FontSize = 16 }, Appearance = ControlAppearance.Secondary, VerticalAlignment = VerticalAlignment.Bottom, Margin = new Thickness(8, 0, -4, 0), Width = 34, Height = 34, Padding = new Thickness(0) };
                 closeBtn.Click += async (s, e) => { try { await presenter.HideCurrent(); } catch { } };
                 actions.Children.Add(restartBtn);
                 actions.Children.Add(closeBtn);
