@@ -910,13 +910,13 @@
     <value>找不到虚拟机或处理器配置。</value>
   </data>
   <data name="Scheduler_Classic" xml:space="preserve">
-    <value>经典 (Classic)</value>
+    <value>经典调度器</value>
   </data>
   <data name="Scheduler_Core" xml:space="preserve">
-    <value>核心 (Core)</value>
+    <value>核心调度器</value>
   </data>
   <data name="Scheduler_Root" xml:space="preserve">
-    <value>根 (Root)</value>
+    <value>根调度器</value>
   </data>
   <data name="Msg_Host_EnableHyperV" xml:space="preserve">
     <value>正在启用 Hyper-V 服务，请稍候...</value>
