@@ -275,6 +275,7 @@ namespace ExHyperV.ViewModels
                     PrimaryButtonAppearance = Wpf.Ui.Controls.ControlAppearance.Danger,
                     CloseButtonText = Properties.Resources.Button_Cancel,
                 };
+                Interaction.Dialogs.ForceDangerButtonWhiteForeground(confirm);   // Danger 主按钮亮色主题下红底黑字，强制刷白
                 if (await confirm.ShowDialogAsync() != Wpf.Ui.Controls.MessageBoxResult.Primary)
                 {
                     _isInitialized = false; IsServerSystem = !toServer; _isInitialized = true;

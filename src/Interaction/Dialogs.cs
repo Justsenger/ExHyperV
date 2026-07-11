@@ -76,8 +76,33 @@ namespace ExHyperV.Interaction
                 PrimaryButtonAppearance = isDanger ? ControlAppearance.Danger : ControlAppearance.Primary
             };
 
+            if (isDanger) ForceDangerButtonWhiteForeground(dialog);
+
             var result = await dialog.ShowAsync(CancellationToken.None);
             return result == ContentDialogResult.Primary;
+        }
+
+        // WPF-UI 的 Danger 外观按钮不设前景、继承 ButtonForeground(随主题)→ 亮色主题下红底黑字。
+        // 弹窗加载后把可视树里 Danger 外观按钮前景强制刷白(红底恒可读)，对齐 XAML 里 Danger 按钮手写 Foreground="White"。
+        public static void ForceDangerButtonWhiteForeground(FrameworkElement dialog)
+        {
+            dialog.Loaded += (_, _) =>
+            {
+                foreach (var btn in FindVisualChildren<Wpf.Ui.Controls.Button>(dialog))
+                    if (btn.Appearance == ControlAppearance.Danger)
+                        btn.Foreground = System.Windows.Media.Brushes.White;
+            };
+        }
+
+        private static IEnumerable<T> FindVisualChildren<T>(DependencyObject root) where T : DependencyObject
+        {
+            int count = VisualTreeHelper.GetChildrenCount(root);
+            for (int i = 0; i < count; i++)
+            {
+                var child = VisualTreeHelper.GetChild(root, i);
+                if (child is T typed) yield return typed;
+                foreach (var descendant in FindVisualChildren<T>(child)) yield return descendant;
+            }
         }
 
         public static async Task ShowAlertAsync(string title, string message)
