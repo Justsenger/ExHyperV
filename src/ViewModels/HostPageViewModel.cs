@@ -75,7 +75,7 @@ namespace ExHyperV.ViewModels
             else
             {
                 VersionStatus.IsSuccess = false;
-                VersionStatus.StatusText = baseVersion + Properties.Resources.Status_Msg_GpuPvNotSupported;
+                VersionStatus.StatusText = baseVersion;   // 红叉+“GPU-PV 要求”标题已表意,不再拼“(不支持 GPU-PV)”
             }
             VersionStatus.IsChecking = false;
         });
