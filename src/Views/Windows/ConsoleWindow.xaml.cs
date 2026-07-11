@@ -86,6 +86,7 @@ namespace ExHyperV.Views
                 }
                 if (reason == 1)   // reason=1=本地主动断开，且非我方发起(weInit)/非增强探测 → 用户点了连接栏关闭按钮，关闭控制台（否则被轮询重连"复活"）
                 {
+                    if (_closing) return;   // 已在关闭流程(OnClosing 已置位):拆 mstscax 时断开会派发到这里,别再 Close() 否则 VerifyNotClosing 抛
                     _closing = true;
                     this.Close();
                     return;
@@ -115,7 +116,7 @@ namespace ExHyperV.Views
                 _syncingFs = true; _vm.IsFullScreen = fs; _syncingFs = false;   // 源自 mstscax 热键，只反映到 VM，不回灌（画面分辨率由 RdpArea.SizeChanged 协商）
             }));
             RdpHost.MinimizeRequested += () => Dispatcher.BeginInvoke(new Action(() => this.WindowState = WindowState.Minimized));
-            RdpHost.CloseRequested += () => Dispatcher.BeginInvoke(new Action(() => { _closing = true; this.Close(); }));
+            RdpHost.CloseRequested += () => Dispatcher.BeginInvoke(new Action(() => { if (_closing) return; _closing = true; this.Close(); }));
 
             // 可用区域(RdpArea)变化 = 最大化/还原/全屏/退出全屏：重排画面对齐 + 增强会话按新区域重新协商分辨率填充。
             // 拖动改大小期间(_userResizing)不在此协商（避免每像素刷新 mstscax），拖完由 WM_EXITSIZEMOVE 协商一次。
