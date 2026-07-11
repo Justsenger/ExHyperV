@@ -382,8 +382,9 @@ namespace ExHyperV.Services
                     return (false, msg, controllerType, controllerNumber, location);
                 }
 
-                if (controllerType == "IDE" && isRunning && driveType != "DvdDrive")
-                    return (false, Properties.Resources.Error_Storage_IdeHotAdd, controllerType, controllerNumber, location);
+                // 运行中 IDE 不能加任何设备(含光驱,IDE 无热插拔);UI 已前置拦,这里作服务层兜底
+                if (controllerType == "IDE" && isRunning)
+                    return (false, driveType == "DvdDrive" ? Properties.Resources.Error_Storage_Gen1Dvd : Properties.Resources.Error_Storage_IdeHotAdd, controllerType, controllerNumber, location);
 
                 if (controllerType == "SCSI")
                 {
@@ -915,21 +916,39 @@ namespace ExHyperV.Services
                     && int.TryParse(segments[^2], out int cLoc) && cLoc == controllerLocation;
             });
 
-            // 已挂着媒体 → 改/清路径（HostResource）
+            // 已挂着媒体 → 弹出(清空)或换媒体
             if (target != null)
             {
+                // 弹出:运行中把 HostResource 改空会被 Hyper-V 拒(报"无法修改资源"/ErrorCode 32773,原生实测)。
+                // 正解=移除媒体那条 SASD → 媒体弹出、驱动器保留(原生实测 RemoveResourceSettings 成功)。
+                if (string.IsNullOrWhiteSpace(newPath))
+                {
+                    var mediaPathResp = await WmiApi.QueryFirstAsync(
+                        $"SELECT * FROM Msvm_StorageAllocationSettingData WHERE InstanceID = '{target.InstanceID.Replace(@"\", @"\\")}'",
+                        obj => (obj["__PATH"]?.ToString() ?? obj.Path.Path),
+                        WmiScope.HyperV);
+                    if (!mediaPathResp.HasData)
+                        return (false, Properties.Resources.Error_Storage_DvdNotFound);
+
+                    var ejectResult = await WmiApi.InvokeAsync(
+                        "SELECT * FROM Msvm_VirtualSystemManagementService",
+                        "RemoveResourceSettings",
+                        p => p["ResourceSettings"] = new string[] { mediaPathResp.Data! },
+                        WmiScope.HyperV);
+
+                    return ejectResult.Success
+                        ? (true, string.Empty)
+                        : (false, FriendlyError.LastSentence(ejectResult.Error));
+                }
+
+                // 换媒体(插入不同 ISO):改 HostResource
                 string safeId = target.InstanceID
                     .Replace("'", "\\'")
                     .Replace(@"\", @"\\");
 
                 var result = await WmiApi.WithObjectAsync(
                     wql: $"SELECT * FROM Msvm_StorageAllocationSettingData WHERE InstanceID = '{safeId}'",
-                    modifier: obj =>
-                    {
-                        obj["HostResource"] = string.IsNullOrWhiteSpace(newPath)
-                            ? new string[0]
-                            : new string[] { newPath };
-                    },
+                    modifier: obj => { obj["HostResource"] = new string[] { newPath }; },
                     submitMethod: "ModifyResourceSettings",
                     submitParamName: "ResourceSettings",
                     wrapInArray: true,

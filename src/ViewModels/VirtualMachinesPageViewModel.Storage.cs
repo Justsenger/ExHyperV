@@ -392,6 +392,16 @@ namespace ExHyperV.ViewModels
         {
             if (SelectedVm == null) return;
 
+            // 运行中不能往 IDE 加设备(IDE 无热插拔);Gen1 光驱只能挂 IDE → 运行中加光驱在此提前拦下给因,不冲到后端裸报错
+            if (SelectedVm.IsRunning &&
+                (SelectedControllerType == "IDE" || (SelectedVm.Generation == 1 && DeviceType == "DvdDrive")))
+            {
+                ShowTip(DeviceType == "DvdDrive"
+                    ? Properties.Resources.Error_Storage_Gen1Dvd
+                    : Properties.Resources.Error_Storage_IdeHotAdd);
+                return;
+            }
+
             // 检查插槽冲突
             bool collision = SelectedVm.StorageItems.Any(i =>
                 i.ControllerType == SelectedControllerType &&
