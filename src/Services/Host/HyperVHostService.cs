@@ -182,9 +182,47 @@ namespace ExHyperV.Services
             catch { return false; }
         }
 
+        // 读 BCD 的 hypervisorlaunchtype 是否非 Off。IsHypervisorActive 在无 CPUID(ARM64/x86)时的退路。
+        private static bool IsHypervisorLaunchEnabled()
+        {
+            try
+            {
+                var psi = new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = "bcdedit.exe",
+                    Arguments = "/enum {current}",
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    CreateNoWindow = true,
+                };
+                using var process = System.Diagnostics.Process.Start(psi);
+                if (process == null) return true;
+                string output = process.StandardOutput.ReadToEnd();
+                process.WaitForExit();
+                foreach (var raw in output.Split('\n'))
+                {
+                    string line = raw.Trim();
+                    // 键名与值（Off/Auto）均不本地化；缺此行 = 默认 Auto = 启用。
+                    if (line.StartsWith("hypervisorlaunchtype", StringComparison.OrdinalIgnoreCase))
+                        return line.IndexOf("off", StringComparison.OrdinalIgnoreCase) < 0;
+                }
+                return true;
+            }
+            catch { return true; }
+        }
+
+        // Hyper-V 监控程序是否"真在本机运行"。VM 内 HypervisorPresent 被宿主污染恒 true 不能用。
+        // x64：CPUID 根分区位（覆盖"装了却没跑"、不被污染）；ARM64/x86（无 CPUID）：退回 BCD launchtype。
+        private static bool IsHypervisorActive()
+        {
+            if (RuntimeInformation.OSArchitecture == Architecture.Arm64 || !CpuId.Supported)
+                return IsHypervisorLaunchEnabled();
+            return CpuId.IsHyperVRootPartition();
+        }
+
         public static async Task<(bool IsReady, bool IsInstalled, string StatusText)> GetHyperVStatusAsync()
         {
-            var hTask = Task.Run(IsHypervisorPresent);
+            var hTask = Task.Run(IsHypervisorActive);
             var vTask = Task.Run(GetVmmsStatus);
             var wmiTask = Task.Run(IsHyperVWmiNamespaceAvailable);
             await Task.WhenAll(hTask, vTask, wmiTask);
