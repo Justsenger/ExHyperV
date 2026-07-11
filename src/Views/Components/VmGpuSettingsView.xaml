@@ -49,7 +49,7 @@
 
         <!-- 2. 显卡列表区域 -->
         <Grid Grid.Row="1" Margin="24,0,24,24">
-            <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" PanningMode="VerticalOnly">
                 <StackPanel>
                     <ItemsControl ItemsSource="{Binding SelectedVm.AssignedGpus}">
                         <ItemsControl.ItemTemplate>

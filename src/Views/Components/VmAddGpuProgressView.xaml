@@ -46,7 +46,7 @@
         </Grid>
 
         <!-- 2. 主滚动区域 -->
-        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" PanningMode="VerticalOnly">
             <StackPanel Margin="0,0,12,0">
 
                 <!-- 任务清单 -->

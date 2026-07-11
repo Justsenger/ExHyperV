@@ -31,7 +31,7 @@
         </Grid>
 
         <!-- 内容（整体仅在第 2 代 + 关机时可改；否则置灰） -->
-        <ScrollViewer Grid.Row="1" Margin="24,4,24,24" VerticalScrollBarVisibility="Auto">
+        <ScrollViewer Grid.Row="1" Margin="24,4,24,24" VerticalScrollBarVisibility="Auto" PanningMode="VerticalOnly">
             <StackPanel IsEnabled="{Binding SelectedVm.CanEditSecurity}">
 
                 <!-- 安全启动 -->

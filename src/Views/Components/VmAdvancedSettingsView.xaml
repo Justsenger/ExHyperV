@@ -31,7 +31,7 @@
         </Grid>
 
         <!-- 内容 -->
-        <ScrollViewer Grid.Row="1" Margin="24,4,24,24" VerticalScrollBarVisibility="Auto">
+        <ScrollViewer Grid.Row="1" Margin="24,4,24,24" VerticalScrollBarVisibility="Auto" PanningMode="VerticalOnly">
             <StackPanel>
 
                 <!-- 控制台支持 -->

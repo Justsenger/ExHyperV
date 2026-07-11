@@ -110,7 +110,7 @@
         <ProgressBar Grid.Row="1" IsIndeterminate="True" VerticalAlignment="Top" Height="2" Margin="0,-2,0,0"
                      Visibility="{Binding IsLoadingSettings, Converter={StaticResource BoolToVis}}"/>
 
-        <ScrollViewer Grid.Row="2" Padding="24,12,24,24" VerticalScrollBarVisibility="Auto"
+        <ScrollViewer Grid.Row="2" Padding="24,12,24,24" VerticalScrollBarVisibility="Auto" PanningMode="VerticalOnly"
                       IsEnabled="{Binding IsLoadingSettings, Converter={StaticResource InverseBooleanConverter}}">
             <StackPanel>
                 <TextBlock Text="{x:Static properties:Resources.Label_ComputeRes}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,12"/>

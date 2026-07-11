@@ -24,7 +24,7 @@
         </DrawingBrush>
     </UserControl.Resources>
 
-    <ScrollViewer Padding="24,0,24,24" VerticalScrollBarVisibility="Auto">
+    <ScrollViewer Padding="24,0,24,24" VerticalScrollBarVisibility="Auto" PanningMode="VerticalOnly">
         <StackPanel>
             
             <!-- 处理器 (CPU) 折叠卡片 -->

@@ -39,7 +39,7 @@
             </ui:Button>
         </Grid>
 
-        <ScrollViewer Grid.Row="1" Padding="24,0,24,24" VerticalScrollBarVisibility="Auto">
+        <ScrollViewer Grid.Row="1" Padding="24,0,24,24" VerticalScrollBarVisibility="Auto" PanningMode="VerticalOnly">
             <StackPanel>
 
                 <!-- 插槽配置 -->

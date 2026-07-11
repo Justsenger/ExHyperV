@@ -19,7 +19,7 @@
         </Grid.RowDefinitions>
 
         <!-- 内容区域 -->
-        <ScrollViewer Grid.Row="0" Padding="24,24,24,0" VerticalScrollBarVisibility="Auto">
+        <ScrollViewer Grid.Row="0" Padding="24,24,24,0" VerticalScrollBarVisibility="Auto" PanningMode="VerticalOnly">
             <StackPanel>
 
                 <!-- 1. 标题栏 -->

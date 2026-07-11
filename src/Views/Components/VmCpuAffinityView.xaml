@@ -100,7 +100,7 @@
                      Visibility="{Binding IsLoadingSettings, Converter={StaticResource BoolToVis}}"/>
 
         <!-- 显示区域 -->
-        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
+        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" PanningMode="VerticalOnly">
             <Border Padding="24,0,24,0">
                 <ItemsControl x:Name="CoresItemsControl"
                               ItemsSource="{Binding AffinityHostCores}"
