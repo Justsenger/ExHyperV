@@ -221,6 +221,83 @@ namespace ExHyperV.Services
             catch { }
         }
 
+        // ===== 控制台默认连接模式 =====
+        // 保存用户选择的连接模式；增强会话是否可用仍以虚拟机状态为准。
+
+        public static string? GetDefaultConnectionMode()
+        {
+            if (!File.Exists(ConfigFilePath)) return null;
+            try
+            {
+                XDocument configDoc = XDocument.Load(ConfigFilePath);
+                return configDoc.Root?.Element("DefaultConnectionMode")?.Value;
+            }
+            catch { return null; }
+        }
+
+        public static void SaveDefaultConnectionMode(string mode)
+        {
+            try
+            {
+                XDocument configDoc;
+                if (File.Exists(ConfigFilePath))
+                {
+                    configDoc = XDocument.Load(ConfigFilePath);
+                    var el = configDoc.Root?.Element("DefaultConnectionMode");
+                    if (el != null) el.Value = mode;
+                    else configDoc.Root?.Add(new XElement("DefaultConnectionMode", mode));
+                }
+                else
+                {
+                    configDoc = new XDocument(new XElement("Config", new XElement("DefaultConnectionMode", mode)));
+                }
+                configDoc.Save(ConfigFilePath);
+            }
+            catch { }
+        }
+
+        // ===== 控制台增强会话分辨率 =====
+        // 保存增强会话最后使用的分辨率（"WxH"）。
+
+        public static (int Width, int Height)? GetDefaultConsoleResolution()
+        {
+            if (!File.Exists(ConfigFilePath)) return null;
+            try
+            {
+                XDocument configDoc = XDocument.Load(ConfigFilePath);
+                var v = configDoc.Root?.Element("DefaultConsoleResolution")?.Value;
+                if (string.IsNullOrEmpty(v)) return null;
+                var parts = v.Split('x');
+                if (parts.Length == 2 && int.TryParse(parts[0], out int w) && int.TryParse(parts[1], out int h) && w > 0 && h > 0)
+                    return (w, h);
+                return null;
+            }
+            catch { return null; }
+        }
+
+        public static void SaveDefaultConsoleResolution(int width, int height)
+        {
+            if (width <= 0 || height <= 0) return;
+            try
+            {
+                string val = $"{width}x{height}";
+                XDocument configDoc;
+                if (File.Exists(ConfigFilePath))
+                {
+                    configDoc = XDocument.Load(ConfigFilePath);
+                    var el = configDoc.Root?.Element("DefaultConsoleResolution");
+                    if (el != null) el.Value = val;
+                    else configDoc.Root?.Add(new XElement("DefaultConsoleResolution", val));
+                }
+                else
+                {
+                    configDoc = new XDocument(new XElement("Config", new XElement("DefaultConsoleResolution", val)));
+                }
+                configDoc.Save(ConfigFilePath);
+            }
+            catch { }
+        }
+
         // ===== 宿主 MMIO 上限缓存（MB） =====
         // 首次 boot-probe 测得的宿主物理地址上限，持久化后不再重探（只认第一次测得的结果）。
 
