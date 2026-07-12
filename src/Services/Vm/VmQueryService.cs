@@ -27,7 +27,9 @@ namespace ExHyperV.Services
 
         private static readonly ConcurrentDictionary<string, string> _switchNameCache = new(StringComparer.OrdinalIgnoreCase);
         private static readonly Dictionary<string, (long Current, long Max, string Type)> _diskSizeCache = new();
-        private static readonly ConcurrentDictionary<Guid, int> _vmProcessIdCache = new();
+        // VM → 一组 PID：vmwp + 其子 vmmem。GPU-PV 的 GPU 占用 Win11 记在 vmwp、Win10 记在 vmmem
+        // （vmmem 是 vmwp 的子进程、同 VM 账户 SID），故一 VM 需对应多个 PID 才能跨版本命中。
+        private static readonly ConcurrentDictionary<Guid, List<int>> _vmProcessIdCache = new();
         private static DateTime _processIdCacheTimestamp = DateTime.MinValue;
         private List<PerformanceCounter> _gpuCounters = new();
         private static readonly Regex GpuInstanceRegex = new Regex(@"pid_(\d+).*engtype_([a-zA-Z0-9]+)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
@@ -436,12 +438,15 @@ namespace ExHyperV.Services
                 }
                 catch { }
 
-                var usageByPid = new Dictionary<int, GpuUsageData>();
+                // 按 VM 聚合（一 VM 一组 PID）：isBound = 该组任一 PID 有 GPU 实例；用量按 VM 累加。
+                var usageByVm = new Dictionary<Guid, GpuUsageData>();
+                var pidToVm = new Dictionary<int, Guid>();
                 foreach (var pair in _vmProcessIdCache)
                 {
-                    int pid = pair.Value;
-                    bool isBound = allGpuInstances.Any(n => n.Contains($"pid_{pid}_", StringComparison.OrdinalIgnoreCase));
-                    usageByPid[pid] = new GpuUsageData { IsDriverBound = isBound };
+                    bool isBound = pair.Value.Any(pid =>
+                        allGpuInstances.Any(n => n.Contains($"pid_{pid}_", StringComparison.OrdinalIgnoreCase)));
+                    usageByVm[pair.Key] = new GpuUsageData { IsDriverBound = isBound };
+                    foreach (var pid in pair.Value) pidToVm[pid] = pair.Key;
                 }
 
                 foreach (var counter in _gpuCounters.ToList())
@@ -449,16 +454,16 @@ namespace ExHyperV.Services
                     try
                     {
                         var m = GpuInstanceRegex.Match(counter.InstanceName);
-                        if (m.Success && int.TryParse(m.Groups[1].Value, out int pid) && usageByPid.ContainsKey(pid))
+                        if (m.Success && int.TryParse(m.Groups[1].Value, out int pid) && pidToVm.TryGetValue(pid, out var vmId))
                         {
                             float val = counter.NextValue();
-                            var d = usageByPid[pid];
+                            var d = usageByVm[vmId];
                             string type = m.Groups[2].Value.ToUpper();
                             if (type.Contains("3D")) d.Gpu3d += val;
                             else if (type.Contains("COPY")) d.GpuCopy += val;
                             else if (type.Contains("ENCODE")) d.GpuEncode += val;
                             else if (type.Contains("DECODE")) d.GpuDecode += val;
-                            usageByPid[pid] = d;
+                            usageByVm[vmId] = d;
                         }
                     }
                     catch
@@ -469,8 +474,8 @@ namespace ExHyperV.Services
                 }
 
                 foreach (var vm in gpuVms)
-                    if (_vmProcessIdCache.TryGetValue(vm.Id, out int pid))
-                        results[vm.Id] = usageByPid[pid];
+                    if (usageByVm.TryGetValue(vm.Id, out var data))
+                        results[vm.Id] = data;
             }
             catch { }
 
@@ -633,18 +638,31 @@ namespace ExHyperV.Services
         private async Task RefreshVmPidCache(List<VmInstance> runningGpuVms)
         {
             _vmProcessIdCache.Clear();
+            // 同时取 vmwp（命令行带 VM GUID）与 vmmem（无命令行，靠 PPID 认亲到其 vmwp）。
             var resp = await WmiApi.QueryAsync(
-                "SELECT ProcessId, CommandLine FROM Win32_Process WHERE Name = 'vmwp.exe'",
-                obj => new { Pid = Convert.ToInt32(obj["ProcessId"]), Cmd = obj["CommandLine"]?.ToString() ?? "" },
+                "SELECT ProcessId, ParentProcessId, Name, CommandLine FROM Win32_Process WHERE Name = 'vmwp.exe' OR Name = 'vmmem'",
+                obj => new
+                {
+                    Pid = Convert.ToInt32(obj["ProcessId"]),
+                    Ppid = Convert.ToInt32(obj["ParentProcessId"]),
+                    Name = obj["Name"]?.ToString() ?? "",
+                    Cmd = obj["CommandLine"]?.ToString() ?? ""
+                },
                 WmiScope.CimV2);
 
             if (resp.Data != null)
+            {
+                var vmwps = resp.Data.Where(p => p.Name.Equals("vmwp.exe", StringComparison.OrdinalIgnoreCase)).ToList();
+                var vmmems = resp.Data.Where(p => p.Name.Equals("vmmem", StringComparison.OrdinalIgnoreCase)).ToList();
                 foreach (var vm in runningGpuVms)
                 {
-                    var proc = resp.Data
-                        .FirstOrDefault(p => p.Cmd.Contains(vm.Id.ToString(), StringComparison.OrdinalIgnoreCase));
-                    if (proc != null) _vmProcessIdCache[vm.Id] = proc.Pid;
+                    var wp = vmwps.FirstOrDefault(p => p.Cmd.Contains(vm.Id.ToString(), StringComparison.OrdinalIgnoreCase));
+                    if (wp == null) continue;
+                    var pids = new List<int> { wp.Pid };                                  // Win11：占用在 vmwp
+                    pids.AddRange(vmmems.Where(m => m.Ppid == wp.Pid).Select(m => m.Pid)); // Win10：占用在子 vmmem
+                    _vmProcessIdCache[vm.Id] = pids;
                 }
+            }
             _processIdCacheTimestamp = DateTime.Now;
         }
 
@@ -657,7 +675,7 @@ namespace ExHyperV.Services
                 if (!PerformanceCounterCategory.Exists("GPU Engine")) return;
                 var category = new PerformanceCounterCategory("GPU Engine");
                 var instances = category.GetInstanceNames();
-                var targets = _vmProcessIdCache.Values.Select(p => $"pid_{p}_").ToList();
+                var targets = _vmProcessIdCache.Values.SelectMany(pids => pids).Distinct().Select(p => $"pid_{p}_").ToList();
                 foreach (var name in instances)
                 {
                     if (targets.Any(t => name.StartsWith(t, StringComparison.OrdinalIgnoreCase)))
