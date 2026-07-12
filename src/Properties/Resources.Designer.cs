@@ -2350,6 +2350,18 @@ namespace ExHyperV.Properties {
             }
         }
 
+        public static string Error_Storage_DiskChanged {
+            get {
+                return ResourceManager.GetString("Error_Storage_DiskChanged", resourceCulture);
+            }
+        }
+
+        public static string Error_Storage_DiskAlreadyAssigned {
+            get {
+                return ResourceManager.GetString("Error_Storage_DiskAlreadyAssigned", resourceCulture);
+            }
+        }
+
         /// <summary>
         ///   查找类似 Target storage resource not found. 的本地化字符串。
         /// </summary>

@@ -347,13 +347,26 @@ namespace ExHyperV.Services
                 string vmName, string controllerType, int controllerNumber, int location, string driveType,
                 string pathOrNumber, bool isPhysical, bool isNew = false, int sizeGb = 256,
                 string vhdType = "Dynamic", string parentPath = "", string sectorFormat = "Default",
-                string blockSize = "Default", string isoSourcePath = null, string isoVolumeLabel = null)
+                string blockSize = "Default", string isoSourcePath = null, string isoVolumeLabel = null,
+                string expectedDiskUniqueId = null, string expectedDiskSerial = null, long expectedDiskSize = 0)
         {
             if (driveType == "DvdDrive" && isNew && !string.IsNullOrWhiteSpace(isoSourcePath))
             {
                 var isoResult = await CreateIsoFromDirectoryAsync(isoSourcePath, pathOrNumber, isoVolumeLabel);
                 if (!isoResult.Success)
                     return (false, isoResult.Message, controllerType, controllerNumber, location);
+            }
+
+            int physicalDiskNumberForRollback = -1;
+            bool physicalStateCaptured = false;
+            bool originalIsOffline = false;
+            bool originalIsReadOnly = false;
+
+            async Task RestorePhysicalDiskStateAsync()
+            {
+                if (!physicalStateCaptured || physicalDiskNumberForRollback < 0) return;
+                await HostDiskService.SetDiskReadOnlyAsync(physicalDiskNumberForRollback, originalIsReadOnly);
+                await HostDiskService.SetDiskOfflineStatusAsync(physicalDiskNumberForRollback, originalIsOffline);
             }
 
             try
@@ -379,6 +392,7 @@ namespace ExHyperV.Services
                 async Task<(bool, string, string, int, int)> Fail(string msg)
                 {
                     await RollbackAddAsync(settings, slotCreated, ctrlInstanceId, location, slotResourceType, createdVhd, createdControllers);
+                    await RestorePhysicalDiskStateAsync();
                     return (false, msg, controllerType, controllerNumber, location);
                 }
 
@@ -520,15 +534,86 @@ namespace ExHyperV.Services
                 string? physicalHostResource = null;
                 if (isPhysical && driveType == "HardDisk")
                 {
-                    var diskDriveResp = await WmiApi.QueryFirstAsync(
-                        $"SELECT * FROM Msvm_DiskDrive WHERE DeviceID LIKE '%\\\\{pathOrNumber}'",
-                        obj => (obj["__PATH"]?.ToString() ?? obj.Path.Path),
-                        WmiScope.HyperV);
+                    if (!int.TryParse(pathOrNumber, out int physicalDiskNumber))
+                        return await Fail(Properties.Resources.Error_Storage_SelectTarget);
 
-                    if (!diskDriveResp.HasData)
+                    var stateResp = await WmiApi.QueryFirstCimAsync(
+                        $"SELECT IsSystem, IsBoot, IsOffline, IsReadOnly, UniqueId, SerialNumber, Size FROM MSFT_Disk WHERE Number = {physicalDiskNumber}",
+                        obj => new
+                        {
+                            IsSystem = Convert.ToBoolean(obj["IsSystem"] ?? false),
+                            IsBoot = Convert.ToBoolean(obj["IsBoot"] ?? false),
+                            IsOffline = Convert.ToBoolean(obj["IsOffline"] ?? false),
+                            IsReadOnly = Convert.ToBoolean(obj["IsReadOnly"] ?? false),
+                            UniqueId = obj["UniqueId"]?.ToString() ?? string.Empty,
+                            SerialNumber = obj["SerialNumber"]?.ToString()?.Trim() ?? string.Empty,
+                            Size = Convert.ToInt64(obj["Size"] ?? 0L)
+                        },
+                        WmiScope.Storage);
+
+                    if (!stateResp.HasData || stateResp.Data!.IsSystem || stateResp.Data.IsBoot)
                         return await Fail(string.Format(Properties.Resources.Error_Storage_PhysDiskNotFound, pathOrNumber));
 
-                    physicalHostResource = diskDriveResp.Data!;
+                    bool identityMatches = !string.IsNullOrWhiteSpace(expectedDiskUniqueId)
+                        ? string.Equals(stateResp.Data.UniqueId, expectedDiskUniqueId, StringComparison.OrdinalIgnoreCase)
+                        : !string.IsNullOrWhiteSpace(expectedDiskSerial)
+                            ? string.Equals(stateResp.Data.SerialNumber, expectedDiskSerial.Trim(), StringComparison.OrdinalIgnoreCase)
+                                && stateResp.Data.Size == expectedDiskSize
+                            : expectedDiskSize <= 0 || stateResp.Data.Size == expectedDiskSize;
+                    if (!identityMatches)
+                        return await Fail(Properties.Resources.Error_Storage_DiskChanged);
+
+                    physicalDiskNumberForRollback = physicalDiskNumber;
+                    originalIsOffline = stateResp.Data.IsOffline;
+                    originalIsReadOnly = stateResp.Data.IsReadOnly;
+                    physicalStateCaptured = true;
+
+                    if (!stateResp.Data.IsOffline)
+                    {
+                        var offlineResult = await HostDiskService.SetDiskOfflineStatusAsync(physicalDiskNumber, true);
+                        if (!offlineResult.Success)
+                            return await Fail(FriendlyError.LastSentence(offlineResult.Error));
+                    }
+
+                    string? diskDrivePath = null;
+                    string? diskDeviceId = null;
+                    for (int attempt = 0; attempt < 20; attempt++)
+                    {
+                        var diskDriveResp = await WmiApi.QueryFirstAsync(
+                            $"SELECT DeviceID, DriveNumber FROM Msvm_DiskDrive WHERE DriveNumber = {physicalDiskNumber}",
+                            obj => new
+                            {
+                                Path = obj["__PATH"]?.ToString() ?? obj.Path.Path,
+                                DeviceId = obj["DeviceID"]?.ToString() ?? string.Empty
+                            },
+                            WmiScope.HyperV);
+
+                        if (diskDriveResp.HasData)
+                        {
+                            diskDrivePath = diskDriveResp.Data!.Path;
+                            diskDeviceId = diskDriveResp.Data.DeviceId.Replace("\\\\", "\\");
+                            break;
+                        }
+                        await Task.Delay(250);
+                    }
+
+                    if (string.IsNullOrEmpty(diskDrivePath) || string.IsNullOrEmpty(diskDeviceId))
+                        return await Fail(string.Format(Properties.Resources.Error_Storage_PhysDiskNotFound, pathOrNumber));
+
+                    var assignedResp = await WmiApi.QueryAsync(
+                        "SELECT HostResource FROM Msvm_ResourceAllocationSettingData WHERE ResourceSubType = 'Microsoft:Hyper-V:Physical Disk Drive'",
+                        obj => (obj["HostResource"] as string[])?.FirstOrDefault() ?? string.Empty,
+                        WmiScope.HyperV);
+                    bool alreadyAssigned = (assignedResp.Data ?? [])
+                        .Where(hr => !string.IsNullOrEmpty(hr))
+                        .Select(hr => System.Text.RegularExpressions.Regex.Match(hr, "DeviceID=\"([^\"]+)\""))
+                        .Any(match => match.Success && string.Equals(
+                            match.Groups[1].Value.Replace("\\\\", "\\"), diskDeviceId,
+                            StringComparison.OrdinalIgnoreCase));
+                    if (alreadyAssigned)
+                        return await Fail(Properties.Resources.Error_Storage_DiskAlreadyAssigned);
+
+                    physicalHostResource = diskDrivePath;
                 }
 
                 var slotClass = new ManagementClass(
@@ -607,6 +692,7 @@ namespace ExHyperV.Services
             }
             catch (Exception ex)
             {
+                await RestorePhysicalDiskStateAsync();
                 return (false, FriendlyError.LastSentence(ex.Message),
                     controllerType, controllerNumber, location);
             }
@@ -856,10 +942,10 @@ namespace ExHyperV.Services
             if (drive.DiskType == "Physical" && drive.DriveType == "HardDisk" && drive.DiskNumber > -1)
             {
                 await Task.Delay(500);
-                await HostDiskService.SetDiskOfflineStatusAsync(drive.DiskNumber, false);   // 联机
                 // Hyper-V 挂 pass-through 物理盘会把宿主盘置为只读(独占保护)；拿回宿主后必须清掉，
                 // 否则宿主看到的是只读盘、无法写(对齐 GPU 直通拿回 VmGpuService 的处理)。
                 await HostDiskService.SetDiskReadOnlyAsync(drive.DiskNumber, false);
+                await HostDiskService.SetDiskOfflineStatusAsync(drive.DiskNumber, false);
             }
 
             return (true, Properties.Resources.Msg_Storage_Removed);

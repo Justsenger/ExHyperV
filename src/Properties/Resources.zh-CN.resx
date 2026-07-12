@@ -1704,6 +1704,12 @@
   <data name="Button_Uninstall" xml:space="preserve">
     <value>卸载</value>
   </data>
+  <data name="Error_Storage_DiskChanged" xml:space="preserve">
+    <value>所选磁盘已发生变化，请刷新列表后重新选择。</value>
+  </data>
+  <data name="Error_Storage_DiskAlreadyAssigned" xml:space="preserve">
+    <value>该物理磁盘已分配给其他虚拟机。</value>
+  </data>
   <data name="Button_UpdateDriver" xml:space="preserve">
     <value>更新驱动</value>
   </data>
