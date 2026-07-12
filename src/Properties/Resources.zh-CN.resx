@@ -1704,6 +1704,9 @@
   <data name="Button_Uninstall" xml:space="preserve">
     <value>卸载</value>
   </data>
+  <data name="Button_UpdateDriver" xml:space="preserve">
+    <value>更新驱动</value>
+  </data>
   <data name="Label_Manu" xml:space="preserve">
     <value>制造商</value>
   </data>

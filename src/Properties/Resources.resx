@@ -1704,6 +1704,9 @@ The existing NAT switch is: '{0}'</value>
   <data name="Button_Uninstall" xml:space="preserve">
     <value>Uninstall</value>
   </data>
+  <data name="Button_UpdateDriver" xml:space="preserve">
+    <value>Update Driver</value>
+  </data>
   <data name="Label_Manu" xml:space="preserve">
     <value>Manufacturer</value>
   </data>
