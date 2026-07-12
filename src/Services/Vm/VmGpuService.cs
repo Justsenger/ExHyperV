@@ -298,7 +298,7 @@ namespace ExHyperV.Services
                 if (!r.Data.Cache) return false;
 
                 // 与 ConfigureMmio 会写入的目标比对(同一 ComputeMmioPlan、主机自适应)：已 >= 目标高位 MMIO 间隙即视为达标、无需重配。
-                ulong targetMb = VmMmioService.ComputeMmioPlan()?.HighSizeMb ?? 30720UL; // 读不到主机上限时回退 30GB(MB)
+                ulong targetMb = VmMmioService.ComputeMmioPlan()?.HighSizeMb ?? VmMmioService.DefaultHighSizeMb; // 读不到主机上限时回退默认 256G（同一常量）
                 return r.Data.HighMmioMb >= targetMb;
             }
             catch { return false; }

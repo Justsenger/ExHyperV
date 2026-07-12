@@ -30,6 +30,11 @@ namespace ExHyperV.Services
 
         private const ulong BytesPerMb = 1024UL * 1024UL;
 
+        // 默认高位 MMIO 间隙大小（MB）= 256G。GPU-PV 与 DDA 共用这个目标（都经 ComputeMmioPlan 检测+配置）；
+        // 间隙越大越能降低两者在同一 MMIO gap 里撞车的概率。Hyper-V 对该值有硬上限（实测 262656MB=256.5G），
+        // 256G 稳在其下且实测能正常启动。改这一个常量即全项目一致。
+        public const ulong DefaultHighSizeMb = 262144UL;
+
         // 解析结果的合理性区间（字节）：架构上限恒为 2^N，落在 [2^34, 2^52] 之间视为可信。
         private const ulong MinSaneCeilingBytes = 1UL << 34;
         private const ulong MaxSaneCeilingBytes = 1UL << 52;
@@ -89,7 +94,7 @@ namespace ExHyperV.Services
 
         /// <summary>
         /// 按已缓存的宿主 MMIO 上限计算最优间隙：base = 上限/2、
-        /// highSize = min(上限 - base - 1GB, 128GB)、lowSize = 1GB。
+        /// highSize = min(上限 - base - 1GB, 256GB)、lowSize = 1GB。
         /// 尚未探测（缓存为空）时返回 null——调用方（DDA/GPU-PV 的“间隙够不够大”预检）据此回退。
         /// </summary>
         public static MmioPlan? ComputeMmioPlan()
@@ -97,7 +102,7 @@ namespace ExHyperV.Services
             if (_cachedCeilingMb is not ulong ceilingMb || ceilingMb == 0) return null;
             ulong finalBase = ceilingMb / 2;
             ulong remaining = ceilingMb - finalBase - 1024;
-            ulong finalHighSize = Math.Min(remaining, 131072UL);
+            ulong finalHighSize = Math.Min(remaining, DefaultHighSizeMb);
             return new MmioPlan(finalBase, finalHighSize, 1024UL);
         }
 
