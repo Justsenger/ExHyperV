@@ -51,6 +51,10 @@ namespace ExHyperV.Views
             InitializeComponent();
             this.Title = vmName;
 
+            // TitleBar 关闭按钮直调 Window.Close() 绕过 _closing；关闭时 ShutdownAndDispose 的 DoEvents
+            // 会泵到排队的 UIA 关闭 Invoke，对已在关闭的窗口二次 Close → VerifyNotClosing 抛。库层拦不到，在此吞掉。
+            this.Dispatcher.UnhandledException += OnDispatcherUnhandledException;
+
             _vm.SendCadRequested += OnSendCadRequested;
             _vm.PropertyChanged += OnViewModelPropertyChanged;
             _vm.Polled += OnVmPolled;   // 每次状态轮询：让连接与 VM 运行状态一致（含断线/VM 重启后重连）
@@ -489,6 +493,19 @@ namespace ExHyperV.Views
                 this.DragMove();
         }
 
+        // 三重限定只吞"关闭中、Window 抛的 VerifyNotClosing/InternalClose"这一冗余关闭异常，不误伤其它。
+        private void OnDispatcherUnhandledException(object? sender, System.Windows.Threading.DispatcherUnhandledExceptionEventArgs e)
+        {
+            var site = e.Exception.TargetSite;
+            if (_closing
+                && e.Exception is InvalidOperationException
+                && site?.DeclaringType == typeof(System.Windows.Window)
+                && (site?.Name == "VerifyNotClosing" || site?.Name == "InternalClose"))
+            {
+                e.Handled = true;
+            }
+        }
+
         private bool _rdpTornDown;   // RdpHost 拆除只跑一次(OnClosing 正常 / OnClosed 兜底)
 
         // 在 OnClosing(窗口销毁前、UI 线程仍能泵消息)拆除 RdpHost；拖到 OnClosed(WmDestroy 期)再 Dispose mstscax
@@ -511,6 +528,10 @@ namespace ExHyperV.Views
             _vm.PropertyChanged -= OnViewModelPropertyChanged;
             _vm.Polled -= OnVmPolled;
             _vm.Dispose();
+
+            // 延到 idle 再摘钩：兜住关闭 Invoke 排在 OnClosed 之后才跑的时序，之后解绑不泄漏本窗口。
+            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.ApplicationIdle,
+                new Action(() => Dispatcher.UnhandledException -= OnDispatcherUnhandledException));
         }
 
         // ── WndProc：WM_GETMINMAXINFO（全屏铺满整个显示器）+ WM_EXITSIZEMOVE（拖动结束 → 增强会话协商分辨率）──
