@@ -131,6 +131,10 @@ namespace ExHyperV.Services
                 obj["HostResource"] as string[] ?? Array.Empty<string>()
             ), WmiScope.HyperV);
 
+            // 主机可分区 GPU：Win10 早期 GpuPartitionSettingData.HostResource 只写读空，用它做 GpuName 兜底。
+            var partGpuTask = WmiApi.QueryAsync("SELECT Name FROM Msvm_PartitionableGpu",
+                obj => obj["Name"]?.ToString() ?? "", WmiScope.HyperV);
+
             var pciMapTask = GetHostVideoControllerMapAsync();
 
             var allPortsTask = WmiApi.QueryAsync(
@@ -161,7 +165,7 @@ namespace ExHyperV.Services
 
             await Task.WhenAll(vDiskTask, pDiskTask, hvDiskTask, hostDiskTask,
                 summaryTask, memTask, configTask, gpuPvTask, pciMapTask,
-                allPortsTask, allAllocsTask, allSwitchesTask, guestNetTask);
+                allPortsTask, allAllocsTask, allSwitchesTask, guestNetTask, partGpuTask);
 
             // ── 取出数据 ──────────────────────────────────────────
             var vDisks = vDiskTask.Result.Data ?? new List<DiskAlloc>();
@@ -199,16 +203,28 @@ namespace ExHyperV.Services
                     guestIpMap[key] = item.IPAddresses.ToList();
             }
 
+            // Win10 早期 HostResource 只写读空 → 拿不到 PCI 名。用主机第一块可分区 GPU 的名字兜底
+            // （与 GetVmGpuAdaptersAsync 的 Win10 兜底同源；单卡场景就是它）。
+            string fallbackGpuName = null;
+            foreach (var pg in (partGpuTask.Result.Data ?? new List<string>()))
+            {
+                string pid = ExtractPciId(pg) ?? "";
+                if (!string.IsNullOrEmpty(pid) && pciFriendlyNames.TryGetValue(pid, out var nm)) { fallbackGpuName = nm; break; }
+            }
+
             var gpuMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             foreach (var setting in gpuPvList)
             {
                 string guid = ExtractFirstGuid(setting.InstanceID) ?? "";
-                if (!string.IsNullOrEmpty(guid) && setting.HostResources.Length > 0)
+                if (string.IsNullOrEmpty(guid)) continue;
+                string gpuName = null;
+                if (setting.HostResources.Length > 0)
                 {
                     string pciId = ExtractPciId(setting.HostResources[0]) ?? "";
-                    if (!string.IsNullOrEmpty(pciId) && pciFriendlyNames.TryGetValue(pciId, out var gpuName))
-                        gpuMap[guid] = gpuName;
+                    if (!string.IsNullOrEmpty(pciId)) pciFriendlyNames.TryGetValue(pciId, out gpuName);
                 }
+                if (string.IsNullOrEmpty(gpuName)) gpuName = fallbackGpuName;   // Win10 兜底
+                if (!string.IsNullOrEmpty(gpuName)) gpuMap[guid] = gpuName;
             }
 
             foreach (var sw in allSwitches)

@@ -68,9 +68,10 @@ namespace ExHyperV.ViewModels
         private async Task RefreshCurrentVmGpuAssignments()
         {
             if (SelectedVm == null) return;
+            string vmName = SelectedVm.Name;   // 捕获：异步期间若切换 VM，避免把 A 的显卡数据填到 B
             try
             {
-                var vmAdapters = await _vmGpuService.GetVmGpuAdaptersAsync(SelectedVm.Name);
+                var vmAdapters = await _vmGpuService.GetVmGpuAdaptersAsync(vmName);
                 var hostGpus = await _vmGpuService.GetHostGpusAsync();
 
                 var tempList = new List<VmGpuAssignment>();
@@ -103,6 +104,7 @@ namespace ExHyperV.ViewModels
                 }
 
                 Application.Current.Dispatcher.Invoke(() => {
+                    if (SelectedVm == null || SelectedVm.Name != vmName) return;   // 选中已切走，丢弃本次结果
                     bool isHardwareSame = SelectedVm.AssignedGpus.Count == tempList.Count &&
                                          SelectedVm.AssignedGpus.Select(x => x.AdapterId)
                                                       .SequenceEqual(tempList.Select(x => x.AdapterId));

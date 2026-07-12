@@ -186,10 +186,13 @@ namespace ExHyperV.Services
             string scopePath = @"\\.\root\virtualization\v2";
             try
             {
-                var notesResp = await WmiApi.QueryFirstAsync(
-                    $"SELECT * FROM Msvm_VirtualSystemSettingData WHERE ElementName = '{WmiApi.Escape(vmName)}' AND VirtualSystemType = 'Microsoft:Hyper-V:System:Realized'",
-                    obj => obj["Notes"] is string[] arr ? string.Join("\n", arr) : obj["Notes"]?.ToString() ?? "");
-                string vmNotes = notesResp.Data ?? "";
+                // Win10 早期 Msvm_GpuPartitionSettingData.HostResource 读不回 → 无法按分区对应物理 GPU。
+                // 取宿主首张(通常也是唯一)可分区 GPU 的 Name 兜底显示参数：单卡准确；多卡是引擎启动时自选、
+                // 本就无法精确对应的固有局限(禁用其他卡强选的老思路已不在)。Win11 走 HostResource 精确路径、到不了这兜底。
+                var partGpuResp = await WmiApi.QueryAsync(
+                    "SELECT Name FROM Msvm_PartitionableGpu",
+                    obj => obj["Name"]?.ToString() ?? "");
+                string firstPartitionableGpu = partGpuResp.Data?.FirstOrDefault(n => !string.IsNullOrEmpty(n)) ?? "";
 
                 string query = $"SELECT * FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(vmName)}'";
                 using var searcher = new ManagementObjectSearcher(scopePath, query);
@@ -226,18 +229,9 @@ namespace ExHyperV.Services
                         catch { }
                     }
 
+                    // HostResource 空/Unknown(Win10 早期) → 兜底用首张可分区 GPU 的 Name(单卡准确)
                     if (string.IsNullOrEmpty(instancePath) || instancePath.Contains("Unknown"))
-                    {
-                        string tagPrefix = "[AssignedGPU:";
-                        int startIndex = vmNotes.IndexOf(tagPrefix);
-                        if (startIndex != -1)
-                        {
-                            startIndex += tagPrefix.Length;
-                            int endIndex = vmNotes.IndexOf("]", startIndex);
-                            if (endIndex != -1)
-                                instancePath = vmNotes.Substring(startIndex, endIndex - startIndex);
-                        }
-                    }
+                        instancePath = firstPartitionableGpu;
 
                     if (!string.IsNullOrEmpty(adapterId))
                         result.Add((adapterId, instancePath));
