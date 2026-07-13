@@ -93,7 +93,7 @@ namespace ExHyperV.Services
                     else
                     {
                         can = true;
-                        status = d.isReadOnly
+                        status = (d.isReadOnly && !d.isOffline)
                             ? Properties.Resources.Storage_DiskStatus_ReadOnly
                             : Properties.Resources.Storage_DiskStatus_Available;
                     }
