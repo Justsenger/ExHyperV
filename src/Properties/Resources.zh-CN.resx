@@ -910,13 +910,13 @@
     <value>找不到虚拟机或处理器配置。</value>
   </data>
   <data name="Scheduler_Classic" xml:space="preserve">
-    <value>经典 (Classic)</value>
+    <value>经典调度器</value>
   </data>
   <data name="Scheduler_Core" xml:space="preserve">
-    <value>核心 (Core)</value>
+    <value>核心调度器</value>
   </data>
   <data name="Scheduler_Root" xml:space="preserve">
-    <value>根 (Root)</value>
+    <value>根调度器</value>
   </data>
   <data name="Msg_Host_EnableHyperV" xml:space="preserve">
     <value>正在启用 Hyper-V 服务，请稍候...</value>
@@ -1704,6 +1704,15 @@
   <data name="Button_Uninstall" xml:space="preserve">
     <value>卸载</value>
   </data>
+  <data name="Error_Storage_DiskChanged" xml:space="preserve">
+    <value>所选磁盘已发生变化，请刷新列表后重新选择。</value>
+  </data>
+  <data name="Error_Storage_DiskAlreadyAssigned" xml:space="preserve">
+    <value>该物理磁盘已分配给其他虚拟机。</value>
+  </data>
+  <data name="Button_UpdateDriver" xml:space="preserve">
+    <value>更新驱动</value>
+  </data>
   <data name="Label_Manu" xml:space="preserve">
     <value>制造商</value>
   </data>
@@ -2123,9 +2132,6 @@
   </data>
   <data name="HyperVScheduler_LogEventLogQueryFail" xml:space="preserve">
     <value>[HyperVSchedulerService] 查询事件日志失败: {0}</value>
-  </data>
-  <data name="HyperVScheduler_LogBcdeditFail" xml:space="preserve">
-    <value>[HyperVSchedulerService] 使用 Utils.RunScriptSTA 执行 bcdedit 失败: {0}</value>
   </data>
   <data name="UsbVmbus_LogStoppingTunnel" xml:space="preserve">
     <value>[StopTunnel] 正在停止旧隧道: {0}</value>

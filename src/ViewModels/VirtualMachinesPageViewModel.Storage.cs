@@ -392,6 +392,16 @@ namespace ExHyperV.ViewModels
         {
             if (SelectedVm == null) return;
 
+            // 运行中不能往 IDE 加设备(IDE 无热插拔);Gen1 光驱只能挂 IDE → 运行中加光驱在此提前拦下给因,不冲到后端裸报错
+            if (SelectedVm.IsRunning &&
+                (SelectedControllerType == "IDE" || (SelectedVm.Generation == 1 && DeviceType == "DvdDrive")))
+            {
+                ShowTip(DeviceType == "DvdDrive"
+                    ? Properties.Resources.Error_Storage_Gen1Dvd
+                    : Properties.Resources.Error_Storage_IdeHotAdd);
+                return;
+            }
+
             // 检查插槽冲突
             bool collision = SelectedVm.StorageItems.Any(i =>
                 i.ControllerType == SelectedControllerType &&
@@ -522,7 +532,13 @@ namespace ExHyperV.ViewModels
         private void BrowseFolder()
         {
             var picked = Dialogs.PickFolder(initialDir: string.IsNullOrWhiteSpace(IsoSourceFolderPath) ? null : IsoSourceFolderPath);
-            if (picked != null) IsoSourceFolderPath = picked;
+            if (picked != null)
+            {
+                IsoSourceFolderPath = picked;
+                // 选定文件夹后,卷标签自动跟随文件夹名(合法化)
+                var folderName = Path.GetFileName(picked.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+                IsoVolumeLabel = IsoBuilderService.SanitizeVolumeLabel(folderName);
+            }
         }
 
         // 浏览父级磁盘
@@ -556,20 +572,6 @@ namespace ExHyperV.ViewModels
                 int targetNumber = SelectedControllerNumber;
                 int targetLocation = SelectedLocation;
 
-
-                int offlinedDisk = -1;   // 记录为添加而脱机的物理盘号，添加失败时还原上线
-                if (isPhysical && int.TryParse(pathOrNumber, out int diskNum))
-                {
-                    var offlineResult = await HostDiskService.SetDiskOfflineStatusAsync(diskNum, true);
-                    if (!offlineResult.Success)
-                    {
-                        // 脱机失败(盘正被宿主占用/有分区挂载)必须中止：否则后面在 Msvm_DiskDrive 查不到该盘、会误报"物理盘找不到"，掩盖真因。
-                        ShowError($"{Properties.Resources.Error_Storage_OfflineFail}：{FriendlyError.LastSentence(offlineResult.Error)}");
-                        return;
-                    }
-                    offlinedDisk = diskNum;
-                }
-
                 var result = await VmStorageService.AddDriveAsync(
                     vmName: SelectedVm.Name,
                     controllerType: targetType,   // 传递界面显示的值
@@ -585,7 +587,10 @@ namespace ExHyperV.ViewModels
                     sectorFormat: SectorFormat,
                     blockSize: BlockSize,
                     isoSourcePath: isoSourcePath,
-                    isoVolumeLabel: isoVolumeLabel
+                    isoVolumeLabel: isoVolumeLabel,
+                    expectedDiskUniqueId: isPhysical && driveType == "HardDisk" ? SelectedPhysicalDisk?.UniqueId : null,
+                    expectedDiskSerial: isPhysical && driveType == "HardDisk" ? SelectedPhysicalDisk?.SerialNumber : null,
+                    expectedDiskSize: isPhysical && driveType == "HardDisk" ? SelectedPhysicalDisk?.SizeBytes ?? 0 : 0
                 );
 
                 if (result.Success)
@@ -595,11 +600,6 @@ namespace ExHyperV.ViewModels
                 }
                 else
                 {
-                    if (offlinedDisk >= 0)   // 添加失败：把刚为此脱机的物理盘还原上线 + 清只读，别让主机的盘卡在脱机/只读
-                    {
-                        await HostDiskService.SetDiskOfflineStatusAsync(offlinedDisk, false);
-                        await HostDiskService.SetDiskReadOnlyAsync(offlinedDisk, false);
-                    }
                     ShowError($"{Properties.Resources.Error_Storage_AddFail}：{result.Message}");
                 }
             }

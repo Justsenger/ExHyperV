@@ -11,6 +11,20 @@ namespace ExHyperV.Services
     /// </summary>
     public static class IsoBuilderService
     {
+        /// <summary>把文件夹名合法化成 IMAPI2FS 可用的卷标签:只留字母/数字/下划线/连字符,其余换下划线,合并并去首尾下划线,截断到 32,空则回退 NewISO。</summary>
+        public static string SanitizeVolumeLabel(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name)) return "NewISO";
+            char[] buf = name.ToCharArray();
+            for (int i = 0; i < buf.Length; i++)
+                if (!(char.IsLetterOrDigit(buf[i]) || buf[i] == '_' || buf[i] == '-')) buf[i] = '_';
+            string s = new string(buf);
+            while (s.Contains("__")) s = s.Replace("__", "_");
+            s = s.Trim('_');
+            if (s.Length > 32) s = s.Substring(0, 32);
+            return s.Length == 0 ? "NewISO" : s;
+        }
+
         public static void BuildUdfIso(string sourceDirectory, string targetIsoPath, string volumeLabel)
         {
             MsftFileSystemImage image = null;
@@ -19,7 +33,7 @@ namespace ExHyperV.Services
             try
             {
                 image = new MsftFileSystemImage();
-                image.VolumeName = volumeLabel;
+                image.VolumeName = SanitizeVolumeLabel(volumeLabel);   // 合法化,避免非法/超长卷标签让 IMAPI2FS 抛错
 
                 // 设置为兼容模式：ISO9660 + UDF
                 image.FileSystemsToCreate = FsiFileSystems.FsiFileSystemISO9660 | FsiFileSystems.FsiFileSystemUDF;

@@ -102,25 +102,26 @@ namespace ExHyperV.Services
         {
             string languageCode = languageName == Properties.Resources.Lang_Chinese ? "zh-CN" : "en-US";
 
-            XDocument configDoc;
-            if (File.Exists(ConfigFilePath))
+            // 配置写不了(只读目录/权限/文件损坏)不应崩溃：无法持久化就不重启(重启也读不到新语言)，静默放弃。
+            try
             {
-                configDoc = XDocument.Load(ConfigFilePath);
-                var languageElement = configDoc.Root?.Element("Language");
-                if (languageElement != null)
+                XDocument configDoc;
+                if (File.Exists(ConfigFilePath))
                 {
-                    languageElement.Value = languageCode;
+                    configDoc = XDocument.Load(ConfigFilePath);
+                    var languageElement = configDoc.Root?.Element("Language");
+                    if (languageElement != null)
+                        languageElement.Value = languageCode;
+                    else
+                        configDoc.Root?.Add(new XElement("Language", languageCode));
                 }
                 else
                 {
-                    configDoc.Root?.Add(new XElement("Language", languageCode));
+                    configDoc = new XDocument(new XElement("Config", new XElement("Language", languageCode)));
                 }
+                configDoc.Save(ConfigFilePath);
             }
-            else
-            {
-                configDoc = new XDocument(new XElement("Config", new XElement("Language", languageCode)));
-            }
-            configDoc.Save(ConfigFilePath);
+            catch { return; }
 
             // 重启应用
             var exePath = Process.GetCurrentProcess().MainModule?.FileName;
@@ -163,25 +164,174 @@ namespace ExHyperV.Services
         // 保存主题设置
         private static void SaveThemeCode(string themeCode)
         {
-            XDocument configDoc;
-            if (File.Exists(ConfigFilePath))
+            // 配置写不了不应崩溃：主题已应用到界面，仅静默跳过持久化。
+            try
             {
-                configDoc = XDocument.Load(ConfigFilePath);
-                var themeElement = configDoc.Root?.Element("Theme");
-                if (themeElement != null)
+                XDocument configDoc;
+                if (File.Exists(ConfigFilePath))
                 {
-                    themeElement.Value = themeCode;
+                    configDoc = XDocument.Load(ConfigFilePath);
+                    var themeElement = configDoc.Root?.Element("Theme");
+                    if (themeElement != null)
+                        themeElement.Value = themeCode;
+                    else
+                        configDoc.Root?.Add(new XElement("Theme", themeCode));
                 }
                 else
                 {
-                    configDoc.Root?.Add(new XElement("Theme", themeCode));
+                    configDoc = new XDocument(new XElement("Config", new XElement("Theme", themeCode)));
                 }
+                configDoc.Save(ConfigFilePath);
             }
-            else
+            catch { }
+        }
+
+        // ===== 控制台默认缩放档 =====
+        // 保存用户上次手动选择的缩放（如 "150%" 或本地化"适应窗口"）；下次打开控制台优先用它。
+
+        public static string? GetDefaultZoom()
+        {
+            if (!File.Exists(ConfigFilePath)) return null;
+            try
             {
-                configDoc = new XDocument(new XElement("Config", new XElement("Theme", themeCode)));
+                XDocument configDoc = XDocument.Load(ConfigFilePath);
+                return configDoc.Root?.Element("DefaultZoom")?.Value;
             }
-            configDoc.Save(ConfigFilePath);
+            catch { return null; }
+        }
+
+        public static void SaveDefaultZoom(string zoom)
+        {
+            try
+            {
+                XDocument configDoc;
+                if (File.Exists(ConfigFilePath))
+                {
+                    configDoc = XDocument.Load(ConfigFilePath);
+                    var el = configDoc.Root?.Element("DefaultZoom");
+                    if (el != null) el.Value = zoom;
+                    else configDoc.Root?.Add(new XElement("DefaultZoom", zoom));
+                }
+                else
+                {
+                    configDoc = new XDocument(new XElement("Config", new XElement("DefaultZoom", zoom)));
+                }
+                configDoc.Save(ConfigFilePath);
+            }
+            catch { }
+        }
+
+        // ===== 控制台默认连接模式 =====
+        // 保存用户选择的连接模式；增强会话是否可用仍以虚拟机状态为准。
+
+        public static string? GetDefaultConnectionMode()
+        {
+            if (!File.Exists(ConfigFilePath)) return null;
+            try
+            {
+                XDocument configDoc = XDocument.Load(ConfigFilePath);
+                return configDoc.Root?.Element("DefaultConnectionMode")?.Value;
+            }
+            catch { return null; }
+        }
+
+        public static void SaveDefaultConnectionMode(string mode)
+        {
+            try
+            {
+                XDocument configDoc;
+                if (File.Exists(ConfigFilePath))
+                {
+                    configDoc = XDocument.Load(ConfigFilePath);
+                    var el = configDoc.Root?.Element("DefaultConnectionMode");
+                    if (el != null) el.Value = mode;
+                    else configDoc.Root?.Add(new XElement("DefaultConnectionMode", mode));
+                }
+                else
+                {
+                    configDoc = new XDocument(new XElement("Config", new XElement("DefaultConnectionMode", mode)));
+                }
+                configDoc.Save(ConfigFilePath);
+            }
+            catch { }
+        }
+
+        // ===== 控制台增强会话分辨率 =====
+        // 保存增强会话最后使用的分辨率（"WxH"）。
+
+        public static (int Width, int Height)? GetDefaultConsoleResolution()
+        {
+            if (!File.Exists(ConfigFilePath)) return null;
+            try
+            {
+                XDocument configDoc = XDocument.Load(ConfigFilePath);
+                var v = configDoc.Root?.Element("DefaultConsoleResolution")?.Value;
+                if (string.IsNullOrEmpty(v)) return null;
+                var parts = v.Split('x');
+                if (parts.Length == 2 && int.TryParse(parts[0], out int w) && int.TryParse(parts[1], out int h) && w > 0 && h > 0)
+                    return (w, h);
+                return null;
+            }
+            catch { return null; }
+        }
+
+        public static void SaveDefaultConsoleResolution(int width, int height)
+        {
+            if (width <= 0 || height <= 0) return;
+            try
+            {
+                string val = $"{width}x{height}";
+                XDocument configDoc;
+                if (File.Exists(ConfigFilePath))
+                {
+                    configDoc = XDocument.Load(ConfigFilePath);
+                    var el = configDoc.Root?.Element("DefaultConsoleResolution");
+                    if (el != null) el.Value = val;
+                    else configDoc.Root?.Add(new XElement("DefaultConsoleResolution", val));
+                }
+                else
+                {
+                    configDoc = new XDocument(new XElement("Config", new XElement("DefaultConsoleResolution", val)));
+                }
+                configDoc.Save(ConfigFilePath);
+            }
+            catch { }
+        }
+
+        // ===== 宿主 MMIO 上限缓存（MB） =====
+        // 首次 boot-probe 测得的宿主物理地址上限，持久化后不再重探（只认第一次测得的结果）。
+
+        public static ulong? GetMmioCeilingMb()
+        {
+            if (!File.Exists(ConfigFilePath)) return null;
+            try
+            {
+                XDocument configDoc = XDocument.Load(ConfigFilePath);
+                var v = configDoc.Root?.Element("MmioCeilingMb")?.Value;
+                return ulong.TryParse(v, out ulong mb) && mb > 0 ? mb : null;
+            }
+            catch { return null; }
+        }
+
+        public static void SaveMmioCeilingMb(ulong ceilingMb)
+        {
+            try
+            {
+                XDocument configDoc;
+                if (File.Exists(ConfigFilePath))
+                {
+                    configDoc = XDocument.Load(ConfigFilePath);
+                    var el = configDoc.Root?.Element("MmioCeilingMb");
+                    if (el != null) el.Value = ceilingMb.ToString();
+                    else configDoc.Root?.Add(new XElement("MmioCeilingMb", ceilingMb.ToString()));
+                }
+                else
+                {
+                    configDoc = new XDocument(new XElement("Config", new XElement("MmioCeilingMb", ceilingMb.ToString())));
+                }
+                configDoc.Save(ConfigFilePath);
+            }
+            catch { }
         }
 
         // 是否正在跟随系统主题

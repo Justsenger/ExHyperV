@@ -1,4 +1,5 @@
 ﻿using System.Management;
+using System.Runtime.InteropServices;
 using ExHyperV.Tools;
 using Microsoft.Win32;
 
@@ -12,21 +13,47 @@ namespace ExHyperV.Services
         // ── 环境检测 ────────────────────────────────────────────────
 
         /// <summary>
-        /// 检测 CPU 虚拟化是否可用（BIOS 开启且 CPU 支持）。
-        /// 逻辑：如果 Hypervisor 正在运行，则虚拟化必定开启；否则检查 CPU 固件标志。
+        /// 检测 CPU 虚拟化是否可用。ARM64 读 VMMonitorModeExtensions；x64 走 CPUID。
+        /// 旧逻辑"有 hypervisor 即已启用"在来宾里恒 true 会误报，故弃用。
         /// </summary>
         public static bool IsVirtualizationEnabled()
         {
             try
             {
-                if (IsHypervisorPresent()) return true;
-                var response = WmiApi.QueryAsync(
-                    "SELECT VirtualizationFirmwareEnabled FROM Win32_Processor",
-                    obj => obj["VirtualizationFirmwareEnabled"] is bool enabled && enabled,
-                    WmiScope.CimV2).GetAwaiter().GetResult();
-                return response.Success && (response.Data?.Any(x => x) ?? false);
+                // ARM 无 CPUID；该标志不被 hypervisor 掩盖，宿主 true / 来宾无嵌套 false。
+                if (RuntimeInformation.OSArchitecture == Architecture.Arm64)
+                    return VmMonitorModeExtensionsEnabled();
+
+                if (!CpuId.Supported)   // 非 x64 进程，跑不了 x64 CPUID 机器码
+                    return IsHypervisorPresent() || VirtualizationFirmwareEnabled();
+
+                if (!CpuId.HypervisorPresent())         // 物理机无 Hyper-V → 读 BIOS 标志
+                    return VirtualizationFirmwareEnabled();
+                if (CpuId.IsHyperVRootPartition())      // 物理机跑着 Hyper-V（VFE/VMX 被掩盖）→ 已启用
+                    return true;
+                return CpuId.HardwareVirtualizationExposed();   // 来宾：VMX/SVM 反映嵌套是否透传
             }
             catch { return false; }
+        }
+
+        // Win32_Processor.VirtualizationFirmwareEnabled：固件/BIOS 是否启用虚拟化。x64 物理机无 Hyper-V 时用。
+        private static bool VirtualizationFirmwareEnabled()
+        {
+            var response = WmiApi.QueryAsync(
+                "SELECT VirtualizationFirmwareEnabled FROM Win32_Processor",
+                obj => obj["VirtualizationFirmwareEnabled"] is bool enabled && enabled,
+                WmiScope.CimV2).GetAwaiter().GetResult();
+            return response.Success && (response.Data?.Any(x => x) ?? false);
+        }
+
+        // Win32_Processor.VMMonitorModeExtensions：ARM64 用。宿主 true / 来宾无嵌套 false，不被 hypervisor 掩盖。
+        private static bool VmMonitorModeExtensionsEnabled()
+        {
+            var response = WmiApi.QueryAsync(
+                "SELECT VMMonitorModeExtensions FROM Win32_Processor",
+                obj => obj["VMMonitorModeExtensions"] is bool enabled && enabled,
+                WmiScope.CimV2).GetAwaiter().GetResult();
+            return response.Success && (response.Data?.Any(x => x) ?? false);
         }
 
         /// <summary>
@@ -155,9 +182,25 @@ namespace ExHyperV.Services
             catch { return false; }
         }
 
+        // 读 BCD 的 hypervisorlaunchtype 是否非 Off。IsHypervisorActive 在无 CPUID(ARM64/x86)时的退路。
+        private static bool IsHypervisorLaunchEnabled()
+        {
+            var v = Bcdedit.ReadValue("hypervisorlaunchtype");   // 缺省(null)=默认 Auto=启用
+            return v == null || !v.Equals("off", StringComparison.OrdinalIgnoreCase);
+        }
+
+        // Hyper-V 监控程序是否"真在本机运行"。VM 内 HypervisorPresent 被宿主污染恒 true 不能用。
+        // x64：CPUID 根分区位（覆盖"装了却没跑"、不被污染）；ARM64/x86（无 CPUID）：退回 BCD launchtype。
+        private static bool IsHypervisorActive()
+        {
+            if (RuntimeInformation.OSArchitecture == Architecture.Arm64 || !CpuId.Supported)
+                return IsHypervisorLaunchEnabled();
+            return CpuId.IsHyperVRootPartition();
+        }
+
         public static async Task<(bool IsReady, bool IsInstalled, string StatusText)> GetHyperVStatusAsync()
         {
-            var hTask = Task.Run(IsHypervisorPresent);
+            var hTask = Task.Run(IsHypervisorActive);
             var vTask = Task.Run(GetVmmsStatus);
             var wmiTask = Task.Run(IsHyperVWmiNamespaceAvailable);
             await Task.WhenAll(hTask, vTask, wmiTask);
@@ -213,32 +256,9 @@ namespace ExHyperV.Services
             return launchOk && featurePresent;
         }
 
-        /// <summary>
-        /// 设置 bcdedit 的 hypervisorlaunchtype（auto/off），控制虚拟机监控程序是否在启动时加载。
-        /// 仅启用 Hyper-V 功能不足以让其运行——该值为 off 时监控程序不会加载。
-        /// </summary>
-        private static async Task<bool> SetHypervisorLaunchTypeAsync(string mode)
-        {
-            try
-            {
-                var psi = new System.Diagnostics.ProcessStartInfo
-                {
-                    FileName = "bcdedit.exe",
-                    Arguments = $"/set hypervisorlaunchtype {mode}",
-                    Verb = "runas",                 // 提权执行（应用已提权时不再弹 UAC）
-                    UseShellExecute = true,         // Verb=runas 要求为 true
-                    WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden,
-                };
-                using var process = System.Diagnostics.Process.Start(psi);
-                if (process == null) return false;
-                await process.WaitForExitAsync();
-                return process.ExitCode == 0;
-            }
-            catch
-            {
-                return false;
-            }
-        }
+        // 设置 hypervisorlaunchtype（auto/off），控制虚拟机监控程序是否开机加载（off 时不加载，仅装功能不够）。
+        private static Task<bool> SetHypervisorLaunchTypeAsync(string mode)
+            => Bcdedit.SetValueAsync("hypervisorlaunchtype", mode);
 
         // ── 内部 ────────────────────────────────────────────────────
 

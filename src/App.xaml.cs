@@ -86,19 +86,24 @@ public partial class App
 
     private void WriteLanguageToConfig(string cultureCode)
     {
-        var configDoc = File.Exists(ConfigFilePath)
-            ? XDocument.Load(ConfigFilePath)
-            : new XDocument(new XElement("Config"));
+        // 配置写不了(首次运行遇只读目录/权限不足/文件损坏)绝不能让启动崩溃——静默跳过持久化，语言已在内存生效。
+        try
+        {
+            var configDoc = File.Exists(ConfigFilePath)
+                ? XDocument.Load(ConfigFilePath)
+                : new XDocument(new XElement("Config"));
 
-        var root = configDoc.Root;
-        var langElement = root?.Element("Language");
+            var root = configDoc.Root;
+            var langElement = root?.Element("Language");
 
-        if (langElement == null)
-            root?.Add(new XElement("Language", cultureCode));
-        else
-            langElement.Value = cultureCode;
+            if (langElement == null)
+                root?.Add(new XElement("Language", cultureCode));
+            else
+                langElement.Value = cultureCode;
 
-        configDoc.Save(ConfigFilePath);
+            configDoc.Save(ConfigFilePath);
+        }
+        catch { }
     }
 
     [DllImport("kernel32.dll", CharSet = CharSet.Auto)]

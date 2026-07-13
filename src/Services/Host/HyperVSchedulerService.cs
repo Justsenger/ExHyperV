@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Diagnostics.Eventing.Reader;
+using ExHyperV.Tools;
 using Microsoft.Win32;
 
 namespace ExHyperV.Services;
@@ -68,50 +69,15 @@ public static class HyperVSchedulerService
         return HyperVSchedulerType.Unknown;
     }
 
-    // 层 2：读 bcdedit 的 hypervisorschedulertype 配置值（键名与 Classic/Core/Root 均不本地化，解析安全）。
-    // 需管理员权限读取；未提权时会失败，自动落到层 3。RedirectStandardOutput 与 runas 互斥，故不提权。
+    // 层 2：读 bcdedit 的 hypervisorschedulertype 配置值（不本地化，解析安全）。需管理员；未提权失败自动落到层 3。
     private static HyperVSchedulerType TryGetFromBcdedit()
-    {
-        const string key = "hypervisorschedulertype";
-        try
+        => Bcdedit.ReadValue("hypervisorschedulertype")?.ToLowerInvariant() switch
         {
-            var psi = new ProcessStartInfo
-            {
-                FileName = "bcdedit.exe",
-                Arguments = "/enum {current}",
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                CreateNoWindow = true,
-            };
-
-            using var process = Process.Start(psi);
-            if (process == null) return HyperVSchedulerType.Unknown;
-
-            string output = process.StandardOutput.ReadToEnd();
-            process.WaitForExit();
-
-            foreach (var line in output.Split('\n'))
-            {
-                var trimmed = line.Trim();
-                if (!trimmed.StartsWith(key, StringComparison.OrdinalIgnoreCase)) continue;
-
-                var value = trimmed.Substring(key.Length).Trim();
-                return value.ToLowerInvariant() switch
-                {
-                    "classic" => HyperVSchedulerType.Classic,
-                    "core" => HyperVSchedulerType.Core,
-                    "root" => HyperVSchedulerType.Root,
-                    _ => HyperVSchedulerType.Unknown,
-                };
-            }
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine(string.Format(Properties.Resources.HyperVScheduler_LogBcdeditFail, ex.Message));
-        }
-
-        return HyperVSchedulerType.Unknown;
-    }
+            "classic" => HyperVSchedulerType.Classic,
+            "core" => HyperVSchedulerType.Core,
+            "root" => HyperVSchedulerType.Root,
+            _ => HyperVSchedulerType.Unknown,
+        };
 
     // 层 3：与 hypervisor 同源的默认推断。hvloader 判 ProductType：==WinNT(客户端)→Root，否则→种子默认；
     // 种子默认在 Server 2019+ (build≥17763) 是 Core、Server 2016 是 Classic。
@@ -139,29 +105,6 @@ public static class HyperVSchedulerService
         catch { return 0; }
     }
 
-    public static async Task<bool> SetSchedulerTypeAsync(HyperVSchedulerType type)
-    {
-        try
-        {
-            var psi = new ProcessStartInfo
-            {
-                FileName = "bcdedit.exe",
-                Arguments = $"/set hypervisorschedulertype {type.ToString().ToLower()}",
-                Verb = "runas",          // �Թ���Ա�������
-                UseShellExecute = true,             // Verb=runas ����Ϊ true
-                WindowStyle = ProcessWindowStyle.Hidden,
-            };
-
-            using var process = Process.Start(psi)
-                ?? throw new InvalidOperationException("Failed to start bcdedit.exe");
-
-            await process.WaitForExitAsync();
-            return process.ExitCode == 0;
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine(string.Format(Properties.Resources.HyperVScheduler_LogBcdeditFail, ex.Message));
-            return false;
-        }
-    }
+    public static Task<bool> SetSchedulerTypeAsync(HyperVSchedulerType type)
+        => Bcdedit.SetValueAsync("hypervisorschedulertype", type.ToString().ToLower());
 }

@@ -31,6 +31,16 @@ public static class VmConsoleService
         return resp.HasData;
     }
 
+    // EnhancedSessionModeState：2=可用，3=禁用，6=已启用但来宾尚未就绪。
+    public static async Task<bool> IsEnhancedSessionAvailableAsync(string vmName)
+    {
+        if (string.IsNullOrEmpty(vmName)) return false;
+        var resp = await WmiApi.QueryFirstAsync(
+            $"SELECT EnhancedSessionModeState FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(vmName)}'",
+            obj => obj["EnhancedSessionModeState"] is { } v ? Convert.ToUInt16(v) : (ushort)3);
+        return resp.HasData && resp.Data == 2;   // 2 = Available
+    }
+
     // 启用/禁用控制台支持。Disable 依 cmdlet 顺序删 鼠标→键盘→显示；Enable 缺则补 显示→键盘→鼠标。需 VM 关机；幂等。
     // 整体放进 Task.Run：首个 await 前的同步 WMI(GetVmComputerSystem/GetVirtualSystemManagementService)及循环里的
     // FindForVm/FindDefaultTemplate(searcher.Get) 都跑在调用线程上；被控制台开关在 UI 线程 await 调到就卡界面。

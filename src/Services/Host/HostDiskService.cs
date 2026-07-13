@@ -9,7 +9,7 @@ namespace ExHyperV.Services
     /// </summary>
     public static class HostDiskService
     {
-        // 列出宿主上【全部】物理硬盘，逐块标注状态(可直通/系统盘/已分配给某VM/在线需脱机/只读/USB不支持)；
+        // 列出宿主上的全部物理硬盘，并标注系统盘、已分配、只读等状态；
         // 不可直通的由 CanPassthrough=false 交给 UI 置灰。这样用户看得到每块盘的真实状态，而不是"能直通的才显示"。
         public static async Task<ApiResponse<List<HostDiskInfo>>> GetHostDisksAsync()
         {
@@ -25,6 +25,17 @@ namespace ExHyperV.Services
 
             // 已挂给某 VM 的盘号 → VM 名：物理盘直通 RASD 的 HostResource 解析盘号、InstanceID 里的 GUID 关联 VM。
             var assignedTo = new Dictionary<int, string>();
+            var diskDeviceIds = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            var hyperVDiskResp = await WmiApi.QueryAsync(
+                "SELECT DeviceID, DriveNumber FROM Msvm_DiskDrive",
+                obj => (DeviceId: obj["DeviceID"]?.ToString() ?? string.Empty,
+                        Number: Convert.ToInt32(obj["DriveNumber"] ?? -1)),
+                WmiScope.HyperV);
+            if (hyperVDiskResp.Success && hyperVDiskResp.Data != null)
+                foreach (var disk in hyperVDiskResp.Data)
+                    if (disk.Number >= 0 && !string.IsNullOrEmpty(disk.DeviceId))
+                        diskDeviceIds[disk.DeviceId.Replace("\\\\", "\\")] = disk.Number;
+
             var attachedResp = await WmiApi.QueryAsync(
                 "SELECT InstanceID, HostResource FROM Msvm_ResourceAllocationSettingData WHERE ResourceSubType = 'Microsoft:Hyper-V:Physical Disk Drive'",
                 obj => (Inst: obj["InstanceID"]?.ToString() ?? string.Empty, Hr: (obj["HostResource"] as string[])?.FirstOrDefault() ?? string.Empty),
@@ -33,8 +44,10 @@ namespace ExHyperV.Services
                 foreach (var a in attachedResp.Data)
                 {
                     if (string.IsNullOrEmpty(a.Hr)) continue;   // Definition 模板(Default/Minimum/…)的 HostResource 为空
-                    var dm = System.Text.RegularExpressions.Regex.Match(a.Hr, "DeviceID=\"[^\"]*?(\\d+)\"");
-                    if (!dm.Success || !int.TryParse(dm.Groups[1].Value, out int dn)) continue;
+                    var dm = System.Text.RegularExpressions.Regex.Match(a.Hr, "DeviceID=\"([^\"]+)\"");
+                    if (!dm.Success) continue;
+                    string deviceId = dm.Groups[1].Value.Replace("\\\\", "\\");
+                    if (!diskDeviceIds.TryGetValue(deviceId, out int dn)) continue;
                     string vmName = string.Empty;
                     var gm = System.Text.RegularExpressions.Regex.Match(a.Inst, "([0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12})");
                     if (gm.Success) vmNames.TryGetValue(gm.Groups[1].Value.ToUpperInvariant(), out vmName);
@@ -42,7 +55,7 @@ namespace ExHyperV.Services
                 }
 
             var diskResp = await WmiApi.QueryCimAsync(
-                "SELECT Number, FriendlyName, Size, IsSystem, IsBoot, BusType, IsOffline, IsReadOnly FROM MSFT_Disk",
+                "SELECT Number, FriendlyName, Size, UniqueId, SerialNumber, IsSystem, IsBoot, BusType, IsOffline, IsReadOnly FROM MSFT_Disk",
                 obj => new
                 {
                     number = Convert.ToInt32(obj["Number"] ?? -1),
@@ -52,6 +65,8 @@ namespace ExHyperV.Services
                     isOffline = Convert.ToBoolean(obj["IsOffline"] ?? false),
                     isReadOnly = Convert.ToBoolean(obj["IsReadOnly"] ?? false),
                     sizeBytes = Convert.ToInt64(obj["Size"] ?? 0L),
+                    uniqueId = obj["UniqueId"]?.ToString() ?? string.Empty,
+                    serialNumber = obj["SerialNumber"]?.ToString()?.Trim() ?? string.Empty,
                     friendlyName = obj["FriendlyName"]?.ToString() ?? ""
                 },
                 WmiScope.Storage);
@@ -65,7 +80,7 @@ namespace ExHyperV.Services
                 .OrderBy(d => d.number)
                 .Select(d =>
                 {
-                    // 优先级:系统盘 > 已分配 > 只读 > USB > 脱机可直通 > 在线(将脱机)
+                    // 系统盘和已分配磁盘不可选择；其他磁盘由添加流程尝试脱机并交给 Hyper-V 验证。
                     string status;
                     bool can;
                     if (d.isSystem || d.isBoot) { can = false; status = Properties.Resources.Storage_DiskStatus_System; }
@@ -75,16 +90,22 @@ namespace ExHyperV.Services
                         status = string.Format(Properties.Resources.Storage_DiskStatus_Assigned,
                             string.IsNullOrEmpty(vm) ? "VM" : vm);
                     }
-                    else if (d.isReadOnly) { can = false; status = Properties.Resources.Storage_DiskStatus_ReadOnly; }
-                    else if (d.busType == 7) { can = false; status = Properties.Resources.Storage_DiskStatus_Usb; }
-                    // 脱机/在线未挂都算"可用"(在线盘添加时会自动脱机)
-                    else { can = true; status = Properties.Resources.Storage_DiskStatus_Available; }
+                    else
+                    {
+                        can = true;
+                        status = d.isReadOnly
+                            ? Properties.Resources.Storage_DiskStatus_ReadOnly
+                            : Properties.Resources.Storage_DiskStatus_Available;
+                    }
 
                     return new HostDiskInfo
                     {
                         Number = d.number,
                         FriendlyName = d.friendlyName,
                         SizeGB = Math.Round(d.sizeBytes / 1073741824.0, 2),
+                        SizeBytes = d.sizeBytes,
+                        UniqueId = d.uniqueId,
+                        SerialNumber = d.serialNumber,
                         Status = status,
                         CanPassthrough = can
                     };

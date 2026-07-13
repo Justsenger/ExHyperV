@@ -6,8 +6,11 @@ namespace ExHyperV.Models
         public int Number { get; init; }
         public string FriendlyName { get; init; } = string.Empty;
         public double SizeGB { get; init; }
+        public long SizeBytes { get; init; }
+        public string UniqueId { get; init; } = string.Empty;
+        public string SerialNumber { get; init; } = string.Empty;
 
-        /// <summary>状态标签（可直通 / 系统盘 / 已分配给某 VM / 在线需脱机 / 只读 / USB 不支持）。</summary>
+        /// <summary>状态标签（可用 / 系统盘 / 已分配给某 VM / 只读）。</summary>
         public string Status { get; init; } = string.Empty;
 
         /// <summary>能否直通。false 时 UI 置灰、不可选中。</summary>

@@ -43,6 +43,17 @@ namespace ExHyperV.ViewModels
         {
             VmId = vmId;
             VmName = vmName;
+            // 打开控制台时优先用配置里保存的缩放档（语言中立："auto"→当前语言的适应窗口，百分比直用）；无/无效则保持默认 100%。
+            var savedZoom = SettingsService.GetDefaultZoom();
+            if (savedZoom == ZoomAutoToken) SelectedZoom = Properties.Resources.ConsoleWindow_ZoomAuto;
+            else if (!string.IsNullOrEmpty(savedZoom) && ZoomOptions.Contains(savedZoom)) SelectedZoom = savedZoom;
+            // 使用保存的分辨率直接建立增强会话；无保存值时先由基本会话取得分辨率。
+            _preferEnhanced = SettingsService.GetDefaultConnectionMode() == ModeEnhancedToken;
+            if (_preferEnhanced && SettingsService.GetDefaultConsoleResolution() is { } res)
+            {
+                _currentWidth = res.Width;
+                _currentHeight = res.Height;
+            }
             StartStatusPolling();
         }
         // ===== 全屏 =====
@@ -77,6 +88,16 @@ namespace ExHyperV.ViewModels
                 {
                     IsRunning = currentVm.IsRunning;                       // 更新运行状态
                     if (VmName != currentVm.Name) VmName = currentVm.Name; // 更新名称
+
+                    // 根据增强会话可用状态更新菜单并处理自动切换。
+                    bool avail = currentVm.IsRunning && await VmConsoleService.IsEnhancedSessionAvailableAsync(currentVm.Name);
+                    IsEnhancedAvailable = avail;
+                    if (!avail) _promotedThisAvailability = false;
+                    if (_preferEnhanced && avail && !IsEnhancedMode && !_promotedThisAvailability && CurrentWidth > 0)
+                    {
+                        _promotedThisAvailability = true;
+                        SelectedSessionMode = Properties.Resources.ConsoleViewModel_EnhancedSession;
+                    }
                 }
             }
             catch (Exception ex)
@@ -182,19 +203,39 @@ namespace ExHyperV.ViewModels
             "500%", "400%", "300%", "200%", "150%", "125%", "100%", "75%", "50%", "25%"
         };
 
+        // 配置里存语言中立值：本地化"适应窗口"存 "auto"，百分比本身中立 → 切中英文后配置仍对得上。
+        private const string ZoomAutoToken = "auto";
+
         [RelayCommand]
         private void ChangeZoom(string zoom)
         {
-            if (!string.IsNullOrEmpty(zoom)) SelectedZoom = zoom;
+            if (string.IsNullOrEmpty(zoom)) return;
+            SelectedZoom = zoom;
+            // 记住用户手动选择，下次打开控制台沿用；"适应窗口"存中立 token 而非本地化字符串
+            SettingsService.SaveDefaultZoom(zoom == Properties.Resources.ConsoleWindow_ZoomAuto ? ZoomAutoToken : zoom);
         }
 
         // ===== 会话模式 =====
 
+        private const string ModeEnhancedToken = "enhanced";   // 配置文件里的语言中立 token
+        private const string ModeBasicToken = "basic";
+
         [ObservableProperty] private string _selectedSessionMode = Properties.Resources.ConsoleViewModel_BasicSession;
         [ObservableProperty] private bool _isEnhancedMode = false;
+        [ObservableProperty] private bool _isEnhancedAvailable;
 
+        private bool _preferEnhanced;
+        private bool _promotedThisAvailability;      // 防止同一可用周期内重复自动切换
+
+        // 仅持久化用户主动选择的模式。
         [RelayCommand]
-        private void SwitchSessionMode(string mode) => SelectedSessionMode = mode;
+        private void SwitchSessionMode(string mode)
+        {
+            SelectedSessionMode = mode;
+            _preferEnhanced = (mode == Properties.Resources.ConsoleViewModel_EnhancedSession);
+            SettingsService.SaveDefaultConnectionMode(_preferEnhanced ? ModeEnhancedToken : ModeBasicToken);
+            _promotedThisAvailability = _preferEnhanced;
+        }
 
         /// <summary>增强会话连接失败时回退到基本会话（顶部会话开关随之切回，并触发以基本会话重连）。</summary>
         public void FallbackToBasicSession() => SelectedSessionMode = Properties.Resources.ConsoleViewModel_BasicSession;
@@ -207,8 +248,6 @@ namespace ExHyperV.ViewModels
 
         public bool CanChangeResolution => IsEnhancedMode;
 
-        [ObservableProperty] private int _requestWidth;
-        [ObservableProperty] private int _requestHeight;
 
         partial void OnIsRunningChanged(bool value)
         {
@@ -225,7 +264,15 @@ namespace ExHyperV.ViewModels
                 OnPropertyChanged(nameof(CurrentWidth));
                 OnPropertyChanged(nameof(CurrentHeight));
             }
+            else
+            {
+                // 直连增强可能不会触发远端尺寸变化事件，需主动刷新显示文本。
+                UpdateResolutionString();
+            }
         }
+
+        /// <summary>请求窗口协商指定的增强会话分辨率。</summary>
+        public event Action<int, int>? ResolutionChangeRequested;
 
         [RelayCommand]
         private void ChangeResolution(string resolutionText)
@@ -233,12 +280,7 @@ namespace ExHyperV.ViewModels
             if (string.IsNullOrEmpty(resolutionText) || !IsEnhancedMode) return;
             var parts = resolutionText.Split('x');
             if (parts.Length == 2 && int.TryParse(parts[0].Trim(), out int w) && int.TryParse(parts[1].Trim(), out int h))
-            {
-                // 只发"请求"，不预设 CurrentWidth/Height —— 后者代表"画面实际分辨率"，仅由 RemoteSizeChanged
-                // (画面真正重渲染后)更新。否则增强登录界面/切回基本时协商被忽略，画面区却按请求值撑大 → mstscax 灰/白信箱。
-                RequestWidth = w;
-                RequestHeight = h;
-            }
+                ResolutionChangeRequested?.Invoke(w, h);
         }
 
         public void Dispose() => _statusTimer?.Stop();

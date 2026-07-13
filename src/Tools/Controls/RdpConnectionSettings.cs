@@ -24,6 +24,12 @@ namespace ExHyperV.Tools
         public int DesktopWidth { get; set; }
         public int DesktopHeight { get; set; }
 
+        /// <summary>增强会话的初始桌面缩放百分比（100-500）；必须在 Connect 前设置。</summary>
+        public uint DesktopScaleFactor { get; set; } = 100;
+
+        /// <summary>增强会话的初始设备缩放（RDP 仅允许 100/140/180）；通常保持 100。</summary>
+        public uint DeviceScaleFactor { get; set; } = 100;
+
         /// <summary>连接超时（秒）；&lt;=0 表示用 mstscax 默认（较长）。调短可让连不上的会话快速放弃。</summary>
         public int ConnectionTimeoutSeconds { get; set; }
 

@@ -59,6 +59,73 @@
                 </Trigger>
             </Style.Triggers>
         </Style>
+
+        <!-- 支持门控样式（同内存设置页）：Tag 绑可空值，null=后端无此属性则置灰。ComboBox/TextBox/应用按钮各一份。 -->
+        <Style x:Key="ShutdownRequiredComboBoxStyle" TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
+            <Setter Property="ToolTipService.ShowOnDisabled" Value="True"/>
+            <Setter Property="ToolTipService.InitialShowDelay" Value="50"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding RelativeSource={RelativeSource Self}, Path=Tag}" Value="{x:Null}">
+                    <Setter Property="IsEnabled" Value="False"/>
+                    <Setter Property="ToolTip" Value="{x:Static properties:Resources.Error_VerNotSupport}"/>
+                </DataTrigger>
+                <MultiDataTrigger>
+                    <MultiDataTrigger.Conditions>
+                        <Condition Binding="{Binding SelectedVm.IsRunning}" Value="True"/>
+                        <Condition Binding="{Binding RelativeSource={RelativeSource Self}, Path=Tag, Converter={StaticResource NullableToBooleanConverter}}" Value="True"/>
+                    </MultiDataTrigger.Conditions>
+                    <Setter Property="IsEnabled" Value="False"/>
+                    <Setter Property="ToolTip" Value="{x:Static properties:Resources.Warn_VmOffRequired}"/>
+                </MultiDataTrigger>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Opacity" Value="0.5"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="ShutdownRequiredTextBoxStyle" TargetType="ui:TextBox" BasedOn="{StaticResource {x:Type ui:TextBox}}">
+            <Setter Property="ToolTipService.ShowOnDisabled" Value="True"/>
+            <Setter Property="ToolTipService.InitialShowDelay" Value="50"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding RelativeSource={RelativeSource Self}, Path=Tag}" Value="{x:Null}">
+                    <Setter Property="IsEnabled" Value="False"/>
+                    <Setter Property="ToolTip" Value="{x:Static properties:Resources.Error_VerNotSupport}"/>
+                </DataTrigger>
+                <MultiDataTrigger>
+                    <MultiDataTrigger.Conditions>
+                        <Condition Binding="{Binding SelectedVm.IsRunning}" Value="True"/>
+                        <Condition Binding="{Binding RelativeSource={RelativeSource Self}, Path=Tag, Converter={StaticResource NullableToBooleanConverter}}" Value="True"/>
+                    </MultiDataTrigger.Conditions>
+                    <Setter Property="IsEnabled" Value="False"/>
+                    <Setter Property="ToolTip" Value="{x:Static properties:Resources.Warn_VmOffRequired}"/>
+                </MultiDataTrigger>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Opacity" Value="0.5"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="ShutdownRequiredButtonStyle" TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
+            <Setter Property="ToolTipService.ShowOnDisabled" Value="True"/>
+            <Setter Property="ToolTipService.InitialShowDelay" Value="50"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding RelativeSource={RelativeSource Self}, Path=Tag}" Value="{x:Null}">
+                    <Setter Property="IsEnabled" Value="False"/>
+                    <Setter Property="ToolTip" Value="{x:Static properties:Resources.Error_VerNotSupport}"/>
+                </DataTrigger>
+                <MultiDataTrigger>
+                    <MultiDataTrigger.Conditions>
+                        <Condition Binding="{Binding SelectedVm.IsRunning}" Value="True"/>
+                        <Condition Binding="{Binding RelativeSource={RelativeSource Self}, Path=Tag, Converter={StaticResource NullableToBooleanConverter}}" Value="True"/>
+                    </MultiDataTrigger.Conditions>
+                    <Setter Property="IsEnabled" Value="False"/>
+                    <Setter Property="ToolTip" Value="{x:Static properties:Resources.Warn_VmOffRequired}"/>
+                </MultiDataTrigger>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Opacity" Value="0.5"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
     </UserControl.Resources>
 
     <Grid>
@@ -232,7 +299,23 @@
                             </StackPanel>
                             <ui:ToggleSwitch Grid.Column="1" Style="{StaticResource ShutdownRequiredToggleStyle}" 
                                      Tag="{Binding SelectedVm.Processor.SmtMode}"
-                                     IsChecked="{Binding SelectedVm.Processor.SmtMode, Converter={StaticResource SmtModeToBooleanConverter}}" 
+                                     IsChecked="{Binding SelectedVm.Processor.SmtMode, Converter={StaticResource SmtModeToBooleanConverter}}"
+                                     Command="{Binding ApplyChangesCommand}"/>
+                        </Grid>
+                        <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
+
+                        <Grid Margin="24,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="{x:Static properties:Resources.Menu_DisableSpectre}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
+                                <TextBlock Text="{x:Static properties:Resources.Desc_DisableSpectre}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                            </StackPanel>
+                            <ui:ToggleSwitch Grid.Column="1" Style="{StaticResource ShutdownRequiredToggleStyle}"
+                                     Tag="{Binding SelectedVm.Processor.DisableSpeculationControls}"
+                                     IsChecked="{Binding SelectedVm.Processor.DisableSpeculationControls}"
                                      Command="{Binding ApplyChangesCommand}"/>
                         </Grid>
                         <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
@@ -296,22 +379,6 @@
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
                             <StackPanel VerticalAlignment="Center">
-                                <TextBlock Text="{x:Static properties:Resources.Menu_DisableSpectre}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
-                                <TextBlock Text="{x:Static properties:Resources.Desc_DisableSpectre}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
-                            </StackPanel>
-                            <ui:ToggleSwitch Grid.Column="1" Style="{StaticResource ShutdownRequiredToggleStyle}"
-                                     Tag="{Binding SelectedVm.Processor.DisableSpeculationControls}"
-                                     IsChecked="{Binding SelectedVm.Processor.DisableSpeculationControls}" 
-                                     Command="{Binding ApplyChangesCommand}"/>
-                        </Grid>
-                        <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
-
-                        <Grid Margin="24,16">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-                            <StackPanel VerticalAlignment="Center">
                                 <TextBlock Text="{x:Static properties:Resources.Menu_SocketTopo}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
                                 <TextBlock Text="{x:Static properties:Resources.Desc_SocketTopo}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
                             </StackPanel>
@@ -329,7 +396,7 @@
                                 <TextBlock Text="{x:Static properties:Resources.Cpu_ApicMode}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
                                 <TextBlock Text="{x:Static properties:Resources.Cpu_ApicModeDesc}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
                             </StackPanel>
-                            <ComboBox Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Stretch" ItemsSource="{Binding ApicModeValues}" SelectedItem="{Binding SelectedVm.Processor.ApicMode}" IsEnabled="{Binding SelectedVm.IsRunning, Converter={StaticResource InverseBooleanConverter}}">
+                            <ComboBox Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Stretch" Style="{StaticResource ShutdownRequiredComboBoxStyle}" Tag="{Binding SelectedVm.Processor.ApicMode}" ItemsSource="{Binding ApicModeValues}" SelectedItem="{Binding SelectedVm.Processor.ApicMode}">
                                 <tools:EventToCommand.EventName>SelectionChanged</tools:EventToCommand.EventName>
                                 <tools:EventToCommand.Command><Binding Path="ApplyChangesCommand"/></tools:EventToCommand.Command>
                                 <ComboBox.ItemTemplate>
@@ -355,23 +422,20 @@
                VerticalAlignment="Center" 
                Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
 
-                            <ui:TextBox Grid.Column="2" 
+                            <ui:TextBox Grid.Column="2"
                 VerticalAlignment="Center"
-                Text="{Binding SelectedVm.Processor.CpuBrandString, UpdateSourceTrigger=PropertyChanged}"
-                IsEnabled="{Binding SelectedVm.IsRunning, Converter={StaticResource InverseBooleanConverter}}"/>
+                Style="{StaticResource ShutdownRequiredTextBoxStyle}"
+                Tag="{Binding SelectedVm.Processor.CpuBrandString}"
+                Text="{Binding SelectedVm.Processor.CpuBrandString, UpdateSourceTrigger=PropertyChanged}"/>
 
-                            <ui:Button Grid.Column="4" 
-           Content="{x:Static properties:Resources.Apply}" 
+                            <ui:Button Grid.Column="4"
+           Content="{x:Static properties:Resources.Apply}"
            Appearance="Primary"
-           VerticalAlignment="Center" 
+           VerticalAlignment="Center"
            Padding="16,7"
            Command="{Binding ApplyChangesCommand}"
-           IsEnabled="{Binding SelectedVm.IsRunning, Converter={StaticResource InverseBooleanConverter}}">
-                                <ui:Button.ToolTip>
-                                    <ToolTip Content="{x:Static properties:Resources.VmCpuSettings_WarnVmOffRequired}" 
-                     Visibility="{Binding SelectedVm.IsRunning, Converter={StaticResource BoolToVis}}"/>
-                                </ui:Button.ToolTip>
-                            </ui:Button>
+           Style="{StaticResource ShutdownRequiredButtonStyle}"
+           Tag="{Binding SelectedVm.Processor.CpuBrandString}"/>
                         </Grid>
                         <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
                         <Grid Margin="24,16">
@@ -400,8 +464,8 @@
                                 <TextBlock Text="{x:Static properties:Resources.Cpu_L3CacheWays}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
                                 <TextBlock Text="{x:Static properties:Resources.Cpu_L3CacheWaysDesc}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
                             </StackPanel>
-                            <ui:TextBox Grid.Column="2" VerticalAlignment="Center" Text="{Binding SelectedVm.Processor.L3CacheWays, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding SelectedVm.IsRunning, Converter={StaticResource InverseBooleanConverter}}"/>
-                            <ui:Button Grid.Column="4" Content="{x:Static properties:Resources.Apply}" Appearance="Primary" VerticalAlignment="Center" Padding="16,7" Command="{Binding ApplyChangesCommand}" IsEnabled="{Binding SelectedVm.IsRunning, Converter={StaticResource InverseBooleanConverter}}"/>
+                            <ui:TextBox Grid.Column="2" VerticalAlignment="Center" Style="{StaticResource ShutdownRequiredTextBoxStyle}" Tag="{Binding SelectedVm.Processor.L3CacheWays}" Text="{Binding SelectedVm.Processor.L3CacheWays, UpdateSourceTrigger=PropertyChanged}"/>
+                            <ui:Button Grid.Column="4" Content="{x:Static properties:Resources.Apply}" Appearance="Primary" VerticalAlignment="Center" Padding="16,7" Command="{Binding ApplyChangesCommand}" Style="{StaticResource ShutdownRequiredButtonStyle}" Tag="{Binding SelectedVm.Processor.L3CacheWays}"/>
                         </Grid>
                         <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
                         <Grid Margin="24,12,24,12">
@@ -410,7 +474,7 @@
                                 <TextBlock Text="{x:Static properties:Resources.Cpu_L3DistPolicy}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
                                 <TextBlock Text="{x:Static properties:Resources.Cpu_L3DistPolicyDesc}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
                             </StackPanel>
-                            <ComboBox Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Stretch" ItemsSource="{Binding L3DistributionPolicyValues}" SelectedItem="{Binding SelectedVm.Processor.L3DistributionPolicy}" IsEnabled="{Binding SelectedVm.IsRunning, Converter={StaticResource InverseBooleanConverter}}">
+                            <ComboBox Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Stretch" Style="{StaticResource ShutdownRequiredComboBoxStyle}" Tag="{Binding SelectedVm.Processor.L3DistributionPolicy}" ItemsSource="{Binding L3DistributionPolicyValues}" SelectedItem="{Binding SelectedVm.Processor.L3DistributionPolicy}">
                                 <tools:EventToCommand.EventName>SelectionChanged</tools:EventToCommand.EventName>
                                 <tools:EventToCommand.Command><Binding Path="ApplyChangesCommand"/></tools:EventToCommand.Command>
                                 <ComboBox.ItemTemplate>
@@ -427,7 +491,7 @@
                                 <TextBlock Text="{x:Static properties:Resources.Cpu_PageShatter}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
                                 <TextBlock Text="{x:Static properties:Resources.Cpu_PageShatterDesc}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
                             </StackPanel>
-                            <ComboBox Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Stretch" ItemsSource="{Binding PageShatterModeValues}" SelectedItem="{Binding SelectedVm.Processor.PageShatterMode}" IsEnabled="{Binding SelectedVm.IsRunning, Converter={StaticResource InverseBooleanConverter}}">
+                            <ComboBox Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Stretch" Style="{StaticResource ShutdownRequiredComboBoxStyle}" Tag="{Binding SelectedVm.Processor.PageShatterMode}" ItemsSource="{Binding PageShatterModeValues}" SelectedItem="{Binding SelectedVm.Processor.PageShatterMode}">
                                 <tools:EventToCommand.EventName>SelectionChanged</tools:EventToCommand.EventName>
                                 <tools:EventToCommand.Command><Binding Path="ApplyChangesCommand"/></tools:EventToCommand.Command>
                                 <ComboBox.ItemTemplate>
@@ -489,8 +553,8 @@
                                 <TextBlock Text="{x:Static properties:Resources.Cpu_FreqCap}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
                                 <TextBlock Text="{x:Static properties:Resources.Cpu_FreqCapDesc}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
                             </StackPanel>
-                            <ui:TextBox Grid.Column="2" VerticalAlignment="Center" Text="{Binding SelectedVm.Processor.PerfCpuFreqCapMhz, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding SelectedVm.IsRunning, Converter={StaticResource InverseBooleanConverter}}"/>
-                            <ui:Button Grid.Column="4" Content="{x:Static properties:Resources.Apply}" Appearance="Primary" VerticalAlignment="Center" Padding="16,7" Command="{Binding ApplyChangesCommand}" IsEnabled="{Binding SelectedVm.IsRunning, Converter={StaticResource InverseBooleanConverter}}"/>
+                            <ui:TextBox Grid.Column="2" VerticalAlignment="Center" Style="{StaticResource ShutdownRequiredTextBoxStyle}" Tag="{Binding SelectedVm.Processor.PerfCpuFreqCapMhz}" Text="{Binding SelectedVm.Processor.PerfCpuFreqCapMhz, UpdateSourceTrigger=PropertyChanged}"/>
+                            <ui:Button Grid.Column="4" Content="{x:Static properties:Resources.Apply}" Appearance="Primary" VerticalAlignment="Center" Padding="16,7" Command="{Binding ApplyChangesCommand}" Style="{StaticResource ShutdownRequiredButtonStyle}" Tag="{Binding SelectedVm.Processor.PerfCpuFreqCapMhz}"/>
                         </Grid>
                         <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
                         <Grid Margin="24,12,24,12">
@@ -499,8 +563,8 @@
                                 <TextBlock Text="{x:Static properties:Resources.Cpu_FreqMin}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
                                 <TextBlock Text="{x:Static properties:Resources.Cpu_FreqMinDesc}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
                             </StackPanel>
-                            <ui:TextBox Grid.Column="2" VerticalAlignment="Center" Text="{Binding SelectedVm.Processor.PerfCpuFreqMinMhz, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding SelectedVm.IsRunning, Converter={StaticResource InverseBooleanConverter}}"/>
-                            <ui:Button Grid.Column="4" Content="{x:Static properties:Resources.Apply}" Appearance="Primary" VerticalAlignment="Center" Padding="16,7" Command="{Binding ApplyChangesCommand}" IsEnabled="{Binding SelectedVm.IsRunning, Converter={StaticResource InverseBooleanConverter}}"/>
+                            <ui:TextBox Grid.Column="2" VerticalAlignment="Center" Style="{StaticResource ShutdownRequiredTextBoxStyle}" Tag="{Binding SelectedVm.Processor.PerfCpuFreqMinMhz}" Text="{Binding SelectedVm.Processor.PerfCpuFreqMinMhz, UpdateSourceTrigger=PropertyChanged}"/>
+                            <ui:Button Grid.Column="4" Content="{x:Static properties:Resources.Apply}" Appearance="Primary" VerticalAlignment="Center" Padding="16,7" Command="{Binding ApplyChangesCommand}" Style="{StaticResource ShutdownRequiredButtonStyle}" Tag="{Binding SelectedVm.Processor.PerfCpuFreqMinMhz}"/>
                         </Grid>
                         <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
                         <Grid Margin="24,12,24,12">
@@ -509,8 +573,8 @@
                                 <TextBlock Text="{x:Static properties:Resources.Cpu_FreqDesired}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
                                 <TextBlock Text="{x:Static properties:Resources.Cpu_FreqDesiredDesc}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
                             </StackPanel>
-                            <ui:TextBox Grid.Column="2" VerticalAlignment="Center" Text="{Binding SelectedVm.Processor.PerfCpuFreqDesiredMhz, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding SelectedVm.IsRunning, Converter={StaticResource InverseBooleanConverter}}"/>
-                            <ui:Button Grid.Column="4" Content="{x:Static properties:Resources.Apply}" Appearance="Primary" VerticalAlignment="Center" Padding="16,7" Command="{Binding ApplyChangesCommand}" IsEnabled="{Binding SelectedVm.IsRunning, Converter={StaticResource InverseBooleanConverter}}"/>
+                            <ui:TextBox Grid.Column="2" VerticalAlignment="Center" Style="{StaticResource ShutdownRequiredTextBoxStyle}" Tag="{Binding SelectedVm.Processor.PerfCpuFreqDesiredMhz}" Text="{Binding SelectedVm.Processor.PerfCpuFreqDesiredMhz, UpdateSourceTrigger=PropertyChanged}"/>
+                            <ui:Button Grid.Column="4" Content="{x:Static properties:Resources.Apply}" Appearance="Primary" VerticalAlignment="Center" Padding="16,7" Command="{Binding ApplyChangesCommand}" Style="{StaticResource ShutdownRequiredButtonStyle}" Tag="{Binding SelectedVm.Processor.PerfCpuFreqDesiredMhz}"/>
                         </Grid>
                         <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
                         <Grid Margin="24,12,24,12">
@@ -519,8 +583,8 @@
                                 <TextBlock Text="{x:Static properties:Resources.Cpu_Epp}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
                                 <TextBlock Text="{x:Static properties:Resources.Cpu_EppDesc}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
                             </StackPanel>
-                            <ui:TextBox Grid.Column="2" VerticalAlignment="Center" Text="{Binding SelectedVm.Processor.PerfCpuEnergyPerformancePreference, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding SelectedVm.IsRunning, Converter={StaticResource InverseBooleanConverter}}"/>
-                            <ui:Button Grid.Column="4" Content="{x:Static properties:Resources.Apply}" Appearance="Primary" VerticalAlignment="Center" Padding="16,7" Command="{Binding ApplyChangesCommand}" IsEnabled="{Binding SelectedVm.IsRunning, Converter={StaticResource InverseBooleanConverter}}"/>
+                            <ui:TextBox Grid.Column="2" VerticalAlignment="Center" Style="{StaticResource ShutdownRequiredTextBoxStyle}" Tag="{Binding SelectedVm.Processor.PerfCpuEnergyPerformancePreference}" Text="{Binding SelectedVm.Processor.PerfCpuEnergyPerformancePreference, UpdateSourceTrigger=PropertyChanged}"/>
+                            <ui:Button Grid.Column="4" Content="{x:Static properties:Resources.Apply}" Appearance="Primary" VerticalAlignment="Center" Padding="16,7" Command="{Binding ApplyChangesCommand}" Style="{StaticResource ShutdownRequiredButtonStyle}" Tag="{Binding SelectedVm.Processor.PerfCpuEnergyPerformancePreference}"/>
                         </Grid>
                         <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
                         <Grid Margin="24,12,24,12">
@@ -529,8 +593,8 @@
                                 <TextBlock Text="{x:Static properties:Resources.Cpu_ActivityWindow}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
                                 <TextBlock Text="{x:Static properties:Resources.Cpu_ActivityWindowDesc}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
                             </StackPanel>
-                            <ui:TextBox Grid.Column="2" VerticalAlignment="Center" Text="{Binding SelectedVm.Processor.PerfCpuAutonomousActivityWindow, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding SelectedVm.IsRunning, Converter={StaticResource InverseBooleanConverter}}"/>
-                            <ui:Button Grid.Column="4" Content="{x:Static properties:Resources.Apply}" Appearance="Primary" VerticalAlignment="Center" Padding="16,7" Command="{Binding ApplyChangesCommand}" IsEnabled="{Binding SelectedVm.IsRunning, Converter={StaticResource InverseBooleanConverter}}"/>
+                            <ui:TextBox Grid.Column="2" VerticalAlignment="Center" Style="{StaticResource ShutdownRequiredTextBoxStyle}" Tag="{Binding SelectedVm.Processor.PerfCpuAutonomousActivityWindow}" Text="{Binding SelectedVm.Processor.PerfCpuAutonomousActivityWindow, UpdateSourceTrigger=PropertyChanged}"/>
+                            <ui:Button Grid.Column="4" Content="{x:Static properties:Resources.Apply}" Appearance="Primary" VerticalAlignment="Center" Padding="16,7" Command="{Binding ApplyChangesCommand}" Style="{StaticResource ShutdownRequiredButtonStyle}" Tag="{Binding SelectedVm.Processor.PerfCpuAutonomousActivityWindow}"/>
                         </Grid>
                         <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
                         <Grid Margin="24,12,24,12">

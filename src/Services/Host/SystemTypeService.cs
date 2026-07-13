@@ -50,6 +50,7 @@ namespace ExHyperV.Services
                 var replaceResp = Win32Api.ReplaceHive("SYSTEM", HiveFile, BackupFile);
                 if (replaceResp.Success)
                 {
+                    ApplyShutdownEventTracker(toServer);
                     MarkPending(targetType);
                     return "SUCCESS";
                 }
@@ -87,6 +88,28 @@ namespace ExHyperV.Services
         /// 检查是否有未完成的系统类型切换任务（重启后自动消失）。
         /// </summary>
         public static bool HasPendingTask() => GetPendingTarget() != null;
+
+        // Shutdown Event Tracker（关机事件跟踪器）：ServerNT 默认开 → 切服务器后会冒出"开机问异常关机原因/关机必选原因"。
+        // 切服务器写 ShutdownReasonOn=0 关掉它；切回客户端删除该值（客户端默认本就关，恢复未托管）。
+        // SOFTWARE\Policies 是活注册表，App 恒提权，在线写即可，与 ProductType 共用同一次重启生效。写失败不致命。
+        private static void ApplyShutdownEventTracker(bool toServer)
+        {
+            const string path = @"SOFTWARE\Policies\Microsoft\Windows NT\Reliability";
+            try
+            {
+                if (toServer)
+                {
+                    using var key = Registry.LocalMachine.CreateSubKey(path);
+                    key?.SetValue("ShutdownReasonOn", 0, RegistryValueKind.DWord);
+                }
+                else
+                {
+                    using var key = Registry.LocalMachine.OpenSubKey(path, writable: true);
+                    key?.DeleteValue("ShutdownReasonOn", throwOnMissingValue: false);
+                }
+            }
+            catch { }
+        }
 
         // 替换成功后立刻打易失标记（REG_OPTION_VOLATILE，重启自动蒸发）；写失败不致命，兜底走文件锁探测
         private static void MarkPending(string targetType)

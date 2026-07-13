@@ -75,7 +75,7 @@ namespace ExHyperV.ViewModels
             else
             {
                 VersionStatus.IsSuccess = false;
-                VersionStatus.StatusText = baseVersion + Properties.Resources.Status_Msg_GpuPvNotSupported;
+                VersionStatus.StatusText = baseVersion;   // 红叉+“GPU-PV 要求”标题已表意,不再拼“(不支持 GPU-PV)”
             }
             VersionStatus.IsChecking = false;
         });
@@ -120,7 +120,7 @@ namespace ExHyperV.ViewModels
             InitializeProductType();
             await LoadAdvancedConfigAsync();
             IsGpuStrategyToggleEnabled = true;
-            IsNativeNvmeToggleEnabled = true;
+            IsNativeNvmeToggleEnabled = IsNativeNvmeSupported;   // 不支持的系统(Win10 等)开关置灰而非隐藏
             // 切换服务器版本(黑魔法)仅对特定客户端 SKU 生效；真 Server/家庭版/标准专业版/企业版等不适用，开关置灰。
             // 判定走 EditionID(真实 SKU)而非 ProductType——后者正是黑魔法改的值，用它会致被切的客户端版无法切回。
             // 已有挂起切换任务时同样置灰：挂起的替换无法取消也无法覆盖，重启生效前不可再切。
@@ -206,7 +206,9 @@ namespace ExHyperV.ViewModels
         private async Task DisableHyperVAsync()
         {
             ShowTip(Properties.Resources.HostPageViewModel_DisablingHyperV);
-            bool ok = await HyperVHostService.DisableHyperVAsync();
+            var op = HyperVHostService.DisableHyperVAsync();
+            await Task.WhenAll(op, Task.Delay(1000));   // "操作中"提示至少停留 1s，不被结果一闪而过
+            bool ok = await op;
             if (!ok)
             {
                 ShowError(Properties.Resources.HostPageViewModel_DisableFailed);
@@ -219,7 +221,9 @@ namespace ExHyperV.ViewModels
         private async Task EnableHyperVAsync()
         {
             ShowTip(Properties.Resources.Msg_Host_EnableHyperV);
-            bool ok = await HyperVHostService.EnableHyperVAsync();
+            var op = HyperVHostService.EnableHyperVAsync();
+            await Task.WhenAll(op, Task.Delay(1000));   // "操作中"提示至少停留 1s，不被结果一闪而过
+            bool ok = await op;
             if (!ok)
             {
                 ShowError(Properties.Resources.Error_Host_EnableFail);
@@ -258,24 +262,29 @@ namespace ExHyperV.ViewModels
                     return;   // 挂起任务无法取消或覆盖，重启前保持禁用
                 }
 
-                // 危险操作：切换前二次确认（同「彻底删除虚拟机」的红色确认弹窗）。取消则回拨开关、重新启用，不执行切换。
-                var confirm = new Wpf.Ui.Controls.MessageBox
+                // 危险操作：仅「切到服务器版本」前二次确认（红色弹窗，同「彻底删除虚拟机」）。取消则回拨开关、重新启用。
+                // 切回客户端（工作站）无此风险，直接执行、不打扰。
+                if (toServer)
                 {
-                    Title = Properties.Resources.SwitchServer_ConfirmTitle,
-                    Content = new System.Windows.Controls.TextBlock
+                    var confirm = new Wpf.Ui.Controls.MessageBox
                     {
-                        Text = Properties.Resources.SwitchServer_ConfirmMsg,
-                        TextWrapping = System.Windows.TextWrapping.Wrap,
-                    },
-                    PrimaryButtonText = Properties.Resources.SwitchServer_ConfirmBtn,
-                    PrimaryButtonAppearance = Wpf.Ui.Controls.ControlAppearance.Danger,
-                    CloseButtonText = Properties.Resources.Button_Cancel,
-                };
-                if (await confirm.ShowDialogAsync() != Wpf.Ui.Controls.MessageBoxResult.Primary)
-                {
-                    _isInitialized = false; IsServerSystem = !toServer; _isInitialized = true;
-                    IsSystemSwitchEnabled = HyperVHostService.IsServerSwitchApplicable();
-                    return;
+                        Title = Properties.Resources.SwitchServer_ConfirmTitle,
+                        Content = new System.Windows.Controls.TextBlock
+                        {
+                            Text = Properties.Resources.SwitchServer_ConfirmMsg,
+                            TextWrapping = System.Windows.TextWrapping.Wrap,
+                        },
+                        PrimaryButtonText = Properties.Resources.SwitchServer_ConfirmBtn,
+                        PrimaryButtonAppearance = Wpf.Ui.Controls.ControlAppearance.Danger,
+                        CloseButtonText = Properties.Resources.Button_Cancel,
+                    };
+                    Interaction.Dialogs.ForceDangerButtonWhiteForeground(confirm);   // Danger 主按钮亮色主题下红底黑字，强制刷白
+                    if (await confirm.ShowDialogAsync() != Wpf.Ui.Controls.MessageBoxResult.Primary)
+                    {
+                        _isInitialized = false; IsServerSystem = !toServer; _isInitialized = true;
+                        IsSystemSwitchEnabled = HyperVHostService.IsServerSwitchApplicable();
+                        return;
+                    }
                 }
 
                 string result = await Task.Run(() => SystemTypeService.ApplySwitch(toServer));

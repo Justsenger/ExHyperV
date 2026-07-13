@@ -22,6 +22,7 @@
                 </GeometryDrawing>
             </DrawingBrush.Drawing>
         </DrawingBrush>
+        <converters:ScalePointsConverter x:Key="ScalePoints"/>
     </UserControl.Resources>
 
     <ScrollViewer Padding="24,0,24,24" VerticalScrollBarVisibility="Auto" PanningMode="VerticalOnly">
@@ -80,12 +81,33 @@
                                     <Border CornerRadius="4" BorderThickness="1" BorderBrush="#1A888888" Background="#08FFFFFF" ClipToBounds="True">
                                         <Grid>
                                             <Rectangle Fill="{StaticResource FineGridBrush}"/>
-                                            <Viewbox Stretch="Fill" x:Name="WaveGraph">
-                                                <Grid Width="100" Height="100">
-                                                    <Polygon Points="{Binding HistoryPoints}" Fill="#66117DBB"/>
-                                                    <Polyline Points="{Binding HistoryPoints}" Stroke="#FF54C7FC" StrokeThickness="1.5"/>
-                                                </Grid>
-                                            </Viewbox>
+                                            <!-- 按实际像素画(不走 Viewbox 非等比缩放)：描边恒定细、波峰细腻；竖向渐变填充(似任务管理器) -->
+                                            <Grid x:Name="WaveGraph" ClipToBounds="True">
+                                                <Polygon Stroke="{x:Null}">
+                                                    <Polygon.Fill>
+                                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                            <GradientStop Offset="0" Color="#8054C7FC"/>
+                                                            <GradientStop Offset="1" Color="#1054C7FC"/>
+                                                        </LinearGradientBrush>
+                                                    </Polygon.Fill>
+                                                    <Polygon.Points>
+                                                        <MultiBinding Converter="{StaticResource ScalePoints}">
+                                                            <Binding Path="HistoryPoints"/>
+                                                            <Binding Path="ActualWidth" ElementName="WaveGraph"/>
+                                                            <Binding Path="ActualHeight" ElementName="WaveGraph"/>
+                                                        </MultiBinding>
+                                                    </Polygon.Points>
+                                                </Polygon>
+                                                <Polyline Stroke="#FF54C7FC" StrokeThickness="1.2" StrokeLineJoin="Round">
+                                                    <Polyline.Points>
+                                                        <MultiBinding Converter="{StaticResource ScalePoints}">
+                                                            <Binding Path="HistoryPoints"/>
+                                                            <Binding Path="ActualWidth" ElementName="WaveGraph"/>
+                                                            <Binding Path="ActualHeight" ElementName="WaveGraph"/>
+                                                        </MultiBinding>
+                                                    </Polyline.Points>
+                                                </Polyline>
+                                            </Grid>
                                             <StackPanel Orientation="Horizontal" Margin="5,3,0,0" HorizontalAlignment="Left" VerticalAlignment="Top">
                                                 <TextBlock Text="{Binding CoreId}" FontSize="10" Opacity="0.5" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
                                             </StackPanel>

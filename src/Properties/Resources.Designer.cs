@@ -716,6 +716,15 @@ namespace ExHyperV.Properties {
                 return ResourceManager.GetString("Button_Uninstall", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   查找类似 Update Driver 的本地化字符串。
+        /// </summary>
+        public static string Button_UpdateDriver {
+            get {
+                return ResourceManager.GetString("Button_UpdateDriver", resourceCulture);
+            }
+        }
         
         /// <summary>
         ///   查找类似 Yes 的本地化字符串。
@@ -2341,6 +2350,18 @@ namespace ExHyperV.Properties {
             }
         }
 
+        public static string Error_Storage_DiskChanged {
+            get {
+                return ResourceManager.GetString("Error_Storage_DiskChanged", resourceCulture);
+            }
+        }
+
+        public static string Error_Storage_DiskAlreadyAssigned {
+            get {
+                return ResourceManager.GetString("Error_Storage_DiskAlreadyAssigned", resourceCulture);
+            }
+        }
+
         /// <summary>
         ///   查找类似 Target storage resource not found. 的本地化字符串。
         /// </summary>
@@ -2824,15 +2845,6 @@ namespace ExHyperV.Properties {
         public static string HyperVScheduler_LogEventLogQueryFail {
             get {
                 return ResourceManager.GetString("HyperVScheduler_LogEventLogQueryFail", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 [HyperVSchedulerService] Failed to execute bcdedit via Utils.RunScriptSTA: {0} 的本地化字符串。
-        /// </summary>
-        public static string HyperVScheduler_LogBcdeditFail {
-            get {
-                return ResourceManager.GetString("HyperVScheduler_LogBcdeditFail", resourceCulture);
             }
         }
         

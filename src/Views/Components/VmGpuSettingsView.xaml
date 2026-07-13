@@ -75,14 +75,19 @@
 
                                             <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="16" VerticalAlignment="Center"/>
 
-                                            <!-- 卸载按钮：右边距 Margin="0,0,28,0" 避开右侧展开箭头图标 -->
-                                            <ui:Button Grid.Column="2" 
-                                                       Content="{x:Static properties:Resources.Button_Uninstall}" 
-                                                       Appearance="Secondary" 
-                                                       Padding="16,6"
-                                                       Margin="0,0,28,0"
-                                                       Command="{Binding DataContext.RemoveGpuCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                       CommandParameter="{Binding AdapterId}"/>
+                                            <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="0,0,28,0">
+                                                <ui:Button Content="{x:Static properties:Resources.Button_UpdateDriver}"
+                                                           Appearance="Secondary"
+                                                           Padding="16,6"
+                                                           Margin="0,0,8,0"
+                                                           Command="{Binding DataContext.UpdateGpuDriversCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                           CommandParameter="{Binding}"/>
+                                                <ui:Button Content="{x:Static properties:Resources.Button_Uninstall}"
+                                                           Appearance="Secondary"
+                                                           Padding="16,6"
+                                                           Command="{Binding DataContext.RemoveGpuCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                           CommandParameter="{Binding AdapterId}"/>
+                                            </StackPanel>
                                         </Grid>
                                     </ui:CardExpander.Header>
 

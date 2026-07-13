@@ -1704,6 +1704,15 @@ The existing NAT switch is: '{0}'</value>
   <data name="Button_Uninstall" xml:space="preserve">
     <value>Uninstall</value>
   </data>
+  <data name="Error_Storage_DiskChanged" xml:space="preserve">
+    <value>The selected disk has changed. Refresh the list and select it again.</value>
+  </data>
+  <data name="Error_Storage_DiskAlreadyAssigned" xml:space="preserve">
+    <value>This physical disk is already assigned to a virtual machine.</value>
+  </data>
+  <data name="Button_UpdateDriver" xml:space="preserve">
+    <value>Update Driver</value>
+  </data>
   <data name="Label_Manu" xml:space="preserve">
     <value>Manufacturer</value>
   </data>
@@ -2123,9 +2132,6 @@ The existing NAT switch is: '{0}'</value>
   </data>
   <data name="HyperVScheduler_LogEventLogQueryFail" xml:space="preserve">
     <value>[HyperVSchedulerService] Failed to query event log: {0}</value>
-  </data>
-  <data name="HyperVScheduler_LogBcdeditFail" xml:space="preserve">
-    <value>[HyperVSchedulerService] Failed to execute bcdedit via Utils.RunScriptSTA: {0}</value>
   </data>
   <data name="UsbVmbus_LogStoppingTunnel" xml:space="preserve">
     <value>[StopTunnel] Stopping old tunnel: {0}</value>

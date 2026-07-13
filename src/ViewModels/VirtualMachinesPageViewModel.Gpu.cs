@@ -68,9 +68,10 @@ namespace ExHyperV.ViewModels
         private async Task RefreshCurrentVmGpuAssignments()
         {
             if (SelectedVm == null) return;
+            string vmName = SelectedVm.Name;   // 捕获：异步期间若切换 VM，避免把 A 的显卡数据填到 B
             try
             {
-                var vmAdapters = await _vmGpuService.GetVmGpuAdaptersAsync(SelectedVm.Name);
+                var vmAdapters = await _vmGpuService.GetVmGpuAdaptersAsync(vmName);
                 var hostGpus = await _vmGpuService.GetHostGpusAsync();
 
                 var tempList = new List<VmGpuAssignment>();
@@ -103,6 +104,7 @@ namespace ExHyperV.ViewModels
                 }
 
                 Application.Current.Dispatcher.Invoke(() => {
+                    if (SelectedVm == null || SelectedVm.Name != vmName) return;   // 选中已切走，丢弃本次结果
                     bool isHardwareSame = SelectedVm.AssignedGpus.Count == tempList.Count &&
                                          SelectedVm.AssignedGpus.Select(x => x.AdapterId)
                                                       .SequenceEqual(tempList.Select(x => x.AdapterId));
@@ -178,6 +180,71 @@ namespace ExHyperV.ViewModels
             {
                 IsLoadingSettings = false;
             }
+        }
+
+        private bool CanUpdateGpuDrivers(VmGpuAssignment assignment) =>
+            SelectedVm != null && assignment != null && !string.IsNullOrWhiteSpace(assignment.PName);
+
+        [RelayCommand(CanExecute = nameof(CanUpdateGpuDrivers))]
+        private async Task UpdateGpuDriversAsync(VmGpuAssignment assignment)
+        {
+            if (!CanUpdateGpuDrivers(assignment)) return;
+
+            IsLoadingSettings = true;
+            try
+            {
+                SelectedHostGpu = new GpuInfo
+                {
+                    Name = assignment.Name,
+                    Manu = assignment.Manu,
+                    Vendor = assignment.Vendor,
+                    DriverVersion = assignment.DriverVersion,
+                    Pname = assignment.PName,
+                    Ram = assignment.Ram
+                };
+
+                _currentProcessingGpuAdapterId = null;
+                _needConfig = false;
+                ShowPartitionSelector = false;
+                ShowSshForm = false;
+                ShowLogConsole = true;
+                GpuDeploymentLog = string.Empty;
+
+                var scripts = await _vmGpuService.GetAvailableScriptsAsync();
+                AvailableLinuxScripts = new ObservableCollection<LinuxScriptItem>(scripts);
+                SelectedLinuxScript = AvailableLinuxScripts.FirstOrDefault();
+
+                GpuTasks.Clear();
+                GpuTasks.Add(new TaskItem
+                {
+                    TaskType = GpuTaskType.PowerCheck,
+                    Name = Properties.Resources.Task_Gpu_Power,
+                    Description = Properties.Resources.Msg_Gpu_CheckingPower,
+                    Status = GpuTaskStatus.Pending
+                });
+                GpuTasks.Add(new TaskItem
+                {
+                    TaskType = GpuTaskType.Driver,
+                    Name = Properties.Resources.Task_Gpu_Driver,
+                    Description = Properties.Resources.Msg_Gpu_WaitingScan,
+                    Status = GpuTaskStatus.Pending
+                });
+
+                AppendLog(string.Format(Properties.Resources.Msg_Gpu_WorkStart, SelectedVm.Name));
+                AppendLog(string.Format(Properties.Resources.Msg_Gpu_Selected, SelectedHostGpu.Name));
+                CurrentViewType = VmDetailViewType.AddGpuProgress;
+            }
+            catch (Exception ex)
+            {
+                ShowError($"{Properties.Resources.Error_Common_LoadFail}：{ex.Message}");
+                return;
+            }
+            finally
+            {
+                IsLoadingSettings = false;
+            }
+
+            await RunRealGpuWorkflowAsync(0);
         }
 
 
@@ -350,7 +417,7 @@ namespace ExHyperV.ViewModels
                             break;
 
                         case GpuTaskType.PowerCheck:
-                            if (_needConfig || AutoInstallDrivers)
+                            if (_needConfig || tasks.Any(t => t.TaskType == GpuTaskType.Driver))
                             {
                                 var (isOff, state) = await _queryService.IsVmPoweredOffAsync(SelectedVm.Name);
                                 if (!isOff)

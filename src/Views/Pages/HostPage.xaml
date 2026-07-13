@@ -238,9 +238,8 @@
                                      IsEnabled="{Binding IsSystemSwitchEnabled}"/>
                 </ui:CardControl>
 
-                <!-- 宿主原生 NVMe (Windows Server 2025 / Win11 24H2+) -->
-                <ui:CardControl Margin="0,0,0,8" Padding="12"
-                                Visibility="{Binding IsNativeNvmeSupported, Converter={StaticResource BoolToVis}}">
+                <!-- 宿主原生 NVMe (Windows Server 2025 / Win11 24H2+)。不支持的系统上不隐藏，仅置灰开关。 -->
+                <ui:CardControl Margin="0,0,0,8" Padding="12">
                     <ui:CardControl.Icon>
                         <ui:FontIcon FontSize="22" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xEEA1;"/>
                     </ui:CardControl.Icon>

@@ -8,7 +8,7 @@
     xmlns:converters="clr-namespace:ExHyperV.Converters"
     xmlns:tools="clr-namespace:ExHyperV.Tools"
     Title="{Binding VmName}"
-    MinWidth="780"
+    MinWidth="600"
     MinHeight="340"
     Width="1100"
     Height="820"
@@ -151,7 +151,7 @@
                             <ui:DropDownButton.Flyout>
                                 <ContextMenu>
                                     <MenuItem Header="{x:Static properties:Resources.ConsoleViewModel_BasicSession}" Command="{Binding SwitchSessionModeCommand}" CommandParameter="{x:Static properties:Resources.ConsoleViewModel_BasicSession}" />
-                                    <MenuItem Header="{x:Static properties:Resources.ConsoleViewModel_EnhancedSession}" Command="{Binding SwitchSessionModeCommand}" CommandParameter="{x:Static properties:Resources.ConsoleViewModel_EnhancedSession}" />
+                                    <MenuItem Header="{x:Static properties:Resources.ConsoleViewModel_EnhancedSession}" Command="{Binding SwitchSessionModeCommand}" CommandParameter="{x:Static properties:Resources.ConsoleViewModel_EnhancedSession}" IsEnabled="{Binding IsEnhancedAvailable}" />
                                 </ContextMenu>
                             </ui:DropDownButton.Flyout>
                         </ui:DropDownButton>
