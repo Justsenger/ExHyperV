@@ -190,6 +190,8 @@ namespace ExHyperV.Services
                     DynamicMemoryEnabled = p.EnableDynamicMemory,
                     Minimum = p.EnableDynamicMemory ? p.MemoryMb / 2 : p.MemoryMb,
                     Maximum = p.EnableDynamicMemory ? p.MemoryMb * 4 : p.MemoryMb,
+                    Buffer = 20,
+                    Priority = 50
                 };
                 var memResult = await VmMemoryService.SetVmMemorySettingsAsync(finalVmName, memSettings, false);
                 if (!memResult.Success)
