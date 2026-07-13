@@ -580,7 +580,7 @@ namespace ExHyperV.Services
                     for (int attempt = 0; attempt < 20; attempt++)
                     {
                         var diskDriveResp = await WmiApi.QueryFirstAsync(
-                            $"SELECT DeviceID, DriveNumber FROM Msvm_DiskDrive WHERE DriveNumber = {physicalDiskNumber}",
+                            $"SELECT * FROM Msvm_DiskDrive WHERE DriveNumber = {physicalDiskNumber}",
                             obj => new
                             {
                                 Path = obj["__PATH"]?.ToString() ?? obj.Path.Path,
