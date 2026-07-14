@@ -38,34 +38,41 @@ public static class VmProcessorService
                 CompatibilityForOlderOperatingSystemsEnabled = procData.TryGet<bool>("LimitCPUID") ?? false,
                 SmtMode = ConvertHwThreadsToSmtMode(Convert.ToUInt32(procData["HwThreadsPerCore"])),
 
-                DisableSpeculationControls = procData.TryGet<bool>("DisableSpeculationControls"),
-                HideHypervisorPresent = procData.TryGet<bool>("HideHypervisorPresent"),
-                EnablePerfmonArchPmu = procData.TryGet<bool>("EnablePerfmonArchPmu"),
-                AllowAcountMcount = procData.TryGet<bool>("AllowAcountMcount"),
-                EnableSocketTopology = procData.TryGet<bool>("EnableSocketTopology"),
-                CpuBrandString = procData.TryGetString("CpuBrandString"),
+                // 门控字段：用 P*(HasProperty ? 值 ?? 默认 : null) 读——令"值 null"仅代表"属性不在 schema(不支持)"，
+                // 避免高版本"属性存在但当前 VM 默认值 null"被 UI 的值-null 门控误灰（29617 上 Perfmon/调频项就是这样）。
+                DisableSpeculationControls = PBool(procData, "DisableSpeculationControls"),
+                HideHypervisorPresent = PBool(procData, "HideHypervisorPresent"),
+                EnablePerfmonArchPmu = PBool(procData, "EnablePerfmonArchPmu"),
+                AllowAcountMcount = PBool(procData, "AllowAcountMcount"),
+                EnableSocketTopology = PBool(procData, "EnableSocketTopology"),
+                CpuBrandString = PStr(procData, "CpuBrandString"),
 
-                ApicMode = (VmApicMode?)procData.TryGetByte("ApicMode"),
-                L3CacheWays = procData.TryGet<uint>("L3CacheWays"),
-                L3DistributionPolicy = (L3DistributionPolicy?)procData.TryGetByte("L3ProcessorDistributionPolicy"),
-                PageShatterMode = (PageShatterMode?)procData.TryGetByte("EnablePageShattering"),
+                ApicMode = (VmApicMode?)PByte(procData, "ApicMode"),
+                L3CacheWays = PUInt(procData, "L3CacheWays"),
+                L3DistributionPolicy = (L3DistributionPolicy?)PByte(procData, "L3ProcessorDistributionPolicy"),
+                PageShatterMode = (PageShatterMode?)PByte(procData, "EnablePageShattering"),
 
+                // 频率值要留 null 显示空白、且不能误写默认，故值保持 Nz(未设=null)；UI 的 Tag 改按 SupportedProps 判支持(下方)。
                 PerfCpuFreqCapMhz = Nz(procData.TryGet<uint>("PerfCpuFreqCapMhz")),
                 PerfCpuFreqMinMhz = Nz(procData.TryGet<uint>("PerfCpuFreqMinMhz")),
                 PerfCpuFreqDesiredMhz = Nz(procData.TryGet<uint>("PerfCpuFreqDesiredMhz")),
                 PerfCpuEnergyPerformancePreference = Nz(procData.TryGet<uint>("PerfCpuEnergyPerformancePreference")),
                 PerfCpuAutonomousActivityWindow = Nz(procData.TryGet<uint>("PerfCpuAutonomousActivityWindow")),
-                PerfCpuIgnoreHostMaxFrequency = procData.TryGet<bool>("PerfCpuIgnoreHostMaxFrequency"),
+                PerfCpuIgnoreHostMaxFrequency = PBool(procData, "PerfCpuIgnoreHostMaxFrequency"),
 
-                EnablePerfmonPmu = procData.TryGet<bool>("EnablePerfmonPmu"),
-                EnablePerfmonLbr = procData.TryGet<bool>("EnablePerfmonLbr"),
-                EnablePerfmonPebs = procData.TryGet<bool>("EnablePerfmonPebs"),
-                EnablePerfmonIpt = procData.TryGet<bool>("EnablePerfmonIpt"),
+                EnablePerfmonPmu = PBool(procData, "EnablePerfmonPmu"),
+                EnablePerfmonLbr = PBool(procData, "EnablePerfmonLbr"),
+                EnablePerfmonPebs = PBool(procData, "EnablePerfmonPebs"),
+                EnablePerfmonIpt = PBool(procData, "EnablePerfmonIpt"),
 
                 ExtendedVirtualizationExtensions = Nz(procData.TryGet<uint>("ExtendedVirtualizationExtensions")),
                 MaxHwIsolatedGuests = Nz(procData.TryGet<uint>("MaxHwIsolatedGuests")),
                 MaxClusterCountPerSocket = Nz(procData.TryGet<uint>("MaxClusterCountPerSocket")),
                 MaxProcessorCountPerL3 = Nz(procData.TryGet<uint>("MaxProcessorCountPerL3")),
+
+                // 宿主实际存在的属性名集合(schema)，供频率字段 UI 门控判"支持"。
+                SupportedProps = new HashSet<string>(
+                    procData.Properties.Cast<PropertyData>().Select(p => p.Name), StringComparer.OrdinalIgnoreCase),
             };
         });
 
@@ -172,6 +179,12 @@ public static class VmProcessorService
 
     // uint 字段未设置时 WMI 返回 0xFFFFFFFF（如 AMD CCX 拓扑字段），归一为 null → UI 显示空白
     private static uint? Nz(uint? v) => v == uint.MaxValue ? (uint?)null : v;
+
+    // 门控读取：属性存在但值 null(高版本新属性、当前 VM 未设过) → 返回默认值(非 null)，令"值 null"仅代表"属性不在 schema(不支持)"。
+    private static bool? PBool(ManagementObject p, string n) => p.HasProperty(n) ? (p.TryGet<bool>(n) ?? false) : (bool?)null;
+    private static byte? PByte(ManagementObject p, string n) => p.HasProperty(n) ? (p.TryGetByte(n) ?? (byte)0) : (byte?)null;
+    private static uint? PUInt(ManagementObject p, string n) => p.HasProperty(n) ? (p.TryGet<uint>(n) ?? 0u) : (uint?)null;
+    private static string? PStr(ManagementObject p, string n) => p.HasProperty(n) ? (p.TryGetString(n) ?? "") : null;
 
     private static SmtMode ConvertHwThreadsToSmtMode(uint hwThreads)
         => hwThreads == 1 ? SmtMode.SingleThread : SmtMode.MultiThread;

@@ -63,5 +63,9 @@ namespace ExHyperV.Models
         // ── 新增：AMD CCX 拓扑（仅 AMD；Intel 上设值 VM 拒启）──
         [ObservableProperty] private uint? _maxClusterCountPerSocket;
         [ObservableProperty] private uint? _maxProcessorCountPerL3;
+
+        /// <summary>宿主 Msvm_ProcessorSettingData 实际存在的属性名集合(schema)。频率字段的 UI 门控据此判"支持"(HasProperty)，
+        /// 不看值——因为高版本新属性可能"存在但默认值 null"，按值会把支持的字段误灰。</summary>
+        public HashSet<string> SupportedProps { get; set; } = new(System.StringComparer.OrdinalIgnoreCase);
     }
 }
