@@ -3123,4 +3123,61 @@ The existing NAT switch is: '{0}'</value>
   <data name="CpuEnum_Shatter_AlwaysDisabled" xml:space="preserve">
     <value>Never Shatter (large pages)</value>
   </data>
+  <data name="Gpu_StalePathTitle" xml:space="preserve">
+    <value>GPU path changed</value>
+  </data>
+  <data name="Gpu_StalePathMessage" xml:space="preserve">
+    <value>The GPU assigned to VM "{0}" is still on the host, but its device path has changed, so it cannot start.
+
+Update the reference and retry?</value>
+  </data>
+  <data name="Gpu_StaleRebindConfirm" xml:space="preserve">
+    <value>Update and retry</value>
+  </data>
+  <data name="Gpu_StaleTitle" xml:space="preserve">
+    <value>GPU partition not found</value>
+  </data>
+  <data name="Gpu_StaleMessage" xml:space="preserve">
+    <value>The GPU assigned to VM "{0}" no longer exists on this host, so it cannot start.
+
+Clear it and retry?</value>
+  </data>
+  <data name="Gpu_StaleRemoveConfirm" xml:space="preserve">
+    <value>Clear and retry</value>
+  </data>
+  <data name="Gpu_StaleRepairFail" xml:space="preserve">
+    <value>Failed to repair the invalid GPU partition.</value>
+  </data>
+  <data name="Gpu_StaleRebound" xml:space="preserve">
+    <value>Updated {0} GPU reference(s); retrying start…</value>
+  </data>
+  <data name="Gpu_StaleRemovedMsg" xml:space="preserve">
+    <value>Cleared {0} invalid GPU partition(s); retrying start…</value>
+  </data>
+  <data name="Gpu_StaleRepaired" xml:space="preserve">
+    <value>GPU configuration repaired; retrying start…</value>
+  </data>
+  <data name="Storage_StaleDiskTitle" xml:space="preserve">
+    <value>Physical disk not found</value>
+  </data>
+  <data name="Storage_StaleDiskMessage" xml:space="preserve">
+    <value>The pass-through physical disk(s) ({1}) attached to VM "{0}" have been unplugged or removed from the host, so it cannot start.
+
+Remove them from storage and retry? Cancel to re-plug the device and try again.</value>
+  </data>
+  <data name="Storage_StaleDiskConfirm" xml:space="preserve">
+    <value>Remove and start</value>
+  </data>
+  <data name="Storage_StaleDiskRemoved" xml:space="preserve">
+    <value>Removed {0} missing physical disk(s); retrying start…</value>
+  </data>
+  <data name="Storage_StaleDiskRemoveFail" xml:space="preserve">
+    <value>Failed to remove the missing physical disk.</value>
+  </data>
+  <data name="Storage_PhysicalDiskNumbered" xml:space="preserve">
+    <value>Physical disk {0}</value>
+  </data>
+  <data name="Storage_PhysicalDisk" xml:space="preserve">
+    <value>a failed storage device</value>
+  </data>
 </root>

@@ -3123,4 +3123,61 @@
   <data name="CpuEnum_Shatter_AlwaysDisabled" xml:space="preserve">
     <value>从不拆分（保留大页）</value>
   </data>
+  <data name="Gpu_StalePathTitle" xml:space="preserve">
+    <value>检测到 GPU 路径变化</value>
+  </data>
+  <data name="Gpu_StalePathMessage" xml:space="preserve">
+    <value>虚拟机「{0}」的 GPU 仍在主机上，但设备路径已变化，导致无法开机。
+
+是否更新指向并重试？</value>
+  </data>
+  <data name="Gpu_StaleRebindConfirm" xml:space="preserve">
+    <value>更新并重试</value>
+  </data>
+  <data name="Gpu_StaleTitle" xml:space="preserve">
+    <value>检测到失效的 GPU 分区</value>
+  </data>
+  <data name="Gpu_StaleMessage" xml:space="preserve">
+    <value>虚拟机「{0}」分配的 GPU 在当前主机已不存在，导致无法开机。
+
+是否清除并重试？</value>
+  </data>
+  <data name="Gpu_StaleRemoveConfirm" xml:space="preserve">
+    <value>清除并重试</value>
+  </data>
+  <data name="Gpu_StaleRepairFail" xml:space="preserve">
+    <value>修复失效 GPU 分区失败。</value>
+  </data>
+  <data name="Gpu_StaleRebound" xml:space="preserve">
+    <value>已更新 {0} 个 GPU 指向，正在重试开机…</value>
+  </data>
+  <data name="Gpu_StaleRemovedMsg" xml:space="preserve">
+    <value>已清除 {0} 个失效 GPU 分区，正在重试开机…</value>
+  </data>
+  <data name="Gpu_StaleRepaired" xml:space="preserve">
+    <value>已修复 GPU 配置，正在重试开机…</value>
+  </data>
+  <data name="Storage_StaleDiskTitle" xml:space="preserve">
+    <value>检测到失效的物理磁盘</value>
+  </data>
+  <data name="Storage_StaleDiskMessage" xml:space="preserve">
+    <value>虚拟机「{0}」直通的物理磁盘（{1}）已被拔出或从主机移除，导致无法开机。
+
+是否将其从存储中移除并重试开机？取消则可重新插入设备后再试。</value>
+  </data>
+  <data name="Storage_StaleDiskConfirm" xml:space="preserve">
+    <value>移除并启动</value>
+  </data>
+  <data name="Storage_StaleDiskRemoved" xml:space="preserve">
+    <value>已移除 {0} 块失效物理磁盘，正在重试开机…</value>
+  </data>
+  <data name="Storage_StaleDiskRemoveFail" xml:space="preserve">
+    <value>移除失效物理磁盘失败。</value>
+  </data>
+  <data name="Storage_PhysicalDiskNumbered" xml:space="preserve">
+    <value>物理磁盘 {0}</value>
+  </data>
+  <data name="Storage_PhysicalDisk" xml:space="preserve">
+    <value>失效的存储介质</value>
+  </data>
 </root>

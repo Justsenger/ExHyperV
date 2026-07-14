@@ -8652,5 +8652,73 @@ namespace ExHyperV.Properties {
                 return ResourceManager.GetString("Cpu_MaxProcPerL3Desc", resourceCulture);
             }
         }
+
+        public static string Gpu_StalePathTitle {
+            get { return ResourceManager.GetString("Gpu_StalePathTitle", resourceCulture); }
+        }
+
+        public static string Gpu_StalePathMessage {
+            get { return ResourceManager.GetString("Gpu_StalePathMessage", resourceCulture); }
+        }
+
+        public static string Gpu_StaleRebindConfirm {
+            get { return ResourceManager.GetString("Gpu_StaleRebindConfirm", resourceCulture); }
+        }
+
+        public static string Gpu_StaleTitle {
+            get { return ResourceManager.GetString("Gpu_StaleTitle", resourceCulture); }
+        }
+
+        public static string Gpu_StaleMessage {
+            get { return ResourceManager.GetString("Gpu_StaleMessage", resourceCulture); }
+        }
+
+        public static string Gpu_StaleRemoveConfirm {
+            get { return ResourceManager.GetString("Gpu_StaleRemoveConfirm", resourceCulture); }
+        }
+
+        public static string Gpu_StaleRepairFail {
+            get { return ResourceManager.GetString("Gpu_StaleRepairFail", resourceCulture); }
+        }
+
+        public static string Gpu_StaleRebound {
+            get { return ResourceManager.GetString("Gpu_StaleRebound", resourceCulture); }
+        }
+
+        public static string Gpu_StaleRemovedMsg {
+            get { return ResourceManager.GetString("Gpu_StaleRemovedMsg", resourceCulture); }
+        }
+
+        public static string Gpu_StaleRepaired {
+            get { return ResourceManager.GetString("Gpu_StaleRepaired", resourceCulture); }
+        }
+
+        public static string Storage_StaleDiskTitle {
+            get { return ResourceManager.GetString("Storage_StaleDiskTitle", resourceCulture); }
+        }
+
+        public static string Storage_StaleDiskMessage {
+            get { return ResourceManager.GetString("Storage_StaleDiskMessage", resourceCulture); }
+        }
+
+        public static string Storage_StaleDiskConfirm {
+            get { return ResourceManager.GetString("Storage_StaleDiskConfirm", resourceCulture); }
+        }
+
+        public static string Storage_StaleDiskRemoved {
+            get { return ResourceManager.GetString("Storage_StaleDiskRemoved", resourceCulture); }
+        }
+
+        public static string Storage_StaleDiskRemoveFail {
+            get { return ResourceManager.GetString("Storage_StaleDiskRemoveFail", resourceCulture); }
+        }
+
+        public static string Storage_PhysicalDiskNumbered {
+            get { return ResourceManager.GetString("Storage_PhysicalDiskNumbered", resourceCulture); }
+        }
+
+        public static string Storage_PhysicalDisk {
+            get { return ResourceManager.GetString("Storage_PhysicalDisk", resourceCulture); }
+        }
     }
 }

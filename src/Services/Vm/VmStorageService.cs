@@ -67,6 +67,40 @@ namespace ExHyperV.Services
             });
         }
 
+        // 该 VM 悬空的直通物理硬盘(HostResource 钉的盘已从可直通池 Msvm_DiskDrive 消失——被拔出/联机)。
+        // 无副作用(不动 vm.StorageItems)，复用 BuildStorageItems 的 stale 检测，供开机失败反应式清理用。
+        public static async Task<List<VmStorageItem>> FindStalePassthroughDisksAsync(string vmName)
+        {
+            var empty = new List<VmStorageItem>();
+            if (string.IsNullOrEmpty(vmName)) return empty;
+
+            var resp = await WmiApi.WithFirstAsync(
+                $"SELECT * FROM Msvm_VirtualSystemSettingData " +
+                $"WHERE ElementName = '{WmiApi.Escape(vmName)}' AND VirtualSystemType = 'Microsoft:Hyper-V:System:Realized'",
+                async settings =>
+                {
+                    var rasdResp = await WmiApi.QueryRelatedCimAsync(settings, "Msvm_VirtualSystemSettingDataComponent",
+                        "Msvm_ResourceAllocationSettingData", "GroupComponent", "PartComponent", obj => obj, WmiScope.HyperV);
+                    var sasdResp = await WmiApi.QueryRelatedCimAsync(settings, "Msvm_VirtualSystemSettingDataComponent",
+                        "Msvm_StorageAllocationSettingData", "GroupComponent", "PartComponent", obj => obj, WmiScope.HyperV);
+                    return (rasdResp, sasdResp);
+                },
+                WmiScope.HyperV);
+
+            if (!resp.HasData) return empty;
+            var (rasdResp, sasdResp) = resp.Data!;
+            if (!rasdResp.Success || !sasdResp.Success) return empty;
+            var allResources = rasdResp.Data!.Concat(sasdResp.Data!).ToList();
+
+            var items = await Task.Run(() =>
+            {
+                Dictionary<string, int>? hvDiskMap = null;
+                Dictionary<int, HostDiskInfoCache>? osDiskMap = null;
+                return BuildStorageItems(allResources, ref hvDiskMap, ref osDiskMap);
+            });
+            return items.Where(i => i.IsPassthroughStale && i.DiskType == "Physical" && i.DriveType == "HardDisk").ToList();
+        }
+
         private static List<VmStorageItem> BuildStorageItems(
             List<ManagementObject> allResources,
             ref Dictionary<string, int>? hvDiskMap,
@@ -189,9 +223,11 @@ namespace ExHyperV.Services
                                             dNum = int.Parse(numMatch.Groups[1].Value);
                                     }
 
+                                    // 悬空且解析不出盘号(NODRIVE)时 dNum=-1，显式落到 DiskNumber：
+                                    // UI 走通用文案，移除时也不会把默认值 0 误当宿主磁盘 0 去联机。
+                                    driveItem.DiskNumber = dNum;
                                     if (dNum != -1)
                                     {
-                                        driveItem.DiskNumber = dNum;
                                         driveItem.PathOrDiskNumber = $"PhysicalDisk{dNum}";
                                         if (osDiskMap != null && osDiskMap.TryGetValue(dNum, out var hostInfo))
                                         {

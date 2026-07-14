@@ -308,6 +308,12 @@ namespace ExHyperV.ViewModels
                         {
                             return; // 已介入处理,不再弹通用报错
                         }
+                        // 同款反应式修复:开机失败且挂着悬空直通物理盘 → 弹确认 → 移除 → 重试。
+                        if ((action == "Start" || action == "Restart")
+                            && await TryRemoveStalePassthroughDiskAndRetryAsync(instance, action, result.Error))
+                        {
+                            return;
+                        }
                         ShowError(FriendlyError.CleanLines(result.Error));
                         return;
                     }
@@ -351,31 +357,31 @@ namespace ExHyperV.ViewModels
             string title, message, confirmText;
             if (allRebind)
             {
-                title = "检测到 GPU 路径变化";
-                message = $"虚拟机「{instance.Name}」的 GPU 仍在主机上,但设备路径已变化,导致无法开机。\n\n是否更新指向并重试?";
-                confirmText = "更新并重试";
+                title = Properties.Resources.Gpu_StalePathTitle;
+                message = string.Format(Properties.Resources.Gpu_StalePathMessage, instance.Name);
+                confirmText = Properties.Resources.Gpu_StaleRebindConfirm;
             }
             else
             {
-                title = "检测到失效的 GPU 分区";
-                message = $"虚拟机「{instance.Name}」分配的 GPU 在当前主机已不存在,导致无法开机。\n\n是否清除并重试?";
-                confirmText = "清除并重试";
+                title = Properties.Resources.Gpu_StaleTitle;
+                message = string.Format(Properties.Resources.Gpu_StaleMessage, instance.Name);
+                confirmText = Properties.Resources.Gpu_StaleRemoveConfirm;
             }
             bool ok = await Dialogs.ShowConfirmAsync(
-                title, message, confirmText, "取消",
+                title, message, confirmText, Properties.Resources.Btn_Cancel,
                 isDanger: true, showIcon: false, maxWidth: 340);
             if (!ok) return true; // 用户取消:已介入,不再弹通用报错
 
             var (success, repairMsg, rebound, removed) = await VmGpuRepairService.RepairAsync(instance.Name, stale);
             if (!success)
             {
-                ShowError(string.IsNullOrEmpty(repairMsg) ? "修复失效 GPU 分区失败。" : repairMsg);
+                ShowError(string.IsNullOrEmpty(repairMsg) ? Properties.Resources.Gpu_StaleRepairFail : repairMsg);
                 return true;
             }
             ShowSuccess(
-                (rebound > 0 && removed == 0) ? $"已更新 {rebound} 个 GPU 指向,正在重试开机…" :
-                (removed > 0 && rebound == 0) ? $"已清除 {removed} 个失效 GPU 分区,正在重试开机…" :
-                "已修复 GPU 配置,正在重试开机…");
+                (rebound > 0 && removed == 0) ? string.Format(Properties.Resources.Gpu_StaleRebound, rebound) :
+                (removed > 0 && rebound == 0) ? string.Format(Properties.Resources.Gpu_StaleRemovedMsg, removed) :
+                Properties.Resources.Gpu_StaleRepaired);
 
             // 重试开机(引擎就地改 .vmcx 即生效,无需停 vmms)
             instance.SetTransientState(GetOptimisticText(action));
@@ -392,6 +398,62 @@ namespace ExHyperV.ViewModels
             }
             return true;
         }
+
+        // 开机失败且挂着悬空直通物理盘(HostResource 钉的盘已从可直通池消失——被拔出/联机) → 弹确认移除该盘再重试。
+        // 返回 true=已介入(不再弹通用报错);false=无悬空盘/失败另有其因,交回通用报错。与 GPU-PV 悬空处理同款。
+        private async Task<bool> TryRemoveStalePassthroughDiskAndRetryAsync(VmInstanceViewModel instance, string action, string startError)
+        {
+            List<VmStorageItem> stale;
+            try { stale = await VmStorageService.FindStalePassthroughDisksAsync(instance.Name); }
+            catch { return false; }
+            if (stale.Count == 0) return false;
+
+            // 确认失败确由物理盘附件打不开引起(否则内存不足等被误报)。判据本地化无关:错误码 0x80070103 或英文 "failed to open"。
+            string err = startError ?? string.Empty;
+            bool diskImplicated = err.IndexOf("0x80070103", StringComparison.OrdinalIgnoreCase) >= 0
+                || err.IndexOf("failed to open", StringComparison.OrdinalIgnoreCase) >= 0;
+            if (!diskImplicated) return false;
+
+            string names = string.Join(", ", stale.Select(DescribeStalePassthroughDisk));
+            bool ok = await Dialogs.ShowConfirmAsync(
+                Properties.Resources.Storage_StaleDiskTitle,
+                string.Format(Properties.Resources.Storage_StaleDiskMessage, instance.Name, names),
+                Properties.Resources.Storage_StaleDiskConfirm, Properties.Resources.Btn_Cancel,
+                isDanger: true, showIcon: false, maxWidth: 360);
+            if (!ok) return true; // 用户取消:已介入,不再弹通用报错
+
+            int removed = 0;
+            foreach (var d in stale)
+            {
+                var r = await VmStorageService.RemoveDriveAsync(instance.Name, d);
+                if (r.Success) removed++;
+            }
+            if (removed == 0)
+            {
+                ShowError(Properties.Resources.Storage_StaleDiskRemoveFail);
+                return true;
+            }
+            ShowSuccess(string.Format(Properties.Resources.Storage_StaleDiskRemoved, removed));
+
+            instance.SetTransientState(GetOptimisticText(action));
+            var retry = await VmPowerService.ExecuteControlActionAsync(instance.Name, action);
+            if (!retry.Success)
+            {
+                Application.Current.Dispatcher.Invoke(() => instance.ClearTransientState());
+                ShowError(FriendlyError.CleanLines(retry.Error));
+            }
+            else
+            {
+                await SyncSingleVmStateAsync(instance);
+                if (action == "Start" || action == "Restart") TryApplyAffinityForRootScheduler(instance);
+            }
+            return true;
+        }
+
+        private static string DescribeStalePassthroughDisk(VmStorageItem d)
+            => !string.IsNullOrEmpty(d.DiskModel) ? d.DiskModel
+             : d.DiskNumber >= 0 ? string.Format(Properties.Resources.Storage_PhysicalDiskNumbered, d.DiskNumber)
+             : Properties.Resources.Storage_PhysicalDisk;
 
         public List<string> AvailableOsTypes => OsImages.SupportedTypes;
 
