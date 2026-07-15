@@ -128,7 +128,7 @@ public static class VmDeleteService
             $"SELECT Name FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(vmName)}'",
             obj => obj["Name"]?.ToString(), WmiScope.HyperV);
         return still.HasData
-            ? (false, $"引擎报成功但虚拟机 '{vmName}' 仍在册（可能是保存态/受 TPM 保护，未能彻底销毁）")
+            ? (false, string.Format(Properties.Resources.VmDelete_DestroyVerifyFail, vmName))
             : (true, string.Empty);
     }
 
@@ -150,7 +150,7 @@ public static class VmDeleteService
             $"SELECT EnabledState FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(vmName)}'",
             obj => Convert.ToInt32(obj["EnabledState"] ?? (ushort)0), WmiScope.HyperV);
         if (after.HasData && !IsOffOrOrphan(after.Data))
-            return (false, off.Success ? $"虚拟机 '{vmName}' 未能进入关机状态" : off.Error);
+            return (false, off.Success ? string.Format(Properties.Resources.VmDelete_TurnOffFail, vmName) : off.Error);
         return (true, string.Empty);
     }
 

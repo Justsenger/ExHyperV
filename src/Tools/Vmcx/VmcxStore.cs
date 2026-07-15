@@ -62,7 +62,7 @@ public sealed class VmcxStore : IDisposable {
         lock (s_initLock) {
             if (s_statics != IntPtr.Zero) return;   // 双重检查:并发首调下只初始化一次
             IntPtr dll = LoadLibrary(@"C:\Windows\System32\VmDataStore.dll");
-            if (dll == IntPtr.Zero) throw new InvalidOperationException("无法加载 VmDataStore.dll(需在 Hyper-V 主机上运行)");
+            if (dll == IntPtr.Zero) throw new InvalidOperationException(Properties.Resources.Vmcx_DllLoadFail);
             IntPtr fac;
             Hr(D<DGetFac>(GetProcAddress(dll, "DllGetActivationFactory"))(MakeHStr("Microsoft.HyperV.DataStore.KeyValueStore"), out fac), "GetActivationFactory");
             Guid s = IID_STATICS; IntPtr statics;
@@ -118,7 +118,7 @@ public sealed class VmcxStore : IDisposable {
             while (has != 0 && guard++ < 1000000) {
                 IntPtr node = IntPtr.Zero;
                 Hr(getCur(iter, out node), "Current");
-                if (node == IntPtr.Zero) throw new VmcxException("Current 返回空节点", -1);
+                if (node == IntPtr.Zero) throw new VmcxException(Properties.Resources.Vmcx_CurrentNullNode, -1);
                 try {
                     byte isv; Hr(D<DByte>(Slot(node, 7))(node, out isv), "IsValue");
                     IntPtr hk = IntPtr.Zero, ht = IntPtr.Zero, hv = IntPtr.Zero;
@@ -164,7 +164,7 @@ public sealed class VmcxStore : IDisposable {
         int K = -1;
         foreach (var kv in entries)
             if (((kv.Value[2] ?? "").Trim('{','}').ToLowerInvariant()) == g) { K = kv.Key; break; }
-        if (K < 0) throw new VmcxException("未找到 instance="+instanceGuid+" 的 manifest 条目", -1);
+        if (K < 0) throw new VmcxException(string.Format(Properties.Resources.Vmcx_ManifestEntryNotFound, instanceGuid), -1);
         int maxN = 0; foreach (var kv in entries) if (kv.Key > maxN) maxN = kv.Key;
 
         // ① manifest 原子维护:剩余条目压缩重写为 1..N 连续,多余尾部删除,size=实际条目数。
@@ -216,7 +216,7 @@ public sealed class VmcxStore : IDisposable {
         var issues = new List<string>();
         var nodes = Enumerate();
         long size = -1;
-        try { size = GetInteger("/configuration/manifest/size"); } catch { issues.Add("manifest/size 读取失败"); }
+        try { size = GetInteger("/configuration/manifest/size"); } catch { issues.Add(Properties.Resources.Vmcx_ManifestSizeReadFail); }
         var vdev = new SortedDictionary<int,string>();
         var vdevType = new SortedDictionary<int,string>(); // vdev 号 → 设备类型 GUID
         var devVals = new Dictionary<string, List<string>>(); // 设备节点 GUID → 其值键(相对路径)
@@ -232,18 +232,18 @@ public sealed class VmcxStore : IDisposable {
                 if (n.IsValue && dm.Groups[3].Success) devVals[gg2].Add(dm.Groups[3].Value);
             }
         }
-        if (size>=0 && size != vdev.Count) issues.Add(string.Format("size={0} 与实际 vdev 数 {1} 不符", size, vdev.Count));
+        if (size>=0 && size != vdev.Count) issues.Add(string.Format(Properties.Resources.Vmcx_SizeMismatch, size, vdev.Count));
         var nums = new List<int>(vdev.Keys);
         if (nums.Count>0)
             for (int i=nums[0]; i<=nums[nums.Count-1]; i++)
-                if (!vdev.ContainsKey(i)) issues.Add("manifest 编号空洞: vdev"+i.ToString("D3"));
+                if (!vdev.ContainsKey(i)) issues.Add(string.Format(Properties.Resources.Vmcx_ManifestGap, i.ToString("D3")));
         var vdevInst = new HashSet<string>();
         foreach (var kv in vdev) vdevInst.Add(kv.Value);
         foreach (var kv in devVals) {
             if (vdevInst.Contains(kv.Key)) continue; // 有 manifest 条目 = 正常
             // 仅剩 VDEVVersion(或空)= 已删设备的瞬态残留桩:无害,VM 照常启动,下次打开会自清。不报为问题。
             bool benign = kv.Value.Count == 0 || (kv.Value.Count == 1 && kv.Value[0].Equals("VDEVVersion", StringComparison.OrdinalIgnoreCase));
-            if (!benign) issues.Add("孤儿数据节点: /_"+kv.Key+"_ 有残留数据但无 manifest 条目(真孤儿,应清除)");
+            if (!benign) issues.Add(string.Format(Properties.Resources.Vmcx_OrphanNode, kv.Key));
         }
         // 反向检查:幽灵设备 = manifest 有条目但数据节点空/缺失,且同类型的其它设备有数据节点。
         //   (致命:VM 报 0x80070002 起不来。)用"同类型兄弟有数据"作判据,避免误报本就无数据节点的平台设备
@@ -257,8 +257,8 @@ public sealed class VmcxStore : IDisposable {
             int c = devVals.ContainsKey(kv.Value) ? devVals[kv.Value].Count : -1;
             string typ = vdevType.ContainsKey(kv.Key) ? vdevType[kv.Key] : "";
             if (c <= 0 && (typesWithData.Contains(typ) || VmcxSchema.FunctionalDeviceTypes.Contains(typ)))
-                issues.Add(string.Format("幽灵设备: manifest vdev{0:D3}(instance={1})数据节点{2}(应为功能设备却无数据)→ VM 将无法启动(应删此条目)",
-                    kv.Key, kv.Value, c < 0 ? "缺失" : "为空"));
+                issues.Add(string.Format(Properties.Resources.Vmcx_GhostDevice,
+                    kv.Key, kv.Value, c < 0 ? Properties.Resources.Vmcx_GhostMissing : Properties.Resources.Vmcx_GhostEmpty));
         }
         // DDA(Virtual Pci Express Port)完整性:必须有 HostResources/HostResource/Instance(物理设备路径);
         //   只剩 VDEVVersion 的残缺 DDA 不会被上面的幽灵检测抓到(它有1个值),但同样起不来。这是用户的核心用例。
@@ -267,7 +267,7 @@ public sealed class VmcxStore : IDisposable {
             string t2; if (!vdevType.TryGetValue(kv.Key, out t2) || t2 != DDA_TYPE) continue;
             var vals = devVals.ContainsKey(kv.Value) ? devVals[kv.Value] : new List<string>();
             if (!vals.Exists(x => x.Equals("HostResources/HostResource/Instance", StringComparison.OrdinalIgnoreCase)))
-                issues.Add(string.Format("残缺 DDA 设备: vdev{0:D3}(instance={1})缺 HostResources/HostResource/Instance → VM 将无法启动", kv.Key, kv.Value));
+                issues.Add(string.Format(Properties.Resources.Vmcx_IncompleteDda, kv.Key, kv.Value));
         }
         return issues;
     }
@@ -291,7 +291,7 @@ public sealed class VmcxStore : IDisposable {
     internal void DoSetInteger(string k, long v){ Hr(WithKey(k, h=>D<DSetI>(Slot(_ikv,SET_INT))(_ikv,h,v)), "SetInteger"); }
     internal void DoSetString (string k, string v){ IntPtr hv=MakeHStr(v); try { Hr(WithKey(k, h=>D<DSetS>(Slot(_ikv,SET_STR))(_ikv,h,hv)), "SetString"); } finally { WindowsDeleteString(hv); } }
     internal void DoRemove    (string k){ Hr(WithKey(k, h=>D<DRemove>(Slot(_ikv,REMOVE))(_ikv,h)), "Remove"); }
-    internal void DoCommit(){ int hr=D<DVoid>(SlotOff(_hvs, OFF_COMMIT))(_hvs); if(hr!=0 && hr!=1) throw new VmcxException("Commit 失败 hr=0x"+hr.ToString("X8"), hr); } // hr==1(S_FALSE)=无改动可提交,非错误
+    internal void DoCommit(){ int hr=D<DVoid>(SlotOff(_hvs, OFF_COMMIT))(_hvs); if(hr!=0 && hr!=1) throw new VmcxException(string.Format(Properties.Resources.Vmcx_OpFailHr, "Commit", hr.ToString("X8")), hr); } // hr==1(S_FALSE)=无改动可提交,非错误
     internal void DoUnlock(){ try { D<DVoid>(SlotOff(_hvs, OFF_UNLOCK))(_hvs); } catch { } }
 
     static IntPtr Slot(IntPtr o, int i){ IntPtr vt=Marshal.ReadIntPtr(o); return Marshal.ReadIntPtr(vt, i*IntPtr.Size); }
@@ -299,7 +299,7 @@ public sealed class VmcxStore : IDisposable {
     static T D<T>(IntPtr f){ return Marshal.GetDelegateForFunctionPointer<T>(f); }
     static IntPtr MakeHStr(string s){ IntPtr h; WindowsCreateString(s ?? "", (uint)(s ?? "").Length, out h); return h; }
     static string FromHStr(IntPtr h){ if(h==IntPtr.Zero) return ""; uint l; IntPtr b=WindowsGetStringRawBuffer(h, out l); return b==IntPtr.Zero?"":Marshal.PtrToStringUni(b,(int)l); }
-    static void Hr(int hr, string what){ if(hr!=0) throw new VmcxException(what + " 失败 hr=0x" + hr.ToString("X8"), hr); }
+    static void Hr(int hr, string what){ if(hr!=0) throw new VmcxException(string.Format(Properties.Resources.Vmcx_OpFailHr, what, hr.ToString("X8")), hr); }
     void ThrowIfDisposed(){ if(_disposed) throw new ObjectDisposedException("VmcxStore"); }
 }
 

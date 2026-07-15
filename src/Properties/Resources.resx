@@ -3180,4 +3180,64 @@ Remove them from storage and retry? Cancel to re-plug the device and try again.<
   <data name="Storage_PhysicalDisk" xml:space="preserve">
     <value>a failed storage device</value>
   </data>
+  <data name="VmDelete_DestroyVerifyFail" xml:space="preserve">
+    <value>The engine reported success but VM '{0}' is still registered (may be in a saved state or TPM-protected, and was not fully destroyed).</value>
+  </data>
+  <data name="VmDelete_TurnOffFail" xml:space="preserve">
+    <value>VM '{0}' could not be turned off.</value>
+  </data>
+  <data name="GpuRepair_VmcxNotFound" xml:space="preserve">
+    <value>The .vmcx configuration file for this VM was not found.</value>
+  </data>
+  <data name="GpuRepair_VmRunning" xml:space="preserve">
+    <value>The VM is running. Shut it down before repairing.</value>
+  </data>
+  <data name="GpuRepair_ValidationFailed" xml:space="preserve">
+    <value>Structure validation failed after repair: </value>
+  </data>
+  <data name="GpuRepair_RepairFailed" xml:space="preserve">
+    <value>Repair failed: </value>
+  </data>
+  <data name="VmConsole_TemplateNotFound" xml:space="preserve">
+    <value>Default template not found: {0} {1}</value>
+  </data>
+  <data name="Vmcx_DllLoadFail" xml:space="preserve">
+    <value>Failed to load VmDataStore.dll (must run on a Hyper-V host).</value>
+  </data>
+  <data name="Vmcx_CurrentNullNode" xml:space="preserve">
+    <value>Current returned a null node.</value>
+  </data>
+  <data name="Vmcx_ManifestEntryNotFound" xml:space="preserve">
+    <value>No manifest entry found for instance={0}.</value>
+  </data>
+  <data name="Vmcx_ManifestSizeReadFail" xml:space="preserve">
+    <value>Failed to read manifest/size.</value>
+  </data>
+  <data name="Vmcx_SizeMismatch" xml:space="preserve">
+    <value>size={0} does not match the actual vdev count {1}.</value>
+  </data>
+  <data name="Vmcx_ManifestGap" xml:space="preserve">
+    <value>Manifest numbering gap: vdev{0}</value>
+  </data>
+  <data name="Vmcx_OrphanNode" xml:space="preserve">
+    <value>Orphan data node: /_{0}_ has leftover data but no manifest entry (a true orphan; should be removed).</value>
+  </data>
+  <data name="Vmcx_GhostDevice" xml:space="preserve">
+    <value>Ghost device: manifest vdev{0:D3} (instance={1}) data node {2} (should be a functional device but has no data) → the VM will fail to start (remove this entry).</value>
+  </data>
+  <data name="Vmcx_GhostMissing" xml:space="preserve">
+    <value>missing</value>
+  </data>
+  <data name="Vmcx_GhostEmpty" xml:space="preserve">
+    <value>empty</value>
+  </data>
+  <data name="Vmcx_IncompleteDda" xml:space="preserve">
+    <value>Incomplete DDA device: vdev{0:D3} (instance={1}) is missing HostResources/HostResource/Instance → the VM will fail to start.</value>
+  </data>
+  <data name="Vmcx_OpFailHr" xml:space="preserve">
+    <value>{0} failed hr=0x{1}</value>
+  </data>
+  <data name="HostPageViewModel_ComponentSeparator" xml:space="preserve">
+    <value>; </value>
+  </data>
 </root>

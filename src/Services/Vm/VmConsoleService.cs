@@ -68,7 +68,7 @@ public static class VmConsoleService
             {
                 if (existingPath != null) continue;   // 已有 → 跳过(幂等)
                 string? tmplXml = FindDefaultTemplate(scope, cls, sub);
-                if (tmplXml == null) return (false, $"未找到默认模板: {cls} {sub}");
+                if (tmplXml == null) return (false, string.Format(Properties.Resources.VmConsole_TemplateNotFound, cls, sub));
                 var r = await WmiApi.InvokeAsync(ServiceWql, "AddResourceSettings",
                     p => { p["AffectedConfiguration"] = affected; p["ResourceSettings"] = new string[] { tmplXml }; });
                 if (!r.Success) return (false, r.Error);

@@ -8720,5 +8720,85 @@ namespace ExHyperV.Properties {
         public static string Storage_PhysicalDisk {
             get { return ResourceManager.GetString("Storage_PhysicalDisk", resourceCulture); }
         }
+        public static string VmDelete_DestroyVerifyFail {
+            get { return ResourceManager.GetString("VmDelete_DestroyVerifyFail", resourceCulture); }
+        }
+
+        public static string VmDelete_TurnOffFail {
+            get { return ResourceManager.GetString("VmDelete_TurnOffFail", resourceCulture); }
+        }
+
+        public static string GpuRepair_VmcxNotFound {
+            get { return ResourceManager.GetString("GpuRepair_VmcxNotFound", resourceCulture); }
+        }
+
+        public static string GpuRepair_VmRunning {
+            get { return ResourceManager.GetString("GpuRepair_VmRunning", resourceCulture); }
+        }
+
+        public static string GpuRepair_ValidationFailed {
+            get { return ResourceManager.GetString("GpuRepair_ValidationFailed", resourceCulture); }
+        }
+
+        public static string GpuRepair_RepairFailed {
+            get { return ResourceManager.GetString("GpuRepair_RepairFailed", resourceCulture); }
+        }
+
+        public static string VmConsole_TemplateNotFound {
+            get { return ResourceManager.GetString("VmConsole_TemplateNotFound", resourceCulture); }
+        }
+
+        public static string Vmcx_DllLoadFail {
+            get { return ResourceManager.GetString("Vmcx_DllLoadFail", resourceCulture); }
+        }
+
+        public static string Vmcx_CurrentNullNode {
+            get { return ResourceManager.GetString("Vmcx_CurrentNullNode", resourceCulture); }
+        }
+
+        public static string Vmcx_ManifestEntryNotFound {
+            get { return ResourceManager.GetString("Vmcx_ManifestEntryNotFound", resourceCulture); }
+        }
+
+        public static string Vmcx_ManifestSizeReadFail {
+            get { return ResourceManager.GetString("Vmcx_ManifestSizeReadFail", resourceCulture); }
+        }
+
+        public static string Vmcx_SizeMismatch {
+            get { return ResourceManager.GetString("Vmcx_SizeMismatch", resourceCulture); }
+        }
+
+        public static string Vmcx_ManifestGap {
+            get { return ResourceManager.GetString("Vmcx_ManifestGap", resourceCulture); }
+        }
+
+        public static string Vmcx_OrphanNode {
+            get { return ResourceManager.GetString("Vmcx_OrphanNode", resourceCulture); }
+        }
+
+        public static string Vmcx_GhostDevice {
+            get { return ResourceManager.GetString("Vmcx_GhostDevice", resourceCulture); }
+        }
+
+        public static string Vmcx_GhostMissing {
+            get { return ResourceManager.GetString("Vmcx_GhostMissing", resourceCulture); }
+        }
+
+        public static string Vmcx_GhostEmpty {
+            get { return ResourceManager.GetString("Vmcx_GhostEmpty", resourceCulture); }
+        }
+
+        public static string Vmcx_IncompleteDda {
+            get { return ResourceManager.GetString("Vmcx_IncompleteDda", resourceCulture); }
+        }
+
+        public static string Vmcx_OpFailHr {
+            get { return ResourceManager.GetString("Vmcx_OpFailHr", resourceCulture); }
+        }
+
+        public static string HostPageViewModel_ComponentSeparator {
+            get { return ResourceManager.GetString("HostPageViewModel_ComponentSeparator", resourceCulture); }
+        }
+
     }
 }

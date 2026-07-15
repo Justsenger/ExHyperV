@@ -119,8 +119,8 @@ namespace ExHyperV.Services
             if (list.Count == 0) return (true, string.Empty, 0, 0);
 
             var (vmcx, _, state) = await ResolveVmcxAsync(vmName);
-            if (vmcx == null) return (false, "找不到该虚拟机的 .vmcx 配置文件。", 0, 0);
-            if (state == State_Running) return (false, "虚拟机正在运行,请先关机再修复。", 0, 0);
+            if (vmcx == null) return (false, Properties.Resources.GpuRepair_VmcxNotFound, 0, 0);
+            if (state == State_Running) return (false, Properties.Resources.GpuRepair_VmRunning, 0, 0);
 
             return await Task.Run(() =>
             {
@@ -145,13 +145,13 @@ namespace ExHyperV.Services
                         }
                         var issues = s.ValidateManifest();
                         if (issues.Count > 0)
-                            return (false, "修复后结构校验未通过:" + string.Join("; ", issues), rebound, removed);
+                            return (false, Properties.Resources.GpuRepair_ValidationFailed + string.Join("; ", issues), rebound, removed);
                     }
                     return (true, string.Empty, rebound, removed);
                 }
                 catch (System.Exception ex)
                 {
-                    return (false, "修复失败:" + ex.Message, rebound, removed);
+                    return (false, Properties.Resources.GpuRepair_RepairFailed + ex.Message, rebound, removed);
                 }
             });
         }

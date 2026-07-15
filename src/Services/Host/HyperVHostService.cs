@@ -272,7 +272,7 @@ namespace ExHyperV.Services
             else if (vmmsStatus != 1) missing.Add(Properties.Resources.HostPageViewModel_VmmsNotRunning);
             if (!wmiReady) missing.Add(Properties.Resources.HostPageViewModel_WmiNamespaceMissing);
             return missing.Count > 0
-                ? string.Format(Properties.Resources.HostPageViewModel_MissingComponents, string.Join("；", missing))
+                ? string.Format(Properties.Resources.HostPageViewModel_MissingComponents, string.Join(Properties.Resources.HostPageViewModel_ComponentSeparator, missing))
                 : Properties.Resources.HostPageViewModel_StatusUnknown;
         }
     }
