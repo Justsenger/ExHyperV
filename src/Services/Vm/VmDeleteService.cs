@@ -132,22 +132,24 @@ public static class VmDeleteService
             : (true, string.Empty);
     }
 
-    // 销毁前确保 VM 已关机：保存态(.VMRS)/运行态不先关，DestroySystem 可能只注销却残留配置/状态文件。
-    // 只认 EnabledState==3（CIM 标准 Disabled=已关）；非 3 一律 TurnOff 再回确认。
-    // 绝不带 `Caption = 'Virtual Machine'` 过滤——该 Caption 在中文等本地化系统上被翻译，等值匹配永远查不到（实测）。
+    // 销毁前确保 VM 已关机：保存态/运行态不先关，DestroySystem 可能残留配置/状态文件。
+    // 放行 EnabledState 3(已关) 和 6(Enabled but Offline，配置丢失的坏机)：6 的 TurnOff 关不掉但 DestroySystem 能直接注销，其余非关机态先 TurnOff 再回查。
+    // 绝不带 `Caption = 'Virtual Machine'` 过滤——中文系统上被翻译，等值匹配永远查不到。
+    private static bool IsOffOrOrphan(int enabledState) => enabledState == 3 || enabledState == 6;
+
     private static async Task<(bool Success, string Message)> EnsureOffAsync(string vmName)
     {
         var state = await WmiApi.QueryFirstAsync(
             $"SELECT EnabledState FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(vmName)}'",
             obj => Convert.ToInt32(obj["EnabledState"] ?? (ushort)0), WmiScope.HyperV);
-        if (!state.HasData) return (true, string.Empty);   // 查不到 = 已不存在，当作已关
-        if (state.Data == 3) return (true, string.Empty);  // 已关机
+        if (!state.HasData) return (true, string.Empty);   // 查不到 = 已不存在
+        if (IsOffOrOrphan(state.Data)) return (true, string.Empty);
 
         var off = await VmPowerService.ExecuteControlActionAsync(vmName, "TurnOff");   // RequestStateChange(3)：保存态会丢弃保存状态
         var after = await WmiApi.QueryFirstAsync(
             $"SELECT EnabledState FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(vmName)}'",
             obj => Convert.ToInt32(obj["EnabledState"] ?? (ushort)0), WmiScope.HyperV);
-        if (after.HasData && after.Data != 3)
+        if (after.HasData && !IsOffOrOrphan(after.Data))
             return (false, off.Success ? $"虚拟机 '{vmName}' 未能进入关机状态" : off.Error);
         return (true, string.Empty);
     }
