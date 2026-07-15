@@ -255,9 +255,21 @@ public static class VmBootService
                     return false;
                 });
 
-                item.Description = GetMediaFile(drive, children) ?? string.Empty;
-                item.Icon = item.Description.EndsWith(".iso", StringComparison.OrdinalIgnoreCase)
-                    ? "\uE958" : "\uEDA2";
+                string? file = GetMediaFile(drive, children);
+                if (!string.IsNullOrEmpty(file))
+                {
+                    item.Description = file;
+                    item.Icon = file.EndsWith(".iso", StringComparison.OrdinalIgnoreCase) ? "\uE958" : "\uEDA2";
+                }
+                else
+                {
+                    // 解析不出介质文件时按驱动器类型给详情，避免空白：空光驱=光驱、无盘=SCSI 硬盘、槽位无设备=未知设备
+                    int rt = drive != null ? Convert.ToInt32(drive["ResourceType"] ?? 0) : -1;
+                    item.Icon = rt == 16 ? "\uE958" : "\uEDA2";
+                    item.Description = rt == 16 ? Properties.Resources.BootOrderItem_OpticalDrive
+                        : rt is 17 or 22 ? Properties.Resources.BootOrderItem_ScsiHardDisk
+                        : Properties.Resources.BootOrderItem_UnknownDevice;
+                }
             }
         }
         else if (fwPath.Contains("MAC("))
