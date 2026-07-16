@@ -3240,4 +3240,25 @@ Remove them from storage and retry? Cancel to re-plug the device and try again.<
   <data name="HostPageViewModel_ComponentSeparator" xml:space="preserve">
     <value>; </value>
   </data>
+  <data name="Xaml_Quantity" xml:space="preserve">
+    <value>Quantity</value>
+  </data>
+  <data name="VmPage_InvalidQuantity" xml:space="preserve">
+    <value>Quantity must be an integer no less than 1.</value>
+  </data>
+  <data name="VmPage_BatchNewDiskOnly" xml:space="preserve">
+    <value>Batch creation supports new disks only.</value>
+  </data>
+  <data name="VmPage_CreatingBatch" xml:space="preserve">
+    <value>Creating {0} virtual machines…</value>
+  </data>
+  <data name="VmPage_BatchAllOk" xml:space="preserve">
+    <value>Successfully created {0} virtual machines.</value>
+  </data>
+  <data name="VmPage_BatchPartial" xml:space="preserve">
+    <value>Done: {0} created, {1} failed.</value>
+  </data>
+  <data name="VmPage_BatchStartFail" xml:space="preserve">
+    <value> ({0} failed to start)</value>
+  </data>
 </root>

@@ -3240,4 +3240,25 @@
   <data name="HostPageViewModel_ComponentSeparator" xml:space="preserve">
     <value>；</value>
   </data>
+  <data name="Xaml_Quantity" xml:space="preserve">
+    <value>数量</value>
+  </data>
+  <data name="VmPage_InvalidQuantity" xml:space="preserve">
+    <value>数量必须是不小于 1 的整数。</value>
+  </data>
+  <data name="VmPage_BatchNewDiskOnly" xml:space="preserve">
+    <value>批量创建仅支持新建磁盘。</value>
+  </data>
+  <data name="VmPage_CreatingBatch" xml:space="preserve">
+    <value>正在批量创建 {0} 台虚拟机…</value>
+  </data>
+  <data name="VmPage_BatchAllOk" xml:space="preserve">
+    <value>已成功创建 {0} 台虚拟机。</value>
+  </data>
+  <data name="VmPage_BatchPartial" xml:space="preserve">
+    <value>创建完成：成功 {0} 台，失败 {1} 台。</value>
+  </data>
+  <data name="VmPage_BatchStartFail" xml:space="preserve">
+    <value>（{0} 台启动失败）</value>
+  </data>
 </root>

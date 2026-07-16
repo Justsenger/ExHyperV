@@ -8800,5 +8800,33 @@ namespace ExHyperV.Properties {
             get { return ResourceManager.GetString("HostPageViewModel_ComponentSeparator", resourceCulture); }
         }
 
+        public static string Xaml_Quantity {
+            get { return ResourceManager.GetString("Xaml_Quantity", resourceCulture); }
+        }
+
+        public static string VmPage_InvalidQuantity {
+            get { return ResourceManager.GetString("VmPage_InvalidQuantity", resourceCulture); }
+        }
+
+        public static string VmPage_BatchNewDiskOnly {
+            get { return ResourceManager.GetString("VmPage_BatchNewDiskOnly", resourceCulture); }
+        }
+
+        public static string VmPage_CreatingBatch {
+            get { return ResourceManager.GetString("VmPage_CreatingBatch", resourceCulture); }
+        }
+
+        public static string VmPage_BatchAllOk {
+            get { return ResourceManager.GetString("VmPage_BatchAllOk", resourceCulture); }
+        }
+
+        public static string VmPage_BatchPartial {
+            get { return ResourceManager.GetString("VmPage_BatchPartial", resourceCulture); }
+        }
+
+        public static string VmPage_BatchStartFail {
+            get { return ResourceManager.GetString("VmPage_BatchStartFail", resourceCulture); }
+        }
+
     }
 }

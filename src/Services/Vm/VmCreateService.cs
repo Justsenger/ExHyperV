@@ -110,10 +110,15 @@ namespace ExHyperV.Services
                 if (!Directory.Exists(vmHomeFolder))
                     Directory.CreateDirectory(vmHomeFolder);
 
-                // 新建磁盘：用户没手选保存位置时，默认放进 VM 目录、并跟随查重改名后的最终名；
-                // 手选过(IsDiskPathManual)则尊重用户选的完整路径，不覆盖。
-                if (p.DiskMode == 0 && !p.IsDiskPathManual)
-                    p.VhdPath = Path.Combine(vmHomeFolder, $"{finalVmName}.vhdx");
+                // 新建磁盘：VhdPath 存的是文件夹（手选目录，或默认的 VM 目录），vhdx 文件名恒取最终 VM 名。
+                // 批量创建时各台名字不同 → 盘文件各自唯一，无需另行区分。
+                if (p.DiskMode == 0)
+                {
+                    string diskFolder = p.IsDiskPathManual && !string.IsNullOrWhiteSpace(p.VhdPath)
+                        ? p.VhdPath
+                        : vmHomeFolder;
+                    p.VhdPath = Path.Combine(diskFolder, $"{finalVmName}.vhdx");
+                }
 
                 // ── Step 2: DefineSystem 创建 VM ──────────────────
                 using var svcForScope = WmiApi.GetVirtualSystemManagementService();
@@ -421,6 +426,41 @@ namespace ExHyperV.Services
                     throw new InvalidOperationException(string.Format(Properties.Resources.Error_VmCreate_ModifySecuritySettingsFail, modRet));
             });
         }
+        // 批量命名：base-NN（补零位数按数量：5→1 位、100→3 位），起始序号接已有 base-<数字> 的最大值之后连续取 count 个。
+        // 在此算好互不冲突的最终名，各台再并行走 CreateVirtualMachineAsync 时 GetUniqueVmNameAsync 恰好都命中空位、不再改名。
+        public static async Task<List<string>> BuildBatchNamesAsync(string baseName, string basePath, int count)
+        {
+            string prefix = baseName + "-";
+            int IndexOf(string name)
+            {
+                if (name == null || !name.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)) return -1;
+                return int.TryParse(name.Substring(prefix.Length), out int k) ? k : -1;
+            }
+
+            int maxIdx = 0;
+            // 在册 VM 名（不带 Caption 过滤——该属性在本地化系统上被翻译、等值匹配查不到）
+            var resp = await WmiApi.QueryAsync(
+                "SELECT ElementName FROM Msvm_ComputerSystem",
+                obj => obj["ElementName"]?.ToString() ?? string.Empty,
+                WmiScope.HyperV);
+            foreach (var n in resp.Data ?? new List<string>())
+                maxIdx = Math.Max(maxIdx, IndexOf(n));
+
+            // 目录名（防注册已删但文件夹残留占名）
+            try
+            {
+                if (Directory.Exists(basePath))
+                    foreach (var dir in Directory.EnumerateDirectories(basePath))
+                        maxIdx = Math.Max(maxIdx, IndexOf(Path.GetFileName(dir)));
+            }
+            catch { }
+
+            string fmt = "D" + count.ToString().Length;
+            return Enumerable.Range(maxIdx + 1, count)
+                .Select(i => $"{baseName}-{i.ToString(fmt)}")
+                .ToList();
+        }
+
         private static async Task<string> GetUniqueVmNameAsync(string baseName, string basePath)
         {
             string candidate = baseName;

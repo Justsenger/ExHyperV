@@ -44,11 +44,20 @@
                            Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
 
                 <ui:CardControl Header="{x:Static properties:Resources.Xaml_Name}" Icon="{ui:SymbolIcon Symbol=Edit24}" Margin="0,0,0,8" HorizontalContentAlignment="Stretch">
-                    <!-- 添加 Width="450" 以防止收缩，并保持与下方“配置文件位置”对齐 -->
-                    <ui:TextBox Text="{Binding NewVmName, UpdateSourceTrigger=PropertyChanged}" 
-                                PlaceholderText="{x:Static properties:Resources.Xaml_Placeholder_VmName}"
-                                Width="210"
-                                HorizontalAlignment="Right"/>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <ui:TextBox Text="{Binding NewVmName, UpdateSourceTrigger=PropertyChanged}"
+                                    PlaceholderText="{x:Static properties:Resources.Xaml_Placeholder_VmName}"
+                                    Width="210"/>
+                        <TextBlock Text="{x:Static properties:Resources.Xaml_Quantity}" VerticalAlignment="Center" Margin="16,0,8,0"
+                                   Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                        <ComboBox IsEditable="True" Text="{Binding NewVmQuantity, UpdateSourceTrigger=PropertyChanged}" Width="72">
+                            <sys:String>1</sys:String>
+                            <sys:String>2</sys:String>
+                            <sys:String>4</sys:String>
+                            <sys:String>8</sys:String>
+                            <sys:String>16</sys:String>
+                        </ComboBox>
+                    </StackPanel>
                 </ui:CardControl>
 
                 <ui:CardControl Header="{x:Static properties:Resources.Xaml_ConfigLoc}" Icon="{ui:SymbolIcon Symbol=FolderOpen24}" Margin="0,0,0,8" HorizontalContentAlignment="Stretch">
@@ -166,7 +175,7 @@
                             </StackPanel>
                             <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
                                 <RadioButton Content="{x:Static properties:Resources.Xaml_NewDisk}" IsChecked="{Binding NewVmDiskMode, Converter={StaticResource EqualityConverter}, ConverterParameter=0}" Margin="0,0,16,0"/>
-                                <RadioButton Content="{x:Static properties:Resources.Xaml_ExistDisk}" IsChecked="{Binding NewVmDiskMode, Converter={StaticResource EqualityConverter}, ConverterParameter=1}" Margin="0,0,16,0"/>
+                                <RadioButton Content="{x:Static properties:Resources.Xaml_ExistDisk}" IsChecked="{Binding NewVmDiskMode, Converter={StaticResource EqualityConverter}, ConverterParameter=1}" IsEnabled="{Binding IsSingleCreate}" Margin="0,0,16,0"/>
                                 <RadioButton Content="{x:Static properties:Resources.Xaml_AttachLater}" IsChecked="{Binding NewVmDiskMode, Converter={StaticResource EqualityConverter}, ConverterParameter=2}"/>
                             </StackPanel>
                         </Grid>

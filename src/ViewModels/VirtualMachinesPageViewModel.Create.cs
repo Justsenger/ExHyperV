@@ -96,6 +96,19 @@ namespace ExHyperV.ViewModels
         // --- 1. 常规设置 ---
         [ObservableProperty] private string _newVmName = "NewVM";
         [ObservableProperty] private string _newVmStoragePath = string.Empty;
+
+        // 批量创建数量：>1 时名称按 base-NN 生成、各台并行建；=1 与原单建完全一致。
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(IsSingleCreate))]
+        private string _newVmQuantity = "1";
+
+        // 单台创建（数量≤1）。绑定给"现有磁盘"选项的 IsEnabled：批量不支持现有磁盘（多台共用一块盘会互踩）。
+        public bool IsSingleCreate => !(int.TryParse(NewVmQuantity, out var q) && q > 1);
+
+        partial void OnNewVmQuantityChanged(string value)
+        {
+            if (!IsSingleCreate && NewVmDiskMode == 1) NewVmDiskMode = 0;
+        }
         [ObservableProperty] private ObservableCollection<string> _supportedVersions = new() { "12.0", "11.0", "10.0", "9.0", "8.0" };
         [ObservableProperty] private string _selectedVersion = "8.0";
 
@@ -156,7 +169,7 @@ namespace ExHyperV.ViewModels
             string root = string.IsNullOrWhiteSpace(NewVmStoragePath) ? @"C:\ProgramData\Microsoft\Windows\Hyper-V" : NewVmStoragePath;
             try
             {
-                NewVmNewDiskPath = Path.Combine(root, NewVmName, $"{NewVmName}.vhdx");
+                NewVmNewDiskPath = Path.Combine(root, NewVmName);   // 只存文件夹，vhdx 文件名由服务按最终 VM 名派生
             }
             catch { }
         }
@@ -178,6 +191,7 @@ namespace ExHyperV.ViewModels
 
             NewVmDiskMode = 0;
             NewVmDiskSizeGb = "128";
+            NewVmQuantity = "1";
             NewVmDynamicMemory = false;
             NewVmEnableSecureBoot = true;
             NewVmEnableTpm = true;
@@ -294,11 +308,11 @@ namespace ExHyperV.ViewModels
         [RelayCommand]
         private void BrowseNewDiskLocation()
         {
-            var picked = Dialogs.PickSaveFile(Properties.Resources.VmPage_SelectNewVhdPath, Properties.Resources.VmPage_VhdFilter,
-                null, GetDir(NewVmNewDiskPath), GetFileName(NewVmNewDiskPath, $"{NewVmName}.vhdx"));
+            var picked = Dialogs.PickFolder(Properties.Resources.VmPage_SelectNewVhdPath,
+                string.IsNullOrWhiteSpace(NewVmNewDiskPath) ? null : NewVmNewDiskPath);
             if (picked != null)
             {
-                NewVmNewDiskPath = picked;
+                NewVmNewDiskPath = picked;   // 文件夹；vhdx 文件名由服务按 VM 名派生
                 _isDiskPathManual = true; // 标记用户已手动选择
             }
         }
@@ -375,70 +389,94 @@ namespace ExHyperV.ViewModels
                 return;
             }
 
-            // --- 组装专用 Model（数值已校验，直接用解析结果）---
-            var request = new VmCreationParams
+            // --- 数量校验 ---
+            int quantity = int.TryParse(NewVmQuantity, out var qv) && qv >= 1 ? qv : 0;
+            if (quantity < 1)
             {
-                Name = NewVmName,
+                ShowTip(Properties.Resources.VmPage_InvalidQuantity);
+                return;
+            }
+            if (quantity > 1 && NewVmDiskMode != 0)
+            {
+                ShowTip(Properties.Resources.VmPage_BatchNewDiskOnly);
+                return;
+            }
+
+            // 组装参数（单台/批量共用；数值已校验，直接用解析结果）
+            VmCreationParams Build(string name) => new VmCreationParams
+            {
+                Name = name,
                 Path = NewVmStoragePath,
                 Version = SelectedVersion,
                 Generation = NewVmGeneration,
-
                 ProcessorCount = cpuCount,
                 MemoryMb = memoryMb,
                 EnableDynamicMemory = NewVmDynamicMemory,
-
-                // 安全设置
                 EnableSecureBoot = NewVmEnableSecureBoot,
                 EnableTpm = NewVmEnableTpm,
                 IsolationType = NewVmIsolationType,
-
-                // 存储设置
                 DiskMode = NewVmDiskMode,
                 DiskSizeGb = long.TryParse(NewVmDiskSizeGb, out var ds) ? ds : 128,
                 VhdPath = NewVmDiskMode == 0 ? NewVmNewDiskPath : NewVmExistingDiskPath,
                 IsDiskPathManual = _isDiskPathManual,
                 IsoPath = NewVmIsoPath,
-
-                // 网络与动作
                 SwitchName = NewVmSelectedSwitch,
                 StartAfterCreation = StartVmAfterCreation
             };
 
-            // --- 3. 执行创建流程 ---
             IsLoadingSettings = true;
-            CreatingStatusText = Properties.Resources.VmPage_CreatingVm;
-
             try
             {
-                var result = await VmCreateService.CreateVirtualMachineAsync(request);
-
-                if (result.Success)
+                if (quantity <= 1)
                 {
-                    string actualCreatedName = result.Message;
-                    ShowSuccess(string.Format(Properties.Resources.VmPage_VmCreated, actualCreatedName));
-                    // 退出创建模式
-                    IsCreatingVm = false;
-
-                    // 重新加载列表以显示新虚拟机
-                    await LoadVmsCommand.ExecuteAsync(null);
-
-                    // 尝试选中新创建的虚拟机
-                    var newVm = VmList.FirstOrDefault(v => v.Name.Equals(actualCreatedName, StringComparison.OrdinalIgnoreCase));
-                    if (newVm != null) SelectedVm = newVm;
-
-                    // 启动从 VmCreateService 移到此处：创建成功后单独启动并检查引擎返回，
-                    // 失败(如内存不足)弹出原因而非静默吞掉——对齐电源按钮(VirtualMachinesPageViewModel:298)。
-                    if (request.StartAfterCreation)
+                    CreatingStatusText = Properties.Resources.VmPage_CreatingVm;
+                    var result = await VmCreateService.CreateVirtualMachineAsync(Build(NewVmName));
+                    if (result.Success)
                     {
-                        CreatingStatusText = Properties.Resources.VmPage_StartingVm;
-                        var startResult = await VmPowerService.ExecuteControlActionAsync(actualCreatedName, "Start");
-                        if (!startResult.Success)
-                            ShowError($"{Properties.Resources.VmPage_StartFail}：{FriendlyError.CleanLines(startResult.Error)}");
+                        string actualCreatedName = result.Message;
+                        ShowSuccess(string.Format(Properties.Resources.VmPage_VmCreated, actualCreatedName));
+                        IsCreatingVm = false;
+                        await LoadVmsCommand.ExecuteAsync(null);
+                        var newVm = VmList.FirstOrDefault(v => v.Name.Equals(actualCreatedName, StringComparison.OrdinalIgnoreCase));
+                        if (newVm != null) SelectedVm = newVm;
+                        // 启动放此处：成功后单独启动并检查引擎返回，失败(如内存不足)弹原因而非静默吞掉。
+                        if (StartVmAfterCreation)
+                        {
+                            CreatingStatusText = Properties.Resources.VmPage_StartingVm;
+                            var startResult = await VmPowerService.ExecuteControlActionAsync(actualCreatedName, "Start");
+                            if (!startResult.Success)
+                                ShowError($"{Properties.Resources.VmPage_StartFail}：{FriendlyError.CleanLines(startResult.Error)}");
+                        }
+                    }
+                    else
+                    {
+                        ShowError($"{Properties.Resources.VmPage_CreateFail}：{result.Message}");
                     }
                 }
                 else
                 {
-                    ShowError($"{Properties.Resources.VmPage_CreateFail}：{result.Message}");
+                    // 批量：base-NN 命名 → 各台并行建 → 聚合汇报 → 只重载一次。资源够不够交给用户。
+                    CreatingStatusText = string.Format(Properties.Resources.VmPage_CreatingBatch, quantity);
+                    var names = await VmCreateService.BuildBatchNamesAsync(NewVmName, NewVmStoragePath, quantity);
+                    var results = await Task.WhenAll(names.Select(n => VmCreateService.CreateVirtualMachineAsync(Build(n))));
+                    int okCount = results.Count(r => r.Success);
+
+                    int startFail = 0;
+                    if (StartVmAfterCreation)
+                    {
+                        var okNames = names.Where((n, i) => results[i].Success).ToList();
+                        var starts = await Task.WhenAll(okNames.Select(n => VmPowerService.ExecuteControlActionAsync(n, "Start")));
+                        startFail = starts.Count(s => !s.Success);
+                    }
+
+                    IsCreatingVm = false;
+                    await LoadVmsCommand.ExecuteAsync(null);
+
+                    string tail = startFail > 0 ? string.Format(Properties.Resources.VmPage_BatchStartFail, startFail) : string.Empty;
+                    if (okCount == quantity)
+                        ShowSuccess(string.Format(Properties.Resources.VmPage_BatchAllOk, okCount) + tail);
+                    else
+                        ShowError(string.Format(Properties.Resources.VmPage_BatchPartial, okCount, quantity - okCount) + tail);
                 }
             }
             catch (Exception ex)
