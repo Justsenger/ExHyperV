@@ -44,6 +44,7 @@ public static class VmBootService
                     var bootPaths = (string[])settings["BootSourceOrder"];
                     if (bootPaths != null)
                     {
+                        var osDiskModels = BuildOsDiskModels();
                         foreach (var path in bootPaths)
                         {
                             try
@@ -64,7 +65,7 @@ public static class VmBootService
                                     Name = string.IsNullOrWhiteSpace(bs.Desc) ? bs.Element : bs.Desc,
                                     Reference = path
                                 };
-                                ParseGen2BootInfo(item, bs.FwPath, allHardware, hardwareMap, childrenMap);
+                                ParseGen2BootInfo(item, bs.FwPath, allHardware, hardwareMap, childrenMap, osDiskModels);
                                 result.Add(item);
                             }
                             catch { }
@@ -232,7 +233,8 @@ public static class VmBootService
     private static void ParseGen2BootInfo(BootOrderItem item, string fwPath,
         List<ManagementObject> all,
         Dictionary<string, ManagementObject> map,
-        Dictionary<string, List<ManagementObject>> children)
+        Dictionary<string, List<ManagementObject>> children,
+        Dictionary<int, string> osDiskModels)
     {
         if (string.IsNullOrEmpty(fwPath)) { item.Icon = "\uE9CE"; return; }
 
@@ -263,12 +265,22 @@ public static class VmBootService
                 }
                 else
                 {
-                    // 解析不出介质文件时按驱动器类型给详情，避免空白：空光驱=光驱、无盘=SCSI 硬盘、槽位无设备=未知设备
-                    int rt = drive != null ? Convert.ToInt32(drive["ResourceType"] ?? 0) : -1;
-                    item.Icon = rt == 16 ? "\uE958" : "\uEDA2";
-                    item.Description = rt == 16 ? Properties.Resources.BootOrderItem_OpticalDrive
-                        : rt is 17 or 22 ? Properties.Resources.BootOrderItem_ScsiHardDisk
-                        : Properties.Resources.BootOrderItem_UnknownDevice;
+                    // 无介质文件：物理直通盘取磁盘型号(与存储视图一致，如 WDC WDS500G2B0C-00PXH0)；
+                    // 取不到型号再按驱动器类型兜底：空光驱=光驱、无盘=SCSI 硬盘、槽位无设备=未知设备。
+                    string? physModel = drive != null ? ResolvePhysicalDiskModel(drive, osDiskModels) : null;
+                    if (physModel != null)
+                    {
+                        item.Icon = "\uEDA2";
+                        item.Description = physModel;
+                    }
+                    else
+                    {
+                        int rt = drive != null ? Convert.ToInt32(drive["ResourceType"] ?? 0) : -1;
+                        item.Icon = rt == 16 ? "\uE958" : "\uEDA2";
+                        item.Description = rt == 16 ? Properties.Resources.BootOrderItem_OpticalDrive
+                            : rt is 17 or 22 ? Properties.Resources.BootOrderItem_ScsiHardDisk
+                            : Properties.Resources.BootOrderItem_UnknownDevice;
+                    }
                 }
             }
         }
@@ -287,6 +299,52 @@ public static class VmBootService
             item.Icon = "\uE713";
             item.Description = Properties.Resources.VmBootService_SystemBuiltinBootEntry;
         }
+    }
+
+    // 物理直通盘：从驱动器 HostResource(Msvm_DiskDrive 引用)解析磁盘号 → Win32_DiskDrive 型号(如 WDC WDS500G2B0C-00PXH0)。
+    // 非物理盘或取不到型号返回 null，交调用方走通用兜底。
+    private static string? ResolvePhysicalDiskModel(ManagementObject drive, Dictionary<int, string> osDiskModels)
+    {
+        var hostRes = drive["HostResource"] as string[];
+        string raw = hostRes?.Length > 0 ? hostRes[0] : "";
+        if (string.IsNullOrEmpty(raw)) return null;
+        bool isPhys = raw.IndexOf("Msvm_DiskDrive", StringComparison.OrdinalIgnoreCase) >= 0
+                   || raw.ToUpper().Contains("PHYSICALDRIVE");
+        if (!isPhys) return null;
+
+        int diskNum = -1;
+        var dm = Regex.Match(raw, "DeviceID=\"([^\"]+)\"");
+        if (dm.Success)
+        {
+            string devId = dm.Groups[1].Value.Replace("\\\\", "\\");
+            var tail = Regex.Match(devId, @"\\(\d+)$");
+            if (tail.Success) diskNum = int.Parse(tail.Groups[1].Value);
+        }
+        if (diskNum < 0)
+        {
+            var pm = Regex.Match(raw, @"PHYSICALDRIVE(\d+)", RegexOptions.IgnoreCase);
+            if (pm.Success) diskNum = int.Parse(pm.Groups[1].Value);
+        }
+        return diskNum >= 0 && osDiskModels.TryGetValue(diskNum, out var model) && !string.IsNullOrWhiteSpace(model)
+            ? model.Trim() : null;
+    }
+
+    // 磁盘号 → 型号(Win32_DiskDrive)，供引导项里物理直通盘显示型号名。
+    private static Dictionary<int, string> BuildOsDiskModels()
+    {
+        var map = new Dictionary<int, string>();
+        try
+        {
+            var resp = WmiApi.QueryAsync(
+                "SELECT Index, Model FROM Win32_DiskDrive",
+                obj => (idx: WmiApi.Prop<int>(obj, "Index", -1), model: WmiApi.PropStr(obj, "Model") ?? ""),
+                WmiScope.CimV2).GetAwaiter().GetResult();
+            if (resp.Success && resp.Data != null)
+                foreach (var (idx, model) in resp.Data)
+                    if (idx >= 0) map[idx] = model;
+        }
+        catch { }
+        return map;
     }
 
     private static string? GetMediaFile(ManagementObject? drive,
