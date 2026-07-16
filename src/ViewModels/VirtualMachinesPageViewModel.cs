@@ -168,9 +168,27 @@ namespace ExHyperV.ViewModels
             }
         }
 
+        // 多选状态：code-behind 的 ListView.SelectionChanged 推进来。>1 时右键菜单只留删除/彻底删除，且按整批操作。
+        private List<VmInstanceViewModel> _selectedVms = new();
+
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(IsMultiSelect))]
+        [NotifyPropertyChangedFor(nameof(IsSingleOrNoneSelect))]
+        private int _selectedVmCount;
+
+        public bool IsMultiSelect => SelectedVmCount > 1;
+        public bool IsSingleOrNoneSelect => SelectedVmCount <= 1;
+
+        public void UpdateSelection(System.Collections.IList items)
+        {
+            _selectedVms = items?.Cast<VmInstanceViewModel>().ToList() ?? new List<VmInstanceViewModel>();
+            SelectedVmCount = _selectedVms.Count;
+        }
+
         [RelayCommand]
         private async Task DeleteVmAsync(VmInstanceViewModel vm)
         {
+            if (IsMultiSelect) { await DeleteMultipleAsync(_selectedVms.ToList()); return; }
             if (vm == null) return;
             IsLoading = true;
 
@@ -194,9 +212,65 @@ namespace ExHyperV.ViewModels
             finally { IsLoading = false; }
         }
 
+        // 批量删除（保留磁盘）：确认 → 逐台删 → 聚合汇报 → 收拾选中项。
+        private async Task DeleteMultipleAsync(List<VmInstanceViewModel> targets)
+        {
+            if (targets.Count == 0) return;
+            bool ok = await Dialogs.ShowConfirmAsync(
+                Properties.Resources.VmPage_MultiDeleteTitle,
+                string.Format(Properties.Resources.VmPage_MultiDeleteConfirm, targets.Count),
+                Properties.Resources.Xaml_Delete, Properties.Resources.Button_Cancel, isDanger: true);
+            if (!ok) return;
+
+            IsLoading = true;
+            try
+            {
+                int okCount = 0;
+                foreach (var t in targets)
+                {
+                    var r = await VmDeleteService.DeleteVmAsync(t.Name);
+                    if (r.Success) { VmList.Remove(t); okCount++; }
+                }
+                if (SelectedVm != null && !VmList.Contains(SelectedVm)) SelectedVm = VmList.FirstOrDefault();
+                int fail = targets.Count - okCount;
+                if (fail == 0) ShowSuccess(string.Format(Properties.Resources.VmPage_MultiDeleteDone, okCount));
+                else ShowError(string.Format(Properties.Resources.VmPage_MultiDeleteFail, okCount, fail));
+            }
+            finally { IsLoading = false; }
+        }
+
+        // 批量彻底删除：不逐台展开文件预览（台数多会撑爆），改用名称清单确认 → 逐台彻底删 → 聚合汇报。
+        private async Task PurgeMultipleAsync(List<VmInstanceViewModel> targets)
+        {
+            if (targets.Count == 0) return;
+            string list = string.Join("\n", targets.Select(t => "· " + t.Name));
+            bool ok = await Dialogs.ShowConfirmAsync(
+                Properties.Resources.VmPage_PurgeTitle,
+                string.Format(Properties.Resources.VmPage_MultiPurgeConfirm, targets.Count) + "\n\n" + list,
+                Properties.Resources.VmPage_PurgeBtn, Properties.Resources.Button_Cancel, isDanger: true);
+            if (!ok) return;
+
+            IsLoading = true;
+            try
+            {
+                int okCount = 0;
+                foreach (var t in targets)
+                {
+                    var r = await VmDeleteService.PurgeVmAsync(t.Name, t.Id);
+                    if (r.Success) { VmList.Remove(t); okCount++; }
+                }
+                if (SelectedVm != null && !VmList.Contains(SelectedVm)) SelectedVm = VmList.FirstOrDefault();
+                int fail = targets.Count - okCount;
+                if (fail == 0) ShowSuccess(string.Format(Properties.Resources.VmPage_MultiPurgeDone, okCount));
+                else ShowError(string.Format(Properties.Resources.VmPage_MultiPurgeFail, okCount, fail));
+            }
+            finally { IsLoading = false; }
+        }
+
         [RelayCommand]
         private async Task PurgeVmAsync(VmInstanceViewModel vm)
         {
+            if (IsMultiSelect) { await PurgeMultipleAsync(_selectedVms.ToList()); return; }
             if (vm == null) return;
 
             // 二次确认弹窗：预先算出"将删除的目录与文件"清单直接展示——替代口头提醒用户自己去查目录里有没有其他文件。

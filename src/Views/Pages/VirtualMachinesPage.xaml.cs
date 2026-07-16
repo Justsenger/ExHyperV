@@ -23,5 +23,12 @@ namespace ExHyperV.Views
                 vm.ChangeOsTypeCommand.Execute(osType);
             }
         }
+
+        // ListView 多选（Ctrl/Shift）无法直接绑定 SelectedItems，经此把选中集推给 VM：>1 时右键菜单收敛为删除/彻底删除。
+        private void VmList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (sender is System.Windows.Controls.ListView lv && DataContext is VirtualMachinesPageViewModel vm)
+                vm.UpdateSelection(lv.SelectedItems);
+        }
     }
 }

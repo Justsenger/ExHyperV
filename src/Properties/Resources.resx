@@ -3261,4 +3261,25 @@ Remove them from storage and retry? Cancel to re-plug the device and try again.<
   <data name="VmPage_BatchStartFail" xml:space="preserve">
     <value> ({0} failed to start)</value>
   </data>
+  <data name="VmPage_MultiDeleteTitle" xml:space="preserve">
+    <value>Delete Virtual Machines</value>
+  </data>
+  <data name="VmPage_MultiDeleteConfirm" xml:space="preserve">
+    <value>Delete the {0} selected virtual machines? Disk files will be kept.</value>
+  </data>
+  <data name="VmPage_MultiDeleteDone" xml:space="preserve">
+    <value>Deleted {0} virtual machines.</value>
+  </data>
+  <data name="VmPage_MultiDeleteFail" xml:space="preserve">
+    <value>Deleted {0}, {1} failed.</value>
+  </data>
+  <data name="VmPage_MultiPurgeConfirm" xml:space="preserve">
+    <value>Permanently delete the {0} selected virtual machines? Their config and disk files will be removed and cannot be recovered:</value>
+  </data>
+  <data name="VmPage_MultiPurgeDone" xml:space="preserve">
+    <value>Permanently deleted {0} virtual machines.</value>
+  </data>
+  <data name="VmPage_MultiPurgeFail" xml:space="preserve">
+    <value>Permanently deleted {0}, {1} failed.</value>
+  </data>
 </root>

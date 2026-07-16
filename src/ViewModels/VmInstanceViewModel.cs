@@ -227,6 +227,10 @@ namespace ExHyperV.ViewModels
 
         public IAsyncRelayCommand<string>? ControlCommand { get; set; }
 
+        // 右键菜单电源项：运行中→关机（Stop，与主关机键一致：优雅关机失败则硬关），否则→启动。随 IsRunning 变化通知。
+        public string PowerToggleText => IsRunning ? Properties.Resources.Button_ShutDown : Properties.Resources.Button_Start;
+        public string PowerToggleAction => IsRunning ? "Stop" : "Start";
+
 
         // ===== 构造：从 Model 初始化 VM（Model 引用保留，集合通过 pass-through 共享） =====
 
@@ -601,7 +605,11 @@ namespace ExHyperV.ViewModels
             RefreshStateDisplay();
 
             if (wasRunning != this.IsRunning)
+            {
                 OnPropertyChanged(nameof(IsRunning));
+                OnPropertyChanged(nameof(PowerToggleText));
+                OnPropertyChanged(nameof(PowerToggleAction));
+            }
 
             TickUptime();
         }

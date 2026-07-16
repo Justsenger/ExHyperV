@@ -8828,5 +8828,33 @@ namespace ExHyperV.Properties {
             get { return ResourceManager.GetString("VmPage_BatchStartFail", resourceCulture); }
         }
 
+        public static string VmPage_MultiDeleteTitle {
+            get { return ResourceManager.GetString("VmPage_MultiDeleteTitle", resourceCulture); }
+        }
+
+        public static string VmPage_MultiDeleteConfirm {
+            get { return ResourceManager.GetString("VmPage_MultiDeleteConfirm", resourceCulture); }
+        }
+
+        public static string VmPage_MultiDeleteDone {
+            get { return ResourceManager.GetString("VmPage_MultiDeleteDone", resourceCulture); }
+        }
+
+        public static string VmPage_MultiDeleteFail {
+            get { return ResourceManager.GetString("VmPage_MultiDeleteFail", resourceCulture); }
+        }
+
+        public static string VmPage_MultiPurgeConfirm {
+            get { return ResourceManager.GetString("VmPage_MultiPurgeConfirm", resourceCulture); }
+        }
+
+        public static string VmPage_MultiPurgeDone {
+            get { return ResourceManager.GetString("VmPage_MultiPurgeDone", resourceCulture); }
+        }
+
+        public static string VmPage_MultiPurgeFail {
+            get { return ResourceManager.GetString("VmPage_MultiPurgeFail", resourceCulture); }
+        }
+
     }
 }

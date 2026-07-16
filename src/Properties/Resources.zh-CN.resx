@@ -3261,4 +3261,25 @@
   <data name="VmPage_BatchStartFail" xml:space="preserve">
     <value>（{0} 台启动失败）</value>
   </data>
+  <data name="VmPage_MultiDeleteTitle" xml:space="preserve">
+    <value>删除虚拟机</value>
+  </data>
+  <data name="VmPage_MultiDeleteConfirm" xml:space="preserve">
+    <value>确定删除选中的 {0} 台虚拟机吗？磁盘文件将保留。</value>
+  </data>
+  <data name="VmPage_MultiDeleteDone" xml:space="preserve">
+    <value>已删除 {0} 台虚拟机。</value>
+  </data>
+  <data name="VmPage_MultiDeleteFail" xml:space="preserve">
+    <value>已删除 {0} 台，{1} 台失败。</value>
+  </data>
+  <data name="VmPage_MultiPurgeConfirm" xml:space="preserve">
+    <value>确定彻底删除选中的 {0} 台虚拟机吗？其配置与磁盘文件将永久删除且无法恢复：</value>
+  </data>
+  <data name="VmPage_MultiPurgeDone" xml:space="preserve">
+    <value>已彻底删除 {0} 台虚拟机。</value>
+  </data>
+  <data name="VmPage_MultiPurgeFail" xml:space="preserve">
+    <value>已彻底删除 {0} 台，{1} 台失败。</value>
+  </data>
 </root>
