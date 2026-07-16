@@ -51,7 +51,14 @@ namespace ExHyperV.ViewModels
         // ===== 视图模型属性 - 页面状态 =====
         [ObservableProperty] private bool _isLoading = true;
         [ObservableProperty] private bool _isLoadingSettings;
-        [ObservableProperty] private VmDetailViewType _currentViewType = VmDetailViewType.Dashboard;
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(IsVmListEnabled))]
+        private VmDetailViewType _currentViewType = VmDetailViewType.Dashboard;
+
+        // 进行中的向导/部署视图(选卡、GPU-PV 部署、加存储)绑死某台 VM，期间禁用左侧列表：
+        // 防止切走后工作流后续步骤读到的 SelectedVm 变成别的 VM，把关机/挂卡等操作打到错的机器上。
+        public bool IsVmListEnabled => CurrentViewType is not
+            (VmDetailViewType.AddGpuSelect or VmDetailViewType.AddGpuProgress or VmDetailViewType.AddStorage);
         [ObservableProperty] private string _searchText = string.Empty;
 
 
@@ -367,14 +374,30 @@ namespace ExHyperV.ViewModels
         // 当选中的虚拟机发生变化时重置视图
         partial void OnSelectedVmChanged(VmInstanceViewModel value)
         {
-            if (value != null)
-            {
-                IsCreatingVm = false;
-                _ = RefreshBootOrderForSelectedVmAsync(value);
-            }
-            CurrentViewType = VmDetailViewType.Dashboard;
             _originalMemorySettingsCache = null;
             HostDisks.Clear();
+            if (value == null) { CurrentViewType = VmDetailViewType.Dashboard; return; }
+            IsCreatingVm = false;
+
+            // 切 VM 时保留当前的无状态详情子页：重跑对应 GoTo 加载新 VM 的数据、停在同一子页(去 B 的对应详情页)；
+            // 概览及其它一律回概览。进行中向导(AddGpu*/AddStorage)期间左侧列表已禁用，不会走到这里。
+            switch (CurrentViewType)
+            {
+                case VmDetailViewType.CpuSettings: _ = GoToCpuSettingsCommand.ExecuteAsync(null); break;
+                case VmDetailViewType.CpuAffinity: _ = GoToCpuAffinityCommand.ExecuteAsync(null); break;
+                case VmDetailViewType.MemorySettings: _ = GoToMemorySettingsCommand.ExecuteAsync(null); break;
+                case VmDetailViewType.StorageSettings: _ = GoToStorageSettingsCommand.ExecuteAsync(null); break;
+                case VmDetailViewType.NetworkSettings: _ = GoToNetworkSettingsCommand.ExecuteAsync(null); break;
+                case VmDetailViewType.BootSettings: _ = GoToBootSettingsCommand.ExecuteAsync(null); break;
+                case VmDetailViewType.SpacetimeSettings: _ = GoToSpacetimeSettingsCommand.ExecuteAsync(null); break;
+                case VmDetailViewType.Advanced: _ = GoToAdvancedSettingsCommand.ExecuteAsync(null); break;
+                case VmDetailViewType.Security: _ = GoToSecuritySettingsCommand.ExecuteAsync(null); break;
+                case VmDetailViewType.GpuSettings: _ = GoToGpuSettingsCommand.ExecuteAsync(null); break;
+                default:
+                    CurrentViewType = VmDetailViewType.Dashboard;
+                    _ = RefreshBootOrderForSelectedVmAsync(value);
+                    break;
+            }
         }
 
 

@@ -663,6 +663,7 @@
                 
                 <ui:ListView Grid.Row="1" ItemsSource="{Binding VmList}" SelectedItem="{Binding SelectedVm, Mode=TwoWay}"
                              SelectionChanged="VmList_SelectionChanged"
+                             IsEnabled="{Binding IsVmListEnabled}"
                              ItemTemplate="{StaticResource VmListItemTemplate}" Margin="4,0,4,4"/>
             </Grid>
         </Border>
