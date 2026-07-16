@@ -174,15 +174,34 @@ namespace ExHyperV.ViewModels
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(IsMultiSelect))]
         [NotifyPropertyChangedFor(nameof(IsSingleOrNoneSelect))]
+        [NotifyPropertyChangedFor(nameof(MultiPowerToggleText))]
         private int _selectedVmCount;
 
         public bool IsMultiSelect => SelectedVmCount > 1;
         public bool IsSingleOrNoneSelect => SelectedVmCount <= 1;
 
+        // 多选电源按钮：全部在运行→关机(把运行中的全关)，否则→启动(把未运行的都拉起，已运行的不动)。
+        public string MultiPowerToggleText => _selectedVms.Count > 0 && _selectedVms.All(v => v.IsRunning)
+            ? Properties.Resources.Button_ShutDown
+            : Properties.Resources.Button_Start;
+
         public void UpdateSelection(System.Collections.IList items)
         {
             _selectedVms = items?.Cast<VmInstanceViewModel>().ToList() ?? new List<VmInstanceViewModel>();
             SelectedVmCount = _selectedVms.Count;
+        }
+
+        [RelayCommand]
+        private async Task MultiPowerAsync()
+        {
+            var targets = _selectedVms.ToList();
+            if (targets.Count == 0) return;
+            bool allRunning = targets.All(v => v.IsRunning);
+            string action = allRunning ? "Stop" : "Start";                    // 与单机右键/主按钮一致：Stop=优雅失败则硬关
+            var toAct = (allRunning ? targets.Where(v => v.IsRunning) : targets.Where(v => !v.IsRunning)).ToList();
+            // 复用每台自己的 ControlCommand：连带 transient 态、状态回同步、开机失败的反应式修复都照走。
+            await Task.WhenAll(toAct.Select(v => v.ControlCommand?.ExecuteAsync(action) ?? Task.CompletedTask));
+            OnPropertyChanged(nameof(MultiPowerToggleText));
         }
 
         [RelayCommand]

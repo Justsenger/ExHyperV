@@ -53,6 +53,16 @@
                 
                 <Border.ContextMenu>
                     <ContextMenu>
+                        <!-- 多选电源：全部运行→关机，否则→启动。仅多选时显示。 -->
+                        <ui:MenuItem Header="{Binding PlacementTarget.Tag.MultiPowerToggleText, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+             Command="{Binding PlacementTarget.Tag.MultiPowerCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+             Visibility="{Binding PlacementTarget.Tag.IsMultiSelect, RelativeSource={RelativeSource AncestorType=ContextMenu}, Converter={StaticResource BoolToVis}}">
+                            <ui:MenuItem.Icon>
+                                <ui:SymbolIcon Symbol="Power24" />
+                            </ui:MenuItem.Icon>
+                        </ui:MenuItem>
+                        <Separator Visibility="{Binding PlacementTarget.Tag.IsMultiSelect, RelativeSource={RelativeSource AncestorType=ContextMenu}, Converter={StaticResource BoolToVis}}"/>
+
                         <!-- 启动/关机切换：运行中显示"关机"(Stop=优雅失败则硬关)，否则"启动"。多选时隐藏。 -->
                         <ui:MenuItem Header="{Binding PowerToggleText}"
              Command="{Binding ControlCommand}" CommandParameter="{Binding PowerToggleAction}"
