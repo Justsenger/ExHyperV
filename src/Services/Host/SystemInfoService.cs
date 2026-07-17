@@ -29,8 +29,9 @@ namespace ExHyperV.Services
                     osCaption = obj["Caption"]?.ToString()?.Replace("Microsoft ", "") ?? "N/A";
                     osArch = obj["OSArchitecture"]?.ToString() ?? "N/A";
                     string version = obj["Version"]?.ToString() ?? "";
-                    if (version.Length >= 5)
-                        osCaption = $"{osCaption} Build.{version.Substring(version.Length - 5)}";
+                    string build = version.Split('.').LastOrDefault() ?? "";
+                    if (!string.IsNullOrEmpty(build))
+                        osCaption = $"{osCaption} (Build {build})";
                     break;
                 }
             }
