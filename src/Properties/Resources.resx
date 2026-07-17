@@ -3094,7 +3094,7 @@ The existing NAT switch is: '{0}'</value>
     <value>Auto</value>
   </data>
   <data name="CpuEnum_Apic_Legacy" xml:space="preserve">
-    <value>xAPIC (Legacy)</value>
+    <value>xAPIC</value>
   </data>
   <data name="CpuEnum_Apic_X2Apic" xml:space="preserve">
     <value>x2APIC</value>

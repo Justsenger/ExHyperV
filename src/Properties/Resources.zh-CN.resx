@@ -3094,7 +3094,7 @@
     <value>自动</value>
   </data>
   <data name="CpuEnum_Apic_Legacy" xml:space="preserve">
-    <value>xAPIC（传统）</value>
+    <value>xAPIC</value>
   </data>
   <data name="CpuEnum_Apic_X2Apic" xml:space="preserve">
     <value>x2APIC</value>
