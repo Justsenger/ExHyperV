@@ -650,13 +650,13 @@
                 </Grid>
             </ui:CardExpander>
 
-            <!-- 引导顺序 (Boot Order) 折叠卡片 -->
-            <ui:CardExpander Margin="0,0,0,8" IsExpanded="False">
-                <ui:CardExpander.Header>
+            <!-- 引导顺序 (Boot Order) 卡片 -->
+            <ui:Card Margin="0,0,0,8" Padding="14,16,14,16">
                     <Grid MinHeight="38" Margin="8,0,12,0">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
 
@@ -673,65 +673,20 @@
                         <ui:Button Grid.Column="2" Appearance="Transparent" Padding="8,4" Command="{Binding DataContext.GoToBootSettingsCommand, RelativeSource={RelativeSource AncestorType=UserControl}}">
                             <ui:SymbolIcon Symbol="Settings24" FontSize="18" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
                         </ui:Button>
+                        <!-- 占位（隐藏）：撑出展开卡 chevron 的宽度，使齿轮与展开卡对齐 -->
+                        <ui:SymbolIcon Grid.Column="3" Symbol="ChevronDown24" FontSize="16" Visibility="Hidden" VerticalAlignment="Center"/>
                     </Grid>
-                </ui:CardExpander.Header>
+            </ui:Card>
 
-                <Grid Margin="-5">
-                    <ItemsControl ItemsSource="{Binding SelectedVm.BootOrderItems}">
-                        <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <StackPanel Orientation="Horizontal" Margin="5,4,0,4"/>
-                            </ItemsPanelTemplate>
-                        </ItemsControl.ItemsPanel>
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                    <Border Background="{ui:ThemeResource ControlFillColorTertiaryBrush}" 
-                                BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" 
-                                BorderThickness="1" 
-                                CornerRadius="4" 
-                                Padding="8,2">
-                                        <StackPanel Orientation="Horizontal">
-                                            <ui:FontIcon Glyph="{Binding Icon}" 
-                                             FontFamily="{DynamicResource SegoeFluentIcons}" 
-                                             FontSize="13" 
-                                             Margin="0,0,6,0"
-                                             Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
-                                            <TextBlock Text="{Binding Name}" 
-                                           FontSize="12" 
-                                           VerticalAlignment="Center"
-                                           Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
-                                        </StackPanel>
-                                    </Border>
-                                    <ui:FontIcon x:Name="ArrowIcon"
-                                     Glyph="&#xE76C;" 
-                                     FontFamily="{DynamicResource SegoeFluentIcons}"
-                                     FontSize="10" 
-                                     Margin="6,0" 
-                                     Opacity="0.4" 
-                                     VerticalAlignment="Center"
-                                     Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
-                                </StackPanel>
-                                <DataTemplate.Triggers>
-                                    <DataTrigger Binding="{Binding IsLast}" Value="True">
-                                        <Setter TargetName="ArrowIcon" Property="Visibility" Value="Collapsed"/>
-                                    </DataTrigger>
-                                </DataTemplate.Triggers>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </Grid>
-            </ui:CardExpander>
-
-            <!-- 时空 (Spacetime / Snapshots) 折叠卡片 -->
-            <ui:CardExpander Margin="0,0,0,8" IsExpanded="False">
-                <ui:CardExpander.Header>
+            <!-- 时空 (Spacetime / Snapshots) 卡片 -->
+            <ui:Card Margin="0,0,0,8" Padding="14,16,14,16">
                     <Grid MinHeight="38" Margin="8,0,12,0">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="15"/>
+                            <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
 
@@ -746,21 +701,20 @@
                         <ui:Button Grid.Column="4" Appearance="Transparent" Padding="8,4" Command="{Binding DataContext.GoToSpacetimeSettingsCommand, RelativeSource={RelativeSource AncestorType=UserControl}}">
                             <ui:SymbolIcon Symbol="Settings24" FontSize="18" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
                         </ui:Button>
+                        <!-- 占位（隐藏）：撑出展开卡 chevron 的宽度，使齿轮与展开卡对齐 -->
+                        <ui:SymbolIcon Grid.Column="5" Symbol="ChevronDown24" FontSize="16" Visibility="Hidden" VerticalAlignment="Center"/>
                     </Grid>
-                </ui:CardExpander.Header>
+            </ui:Card>
 
-                <Grid Height="0"/>
-            </ui:CardExpander>
-
-            <!-- 高级 (Advanced) 折叠卡片 -->
-            <ui:CardExpander Margin="0,0,0,8" IsExpanded="False">
-                <ui:CardExpander.Header>
+            <!-- 高级 (Advanced) 卡片 -->
+            <ui:Card Margin="0,0,0,8" Padding="14,16,14,16">
                     <Grid MinHeight="38" Margin="8,0,12,0">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="15"/>
+                            <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
 
@@ -775,21 +729,20 @@
                         <ui:Button Grid.Column="4" Appearance="Transparent" Padding="8,4" Command="{Binding DataContext.GoToAdvancedSettingsCommand, RelativeSource={RelativeSource AncestorType=UserControl}}">
                             <ui:SymbolIcon Symbol="Settings24" FontSize="18" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
                         </ui:Button>
+                        <!-- 占位（隐藏）：撑出展开卡 chevron 的宽度，使齿轮与展开卡对齐 -->
+                        <ui:SymbolIcon Grid.Column="5" Symbol="ChevronDown24" FontSize="16" Visibility="Hidden" VerticalAlignment="Center"/>
                     </Grid>
-                </ui:CardExpander.Header>
+            </ui:Card>
 
-                <Grid Height="0"/>
-            </ui:CardExpander>
-
-            <!-- 安全 (Security) 折叠卡片 -->
-            <ui:CardExpander Margin="0,0,0,8" IsExpanded="False">
-                <ui:CardExpander.Header>
+            <!-- 安全 (Security) 卡片 -->
+            <ui:Card Margin="0,0,0,8" Padding="14,16,14,16">
                     <Grid MinHeight="38" Margin="8,0,12,0">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="15"/>
+                            <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
 
@@ -804,11 +757,10 @@
                         <ui:Button Grid.Column="4" Appearance="Transparent" Padding="8,4" Command="{Binding DataContext.GoToSecuritySettingsCommand, RelativeSource={RelativeSource AncestorType=UserControl}}">
                             <ui:SymbolIcon Symbol="Settings24" FontSize="18" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
                         </ui:Button>
+                        <!-- 占位（隐藏）：撑出展开卡 chevron 的宽度，使齿轮与展开卡对齐 -->
+                        <ui:SymbolIcon Grid.Column="5" Symbol="ChevronDown24" FontSize="16" Visibility="Hidden" VerticalAlignment="Center"/>
                     </Grid>
-                </ui:CardExpander.Header>
-
-                <Grid Height="0"/>
-            </ui:CardExpander>
+            </ui:Card>
         </StackPanel>
     </ScrollViewer>
 </UserControl>
