@@ -7,7 +7,7 @@
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 		<ApplicationIcon>Assets\Icon.ico</ApplicationIcon>
-		<Version>1.5.0-Beta-0715</Version>
+		<Version>1.5.0-Beta-0717</Version>
 		<Authors>Justsenger</Authors>
 		<IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
 		<WpfUiGenerateDiagnosticMessages>False</WpfUiGenerateDiagnosticMessages>
@@ -71,74 +71,15 @@
 	</UsingTask>
 	<Target Name="GodTierCleanupAfterPublish" AfterTargets="Publish">
 		<ItemGroup>
-			<FilesToRemove Include="$(PublishDir)Microsoft.CodeAnalysis*.dll" />
-			<FilesToRemove Include="$(PublishDir)zh-Hans\Microsoft.CodeAnalysis*.resources.dll" />
-			<FilesToRemove Include="$(PublishDir)**\*.pdb" />
-			<FilesToRemove Include="$(PublishDir)System.Data.SqlClient.dll" />
-			<FilesToRemove Include="$(PublishDir)runtimes\**\System.Data.SqlClient.dll" />
-			<FilesToRemove Include="$(PublishDir)System.Data.OleDb.dll" />
-			<FilesToRemove Include="$(PublishDir)runtimes\**\System.Data.OleDb.dll" />
-			<FilesToRemove Include="$(PublishDir)System.Data.Odbc.dll" />
-			<FilesToRemove Include="$(PublishDir)runtimes\**\System.Data.Odbc.dll" />
-			<FilesToRemove Include="$(PublishDir)System.DirectoryServices.AccountManagement.dll" />
-			<FilesToRemove Include="$(PublishDir)runtimes\**\System.DirectoryServices.AccountManagement.dll" />
-			<FilesToRemove Include="$(PublishDir)System.DirectoryServices.Protocols.dll" />
-			<FilesToRemove Include="$(PublishDir)runtimes\**\System.DirectoryServices.Protocols.dll" />
-			<FilesToRemove Include="$(PublishDir)System.Speech.dll" />
-			<FilesToRemove Include="$(PublishDir)runtimes\**\System.Speech.dll" />
-			<FilesToRemove Include="$(PublishDir)System.Web.Services.Description.dll" />
-			<FilesToRemove Include="$(PublishDir)System.ServiceModel.Syndication.dll" />
-			<FilesToRemove Include="$(PublishDir)JsonSchema.Net.dll" />
-			<FilesToRemove Include="$(PublishDir)Json.More.dll" />
-			<FilesToRemove Include="$(PublishDir)JsonPointer.Net.dll" />
-			<FilesToRemove Include="$(PublishDir)JetBrains.Annotations.dll" />
-			<FilesToRemove Include="$(PublishDir)System.IO.Ports.dll" />
-			<FilesToRemove Include="$(PublishDir)System.Net.Http.WinHttpHandler.dll" />
-			<FilesToRemove Include="$(PublishDir)Microsoft.Bcl.AsyncInterfaces.dll" />
-			<FilesToRemove Include="$(PublishDir)Microsoft.Extensions.ObjectPool.dll" />
-			<FilesToRemove Include="$(PublishDir)System.Runtime.Caching.dll" />
-			<FilesToRemove Include="$(PublishDir)System.CodeDom.dll" />
-			<FilesToRemove Include="$(PublishDir)Microsoft.Extensions.DependencyInjection.Abstractions.dll" />
-			<FilesToRemove Include="$(PublishDir)System.ServiceProcess.ServiceController.dll" />
-			<FilesToRemove Include="$(PublishDir)runtimes\**\System.ServiceProcess.ServiceController.dll" />
-			<FilesToRemove Include="$(PublishDir)System.Diagnostics.EventLog.dll" />
-			<FilesToRemove Include="$(PublishDir)runtimes\**\System.Diagnostics.EventLog.dll" />
-			<FilesToRemove Include="$(PublishDir)Markdig.Signed.dll" />
-			<FilesToRemove Include="$(PublishDir)System.Drawing.Common.dll" />
-			<FilesToRemove Include="$(PublishDir)runtimes\**\System.Drawing.Common.dll" />
-			<FilesToRemove Include="$(PublishDir)System.Private.Windows.Core.dll" />
-			<FilesToRemove Include="$(PublishDir)Microsoft.Win32.SystemEvents.dll" />
-			<FilesToRemove Include="$(PublishDir)runtimes\**\Microsoft.Win32.SystemEvents.dll" />
-			<FilesToRemove Include="$(PublishDir)System.Management.dll" />
-			<FilesToRemove Include="$(PublishDir)System.Private.ServiceModel.dll" />
-			<FilesToRemove Include="$(PublishDir)System.ServiceModel.*.dll" />
-			<FilesToRemove Include="$(PublishDir)System.ServiceModel.dll" />
-			<FilesToRemove Include="$(PublishDir)runtimes\**\System.Net.Http.WinHttpHandler.dll" />
-			<FilesToRemove Include="$(PublishDir)runtimes\**\System.IO.Ports.dll" />
-			<FilesToRemove Include="$(PublishDir)runtimes\**\sni.dll" />
-			<FilesToRemove Include="$(PublishDir)runtimes\**\pwrshplugin.dll" />
-			<FilesToRemove Include="$(PublishDir)runtimes\**\getfilesiginforedist.dll" />
-			<FilesToRemove Include="$(PublishDir)runtimes\win\lib\net8.0\Microsoft.Management.Infrastructure.CimCmdlets.dll" />
-			<FilesToRemove Include="$(PublishDir)runtimes\win\lib\net8.0\Microsoft.PowerShell.SDK.dll" />
-			<FilesToRemove Include="$(PublishDir)runtimes\win\lib\net8.0\System.Runtime.Caching.dll" />
-			<DirsToRemove Include="$(PublishDir)ref" />
-			<DirsToRemove Include="$(PublishDir)zh-Hans" />
-			<DirsToRemove Include="$(PublishDir)runtimes\win\lib\net8.0\Modules\Microsoft.PowerShell.Security" />
-			<DirsToRemove Include="$(PublishDir)runtimes\win\lib\net8.0\Modules\Microsoft.PowerShell.Diagnostics" />
-			<DirsToRemove Include="$(PublishDir)runtimes\win\lib\net8.0\Modules\PSDiagnostics" />
-			<DirsToRemove Include="$(PublishDir)runtimes\win\lib\net8.0\Modules\Microsoft.WSMan.Management" />
-			<DirsToRemove Include="$(PublishDir)runtimes\win\lib\netcoreapp2.1" />
-			<AllRuntimeDirs Include="$([System.IO.Directory]::GetDirectories('$(PublishDir)runtimes'))"
-							Condition="Exists('$(PublishDir)runtimes')" />
-			<DirsToRemove Include="@(AllRuntimeDirs)" Condition=" '%(Filename)' != 'win' AND '%(Filename)' != 'win-x64' AND '%(Filename)' != 'win-arm64' " />
 			<MagicDlls Include="$(MSBuildProjectDirectory)\libs\*.dll" />
 		</ItemGroup>
-		<Delete Files="@(FilesToRemove)" />
-		<RemoveDir Directories="@(DirsToRemove)" />
+		<!-- 子集化的 Wpf.Ui 覆盖官方 DLL -->
 		<Copy SourceFiles="@(MagicDlls)" DestinationFolder="$(PublishDir)" OverwriteReadOnlyFiles="true" SkipUnchangedFiles="false" />
-		<!-- 平铺 System.Management：win 实现拷到根、改 deps.json 路径、删掉只剩它的 runtimes 目录 -->
+		<!-- System.Management：win 实现拷到根、改 deps.json 指向根，再端掉整个 runtimes -->
 		<Copy SourceFiles="$(PublishDir)runtimes\win\lib\net8.0\System.Management.dll" DestinationFolder="$(PublishDir)" OverwriteReadOnlyFiles="true" Condition="Exists('$(PublishDir)runtimes\win\lib\net8.0\System.Management.dll')" />
 		<ReplaceInFile FilePath="$(PublishDir)ExHyperV.deps.json" OldText="runtimes/win/lib/net8.0/System.Management.dll" NewText="System.Management.dll" Condition="Exists('$(PublishDir)ExHyperV.deps.json')" />
 		<RemoveDir Directories="$(PublishDir)runtimes" />
+		<!-- System.CodeDom 是 System.Management 的依赖，基础 WMI 用不到，删了省体积 -->
+		<Delete Files="$(PublishDir)System.CodeDom.dll" />
 	</Target>
 </Project>
