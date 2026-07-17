@@ -268,7 +268,7 @@
                                            Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,16,0"/>
 
                                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                                    <ui:Button Content="{x:Static properties:Resources.Label_Console}" Icon="Display24" Appearance="Secondary" 
+                                    <ui:Button Content="{x:Static properties:Resources.Label_Console}" Icon="Desktop24" Appearance="Secondary" 
                                                Padding="16,6" Height="36" Margin="0,0,8,0" CornerRadius="8"
                                                Command="{Binding DataContext.OpenNativeConnectCommand, RelativeSource={RelativeSource AncestorType=Page}}" />
                                     <Border CornerRadius="8" ClipToBounds="True">
@@ -307,7 +307,10 @@
                                                 <ui:Button Grid.Column="0" Content="{x:Static properties:Resources.Button_ShutDown}" Icon="Stop24" Appearance="Danger" Foreground="White"
            Padding="24,0" Height="36" CornerRadius="8,0,0,8" BorderThickness="0" Margin="0" VerticalContentAlignment="Center"
            Command="{Binding ControlCommand}" CommandParameter="Stop"/>
-                                                <ui:DropDownButton Grid.Column="1" Icon="ChevronDown24" Appearance="Danger" Foreground="White"
+                                                <ui:DropDownButton Grid.Column="1" Icon="ChevronDown24" Foreground="White"
+                   Background="{DynamicResource App.DangerBrush}"
+                   MouseOverBackground="{DynamicResource App.DangerBrushPointerOver}"
+                   PressedBackground="{DynamicResource App.DangerBrushPressed}"
                    Padding="6,0,10,0" Height="36" CornerRadius="0,8,8,0" BorderThickness="0" Margin="0" VerticalContentAlignment="Center">
                                                     <ui:DropDownButton.Flyout>
                                                         <ContextMenu>

@@ -673,7 +673,7 @@
                         <ui:Button Grid.Column="2" Appearance="Transparent" Padding="8,4" Command="{Binding DataContext.GoToBootSettingsCommand, RelativeSource={RelativeSource AncestorType=UserControl}}">
                             <ui:SymbolIcon Symbol="Settings24" FontSize="18" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
                         </ui:Button>
-                        <!-- 占位（隐藏）：撑出展开卡 chevron 的宽度，使齿轮与展开卡对齐 -->
+                        <!-- 占位，撑出 chevron 宽度让齿轮对齐 -->
                         <ui:SymbolIcon Grid.Column="3" Symbol="ChevronDown24" FontSize="16" Visibility="Hidden" VerticalAlignment="Center"/>
                     </Grid>
             </ui:Card>
@@ -701,7 +701,7 @@
                         <ui:Button Grid.Column="4" Appearance="Transparent" Padding="8,4" Command="{Binding DataContext.GoToSpacetimeSettingsCommand, RelativeSource={RelativeSource AncestorType=UserControl}}">
                             <ui:SymbolIcon Symbol="Settings24" FontSize="18" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
                         </ui:Button>
-                        <!-- 占位（隐藏）：撑出展开卡 chevron 的宽度，使齿轮与展开卡对齐 -->
+                        <!-- 占位，撑出 chevron 宽度让齿轮对齐 -->
                         <ui:SymbolIcon Grid.Column="5" Symbol="ChevronDown24" FontSize="16" Visibility="Hidden" VerticalAlignment="Center"/>
                     </Grid>
             </ui:Card>
@@ -729,7 +729,7 @@
                         <ui:Button Grid.Column="4" Appearance="Transparent" Padding="8,4" Command="{Binding DataContext.GoToAdvancedSettingsCommand, RelativeSource={RelativeSource AncestorType=UserControl}}">
                             <ui:SymbolIcon Symbol="Settings24" FontSize="18" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
                         </ui:Button>
-                        <!-- 占位（隐藏）：撑出展开卡 chevron 的宽度，使齿轮与展开卡对齐 -->
+                        <!-- 占位，撑出 chevron 宽度让齿轮对齐 -->
                         <ui:SymbolIcon Grid.Column="5" Symbol="ChevronDown24" FontSize="16" Visibility="Hidden" VerticalAlignment="Center"/>
                     </Grid>
             </ui:Card>
@@ -757,7 +757,7 @@
                         <ui:Button Grid.Column="4" Appearance="Transparent" Padding="8,4" Command="{Binding DataContext.GoToSecuritySettingsCommand, RelativeSource={RelativeSource AncestorType=UserControl}}">
                             <ui:SymbolIcon Symbol="Settings24" FontSize="18" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
                         </ui:Button>
-                        <!-- 占位（隐藏）：撑出展开卡 chevron 的宽度，使齿轮与展开卡对齐 -->
+                        <!-- 占位，撑出 chevron 宽度让齿轮对齐 -->
                         <ui:SymbolIcon Grid.Column="5" Symbol="ChevronDown24" FontSize="16" Visibility="Hidden" VerticalAlignment="Center"/>
                     </Grid>
             </ui:Card>

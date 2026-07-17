@@ -1,0 +1,10 @@
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- 危险红。DropDownButton 自带模板不读 Appearance 触发器，关机下拉只能显式引用这几个 -->
+    <Color x:Key="PaletteRedColor">#F44336</Color>
+    <SolidColorBrush x:Key="App.DangerBrush" Color="{StaticResource PaletteRedColor}" />
+    <SolidColorBrush x:Key="App.DangerBrushPointerOver" Opacity="0.9" Color="{StaticResource PaletteRedColor}" />
+    <SolidColorBrush x:Key="App.DangerBrushPressed" Opacity="0.7" Color="{StaticResource PaletteRedColor}" />
+</ResourceDictionary>

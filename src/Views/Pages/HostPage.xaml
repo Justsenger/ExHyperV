@@ -95,7 +95,7 @@
                                          Foreground="{Binding VersionStatus.IconColor}"
                                          Visibility="{Binding VersionStatus.IsChecking, Converter={StaticResource BoolToVis}, ConverterParameter=Invert}"/>
                         </StackPanel>
-                        <TextBlock Grid.Column="1" VerticalAlignment="Center">
+                        <TextBlock Grid.Column="1" VerticalAlignment="Center" FontSize="14">
                             <Run Text="{x:Static properties:Resources.Label_SysVer}" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
                             <Run Text="{Binding VersionStatus.StatusText}" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
                         </TextBlock>

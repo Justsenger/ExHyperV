@@ -40,7 +40,7 @@
                         <Grid VerticalAlignment="Center">
                             <!-- 启动按钮 -->
                             <ui:Button Icon="{ui:SymbolIcon Symbol=Play24}"
-                               Appearance="Transparent"
+                               Appearance="Transparent" Background="Transparent"
                                Width="60" 
                                Height="32"
                                Padding="0"
@@ -52,7 +52,7 @@
                             <StackPanel Orientation="Horizontal"
                                 Visibility="{Binding IsRunning, Converter={StaticResource BoolToVis}}">
                                 <ui:Button Icon="{ui:SymbolIcon Symbol=Power24}"
-                                   Appearance="Transparent"
+                                   Appearance="Transparent" Background="Transparent"
                                    Width="36"
                                    Height="32"
                                    Padding="0"
@@ -60,7 +60,7 @@
                                    Command="{Binding ShutdownVmCommand}"
                                    ToolTip="{x:Static properties:Resources.ConsoleWindow_ShutDown}" />
 
-                                <ui:DropDownButton Appearance="Transparent"
+                                <ui:DropDownButton Appearance="Transparent" Background="Transparent"
                                            Width="24"
                                            Height="32"
                                            Padding="0,0,8,0"
@@ -100,7 +100,7 @@
 
                         <ui:DropDownButton Content="{Binding SelectedResolution}" 
                                    Icon="{ui:SymbolIcon Symbol=Desktop24}" 
-                                   Appearance="Transparent" 
+                                   Appearance="Transparent" Background="Transparent" 
                                    FontSize="16" 
                                    Height="32"
                                    Padding="8,0" 
@@ -122,7 +122,7 @@
                         <!-- 缩放下拉：仅基本会话显示（增强会话画面原生跟随窗口、缩放无意义）。放大是拉伸、会糊。 -->
                         <ui:DropDownButton Content="{Binding SelectedZoom}"
                                    Icon="{ui:SymbolIcon Symbol=ZoomIn24}"
-                                   Appearance="Transparent"
+                                   Appearance="Transparent" Background="Transparent"
                                    FontSize="16"
                                    Height="32"
                                    Padding="8,0"
@@ -143,8 +143,8 @@
                         </ui:DropDownButton>
 
                         <ui:DropDownButton Content="{Binding SelectedSessionMode}"
-                           Appearance="Transparent" 
-                           FontSize="11" 
+                           Appearance="Transparent" Background="Transparent" 
+                           FontSize="16"
                            Height="32"
                            Padding="8,0"
                            Margin="8,0,0,0">
@@ -157,7 +157,7 @@
                         </ui:DropDownButton>
 
                         <!-- CAD 按钮仅基本会话显示：增强会话是 RDP，SAS 无法程序化发送(系统 mstscax 拒绝)，与微软 VMConnect 一致 → 隐藏 -->
-                        <ui:Button Appearance="Transparent"
+                        <ui:Button Appearance="Transparent" Background="Transparent"
                                    Width="38"
                                    Height="32"
                                    Padding="0"
@@ -171,7 +171,7 @@
                         
                         <!-- 全屏切换按钮 -->
                         <ui:Button Icon="{ui:SymbolIcon Symbol=FullScreenMaximize24}"
-                                   Appearance="Transparent"
+                                   Appearance="Transparent" Background="Transparent"
                                    Height="32"
                                    Padding="8,0"
                                    Margin="8,0,0,0"

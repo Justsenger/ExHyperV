@@ -32,6 +32,8 @@
                 <ui:ThemesDictionary Theme="Light" />
                 <ui:ControlsDictionary />
                 <ResourceDictionary Source="pack://application:,,,/Assets/VectorIcons.xaml" />
+                <!-- 覆盖 wpf-ui 同名键，须放最后 -->
+                <ResourceDictionary Source="pack://application:,,,/Assets/AppPalette.xaml" />
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>
