@@ -3,6 +3,7 @@ using System.IO;
 using System.Windows;
 using System.Xml.Linq;
 using Wpf.Ui.Appearance;
+using Wpf.Ui.Extensions;
 using System.Net.Http;
 
 namespace ExHyperV.Services
@@ -337,10 +338,22 @@ namespace ExHyperV.Services
         // 是否正在跟随系统主题
         private static bool _isFollowingSystem = true;
 
+        // 品牌强调色：取自系统强调色 #0078D4 并固定，不再随系统飘。主题变化时按新主题重算整套梯度。
+        private static readonly System.Windows.Media.Color AppAccent =
+            System.Windows.Media.Color.FromRgb(0x00, 0x78, 0xD4);
+        private static bool _accentHooked;
+
         // 启动时按保存偏好上色。故意不在此挂系统主题监听——启动挂会与预加载抢渲染致 Mica 不生效(#146);
         // 监听改由 EnableSystemThemeWatch 在预加载后延后挂。
         public static void ApplySavedTheme()
         {
+            if (!_accentHooked)
+            {
+                _accentHooked = true;
+                // 每次主题变化后 wpf-ui 会套回系统强调色，这里覆盖回品牌蓝
+                ApplicationThemeManager.Changed += (theme, _) => ApplyBrandAccent(theme);
+            }
+
             var themeName = GetSavedThemeCode() switch
             {
                 "dark" => Properties.Resources.Theme_Dark,
@@ -393,6 +406,17 @@ namespace ExHyperV.Services
                 if (saveTheme)
                     SaveThemeCode(themeName == Properties.Resources.Theme_Dark ? "dark" : "light");
             }
+        }
+
+        // 强调色梯度手动推算：默认 Apply(base, theme) 暗色会取 WinRT 系统亮色变体(偏亮，#4cc2ff)，
+        // 改用 4 参重载按固定公式从 #0078D4 算三档，暗色按钮吃 secondary = #1e9bfa。
+        private static void ApplyBrandAccent(ApplicationTheme theme)
+        {
+            var b = AppAccent;
+            if (theme == ApplicationTheme.Dark)
+                ApplicationAccentColorManager.Apply(b, b.Update(15f, -12f), b.Update(30f, -24f), b.Update(45f, -36f));
+            else
+                ApplicationAccentColorManager.Apply(b, b.UpdateBrightness(-5f), b.UpdateBrightness(-10f), b.UpdateBrightness(-15f));
         }
     }
 }
