@@ -12,5 +12,8 @@ namespace ExHyperV.Models
 
         /// <summary>回写引导顺序用的原始标识：Gen1=设备码(int)，Gen2=固件路径(string)。</summary>
         public object Reference { get; set; } = null!;
+
+        /// <summary>Gen2 稳定匹配键（FirmwareDevicePath）：写入时按它把用户顺序映射到当前有效的启动源路径，避开会重建的 InstanceID。</summary>
+        public string? FwPath { get; set; }
     }
 }

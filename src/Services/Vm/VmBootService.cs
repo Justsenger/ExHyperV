@@ -63,7 +63,8 @@ public static class VmBootService
                                 var item = new BootOrderItem
                                 {
                                     Name = string.IsNullOrWhiteSpace(bs.Desc) ? bs.Element : bs.Desc,
-                                    Reference = path
+                                    Reference = path,
+                                    FwPath = bs.FwPath
                                 };
                                 ParseGen2BootInfo(item, bs.FwPath, allHardware, hardwareMap, childrenMap, osDiskModels);
                                 result.Add(item);
@@ -94,7 +95,45 @@ public static class VmBootService
                 bool isGen2 = settings["VirtualSystemSubType"]?.ToString() == "Microsoft:Hyper-V:SubType:2";
 
                 if (isGen2)
-                    settings["BootSourceOrder"] = items.Select(i => i.Reference.ToString()).ToArray();
+                {
+                    // 陈旧引用防护：读取时捕获的 boot-source 路径(含 InstanceID)在运行态/装完系统后会随实例重建而失效，
+                    // 原样回填 → 0x80070490(元素未找到)。改为重读当前 BootSourceOrder，用 FirmwareDevicePath(稳定键)
+                    // 把用户顺序映射到"当前有效"的路径；结果保证是当前路径的一个排列——不漏源、不会 element-not-found。
+                    if (settings["BootSourceOrder"] is not string[] currentPaths || currentPaths.Length == 0)
+                        return (false, Properties.Resources.Error_Net_VmNotFound);
+
+                    var currentFw = new string?[currentPaths.Length];
+                    for (int i = 0; i < currentPaths.Length; i++)
+                    {
+                        try
+                        {
+                            var r = await WmiApi.GetByPathAsync(currentPaths[i], o => o["FirmwareDevicePath"]?.ToString());
+                            currentFw[i] = r.HasData ? r.Data : null;
+                        }
+                        catch { }
+                    }
+
+                    var used = new bool[currentPaths.Length];
+                    var ordered = new List<string>(currentPaths.Length);
+                    foreach (var it in items)
+                    {
+                        if (string.IsNullOrEmpty(it.FwPath)) continue;
+                        for (int i = 0; i < currentPaths.Length; i++)
+                        {
+                            if (!used[i] && currentFw[i] == it.FwPath)
+                            {
+                                ordered.Add(currentPaths[i]);
+                                used[i] = true;
+                                break;
+                            }
+                        }
+                    }
+                    // 用户项没匹配到的当前源(新出现的/键变了的)补到末尾，绝不漏写
+                    for (int i = 0; i < currentPaths.Length; i++)
+                        if (!used[i]) ordered.Add(currentPaths[i]);
+
+                    settings["BootSourceOrder"] = ordered.ToArray();
+                }
                 else
                     settings["BootOrder"] = items.Select(i => Convert.ToUInt16(i.Reference)).ToArray();
 
