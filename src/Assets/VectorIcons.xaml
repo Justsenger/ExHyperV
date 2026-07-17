@@ -566,6 +566,30 @@
             </DrawingGroup>
         </DrawingImage.Drawing>
     </DrawingImage>
+    <!-- Lisuan 砺算：橙色标记居中于圆角深底方块（白字需深底，尺寸对齐其它厂商方块） -->
+    <DrawingImage x:Key="Vector.Gpu.Lisuan">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="#1F1F1F">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="0,0,128,128" RadiusX="10" RadiusY="10"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <DrawingGroup>
+                    <DrawingGroup.Transform>
+                        <TransformGroup>
+                            <ScaleTransform ScaleX="1.97" ScaleY="1.97"/>
+                            <TranslateTransform X="16" Y="30.5"/>
+                        </TransformGroup>
+                    </DrawingGroup.Transform>
+                    <GeometryDrawing Brush="White" Geometry="F1 M45.5101 0H3.23975V5.76812H45.5101V0Z"/>
+                    <GeometryDrawing Brush="#F39800" Geometry="F1 M6.98057 10.625H35.2898V12.5297H6.98057V10.625ZM0 16.0593H42.2704V7.09541H0V16.0593Z"/>
+                    <GeometryDrawing Brush="#F39800" Geometry="F1 M48.745 26.5677H6.47461V17.6038H48.745V26.5677ZM41.7644 21.1334H13.4552V23.0381H41.7644V21.1334Z"/>
+                    <GeometryDrawing Brush="White" Geometry="F1 M45.5101 28.2327H3.23975V34.0008H45.5101V28.2327Z"/>
+                </DrawingGroup>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
     <!-- Default：科幻霓虹 GPU 芯片兜底图 -->
     <DrawingImage x:Key="Vector.Gpu.Default">
         <DrawingImage.Drawing>

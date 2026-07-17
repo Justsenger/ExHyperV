@@ -19,6 +19,7 @@ namespace ExHyperV.Tools
                 return "Gpu.Intel";
             }
             if (manufacturer.Contains("Qualcomm")) return "Gpu.Qualcomm";
+            if (manufacturer.Contains("Lisuan")) return "Gpu.Lisuan";
             return "Gpu.Default";
         }
     }
