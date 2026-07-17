@@ -5589,6 +5589,24 @@ namespace ExHyperV.Properties {
                 return ResourceManager.GetString("Theme_Switch", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   查找类似 Performance mode 的本地化字符串。
+        /// </summary>
+        public static string Settings_PerformanceTitle {
+            get {
+                return ResourceManager.GetString("Settings_PerformanceTitle", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   查找类似 Disable animations and reduce memory usage 的本地化字符串。
+        /// </summary>
+        public static string Settings_PerformanceDesc {
+            get {
+                return ResourceManager.GetString("Settings_PerformanceDesc", resourceCulture);
+            }
+        }
         
         /// <summary>
         ///   查找类似 System 的本地化字符串。

@@ -68,6 +68,23 @@
         </ui:CardControl>
 
 
+        <ui:CardControl Margin="0,0,0,12">
+            <ui:CardControl.Icon>
+                <ui:FontIcon FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xE945;" />
+            </ui:CardControl.Icon>
+            <ui:CardControl.Header>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <ui:TextBlock Grid.Row="0" FontTypography="Body" Text="{x:Static properties:Resources.Settings_PerformanceTitle}" />
+                    <ui:TextBlock Grid.Row="1" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" Text="{x:Static properties:Resources.Settings_PerformanceDesc}" />
+                </Grid>
+            </ui:CardControl.Header>
+            <ui:ToggleSwitch IsChecked="{Binding IsPerformanceMode}" />
+        </ui:CardControl>
+
         <ui:TextBlock
             Margin="0,24,0,8"
             FontTypography="BodyStrong"

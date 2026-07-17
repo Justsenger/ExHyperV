@@ -201,6 +201,12 @@
   <data name="Theme_Switch" xml:space="preserve">
     <value>Switch between light/dark mode</value>
   </data>
+  <data name="Settings_PerformanceTitle" xml:space="preserve">
+    <value>Performance mode</value>
+  </data>
+  <data name="Settings_PerformanceDesc" xml:space="preserve">
+    <value>Disable animations and reduce memory usage</value>
+  </data>
   <data name="Theme_Light" xml:space="preserve">
     <value>Light</value>
   </data>

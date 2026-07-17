@@ -13,6 +13,24 @@ public partial class App
     private const string DefaultLanguage = "en-US";
     private const string ConfigFilePath = "Config.xml";
 
+    // 性能模式：启动即读，供窗口/预加载/动画判定。改动需重启生效。
+    public static bool PerformanceMode { get; private set; }
+
+    // 静态构造早于 App.xaml/wpf-ui 字典 parse，此时置位才能让模板里的 {controls:Motion} 取到正确 flag；
+    // 软件渲染同样必须在首帧前设。
+    static App()
+    {
+        PerformanceMode = ExHyperV.Services.SettingsService.GetPerformanceMode();
+        if (!PerformanceMode) return;
+
+        // UiPerformance 只在重编的 src/libs DLL 里；编译期引用的是 nuget 包(无此类型)，故反射置位。
+        // dev 跑用官方全量 DLL→反射空转(动画不关)，仅 publish 版真生效——与"模板改动只 publish 暴露"一致。
+        var t = System.Type.GetType("Wpf.Ui.Controls.UiPerformance, Wpf.Ui");
+        t?.GetField("Reduced", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)?.SetValue(null, true);
+
+        System.Windows.Media.RenderOptions.ProcessRenderMode = System.Windows.Interop.RenderMode.SoftwareOnly;
+    }
+
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);

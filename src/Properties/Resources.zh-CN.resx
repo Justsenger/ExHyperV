@@ -201,6 +201,12 @@
   <data name="Theme_Switch" xml:space="preserve">
     <value>切换浅色/深色模式</value>
   </data>
+  <data name="Settings_PerformanceTitle" xml:space="preserve">
+    <value>性能模式</value>
+  </data>
+  <data name="Settings_PerformanceDesc" xml:space="preserve">
+    <value>关闭动画并减少内存占用</value>
+  </data>
   <data name="Theme_Light" xml:space="preserve">
     <value>明亮</value>
   </data>

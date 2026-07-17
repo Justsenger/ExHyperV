@@ -49,6 +49,11 @@ namespace ExHyperV.Views
             _vm = new ConsoleViewModel(vmId, vmName);
             this.DataContext = _vm;
             InitializeComponent();
+            if (App.PerformanceMode)
+            {
+                WindowBackdropType = WindowBackdropType.None;
+                SetResourceReference(BackgroundProperty, "ApplicationBackgroundBrush");
+            }
             this.Title = vmName;
 
             // TitleBar 关闭按钮直调 Window.Close() 绕过 _closing；关闭时 ShutdownAndDispose 的 DoEvents

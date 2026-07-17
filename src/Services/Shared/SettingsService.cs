@@ -124,11 +124,16 @@ namespace ExHyperV.Services
             }
             catch { return; }
 
-            // 重启应用
+            RestartApp();
+        }
+
+        // 重启当前实例（语言/性能模式等需重启生效的设置共用）。
+        // 重启失败（被杀软拦截/文件锁）则不关闭当前实例，避免关到无实例可用。
+        public static void RestartApp()
+        {
             var exePath = Process.GetCurrentProcess().MainModule?.FileName;
             if (exePath != null)
             {
-                // 重启失败（被杀软拦截/文件锁）则不关闭当前实例，避免关到无实例可用
                 try { Process.Start(exePath); }
                 catch { return; }
             }
@@ -181,6 +186,41 @@ namespace ExHyperV.Services
                 else
                 {
                     configDoc = new XDocument(new XElement("Config", new XElement("Theme", themeCode)));
+                }
+                configDoc.Save(ConfigFilePath);
+            }
+            catch { }
+        }
+
+        // ===== 性能模式 =====
+        // 关闭动画、减少内存占用（行为接线见后续；此处仅持久化开关）。存 config.xml 的 <PerformanceMode>。
+        public static bool GetPerformanceMode()
+        {
+            if (!File.Exists(ConfigFilePath)) return false;
+            try
+            {
+                XDocument configDoc = XDocument.Load(ConfigFilePath);
+                return string.Equals(configDoc.Root?.Element("PerformanceMode")?.Value, "true", StringComparison.OrdinalIgnoreCase);
+            }
+            catch { return false; }
+        }
+
+        public static void SavePerformanceMode(bool enabled)
+        {
+            string v = enabled ? "true" : "false";
+            try
+            {
+                XDocument configDoc;
+                if (File.Exists(ConfigFilePath))
+                {
+                    configDoc = XDocument.Load(ConfigFilePath);
+                    var el = configDoc.Root?.Element("PerformanceMode");
+                    if (el != null) el.Value = v;
+                    else configDoc.Root?.Add(new XElement("PerformanceMode", v));
+                }
+                else
+                {
+                    configDoc = new XDocument(new XElement("Config", new XElement("PerformanceMode", v)));
                 }
                 configDoc.Save(ConfigFilePath);
             }

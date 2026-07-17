@@ -15,6 +15,7 @@ namespace ExHyperV.ViewModels
         [ObservableProperty] private string _selectedTheme = string.Empty;
         [ObservableProperty] private List<string> _availableLanguages;
         [ObservableProperty] private string _selectedLanguage = string.Empty;
+        [ObservableProperty] private bool _isPerformanceMode;
 
         [ObservableProperty] private string _updateStatusText = string.Empty;
         [ObservableProperty] private bool _isCheckingForUpdate;
@@ -110,6 +111,7 @@ namespace ExHyperV.ViewModels
             SelectedTheme = SettingsService.GetTheme();
             string langCode = SettingsService.GetLanguage();
             SelectedLanguage = langCode == "zh-CN" ? Properties.Resources.Lang_Chinese : "English";
+            IsPerformanceMode = SettingsService.GetPerformanceMode();
         }
 
         partial void OnSelectedThemeChanged(string value)
@@ -123,6 +125,13 @@ namespace ExHyperV.ViewModels
         {
             if (_isInitializing || value == null) return;
             SettingsService.SetLanguageAndRestart(value);
+        }
+
+        partial void OnIsPerformanceModeChanged(bool value)
+        {
+            if (_isInitializing) return;
+            SettingsService.SavePerformanceMode(value);
+            SettingsService.RestartApp();
         }
     }
 }
