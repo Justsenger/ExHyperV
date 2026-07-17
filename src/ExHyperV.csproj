@@ -57,6 +57,18 @@
 			<LastGenOutput>Resources.Designer.cs</LastGenOutput>
 		</EmbeddedResource>
 	</ItemGroup>
+	<UsingTask TaskName="ReplaceInFile" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+		<ParameterGroup>
+			<FilePath ParameterType="System.String" Required="true" />
+			<OldText ParameterType="System.String" Required="true" />
+			<NewText ParameterType="System.String" Required="true" />
+		</ParameterGroup>
+		<Task>
+			<Code Type="Fragment" Language="cs"><![CDATA[
+				System.IO.File.WriteAllText(FilePath, System.IO.File.ReadAllText(FilePath).Replace(OldText, NewText));
+			]]></Code>
+		</Task>
+	</UsingTask>
 	<Target Name="GodTierCleanupAfterPublish" AfterTargets="Publish">
 		<ItemGroup>
 			<FilesToRemove Include="$(PublishDir)Microsoft.CodeAnalysis*.dll" />
@@ -124,5 +136,9 @@
 		<Delete Files="@(FilesToRemove)" />
 		<RemoveDir Directories="@(DirsToRemove)" />
 		<Copy SourceFiles="@(MagicDlls)" DestinationFolder="$(PublishDir)" OverwriteReadOnlyFiles="true" SkipUnchangedFiles="false" />
+		<!-- 平铺 System.Management：win 实现拷到根、改 deps.json 路径、删掉只剩它的 runtimes 目录 -->
+		<Copy SourceFiles="$(PublishDir)runtimes\win\lib\net8.0\System.Management.dll" DestinationFolder="$(PublishDir)" OverwriteReadOnlyFiles="true" Condition="Exists('$(PublishDir)runtimes\win\lib\net8.0\System.Management.dll')" />
+		<ReplaceInFile FilePath="$(PublishDir)ExHyperV.deps.json" OldText="runtimes/win/lib/net8.0/System.Management.dll" NewText="System.Management.dll" Condition="Exists('$(PublishDir)ExHyperV.deps.json')" />
+		<RemoveDir Directories="$(PublishDir)runtimes" />
 	</Target>
 </Project>
