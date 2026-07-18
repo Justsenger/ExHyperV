@@ -72,7 +72,7 @@ namespace ExHyperV.Interaction
                 Content = dialogContent,
                 PrimaryButtonText = confirmButtonText ?? Properties.Resources.Btn_Confirm,
                 CloseButtonText = cancelButtonText ?? Properties.Resources.Btn_Cancel,
-                DialogHost = dialogHost,
+                DialogHostEx = dialogHost,
                 PrimaryButtonAppearance = isDanger ? ControlAppearance.Danger : ControlAppearance.Primary
             };
 
@@ -162,7 +162,7 @@ namespace ExHyperV.Interaction
                 Title = title,
                 Content = grid,
                 CloseButtonText = Properties.Resources.Btn_Confirm,
-                DialogHost = dialogHost
+                DialogHostEx = dialogHost
             };
 
             await dialog.ShowAsync(CancellationToken.None);
@@ -187,7 +187,7 @@ namespace ExHyperV.Interaction
                 Content = content,
                 PrimaryButtonText = Properties.Resources.Btn_Create,
                 CloseButtonText = Properties.Resources.Btn_Cancel,
-                DialogHost = dialogHost,
+                DialogHostEx = dialogHost,
                 VerticalContentAlignment = VerticalAlignment.Top
             };
 

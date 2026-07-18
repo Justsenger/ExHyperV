@@ -110,7 +110,7 @@
 
         </ui:NavigationView>
         
-        <ContentPresenter Grid.Row="1" Grid.RowSpan="2" Grid.ColumnSpan="2" x:Name="ContentPresenterForDialogs"/>
+        <ui:ContentDialogHost Grid.Row="1" Grid.RowSpan="2" Grid.ColumnSpan="2" x:Name="ContentPresenterForDialogs"/>
         <ui:SnackbarPresenter Grid.Row="2" Grid.Column="1" VerticalAlignment="Bottom" x:Name="SnackbarPresenter"/>
         
     </Grid>
