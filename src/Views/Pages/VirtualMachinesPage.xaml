@@ -223,8 +223,7 @@
                             </Image>
 
                             <!-- 2. 实时监视器 (运行时显示) -->
-                            <Border Background="Black" BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" 
-                            BorderThickness="4,4,4,8" CornerRadius="2" ClipToBounds="True"
+                            <Border Background="#0B0B0B" CornerRadius="6" ClipToBounds="True"
                             ToolTip="{x:Static properties:Resources.Label_DoubleClickConnect}">
                                 <Border.Style>
                                     <Style TargetType="Border">
@@ -241,7 +240,7 @@
                                           Command="{Binding DataContext.OpenNativeConnectCommand, RelativeSource={RelativeSource AncestorType=Page}}" />
                                 </Border.InputBindings>
                                 <Viewbox Stretch="Uniform">
-                                    <Image Source="{Binding Thumbnail}" Width="320" Height="240" 
+                                    <Image Source="{Binding Thumbnail}"
                                    RenderOptions.BitmapScalingMode="HighQuality" />
                                 </Viewbox>
                             </Border>
