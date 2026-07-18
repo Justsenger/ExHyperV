@@ -202,7 +202,7 @@
     <value>切换浅色/深色模式</value>
   </data>
   <data name="Settings_PerformanceTitle" xml:space="preserve">
-    <value>轻量模式</value>
+    <value>轻量化</value>
   </data>
   <data name="Settings_PerformanceDesc" xml:space="preserve">
     <value>关闭动画并减少内存占用</value>
