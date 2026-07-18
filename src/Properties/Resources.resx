@@ -202,7 +202,7 @@
     <value>Switch between light/dark mode</value>
   </data>
   <data name="Settings_PerformanceTitle" xml:space="preserve">
-    <value>Performance mode</value>
+    <value>Lightweight mode</value>
   </data>
   <data name="Settings_PerformanceDesc" xml:space="preserve">
     <value>Disable animations and reduce memory usage</value>

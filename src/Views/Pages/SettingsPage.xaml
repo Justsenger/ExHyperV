@@ -70,7 +70,7 @@
 
         <ui:CardControl Margin="0,0,0,12">
             <ui:CardControl.Icon>
-                <ui:FontIcon FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xE945;" />
+                <ui:SymbolIcon Symbol="LeafTwo24" />
             </ui:CardControl.Icon>
             <ui:CardControl.Header>
                 <Grid>
