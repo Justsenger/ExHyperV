@@ -74,7 +74,7 @@ namespace ExHyperV.Tools
             Children.Add(icon);
 
             var panel = new StackPanel { HorizontalAlignment = HorizontalAlignment.Center, Orientation = Orientation.Vertical };
-            var nameText = new UiTextBlock { Text = name, FontSize = 12, TextAlignment = TextAlignment.Center, Margin = new Thickness(0, 0, 0, -2) };
+            var nameText = new UiTextBlock { Text = name, FontSize = 12, TextAlignment = TextAlignment.Center, Margin = new Thickness(0, 0, 0, 1) };
             if (wrap) { nameText.MaxWidth = NodeSpacing - 10; nameText.TextWrapping = TextWrapping.Wrap; }
             nameText.SetResourceReference(UiTextBlock.ForegroundProperty, "TextFillColorPrimaryBrush");
             panel.Children.Add(nameText);
@@ -86,7 +86,7 @@ namespace ExHyperV.Tools
             }
             if (!string.IsNullOrEmpty(ip))
             {
-                var ipText = new UiTextBlock { Text = ip, FontSize = 11, TextAlignment = TextAlignment.Center, Margin = new Thickness(0, -4, 0, 0) };
+                var ipText = new UiTextBlock { Text = ip, FontSize = 11, TextAlignment = TextAlignment.Center, Margin = new Thickness(0, 1, 0, 0) };
                 ipText.SetResourceReference(UiTextBlock.ForegroundProperty, "TextFillColorPrimaryBrush");
                 panel.Children.Add(ipText);
             }
