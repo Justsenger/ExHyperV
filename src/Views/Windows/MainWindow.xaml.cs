@@ -15,6 +15,8 @@ namespace ExHyperV.Views
                 // 无 GPU 模式：关 Mica（省 DWM 合成），改不透明底
                 WindowBackdropType = Wpf.Ui.Controls.WindowBackdropType.None;
                 SetResourceReference(BackgroundProperty, "ApplicationBackgroundBrush");
+                // 关页面切换过渡（默认 FadeInWithSlide 的下往上滑入，RDP/软渲染下卡）
+                RootNavigation.Transition = Wpf.Ui.Animations.Transition.None;
             }
             Loaded += PagePreload;
 
