@@ -82,4 +82,12 @@
 		<!-- System.CodeDom 是 System.Management 的依赖，基础 WMI 用不到，删了省体积 -->
 		<Delete Files="$(PublishDir)System.CodeDom.dll" />
 	</Target>
+	<!-- 让普通构建(dev)也用克隆的 Wpf.Ui：轻量模式的“关动画”依赖克隆 DLL 里的 UiPerformance 类型，
+	     不覆盖就只有发布版关得掉动画（软件渲染/关Mica/懒加载本在 app 侧、构建时已生效）。 -->
+	<Target Name="UseCloneWpfUiInBuild" AfterTargets="Build">
+		<ItemGroup>
+			<CloneDlls Include="$(MSBuildProjectDirectory)\libs\*.dll" />
+		</ItemGroup>
+		<Copy SourceFiles="@(CloneDlls)" DestinationFolder="$(OutDir)" OverwriteReadOnlyFiles="true" SkipUnchangedFiles="true" />
+	</Target>
 </Project>
