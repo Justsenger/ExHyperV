@@ -2677,7 +2677,10 @@
     <value>内存优化</value>
   </data>
   <data name="VmRAMSettings_ToggleColdHint" xml:space="preserve">
-    <value>内存活跃度提示</value>
+    <value>冷内存页提示</value>
+  </data>
+  <data name="VmRAMSettings_ToggleHotHint" xml:space="preserve">
+    <value>热内存页提示</value>
   </data>
   <data name="VmRAMSettings_NeedVirtualBacking" xml:space="preserve">
     <value>此功能需虚拟内存后端（请将上方“内存映射模式”设为“虚拟”）</value>
