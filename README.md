@@ -852,6 +852,7 @@ A huge thank you to our sponsors! Your generous support is the driving force beh
 ![](https://img.shields.io/badge/LEGEND-USER--09837-24292e?style=for-the-badge&logo=starship&logoColor=BE64FF&labelColor=24292e&color=BE64FF)
 <a href="https://github.com/PIKACHUIM"><img src="https://img.shields.io/badge/LEGEND-PIKACHUIM-24292e?style=for-the-badge&logo=starship&logoColor=BE64FF&labelColor=24292e&color=BE64FF" /></a>
 ![](https://img.shields.io/badge/LEGEND-USER--d6636-24292e?style=for-the-badge&logo=starship&logoColor=BE64FF&labelColor=24292e&color=BE64FF)
+![](https://img.shields.io/badge/LEGEND-Ermo-24292e?style=for-the-badge&logo=expertsexchange&logoColor=FFBF00&labelColor=24292e&color=FFBF00)
 
 ---
 
@@ -862,8 +863,10 @@ A huge thank you to our sponsors! Your generous support is the driving force beh
 ![](https://img.shields.io/badge/EXPERT-User--7bdd5-24292e?style=for-the-badge&logo=expertsexchange&logoColor=FFBF00&labelColor=24292e&color=FFBF00)
 ![](https://img.shields.io/badge/EXPERT-Glushkov-24292e?style=for-the-badge&logo=expertsexchange&logoColor=FFBF00&labelColor=24292e&color=FFBF00)
 ![](https://img.shields.io/badge/EXPERT-Cz-24292e?style=for-the-badge&logo=expertsexchange&logoColor=FFBF00&labelColor=24292e&color=FFBF00)
-![](https://img.shields.io/badge/EXPERT-Ermo-24292e?style=for-the-badge&logo=expertsexchange&logoColor=FFBF00&labelColor=24292e&color=FFBF00)
 ![](https://img.shields.io/badge/EXPERT-User--05ddd-24292e?style=for-the-badge&logo=expertsexchange&logoColor=FFBF00&labelColor=24292e&color=FFBF00)
+![](https://img.shields.io/badge/EXPERT-User--呱叽呱叽-24292e?style=for-the-badge&logo=expertsexchange&logoColor=FFBF00&labelColor=24292e&color=FFBF00)
+![](https://img.shields.io/badge/EXPERT-User--.Hello-24292e?style=for-the-badge&logo=expertsexchange&logoColor=FFBF00&labelColor=24292e&color=FFBF00)
+
 
 ---
 
