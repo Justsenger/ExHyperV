@@ -6,11 +6,14 @@ on:
       - main
   workflow_dispatch:        # 手动触发：发布（含内测）只能走这里
     inputs:
-      supplement_existing_release:
-        description: '仅补签并上传 EXE 到现有 Release（不创建/删除 Tag，不提交 Winget）'
+      release_type:
+        description: '发布类型'
         required: true
-        type: boolean
-        default: false
+        type: choice
+        options:
+          - beta
+          - release
+        default: beta
 
 jobs:
   publish:
@@ -27,8 +30,9 @@ jobs:
         shell: pwsh
         run: |
           $eventName = "${{ github.event_name }}"
+          $releaseType = "${{ inputs.release_type }}"
 
-          # 版本号唯一来源：csproj 的 <Version>（含 -alpha / -beta 后缀，供程序显示与判断内测）
+          # 版本号唯一来源：csproj 的 <Version>；发布渠道由手动发布时的选项决定。
           [xml]$project = Get-Content src/ExHyperV.csproj
           $ver = ($project.Project.PropertyGroup.Version | Where-Object { $_ } | Select-Object -First 1)
           $ver = "$ver".Trim()
@@ -37,38 +41,63 @@ jobs:
             exit 1
           }
 
-          # 按后缀判断渠道：含 alpha / beta → 预发布，不上 winget；都没有 → 正式版
-          if ($ver -match '(?i)alpha') {
-            $mode = "alpha"; $pre = "true"; $winget = "false"
-          } elseif ($ver -match '(?i)beta') {
-            $mode = "beta";  $pre = "true"; $winget = "false"
-          } else {
-            $mode = "release"; $pre = "false"; $winget = "true"
-          }
-
-          # 发布门槛：一律仅手动触发(workflow_dispatch)才发布；push 只构建，不建 Release、不发通知
-          if ($eventName -eq "workflow_dispatch") {
-            $publish = "true"
-          } else {
+          if ($eventName -eq "push") {
+            # push 只做构建验证，不签名、不创建 Tag/Release。
+            $mode = "build"
+            $tag = ""
+            $pre = "false"
+            $winget = "false"
+            $build = "true"
             $publish = "false"
-          }
+          } else {
+            if ($releaseType -eq "beta") {
+              $mode = "beta"
+              $tag = "V$ver-beta"
+              $pre = "true"
+              $winget = "false"
+            } elseif ($releaseType -eq "release") {
+              $mode = "release"
+              $tag = "V$ver"
+              $pre = "false"
+              $winget = "true"
+            } else {
+              Write-Error "未知发布类型：$releaseType"
+              exit 1
+            }
 
-          $tag = "V$ver"
+            # 已存在相同 Tag 时安全跳过，避免覆盖已经发布的版本。
+            git ls-remote --exit-code --tags origin "refs/tags/$tag" | Out-Null
+            $tagCheck = $LASTEXITCODE
+            if ($tagCheck -eq 0) {
+              Write-Host "Tag $tag 已存在，本次不构建、不签名、不发布。"
+              $build = "false"
+              $publish = "false"
+            } elseif ($tagCheck -eq 2) {
+              $build = "true"
+              $publish = "true"
+            } else {
+              Write-Error "检查远程 Tag 失败（git ls-remote 退出码：$tagCheck），为避免覆盖发布，本次终止。"
+              exit 1
+            }
+          }
 
           echo "MODE=$mode"       >> $env:GITHUB_OUTPUT
           echo "VERSION=$ver"     >> $env:GITHUB_OUTPUT
           echo "TAG=$tag"         >> $env:GITHUB_OUTPUT
           echo "PRERELEASE=$pre"  >> $env:GITHUB_OUTPUT
           echo "WINGET=$winget"   >> $env:GITHUB_OUTPUT
+          echo "BUILD=$build"     >> $env:GITHUB_OUTPUT
           echo "PUBLISH=$publish" >> $env:GITHUB_OUTPUT
-          Write-Host "版本=$ver  模式=$mode  Tag=$tag  预发布=$pre  Winget=$winget  发布=$publish"
+          Write-Host "版本=$ver  模式=$mode  Tag=$tag  构建=$build  发布=$publish  Winget=$winget"
 
       # ── 构建 ─────────────────────────────────────────────────────────
       - uses: actions/setup-dotnet@v4
+        if: steps.config.outputs.BUILD == 'true'
         with:
           dotnet-version: '8.0.x'
 
       - name: Build x64 and arm64
+        if: steps.config.outputs.BUILD == 'true'
         shell: pwsh
         run: |
           $msbuild = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -requires Microsoft.Component.MSBuild -find MSBuild\**\Bin\MSBuild.exe | Select-Object -First 1
@@ -77,6 +106,7 @@ jobs:
 
       # ── 签名：安装 SimplySign Desktop ────────────────────────────────
       - name: Setup Certum Code Signing
+        if: steps.config.outputs.PUBLISH == 'true'
         shell: bash
         run: |
           chmod +x ./.github/scripts/install-simplysign.sh
@@ -86,6 +116,7 @@ jobs:
 
       # ── 签名：认证 SimplySign ─────────────────────────────────────────
       - name: Authenticate Certum
+        if: steps.config.outputs.PUBLISH == 'true'
         shell: bash
         env:
           CERTUM_OTP_URI: ${{ secrets.CERTUM_OTP_URI }}
@@ -107,6 +138,7 @@ jobs:
 
       # ── 签名：x64 EXE ────────────────────────────────────────────────
       - name: Sign x64 EXE
+        if: steps.config.outputs.PUBLISH == 'true'
         shell: pwsh
         env:
           CERTUM_CERTIFICATE_SHA1: ${{ secrets.CERTUM_CERTIFICATE_SHA1 }}
@@ -116,6 +148,7 @@ jobs:
 
       # ── 签名：arm64 EXE ───────────────────────────────────────────────
       - name: Sign arm64 EXE
+        if: steps.config.outputs.PUBLISH == 'true'
         shell: pwsh
         env:
           CERTUM_CERTIFICATE_SHA1: ${{ secrets.CERTUM_CERTIFICATE_SHA1 }}
@@ -124,6 +157,7 @@ jobs:
 
       # ── 整理单文件发布资产 ────────────────────────────────────────────
       - name: Prepare release assets
+        if: steps.config.outputs.PUBLISH == 'true'
         shell: pwsh
         run: |
           $tag = "${{ steps.config.outputs.TAG }}"
@@ -132,7 +166,7 @@ jobs:
 
       # ── 预发布：先删掉所有现存预发布，再创建新的 → 内测包始终只保留一个 ──
       - name: Delete all existing prereleases
-        if: steps.config.outputs.PUBLISH == 'true' && steps.config.outputs.PRERELEASE == 'true' && inputs.supplement_existing_release != true
+        if: steps.config.outputs.PUBLISH == 'true' && steps.config.outputs.PRERELEASE == 'true'
         shell: bash
         run: |
           # 列出所有预发布（不含正式版），逐个删除其 Release 和 tag
@@ -146,7 +180,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create Release
-        if: steps.config.outputs.PUBLISH == 'true' && inputs.supplement_existing_release != true
+        if: steps.config.outputs.PUBLISH == 'true'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: "${{ steps.config.outputs.TAG }}"
@@ -160,25 +194,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload signed EXEs to existing Release
-        if: steps.config.outputs.PUBLISH == 'true' && inputs.supplement_existing_release == true
-        shell: pwsh
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          $tag = "${{ steps.config.outputs.TAG }}"
-          gh release view "$tag" --repo "${{ github.repository }}" | Out-Null
-          if ($LASTEXITCODE -ne 0) {
-            throw "Existing Release $tag was not found."
-          }
-          gh release upload "$tag" `
-            "ExHyperV_${tag}_x64.exe" `
-            "ExHyperV_${tag}_arm64.exe" `
-            --repo "${{ github.repository }}"
-
       # ── 提交 Winget（仅正式版，且必须是手动触发）──────────────────────
       - name: Submit to Winget
-        if: steps.config.outputs.PUBLISH == 'true' && steps.config.outputs.WINGET == 'true' && inputs.supplement_existing_release != true
+        if: steps.config.outputs.PUBLISH == 'true' && steps.config.outputs.WINGET == 'true'
         uses: vedantmgoyal2009/winget-releaser@v2
         with:
           identifier: Justsenger.ExHyperV
