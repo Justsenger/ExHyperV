@@ -65,13 +65,9 @@ jobs:
       - name: Build x64 and arm64
         shell: pwsh
         run: |
-          # 不覆盖版本号，直接用 csproj 的 <Version>（含 -alpha/-beta 后缀），
-          # 这样程序内通过 InformationalVersion 就能读到内测标识
-          dotnet restore src/ExHyperV.csproj
           $msbuild = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -requires Microsoft.Component.MSBuild -find MSBuild\**\Bin\MSBuild.exe | Select-Object -First 1
-          & $msbuild src/ExHyperV.csproj /p:Configuration=Release /p:PublishDir=../publish_portable/ /p:SelfContained=false /t:Publish
-          dotnet restore src/ExHyperV.csproj -r win-arm64
-          & $msbuild src/ExHyperV.csproj /p:Configuration=Release /p:PublishDir=../temp_arm64/ /p:SelfContained=false /p:RuntimeIdentifier=win-arm64 /t:Publish
+          $publishRoot = Join-Path $PWD "artifacts"
+          & $msbuild src/ExHyperV.csproj /t:PublishAllArchitectures /p:PublishRoot="$publishRoot"
 
       # ── 签名：安装 SimplySign Desktop ────────────────────────────────
       - name: Setup Certum Code Signing
@@ -103,14 +99,14 @@ jobs:
           exit 1
         continue-on-error: true
 
-      # ── 签名：x64 产物（EXE/DLL/SYS + CAT）──────────────────────────
-      - name: Sign x64 binaries
+      # ── 签名：x64 EXE ────────────────────────────────────────────────
+      - name: Sign x64 EXE
         shell: pwsh
         env:
           CERTUM_CERTIFICATE_SHA1: ${{ secrets.CERTUM_CERTIFICATE_SHA1 }}
         run: |
           Start-Sleep -Seconds 10
-          powershell -ExecutionPolicy Bypass -File "./.github/scripts/sign-windows.ps1" -TargetDirectory "publish_portable"
+          powershell -ExecutionPolicy Bypass -File "./.github/scripts/sign-windows.ps1" -TargetDirectory "artifacts/win-x64" -SkipCatGeneration
 
       # ── 签名：arm64 EXE ───────────────────────────────────────────────
       - name: Sign arm64 EXE
@@ -118,24 +114,15 @@ jobs:
         env:
           CERTUM_CERTIFICATE_SHA1: ${{ secrets.CERTUM_CERTIFICATE_SHA1 }}
         run: |
-          powershell -ExecutionPolicy Bypass -File "./.github/scripts/sign-windows.ps1" -TargetDirectory "temp_arm64" -SkipCatGeneration
+          powershell -ExecutionPolicy Bypass -File "./.github/scripts/sign-windows.ps1" -TargetDirectory "artifacts/win-arm64" -SkipCatGeneration
 
-      # ── 打包 ──────────────────────────────────────────────────────────
-      - name: Package
+      # ── 整理单文件发布资产 ────────────────────────────────────────────
+      - name: Prepare release assets
         shell: pwsh
         run: |
           $tag = "${{ steps.config.outputs.TAG }}"
-
-          # x64 包
-          Copy-Item -Path "./publish_portable" -Destination "./dist_x64" -Recurse
-          Compress-Archive -Path ./dist_x64/* -DestinationPath "ExHyperV_${tag}_x64.zip" -Force
-
-          # arm64 包：用 arm64 EXE 替换 x64 EXE，其余文件复用已签名的 x64 产物
-          Copy-Item -Path "./publish_portable" -Destination "./dist_arm64" -Recurse
-          Remove-Item "./dist_arm64/ExHyperV.exe" -Force
-          Copy-Item -Path "./temp_arm64/ExHyperV.exe" -Destination "./dist_arm64/ExHyperV.exe"
-          Remove-Item "./dist_arm64/ExHyperV.cat" -ErrorAction SilentlyContinue
-          Compress-Archive -Path ./dist_arm64/* -DestinationPath "ExHyperV_${tag}_arm64.zip" -Force
+          Copy-Item ./artifacts/win-x64/ExHyperV.exe "ExHyperV_${tag}_x64.exe"
+          Copy-Item ./artifacts/win-arm64/ExHyperV.exe "ExHyperV_${tag}_arm64.exe"
 
       # ── 预发布：先删掉所有现存预发布，再创建新的 → 内测包始终只保留一个 ──
       - name: Delete all existing prereleases
@@ -159,8 +146,8 @@ jobs:
           tag_name: "${{ steps.config.outputs.TAG }}"
           name: "${{ steps.config.outputs.TAG }}"
           files: |
-            ExHyperV_${{ steps.config.outputs.TAG }}_x64.zip
-            ExHyperV_${{ steps.config.outputs.TAG }}_arm64.zip
+            ExHyperV_${{ steps.config.outputs.TAG }}_x64.exe
+            ExHyperV_${{ steps.config.outputs.TAG }}_arm64.exe
           generate_release_notes: true
           draft: false
           prerelease: ${{ steps.config.outputs.PRERELEASE == 'true' }}
@@ -173,7 +160,7 @@ jobs:
         uses: vedantmgoyal2009/winget-releaser@v2
         with:
           identifier: Justsenger.ExHyperV
-          installers-regex: '\.zip$'
+          installers-regex: '^ExHyperV_V.+_(x64|arm64)\.exe$'
           token: ${{ secrets.WINGET_TOKEN }}
           version: ${{ steps.config.outputs.VERSION }}
           release-tag: ${{ steps.config.outputs.TAG }}
