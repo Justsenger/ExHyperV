@@ -69,12 +69,31 @@
 			]]></Code>
 		</Task>
 	</UsingTask>
+	<!-- 单文件发布时必须在 bundler 计算输入后、真正打包前替换 Wpf.Ui。
+	     若在 Publish 完成后再复制，定制 DLL 只会散落在 EXE 旁边，EXE 内仍是 NuGet 官方版本。 -->
+	<Target Name="UseCloneWpfUiInSingleFileBundle"
+	        BeforeTargets="_GenerateSingleFileBundleInputCache"
+	        Condition="'$(PublishSingleFile)' == 'true'">
+		<ItemGroup>
+			<BundledWpfUi Include="@(FilesToBundle)"
+			              Condition="'%(FilesToBundle.Filename)%(FilesToBundle.Extension)' == 'Wpf.Ui.dll'" />
+			<FilesToBundle Remove="@(BundledWpfUi)" />
+			<FilesToBundle Include="$(MSBuildProjectDirectory)\libs\Wpf.Ui.dll"
+			               Condition="'@(BundledWpfUi)' != ''">
+				<RelativePath>Wpf.Ui.dll</RelativePath>
+			</FilesToBundle>
+		</ItemGroup>
+	</Target>
 	<Target Name="GodTierCleanupAfterPublish" AfterTargets="Publish">
 		<ItemGroup>
 			<MagicDlls Include="$(MSBuildProjectDirectory)\libs\*.dll" />
 		</ItemGroup>
-		<!-- 子集化的 Wpf.Ui 覆盖官方 DLL -->
-		<Copy SourceFiles="@(MagicDlls)" DestinationFolder="$(PublishDir)" OverwriteReadOnlyFiles="true" SkipUnchangedFiles="false" />
+		<!-- 非单文件发布仍用子集化的 Wpf.Ui 覆盖官方 DLL；单文件发布已在 bundler 输入中替换。 -->
+		<Copy SourceFiles="@(MagicDlls)" DestinationFolder="$(PublishDir)" OverwriteReadOnlyFiles="true" SkipUnchangedFiles="false"
+		      Condition="'$(PublishSingleFile)' != 'true'" />
+		<!-- 清掉旧发布遗留物，保证重复发布到同一目录后仍只有一个 EXE。 -->
+		<Delete Files="$(PublishDir)Wpf.Ui.dll;$(PublishDir)$(AssemblyName).pdb;$(PublishDir)Config.xml"
+		        Condition="'$(PublishSingleFile)' == 'true'" />
 		<!-- System.Management：win 实现拷到根、改 deps.json 指向根，再端掉整个 runtimes -->
 		<Copy SourceFiles="$(PublishDir)runtimes\win\lib\net8.0\System.Management.dll" DestinationFolder="$(PublishDir)" OverwriteReadOnlyFiles="true" Condition="Exists('$(PublishDir)runtimes\win\lib\net8.0\System.Management.dll')" />
 		<ReplaceInFile FilePath="$(PublishDir)ExHyperV.deps.json" OldText="runtimes/win/lib/net8.0/System.Management.dll" NewText="System.Management.dll" Condition="Exists('$(PublishDir)ExHyperV.deps.json')" />

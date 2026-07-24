@@ -11,7 +11,7 @@ namespace ExHyperV;
 public partial class App
 {
     private const string DefaultLanguage = "en-US";
-    private const string ConfigFilePath = "Config.xml";
+    private static string ConfigFilePath => ExHyperV.Services.AppDataPaths.ConfigFilePath;
 
     // 性能模式：启动即读，供窗口/预加载/动画判定。改动需重启生效。
     public static bool PerformanceMode { get; private set; }

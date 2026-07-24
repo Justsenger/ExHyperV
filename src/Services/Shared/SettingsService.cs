@@ -80,7 +80,7 @@ namespace ExHyperV.Services
             bool isSame = string.Equals(latestVersionTag, currentVersion, StringComparison.OrdinalIgnoreCase);
             return new UpdateResult(!isSame, latestVersionTag, false);
         }
-        private const string ConfigFilePath = "config.xml";
+        private static string ConfigFilePath => AppDataPaths.ConfigFilePath;
 
         // 从XML加载语言设置
         public static string GetLanguage()
