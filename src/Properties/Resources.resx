@@ -2148,9 +2148,6 @@ The existing NAT switch is: '{0}'</value>
   <data name="UsbVmbus_LogTunnelFailed" xml:space="preserve">
     <value>[AutoRecover] Tunnel establishment failed: {0}</value>
   </data>
-  <data name="VmGPUService_LogLocal" xml:space="preserve">
-    <value>[Local] {0}</value>
-  </data>
   <data name="VmGPUService_LogOnline" xml:space="preserve">
     <value>[Online] {0}</value>
   </data>
@@ -2951,9 +2948,6 @@ The existing NAT switch is: '{0}'</value>
   </data>
   <data name="Log_Gpu_UploadingDriverWsl" xml:space="preserve">
     <value>Uploading driver and WSL libraries...</value>
-  </data>
-  <data name="Log_Gpu_UploadingLocalScript" xml:space="preserve">
-    <value>Uploading local script: {0}</value>
   </data>
   <data name="Log_Gpu_DownloadingScript" xml:space="preserve">
     <value>Downloading remote script inside VM: {0}</value>

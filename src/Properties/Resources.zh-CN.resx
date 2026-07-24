@@ -2148,9 +2148,6 @@
   <data name="UsbVmbus_LogTunnelFailed" xml:space="preserve">
     <value>[AutoRecover] 隧道建立失败: {0}</value>
   </data>
-  <data name="VmGPUService_LogLocal" xml:space="preserve">
-    <value>[本地] {0}</value>
-  </data>
   <data name="VmGPUService_LogOnline" xml:space="preserve">
     <value>[在线] {0}</value>
   </data>
@@ -2951,9 +2948,6 @@
   </data>
   <data name="Log_Gpu_UploadingDriverWsl" xml:space="preserve">
     <value>正在上传驱动与 WSL 库…</value>
-  </data>
-  <data name="Log_Gpu_UploadingLocalScript" xml:space="preserve">
-    <value>正在上传本地脚本：{0}</value>
   </data>
   <data name="Log_Gpu_DownloadingScript" xml:space="preserve">
     <value>正在虚拟机内下载远程脚本：{0}</value>

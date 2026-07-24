@@ -6104,15 +6104,6 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
-        ///   查找类似 [Local] {0} 的本地化字符串。
-        /// </summary>
-        public static string VmGPUService_LogLocal {
-            get {
-                return ResourceManager.GetString("VmGPUService_LogLocal", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   查找类似 [Online] {0} 的本地化字符串。
         /// </summary>
         public static string VmGPUService_LogOnline {
@@ -8393,14 +8384,6 @@ namespace ExHyperV.Properties {
         public static string Log_Gpu_UploadingDriverWsl {
             get {
                 return ResourceManager.GetString("Log_Gpu_UploadingDriverWsl", resourceCulture);
-            }
-        }
-        /// <summary>
-        ///   Looks up a localized string similar to Uploading local script: {0}.
-        /// </summary>
-        public static string Log_Gpu_UploadingLocalScript {
-            get {
-                return ResourceManager.GetString("Log_Gpu_UploadingLocalScript", resourceCulture);
             }
         }
         /// <summary>

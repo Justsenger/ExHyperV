@@ -267,7 +267,7 @@ namespace ExHyperV.ViewModels
                 // 2. 加载 Linux 脚本列表 (重写部分)
                 var scripts = await _vmGpuService.GetAvailableScriptsAsync();
                 AvailableLinuxScripts = new ObservableCollection<LinuxScriptItem>(scripts);
-                SelectedLinuxScript = AvailableLinuxScripts.FirstOrDefault(); // 默认选中第一个（通常是本地脚本）
+                SelectedLinuxScript = AvailableLinuxScripts.FirstOrDefault();
 
                 CurrentViewType = VmDetailViewType.AddGpuSelect;
             }

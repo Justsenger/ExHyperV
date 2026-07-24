@@ -1084,28 +1084,7 @@ namespace ExHyperV.Services
         {
             var allScripts = new List<LinuxScriptItem>();
 
-            // --- 1. 扫描本地文件夹 ---
-            string localFolder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "UserScripts");
-            if (!Directory.Exists(localFolder)) Directory.CreateDirectory(localFolder);
-
-            try
-            {
-                var files = Directory.GetFiles(localFolder, "*.sh");
-                foreach (var file in files)
-                {
-                    string content = await File.ReadAllTextAsync(file);
-                    var item = ParseScriptHeader(content);
-                    item.IsLocal = true;
-                    // 添加“本地”标识
-                    item.Name = string.Format(Properties.Resources.VmGPUService_LogLocal, item.Name);
-                    item.SourcePathOrUrl = file;
-                    item.FileName = Path.GetFileName(file);
-                    allScripts.Add(item);
-                }
-            }
-            catch (Exception ex) { Debug.WriteLine($"Local script scan error: {ex.Message}"); }
-
-            // --- 2. 远程扫描 (解析 index.json) ---
+            // 从应用维护的在线索引加载商店版本允许使用的部署脚本。
             try
             {
                 using var httpClient = new HttpClient();
@@ -1121,10 +1100,8 @@ namespace ExHyperV.Services
                 {
                     foreach (var item in remoteScripts)
                     {
-                        item.IsLocal = false;
-                        // 添加“在线”标识
                         item.Name = string.Format(Properties.Resources.VmGPUService_LogOnline, item.Name);
-                        item.SourcePathOrUrl = $"{ScriptBaseUrl}{item.FileName}";
+                        item.SourceUrl = $"{ScriptBaseUrl}{item.FileName}";
                         allScripts.Add(item);
                     }
                 }
@@ -1134,23 +1111,9 @@ namespace ExHyperV.Services
                 Debug.WriteLine($"Remote script index fetch failed: {ex.Message}");
             }
 
-            // 排序保持不变：本地优先，同类按名称排序
             return allScripts
-                .OrderByDescending(x => x.IsLocal)
-                .ThenBy(x => x.Name)
+                .OrderBy(x => x.Name)
                 .ToList();
-        }
-
-        private LinuxScriptItem ParseScriptHeader(string content)
-        {
-            var item = new LinuxScriptItem();
-            item.Name = Regex.Match(content, @"# @Name:\s*(.*)").Groups[1].Value.Trim();
-            item.Description = Regex.Match(content, @"# @Description:\s*(.*)").Groups[1].Value.Trim();
-            item.Author = Regex.Match(content, @"# @Author:\s*(.*)").Groups[1].Value.Trim();
-            item.Version = Regex.Match(content, @"# @Version:\s*(.*)").Groups[1].Value.Trim();
-
-            if (string.IsNullOrEmpty(item.Name)) item.Name = "Unknown Script";
-            return item;
         }
 
         // 支持重启循环的部署函数
@@ -1210,19 +1173,11 @@ namespace ExHyperV.Services
                         proxyEnv = $"http_proxy='{proxyUrl}' https_proxy='{proxyUrl}' HTTP_PROXY='{proxyUrl}' HTTPS_PROXY='{proxyUrl}' ";
                     }
 
-                    if (script.IsLocal)
-                    {
-                        Log(string.Format(Properties.Resources.Log_Gpu_UploadingLocalScript, script.Name));
-                        await SshService.UploadFileAsync(credentials, script.SourcePathOrUrl, remoteScriptPath);
-                    }
-                    else
-                    {
-                        Log(string.Format(Properties.Resources.Log_Gpu_DownloadingScript, script.Name));
-                        // 使用 sh -c 包裹，确保环境变量对后面的命令生效
-                        string downloadCmd = $"{proxyEnv}sh -c \"wget -q -O {remoteScriptPath} {script.SourcePathOrUrl} || curl -fL {script.SourcePathOrUrl} -o {remoteScriptPath}\"";
+                    Log(string.Format(Properties.Resources.Log_Gpu_DownloadingScript, script.Name));
+                    // 使用 sh -c 包裹，确保环境变量对后面的命令生效
+                    string downloadCmd = $"{proxyEnv}sh -c \"wget -q -O {remoteScriptPath} {script.SourceUrl} || curl -fL {script.SourceUrl} -o {remoteScriptPath}\"";
 
-                        await SshService.ExecuteSingleCommandAsync(credentials, downloadCmd, Log);
-                    }
+                    await SshService.ExecuteSingleCommandAsync(credentials, downloadCmd, Log);
                     await SshService.ExecuteSingleCommandAsync(credentials, $"chmod +x {remoteScriptPath}", Log);
                     // --- 阶段 4: 状态机执行循环 ---
                     bool isSuccess = false;
