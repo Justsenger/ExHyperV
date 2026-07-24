@@ -7024,6 +7024,15 @@ namespace ExHyperV.Properties {
         }
 
         /// <summary>
+        ///   查找类似 Hot Memory Page Hint 的本地化字符串。
+        /// </summary>
+        public static string VmRAMSettings_ToggleHotHint {
+            get {
+                return ResourceManager.GetString("VmRAMSettings_ToggleHotHint", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   查找类似 此功能需虚拟内存后端（请将上方“内存映射模式”设为“虚拟”） 的本地化字符串。
         /// </summary>
         public static string VmRAMSettings_NeedVirtualBacking {

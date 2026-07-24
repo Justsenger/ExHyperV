@@ -397,7 +397,7 @@
                         <Grid Margin="24,16">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="560"/>
+                                <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
                             <StackPanel VerticalAlignment="Center">
                                 <TextBlock Text="{x:Static properties:Resources.VmRAMSettings_LabelMemOptimization}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
@@ -406,6 +406,9 @@
                                 <ui:ToggleSwitch Content="{x:Static properties:Resources.VmRAMSettings_ToggleColdHint}" Margin="0,0,12,0"
                                  Style="{StaticResource EnlightenmentToggleStyle}" Tag="{Binding SelectedVm.MemorySettings.EnableColdHint}"
                                  IsChecked="{Binding SelectedVm.MemorySettings.EnableColdHint, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                                <ui:ToggleSwitch Content="{x:Static properties:Resources.VmRAMSettings_ToggleHotHint}" Margin="0,0,12,0"
+                                 Style="{StaticResource EnlightenmentToggleStyle}" Tag="{Binding SelectedVm.MemorySettings.EnableHotHint}"
+                                 IsChecked="{Binding SelectedVm.MemorySettings.EnableHotHint, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
                                 <ui:ToggleSwitch Content="{x:Static properties:Resources.VmRAMSettings_ToggleEpf}" Margin="0,0,12,0"
                                  Style="{StaticResource EnlightenmentToggleStyle}" Tag="{Binding SelectedVm.MemorySettings.EnableEpf}"
                                  IsChecked="{Binding SelectedVm.MemorySettings.EnableEpf, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>

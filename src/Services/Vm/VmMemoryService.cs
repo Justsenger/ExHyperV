@@ -168,12 +168,9 @@ public static class VmMemoryService
                 memData["Limit"] = alignedStartup;
             }
 
-            // ColdHint 和 HotHint 强制同步
-            if (memorySettings.EnableColdHint.HasValue && memData.HasProperty("EnableColdHint"))
-            {
-                memData["EnableColdHint"] = memorySettings.EnableColdHint.Value;
-                memData.TrySetAlways("EnableHotHint", memorySettings.EnableColdHint.Value);
-            }
+            // 冷页与热页提示是两个独立能力：分别按 UI 中的状态写回，
+            // null 表示当前 Hyper-V 版本不支持该属性，TrySet 会跳过。
+            memData.TrySet("EnableColdHint", memorySettings.EnableColdHint);
             memData.TrySet("EnableHotHint", memorySettings.EnableHotHint);
             memData.TrySet("EnableEpf", memorySettings.EnableEpf);
             memData.TrySet("EnablePrivateCompressionStore", memorySettings.EnablePrivateCompressionStore);
