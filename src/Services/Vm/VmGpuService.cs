@@ -579,7 +579,14 @@ namespace ExHyperV.Services
                 string sourceFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "DriverStore", "FileRepository");
                 string destFolder = Path.Combine(assignedDriveLetter, "Windows", "System32", "HostDriverStore", "FileRepository");
 
-                if (!Directory.Exists(destFolder)) Directory.CreateDirectory(destFolder);
+                if (Directory.Exists(destFolder))
+                {
+                    RemoveReadOnlyAttribute(destFolder);
+                }
+                else
+                {
+                    Directory.CreateDirectory(destFolder);
+                }
 
                 Log(Properties.Resources.Msg_Gpu_SyncingFiles);
 
@@ -593,6 +600,8 @@ namespace ExHyperV.Services
                 {
                     await p.WaitForExitAsync();
                 }
+
+                await Task.Run(() => SetFolderReadOnly(destFolder));
 
                 // 同步重活（注册表提取 + 各厂商 Promote*：内部对每个文件 spawn cmd.exe 并同步 WaitForExit 几十~上百次）
                 // 挪到后台线程——否则作为 robocopy await 之后的续体跑在 UI 线程上，会冻结主界面（转圈/窗口都卡死）。
@@ -985,6 +994,39 @@ namespace ExHyperV.Services
                 Debug.WriteLine($"Link error for {sourceName}: {ex.Message}");
             }
         }
+
+        private static void SetFolderReadOnly(string folderPath)
+        {
+            var directory = new DirectoryInfo(folderPath);
+            directory.Attributes |= FileAttributes.ReadOnly;
+
+            foreach (var subDirectory in directory.GetDirectories())
+            {
+                SetFolderReadOnly(subDirectory.FullName);
+            }
+
+            foreach (var file in directory.GetFiles())
+            {
+                file.Attributes |= FileAttributes.ReadOnly;
+            }
+        }
+
+        private static void RemoveReadOnlyAttribute(string folderPath)
+        {
+            var directory = new DirectoryInfo(folderPath);
+            directory.Attributes &= ~FileAttributes.ReadOnly;
+
+            foreach (var subDirectory in directory.GetDirectories())
+            {
+                RemoveReadOnlyAttribute(subDirectory.FullName);
+            }
+
+            foreach (var file in directory.GetFiles())
+            {
+                file.Attributes &= ~FileAttributes.ReadOnly;
+            }
+        }
+
         private string NvidiaReg(string letter)
         {
             string tempRegFile = Path.Combine(Path.GetTempPath(), $"nvlddmkm_{Guid.NewGuid()}.reg");
