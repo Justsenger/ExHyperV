@@ -52,7 +52,7 @@ jobs:
           } else {
             if ($releaseType -eq "beta") {
               $mode = "beta"
-              $tag = "V$ver-beta"
+              $tag = "V$ver"
               $pre = "true"
               $winget = "false"
             } elseif ($releaseType -eq "release") {
@@ -66,18 +66,18 @@ jobs:
             }
 
             # 已存在相同 Tag 时安全跳过，避免覆盖已经发布的版本。
-            git ls-remote --exit-code --tags origin "refs/tags/$tag" | Out-Null
+            $remoteTag = git ls-remote --tags origin "refs/tags/$tag"
             $tagCheck = $LASTEXITCODE
-            if ($tagCheck -eq 0) {
+            if ($tagCheck -ne 0) {
+              Write-Error "检查远程 Tag 失败（git ls-remote 退出码：$tagCheck），为避免覆盖发布，本次终止。"
+              exit 1
+            } elseif (-not [string]::IsNullOrWhiteSpace(($remoteTag -join ""))) {
               Write-Host "Tag $tag 已存在，本次不构建、不签名、不发布。"
               $build = "false"
               $publish = "false"
-            } elseif ($tagCheck -eq 2) {
+            } else {
               $build = "true"
               $publish = "true"
-            } else {
-              Write-Error "检查远程 Tag 失败（git ls-remote 退出码：$tagCheck），为避免覆盖发布，本次终止。"
-              exit 1
             }
           }
 
