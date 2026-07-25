@@ -7,7 +7,7 @@
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 		<ApplicationIcon>Assets\Icon.ico</ApplicationIcon>
-		<Version>1.5.0</Version>
+		<Version>1.5.1-Beta0724</Version>
 		<Authors>Justsenger</Authors>
 		<IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
 		<WpfUiGenerateDiagnosticMessages>False</WpfUiGenerateDiagnosticMessages>
@@ -89,8 +89,7 @@
 		<!-- 非单文件发布仍用子集化的 Wpf.Ui 覆盖官方 DLL；单文件发布已在 bundler 输入中替换。 -->
 		<Copy SourceFiles="@(MagicDlls)" DestinationFolder="$(PublishDir)" OverwriteReadOnlyFiles="true" SkipUnchangedFiles="false" Condition="'$(PublishSingleFile)' != 'true'" />
 		<!-- 清掉旧发布遗留物，保证重复发布到同一目录后仍只有一个 EXE。 -->
-		<Delete Files="$(PublishDir)Wpf.Ui.dll;$(PublishDir)$(AssemblyName).pdb;$(PublishDir)Config.xml"
-		        Condition="'$(PublishSingleFile)' == 'true'" />
+		<Delete Files="$(PublishDir)Wpf.Ui.dll;$(PublishDir)$(AssemblyName).pdb;$(PublishDir)Config.xml" Condition="'$(PublishSingleFile)' == 'true'" />
 
 		<!-- System.Management：win 实现拷到根、改 deps.json 指向根，再端掉整个 runtimes -->
 		<Copy SourceFiles="$(PublishDir)runtimes\win\lib\net8.0\System.Management.dll" DestinationFolder="$(PublishDir)" OverwriteReadOnlyFiles="true" Condition="Exists('$(PublishDir)runtimes\win\lib\net8.0\System.Management.dll')" />
@@ -117,9 +116,7 @@
 	</Target>
 	<!-- Visual Studio 的 FolderProfile 在界面中保持“可移植的”，仅作为无架构发布入口；
 	     入口完成后分别执行真正的 x64、ARM64 单文件发布。 -->
-	<Target Name="PublishBothWindowsArchitecturesAfterVisualStudioPublish"
-	        AfterTargets="Publish"
-	        Condition="'$(PublishBothWindowsArchitectures)' == 'true' and '$(RuntimeIdentifier)' == ''">
+	<Target Name="PublishBothWindowsArchitecturesAfterVisualStudioPublish" AfterTargets="Publish" Condition="'$(PublishBothWindowsArchitectures)' == 'true' and '$(RuntimeIdentifier)' == ''">
 		<ItemGroup>
 			<VisualStudioPublishArchitecture Include="win-x64">
 				<Suffix>x64</Suffix>
@@ -129,16 +126,11 @@
 			</VisualStudioPublishArchitecture>
 		</ItemGroup>
 		<Message Importance="high" Text="正在发布 x64 和 ARM64 单文件版本..." />
-		<MSBuild Projects="$(MSBuildProjectFullPath)"
-		         Targets="Restore;Publish"
-		         RemoveProperties="PublishProfile;PublishBothWindowsArchitectures"
-		         Properties="Configuration=Release;RuntimeIdentifier=%(VisualStudioPublishArchitecture.Identity);SelfContained=false;PublishSingleFile=true;DebugType=none;DebugSymbols=false;PublishDir=$(MSBuildProjectDirectory)\obj\publish-staging\%(VisualStudioPublishArchitecture.Identity)\"
-		         StopOnFirstFailure="true" />
+		<MSBuild Projects="$(MSBuildProjectFullPath)" Targets="Restore;Publish" RemoveProperties="PublishProfile;PublishBothWindowsArchitectures" Properties="Configuration=Release;RuntimeIdentifier=%(VisualStudioPublishArchitecture.Identity);SelfContained=false;PublishSingleFile=true;DebugType=none;DebugSymbols=false;PublishDir=$(MSBuildProjectDirectory)\obj\publish-staging\%(VisualStudioPublishArchitecture.Identity)\" StopOnFirstFailure="true" />
 		<Message Importance="high" Text="正在整理双架构发布文件..." />
 		<RemoveDir Directories="$(FinalPublishDir)" />
 		<MakeDir Directories="$(FinalPublishDir)" />
-		<Copy SourceFiles="$(MSBuildProjectDirectory)\obj\publish-staging\%(VisualStudioPublishArchitecture.Identity)\$(AssemblyName).exe"
-		      DestinationFiles="$(FinalPublishDir)$(AssemblyName)_V$(Version)_%(VisualStudioPublishArchitecture.Suffix).exe" />
+		<Copy SourceFiles="$(MSBuildProjectDirectory)\obj\publish-staging\%(VisualStudioPublishArchitecture.Identity)\$(AssemblyName).exe" DestinationFiles="$(FinalPublishDir)$(AssemblyName)_V$(Version)_%(VisualStudioPublishArchitecture.Suffix).exe" />
 		<RemoveDir Directories="$(MSBuildProjectDirectory)\obj\publish-staging" />
 	</Target>
 </Project>
