@@ -3285,4 +3285,37 @@
   <data name="VmPage_MultiPurgeFail" xml:space="preserve">
     <value>已彻底删除 {0} 台，{1} 台失败。</value>
   </data>
+  <data name="Cpu_MaxProcessorsPerNumaNode" xml:space="preserve">
+    <value>每个 NUMA 节点的最大处理器数</value>
+  </data>
+  <data name="Cpu_MaxProcessorsPerNumaNodeDesc" xml:space="preserve">
+    <value>控制虚拟处理器的 NUMA 分组大小</value>
+  </data>
+  <data name="Cpu_MaxNumaNodesPerSocket" xml:space="preserve">
+    <value>每个插槽的最大 NUMA 节点数</value>
+  </data>
+  <data name="Cpu_MaxNumaNodesPerSocketDesc" xml:space="preserve">
+    <value>控制虚拟 CPU 插槽包含的 NUMA 分组数</value>
+  </data>
+  <data name="Cpu_PhysicalAddressWidth" xml:space="preserve">
+    <value>虚拟机地址位数</value>
+  </data>
+  <data name="Cpu_PhysicalAddressWidthDesc" xml:space="preserve">
+    <value>控制内存和设备的可寻址范围</value>
+  </data>
+  <data name="Cpu_LpiMode" xml:space="preserve">
+    <value>ARM64 设备中断模式（LPI）</value>
+  </data>
+  <data name="Cpu_LpiModeDesc" xml:space="preserve">
+    <value>设备用“中断”提醒 CPU 处理新事件；此项控制 ARM64 虚拟机是否使用 LPI 接收这类提醒。一般保持“默认”</value>
+  </data>
+  <data name="CpuEnum_Lpi_Default" xml:space="preserve">
+    <value>默认</value>
+  </data>
+  <data name="CpuEnum_Lpi_Disabled" xml:space="preserve">
+    <value>禁用</value>
+  </data>
+  <data name="CpuEnum_Lpi_Enabled" xml:space="preserve">
+    <value>启用</value>
+  </data>
 </root>

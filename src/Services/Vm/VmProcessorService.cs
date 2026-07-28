@@ -105,6 +105,11 @@ public static class VmProcessorService
                 SetIfChanged(procData, "MaxHwIsolatedGuests", newSettings.MaxHwIsolatedGuests, current.MaxHwIsolatedGuests);
                 SetIfChanged(procData, "MaxClusterCountPerSocket", newSettings.MaxClusterCountPerSocket, current.MaxClusterCountPerSocket);
                 SetIfChanged(procData, "MaxProcessorCountPerL3", newSettings.MaxProcessorCountPerL3, current.MaxProcessorCountPerL3);
+                SetIfChanged(procData, "MaxProcessorsPerNumaNode", newSettings.MaxProcessorsPerNumaNode, current.MaxProcessorsPerNumaNode);
+                SetIfChanged(procData, "MaxNumaNodesPerSocket", newSettings.MaxNumaNodesPerSocket, current.MaxNumaNodesPerSocket);
+                SetIfChanged(procData, "PhysicalAddressWidth", newSettings.PhysicalAddressWidth, current.PhysicalAddressWidth);
+                if (newSettings.LpiMode != current.LpiMode && newSettings.LpiMode is { } lpi)
+                    procData.TrySet<byte>("LpiMode", (byte)lpi);
 
                 return procData.GetText(TextFormat.CimDtd20);
             });
@@ -173,6 +178,10 @@ public static class VmProcessorService
                 MaxHwIsolatedGuests = Nz(procData.TryGet<uint>("MaxHwIsolatedGuests")),
                 MaxClusterCountPerSocket = Nz(procData.TryGet<uint>("MaxClusterCountPerSocket")),
                 MaxProcessorCountPerL3 = Nz(procData.TryGet<uint>("MaxProcessorCountPerL3")),
+                MaxProcessorsPerNumaNode = PULong(procData, "MaxProcessorsPerNumaNode"),
+                MaxNumaNodesPerSocket = PULong(procData, "MaxNumaNodesPerSocket"),
+                PhysicalAddressWidth = Nz(procData.TryGet<uint>("PhysicalAddressWidth")),
+                LpiMode = (LpiMode?)PByte(procData, "LpiMode"),
 
                 // 宿主实际存在的属性名集合(schema)，供频率字段 UI 门控判"支持"。
                 SupportedProps = new HashSet<string>(
@@ -193,6 +202,7 @@ public static class VmProcessorService
     private static bool? PBool(ManagementObject p, string n) => p.HasProperty(n) ? (p.TryGet<bool>(n) ?? false) : (bool?)null;
     private static byte? PByte(ManagementObject p, string n) => p.HasProperty(n) ? (p.TryGetByte(n) ?? (byte)0) : (byte?)null;
     private static uint? PUInt(ManagementObject p, string n) => p.HasProperty(n) ? (p.TryGet<uint>(n) ?? 0u) : (uint?)null;
+    private static ulong? PULong(ManagementObject p, string n) => p.HasProperty(n) ? (p.TryGet<ulong>(n) ?? 0UL) : (ulong?)null;
     private static string? PStr(ManagementObject p, string n) => p.HasProperty(n) ? (p.TryGetString(n) ?? "") : null;
 
     private static SmtMode ConvertHwThreadsToSmtMode(uint hwThreads)

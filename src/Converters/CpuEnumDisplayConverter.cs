@@ -21,6 +21,7 @@ namespace ExHyperV.Converters
                 VmApicMode => "Apic",
                 L3DistributionPolicy => "L3",
                 PageShatterMode => "Shatter",
+                LpiMode => "Lpi",
                 _ => null
             };
             if (prefix == null) return value.ToString();

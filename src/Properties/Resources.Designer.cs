@@ -8866,5 +8866,49 @@ namespace ExHyperV.Properties {
             get { return ResourceManager.GetString("VmPage_MultiPurgeFail", resourceCulture); }
         }
 
+        public static string Cpu_MaxProcessorsPerNumaNode {
+            get { return ResourceManager.GetString("Cpu_MaxProcessorsPerNumaNode", resourceCulture); }
+        }
+
+        public static string Cpu_MaxProcessorsPerNumaNodeDesc {
+            get { return ResourceManager.GetString("Cpu_MaxProcessorsPerNumaNodeDesc", resourceCulture); }
+        }
+
+        public static string Cpu_MaxNumaNodesPerSocket {
+            get { return ResourceManager.GetString("Cpu_MaxNumaNodesPerSocket", resourceCulture); }
+        }
+
+        public static string Cpu_MaxNumaNodesPerSocketDesc {
+            get { return ResourceManager.GetString("Cpu_MaxNumaNodesPerSocketDesc", resourceCulture); }
+        }
+
+        public static string Cpu_PhysicalAddressWidth {
+            get { return ResourceManager.GetString("Cpu_PhysicalAddressWidth", resourceCulture); }
+        }
+
+        public static string Cpu_PhysicalAddressWidthDesc {
+            get { return ResourceManager.GetString("Cpu_PhysicalAddressWidthDesc", resourceCulture); }
+        }
+
+        public static string Cpu_LpiMode {
+            get { return ResourceManager.GetString("Cpu_LpiMode", resourceCulture); }
+        }
+
+        public static string Cpu_LpiModeDesc {
+            get { return ResourceManager.GetString("Cpu_LpiModeDesc", resourceCulture); }
+        }
+
+        public static string CpuEnum_Lpi_Default {
+            get { return ResourceManager.GetString("CpuEnum_Lpi_Default", resourceCulture); }
+        }
+
+        public static string CpuEnum_Lpi_Disabled {
+            get { return ResourceManager.GetString("CpuEnum_Lpi_Disabled", resourceCulture); }
+        }
+
+        public static string CpuEnum_Lpi_Enabled {
+            get { return ResourceManager.GetString("CpuEnum_Lpi_Enabled", resourceCulture); }
+        }
+
     }
 }

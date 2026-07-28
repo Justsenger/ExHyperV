@@ -14,6 +14,9 @@ namespace ExHyperV.Models
     /// <summary>页碎裂策略（EnablePageShattering，u8）：SLAT 把大页(1G/2M)强制碎成 4K。Default 由平台/隔离模式决定。</summary>
     public enum PageShatterMode : byte { Default = 0, AlwaysEnabled = 1, AlwaysDisabled = 2 }
 
+    /// <summary>LPI (locality-specific peripheral interrupt) mode.</summary>
+    public enum LpiMode : byte { Default = 0, Disabled = 2, Enabled = 3 }
+
     /// <summary>
     /// VM 处理器设置（绑定 CPU Settings 页面）。
     /// 含 Clone/Restore 用于"取消编辑"还原。
@@ -63,6 +66,12 @@ namespace ExHyperV.Models
         // ── 新增：AMD CCX 拓扑（仅 AMD；Intel 上设值 VM 拒启）──
         [ObservableProperty] private uint? _maxClusterCountPerSocket;
         [ObservableProperty] private uint? _maxProcessorCountPerL3;
+
+        // vNUMA, guest physical address space, and interrupt topology.
+        [ObservableProperty] private ulong? _maxProcessorsPerNumaNode;
+        [ObservableProperty] private ulong? _maxNumaNodesPerSocket;
+        [ObservableProperty] private uint? _physicalAddressWidth;
+        [ObservableProperty] private LpiMode? _lpiMode;
 
         /// <summary>宿主 Msvm_ProcessorSettingData 实际存在的属性名集合(schema)。频率字段的 UI 门控据此判"支持"(HasProperty)，
         /// 不看值——因为高版本新属性可能"存在但默认值 null"，按值会把支持的字段误灰。</summary>

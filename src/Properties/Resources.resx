@@ -3285,4 +3285,37 @@ Remove them from storage and retry? Cancel to re-plug the device and try again.<
   <data name="VmPage_MultiPurgeFail" xml:space="preserve">
     <value>Permanently deleted {0}, {1} failed.</value>
   </data>
+  <data name="Cpu_MaxProcessorsPerNumaNode" xml:space="preserve">
+    <value>Maximum processors per NUMA node</value>
+  </data>
+  <data name="Cpu_MaxProcessorsPerNumaNodeDesc" xml:space="preserve">
+    <value>Controls the size of virtual processor NUMA groups</value>
+  </data>
+  <data name="Cpu_MaxNumaNodesPerSocket" xml:space="preserve">
+    <value>Maximum NUMA nodes per socket</value>
+  </data>
+  <data name="Cpu_MaxNumaNodesPerSocketDesc" xml:space="preserve">
+    <value>Controls how many NUMA groups each virtual CPU socket contains</value>
+  </data>
+  <data name="Cpu_PhysicalAddressWidth" xml:space="preserve">
+    <value>Virtual machine address bits</value>
+  </data>
+  <data name="Cpu_PhysicalAddressWidthDesc" xml:space="preserve">
+    <value>Controls the addressable range for memory and devices</value>
+  </data>
+  <data name="Cpu_LpiMode" xml:space="preserve">
+    <value>ARM64 device interrupt mode (LPI)</value>
+  </data>
+  <data name="Cpu_LpiModeDesc" xml:space="preserve">
+    <value>Devices use interrupts to ask the CPU to handle new events. Controls whether an ARM64 virtual machine uses LPIs for these notifications. Usually leave Default</value>
+  </data>
+  <data name="CpuEnum_Lpi_Default" xml:space="preserve">
+    <value>Default</value>
+  </data>
+  <data name="CpuEnum_Lpi_Disabled" xml:space="preserve">
+    <value>Disabled</value>
+  </data>
+  <data name="CpuEnum_Lpi_Enabled" xml:space="preserve">
+    <value>Enabled</value>
+  </data>
 </root>
