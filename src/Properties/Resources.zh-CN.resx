@@ -288,6 +288,9 @@
   <data name="Error_NvidiaRegistryProcessingException" xml:space="preserve">
     <value>错误：处理NVIDIA注册表时发生异常: {0}</value>
   </data>
+  <data name="Error_NvidiaRegistryImportFailed" xml:space="preserve">
+    <value>错误：导入 NVIDIA 注册表信息失败（退出代码 {0}）。</value>
+  </data>
   <data name="Error_CannotGetVmInfo" xml:space="preserve">
     <value>无法获取虚拟机信息。</value>
   </data>
@@ -1292,6 +1295,9 @@
   </data>
   <data name="Msg_Gpu_AssignOk" xml:space="preserve">
     <value>GPU 分区已成功创建。</value>
+  </data>
+  <data name="Warn_Gpu_RollbackAdapterNotIdentified" xml:space="preserve">
+    <value>[警告] 无法识别本次创建的 GPU 分区；如果后续步骤失败，将跳过自动回滚。</value>
   </data>
   <data name="Msg_Gpu_Scanning" xml:space="preserve">
     <value>正在扫描所有挂载硬盘的分区...</value>

@@ -288,6 +288,9 @@
   <data name="Error_NvidiaRegistryProcessingException" xml:space="preserve">
     <value>Error: An exception occurred while processing the NVIDIA registry: {0}</value>
   </data>
+  <data name="Error_NvidiaRegistryImportFailed" xml:space="preserve">
+    <value>Error: Failed to import the NVIDIA registry information (exit code {0}).</value>
+  </data>
   <data name="Error_CannotGetVmInfo" xml:space="preserve">
     <value>Failed to get virtual machine information.</value>
   </data>
@@ -1292,6 +1295,9 @@ The existing NAT switch is: '{0}'</value>
   </data>
   <data name="Msg_Gpu_AssignOk" xml:space="preserve">
     <value>GPU partition created.</value>
+  </data>
+  <data name="Warn_Gpu_RollbackAdapterNotIdentified" xml:space="preserve">
+    <value>[Warning] The GPU partition created by this operation could not be identified. If a later step fails, automatic rollback will be skipped.</value>
   </data>
   <data name="Msg_Gpu_Scanning" xml:space="preserve">
     <value>Scanning all mounted disk partitions...</value>

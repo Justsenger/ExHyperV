@@ -184,6 +184,12 @@ namespace ExHyperV.Services
         }
         public async Task<List<(string Id, string InstancePath)>> GetVmGpuAdaptersAsync(string vmName)
         {
+            var result = await TryGetVmGpuAdaptersAsync(vmName);
+            return result.Adapters;
+        }
+
+        public async Task<(bool Success, List<(string Id, string InstancePath)> Adapters)> TryGetVmGpuAdaptersAsync(string vmName)
+        {
             var result = new List<(string Id, string InstancePath)>();
             string scopePath = @"\\.\root\virtualization\v2";
             try
@@ -200,14 +206,14 @@ namespace ExHyperV.Services
                 using var searcher = new ManagementObjectSearcher(scopePath, query);
                 using var vmCollection = searcher.Get();
                 var computerSystem = vmCollection.Cast<ManagementObject>().FirstOrDefault();
-                if (computerSystem == null) return result;
+                if (computerSystem == null) return (false, result);
 
                 using var relatedSettings = computerSystem.GetRelated(
                     "Msvm_VirtualSystemSettingData",
                     "Msvm_SettingsDefineState",
                     null, null, null, null, false, null);
                 var virtualSystemSetting = relatedSettings.Cast<ManagementObject>().FirstOrDefault();
-                if (virtualSystemSetting == null) return result;
+                if (virtualSystemSetting == null) return (false, result);
 
                 using var gpuSettingsCollection = virtualSystemSetting.GetRelated(
                     "Msvm_GpuPartitionSettingData",
@@ -242,8 +248,9 @@ namespace ExHyperV.Services
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"WMI Query Error: {ex.Message}");
+                return (false, new List<(string Id, string InstancePath)>());
             }
-            return result;
+            return (true, result);
         }
         #endregion
 
@@ -615,11 +622,17 @@ namespace ExHyperV.Services
                 if (gpuManu.Contains("NVIDIA", StringComparison.OrdinalIgnoreCase))
                 {
                     Log(Properties.Resources.Msg_Gpu_InjectingReg);
-                    await Task.Run(() =>
+                    string nvidiaRegResult = await Task.Run(() =>
                     {
-                        NvidiaReg(assignedDriveLetter);
+                        string result = NvidiaReg(assignedDriveLetter);
                         PromoteNvidiaFiles(assignedDriveLetter);
+                        return result;
                     });
+                    if (!string.Equals(nvidiaRegResult, "OK", StringComparison.Ordinal))
+                    {
+                        try { Log(nvidiaRegResult); }
+                        catch { }
+                    }
                     await NvidiaProgramFoldersAsync(assignedDriveLetter, Log);
                 }
                 else if (gpuManu.Contains("Intel", StringComparison.OrdinalIgnoreCase))
@@ -1094,7 +1107,9 @@ namespace ExHyperV.Services
                 regContent = regContent.Replace(originalText, targetText);
                 regContent = regContent.Replace("DriverStore", "HostDriverStore");
                 File.WriteAllText(tempRegFile, regContent);
-                ExecuteCommand($@"reg import ""{tempRegFile}""");
+                int importExitCode = ExecuteCommand($@"reg import ""{tempRegFile}""");
+                if (importExitCode != 0)
+                    return string.Format(Properties.Resources.Error_NvidiaRegistryImportFailed, importExitCode);
 
                 return "OK";
             }
