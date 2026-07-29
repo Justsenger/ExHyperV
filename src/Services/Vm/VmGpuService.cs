@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.IO;
 using System.Management;
@@ -14,6 +15,7 @@ namespace ExHyperV.Services
     public class VmGpuService
     {
         private readonly VmQueryService _queryService;
+        private readonly AsyncLocal<ConcurrentQueue<string>?> _linkWarnings = new();
         public VmGpuService(VmQueryService queryService)
         {
             _queryService = queryService;
@@ -523,6 +525,8 @@ namespace ExHyperV.Services
             int savedCtrlLoc = 0;
             bool isPhysical = diskTarget.IsPhysical;
             bool detachSuccess = false;
+            var linkWarnings = new ConcurrentQueue<string>();
+            _linkWarnings.Value = linkWarnings;
 
 
             void Log(string msg) => progressCallback?.Invoke(msg);
@@ -637,6 +641,13 @@ namespace ExHyperV.Services
             catch (Exception ex) { return string.Format(Properties.Resources.Error_Gpu_InjectFailed, ex.Message); }
             finally
             {
+                while (linkWarnings.TryDequeue(out string warning))
+                {
+                    try { Log(warning); }
+                    catch { }
+                }
+                _linkWarnings.Value = null;
+
                 if (isPhysical && hostDiskNumber != -1 && detachSuccess)
                 {
                     Log(Properties.Resources.Msg_Gpu_Remounting);
@@ -964,16 +975,34 @@ namespace ExHyperV.Services
                 }
 
                 string hostLinkPath = Path.Combine(hostDestDir, targetName);
-                if (System.IO.File.Exists(hostLinkPath) || System.IO.Directory.Exists(hostLinkPath))
-                {
-                    return;
-                }
+                bool isReparsePoint = false;
+                bool targetPathExists = File.Exists(hostLinkPath) || Directory.Exists(hostLinkPath);
                 try
                 {
-                    if (System.IO.File.GetAttributes(hostLinkPath) != (System.IO.FileAttributes)(-1))
+                    isReparsePoint = File.GetAttributes(hostLinkPath).HasFlag(FileAttributes.ReparsePoint);
+                    targetPathExists = true;
+                }
+                catch { }
+
+                // 刷新旧版创建的错误链接；来宾原有的普通文件仍保持不变。
+                if (targetPathExists && !isReparsePoint) return;
+
+                if (isReparsePoint)
+                {
+                    int deleteExitCode = ExecuteCommand($"cmd /c del /f /q \"{hostLinkPath}\"");
+                    if (deleteExitCode != 0)
                     {
-                        ExecuteCommand($"cmd /c del /f /q \"{hostLinkPath}\"");
+                        string warning = $"[GPU Link] Unable to replace {hostLinkPath}: del exited with code {deleteExitCode}.";
+                        Debug.WriteLine(warning);
+                        _linkWarnings.Value?.Enqueue(warning);
+                        return;
                     }
+                }
+
+                try
+                {
+                    if (File.GetAttributes(hostLinkPath) != (FileAttributes)(-1))
+                        return;
                 }
                 catch {}
 
@@ -985,13 +1014,32 @@ namespace ExHyperV.Services
                 if (foundFiles.Count == 0) return;
 
                 string hostSourceFile = foundFiles[0].FullName;
-                string guestInternalTarget = hostSourceFile.Replace(assignedDriveLetter, "C:");
+                string relativeSourcePath = Path.GetRelativePath(
+                    Path.GetFullPath(assignedDriveLetter),
+                    Path.GetFullPath(hostSourceFile));
 
-                ExecuteCommand($"cmd /c mklink \"{hostLinkPath}\" \"{guestInternalTarget}\"");
+                if (Path.IsPathRooted(relativeSourcePath) ||
+                    relativeSourcePath.Equals("..", StringComparison.Ordinal) ||
+                    relativeSourcePath.StartsWith($"..{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
+                {
+                    throw new IOException($"Driver source is outside the mounted guest volume: {hostSourceFile}");
+                }
+
+                string guestInternalTarget = Path.Combine(@"C:\", relativeSourcePath);
+
+                int exitCode = ExecuteCommand($"cmd /c mklink \"{hostLinkPath}\" \"{guestInternalTarget}\"");
+                if (exitCode != 0)
+                {
+                    string warning = $"[GPU Link] {targetName} -> {guestInternalTarget}: mklink exited with code {exitCode}.";
+                    Debug.WriteLine(warning);
+                    _linkWarnings.Value?.Enqueue(warning);
+                }
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Link error for {sourceName}: {ex.Message}");
+                string warning = $"[GPU Link] {sourceName}: {ex.Message}";
+                Debug.WriteLine(warning);
+                _linkWarnings.Value?.Enqueue(warning);
             }
         }
 
