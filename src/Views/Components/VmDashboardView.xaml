@@ -650,6 +650,33 @@
                 </Grid>
             </ui:CardExpander>
 
+            <!-- PCIe 设置 -->
+            <ui:Card Margin="0,0,0,8" Padding="14,16,14,16">
+                <Grid MinHeight="38" Margin="8,0,12,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="15"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                        <ui:FontIcon FontSize="24" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xF0B9;" Margin="-5,0,12,0" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Text="{x:Static properties:Resources.VmPcie_Title}" FontSize="16" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                            <TextBlock Text="{x:Static properties:Resources.VmPcie_Hint}" FontSize="12" Opacity="0.6" Margin="0,2,0,0" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <ui:Button Grid.Column="4" Appearance="Transparent" Padding="8,4" Command="{Binding DataContext.GoToPcieSettingsCommand, RelativeSource={RelativeSource AncestorType=UserControl}}">
+                        <ui:SymbolIcon Symbol="Settings24" FontSize="18" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                    </ui:Button>
+                    <ui:SymbolIcon Grid.Column="5" Symbol="ChevronDown24" FontSize="16" Visibility="Hidden" VerticalAlignment="Center"/>
+                </Grid>
+            </ui:Card>
+
             <!-- 引导顺序 (Boot Order) 卡片 -->
             <ui:Card Margin="0,0,0,8" Padding="14,16,14,16">
                     <Grid MinHeight="38" Margin="8,0,12,0">

@@ -3318,4 +3318,82 @@ Remove them from storage and retry? Cancel to re-plug the device and try again.<
   <data name="CpuEnum_Lpi_Enabled" xml:space="preserve">
     <value>Enabled</value>
   </data>
+  <data name="VmPcie_Title" xml:space="preserve">
+    <value>PCIe</value>
+  </data>
+  <data name="VmPcie_Hint" xml:space="preserve">
+    <value>PCIe topology and device features</value>
+  </data>
+  <data name="VmPcie_SystemSection" xml:space="preserve">
+    <value>PCIe presentation</value>
+  </data>
+  <data name="VmPcie_EmulationTitle" xml:space="preserve">
+    <value>PCIe emulation</value>
+  </data>
+  <data name="VmPcie_EmulationDesc" xml:space="preserve">
+    <value>Present devices to the VM as standard PCIe devices</value>
+  </data>
+  <data name="VmPcie_Irreversible" xml:space="preserve">
+    <value>Once enabled, Hyper-V management interfaces cannot disable it</value>
+  </data>
+  <data name="VmPcie_Enabled" xml:space="preserve">
+    <value>Enabled</value>
+  </data>
+  <data name="VmPcie_Enable" xml:space="preserve">
+    <value>Enable</value>
+  </data>
+  <data name="VmPcie_TopologyTitle" xml:space="preserve">
+    <value>PCIe topology</value>
+  </data>
+  <data name="VmPcie_TopologyDesc" xml:space="preserve">
+    <value>Present the PCIe topology of devices</value>
+  </data>
+  <data name="VmPcie_TopologyDefault" xml:space="preserve">
+    <value>Default</value>
+  </data>
+  <data name="VmPcie_TopologyHost" xml:space="preserve">
+    <value>Match host</value>
+  </data>
+  <data name="VmPcie_Apply" xml:space="preserve">
+    <value>Apply</value>
+  </data>
+  <data name="VmPcie_BootSection" xml:space="preserve">
+    <value>Startup</value>
+  </data>
+  <data name="VmPcie_BootTitle" xml:space="preserve">
+    <value>vPCI during startup</value>
+  </data>
+  <data name="VmPcie_BootDesc" xml:space="preserve">
+    <value>Load the vPCI driver in UEFI to discover supported devices (NVMe, AziHsm)</value>
+  </data>
+  <data name="VmPcie_DevicesSection" xml:space="preserve">
+    <value>Assigned PCIe devices</value>
+  </data>
+  <data name="VmPcie_DeviceModeTitle" xml:space="preserve">
+    <value>Device presentation</value>
+  </data>
+  <data name="VmPcie_DeviceModeDesc" xml:space="preserve">
+    <value>Choose the Hyper-V channel or a standard PCIe device</value>
+  </data>
+  <data name="VmPcie_Paravirtualized" xml:space="preserve">
+    <value>Paravirtualization</value>
+  </data>
+  <data name="VmPcie_Emulated" xml:space="preserve">
+    <value>Emulation</value>
+  </data>
+  <data name="VmPcie_NoDevices" xml:space="preserve">
+    <value>No PCIe devices are assigned</value>
+  </data>
+  <data name="VmPcie_ConfirmTitle" xml:space="preserve">
+    <value>Warning: PCIe emulation cannot be disabled</value>
+  </data>
+  <data name="VmPcie_ConfirmMessage" xml:space="preserve">
+    <value>After PCIe emulation is enabled, it cannot be disabled through Hyper-V management interfaces. Continue?</value>
+  </data>
+  <data name="VmPcie_EmulationEnabledMessage" xml:space="preserve">
+    <value>PCIe emulation enabled</value>
+  </data>
+  <data name="VmPcie_AppliedMessage" xml:space="preserve">
+    <value>PCIe settings applied</value>
+  </data>
 </root>
