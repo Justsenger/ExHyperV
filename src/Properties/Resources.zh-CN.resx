@@ -2662,10 +2662,10 @@
     <value>配置安全飞地的启动授权与运行验证模式</value>
   </data>
   <data name="VmRAMSettings_LabelSgxMemSize" xml:space="preserve">
-    <value>机密内存大小</value>
+    <value>机密内存大小（MB）</value>
   </data>
   <data name="VmRAMSettings_DescSgxMemSize" xml:space="preserve">
-    <value>分配给机密计算使用的物理隔离内存总量 (单位: MB)</value>
+    <value>分配给机密计算使用的物理隔离内存总量</value>
   </data>
   <data name="VmRAMSettings_LabelSgxMsrDefault" xml:space="preserve">
     <value>MSR 运行控制默认值</value>
@@ -3313,7 +3313,7 @@
     <value>ARM64 设备中断模式（LPI）</value>
   </data>
   <data name="Cpu_LpiModeDesc" xml:space="preserve">
-    <value>设备用“中断”提醒 CPU 处理新事件；此项控制 ARM64 虚拟机是否使用 LPI 接收这类提醒。一般保持“默认”</value>
+    <value>控制 ARM64 虚拟机是否使用 LPI 接收设备中断</value>
   </data>
   <data name="CpuEnum_Lpi_Default" xml:space="preserve">
     <value>默认</value>

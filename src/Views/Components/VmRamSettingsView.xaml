@@ -255,7 +255,7 @@
                                           Style="{StaticResource ShutdownRequiredNumberBoxStyle}"
                                           Tag="{Binding SelectedVm.MmioSettings.LowSizeMb}"
                                           Value="{Binding SelectedVm.MmioSettings.LowSizeMb, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                          SmallChange="128" SpinButtonPlacementMode="Compact"/>
+                                          SmallChange="128" SpinButtonPlacementMode="Hidden"/>
                             <ui:Button Grid.Column="2" Content="{x:Static properties:Resources.Button_Apply}" Margin="8,0,0,0" Width="72"
                                        Style="{StaticResource ShutdownRequiredApplyButtonStyle}"
                                        Tag="{Binding SelectedVm.MmioSettings.LowSizeMb}"
@@ -278,7 +278,7 @@
                                           Style="{StaticResource ShutdownRequiredNumberBoxStyle}"
                                           Tag="{Binding SelectedVm.MmioSettings.HighSizeMb}"
                                           Value="{Binding SelectedVm.MmioSettings.HighSizeMb, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                          SmallChange="1024" SpinButtonPlacementMode="Compact"/>
+                                          SmallChange="1024" SpinButtonPlacementMode="Hidden"/>
                             <ui:Button Grid.Column="2" Content="{x:Static properties:Resources.Button_Apply}" Margin="8,0,0,0" Width="72"
                                        Style="{StaticResource ShutdownRequiredApplyButtonStyle}"
                                        Tag="{Binding SelectedVm.MmioSettings.HighSizeMb}"
@@ -298,7 +298,7 @@
                                           Style="{StaticResource ShutdownRequiredNumberBoxStyle}"
                                           Tag="{Binding SelectedVm.MmioSettings.HighBaseMb}"
                                           Value="{Binding SelectedVm.MmioSettings.HighBaseMb, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                          SmallChange="1024" SpinButtonPlacementMode="Compact"/>
+                                          SmallChange="1024" SpinButtonPlacementMode="Hidden"/>
                             <ui:Button Grid.Column="2" Content="{x:Static properties:Resources.Button_Apply}" Margin="8,0,0,0" Width="72"
                                        Style="{StaticResource ShutdownRequiredApplyButtonStyle}"
                                        Tag="{Binding SelectedVm.MmioSettings.HighBaseMb}"
@@ -418,7 +418,7 @@
                                     <ui:NumberBox Grid.Column="1"
                                                   Value="{Binding SelectedVm.MemorySettings.SgxSize, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                                   Minimum="2" ClearButtonEnabled="False"
-                                                  SpinButtonPlacementMode="Compact" Margin="180,0,0,0"/>
+                                                  SpinButtonPlacementMode="Hidden" Margin="180,0,0,0"/>
                                 </Grid>
 
                                 <Grid Margin="0,8">
@@ -452,7 +452,7 @@
                             </StackPanel>
                             <ui:NumberBox Grid.Column="1"
                                           Value="{Binding SelectedVm.MemorySettings.MaxMemoryBlocksPerNumaNode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                          Minimum="32" SmallChange="2" SpinButtonPlacementMode="Compact"
+                                          Minimum="32" SmallChange="2" SpinButtonPlacementMode="Hidden"
                                           IsEnabled="{Binding SelectedVm.IsRunning, Converter={StaticResource InverseBooleanConverter}}"/>
                             <ui:Button Grid.Column="2" Content="{x:Static properties:Resources.VmRAMSettings_BtnApply}" Margin="8,0,0,0" Width="72"
                                        Command="{Binding ApplyMemorySettingsCommand}" Appearance="Primary"

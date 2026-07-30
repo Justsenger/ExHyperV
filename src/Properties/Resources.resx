@@ -2662,10 +2662,10 @@ The existing NAT switch is: '{0}'</value>
     <value>Configure launch authorization and runtime verification mode for secure enclaves</value>
   </data>
   <data name="VmRAMSettings_LabelSgxMemSize" xml:space="preserve">
-    <value>Confidential Memory Size</value>
+    <value>Confidential Memory Size (MB)</value>
   </data>
   <data name="VmRAMSettings_DescSgxMemSize" xml:space="preserve">
-    <value>Total physically isolated memory allocated for confidential computing (unit: MB)</value>
+    <value>Total physically isolated memory allocated for confidential computing</value>
   </data>
   <data name="VmRAMSettings_LabelSgxMsrDefault" xml:space="preserve">
     <value>MSR Runtime Control Default</value>
@@ -3313,7 +3313,7 @@ Remove them from storage and retry? Cancel to re-plug the device and try again.<
     <value>ARM64 device interrupt mode (LPI)</value>
   </data>
   <data name="Cpu_LpiModeDesc" xml:space="preserve">
-    <value>Devices use interrupts to ask the CPU to handle new events. Controls whether an ARM64 virtual machine uses LPIs for these notifications. Usually leave Default</value>
+    <value>Controls whether ARM64 virtual machines use LPI for device interrupts</value>
   </data>
   <data name="CpuEnum_Lpi_Default" xml:space="preserve">
     <value>Default</value>
