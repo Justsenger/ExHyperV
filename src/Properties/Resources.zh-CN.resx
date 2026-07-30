@@ -3420,4 +3420,10 @@
   <data name="VmRAMSettings_HighMmioBase" xml:space="preserve">
     <value>64 位 MMIO 空间起始位置（MB）</value>
   </data>
+  <data name="Common_ClassListSeparator" xml:space="preserve">
+    <value>、</value>
+  </data>
+  <data name="PCIePage_ClassWithChildTypes" xml:space="preserve">
+    <value>{0}（子设备：{1}）</value>
+  </data>
 </root>

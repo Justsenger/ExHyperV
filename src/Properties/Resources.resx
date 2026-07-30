@@ -3420,4 +3420,10 @@ Remove them from storage and retry? Cancel to re-plug the device and try again.<
   <data name="VmRAMSettings_HighMmioBase" xml:space="preserve">
     <value>64-bit MMIO space start (MB)</value>
   </data>
+  <data name="Common_ClassListSeparator" xml:space="preserve">
+    <value>, </value>
+  </data>
+  <data name="PCIePage_ClassWithChildTypes" xml:space="preserve">
+    <value>{0} (child devices: {1})</value>
+  </data>
 </root>

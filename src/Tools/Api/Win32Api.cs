@@ -132,6 +132,8 @@ public static class Win32Api
                 new Guid("A45C254E-DF1C-4EFD-8020-67D146A850E0"), 9);  // DEVPKEY_Device_Class
             string service = GetDevNodeStringProperty(devInst, instanceId,
                 new Guid("A45C254E-DF1C-4EFD-8020-67D146A850E0"), 6);  // DEVPKEY_Device_Service
+            string parentInstanceId = GetDevNodeStringProperty(devInst, instanceId,
+                new Guid("4340A6C5-93FA-4706-972C-7B648008A5A7"), 8);  // DEVPKEY_Device_Parent
             // cfgmgr32 拿不到时 fallback Win32_PnPEntity
             if (string.IsNullOrEmpty(friendlyName) && pnpEntityMap.TryGetValue(instanceId, out var entityInfo))
             {
@@ -150,6 +152,7 @@ public static class Win32Api
                 FriendlyName = friendlyName,
                 Class = pnpClass,
                 Service = service,
+                ParentInstanceId = parentInstanceId,
                 Status = status,
                 LocationPaths = locationPaths
             };
@@ -355,6 +358,7 @@ public class PciDeviceInfo
     public string FriendlyName { get; set; } = "";
     public string Class { get; set; } = "";
     public string Service { get; set; } = "";
+    public string ParentInstanceId { get; set; } = "";
     public string Status { get; set; } = "";
     public List<string> LocationPaths { get; set; } = new();
 

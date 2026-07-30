@@ -22,6 +22,7 @@ namespace ExHyperV.ViewModels
         }
         public string FriendlyName => _device.FriendlyName;
         public string ClassType => _device.ClassType;
+        public string DisplayClassType => _device.DisplayClassType;
         public string InstanceId => _device.InstanceId;
         public string Path => _device.Path;
         public string Vendor => _device.Vendor;

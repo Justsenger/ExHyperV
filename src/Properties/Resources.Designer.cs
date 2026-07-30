@@ -8960,5 +8960,13 @@ namespace ExHyperV.Properties {
             get { return ResourceManager.GetString("VmRAMSettings_HighMmioBase", resourceCulture); }
         }
 
+        public static string Common_ClassListSeparator {
+            get { return ResourceManager.GetString("Common_ClassListSeparator", resourceCulture); }
+        }
+
+        public static string PCIePage_ClassWithChildTypes {
+            get { return ResourceManager.GetString("PCIePage_ClassWithChildTypes", resourceCulture); }
+        }
+
     }
 }

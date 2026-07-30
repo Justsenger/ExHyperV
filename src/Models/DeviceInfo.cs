@@ -6,7 +6,10 @@ namespace ExHyperV.Models
     public partial class DeviceInfo : ObservableObject
     {
         public string FriendlyName { get; init; } = string.Empty;
+        /// <summary>Windows 驱动提供的原始 PnP 类别，供直通逻辑判断。</summary>
         public string ClassType { get; init; } = string.Empty;
+        /// <summary>界面类别；System 设备可附带其非 PCI 子设备的类别集合。</summary>
+        public string DisplayClassType { get; init; } = string.Empty;
         public string InstanceId { get; init; } = string.Empty;
         public string Path { get; init; } = string.Empty;
         public string Vendor { get; init; } = string.Empty;

@@ -108,7 +108,7 @@
                                         <RowDefinition Height="32"/>
                                     </Grid.RowDefinitions>
                                     <TextBlock Grid.Row="0" Grid.Column="0" Text="{x:Static properties:Resources.Label_Class}" FontSize="16" VerticalAlignment="Center" Margin="0,0,10,10"/>
-                                    <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding ClassType}" FontSize="16" VerticalAlignment="Center" Margin="0,0,10,10" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding DisplayClassType}" FontSize="16" VerticalAlignment="Center" Margin="0,0,10,10" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>
                                     <TextBlock Grid.Row="1" Grid.Column="0" Text="{x:Static properties:Resources.Instanceid}" FontSize="16" VerticalAlignment="Center" Margin="0,0,10,10"/>
                                     <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding InstanceId}" FontSize="16" VerticalAlignment="Center" Margin="0,0,10,10" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>
                                     <TextBlock Grid.Row="2" Grid.Column="0" Text="{x:Static properties:Resources.Label_Path}" FontSize="16" VerticalAlignment="Center" Margin="0,0,10,10"/>

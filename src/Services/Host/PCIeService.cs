@@ -136,6 +136,13 @@ namespace ExHyperV.Services
 
                     // ── 2. 枚举所有 PCI 设备（Win32Api，替换 Get-PnpDevice）──────────
                     var allPciDevices = await Task.Run(() => Win32Api.GetAllDevices());
+                    var childrenByParent = allPciDevices
+                        .Where(d => !string.IsNullOrWhiteSpace(d.ParentInstanceId))
+                        .GroupBy(d => d.ParentInstanceId, StringComparer.OrdinalIgnoreCase)
+                        .ToDictionary(
+                            g => g.Key,
+                            g => g.ToList(),
+                            StringComparer.OrdinalIgnoreCase);
 
                     // PCIP（已卸除）且不在 vmDeviceAssignments → 标为 removed
                     foreach (var d in allPciDevices.Where(d =>
@@ -176,11 +183,41 @@ namespace ExHyperV.Services
 
                         string path = pciDev.FirstLocationPath ?? "";
                         string vendor = pciInfoProvider.GetVendorFromInstanceId(pciDev.InstanceId, pciDev.Class);
+                        string displayClassType = pciDev.Class;
+
+                        // System 类常被总线/复合设备驱动用于 PCIe 父节点，无法体现下层功能。
+                        // 只在界面中附加真实存在的非 PCI 后代类别；原始 ClassType、直通路径、
+                        // 名称、图标和排序均保持父设备本身。遇到另一个 PCI 节点即停止，
+                        // 避免把可独立分配的下游 PCIe 设备归入当前父设备。
+                        if (string.Equals(pciDev.Class, "System", StringComparison.OrdinalIgnoreCase))
+                        {
+                            var childClasses = GetNonPciDescendants(pciDev.InstanceId, childrenByParent)
+                                .Where(d => string.Equals(d.Status, "OK", StringComparison.OrdinalIgnoreCase)
+                                    && !string.IsNullOrWhiteSpace(d.Class)
+                                    && !string.Equals(d.Class, pciDev.Class, StringComparison.OrdinalIgnoreCase))
+                                .Select(d => d.Class)
+                                .Distinct(StringComparer.OrdinalIgnoreCase)
+                                .OrderBy(c => c, StringComparer.OrdinalIgnoreCase)
+                                .ToList();
+
+                            if (childClasses.Count > 0)
+                            {
+                                string childClassList = string.Join(
+                                    Properties.Resources.Common_ClassListSeparator,
+                                    childClasses);
+                                displayClassType = string.Format(
+                                    Properties.Resources.PCIePage_ClassWithChildTypes,
+                                    pciDev.Class,
+                                    childClassList);
+                            }
+                        }
+
                         deviceList.Add(new DeviceInfo
                         {
                             FriendlyName = pciDev.FriendlyName,
                             Status = status,
                             ClassType = pciDev.Class,
+                            DisplayClassType = displayClassType,
                             InstanceId = pciDev.InstanceId,
                             Path = path,
                             Vendor = vendor
@@ -230,6 +267,39 @@ namespace ExHyperV.Services
             });
 
             return (deviceList, vmNameList);
+        }
+
+        private static IEnumerable<PciDeviceInfo> GetNonPciDescendants(
+            string rootInstanceId,
+            IReadOnlyDictionary<string, List<PciDeviceInfo>> childrenByParent)
+        {
+            if (string.IsNullOrWhiteSpace(rootInstanceId)) yield break;
+
+            var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            {
+                rootInstanceId
+            };
+            var pending = new Queue<string>();
+            pending.Enqueue(rootInstanceId);
+
+            while (pending.Count > 0)
+            {
+                string parentId = pending.Dequeue();
+                if (!childrenByParent.TryGetValue(parentId, out var children)) continue;
+
+                foreach (var child in children)
+                {
+                    if (!visited.Add(child.InstanceId)) continue;
+
+                    // 下一个 PCI/PCIP 节点拥有自己的直通边界，不属于当前父设备的逻辑功能。
+                    if (child.InstanceId.StartsWith("PCI\\", StringComparison.OrdinalIgnoreCase)
+                        || child.InstanceId.StartsWith("PCIP\\", StringComparison.OrdinalIgnoreCase))
+                        continue;
+
+                    yield return child;
+                    pending.Enqueue(child.InstanceId);
+                }
+            }
         }
 
         public static Task<bool> IsServerOperatingSystemAsync()
