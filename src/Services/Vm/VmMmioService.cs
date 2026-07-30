@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Globalization;
 using System.Text.RegularExpressions;
+using ExHyperV.Models;
 using ExHyperV.Tools;
 
 namespace ExHyperV.Services
@@ -18,6 +19,34 @@ namespace ExHyperV.Services
     /// </summary>
     public static class VmMmioService
     {
+        /// <summary>读取虚拟机的 MMIO 地址空间设置；null 字段表示当前 WMI 未提供该属性。</summary>
+        public static async Task<VmMmioSettings?> GetSettingsAsync(string vmName)
+        {
+            var response = await WmiApi.QueryFirstAsync(
+                RealizedSettingsWql(vmName),
+                obj => new VmMmioSettings
+                {
+                    LowSizeMb = obj.TryGet<ulong>("LowMmioGapSize"),
+                    HighSizeMb = obj.TryGet<ulong>("HighMmioGapSize"),
+                    HighBaseMb = obj.TryGet<ulong>("HighMmioGapBase")
+                });
+
+            return response.HasData ? response.Data : null;
+        }
+
+        /// <summary>写入 WMI 实际存在且调用方提供了值的 MMIO 字段。</summary>
+        public static Task<ApiResponse> SetSettingsAsync(string vmName, VmMmioSettings settings)
+        {
+            return WmiApi.WithObjectAsync(
+                wql: RealizedSettingsWql(vmName),
+                modifier: obj =>
+                {
+                    obj.TrySet("LowMmioGapSize", settings.LowSizeMb);
+                    obj.TrySet("HighMmioGapSize", settings.HighSizeMb);
+                    obj.TrySet("HighMmioGapBase", settings.HighBaseMb);
+                });
+        }
+
         // 探测用的超限区域：top = 2^52 字节。
         // 经实测，top 在 (2^52, 2^53) 之间会触发字段回绕而“意外启动”，2^52 是可靠干净失败的最大值；
         // 它高于任何物理地址 ≤51 位的宿主（涵盖绝大多数 x86-64 与全部 ARM64 目标）。
@@ -94,7 +123,7 @@ namespace ExHyperV.Services
 
         /// <summary>
         /// 按已缓存的宿主 MMIO 上限计算最优间隙：base = 上限/2、
-        /// highSize = min(上限 - base - 1GB, 256GB)、lowSize = 1GB。
+        /// highSize = min(上限 - base - 1GB, 256GB)、lowSize = 3584MB。
         /// 尚未探测（缓存为空）时返回 null——调用方（DDA/GPU-PV 的“间隙够不够大”预检）据此回退。
         /// </summary>
         public static MmioPlan? ComputeMmioPlan()
@@ -103,7 +132,7 @@ namespace ExHyperV.Services
             ulong finalBase = ceilingMb / 2;
             ulong remaining = ceilingMb - finalBase - 1024;
             ulong finalHighSize = Math.Min(remaining, DefaultHighSizeMb);
-            return new MmioPlan(finalBase, finalHighSize, 1024UL);
+            return new MmioPlan(finalBase, finalHighSize, 3584UL);
         }
 
         /// <summary>

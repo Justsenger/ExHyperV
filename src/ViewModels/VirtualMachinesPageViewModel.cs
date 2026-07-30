@@ -376,6 +376,7 @@ namespace ExHyperV.ViewModels
         partial void OnSelectedVmChanged(VmInstanceViewModel value)
         {
             _originalMemorySettingsCache = null;
+            _originalMmioSettingsCache = null;
             HostDisks.Clear();
             if (value == null) { CurrentViewType = VmDetailViewType.Dashboard; return; }
             IsCreatingVm = false;

@@ -2698,7 +2698,7 @@ The existing NAT switch is: '{0}'</value>
     <value>Max Memory Per Node (MB)</value>
   </data>
   <data name="VmRAMSettings_DescNumaBlockLimit" xml:space="preserve">
-    <value>Limit the maximum memory of a single virtual NUMA node; must be ≥32MB and a multiple of 2MB (auto-aligned otherwise)</value>
+    <value>Limit the maximum memory of a single virtual NUMA node</value>
   </data>
   <data name="VmRAMSettings_LabelDynMemStep" xml:space="preserve">
     <value>Dynamic Memory Adjustment Step</value>
@@ -3395,5 +3395,23 @@ Remove them from storage and retry? Cancel to re-plug the device and try again.<
   </data>
   <data name="VmPcie_AppliedMessage" xml:space="preserve">
     <value>PCIe settings applied</value>
+  </data>
+  <data name="VmRAMSettings_MmioSection" xml:space="preserve">
+    <value>MMIO space</value>
+  </data>
+  <data name="VmRAMSettings_LowMmioSize" xml:space="preserve">
+    <value>32-bit MMIO space (MB)</value>
+  </data>
+  <data name="VmRAMSettings_LowMmioSizeDesc" xml:space="preserve">
+    <value>Space size provided for PCIe devices below 4 GB</value>
+  </data>
+  <data name="VmRAMSettings_HighMmioSize" xml:space="preserve">
+    <value>64-bit MMIO space (MB)</value>
+  </data>
+  <data name="VmRAMSettings_HighMmioSizeDesc" xml:space="preserve">
+    <value>Space size provided for PCIe devices above 4 GB</value>
+  </data>
+  <data name="VmRAMSettings_HighMmioBase" xml:space="preserve">
+    <value>64-bit MMIO space start (MB)</value>
   </data>
 </root>

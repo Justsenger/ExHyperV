@@ -62,6 +62,7 @@ namespace ExHyperV.Models
         // ── 详细 settings（叶子 ObservableObject，作为 Model 的子对象）──
         public VmProcessorSettings? Processor { get; set; }
         public VmMemorySettings? MemorySettings { get; set; }
+        public VmMmioSettings? MmioSettings { get; set; }
 
         // ── 计算派生 ──────────────────────────────────────────────
 

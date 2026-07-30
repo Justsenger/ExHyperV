@@ -2698,7 +2698,7 @@
     <value>每节点最大内存 (MB)</value>
   </data>
   <data name="VmRAMSettings_DescNumaBlockLimit" xml:space="preserve">
-    <value>限制单个虚拟 NUMA 节点的最大内存，须不低于 32MB 且为 2MB 的倍数（不符会自动对齐）</value>
+    <value>限制单个虚拟 NUMA 节点的最大内存</value>
   </data>
   <data name="VmRAMSettings_LabelDynMemStep" xml:space="preserve">
     <value>动态内存调整步长</value>
@@ -3395,5 +3395,23 @@
   </data>
   <data name="VmPcie_AppliedMessage" xml:space="preserve">
     <value>已应用 PCIe 设置</value>
+  </data>
+  <data name="VmRAMSettings_MmioSection" xml:space="preserve">
+    <value>MMIO 空间</value>
+  </data>
+  <data name="VmRAMSettings_LowMmioSize" xml:space="preserve">
+    <value>32 位 MMIO 空间（MB）</value>
+  </data>
+  <data name="VmRAMSettings_LowMmioSizeDesc" xml:space="preserve">
+    <value>提供给 4 GB 以下的 PCIe 设备使用的空间大小</value>
+  </data>
+  <data name="VmRAMSettings_HighMmioSize" xml:space="preserve">
+    <value>64 位 MMIO 空间（MB）</value>
+  </data>
+  <data name="VmRAMSettings_HighMmioSizeDesc" xml:space="preserve">
+    <value>提供给 4 GB 以上的 PCIe 设备使用的空间大小</value>
+  </data>
+  <data name="VmRAMSettings_HighMmioBase" xml:space="preserve">
+    <value>64 位 MMIO 空间起始位置（MB）</value>
   </data>
 </root>

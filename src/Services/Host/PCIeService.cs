@@ -261,7 +261,7 @@ namespace ExHyperV.Services
         {
             if (!await EnsureVmStoppedAsync(vmName)) return false;
 
-            // 复用 GPU-PV 的 MMIO 配置：base=上限/2、highSize=min(剩余,256GB)、low=1GB
+            // 复用 GPU-PV 的 MMIO 配置：base=上限/2、highSize=min(剩余,256GB)、low=3584MB
             return await VmMmioService.ConfigureMmioAsync(vmName);
         }
 

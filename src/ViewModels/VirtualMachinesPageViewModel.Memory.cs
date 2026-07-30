@@ -12,6 +12,7 @@ namespace ExHyperV.ViewModels
 
         // 进内存页时缓存的"原始设置"，失败时据此回弹；仅本模块使用（原误置于核心 .cs）。
         private VmMemorySettings _originalMemorySettingsCache = null!;
+        private VmMmioSettings? _originalMmioSettingsCache;
 
         // 导航至内存设置
         [RelayCommand]
@@ -25,7 +26,12 @@ namespace ExHyperV.ViewModels
             {
                 try
                 {
-                    var settings = await VmMemoryService.GetVmMemorySettingsAsync(SelectedVm.Name);
+                    var memoryTask = VmMemoryService.GetVmMemorySettingsAsync(SelectedVm.Name);
+                    var mmioTask = VmMmioService.GetSettingsAsync(SelectedVm.Name);
+                    await Task.WhenAll(memoryTask, mmioTask);
+
+                    var settings = await memoryTask;
+                    var mmioSettings = await mmioTask;
                     if (settings != null)
                     {
                         if (SelectedVm.MemorySettings != null)
@@ -35,6 +41,9 @@ namespace ExHyperV.ViewModels
                         _originalMemorySettingsCache = settings.Clone(); // 加载成功时缓存原始状态
                         SelectedVm.MemorySettings.PropertyChanged += MemorySettings_PropertyChanged;
                     }
+
+                    SelectedVm.MmioSettings = mmioSettings;
+                    _originalMmioSettingsCache = mmioSettings?.Clone();
                 }
                 catch (Exception ex)
                 {
@@ -47,6 +56,49 @@ namespace ExHyperV.ViewModels
                 }
             }
         }
+
+        [RelayCommand]
+        private async Task ApplyMmioSettingsAsync()
+        {
+            if (CurrentViewType != VmDetailViewType.MemorySettings) return;
+            if (SelectedVm?.MmioSettings == null || SelectedVm.IsRunning) return;
+
+            IsLoadingSettings = true;
+            try
+            {
+                var result = await VmMmioService.SetSettingsAsync(
+                    SelectedVm.Name,
+                    SelectedVm.MmioSettings);
+
+                if (!result.Success)
+                {
+                    ShowError($"{Properties.Resources.Error_Common_SaveFail}：{FriendlyError.CleanLines(result.Error)}");
+                    if (_originalMmioSettingsCache != null)
+                    {
+                        using (SuppressApply())
+                            SelectedVm.MmioSettings.Restore(_originalMmioSettingsCache);
+                    }
+                }
+                else
+                {
+                    _originalMmioSettingsCache = SelectedVm.MmioSettings.Clone();
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowError(FriendlyError.CleanLines(ex.Message));
+                if (_originalMmioSettingsCache != null)
+                {
+                    using (SuppressApply())
+                        SelectedVm.MmioSettings.Restore(_originalMmioSettingsCache);
+                }
+            }
+            finally
+            {
+                IsLoadingSettings = false;
+            }
+        }
+
         private async void MemorySettings_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
             if (IsApplySuppressed || IsLoadingSettings || SelectedVm?.MemorySettings == null)

@@ -128,6 +128,9 @@ namespace ExHyperV.ViewModels
         [ObservableProperty] private VmMemorySettings? _memorySettings;
         partial void OnMemorySettingsChanged(VmMemorySettings? value) { if (Model != null) Model.MemorySettings = value; }
 
+        [ObservableProperty] private VmMmioSettings? _mmioSettings;
+        partial void OnMmioSettingsChanged(VmMmioSettings? value) { if (Model != null) Model.MmioSettings = value; }
+
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(MemoryUsageString))]
         [NotifyPropertyChangedFor(nameof(MemoryLimitString))]
@@ -257,6 +260,7 @@ namespace ExHyperV.ViewModels
             _isGpuActive = model.IsGpuActive;
             _processor = model.Processor;
             MemorySettings = model.MemorySettings;
+            MmioSettings = model.MmioSettings;
 
             // ── IpAddressDisplay 派生（构造时跳过了 setter 钩子的 display 计算）──
             RecomputeIpAddressDisplay(_ipAddress);
