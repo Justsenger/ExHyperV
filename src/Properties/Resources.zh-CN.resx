@@ -3402,6 +3402,18 @@
   <data name="VmPcie_AppliedMessage" xml:space="preserve">
     <value>已应用 PCIe 设置</value>
   </data>
+  <data name="VmPcie_AzureFeatureSetOpenFailed" xml:space="preserve">
+    <value>无法打开 PCIe 仿真所需的宿主注册表配置。</value>
+  </data>
+  <data name="VmPcie_AzureFeatureSetEnableFailed" xml:space="preserve">
+    <value>无法启用 PCIe 仿真所需的宿主策略：{0}</value>
+  </data>
+  <data name="VmPcie_AzureFeatureSetRestoreFailed" xml:space="preserve">
+    <value>无法恢复 PCIe 仿真临时使用的宿主策略：{0}</value>
+  </data>
+  <data name="VmPcie_SettingsNotFound" xml:space="preserve">
+    <value>未找到虚拟机设置。</value>
+  </data>
   <data name="VmRAMSettings_MmioSection" xml:space="preserve">
     <value>MMIO 空间</value>
   </data>

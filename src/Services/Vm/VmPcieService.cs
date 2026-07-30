@@ -2,6 +2,7 @@ using System.Management;
 using System.Text.RegularExpressions;
 using ExHyperV.Models;
 using ExHyperV.Tools;
+using Microsoft.Win32;
 
 namespace ExHyperV.Services;
 
@@ -12,6 +13,10 @@ namespace ExHyperV.Services;
 public static class VmPcieService
 {
     private const string VsmsWql = "SELECT * FROM Msvm_VirtualSystemManagementService";
+    private const string VirtualizationRegistryPath =
+        @"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Virtualization";
+    private const string AzureFeatureSetValueName = "AzureFeatureSet";
+    private static readonly SemaphoreSlim AzureFeatureSetLock = new(1, 1);
 
     public static async Task<ApiResponse<VmPcieSettings>> GetSettingsAsync(string vmName)
     {
@@ -127,38 +132,51 @@ public static class VmPcieService
     public static async Task<ApiResponse> SetSystemSettingsAsync(
         string vmName, bool enableEmulation, ushort topology)
     {
-        string escapedName = WmiApi.Escape(vmName);
-        var id = await GetVssdInstanceIdAsync(escapedName);
-        if (!id.Success || !id.HasData)
-            return ApiResponse.Fail(
-                id.Error.Length > 0 ? id.Error : "未找到虚拟机设置。");
+        return await WithTemporaryAzureFeatureSetAsync(async () =>
+        {
+            string escapedName = WmiApi.Escape(vmName);
+            var id = await GetVssdInstanceIdAsync(escapedName);
+            if (!id.Success || !id.HasData)
+                return ApiResponse.Fail(
+                    id.Error.Length > 0
+                        ? id.Error
+                        : PcieResource("VmPcie_SettingsNotFound"));
 
-        string escapedId = WmiApi.Escape(id.Data!);
-        return await WmiApi.WithObjectAsync(
-            $"SELECT * FROM Msvm_VirtualSystemPciExpressSettingData " +
-            $"WHERE InstanceID LIKE '{escapedId}\\\\%'",
-            obj =>
-            {
-                if (enableEmulation) obj["EmulationMode"] = (ushort)1;
-                obj["Topology"] = topology;
-            },
-            submitMethod: "ModifySystemComponentSettings",
-            submitParamName: "ComponentSettings",
-            wrapInArray: true,
-            serviceWql: VsmsWql);
+            string escapedId = WmiApi.Escape(id.Data!);
+            return await WmiApi.WithObjectAsync(
+                $"SELECT * FROM Msvm_VirtualSystemPciExpressSettingData " +
+                $"WHERE InstanceID LIKE '{escapedId}\\\\%'",
+                obj =>
+                {
+                    if (enableEmulation) obj["EmulationMode"] = (ushort)1;
+                    obj["Topology"] = topology;
+                },
+                submitMethod: "ModifySystemComponentSettings",
+                submitParamName: "ComponentSettings",
+                wrapInArray: true,
+                serviceWql: VsmsWql);
+        });
     }
 
     public static async Task<ApiResponse> SetDeviceModeAsync(
         string instanceId, VmPcieGuestMode mode)
     {
-        string escapedId = WmiApi.Escape(instanceId);
-        return await WmiApi.WithObjectAsync(
-            $"SELECT * FROM Msvm_PciExpressSettingData WHERE InstanceID = '{escapedId}'",
-            obj => obj["GuestPciExpressMode"] = (byte)mode,
-            submitMethod: "ModifyResourceSettings",
-            submitParamName: "ResourceSettings",
-            wrapInArray: true,
-            serviceWql: VsmsWql);
+        async Task<ApiResponse> ApplyAsync()
+        {
+            string escapedId = WmiApi.Escape(instanceId);
+            return await WmiApi.WithObjectAsync(
+                $"SELECT * FROM Msvm_PciExpressSettingData WHERE InstanceID = '{escapedId}'",
+                obj => obj["GuestPciExpressMode"] = (byte)mode,
+                submitMethod: "ModifyResourceSettings",
+                submitParamName: "ResourceSettings",
+                wrapInArray: true,
+                serviceWql: VsmsWql);
+        }
+
+        // 半虚拟化不依赖 AzureFeatureSet；只有标准 PCIe 仿真需要。
+        return mode == VmPcieGuestMode.Emulated
+            ? await WithTemporaryAzureFeatureSetAsync(ApplyAsync)
+            : await ApplyAsync();
     }
 
     public static async Task<ApiResponse> SetBootPciExpressAsync(string vmName, bool enabled)
@@ -180,6 +198,120 @@ public static class VmPcieService
             $"WHERE ElementName = '{escapedVmName}' " +
             $"AND VirtualSystemType = 'Microsoft:Hyper-V:System:Realized'",
             obj => WmiApi.PropStr(obj, "InstanceID"));
+
+    private static async Task<ApiResponse> WithTemporaryAzureFeatureSetAsync(
+        Func<Task<ApiResponse>> operation)
+    {
+        await AzureFeatureSetLock.WaitAsync();
+        try
+        {
+            var enableResult = EnableAzureFeatureSetTemporarily();
+            if (!enableResult.Success || !enableResult.HasData)
+                return ApiResponse.Fail(
+                    enableResult.Error, enableResult.Code, enableResult.ErrorSource);
+
+            var state = enableResult.Data!;
+            ApiResponse operationResult;
+            try
+            {
+                operationResult = await operation();
+            }
+            catch
+            {
+                _ = RestoreAzureFeatureSet(state);
+                throw;
+            }
+
+            var restoreResult = RestoreAzureFeatureSet(state);
+            if (restoreResult.Success) return operationResult;
+            if (operationResult.Success) return restoreResult;
+
+            return ApiResponse.Fail(
+                $"{operationResult.Error}{Environment.NewLine}{restoreResult.Error}",
+                operationResult.Code,
+                operationResult.ErrorSource);
+        }
+        finally
+        {
+            AzureFeatureSetLock.Release();
+        }
+    }
+
+    private static ApiResponse<AzureFeatureSetState> EnableAzureFeatureSetTemporarily()
+    {
+        try
+        {
+            using var key = Registry.LocalMachine.CreateSubKey(
+                VirtualizationRegistryPath, writable: true);
+            if (key == null)
+                return ApiResponse<AzureFeatureSetState>.Fail(
+                    PcieResource("VmPcie_AzureFeatureSetOpenFailed"));
+
+            object? originalValue = key.GetValue(
+                AzureFeatureSetValueName, null,
+                RegistryValueOptions.DoNotExpandEnvironmentNames);
+            bool existed = originalValue != null;
+            RegistryValueKind? originalKind =
+                existed ? key.GetValueKind(AzureFeatureSetValueName) : null;
+            bool changed = originalValue is not int value || value != 1;
+            if (!changed)
+                return ApiResponse<AzureFeatureSetState>.Ok(
+                    new AzureFeatureSetState(false, true, originalValue, originalKind));
+
+            key.SetValue(AzureFeatureSetValueName, 1, RegistryValueKind.DWord);
+            return ApiResponse<AzureFeatureSetState>.Ok(
+                new AzureFeatureSetState(true, existed, originalValue, originalKind));
+        }
+        catch (Exception ex)
+        {
+            return ApiResponse<AzureFeatureSetState>.Fail(
+                string.Format(
+                    PcieResource("VmPcie_AzureFeatureSetEnableFailed"),
+                    ex.Message));
+        }
+    }
+
+    private static ApiResponse RestoreAzureFeatureSet(AzureFeatureSetState state)
+    {
+        if (!state.Changed) return ApiResponse.Ok();
+
+        try
+        {
+            using var key = Registry.LocalMachine.CreateSubKey(
+                VirtualizationRegistryPath, writable: true);
+            if (key == null)
+                return ApiResponse.Fail(
+                    PcieResource("VmPcie_AzureFeatureSetOpenFailed"));
+
+            if (state.Existed)
+                key.SetValue(
+                    AzureFeatureSetValueName,
+                    state.OriginalValue!,
+                    state.OriginalKind!.Value);
+            else
+                key.DeleteValue(
+                    AzureFeatureSetValueName,
+                    throwOnMissingValue: false);
+
+            return ApiResponse.Ok();
+        }
+        catch (Exception ex)
+        {
+            return ApiResponse.Fail(
+                string.Format(
+                    PcieResource("VmPcie_AzureFeatureSetRestoreFailed"),
+                    ex.Message));
+        }
+    }
+
+    private static string PcieResource(string name)
+        => Properties.Resources.ResourceManager.GetString(name) ?? name;
+
+    private sealed record AzureFeatureSetState(
+        bool Changed,
+        bool Existed,
+        object? OriginalValue,
+        RegistryValueKind? OriginalKind);
 
     private static Dictionary<string, PciDeviceInfo> BuildHostDeviceMap()
     {

@@ -3402,6 +3402,18 @@ Remove them from storage and retry? Cancel to re-plug the device and try again.<
   <data name="VmPcie_AppliedMessage" xml:space="preserve">
     <value>PCIe settings applied</value>
   </data>
+  <data name="VmPcie_AzureFeatureSetOpenFailed" xml:space="preserve">
+    <value>Failed to open the host registry configuration required for PCIe emulation.</value>
+  </data>
+  <data name="VmPcie_AzureFeatureSetEnableFailed" xml:space="preserve">
+    <value>Failed to enable the host policy required for PCIe emulation: {0}</value>
+  </data>
+  <data name="VmPcie_AzureFeatureSetRestoreFailed" xml:space="preserve">
+    <value>Failed to restore the host policy used temporarily for PCIe emulation: {0}</value>
+  </data>
+  <data name="VmPcie_SettingsNotFound" xml:space="preserve">
+    <value>Virtual machine settings were not found.</value>
+  </data>
   <data name="VmRAMSettings_MmioSection" xml:space="preserve">
     <value>MMIO space</value>
   </data>
