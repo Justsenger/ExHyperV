@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.IO;
 using System.Management;
@@ -14,6 +15,7 @@ namespace ExHyperV.Services
     public class VmGpuService
     {
         private readonly VmQueryService _queryService;
+        private readonly AsyncLocal<ConcurrentQueue<string>?> _linkWarnings = new();
         public VmGpuService(VmQueryService queryService)
         {
             _queryService = queryService;
@@ -182,6 +184,12 @@ namespace ExHyperV.Services
         }
         public async Task<List<(string Id, string InstancePath)>> GetVmGpuAdaptersAsync(string vmName)
         {
+            var result = await TryGetVmGpuAdaptersAsync(vmName);
+            return result.Adapters;
+        }
+
+        public async Task<(bool Success, List<(string Id, string InstancePath)> Adapters)> TryGetVmGpuAdaptersAsync(string vmName)
+        {
             var result = new List<(string Id, string InstancePath)>();
             string scopePath = @"\\.\root\virtualization\v2";
             try
@@ -198,14 +206,14 @@ namespace ExHyperV.Services
                 using var searcher = new ManagementObjectSearcher(scopePath, query);
                 using var vmCollection = searcher.Get();
                 var computerSystem = vmCollection.Cast<ManagementObject>().FirstOrDefault();
-                if (computerSystem == null) return result;
+                if (computerSystem == null) return (false, result);
 
                 using var relatedSettings = computerSystem.GetRelated(
                     "Msvm_VirtualSystemSettingData",
                     "Msvm_SettingsDefineState",
                     null, null, null, null, false, null);
                 var virtualSystemSetting = relatedSettings.Cast<ManagementObject>().FirstOrDefault();
-                if (virtualSystemSetting == null) return result;
+                if (virtualSystemSetting == null) return (false, result);
 
                 using var gpuSettingsCollection = virtualSystemSetting.GetRelated(
                     "Msvm_GpuPartitionSettingData",
@@ -240,8 +248,9 @@ namespace ExHyperV.Services
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"WMI Query Error: {ex.Message}");
+                return (false, new List<(string Id, string InstancePath)>());
             }
-            return result;
+            return (true, result);
         }
         #endregion
 
@@ -523,6 +532,8 @@ namespace ExHyperV.Services
             int savedCtrlLoc = 0;
             bool isPhysical = diskTarget.IsPhysical;
             bool detachSuccess = false;
+            var linkWarnings = new ConcurrentQueue<string>();
+            _linkWarnings.Value = linkWarnings;
 
 
             void Log(string msg) => progressCallback?.Invoke(msg);
@@ -611,11 +622,17 @@ namespace ExHyperV.Services
                 if (gpuManu.Contains("NVIDIA", StringComparison.OrdinalIgnoreCase))
                 {
                     Log(Properties.Resources.Msg_Gpu_InjectingReg);
-                    await Task.Run(() =>
+                    string nvidiaRegResult = await Task.Run(() =>
                     {
-                        NvidiaReg(assignedDriveLetter);
+                        string result = NvidiaReg(assignedDriveLetter);
                         PromoteNvidiaFiles(assignedDriveLetter);
+                        return result;
                     });
+                    if (!string.Equals(nvidiaRegResult, "OK", StringComparison.Ordinal))
+                    {
+                        try { Log(nvidiaRegResult); }
+                        catch { }
+                    }
                     await NvidiaProgramFoldersAsync(assignedDriveLetter, Log);
                 }
                 else if (gpuManu.Contains("Intel", StringComparison.OrdinalIgnoreCase))
@@ -637,6 +654,13 @@ namespace ExHyperV.Services
             catch (Exception ex) { return string.Format(Properties.Resources.Error_Gpu_InjectFailed, ex.Message); }
             finally
             {
+                while (linkWarnings.TryDequeue(out string warning))
+                {
+                    try { Log(warning); }
+                    catch { }
+                }
+                _linkWarnings.Value = null;
+
                 if (isPhysical && hostDiskNumber != -1 && detachSuccess)
                 {
                     Log(Properties.Resources.Msg_Gpu_Remounting);
@@ -964,16 +988,34 @@ namespace ExHyperV.Services
                 }
 
                 string hostLinkPath = Path.Combine(hostDestDir, targetName);
-                if (System.IO.File.Exists(hostLinkPath) || System.IO.Directory.Exists(hostLinkPath))
-                {
-                    return;
-                }
+                bool isReparsePoint = false;
+                bool targetPathExists = File.Exists(hostLinkPath) || Directory.Exists(hostLinkPath);
                 try
                 {
-                    if (System.IO.File.GetAttributes(hostLinkPath) != (System.IO.FileAttributes)(-1))
+                    isReparsePoint = File.GetAttributes(hostLinkPath).HasFlag(FileAttributes.ReparsePoint);
+                    targetPathExists = true;
+                }
+                catch { }
+
+                // 刷新旧版创建的错误链接；来宾原有的普通文件仍保持不变。
+                if (targetPathExists && !isReparsePoint) return;
+
+                if (isReparsePoint)
+                {
+                    int deleteExitCode = ExecuteCommand($"cmd /c del /f /q \"{hostLinkPath}\"");
+                    if (deleteExitCode != 0)
                     {
-                        ExecuteCommand($"cmd /c del /f /q \"{hostLinkPath}\"");
+                        string warning = $"[GPU Link] Unable to replace {hostLinkPath}: del exited with code {deleteExitCode}.";
+                        Debug.WriteLine(warning);
+                        _linkWarnings.Value?.Enqueue(warning);
+                        return;
                     }
+                }
+
+                try
+                {
+                    if (File.GetAttributes(hostLinkPath) != (FileAttributes)(-1))
+                        return;
                 }
                 catch {}
 
@@ -985,13 +1027,32 @@ namespace ExHyperV.Services
                 if (foundFiles.Count == 0) return;
 
                 string hostSourceFile = foundFiles[0].FullName;
-                string guestInternalTarget = hostSourceFile.Replace(assignedDriveLetter, "C:");
+                string relativeSourcePath = Path.GetRelativePath(
+                    Path.GetFullPath(assignedDriveLetter),
+                    Path.GetFullPath(hostSourceFile));
 
-                ExecuteCommand($"cmd /c mklink \"{hostLinkPath}\" \"{guestInternalTarget}\"");
+                if (Path.IsPathRooted(relativeSourcePath) ||
+                    relativeSourcePath.Equals("..", StringComparison.Ordinal) ||
+                    relativeSourcePath.StartsWith($"..{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
+                {
+                    throw new IOException($"Driver source is outside the mounted guest volume: {hostSourceFile}");
+                }
+
+                string guestInternalTarget = Path.Combine(@"C:\", relativeSourcePath);
+
+                int exitCode = ExecuteCommand($"cmd /c mklink \"{hostLinkPath}\" \"{guestInternalTarget}\"");
+                if (exitCode != 0)
+                {
+                    string warning = $"[GPU Link] {targetName} -> {guestInternalTarget}: mklink exited with code {exitCode}.";
+                    Debug.WriteLine(warning);
+                    _linkWarnings.Value?.Enqueue(warning);
+                }
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Link error for {sourceName}: {ex.Message}");
+                string warning = $"[GPU Link] {sourceName}: {ex.Message}";
+                Debug.WriteLine(warning);
+                _linkWarnings.Value?.Enqueue(warning);
             }
         }
 
@@ -1046,7 +1107,9 @@ namespace ExHyperV.Services
                 regContent = regContent.Replace(originalText, targetText);
                 regContent = regContent.Replace("DriverStore", "HostDriverStore");
                 File.WriteAllText(tempRegFile, regContent);
-                ExecuteCommand($@"reg import ""{tempRegFile}""");
+                int importExitCode = ExecuteCommand($@"reg import ""{tempRegFile}""");
+                if (importExitCode != 0)
+                    return string.Format(Properties.Resources.Error_NvidiaRegistryImportFailed, importExitCode);
 
                 return "OK";
             }

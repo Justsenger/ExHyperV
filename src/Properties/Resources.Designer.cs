@@ -2068,6 +2068,15 @@ namespace ExHyperV.Properties {
                 return ResourceManager.GetString("Error_NvidiaRegistryProcessingException", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   查找类似 Error: Failed to import the NVIDIA registry information (exit code {0}). 的本地化字符串。
+        /// </summary>
+        public static string Error_NvidiaRegistryImportFailed {
+            get {
+                return ResourceManager.GetString("Error_NvidiaRegistryImportFailed", resourceCulture);
+            }
+        }
         
         /// <summary>
         ///   查找类似 Error: Failed to load the virtual machine registry offline. Please ensure the program is run with administrator privileges. 的本地化字符串。
@@ -4206,6 +4215,15 @@ namespace ExHyperV.Properties {
         public static string Msg_Gpu_AssignOk {
             get {
                 return ResourceManager.GetString("Msg_Gpu_AssignOk", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   查找类似 [Warning] The GPU partition created by this operation could not be identified. If a later step fails, automatic rollback will be skipped. 的本地化字符串。
+        /// </summary>
+        public static string Warn_Gpu_RollbackAdapterNotIdentified {
+            get {
+                return ResourceManager.GetString("Warn_Gpu_RollbackAdapterNotIdentified", resourceCulture);
             }
         }
         

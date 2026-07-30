@@ -458,13 +458,31 @@ namespace ExHyperV.ViewModels
                                                 ? SelectedHostGpu.Pname
                                                 : SelectedHostGpu.InstanceId;
 
+                            var adaptersBeforeAssignment =
+                                await _vmGpuService.TryGetVmGpuAdaptersAsync(SelectedVm.Name);
                             var assignRes = await _vmGpuService.AssignGpuPartitionAsync(SelectedVm.Name, targetPath);
                             if (!assignRes.Success) throw new Exception(assignRes.Message);
                             task.Description = Properties.Resources.Msg_Gpu_AssignOk;
-                            await Task.Delay(100);
-                            var currentAdapters = await _vmGpuService.GetVmGpuAdaptersAsync(SelectedVm.Name);
-                            // 记录下来，以便后续步骤（如驱动安装）失败时删除
-                            _currentProcessingGpuAdapterId = currentAdapters.LastOrDefault().Id;
+
+                            var adaptersAfterAssignment =
+                                await _vmGpuService.TryGetVmGpuAdaptersAsync(SelectedVm.Name);
+                            if (adaptersBeforeAssignment.Success && adaptersAfterAssignment.Success)
+                            {
+                                var previousIds = adaptersBeforeAssignment.Adapters
+                                    .Select(adapter => adapter.Id)
+                                    .ToHashSet(StringComparer.OrdinalIgnoreCase);
+                                var addedIds = adaptersAfterAssignment.Adapters
+                                    .Select(adapter => adapter.Id)
+                                    .Where(id => !previousIds.Contains(id))
+                                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                                    .ToList();
+
+                                if (addedIds.Count == 1)
+                                    _currentProcessingGpuAdapterId = addedIds[0];
+                            }
+
+                            if (string.IsNullOrEmpty(_currentProcessingGpuAdapterId))
+                                AppendLog(Properties.Resources.Warn_Gpu_RollbackAdapterNotIdentified);
                             break;
 
                         case GpuTaskType.Driver:
