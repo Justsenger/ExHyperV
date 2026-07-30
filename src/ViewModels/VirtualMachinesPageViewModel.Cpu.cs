@@ -1,7 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Management;
-using System.Runtime.InteropServices;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ExHyperV.Models;
@@ -24,8 +23,6 @@ namespace ExHyperV.ViewModels
         public Array L3DistributionPolicyValues { get; } = Enum.GetValues(typeof(L3DistributionPolicy));
         public Array PageShatterModeValues { get; } = Enum.GetValues(typeof(PageShatterMode));
         public Array LpiModeValues { get; } = Enum.GetValues(typeof(LpiMode));
-        public bool IsArm64Host => RuntimeInformation.OSArchitecture == Architecture.Arm64;
-
         // 能力门控标志（按宿主硬件置灰：AMD-only / 硬件隔离）
         [ObservableProperty] private bool _isAmdHost;
         [ObservableProperty] private bool _isHwIsolationSupported;
