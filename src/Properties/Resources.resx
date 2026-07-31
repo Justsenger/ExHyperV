@@ -3438,4 +3438,28 @@ Remove them from storage and retry? Cancel to re-plug the device and try again.<
   <data name="PCIePage_ClassWithChildTypes" xml:space="preserve">
     <value>{0} (child devices: {1})</value>
   </data>
+  <data name="VmAdvanced_FullScsiTitle" xml:space="preserve">
+    <value>Full SCSI command set</value>
+  </data>
+  <data name="VmAdvanced_FullScsiDesc" xml:space="preserve">
+    <value>Allow the virtual machine to send unfiltered SCSI commands to attached physical disks</value>
+  </data>
+  <data name="VmAdvanced_LockOnDisconnectTitle" xml:space="preserve">
+    <value>Lock on disconnect</value>
+  </data>
+  <data name="VmAdvanced_LockOnDisconnectDesc" xml:space="preserve">
+    <value>Lock the virtual machine operating system when disconnecting from its console</value>
+  </data>
+  <data name="VmAdvanced_TurnOffOnGuestRestartTitle" xml:space="preserve">
+    <value>Turn restart into shutdown</value>
+  </data>
+  <data name="VmAdvanced_TurnOffOnGuestRestartDesc" xml:space="preserve">
+    <value>Turn off the virtual machine instead when its operating system requests a restart</value>
+  </data>
+  <data name="VmAdvanced_HibernationTitle" xml:space="preserve">
+    <value>Virtual machine hibernation (S4)</value>
+  </data>
+  <data name="VmAdvanced_HibernationDesc" xml:space="preserve">
+    <value>Allow the virtual machine to use S4 hibernation and fast startup</value>
+  </data>
 </root>

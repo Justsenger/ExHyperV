@@ -1,7 +1,9 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using ExHyperV.Models;
 using ExHyperV.Services;
+using ExHyperV.Tools;
 using Wpf.Ui.Controls;
 
 namespace ExHyperV.ViewModels
@@ -25,6 +27,29 @@ namespace ExHyperV.ViewModels
         // 启动时 NumLock（BIOSNumLock 固件设置；仅关机可改，UI 按 IsRunning 置灰、失败回弹）
         [ObservableProperty] private bool _isBootNumLockEnabled;
 
+        [ObservableProperty] private bool _allowFullScsiCommandSetAvailable;
+        [ObservableProperty] private bool _allowFullScsiCommandSet;
+        [ObservableProperty] private bool _lockOnDisconnectAvailable;
+        [ObservableProperty] private bool _lockOnDisconnect;
+        [ObservableProperty] private bool _turnOffOnGuestRestartAvailable;
+        [ObservableProperty] private bool _turnOffOnGuestRestart;
+        [ObservableProperty] private bool _enableHibernationAvailable;
+        [ObservableProperty] private bool _enableHibernation;
+
+        private bool _appliedAllowFullScsiCommandSet;
+        private bool _appliedLockOnDisconnect;
+        private bool _appliedTurnOffOnGuestRestart;
+        private bool _appliedEnableHibernation;
+
+        public string VmAdvancedFullScsiTitle => AdvancedText("VmAdvanced_FullScsiTitle");
+        public string VmAdvancedFullScsiDesc => AdvancedText("VmAdvanced_FullScsiDesc");
+        public string VmAdvancedLockTitle => AdvancedText("VmAdvanced_LockOnDisconnectTitle");
+        public string VmAdvancedLockDesc => AdvancedText("VmAdvanced_LockOnDisconnectDesc");
+        public string VmAdvancedTurnOffTitle => AdvancedText("VmAdvanced_TurnOffOnGuestRestartTitle");
+        public string VmAdvancedTurnOffDesc => AdvancedText("VmAdvanced_TurnOffOnGuestRestartDesc");
+        public string VmAdvancedHibernationTitle => AdvancedText("VmAdvanced_HibernationTitle");
+        public string VmAdvancedHibernationDesc => AdvancedText("VmAdvanced_HibernationDesc");
+
         [RelayCommand]
         private async Task GoToAdvancedSettingsAsync()
         {
@@ -38,14 +63,164 @@ namespace ExHyperV.ViewModels
                     ? $"{w} x {h}"
                     : Properties.Resources.VmAdvanced_ResolutionAuto;
 
+                var behaviorResult = await VmAdvancedBehaviorService.GetSettingsAsync(SelectedVm.Name);
+
                 using (SuppressApply())
                 {
                     IsConsoleSupportEnabled = await VmConsoleService.IsConsoleSupportEnabledAsync(SelectedVm.Name);
                     IsBootNumLockEnabled = await VmBootService.GetBootNumLockAsync(SelectedVm.Name);
+
+                    // 先清除上一台虚拟机的状态；查询失败或属性缺失时，设置仍显示但保持置灰。
+                    AllowFullScsiCommandSetAvailable = false;
+                    AllowFullScsiCommandSet = false;
+                    LockOnDisconnectAvailable = false;
+                    LockOnDisconnect = false;
+                    TurnOffOnGuestRestartAvailable = false;
+                    TurnOffOnGuestRestart = false;
+                    EnableHibernationAvailable = false;
+                    EnableHibernation = false;
+                    _appliedAllowFullScsiCommandSet = false;
+                    _appliedLockOnDisconnect = false;
+                    _appliedTurnOffOnGuestRestart = false;
+                    _appliedEnableHibernation = false;
+
+                    if (behaviorResult.HasData)
+                    {
+                        var settings = behaviorResult.Data!;
+                        AllowFullScsiCommandSetAvailable = settings.AllowFullScsiCommandSetAvailable;
+                        AllowFullScsiCommandSet = settings.AllowFullScsiCommandSet;
+                        LockOnDisconnectAvailable = settings.LockOnDisconnectAvailable;
+                        LockOnDisconnect = settings.LockOnDisconnect;
+                        TurnOffOnGuestRestartAvailable = settings.TurnOffOnGuestRestartAvailable;
+                        TurnOffOnGuestRestart = settings.TurnOffOnGuestRestart;
+                        EnableHibernationAvailable = settings.EnableHibernationAvailable;
+                        EnableHibernation = settings.EnableHibernation;
+
+                        _appliedAllowFullScsiCommandSet = settings.AllowFullScsiCommandSet;
+                        _appliedLockOnDisconnect = settings.LockOnDisconnect;
+                        _appliedTurnOffOnGuestRestart = settings.TurnOffOnGuestRestart;
+                        _appliedEnableHibernation = settings.EnableHibernation;
+                    }
                 }
+
+                if (!behaviorResult.Success)
+                    ShowError($"{Properties.Resources.Error_Common_LoadFail}：{FriendlyError.CleanLines(behaviorResult.Error)}");
             }
             finally { IsLoadingSettings = false; }
         }
+
+        partial void OnAllowFullScsiCommandSetChanged(bool value)
+        {
+            if (!CanApplyAdvancedBehavior(AllowFullScsiCommandSetAvailable)) return;
+            _ = ApplyAdvancedBehaviorAsync(VmAdvancedBehavior.AllowFullScsiCommandSet, value);
+        }
+
+        partial void OnLockOnDisconnectChanged(bool value)
+        {
+            if (!CanApplyAdvancedBehavior(LockOnDisconnectAvailable)) return;
+            _ = ApplyAdvancedBehaviorAsync(VmAdvancedBehavior.LockOnDisconnect, value);
+        }
+
+        partial void OnTurnOffOnGuestRestartChanged(bool value)
+        {
+            if (!CanApplyAdvancedBehavior(TurnOffOnGuestRestartAvailable)) return;
+            _ = ApplyAdvancedBehaviorAsync(VmAdvancedBehavior.TurnOffOnGuestRestart, value);
+        }
+
+        partial void OnEnableHibernationChanged(bool value)
+        {
+            if (!CanApplyAdvancedBehavior(EnableHibernationAvailable)) return;
+            _ = ApplyAdvancedBehaviorAsync(VmAdvancedBehavior.EnableHibernation, value);
+        }
+
+        private bool CanApplyAdvancedBehavior(bool available)
+            => !IsApplySuppressed
+               && CurrentViewType == VmDetailViewType.Advanced
+               && SelectedVm != null
+               && available;
+
+        private async Task ApplyAdvancedBehaviorAsync(VmAdvancedBehavior behavior, bool value)
+        {
+            if (SelectedVm == null) return;
+            var vm = SelectedVm;
+            bool previous = GetAppliedAdvancedBehavior(behavior);
+
+            var result = await VmAdvancedBehaviorService.SetSettingAsync(vm.Name, behavior, value);
+            if (!result.Success)
+            {
+                RestoreAdvancedBehavior(vm, behavior, previous);
+                ShowError(FriendlyError.CleanLines(result.Error));
+                return;
+            }
+
+            SetAppliedAdvancedBehavior(behavior, value);
+            ShowSuccess($"{GetAdvancedBehaviorTitle(behavior)}：" +
+                        (value ? Properties.Resources.Button_Enable : Properties.Resources.Common_Disabled));
+        }
+
+        private bool GetAppliedAdvancedBehavior(VmAdvancedBehavior behavior) => behavior switch
+        {
+            VmAdvancedBehavior.AllowFullScsiCommandSet => _appliedAllowFullScsiCommandSet,
+            VmAdvancedBehavior.LockOnDisconnect => _appliedLockOnDisconnect,
+            VmAdvancedBehavior.TurnOffOnGuestRestart => _appliedTurnOffOnGuestRestart,
+            VmAdvancedBehavior.EnableHibernation => _appliedEnableHibernation,
+            _ => false,
+        };
+
+        private void SetAppliedAdvancedBehavior(VmAdvancedBehavior behavior, bool value)
+        {
+            switch (behavior)
+            {
+                case VmAdvancedBehavior.AllowFullScsiCommandSet:
+                    _appliedAllowFullScsiCommandSet = value;
+                    break;
+                case VmAdvancedBehavior.LockOnDisconnect:
+                    _appliedLockOnDisconnect = value;
+                    break;
+                case VmAdvancedBehavior.TurnOffOnGuestRestart:
+                    _appliedTurnOffOnGuestRestart = value;
+                    break;
+                case VmAdvancedBehavior.EnableHibernation:
+                    _appliedEnableHibernation = value;
+                    break;
+            }
+        }
+
+        private void RestoreAdvancedBehavior(
+            VmInstanceViewModel vm, VmAdvancedBehavior behavior, bool value)
+        {
+            if (SelectedVm != vm) return;
+            using (SuppressApply())
+            {
+                switch (behavior)
+                {
+                    case VmAdvancedBehavior.AllowFullScsiCommandSet:
+                        AllowFullScsiCommandSet = value;
+                        break;
+                    case VmAdvancedBehavior.LockOnDisconnect:
+                        LockOnDisconnect = value;
+                        break;
+                    case VmAdvancedBehavior.TurnOffOnGuestRestart:
+                        TurnOffOnGuestRestart = value;
+                        break;
+                    case VmAdvancedBehavior.EnableHibernation:
+                        EnableHibernation = value;
+                        break;
+                }
+            }
+        }
+
+        private string GetAdvancedBehaviorTitle(VmAdvancedBehavior behavior) => behavior switch
+        {
+            VmAdvancedBehavior.AllowFullScsiCommandSet => VmAdvancedFullScsiTitle,
+            VmAdvancedBehavior.LockOnDisconnect => VmAdvancedLockTitle,
+            VmAdvancedBehavior.TurnOffOnGuestRestart => VmAdvancedTurnOffTitle,
+            VmAdvancedBehavior.EnableHibernation => VmAdvancedHibernationTitle,
+            _ => string.Empty,
+        };
+
+        private static string AdvancedText(string key)
+            => Properties.Resources.ResourceManager.GetString(key) ?? key;
 
         partial void OnIsConsoleSupportEnabledChanged(bool value)
         {

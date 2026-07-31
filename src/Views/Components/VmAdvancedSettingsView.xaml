@@ -32,13 +32,12 @@
 
         <!-- 内容 -->
         <ScrollViewer Grid.Row="1" Margin="24,4,24,24" VerticalScrollBarVisibility="Auto" PanningMode="VerticalOnly">
-            <StackPanel>
-
-                <!-- 控制台支持 -->
-                <Border Background="{ui:ThemeResource ControlFillColorDefaultBrush}"
-                        BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}"
-                        BorderThickness="1" CornerRadius="8" Padding="18" Margin="0,0,0,12">
-                    <Grid>
+            <Border Background="{ui:ThemeResource ControlFillColorDefaultBrush}"
+                    BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1" CornerRadius="8" Margin="0,0,0,12">
+                <StackPanel>
+                    <!-- 控制台支持 -->
+                    <Grid Margin="18,16">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
@@ -51,13 +50,10 @@
                                          IsChecked="{Binding IsConsoleSupportEnabled, Mode=TwoWay}"
                                          IsEnabled="{Binding SelectedVm.CanToggleConsoleSupport}"/>
                     </Grid>
-                </Border>
+                    <Separator Margin="18,0"/>
 
-                <!-- 启动时 NumLock -->
-                <Border Background="{ui:ThemeResource ControlFillColorDefaultBrush}"
-                        BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}"
-                        BorderThickness="1" CornerRadius="8" Padding="18" Margin="0,0,0,12">
-                    <Grid>
+                    <!-- 启动时 NumLock -->
+                    <Grid Margin="18,16">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
@@ -69,13 +65,74 @@
                                          IsChecked="{Binding IsBootNumLockEnabled, Mode=TwoWay}"
                                          IsEnabled="{Binding SelectedVm.IsRunning, Converter={StaticResource InverseBooleanConverter}}"/>
                     </Grid>
-                </Border>
+                    <Separator Margin="18,0"/>
 
-                <!-- 基本会话默认分辨率 -->
-                <Border Background="{ui:ThemeResource ControlFillColorDefaultBrush}"
-                        BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}"
-                        BorderThickness="1" CornerRadius="8" Padding="18" Margin="0,0,0,12">
-                    <Grid>
+                    <!-- 完整 SCSI 命令集 -->
+                    <Grid Margin="18,16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Margin="0,0,16,0">
+                            <TextBlock Text="{Binding VmAdvancedFullScsiTitle}" FontSize="15" FontWeight="Medium" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                            <TextBlock Text="{Binding VmAdvancedFullScsiDesc}" FontSize="13" Opacity="0.55" Margin="0,4,0,0" TextWrapping="Wrap" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                        </StackPanel>
+                        <ui:ToggleSwitch Grid.Column="1" VerticalAlignment="Center"
+                                         IsChecked="{Binding AllowFullScsiCommandSet, Mode=TwoWay}"
+                                         IsEnabled="{Binding AllowFullScsiCommandSetAvailable}"/>
+                    </Grid>
+                    <Separator Margin="18,0"/>
+
+                    <!-- 断开时锁定 -->
+                    <Grid Margin="18,16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Margin="0,0,16,0">
+                            <TextBlock Text="{Binding VmAdvancedLockTitle}" FontSize="15" FontWeight="Medium" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                            <TextBlock Text="{Binding VmAdvancedLockDesc}" FontSize="13" Opacity="0.55" Margin="0,4,0,0" TextWrapping="Wrap" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                        </StackPanel>
+                        <ui:ToggleSwitch Grid.Column="1" VerticalAlignment="Center"
+                                         IsChecked="{Binding LockOnDisconnect, Mode=TwoWay}"
+                                         IsEnabled="{Binding LockOnDisconnectAvailable}"/>
+                    </Grid>
+                    <Separator Margin="18,0"/>
+
+                    <!-- 重启时改为关机 -->
+                    <Grid Margin="18,16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Margin="0,0,16,0">
+                            <TextBlock Text="{Binding VmAdvancedTurnOffTitle}" FontSize="15" FontWeight="Medium" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                            <TextBlock Text="{Binding VmAdvancedTurnOffDesc}" FontSize="13" Opacity="0.55" Margin="0,4,0,0" TextWrapping="Wrap" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                        </StackPanel>
+                        <ui:ToggleSwitch Grid.Column="1" VerticalAlignment="Center"
+                                         IsChecked="{Binding TurnOffOnGuestRestart, Mode=TwoWay}"
+                                         IsEnabled="{Binding TurnOffOnGuestRestartAvailable}"/>
+                    </Grid>
+                    <Separator Margin="18,0"/>
+
+                    <!-- 虚拟机休眠 -->
+                    <Grid Margin="18,16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Margin="0,0,16,0">
+                            <TextBlock Text="{Binding VmAdvancedHibernationTitle}" FontSize="15" FontWeight="Medium" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                            <TextBlock Text="{Binding VmAdvancedHibernationDesc}" FontSize="13" Opacity="0.55" Margin="0,4,0,0" TextWrapping="Wrap" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                        </StackPanel>
+                        <ui:ToggleSwitch Grid.Column="1" VerticalAlignment="Center"
+                                         IsChecked="{Binding EnableHibernation, Mode=TwoWay}"
+                                         IsEnabled="{Binding EnableHibernationAvailable}"/>
+                    </Grid>
+                    <Separator Margin="18,0"/>
+
+                    <!-- 基本会话默认分辨率 -->
+                    <Grid Margin="18,16">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
@@ -93,9 +150,8 @@
                                        Command="{Binding ApplyVideoResolutionCommand}"/>
                         </StackPanel>
                     </Grid>
-                </Border>
-
-            </StackPanel>
+                </StackPanel>
+            </Border>
         </ScrollViewer>
     </Grid>
 </UserControl>
