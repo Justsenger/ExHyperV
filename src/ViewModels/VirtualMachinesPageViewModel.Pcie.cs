@@ -42,8 +42,6 @@ namespace ExHyperV.ViewModels
         public string VmPcieSystemSection => PcieText("VmPcie_SystemSection");
         public string VmPcieEmulationTitle => PcieText("VmPcie_EmulationTitle");
         public string VmPcieEmulationDesc => PcieText("VmPcie_EmulationDesc");
-        public string VmPcieEnabledText => PcieText("VmPcie_Enabled");
-        public string VmPcieEnableText => PcieText("VmPcie_Enable");
         public string VmPcieTopologyTitle => PcieText("VmPcie_TopologyTitle");
         public string VmPcieTopologyDesc => PcieText("VmPcie_TopologyDesc");
         public string VmPcieBootSection => PcieText("VmPcie_BootSection");
@@ -102,12 +100,17 @@ namespace ExHyperV.ViewModels
             if (SelectedVm == null || !PcieSystemSettingsAvailable || PcieEmulationEnabled) return;
             var vm = SelectedVm;
             bool confirmed = await ConfirmPermanentEmulationAsync();
-            if (!confirmed) return;
+            if (!confirmed)
+            {
+                OnPropertyChanged(nameof(PcieEmulationEnabled));
+                return;
+            }
 
             var result = await VmPcieService.SetSystemSettingsAsync(
                 vm.Name, enableEmulation: true, SelectedPcieTopology);
             if (!result.Success)
             {
+                OnPropertyChanged(nameof(PcieEmulationEnabled));
                 ShowError(FriendlyError.CleanLines(result.Error));
                 return;
             }

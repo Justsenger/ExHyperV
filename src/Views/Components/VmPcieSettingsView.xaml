@@ -58,29 +58,6 @@
             </Style.Triggers>
         </Style>
 
-        <Style x:Key="PcieRequiredButtonStyle"
-               TargetType="ui:Button"
-               BasedOn="{StaticResource {x:Type ui:Button}}">
-            <Setter Property="ToolTipService.ShowOnDisabled" Value="True"/>
-            <Setter Property="ToolTipService.InitialShowDelay" Value="50"/>
-            <Style.Triggers>
-                <DataTrigger Binding="{Binding RelativeSource={RelativeSource Self}, Path=Tag}" Value="False">
-                    <Setter Property="IsEnabled" Value="False"/>
-                    <Setter Property="ToolTip" Value="{x:Static properties:Resources.Error_VerNotSupport}"/>
-                </DataTrigger>
-                <MultiDataTrigger>
-                    <MultiDataTrigger.Conditions>
-                        <Condition Binding="{Binding DataContext.SelectedVm.IsRunning, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True"/>
-                        <Condition Binding="{Binding RelativeSource={RelativeSource Self}, Path=Tag}" Value="True"/>
-                    </MultiDataTrigger.Conditions>
-                    <Setter Property="IsEnabled" Value="False"/>
-                    <Setter Property="ToolTip" Value="{x:Static properties:Resources.Warn_VmOffRequired}"/>
-                </MultiDataTrigger>
-                <Trigger Property="IsEnabled" Value="False">
-                    <Setter Property="Opacity" Value="0.5"/>
-                </Trigger>
-            </Style.Triggers>
-        </Style>
     </UserControl.Resources>
 
     <Grid>
@@ -151,36 +128,21 @@
                                            TextWrapping="Wrap"
                                            Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
                             </StackPanel>
-                            <Grid Grid.Column="1" VerticalAlignment="Center">
-                                <TextBlock Text="{Binding VmPcieEnabledText}"
-                                           Foreground="{ui:ThemeResource SystemFillColorSuccessBrush}">
-                                    <TextBlock.Style>
-                                        <Style TargetType="TextBlock">
-                                            <Setter Property="Visibility" Value="Collapsed"/>
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding PcieEmulationEnabled}" Value="True">
-                                                    <Setter Property="Visibility" Value="Visible"/>
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </TextBlock.Style>
-                                </TextBlock>
-                                <ui:Button Content="{Binding VmPcieEnableText}"
-                                           Command="{Binding EnablePcieEmulationCommand}"
-                                           Tag="{Binding PcieSystemSettingsAvailable}">
-                                    <ui:Button.Style>
-                                        <Style TargetType="ui:Button"
-                                               BasedOn="{StaticResource PcieRequiredButtonStyle}">
-                                            <Setter Property="Visibility" Value="Visible"/>
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding PcieEmulationEnabled}" Value="True">
-                                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </ui:Button.Style>
-                                </ui:Button>
-                            </Grid>
+                            <ui:ToggleSwitch Grid.Column="1"
+                                             Tag="{Binding PcieSystemSettingsAvailable}"
+                                             IsChecked="{Binding PcieEmulationEnabled, Mode=OneWay}"
+                                             Command="{Binding EnablePcieEmulationCommand}">
+                                <ui:ToggleSwitch.Style>
+                                    <Style TargetType="ui:ToggleSwitch"
+                                           BasedOn="{StaticResource PcieRequiredToggleStyle}">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding PcieEmulationEnabled}" Value="True">
+                                                <Setter Property="IsEnabled" Value="False"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </ui:ToggleSwitch.Style>
+                            </ui:ToggleSwitch>
                         </Grid>
 
                         <Rectangle Height="1"
