@@ -6,7 +6,7 @@ using ExHyperV.Models;
 namespace ExHyperV.Converters
 {
     /// <summary>
-    /// 把 CPU 设置里的枚举（ApicMode / L3 分布策略 / 大页拆分）映射为本地化显示文本。
+    /// 把 CPU 设置里的枚举（超线程 / ApicMode / L3 分布策略 / 大页拆分）映射为本地化显示文本。
     /// 资源键约定：CpuEnum_{前缀}_{枚举名}，缺失则回退到枚举名本身。
     /// 仅用于 ComboBox.ItemTemplate 的单向展示。
     /// </summary>
@@ -18,6 +18,7 @@ namespace ExHyperV.Converters
 
             string prefix = value switch
             {
+                SmtMode => "Smt",
                 VmApicMode => "Apic",
                 L3DistributionPolicy => "L3",
                 PageShatterMode => "Shatter",

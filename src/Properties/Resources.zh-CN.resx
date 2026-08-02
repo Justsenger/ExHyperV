@@ -598,10 +598,19 @@
     <value>屏蔽 CPU 指令集，提高对老旧操作系统的兼容性</value>
   </data>
   <data name="VirtualMachineSmt" xml:space="preserve">
-    <value>虚拟机 SMT</value>
+    <value>虚拟机超线程</value>
   </data>
   <data name="VirtualMachineSmtDescription" xml:space="preserve">
-    <value>启用超线程感知，优化内核缓存利用与进程调度</value>
+    <value>控制向虚拟机公开的每个核心硬件线程数</value>
+  </data>
+  <data name="CpuEnum_Smt_Inherit" xml:space="preserve">
+    <value>继承主机</value>
+  </data>
+  <data name="CpuEnum_Smt_SingleThread" xml:space="preserve">
+    <value>单线程</value>
+  </data>
+  <data name="CpuEnum_Smt_MultiThread" xml:space="preserve">
+    <value>多线程</value>
   </data>
   <data name="CpuBinding" xml:space="preserve">
     <value>CPU 绑定</value>

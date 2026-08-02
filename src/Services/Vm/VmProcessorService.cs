@@ -141,11 +141,13 @@ public static class VmProcessorService
                 Maximum = Convert.ToInt32(procData["Limit"]) / 1000,
                 RelativeWeight = Convert.ToInt32(procData["Weight"]),
 
-                ExposeVirtualizationExtensions = procData.TryGet<bool>("ExposeVirtualizationExtensions") ?? false,
-                EnableHostResourceProtection = procData.TryGet<bool>("EnableHostResourceProtection") ?? false,
+                ExposeVirtualizationExtensions = PBool(procData, "ExposeVirtualizationExtensions"),
+                EnableHostResourceProtection = PBool(procData, "EnableHostResourceProtection"),
                 CompatibilityForMigrationEnabled = procData.TryGet<bool>("LimitProcessorFeatures") ?? false,
                 CompatibilityForOlderOperatingSystemsEnabled = procData.TryGet<bool>("LimitCPUID") ?? false,
-                SmtMode = ConvertHwThreadsToSmtMode(Convert.ToUInt32(procData["HwThreadsPerCore"])),
+                SmtMode = procData.HasProperty("HwThreadsPerCore")
+                    ? ConvertHwThreadsToSmtMode(procData.TryGet<ulong>("HwThreadsPerCore") ?? 0UL)
+                    : null,
 
                 // 门控字段：用 P*(HasProperty ? 值 ?? 默认 : null) 读——令"值 null"仅代表"属性不在 schema(不支持)"，
                 // 避免高版本"属性存在但当前 VM 默认值 null"被 UI 的值-null 门控误灰（29617 上 Perfmon/调频项就是这样）。
@@ -205,9 +207,20 @@ public static class VmProcessorService
     private static ulong? PULong(ManagementObject p, string n) => p.HasProperty(n) ? (p.TryGet<ulong>(n) ?? 0UL) : (ulong?)null;
     private static string? PStr(ManagementObject p, string n) => p.HasProperty(n) ? (p.TryGetString(n) ?? "") : null;
 
-    private static SmtMode ConvertHwThreadsToSmtMode(uint hwThreads)
-        => hwThreads == 1 ? SmtMode.SingleThread : SmtMode.MultiThread;
+    private static SmtMode ConvertHwThreadsToSmtMode(ulong hwThreads)
+        => hwThreads switch
+        {
+            0 => SmtMode.Inherit,
+            1 => SmtMode.SingleThread,
+            _ => SmtMode.MultiThread,
+        };
 
     private static uint ConvertSmtModeToHwThreads(SmtMode smtMode)
-        => smtMode == SmtMode.SingleThread ? 1u : 2u;
+        => smtMode switch
+        {
+            SmtMode.Inherit => 0u,
+            SmtMode.SingleThread => 1u,
+            SmtMode.MultiThread => 2u,
+            _ => 0u,
+        };
 }

@@ -17,7 +17,6 @@
             <converters:StringToVisibilityConverter x:Key="StringToVisibilityConverter" />
             <converters:NullableToBooleanConverter x:Key="NullableToBooleanConverter" />
             <converters:ByteToBooleanConverter x:Key="ByteToBoolConverter" />
-            <converters:SmtModeToBooleanConverter x:Key="SmtModeToBooleanConverter" />
             <converters:CpuEnumDisplayConverter x:Key="CpuEnumDisplayConverter" />
             <converters:PropSupportedConverter x:Key="PropSupportedConverter" />
             <converters:CommandParameterConverter x:Key="CommandParameterConverter" />
