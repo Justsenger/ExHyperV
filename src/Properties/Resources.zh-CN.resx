@@ -1624,16 +1624,16 @@
     <value>为虚拟机系统隐藏虚拟化标识符，可能有助于绕过软件检测</value>
   </data>
   <data name="Menu_ExposePmu" xml:space="preserve">
-    <value>暴露架构性能监控单元</value>
+    <value>暴露架构性能监控单元（Arch PMU）</value>
   </data>
   <data name="Desc_ExposePmu" xml:space="preserve">
-    <value>透传硬件计数器，允许开发工具直接访问物理 PMU</value>
+    <value>允许虚拟机访问架构性能监控计数器</value>
   </data>
   <data name="Menu_ExposeMsr" xml:space="preserve">
-    <value>暴露频率监视寄存器</value>
+    <value>暴露频率监视寄存器（ACOUNT/MCOUNT）</value>
   </data>
   <data name="Desc_ExposeMsr" xml:space="preserve">
-    <value>允许虚拟机读取处理器真实频率</value>
+    <value>允许虚拟机读取 ACOUNT/MCOUNT 频率监视寄存器</value>
   </data>
   <data name="Menu_DisableSpectre" xml:space="preserve">
     <value>禁用侧信道攻击缓解</value>
@@ -3010,103 +3010,103 @@
     <value>L3 缓存路数</value>
   </data>
   <data name="Cpu_L3CacheWaysDesc" xml:space="preserve">
-    <value>让虚拟机看到指定的 L3 缓存几何，用于迁移一致性</value>
+    <value>设置虚拟机可见的 L3 缓存路数</value>
   </data>
   <data name="Cpu_L3DistPolicy" xml:space="preserve">
     <value>L3 处理器分布策略</value>
   </data>
   <data name="Cpu_L3DistPolicyDesc" xml:space="preserve">
-    <value>控制 vCPU 如何分布到物理缓存域，影响缓存亲和</value>
+    <value>设置虚拟处理器在 L3 缓存域之间的分布方式</value>
   </data>
   <data name="Cpu_PageShatter" xml:space="preserve">
     <value>大页拆分</value>
   </data>
   <data name="Cpu_PageShatterDesc" xml:space="preserve">
-    <value>决定二级地址翻译是否用大页，影响内存性能</value>
+    <value>设置二级地址转换中大内存页的拆分方式</value>
   </data>
   <data name="Cpu_IgnoreHostMaxFreq" xml:space="preserve">
     <value>忽略宿主频率上限</value>
   </data>
   <data name="Cpu_IgnoreHostMaxFreqDesc" xml:space="preserve">
-    <value>解除宿主对该虚拟机频率上限的约束</value>
+    <value>允许虚拟机 CPU 忽略宿主设置的最高频率</value>
   </data>
   <data name="Cpu_PerfmonPmu" xml:space="preserve">
-    <value>暴露 PMU</value>
+    <value>暴露性能监控单元（PMU）</value>
   </data>
   <data name="Cpu_PerfmonPmuDesc" xml:space="preserve">
-    <value>让虚拟机访问硬件性能计数器，需宿主支持</value>
+    <value>允许虚拟机访问通用硬件性能计数器</value>
   </data>
   <data name="Cpu_PerfmonLbr" xml:space="preserve">
-    <value>暴露 LBR</value>
+    <value>暴露最后分支记录（LBR）</value>
   </data>
   <data name="Cpu_PerfmonLbrDesc" xml:space="preserve">
-    <value>让虚拟机读取分支历史用于性能调试</value>
+    <value>允许虚拟机读取最近执行的分支记录</value>
   </data>
   <data name="Cpu_PerfmonPebs" xml:space="preserve">
-    <value>暴露 PEBS</value>
+    <value>暴露精确事件采样（PEBS）</value>
   </data>
   <data name="Cpu_PerfmonPebsDesc" xml:space="preserve">
-    <value>让虚拟机使用精确事件采样分析性能</value>
+    <value>允许虚拟机采集精确的性能事件样本</value>
   </data>
   <data name="Cpu_PerfmonIpt" xml:space="preserve">
-    <value>暴露 Intel PT</value>
+    <value>暴露处理器追踪（Intel PT）</value>
   </data>
   <data name="Cpu_PerfmonIptDesc" xml:space="preserve">
-    <value>让虚拟机用处理器追踪记录执行流</value>
+    <value>允许虚拟机记录处理器指令执行流</value>
   </data>
   <data name="Cpu_FreqCap" xml:space="preserve">
     <value>频率上限 (MHz)</value>
   </data>
   <data name="Cpu_FreqCapDesc" xml:space="preserve">
-    <value>设定虚拟机 CPU 的频率上限，需宿主支持调频</value>
+    <value>设置虚拟机 CPU 可使用的最高频率</value>
   </data>
   <data name="Cpu_FreqMin" xml:space="preserve">
     <value>频率下限 (MHz)</value>
   </data>
   <data name="Cpu_FreqMinDesc" xml:space="preserve">
-    <value>设定虚拟机 CPU 的频率下限，需宿主支持调频</value>
+    <value>设置虚拟机 CPU 可使用的最低频率</value>
   </data>
   <data name="Cpu_FreqDesired" xml:space="preserve">
     <value>目标频率 (MHz)</value>
   </data>
   <data name="Cpu_FreqDesiredDesc" xml:space="preserve">
-    <value>设定虚拟机 CPU 的目标频率，需宿主支持调频</value>
+    <value>设置虚拟机 CPU 的目标运行频率</value>
   </data>
   <data name="Cpu_Epp" xml:space="preserve">
     <value>能效偏好 (EPP)</value>
   </data>
   <data name="Cpu_EppDesc" xml:space="preserve">
-    <value>0–255 的能效偏好，越小越重性能、越大越省电</value>
+    <value>设置虚拟机 CPU 在性能和能效之间的偏好</value>
   </data>
   <data name="Cpu_ActivityWindow" xml:space="preserve">
     <value>自动调频窗口</value>
   </data>
   <data name="Cpu_ActivityWindowDesc" xml:space="preserve">
-    <value>CPU 评估负载、自动调频的时间窗，值越小反应越快</value>
+    <value>设置虚拟机 CPU 自动调节频率时的活动评估窗口</value>
   </data>
   <data name="Cpu_ExtVirtExt" xml:space="preserve">
-    <value>扩展虚拟化扩展</value>
+    <value>硬件隔离扩展</value>
   </data>
   <data name="Cpu_ExtVirtExtDesc" xml:space="preserve">
-    <value>为机密虚拟机开启硬件隔离，需 CPU 支持</value>
+    <value>允许虚拟机向嵌套虚拟机暴露硬件隔离扩展</value>
   </data>
   <data name="Cpu_MaxHwIsoGuests" xml:space="preserve">
     <value>最大硬件隔离子机数</value>
   </data>
   <data name="Cpu_MaxHwIsoGuestsDesc" xml:space="preserve">
-    <value>限制嵌套硬件隔离虚拟机的数量，需 CPU 支持</value>
+    <value>设置允许创建的嵌套硬件隔离虚拟机数量上限</value>
   </data>
   <data name="Cpu_MaxClusterPerSocket" xml:space="preserve">
     <value>每插槽 CCX 数</value>
   </data>
   <data name="Cpu_MaxClusterPerSocketDesc" xml:space="preserve">
-    <value>为虚拟机模拟 AMD 的核簇(CCX)拓扑，仅 AMD 有效</value>
+    <value>设置每个虚拟插槽包含的最大核簇数</value>
   </data>
   <data name="Cpu_MaxProcPerL3" xml:space="preserve">
     <value>每 L3 处理器数</value>
   </data>
   <data name="Cpu_MaxProcPerL3Desc" xml:space="preserve">
-    <value>为虚拟机模拟 AMD 的 L3 共享拓扑，仅 AMD 有效</value>
+    <value>设置每个虚拟 L3 缓存包含的最大虚拟处理器数</value>
   </data>
   <data name="CpuEnum_Apic_Default" xml:space="preserve">
     <value>自动</value>
@@ -3316,13 +3316,13 @@
     <value>虚拟机地址位数</value>
   </data>
   <data name="Cpu_PhysicalAddressWidthDesc" xml:space="preserve">
-    <value>控制内存和设备的可寻址范围</value>
+    <value>设置虚拟机可见的物理地址宽度</value>
   </data>
   <data name="Cpu_LpiMode" xml:space="preserve">
     <value>ARM64 设备中断模式（LPI）</value>
   </data>
   <data name="Cpu_LpiModeDesc" xml:space="preserve">
-    <value>控制 ARM64 虚拟机是否使用 LPI 接收设备中断</value>
+    <value>设置虚拟机使用 LPI 接收设备中断的方式</value>
   </data>
   <data name="CpuEnum_Lpi_Default" xml:space="preserve">
     <value>默认</value>

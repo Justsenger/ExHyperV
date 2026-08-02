@@ -101,7 +101,11 @@ public static class VmProcessorService
                 SetIfChanged(procData, "EnablePerfmonPebs", newSettings.EnablePerfmonPebs, current.EnablePerfmonPebs);
                 SetIfChanged(procData, "EnablePerfmonIpt", newSettings.EnablePerfmonIpt, current.EnablePerfmonIpt);
 
-                SetIfChanged(procData, "ExtendedVirtualizationExtensions", newSettings.ExtendedVirtualizationExtensions, current.ExtendedVirtualizationExtensions);
+                if (newSettings.HardwareIsolationExtensionsEnabled != current.HardwareIsolationExtensionsEnabled
+                    && newSettings.HardwareIsolationExtensionsEnabled is { } hardwareIsolationEnabled)
+                {
+                    procData.TrySet<uint>("ExtendedVirtualizationExtensions", hardwareIsolationEnabled ? 1u : 0u);
+                }
                 SetIfChanged(procData, "MaxHwIsolatedGuests", newSettings.MaxHwIsolatedGuests, current.MaxHwIsolatedGuests);
                 SetIfChanged(procData, "MaxClusterCountPerSocket", newSettings.MaxClusterCountPerSocket, current.MaxClusterCountPerSocket);
                 SetIfChanged(procData, "MaxProcessorCountPerL3", newSettings.MaxProcessorCountPerL3, current.MaxProcessorCountPerL3);
@@ -176,7 +180,9 @@ public static class VmProcessorService
                 EnablePerfmonPebs = PBool(procData, "EnablePerfmonPebs"),
                 EnablePerfmonIpt = PBool(procData, "EnablePerfmonIpt"),
 
-                ExtendedVirtualizationExtensions = Nz(procData.TryGet<uint>("ExtendedVirtualizationExtensions")),
+                HardwareIsolationExtensionsEnabled = procData.HasProperty("ExtendedVirtualizationExtensions")
+                    ? (procData.TryGet<uint>("ExtendedVirtualizationExtensions") ?? 0u) != 0u
+                    : null,
                 MaxHwIsolatedGuests = Nz(procData.TryGet<uint>("MaxHwIsolatedGuests")),
                 MaxClusterCountPerSocket = Nz(procData.TryGet<uint>("MaxClusterCountPerSocket")),
                 MaxProcessorCountPerL3 = Nz(procData.TryGet<uint>("MaxProcessorCountPerL3")),

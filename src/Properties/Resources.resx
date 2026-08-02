@@ -1624,16 +1624,16 @@ The existing NAT switch is: '{0}'</value>
     <value>Hides virtualization flags, helps bypass detection.</value>
   </data>
   <data name="Menu_ExposePmu" xml:space="preserve">
-    <value>Expose PMU</value>
+    <value>Expose Architectural Performance Monitoring Unit (Arch PMU)</value>
   </data>
   <data name="Desc_ExposePmu" xml:space="preserve">
-    <value>Passthrough hardware counters to guest.</value>
+    <value>Allows the VM to access architectural performance monitoring counters</value>
   </data>
   <data name="Menu_ExposeMsr" xml:space="preserve">
-    <value>Expose MSR</value>
+    <value>Expose Frequency Monitoring Registers (ACOUNT/MCOUNT)</value>
   </data>
   <data name="Desc_ExposeMsr" xml:space="preserve">
-    <value>Allows guest to read true CPU frequency.</value>
+    <value>Allows the VM to read the ACOUNT/MCOUNT frequency monitoring registers</value>
   </data>
   <data name="Menu_DisableSpectre" xml:space="preserve">
     <value>Disable Spectre Mitigations</value>
@@ -3010,103 +3010,103 @@ The existing NAT switch is: '{0}'</value>
     <value>L3 Cache Ways</value>
   </data>
   <data name="Cpu_L3CacheWaysDesc" xml:space="preserve">
-    <value>Makes the VM see a specific L3 cache geometry, for migration consistency</value>
+    <value>Sets the number of L3 cache ways visible to the VM</value>
   </data>
   <data name="Cpu_L3DistPolicy" xml:space="preserve">
     <value>L3 Processor Distribution Policy</value>
   </data>
   <data name="Cpu_L3DistPolicyDesc" xml:space="preserve">
-    <value>Controls how vCPUs spread across physical cache domains, affecting cache affinity</value>
+    <value>Sets how virtual processors are distributed across L3 cache domains</value>
   </data>
   <data name="Cpu_PageShatter" xml:space="preserve">
     <value>Large-Page Shattering</value>
   </data>
   <data name="Cpu_PageShatterDesc" xml:space="preserve">
-    <value>Decides whether second-level address translation uses large pages, affecting memory performance</value>
+    <value>Sets how large memory pages are split during second-level address translation</value>
   </data>
   <data name="Cpu_IgnoreHostMaxFreq" xml:space="preserve">
     <value>Ignore Host Max Frequency</value>
   </data>
   <data name="Cpu_IgnoreHostMaxFreqDesc" xml:space="preserve">
-    <value>Removes the host's max-frequency limit for this VM</value>
+    <value>Allows the VM CPU to ignore the maximum frequency set by the host</value>
   </data>
   <data name="Cpu_PerfmonPmu" xml:space="preserve">
-    <value>Expose PMU</value>
+    <value>Expose Performance Monitoring Unit (PMU)</value>
   </data>
   <data name="Cpu_PerfmonPmuDesc" xml:space="preserve">
-    <value>Lets the VM access hardware performance counters; requires host support</value>
+    <value>Allows the VM to access general hardware performance counters</value>
   </data>
   <data name="Cpu_PerfmonLbr" xml:space="preserve">
-    <value>Expose LBR</value>
+    <value>Expose Last Branch Records (LBR)</value>
   </data>
   <data name="Cpu_PerfmonLbrDesc" xml:space="preserve">
-    <value>Lets the VM read branch history for performance debugging</value>
+    <value>Allows the VM to read recently executed branch records</value>
   </data>
   <data name="Cpu_PerfmonPebs" xml:space="preserve">
-    <value>Expose PEBS</value>
+    <value>Expose Precise Event-Based Sampling (PEBS)</value>
   </data>
   <data name="Cpu_PerfmonPebsDesc" xml:space="preserve">
-    <value>Lets the VM use precise event sampling to analyze performance</value>
+    <value>Allows the VM to collect precise performance event samples</value>
   </data>
   <data name="Cpu_PerfmonIpt" xml:space="preserve">
-    <value>Expose Intel PT</value>
+    <value>Expose Processor Trace (Intel PT)</value>
   </data>
   <data name="Cpu_PerfmonIptDesc" xml:space="preserve">
-    <value>Lets the VM use processor trace to record execution flow</value>
+    <value>Allows the VM to record the processor instruction execution flow</value>
   </data>
   <data name="Cpu_FreqCap" xml:space="preserve">
     <value>Max Frequency (MHz)</value>
   </data>
   <data name="Cpu_FreqCapDesc" xml:space="preserve">
-    <value>Sets the VM CPU's maximum frequency; requires host frequency scaling</value>
+    <value>Sets the highest frequency available to the VM CPU</value>
   </data>
   <data name="Cpu_FreqMin" xml:space="preserve">
     <value>Min Frequency (MHz)</value>
   </data>
   <data name="Cpu_FreqMinDesc" xml:space="preserve">
-    <value>Sets the VM CPU's minimum frequency; requires host frequency scaling</value>
+    <value>Sets the lowest frequency available to the VM CPU</value>
   </data>
   <data name="Cpu_FreqDesired" xml:space="preserve">
     <value>Desired Frequency (MHz)</value>
   </data>
   <data name="Cpu_FreqDesiredDesc" xml:space="preserve">
-    <value>Sets the VM CPU's target frequency; requires host frequency scaling</value>
+    <value>Sets the target operating frequency of the VM CPU</value>
   </data>
   <data name="Cpu_Epp" xml:space="preserve">
     <value>Energy/Perf Preference</value>
   </data>
   <data name="Cpu_EppDesc" xml:space="preserve">
-    <value>Energy-performance preference 0-255: lower favors performance, higher favors power saving</value>
+    <value>Sets the VM CPU preference between performance and energy efficiency</value>
   </data>
   <data name="Cpu_ActivityWindow" xml:space="preserve">
     <value>Activity Window</value>
   </data>
   <data name="Cpu_ActivityWindowDesc" xml:space="preserve">
-    <value>Time window the CPU uses to evaluate load and auto-scale; smaller reacts faster</value>
+    <value>Sets the activity evaluation window used for automatic VM CPU frequency scaling</value>
   </data>
   <data name="Cpu_ExtVirtExt" xml:space="preserve">
-    <value>Extended Virtualization Ext.</value>
+    <value>Hardware Isolation Extensions</value>
   </data>
   <data name="Cpu_ExtVirtExtDesc" xml:space="preserve">
-    <value>Enables hardware isolation for confidential VMs; requires CPU support</value>
+    <value>Allows the VM to expose hardware-isolation extensions to nested VMs</value>
   </data>
   <data name="Cpu_MaxHwIsoGuests" xml:space="preserve">
     <value>Max HW-Isolated Guests</value>
   </data>
   <data name="Cpu_MaxHwIsoGuestsDesc" xml:space="preserve">
-    <value>Limits the number of nested hardware-isolated VMs; requires CPU support</value>
+    <value>Sets the maximum number of nested hardware-isolated VMs that can be created</value>
   </data>
   <data name="Cpu_MaxClusterPerSocket" xml:space="preserve">
     <value>Clusters (CCX) per Socket</value>
   </data>
   <data name="Cpu_MaxClusterPerSocketDesc" xml:space="preserve">
-    <value>Emulates AMD core-complex (CCX) topology for the VM; AMD only</value>
+    <value>Sets the maximum number of core complexes in each virtual socket</value>
   </data>
   <data name="Cpu_MaxProcPerL3" xml:space="preserve">
     <value>Processors per L3 (CCX)</value>
   </data>
   <data name="Cpu_MaxProcPerL3Desc" xml:space="preserve">
-    <value>Emulates AMD L3-sharing topology for the VM; AMD only</value>
+    <value>Sets the maximum number of virtual processors in each virtual L3 cache</value>
   </data>
   <data name="CpuEnum_Apic_Default" xml:space="preserve">
     <value>Auto</value>
@@ -3316,13 +3316,13 @@ Remove them from storage and retry? Cancel to re-plug the device and try again.<
     <value>Virtual machine address bits</value>
   </data>
   <data name="Cpu_PhysicalAddressWidthDesc" xml:space="preserve">
-    <value>Controls the addressable range for memory and devices</value>
+    <value>Sets the physical address width visible to the VM</value>
   </data>
   <data name="Cpu_LpiMode" xml:space="preserve">
     <value>ARM64 device interrupt mode (LPI)</value>
   </data>
   <data name="Cpu_LpiModeDesc" xml:space="preserve">
-    <value>Controls whether ARM64 virtual machines use LPI for device interrupts</value>
+    <value>Sets how the VM uses LPI to receive device interrupts</value>
   </data>
   <data name="CpuEnum_Lpi_Default" xml:space="preserve">
     <value>Default</value>

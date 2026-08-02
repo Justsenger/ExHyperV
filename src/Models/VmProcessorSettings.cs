@@ -60,7 +60,7 @@ namespace ExHyperV.Models
         [ObservableProperty] private bool? _enablePerfmonIpt;
 
         // ── 新增：硬件隔离（需 Intel TDX / AMD SEV-SNP，消费级无此硅片）──
-        [ObservableProperty] private uint? _extendedVirtualizationExtensions;      // 1=HardwareIsolation
+        [ObservableProperty] private bool? _hardwareIsolationExtensionsEnabled;   // WMI: 0=Disabled, 1=HardwareIsolation
         [ObservableProperty] private uint? _maxHwIsolatedGuests;
 
         // ── 新增：AMD CCX 拓扑（仅 AMD；Intel 上设值 VM 拒启）──
