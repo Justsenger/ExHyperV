@@ -1,9 +1,6 @@
 name: 发布
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:        # 手动触发：发布（含内测）只能走这里
     inputs:
       release_type:
@@ -25,11 +22,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      # ── 读取 csproj 版本号，按后缀决定发布渠道 ──────────────────────
+      # ── 读取 csproj 版本号，按发布类型决定发布渠道 ──────────────────
       - id: config
         shell: pwsh
         run: |
-          $eventName = "${{ github.event_name }}"
           $releaseType = "${{ inputs.release_type }}"
 
           # 版本号唯一来源：csproj 的 <Version>；发布渠道由手动发布时的选项决定。
@@ -41,44 +37,42 @@ jobs:
             exit 1
           }
 
-          if ($eventName -eq "push") {
-            # push 只做构建验证，不签名、不创建 Tag/Release。
-            $mode = "build"
-            $tag = ""
-            $pre = "false"
+          if ($releaseType -eq "beta") {
+            $mode = "beta"
+            $tag = "V$ver"
+            $pre = "true"
             $winget = "false"
-            $build = "true"
+          } elseif ($releaseType -eq "release") {
+            $mode = "release"
+            $tag = "V$ver"
+            $pre = "false"
+            $winget = "true"
+          } else {
+            Write-Error "未知发布类型：$releaseType"
+            exit 1
+          }
+
+          # 已存在相同 Tag 时安全跳过，避免覆盖已经发布的版本。
+          $remoteTag = git ls-remote --tags origin "refs/tags/$tag"
+          $tagCheck = $LASTEXITCODE
+          if ($tagCheck -ne 0) {
+            Write-Error "检查远程 Tag 失败（git ls-remote 退出码：$tagCheck），为避免覆盖发布，本次终止。"
+            exit 1
+          } elseif (-not [string]::IsNullOrWhiteSpace(($remoteTag -join ""))) {
+            Write-Host "Tag $tag 已存在，本次不构建、不签名、不发布。"
+            $build = "false"
             $publish = "false"
           } else {
-            if ($releaseType -eq "beta") {
-              $mode = "beta"
-              $tag = "V$ver"
-              $pre = "true"
-              $winget = "false"
-            } elseif ($releaseType -eq "release") {
-              $mode = "release"
-              $tag = "V$ver"
-              $pre = "false"
-              $winget = "true"
-            } else {
-              Write-Error "未知发布类型：$releaseType"
-              exit 1
-            }
+            $build = "true"
+            $publish = "true"
+          }
 
-            # 已存在相同 Tag 时安全跳过，避免覆盖已经发布的版本。
-            $remoteTag = git ls-remote --tags origin "refs/tags/$tag"
-            $tagCheck = $LASTEXITCODE
-            if ($tagCheck -ne 0) {
-              Write-Error "检查远程 Tag 失败（git ls-remote 退出码：$tagCheck），为避免覆盖发布，本次终止。"
-              exit 1
-            } elseif (-not [string]::IsNullOrWhiteSpace(($remoteTag -join ""))) {
-              Write-Host "Tag $tag 已存在，本次不构建、不签名、不发布。"
-              $build = "false"
-              $publish = "false"
-            } else {
-              $build = "true"
-              $publish = "true"
-            }
+          # ── Beta 版本说明文案（中英双语，含生成时间，UTC+8）──────────
+          $buildTime = (Get-Date).ToUniversalTime().AddHours(8).ToString("yyyy-MM-dd HH:mm")
+          if ($mode -eq "beta") {
+            $body = "🧪 这是于 $buildTime 生成的测试版本，包含了一些预览性的功能改进或功能特性，随时可能被后来的测试版本覆盖，具体更新日志请查看 commit 记录。`n`n🧪 This is a test build generated at $buildTime, containing preview-stage feature improvements or changes that may be superseded by later test builds at any time. Please check the commit history for detailed change logs."
+          } else {
+            $body = ""
           }
 
           echo "MODE=$mode"       >> $env:GITHUB_OUTPUT
@@ -88,6 +82,9 @@ jobs:
           echo "WINGET=$winget"   >> $env:GITHUB_OUTPUT
           echo "BUILD=$build"     >> $env:GITHUB_OUTPUT
           echo "PUBLISH=$publish" >> $env:GITHUB_OUTPUT
+          echo "BODY<<EOF"        >> $env:GITHUB_OUTPUT
+          echo "$body"            >> $env:GITHUB_OUTPUT
+          echo "EOF"              >> $env:GITHUB_OUTPUT
           Write-Host "版本=$ver  模式=$mode  Tag=$tag  构建=$build  发布=$publish  Winget=$winget"
 
       # ── 构建 ─────────────────────────────────────────────────────────
@@ -185,16 +182,17 @@ jobs:
         with:
           tag_name: "${{ steps.config.outputs.TAG }}"
           name: "${{ steps.config.outputs.TAG }}"
+          body: ${{ steps.config.outputs.MODE == 'beta' && steps.config.outputs.BODY || '' }}
           files: |
             ExHyperV_${{ steps.config.outputs.TAG }}_x64.exe
             ExHyperV_${{ steps.config.outputs.TAG }}_arm64.exe
-          generate_release_notes: true
+          generate_release_notes: ${{ steps.config.outputs.MODE == 'release' }}
           draft: false
           prerelease: ${{ steps.config.outputs.PRERELEASE == 'true' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # ── 提交 Winget（仅正式版，且必须是手动触发）──────────────────────
+      # ── 提交 Winget（仅正式版）───────────────────────────────────────
       - name: Submit to Winget
         if: steps.config.outputs.PUBLISH == 'true' && steps.config.outputs.WINGET == 'true'
         uses: vedantmgoyal2009/winget-releaser@v2
