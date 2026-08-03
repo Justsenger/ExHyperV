@@ -8968,5 +8968,33 @@ namespace ExHyperV.Properties {
             get { return ResourceManager.GetString("PCIePage_ClassWithChildTypes", resourceCulture); }
         }
 
+        public static string Label_CpuInstructionSetCapabilities {
+            get { return ResourceManager.GetString("Label_CpuInstructionSetCapabilities", resourceCulture); }
+        }
+
+        public static string Label_CpuInterruptControl {
+            get { return ResourceManager.GetString("Label_CpuInterruptControl", resourceCulture); }
+        }
+
+        public static string Label_CpuProcessorTopology {
+            get { return ResourceManager.GetString("Label_CpuProcessorTopology", resourceCulture); }
+        }
+
+        public static string Label_CpuPerformanceMonitoring {
+            get { return ResourceManager.GetString("Label_CpuPerformanceMonitoring", resourceCulture); }
+        }
+
+        public static string Label_CpuFrequencyControl {
+            get { return ResourceManager.GetString("Label_CpuFrequencyControl", resourceCulture); }
+        }
+
+        public static string Label_CpuMemoryAddressing {
+            get { return ResourceManager.GetString("Label_CpuMemoryAddressing", resourceCulture); }
+        }
+
+        public static string Label_CpuSecurityIsolation {
+            get { return ResourceManager.GetString("Label_CpuSecurityIsolation", resourceCulture); }
+        }
+
     }
 }

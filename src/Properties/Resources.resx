@@ -3471,4 +3471,25 @@ Remove them from storage and retry? Cancel to re-plug the device and try again.<
   <data name="VmAdvanced_HibernationDesc" xml:space="preserve">
     <value>Allow the virtual machine to use S4 hibernation and fast startup</value>
   </data>
+  <data name="Label_CpuInstructionSetCapabilities" xml:space="preserve">
+    <value>Instruction Set Capabilities</value>
+  </data>
+  <data name="Label_CpuInterruptControl" xml:space="preserve">
+    <value>Interrupt Control</value>
+  </data>
+  <data name="Label_CpuProcessorTopology" xml:space="preserve">
+    <value>Processor Topology</value>
+  </data>
+  <data name="Label_CpuPerformanceMonitoring" xml:space="preserve">
+    <value>Performance Monitoring</value>
+  </data>
+  <data name="Label_CpuFrequencyControl" xml:space="preserve">
+    <value>Frequency Control</value>
+  </data>
+  <data name="Label_CpuMemoryAddressing" xml:space="preserve">
+    <value>Addressing and Paging</value>
+  </data>
+  <data name="Label_CpuSecurityIsolation" xml:space="preserve">
+    <value>Security Isolation</value>
+  </data>
 </root>
