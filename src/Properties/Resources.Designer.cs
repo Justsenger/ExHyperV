@@ -4667,6 +4667,30 @@ namespace ExHyperV.Properties {
                 return ResourceManager.GetString("Desc_NativeNvme", resourceCulture);
             }
         }
+
+        public static string Menu_OpenHclFirmwareFile {
+            get {
+                return ResourceManager.GetString("Menu_OpenHclFirmwareFile", resourceCulture);
+            }
+        }
+
+        public static string Desc_OpenHclFirmwareFile {
+            get {
+                return ResourceManager.GetString("Desc_OpenHclFirmwareFile", resourceCulture);
+            }
+        }
+
+        public static string Error_Host_OpenHclRegistryUnavailable {
+            get {
+                return ResourceManager.GetString("Error_Host_OpenHclRegistryUnavailable", resourceCulture);
+            }
+        }
+
+        public static string Error_Host_OpenHclRegistryChangeFailed {
+            get {
+                return ResourceManager.GetString("Error_Host_OpenHclRegistryChangeFailed", resourceCulture);
+            }
+        }
         
         /// <summary>
         ///   查找类似 Memory settings applied. 的本地化字符串。

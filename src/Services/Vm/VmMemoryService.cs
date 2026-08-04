@@ -31,8 +31,14 @@ public static class VmMemoryService
                 s.DynamicMemoryEnabled = Convert.ToBoolean(obj["DynamicMemoryEnabled"] ?? false);
                 s.Buffer = obj["TargetMemoryBuffer"] != null ? Convert.ToInt32(obj["TargetMemoryBuffer"]) : 20;
 
-                s.BackingPageSize = obj.TryGetByte("BackingPageSize");
-                s.HugePagesEnabled = obj.TryGet<bool>("HugePagesEnabled");
+                bool supportsBackingPageSize = obj.HasProperty("BackingPageSize");
+                s.ConfigurePageSizeSupport(supportsBackingPageSize);
+
+                // VMMS 内部只有一个页面大小值。新系统直接使用 0/1/2；旧系统只能通过
+                // HugePagesEnabled 表达 2MB(false) 与 1GB(true)，在 WMI 边界转换为统一列表值。
+                s.BackingPageSize = supportsBackingPageSize
+                    ? obj.TryGetByte("BackingPageSize") ?? 1
+                    : obj.TryGet<bool>("HugePagesEnabled") == true ? (byte)2 : (byte)1;
                 s.MemoryEncryptionPolicy = obj.TryGetByte("MemoryEncryptionPolicy");
 
                 s.EnableColdHint = obj.TryGet<bool>("EnableColdHint");
@@ -124,20 +130,29 @@ public static class VmMemoryService
 
     private static void ApplyMemorySettingsToWmiObject(ManagementObject memData, VmMemorySettings memorySettings, bool isVmRunning)
     {
-        // 默认 2MB 对齐（对齐 PS Set-VMMemory.ValidateAlignment：非大页强制 2MB；大页 1024MB 在下方按 BackingPageSize 覆盖）
+        // 默认 2MB 对齐（对齐 PS Set-VMMemory.ValidateAlignment；巨页在下方改为 1024MB）
         long alignment = 2;
 
-        if (memorySettings.BackingPageSize.HasValue && memData.HasProperty("BackingPageSize"))
+        if (memorySettings.BackingPageSize.HasValue)
         {
             byte pageSize = memorySettings.BackingPageSize.Value;
-            if (!isVmRunning) memData["BackingPageSize"] = pageSize;
+            if (!isVmRunning)
+            {
+                if (memData.HasProperty("BackingPageSize"))
+                {
+                    memData["BackingPageSize"] = pageSize;
+                }
+                else
+                {
+                    // 旧版 WMI 没有三档枚举：大页(1)映射为 false，巨页(2)映射为 true。
+                    // 旧版列表不会提供小页(0)，这里仍按非巨页处理以保证兼容。
+                    memData.TrySet("HugePagesEnabled", (bool?)(pageSize == 2));
+                }
+            }
 
             if (pageSize == 1) alignment = 2;
             else if (pageSize == 2) alignment = 1024;
         }
-
-        // 开启巨页(HugePagesEnabled)时按 1G(1024MB) 粒度对齐——实测未对齐会被 Hyper-V 拒("内存值未正确对齐")
-        if (memorySettings.HugePagesEnabled == true) alignment = 1024;
 
         ulong Align(long value, long alg)
         {
@@ -178,7 +193,7 @@ public static class VmMemoryService
             // MaxMemoryBlocksPerNumaNode 实为"每 vNUMA 节点最大内存(MB)"：须 ≥32 且按 2MB 对齐
             // （开巨页/大页后端时改按页粒度 alignment 对齐），否则 Hyper-V 拒（"未正确对齐"/"最小 32 MB"）。
             // 无论用户是否显式设、无论页大小，这里统一向下取整到合法值，保证任意输入都能落地。
-            bool needBlockAlign = memorySettings.BackingPageSize > 0 || memorySettings.HugePagesEnabled == true;
+            bool needBlockAlign = memorySettings.BackingPageSize > 0;
             ulong blockAlign = needBlockAlign ? (ulong)alignment : 2;
             if (memorySettings.MaxMemoryBlocksPerNumaNode.HasValue)
             {
@@ -213,7 +228,6 @@ public static class VmMemoryService
 
             memData.TrySet("EnableGpaPinning", memorySettings.EnableGpaPinning);
             memData.TrySet("CxlEnabled", memorySettings.CxlEnabled);
-            memData.TrySet("HugePagesEnabled", memorySettings.HugePagesEnabled);
         }
         else
         {

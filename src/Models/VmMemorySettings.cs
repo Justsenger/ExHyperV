@@ -22,7 +22,31 @@ namespace ExHyperV.Models
         [ObservableProperty] private int _buffer;
         [ObservableProperty] private int _priority;
         [ObservableProperty] private byte? _backingPageSize;
-        [ObservableProperty] private bool? _hugePagesEnabled;   // 巨页：独立 WMI 属性，与 BackingPageSize 并存(设 true 需 VM 内存按大页对齐)
+
+        // 页面统一使用 0/1/2 表示小页/大页/巨页。旧版 Hyper-V 没有 BackingPageSize，
+        // 服务层会把 1/2 与 HugePagesEnabled=false/true 相互转换，因此旧系统只开放两项。
+        public bool SupportsBackingPageSize { get; private set; }
+
+        public List<PageSizeItem> AvailablePageSizes { get; private set; } = new();
+
+        public VmMemorySettings()
+        {
+            // 尚未读取宿主能力时沿用新系统的三项列表；查询完成后服务层会按实际 WMI 属性收窄。
+            ConfigurePageSizeSupport(true);
+        }
+
+        public void ConfigurePageSizeSupport(bool supportsBackingPageSize)
+        {
+            SupportsBackingPageSize = supportsBackingPageSize;
+            AvailablePageSizes = new List<PageSizeItem>();
+
+            if (supportsBackingPageSize)
+                AvailablePageSizes.Add(new PageSizeItem { Description = Properties.Resources.Mem_Standard, Value = 0 });
+
+            AvailablePageSizes.Add(new PageSizeItem { Description = Properties.Resources.Mem_Large, Value = 1 });
+            AvailablePageSizes.Add(new PageSizeItem { Description = Properties.Resources.Mem_Huge, Value = 2 });
+            OnPropertyChanged(nameof(AvailablePageSizes));
+        }
 
         // --- 实验性功能 ---
         [ObservableProperty] private byte? _backingType;              // 内存后端类型
@@ -40,13 +64,6 @@ namespace ExHyperV.Models
         [ObservableProperty] private bool? _enablePrivateCompressionStore;
         [ObservableProperty] private ulong? _maxMemoryBlocksPerNumaNode;
         [ObservableProperty] private string? _sgxLaunchControlDefault;
-
-        public List<PageSizeItem> AvailablePageSizes { get; } = new List<PageSizeItem>
-        {
-            new PageSizeItem { Description = Properties.Resources.Mem_Standard, Value = 0 },
-            new PageSizeItem { Description = Properties.Resources.Mem_Large, Value = 1 },
-            new PageSizeItem { Description = Properties.Resources.Mem_Huge, Value = 2 }
-        };
 
         [ObservableProperty] private byte? _memoryEncryptionPolicy;
 
@@ -68,8 +85,8 @@ namespace ExHyperV.Models
             Maximum = other.Maximum;
             Buffer = other.Buffer;
             Priority = other.Priority;
+            ConfigurePageSizeSupport(other.SupportsBackingPageSize);
             BackingPageSize = other.BackingPageSize;
-            HugePagesEnabled = other.HugePagesEnabled;
             MemoryEncryptionPolicy = other.MemoryEncryptionPolicy;
 
             // 实验性功能补齐

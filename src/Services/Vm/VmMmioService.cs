@@ -1,6 +1,4 @@
 using System.Diagnostics;
-using System.Globalization;
-using System.Text.RegularExpressions;
 using ExHyperV.Models;
 using ExHyperV.Tools;
 
@@ -9,13 +7,10 @@ namespace ExHyperV.Services
     /// <summary>
     /// 配置虚拟机的高位 MMIO 间隙（GPU-PV / DDA 直通所需）。
     ///
-    /// 探测宿主物理地址上限的方式：故意把 MMIO 区域设到一个明显超限的位置并尝试启动，
-    /// Hyper-V 在引导前的校验阶段拒绝启动，作业错误信息里回报“受支持的上限”（如 0x0000100000000000）。
-    /// 解析该上限即可，全程 WMI、无 PowerShell，语言无关（抓消息里全部 0x 十六进制取最小值）。
-    ///
-    /// 相比“查 VID 属性”：探测拿到的是 hypervisor 建分区那一刻的真实判据，嵌套下子分区被削减的
-    /// 位宽、ARM64 上 hvaa64 实际配给的位宽都能拿准，而属性查询只报根分区自己的位宽（嵌套下高报）。
-    /// 探测结果按进程缓存，只认第一次测得的值，后续复用不再重探。
+    /// 按候选上限从大到小临时设置 MMIO，并反复尝试启动当前虚拟机。
+    /// 第一个能够启动的候选值即为平台实际允许的上限；启动成功后立即通过 WMI 强制关机。
+    /// 全程使用 WMI，不依赖 PowerShell，也不依赖不同平台返回的错误文本。
+    /// 探测结果写入配置文件并按进程缓存，后续复用不再重探。
     /// </summary>
     public static class VmMmioService
     {
@@ -47,26 +42,24 @@ namespace ExHyperV.Services
                 });
         }
 
-        // 探测用的超限区域：top = 2^52 字节。
-        // 经实测，top 在 (2^52, 2^53) 之间会触发字段回绕而“意外启动”，2^52 是可靠干净失败的最大值；
-        // 它高于任何物理地址 ≤51 位的宿主（涵盖绝大多数 x86-64 与全部 ARM64 目标）。
-        // 单位为 MB：2^52 字节 = 2^32 MB。
-        private const ulong ProbeBaseMb = 4294966272UL;   // 2^32 - 1024
         private const ulong ProbeSizeMb = 1024UL;
 
-        // 解析失败时的回退上限（MB），保证 VM 仍可启动且不残留探测值。
-        private const ulong FallbackCeilingMb = 34816UL;
+        // 沿用旧版逐档启停探测顺序，覆盖 50、48、47、46、44、42、40、39、38、37、36 位。
+        // 最后一项 34816MB 是旧平台的安全下限。
+        private static readonly ulong[] ProbeCeilingCandidatesMb =
+        {
+            1073741824UL, 268435456UL, 134217728UL, 67108864UL,
+            16777216UL, 4194304UL, 1048576UL, 524288UL,
+            262144UL, 131072UL, 65536UL, 34816UL
+        };
 
-        private const ulong BytesPerMb = 1024UL * 1024UL;
+        // 所有候选值均无法启动时的回退上限（MB），保证 VM 不残留探测值。
+        private const ulong FallbackCeilingMb = 34816UL;
 
         // 默认高位 MMIO 间隙大小（MB）= 256G。GPU-PV 与 DDA 共用这个目标（都经 ComputeMmioPlan 检测+配置）；
         // 间隙越大越能降低两者在同一 MMIO gap 里撞车的概率。Hyper-V 对该值有硬上限（实测 262656MB=256.5G），
         // 256G 稳在其下且实测能正常启动。改这一个常量即全项目一致。
         public const ulong DefaultHighSizeMb = 262144UL;
-
-        // 解析结果的合理性区间（字节）：架构上限恒为 2^N，落在 [2^34, 2^52] 之间视为可信。
-        private const ulong MinSaneCeilingBytes = 1UL << 34;
-        private const ulong MaxSaneCeilingBytes = 1UL << 52;
 
         // RequestStateChange 的目标状态
         private const ushort StateEnabled = 2;   // 开机
@@ -74,6 +67,7 @@ namespace ExHyperV.Services
 
         // 宿主 MMIO 上限（MB）缓存：只认第一次测得的结果，进程内复用，不再重探。
         private static ulong? _cachedCeilingMb;
+        private static readonly SemaphoreSlim CeilingProbeLock = new(1, 1);
 
         /// <summary>
         /// 探测宿主 MMIO 上限并写入最优的 MMIO 间隙配置。
@@ -136,100 +130,86 @@ namespace ExHyperV.Services
 
         /// <summary>
         /// 取得本次配置操作使用的宿主 MMIO 上限。配置文件里有就直接使用；
-        /// 没有才 boot-probe，测得即写盘持久化。探测失败仅当前操作使用回退值，后续虚拟机继续探测。
+        /// 没有才逐档启动探测，测得即写盘持久化。探测失败仅当前操作使用回退值，后续虚拟机继续探测。
         /// </summary>
         private static async Task<ulong> EnsureCeilingAsync(string vmName)
         {
             if (_cachedCeilingMb is ulong cached) return cached;
 
-            if (SettingsService.GetMmioCeilingMb() is ulong saved && saved > 0)
+            await CeilingProbeLock.WaitAsync();
+            try
             {
-                _cachedCeilingMb = saved;
-                return saved;
-            }
+                if (_cachedCeilingMb is ulong cachedAfterWait) return cachedAfterWait;
 
-            ulong ceilingMb = await QueryHostMmioCeilingMbAsync(vmName);
-            if (ceilingMb > 0)
+                if (SettingsService.GetMmioCeilingMb() is ulong saved && saved > 0)
+                {
+                    _cachedCeilingMb = saved;
+                    return saved;
+                }
+
+                ulong ceilingMb = await QueryHostMmioCeilingMbAsync(vmName);
+                if (ceilingMb > 0)
+                {
+                    _cachedCeilingMb = ceilingMb;
+                    SettingsService.SaveMmioCeilingMb(ceilingMb);   // 首次测得即持久化，此后不再启 VM 探测
+                    return ceilingMb;
+                }
+
+                // 探测失败时仅让当前配置操作使用回退值。不要写入进程缓存，
+                // 这样后续虚拟机仍有机会重新探测并取得可持久化的真实上限。
+                return FallbackCeilingMb;
+            }
+            finally
             {
-                _cachedCeilingMb = ceilingMb;
-                SettingsService.SaveMmioCeilingMb(ceilingMb);   // 首次测得即持久化，此后不再启 VM 探测
-                return ceilingMb;
+                CeilingProbeLock.Release();
             }
-
-            // 探测失败时仅让当前配置操作使用回退值。不要写入进程缓存，
-            // 这样后续虚拟机仍有机会重新探测并取得可持久化的真实上限。
-            return FallbackCeilingMb;
         }
 
         /// <summary>
-        /// 探测宿主支持的高位 MMIO 上限（MB）。
-        /// 设一个超限区域并尝试启动，启动被拒时从错误信息解析上限。返回 0 表示无法确定。
-        /// 注意：本方法会临时把 VM 的 MMIO 改成探测值，调用方随后写入最终配置覆盖它。
+        /// 逐档探测宿主支持的高位 MMIO 上限（MB）。
+        /// 每个候选值都临时写入当前虚拟机并尝试启动；第一个启动成功的值即为上限。
+        /// 成功后立即强制关机。返回 0 表示所有候选值均无法启动。
+        /// 注意：本方法会临时改写 VM 的 MMIO，调用方随后写入最终配置覆盖它。
         /// </summary>
         private static async Task<ulong> QueryHostMmioCeilingMbAsync(string vmName)
         {
-            // 1. 写入超限 MMIO（沿用 ModifySystemSettings 默认路径）
-            var setResp = await WmiApi.WithObjectAsync(
-                wql: RealizedSettingsWql(vmName),
-                modifier: obj =>
-                {
-                    obj["HighMmioGapBase"] = ProbeBaseMb;
-                    obj["HighMmioGapSize"] = ProbeSizeMb;
-                });
-            if (!setResp.Success) return 0;
-
-            // 2. 尝试启动 —— 预期失败，作业错误信息回报上限
-            var startResp = await WmiApi.InvokeAsync(
-                wql: ComputerSystemWql(vmName),
-                methodName: "RequestStateChange",
-                setParams: p => p["RequestedState"] = StateEnabled);
-
-            // 3. 意外启动成功（探测值未超限，极罕见）：停机并放弃解析，由调用方回退
-            if (startResp.Success)
+            foreach (ulong ceilingMb in ProbeCeilingCandidatesMb)
             {
-                await StopVmAsync(vmName);
-                return 0;
+                Debug.WriteLine($"[VmMmio] 正在探测 MMIO 上限: {ceilingMb} MB");
+
+                var setResp = await WmiApi.WithObjectAsync(
+                    wql: RealizedSettingsWql(vmName),
+                    modifier: obj =>
+                    {
+                        obj["HighMmioGapBase"] = ceilingMb - ProbeSizeMb;
+                        obj["HighMmioGapSize"] = ProbeSizeMb;
+                    });
+                if (!setResp.Success) continue;
+
+                var startResp = await WmiApi.InvokeAsync(
+                    wql: ComputerSystemWql(vmName),
+                    methodName: "RequestStateChange",
+                    setParams: p => p["RequestedState"] = StateEnabled);
+                if (!startResp.Success) continue;
+
+                Debug.WriteLine($"[VmMmio] 探测成功，宿主 MMIO 上限: {ceilingMb} MB");
+                if (!await StopVmAsync(vmName))
+                    throw new InvalidOperationException("MMIO 探测启动成功，但无法关闭虚拟机。");
+
+                return ceilingMb;
             }
 
-            // 4. 正常失败路径：VM 在 MMIO 校验阶段被拒、并未引导（State 仍为 Off），从错误信息解析上限
-            ulong ceilingBytes = ParseCeilingBytes(startResp.Error);
-            return ceilingBytes == 0 ? 0 : ceilingBytes / BytesPerMb;
+            return 0;
         }
 
-        /// <summary>
-        /// 从启动失败的错误信息里解析受支持的上限（字节）。
-        /// 语言无关：抓取消息中全部 0x 十六进制取最小值（探测值必然 &gt; 真实上限，故最小者即上限）。
-        /// 再做合理性校验：必须是 2 的幂且落在 [2^34, 2^52]。无法确定返回 0。
-        /// </summary>
-        private static ulong ParseCeilingBytes(string? message)
+        /// <summary>探测到可启动的候选值后，立即通过 WMI 强制关闭虚拟机。</summary>
+        private static async Task<bool> StopVmAsync(string vmName)
         {
-            if (string.IsNullOrEmpty(message)) return 0;
-
-            ulong min = ulong.MaxValue;
-            foreach (Match m in Regex.Matches(message, "0x([0-9A-Fa-f]+)"))
-            {
-                if (ulong.TryParse(m.Groups[1].Value, NumberStyles.HexNumber,
-                        CultureInfo.InvariantCulture, out ulong val) && val > 0 && val < min)
-                {
-                    min = val;
-                }
-            }
-            if (min == ulong.MaxValue) return 0;
-
-            bool isPowerOfTwo = (min & (min - 1)) == 0;
-            if (!isPowerOfTwo) return 0;
-            if (min < MinSaneCeilingBytes || min > MaxSaneCeilingBytes) return 0;
-
-            return min;
-        }
-
-        /// <summary>强制关闭虚拟机（仅作防御性收尾，正常探测路径下 VM 并未启动）。</summary>
-        private static async Task StopVmAsync(string vmName)
-        {
-            await WmiApi.InvokeAsync(
+            var response = await WmiApi.InvokeAsync(
                 wql: ComputerSystemWql(vmName),
                 methodName: "RequestStateChange",
                 setParams: p => p["RequestedState"] = StateDisabled);
+            return response.Success;
         }
 
         private static string RealizedSettingsWql(string vmName) =>

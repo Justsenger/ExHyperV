@@ -36,6 +36,7 @@ namespace ExHyperV.ViewModels
         [ObservableProperty] private bool _isNativeNvmeEnabled;
         [ObservableProperty] private bool _isNativeNvmeToggleEnabled = false;
         [ObservableProperty] private bool _isNativeNvmeSupported;
+        [ObservableProperty] private bool _isOpenHclFirmwareFileEnabled;
         [ObservableProperty] private bool _isServerSystem;
         [ObservableProperty] private bool _isSystemSwitchEnabled = false;
 
@@ -117,6 +118,7 @@ namespace ExHyperV.ViewModels
             IsGpuStrategyEnabled = await Task.Run(() => HyperVHostService.GetGpuStrategyEnabled());
             IsNativeNvmeSupported = Environment.OSVersion.Version.Build >= 26100; // WS2025 / Win11 24H2 起才有原生 NVMe
             IsNativeNvmeEnabled = await Task.Run(() => HostNvmeService.IsNativeNvmeEnabled());
+            IsOpenHclFirmwareFileEnabled = await Task.Run(() => HostOpenHclService.IsFirmwareLoadFromFileEnabled());
             InitializeProductType();
             await LoadAdvancedConfigAsync();
             IsGpuStrategyToggleEnabled = true;
@@ -152,6 +154,19 @@ namespace ExHyperV.ViewModels
             if (!_isInitialized) return;
             if (value) HostNvmeService.EnableNativeNvme(); else HostNvmeService.DisableNativeNvme();
             ShowRestartPrompt(Properties.Resources.Msg_Host_NativeNvmeChanged);
+        }
+
+        partial void OnIsOpenHclFirmwareFileEnabledChanged(bool value)
+        {
+            if (!_isInitialized) return;
+
+            var result = HostOpenHclService.SetFirmwareLoadFromFileEnabled(value);
+            if (result.Success) return;
+
+            ShowError(string.Format(Properties.Resources.Error_Host_OpenHclRegistryChangeFailed, result.Error));
+            _isInitialized = false;
+            IsOpenHclFirmwareFileEnabled = !value;
+            _isInitialized = true;
         }
 
         partial void OnIsNumaSpanningEnabledChanged(bool value)
