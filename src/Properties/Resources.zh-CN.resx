@@ -3453,6 +3453,12 @@
   <data name="VmAdvanced_FullScsiDesc" xml:space="preserve">
     <value>允许虚拟机向挂载的物理磁盘发送未经筛选的 SCSI 命令</value>
   </data>
+  <data name="VmAdvanced_BatteryTitle" xml:space="preserve">
+    <value>电池状态透传</value>
+  </data>
+  <data name="VmAdvanced_BatteryDesc" xml:space="preserve">
+    <value>允许虚拟机读取宿主的电池状态和剩余电量</value>
+  </data>
   <data name="VmAdvanced_LockOnDisconnectTitle" xml:space="preserve">
     <value>断开时锁定</value>
   </data>
