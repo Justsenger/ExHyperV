@@ -83,15 +83,9 @@ namespace ExHyperV.Services
         {
             try
             {
-                await EnsureCeilingAsync(vmName);
+                ulong ceilingMb = await EnsureCeilingAsync(vmName);
 
-                var plan = ComputeMmioPlan();
-                if (plan is null)
-                {
-                    Debug.WriteLine("[VmMmio] 无法确定宿主 MMIO 上限，跳过 MMIO 配置。");
-                    return false;
-                }
-                var p = plan.Value;
+                var p = ComputeMmioPlan(ceilingMb);
 
                 Debug.WriteLine(Properties.Resources.VmMmio_LogFinalResult);
                 Debug.WriteLine($" - HighMmioGapBase: {p.BaseMb}");
@@ -129,6 +123,11 @@ namespace ExHyperV.Services
         public static MmioPlan? ComputeMmioPlan()
         {
             if (_cachedCeilingMb is not ulong ceilingMb || ceilingMb == 0) return null;
+            return ComputeMmioPlan(ceilingMb);
+        }
+
+        private static MmioPlan ComputeMmioPlan(ulong ceilingMb)
+        {
             ulong finalBase = ceilingMb / 2;
             ulong remaining = ceilingMb - finalBase - 1024;
             ulong finalHighSize = Math.Min(remaining, DefaultHighSizeMb);
@@ -136,17 +135,17 @@ namespace ExHyperV.Services
         }
 
         /// <summary>
-        /// 确保宿主 MMIO 上限已缓存。只认第一次测得的结果：配置文件里有就直接用、永不重探；
-        /// 没有才 boot-probe，测得即写盘持久化。探测失败仅本进程用回退值（不写盘，下次重探）。
+        /// 取得本次配置操作使用的宿主 MMIO 上限。配置文件里有就直接使用；
+        /// 没有才 boot-probe，测得即写盘持久化。探测失败仅当前操作使用回退值，后续虚拟机继续探测。
         /// </summary>
-        private static async Task EnsureCeilingAsync(string vmName)
+        private static async Task<ulong> EnsureCeilingAsync(string vmName)
         {
-            if (_cachedCeilingMb is not null) return;
+            if (_cachedCeilingMb is ulong cached) return cached;
 
             if (SettingsService.GetMmioCeilingMb() is ulong saved && saved > 0)
             {
                 _cachedCeilingMb = saved;
-                return;
+                return saved;
             }
 
             ulong ceilingMb = await QueryHostMmioCeilingMbAsync(vmName);
@@ -154,11 +153,12 @@ namespace ExHyperV.Services
             {
                 _cachedCeilingMb = ceilingMb;
                 SettingsService.SaveMmioCeilingMb(ceilingMb);   // 首次测得即持久化，此后不再启 VM 探测
+                return ceilingMb;
             }
-            else
-            {
-                _cachedCeilingMb = FallbackCeilingMb;            // 探测失败：本进程用回退值兜底，不持久化
-            }
+
+            // 探测失败时仅让当前配置操作使用回退值。不要写入进程缓存，
+            // 这样后续虚拟机仍有机会重新探测并取得可持久化的真实上限。
+            return FallbackCeilingMb;
         }
 
         /// <summary>
