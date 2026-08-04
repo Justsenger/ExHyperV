@@ -10,7 +10,7 @@
              xmlns:converters="clr-namespace:ExHyperV.Converters"
              xmlns:tools="clr-namespace:ExHyperV.Tools"
              mc:Ignorable="d"
-             d:DesignHeight="1200" d:DesignWidth="1000">
+             d:DesignHeight="3000" d:DesignWidth="1000">
     <UserControl.Resources>
 
         <!-- 样式 1: 严格限制样式 (运行时禁用) -->
