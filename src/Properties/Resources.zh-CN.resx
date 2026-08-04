@@ -592,7 +592,7 @@
     <value>屏蔽 CPU 指令集，以便在不同版本的宿主间迁移</value>
   </data>
   <data name="LegacySystemCompatibility" xml:space="preserve">
-    <value>老旧系统兼容性</value>
+    <value>旧系统兼容性</value>
   </data>
   <data name="LegacySystemCompatibilityDescription" xml:space="preserve">
     <value>屏蔽 CPU 指令集，提高对老旧操作系统的兼容性</value>
@@ -1876,10 +1876,10 @@
     <value>选择用于支持虚拟机内存的物理页大小</value>
   </data>
   <data name="Label_MemEncrypt" xml:space="preserve">
-    <value>内存加密</value>
+    <value>内存加密策略</value>
   </data>
   <data name="Desc_MemEncrypt" xml:space="preserve">
-    <value>启用硬件支持的内存隔离与加密</value>
+    <value>控制虚拟机内存的加密要求；整机隔离类型在创建虚拟机时确定</value>
   </data>
   <data name="Button_OpenFolder" xml:space="preserve">
     <value>打开所在文件夹</value>
@@ -2556,6 +2556,15 @@
   <data name="VmPage_MemTrackingPerNode" xml:space="preserve">
     <value>按处理器节点配置</value>
   </data>
+  <data name="VmPage_MemEncryptionDisabled" xml:space="preserve">
+    <value>禁用</value>
+  </data>
+  <data name="VmPage_MemEncryptionIfSupported" xml:space="preserve">
+    <value>支持时启用</value>
+  </data>
+  <data name="VmPage_MemEncryptionAlways" xml:space="preserve">
+    <value>始终启用</value>
+  </data>
   <data name="VmPage_SgxLaunchAccessDenied" xml:space="preserve">
     <value>禁止访问</value>
   </data>
@@ -2656,10 +2665,10 @@
     <value>配置读写监控状态与页面分辨率级别</value>
   </data>
   <data name="VmRAMSettings_LabelSgxComputing" xml:space="preserve">
-    <value>Intel SGX 机密计算</value>
+    <value>Intel SGX 应用飞地</value>
   </data>
   <data name="VmRAMSettings_DescSgxComputing" xml:space="preserve">
-    <value>开启处理器硬件级的隔离安全执行环境</value>
+    <value>为专门支持 SGX 的应用分配受保护的飞地内存</value>
   </data>
   <data name="VmRAMSettings_BtnApply" xml:space="preserve">
     <value>应用</value>
@@ -3497,5 +3506,17 @@
   </data>
   <data name="Label_CpuSecurityIsolation" xml:space="preserve">
     <value>安全隔离</value>
+  </data>
+  <data name="Label_MemoryMapping" xml:space="preserve">
+    <value>内存映射</value>
+  </data>
+  <data name="Label_MemoryPageManagement" xml:space="preserve">
+    <value>页面管理</value>
+  </data>
+  <data name="Label_MemoryHardwareExtensions" xml:space="preserve">
+    <value>硬件扩展</value>
+  </data>
+  <data name="Label_MemoryConfidentialComputing" xml:space="preserve">
+    <value>机密计算</value>
   </data>
 </root>

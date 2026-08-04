@@ -1876,10 +1876,10 @@ The existing NAT switch is: '{0}'</value>
     <value>Select physical page size for VM memory.</value>
   </data>
   <data name="Label_MemEncrypt" xml:space="preserve">
-    <value>Memory Encryption</value>
+    <value>Memory Encryption Policy</value>
   </data>
   <data name="Desc_MemEncrypt" xml:space="preserve">
-    <value>Enable hardware-based isolation &amp; encryption.</value>
+    <value>Control VM memory encryption requirements; whole-VM isolation is selected when the VM is created.</value>
   </data>
   <data name="Button_OpenFolder" xml:space="preserve">
     <value>Open Folder</value>
@@ -2556,6 +2556,15 @@ The existing NAT switch is: '{0}'</value>
   <data name="VmPage_MemTrackingPerNode" xml:space="preserve">
     <value>Configure by Processor Node</value>
   </data>
+  <data name="VmPage_MemEncryptionDisabled" xml:space="preserve">
+    <value>Disabled</value>
+  </data>
+  <data name="VmPage_MemEncryptionIfSupported" xml:space="preserve">
+    <value>Enable If Supported</value>
+  </data>
+  <data name="VmPage_MemEncryptionAlways" xml:space="preserve">
+    <value>Always Enable</value>
+  </data>
   <data name="VmPage_SgxLaunchAccessDenied" xml:space="preserve">
     <value>Access Denied</value>
   </data>
@@ -2656,10 +2665,10 @@ The existing NAT switch is: '{0}'</value>
     <value>Configure read/write monitoring state and page resolution level</value>
   </data>
   <data name="VmRAMSettings_LabelSgxComputing" xml:space="preserve">
-    <value>Intel SGX Confidential Computing</value>
+    <value>Intel SGX Application Enclaves</value>
   </data>
   <data name="VmRAMSettings_DescSgxComputing" xml:space="preserve">
-    <value>Enable hardware-level isolated secure execution environment on the processor</value>
+    <value>Allocate protected enclave memory for applications designed to use SGX</value>
   </data>
   <data name="VmRAMSettings_BtnApply" xml:space="preserve">
     <value>Apply</value>
@@ -3497,5 +3506,17 @@ Remove them from storage and retry? Cancel to re-plug the device and try again.<
   </data>
   <data name="Label_CpuSecurityIsolation" xml:space="preserve">
     <value>Security Isolation</value>
+  </data>
+  <data name="Label_MemoryMapping" xml:space="preserve">
+    <value>Memory Mapping</value>
+  </data>
+  <data name="Label_MemoryPageManagement" xml:space="preserve">
+    <value>Page Management</value>
+  </data>
+  <data name="Label_MemoryHardwareExtensions" xml:space="preserve">
+    <value>Hardware Extensions</value>
+  </data>
+  <data name="Label_MemoryConfidentialComputing" xml:space="preserve">
+    <value>Confidential Computing</value>
   </data>
 </root>

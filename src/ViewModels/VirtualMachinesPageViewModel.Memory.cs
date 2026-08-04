@@ -163,7 +163,7 @@ namespace ExHyperV.ViewModels
         [RelayCommand]
         private async Task ApplyMemorySettingsAsync()
         {
-            // 内存加密开关(ToggleSwitch.Command)等在导航离开时卸载会误触发本命令；运行态改内存会被拒。仅在仍处于内存页时执行。
+            // 部分控件在导航离开、卸载时可能触发命令；运行态改内存也会被拒。仅在仍处于内存页时执行。
             if (CurrentViewType != VmDetailViewType.MemorySettings) return;
             if (SelectedVm?.MemorySettings == null) return;
             IsLoadingSettings = true;
@@ -223,6 +223,13 @@ namespace ExHyperV.ViewModels
     new { Value = (byte)0, Name = Properties.Resources.VmPage_MemTrackingDisable },
     new { Value = (byte)1, Name = Properties.Resources.VmPage_MemTrackingEnable },
     new { Value = (byte)2, Name = Properties.Resources.VmPage_MemTrackingPerNode }
+};
+
+        public List<object> MemoryEncryptionPolicyOptions { get; } = new()
+{
+    new { Value = (byte)0, Name = Properties.Resources.VmPage_MemEncryptionDisabled },
+    new { Value = (byte)1, Name = Properties.Resources.VmPage_MemEncryptionIfSupported },
+    new { Value = (byte)2, Name = Properties.Resources.VmPage_MemEncryptionAlways }
 };
 
         public List<object> SgxLaunchControlOptions { get; } = new()

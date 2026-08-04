@@ -8996,5 +8996,33 @@ namespace ExHyperV.Properties {
             get { return ResourceManager.GetString("Label_CpuSecurityIsolation", resourceCulture); }
         }
 
+        public static string Label_MemoryMapping {
+            get { return ResourceManager.GetString("Label_MemoryMapping", resourceCulture); }
+        }
+
+        public static string Label_MemoryPageManagement {
+            get { return ResourceManager.GetString("Label_MemoryPageManagement", resourceCulture); }
+        }
+
+        public static string Label_MemoryHardwareExtensions {
+            get { return ResourceManager.GetString("Label_MemoryHardwareExtensions", resourceCulture); }
+        }
+
+        public static string Label_MemoryConfidentialComputing {
+            get { return ResourceManager.GetString("Label_MemoryConfidentialComputing", resourceCulture); }
+        }
+
+        public static string VmPage_MemEncryptionDisabled {
+            get { return ResourceManager.GetString("VmPage_MemEncryptionDisabled", resourceCulture); }
+        }
+
+        public static string VmPage_MemEncryptionIfSupported {
+            get { return ResourceManager.GetString("VmPage_MemEncryptionIfSupported", resourceCulture); }
+        }
+
+        public static string VmPage_MemEncryptionAlways {
+            get { return ResourceManager.GetString("VmPage_MemEncryptionAlways", resourceCulture); }
+        }
+
     }
 }
