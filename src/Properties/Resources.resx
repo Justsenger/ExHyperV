@@ -3453,6 +3453,12 @@ Remove them from storage and retry? Cancel to re-plug the device and try again.<
   <data name="VmAdvanced_FullScsiDesc" xml:space="preserve">
     <value>Allow the virtual machine to send unfiltered SCSI commands to attached physical disks</value>
   </data>
+  <data name="VmAdvanced_BatteryTitle" xml:space="preserve">
+    <value>Battery status passthrough</value>
+  </data>
+  <data name="VmAdvanced_BatteryDesc" xml:space="preserve">
+    <value>Allows the virtual machine to read the host battery status and remaining charge</value>
+  </data>
   <data name="VmAdvanced_LockOnDisconnectTitle" xml:space="preserve">
     <value>Lock on disconnect</value>
   </data>

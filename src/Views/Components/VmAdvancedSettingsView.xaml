@@ -117,7 +117,8 @@
                     <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
 
                     <!-- 虚拟机休眠 -->
-                    <Grid Margin="24,16">
+                    <Grid Margin="24,16"
+                          IsEnabled="{Binding SelectedVm.IsRunning, Converter={StaticResource InverseBooleanConverter}}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
@@ -161,6 +162,22 @@
                         <ui:ToggleSwitch Grid.Column="1" Style="{StaticResource AdvancedToggleStyle}"
                                          IsChecked="{Binding AllowFullScsiCommandSet, Mode=TwoWay}"
                                          IsEnabled="{Binding AllowFullScsiCommandSetAvailable}"/>
+                    </Grid>
+                    <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
+
+                    <!-- 电池状态透传 -->
+                    <Grid Margin="24,16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel VerticalAlignment="Center" Margin="0,0,20,0">
+                            <TextBlock Text="{Binding VmAdvancedBatteryTitle}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
+                            <TextBlock Text="{Binding VmAdvancedBatteryDesc}" FontSize="12" TextWrapping="Wrap" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                        </StackPanel>
+                        <ui:ToggleSwitch Grid.Column="1" Style="{StaticResource AdvancedToggleStyle}"
+                                         IsChecked="{Binding SyntheticBatteryEnabled, Mode=TwoWay}"
+                                         IsEnabled="{Binding SyntheticBatteryAvailable}"/>
                     </Grid>
                 </StackPanel>
             </Border>

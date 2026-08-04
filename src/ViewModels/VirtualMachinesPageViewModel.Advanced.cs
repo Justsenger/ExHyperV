@@ -35,11 +35,14 @@ namespace ExHyperV.ViewModels
         [ObservableProperty] private bool _turnOffOnGuestRestart;
         [ObservableProperty] private bool _enableHibernationAvailable;
         [ObservableProperty] private bool _enableHibernation;
+        [ObservableProperty] private bool _syntheticBatteryAvailable;
+        [ObservableProperty] private bool _syntheticBatteryEnabled;
 
         private bool _appliedAllowFullScsiCommandSet;
         private bool _appliedLockOnDisconnect;
         private bool _appliedTurnOffOnGuestRestart;
         private bool _appliedEnableHibernation;
+        private bool _appliedSyntheticBatteryEnabled;
 
         public string VmAdvancedFullScsiTitle => AdvancedText("VmAdvanced_FullScsiTitle");
         public string VmAdvancedFullScsiDesc => AdvancedText("VmAdvanced_FullScsiDesc");
@@ -49,6 +52,8 @@ namespace ExHyperV.ViewModels
         public string VmAdvancedTurnOffDesc => AdvancedText("VmAdvanced_TurnOffOnGuestRestartDesc");
         public string VmAdvancedHibernationTitle => AdvancedText("VmAdvanced_HibernationTitle");
         public string VmAdvancedHibernationDesc => AdvancedText("VmAdvanced_HibernationDesc");
+        public string VmAdvancedBatteryTitle => AdvancedText("VmAdvanced_BatteryTitle");
+        public string VmAdvancedBatteryDesc => AdvancedText("VmAdvanced_BatteryDesc");
 
         [RelayCommand]
         private async Task GoToAdvancedSettingsAsync()
@@ -64,6 +69,7 @@ namespace ExHyperV.ViewModels
                     : Properties.Resources.VmAdvanced_ResolutionAuto;
 
                 var behaviorResult = await VmAdvancedBehaviorService.GetSettingsAsync(SelectedVm.Name);
+                var batteryResult = await VmBatteryService.GetStateAsync(SelectedVm.Name);
 
                 using (SuppressApply())
                 {
@@ -83,6 +89,9 @@ namespace ExHyperV.ViewModels
                     _appliedLockOnDisconnect = false;
                     _appliedTurnOffOnGuestRestart = false;
                     _appliedEnableHibernation = false;
+                    SyntheticBatteryAvailable = batteryResult.Available;
+                    SyntheticBatteryEnabled = batteryResult.Enabled;
+                    _appliedSyntheticBatteryEnabled = batteryResult.Enabled;
 
                     if (behaviorResult.HasData)
                     {
@@ -105,6 +114,8 @@ namespace ExHyperV.ViewModels
 
                 if (!behaviorResult.Success)
                     ShowError($"{Properties.Resources.Error_Common_LoadFail}：{FriendlyError.CleanLines(behaviorResult.Error)}");
+                if (!batteryResult.Success)
+                    ShowError($"{Properties.Resources.Error_Common_LoadFail}：{FriendlyError.CleanLines(batteryResult.Message)}");
             }
             finally { IsLoadingSettings = false; }
         }
@@ -129,8 +140,38 @@ namespace ExHyperV.ViewModels
 
         partial void OnEnableHibernationChanged(bool value)
         {
-            if (!CanApplyAdvancedBehavior(EnableHibernationAvailable)) return;
+            if (!CanApplyAdvancedBehavior(EnableHibernationAvailable) || SelectedVm?.IsRunning == true) return;
             _ = ApplyAdvancedBehaviorAsync(VmAdvancedBehavior.EnableHibernation, value);
+        }
+
+        partial void OnSyntheticBatteryEnabledChanged(bool value)
+        {
+            if (IsApplySuppressed || CurrentViewType != VmDetailViewType.Advanced
+                || SelectedVm == null || !SyntheticBatteryAvailable)
+                return;
+            _ = ApplySyntheticBatteryAsync(value);
+        }
+
+        private async Task ApplySyntheticBatteryAsync(bool enabled)
+        {
+            if (SelectedVm == null) return;
+            var vm = SelectedVm;
+            bool previous = _appliedSyntheticBatteryEnabled;
+            var (success, message) = await VmBatteryService.SetEnabledAsync(vm.Name, enabled);
+            if (!success)
+            {
+                if (SelectedVm == vm)
+                {
+                    using (SuppressApply())
+                        SyntheticBatteryEnabled = previous;
+                }
+                ShowError($"{VmAdvancedBatteryTitle}：{FriendlyError.CleanLines(message)}");
+                return;
+            }
+
+            _appliedSyntheticBatteryEnabled = enabled;
+            ShowSuccess($"{VmAdvancedBatteryTitle}：" +
+                        (enabled ? Properties.Resources.Button_Enable : Properties.Resources.Common_Disabled));
         }
 
         private bool CanApplyAdvancedBehavior(bool available)
