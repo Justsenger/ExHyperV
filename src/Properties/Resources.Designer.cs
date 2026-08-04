@@ -9156,5 +9156,21 @@ namespace ExHyperV.Properties {
             get { return ResourceManager.GetString("VmRAMSettings_MemTrackingPerNodeHint", resourceCulture); }
         }
 
+        public static string Error_VmPower_WorkerNotFound {
+            get { return ResourceManager.GetString("Error_VmPower_WorkerNotFound", resourceCulture); }
+        }
+
+        public static string Error_VmPower_InvalidWorkerProcess {
+            get { return ResourceManager.GetString("Error_VmPower_InvalidWorkerProcess", resourceCulture); }
+        }
+
+        public static string Error_VmPower_TerminateWorkerFailed {
+            get { return ResourceManager.GetString("Error_VmPower_TerminateWorkerFailed", resourceCulture); }
+        }
+
+        public static string Error_VmPower_StillNotOff {
+            get { return ResourceManager.GetString("Error_VmPower_StillNotOff", resourceCulture); }
+        }
+
     }
 }

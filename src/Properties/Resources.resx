@@ -3588,4 +3588,16 @@ Remove them from storage and retry? Cancel to re-plug the device and try again.<
   <data name="VmRAMSettings_MemTrackingPerNodeHint" xml:space="preserve">
     <value>Each NUMA node currently uses its own tracking granularity</value>
   </data>
+  <data name="Error_VmPower_WorkerNotFound" xml:space="preserve">
+    <value>The virtual machine did not power off and its worker process could not be identified.</value>
+  </data>
+  <data name="Error_VmPower_InvalidWorkerProcess" xml:space="preserve">
+    <value>Refusing to terminate PID {0}: it is not a Hyper-V worker process.</value>
+  </data>
+  <data name="Error_VmPower_TerminateWorkerFailed" xml:space="preserve">
+    <value>Failed to terminate the Hyper-V worker process for '{0}': {1}</value>
+  </data>
+  <data name="Error_VmPower_StillNotOff" xml:space="preserve">
+    <value>The worker process for '{0}' was terminated, but the virtual machine still did not reach the off state.</value>
+  </data>
 </root>

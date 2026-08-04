@@ -3588,4 +3588,16 @@
   <data name="VmRAMSettings_MemTrackingPerNodeHint" xml:space="preserve">
     <value>当前使用各 NUMA 节点自己的跟踪粒度</value>
   </data>
+  <data name="Error_VmPower_WorkerNotFound" xml:space="preserve">
+    <value>虚拟机未能关机，并且无法确定其工作进程。</value>
+  </data>
+  <data name="Error_VmPower_InvalidWorkerProcess" xml:space="preserve">
+    <value>拒绝终止进程 {0}：该进程不是 Hyper-V 虚拟机工作进程。</value>
+  </data>
+  <data name="Error_VmPower_TerminateWorkerFailed" xml:space="preserve">
+    <value>无法终止虚拟机“{0}”的 Hyper-V 工作进程：{1}</value>
+  </data>
+  <data name="Error_VmPower_StillNotOff" xml:space="preserve">
+    <value>已终止虚拟机“{0}”的工作进程，但虚拟机仍未进入关机状态。</value>
+  </data>
 </root>
