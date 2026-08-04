@@ -4691,7 +4691,7 @@ namespace ExHyperV.Properties {
                 return ResourceManager.GetString("Error_Host_OpenHclRegistryChangeFailed", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   查找类似 Memory settings applied. 的本地化字符串。
         /// </summary>
@@ -6902,6 +6902,51 @@ namespace ExHyperV.Properties {
                 return ResourceManager.GetString("VmRAMSettings_DescMemMappingMode", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   查找类似 Allows a supported guest to mark low-activity pages so the host can reclaim them first 的本地化字符串。
+        /// </summary>
+        public static string VmRAMSettings_DescColdHint {
+            get {
+                return ResourceManager.GetString("VmRAMSettings_DescColdHint", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   查找类似 Allows a supported guest to mark active pages so the host can page them in and keep them resident preferentially 的本地化字符串。
+        /// </summary>
+        public static string VmRAMSettings_DescHotHint {
+            get {
+                return ResourceManager.GetString("VmRAMSettings_DescHotHint", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   查找类似 Lets a supported guest cooperate with the host on page faults, reducing stalls caused by virtual-backed paging 的本地化字符串。
+        /// </summary>
+        public static string VmRAMSettings_DescEpf {
+            get {
+                return ResourceManager.GetString("VmRAMSettings_DescEpf", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   查找类似 Uses a separate compression store for this VM, improving isolation and accounting with a small management overhead 的本地化字符串。
+        /// </summary>
+        public static string VmRAMSettings_DescCompressStore {
+            get {
+                return ResourceManager.GetString("VmRAMSettings_DescCompressStore", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   查找类似 Allows a supported guest to pin selected guest-physical address ranges at runtime; enabling this does not pin memory by itself 的本地化字符串。
+        /// </summary>
+        public static string VmRAMSettings_DescGpaPinning {
+            get {
+                return ResourceManager.GetString("VmRAMSettings_DescGpaPinning", resourceCulture);
+            }
+        }
         
         /// <summary>
         ///   查找类似 Manually limit the maximum number of memory blocks observable by a single virtual NUMA node 的本地化字符串。
@@ -6972,6 +7017,15 @@ namespace ExHyperV.Properties {
         public static string VmRAMSettings_LabelMemAccessMonitor {
             get {
                 return ResourceManager.GetString("VmRAMSettings_LabelMemAccessMonitor", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   查找类似 Memory Access Monitoring Granularity 的本地化字符串。
+        /// </summary>
+        public static string VmRAMSettings_LabelMemAccessGranularity {
+            get {
+                return ResourceManager.GetString("VmRAMSettings_LabelMemAccessGranularity", resourceCulture);
             }
         }
         
@@ -9070,6 +9124,30 @@ namespace ExHyperV.Properties {
 
         public static string VmPage_OpenHclRequiresV12 {
             get { return ResourceManager.GetString("VmPage_OpenHclRequiresV12", resourceCulture); }
+        }
+
+        public static string VmPage_DynMemAlignmentDisabled {
+            get { return ResourceManager.GetString("VmPage_DynMemAlignmentDisabled", resourceCulture); }
+        }
+
+        public static string Label_MemoryNumaTopology {
+            get { return ResourceManager.GetString("Label_MemoryNumaTopology", resourceCulture); }
+        }
+
+        public static string Label_MemoryAccessTracking {
+            get { return ResourceManager.GetString("Label_MemoryAccessTracking", resourceCulture); }
+        }
+
+        public static string VmRAMSettings_DescMemAccessGranularity {
+            get { return ResourceManager.GetString("VmRAMSettings_DescMemAccessGranularity", resourceCulture); }
+        }
+
+        public static string VmRAMSettings_MemTrackingDisabledHint {
+            get { return ResourceManager.GetString("VmRAMSettings_MemTrackingDisabledHint", resourceCulture); }
+        }
+
+        public static string VmRAMSettings_MemTrackingPerNodeHint {
+            get { return ResourceManager.GetString("VmRAMSettings_MemTrackingPerNodeHint", resourceCulture); }
         }
 
     }

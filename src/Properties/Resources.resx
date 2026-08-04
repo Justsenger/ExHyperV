@@ -1399,13 +1399,13 @@ The existing NAT switch is: '{0}'</value>
     <value>Log copied to clipboard</value>
   </data>
   <data name="Mem_Standard" xml:space="preserve">
-    <value>Standard (4KB)</value>
+    <value>4 KB</value>
   </data>
   <data name="Mem_Large" xml:space="preserve">
-    <value>Large (2MB)</value>
+    <value>2 MB</value>
   </data>
   <data name="Mem_Huge" xml:space="preserve">
-    <value>Huge (1GB)</value>
+    <value>1 GB</value>
   </data>
   <data name="Common_None" xml:space="preserve">
     <value>None</value>
@@ -1870,7 +1870,7 @@ The existing NAT switch is: '{0}'</value>
     <value>Enable Dynamic Memory</value>
   </data>
   <data name="Desc_DynRam" xml:space="preserve">
-    <value>Allow Hyper-V to auto-scale memory.</value>
+    <value>Dynamically adjust between the minimum and maximum memory values</value>
   </data>
   <data name="Label_MinRam" xml:space="preserve">
     <value>Min RAM (MB)</value>
@@ -1891,7 +1891,7 @@ The existing NAT switch is: '{0}'</value>
     <value>Memory Encryption Policy</value>
   </data>
   <data name="Desc_MemEncrypt" xml:space="preserve">
-    <value>Control VM memory encryption requirements; whole-VM isolation is selected when the VM is created.</value>
+    <value>Set the encryption requirements for VM memory</value>
   </data>
   <data name="Button_OpenFolder" xml:space="preserve">
     <value>Open Folder</value>
@@ -2548,16 +2548,16 @@ The existing NAT switch is: '{0}'</value>
     <value>Hybrid Mapping Mode</value>
   </data>
   <data name="VmPage_MemGranularityAuto" xml:space="preserve">
-    <value>System Auto-Assign</value>
+    <value>Best</value>
   </data>
   <data name="VmPage_MemGranularityStandard" xml:space="preserve">
-    <value>Standard Granularity</value>
+    <value>4 KB</value>
   </data>
   <data name="VmPage_MemGranularityLarge" xml:space="preserve">
-    <value>Large Page Granularity</value>
+    <value>2 MB</value>
   </data>
   <data name="VmPage_MemGranularityHuge" xml:space="preserve">
-    <value>Huge Page Granularity</value>
+    <value>1 GB</value>
   </data>
   <data name="VmPage_MemTrackingDisable" xml:space="preserve">
     <value>Disable Tracking</value>
@@ -2566,7 +2566,7 @@ The existing NAT switch is: '{0}'</value>
     <value>Enable Tracking</value>
   </data>
   <data name="VmPage_MemTrackingPerNode" xml:space="preserve">
-    <value>Configure by Processor Node</value>
+    <value>Configure per NUMA Node</value>
   </data>
   <data name="VmPage_MemEncryptionDisabled" xml:space="preserve">
     <value>Disabled</value>
@@ -2668,19 +2668,22 @@ The existing NAT switch is: '{0}'</value>
     <value>Memory Mapping Mode</value>
   </data>
   <data name="VmRAMSettings_DescMemMappingMode" xml:space="preserve">
-    <value>Configure how VM memory maps to host physical resources</value>
+    <value>Set the memory backend type used by the virtual machine</value>
   </data>
   <data name="VmRAMSettings_LabelMemAccessMonitor" xml:space="preserve">
-    <value>Memory Access Monitoring Granularity</value>
+    <value>Tracking Mode</value>
+  </data>
+  <data name="VmRAMSettings_LabelMemAccessGranularity" xml:space="preserve">
+    <value>Access Tracking Granularity</value>
   </data>
   <data name="VmRAMSettings_DescMemAccessMonitor" xml:space="preserve">
-    <value>Configure read/write monitoring state and page resolution level</value>
+    <value>Set how Hyper-V records virtual machine memory access</value>
   </data>
   <data name="VmRAMSettings_LabelSgxComputing" xml:space="preserve">
     <value>Intel SGX Application Enclaves</value>
   </data>
   <data name="VmRAMSettings_DescSgxComputing" xml:space="preserve">
-    <value>Allocate protected enclave memory for applications designed to use SGX</value>
+    <value>Set whether SGX enclave memory is enabled for the virtual machine</value>
   </data>
   <data name="VmRAMSettings_BtnApply" xml:space="preserve">
     <value>Apply</value>
@@ -2689,19 +2692,19 @@ The existing NAT switch is: '{0}'</value>
     <value>Authorization Control Mode</value>
   </data>
   <data name="VmRAMSettings_DescSgxAuthMode" xml:space="preserve">
-    <value>Configure launch authorization and runtime verification mode for secure enclaves</value>
+    <value>Set the launch authorization and runtime verification mode for SGX enclaves</value>
   </data>
   <data name="VmRAMSettings_LabelSgxMemSize" xml:space="preserve">
     <value>Confidential Memory Size (MB)</value>
   </data>
   <data name="VmRAMSettings_DescSgxMemSize" xml:space="preserve">
-    <value>Total physically isolated memory allocated for confidential computing</value>
+    <value>Set the total memory allocated to SGX enclaves</value>
   </data>
   <data name="VmRAMSettings_LabelSgxMsrDefault" xml:space="preserve">
     <value>MSR Runtime Control Default</value>
   </data>
   <data name="VmRAMSettings_DescSgxMsrDefault" xml:space="preserve">
-    <value>Processor-specific register initial value</value>
+    <value>Set the initial value of the SGX processor-specific register</value>
   </data>
   <data name="VmRAMSettings_PlaceholderSgxMsr" xml:space="preserve">
     <value>64-bit hexadecimal string</value>
@@ -2710,10 +2713,16 @@ The existing NAT switch is: '{0}'</value>
     <value>Memory Optimization</value>
   </data>
   <data name="VmRAMSettings_ToggleColdHint" xml:space="preserve">
-    <value>Cold Memory Page Hint</value>
+    <value>Guest Cold-page Hint</value>
+  </data>
+  <data name="VmRAMSettings_DescColdHint" xml:space="preserve">
+    <value>Allow the VM operating system to submit low-activity memory page hints to the host</value>
   </data>
   <data name="VmRAMSettings_ToggleHotHint" xml:space="preserve">
-    <value>Hot Memory Page Hint</value>
+    <value>Guest Hot-page Hint</value>
+  </data>
+  <data name="VmRAMSettings_DescHotHint" xml:space="preserve">
+    <value>Allow the VM operating system to submit active memory page hints to the host</value>
   </data>
   <data name="VmRAMSettings_NeedVirtualBacking" xml:space="preserve">
     <value>This feature requires virtual memory backing (set Memory Mapping Mode to Virtual above)</value>
@@ -2722,37 +2731,46 @@ The existing NAT switch is: '{0}'</value>
     <value>Huge Pages</value>
   </data>
   <data name="VmRAMSettings_DescHugePages" xml:space="preserve">
-    <value>Back VM memory with 1GB huge pages to improve performance for large-memory VMs</value>
+    <value>Use 1GB huge pages as the backing pages for VM memory</value>
   </data>
   <data name="VmRAMSettings_ToggleEpf" xml:space="preserve">
-    <value>Para-virtualized Paging Optimization</value>
+    <value>Enlightened Page Fault Handling (EPF)</value>
+  </data>
+  <data name="VmRAMSettings_DescEpf" xml:space="preserve">
+    <value>Allow the VM operating system to use the enlightened page-fault interface</value>
   </data>
   <data name="VmRAMSettings_ToggleCompressStore" xml:space="preserve">
-    <value>Independent Compressed Memory Pool</value>
+    <value>Private Memory Compression Store</value>
+  </data>
+  <data name="VmRAMSettings_DescCompressStore" xml:space="preserve">
+    <value>Enable a separate memory compression store for this virtual machine</value>
   </data>
   <data name="VmRAMSettings_LabelNumaBlockLimit" xml:space="preserve">
     <value>Max Memory Per Node (MB)</value>
   </data>
   <data name="VmRAMSettings_DescNumaBlockLimit" xml:space="preserve">
-    <value>Limit the maximum memory of a single virtual NUMA node</value>
+    <value>Set the maximum memory of a single virtual NUMA node</value>
   </data>
   <data name="VmRAMSettings_LabelDynMemStep" xml:space="preserve">
-    <value>Dynamic Memory Adjustment Step</value>
+    <value>Dynamic Memory Page Alignment</value>
   </data>
   <data name="VmRAMSettings_DescDynMemStep" xml:space="preserve">
-    <value>Minimum step unit when adjusting dynamically allocated memory</value>
+    <value>Set the page alignment used when Hyper-V adds or removes dynamic memory</value>
   </data>
   <data name="VmRAMSettings_LabelCxlExtension" xml:space="preserve">
-    <value>Hardware Acceleration Extension (CXL)</value>
+    <value>CXL Memory</value>
   </data>
   <data name="VmRAMSettings_DescCxlExtension" xml:space="preserve">
-    <value>Enable high-speed bus interconnect protocol support or force physical address locking</value>
+    <value>Set whether CXL memory support is enabled for the virtual machine</value>
   </data>
   <data name="VmRAMSettings_ToggleCxlSupport" xml:space="preserve">
     <value>CXL Support</value>
   </data>
   <data name="VmRAMSettings_TogglePhysicalPinning" xml:space="preserve">
-    <value>Physical Pinning</value>
+    <value>Allow Guest GPA Page Pinning</value>
+  </data>
+  <data name="VmRAMSettings_DescGpaPinning" xml:space="preserve">
+    <value>Allow the VM operating system to request pinning or unpinning of GPA ranges at runtime</value>
   </data>
   <data name="VmSpacetimeSettings_TitleMgmt" xml:space="preserve">
     <value>Spacetime Management</value>
@@ -3523,7 +3541,7 @@ Remove them from storage and retry? Cancel to re-plug the device and try again.<
     <value>Memory Mapping</value>
   </data>
   <data name="Label_MemoryPageManagement" xml:space="preserve">
-    <value>Page Management</value>
+    <value>Memory Pages</value>
   </data>
   <data name="Label_MemoryHardwareExtensions" xml:space="preserve">
     <value>Hardware Extensions</value>
@@ -3548,5 +3566,23 @@ Remove them from storage and retry? Cancel to re-plug the device and try again.<
   </data>
   <data name="VmPage_OpenHclRequiresV12" xml:space="preserve">
     <value>OpenHCL requires virtual machine configuration version 12.0 or later.</value>
+  </data>
+  <data name="VmPage_DynMemAlignmentDisabled" xml:space="preserve">
+    <value>Disabled</value>
+  </data>
+  <data name="Label_MemoryNumaTopology" xml:space="preserve">
+    <value>NUMA Topology</value>
+  </data>
+  <data name="Label_MemoryAccessTracking" xml:space="preserve">
+    <value>Memory Access Tracking</value>
+  </data>
+  <data name="VmRAMSettings_DescMemAccessGranularity" xml:space="preserve">
+    <value>Set the region size used for memory access records</value>
+  </data>
+  <data name="VmRAMSettings_MemTrackingDisabledHint" xml:space="preserve">
+    <value>Enable memory access tracking first</value>
+  </data>
+  <data name="VmRAMSettings_MemTrackingPerNodeHint" xml:space="preserve">
+    <value>Each NUMA node currently uses its own tracking granularity</value>
   </data>
 </root>

@@ -1399,13 +1399,13 @@
     <value>配置日志已拷贝到剪贴板</value>
   </data>
   <data name="Mem_Standard" xml:space="preserve">
-    <value>标准 (4KB)</value>
+    <value>4 KB</value>
   </data>
   <data name="Mem_Large" xml:space="preserve">
-    <value>大页 (2MB)</value>
+    <value>2 MB</value>
   </data>
   <data name="Mem_Huge" xml:space="preserve">
-    <value>巨页 (1GB)</value>
+    <value>1 GB</value>
   </data>
   <data name="Common_None" xml:space="preserve">
     <value>无</value>
@@ -1870,7 +1870,7 @@
     <value>启用动态内存</value>
   </data>
   <data name="Desc_DynRam" xml:space="preserve">
-    <value>允许 Hyper-V 根据负载在最小和最大值之间自动调整</value>
+    <value>在最小内存和最大内存之间动态调整</value>
   </data>
   <data name="Label_MinRam" xml:space="preserve">
     <value>最小内存 (MB)</value>
@@ -1891,7 +1891,7 @@
     <value>内存加密策略</value>
   </data>
   <data name="Desc_MemEncrypt" xml:space="preserve">
-    <value>控制虚拟机内存的加密要求；整机隔离类型在创建虚拟机时确定</value>
+    <value>设置虚拟机内存的加密要求</value>
   </data>
   <data name="Button_OpenFolder" xml:space="preserve">
     <value>打开所在文件夹</value>
@@ -2548,16 +2548,16 @@
     <value>混合映射模式</value>
   </data>
   <data name="VmPage_MemGranularityAuto" xml:space="preserve">
-    <value>系统自动分配</value>
+    <value>最佳</value>
   </data>
   <data name="VmPage_MemGranularityStandard" xml:space="preserve">
-    <value>标准粒度</value>
+    <value>4 KB</value>
   </data>
   <data name="VmPage_MemGranularityLarge" xml:space="preserve">
-    <value>大页粒度</value>
+    <value>2 MB</value>
   </data>
   <data name="VmPage_MemGranularityHuge" xml:space="preserve">
-    <value>巨型页粒度</value>
+    <value>1 GB</value>
   </data>
   <data name="VmPage_MemTrackingDisable" xml:space="preserve">
     <value>关闭跟踪</value>
@@ -2566,7 +2566,7 @@
     <value>开启跟踪</value>
   </data>
   <data name="VmPage_MemTrackingPerNode" xml:space="preserve">
-    <value>按处理器节点配置</value>
+    <value>按 NUMA 节点配置</value>
   </data>
   <data name="VmPage_MemEncryptionDisabled" xml:space="preserve">
     <value>禁用</value>
@@ -2668,19 +2668,22 @@
     <value>内存映射模式</value>
   </data>
   <data name="VmRAMSettings_DescMemMappingMode" xml:space="preserve">
-    <value>配置虚拟机内存如何映射到宿主机物理资源</value>
+    <value>设置虚拟机使用的内存后端类型</value>
   </data>
   <data name="VmRAMSettings_LabelMemAccessMonitor" xml:space="preserve">
-    <value>内存访问监控粒度</value>
+    <value>跟踪模式</value>
+  </data>
+  <data name="VmRAMSettings_LabelMemAccessGranularity" xml:space="preserve">
+    <value>访问跟踪粒度</value>
   </data>
   <data name="VmRAMSettings_DescMemAccessMonitor" xml:space="preserve">
-    <value>配置读写监控状态与页面分辨率级别</value>
+    <value>设置 Hyper-V 记录虚拟机内存访问的方式</value>
   </data>
   <data name="VmRAMSettings_LabelSgxComputing" xml:space="preserve">
     <value>Intel SGX 应用飞地</value>
   </data>
   <data name="VmRAMSettings_DescSgxComputing" xml:space="preserve">
-    <value>为专门支持 SGX 的应用分配受保护的飞地内存</value>
+    <value>设置虚拟机是否启用 SGX 飞地内存</value>
   </data>
   <data name="VmRAMSettings_BtnApply" xml:space="preserve">
     <value>应用</value>
@@ -2689,19 +2692,19 @@
     <value>授权控制模式</value>
   </data>
   <data name="VmRAMSettings_DescSgxAuthMode" xml:space="preserve">
-    <value>配置安全飞地的启动授权与运行验证模式</value>
+    <value>设置 SGX 飞地的启动授权和运行验证模式</value>
   </data>
   <data name="VmRAMSettings_LabelSgxMemSize" xml:space="preserve">
     <value>机密内存大小（MB）</value>
   </data>
   <data name="VmRAMSettings_DescSgxMemSize" xml:space="preserve">
-    <value>分配给机密计算使用的物理隔离内存总量</value>
+    <value>设置分配给 SGX 飞地的内存总量</value>
   </data>
   <data name="VmRAMSettings_LabelSgxMsrDefault" xml:space="preserve">
     <value>MSR 运行控制默认值</value>
   </data>
   <data name="VmRAMSettings_DescSgxMsrDefault" xml:space="preserve">
-    <value>处理器特定寄存器初始值</value>
+    <value>设置 SGX 处理器特定寄存器的初始值</value>
   </data>
   <data name="VmRAMSettings_PlaceholderSgxMsr" xml:space="preserve">
     <value>64位十六进制字符串</value>
@@ -2712,8 +2715,14 @@
   <data name="VmRAMSettings_ToggleColdHint" xml:space="preserve">
     <value>冷内存页提示</value>
   </data>
+  <data name="VmRAMSettings_DescColdHint" xml:space="preserve">
+    <value>允许虚拟机系统向宿主提交低活跃内存页提示</value>
+  </data>
   <data name="VmRAMSettings_ToggleHotHint" xml:space="preserve">
     <value>热内存页提示</value>
+  </data>
+  <data name="VmRAMSettings_DescHotHint" xml:space="preserve">
+    <value>允许虚拟机系统向宿主提交活跃内存页提示</value>
   </data>
   <data name="VmRAMSettings_NeedVirtualBacking" xml:space="preserve">
     <value>此功能需虚拟内存后端（请将上方“内存映射模式”设为“虚拟”）</value>
@@ -2722,37 +2731,46 @@
     <value>巨页内存</value>
   </data>
   <data name="VmRAMSettings_DescHugePages" xml:space="preserve">
-    <value>以 1GB 大页支持虚拟机内存，提升大内存虚拟机的访问性能</value>
+    <value>使用 1GB 大页作为虚拟机内存的后备页</value>
   </data>
   <data name="VmRAMSettings_ToggleEpf" xml:space="preserve">
-    <value>半虚拟化分页优化</value>
+    <value>半虚拟化缺页处理（EPF）</value>
+  </data>
+  <data name="VmRAMSettings_DescEpf" xml:space="preserve">
+    <value>允许虚拟机系统使用半虚拟化缺页处理接口</value>
   </data>
   <data name="VmRAMSettings_ToggleCompressStore" xml:space="preserve">
-    <value>独立压缩内存池</value>
+    <value>专用内存压缩存储</value>
+  </data>
+  <data name="VmRAMSettings_DescCompressStore" xml:space="preserve">
+    <value>为此虚拟机启用独立的内存压缩存储</value>
   </data>
   <data name="VmRAMSettings_LabelNumaBlockLimit" xml:space="preserve">
     <value>每节点最大内存 (MB)</value>
   </data>
   <data name="VmRAMSettings_DescNumaBlockLimit" xml:space="preserve">
-    <value>限制单个虚拟 NUMA 节点的最大内存</value>
+    <value>设置单个虚拟 NUMA 节点的最大内存</value>
   </data>
   <data name="VmRAMSettings_LabelDynMemStep" xml:space="preserve">
-    <value>动态内存调整步长</value>
+    <value>动态内存页对齐</value>
   </data>
   <data name="VmRAMSettings_DescDynMemStep" xml:space="preserve">
-    <value>调整动态分配内存时的最小步进单位</value>
+    <value>设置 Hyper-V 增减动态内存时使用的页对齐方式</value>
   </data>
   <data name="VmRAMSettings_LabelCxlExtension" xml:space="preserve">
-    <value>硬件加速扩展（CXL）</value>
+    <value>CXL 内存</value>
   </data>
   <data name="VmRAMSettings_DescCxlExtension" xml:space="preserve">
-    <value>启用高速总线互连协议支持或强制物理地址锁定</value>
+    <value>设置虚拟机是否启用 CXL 内存支持</value>
   </data>
   <data name="VmRAMSettings_ToggleCxlSupport" xml:space="preserve">
     <value>CXL支持</value>
   </data>
   <data name="VmRAMSettings_TogglePhysicalPinning" xml:space="preserve">
-    <value>物理固定</value>
+    <value>允许虚拟机固定 GPA 页面</value>
+  </data>
+  <data name="VmRAMSettings_DescGpaPinning" xml:space="preserve">
+    <value>允许虚拟机系统在运行时请求固定或解除固定 GPA 范围</value>
   </data>
   <data name="VmSpacetimeSettings_TitleMgmt" xml:space="preserve">
     <value>时空管理</value>
@@ -3523,7 +3541,7 @@
     <value>内存映射</value>
   </data>
   <data name="Label_MemoryPageManagement" xml:space="preserve">
-    <value>页面管理</value>
+    <value>内存页面</value>
   </data>
   <data name="Label_MemoryHardwareExtensions" xml:space="preserve">
     <value>硬件扩展</value>
@@ -3548,5 +3566,23 @@
   </data>
   <data name="VmPage_OpenHclRequiresV12" xml:space="preserve">
     <value>OpenHCL 要求虚拟机配置版本不低于 12.0。</value>
+  </data>
+  <data name="VmPage_DynMemAlignmentDisabled" xml:space="preserve">
+    <value>禁用</value>
+  </data>
+  <data name="Label_MemoryNumaTopology" xml:space="preserve">
+    <value>NUMA 拓扑</value>
+  </data>
+  <data name="Label_MemoryAccessTracking" xml:space="preserve">
+    <value>内存访问跟踪</value>
+  </data>
+  <data name="VmRAMSettings_DescMemAccessGranularity" xml:space="preserve">
+    <value>设置内存访问记录所采用的区域大小</value>
+  </data>
+  <data name="VmRAMSettings_MemTrackingDisabledHint" xml:space="preserve">
+    <value>请先开启内存访问跟踪</value>
+  </data>
+  <data name="VmRAMSettings_MemTrackingPerNodeHint" xml:space="preserve">
+    <value>当前使用各 NUMA 节点自己的跟踪粒度</value>
   </data>
 </root>

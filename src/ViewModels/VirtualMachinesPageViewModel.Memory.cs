@@ -6,6 +6,20 @@ using Wpf.Ui.Controls;
 
 namespace ExHyperV.ViewModels
 {
+    public sealed class MemoryBackingTypeOption
+    {
+        public byte Value { get; init; }
+        public string Name { get; init; } = string.Empty;
+        public bool IsEnabled { get; init; } = true;
+    }
+
+    public sealed class MemoryTrackingStateOption
+    {
+        public byte Value { get; init; }
+        public string Name { get; init; } = string.Empty;
+        public bool IsEnabled { get; init; } = true;
+    }
+
     public partial class VirtualMachinesPageViewModel
     {
         // ===== 内存设置模块 =====
@@ -129,6 +143,7 @@ namespace ExHyperV.ViewModels
 
                 using (SuppressApply())
                 {
+                    NormalizeMemoryBackingSettings(SelectedVm.MemorySettings, e.PropertyName);
                     IsLoadingSettings = true;
                     try
                     {
@@ -165,6 +180,10 @@ namespace ExHyperV.ViewModels
             // 部分控件在导航离开、卸载时可能触发命令；运行态改内存也会被拒。仅在仍处于内存页时执行。
             if (CurrentViewType != VmDetailViewType.MemorySettings) return;
             if (SelectedVm?.MemorySettings == null) return;
+
+            using (SuppressApply())
+                NormalizeMemoryBackingSettings(SelectedVm.MemorySettings, null);
+
             IsLoadingSettings = true;
             try
             {
@@ -194,11 +213,49 @@ namespace ExHyperV.ViewModels
         }
         // --- 实验性功能的纯中文数据源 (禁止任何英文) ---
 
-        public List<object> BackingTypeOptions { get; } = new()
+        private static void NormalizeMemoryBackingSettings(VmMemorySettings settings, string? changedProperty)
+        {
+            bool backingTypeChanged = changedProperty == nameof(VmMemorySettings.BackingType);
+            bool pageSizeChanged = changedProperty == nameof(VmMemorySettings.BackingPageSize);
+            bool backingFeatureChanged = changedProperty is
+                nameof(VmMemorySettings.EnableColdHint) or
+                nameof(VmMemorySettings.EnableHotHint) or
+                nameof(VmMemorySettings.EnableEpf) or
+                nameof(VmMemorySettings.EnablePrivateCompressionStore);
+
+            // Only normalize automatic edits for the settings participating in these constraints.
+            // A manual Apply (changedProperty == null) is also normalized as a final safety net.
+            if (!backingTypeChanged && !pageSizeChanged && !backingFeatureChanged && changedProperty != null)
+                return;
+
+            // The setting changed by the user wins: choosing 1 GB pages selects physical backing;
+            // choosing virtual backing while 1 GB pages are active falls back to 2 MB pages.
+            if (settings.BackingPageSize == 2 && settings.BackingType.HasValue)
+            {
+                if (backingTypeChanged && settings.BackingType != 0)
+                    settings.BackingPageSize = 1;
+                else
+                    settings.BackingType = 0;
+            }
+
+            // VMMS rejects heat hints, EPF and private compression stores on physical backing.
+            // Preserve null for properties that are not exposed by the current host.
+            if (settings.BackingType == 0)
+            {
+                if (settings.EnableColdHint == true) settings.EnableColdHint = false;
+                if (settings.EnableHotHint == true) settings.EnableHotHint = false;
+                if (settings.EnableEpf == true) settings.EnableEpf = false;
+                if (settings.EnablePrivateCompressionStore == true) settings.EnablePrivateCompressionStore = false;
+            }
+        }
+
+        public List<MemoryBackingTypeOption> BackingTypeOptions { get; } = new()
 {
-    new { Value = (byte)0, Name = Properties.Resources.VmPage_BackingTypePhysical },
-    new { Value = (byte)1, Name = Properties.Resources.VmPage_BackingTypeVirtual },
-    new { Value = (byte)2, Name = Properties.Resources.VmPage_BackingTypeHybrid }
+    new() { Value = 0, Name = Properties.Resources.VmPage_BackingTypePhysical },
+    new() { Value = 1, Name = Properties.Resources.VmPage_BackingTypeVirtual },
+    // Hybrid backing requires per-vNUMA-node MemoryBackingType configuration, which the UI
+    // does not edit yet. Keep the option visible for discoverability, but do not allow selection.
+    new() { Value = 2, Name = Properties.Resources.VmPage_BackingTypeHybrid, IsEnabled = false }
 };
 
         public List<object> MemoryByteGranularityOptions { get; } = new()
@@ -208,20 +265,20 @@ namespace ExHyperV.ViewModels
     new { Value = (byte)2, Name = Properties.Resources.VmPage_MemGranularityLarge },
     new { Value = (byte)3, Name = Properties.Resources.VmPage_MemGranularityHuge }
 };
-        public List<object> MemoryUintGranularityOptions { get; } = new()
+        public List<object> DynamicMemoryAlignmentOptions { get; } = new()
 {
-    new { Value = (uint)0, Name = Properties.Resources.VmPage_MemGranularityAuto },
+    new { Value = (uint)0, Name = Properties.Resources.VmPage_DynMemAlignmentDisabled },
     new { Value = (uint)1, Name = Properties.Resources.VmPage_MemGranularityStandard },
     new { Value = (uint)2, Name = Properties.Resources.VmPage_MemGranularityLarge },
     new { Value = (uint)3, Name = Properties.Resources.VmPage_MemGranularityHuge }
 };
 
 
-        public List<object> MemoryTrackingStateOptions { get; } = new()
+        public List<MemoryTrackingStateOption> MemoryTrackingStateOptions { get; } = new()
 {
-    new { Value = (byte)0, Name = Properties.Resources.VmPage_MemTrackingDisable },
-    new { Value = (byte)1, Name = Properties.Resources.VmPage_MemTrackingEnable },
-    new { Value = (byte)2, Name = Properties.Resources.VmPage_MemTrackingPerNode }
+    new() { Value = 0, Name = Properties.Resources.VmPage_MemTrackingDisable },
+    new() { Value = 1, Name = Properties.Resources.VmPage_MemTrackingEnable },
+    new() { Value = 2, Name = Properties.Resources.VmPage_MemTrackingPerNode, IsEnabled = false }
 };
 
         public List<object> MemoryEncryptionPolicyOptions { get; } = new()
