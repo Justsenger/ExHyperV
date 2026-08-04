@@ -1494,6 +1494,9 @@ The existing NAT switch is: '{0}'</value>
   <data name="Error_Host_OpenHclRegistryChangeFailed" xml:space="preserve">
     <value>Failed to change the OpenHCL firmware loading policy: {0}</value>
   </data>
+  <data name="Error_VmCreate_OpenHclIgvmPermission" xml:space="preserve">
+    <value>Failed to grant Hyper-V read access to the selected IGVM file: {0}</value>
+  </data>
   <data name="Menu_SwitchServer" xml:space="preserve">
     <value>Switch to Server Edition</value>
   </data>

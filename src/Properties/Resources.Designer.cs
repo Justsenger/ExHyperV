@@ -4692,6 +4692,12 @@ namespace ExHyperV.Properties {
             }
         }
 
+        public static string Error_VmCreate_OpenHclIgvmPermission {
+            get {
+                return ResourceManager.GetString("Error_VmCreate_OpenHclIgvmPermission", resourceCulture);
+            }
+        }
+
         /// <summary>
         ///   查找类似 Memory settings applied. 的本地化字符串。
         /// </summary>

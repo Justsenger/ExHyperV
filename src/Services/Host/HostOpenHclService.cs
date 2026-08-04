@@ -1,4 +1,7 @@
 using Microsoft.Win32;
+using System.IO;
+using System.Security.AccessControl;
+using System.Security.Principal;
 
 namespace ExHyperV.Services
 {
@@ -7,6 +10,9 @@ namespace ExHyperV.Services
     /// </summary>
     public static class HostOpenHclService
     {
+        private static readonly object FirmwareAclLock = new();
+        private static readonly SecurityIdentifier HyperVVirtualMachinesSid = new("S-1-5-83-0");
+
         private const string VirtualizationKey =
             @"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Virtualization";
         private const string AllowFirmwareLoadFromFileValue = "AllowFirmwareLoadFromFile";
@@ -36,6 +42,51 @@ namespace ExHyperV.Services
                 {
                     using var key = baseKey.OpenSubKey(VirtualizationKey, writable: true);
                     key?.DeleteValue(AllowFirmwareLoadFromFileValue, throwOnMissingValue: false);
+                }
+
+                return (true, string.Empty);
+            }
+            catch (Exception ex)
+            {
+                return (false, ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// 仅在用户选择的 IGVM 文件上增加 Hyper-V 虚拟机组的读取权限。
+        /// 不修改父目录权限，也不复制或移动文件。
+        /// </summary>
+        public static (bool Success, string Error) GrantFirmwareReadAccess(string filePath)
+        {
+            try
+            {
+                lock (FirmwareAclLock)
+                {
+                    var file = new FileInfo(filePath);
+                    if (!file.Exists)
+                        return (false, Properties.Resources.VmPage_OpenHclIgvmRequired);
+
+                    FileSecurity security = file.GetAccessControl(AccessControlSections.Access);
+                    var rules = security.GetAccessRules(
+                        includeExplicit: true,
+                        includeInherited: true,
+                        targetType: typeof(SecurityIdentifier));
+
+                    bool alreadyReadable = rules
+                        .OfType<FileSystemAccessRule>()
+                        .Any(rule =>
+                            rule.AccessControlType == AccessControlType.Allow &&
+                            HyperVVirtualMachinesSid.Equals(rule.IdentityReference) &&
+                            (rule.FileSystemRights & FileSystemRights.ReadData) != 0);
+
+                    if (!alreadyReadable)
+                    {
+                        security.AddAccessRule(new FileSystemAccessRule(
+                            HyperVVirtualMachinesSid,
+                            FileSystemRights.Read,
+                            AccessControlType.Allow));
+                        file.SetAccessControl(security);
+                    }
                 }
 
                 return (true, string.Empty);

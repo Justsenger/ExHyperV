@@ -110,6 +110,13 @@ namespace ExHyperV.Services
 
                 if (!Version.TryParse(p.Version, out var version) || version < new Version(12, 0))
                     return (false, Properties.Resources.VmPage_OpenHclRequiresV12);
+
+                var permissionResult = await Task.Run(() =>
+                    HostOpenHclService.GrantFirmwareReadAccess(p.OpenHclIgvmPath));
+                if (!permissionResult.Success)
+                    return (false, string.Format(
+                        Properties.Resources.Error_VmCreate_OpenHclIgvmPermission,
+                        permissionResult.Error));
             }
 
             // 总是查重(含手动命名)：撞到已存在的文件夹 / 在册同名 VM 时自动改名 "test3 (2)"…，
