@@ -9024,5 +9024,29 @@ namespace ExHyperV.Properties {
             get { return ResourceManager.GetString("VmPage_MemEncryptionAlways", resourceCulture); }
         }
 
+        public static string Xaml_OpenHclImage {
+            get { return ResourceManager.GetString("Xaml_OpenHclImage", resourceCulture); }
+        }
+
+        public static string Xaml_Placeholder_OpenHclIgvm {
+            get { return ResourceManager.GetString("Xaml_Placeholder_OpenHclIgvm", resourceCulture); }
+        }
+
+        public static string VmPage_SelectOpenHclIgvm {
+            get { return ResourceManager.GetString("VmPage_SelectOpenHclIgvm", resourceCulture); }
+        }
+
+        public static string VmPage_OpenHclIgvmFilter {
+            get { return ResourceManager.GetString("VmPage_OpenHclIgvmFilter", resourceCulture); }
+        }
+
+        public static string VmPage_OpenHclIgvmRequired {
+            get { return ResourceManager.GetString("VmPage_OpenHclIgvmRequired", resourceCulture); }
+        }
+
+        public static string VmPage_OpenHclRequiresV12 {
+            get { return ResourceManager.GetString("VmPage_OpenHclRequiresV12", resourceCulture); }
+        }
+
     }
 }

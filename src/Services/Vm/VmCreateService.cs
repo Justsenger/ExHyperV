@@ -57,16 +57,20 @@ namespace ExHyperV.Services
                 scope: WmiScope.HyperV);
 
             var isolationTypes = (settingsResp.Data ?? new List<IsolationItem>())
-                .Where(s => s.InstanceID.IndexOf("GuestStateIsolationType",
-                    StringComparison.OrdinalIgnoreCase) >= 0)
+                .Where(s => s.IsolationEnabled &&
+                    s.InstanceID.IndexOf("GuestStateIsolationType",
+                        StringComparison.OrdinalIgnoreCase) >= 0)
                 .Select(s => s.IsolationType switch
                 {
                     0 => "TrustedLaunch",
                     1 => "VBS",
                     2 => "SNP",
                     3 => "TDX",
-                    _ => "Disabled"
+                    16 => "OpenHCL",
+                    _ => null
                 })
+                .Where(type => type is not null)
+                .Select(type => type!)
                 .Distinct()
                 .ToList();
 
@@ -99,6 +103,15 @@ namespace ExHyperV.Services
 
         public static async Task<(bool Success, string Message)> CreateVirtualMachineAsync(VmCreationParams p)
         {
+            if (p.IsolationType == "OpenHCL")
+            {
+                if (string.IsNullOrWhiteSpace(p.OpenHclIgvmPath) || !File.Exists(p.OpenHclIgvmPath))
+                    return (false, Properties.Resources.VmPage_OpenHclIgvmRequired);
+
+                if (!Version.TryParse(p.Version, out var version) || version < new Version(12, 0))
+                    return (false, Properties.Resources.VmPage_OpenHclRequiresV12);
+            }
+
             // 总是查重(含手动命名)：撞到已存在的文件夹 / 在册同名 VM 时自动改名 "test3 (2)"…，
             // 避开 DefineSystem/建 VHD 的 ERROR_FILE_EXISTS(0x80070050)。用户预期：同名也应自动改名而非报错。
             string finalVmName = await GetUniqueVmNameAsync(p.Name, p.Path);
@@ -144,7 +157,20 @@ namespace ExHyperV.Services
                 if (p.Generation == 2 && p.IsolationType != "Disabled" &&
                     !string.IsNullOrEmpty(p.IsolationType))
                 {
-                    vssd.TrySet("GuestStateIsolationType", p.IsolationType);
+                    ushort isolationType = p.IsolationType switch
+                    {
+                        "TrustedLaunch" => 0,
+                        "VBS" => 1,
+                        "SNP" => 2,
+                        "TDX" => 3,
+                        "OpenHCL" => 16,
+                        _ => throw new InvalidOperationException(
+                            $"Unsupported guest state isolation type: {p.IsolationType}")
+                    };
+
+                    // WMI 属性是 Boolean + UInt16；显式写入底层数值，避免依赖字符串枚举转换。
+                    vssd.TrySet<bool>("GuestStateIsolationEnabled", true);
+                    vssd.TrySet<ushort>("GuestStateIsolationType", isolationType);
                 }
 
                 string vssdXml = vssd.GetText(TextFormat.CimDtd20);
@@ -181,6 +207,34 @@ namespace ExHyperV.Services
 
                 if (string.IsNullOrEmpty(vmGuid))
                     throw new InvalidOperationException(Properties.Resources.Error_VmCreate_NoGuid);
+
+                // New-VM 的 OpenHCL 枚举只写入隔离类型。微软 openvmm 的
+                // Set-OpenHCL-HyperV-VM.ps1 还会在已实现 VSSD 上启用相应功能并指定 IGVM 固件；
+                // 缺少这两项时 VM 虽能创建，但启动会以“IGVM 映像文件为空”失败。
+                if (p.IsolationType == "OpenHCL")
+                {
+                    string settingsWql = $"SELECT * FROM Msvm_VirtualSystemSettingData " +
+                        $"WHERE VirtualSystemIdentifier = '{WmiApi.Escape(vmGuid)}' " +
+                        $"AND VirtualSystemType = 'Microsoft:Hyper-V:System:Realized'";
+
+                    var openHclResult = await WmiApi.WithObjectAsync(
+                        wql: settingsWql,
+                        modifier: obj =>
+                        {
+                            if (!obj.HasProperty("GuestFeatureSet") || !obj.HasProperty("FirmwareFile"))
+                                throw new InvalidOperationException(
+                                    "The host does not expose the OpenHCL VSSD properties.");
+
+                            obj["GuestFeatureSet"] = 0x00000201;
+                            obj["FirmwareFile"] = p.OpenHclIgvmPath;
+                        },
+                        submitMethod: "ModifySystemSettings",
+                        submitParamName: "SystemSettings",
+                        wrapInArray: false);
+
+                    if (!openHclResult.Success)
+                        throw new InvalidOperationException(openHclResult.Error);
+                }
 
                 // ── Step 4: 处理器设置 ────────────────────────────
                 var procSettings = new VmProcessorSettings { Count = p.ProcessorCount };

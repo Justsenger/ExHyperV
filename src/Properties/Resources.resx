@@ -3519,4 +3519,22 @@ Remove them from storage and retry? Cancel to re-plug the device and try again.<
   <data name="Label_MemoryConfidentialComputing" xml:space="preserve">
     <value>Confidential Computing</value>
   </data>
+  <data name="Xaml_OpenHclImage" xml:space="preserve">
+    <value>OpenHCL IGVM Image</value>
+  </data>
+  <data name="Xaml_Placeholder_OpenHclIgvm" xml:space="preserve">
+    <value>Select an OpenHCL IGVM firmware image</value>
+  </data>
+  <data name="VmPage_SelectOpenHclIgvm" xml:space="preserve">
+    <value>Select OpenHCL IGVM Image</value>
+  </data>
+  <data name="VmPage_OpenHclIgvmFilter" xml:space="preserve">
+    <value>IGVM Firmware Image (*.bin;*.igvm)|*.bin;*.igvm|All Files (*.*)|*.*</value>
+  </data>
+  <data name="VmPage_OpenHclIgvmRequired" xml:space="preserve">
+    <value>OpenHCL requires a valid IGVM image file.</value>
+  </data>
+  <data name="VmPage_OpenHclRequiresV12" xml:space="preserve">
+    <value>OpenHCL requires virtual machine configuration version 12.0 or later.</value>
+  </data>
 </root>

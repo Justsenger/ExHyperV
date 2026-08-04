@@ -3519,4 +3519,22 @@
   <data name="Label_MemoryConfidentialComputing" xml:space="preserve">
     <value>机密计算</value>
   </data>
+  <data name="Xaml_OpenHclImage" xml:space="preserve">
+    <value>OpenHCL IGVM 镜像</value>
+  </data>
+  <data name="Xaml_Placeholder_OpenHclIgvm" xml:space="preserve">
+    <value>选择 OpenHCL IGVM 固件镜像</value>
+  </data>
+  <data name="VmPage_SelectOpenHclIgvm" xml:space="preserve">
+    <value>选择 OpenHCL IGVM 镜像</value>
+  </data>
+  <data name="VmPage_OpenHclIgvmFilter" xml:space="preserve">
+    <value>IGVM 固件镜像 (*.bin;*.igvm)|*.bin;*.igvm|所有文件 (*.*)|*.*</value>
+  </data>
+  <data name="VmPage_OpenHclIgvmRequired" xml:space="preserve">
+    <value>OpenHCL 需要有效的 IGVM 镜像文件。</value>
+  </data>
+  <data name="VmPage_OpenHclRequiresV12" xml:space="preserve">
+    <value>OpenHCL 要求虚拟机配置版本不低于 12.0。</value>
+  </data>
 </root>

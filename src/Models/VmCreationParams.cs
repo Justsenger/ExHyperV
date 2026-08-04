@@ -17,7 +17,8 @@
         // --- 安全 (仅第 2 代) ---
         public bool EnableSecureBoot { get; set; } = true;
         public bool EnableTpm { get; set; } = true;
-        public string IsolationType { get; set; } = "Disabled"; // Disabled, TrustedLaunch, VBS, SNP, TDX
+        public string IsolationType { get; set; } = "Disabled"; // Disabled, TrustedLaunch, VBS, SNP, TDX, OpenHCL
+        public string OpenHclIgvmPath { get; set; } = string.Empty;
 
         // --- 存储 ---
         public int DiskMode { get; set; } = 0; // 0:新建, 1:现有, 2:稍后

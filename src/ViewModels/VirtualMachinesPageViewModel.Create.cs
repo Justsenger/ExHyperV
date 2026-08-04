@@ -120,7 +120,8 @@ namespace ExHyperV.ViewModels
         // 安全特性 (仅第 2 代)
         [ObservableProperty] private bool _newVmEnableSecureBoot = true;
         [ObservableProperty] private bool _newVmEnableTpm = true;
-        [ObservableProperty] private string _newVmIsolationType = "Disabled"; // Disabled, TrustedLaunch, VBS, SNP, TDX
+        [ObservableProperty] private string _newVmIsolationType = "Disabled"; // Disabled, TrustedLaunch, VBS, SNP, TDX, OpenHCL
+        [ObservableProperty] private string _newVmOpenHclIgvmPath = string.Empty;
 
         // --- 3. 存储资源 ---
         [ObservableProperty] private int _newVmDiskMode = 0; // 0:新建磁盘, 1:现有磁盘, 2:稍后附加
@@ -195,6 +196,7 @@ namespace ExHyperV.ViewModels
             NewVmDynamicMemory = false;
             NewVmEnableSecureBoot = true;
             NewVmEnableTpm = true;
+            NewVmOpenHclIgvmPath = string.Empty;
             StartVmAfterCreation = true;
             NewVmIsoPath = string.Empty;
             NewVmExistingDiskPath = string.Empty;
@@ -332,6 +334,16 @@ namespace ExHyperV.ViewModels
         }
 
         [RelayCommand]
+        private void BrowseOpenHclIgvm()
+        {
+            var picked = Dialogs.PickOpenFile(
+                Properties.Resources.VmPage_SelectOpenHclIgvm,
+                Properties.Resources.VmPage_OpenHclIgvmFilter,
+                GetDir(NewVmOpenHclIgvmPath));
+            if (picked != null) NewVmOpenHclIgvmPath = picked;
+        }
+
+        [RelayCommand]
         private async Task ConfirmCreateAsync()
         {
             // --- 1. 基础验证：名称 ---
@@ -370,6 +382,23 @@ namespace ExHyperV.ViewModels
             {
                 ShowTip(Properties.Resources.VmPage_IsoNotFound);
                 return;
+            }
+
+            if (NewVmIsolationType == "OpenHCL")
+            {
+                if (string.IsNullOrWhiteSpace(NewVmOpenHclIgvmPath) ||
+                    !File.Exists(NewVmOpenHclIgvmPath))
+                {
+                    ShowTip(Properties.Resources.VmPage_OpenHclIgvmRequired);
+                    return;
+                }
+
+                if (!Version.TryParse(SelectedVersion, out var openHclVersion) ||
+                    openHclVersion < new Version(12, 0))
+                {
+                    ShowTip(Properties.Resources.VmPage_OpenHclRequiresV12);
+                    return;
+                }
             }
 
             // --- 5. 计算资源数值校验（IsEditable 下拉可输入任意串，挡掉非法/0/负数，避免静默回退默认值或建机失败）---
@@ -415,6 +444,7 @@ namespace ExHyperV.ViewModels
                 EnableSecureBoot = NewVmEnableSecureBoot,
                 EnableTpm = NewVmEnableTpm,
                 IsolationType = NewVmIsolationType,
+                OpenHclIgvmPath = NewVmOpenHclIgvmPath,
                 DiskMode = NewVmDiskMode,
                 DiskSizeGb = long.TryParse(NewVmDiskSizeGb, out var ds) ? ds : 128,
                 VhdPath = NewVmDiskMode == 0 ? NewVmNewDiskPath : NewVmExistingDiskPath,

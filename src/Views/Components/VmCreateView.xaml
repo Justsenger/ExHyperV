@@ -146,7 +146,7 @@
 
                 <ui:CardControl Header="{x:Static properties:Resources.Xaml_ConfidentialCompute}" 
                                 Icon="{ui:SymbolIcon Symbol=ShieldLock24}" 
-                                Margin="0,0,0,24"
+                                Margin="0,0,0,8"
                                 IsEnabled="{Binding CanEnableIsolation}">
 
                     <StackPanel Orientation="Horizontal">
@@ -154,6 +154,24 @@
                                   SelectedItem="{Binding NewVmIsolationType}" 
                                   Width="200"/>
                    </StackPanel>
+                </ui:CardControl>
+
+                <ui:CardControl Header="{x:Static properties:Resources.Xaml_OpenHclImage}"
+                                Icon="{ui:SymbolIcon Symbol=Document24}"
+                                Margin="0,0,0,8"
+                                Visibility="{Binding NewVmIsolationType, Converter={StaticResource EqualityToVisibilityConverter}, ConverterParameter=OpenHCL}">
+                    <StackPanel Width="480">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <ui:TextBox Text="{Binding NewVmOpenHclIgvmPath, UpdateSourceTrigger=PropertyChanged}"
+                                        PlaceholderText="{x:Static properties:Resources.Xaml_Placeholder_OpenHclIgvm}"/>
+                            <ui:Button Grid.Column="1" Content="{x:Static properties:Resources.Xaml_Browse}"
+                                       Margin="8,0,0,0" Width="80" Command="{Binding BrowseOpenHclIgvmCommand}"/>
+                        </Grid>
+                    </StackPanel>
                 </ui:CardControl>
 
                 <!-- === 存储资源 === -->
