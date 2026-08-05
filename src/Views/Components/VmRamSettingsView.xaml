@@ -414,7 +414,6 @@
                             </Grid.ColumnDefinitions>
                             <StackPanel VerticalAlignment="Center">
                                 <TextBlock Text="{x:Static properties:Resources.VmRAMSettings_ToggleColdHint}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
-                                <TextBlock Text="{x:Static properties:Resources.VmRAMSettings_DescColdHint}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
                             </StackPanel>
                             <ui:ToggleSwitch Grid.Column="1"
                                              Style="{StaticResource EnlightenmentToggleStyle}"
@@ -430,7 +429,6 @@
                             </Grid.ColumnDefinitions>
                             <StackPanel VerticalAlignment="Center">
                                 <TextBlock Text="{x:Static properties:Resources.VmRAMSettings_ToggleHotHint}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
-                                <TextBlock Text="{x:Static properties:Resources.VmRAMSettings_DescHotHint}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
                             </StackPanel>
                             <ui:ToggleSwitch Grid.Column="1"
                                              Style="{StaticResource EnlightenmentToggleStyle}"
@@ -446,7 +444,6 @@
                             </Grid.ColumnDefinitions>
                             <StackPanel VerticalAlignment="Center">
                                 <TextBlock Text="{x:Static properties:Resources.VmRAMSettings_ToggleEpf}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
-                                <TextBlock Text="{x:Static properties:Resources.VmRAMSettings_DescEpf}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
                             </StackPanel>
                             <ui:ToggleSwitch Grid.Column="1"
                                              Style="{StaticResource EnlightenmentToggleStyle}"
@@ -462,7 +459,6 @@
                             </Grid.ColumnDefinitions>
                             <StackPanel VerticalAlignment="Center">
                                 <TextBlock Text="{x:Static properties:Resources.VmRAMSettings_ToggleCompressStore}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
-                                <TextBlock Text="{x:Static properties:Resources.VmRAMSettings_DescCompressStore}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
                             </StackPanel>
                             <ui:ToggleSwitch Grid.Column="1"
                                              Style="{StaticResource EnlightenmentToggleStyle}"
@@ -478,7 +474,6 @@
                             </Grid.ColumnDefinitions>
                             <StackPanel VerticalAlignment="Center">
                                 <TextBlock Text="{x:Static properties:Resources.VmRAMSettings_TogglePhysicalPinning}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
-                                <TextBlock Text="{x:Static properties:Resources.VmRAMSettings_DescGpaPinning}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
                             </StackPanel>
                             <ui:ToggleSwitch Grid.Column="1"
                                              Style="{StaticResource ShutdownRequiredToggleStyle}"
@@ -554,7 +549,6 @@
                             </Grid.ColumnDefinitions>
                             <StackPanel VerticalAlignment="Center">
                                 <TextBlock Text="{x:Static properties:Resources.Label_MemEncrypt}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
-                                <TextBlock Text="{x:Static properties:Resources.Desc_MemEncrypt}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
                             </StackPanel>
                             <ComboBox Grid.Column="1"
                                       VerticalAlignment="Center"
