@@ -74,7 +74,7 @@ public static class VmMemoryService
     }
 
     public static async Task<(bool Success, string Message)> SetVmMemorySettingsAsync(
-        string vmName, VmMemorySettings newSettings, bool isVmRunning)
+        string vmName, VmMemorySettings newSettings, bool isVmRunning, string? changedProperty = null)
     {
         try
         {
@@ -88,7 +88,9 @@ public static class VmMemoryService
             string memWql = $"SELECT * FROM Msvm_MemorySettingData WHERE InstanceID LIKE 'Microsoft:{vmId}%' AND ResourceType = 4";
 
             // 动态内存与 vNUMA 互斥（对齐 PS Set-VMMemory）：启用动态内存前先关 vNUMA。仅离线可改。
-            if (!isVmRunning && newSettings.DynamicMemoryEnabled)
+            bool changesDynamicMemory = changedProperty is null ||
+                changedProperty == nameof(VmMemorySettings.DynamicMemoryEnabled);
+            if (changesDynamicMemory && !isVmRunning && newSettings.DynamicMemoryEnabled)
             {
                 var numaOff = await SetVirtualNumaEnabledAsync(vmName, false);
                 if (!numaOff.Success)
@@ -97,7 +99,13 @@ public static class VmMemoryService
 
             var result = await WmiApi.WithObjectAsync(
                 wql: memWql,
-                modifier: obj => ApplyMemorySettingsToWmiObject(obj, newSettings, isVmRunning),
+                modifier: obj =>
+                {
+                    if (changedProperty is null)
+                        ApplyMemorySettingsToWmiObject(obj, newSettings, isVmRunning);
+                    else
+                        ApplySingleMemorySettingToWmiObject(obj, newSettings, changedProperty);
+                },
                 submitMethod: "ModifyResourceSettings",
                 submitParamName: "ResourceSettings",
                 wrapInArray: true);
@@ -106,7 +114,7 @@ public static class VmMemoryService
                 return (false, string.Format(Properties.Resources.VmMemory_ModFailed, result.Error));
 
             // 静态内存：内存改完后再开 vNUMA（与 PS 顺序一致）。
-            if (!isVmRunning && !newSettings.DynamicMemoryEnabled)
+            if (changesDynamicMemory && !isVmRunning && !newSettings.DynamicMemoryEnabled)
                 await SetVirtualNumaEnabledAsync(vmName, true);
 
             return (true, Properties.Resources.Msg_Memory_Applied);
@@ -237,6 +245,132 @@ public static class VmMemoryService
                 memData["Limit"] = Align(memorySettings.Maximum, alignment);
                 memData.TrySetAlways("TargetMemoryBuffer", (uint)memorySettings.Buffer);
             }
+        }
+    }
+
+    /// <summary>
+    /// 自动保存只提交刚刚变化的设置。只有 VMMS 的硬性约束需要联动时，
+    /// 才附带写入必要字段；手动“应用”仍走完整写入路径。
+    /// </summary>
+    private static void ApplySingleMemorySettingToWmiObject(
+        ManagementObject memData, VmMemorySettings settings, string changedProperty)
+    {
+        static ulong Align(long value, long alignment)
+        {
+            if (value <= 0) return (ulong)alignment;
+            if (value > long.MaxValue - alignment) return (ulong)value;
+            return (ulong)((value + alignment - 1) / alignment * alignment);
+        }
+
+        switch (changedProperty)
+        {
+            case nameof(VmMemorySettings.BackingPageSize):
+            {
+                byte pageSize = settings.BackingPageSize ?? 1;
+                if (memData.HasProperty("BackingPageSize"))
+                    memData["BackingPageSize"] = pageSize;
+                else
+                    memData.TrySet("HugePagesEnabled", (bool?)(pageSize == 2));
+
+                // 1GB 页必须使用物理后端，相关内存范围也必须按 1GB 对齐。
+                if (pageSize == 2)
+                {
+                    const long alignment = 1024;
+                    memData.TrySet("BackingType", (byte?)0);
+                    memData.TrySet("EnableColdHint", settings.EnableColdHint);
+                    memData.TrySet("EnableHotHint", settings.EnableHotHint);
+                    memData.TrySet("EnableEpf", settings.EnableEpf);
+                    memData.TrySet("EnablePrivateCompressionStore", settings.EnablePrivateCompressionStore);
+                    memData["VirtualQuantity"] = Align(settings.Startup, alignment);
+                    memData["Reservation"] = Align(settings.DynamicMemoryEnabled ? settings.Minimum : settings.Startup, alignment);
+                    memData["Limit"] = Align(settings.DynamicMemoryEnabled ? settings.Maximum : settings.Startup, alignment);
+                    if (settings.MaxMemoryBlocksPerNumaNode.HasValue)
+                    {
+                        ulong value = Math.Max(1024UL, settings.MaxMemoryBlocksPerNumaNode.Value);
+                        memData.TrySet("MaxMemoryBlocksPerNumaNode", (ulong?)((value / 1024UL) * 1024UL));
+                    }
+                }
+                break;
+            }
+
+            case nameof(VmMemorySettings.DynamicMemoryEnabled):
+                memData["DynamicMemoryEnabled"] = settings.DynamicMemoryEnabled;
+                if (settings.DynamicMemoryEnabled)
+                {
+                    memData["Reservation"] = (ulong)settings.Minimum;
+                    memData["Limit"] = (ulong)settings.Maximum;
+                    memData.TrySetAlways("TargetMemoryBuffer", (uint)settings.Buffer);
+                }
+                else
+                {
+                    memData["Reservation"] = (ulong)settings.Startup;
+                    memData["Limit"] = (ulong)settings.Startup;
+                }
+                break;
+
+            case nameof(VmMemorySettings.MemoryEncryptionPolicy):
+                memData.TrySet("MemoryEncryptionPolicy", settings.MemoryEncryptionPolicy);
+                break;
+
+            case nameof(VmMemorySettings.BackingType):
+                memData.TrySet("BackingType", settings.BackingType);
+                // 从物理切回虚拟时，UI 会把不兼容的 1GB 页同步改成 2MB。
+                if (settings.BackingType != 0 && settings.BackingPageSize == 1)
+                {
+                    if (memData.HasProperty("BackingPageSize"))
+                        memData["BackingPageSize"] = (byte)1;
+                    else
+                        memData.TrySet("HugePagesEnabled", (bool?)false);
+                }
+                // 物理后端不接受以下四项；UI 已同步关闭，因此一并落盘。
+                if (settings.BackingType == 0)
+                {
+                    memData.TrySet("EnableColdHint", settings.EnableColdHint);
+                    memData.TrySet("EnableHotHint", settings.EnableHotHint);
+                    memData.TrySet("EnableEpf", settings.EnableEpf);
+                    memData.TrySet("EnablePrivateCompressionStore", settings.EnablePrivateCompressionStore);
+                }
+                break;
+
+            case nameof(VmMemorySettings.MemoryAccessTrackingState):
+                memData.TrySet("MemoryAccessTrackingState", settings.MemoryAccessTrackingState);
+                break;
+            case nameof(VmMemorySettings.MemoryAccessTrackingPolicy):
+                memData.TrySet("MemoryAccessTrackingPolicy", settings.MemoryAccessTrackingPolicy);
+                break;
+            case nameof(VmMemorySettings.EnableColdHint):
+                memData.TrySet("EnableColdHint", settings.EnableColdHint);
+                break;
+            case nameof(VmMemorySettings.EnableHotHint):
+                memData.TrySet("EnableHotHint", settings.EnableHotHint);
+                break;
+            case nameof(VmMemorySettings.EnableEpf):
+                memData.TrySet("EnableEpf", settings.EnableEpf);
+                break;
+            case nameof(VmMemorySettings.EnablePrivateCompressionStore):
+                memData.TrySet("EnablePrivateCompressionStore", settings.EnablePrivateCompressionStore);
+                break;
+
+            case nameof(VmMemorySettings.SgxEnabled):
+                memData.TrySet("SgxEnabled", settings.SgxEnabled);
+                if (settings.SgxEnabled == true && settings.SgxSize.HasValue)
+                {
+                    ulong size = Math.Max(2UL, (ulong)settings.SgxSize.Value);
+                    memData.TrySetAlways("SgxSize", (size / 2UL) * 2UL);
+                }
+                break;
+
+            case nameof(VmMemorySettings.CxlEnabled):
+                memData.TrySet("CxlEnabled", settings.CxlEnabled);
+                break;
+            case nameof(VmMemorySettings.EnableGpaPinning):
+                memData.TrySet("EnableGpaPinning", settings.EnableGpaPinning);
+                break;
+            case nameof(VmMemorySettings.DynMemOperationAlignment):
+                memData.TrySet("DynMemOperationAlignment", settings.DynMemOperationAlignment);
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(changedProperty), changedProperty, "Unsupported automatic memory setting");
         }
     }
 }

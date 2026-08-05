@@ -272,7 +272,7 @@
                             <ui:Button Grid.Column="2" Content="{x:Static properties:Resources.Button_Apply}" Margin="8,0,0,0" Width="72"
                                        Style="{StaticResource ShutdownRequiredApplyButtonStyle}"
                                        Tag="{Binding SelectedVm.MmioSettings.LowSizeMb}"
-                                       Command="{Binding ApplyMmioSettingsCommand}" Appearance="Primary"/>
+                                       Command="{Binding ApplyMmioSettingsCommand}" CommandParameter="LowSizeMb" Appearance="Primary"/>
                         </Grid>
 
                         <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
@@ -295,7 +295,7 @@
                             <ui:Button Grid.Column="2" Content="{x:Static properties:Resources.Button_Apply}" Margin="8,0,0,0" Width="72"
                                        Style="{StaticResource ShutdownRequiredApplyButtonStyle}"
                                        Tag="{Binding SelectedVm.MmioSettings.HighSizeMb}"
-                                       Command="{Binding ApplyMmioSettingsCommand}" Appearance="Primary"/>
+                                       Command="{Binding ApplyMmioSettingsCommand}" CommandParameter="HighSizeMb" Appearance="Primary"/>
                         </Grid>
 
                         <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
@@ -315,7 +315,7 @@
                             <ui:Button Grid.Column="2" Content="{x:Static properties:Resources.Button_Apply}" Margin="8,0,0,0" Width="72"
                                        Style="{StaticResource ShutdownRequiredApplyButtonStyle}"
                                        Tag="{Binding SelectedVm.MmioSettings.HighBaseMb}"
-                                       Command="{Binding ApplyMmioSettingsCommand}" Appearance="Primary"/>
+                                       Command="{Binding ApplyMmioSettingsCommand}" CommandParameter="HighBaseMb" Appearance="Primary"/>
                         </Grid>
                     </StackPanel>
                 </Border>

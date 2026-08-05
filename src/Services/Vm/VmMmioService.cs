@@ -29,16 +29,27 @@ namespace ExHyperV.Services
             return response.HasData ? response.Data : null;
         }
 
-        /// <summary>写入 WMI 实际存在且调用方提供了值的 MMIO 字段。</summary>
-        public static Task<ApiResponse> SetSettingsAsync(string vmName, VmMmioSettings settings)
+        /// <summary>只写入用户按下“应用”的那个 MMIO 字段。</summary>
+        public static Task<ApiResponse> SetSettingAsync(string vmName, VmMmioSettings settings, string propertyName)
         {
             return WmiApi.WithObjectAsync(
                 wql: RealizedSettingsWql(vmName),
                 modifier: obj =>
                 {
-                    obj.TrySet("LowMmioGapSize", settings.LowSizeMb);
-                    obj.TrySet("HighMmioGapSize", settings.HighSizeMb);
-                    obj.TrySet("HighMmioGapBase", settings.HighBaseMb);
+                    switch (propertyName)
+                    {
+                        case nameof(VmMmioSettings.LowSizeMb):
+                            obj.TrySet("LowMmioGapSize", settings.LowSizeMb);
+                            break;
+                        case nameof(VmMmioSettings.HighSizeMb):
+                            obj.TrySet("HighMmioGapSize", settings.HighSizeMb);
+                            break;
+                        case nameof(VmMmioSettings.HighBaseMb):
+                            obj.TrySet("HighMmioGapBase", settings.HighBaseMb);
+                            break;
+                        default:
+                            throw new ArgumentOutOfRangeException(nameof(propertyName), propertyName, "Unsupported MMIO setting");
+                    }
                 });
         }
 

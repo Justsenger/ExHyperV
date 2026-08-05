@@ -72,17 +72,18 @@ namespace ExHyperV.ViewModels
         }
 
         [RelayCommand]
-        private async Task ApplyMmioSettingsAsync()
+        private async Task ApplyMmioSettingsAsync(string? propertyName)
         {
             if (CurrentViewType != VmDetailViewType.MemorySettings) return;
-            if (SelectedVm?.MmioSettings == null || SelectedVm.IsRunning) return;
+            if (SelectedVm?.MmioSettings == null || SelectedVm.IsRunning || string.IsNullOrEmpty(propertyName)) return;
 
             IsLoadingSettings = true;
             try
             {
-                var result = await VmMmioService.SetSettingsAsync(
+                var result = await VmMmioService.SetSettingAsync(
                     SelectedVm.Name,
-                    SelectedVm.MmioSettings);
+                    SelectedVm.MmioSettings,
+                    propertyName);
 
                 if (!result.Success)
                 {
@@ -90,12 +91,13 @@ namespace ExHyperV.ViewModels
                     if (_originalMmioSettingsCache != null)
                     {
                         using (SuppressApply())
-                            SelectedVm.MmioSettings.Restore(_originalMmioSettingsCache);
+                            RestoreMmioProperty(SelectedVm.MmioSettings, _originalMmioSettingsCache, propertyName);
                     }
                 }
                 else
                 {
-                    _originalMmioSettingsCache = SelectedVm.MmioSettings.Clone();
+                    _originalMmioSettingsCache ??= SelectedVm.MmioSettings.Clone();
+                    RestoreMmioProperty(_originalMmioSettingsCache, SelectedVm.MmioSettings, propertyName);
                 }
             }
             catch (Exception ex)
@@ -104,7 +106,7 @@ namespace ExHyperV.ViewModels
                 if (_originalMmioSettingsCache != null)
                 {
                     using (SuppressApply())
-                        SelectedVm.MmioSettings.Restore(_originalMmioSettingsCache);
+                        RestoreMmioProperty(SelectedVm.MmioSettings, _originalMmioSettingsCache, propertyName);
                 }
             }
             finally
@@ -147,7 +149,8 @@ namespace ExHyperV.ViewModels
                     IsLoadingSettings = true;
                     try
                     {
-                        var result = await VmMemoryService.SetVmMemorySettingsAsync(SelectedVm.Name, SelectedVm.MemorySettings, false);
+                        var result = await VmMemoryService.SetVmMemorySettingsAsync(
+                            SelectedVm.Name, SelectedVm.MemorySettings, false, e.PropertyName);
                         if (!result.Success)
                         {
                             ShowError($"{Properties.Resources.VmPage_ModifyFail}：{result.Message}");
@@ -246,6 +249,16 @@ namespace ExHyperV.ViewModels
                 if (settings.EnableHotHint == true) settings.EnableHotHint = false;
                 if (settings.EnableEpf == true) settings.EnableEpf = false;
                 if (settings.EnablePrivateCompressionStore == true) settings.EnablePrivateCompressionStore = false;
+            }
+        }
+
+        private static void RestoreMmioProperty(VmMmioSettings target, VmMmioSettings source, string propertyName)
+        {
+            switch (propertyName)
+            {
+                case nameof(VmMmioSettings.LowSizeMb): target.LowSizeMb = source.LowSizeMb; break;
+                case nameof(VmMmioSettings.HighSizeMb): target.HighSizeMb = source.HighSizeMb; break;
+                case nameof(VmMmioSettings.HighBaseMb): target.HighBaseMb = source.HighBaseMb; break;
             }
         }
 
