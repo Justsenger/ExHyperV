@@ -9,6 +9,20 @@ namespace ExHyperV.Services
     {
         private const string ServiceWql = "SELECT * FROM Msvm_VirtualSystemManagementService";
 
+        // Msvm_VirtualSystemSettingData.GuestStateIsolationType.
+        // Disabled is represented by GuestStateIsolationEnabled=false, not by a UInt16 value.
+        private enum GuestStateIsolationTypeValue : ushort
+        {
+            TrustedLaunch = 0,
+            Vbs = 1,
+            SevSnp = 2,
+            Tdx = 3,
+            Rme = 4,
+            OpenHcl = 16,
+            Reserved18 = 18,
+            Reserved19 = 19
+        }
+
         public static async Task<List<string>> GetSupportedVersionsAsync()
         {
             var capsResp = await WmiApi.QueryFirstAsync(
@@ -60,13 +74,16 @@ namespace ExHyperV.Services
                 .Where(s => s.IsolationEnabled &&
                     s.InstanceID.IndexOf("GuestStateIsolationType",
                         StringComparison.OrdinalIgnoreCase) >= 0)
-                .Select(s => s.IsolationType switch
+                .Select(s => (GuestStateIsolationTypeValue)s.IsolationType switch
                 {
-                    0 => "TrustedLaunch",
-                    1 => "VBS",
-                    2 => "SNP",
-                    3 => "TDX",
-                    16 => "OpenHCL",
+                    GuestStateIsolationTypeValue.TrustedLaunch => "TrustedLaunch",
+                    GuestStateIsolationTypeValue.Vbs => "VBS",
+                    GuestStateIsolationTypeValue.SevSnp => "SNP",
+                    GuestStateIsolationTypeValue.Tdx => "TDX",
+                    GuestStateIsolationTypeValue.Rme => "RME",
+                    GuestStateIsolationTypeValue.OpenHcl => "OpenHCL",
+                    // 18/19 are present in newer schemas but remain reserved.
+                    // Do not surface them until Microsoft assigns public semantics.
                     _ => null
                 })
                 .Where(type => type is not null)
@@ -164,20 +181,21 @@ namespace ExHyperV.Services
                 if (p.Generation == 2 && p.IsolationType != "Disabled" &&
                     !string.IsNullOrEmpty(p.IsolationType))
                 {
-                    ushort isolationType = p.IsolationType switch
+                    GuestStateIsolationTypeValue isolationType = p.IsolationType switch
                     {
-                        "TrustedLaunch" => 0,
-                        "VBS" => 1,
-                        "SNP" => 2,
-                        "TDX" => 3,
-                        "OpenHCL" => 16,
+                        "TrustedLaunch" => GuestStateIsolationTypeValue.TrustedLaunch,
+                        "VBS" => GuestStateIsolationTypeValue.Vbs,
+                        "SNP" => GuestStateIsolationTypeValue.SevSnp,
+                        "TDX" => GuestStateIsolationTypeValue.Tdx,
+                        "RME" => GuestStateIsolationTypeValue.Rme,
+                        "OpenHCL" => GuestStateIsolationTypeValue.OpenHcl,
                         _ => throw new InvalidOperationException(
                             $"Unsupported guest state isolation type: {p.IsolationType}")
                     };
 
                     // WMI 属性是 Boolean + UInt16；显式写入底层数值，避免依赖字符串枚举转换。
                     vssd.TrySet<bool>("GuestStateIsolationEnabled", true);
-                    vssd.TrySet<ushort>("GuestStateIsolationType", isolationType);
+                    vssd.TrySet<ushort>("GuestStateIsolationType", (ushort)isolationType);
                 }
 
                 string vssdXml = vssd.GetText(TextFormat.CimDtd20);

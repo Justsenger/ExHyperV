@@ -17,7 +17,7 @@
         // --- 安全 (仅第 2 代) ---
         public bool EnableSecureBoot { get; set; } = true;
         public bool EnableTpm { get; set; } = true;
-        public string IsolationType { get; set; } = "Disabled"; // Disabled, TrustedLaunch, VBS, SNP, TDX, OpenHCL
+        public string IsolationType { get; set; } = "Disabled"; // Disabled, TrustedLaunch, VBS, SNP, TDX, RME, OpenHCL
         public string OpenHclIgvmPath { get; set; } = string.Empty;
 
         // --- 存储 ---

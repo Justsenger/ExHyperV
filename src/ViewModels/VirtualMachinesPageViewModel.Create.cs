@@ -120,7 +120,7 @@ namespace ExHyperV.ViewModels
         // 安全特性 (仅第 2 代)
         [ObservableProperty] private bool _newVmEnableSecureBoot = true;
         [ObservableProperty] private bool _newVmEnableTpm = true;
-        [ObservableProperty] private string _newVmIsolationType = "Disabled"; // Disabled, TrustedLaunch, VBS, SNP, TDX, OpenHCL
+        [ObservableProperty] private string _newVmIsolationType = "Disabled"; // Disabled, TrustedLaunch, VBS, SNP, TDX, RME, OpenHCL
         [ObservableProperty] private string _newVmOpenHclIgvmPath = string.Empty;
 
         // --- 3. 存储资源 ---
