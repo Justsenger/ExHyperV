@@ -453,10 +453,9 @@
                                 </ComboBox.ItemTemplate>
                             </ComboBox>
                         </Grid>
-                        <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"
-                                   Visibility="{Binding ShowAmdPlatformFeatures, Converter={StaticResource BoolToVis}}"/>
+                        <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
 
-                        <!-- AMD CCX 拓扑项仅在 AMD/“全部”平台视图中显示；非 AMD 实机保持不可用。 -->
+                        <!-- CCX 是 AMD 拓扑术语；其他架构不显示。 -->
                         <Grid Margin="24,12,24,12" IsEnabled="{Binding IsAmdHost}"
                               Visibility="{Binding ShowAmdPlatformFeatures, Converter={StaticResource BoolToVis}}">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="16"/><ColumnDefinition Width="200"/><ColumnDefinition Width="24"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
@@ -470,8 +469,8 @@
                         <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"
                                    Visibility="{Binding ShowAmdPlatformFeatures, Converter={StaticResource BoolToVis}}"/>
 
-                        <Grid Margin="24,12,24,12" IsEnabled="{Binding IsAmdHost}"
-                              Visibility="{Binding ShowAmdPlatformFeatures, Converter={StaticResource BoolToVis}}">
+                        <!-- 每 L3 最大处理器数已进入 ARM64 的 VMMS/VMWP 拓扑路径，不属于 AMD CCX 专项。 -->
+                        <Grid Margin="24,12,24,12">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="16"/><ColumnDefinition Width="200"/><ColumnDefinition Width="24"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                             <StackPanel Grid.Column="0" VerticalAlignment="Center">
                                 <TextBlock Text="{x:Static properties:Resources.Cpu_MaxProcPerL3}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
@@ -487,7 +486,9 @@
                 <Border Background="{ui:ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="0" Margin="0,0,0,32">
                     <StackPanel>
 
-                        <Grid Margin="24,16">
+                        <!-- 旧 PMU 属于 x86 Perfmon 功能族；ARM64 使用下一项 Arch PMU。 -->
+                        <Grid Margin="24,16" IsEnabled="{Binding IsX64Host}"
+                              Visibility="{Binding ShowX64PlatformFeatures, Converter={StaticResource BoolToVis}}">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                             <StackPanel VerticalAlignment="Center">
                                 <TextBlock Text="{x:Static properties:Resources.Cpu_PerfmonPmu}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
@@ -495,7 +496,8 @@
                             </StackPanel>
                             <ui:ToggleSwitch Grid.Column="1" Style="{StaticResource ShutdownRequiredToggleStyle}" Tag="{Binding SelectedVm.Processor.EnablePerfmonPmu}" IsChecked="{Binding SelectedVm.Processor.EnablePerfmonPmu}" Command="{Binding ApplyChangesCommand}"/>
                         </Grid>
-                        <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
+                        <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"
+                                   Visibility="{Binding ShowX64PlatformFeatures, Converter={StaticResource BoolToVis}}"/>
 
                         <Grid Margin="24,16">
                             <Grid.ColumnDefinitions>
@@ -690,9 +692,12 @@
                                      IsChecked="{Binding SelectedVm.Processor.DisableSpeculationControls}"
                                      Command="{Binding ApplyChangesCommand}"/>
                         </Grid>
-                        <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
+                        <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"
+                                   Visibility="{Binding ShowX64PlatformFeatures, Converter={StaticResource BoolToVis}}"/>
 
-                        <Grid Margin="24,16" IsEnabled="{Binding IsHwIsolationSupported}">
+                        <!-- 当前硬件隔离扩展只由 SNP/TDX 能力启用；ARM RME 尚未进入这条嵌套扩展链。 -->
+                        <Grid Margin="24,16" IsEnabled="{Binding IsHwIsolationSupported}"
+                              Visibility="{Binding ShowX64PlatformFeatures, Converter={StaticResource BoolToVis}}">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                             <StackPanel Grid.Column="0" VerticalAlignment="Center">
                                 <TextBlock Text="{x:Static properties:Resources.Cpu_ExtVirtExt}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
@@ -700,9 +705,11 @@
                             </StackPanel>
                             <ui:ToggleSwitch Grid.Column="1" Style="{StaticResource ShutdownRequiredToggleStyle}" Tag="{Binding SelectedVm.Processor.HardwareIsolationExtensionsEnabled}" IsChecked="{Binding SelectedVm.Processor.HardwareIsolationExtensionsEnabled}" Command="{Binding ApplyChangesCommand}"/>
                         </Grid>
-                        <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
+                        <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"
+                                   Visibility="{Binding ShowX64PlatformFeatures, Converter={StaticResource BoolToVis}}"/>
 
-                        <Grid Margin="24,12,24,12" IsEnabled="{Binding IsHwIsolationSupported}">
+                        <Grid Margin="24,12,24,12" IsEnabled="{Binding IsHwIsolationSupported}"
+                              Visibility="{Binding ShowX64PlatformFeatures, Converter={StaticResource BoolToVis}}">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="16"/><ColumnDefinition Width="200"/><ColumnDefinition Width="24"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                             <StackPanel Grid.Column="0" VerticalAlignment="Center">
                                 <TextBlock Text="{x:Static properties:Resources.Cpu_MaxHwIsoGuests}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
