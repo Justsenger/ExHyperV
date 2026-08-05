@@ -1,6 +1,5 @@
 using System.Collections.ObjectModel;
 using System.Diagnostics;
-using System.Management;
 using System.Runtime.InteropServices;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -26,9 +25,15 @@ namespace ExHyperV.ViewModels
         public Array PageShatterModeValues { get; } = Enum.GetValues(typeof(PageShatterMode));
         public Array LpiModeValues { get; } = Enum.GetValues(typeof(LpiMode));
         // 能力门控标志（按宿主硬件置灰：AMD-only / 硬件隔离）
-        [ObservableProperty] private bool _isAmdHost;
+        public bool IsAmdHost => SettingsService.NativeHostPlatform == HostPlatform.Amd;
+        public bool IsIntelHost => SettingsService.NativeHostPlatform == HostPlatform.Intel;
         [ObservableProperty] private bool _isHwIsolationSupported;
         public bool IsArm64Host { get; } = RuntimeInformation.OSArchitecture == Architecture.Arm64;
+        public bool IsX64Host => !IsArm64Host;
+        public bool ShowAmdPlatformFeatures => IsAmdHost;
+        public bool ShowIntelPlatformFeatures => IsIntelHost;
+        public bool ShowArm64PlatformFeatures => IsArm64Host;
+        public bool ShowX64PlatformFeatures => IsX64Host;
         private bool _cpuCapsInit;
 
 
@@ -57,13 +62,6 @@ namespace ExHyperV.ViewModels
                 if (!_cpuCapsInit)
                 {
                     _cpuCapsInit = true;
-                    try
-                    {
-                        using var s = new ManagementObjectSearcher("SELECT Manufacturer FROM Win32_Processor");
-                        var mfr = s.Get().Cast<ManagementBaseObject>().FirstOrDefault()?["Manufacturer"]?.ToString();
-                        IsAmdHost = string.Equals(mfr, "AuthenticAMD", StringComparison.OrdinalIgnoreCase);
-                    }
-                    catch { }
                     try
                     {
                         var iso = await VmCreateService.GetIsolationSupportAsync();

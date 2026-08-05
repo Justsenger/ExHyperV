@@ -267,7 +267,9 @@
                         </Grid>
                         <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
 
-                        <Grid Margin="24,16">
+                        <Grid Margin="24,16"
+                              IsEnabled="{Binding IsX64Host}"
+                              Visibility="{Binding ShowX64PlatformFeatures, Converter={StaticResource BoolToVis}}">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
@@ -281,7 +283,8 @@
                                      IsChecked="{Binding SelectedVm.Processor.CompatibilityForOlderOperatingSystemsEnabled}" 
                                      Command="{Binding ApplyChangesCommand}"/>
                         </Grid>
-                        <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
+                        <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"
+                                   Visibility="{Binding ShowX64PlatformFeatures, Converter={StaticResource BoolToVis}}"/>
 
                         <Grid Margin="24,12,24,12">
                             <Grid.ColumnDefinitions>
@@ -317,7 +320,9 @@
                 <Border Background="{ui:ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="0" Margin="0,0,0,32">
                     <StackPanel>
 
-                        <Grid Margin="24,12,24,12">
+                        <Grid Margin="24,12,24,12"
+                              IsEnabled="{Binding IsX64Host}"
+                              Visibility="{Binding ShowX64PlatformFeatures, Converter={StaticResource BoolToVis}}">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="24"/><ColumnDefinition Width="200"/></Grid.ColumnDefinitions>
                             <StackPanel Grid.Column="0" VerticalAlignment="Center">
                                 <TextBlock Text="{x:Static properties:Resources.Cpu_ApicMode}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
@@ -333,9 +338,10 @@
                                 </ComboBox.ItemTemplate>
                             </ComboBox>
                         </Grid>
-                        <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
-
-                        <Grid Margin="24,12,24,12" IsEnabled="{Binding IsArm64Host}">
+                        <!-- LPI 属于 ARM 中断体系；x64 使用 APIC，不显示此项。 -->
+                        <Grid Margin="24,12,24,12"
+                              IsEnabled="{Binding IsArm64Host}"
+                              Visibility="{Binding ShowArm64PlatformFeatures, Converter={StaticResource BoolToVis}}">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="24"/><ColumnDefinition Width="200"/></Grid.ColumnDefinitions>
                             <StackPanel Grid.Column="0" VerticalAlignment="Center">
                                 <TextBlock Text="{x:Static properties:Resources.Cpu_LpiMode}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
@@ -447,9 +453,12 @@
                                 </ComboBox.ItemTemplate>
                             </ComboBox>
                         </Grid>
-                        <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
+                        <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"
+                                   Visibility="{Binding ShowAmdPlatformFeatures, Converter={StaticResource BoolToVis}}"/>
 
-                        <Grid Margin="24,12,24,12" IsEnabled="{Binding IsAmdHost}">
+                        <!-- AMD CCX 拓扑项仅在 AMD/“全部”平台视图中显示；非 AMD 实机保持不可用。 -->
+                        <Grid Margin="24,12,24,12" IsEnabled="{Binding IsAmdHost}"
+                              Visibility="{Binding ShowAmdPlatformFeatures, Converter={StaticResource BoolToVis}}">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="16"/><ColumnDefinition Width="200"/><ColumnDefinition Width="24"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                             <StackPanel Grid.Column="0" VerticalAlignment="Center">
                                 <TextBlock Text="{x:Static properties:Resources.Cpu_MaxClusterPerSocket}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
@@ -458,9 +467,11 @@
                             <ui:TextBox Grid.Column="2" VerticalAlignment="Center" Style="{StaticResource ShutdownRequiredTextBoxStyle}" Tag="{Binding SelectedVm.Processor.SupportedProps, Converter={StaticResource PropSupportedConverter}, ConverterParameter=MaxClusterCountPerSocket}" Text="{Binding SelectedVm.Processor.MaxClusterCountPerSocket, UpdateSourceTrigger=PropertyChanged}"/>
                             <ui:Button Grid.Column="4" Content="{x:Static properties:Resources.Apply}" Appearance="Primary" VerticalAlignment="Center" Padding="16,7" Command="{Binding ApplyChangesCommand}" Style="{StaticResource ShutdownRequiredButtonStyle}" Tag="{Binding SelectedVm.Processor.SupportedProps, Converter={StaticResource PropSupportedConverter}, ConverterParameter=MaxClusterCountPerSocket}"/>
                         </Grid>
-                        <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
+                        <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"
+                                   Visibility="{Binding ShowAmdPlatformFeatures, Converter={StaticResource BoolToVis}}"/>
 
-                        <Grid Margin="24,12,24,12" IsEnabled="{Binding IsAmdHost}">
+                        <Grid Margin="24,12,24,12" IsEnabled="{Binding IsAmdHost}"
+                              Visibility="{Binding ShowAmdPlatformFeatures, Converter={StaticResource BoolToVis}}">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="16"/><ColumnDefinition Width="200"/><ColumnDefinition Width="24"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                             <StackPanel Grid.Column="0" VerticalAlignment="Center">
                                 <TextBlock Text="{x:Static properties:Resources.Cpu_MaxProcPerL3}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
@@ -500,9 +511,11 @@
                                      IsChecked="{Binding SelectedVm.Processor.EnablePerfmonArchPmu}"
                                      Command="{Binding ApplyChangesCommand}"/>
                         </Grid>
-                        <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
+                        <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"
+                                   Visibility="{Binding ShowX64PlatformFeatures, Converter={StaticResource BoolToVis}}"/>
 
-                        <Grid Margin="24,16">
+                        <Grid Margin="24,16" IsEnabled="{Binding IsX64Host}"
+                              Visibility="{Binding ShowX64PlatformFeatures, Converter={StaticResource BoolToVis}}">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
@@ -516,9 +529,11 @@
                                      IsChecked="{Binding SelectedVm.Processor.AllowAcountMcount}"
                                      Command="{Binding ApplyChangesCommand}"/>
                         </Grid>
-                        <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
+                        <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"
+                                   Visibility="{Binding ShowX64PlatformFeatures, Converter={StaticResource BoolToVis}}"/>
 
-                        <Grid Margin="24,16">
+                        <Grid Margin="24,16" IsEnabled="{Binding IsX64Host}"
+                              Visibility="{Binding ShowX64PlatformFeatures, Converter={StaticResource BoolToVis}}">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                             <StackPanel VerticalAlignment="Center">
                                 <TextBlock Text="{x:Static properties:Resources.Cpu_PerfmonLbr}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
@@ -526,9 +541,11 @@
                             </StackPanel>
                             <ui:ToggleSwitch Grid.Column="1" Style="{StaticResource ShutdownRequiredToggleStyle}" Tag="{Binding SelectedVm.Processor.EnablePerfmonLbr}" IsChecked="{Binding SelectedVm.Processor.EnablePerfmonLbr}" Command="{Binding ApplyChangesCommand}"/>
                         </Grid>
-                        <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
+                        <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"
+                                   Visibility="{Binding ShowIntelPlatformFeatures, Converter={StaticResource BoolToVis}}"/>
 
-                        <Grid Margin="24,16">
+                        <Grid Margin="24,16" IsEnabled="{Binding IsIntelHost}"
+                              Visibility="{Binding ShowIntelPlatformFeatures, Converter={StaticResource BoolToVis}}">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                             <StackPanel VerticalAlignment="Center">
                                 <TextBlock Text="{x:Static properties:Resources.Cpu_PerfmonPebs}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
@@ -536,9 +553,11 @@
                             </StackPanel>
                             <ui:ToggleSwitch Grid.Column="1" Style="{StaticResource ShutdownRequiredToggleStyle}" Tag="{Binding SelectedVm.Processor.EnablePerfmonPebs}" IsChecked="{Binding SelectedVm.Processor.EnablePerfmonPebs}" Command="{Binding ApplyChangesCommand}"/>
                         </Grid>
-                        <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
+                        <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"
+                                   Visibility="{Binding ShowIntelPlatformFeatures, Converter={StaticResource BoolToVis}}"/>
 
-                        <Grid Margin="24,16">
+                        <Grid Margin="24,16" IsEnabled="{Binding IsIntelHost}"
+                              Visibility="{Binding ShowIntelPlatformFeatures, Converter={StaticResource BoolToVis}}">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                             <StackPanel VerticalAlignment="Center">
                                 <TextBlock Text="{x:Static properties:Resources.Cpu_PerfmonIpt}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
