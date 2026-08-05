@@ -2680,7 +2680,7 @@ The existing NAT switch is: '{0}'</value>
     <value>Access Tracking Granularity</value>
   </data>
   <data name="VmRAMSettings_DescMemAccessMonitor" xml:space="preserve">
-    <value>Set how Hyper-V records virtual machine memory access</value>
+    <value>How virtual machine memory access is recorded</value>
   </data>
   <data name="VmRAMSettings_LabelSgxComputing" xml:space="preserve">
     <value>Intel SGX Application Enclaves</value>
@@ -2752,13 +2752,13 @@ The existing NAT switch is: '{0}'</value>
     <value>Max Memory Per Node (MB)</value>
   </data>
   <data name="VmRAMSettings_DescNumaBlockLimit" xml:space="preserve">
-    <value>Set the maximum memory of a single virtual NUMA node</value>
+    <value>Maximum memory for a single virtual NUMA node</value>
   </data>
   <data name="VmRAMSettings_LabelDynMemStep" xml:space="preserve">
     <value>Dynamic Memory Page Alignment</value>
   </data>
   <data name="VmRAMSettings_DescDynMemStep" xml:space="preserve">
-    <value>Set the page alignment used when Hyper-V adds or removes dynamic memory</value>
+    <value>Page alignment used when adding or removing dynamic memory</value>
   </data>
   <data name="VmRAMSettings_LabelCxlExtension" xml:space="preserve">
     <value>CXL Memory</value>
@@ -3544,7 +3544,7 @@ Remove them from storage and retry? Cancel to re-plug the device and try again.<
     <value>Memory Mapping</value>
   </data>
   <data name="Label_MemoryPageManagement" xml:space="preserve">
-    <value>Memory Pages</value>
+    <value>Memory Topology</value>
   </data>
   <data name="Label_MemoryHardwareExtensions" xml:space="preserve">
     <value>Hardware Extensions</value>
@@ -3572,9 +3572,6 @@ Remove them from storage and retry? Cancel to re-plug the device and try again.<
   </data>
   <data name="VmPage_DynMemAlignmentDisabled" xml:space="preserve">
     <value>Disabled</value>
-  </data>
-  <data name="Label_MemoryNumaTopology" xml:space="preserve">
-    <value>NUMA Topology</value>
   </data>
   <data name="Label_MemoryAccessTracking" xml:space="preserve">
     <value>Memory Access Tracking</value>

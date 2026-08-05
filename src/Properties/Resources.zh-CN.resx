@@ -2680,7 +2680,7 @@
     <value>访问跟踪粒度</value>
   </data>
   <data name="VmRAMSettings_DescMemAccessMonitor" xml:space="preserve">
-    <value>设置 Hyper-V 记录虚拟机内存访问的方式</value>
+    <value>记录虚拟机内存访问的方式</value>
   </data>
   <data name="VmRAMSettings_LabelSgxComputing" xml:space="preserve">
     <value>Intel SGX 应用飞地</value>
@@ -2752,13 +2752,13 @@
     <value>每节点最大内存 (MB)</value>
   </data>
   <data name="VmRAMSettings_DescNumaBlockLimit" xml:space="preserve">
-    <value>设置单个虚拟 NUMA 节点的最大内存</value>
+    <value>单个虚拟 NUMA 节点的最大内存</value>
   </data>
   <data name="VmRAMSettings_LabelDynMemStep" xml:space="preserve">
     <value>动态内存页对齐</value>
   </data>
   <data name="VmRAMSettings_DescDynMemStep" xml:space="preserve">
-    <value>设置 Hyper-V 增减动态内存时使用的页对齐方式</value>
+    <value>增减动态内存时使用的页对齐方式</value>
   </data>
   <data name="VmRAMSettings_LabelCxlExtension" xml:space="preserve">
     <value>CXL 内存</value>
@@ -3544,7 +3544,7 @@
     <value>内存映射</value>
   </data>
   <data name="Label_MemoryPageManagement" xml:space="preserve">
-    <value>内存页面</value>
+    <value>内存拓扑</value>
   </data>
   <data name="Label_MemoryHardwareExtensions" xml:space="preserve">
     <value>硬件扩展</value>
@@ -3572,9 +3572,6 @@
   </data>
   <data name="VmPage_DynMemAlignmentDisabled" xml:space="preserve">
     <value>禁用</value>
-  </data>
-  <data name="Label_MemoryNumaTopology" xml:space="preserve">
-    <value>NUMA 拓扑</value>
   </data>
   <data name="Label_MemoryAccessTracking" xml:space="preserve">
     <value>内存访问跟踪</value>

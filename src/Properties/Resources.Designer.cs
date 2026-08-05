@@ -9136,10 +9136,6 @@ namespace ExHyperV.Properties {
             get { return ResourceManager.GetString("VmPage_DynMemAlignmentDisabled", resourceCulture); }
         }
 
-        public static string Label_MemoryNumaTopology {
-            get { return ResourceManager.GetString("Label_MemoryNumaTopology", resourceCulture); }
-        }
-
         public static string Label_MemoryAccessTracking {
             get { return ResourceManager.GetString("Label_MemoryAccessTracking", resourceCulture); }
         }
