@@ -604,13 +604,13 @@ The existing NAT switch is: '{0}'</value>
     <value>Controls the number of hardware threads per core exposed to the virtual machine.</value>
   </data>
   <data name="CpuEnum_Smt_Inherit" xml:space="preserve">
-    <value>Inherit from host</value>
+    <value>Automatic</value>
   </data>
   <data name="CpuEnum_Smt_SingleThread" xml:space="preserve">
-    <value>Single thread</value>
+    <value>Off</value>
   </data>
   <data name="CpuEnum_Smt_MultiThread" xml:space="preserve">
-    <value>Multi-threading</value>
+    <value>On</value>
   </data>
   <data name="CpuBinding" xml:space="preserve">
     <value>Cpu Pinning</value>

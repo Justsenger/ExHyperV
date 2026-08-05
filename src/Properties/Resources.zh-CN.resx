@@ -604,13 +604,13 @@
     <value>控制向虚拟机公开的每个核心硬件线程数</value>
   </data>
   <data name="CpuEnum_Smt_Inherit" xml:space="preserve">
-    <value>继承主机</value>
+    <value>自动</value>
   </data>
   <data name="CpuEnum_Smt_SingleThread" xml:space="preserve">
-    <value>单线程</value>
+    <value>关闭</value>
   </data>
   <data name="CpuEnum_Smt_MultiThread" xml:space="preserve">
-    <value>多线程</value>
+    <value>开启</value>
   </data>
   <data name="CpuBinding" xml:space="preserve">
     <value>CPU 绑定</value>
