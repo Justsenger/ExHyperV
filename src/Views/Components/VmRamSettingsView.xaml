@@ -536,7 +536,7 @@
                 <TextBlock Text="{x:Static properties:Resources.Label_MemoryConfidentialComputing}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,12"/>
                 <Border Background="{ui:ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="0">
                     <Border.Style>
-                        <Style TargetType="Border" BasedOn="{StaticResource {x:Type Border}}">
+                        <Style TargetType="Border">
                             <Setter Property="Margin" Value="0,0,0,12"/>
                             <Style.Triggers>
                                 <DataTrigger Binding="{Binding ShowIntelPlatformFeatures}" Value="False">
