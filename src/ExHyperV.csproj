@@ -7,7 +7,7 @@
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 		<ApplicationIcon>Assets\Icon.ico</ApplicationIcon>
-		<Version>1.5.1-Beta0805</Version>
+		<Version>1.5.1-Beta0807</Version>
 		<Authors>Justsenger</Authors>
 		<IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
 		<WpfUiGenerateDiagnosticMessages>False</WpfUiGenerateDiagnosticMessages>
