@@ -69,7 +69,6 @@ public static class VmPcieService
                     HostResource = resources.FirstOrDefault() ?? string.Empty,
                     ModeAvailable = obj.HasProperty("GuestPciExpressMode"),
                     Mode = obj.TryGetByte("GuestPciExpressMode") ?? 0,
-                    ElementName = WmiApi.PropStr(obj, "ElementName"),
                 };
             });
 
@@ -77,28 +76,36 @@ public static class VmPcieService
             return ApiResponse<VmPcieSettings>.Fail(
                 deviceResponse.Error, deviceResponse.Code, deviceResponse.ErrorSource);
 
-        var hostDevices = await Task.Run(BuildHostDeviceMap);
-        var pciIds = new PciIds();
-        if ((deviceResponse.Data?.Count ?? 0) > 0)
-        {
-            try { await pciIds.EnsureInitializedAsync(); }
-            catch { }
-        }
+        // 设备是否实际属于此 VM，以及设备的名称、类别、路径和厂商，统一采用
+        // 主 PCIe 页面已经完成归属判定后的结果。这里仅保留 VM 专属设置的读取。
+        var (mainDevices, _) = await PCIeService.GetPCIeInfoAsync();
+        var assignedDevices = mainDevices
+            .Where(device => string.Equals(
+                device.Status, vmName, StringComparison.OrdinalIgnoreCase))
+            .Select(device => new
+            {
+                Key = NormalizePhysicalDeviceId(device.InstanceId),
+                Device = device,
+            })
+            .Where(item => !string.IsNullOrEmpty(item.Key))
+            .GroupBy(item => item.Key, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(
+                group => group.Key,
+                group => group.First().Device,
+                StringComparer.OrdinalIgnoreCase);
 
         var devices = new List<VmPcieDeviceSetting>();
         foreach (var device in deviceResponse.Data ?? [])
         {
             string resourceDeviceId = ExtractPhysicalDeviceId(device.HostResource);
             string key = NormalizePhysicalDeviceId(resourceDeviceId);
-            hostDevices.TryGetValue(key, out var hostDevice);
+            if (!assignedDevices.TryGetValue(key, out var mainDevice))
+                continue;
 
-            string name = hostDevice != null
-                ? hostDevice.FriendlyName
-                : !string.IsNullOrWhiteSpace(device.ElementName)
-                    ? device.ElementName
-                    : key;
-            string physicalInstanceId = hostDevice?.InstanceId ?? resourceDeviceId;
-            string classType = hostDevice?.Class ?? string.Empty;
+            string name = mainDevice.FriendlyName;
+            string classType = string.IsNullOrWhiteSpace(mainDevice.DisplayClassType)
+                ? mainDevice.ClassType
+                : mainDevice.DisplayClassType;
 
             devices.Add(new VmPcieDeviceSetting
             {
@@ -108,10 +115,10 @@ public static class VmPcieService
                 HostResource = device.HostResource,
                 GuestModeAvailable = device.ModeAvailable,
                 ClassType = classType,
-                DeviceInstanceId = physicalInstanceId,
-                Path = hostDevice?.FirstLocationPath ?? string.Empty,
-                Vendor = pciIds.GetVendorFromInstanceId(physicalInstanceId, classType),
-                IconGlyph = DeviceIcons.GetGlyph(classType, name),
+                DeviceInstanceId = mainDevice.InstanceId,
+                Path = mainDevice.Path,
+                Vendor = mainDevice.Vendor,
+                IconGlyph = DeviceIcons.GetGlyph(mainDevice.ClassType, name),
                 GuestMode = (VmPcieGuestMode)device.Mode,
                 AppliedGuestMode = (VmPcieGuestMode)device.Mode,
             });
@@ -312,34 +319,6 @@ public static class VmPcieService
         bool Existed,
         object? OriginalValue,
         RegistryValueKind? OriginalKind);
-
-    private static Dictionary<string, PciDeviceInfo> BuildHostDeviceMap()
-    {
-        var candidates = new Dictionary<string, (PciDeviceInfo Device, int Score)>(
-            StringComparer.OrdinalIgnoreCase);
-        foreach (var device in Win32Api.GetAllDevices())
-        {
-            string key = NormalizePhysicalDeviceId(device.InstanceId);
-            if (string.IsNullOrEmpty(key) || string.IsNullOrWhiteSpace(device.FriendlyName))
-                continue;
-
-            // DDA 设备通常同时保留 PCI\ 原设备记录和 PCIP\ 可分配设备记录。
-            // 两者归一化后的硬件 ID 相同；优先采用 PCI\ 记录获取原始名称和设备类别。
-            // 此处只依据稳定的实例 ID 前缀，不使用随系统语言或驱动变化的显示名称。
-            int score = device.InstanceId.StartsWith(@"PCI\", StringComparison.OrdinalIgnoreCase)
-                ? 2
-                : device.InstanceId.StartsWith(@"PCIP\", StringComparison.OrdinalIgnoreCase)
-                    ? 1
-                    : 0;
-
-            if (!candidates.TryGetValue(key, out var current) || score > current.Score)
-                candidates[key] = (device, score);
-        }
-        return candidates.ToDictionary(
-            pair => pair.Key,
-            pair => pair.Value.Device,
-            StringComparer.OrdinalIgnoreCase);
-    }
 
     private static string ExtractPhysicalDeviceId(string hostResource)
     {
