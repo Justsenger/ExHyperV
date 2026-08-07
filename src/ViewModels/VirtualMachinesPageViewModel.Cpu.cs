@@ -17,6 +17,7 @@ namespace ExHyperV.ViewModels
         [ObservableProperty] private ObservableCollection<VmCoreItem> _affinityHostCores = new();
         [ObservableProperty] private int _affinityColumns = 8;
         [ObservableProperty] private int _affinityRows = 1;
+        [ObservableProperty] private string? _affinityCpuModel;
 
         // 新增 CPU 字段的枚举下拉源（绑 ComboBox.ItemsSource）
         public Array SmtModeValues { get; } = Enum.GetValues(typeof(SmtMode));
@@ -122,6 +123,9 @@ namespace ExHyperV.ViewModels
 
             try
             {
+                var systemInfo = await SystemInfoService.GetSystemInfoAsync();
+                AffinityCpuModel = systemInfo.CpuModel.Split(" @", 2, StringSplitOptions.None)[0];
+
                 int totalCores = Environment.ProcessorCount;
                 var currentAffinity = await CpuAffinityService.GetCpuAffinityAsync(SelectedVm.Id, SelectedVm.Notes);
 

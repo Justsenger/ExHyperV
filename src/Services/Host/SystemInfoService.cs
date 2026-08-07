@@ -4,13 +4,16 @@ namespace ExHyperV.Services
 {
     public static class SystemInfoService
     {
+        private static readonly Lazy<Task<SystemInfo>> CachedSystemInfo =
+            new(() => Task.Run(GetSystemInfo));
+
         public record SystemInfo(
             string Caption,
             string OSArchitecture,
             string CpuModel,
             string MemCap);
 
-        public static Task<SystemInfo> GetSystemInfoAsync() => Task.Run(GetSystemInfo);
+        public static Task<SystemInfo> GetSystemInfoAsync() => CachedSystemInfo.Value;
 
         private static SystemInfo GetSystemInfo()
         {

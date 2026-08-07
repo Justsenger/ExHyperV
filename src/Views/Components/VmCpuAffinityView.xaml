@@ -91,9 +91,23 @@
                 <TextBlock Text="{x:Static properties:Resources.Label_CpuAffinity}" FontSize="20" FontWeight="Regular" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
                 <TextBlock Text="{x:Static properties:Resources.Label_SelectCores}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" Margin="0,4,0,0"/>
             </StackPanel>
-            <ui:Button Grid.Column="1" Appearance="Transparent" Padding="8" VerticalAlignment="Top" Command="{Binding GoToCpuSettingsCommand}">
-                <ui:SymbolIcon Symbol="ArrowLeft24" FontSize="18"/>
-            </ui:Button>
+            <Grid Grid.Column="1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Bottom" Margin="0,0,12,0">
+                    <TextBlock Text="{Binding AffinityCpuModel}"
+                               MaxWidth="420"
+                               FontSize="12"
+                               Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"
+                               TextTrimming="CharacterEllipsis"
+                               ToolTip="{Binding AffinityCpuModel}"/>
+                </StackPanel>
+                <ui:Button Grid.Column="1" Appearance="Transparent" Padding="8" VerticalAlignment="Top" Command="{Binding GoToCpuSettingsCommand}">
+                    <ui:SymbolIcon Symbol="ArrowLeft24" FontSize="18"/>
+                </ui:Button>
+            </Grid>
         </Grid>
 
         <ProgressBar Grid.Row="1" IsIndeterminate="True" VerticalAlignment="Top" Height="2" Margin="0,-2,0,0"
