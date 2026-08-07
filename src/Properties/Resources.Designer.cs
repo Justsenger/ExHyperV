@@ -4680,6 +4680,36 @@ namespace ExHyperV.Properties {
             }
         }
 
+        public static string Menu_AzureFeatureSet {
+            get {
+                return ResourceManager.GetString("Menu_AzureFeatureSet", resourceCulture);
+            }
+        }
+
+        public static string Desc_AzureFeatureSet {
+            get {
+                return ResourceManager.GetString("Desc_AzureFeatureSet", resourceCulture);
+            }
+        }
+
+        public static string Error_Host_AzureFeatureSetRegistryUnavailable {
+            get {
+                return ResourceManager.GetString("Error_Host_AzureFeatureSetRegistryUnavailable", resourceCulture);
+            }
+        }
+
+        public static string Error_Host_AzureFeatureSetChangeFailed {
+            get {
+                return ResourceManager.GetString("Error_Host_AzureFeatureSetChangeFailed", resourceCulture);
+            }
+        }
+
+        public static string Error_AzureFeatureSetRequired {
+            get {
+                return ResourceManager.GetString("Error_AzureFeatureSetRequired", resourceCulture);
+            }
+        }
+
         public static string Error_Host_OpenHclRegistryUnavailable {
             get {
                 return ResourceManager.GetString("Error_Host_OpenHclRegistryUnavailable", resourceCulture);

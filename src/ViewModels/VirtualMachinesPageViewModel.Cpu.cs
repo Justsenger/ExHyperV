@@ -28,6 +28,7 @@ namespace ExHyperV.ViewModels
         public bool IsAmdHost => SettingsService.NativeHostPlatform == HostPlatform.Amd;
         public bool IsIntelHost => SettingsService.NativeHostPlatform == HostPlatform.Intel;
         [ObservableProperty] private bool _isHwIsolationSupported;
+        [ObservableProperty] private bool _isAzureFeatureSetEnabled;
         public bool IsArm64Host { get; } = RuntimeInformation.OSArchitecture == Architecture.Arm64;
         public bool IsX64Host => !IsArm64Host;
         public bool ShowAmdPlatformFeatures => IsAmdHost;
@@ -59,6 +60,7 @@ namespace ExHyperV.ViewModels
             IsLoadingSettings = true;
             try
             {
+                IsAzureFeatureSetEnabled = await Task.Run(() => HostAzureFeatureSetService.IsEnabled());
                 if (!_cpuCapsInit)
                 {
                     _cpuCapsInit = true;

@@ -57,6 +57,19 @@ public static class VmProcessorService
                 // ����ֻ���ڹػ�״̬���� Realized�����޸�
                 var current = MapProcessor(procData);
 
+                bool changesAzureFeatureSetFrequencySetting =
+                    !Equals(newSettings.PerfCpuFreqMinMhz, current.PerfCpuFreqMinMhz)
+                    || !Equals(newSettings.PerfCpuFreqDesiredMhz, current.PerfCpuFreqDesiredMhz)
+                    || !Equals(newSettings.PerfCpuEnergyPerformancePreference, current.PerfCpuEnergyPerformancePreference)
+                    || !Equals(newSettings.PerfCpuAutonomousActivityWindow, current.PerfCpuAutonomousActivityWindow)
+                    || !Equals(newSettings.PerfCpuIgnoreHostMaxFrequency, current.PerfCpuIgnoreHostMaxFrequency);
+
+                if (changesAzureFeatureSetFrequencySetting && !HostAzureFeatureSetService.IsEnabled())
+                {
+                    validationError = Properties.Resources.Error_AzureFeatureSetRequired;
+                    return null;
+                }
+
                 int requestedPerfmonDependents =
                     (newSettings.EnablePerfmonPebs == true ? 1 : 0)
                     + (newSettings.EnablePerfmonIpt == true ? 1 : 0);

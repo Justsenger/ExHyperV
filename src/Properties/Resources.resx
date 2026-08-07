@@ -1488,6 +1488,21 @@ The existing NAT switch is: '{0}'</value>
   <data name="Desc_OpenHclFirmwareFile" xml:space="preserve">
     <value>Allow Hyper-V to load external IGVM development firmware files</value>
   </data>
+  <data name="Menu_AzureFeatureSet" xml:space="preserve">
+    <value>Azure Feature Set</value>
+  </data>
+  <data name="Desc_AzureFeatureSet" xml:space="preserve">
+    <value>Enable selected Hyper-V preview capabilities.</value>
+  </data>
+  <data name="Error_Host_AzureFeatureSetRegistryUnavailable" xml:space="preserve">
+    <value>The Hyper-V virtualization registry key could not be opened.</value>
+  </data>
+  <data name="Error_Host_AzureFeatureSetChangeFailed" xml:space="preserve">
+    <value>Failed to change Azure Feature Set: {0}</value>
+  </data>
+  <data name="Error_AzureFeatureSetRequired" xml:space="preserve">
+    <value>Enable Azure Feature Set on the Host page before changing this setting.</value>
+  </data>
   <data name="Error_Host_OpenHclRegistryUnavailable" xml:space="preserve">
     <value>The Hyper-V virtualization registry key could not be opened.</value>
   </data>
@@ -3458,15 +3473,6 @@ Remove them from storage and retry? Cancel to re-plug the device and try again.<
   </data>
   <data name="VmPcie_AppliedMessage" xml:space="preserve">
     <value>PCIe settings applied</value>
-  </data>
-  <data name="VmPcie_AzureFeatureSetOpenFailed" xml:space="preserve">
-    <value>Failed to open the host registry configuration required for PCIe emulation.</value>
-  </data>
-  <data name="VmPcie_AzureFeatureSetEnableFailed" xml:space="preserve">
-    <value>Failed to enable the host policy required for PCIe emulation: {0}</value>
-  </data>
-  <data name="VmPcie_AzureFeatureSetRestoreFailed" xml:space="preserve">
-    <value>Failed to restore the host policy used temporarily for PCIe emulation: {0}</value>
   </data>
   <data name="VmPcie_SettingsNotFound" xml:space="preserve">
     <value>Virtual machine settings were not found.</value>

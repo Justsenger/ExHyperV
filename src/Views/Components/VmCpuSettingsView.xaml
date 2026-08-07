@@ -179,6 +179,46 @@
                 </Trigger>
             </Style.Triggers>
         </Style>
+
+        <!-- 完整 CPPC 设置还要求宿主机启用 Azure 功能集。字段值继续显示，仅禁止修改。 -->
+        <Style x:Key="AzureFeatureSetToggleStyle" TargetType="ui:ToggleSwitch" BasedOn="{StaticResource ShutdownRequiredToggleStyle}">
+            <Style.Triggers>
+                <MultiDataTrigger>
+                    <MultiDataTrigger.Conditions>
+                        <Condition Binding="{Binding IsAzureFeatureSetEnabled}" Value="False"/>
+                        <Condition Binding="{Binding RelativeSource={RelativeSource Self}, Path=Tag, Converter={StaticResource NullableToBooleanConverter}}" Value="True"/>
+                    </MultiDataTrigger.Conditions>
+                    <Setter Property="IsEnabled" Value="False"/>
+                    <Setter Property="ToolTip" Value="{x:Static properties:Resources.Error_AzureFeatureSetRequired}"/>
+                </MultiDataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="AzureFeatureSetTextBoxStyle" TargetType="ui:TextBox" BasedOn="{StaticResource ShutdownRequiredTextBoxStyle}">
+            <Style.Triggers>
+                <MultiDataTrigger>
+                    <MultiDataTrigger.Conditions>
+                        <Condition Binding="{Binding IsAzureFeatureSetEnabled}" Value="False"/>
+                        <Condition Binding="{Binding RelativeSource={RelativeSource Self}, Path=Tag, Converter={StaticResource NullableToBooleanConverter}}" Value="True"/>
+                    </MultiDataTrigger.Conditions>
+                    <Setter Property="IsEnabled" Value="False"/>
+                    <Setter Property="ToolTip" Value="{x:Static properties:Resources.Error_AzureFeatureSetRequired}"/>
+                </MultiDataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="AzureFeatureSetButtonStyle" TargetType="ui:Button" BasedOn="{StaticResource ShutdownRequiredButtonStyle}">
+            <Style.Triggers>
+                <MultiDataTrigger>
+                    <MultiDataTrigger.Conditions>
+                        <Condition Binding="{Binding IsAzureFeatureSetEnabled}" Value="False"/>
+                        <Condition Binding="{Binding RelativeSource={RelativeSource Self}, Path=Tag, Converter={StaticResource NullableToBooleanConverter}}" Value="True"/>
+                    </MultiDataTrigger.Conditions>
+                    <Setter Property="IsEnabled" Value="False"/>
+                    <Setter Property="ToolTip" Value="{x:Static properties:Resources.Error_AzureFeatureSetRequired}"/>
+                </MultiDataTrigger>
+            </Style.Triggers>
+        </Style>
     </UserControl.Resources>
 
     <Grid>
@@ -646,8 +686,8 @@
                                 <TextBlock Text="{x:Static properties:Resources.Cpu_FreqMin}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
                                 <TextBlock Text="{x:Static properties:Resources.Cpu_FreqMinDesc}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
                             </StackPanel>
-                            <ui:TextBox Grid.Column="2" VerticalAlignment="Center" Style="{StaticResource ShutdownRequiredTextBoxStyle}" Tag="{Binding SelectedVm.Processor.SupportedProps, Converter={StaticResource PropSupportedConverter}, ConverterParameter=PerfCpuFreqMinMhz}" Text="{Binding SelectedVm.Processor.PerfCpuFreqMinMhz, UpdateSourceTrigger=PropertyChanged}"/>
-                            <ui:Button Grid.Column="4" Content="{x:Static properties:Resources.Apply}" Appearance="Primary" VerticalAlignment="Center" Padding="16,7" Command="{Binding ApplyChangesCommand}" Style="{StaticResource ShutdownRequiredButtonStyle}" Tag="{Binding SelectedVm.Processor.SupportedProps, Converter={StaticResource PropSupportedConverter}, ConverterParameter=PerfCpuFreqMinMhz}"/>
+                            <ui:TextBox Grid.Column="2" VerticalAlignment="Center" Style="{StaticResource AzureFeatureSetTextBoxStyle}" Tag="{Binding SelectedVm.Processor.SupportedProps, Converter={StaticResource PropSupportedConverter}, ConverterParameter=PerfCpuFreqMinMhz}" Text="{Binding SelectedVm.Processor.PerfCpuFreqMinMhz, UpdateSourceTrigger=PropertyChanged}"/>
+                            <ui:Button Grid.Column="4" Content="{x:Static properties:Resources.Apply}" Appearance="Primary" VerticalAlignment="Center" Padding="16,7" Command="{Binding ApplyChangesCommand}" Style="{StaticResource AzureFeatureSetButtonStyle}" Tag="{Binding SelectedVm.Processor.SupportedProps, Converter={StaticResource PropSupportedConverter}, ConverterParameter=PerfCpuFreqMinMhz}"/>
                         </Grid>
                         <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
 
@@ -657,8 +697,8 @@
                                 <TextBlock Text="{x:Static properties:Resources.Cpu_FreqDesired}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
                                 <TextBlock Text="{x:Static properties:Resources.Cpu_FreqDesiredDesc}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
                             </StackPanel>
-                            <ui:TextBox Grid.Column="2" VerticalAlignment="Center" Style="{StaticResource ShutdownRequiredTextBoxStyle}" Tag="{Binding SelectedVm.Processor.SupportedProps, Converter={StaticResource PropSupportedConverter}, ConverterParameter=PerfCpuFreqDesiredMhz}" Text="{Binding SelectedVm.Processor.PerfCpuFreqDesiredMhz, UpdateSourceTrigger=PropertyChanged}"/>
-                            <ui:Button Grid.Column="4" Content="{x:Static properties:Resources.Apply}" Appearance="Primary" VerticalAlignment="Center" Padding="16,7" Command="{Binding ApplyChangesCommand}" Style="{StaticResource ShutdownRequiredButtonStyle}" Tag="{Binding SelectedVm.Processor.SupportedProps, Converter={StaticResource PropSupportedConverter}, ConverterParameter=PerfCpuFreqDesiredMhz}"/>
+                            <ui:TextBox Grid.Column="2" VerticalAlignment="Center" Style="{StaticResource AzureFeatureSetTextBoxStyle}" Tag="{Binding SelectedVm.Processor.SupportedProps, Converter={StaticResource PropSupportedConverter}, ConverterParameter=PerfCpuFreqDesiredMhz}" Text="{Binding SelectedVm.Processor.PerfCpuFreqDesiredMhz, UpdateSourceTrigger=PropertyChanged}"/>
+                            <ui:Button Grid.Column="4" Content="{x:Static properties:Resources.Apply}" Appearance="Primary" VerticalAlignment="Center" Padding="16,7" Command="{Binding ApplyChangesCommand}" Style="{StaticResource AzureFeatureSetButtonStyle}" Tag="{Binding SelectedVm.Processor.SupportedProps, Converter={StaticResource PropSupportedConverter}, ConverterParameter=PerfCpuFreqDesiredMhz}"/>
                         </Grid>
                         <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
 
@@ -668,8 +708,8 @@
                                 <TextBlock Text="{x:Static properties:Resources.Cpu_Epp}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
                                 <TextBlock Text="{x:Static properties:Resources.Cpu_EppDesc}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
                             </StackPanel>
-                            <ui:TextBox Grid.Column="2" VerticalAlignment="Center" Style="{StaticResource ShutdownRequiredTextBoxStyle}" Tag="{Binding SelectedVm.Processor.SupportedProps, Converter={StaticResource PropSupportedConverter}, ConverterParameter=PerfCpuEnergyPerformancePreference}" Text="{Binding SelectedVm.Processor.PerfCpuEnergyPerformancePreference, UpdateSourceTrigger=PropertyChanged}"/>
-                            <ui:Button Grid.Column="4" Content="{x:Static properties:Resources.Apply}" Appearance="Primary" VerticalAlignment="Center" Padding="16,7" Command="{Binding ApplyChangesCommand}" Style="{StaticResource ShutdownRequiredButtonStyle}" Tag="{Binding SelectedVm.Processor.SupportedProps, Converter={StaticResource PropSupportedConverter}, ConverterParameter=PerfCpuEnergyPerformancePreference}"/>
+                            <ui:TextBox Grid.Column="2" VerticalAlignment="Center" Style="{StaticResource AzureFeatureSetTextBoxStyle}" Tag="{Binding SelectedVm.Processor.SupportedProps, Converter={StaticResource PropSupportedConverter}, ConverterParameter=PerfCpuEnergyPerformancePreference}" Text="{Binding SelectedVm.Processor.PerfCpuEnergyPerformancePreference, UpdateSourceTrigger=PropertyChanged}"/>
+                            <ui:Button Grid.Column="4" Content="{x:Static properties:Resources.Apply}" Appearance="Primary" VerticalAlignment="Center" Padding="16,7" Command="{Binding ApplyChangesCommand}" Style="{StaticResource AzureFeatureSetButtonStyle}" Tag="{Binding SelectedVm.Processor.SupportedProps, Converter={StaticResource PropSupportedConverter}, ConverterParameter=PerfCpuEnergyPerformancePreference}"/>
                         </Grid>
                         <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
 
@@ -679,8 +719,8 @@
                                 <TextBlock Text="{x:Static properties:Resources.Cpu_ActivityWindow}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
                                 <TextBlock Text="{x:Static properties:Resources.Cpu_ActivityWindowDesc}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
                             </StackPanel>
-                            <ui:TextBox Grid.Column="2" VerticalAlignment="Center" Style="{StaticResource ShutdownRequiredTextBoxStyle}" Tag="{Binding SelectedVm.Processor.SupportedProps, Converter={StaticResource PropSupportedConverter}, ConverterParameter=PerfCpuAutonomousActivityWindow}" Text="{Binding SelectedVm.Processor.PerfCpuAutonomousActivityWindow, UpdateSourceTrigger=PropertyChanged}"/>
-                            <ui:Button Grid.Column="4" Content="{x:Static properties:Resources.Apply}" Appearance="Primary" VerticalAlignment="Center" Padding="16,7" Command="{Binding ApplyChangesCommand}" Style="{StaticResource ShutdownRequiredButtonStyle}" Tag="{Binding SelectedVm.Processor.SupportedProps, Converter={StaticResource PropSupportedConverter}, ConverterParameter=PerfCpuAutonomousActivityWindow}"/>
+                            <ui:TextBox Grid.Column="2" VerticalAlignment="Center" Style="{StaticResource AzureFeatureSetTextBoxStyle}" Tag="{Binding SelectedVm.Processor.SupportedProps, Converter={StaticResource PropSupportedConverter}, ConverterParameter=PerfCpuAutonomousActivityWindow}" Text="{Binding SelectedVm.Processor.PerfCpuAutonomousActivityWindow, UpdateSourceTrigger=PropertyChanged}"/>
+                            <ui:Button Grid.Column="4" Content="{x:Static properties:Resources.Apply}" Appearance="Primary" VerticalAlignment="Center" Padding="16,7" Command="{Binding ApplyChangesCommand}" Style="{StaticResource AzureFeatureSetButtonStyle}" Tag="{Binding SelectedVm.Processor.SupportedProps, Converter={StaticResource PropSupportedConverter}, ConverterParameter=PerfCpuAutonomousActivityWindow}"/>
                         </Grid>
                         <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
 
@@ -690,7 +730,7 @@
                                 <TextBlock Text="{x:Static properties:Resources.Cpu_IgnoreHostMaxFreq}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
                                 <TextBlock Text="{x:Static properties:Resources.Cpu_IgnoreHostMaxFreqDesc}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
                             </StackPanel>
-                            <ui:ToggleSwitch Grid.Column="1" Style="{StaticResource ShutdownRequiredToggleStyle}" Tag="{Binding SelectedVm.Processor.PerfCpuIgnoreHostMaxFrequency}" IsChecked="{Binding SelectedVm.Processor.PerfCpuIgnoreHostMaxFrequency}" Command="{Binding ApplyChangesCommand}"/>
+                            <ui:ToggleSwitch Grid.Column="1" Style="{StaticResource AzureFeatureSetToggleStyle}" Tag="{Binding SelectedVm.Processor.SupportedProps, Converter={StaticResource PropSupportedConverter}, ConverterParameter=PerfCpuIgnoreHostMaxFrequency}" IsChecked="{Binding SelectedVm.Processor.PerfCpuIgnoreHostMaxFrequency}" Command="{Binding ApplyChangesCommand}"/>
                         </Grid>
                     </StackPanel>
                 </Border>
