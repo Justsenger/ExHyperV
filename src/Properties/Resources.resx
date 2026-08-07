@@ -3078,6 +3078,12 @@ The existing NAT switch is: '{0}'</value>
   <data name="Cpu_PerfmonPmuDesc" xml:space="preserve">
     <value>Allows the VM to access general hardware performance counters</value>
   </data>
+  <data name="Cpu_PerfmonPmuRequired" xml:space="preserve">
+    <value>Enable “Expose Performance Monitoring Unit (PMU)” first.</value>
+  </data>
+  <data name="Cpu_PerfmonPmuInUse" xml:space="preserve">
+    <value>Turn off PEBS and Intel PT before disabling PMU.</value>
+  </data>
   <data name="Cpu_PerfmonLbr" xml:space="preserve">
     <value>Expose Last Branch Records (LBR)</value>
   </data>
@@ -3088,13 +3094,13 @@ The existing NAT switch is: '{0}'</value>
     <value>Expose Precise Event-Based Sampling (PEBS)</value>
   </data>
   <data name="Cpu_PerfmonPebsDesc" xml:space="preserve">
-    <value>Allows the VM to collect precise performance event samples</value>
+    <value>Allows the VM to collect precise performance event samples; requires PMU</value>
   </data>
   <data name="Cpu_PerfmonIpt" xml:space="preserve">
     <value>Expose Processor Trace (Intel PT)</value>
   </data>
   <data name="Cpu_PerfmonIptDesc" xml:space="preserve">
-    <value>Allows the VM to record the processor instruction execution flow</value>
+    <value>Allows the VM to record the processor instruction execution flow; requires PMU</value>
   </data>
   <data name="Cpu_FreqCap" xml:space="preserve">
     <value>Max Frequency (MHz)</value>

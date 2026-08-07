@@ -37,6 +37,7 @@ public static class VmProcessorService
         try
         {
             string query = $"SELECT * FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(vmName)}'";
+            string? validationError = null;
 
             var xmlResults = await WmiApi.QueryAsync(query, vmEntry =>
             {
@@ -55,6 +56,27 @@ public static class VmProcessorService
 
                 // ����ֻ���ڹػ�״̬���� Realized�����޸�
                 var current = MapProcessor(procData);
+
+                int requestedPerfmonDependents =
+                    (newSettings.EnablePerfmonPebs == true ? 1 : 0)
+                    + (newSettings.EnablePerfmonIpt == true ? 1 : 0);
+                if (requestedPerfmonDependents > 0 && newSettings.EnablePerfmonPmu != true)
+                {
+                    int currentPerfmonDependents =
+                        (current.EnablePerfmonPebs == true ? 1 : 0)
+                        + (current.EnablePerfmonIpt == true ? 1 : 0);
+
+                    // 历史版本可能已经保存了缺少 PMU 的异常组合。允许逐项关闭依赖功能，
+                    // 但禁止新增、替换或维持这种组合。
+                    bool isRepairingExistingConfiguration =
+                        current.EnablePerfmonPmu != true
+                        && requestedPerfmonDependents < currentPerfmonDependents;
+                    if (!isRepairingExistingConfiguration)
+                    {
+                        validationError = ExHyperV.Properties.Resources.Cpu_PerfmonPmuRequired;
+                        return null;
+                    }
+                }
 
                 if (!procData.Path.Path.Contains("Realized"))
                     procData["VirtualQuantity"] = (ulong)newSettings.Count;
@@ -117,6 +139,9 @@ public static class VmProcessorService
 
                 return procData.GetText(TextFormat.CimDtd20);
             });
+
+            if (!string.IsNullOrEmpty(validationError))
+                return (false, validationError);
 
             string? xml = xmlResults.Data?.FirstOrDefault();
             if (string.IsNullOrEmpty(xml))

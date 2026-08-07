@@ -8644,6 +8644,16 @@ namespace ExHyperV.Properties {
                 return ResourceManager.GetString("Cpu_PerfmonPmuDesc", resourceCulture);
             }
         }
+        public static string Cpu_PerfmonPmuRequired {
+            get {
+                return ResourceManager.GetString("Cpu_PerfmonPmuRequired", resourceCulture);
+            }
+        }
+        public static string Cpu_PerfmonPmuInUse {
+            get {
+                return ResourceManager.GetString("Cpu_PerfmonPmuInUse", resourceCulture);
+            }
+        }
         public static string Cpu_PerfmonLbr {
             get {
                 return ResourceManager.GetString("Cpu_PerfmonLbr", resourceCulture);

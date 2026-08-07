@@ -41,6 +41,59 @@
             </Style.Triggers>
         </Style>
 
+        <!-- PEBS 和 Intel PT 依赖基础 PMU。未开启 PMU 时禁止创建新的依赖组合；
+             已存在的异常组合仍允许关闭依赖项，避免界面进入无法恢复的死锁状态。 -->
+        <Style x:Key="PerfmonDependentToggleStyle" TargetType="ui:ToggleSwitch" BasedOn="{StaticResource ShutdownRequiredToggleStyle}">
+            <Style.Triggers>
+                <MultiDataTrigger>
+                    <MultiDataTrigger.Conditions>
+                        <Condition Binding="{Binding RelativeSource={RelativeSource Self}, Path=IsChecked}" Value="False"/>
+                        <Condition Binding="{Binding SelectedVm.Processor.EnablePerfmonPmu}" Value="False"/>
+                        <Condition Binding="{Binding SelectedVm.IsRunning}" Value="False"/>
+                        <Condition Binding="{Binding RelativeSource={RelativeSource Self}, Path=Tag, Converter={StaticResource NullableToBooleanConverter}}" Value="True"/>
+                    </MultiDataTrigger.Conditions>
+                    <Setter Property="IsEnabled" Value="False"/>
+                    <Setter Property="ToolTip" Value="{x:Static properties:Resources.Cpu_PerfmonPmuRequired}"/>
+                </MultiDataTrigger>
+                <MultiDataTrigger>
+                    <MultiDataTrigger.Conditions>
+                        <Condition Binding="{Binding RelativeSource={RelativeSource Self}, Path=IsChecked}" Value="False"/>
+                        <Condition Binding="{Binding SelectedVm.Processor.EnablePerfmonPmu}" Value="{x:Null}"/>
+                        <Condition Binding="{Binding SelectedVm.IsRunning}" Value="False"/>
+                        <Condition Binding="{Binding RelativeSource={RelativeSource Self}, Path=Tag, Converter={StaticResource NullableToBooleanConverter}}" Value="True"/>
+                    </MultiDataTrigger.Conditions>
+                    <Setter Property="IsEnabled" Value="False"/>
+                    <Setter Property="ToolTip" Value="{x:Static properties:Resources.Cpu_PerfmonPmuRequired}"/>
+                </MultiDataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- 依赖项开启后禁止单独关闭 PMU；用户需要先关闭 PEBS 和 Intel PT。 -->
+        <Style x:Key="PerfmonPmuToggleStyle" TargetType="ui:ToggleSwitch" BasedOn="{StaticResource ShutdownRequiredToggleStyle}">
+            <Style.Triggers>
+                <MultiDataTrigger>
+                    <MultiDataTrigger.Conditions>
+                        <Condition Binding="{Binding RelativeSource={RelativeSource Self}, Path=IsChecked}" Value="True"/>
+                        <Condition Binding="{Binding SelectedVm.Processor.EnablePerfmonPebs}" Value="True"/>
+                        <Condition Binding="{Binding SelectedVm.IsRunning}" Value="False"/>
+                        <Condition Binding="{Binding RelativeSource={RelativeSource Self}, Path=Tag, Converter={StaticResource NullableToBooleanConverter}}" Value="True"/>
+                    </MultiDataTrigger.Conditions>
+                    <Setter Property="IsEnabled" Value="False"/>
+                    <Setter Property="ToolTip" Value="{x:Static properties:Resources.Cpu_PerfmonPmuInUse}"/>
+                </MultiDataTrigger>
+                <MultiDataTrigger>
+                    <MultiDataTrigger.Conditions>
+                        <Condition Binding="{Binding RelativeSource={RelativeSource Self}, Path=IsChecked}" Value="True"/>
+                        <Condition Binding="{Binding SelectedVm.Processor.EnablePerfmonIpt}" Value="True"/>
+                        <Condition Binding="{Binding SelectedVm.IsRunning}" Value="False"/>
+                        <Condition Binding="{Binding RelativeSource={RelativeSource Self}, Path=Tag, Converter={StaticResource NullableToBooleanConverter}}" Value="True"/>
+                    </MultiDataTrigger.Conditions>
+                    <Setter Property="IsEnabled" Value="False"/>
+                    <Setter Property="ToolTip" Value="{x:Static properties:Resources.Cpu_PerfmonPmuInUse}"/>
+                </MultiDataTrigger>
+            </Style.Triggers>
+        </Style>
+
         <!-- 样式 2: 运行时允许样式 (仅检查功能支持) -->
         <!-- 专门用于 "主机资源保护" -->
         <Style x:Key="RuntimeEnabledToggleStyle" TargetType="ui:ToggleSwitch" BasedOn="{StaticResource {x:Type ui:ToggleSwitch}}">
@@ -486,20 +539,22 @@
                 <Border Background="{ui:ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="0" Margin="0,0,0,32">
                     <StackPanel>
 
-                        <!-- 旧 PMU 属于 x86 Perfmon 功能族；ARM64 使用下一项 Arch PMU。 -->
-                        <Grid Margin="24,16" IsEnabled="{Binding IsX64Host}"
-                              Visibility="{Binding ShowX64PlatformFeatures, Converter={StaticResource BoolToVis}}">
+                        <!-- Microsoft 公开的虚拟 PMU 功能族用于 Intel；ARM64 使用下一项 Arch PMU。 -->
+                        <Grid Margin="24,16" IsEnabled="{Binding IsIntelHost}"
+                              Visibility="{Binding ShowIntelPlatformFeatures, Converter={StaticResource BoolToVis}}">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                             <StackPanel VerticalAlignment="Center">
                                 <TextBlock Text="{x:Static properties:Resources.Cpu_PerfmonPmu}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
                                 <TextBlock Text="{x:Static properties:Resources.Cpu_PerfmonPmuDesc}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
                             </StackPanel>
-                            <ui:ToggleSwitch Grid.Column="1" Style="{StaticResource ShutdownRequiredToggleStyle}" Tag="{Binding SelectedVm.Processor.EnablePerfmonPmu}" IsChecked="{Binding SelectedVm.Processor.EnablePerfmonPmu}" Command="{Binding ApplyChangesCommand}"/>
+                            <ui:ToggleSwitch Grid.Column="1" Style="{StaticResource PerfmonPmuToggleStyle}" Tag="{Binding SelectedVm.Processor.EnablePerfmonPmu}" IsChecked="{Binding SelectedVm.Processor.EnablePerfmonPmu}" Command="{Binding ApplyChangesCommand}"/>
                         </Grid>
                         <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"
-                                   Visibility="{Binding ShowX64PlatformFeatures, Converter={StaticResource BoolToVis}}"/>
+                                   Visibility="{Binding ShowIntelPlatformFeatures, Converter={StaticResource BoolToVis}}"/>
 
-                        <Grid Margin="24,16">
+                        <!-- 架构 PMU 当前用于 ARM64 PMUv3；x64 使用 Intel PMU 功能族。 -->
+                        <Grid Margin="24,16" IsEnabled="{Binding IsArm64Host}"
+                              Visibility="{Binding ShowArm64PlatformFeatures, Converter={StaticResource BoolToVis}}">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
@@ -514,7 +569,7 @@
                                      Command="{Binding ApplyChangesCommand}"/>
                         </Grid>
                         <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"
-                                   Visibility="{Binding ShowX64PlatformFeatures, Converter={StaticResource BoolToVis}}"/>
+                                   Visibility="{Binding ShowArm64PlatformFeatures, Converter={StaticResource BoolToVis}}"/>
 
                         <Grid Margin="24,16" IsEnabled="{Binding IsX64Host}"
                               Visibility="{Binding ShowX64PlatformFeatures, Converter={StaticResource BoolToVis}}">
@@ -534,8 +589,8 @@
                         <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"
                                    Visibility="{Binding ShowX64PlatformFeatures, Converter={StaticResource BoolToVis}}"/>
 
-                        <Grid Margin="24,16" IsEnabled="{Binding IsX64Host}"
-                              Visibility="{Binding ShowX64PlatformFeatures, Converter={StaticResource BoolToVis}}">
+                        <Grid Margin="24,16" IsEnabled="{Binding IsIntelHost}"
+                              Visibility="{Binding ShowIntelPlatformFeatures, Converter={StaticResource BoolToVis}}">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                             <StackPanel VerticalAlignment="Center">
                                 <TextBlock Text="{x:Static properties:Resources.Cpu_PerfmonLbr}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
@@ -553,7 +608,7 @@
                                 <TextBlock Text="{x:Static properties:Resources.Cpu_PerfmonPebs}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
                                 <TextBlock Text="{x:Static properties:Resources.Cpu_PerfmonPebsDesc}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
                             </StackPanel>
-                            <ui:ToggleSwitch Grid.Column="1" Style="{StaticResource ShutdownRequiredToggleStyle}" Tag="{Binding SelectedVm.Processor.EnablePerfmonPebs}" IsChecked="{Binding SelectedVm.Processor.EnablePerfmonPebs}" Command="{Binding ApplyChangesCommand}"/>
+                            <ui:ToggleSwitch Grid.Column="1" Style="{StaticResource PerfmonDependentToggleStyle}" Tag="{Binding SelectedVm.Processor.EnablePerfmonPebs}" IsChecked="{Binding SelectedVm.Processor.EnablePerfmonPebs}" Command="{Binding ApplyChangesCommand}"/>
                         </Grid>
                         <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"
                                    Visibility="{Binding ShowIntelPlatformFeatures, Converter={StaticResource BoolToVis}}"/>
@@ -565,7 +620,7 @@
                                 <TextBlock Text="{x:Static properties:Resources.Cpu_PerfmonIpt}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
                                 <TextBlock Text="{x:Static properties:Resources.Cpu_PerfmonIptDesc}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
                             </StackPanel>
-                            <ui:ToggleSwitch Grid.Column="1" Style="{StaticResource ShutdownRequiredToggleStyle}" Tag="{Binding SelectedVm.Processor.EnablePerfmonIpt}" IsChecked="{Binding SelectedVm.Processor.EnablePerfmonIpt}" Command="{Binding ApplyChangesCommand}"/>
+                            <ui:ToggleSwitch Grid.Column="1" Style="{StaticResource PerfmonDependentToggleStyle}" Tag="{Binding SelectedVm.Processor.EnablePerfmonIpt}" IsChecked="{Binding SelectedVm.Processor.EnablePerfmonIpt}" Command="{Binding ApplyChangesCommand}"/>
                         </Grid>
                     </StackPanel>
                 </Border>

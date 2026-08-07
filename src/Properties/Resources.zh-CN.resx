@@ -3078,6 +3078,12 @@
   <data name="Cpu_PerfmonPmuDesc" xml:space="preserve">
     <value>允许虚拟机访问通用硬件性能计数器</value>
   </data>
+  <data name="Cpu_PerfmonPmuRequired" xml:space="preserve">
+    <value>请先开启“暴露性能监控单元（PMU）”。</value>
+  </data>
+  <data name="Cpu_PerfmonPmuInUse" xml:space="preserve">
+    <value>请先关闭 PEBS 和 Intel PT，再关闭 PMU。</value>
+  </data>
   <data name="Cpu_PerfmonLbr" xml:space="preserve">
     <value>暴露最后分支记录（LBR）</value>
   </data>
@@ -3088,13 +3094,13 @@
     <value>暴露精确事件采样（PEBS）</value>
   </data>
   <data name="Cpu_PerfmonPebsDesc" xml:space="preserve">
-    <value>允许虚拟机采集精确的性能事件样本</value>
+    <value>允许虚拟机采集精确的性能事件样本，需要同时开启 PMU</value>
   </data>
   <data name="Cpu_PerfmonIpt" xml:space="preserve">
     <value>暴露处理器追踪（Intel PT）</value>
   </data>
   <data name="Cpu_PerfmonIptDesc" xml:space="preserve">
-    <value>允许虚拟机记录处理器指令执行流</value>
+    <value>允许虚拟机记录处理器指令执行流，需要同时开启 PMU</value>
   </data>
   <data name="Cpu_FreqCap" xml:space="preserve">
     <value>频率上限 (MHz)</value>
