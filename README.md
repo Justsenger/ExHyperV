@@ -440,6 +440,7 @@ Host and VM must be the following versions to enable this capability.
 | **Nvidia** | RTX 4080 Super | Ada Lovelace | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | |
 | **Nvidia** | RTX 2080 Super | Turing | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | |
 | **Nvidia** | GTX 1050 | Pascal | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | |
+| **Nvidia** | Tesla P100-PCIE-16GB | Pascal | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | |
 | **Nvidia** | GT 210 | Tesla | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | Not supported |
 | **Nvidia** | Tesla V100-SXM2-16GB | Volta | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | Host crashes on boot #95 |
 | **Intel**| Iris Xe Graphics| Xe-LP | ⚠️ | ✅ | ✅ | ✅ | ✅ | ❌ | Incomplete HW ID|
@@ -717,6 +718,7 @@ Ineffective Versions: Pro, Home, Enterprise, Home Single Language.
 | **Nvidia** | RTX 5090 | Blackwell 2.0 | ✅ | ✅ | ✅ |
 | **Nvidia** | RTX 4090 | Ada Lovelace | ✅ | ✅ | ✅ |
 | **Nvidia** | RTX 4080 Super | Ada Lovelace | ✅ | ✅ | ✅ |
+| **Nvidia** | RTX 4070 Super | Ada Lovelace | ✅ | ✅ | ✅ |
 | **Nvidia** | RTX 4070 | Ada Lovelace | ✅ | ✅ | ✅ |
 | **Nvidia** | RTX 2080 Super | Turing | ✅ | ✅ | ✅ |
 | **Nvidia** | GTX 1660 Super | Turing | ✅ | ✅ | ✅ |
@@ -724,8 +726,10 @@ Ineffective Versions: Pro, Home, Enterprise, Home Single Language.
 | **Nvidia** | GT 1030 | Pascal | ✅ | ✅ | ✅ |
 | **Nvidia** | GT 210 | Tesla | ✅ | ✅ | ❌ |
 | **Nvidia** | Tesla V100-SXM2-16GB | Volta | ✅ | ✅ | ❌ |
+| **Nvidia** | Tesla P100-PCIE-16GB | Pascal | ✅ | ✅ | ❌ |
 | **Intel** | DG1 | Xe-LP | ✅ | ❌ | [Specific Driver](https://www.shengqipc.cn/d21.html) ✅ |
 | **Intel** | A380 | Xe-HPG | Code 43 ❌ | ✅ | ❌ |
+| **Intel** | UHD Graphics 770 | Xe | Cannot be passed through ❌ | ❌ | ❌ |
 | **Intel**| UHD Graphics 620 Mobile | Generation 9.5 | Fails ❌ | ❌ | ❌ |
 | **Intel**| HD Graphics 610 | Generation 9.5 | Fails ❌ | ❌ | ❌ |
 | **Intel**| HD Graphics 530 | Generation 9.0 | Fails ❌ | ❌ | ❌ |

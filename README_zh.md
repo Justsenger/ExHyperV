@@ -432,6 +432,7 @@ GPU-PV 是一种半虚拟化技术，它允许多个虚拟机共享使用物理 
 | **Nvidia** | RTX 4080 Super | Ada Lovelace | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | |
 | **Nvidia** | RTX 2080 Super | Turing | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | |
 | **Nvidia** | GTX 1050 | Pascal | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | |
+| **Nvidia** | Tesla P100-PCIE-16GB | Pascal | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | |
 | **Nvidia** | GT 210 | Tesla | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | 不支持 |
 | **Nvidia** | Tesla V100-SXM2-16GB | Volta | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | 启动会导致宿主崩溃 #95 |
 | **Intel**| Iris Xe Graphics| Xe-LP | ⚠️ | ✅ | ✅ | ✅ | ✅ | ❌ | 硬件识别残缺| 
@@ -713,6 +714,7 @@ PCIe 直通以 PCIe 设备为单位查找可分配设备。如果设备未显示
 | **Nvidia** | RTX 5090 | Blackwell 2.0 | ✅ | ✅ | ✅ |
 | **Nvidia** | RTX 4090 | Ada Lovelace | ✅ | ✅ | ✅ |
 | **Nvidia** | RTX 4080 Super | Ada Lovelace | ✅ | ✅ | ✅ |
+| **Nvidia** | RTX 4070 Super | Ada Lovelace | ✅ | ✅ | ✅ |
 | **Nvidia** | RTX 4070 | Ada Lovelace | ✅ | ✅ | ✅ |
 | **Nvidia** | RTX 2080 Super | Turing | ✅ | ✅ | ✅ |
 | **Nvidia** | GTX 1660 Super | Turing | ✅ | ✅ | ✅ |
@@ -720,11 +722,13 @@ PCIe 直通以 PCIe 设备为单位查找可分配设备。如果设备未显示
 | **Nvidia** | GT 1030 | Pascal | ✅ | ✅ | ✅ |
 | **Nvidia** | GT 210 | Tesla | ✅ | ✅ | ❌ |
 | **Nvidia** | Tesla V100-SXM2-16GB | Volta | ✅ | ✅ | ❌ |
+| **Nvidia** | Tesla P100-PCIE-16GB | Pascal | ✅ | ✅ | ❌ |
 | **Intel** | DG1 | Xe-LP | ✅ | ❌ | [特定驱动](https://www.shengqipc.cn/d21.html) ✅ |
 | **Intel** | A380 | Xe-HPG | Code 43 ❌ | ✅ | ❌ |
+| **Intel** | UHD Graphics 770 | Xe | 无法直通❌ | ❌ | ❌ |
 | **Intel**| UHD Graphics 620 Mobile | Generation 9.5 | 无法直通❌ | ❌ | ❌ | 
 | **Intel**| HD Graphics 610 | Generation 9.5 | 无法直通❌ | ❌ | ❌ | 
-| **Intel**| HD Graphics 530 | Generation 9.0 | 无法直通❌ | ❌ | ❌ | ❌ |
+| **Intel**| HD Graphics 530 | Generation 9.0 | 无法直通❌ | ❌ | ❌ |
 | **AMD** | RX 580 | GCN 4.0 | Code 43 ❌ | ✅ | ❌ |
 | **AMD** | Radeon Vega 3 | GCN 5.0 | Code 43 ❌ | ❌ | ❌ |
 | **Qualcomm** | Qualcomm(R) Adreno(TM) X1-85 GPU | Adreno X1 | 不支持❌ | ❌ | ❌ |
