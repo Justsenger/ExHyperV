@@ -54,30 +54,34 @@ namespace ExHyperV.Tools
             }
             _isInitialized = true;
         }
-        public string GetVendorFromInstanceId(string instanceId, string? deviceClass = null)
+        /// <summary>
+        /// PCI 设备优先使用 SUBSYS 中的子系统厂商，再回退到 VEN；
+        /// ACPI 和其他总线没有 PCI 子系统语义，直接使用 Windows 返回的制造商。
+        /// </summary>
+        public string GetVendorFromInstanceId(string instanceId, string? windowsManufacturer = null)
         {
+            if (!instanceId.StartsWith("PCI\\", StringComparison.OrdinalIgnoreCase))
+                return string.IsNullOrWhiteSpace(windowsManufacturer) ? "Unknown" : windowsManufacturer.Trim();
+
             var venMatch = Regex.Match(instanceId, @"VEN_([0-9A-F]{4})", RegexOptions.IgnoreCase);
             string? vid = venMatch.Success ? venMatch.Groups[1].Value.ToLower() : null;
 
-            // Intel 设备直接用 VEN，不看 SUBSYS
-            bool trySubsys = vid != "8086"
-                && string.Equals(deviceClass, "Display", StringComparison.OrdinalIgnoreCase);
-
-            if (trySubsys)
+            var subsysMatch = Regex.Match(
+                instanceId,
+                @"SUBSYS_[0-9A-F]{4}([0-9A-F]{4})",
+                RegexOptions.IgnoreCase);
+            if (subsysMatch.Success)
             {
-                var subsysMatch = Regex.Match(instanceId, @"SUBSYS_[0-9A-F]{4}([0-9A-F]{4})", RegexOptions.IgnoreCase);
-                if (subsysMatch.Success)
-                {
-                    string svid = subsysMatch.Groups[1].Value.ToLower();
-                    if (_vendorDatabase.TryGetValue(svid, out var subsysVendor))
-                        return subsysVendor;
-                }
+                string svid = subsysMatch.Groups[1].Value.ToLower();
+                if (svid != "0000" && svid != "ffff"
+                    && _vendorDatabase.TryGetValue(svid, out var subsysVendor))
+                    return subsysVendor;
             }
 
             if (vid != null && _vendorDatabase.TryGetValue(vid, out var vendorName))
                 return vendorName;
 
-            return "Unknown";
+            return string.IsNullOrWhiteSpace(windowsManufacturer) ? "Unknown" : windowsManufacturer.Trim();
         }
     }
 }

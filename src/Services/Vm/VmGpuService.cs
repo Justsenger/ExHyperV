@@ -105,13 +105,14 @@ namespace ExHyperV.Services
             foreach (var (instanceId, name, manu, driverVersion) in displayAdapters)
             {
                 if (string.IsNullOrEmpty(name)) continue;
+                string vendor = pciInfoProvider.GetVendorFromInstanceId(instanceId, manu);
                 gpuList.Add(new GpuInfo
                 {
                     Name = name,
-                    Manu = string.IsNullOrEmpty(manu) ? pciInfoProvider.GetVendorFromInstanceId(instanceId) : manu,
+                    Manu = string.IsNullOrEmpty(manu) ? vendor : manu,
                     InstanceId = instanceId,
                     DriverVersion = driverVersion,
-                    Vendor = pciInfoProvider.GetVendorFromInstanceId(instanceId)
+                    Vendor = vendor
                 });
             }
 

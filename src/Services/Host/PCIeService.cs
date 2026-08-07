@@ -182,7 +182,9 @@ namespace ExHyperV.Services
                         }
 
                         string path = pciDev.FirstLocationPath ?? "";
-                        string vendor = pciInfoProvider.GetVendorFromInstanceId(pciDev.InstanceId, pciDev.Class);
+                        string vendor = pciInfoProvider.GetVendorFromInstanceId(
+                            pciDev.InstanceId,
+                            pciDev.Manufacturer);
                         string displayClassType = pciDev.Class;
 
                         // System 类常被总线/复合设备驱动用于 PCIe 父节点，无法体现下层功能。
