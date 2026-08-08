@@ -379,7 +379,9 @@
                         <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"
                                    Visibility="{Binding ShowX64PlatformFeatures, Converter={StaticResource BoolToVis}}"/>
 
-                        <Grid Margin="24,12,24,12">
+                        <Grid Margin="24,12,24,12"
+                              IsEnabled="{Binding IsX64Host}"
+                              Visibility="{Binding ShowX64PlatformFeatures, Converter={StaticResource BoolToVis}}">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="16"/>
