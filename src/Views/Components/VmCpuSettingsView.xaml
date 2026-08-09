@@ -581,7 +581,7 @@
                 <Border Background="{ui:ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="0" Margin="0,0,0,32">
                     <StackPanel>
 
-                        <!-- Microsoft 公开的虚拟 PMU 功能族用于 Intel；ARM64 使用下一项 Arch PMU。 -->
+                        <!-- 传统虚拟 PMU 功能族用于 Intel 平台。 -->
                         <Grid Margin="24,16" IsEnabled="{Binding IsIntelHost}"
                               Visibility="{Binding ShowIntelPlatformFeatures, Converter={StaticResource BoolToVis}}">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
@@ -594,9 +594,8 @@
                         <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"
                                    Visibility="{Binding ShowIntelPlatformFeatures, Converter={StaticResource BoolToVis}}"/>
 
-                        <!-- 架构 PMU 当前用于 ARM64 PMUv3；x64 使用 Intel PMU 功能族。 -->
-                        <Grid Margin="24,16" IsEnabled="{Binding IsArm64Host}"
-                              Visibility="{Binding ShowArm64PlatformFeatures, Converter={StaticResource BoolToVis}}">
+                        <!-- 架构化 PMU 是跨架构能力：x64 使用架构化 x86 PMU，ARM64 使用 PMUv3。 -->
+                        <Grid Margin="24,16">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
@@ -611,7 +610,7 @@
                                      Command="{Binding ApplyChangesCommand}"/>
                         </Grid>
                         <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"
-                                   Visibility="{Binding ShowArm64PlatformFeatures, Converter={StaticResource BoolToVis}}"/>
+                                   Visibility="{Binding ShowX64PlatformFeatures, Converter={StaticResource BoolToVis}}"/>
 
                         <Grid Margin="24,16" IsEnabled="{Binding IsX64Host}"
                               Visibility="{Binding ShowX64PlatformFeatures, Converter={StaticResource BoolToVis}}">
