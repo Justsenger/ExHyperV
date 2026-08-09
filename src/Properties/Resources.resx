@@ -1197,6 +1197,9 @@ The existing NAT switch is: '{0}'</value>
   <data name="Msg_Net_Added" xml:space="preserve">
     <value>New network adapter added.</value>
   </data>
+  <data name="Msg_Net_CreateSwitchFirst" xml:space="preserve">
+    <value>Please create a virtual switch first.</value>
+  </data>
   <data name="Error_Net_AddExc" xml:space="preserve">
     <value>Add Exception</value>
   </data>

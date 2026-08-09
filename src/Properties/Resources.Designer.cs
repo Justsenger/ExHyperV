@@ -4754,6 +4754,15 @@ namespace ExHyperV.Properties {
                 return ResourceManager.GetString("Msg_Net_Added", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   查找类似 Please create a virtual switch first. 的本地化字符串。
+        /// </summary>
+        public static string Msg_Net_CreateSwitchFirst {
+            get {
+                return ResourceManager.GetString("Msg_Net_CreateSwitchFirst", resourceCulture);
+            }
+        }
         
         /// <summary>
         ///   查找类似 QoS settings applied 的本地化字符串。

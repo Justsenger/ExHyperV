@@ -1197,6 +1197,9 @@
   <data name="Msg_Net_Added" xml:space="preserve">
     <value>已添加新的网络适配器</value>
   </data>
+  <data name="Msg_Net_CreateSwitchFirst" xml:space="preserve">
+    <value>请先创建虚拟交换机</value>
+  </data>
   <data name="Error_Net_AddExc" xml:space="preserve">
     <value>添加异常</value>
   </data>

@@ -235,6 +235,16 @@ namespace ExHyperV.ViewModels
             // 静默改或断开网卡连接(运行态可热改、不报错，更隐蔽)。仅在仍处于网络页时执行。
             if (CurrentViewType != VmDetailViewType.NetworkSettings) return;
             if (SelectedVm == null || adapter == null) return;
+
+            // 未创建任何虚拟交换机时，网卡只有 setting、没有可创建的端口分配对象。
+            // 开启操作在这里直接回滚并给出明确提示，避免落到 WMI 后显示误导性的“找不到分配对象”。
+            if (adapter.IsConnected && AvailableSwitchNames.Count == 0)
+            {
+                adapter.IsConnected = false;
+                ShowTip(Properties.Resources.Msg_Net_CreateSwitchFirst);
+                return;
+            }
+
             IsLoadingSettings = true;
             try
             {
