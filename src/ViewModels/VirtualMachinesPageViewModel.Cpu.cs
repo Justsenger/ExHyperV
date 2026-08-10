@@ -21,6 +21,7 @@ namespace ExHyperV.ViewModels
 
         // 新增 CPU 字段的枚举下拉源（绑 ComboBox.ItemsSource）
         public Array SmtModeValues { get; } = Enum.GetValues(typeof(SmtMode));
+        public Array MigrationCompatibilityModeValues { get; } = Enum.GetValues(typeof(VmMigrationCompatibilityMode));
         public Array ApicModeValues { get; } = Enum.GetValues(typeof(VmApicMode));
         public Array L3DistributionPolicyValues { get; } = Enum.GetValues(typeof(L3DistributionPolicy));
         public Array PageShatterModeValues { get; } = Enum.GetValues(typeof(PageShatterMode));

@@ -107,6 +107,11 @@ public static class VmProcessorService
                 procData.TrySet("ExposeVirtualizationExtensions", newSettings.ExposeVirtualizationExtensions);
                 procData.TrySet("EnableHostResourceProtection", newSettings.EnableHostResourceProtection);
                 procData.TrySet("LimitProcessorFeatures", newSettings.CompatibilityForMigrationEnabled);
+                if (newSettings.CompatibilityForMigrationMode != current.CompatibilityForMigrationMode
+                    && newSettings.CompatibilityForMigrationMode is { } migrationMode)
+                {
+                    procData.TrySet<byte>("LimitProcessorFeaturesMode", (byte)migrationMode);
+                }
                 procData.TrySet("LimitCPUID", newSettings.CompatibilityForOlderOperatingSystemsEnabled);
 
                 if (newSettings.SmtMode.HasValue)
@@ -190,6 +195,7 @@ public static class VmProcessorService
                 RelativeWeight = Convert.ToInt32(procData["Weight"]),
 
                 ExposeVirtualizationExtensions = PBool(procData, "ExposeVirtualizationExtensions"),
+                CompatibilityForMigrationMode = (VmMigrationCompatibilityMode?)PByte(procData, "LimitProcessorFeaturesMode"),
                 EnableHostResourceProtection = PBool(procData, "EnableHostResourceProtection"),
                 CompatibilityForMigrationEnabled = procData.TryGet<bool>("LimitProcessorFeatures") ?? false,
                 CompatibilityForOlderOperatingSystemsEnabled = procData.TryGet<bool>("LimitCPUID") ?? false,

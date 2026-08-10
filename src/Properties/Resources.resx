@@ -591,6 +591,18 @@ The existing NAT switch is: '{0}'</value>
   <data name="MigrationCompatibilityDescription" xml:space="preserve">
     <value>Allows migration across different CPUs.</value>
   </data>
+  <data name="Cpu_MigrationCompatibilityMode" xml:space="preserve">
+    <value>Migration Compatibility Mode</value>
+  </data>
+  <data name="Cpu_MigrationCompatibilityModeDesc" xml:space="preserve">
+    <value>Selects the fixed minimum feature set or the feature set shared by cluster nodes.</value>
+  </data>
+  <data name="CpuEnum_Migration_MinimumFeatureSet" xml:space="preserve">
+    <value>Minimum Feature Set</value>
+  </data>
+  <data name="CpuEnum_Migration_CommonClusterFeatureSet" xml:space="preserve">
+    <value>Common Cluster Feature Set</value>
+  </data>
   <data name="LegacySystemCompatibility" xml:space="preserve">
     <value>Limit CPU features for legacy OS compatibility</value>
   </data>

@@ -4046,6 +4046,18 @@ namespace ExHyperV.Properties {
                 return ResourceManager.GetString("Menu_UnlockHard", resourceCulture);
             }
         }
+
+        public static string Cpu_MigrationCompatibilityMode {
+            get {
+                return ResourceManager.GetString("Cpu_MigrationCompatibilityMode", resourceCulture);
+            }
+        }
+
+        public static string Cpu_MigrationCompatibilityModeDesc {
+            get {
+                return ResourceManager.GetString("Cpu_MigrationCompatibilityModeDesc", resourceCulture);
+            }
+        }
         
         /// <summary>
         ///   查找类似 Virtual Machines 的本地化字符串。

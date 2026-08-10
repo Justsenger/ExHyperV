@@ -17,6 +17,9 @@ namespace ExHyperV.Models
     /// <summary>LPI (locality-specific peripheral interrupt) mode.</summary>
     public enum LpiMode : byte { Default = 0, Disabled = 2, Enabled = 3 }
 
+    /// <summary>处理器迁移兼容模式（LimitProcessorFeaturesMode，u8）。</summary>
+    public enum VmMigrationCompatibilityMode : byte { MinimumFeatureSet = 0, CommonClusterFeatureSet = 1 }
+
     /// <summary>
     /// VM 处理器设置（绑定 CPU Settings 页面）。
     /// 含 Clone/Restore 用于"取消编辑"还原。
@@ -30,6 +33,7 @@ namespace ExHyperV.Models
         [ObservableProperty] private bool? _exposeVirtualizationExtensions;
         [ObservableProperty] private bool? _enableHostResourceProtection;
         [ObservableProperty] private bool? _compatibilityForMigrationEnabled;
+        [ObservableProperty] private VmMigrationCompatibilityMode? _compatibilityForMigrationMode;
         [ObservableProperty] private bool? _compatibilityForOlderOperatingSystemsEnabled;
         [ObservableProperty] private SmtMode? _smtMode;
         [ObservableProperty] private bool? _disableSpeculationControls;

@@ -591,6 +591,18 @@
   <data name="MigrationCompatibilityDescription" xml:space="preserve">
     <value>屏蔽 CPU 指令集，以便在不同版本的宿主间迁移</value>
   </data>
+  <data name="Cpu_MigrationCompatibilityMode" xml:space="preserve">
+    <value>迁移兼容模式</value>
+  </data>
+  <data name="Cpu_MigrationCompatibilityModeDesc" xml:space="preserve">
+    <value>选择固定的最小特征集，或群集节点共同支持的特征集</value>
+  </data>
+  <data name="CpuEnum_Migration_MinimumFeatureSet" xml:space="preserve">
+    <value>最小特征集</value>
+  </data>
+  <data name="CpuEnum_Migration_CommonClusterFeatureSet" xml:space="preserve">
+    <value>群集公共特征集</value>
+  </data>
   <data name="LegacySystemCompatibility" xml:space="preserve">
     <value>旧系统兼容性</value>
   </data>

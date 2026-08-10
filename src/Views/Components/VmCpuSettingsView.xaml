@@ -349,6 +349,28 @@
                         </Grid>
                         <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
 
+                        <Grid Margin="24,12,24,12">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="24"/><ColumnDefinition Width="200"/></Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                <TextBlock Text="{x:Static properties:Resources.Cpu_MigrationCompatibilityMode}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
+                                <TextBlock Text="{x:Static properties:Resources.Cpu_MigrationCompatibilityModeDesc}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
+                            </StackPanel>
+                            <ComboBox Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Stretch"
+                                      Style="{StaticResource ShutdownRequiredComboBoxStyle}"
+                                      Tag="{Binding SelectedVm.Processor.SupportedProps, Converter={StaticResource PropSupportedConverter}, ConverterParameter=LimitProcessorFeaturesMode}"
+                                      ItemsSource="{Binding MigrationCompatibilityModeValues}"
+                                      SelectedItem="{Binding SelectedVm.Processor.CompatibilityForMigrationMode}">
+                                <tools:EventToCommand.EventName>SelectionChanged</tools:EventToCommand.EventName>
+                                <tools:EventToCommand.Command><Binding Path="ApplyChangesCommand"/></tools:EventToCommand.Command>
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Converter={StaticResource CpuEnumDisplayConverter}}"/>
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+                        </Grid>
+                        <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
+
                         <Grid Margin="24,16"
                               IsEnabled="{Binding IsX64Host}"
                               Visibility="{Binding ShowX64PlatformFeatures, Converter={StaticResource BoolToVis}}">
