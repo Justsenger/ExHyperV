@@ -9,9 +9,17 @@ echo "Using proven installation method from successful testing..."
 
 # Download SimplySign Desktop MSI
 CERTUM_INSTALLER="SimplySignDesktop.msi"
+CERTUM_INSTALLER_URL="https://files.certum.eu/software/SimplySignDesktop/Windows/9.4.3.90/SimplySignDesktop-9.4.3.90-64-bit-pl.msi"
 echo "Downloading SimplySign Desktop MSI..."
 
-if curl -L "https://files.certum.eu/software/SimplySignDesktop/Windows/9.4.3.90/SimplySignDesktop-9.4.3.90-64-bit-pl.msi" -o "$CERTUM_INSTALLER" --fail --max-time 60; then
+if curl --fail --location \
+  --retry 5 \
+  --retry-delay 5 \
+  --retry-all-errors \
+  --connect-timeout 30 \
+  --max-time 600 \
+  "$CERTUM_INSTALLER_URL" \
+  -o "$CERTUM_INSTALLER"; then
   echo "✅ Downloaded SimplySign Desktop MSI ($(ls -lh "$CERTUM_INSTALLER" | awk '{print $5}'))"
 else
   echo "❌ Failed to download SimplySign Desktop"

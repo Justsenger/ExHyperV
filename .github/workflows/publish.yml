@@ -109,7 +109,6 @@ jobs:
           chmod +x ./.github/scripts/install-simplysign.sh
           ./.github/scripts/install-simplysign.sh
           powershell -ExecutionPolicy Bypass -File "./.github/scripts/configure-simplysign-registry.ps1"
-        continue-on-error: true
 
       # ── 签名：认证 SimplySign ─────────────────────────────────────────
       - name: Authenticate Certum
