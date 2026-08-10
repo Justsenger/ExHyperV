@@ -183,6 +183,14 @@ namespace ExHyperV.ViewModels
 
                 if (!string.IsNullOrEmpty(path) && Directory.Exists(path))
                 {
+                    // 资源管理器会复用普通权限的桌面进程，因此打开默认 Hyper-V 配置目录前需补充当前用户的只读权限。
+                    var access = VmFolderAccessService.EnsureExplorerCanRead(path);
+                    if (!access.Success)
+                    {
+                        ShowError($"{Properties.Resources.VmPage_OpenFail}：{access.Error}");
+                        return;
+                    }
+
                     Shell.Reveal(path);
                 }
                 else
