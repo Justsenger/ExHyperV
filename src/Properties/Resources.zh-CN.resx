@@ -3166,10 +3166,10 @@
     <value>设置允许创建的嵌套硬件隔离虚拟机数量上限</value>
   </data>
   <data name="Cpu_MaxClusterPerSocket" xml:space="preserve">
-    <value>每插槽 CCX 数</value>
+    <value>每插槽最大处理器簇数</value>
   </data>
   <data name="Cpu_MaxClusterPerSocketDesc" xml:space="preserve">
-    <value>设置每个虚拟插槽包含的最大核簇数</value>
+    <value>设置每个虚拟 CPU 插槽允许包含的最大处理器簇数</value>
   </data>
   <data name="Cpu_MaxProcPerL3" xml:space="preserve">
     <value>每 L3 处理器数</value>

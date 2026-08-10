@@ -561,9 +561,8 @@
                         </Grid>
                         <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
 
-                        <!-- CCX 是 AMD 拓扑术语；其他架构不显示。 -->
-                        <Grid Margin="24,12,24,12" IsEnabled="{Binding IsAmdHost}"
-                              Visibility="{Binding ShowAmdPlatformFeatures, Converter={StaticResource BoolToVis}}">
+                        <!-- 是否可用由 Hyper-V 是否提供 MaxClusterCountPerSocket 属性决定。 -->
+                        <Grid Margin="24,12,24,12">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="16"/><ColumnDefinition Width="200"/><ColumnDefinition Width="24"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                             <StackPanel Grid.Column="0" VerticalAlignment="Center">
                                 <TextBlock Text="{x:Static properties:Resources.Cpu_MaxClusterPerSocket}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
@@ -572,10 +571,9 @@
                             <ui:TextBox Grid.Column="2" VerticalAlignment="Center" Style="{StaticResource ShutdownRequiredTextBoxStyle}" Tag="{Binding SelectedVm.Processor.SupportedProps, Converter={StaticResource PropSupportedConverter}, ConverterParameter=MaxClusterCountPerSocket}" Text="{Binding SelectedVm.Processor.MaxClusterCountPerSocket, UpdateSourceTrigger=PropertyChanged}"/>
                             <ui:Button Grid.Column="4" Content="{x:Static properties:Resources.Apply}" Appearance="Primary" VerticalAlignment="Center" Padding="16,7" Command="{Binding ApplyChangesCommand}" Style="{StaticResource ShutdownRequiredButtonStyle}" Tag="{Binding SelectedVm.Processor.SupportedProps, Converter={StaticResource PropSupportedConverter}, ConverterParameter=MaxClusterCountPerSocket}"/>
                         </Grid>
-                        <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"
-                                   Visibility="{Binding ShowAmdPlatformFeatures, Converter={StaticResource BoolToVis}}"/>
+                        <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
 
-                        <!-- 每 L3 最大处理器数已进入 ARM64 的 VMMS/VMWP 拓扑路径，不属于 AMD CCX 专项。 -->
+                        <!-- 是否可用由 Hyper-V 是否提供 MaxProcessorCountPerL3 属性决定。 -->
                         <Grid Margin="24,12,24,12">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="16"/><ColumnDefinition Width="200"/><ColumnDefinition Width="24"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                             <StackPanel Grid.Column="0" VerticalAlignment="Center">

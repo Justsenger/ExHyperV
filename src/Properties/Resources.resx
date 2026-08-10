@@ -3166,13 +3166,13 @@ The existing NAT switch is: '{0}'</value>
     <value>Sets the maximum number of nested hardware-isolated VMs that can be created</value>
   </data>
   <data name="Cpu_MaxClusterPerSocket" xml:space="preserve">
-    <value>Clusters (CCX) per Socket</value>
+    <value>Maximum Processor Clusters per Socket</value>
   </data>
   <data name="Cpu_MaxClusterPerSocketDesc" xml:space="preserve">
-    <value>Sets the maximum number of core complexes in each virtual socket</value>
+    <value>Sets the maximum number of processor clusters allowed in each virtual CPU socket</value>
   </data>
   <data name="Cpu_MaxProcPerL3" xml:space="preserve">
-    <value>Processors per L3 (CCX)</value>
+    <value>Processors per L3</value>
   </data>
   <data name="Cpu_MaxProcPerL3Desc" xml:space="preserve">
     <value>Sets the maximum number of virtual processors in each virtual L3 cache</value>
