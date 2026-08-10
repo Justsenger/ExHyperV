@@ -66,8 +66,7 @@ namespace ExHyperV.Services
                     return false;
                 }
 
-                await Task.Run(() => ProcessAffinityService.SetVmProcessAffinity(vmId, coreIndices));
-                return true;
+                return await Task.Run(() => ProcessAffinityService.SetVmProcessAffinity(vmId, coreIndices));
             }
             else
             {
