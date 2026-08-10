@@ -12,6 +12,7 @@ public static class HostAzureFeatureSetService
     private const string VirtualizationKey =
         @"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Virtualization";
     private const string AzureFeatureSetValue = "AzureFeatureSet";
+    private static readonly SemaphoreSlim TransientChangeLock = new(1, 1);
 
     public static bool IsEnabled()
     {
@@ -53,6 +54,45 @@ public static class HostAzureFeatureSetService
         catch (Exception ex)
         {
             return (false, ex.Message);
+        }
+    }
+
+    public static async Task<T> RunTemporarilyDisabledAsync<T>(Func<Task<T>> action)
+    {
+        await TransientChangeLock.WaitAsync();
+        object? originalValue = null;
+        RegistryValueKind originalKind = RegistryValueKind.Unknown;
+        bool valueRemoved = false;
+        try
+        {
+            using (var baseKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64))
+            using (var key = baseKey.OpenSubKey(VirtualizationKey, writable: true))
+            {
+                originalValue = key?.GetValue(AzureFeatureSetValue, null,
+                    RegistryValueOptions.DoNotExpandEnvironmentNames);
+                if (originalValue != null && key != null)
+                {
+                    originalKind = key.GetValueKind(AzureFeatureSetValue);
+                    key.DeleteValue(AzureFeatureSetValue, throwOnMissingValue: false);
+                    key.Flush();
+                    valueRemoved = true;
+                }
+            }
+            return await action();
+        }
+        finally
+        {
+            try
+            {
+                if (valueRemoved && originalValue != null)
+                {
+                    using var baseKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64);
+                    using var key = baseKey.CreateSubKey(VirtualizationKey, writable: true);
+                    key?.SetValue(AzureFeatureSetValue, originalValue, originalKind);
+                    key?.Flush();
+                }
+            }
+            finally { TransientChangeLock.Release(); }
         }
     }
 }

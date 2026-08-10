@@ -29,8 +29,12 @@ namespace ExHyperV.Services
             switch (action)
             {
                 case "Start":
-                    return await WmiApi.InvokeAsync(wql, "RequestStateChange",
-                        p => p["RequestedState"] = (ushort)2);
+                    Task<ApiResponse> StartAsync() => WmiApi.InvokeAsync(
+                        wql, "RequestStateChange", p => p["RequestedState"] = (ushort)2);
+                    if (HostAzureFeatureSetService.IsEnabled() &&
+                        await RequiresStandardIsolationStartupAsync(vmName))
+                        return await HostAzureFeatureSetService.RunTemporarilyDisabledAsync(StartAsync);
+                    return await StartAsync();
 
                 case "TurnOff":
                     return await ForceTurnOffAsync(vmName, wql);
@@ -60,6 +64,22 @@ namespace ExHyperV.Services
                 default:
                     return ApiResponse.Ok();
             }
+        }
+
+        private static async Task<bool> RequiresStandardIsolationStartupAsync(string vmName)
+        {
+            var vmId = await WmiApi.QueryFirstAsync(
+                $"SELECT Name FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(vmName)}'",
+                obj => obj["Name"]?.ToString() ?? string.Empty);
+            if (!vmId.HasData || string.IsNullOrEmpty(vmId.Data)) return false;
+
+            var isolation = await WmiApi.QueryFirstAsync(
+                $"SELECT GuestStateIsolationEnabled, GuestStateIsolationType FROM Msvm_VirtualSystemSettingData " +
+                $"WHERE VirtualSystemIdentifier = '{WmiApi.Escape(vmId.Data)}' " +
+                $"AND VirtualSystemType = 'Microsoft:Hyper-V:System:Realized'",
+                obj => (Enabled: obj["GuestStateIsolationEnabled"] is bool enabled && enabled,
+                    Type: Convert.ToUInt16(obj["GuestStateIsolationType"] ?? ushort.MaxValue)));
+            return isolation.HasData && isolation.Data.Enabled && isolation.Data.Type != 16;
         }
 
         private static async Task<ApiResponse> ForceTurnOffAsync(string vmName, string wql)

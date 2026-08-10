@@ -8,6 +8,9 @@ namespace ExHyperV.Services
     public static class VmCreateService
     {
         private const string ServiceWql = "SELECT * FROM Msvm_VirtualSystemManagementService";
+        private const string DefaultSystemSettingsWql =
+            "SELECT * FROM Msvm_VirtualSystemSettingData " +
+            "WHERE InstanceID = 'Microsoft:Definition\\\\VirtualSystem\\\\Default'";
 
         // Msvm_VirtualSystemSettingData.GuestStateIsolationType.
         // Disabled is represented by GuestStateIsolationEnabled=false, not by a UInt16 value.
@@ -22,6 +25,10 @@ namespace ExHyperV.Services
             Reserved18 = 18,
             Reserved19 = 19
         }
+
+        private static bool IsStandardIsolatedVm(VmCreationParams p) =>
+            p.Generation == 2 && p.IsolationType != "Disabled" &&
+            p.IsolationType != "OpenHCL" && !string.IsNullOrEmpty(p.IsolationType);
 
         public static async Task<List<string>> GetSupportedVersionsAsync()
         {
@@ -144,6 +151,10 @@ namespace ExHyperV.Services
             string vmHomeFolder = Path.Combine(p.Path, finalVmName);
             bool vmHomeFolderCreated = false;
             string? ownedVhdPath = null;
+            bool isStandardIsolatedVm = IsStandardIsolatedVm(p);
+            bool effectiveSecureBoot = p.EnableSecureBoot ||
+                (p.Generation == 2 && p.IsolationType == "TrustedLaunch");
+            bool effectiveTpm = p.EnableTpm || isStandardIsolatedVm;
             try
             {
                 // ── Step 1: 创建目录 ──────────────────────────────
@@ -166,48 +177,51 @@ namespace ExHyperV.Services
                 // ── Step 2: DefineSystem 创建 VM ──────────────────
                 using var svcForScope = WmiApi.GetVirtualSystemManagementService();
 
-                var vssdClass = new ManagementClass(
-                    svcForScope.Scope,
-                    new ManagementPath("Msvm_VirtualSystemSettingData"),
-                    null);
-                using var vssd = vssdClass.CreateInstance();
-
-                vssd["ElementName"] = finalVmName;
-                vssd["VirtualSystemSubType"] = p.Generation == 2
-                    ? "Microsoft:Hyper-V:SubType:2"
-                    : "Microsoft:Hyper-V:SubType:1";
-                vssd["Version"] = p.Version;
-                vssd["ConfigurationDataRoot"] = Path.Combine(p.Path, finalVmName);
-                vssd["SnapshotDataRoot"] = Path.Combine(p.Path, finalVmName);
-                vssd["SwapFileDataRoot"] = Path.Combine(p.Path, finalVmName);
-
-                // 新建即默认启动时 NumLock 开（Gen2 默认关，会致控制台连上把宿主 NumLock 带掉）；TrySetAlways 内置 HasProperty 守卫，防个别 build 无此属性
-                vssd.TrySetAlways("BIOSNumLock", true);
-
-                if (p.Generation == 2 && p.IsolationType != "Disabled" &&
-                    !string.IsNullOrEmpty(p.IsolationType))
-                {
-                    GuestStateIsolationTypeValue isolationType = p.IsolationType switch
+                var vssdResp = await WmiApi.WithFirstAsync(
+                    DefaultSystemSettingsWql,
+                    vssd =>
                     {
-                        "TrustedLaunch" => GuestStateIsolationTypeValue.TrustedLaunch,
-                        "VBS" => GuestStateIsolationTypeValue.Vbs,
-                        "SNP" => GuestStateIsolationTypeValue.SevSnp,
-                        "TDX" => GuestStateIsolationTypeValue.Tdx,
-                        "RME" => GuestStateIsolationTypeValue.Rme,
-                        "OpenHCL" => GuestStateIsolationTypeValue.OpenHcl,
-                        _ => throw new InvalidOperationException(
-                            $"Unsupported guest state isolation type: {p.IsolationType}")
-                    };
+                        vssd["ElementName"] = finalVmName;
+                        vssd["VirtualSystemSubType"] = p.Generation == 2
+                            ? "Microsoft:Hyper-V:SubType:2" : "Microsoft:Hyper-V:SubType:1";
+                        vssd["Version"] = p.Version;
+                        vssd["ConfigurationDataRoot"] = vmHomeFolder;
+                        vssd["SnapshotDataRoot"] = vmHomeFolder;
+                        vssd["SwapFileDataRoot"] = vmHomeFolder;
+                        vssd.TrySetAlways("BIOSNumLock", true);
 
-                    // WMI 属性是 Boolean + UInt16；显式写入底层数值，避免依赖字符串枚举转换。
-                    vssd.TrySet<bool>("GuestStateIsolationEnabled", true);
-                    vssd.TrySet<ushort>("GuestStateIsolationType", (ushort)isolationType);
-                }
+                        if (p.Generation == 2 && p.IsolationType != "Disabled" &&
+                            !string.IsNullOrEmpty(p.IsolationType))
+                        {
+                            GuestStateIsolationTypeValue isolationType = p.IsolationType switch
+                            {
+                                "TrustedLaunch" => GuestStateIsolationTypeValue.TrustedLaunch,
+                                "VBS" => GuestStateIsolationTypeValue.Vbs,
+                                "SNP" => GuestStateIsolationTypeValue.SevSnp,
+                                "TDX" => GuestStateIsolationTypeValue.Tdx,
+                                "RME" => GuestStateIsolationTypeValue.Rme,
+                                "OpenHCL" => GuestStateIsolationTypeValue.OpenHcl,
+                                _ => throw new InvalidOperationException(
+                                    $"Unsupported guest state isolation type: {p.IsolationType}")
+                            };
+                            vssd.TrySet<bool>("GuestStateIsolationEnabled", true);
+                            vssd.TrySet<ushort>("GuestStateIsolationType", (ushort)isolationType);
+                        }
+                        else vssd.TrySetAlways("GuestStateIsolationEnabled", false);
 
-                string vssdXml = vssd.GetText(TextFormat.CimDtd20);
+                        if (effectiveSecureBoot)
+                            vssd.TrySetAlways("SecureBootEnabled", true);
+                        return Task.FromResult(vssd.GetText(TextFormat.CimDtd20));
+                    });
+
+                if (!vssdResp.Success) throw new InvalidOperationException(vssdResp.Error);
+                if (!vssdResp.HasData)
+                    throw new InvalidOperationException(
+                        "Hyper-V did not provide the default virtual system settings template.");
+                string vssdXml = vssdResp.Data!;
 
                 defineSystemInvoked = true;
-                var defineResp = await WmiApi.InvokeWithResultAsync(
+                Task<ApiResponse<string[]>> DefineSystemAsync() => WmiApi.InvokeWithResultAsync(
                     ServiceWql,
                     "DefineSystem",
                     p2 =>
@@ -217,6 +231,10 @@ namespace ExHyperV.Services
                         p2["ReferenceConfiguration"] = null;
                     },
                     resultField: "ResultingSystem");
+
+                var defineResp = isStandardIsolatedVm && HostAzureFeatureSetService.IsEnabled()
+                    ? await HostAzureFeatureSetService.RunTemporarilyDisabledAsync(DefineSystemAsync)
+                    : await DefineSystemAsync();
 
                 if (!defineResp.Success)
                     throw new InvalidOperationException(defineResp.Error);
@@ -358,7 +376,7 @@ namespace ExHyperV.Services
                         modifier: obj =>
                         {
                             if (obj.HasProperty("SecureBootEnabled"))
-                                obj["SecureBootEnabled"] = p.EnableSecureBoot;
+                                obj["SecureBootEnabled"] = effectiveSecureBoot;
                         },
                         submitMethod: "ModifySystemSettings",
                         submitParamName: "SystemSettings",
@@ -366,7 +384,7 @@ namespace ExHyperV.Services
                 }
 
                 // ── Step 10: TPM ──────────────────────────────────
-                if (p.Generation == 2 && p.EnableTpm)
+                if (p.Generation == 2 && effectiveTpm)
                 {
                     await EnableTpmAsync(finalVmName, vmGuid, svcForScope.Scope);
                 }
