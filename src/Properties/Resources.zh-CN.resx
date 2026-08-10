@@ -1503,20 +1503,8 @@
   <data name="Desc_OpenHclFirmwareFile" xml:space="preserve">
     <value>允许 Hyper-V 加载外部 IGVM 开发固件文件</value>
   </data>
-  <data name="Menu_AzureFeatureSet" xml:space="preserve">
-    <value>Azure 功能集</value>
-  </data>
-  <data name="Desc_AzureFeatureSet" xml:space="preserve">
-    <value>启用部分 Hyper-V 预览版能力。</value>
-  </data>
   <data name="Error_Host_AzureFeatureSetRegistryUnavailable" xml:space="preserve">
     <value>无法打开 Hyper-V 虚拟化注册表项。</value>
-  </data>
-  <data name="Error_Host_AzureFeatureSetChangeFailed" xml:space="preserve">
-    <value>无法更改 Azure 功能集：{0}</value>
-  </data>
-  <data name="Error_AzureFeatureSetRequired" xml:space="preserve">
-    <value>请先在主机页面启用 Azure 功能集，再修改此设置。</value>
   </data>
   <data name="Error_Host_OpenHclRegistryUnavailable" xml:space="preserve">
     <value>无法打开 Hyper-V 虚拟化注册表项。</value>
