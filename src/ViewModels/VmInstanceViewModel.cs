@@ -74,6 +74,12 @@ namespace ExHyperV.ViewModels
         [NotifyPropertyChangedFor(nameof(CanEditSecurity))]
         private bool _isRunning;
 
+        /// <summary>
+        /// 仅在 Hyper-V 明确报告 EnabledState=3（已关闭），且当前没有本地过渡状态时为 true。
+        /// 保存、暂停和所有启动/停止过渡状态都不属于完全关机。
+        /// </summary>
+        public bool IsPoweredOff => _transientState == null && _backendCode == 3;
+
         public bool CanChangeBootOrder => !(Generation == 1 && IsRunning);
 
         // 控制台支持开关仅适用于第 2 代虚拟机（Enable/Disable-VMConsoleSupport 官方仅 Gen2 可用），且需关机时改
@@ -633,6 +639,7 @@ namespace ExHyperV.ViewModels
             // 乐观态期间(用户刚发起操作)一律视为活动；否则按后端原始状态码白名单判定，
             // 避免"合并磁盘/未知/等待启动"等非运行态被误判为运行(原字符串黑名单只排除 Off/Paused/Saved，会漏)
             IsRunning = _transientState != null || VmMapper.IsActiveState(_backendCode);
+            OnPropertyChanged(nameof(IsPoweredOff));
 
             if (!IsRunning)
             {
