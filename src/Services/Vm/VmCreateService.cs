@@ -140,12 +140,18 @@ namespace ExHyperV.Services
             // 避开 DefineSystem/建 VHD 的 ERROR_FILE_EXISTS(0x80070050)。用户预期：同名也应自动改名而非报错。
             string finalVmName = await GetUniqueVmNameAsync(p.Name, p.Path);
             bool vmCreated = false;   // DefineSystem 成功后置 true;失败回滚的依据
+            bool defineSystemInvoked = false;
+            string vmHomeFolder = Path.Combine(p.Path, finalVmName);
+            bool vmHomeFolderCreated = false;
+            string? ownedVhdPath = null;
             try
             {
                 // ── Step 1: 创建目录 ──────────────────────────────
-                string vmHomeFolder = Path.Combine(p.Path, finalVmName);
                 if (!Directory.Exists(vmHomeFolder))
+                {
                     Directory.CreateDirectory(vmHomeFolder);
+                    vmHomeFolderCreated = true;
+                }
 
                 // 新建磁盘：VhdPath 存的是文件夹（手选目录，或默认的 VM 目录），vhdx 文件名恒取最终 VM 名。
                 // 批量创建时各台名字不同 → 盘文件各自唯一，无需另行区分。
@@ -200,6 +206,7 @@ namespace ExHyperV.Services
 
                 string vssdXml = vssd.GetText(TextFormat.CimDtd20);
 
+                defineSystemInvoked = true;
                 var defineResp = await WmiApi.InvokeWithResultAsync(
                     ServiceWql,
                     "DefineSystem",
@@ -212,7 +219,7 @@ namespace ExHyperV.Services
                     resultField: "ResultingSystem");
 
                 if (!defineResp.Success)
-                    return (false, defineResp.Error);
+                    throw new InvalidOperationException(defineResp.Error);
 
                 // DefineSystem 已成功，VM 此刻可能/已在 Hyper-V 中创建——此后任一步骤(含下面取路径/GUID)失败都
                 // 必须走 catch 回滚删除，避免留孤儿半成品。故标志位提前到这里、后续失败一律 throw 而非 return。
@@ -303,6 +310,10 @@ namespace ExHyperV.Services
                 // ── Step 7: 磁盘 ──────────────────────────────────
                 if (p.DiskMode == 0)
                 {
+                    // 只把“调用前不存在”的新建磁盘登记为本次所有；现有磁盘无论后续发生什么都不能删除。
+                    if (!File.Exists(p.VhdPath))
+                        ownedVhdPath = p.VhdPath;
+
                     var diskResult = await VmStorageService.AddDriveAsync(
                         finalVmName,
                         p.Generation == 2 ? "SCSI" : "IDE", 0, 0,
@@ -376,8 +387,27 @@ namespace ExHyperV.Services
             }
             catch (Exception ex)
             {
-                // 回滚:DefineSystem 之后任一步骤失败会留下半成品 VM,删掉它再上报错误(回滚失败不掩盖原始错误)
-                if (vmCreated)
+                // 创建是一个事务：先注销可能已注册的半成品 VM，确认注销后再删除本次操作新建的
+                // VHD/专属目录。现有磁盘、ISO、原有目录从未登记为本次所有，不会被清理。
+                // DefineSystem 报错时也回查名称，覆盖“返回失败但实际留下半成品 VM”的边界情况。
+                bool registeredVmExists = vmCreated;
+                if (!registeredVmExists && defineSystemInvoked)
+                {
+                    // DefineSystem 返回失败时不能直接假定“什么都没创建”。若连回查也失败，
+                    // 保守地保留文件现场，避免误删一台可能仍在册的 VM 的配置。
+                    var registration = await WmiApi.QueryFirstAsync(
+                        $"SELECT Name FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(finalVmName)}'",
+                        obj => obj["Name"]?.ToString(),
+                        WmiScope.HyperV);
+                    if (!registration.Success)
+                    {
+                        return (false, ex.Message + Environment.NewLine +
+                            string.Format(Properties.Resources.Error_VmCreate_RollbackFailed,
+                                finalVmName, registration.Error));
+                    }
+                    registeredVmExists = registration.HasData;
+                }
+                if (registeredVmExists)
                 {
                     try
                     {
@@ -393,8 +423,92 @@ namespace ExHyperV.Services
                             string.Format(Properties.Resources.Error_VmCreate_RollbackFailed, finalVmName, rollbackEx.Message));
                     }
                 }
+
+                var cleanupErrors = await CleanupOwnedCreationArtifactsAsync(
+                    ownedVhdPath, vmHomeFolder, vmHomeFolderCreated);
+                if (cleanupErrors.Count > 0)
+                {
+                    return (false, ex.Message + Environment.NewLine +
+                        string.Format(Properties.Resources.Error_VmCreate_ArtifactCleanupFailed,
+                            string.Join("; ", cleanupErrors)));
+                }
+
                 return (false, ex.Message);
             }
+        }
+
+        /// <summary>
+        /// 删除且仅删除本次创建事务拥有的文件。调用方必须先确认半成品 VM 已成功注销，
+        /// 避免留下“VM 仍在册但配置文件已消失”的损坏状态。
+        /// </summary>
+        private static async Task<List<string>> CleanupOwnedCreationArtifactsAsync(
+            string? ownedVhdPath,
+            string vmHomeFolder,
+            bool vmHomeFolderCreated)
+        {
+            var errors = new List<string>();
+
+            if (!string.IsNullOrWhiteSpace(ownedVhdPath))
+            {
+                bool deleted = await TryDeleteOwnedFileAsync(ownedVhdPath);
+                if (!deleted)
+                    errors.Add(ownedVhdPath);
+            }
+
+            // 目录在创建前不存在，因此整个目录树都属于本次事务；Hyper-V 可能在其中生成
+            // vmcx/vmgs 等未知数量的过程文件，需要递归清理。原有目录永远不会进入此分支。
+            if (vmHomeFolderCreated)
+            {
+                bool deleted = await TryDeleteOwnedDirectoryAsync(vmHomeFolder);
+                if (!deleted)
+                    errors.Add(vmHomeFolder);
+            }
+
+            return errors;
+        }
+
+        private static async Task<bool> TryDeleteOwnedFileAsync(string path)
+        {
+            for (int i = 0; i < 6; i++)
+            {
+                try
+                {
+                    if (!File.Exists(path)) return true;
+                    File.Delete(path);
+                    return true;
+                }
+                catch when (i < 5)
+                {
+                    await Task.Delay(250);
+                }
+                catch
+                {
+                    return false;
+                }
+            }
+            return false;
+        }
+
+        private static async Task<bool> TryDeleteOwnedDirectoryAsync(string path)
+        {
+            for (int i = 0; i < 6; i++)
+            {
+                try
+                {
+                    if (!Directory.Exists(path)) return true;
+                    Directory.Delete(path, recursive: true);
+                    return true;
+                }
+                catch when (i < 5)
+                {
+                    await Task.Delay(250);
+                }
+                catch
+                {
+                    return false;
+                }
+            }
+            return false;
         }
 
         // ── TPM 启用（纯 WMI/CIM）────────────────────────────────────

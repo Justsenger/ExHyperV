@@ -8288,6 +8288,13 @@ namespace ExHyperV.Properties {
             get { return ResourceManager.GetString("Error_VmCreate_RollbackFailed", resourceCulture); }
         }
 
+        /// <summary>
+        ///   Looks up a localized string similar to Creation rollback could not remove these files or directories; please clean them up manually: {0}.
+        /// </summary>
+        public static string Error_VmCreate_ArtifactCleanupFailed {
+            get { return ResourceManager.GetString("Error_VmCreate_ArtifactCleanupFailed", resourceCulture); }
+        }
+
         public static string VmAdvanced_Title {
             get { return ResourceManager.GetString("VmAdvanced_Title", resourceCulture); }
         }
