@@ -3205,10 +3205,10 @@ The existing NAT switch is: '{0}'</value>
     <value>Default</value>
   </data>
   <data name="CpuEnum_Shatter_AlwaysEnabled" xml:space="preserve">
-    <value>Always Shatter (4K)</value>
+    <value>Always Enabled</value>
   </data>
   <data name="CpuEnum_Shatter_AlwaysDisabled" xml:space="preserve">
-    <value>Never Shatter (large pages)</value>
+    <value>Always Disabled</value>
   </data>
   <data name="Gpu_StalePathTitle" xml:space="preserve">
     <value>GPU path changed</value>

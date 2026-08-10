@@ -758,9 +758,11 @@
                             <ui:TextBox Grid.Column="2" VerticalAlignment="Center" Style="{StaticResource ShutdownRequiredTextBoxStyle}" Tag="{Binding SelectedVm.Processor.SupportedProps, Converter={StaticResource PropSupportedConverter}, ConverterParameter=PhysicalAddressWidth}" Text="{Binding SelectedVm.Processor.PhysicalAddressWidth, UpdateSourceTrigger=PropertyChanged}"/>
                             <ui:Button Grid.Column="4" Content="{x:Static properties:Resources.Apply}" Appearance="Primary" VerticalAlignment="Center" Padding="16,7" Command="{Binding ApplyChangesCommand}" Style="{StaticResource ShutdownRequiredButtonStyle}" Tag="{Binding SelectedVm.Processor.SupportedProps, Converter={StaticResource PropSupportedConverter}, ConverterParameter=PhysicalAddressWidth}"/>
                         </Grid>
-                        <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
+                        <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"
+                                   Visibility="{Binding ShowIntelPlatformFeatures, Converter={StaticResource BoolToVis}}"/>
 
-                        <Grid Margin="24,12,24,12">
+                        <Grid Margin="24,12,24,12"
+                              Visibility="{Binding ShowIntelPlatformFeatures, Converter={StaticResource BoolToVis}}">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="24"/><ColumnDefinition Width="200"/></Grid.ColumnDefinitions>
                             <StackPanel Grid.Column="0" VerticalAlignment="Center">
                                 <TextBlock Text="{x:Static properties:Resources.Cpu_PageShatter}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>

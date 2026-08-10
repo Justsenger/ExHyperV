@@ -11,7 +11,7 @@ namespace ExHyperV.Models
     /// <summary>L3 处理器分布策略（L3ProcessorDistributionPolicy，u8）：VP 在各虚拟 L3 缓存域之间的分布次序。</summary>
     public enum L3DistributionPolicy : byte { SmallToLarge = 0, LargeToSmall = 1, EvenSmallToLarge = 2, EvenLargeToSmall = 3 }
 
-    /// <summary>页碎裂策略（EnablePageShattering，u8）：SLAT 把大页(1G/2M)强制碎成 4K。Default 由平台/隔离模式决定。</summary>
+    /// <summary>大页拆分缓解策略（EnablePageShattering，u8）：Default 使用宿主策略，另外两个值明确请求启用或禁用缓解。</summary>
     public enum PageShatterMode : byte { Default = 0, AlwaysEnabled = 1, AlwaysDisabled = 2 }
 
     /// <summary>LPI (locality-specific peripheral interrupt) mode.</summary>

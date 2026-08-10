@@ -3205,10 +3205,10 @@
     <value>默认</value>
   </data>
   <data name="CpuEnum_Shatter_AlwaysEnabled" xml:space="preserve">
-    <value>始终拆分（全 4K）</value>
+    <value>始终启用</value>
   </data>
   <data name="CpuEnum_Shatter_AlwaysDisabled" xml:space="preserve">
-    <value>从不拆分（保留大页）</value>
+    <value>始终禁用</value>
   </data>
   <data name="Gpu_StalePathTitle" xml:space="preserve">
     <value>检测到 GPU 路径变化</value>
