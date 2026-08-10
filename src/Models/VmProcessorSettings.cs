@@ -37,10 +37,8 @@ namespace ExHyperV.Models
         [ObservableProperty] private bool? _compatibilityForOlderOperatingSystemsEnabled;
         [ObservableProperty] private SmtMode? _smtMode;
         [ObservableProperty] private bool? _disableSpeculationControls;
-        [ObservableProperty] private bool? _hideHypervisorPresent;
         [ObservableProperty] private bool? _enablePerfmonArchPmu;
         [ObservableProperty] private bool? _allowAcountMcount;
-        [ObservableProperty] private bool? _enableSocketTopology;
         [ObservableProperty] private string? _cpuBrandString;
 
         // ── 新增：CPUID 视图类（改 guest 所见，多为迁移/兼容向）──

@@ -1224,15 +1224,6 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
-        ///   查找类似 Hides virtualization flags, helps bypass detection. 的本地化字符串。
-        /// </summary>
-        public static string Desc_HideHypervisor {
-            get {
-                return ResourceManager.GetString("Desc_HideHypervisor", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   查找类似 Check environment &amp; advanced settings 的本地化字符串。
         /// </summary>
         public static string Desc_HostConfig {
@@ -1328,15 +1319,6 @@ namespace ExHyperV.Properties {
         public static string Desc_RouterGuard {
             get {
                 return ResourceManager.GetString("Desc_RouterGuard", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Maps physical socket topology to guest. 的本地化字符串。
-        /// </summary>
-        public static string Desc_SocketTopo {
-            get {
-                return ResourceManager.GetString("Desc_SocketTopo", resourceCulture);
             }
         }
         
@@ -3859,15 +3841,6 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
-        ///   查找类似 Hide Hypervisor ID 的本地化字符串。
-        /// </summary>
-        public static string Menu_HideHypervisor {
-            get {
-                return ResourceManager.GetString("Menu_HideHypervisor", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   查找类似 Host Configuration 的本地化字符串。
         /// </summary>
         public static string Menu_HostConfig {
@@ -3990,15 +3963,6 @@ namespace ExHyperV.Properties {
         public static string Menu_Scheduler {
             get {
                 return ResourceManager.GetString("Menu_Scheduler", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Enable Socket Topology 的本地化字符串。
-        /// </summary>
-        public static string Menu_SocketTopo {
-            get {
-                return ResourceManager.GetString("Menu_SocketTopo", resourceCulture);
             }
         }
         

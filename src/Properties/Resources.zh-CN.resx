@@ -1662,12 +1662,6 @@
   <data name="Label_ProcessorSettings" xml:space="preserve">
     <value>处理器设置</value>
   </data>
-  <data name="Menu_HideHypervisor" xml:space="preserve">
-    <value>隐藏 Hypervisor 标识</value>
-  </data>
-  <data name="Desc_HideHypervisor" xml:space="preserve">
-    <value>为虚拟机系统隐藏虚拟化标识符，可能有助于绕过软件检测</value>
-  </data>
   <data name="Menu_ExposePmu" xml:space="preserve">
     <value>暴露架构性能监控单元（Arch PMU）</value>
   </data>
@@ -1685,12 +1679,6 @@
   </data>
   <data name="Desc_DisableSpectre" xml:space="preserve">
     <value>禁用漏洞补丁 (如 Spectre)，提升性能但降低安全性</value>
-  </data>
-  <data name="Menu_SocketTopo" xml:space="preserve">
-    <value>启用插槽拓扑</value>
-  </data>
-  <data name="Desc_SocketTopo" xml:space="preserve">
-    <value>映射物理插槽拓扑，优化多插槽软件的运行环境</value>
   </data>
   <data name="Label_Experimental" xml:space="preserve">
     <value>实验功能</value>

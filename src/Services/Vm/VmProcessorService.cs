@@ -121,10 +121,8 @@ public static class VmProcessorService
                 // 门控字段只在"用户真改过"（提交值≠当前值）才写：整份提交时 provider 按"提交值≠存储值"判改动，
                 // 把读取时强转的默认值原样写回会造成假改动 → 触发版本校验拒整包（12.3 VM 遇仅28000才有的 PerfCpuIgnoreHostMaxFrequency 即此）。
                 SetIfChanged(procData, "DisableSpeculationControls", newSettings.DisableSpeculationControls, current.DisableSpeculationControls);
-                SetIfChanged(procData, "HideHypervisorPresent", newSettings.HideHypervisorPresent, current.HideHypervisorPresent);
                 SetIfChanged(procData, "EnablePerfmonArchPmu", newSettings.EnablePerfmonArchPmu, current.EnablePerfmonArchPmu);
                 SetIfChanged(procData, "AllowAcountMcount", newSettings.AllowAcountMcount, current.AllowAcountMcount);
-                SetIfChanged(procData, "EnableSocketTopology", newSettings.EnableSocketTopology, current.EnableSocketTopology);
 
                 // 清空要写空串：null 序列化不带 <VALUE>，provider 当"不改"清不掉
                 if (!Equals(newSettings.CpuBrandString ?? "", current.CpuBrandString ?? "") && procData.HasProperty("CpuBrandString"))
@@ -206,10 +204,8 @@ public static class VmProcessorService
                 // 门控字段：用 P*(HasProperty ? 值 ?? 默认 : null) 读——令"值 null"仅代表"属性不在 schema(不支持)"，
                 // 避免高版本"属性存在但当前 VM 默认值 null"被 UI 的值-null 门控误灰（29617 上 Perfmon/调频项就是这样）。
                 DisableSpeculationControls = PBool(procData, "DisableSpeculationControls"),
-                HideHypervisorPresent = PBool(procData, "HideHypervisorPresent"),
                 EnablePerfmonArchPmu = PBool(procData, "EnablePerfmonArchPmu"),
                 AllowAcountMcount = PBool(procData, "AllowAcountMcount"),
-                EnableSocketTopology = PBool(procData, "EnableSocketTopology"),
                 CpuBrandString = PStr(procData, "CpuBrandString"),
 
                 ApicMode = (VmApicMode?)PByte(procData, "ApicMode"),

@@ -1662,12 +1662,6 @@ The existing NAT switch is: '{0}'</value>
   <data name="Label_ProcessorSettings" xml:space="preserve">
     <value>Processor Settings</value>
   </data>
-  <data name="Menu_HideHypervisor" xml:space="preserve">
-    <value>Hide Hypervisor ID</value>
-  </data>
-  <data name="Desc_HideHypervisor" xml:space="preserve">
-    <value>Hides virtualization flags, helps bypass detection.</value>
-  </data>
   <data name="Menu_ExposePmu" xml:space="preserve">
     <value>Expose Architectural Performance Monitoring Unit (Arch PMU)</value>
   </data>
@@ -1685,12 +1679,6 @@ The existing NAT switch is: '{0}'</value>
   </data>
   <data name="Desc_DisableSpectre" xml:space="preserve">
     <value>Improves performance but reduces security.</value>
-  </data>
-  <data name="Menu_SocketTopo" xml:space="preserve">
-    <value>Enable Socket Topology</value>
-  </data>
-  <data name="Desc_SocketTopo" xml:space="preserve">
-    <value>Maps physical socket topology to guest.</value>
   </data>
   <data name="Label_Experimental" xml:space="preserve">
     <value>Experimental</value>
