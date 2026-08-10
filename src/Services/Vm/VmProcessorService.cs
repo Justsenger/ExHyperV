@@ -38,6 +38,7 @@ public static class VmProcessorService
         {
             string query = $"SELECT * FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(vmName)}'";
             string? validationError = null;
+            bool requiresAzureFeatureSet = false;
 
             var xmlResults = await WmiApi.QueryAsync(query, vmEntry =>
             {
@@ -54,27 +55,15 @@ public static class VmProcessorService
                     .Cast<ManagementObject>().FirstOrDefault();
                 if (procData == null) return null;
 
-                // ����ֻ���ڹػ�״̬���� Realized�����޸�
+                // 仅对非 Realized 处理器设置写入虚拟处理器数量。
                 var current = MapProcessor(procData);
 
-                bool changesAzureFeatureSetFrequencySetting =
+                requiresAzureFeatureSet =
                     !Equals(newSettings.PerfCpuFreqMinMhz, current.PerfCpuFreqMinMhz)
                     || !Equals(newSettings.PerfCpuFreqDesiredMhz, current.PerfCpuFreqDesiredMhz)
                     || !Equals(newSettings.PerfCpuEnergyPerformancePreference, current.PerfCpuEnergyPerformancePreference)
                     || !Equals(newSettings.PerfCpuAutonomousActivityWindow, current.PerfCpuAutonomousActivityWindow)
                     || !Equals(newSettings.PerfCpuIgnoreHostMaxFrequency, current.PerfCpuIgnoreHostMaxFrequency);
-
-                if (changesAzureFeatureSetFrequencySetting && !HostAzureFeatureSetService.IsEnabled())
-                {
-                    var enableResult = HostAzureFeatureSetService.SetEnabled(true);
-                    if (!enableResult.Success)
-                    {
-                        validationError = string.Format(
-                            Properties.Resources.Error_Host_AzureFeatureSetChangeFailed,
-                            enableResult.Error);
-                        return null;
-                    }
-                }
 
                 int requestedPerfmonDependents =
                     (newSettings.EnablePerfmonPebs == true ? 1 : 0)
@@ -169,10 +158,16 @@ public static class VmProcessorService
             if (string.IsNullOrEmpty(xml))
                 return (false, Properties.Resources.Error_Cpu_ConfigNotFound);
 
-            var result = await WmiApi.InvokeAsync(
+            Task<ApiResponse> ApplyAsync() => WmiApi.InvokeAsync(
                 "SELECT * FROM Msvm_VirtualSystemManagementService",
                 "ModifyResourceSettings",
                 p => p["ResourceSettings"] = new string[] { xml });
+
+            // AzureFeatureSet 是宿主机级暂存模式，并非持久化前置条件；
+            // 仅在提供程序提交受其门控的字段期间临时开启。
+            var result = requiresAzureFeatureSet
+                ? await HostAzureFeatureSetService.RunTemporarilyEnabledAsync(ApplyAsync)
+                : await ApplyAsync();
 
             return result.Success
                 ? (true, string.Empty)
