@@ -232,9 +232,11 @@ namespace ExHyperV.Services
                     },
                     resultField: "ResultingSystem");
 
-                var defineResp = isStandardIsolatedVm && HostAzureFeatureSetService.IsEnabled()
-                    ? await HostAzureFeatureSetService.RunTemporarilyDisabledAsync(DefineSystemAsync)
-                    : await DefineSystemAsync();
+                // DefineSystem must never observe the host-wide Azure staging
+                // personality. Always take the shared gate so a concurrent CPU or
+                // PCIe operation cannot enable it between a state check and creation.
+                var defineResp = await HostAzureFeatureSetService
+                    .RunTemporarilyDisabledAsync(DefineSystemAsync);
 
                 if (!defineResp.Success)
                     throw new InvalidOperationException(defineResp.Error);

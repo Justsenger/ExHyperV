@@ -134,30 +134,32 @@ public static class VmPcieService
     public static async Task<ApiResponse> SetSystemSettingsAsync(
         string vmName, bool enableEmulation, ushort topology)
     {
-        if (!HostAzureFeatureSetService.IsEnabled())
-            return ApiResponse.Fail(Properties.Resources.Error_AzureFeatureSetRequired);
+        async Task<ApiResponse> ApplyAsync()
+        {
+            string escapedName = WmiApi.Escape(vmName);
+            var id = await GetVssdInstanceIdAsync(escapedName);
+            if (!id.Success || !id.HasData)
+                return ApiResponse.Fail(
+                    id.Error.Length > 0
+                        ? id.Error
+                        : PcieResource("VmPcie_SettingsNotFound"));
 
-        string escapedName = WmiApi.Escape(vmName);
-        var id = await GetVssdInstanceIdAsync(escapedName);
-        if (!id.Success || !id.HasData)
-            return ApiResponse.Fail(
-                id.Error.Length > 0
-                    ? id.Error
-                    : PcieResource("VmPcie_SettingsNotFound"));
+            string escapedId = WmiApi.Escape(id.Data!);
+            return await WmiApi.WithObjectAsync(
+                $"SELECT * FROM Msvm_VirtualSystemPciExpressSettingData " +
+                $"WHERE InstanceID LIKE '{escapedId}\\\\%'",
+                obj =>
+                {
+                    if (enableEmulation) obj["EmulationMode"] = (ushort)1;
+                    obj["Topology"] = topology;
+                },
+                submitMethod: "ModifySystemComponentSettings",
+                submitParamName: "ComponentSettings",
+                wrapInArray: true,
+                serviceWql: VsmsWql);
+        }
 
-        string escapedId = WmiApi.Escape(id.Data!);
-        return await WmiApi.WithObjectAsync(
-            $"SELECT * FROM Msvm_VirtualSystemPciExpressSettingData " +
-            $"WHERE InstanceID LIKE '{escapedId}\\\\%'",
-            obj =>
-            {
-                if (enableEmulation) obj["EmulationMode"] = (ushort)1;
-                obj["Topology"] = topology;
-            },
-            submitMethod: "ModifySystemComponentSettings",
-            submitParamName: "ComponentSettings",
-            wrapInArray: true,
-            serviceWql: VsmsWql);
+        return await HostAzureFeatureSetService.RunTemporarilyEnabledAsync(ApplyAsync);
     }
 
     public static async Task<ApiResponse> SetDeviceModeAsync(
@@ -176,10 +178,9 @@ public static class VmPcieService
         }
 
         // 半虚拟化不依赖 AzureFeatureSet；只有标准 PCIe 仿真需要。
-        if (mode == VmPcieGuestMode.Emulated && !HostAzureFeatureSetService.IsEnabled())
-            return ApiResponse.Fail(Properties.Resources.Error_AzureFeatureSetRequired);
-
-        return await ApplyAsync();
+        return mode == VmPcieGuestMode.Emulated
+            ? await HostAzureFeatureSetService.RunTemporarilyEnabledAsync(ApplyAsync)
+            : await ApplyAsync();
     }
 
     public static async Task<ApiResponse> SetBootPciExpressAsync(string vmName, bool enabled)

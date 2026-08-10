@@ -7,8 +7,6 @@ using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using CommunityToolkit.Mvvm.Messaging;
-using ExHyperV.Messages;
 using ExHyperV.Models;
 using ExHyperV.Services;
 using ExHyperV.Interaction;
@@ -82,23 +80,6 @@ namespace ExHyperV.ViewModels
             _queryService = queryService;
             _vmGpuService = new VmGpuService(_queryService);
 
-            WeakReferenceMessenger.Default.Register<AzureFeatureSetChangedMessage>(
-                this,
-                static (recipient, message) =>
-                {
-                    if (recipient is not VirtualMachinesPageViewModel viewModel)
-                        return;
-
-                    var dispatcher = Application.Current?.Dispatcher;
-                    if (dispatcher == null || dispatcher.CheckAccess())
-                    {
-                        viewModel.IsAzureFeatureSetEnabled = message.Value;
-                        return;
-                    }
-
-                    dispatcher.BeginInvoke(() => viewModel.IsAzureFeatureSetEnabled = message.Value);
-                });
-
             InitPossibleCpuCounts();
 
             for (int i = 0; i < 64; i++)
@@ -119,7 +100,6 @@ namespace ExHyperV.ViewModels
 
         public void Dispose()
         {
-            WeakReferenceMessenger.Default.UnregisterAll(this);
             _monitoringCts?.Cancel();
             _cpuService?.Dispose();
             _uiTimer?.Stop();

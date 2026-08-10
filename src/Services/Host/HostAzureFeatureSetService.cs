@@ -1,98 +1,92 @@
-using CommunityToolkit.Mvvm.Messaging;
-using ExHyperV.Messages;
 using Microsoft.Win32;
 
 namespace ExHyperV.Services;
 
 /// <summary>
-/// 管理 Hyper-V 的宿主机全局 Azure 功能集开关。
+/// Provides short-lived access to Hyper-V's internal Azure feature staging flag.
+/// The flag changes host-wide VMMS/VMWP behavior, so it must never be left enabled
+/// as an application setting.
 /// </summary>
 public static class HostAzureFeatureSetService
 {
     private const string VirtualizationKey =
         @"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Virtualization";
     private const string AzureFeatureSetValue = "AzureFeatureSet";
+
+    // Registry state is host-wide. Serialize every temporary state change made by
+    // this process so one operation cannot restore the state underneath another.
     private static readonly SemaphoreSlim TransientChangeLock = new(1, 1);
 
-    public static bool IsEnabled()
+    /// <summary>
+    /// Removes a value left behind by an older ExHyperV build or an interrupted
+    /// temporary operation. Called at application startup and shutdown.
+    /// </summary>
+    public static void EnsureDisabledAtRest()
     {
         try
         {
             using var baseKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64);
-            using var key = baseKey.OpenSubKey(VirtualizationKey);
-            return key?.GetValue(AzureFeatureSetValue) is int value && value != 0;
+            using var key = baseKey.OpenSubKey(VirtualizationKey, writable: true);
+            key?.DeleteValue(AzureFeatureSetValue, throwOnMissingValue: false);
+            key?.Flush();
         }
         catch
         {
-            return false;
+            // Best effort during process lifecycle. An actual dependent operation
+            // reports registry failures through RunWithTemporaryStateAsync.
         }
     }
 
-    public static (bool Success, string Error) SetEnabled(bool enabled)
+    public static Task<T> RunTemporarilyEnabledAsync<T>(Func<Task<T>> action) =>
+        RunWithTemporaryStateAsync(enabled: true, action);
+
+    public static Task<T> RunTemporarilyDisabledAsync<T>(Func<Task<T>> action) =>
+        RunWithTemporaryStateAsync(enabled: false, action);
+
+    private static async Task<T> RunWithTemporaryStateAsync<T>(
+        bool enabled, Func<Task<T>> action)
     {
-        try
-        {
-            using var baseKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64);
-
-            if (enabled)
-            {
-                using var key = baseKey.CreateSubKey(VirtualizationKey, writable: true);
-                if (key == null)
-                    return (false, Properties.Resources.Error_Host_AzureFeatureSetRegistryUnavailable);
-
-                key.SetValue(AzureFeatureSetValue, 1, RegistryValueKind.DWord);
-            }
-            else
-            {
-                using var key = baseKey.OpenSubKey(VirtualizationKey, writable: true);
-                key?.DeleteValue(AzureFeatureSetValue, throwOnMissingValue: false);
-            }
-
-            WeakReferenceMessenger.Default.Send(new AzureFeatureSetChangedMessage(enabled));
-            return (true, string.Empty);
-        }
-        catch (Exception ex)
-        {
-            return (false, ex.Message);
-        }
-    }
-
-    public static async Task<T> RunTemporarilyDisabledAsync<T>(Func<Task<T>> action)
-    {
+        ArgumentNullException.ThrowIfNull(action);
         await TransientChangeLock.WaitAsync();
-        object? originalValue = null;
-        RegistryValueKind originalKind = RegistryValueKind.Unknown;
-        bool valueRemoved = false;
+
         try
         {
             using (var baseKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64))
-            using (var key = baseKey.OpenSubKey(VirtualizationKey, writable: true))
+            using (var key = baseKey.CreateSubKey(VirtualizationKey, writable: true))
             {
-                originalValue = key?.GetValue(AzureFeatureSetValue, null,
-                    RegistryValueOptions.DoNotExpandEnvironmentNames);
-                if (originalValue != null && key != null)
-                {
-                    originalKind = key.GetValueKind(AzureFeatureSetValue);
+                if (key == null)
+                    throw new InvalidOperationException(
+                        Properties.Resources.Error_Host_AzureFeatureSetRegistryUnavailable);
+
+                if (enabled)
+                    key.SetValue(AzureFeatureSetValue, 1, RegistryValueKind.DWord);
+                else
                     key.DeleteValue(AzureFeatureSetValue, throwOnMissingValue: false);
-                    key.Flush();
-                    valueRemoved = true;
-                }
+
+                key.Flush();
             }
+
             return await action();
         }
         finally
         {
             try
             {
-                if (valueRemoved && originalValue != null)
-                {
-                    using var baseKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64);
-                    using var key = baseKey.CreateSubKey(VirtualizationKey, writable: true);
-                    key?.SetValue(AzureFeatureSetValue, originalValue, originalKind);
-                    key?.Flush();
-                }
+                using var baseKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64);
+                using var key = baseKey.CreateSubKey(VirtualizationKey, writable: true);
+                if (key == null)
+                    throw new InvalidOperationException(
+                        Properties.Resources.Error_Host_AzureFeatureSetRegistryUnavailable);
+
+                // This is an ExHyperV-owned staging lease, not a setting. Never
+                // restore a legacy/external enabled value after the operation.
+                key.DeleteValue(AzureFeatureSetValue, throwOnMissingValue: false);
+                key.Flush();
             }
-            finally { TransientChangeLock.Release(); }
+            finally
+            {
+                TransientChangeLock.Release();
+            }
         }
     }
 }

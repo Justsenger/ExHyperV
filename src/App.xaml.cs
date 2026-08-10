@@ -33,6 +33,11 @@ public partial class App
 
     protected override void OnStartup(StartupEventArgs e)
     {
+        // Older builds exposed AzureFeatureSet as a persistent host option and an
+        // interrupted temporary operation can also leave it behind. ExHyperV owns
+        // this staging value, so normalize it before any Hyper-V operation starts.
+        ExHyperV.Services.HostAzureFeatureSetService.EnsureDisabledAtRest();
+
         base.OnStartup(e);
 
         string targetLanguage;
@@ -58,6 +63,7 @@ public partial class App
     }
     protected override void OnExit(ExitEventArgs e)
     {
+        ExHyperV.Services.HostAzureFeatureSetService.EnsureDisabledAtRest();
         // 主动停掉 ARP 嗅探的 ETW 会话：赶在 CLR 硬终止后台线程之前、在受控时机清理，
         // 否则 pump 线程卡在 native ProcessTrace 会吊死整个进程退出。Service 内 ProcessExit 注册留作兜底。
         ExHyperV.Services.ArpSnoopService.Instance.Dispose();

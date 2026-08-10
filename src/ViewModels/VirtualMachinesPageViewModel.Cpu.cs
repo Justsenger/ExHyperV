@@ -29,7 +29,6 @@ namespace ExHyperV.ViewModels
         // 能力门控标志（按宿主硬件或 Hyper-V 属性支持情况置灰）
         public bool IsIntelHost => SettingsService.NativeHostPlatform == HostPlatform.Intel;
         [ObservableProperty] private bool _isHwIsolationSupported;
-        [ObservableProperty] private bool _isAzureFeatureSetEnabled;
         public bool IsArm64Host { get; } = RuntimeInformation.OSArchitecture == Architecture.Arm64;
         public bool IsX64Host => !IsArm64Host;
         public bool ShowIntelPlatformFeatures => IsIntelHost;
@@ -60,7 +59,6 @@ namespace ExHyperV.ViewModels
             IsLoadingSettings = true;
             try
             {
-                IsAzureFeatureSetEnabled = await Task.Run(() => HostAzureFeatureSetService.IsEnabled());
                 if (!_cpuCapsInit)
                 {
                     _cpuCapsInit = true;
