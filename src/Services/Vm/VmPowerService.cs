@@ -31,8 +31,8 @@ namespace ExHyperV.Services
                 case "Start":
                     Task<ApiResponse> StartAsync() => WmiApi.InvokeAsync(
                         wql, "RequestStateChange", p => p["RequestedState"] = (ushort)2);
-                    // Starting any VM must not race a temporary AzureFeatureSet
-                    // lease. The flag changes VM worker boot behavior host-wide.
+                    // 启动任何虚拟机时都不得与 AzureFeatureSet 临时租约并发；
+                    // 该开关会改变整个宿主机上的虚拟机工作进程启动行为。
                     return await HostAzureFeatureSetService.RunTemporarilyDisabledAsync(StartAsync);
 
                 case "TurnOff":

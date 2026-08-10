@@ -55,7 +55,7 @@ public static class VmProcessorService
                     .Cast<ManagementObject>().FirstOrDefault();
                 if (procData == null) return null;
 
-                // ����ֻ���ڹػ�״̬���� Realized�����޸�
+                // 仅对非 Realized 处理器设置写入虚拟处理器数量。
                 var current = MapProcessor(procData);
 
                 requiresAzureFeatureSet =
@@ -163,8 +163,8 @@ public static class VmProcessorService
                 "ModifyResourceSettings",
                 p => p["ResourceSettings"] = new string[] { xml });
 
-            // AzureFeatureSet is a host-wide staging personality, not a persistent
-            // prerequisite. Enable it only while the provider commits gated fields.
+            // AzureFeatureSet 是宿主机级暂存模式，并非持久化前置条件；
+            // 仅在提供程序提交受其门控的字段期间临时开启。
             var result = requiresAzureFeatureSet
                 ? await HostAzureFeatureSetService.RunTemporarilyEnabledAsync(ApplyAsync)
                 : await ApplyAsync();

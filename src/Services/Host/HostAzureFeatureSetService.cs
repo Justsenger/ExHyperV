@@ -3,9 +3,8 @@ using Microsoft.Win32;
 namespace ExHyperV.Services;
 
 /// <summary>
-/// Provides short-lived access to Hyper-V's internal Azure feature staging flag.
-/// The flag changes host-wide VMMS/VMWP behavior, so it must never be left enabled
-/// as an application setting.
+/// 临时管理 Hyper-V 内部的 Azure 功能暂存开关。
+/// 该开关会改变整个宿主机上的 VMMS/VMWP 行为，因此不得作为应用设置长期启用。
 /// </summary>
 public static class HostAzureFeatureSetService
 {
@@ -13,13 +12,13 @@ public static class HostAzureFeatureSetService
         @"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Virtualization";
     private const string AzureFeatureSetValue = "AzureFeatureSet";
 
-    // Registry state is host-wide. Serialize every temporary state change made by
-    // this process so one operation cannot restore the state underneath another.
+    // 注册表状态作用于整个宿主机。串行执行本进程内的临时切换，
+    // 避免一个操作在另一个操作尚未结束时提前恢复状态。
     private static readonly SemaphoreSlim TransientChangeLock = new(1, 1);
 
     /// <summary>
-    /// Removes a value left behind by an older ExHyperV build or an interrupted
-    /// temporary operation. Called at application startup and shutdown.
+    /// 清理由旧版 ExHyperV 或异常中断的临时操作遗留的注册表值。
+    /// 在应用启动和退出时调用。
     /// </summary>
     public static void EnsureDisabledAtRest()
     {
@@ -32,8 +31,8 @@ public static class HostAzureFeatureSetService
         }
         catch
         {
-            // Best effort during process lifecycle. An actual dependent operation
-            // reports registry failures through RunWithTemporaryStateAsync.
+            // 生命周期清理采用尽力而为策略；真正依赖该开关的操作会通过
+            // RunWithTemporaryStateAsync 向上报告注册表错误。
         }
     }
 
@@ -78,8 +77,8 @@ public static class HostAzureFeatureSetService
                     throw new InvalidOperationException(
                         Properties.Resources.Error_Host_AzureFeatureSetRegistryUnavailable);
 
-                // This is an ExHyperV-owned staging lease, not a setting. Never
-                // restore a legacy/external enabled value after the operation.
+                // 这是由 ExHyperV 管理的临时租约，而不是持久设置。
+                // 操作结束后不得恢复旧版本或外部遗留的启用值。
                 key.DeleteValue(AzureFeatureSetValue, throwOnMissingValue: false);
                 key.Flush();
             }

@@ -232,9 +232,8 @@ namespace ExHyperV.Services
                     },
                     resultField: "ResultingSystem");
 
-                // DefineSystem must never observe the host-wide Azure staging
-                // personality. Always take the shared gate so a concurrent CPU or
-                // PCIe operation cannot enable it between a state check and creation.
+                // DefineSystem 不得观察到宿主机级 Azure 暂存模式。始终持有共享锁，
+                // 防止并发 CPU 或 PCIe 操作在状态检查与创建之间临时开启该模式。
                 var defineResp = await HostAzureFeatureSetService
                     .RunTemporarilyDisabledAsync(DefineSystemAsync);
 
