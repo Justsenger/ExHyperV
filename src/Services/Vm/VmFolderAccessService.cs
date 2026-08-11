@@ -68,8 +68,7 @@ namespace ExHyperV.Services
                 "Microsoft", "Windows", "Hyper-V"));
 
             string relativePath = Path.GetRelativePath(protectedRoot, fullPath);
-            return relativePath != "." &&
-                   !Path.IsPathRooted(relativePath) &&
+            return !Path.IsPathRooted(relativePath) &&
                    !relativePath.Equals("..", StringComparison.Ordinal) &&
                    !relativePath.StartsWith($"..{Path.DirectorySeparatorChar}", StringComparison.Ordinal);
         }
