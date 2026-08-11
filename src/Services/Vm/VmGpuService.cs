@@ -16,6 +16,14 @@ namespace ExHyperV.Services
     {
         private readonly VmQueryService _queryService;
         private readonly AsyncLocal<ConcurrentQueue<string>?> _linkWarnings = new();
+
+        private enum FilePromotionMode
+        {
+            PreserveExisting,
+            WhenNewer,
+            Overwrite
+        }
+
         public VmGpuService(VmQueryService queryService)
         {
             _queryService = queryService;
@@ -618,7 +626,7 @@ namespace ExHyperV.Services
                 // 同步重活（注册表提取 + 各厂商 Promote*：内部对每个文件 spawn cmd.exe 并同步 WaitForExit 几十~上百次）
                 // 挪到后台线程——否则作为 robocopy await 之后的续体跑在 UI 线程上，会冻结主界面（转圈/窗口都卡死）。
                 // Log 回调仍在 UI 续体里执行（这些 Task.Run 之间的代码在 UI 线程），更新 task.Description 安全、无需 Dispatcher。
-                await Task.Run(() => PromoteRegistryDefinedFiles(assignedDriveLetter)); // 微软注册表文件提取
+                await Task.Run(() => PromoteRegistryDefinedFiles(assignedDriveLetter, gpuInstancePath)); // 微软注册表文件提取
 
                 if (gpuManu.Contains("NVIDIA", StringComparison.OrdinalIgnoreCase))
                 {
@@ -642,7 +650,10 @@ namespace ExHyperV.Services
                 }
                 else if (gpuManu.Contains("AMD", StringComparison.OrdinalIgnoreCase) || gpuManu.Contains("Advanced", StringComparison.OrdinalIgnoreCase))
                 {
-                    await Task.Run(() => PromoteAmdGpuFiles(assignedDriveLetter));
+                    await Task.Run(() =>
+                    {
+                        PromoteAmdGpuFiles(assignedDriveLetter, gpuInstancePath);
+                    });
                 }
                 else if (gpuManu.Contains("Qualcomm", StringComparison.OrdinalIgnoreCase) || gpuManu.Contains("QCOM", StringComparison.OrdinalIgnoreCase))
                 {
@@ -688,7 +699,7 @@ namespace ExHyperV.Services
             }
         }
 
-        private void PromoteRegistryDefinedFiles(string assignedDriveLetter)
+        private void PromoteRegistryDefinedFiles(string assignedDriveLetter, string gpuInstancePath)
         {
             string classGuidPath = @"SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}";
 
@@ -698,18 +709,36 @@ namespace ExHyperV.Services
                 using var classKey = baseKey.OpenSubKey(classGuidPath);
                 if (classKey == null) return;
 
+                void ProcessAdapterKey(Microsoft.Win32.RegistryKey adapterKey)
+                {
+                    var packageNames = GetDriverPackageDirectoryNames(adapterKey);
+                    ProcessPromotionRegistryKey(adapterKey, "CopyToVmWhenNewer", assignedDriveLetter, "System32", packageNames);
+                    ProcessPromotionRegistryKey(adapterKey, "CopyToVmOverwrite", assignedDriveLetter, "System32", packageNames);
+
+                    if (Directory.Exists(Path.Combine(assignedDriveLetter, "Windows", "SysWOW64")))
+                    {
+                        ProcessPromotionRegistryKey(adapterKey, "CopyToVmWhenNewerWow64", assignedDriveLetter, "SysWOW64", packageNames);
+                        ProcessPromotionRegistryKey(adapterKey, "CopyToVmOverwriteWow64", assignedDriveLetter, "SysWOW64", packageNames);
+                    }
+                }
+
+                string selectedSubKeyName = GetSelectedDisplayClassSubKeyName(baseKey, gpuInstancePath);
+                if (!string.IsNullOrEmpty(selectedSubKeyName))
+                {
+                    using var selectedKey = classKey.OpenSubKey(selectedSubKeyName);
+                    if (selectedKey != null)
+                    {
+                        ProcessAdapterKey(selectedKey);
+                        return;
+                    }
+                }
+
+                // 无法从分区设备路径定位 Class 项时保留旧的全量回退，兼容非 PCI 和旧版设备路径。
                 foreach (var subKeyName in classKey.GetSubKeyNames())
                 {
                     using var subKey = classKey.OpenSubKey(subKeyName);
                     if (subKey == null) continue;
-                    ProcessPromotionRegistryKey(subKey, "CopyToVmWhenNewer", assignedDriveLetter, "System32");
-                    ProcessPromotionRegistryKey(subKey, "CopyToVmOverwrite", assignedDriveLetter, "System32");
-
-                    if (Directory.Exists(Path.Combine(assignedDriveLetter, "Windows", "SysWOW64")))
-                    {
-                        ProcessPromotionRegistryKey(subKey, "CopyToVmWhenNewerWow64", assignedDriveLetter, "SysWOW64");
-                        ProcessPromotionRegistryKey(subKey, "CopyToVmOverwriteWow64", assignedDriveLetter, "SysWOW64");
-                    }
+                    ProcessAdapterKey(subKey);
                 }
             }
             catch (Exception ex)
@@ -832,11 +861,25 @@ namespace ExHyperV.Services
             LinkSingleFile(assignedDriveLetter, "vulkaninfo-32.exe", "vulkaninfo.exe", sw64);
             LinkSingleFile(assignedDriveLetter, "vulkaninfo-32.exe", "vulkaninfo-1-999-0-0-0.exe", sw64);
         }
-        private void PromoteAmdGpuFiles(string assignedDriveLetter)
+        private void PromoteAmdGpuFiles(string assignedDriveLetter, string gpuInstancePath)
         {
             string s32 = "System32";
             string sw64 = "SysWOW64";
             string catPath = @"System32\CatRoot\{F750E6C3-38EE-11D1-85E5-00C04FC295EE}";
+            var selectedPackageNames = GetSelectedDisplayDriverPackageNames(gpuInstancePath);
+            string guestRepo = Path.Combine(assignedDriveLetter, "Windows", "System32", "HostDriverStore", "FileRepository");
+            var openClPackageNames = GetCoInstalledAmdPackageNames(
+                guestRepo,
+                selectedPackageNames,
+                "amdocl.inf_amd64_",
+                new[] { "amdhip64_6.dll", "amd_comgr_2.dll", "amd_comgr32.dll", "clinfo.exe" },
+                requireDisplayInfStem: false);
+            var amdWinPackageNames = GetCoInstalledAmdPackageNames(
+                guestRepo,
+                selectedPackageNames,
+                "amdwin-",
+                new[] { "amdlogum.exe", "Rapidfire64.dll", "RapidFireServer64.dll" },
+                requireDisplayInfStem: true);
 
             // --- 1. System32 (64位原生组件) ---
             // 核心渲染与 API 
@@ -862,6 +905,30 @@ namespace ExHyperV.Services
             LinkSingleFile(assignedDriveLetter, "atieah64.exe", "atieah64.exe", s32);
             LinkSingleFile(assignedDriveLetter, "EEURestart.exe", "EEURestart.exe", s32);
             LinkSingleFile(assignedDriveLetter, "GameManager64.dll", "GameManager64.dll", s32);
+
+            // DDA before/after parity: display-package top-level runtime entries.
+            LinkSingleFile(assignedDriveLetter, "amdmiracast.dll", "amdmiracast.dll", s32, FilePromotionMode.PreserveExisting, selectedPackageNames);
+            LinkSingleFile(assignedDriveLetter, "amf-mft-mjpeg-decoder64.dll", "amf-mft-mjpeg-decoder64.dll", s32, FilePromotionMode.PreserveExisting, selectedPackageNames);
+            LinkSingleFile(assignedDriveLetter, "atidemgy.dll", "atidemgy.dll", s32, FilePromotionMode.PreserveExisting, selectedPackageNames);
+            LinkSingleFile(assignedDriveLetter, "atimuixx.dll", "atimuixx.dll", s32, FilePromotionMode.PreserveExisting, selectedPackageNames);
+
+            // The OpenCL/HIP companion package must match the active display package's install batch.
+            // Never fall back to a different amdocl generation when multiple driver versions coexist.
+            LinkSingleFile(assignedDriveLetter, "amd_comgr_2.dll", "amd_comgr_2.dll", s32, FilePromotionMode.PreserveExisting, openClPackageNames, requirePreferredPackage: true);
+            LinkSingleFile(assignedDriveLetter, "amdhip64_6.dll", "amdhip64_6.dll", s32, FilePromotionMode.PreserveExisting, openClPackageNames, requirePreferredPackage: true);
+            LinkSingleFile(assignedDriveLetter, "amdmmcl.dll", "amdmmcl.dll", s32, FilePromotionMode.PreserveExisting, openClPackageNames, requirePreferredPackage: true);
+            LinkSingleFile(assignedDriveLetter, "amdmmcl6.dll", "amdmmcl6.dll", s32, FilePromotionMode.PreserveExisting, openClPackageNames, requirePreferredPackage: true);
+            LinkSingleFile(assignedDriveLetter, "clinfo.exe", "clinfo.exe", s32, FilePromotionMode.PreserveExisting, openClPackageNames, requirePreferredPackage: true);
+            LinkSingleFile(assignedDriveLetter, "hiprt02000_amd.hipfb", "hiprt02000_amd.hipfb", s32, FilePromotionMode.PreserveExisting, openClPackageNames, requirePreferredPackage: true);
+            LinkSingleFile(assignedDriveLetter, "hiprt0200064.dll", "hiprt0200064.dll", s32, FilePromotionMode.PreserveExisting, openClPackageNames, requirePreferredPackage: true);
+            LinkSingleFile(assignedDriveLetter, "oro_compiled_kernels.hipfb", "oro_compiled_kernels.hipfb", s32, FilePromotionMode.PreserveExisting, openClPackageNames, requirePreferredPackage: true);
+
+            // AMD Windows support components. RapidFire requires the Microsoft VC++ runtime at load time;
+            // that external prerequisite is intentionally not installed by GPU driver injection.
+            LinkSingleFile(assignedDriveLetter, "amdlogum.exe", "amdlogum.exe", s32, FilePromotionMode.PreserveExisting, amdWinPackageNames, requirePreferredPackage: true);
+            LinkSingleFile(assignedDriveLetter, "dgtrayicon.exe", "dgtrayicon.exe", s32, FilePromotionMode.PreserveExisting, amdWinPackageNames, requirePreferredPackage: true);
+            LinkSingleFile(assignedDriveLetter, "Rapidfire64.dll", "Rapidfire64.dll", s32, FilePromotionMode.PreserveExisting, amdWinPackageNames, requirePreferredPackage: true);
+            LinkSingleFile(assignedDriveLetter, "RapidFireServer64.dll", "RapidFireServer64.dll", s32, FilePromotionMode.PreserveExisting, amdWinPackageNames, requirePreferredPackage: true);
 
             // 资源与数据
             LinkSingleFile(assignedDriveLetter, "atiapfxx.blb", "atiapfxx.blb", s32);
@@ -899,17 +966,31 @@ namespace ExHyperV.Services
             // 32位特殊命名映射
             LinkSingleFile(assignedDriveLetter, "atiadlxy.dll", "atiadlxx.dll", sw64); 
             LinkSingleFile(assignedDriveLetter, "detoured32.dll", "detoured.dll", sw64);
+            LinkSingleFile(assignedDriveLetter, "amdsacli32.dll", "amdsacli32.dll", sw64, FilePromotionMode.PreserveExisting, selectedPackageNames);
+            LinkSingleFile(assignedDriveLetter, "amf-mft-mjpeg-decoder32.dll", "amf-mft-mjpeg-decoder32.dll", sw64, FilePromotionMode.PreserveExisting, selectedPackageNames);
+            LinkSingleFile(assignedDriveLetter, "atiadlxy.dll", "atiadlxy.dll", sw64, FilePromotionMode.PreserveExisting, selectedPackageNames);
+            LinkSingleFile(assignedDriveLetter, "atieah32.exe", "atieah32.exe", sw64, FilePromotionMode.PreserveExisting, selectedPackageNames);
+            LinkSingleFile(assignedDriveLetter, "amd_comgr32.dll", "amd_comgr32.dll", sw64, FilePromotionMode.PreserveExisting, openClPackageNames, requirePreferredPackage: true);
+            LinkSingleFile(assignedDriveLetter, "Rapidfire.dll", "Rapidfire.dll", sw64, FilePromotionMode.PreserveExisting, amdWinPackageNames, requirePreferredPackage: true);
+            LinkSingleFile(assignedDriveLetter, "RapidFireServer.dll", "RapidFireServer.dll", sw64, FilePromotionMode.PreserveExisting, amdWinPackageNames, requirePreferredPackage: true);
 
             // 资源
             LinkSingleFile(assignedDriveLetter, "atiapfxx.blb", "atiapfxx.blb", sw64);
             LinkSingleFile(assignedDriveLetter, "ativvsva.dat", "ativvsva.dat", sw64);
             LinkSingleFile(assignedDriveLetter, "ativvsvl.dat", "ativvsvl.dat", sw64);
 
-            // --- 3. Vulkan 支持 (通用) ---
-            LinkSingleFile(assignedDriveLetter, "amdvlk64.dll", "amdvlk64.dll", s32);
-            LinkSingleFile(assignedDriveLetter, "amdvlk64.dll", "vulkan-1.dll", s32);
-            LinkSingleFile(assignedDriveLetter, "amdvlk32.dll", "vulkan-1.dll", sw64);
+            // --- 3. Vulkan Loader 与工具 ---
+            // amdvlk*.dll 是 AMD ICD，不是系统 Vulkan Loader；这里严格按 AMD INF 的映射提升。
+            LinkSingleFile(assignedDriveLetter, "vulkan64.dll", "vulkan-1.dll", s32, FilePromotionMode.WhenNewer, selectedPackageNames);
+            LinkSingleFile(assignedDriveLetter, "vulkan64.dll", "vulkan-1-999-0-0-0.dll", s32, FilePromotionMode.WhenNewer, selectedPackageNames);
+            LinkSingleFile(assignedDriveLetter, "vulkaninfo64.exe", "vulkaninfo.exe", s32, FilePromotionMode.WhenNewer, selectedPackageNames);
+            LinkSingleFile(assignedDriveLetter, "vulkaninfo64.exe", "vulkaninfo-1-999-0-0-0.exe", s32, FilePromotionMode.WhenNewer, selectedPackageNames);
+            LinkSingleFile(assignedDriveLetter, "vulkan32.dll", "vulkan-1.dll", sw64, FilePromotionMode.WhenNewer, selectedPackageNames);
+            LinkSingleFile(assignedDriveLetter, "vulkan32.dll", "vulkan-1-999-0-0-0.dll", sw64, FilePromotionMode.WhenNewer, selectedPackageNames);
+            LinkSingleFile(assignedDriveLetter, "vulkaninfo32.exe", "vulkaninfo.exe", sw64, FilePromotionMode.WhenNewer, selectedPackageNames);
+            LinkSingleFile(assignedDriveLetter, "vulkaninfo32.exe", "vulkaninfo-1-999-0-0-0.exe", sw64, FilePromotionMode.WhenNewer, selectedPackageNames);
         }
+
         private void PromoteQualcommGpuFiles(string assignedDriveLetter)
         {
             string s32 = "System32";
@@ -941,10 +1022,19 @@ namespace ExHyperV.Services
             LinkSingleFile(assignedDriveLetter, "qcegpchpe.dll", "qcegpdx86.dll", sc32); // 注意：目标是 qcegpdx86.dll
             LinkSingleFile(assignedDriveLetter, "qcgpuchpecompilercore.dll", "qcgpux86compilercore.DLL", sc32);
         }
-        private void ProcessPromotionRegistryKey(Microsoft.Win32.RegistryKey adapterKey, string subKeyName, string assignedDriveLetter, string targetSubDir)
+        private void ProcessPromotionRegistryKey(
+            Microsoft.Win32.RegistryKey adapterKey,
+            string subKeyName,
+            string assignedDriveLetter,
+            string targetSubDir,
+            IReadOnlyCollection<string> preferredPackageNames)
         {
             using var promotionKey = adapterKey.OpenSubKey(subKeyName);
             if (promotionKey == null) return;
+
+            FilePromotionMode promotionMode = subKeyName.Contains("Overwrite", StringComparison.OrdinalIgnoreCase)
+                ? FilePromotionMode.Overwrite
+                : FilePromotionMode.WhenNewer;
 
             foreach (var valName in promotionKey.GetValueNames())
             {
@@ -964,17 +1054,61 @@ namespace ExHyperV.Services
 
                 if (!string.IsNullOrEmpty(sourceSearch))
                 {
-                    LinkSingleFile(assignedDriveLetter, sourceSearch, targetLinkName, targetSubDir);
+                    LinkSingleFile(
+                        assignedDriveLetter,
+                        sourceSearch,
+                        targetLinkName,
+                        targetSubDir,
+                        promotionMode,
+                        preferredPackageNames);
                 }
             }
         }
 
-        private void LinkSingleFile(string assignedDriveLetter, string sourceName, string targetName, string targetSubDir)
+        private void LinkSingleFile(
+            string assignedDriveLetter,
+            string sourceName,
+            string targetName,
+            string targetSubDir,
+            FilePromotionMode promotionMode = FilePromotionMode.PreserveExisting,
+            IReadOnlyCollection<string>? preferredPackageNames = null,
+            bool requirePreferredPackage = false)
         {
             try
             {
                 string guestRepo = Path.Combine(assignedDriveLetter, "Windows", "System32", "HostDriverStore", "FileRepository");
                 string hostDestDir = Path.Combine(assignedDriveLetter, "Windows", targetSubDir);
+
+                var foundFiles = FindDriverSourceFiles(
+                    guestRepo,
+                    sourceName,
+                    preferredPackageNames,
+                    allowRepositoryFallback: !requirePreferredPackage);
+                if (foundFiles.Count == 0)
+                {
+                    if (promotionMode != FilePromotionMode.PreserveExisting || requirePreferredPackage)
+                    {
+                        string warning = $"[GPU Link] Required promotion source not found: {sourceName}.";
+                        Debug.WriteLine(warning);
+                        _linkWarnings.Value?.Enqueue(warning);
+                    }
+                    return;
+                }
+
+                FileInfo sourceFile = foundFiles[0];
+                string hostSourceFile = sourceFile.FullName;
+                string relativeSourcePath = Path.GetRelativePath(
+                    Path.GetFullPath(assignedDriveLetter),
+                    Path.GetFullPath(hostSourceFile));
+
+                if (Path.IsPathRooted(relativeSourcePath) ||
+                    relativeSourcePath.Equals("..", StringComparison.Ordinal) ||
+                    relativeSourcePath.StartsWith($"..{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
+                {
+                    throw new IOException($"Driver source is outside the mounted guest volume: {hostSourceFile}");
+                }
+
+                string guestInternalTarget = Path.Combine(@"C:\", relativeSourcePath);
 
                 if (!Directory.Exists(hostDestDir))
                 {
@@ -991,6 +1125,9 @@ namespace ExHyperV.Services
                 string hostLinkPath = Path.Combine(hostDestDir, targetName);
                 bool isReparsePoint = false;
                 bool targetPathExists = File.Exists(hostLinkPath) || Directory.Exists(hostLinkPath);
+                bool targetIsDirectory = Directory.Exists(hostLinkPath);
+                string? backupPath = null;
+                string? previousLinkTarget = null;
                 try
                 {
                     isReparsePoint = File.GetAttributes(hostLinkPath).HasFlag(FileAttributes.ReparsePoint);
@@ -998,55 +1135,114 @@ namespace ExHyperV.Services
                 }
                 catch { }
 
-                // 刷新旧版创建的错误链接；来宾原有的普通文件仍保持不变。
-                if (targetPathExists && !isReparsePoint) return;
-
-                if (isReparsePoint)
+                if (targetPathExists)
                 {
-                    int deleteExitCode = ExecuteCommand($"cmd /c del /f /q \"{hostLinkPath}\"");
-                    if (deleteExitCode != 0)
+                    if (targetIsDirectory && !isReparsePoint)
                     {
-                        string warning = $"[GPU Link] Unable to replace {hostLinkPath}: del exited with code {deleteExitCode}.";
+                        string warning = $"[GPU Link] Refusing to replace directory {hostLinkPath}.";
                         Debug.WriteLine(warning);
                         _linkWarnings.Value?.Enqueue(warning);
                         return;
                     }
+
+                    bool shouldReplace = promotionMode switch
+                    {
+                        FilePromotionMode.Overwrite => true,
+                        FilePromotionMode.WhenNewer => IsSourceNewerThanDestination(
+                            sourceFile,
+                            hostLinkPath,
+                            isReparsePoint,
+                            assignedDriveLetter),
+                        // 保留原逻辑：普通来宾文件不动，但刷新旧版创建的错误链接。
+                        _ => isReparsePoint
+                    };
+
+                    if (!shouldReplace) return;
+
+                    if (isReparsePoint)
+                    {
+                        try { previousLinkTarget = new FileInfo(hostLinkPath).LinkTarget; }
+                        catch { }
+
+                        int deleteExitCode = ExecuteCommand($"cmd /c del /f /q \"{hostLinkPath}\"");
+                        if (deleteExitCode != 0)
+                        {
+                            string warning = $"[GPU Link] Unable to replace {hostLinkPath}: del exited with code {deleteExitCode}.";
+                            Debug.WriteLine(warning);
+                            _linkWarnings.Value?.Enqueue(warning);
+                            return;
+                        }
+                    }
+                    else
+                    {
+                        backupPath = $"{hostLinkPath}.exhyperv-backup-{Guid.NewGuid():N}";
+                        try
+                        {
+                            File.Move(hostLinkPath, backupPath);
+                        }
+                        catch (Exception ex)
+                        {
+                            string warning = $"[GPU Link] Unable to back up {hostLinkPath}: {ex.Message}";
+                            Debug.WriteLine(warning);
+                            _linkWarnings.Value?.Enqueue(warning);
+                            return;
+                        }
+                    }
                 }
-
-                try
-                {
-                    if (File.GetAttributes(hostLinkPath) != (FileAttributes)(-1))
-                        return;
-                }
-                catch {}
-
-                var foundFiles = new DirectoryInfo(guestRepo)
-                                    .GetFiles(sourceName, SearchOption.AllDirectories)
-                                    .OrderByDescending(f => f.LastWriteTime)
-                                    .ToList();
-
-                if (foundFiles.Count == 0) return;
-
-                string hostSourceFile = foundFiles[0].FullName;
-                string relativeSourcePath = Path.GetRelativePath(
-                    Path.GetFullPath(assignedDriveLetter),
-                    Path.GetFullPath(hostSourceFile));
-
-                if (Path.IsPathRooted(relativeSourcePath) ||
-                    relativeSourcePath.Equals("..", StringComparison.Ordinal) ||
-                    relativeSourcePath.StartsWith($"..{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
-                {
-                    throw new IOException($"Driver source is outside the mounted guest volume: {hostSourceFile}");
-                }
-
-                string guestInternalTarget = Path.Combine(@"C:\", relativeSourcePath);
 
                 int exitCode = ExecuteCommand($"cmd /c mklink \"{hostLinkPath}\" \"{guestInternalTarget}\"");
                 if (exitCode != 0)
                 {
+                    try
+                    {
+                        File.GetAttributes(hostLinkPath);
+                        ExecuteCommand($"cmd /c del /f /q \"{hostLinkPath}\"");
+                    }
+                    catch { }
+
+                    if (!string.IsNullOrEmpty(backupPath))
+                    {
+                        try
+                        {
+                            File.Move(backupPath, hostLinkPath);
+                        }
+                        catch (Exception ex)
+                        {
+                            string rollbackWarning = $"[GPU Link] Rollback failed for {hostLinkPath}: {ex.Message}";
+                            Debug.WriteLine(rollbackWarning);
+                            _linkWarnings.Value?.Enqueue(rollbackWarning);
+                        }
+                    }
+                    else if (!string.IsNullOrWhiteSpace(previousLinkTarget))
+                    {
+                        int restoreExitCode = ExecuteCommand($"cmd /c mklink \"{hostLinkPath}\" \"{previousLinkTarget}\"");
+                        if (restoreExitCode != 0)
+                        {
+                            string rollbackWarning = $"[GPU Link] Unable to restore previous link {hostLinkPath}: mklink exited with code {restoreExitCode}.";
+                            Debug.WriteLine(rollbackWarning);
+                            _linkWarnings.Value?.Enqueue(rollbackWarning);
+                        }
+                    }
+
                     string warning = $"[GPU Link] {targetName} -> {guestInternalTarget}: mklink exited with code {exitCode}.";
                     Debug.WriteLine(warning);
                     _linkWarnings.Value?.Enqueue(warning);
+                    return;
+                }
+
+                if (!string.IsNullOrEmpty(backupPath))
+                {
+                    try
+                    {
+                        File.SetAttributes(backupPath, FileAttributes.Normal);
+                        File.Delete(backupPath);
+                    }
+                    catch (Exception ex)
+                    {
+                        string warning = $"[GPU Link] Link created, but backup cleanup failed for {backupPath}: {ex.Message}";
+                        Debug.WriteLine(warning);
+                        _linkWarnings.Value?.Enqueue(warning);
+                    }
                 }
             }
             catch (Exception ex)
@@ -1055,6 +1251,283 @@ namespace ExHyperV.Services
                 Debug.WriteLine(warning);
                 _linkWarnings.Value?.Enqueue(warning);
             }
+        }
+
+        private static IReadOnlyCollection<string> GetCoInstalledAmdPackageNames(
+            string guestRepo,
+            IReadOnlyCollection<string> selectedDisplayPackageNames,
+            string packagePrefix,
+            IReadOnlyCollection<string> requiredFiles,
+            bool requireDisplayInfStem)
+        {
+            if (!Directory.Exists(guestRepo) || selectedDisplayPackageNames.Count == 0)
+                return Array.Empty<string>();
+
+            // Resolve the package which actually provides the selected adapter's OpenGL UMD.
+            // This avoids pairing a current display package with a stale OpenCL/AMDWIN package.
+            FileInfo? displaySource = FindDriverSourceFiles(
+                guestRepo,
+                "atio6axx.dll",
+                selectedDisplayPackageNames,
+                allowRepositoryFallback: false).FirstOrDefault();
+            if (displaySource == null) return Array.Empty<string>();
+
+            string relativeDisplayPath = Path.GetRelativePath(guestRepo, displaySource.FullName);
+            string displayPackageName = relativeDisplayPath.Split(
+                Path.DirectorySeparatorChar,
+                StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(displayPackageName)) return Array.Empty<string>();
+
+            string effectivePrefix = packagePrefix;
+            if (requireDisplayInfStem)
+            {
+                Match stemMatch = Regex.Match(
+                    displayPackageName,
+                    @"^(?<stem>.+)\.inf_amd64_[^\/]+$",
+                    RegexOptions.IgnoreCase);
+                if (!stemMatch.Success) return Array.Empty<string>();
+                effectivePrefix = $"{packagePrefix}{stemMatch.Groups["stem"].Value}.inf_amd64_";
+            }
+
+            var displayPackage = new DirectoryInfo(Path.Combine(guestRepo, displayPackageName));
+            if (!displayPackage.Exists) return Array.Empty<string>();
+
+            var candidates = new List<(DirectoryInfo Directory, double DeltaSeconds)>();
+            foreach (string candidatePath in Directory.EnumerateDirectories(guestRepo, "*", SearchOption.TopDirectoryOnly))
+            {
+                var candidate = new DirectoryInfo(candidatePath);
+                if (!candidate.Name.StartsWith(effectivePrefix, StringComparison.OrdinalIgnoreCase)) continue;
+
+                bool complete = true;
+                foreach (string requiredFile in requiredFiles)
+                {
+                    if (candidate.GetFiles(requiredFile, SearchOption.AllDirectories).Length != 1)
+                    {
+                        complete = false;
+                        break;
+                    }
+                }
+                if (!complete) continue;
+
+                candidates.Add((
+                    candidate,
+                    Math.Abs((candidate.LastWriteTimeUtc - displayPackage.LastWriteTimeUtc).TotalSeconds)));
+            }
+
+            var ordered = candidates
+                .OrderBy(item => item.DeltaSeconds)
+                .ThenBy(item => item.Directory.Name, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            if (ordered.Count == 0 || ordered[0].DeltaSeconds > 30) return Array.Empty<string>();
+            if (ordered.Count > 1 && ordered[1].DeltaSeconds.Equals(ordered[0].DeltaSeconds))
+                return Array.Empty<string>();
+
+            return new[] { ordered[0].Directory.Name };
+        }
+
+        private string GetSelectedDisplayClassSubKeyName(Microsoft.Win32.RegistryKey baseKey, string gpuInstancePath)
+        {
+            if (string.IsNullOrWhiteSpace(gpuInstancePath)) return string.Empty;
+
+            string deviceId = NormalizeDeviceId(gpuInstancePath).Replace('#', '\\');
+            if (string.IsNullOrWhiteSpace(deviceId)) return string.Empty;
+
+            using var deviceKey = baseKey.OpenSubKey($@"SYSTEM\CurrentControlSet\Enum\{deviceId}");
+            string driverKey = deviceKey?.GetValue("Driver")?.ToString() ?? string.Empty;
+            const string displayClassPrefix = @"{4d36e968-e325-11ce-bfc1-08002be10318}\";
+            if (!driverKey.StartsWith(displayClassPrefix, StringComparison.OrdinalIgnoreCase)) return string.Empty;
+
+            string subKeyName = driverKey.Substring(displayClassPrefix.Length);
+            return subKeyName.Contains('\\') ? string.Empty : subKeyName;
+        }
+
+        private IReadOnlyCollection<string> GetSelectedDisplayDriverPackageNames(string gpuInstancePath)
+        {
+            try
+            {
+                using var baseKey = Microsoft.Win32.RegistryKey.OpenBaseKey(
+                    Microsoft.Win32.RegistryHive.LocalMachine,
+                    Microsoft.Win32.RegistryView.Registry64);
+                using var classKey = baseKey.OpenSubKey(
+                    @"SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}");
+                if (classKey == null) return Array.Empty<string>();
+
+                string subKeyName = GetSelectedDisplayClassSubKeyName(baseKey, gpuInstancePath);
+                if (string.IsNullOrEmpty(subKeyName)) return Array.Empty<string>();
+
+                using var adapterKey = classKey.OpenSubKey(subKeyName);
+                return adapterKey == null
+                    ? Array.Empty<string>()
+                    : GetDriverPackageDirectoryNames(adapterKey);
+            }
+            catch
+            {
+                return Array.Empty<string>();
+            }
+        }
+
+        private static IReadOnlyCollection<string> GetDriverPackageDirectoryNames(Microsoft.Win32.RegistryKey adapterKey)
+        {
+            var packageNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var packagePathPattern = new Regex(
+                @"(?:^|[\\/])DriverStore[\\/]FileRepository[\\/]([^\\/]+)(?:[\\/]|$)",
+                RegexOptions.IgnoreCase);
+
+            foreach (string valueName in adapterKey.GetValueNames())
+            {
+                object? value = adapterKey.GetValue(valueName);
+                IEnumerable<string> strings = value switch
+                {
+                    string single => new[] { single },
+                    string[] multiple => multiple,
+                    _ => Array.Empty<string>()
+                };
+
+                foreach (string text in strings)
+                {
+                    Match match = packagePathPattern.Match(text);
+                    if (match.Success) packageNames.Add(match.Groups[1].Value);
+                }
+            }
+
+            return packageNames.ToArray();
+        }
+
+        private static List<FileInfo> FindDriverSourceFiles(
+            string guestRepo,
+            string sourceName,
+            IReadOnlyCollection<string>? preferredPackageNames,
+            bool allowRepositoryFallback = true)
+        {
+            if (!Directory.Exists(guestRepo) || string.IsNullOrWhiteSpace(sourceName)) return new List<FileInfo>();
+
+            string normalizedSource = sourceName.Trim()
+                .Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
+            if (Path.IsPathRooted(normalizedSource))
+                throw new IOException($"Driver source must be relative to FileRepository: {sourceName}");
+
+            string[] sourceParts = normalizedSource.Split(
+                Path.DirectorySeparatorChar,
+                StringSplitOptions.RemoveEmptyEntries);
+            if (sourceParts.Length == 0 || sourceParts.Any(part => part == "." || part == ".."))
+                throw new IOException($"Invalid DriverStore source path: {sourceName}");
+
+            var matches = new List<FileInfo>();
+
+            void SearchPackageDirectories(IEnumerable<string> packageDirectories)
+            {
+                string relativeDirectory = Path.GetDirectoryName(normalizedSource) ?? string.Empty;
+                string filePattern = Path.GetFileName(normalizedSource);
+
+                foreach (string packageDirectory in packageDirectories)
+                {
+                    try
+                    {
+                        string searchRoot = Path.Combine(packageDirectory, relativeDirectory);
+                        if (!Directory.Exists(searchRoot)) continue;
+                        SearchOption searchOption = sourceParts.Length == 1
+                            ? SearchOption.AllDirectories
+                            : SearchOption.TopDirectoryOnly;
+                        matches.AddRange(new DirectoryInfo(searchRoot).GetFiles(filePattern, searchOption));
+                    }
+                    catch (UnauthorizedAccessException) { }
+                    catch (DirectoryNotFoundException) { }
+                }
+            }
+
+            if (preferredPackageNames != null && preferredPackageNames.Count > 0)
+            {
+                var preferredDirectories = preferredPackageNames
+                    .Where(name => !string.IsNullOrWhiteSpace(name) && Path.GetFileName(name) == name)
+                    .Select(name => Path.Combine(guestRepo, name));
+                SearchPackageDirectories(preferredDirectories);
+            }
+
+            if (matches.Count == 0 && allowRepositoryFallback)
+            {
+                if (sourceParts.Length > 1)
+                {
+                    SearchPackageDirectories(Directory.EnumerateDirectories(guestRepo, "*", SearchOption.TopDirectoryOnly));
+                }
+                else
+                {
+                    matches.AddRange(new DirectoryInfo(guestRepo).GetFiles(normalizedSource, SearchOption.AllDirectories));
+                }
+            }
+
+            return matches
+                .OrderByDescending(file => file.LastWriteTimeUtc)
+                .ThenBy(file => file.FullName, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+
+        private static bool IsSourceNewerThanDestination(
+            FileInfo sourceFile,
+            string destinationPath,
+            bool destinationIsReparsePoint,
+            string assignedDriveLetter)
+        {
+            try
+            {
+                string timestampPath = destinationPath;
+                if (destinationIsReparsePoint)
+                {
+                    string? linkTarget = new FileInfo(destinationPath).LinkTarget;
+                    if (string.IsNullOrWhiteSpace(linkTarget)) return true;
+
+                    if (Path.IsPathFullyQualified(linkTarget))
+                    {
+                        string? targetRoot = Path.GetPathRoot(linkTarget);
+                        if (string.IsNullOrEmpty(targetRoot)) return true;
+                        string relativeTarget = Path.GetRelativePath(targetRoot, linkTarget);
+                        timestampPath = Path.Combine(assignedDriveLetter, relativeTarget);
+                    }
+                    else
+                    {
+                        timestampPath = Path.GetFullPath(
+                            Path.Combine(Path.GetDirectoryName(destinationPath) ?? assignedDriveLetter, linkTarget));
+                    }
+
+                    // 链接仍指向旧包或旧版错误源时必须刷新，不能只比较时间戳。
+                    if (!Path.GetFullPath(timestampPath).Equals(
+                            Path.GetFullPath(sourceFile.FullName),
+                            StringComparison.OrdinalIgnoreCase))
+                    {
+                        return true;
+                    }
+                }
+
+                if (!File.Exists(timestampPath)) return true;
+
+                string extension = Path.GetExtension(destinationPath);
+                if (extension.Equals(".dll", StringComparison.OrdinalIgnoreCase) ||
+                    extension.Equals(".exe", StringComparison.OrdinalIgnoreCase))
+                {
+                    FileVersionInfo sourceVersion = FileVersionInfo.GetVersionInfo(sourceFile.FullName);
+                    FileVersionInfo destinationVersion = FileVersionInfo.GetVersionInfo(timestampPath);
+                    int versionComparison = CompareFileVersions(sourceVersion, destinationVersion);
+                    if (versionComparison != 0) return versionComparison > 0;
+                }
+
+                return sourceFile.LastWriteTimeUtc > File.GetLastWriteTimeUtc(timestampPath);
+            }
+            catch
+            {
+                // 无法确认旧目标版本时刷新链接，避免保留悬空或旧格式链接。
+                return true;
+            }
+        }
+
+        private static int CompareFileVersions(FileVersionInfo left, FileVersionInfo right)
+        {
+            int comparison = left.FileMajorPart.CompareTo(right.FileMajorPart);
+            if (comparison != 0) return comparison;
+            comparison = left.FileMinorPart.CompareTo(right.FileMinorPart);
+            if (comparison != 0) return comparison;
+            comparison = left.FileBuildPart.CompareTo(right.FileBuildPart);
+            return comparison != 0
+                ? comparison
+                : left.FilePrivatePart.CompareTo(right.FilePrivatePart);
         }
 
         private static void SetFolderReadOnly(string folderPath)

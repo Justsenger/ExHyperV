@@ -4,6 +4,28 @@ This table describes the symbolic link (mklink) relationships used to inject hos
 
 **Note:** The "Host Source File" is typically located within the host's `C:\Windows\System32\DriverStore\FileRepository\` directory.
 
+## Registry-defined mappings
+
+Before applying the fixed vendor mappings below, ExHyperV processes the Microsoft GPU-PV promotion rules from the selected display adapter's registry key. Source paths are resolved relative to that adapter's active DriverStore package, including package subdirectories such as `B026261\`.
+
+| Registry Subkey | Guest Target Directory | Replacement Rule |
+| :--- | :--- | :--- |
+| CopyToVmOverwrite | System32 | Always replace the destination |
+| CopyToVmWhenNewer | System32 | For DLL/EXE files, compare FileVersion first; when equal, compare LastWriteTime |
+| CopyToVmOverwriteWow64 | SysWOW64 | Always replace the destination |
+| CopyToVmWhenNewerWow64 | SysWOW64 | For DLL/EXE files, compare FileVersion first; when equal, compare LastWriteTime |
+
+The current AMD display package declares these six mappings dynamically. `Bxxxxxx` is driver-version-specific and is read from the registry rather than hard-coded:
+
+| Host Source File | Guest Target Directory | Guest Target Filename |
+| :--- | :--- | :--- |
+| Bxxxxxx\amfrt64.dll | System32 | amfrt64.dll |
+| Bxxxxxx\atio6axx.dll | System32 | atio6axx.dll |
+| Bxxxxxx\amd_opencl64.dll | System32 | OpenCL.dll |
+| Bxxxxxx\amfrt32.dll | SysWOW64 | amfrt32.dll |
+| Bxxxxxx\atioglxx.dll | SysWOW64 | atioglxx.dll |
+| Bxxxxxx\amd_opencl32.dll | SysWOW64 | OpenCL.dll |
+
 ---
 
 ## 1. NVIDIA
@@ -133,6 +155,10 @@ This table describes the symbolic link (mklink) relationships used to inject hos
 | atieah64.exe | System32 | atieah64.exe |
 | EEURestart.exe | System32 | EEURestart.exe |
 | GameManager64.dll | System32 | GameManager64.dll |
+| amdmiracast.dll | System32 | amdmiracast.dll |
+| amf-mft-mjpeg-decoder64.dll | System32 | amf-mft-mjpeg-decoder64.dll |
+| atidemgy.dll | System32 | atidemgy.dll |
+| atimuixx.dll | System32 | atimuixx.dll |
 | atiapfxx.blb | System32 | atiapfxx.blb |
 | ativvsva.dat | System32 | ativvsva.dat |
 | ativvsvl.dat | System32 | ativvsvl.dat |
@@ -142,8 +168,22 @@ This table describes the symbolic link (mklink) relationships used to inject hos
 | amdkmpfd.itz | System32\AMD\amdkmpfd | amdkmpfd.itz |
 | amdkmpfd.stz | System32\AMD\amdkmpfd | amdkmpfd.stz |
 | u0418637.cat | System32\CatRoot\{F750E6C3-38EE-11D1-85E5-00C04FC295EE} | oem43.cat |
-| amdvlk64.dll | System32 | amdvlk64.dll |
-| amdvlk64.dll | System32 | vulkan-1.dll |
+| vulkan64.dll | System32 | vulkan-1.dll |
+| vulkan64.dll | System32 | vulkan-1-999-0-0-0.dll |
+| vulkaninfo64.exe | System32 | vulkaninfo.exe |
+| vulkaninfo64.exe | System32 | vulkaninfo-1-999-0-0-0.exe |
+| amd_comgr_2.dll | System32 | amd_comgr_2.dll |
+| amdhip64_6.dll | System32 | amdhip64_6.dll |
+| amdmmcl.dll | System32 | amdmmcl.dll |
+| amdmmcl6.dll | System32 | amdmmcl6.dll |
+| clinfo.exe | System32 | clinfo.exe |
+| hiprt02000_amd.hipfb | System32 | hiprt02000_amd.hipfb |
+| hiprt0200064.dll | System32 | hiprt0200064.dll |
+| oro_compiled_kernels.hipfb | System32 | oro_compiled_kernels.hipfb |
+| amdlogum.exe | System32 | amdlogum.exe |
+| dgtrayicon.exe | System32 | dgtrayicon.exe |
+| Rapidfire64.dll | System32 | Rapidfire64.dll |
+| RapidFireServer64.dll | System32 | RapidFireServer64.dll |
 
 ### SysWOW64 (32-bit)
 | Host Source File | Guest Target Directory | Guest Target Filename |
@@ -160,11 +200,33 @@ This table describes the symbolic link (mklink) relationships used to inject hos
 | atisamu32.dll | SysWOW64 | atisamu32.dll |
 | GameManager32.dll | SysWOW64 | GameManager32.dll |
 | atiadlxy.dll | SysWOW64 | atiadlxx.dll |
+| amdsacli32.dll | SysWOW64 | amdsacli32.dll |
+| amf-mft-mjpeg-decoder32.dll | SysWOW64 | amf-mft-mjpeg-decoder32.dll |
+| atiadlxy.dll | SysWOW64 | atiadlxy.dll |
+| atieah32.exe | SysWOW64 | atieah32.exe |
 | detoured32.dll | SysWOW64 | detoured.dll |
 | atiapfxx.blb | SysWOW64 | atiapfxx.blb |
 | ativvsva.dat | SysWOW64 | ativvsva.dat |
 | ativvsvl.dat | SysWOW64 | ativvsvl.dat |
-| amdvlk32.dll | SysWOW64 | vulkan-1.dll |
+| vulkan32.dll | SysWOW64 | vulkan-1.dll |
+| vulkan32.dll | SysWOW64 | vulkan-1-999-0-0-0.dll |
+| vulkaninfo32.exe | SysWOW64 | vulkaninfo.exe |
+| vulkaninfo32.exe | SysWOW64 | vulkaninfo-1-999-0-0-0.exe |
+| amd_comgr32.dll | SysWOW64 | amd_comgr32.dll |
+| Rapidfire.dll | SysWOW64 | Rapidfire.dll |
+| RapidFireServer.dll | SysWOW64 | RapidFireServer.dll |
+
+### AMD companion-package selection
+
+The OpenCL/HIP files are selected from the `amdocl.inf_amd64_*` package installed in the same batch as the active display package. AMDWIN files are additionally required to match the active display INF stem (for example, `amdwin-u0202642.inf_*` with `u0202642.inf_*`). If ExHyperV cannot identify exactly one matching package, it skips these mappings and reports warnings instead of mixing driver generations.
+
+RapidFire and `hiprt0200064.dll` import the Microsoft Visual C++ runtime. ExHyperV promotes the AMD-owned files but does not install or replace the machine-wide VC++ runtime; applications which require these optional components must satisfy that Microsoft prerequisite separately.
+
+### AMD MFT registry behavior
+
+ExHyperV does not synthesize values inside an offline GPU-PV display-class instance. Windows creates or reuses the active `PCI\VEN_1414&DEV_008E` class instance on the next guest boot, and stale instances can remain after a GPU partition is removed and assigned again. Therefore an offline deployment cannot reliably identify the class instance which will become active.
+
+Validation showed the same 7 video encoders and 11 video decoders before and after adding the four DDA-only class values (`MFTFlags`, `OutputTypes`, and two `EnableDecoders` values). They are not required for the verified GPU-PV MFT functionality. The required 32-bit and 64-bit MJPEG decoder DLLs are promoted by the file mappings above; those file mappings changed the 32-bit MJPEG load result from failure to success.
 
 ---
 
