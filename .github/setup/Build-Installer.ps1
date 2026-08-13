@@ -124,7 +124,7 @@ foreach ($item in $Architecture) {
         if ($LASTEXITCODE -ne 0) { throw "Application signing failed for $item" }
     }
 
-    $baseName = "ExHyperV_Setup_V${Version}_${item}"
+    $baseName = "ExHyperV_V${Version}_Setup_${item}"
     $arguments = @(
         "/DAppVersion=$Version",
         "/DNumericVersion=$numericVersion",
