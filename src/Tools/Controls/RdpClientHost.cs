@@ -25,6 +25,8 @@ namespace ExHyperV.Tools
 
         /// <summary>已连接（OnConnected）。</summary>
         public event Action? Connected;
+        /// <summary>远程用户已通过 Windows 登录界面并完成登录。</summary>
+        public event Action? LoginCompleted;
         /// <summary>已断开（OnDisconnected），参数为 RDP 断开原因码。</summary>
         public event Action<int>? Disconnected;
         /// <summary>远端桌面尺寸变化（OnRemoteDesktopSizeChange）——取代旧实现 20ms 像素嗅探。</summary>
@@ -44,6 +46,7 @@ namespace ExHyperV.Tools
         public RdpClientHost()
         {
             _ax.Connected += () => { _curtain.Visible = false; Connected?.Invoke(); };        // 连上 → 掀开黑布显示画面
+            _ax.LoginCompleted += () => LoginCompleted?.Invoke();
             _ax.Disconnected += r => { _curtain.Visible = true; Disconnected?.Invoke(r); };   // 断开/重连 → 立即盖上黑布
             _ax.RemoteDesktopSizeChanged += (w, h) => RemoteSizeChanged?.Invoke(w, h);
             _ax.EnteredFullScreen += () => FullScreenRequested?.Invoke(true);
