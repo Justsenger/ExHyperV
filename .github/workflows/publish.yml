@@ -151,6 +151,43 @@ jobs:
         run: |
           powershell -ExecutionPolicy Bypass -File "./.github/scripts/sign-windows.ps1" -TargetDirectory "artifacts/win-arm64" -SkipCatGeneration
 
+      - name: Setup Inno Setup
+        if: steps.config.outputs.PUBLISH == 'true'
+        shell: pwsh
+        run: |
+          $knownCompilers = @(
+            "${env:ProgramFiles}\Inno Setup 7\ISCC.exe",
+            "${env:ProgramFiles(x86)}\Inno Setup 7\ISCC.exe",
+            "$env:LOCALAPPDATA\Programs\Inno Setup 7\ISCC.exe",
+            "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe",
+            "${env:ProgramFiles}\Inno Setup 6\ISCC.exe",
+            "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe"
+          )
+          if (-not (Get-Command ISCC.exe -ErrorAction SilentlyContinue) -and
+              -not ($knownCompilers | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1)) {
+            choco install innosetup --no-progress --yes
+            if ($LASTEXITCODE -ne 0) { throw "Inno Setup installation failed" }
+          }
+
+      - name: Build and sign x64 and arm64 installers
+        if: steps.config.outputs.PUBLISH == 'true'
+        shell: pwsh
+        env:
+          CERTUM_CERTIFICATE_SHA1: ${{ secrets.CERTUM_CERTIFICATE_SHA1 }}
+        run: |
+          powershell -ExecutionPolicy Bypass -File "./.github/setup/Build-Installer.ps1" `
+            -Version "${{ steps.config.outputs.VERSION }}" `
+            -EnableSigning
+
+      - name: Test signed x64 installer
+        if: steps.config.outputs.PUBLISH == 'true'
+        shell: pwsh
+        run: |
+          powershell -ExecutionPolicy Bypass -File "./.github/setup/Test-Installer.ps1" `
+            -InstallerPath "artifacts/installers/ExHyperV_Setup_${{ steps.config.outputs.TAG }}_x64.exe" `
+            -ExpectedVersion "${{ steps.config.outputs.VERSION }}" `
+            -RequireValidSignatures
+
       # ── 整理单文件发布资产 ────────────────────────────────────────────
       - name: Prepare release assets
         if: steps.config.outputs.PUBLISH == 'true'
@@ -159,6 +196,8 @@ jobs:
           $tag = "${{ steps.config.outputs.TAG }}"
           Copy-Item ./artifacts/win-x64/ExHyperV.exe "ExHyperV_${tag}_x64.exe"
           Copy-Item ./artifacts/win-arm64/ExHyperV.exe "ExHyperV_${tag}_arm64.exe"
+          Copy-Item ./artifacts/installers/ExHyperV_Setup_${tag}_x64.exe .
+          Copy-Item ./artifacts/installers/ExHyperV_Setup_${tag}_arm64.exe .
 
       # ── 预发布：先删掉所有现存预发布，再创建新的 → 内测包始终只保留一个 ──
       - name: Delete all existing prereleases
@@ -185,6 +224,8 @@ jobs:
           files: |
             ExHyperV_${{ steps.config.outputs.TAG }}_x64.exe
             ExHyperV_${{ steps.config.outputs.TAG }}_arm64.exe
+            ExHyperV_Setup_${{ steps.config.outputs.TAG }}_x64.exe
+            ExHyperV_Setup_${{ steps.config.outputs.TAG }}_arm64.exe
           generate_release_notes: ${{ steps.config.outputs.MODE == 'release' }}
           draft: false
           prerelease: ${{ steps.config.outputs.PRERELEASE == 'true' }}
