@@ -444,11 +444,13 @@ Host and VM must be the following versions to enable this capability.
 | **Nvidia** | GT 210 | Tesla | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | Not supported |
 | **Nvidia** | Tesla V100-SXM2-16GB | Volta | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | Host crashes on boot #95 |
 | **Intel**| Iris Xe Graphics| Xe-LP | ⚠️ | ✅ | ✅ | ✅ | ✅ | ❌ | Incomplete HW ID|
+| **Intel**| A310 | Xe-HPG | ⚠️ | ✅ | ✅ | ✅ | ✅ | ❌ | Incomplete HW ID|
 | **Intel**| A380 | Xe-HPG | ⚠️ | ✅ | ✅ | ✅ | ✅ | ❌ | Incomplete HW ID|
 | **Intel**| UHD Graphics 730 | Xe-LP | ⚠️ | ✅ | ✅ | ✅ | ✅ | ❌ | Incomplete HW ID|
 | **Intel**| UHD Graphics 620 Mobile | Generation 9.5 | ⚠️ | ✅ | ✅ | ✅ | ✅ | ❌ | Incomplete HW ID|
 | **Intel**| HD Graphics 530 | Generation 9.0 | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | Not supported |
 | **AMD** | Radeon Vega 3 | GCN 5.0 | ⚠️ | ✅ | ✅ | ✅ | ✅ | ✅ | Incomplete HW ID|
+| **AMD** | RX 5500 XT | RDNA 1.0 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | |
 | **AMD** | Radeon 8060S | RDNA 3.5 | ⚠️ | ✅ | ✅ | ✅ | ✅ | ❌ | Incomplete HW ID |
 | **AMD** | Radeon 890M | RDNA 3.5 | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | Boot crashes host |
 | **Moore Threads** | MTT S80 | MUSA | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | Not supported |
@@ -728,12 +730,14 @@ Ineffective Versions: Pro, Home, Enterprise, Home Single Language.
 | **Nvidia** | Tesla V100-SXM2-16GB | Volta | ✅ | ✅ | ❌ |
 | **Nvidia** | Tesla P100-PCIE-16GB | Pascal | ✅ | ✅ | ❌ |
 | **Intel** | DG1 | Xe-LP | ✅ | ❌ | [Specific Driver](https://www.shengqipc.cn/d21.html) ✅ |
+| **Intel** | A310 | Xe-HPG | Code 43 ❌ | ✅ | ❌ |
 | **Intel** | A380 | Xe-HPG | Code 43 ❌ | ✅ | ❌ |
 | **Intel** | UHD Graphics 770 | Xe | Cannot be passed through ❌ | ❌ | ❌ |
 | **Intel**| UHD Graphics 620 Mobile | Generation 9.5 | Fails ❌ | ❌ | ❌ |
 | **Intel**| HD Graphics 610 | Generation 9.5 | Fails ❌ | ❌ | ❌ |
 | **Intel**| HD Graphics 530 | Generation 9.0 | Fails ❌ | ❌ | ❌ |
 | **AMD** | RX 580 | GCN 4.0 | Code 43 ❌ | ✅ | ❌ |
+| **AMD** | RX 5500 XT | RDNA 1.0 | Code 43 ❌ | ✅ | ❌ |
 | **AMD** | Radeon Vega 3 | GCN 5.0 | Code 43 ❌ | ❌ | ❌ |
 | **Qualcomm** | Qualcomm(R) Adreno(TM) X1-85 GPU | Adreno X1 | Not supported ❌ | ❌ | ❌ |
 | **Qualcomm** | Qualcomm(R) Adreno(TM) 8cx Gen 3  | Adreno | Not supported ❌ | ❌ | ❌ |

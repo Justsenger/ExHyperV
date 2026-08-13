@@ -436,11 +436,13 @@ GPU-PV 是一种半虚拟化技术，它允许多个虚拟机共享使用物理 
 | **Nvidia** | GT 210 | Tesla | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | 不支持 |
 | **Nvidia** | Tesla V100-SXM2-16GB | Volta | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | 启动会导致宿主崩溃 #95 |
 | **Intel**| Iris Xe Graphics| Xe-LP | ⚠️ | ✅ | ✅ | ✅ | ✅ | ❌ | 硬件识别残缺| 
+| **Intel**| A310 | Xe-HPG | ⚠️ | ✅ | ✅ | ✅ | ✅ | ❌ | 硬件识别残缺|
 | **Intel**| A380 | Xe-HPG | ⚠️ | ✅ | ✅ | ✅ | ✅ | ❌ | 硬件识别残缺|
 | **Intel**| UHD Graphics 730 | Xe-LP | ⚠️ | ✅ | ✅ | ✅ | ✅ | ❌ | 硬件识别残缺|
 | **Intel**| UHD Graphics 620 Mobile | Generation 9.5 | ⚠️ | ✅ | ✅ | ✅ | ✅ | ❌ | 硬件识别残缺|
 | **Intel**| HD Graphics 530 | Generation 9.0 | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | 不支持 |
 | **AMD** | Radeon Vega 3 | GCN 5.0 | ⚠️ | ✅ | ✅ | ✅ | ✅ | ✅ | 硬件识别残缺|
+| **AMD** | RX 5500 XT | RDNA 1.0 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | |
 | **AMD** | Radeon 8060S | RDNA 3.5 | ⚠️ | ✅ | ✅ | ✅ | ✅ | ❌ | 硬件识别残缺 |
 | **AMD** | Radeon 890M | RDNA 3.5 | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | 启动会导致宿主崩溃 |
 | **Moore Threads** | MTT S80 | MUSA | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | 不支持 |
@@ -724,12 +726,14 @@ PCIe 直通以 PCIe 设备为单位查找可分配设备。如果设备未显示
 | **Nvidia** | Tesla V100-SXM2-16GB | Volta | ✅ | ✅ | ❌ |
 | **Nvidia** | Tesla P100-PCIE-16GB | Pascal | ✅ | ✅ | ❌ |
 | **Intel** | DG1 | Xe-LP | ✅ | ❌ | [特定驱动](https://www.shengqipc.cn/d21.html) ✅ |
+| **Intel** | A310 | Xe-HPG | Code 43 ❌ | ✅ | ❌ |
 | **Intel** | A380 | Xe-HPG | Code 43 ❌ | ✅ | ❌ |
 | **Intel** | UHD Graphics 770 | Xe | 无法直通❌ | ❌ | ❌ |
 | **Intel**| UHD Graphics 620 Mobile | Generation 9.5 | 无法直通❌ | ❌ | ❌ | 
 | **Intel**| HD Graphics 610 | Generation 9.5 | 无法直通❌ | ❌ | ❌ | 
 | **Intel**| HD Graphics 530 | Generation 9.0 | 无法直通❌ | ❌ | ❌ |
 | **AMD** | RX 580 | GCN 4.0 | Code 43 ❌ | ✅ | ❌ |
+| **AMD** | RX 5500 XT | RDNA 1.0 | Code 43 ❌ | ✅ | ❌ |
 | **AMD** | Radeon Vega 3 | GCN 5.0 | Code 43 ❌ | ❌ | ❌ |
 | **Qualcomm** | Qualcomm(R) Adreno(TM) X1-85 GPU | Adreno X1 | 不支持❌ | ❌ | ❌ |
 | **Qualcomm** | Qualcomm(R) Adreno(TM) 8cx Gen 3  | Adreno | 不支持❌ | ❌ | ❌ |
