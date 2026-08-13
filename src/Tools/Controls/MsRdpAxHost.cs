@@ -80,6 +80,8 @@ namespace ExHyperV.Tools
                 // CredSSP 与 NegotiateSecurityLayer 必须在同一个 NonScriptable3 上、先开 CredSSP 再关协商
                 // （官方 VMConnect 示例的顺序；分到不同接口设会让 NegotiateSecurityLayer 报 E_INVALIDARG）。
                 var ocx = (IMsRdpClientNonScriptable3)GetOcx();
+                if (!string.IsNullOrWhiteSpace(s.ConnectionBarText))
+                    TrySet("ConnectionBarText", () => ocx.ConnectionBarText = s.ConnectionBarText);
                 TrySet("EnableCredSspSupport", () => ocx.EnableCredSspSupport = s.NetworkLevelAuthentication);
                 TrySet("NegotiateSecurityLayer", () => ocx.NegotiateSecurityLayer = s.NegotiateSecurityLayer);
 

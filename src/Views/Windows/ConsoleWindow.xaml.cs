@@ -263,7 +263,7 @@ namespace ExHyperV.Views
                         _postLoginWidth = initialWidth;
                         _postLoginHeight = initialHeight;
                     }
-                    RdpHost.Connect(BuildHyperVSettings(_vm.VmId, _vm.IsEnhancedMode, initialWidth, initialHeight, desktopScale));
+                    RdpHost.Connect(BuildHyperVSettings(_vm.VmId, _vm.VmName, _vm.IsEnhancedMode, initialWidth, initialHeight, desktopScale));
                 }
             }
             else if (RdpHost.ConnectionState != 0)   // VM 停了但还连着 → 断（保持窗口，等轮询到 VM 重启再连）
@@ -274,12 +274,13 @@ namespace ExHyperV.Views
         }
 
         // Hyper-V 控制台连接配方（消费层组装；增强沿用当前分辨率作初始尺寸，避免切换跳变）。
-        private static RdpConnectionSettings BuildHyperVSettings(string vmId, bool enhanced, int reuseWidth, int reuseHeight, uint desktopScale)
+        private static RdpConnectionSettings BuildHyperVSettings(string vmId, string vmName, bool enhanced, int reuseWidth, int reuseHeight, uint desktopScale)
         {
             var id = (vmId ?? string.Empty).Trim().ToUpperInvariant();
             return new RdpConnectionSettings
             {
                 Server = "localhost",
+                ConnectionBarText = vmName,
                 Port = 2179,
                 AuthenticationLevel = 0,
                 AuthenticationServiceClass = "Microsoft Virtual Console Service",

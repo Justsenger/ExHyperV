@@ -10,6 +10,9 @@ namespace ExHyperV.Tools
         public string Server { get; set; } = "127.0.0.1";
         public int Port { get; set; } = 3389;
 
+        /// <summary>全屏连接栏显示的文字；为空时由 RDP 控件显示服务器地址。</summary>
+        public string? ConnectionBarText { get; set; }
+
         /// <summary>预连接 blob（PCB）。Hyper-V 用它承载 VM GUID（增强会话追加 ";EnhancedMode=1"）。</summary>
         public string? PreConnectionBlob { get; set; }
 
