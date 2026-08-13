@@ -3219,10 +3219,10 @@ Update the reference and retry?</value>
     <value>Update and retry</value>
   </data>
   <data name="Gpu_StaleTitle" xml:space="preserve">
-    <value>GPU partition not found</value>
+    <value>Invalid GPU partition detected</value>
   </data>
   <data name="Gpu_StaleMessage" xml:space="preserve">
-    <value>The GPU assigned to VM "{0}" no longer exists on this host, so it cannot start.
+    <value>VM "{0}" contains an incomplete GPU partition, or its assigned GPU no longer exists on this host, so it cannot start.
 
 Clear it and retry?</value>
   </data>
@@ -3317,6 +3317,9 @@ Remove them from storage and retry? Cancel to re-plug the device and try again.<
   </data>
   <data name="Vmcx_IncompleteDda" xml:space="preserve">
     <value>Incomplete DDA device: vdev{0:D3} (instance={1}) is missing HostResources/HostResource/Instance → the VM will fail to start.</value>
+  </data>
+  <data name="Vmcx_IncompleteGpuPv" xml:space="preserve">
+    <value>Incomplete GPU partition: vdev{0:D3} (instance={1}) is missing InstanceGuid or VDEVVersion → the VM will fail to start.</value>
   </data>
   <data name="Vmcx_OpFailHr" xml:space="preserve">
     <value>{0} failed hr=0x{1}</value>

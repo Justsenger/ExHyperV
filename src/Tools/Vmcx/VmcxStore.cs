@@ -269,6 +269,18 @@ public sealed class VmcxStore : IDisposable {
             if (!vals.Exists(x => x.Equals("HostResources/HostResource/Instance", StringComparison.OrdinalIgnoreCase)))
                 issues.Add(string.Format(Properties.Resources.Vmcx_IncompleteDda, kv.Key, kv.Value));
         }
+        // GPU-PV may legitimately omit HostResource when it uses the generic pool. Its own
+        // data node must still contain InstanceGuid and VDEVVersion. A manifest entry with
+        // only VDEVVersion is a broken, WMI-invisible device that makes vmwp fail with
+        // 0x80070057; validate it explicitly instead of treating it as a generic adapter.
+        foreach (var kv in vdev) {
+            string t2; if (!vdevType.TryGetValue(kv.Key, out t2) || t2 != VmcxSchema.GpuPartitionType) continue;
+            var vals = devVals.ContainsKey(kv.Value) ? devVals[kv.Value] : new List<string>();
+            bool hasInstanceGuid = vals.Exists(x => x.Equals("InstanceGuid", StringComparison.OrdinalIgnoreCase));
+            bool hasVdevVersion = vals.Exists(x => x.Equals("VDEVVersion", StringComparison.OrdinalIgnoreCase));
+            if (!hasInstanceGuid || !hasVdevVersion)
+                issues.Add(string.Format(Properties.Resources.Vmcx_IncompleteGpuPv, kv.Key, kv.Value));
+        }
         return issues;
     }
 

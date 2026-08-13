@@ -8953,6 +8953,10 @@ namespace ExHyperV.Properties {
             get { return ResourceManager.GetString("Vmcx_IncompleteDda", resourceCulture); }
         }
 
+        public static string Vmcx_IncompleteGpuPv {
+            get { return ResourceManager.GetString("Vmcx_IncompleteGpuPv", resourceCulture); }
+        }
+
         public static string Vmcx_OpFailHr {
             get { return ResourceManager.GetString("Vmcx_OpFailHr", resourceCulture); }
         }

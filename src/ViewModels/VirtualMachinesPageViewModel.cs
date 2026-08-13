@@ -487,9 +487,17 @@ namespace ExHyperV.ViewModels
             // 判据(本地化无关):失败错误文本含设备名 "GPU Partition"(本地化消息里仍为英文),
             // 或含某个失效分区的实例 GUID。两者皆无 → 本次失败另有其因(如 0x8007000E 内存不足)→ 交回通用报错。
             string err = startError ?? string.Empty;
+            var explicitlyImplicated = stale
+                .Where(s => err.IndexOf(s.Instance, StringComparison.OrdinalIgnoreCase) >= 0)
+                .ToList();
             bool gpuImplicated = err.IndexOf("GPU Partition", StringComparison.OrdinalIgnoreCase) >= 0
-                || stale.Any(s => err.IndexOf(s.Instance, StringComparison.OrdinalIgnoreCase) >= 0);
+                || explicitlyImplicated.Count > 0;
             if (!gpuImplicated) return false;
+
+            // Worker 错误通常带有实际失败的 GPU-PV 实例 GUID。此时只修复
+            // 精确命中的实例，避免顺带删除与本次启动失败无关的其它旧分区。
+            if (explicitlyImplicated.Count > 0)
+                stale = explicitlyImplicated;
 
             // 区分两种失配:同一张卡仍在主机但路径变了(可重指,保住 GPU)vs 卡已不在(只能清除)
             bool allRebind = stale.All(s => !string.IsNullOrEmpty(s.RebindPath));

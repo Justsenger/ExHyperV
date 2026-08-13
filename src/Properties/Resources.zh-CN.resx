@@ -3222,7 +3222,7 @@
     <value>检测到失效的 GPU 分区</value>
   </data>
   <data name="Gpu_StaleMessage" xml:space="preserve">
-    <value>虚拟机「{0}」分配的 GPU 在当前主机已不存在，导致无法开机。
+    <value>虚拟机「{0}」存在残缺的 GPU 分区，或分配的 GPU 在当前主机已不存在，导致无法开机。
 
 是否清除并重试？</value>
   </data>
@@ -3317,6 +3317,9 @@
   </data>
   <data name="Vmcx_IncompleteDda" xml:space="preserve">
     <value>残缺 DDA 设备: vdev{0:D3}(instance={1})缺 HostResources/HostResource/Instance → VM 将无法启动</value>
+  </data>
+  <data name="Vmcx_IncompleteGpuPv" xml:space="preserve">
+    <value>残缺 GPU 分区: vdev{0:D3}(instance={1})缺 InstanceGuid 或 VDEVVersion → VM 将无法启动</value>
   </data>
   <data name="Vmcx_OpFailHr" xml:space="preserve">
     <value>{0} 失败 hr=0x{1}</value>

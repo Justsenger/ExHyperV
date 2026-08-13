@@ -28,6 +28,17 @@ public static class VmcxSchema {
         public int    VdevNumber;
         public string Instance;      // manifest 实例 GUID(= 数据节点 /_<instance>_)
         public string HostResource;  // 钉死的物理 GPU 路径;"" = 自动池匹配
+        public bool HostResourcePresent;
+        public bool InstanceGuidPresent;
+        public bool PoolIdPresent;
+        public bool VdevVersionPresent;
+
+        // 未钉死物理卡的合法 GPU-PV 可以没有 HostResource，但官方创建的
+        // 通用池设备仍包含 InstanceGuid 和 VDEVVersion（当前系统还会写入
+        // PoolID，但旧系统可能省略默认值）。保留键是否
+        // 存在的信息，避免把仅剩 VDEVVersion 的残缺设备误判为合法通用池设备。
+        public bool IsStructurallyComplete =>
+            InstanceGuidPresent && VdevVersionPresent;
     }
 
     /// <summary>解析所有 GPU-PV(GPU Partition)设备及其 HostResource(钉死的物理 GPU 路径)。
@@ -36,20 +47,40 @@ public static class VmcxSchema {
         var instByNum = new SortedDictionary<int,string>();
         var typeByNum = new Dictionary<int,string>();
         var hostRes   = new Dictionary<string,string>(StringComparer.OrdinalIgnoreCase); // 设备节点GUID → HostResource
+        var deviceKeys = new Dictionary<string,HashSet<string>>(StringComparer.OrdinalIgnoreCase);
         foreach (var n in nodes) {
             if (!n.IsValue) continue;
             var mi = Regex.Match(n.Path, @"^/configuration/manifest/vdev(\d+)/instance$");
             if (mi.Success) instByNum[int.Parse(mi.Groups[1].Value)] = (n.Value??"").Trim('{','}').ToLowerInvariant();
             var mt = Regex.Match(n.Path, @"^/configuration/manifest/vdev(\d+)/device$");
             if (mt.Success) typeByNum[int.Parse(mt.Groups[1].Value)] = (n.Value??"").Trim('{','}').ToLowerInvariant();
-            var mh = Regex.Match(n.Path, @"^/configuration/_([0-9a-fA-F-]{36})_/HostResource$");
-            if (mh.Success) hostRes[mh.Groups[1].Value.ToLowerInvariant()] = n.Value ?? "";
+            var md = Regex.Match(n.Path, @"^/configuration/_([0-9a-fA-F-]{36})_/([^/]+)$");
+            if (md.Success) {
+                string instance = md.Groups[1].Value.ToLowerInvariant();
+                string key = md.Groups[2].Value;
+                if (!deviceKeys.TryGetValue(instance, out var keys)) {
+                    keys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                    deviceKeys[instance] = keys;
+                }
+                keys.Add(key);
+                if (key.Equals("HostResource", StringComparison.OrdinalIgnoreCase))
+                    hostRes[instance] = n.Value ?? "";
+            }
         }
         var list = new List<VmcxGpuPv>();
         foreach (var kv in instByNum) {
             string t; if (!typeByNum.TryGetValue(kv.Key, out t) || t != GpuPartitionType) continue;
             string hr; hostRes.TryGetValue(kv.Value, out hr);
-            list.Add(new VmcxGpuPv { VdevNumber = kv.Key, Instance = kv.Value, HostResource = hr ?? "" });
+            deviceKeys.TryGetValue(kv.Value, out var keys);
+            list.Add(new VmcxGpuPv {
+                VdevNumber = kv.Key,
+                Instance = kv.Value,
+                HostResource = hr ?? "",
+                HostResourcePresent = keys?.Contains("HostResource") == true,
+                InstanceGuidPresent = keys?.Contains("InstanceGuid") == true,
+                PoolIdPresent = keys?.Contains("PoolID") == true,
+                VdevVersionPresent = keys?.Contains("VDEVVersion") == true,
+            });
         }
         return list;
     }

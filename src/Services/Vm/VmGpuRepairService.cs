@@ -20,9 +20,14 @@ namespace ExHyperV.Services
     /// </summary>
     public static class VmGpuRepairService
     {
-        /// <summary>一条失配的 GPU-PV。RebindPath != null 表示"同一张卡仍在主机、只是路径变了",其值为该卡当前的可分区路径;
-        /// RebindPath == null 表示"该卡在主机已不存在"。</summary>
-        public sealed record StaleGpuPartition(int VdevNumber, string Instance, string HostResource, string? RebindPath);
+        /// <summary>一条失效的 GPU-PV。RebindPath != null 表示"同一张卡仍在主机、只是路径变了",其值为该卡当前的可分区路径;
+        /// RebindPath == null 表示"该卡在主机已不存在"或设备结构残缺;后者由 IsStructurallyIncomplete 区分。</summary>
+        public sealed record StaleGpuPartition(
+            int VdevNumber,
+            string Instance,
+            string HostResource,
+            string? RebindPath,
+            bool IsStructurallyIncomplete = false);
 
         // VMComputerSystemState: 2=Running, 3=Off
         private const int State_Running = 2;
@@ -76,37 +81,48 @@ namespace ExHyperV.Services
             return (parts.Length >= 2 ? parts[1] : hostResource).ToUpperInvariant();
         }
 
-        /// <summary>检测某注册 VM 的失配 GPU-PV:用引擎读单个 .vmcx,对每条钉死了物理路径的 GPU Partition,
-        /// 用【完整路径串】比对可分区 GPU 池;不在池里即失配,再按硬件标识判断能否重指。
-        /// (WMI 看不见这些记录,必须读文件。)HostResource 为空=运行时自动池匹配,不算失配。
-        /// 池查询失败时返回空列表(保守,不误判)。</summary>
+        /// <summary>检测某注册 VM 的失效 GPU-PV:用引擎读单个 .vmcx。先检测核心字段残缺的 WMI 隐形设备,
+        /// 再对每条钉死了物理路径的完整 GPU Partition 用【完整路径串】比对可分区 GPU 池;
+        /// 不在池里即失配,再按硬件标识判断能否重指。合法通用池设备无 HostResource,但核心字段完整。
+        /// 池查询失败时仍返回结构残缺项,钉死路径项则保守跳过。</summary>
         public static async Task<List<StaleGpuPartition>> FindStaleGpuPartitionsAsync(string vmName)
         {
             var (vmcx, _, _) = await ResolveVmcxAsync(vmName);
             if (vmcx == null) return new List<StaleGpuPartition>();
 
+            var pvs = await Task.Run(() =>
+            {
+                using (var s = VmcxStore.Open(vmcx))
+                    return VmcxSchema.GpuPvDevices(s.Enumerate());
+            });
+
+            // 合法的通用池 GPU-PV 没有 HostResource，但仍有 InstanceGuid
+            // 和 VDEVVersion（PoolID 默认值在旧系统上可能不落盘）。仅剩 VDEVVersion 的 manifest 设备是
+            // WMI 不可见的残缺设备；即使宿主 GPU 池查询失败也必须能检出。
+            var result = pvs
+                .Where(p => !p.IsStructurallyComplete)
+                .Select(p => new StaleGpuPartition(
+                    p.VdevNumber, p.Instance, p.HostResource, null, true))
+                .ToList();
+
+            var pinned = pvs
+                .Where(p => p.IsStructurallyComplete && !string.IsNullOrEmpty(p.HostResource))
+                .ToList();
+            if (pinned.Count == 0) return result;
+
             var poolList = await GetPartitionableGpuPoolAsync();
-            if (poolList == null) return new List<StaleGpuPartition>();
+            if (poolList == null) return result;
             var poolSet = new HashSet<string>(poolList, StringComparer.OrdinalIgnoreCase);
 
-            return await Task.Run(() =>
+            foreach (var p in pinned)
             {
-                var result = new List<StaleGpuPartition>();
-                List<VmcxSchema.VmcxGpuPv> pvs;
-                using (var s = VmcxStore.Open(vmcx))
-                    pvs = VmcxSchema.GpuPvDevices(s.Enumerate());
-
-                foreach (var p in pvs)
-                {
-                    if (string.IsNullOrEmpty(p.HostResource)) continue;     // 未钉死,自动池匹配,不算失配
-                    if (poolSet.Contains(p.HostResource)) continue;         // 完整路径精确命中 = 健康
-                    // 路径串对不上:核对硬件标识,看同一张卡是否仍在池里(只是路径变了)
-                    string id = GpuIdentity(p.HostResource);
-                    string? rebind = poolList.FirstOrDefault(x => GpuIdentity(x) == id);
-                    result.Add(new StaleGpuPartition(p.VdevNumber, p.Instance, p.HostResource, rebind));
-                }
-                return result;
-            });
+                if (poolSet.Contains(p.HostResource)) continue;         // 完整路径精确命中 = 健康
+                // 路径串对不上:核对硬件标识,看同一张卡是否仍在池里(只是路径变了)
+                string id = GpuIdentity(p.HostResource);
+                string? rebind = poolList.FirstOrDefault(x => GpuIdentity(x) == id);
+                result.Add(new StaleGpuPartition(p.VdevNumber, p.Instance, p.HostResource, rebind));
+            }
+            return result;
         }
 
         /// <summary>修复指定的失配 GPU-PV:能重指的(同卡换路径)更新 HostResource 到新路径;不能的(卡已不在)删除该设备。
