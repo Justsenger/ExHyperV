@@ -17,6 +17,29 @@ namespace ExHyperV.Services
         private readonly VmQueryService _queryService;
         private readonly AsyncLocal<ConcurrentQueue<string>?> _linkWarnings = new();
 
+        private static readonly string[] IntelGpuRuntimeRegistryValueNames =
+        {
+            "OpenCLDriverName",
+            "OpenCLDriverNameWow",
+            "LevelZeroDriverPath",
+            "DriverStorePathForComputeRuntime",
+            "DriverStorePathForMediaSDK",
+            "DriverStorePathForVPL",
+            "DriverStorePathForMDF",
+            "VulkanDriverName",
+            "VulkanDriverNameWow",
+            "OpenGLDriverName",
+            "OpenGLDriverNameWow",
+            "OpenGLFlags",
+            "OpenGLFlagsWow",
+            "OpenGLInstalled",
+            "OpenGLVersion",
+            "OpenGLVersionWow",
+            "ContentProtectionDriverName",
+            "ControlApiPath",
+            "ControlApiPath32"
+        };
+
         private enum FilePromotionMode
         {
             PreserveExisting,
@@ -646,7 +669,11 @@ namespace ExHyperV.Services
                 }
                 else if (gpuManu.Contains("Intel", StringComparison.OrdinalIgnoreCase))
                 {
-                    await Task.Run(() => PromoteIntelGpuFiles(assignedDriveLetter));
+                    await Task.Run(() =>
+                    {
+                        PromoteIntelGpuFiles(assignedDriveLetter);
+                        PromoteIntelGpuRuntimeRegistry(assignedDriveLetter, gpuInstancePath);
+                    });
                 }
                 else if (gpuManu.Contains("AMD", StringComparison.OrdinalIgnoreCase) || gpuManu.Contains("Advanced", StringComparison.OrdinalIgnoreCase))
                 {
@@ -861,6 +888,250 @@ namespace ExHyperV.Services
             LinkSingleFile(assignedDriveLetter, "vulkaninfo-32.exe", "vulkaninfo.exe", sw64);
             LinkSingleFile(assignedDriveLetter, "vulkaninfo-32.exe", "vulkaninfo-1-999-0-0-0.exe", sw64);
         }
+
+        private void PromoteIntelGpuRuntimeRegistry(string assignedDriveLetter, string gpuInstancePath)
+        {
+            const string displayClassGuid = "{4d36e968-e325-11ce-bfc1-08002be10318}";
+            string systemHiveFile = Path.Combine(
+                assignedDriveLetter,
+                "Windows",
+                "System32",
+                "Config",
+                "SYSTEM");
+
+            if (!File.Exists(systemHiveFile))
+                throw new FileNotFoundException("The offline SYSTEM hive was not found.", systemHiveFile);
+
+            using var hostBaseKey = Microsoft.Win32.RegistryKey.OpenBaseKey(
+                Microsoft.Win32.RegistryHive.LocalMachine,
+                Microsoft.Win32.RegistryView.Registry64);
+            string selectedClassSubKeyName = GetSelectedDisplayClassSubKeyName(hostBaseKey, gpuInstancePath);
+            if (string.IsNullOrWhiteSpace(selectedClassSubKeyName))
+                throw new InvalidOperationException("Unable to map the selected Intel GPU-PV instance to its display-class registry key.");
+
+            using var hostAdapterKey = hostBaseKey.OpenSubKey(
+                $@"SYSTEM\CurrentControlSet\Control\Class\{displayClassGuid}\{selectedClassSubKeyName}");
+            if (hostAdapterKey == null)
+                throw new InvalidOperationException("The selected Intel display-class registry key does not exist.");
+
+            var runtimeValues = new List<(string Name, object Value, Microsoft.Win32.RegistryValueKind Kind)>();
+            foreach (string valueName in IntelGpuRuntimeRegistryValueNames)
+            {
+                object? value = hostAdapterKey.GetValue(
+                    valueName,
+                    null,
+                    Microsoft.Win32.RegistryValueOptions.DoNotExpandEnvironmentNames);
+                if (value == null) continue;
+
+                Microsoft.Win32.RegistryValueKind valueKind;
+                try { valueKind = hostAdapterKey.GetValueKind(valueName); }
+                catch { continue; }
+
+                runtimeValues.Add((
+                    valueName,
+                    RewriteIntelGpuRuntimeRegistryValue(value),
+                    valueKind));
+            }
+
+            if (runtimeValues.Count == 0)
+                throw new InvalidOperationException("The selected Intel driver does not expose GPU runtime registry values.");
+
+            string? levelZeroDriverPath = runtimeValues
+                .FirstOrDefault(item => item.Name.Equals("LevelZeroDriverPath", StringComparison.OrdinalIgnoreCase))
+                .Value as string;
+
+            string offlineHiveName = $"ExHyperVIntelOfflineSystem_{Guid.NewGuid():N}";
+            if (ExecuteCommand($@"reg load HKLM\{offlineHiveName} ""{systemHiveFile}""") != 0)
+                throw new InvalidOperationException(Properties.Resources.Error_OfflineLoadVmRegistryFailed);
+
+            try
+            {
+                using var offlineSystem = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(offlineHiveName, writable: true)
+                    ?? throw new InvalidOperationException("The loaded offline SYSTEM hive could not be opened.");
+
+                IReadOnlyCollection<string> controlSetNames = GetOfflineControlSetNames(offlineSystem);
+                string currentControlSetName = GetOfflineCurrentControlSetName(offlineSystem);
+                var levelZeroAnchorSubKeys = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+                // Validate every destination before writing anything. An absent Level Zero anchor is
+                // fatal only for the active control set; stale backup control sets are synchronized
+                // when possible but must not make an otherwise bootable deployment fail.
+                foreach (string controlSetName in controlSetNames)
+                {
+                    string classRoot = $@"{controlSetName}\Control\Class\{displayClassGuid}";
+                    using var existingRuntimeKey = offlineSystem.OpenSubKey(
+                        $@"{classRoot}\{selectedClassSubKeyName}");
+                    if (existingRuntimeKey != null && !IsCompatibleIntelRuntimeTarget(existingRuntimeKey))
+                    {
+                        throw new InvalidOperationException(
+                            $"The offline display-class key {selectedClassSubKeyName} belongs to another display driver; Intel runtime values were not written.");
+                    }
+
+                    if (string.IsNullOrWhiteSpace(levelZeroDriverPath)) continue;
+
+                    string? anchorSubKeyName = FindOfflineHyperVVideoClassSubKeyName(offlineSystem, classRoot);
+                    if (!string.IsNullOrWhiteSpace(anchorSubKeyName))
+                    {
+                        levelZeroAnchorSubKeys[controlSetName] = anchorSubKeyName;
+                    }
+                    else if (controlSetName.Equals(currentControlSetName, StringComparison.OrdinalIgnoreCase))
+                    {
+                        throw new InvalidOperationException("The offline Microsoft Hyper-V Video display-class key was not found in the active control set.");
+                    }
+                }
+
+                foreach (string controlSetName in controlSetNames)
+                {
+                    string classRoot = $@"{controlSetName}\Control\Class\{displayClassGuid}";
+
+                    // Intel NEO gets DeviceRegistryPath from the selected host adapter through
+                    // KMTQAITYPE_UMDRIVERPRIVATE. GPU-PV preserves that numeric class-key name,
+                    // so populate it before the virtual render device starts for the first time.
+                    using (var runtimeKey = offlineSystem.CreateSubKey(
+                        $@"{classRoot}\{selectedClassSubKeyName}",
+                        writable: true))
+                    {
+                        if (runtimeKey == null)
+                            throw new InvalidOperationException("Unable to create the offline Intel runtime registry key.");
+                        if (!IsCompatibleIntelRuntimeTarget(runtimeKey))
+                            throw new InvalidOperationException(
+                                $"The offline display-class key {selectedClassSubKeyName} belongs to another display driver; Intel runtime values were not written.");
+
+                        foreach (var runtimeValue in runtimeValues)
+                            runtimeKey.SetValue(runtimeValue.Name, runtimeValue.Value, runtimeValue.Kind);
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(levelZeroDriverPath) &&
+                        levelZeroAnchorSubKeys.TryGetValue(controlSetName, out string? anchorSubKeyName))
+                    {
+                        // The Windows Level Zero loader enumerates present guest display DEVNODEs and
+                        // reads LevelZeroDriverPath from their software keys. The VRD software key does
+                        // not exist until first boot, but Hyper-V Video does, so use that stable display
+                        // key as a discovery anchor without replacing any other driver's registration.
+                        using var levelZeroAnchorKey = offlineSystem.OpenSubKey(
+                            $@"{classRoot}\{anchorSubKeyName}",
+                            writable: true);
+                        if (levelZeroAnchorKey == null)
+                            throw new InvalidOperationException("The offline Microsoft Hyper-V Video registry key could not be opened.");
+
+                        levelZeroAnchorKey.SetValue(
+                            "LevelZeroDriverPath",
+                            levelZeroDriverPath,
+                            Microsoft.Win32.RegistryValueKind.String);
+                    }
+                }
+            }
+            finally
+            {
+                ExecuteCommand($"reg unload HKLM\\{offlineHiveName}");
+            }
+        }
+
+        private static object RewriteIntelGpuRuntimeRegistryValue(object value)
+        {
+            static string Rewrite(string text) => Regex.Replace(
+                text,
+                @"(?i)([\\/])System32([\\/])DriverStore([\\/])",
+                "$1System32$2HostDriverStore$3");
+
+            return value switch
+            {
+                string text => Rewrite(text),
+                string[] texts => texts.Select(Rewrite).ToArray(),
+                _ => value
+            };
+        }
+
+        private static IReadOnlyCollection<string> GetOfflineControlSetNames(Microsoft.Win32.RegistryKey offlineSystem)
+        {
+            var controlSets = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            controlSets.Add(GetOfflineCurrentControlSetName(offlineSystem));
+            using var selectKey = offlineSystem.OpenSubKey("Select");
+            foreach (string valueName in new[] { "Default", "LastKnownGood" })
+            {
+                if (selectKey?.GetValue(valueName) is int controlSetNumber && controlSetNumber > 0)
+                    controlSets.Add($"ControlSet{controlSetNumber:D3}");
+            }
+
+            return controlSets.ToArray();
+        }
+
+        private static string GetOfflineCurrentControlSetName(Microsoft.Win32.RegistryKey offlineSystem)
+        {
+            using var selectKey = offlineSystem.OpenSubKey("Select");
+            return selectKey?.GetValue("Current") is int controlSetNumber && controlSetNumber > 0
+                ? $"ControlSet{controlSetNumber:D3}"
+                : "ControlSet001";
+        }
+
+        private static bool IsCompatibleIntelRuntimeTarget(Microsoft.Win32.RegistryKey runtimeKey)
+        {
+            string driverDesc = runtimeKey.GetValue("DriverDesc")?.ToString() ?? string.Empty;
+            string providerName = runtimeKey.GetValue("ProviderName")?.ToString() ?? string.Empty;
+            string infPath = runtimeKey.GetValue("InfPath")?.ToString() ?? string.Empty;
+            string matchingDeviceId = runtimeKey.GetValue("MatchingDeviceId")?.ToString() ?? string.Empty;
+
+            if (string.IsNullOrWhiteSpace(driverDesc) &&
+                string.IsNullOrWhiteSpace(providerName) &&
+                string.IsNullOrWhiteSpace(infPath) &&
+                string.IsNullOrWhiteSpace(matchingDeviceId))
+            {
+                return true;
+            }
+
+            string identity = $"{driverDesc}|{providerName}|{infPath}|{matchingDeviceId}";
+            if (identity.Contains("Intel", StringComparison.OrdinalIgnoreCase) ||
+                matchingDeviceId.Contains("VEN_8086", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            return infPath.Equals("vrd.inf", StringComparison.OrdinalIgnoreCase) ||
+                   (providerName.Contains("Microsoft", StringComparison.OrdinalIgnoreCase) &&
+                    driverDesc.Contains("Virtual Render", StringComparison.OrdinalIgnoreCase));
+        }
+
+        private static string? FindOfflineHyperVVideoClassSubKeyName(
+            Microsoft.Win32.RegistryKey offlineSystem,
+            string classRoot)
+        {
+            using var classKey = offlineSystem.OpenSubKey(classRoot);
+            if (classKey == null) return null;
+
+            foreach (string subKeyName in classKey.GetSubKeyNames()
+                         .OrderBy(name => name, StringComparer.OrdinalIgnoreCase))
+            {
+                Microsoft.Win32.RegistryKey? candidate = null;
+                try { candidate = classKey.OpenSubKey(subKeyName); }
+                catch (UnauthorizedAccessException) { continue; }
+                catch (System.Security.SecurityException) { continue; }
+                using (candidate)
+                {
+                    if (candidate == null) continue;
+
+                    string driverDesc;
+                    string providerName;
+                    string infPath;
+                    try
+                    {
+                        driverDesc = candidate.GetValue("DriverDesc")?.ToString() ?? string.Empty;
+                        providerName = candidate.GetValue("ProviderName")?.ToString() ?? string.Empty;
+                        infPath = candidate.GetValue("InfPath")?.ToString() ?? string.Empty;
+                    }
+                    catch (UnauthorizedAccessException) { continue; }
+                    catch (System.Security.SecurityException) { continue; }
+                    if ((driverDesc.Contains("Hyper-V Video", StringComparison.OrdinalIgnoreCase) ||
+                         infPath.Equals("wvmbusvideo.inf", StringComparison.OrdinalIgnoreCase)) &&
+                        providerName.Contains("Microsoft", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return subKeyName;
+                    }
+                }
+            }
+
+            return null;
+        }
+
         private void PromoteAmdGpuFiles(string assignedDriveLetter, string gpuInstancePath)
         {
             string s32 = "System32";

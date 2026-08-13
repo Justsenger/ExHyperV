@@ -130,6 +130,14 @@ The current AMD display package declares these six mappings dynamically. `Bxxxxx
 | vulkaninfo-32.exe | SysWOW64 | vulkaninfo.exe |
 | vulkaninfo-32.exe | SysWOW64 | vulkaninfo-1-999-0-0-0.exe |
 
+### Intel runtime registry compatibility
+
+The Intel file mappings above are only the binary-promotion layer. ExHyperV also copies the application-facing runtime values from the **selected GPU-PV adapter's** display-class key into the offline guest SYSTEM hive. It preserves the registry value type and rewrites only `System32\DriverStore` paths to `System32\HostDriverStore`.
+
+The selected adapter is resolved from its `GPUPARAV` instance path through `Enum\<device>\Driver`; the display-class number is not hard-coded. Windows exposes that host adapter registry path to Intel NEO through `KMTQAITYPE_UMDRIVERPRIVATE`, so the same numbered guest class key is populated before the virtual render device starts. The copied values cover the installed driver's OpenCL, Level Zero, OpenGL, Vulkan, VPL/MDF, content-protection, and Intel Control API registrations when those values exist. Physical-device D3D UMD, WSL, and Android-cabinet registrations are deliberately left to the virtual render stack rather than copied wholesale.
+
+Intel's Windows Level Zero loader discovers drivers by enumerating present display DEVNODEs and reading `LevelZeroDriverPath` from each device software key. The GPU-PV virtual render device software key is first created at guest boot, after ExHyperV's offline deployment. To make Level Zero available on that first boot without a logon script or a second deployment pass, ExHyperV additionally places the selected Intel path on the already-installed Microsoft Hyper-V Video display key. This adds one discovery entry without setting `ZE_ENABLE_ALT_DRIVERS` and therefore does not disable discovery of other display or compute-accelerator drivers.
+
 ---
 
 ## 3. AMD
