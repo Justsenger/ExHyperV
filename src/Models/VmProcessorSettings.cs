@@ -8,14 +8,17 @@ namespace ExHyperV.Models
     /// <summary>APIC 模式（Msvm_ProcessorSettingData.ApicMode，u8）：自动 / 强制 xAPIC / 强制 x2APIC / Apic。改 guest CPUID 0x01 ECX[21] x2APIC 位。</summary>
     public enum VmApicMode : byte { Default = 0, Legacy = 1, X2Apic = 2, Apic = 3 }
 
-    /// <summary>L3 处理器分布策略（L3ProcessorDistributionPolicy，u8）：VP 往各 L3 域铺核次序。仅多 L3/AMD 平台有真实效果。</summary>
+    /// <summary>L3 处理器分布策略（L3ProcessorDistributionPolicy，u8）：VP 在各虚拟 L3 缓存域之间的分布次序。</summary>
     public enum L3DistributionPolicy : byte { SmallToLarge = 0, LargeToSmall = 1, EvenSmallToLarge = 2, EvenLargeToSmall = 3 }
 
-    /// <summary>页碎裂策略（EnablePageShattering，u8）：SLAT 把大页(1G/2M)强制碎成 4K。Default 由平台/隔离模式决定。</summary>
+    /// <summary>大页拆分缓解策略（EnablePageShattering，u8）：Default 使用宿主策略，另外两个值明确请求启用或禁用缓解。</summary>
     public enum PageShatterMode : byte { Default = 0, AlwaysEnabled = 1, AlwaysDisabled = 2 }
 
     /// <summary>LPI (locality-specific peripheral interrupt) mode.</summary>
     public enum LpiMode : byte { Default = 0, Disabled = 2, Enabled = 3 }
+
+    /// <summary>处理器迁移兼容模式（LimitProcessorFeaturesMode，u8）。</summary>
+    public enum VmMigrationCompatibilityMode : byte { MinimumFeatureSet = 0, CommonClusterFeatureSet = 1 }
 
     /// <summary>
     /// VM 处理器设置（绑定 CPU Settings 页面）。
@@ -30,19 +33,18 @@ namespace ExHyperV.Models
         [ObservableProperty] private bool? _exposeVirtualizationExtensions;
         [ObservableProperty] private bool? _enableHostResourceProtection;
         [ObservableProperty] private bool? _compatibilityForMigrationEnabled;
+        [ObservableProperty] private VmMigrationCompatibilityMode? _compatibilityForMigrationMode;
         [ObservableProperty] private bool? _compatibilityForOlderOperatingSystemsEnabled;
         [ObservableProperty] private SmtMode? _smtMode;
         [ObservableProperty] private bool? _disableSpeculationControls;
-        [ObservableProperty] private bool? _hideHypervisorPresent;
         [ObservableProperty] private bool? _enablePerfmonArchPmu;
         [ObservableProperty] private bool? _allowAcountMcount;
-        [ObservableProperty] private bool? _enableSocketTopology;
         [ObservableProperty] private string? _cpuBrandString;
 
         // ── 新增：CPUID 视图类（改 guest 所见，多为迁移/兼容向）──
         [ObservableProperty] private VmApicMode? _apicMode;                        // ApicMode
         [ObservableProperty] private uint? _l3CacheWays;                           // L3CacheWays（0=默认；仅改 guest 视图，不动真缓存）
-        [ObservableProperty] private L3DistributionPolicy? _l3DistributionPolicy;  // L3ProcessorDistributionPolicy（仅多 L3/AMD 有效）
+        [ObservableProperty] private L3DistributionPolicy? _l3DistributionPolicy;  // L3ProcessorDistributionPolicy
         [ObservableProperty] private PageShatterMode? _pageShatterMode;            // EnablePageShattering（SLAT 内部）
 
         // ── 新增：每-VM 调频/能效（需宿主 HWP；消费 Intel 多被拒，应做能力门控）──
@@ -63,7 +65,7 @@ namespace ExHyperV.Models
         [ObservableProperty] private bool? _hardwareIsolationExtensionsEnabled;   // WMI: 0=Disabled, 1=HardwareIsolation
         [ObservableProperty] private uint? _maxHwIsolatedGuests;
 
-        // ── 新增：AMD CCX 拓扑（仅 AMD；Intel 上设值 VM 拒启）──
+        // ── 处理器簇与 L3 缓存域拓扑 ──
         [ObservableProperty] private uint? _maxClusterCountPerSocket;
         [ObservableProperty] private uint? _maxProcessorCountPerL3;
 

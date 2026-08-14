@@ -1224,15 +1224,6 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
-        ///   查找类似 Hides virtualization flags, helps bypass detection. 的本地化字符串。
-        /// </summary>
-        public static string Desc_HideHypervisor {
-            get {
-                return ResourceManager.GetString("Desc_HideHypervisor", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   查找类似 Check environment &amp; advanced settings 的本地化字符串。
         /// </summary>
         public static string Desc_HostConfig {
@@ -1328,15 +1319,6 @@ namespace ExHyperV.Properties {
         public static string Desc_RouterGuard {
             get {
                 return ResourceManager.GetString("Desc_RouterGuard", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Maps physical socket topology to guest. 的本地化字符串。
-        /// </summary>
-        public static string Desc_SocketTopo {
-            get {
-                return ResourceManager.GetString("Desc_SocketTopo", resourceCulture);
             }
         }
         
@@ -3859,15 +3841,6 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
-        ///   查找类似 Hide Hypervisor ID 的本地化字符串。
-        /// </summary>
-        public static string Menu_HideHypervisor {
-            get {
-                return ResourceManager.GetString("Menu_HideHypervisor", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   查找类似 Host Configuration 的本地化字符串。
         /// </summary>
         public static string Menu_HostConfig {
@@ -3994,15 +3967,6 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
-        ///   查找类似 Enable Socket Topology 的本地化字符串。
-        /// </summary>
-        public static string Menu_SocketTopo {
-            get {
-                return ResourceManager.GetString("Menu_SocketTopo", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   查找类似 Switch to Server Edition 的本地化字符串。
         /// </summary>
         public static string Menu_SwitchServer {
@@ -4044,6 +4008,18 @@ namespace ExHyperV.Properties {
         public static string Menu_UnlockHard {
             get {
                 return ResourceManager.GetString("Menu_UnlockHard", resourceCulture);
+            }
+        }
+
+        public static string Cpu_MigrationCompatibilityMode {
+            get {
+                return ResourceManager.GetString("Cpu_MigrationCompatibilityMode", resourceCulture);
+            }
+        }
+
+        public static string Cpu_MigrationCompatibilityModeDesc {
+            get {
+                return ResourceManager.GetString("Cpu_MigrationCompatibilityModeDesc", resourceCulture);
             }
         }
         
@@ -4680,33 +4656,9 @@ namespace ExHyperV.Properties {
             }
         }
 
-        public static string Menu_AzureFeatureSet {
-            get {
-                return ResourceManager.GetString("Menu_AzureFeatureSet", resourceCulture);
-            }
-        }
-
-        public static string Desc_AzureFeatureSet {
-            get {
-                return ResourceManager.GetString("Desc_AzureFeatureSet", resourceCulture);
-            }
-        }
-
         public static string Error_Host_AzureFeatureSetRegistryUnavailable {
             get {
                 return ResourceManager.GetString("Error_Host_AzureFeatureSetRegistryUnavailable", resourceCulture);
-            }
-        }
-
-        public static string Error_Host_AzureFeatureSetChangeFailed {
-            get {
-                return ResourceManager.GetString("Error_Host_AzureFeatureSetChangeFailed", resourceCulture);
-            }
-        }
-
-        public static string Error_AzureFeatureSetRequired {
-            get {
-                return ResourceManager.GetString("Error_AzureFeatureSetRequired", resourceCulture);
             }
         }
 
@@ -8286,6 +8238,13 @@ namespace ExHyperV.Properties {
 
         public static string Error_VmCreate_RollbackFailed {
             get { return ResourceManager.GetString("Error_VmCreate_RollbackFailed", resourceCulture); }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Creation rollback could not remove these files or directories; please clean them up manually: {0}.
+        /// </summary>
+        public static string Error_VmCreate_ArtifactCleanupFailed {
+            get { return ResourceManager.GetString("Error_VmCreate_ArtifactCleanupFailed", resourceCulture); }
         }
 
         public static string VmAdvanced_Title {

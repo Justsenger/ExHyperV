@@ -337,6 +337,11 @@ namespace ExHyperV.Services
             try
             {
                 XDocument configDoc = XDocument.Load(ConfigFilePath);
+                // 旧版本会在关闭控制台时把登录界面的 1366x768 当成用户偏好保存。
+                // 只有带显式标记的新值才可信；未标记的历史值交给新的 1920x1080 默认值迁移。
+                if (!bool.TryParse(configDoc.Root?.Element("DefaultConsoleResolutionExplicit")?.Value, out bool explicitValue)
+                    || !explicitValue)
+                    return null;
                 var v = configDoc.Root?.Element("DefaultConsoleResolution")?.Value;
                 if (string.IsNullOrEmpty(v)) return null;
                 var parts = v.Split('x');
@@ -360,10 +365,15 @@ namespace ExHyperV.Services
                     var el = configDoc.Root?.Element("DefaultConsoleResolution");
                     if (el != null) el.Value = val;
                     else configDoc.Root?.Add(new XElement("DefaultConsoleResolution", val));
+                    var explicitEl = configDoc.Root?.Element("DefaultConsoleResolutionExplicit");
+                    if (explicitEl != null) explicitEl.Value = bool.TrueString;
+                    else configDoc.Root?.Add(new XElement("DefaultConsoleResolutionExplicit", bool.TrueString));
                 }
                 else
                 {
-                    configDoc = new XDocument(new XElement("Config", new XElement("DefaultConsoleResolution", val)));
+                    configDoc = new XDocument(new XElement("Config",
+                        new XElement("DefaultConsoleResolution", val),
+                        new XElement("DefaultConsoleResolutionExplicit", bool.TrueString)));
                 }
                 configDoc.Save(ConfigFilePath);
             }

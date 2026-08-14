@@ -38,6 +38,7 @@ public static class VmProcessorService
         {
             string query = $"SELECT * FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(vmName)}'";
             string? validationError = null;
+            bool requiresAzureFeatureSet = false;
 
             var xmlResults = await WmiApi.QueryAsync(query, vmEntry =>
             {
@@ -54,21 +55,15 @@ public static class VmProcessorService
                     .Cast<ManagementObject>().FirstOrDefault();
                 if (procData == null) return null;
 
-                // ����ֻ���ڹػ�״̬���� Realized�����޸�
+                // 仅对非 Realized 处理器设置写入虚拟处理器数量。
                 var current = MapProcessor(procData);
 
-                bool changesAzureFeatureSetFrequencySetting =
+                requiresAzureFeatureSet =
                     !Equals(newSettings.PerfCpuFreqMinMhz, current.PerfCpuFreqMinMhz)
                     || !Equals(newSettings.PerfCpuFreqDesiredMhz, current.PerfCpuFreqDesiredMhz)
                     || !Equals(newSettings.PerfCpuEnergyPerformancePreference, current.PerfCpuEnergyPerformancePreference)
                     || !Equals(newSettings.PerfCpuAutonomousActivityWindow, current.PerfCpuAutonomousActivityWindow)
                     || !Equals(newSettings.PerfCpuIgnoreHostMaxFrequency, current.PerfCpuIgnoreHostMaxFrequency);
-
-                if (changesAzureFeatureSetFrequencySetting && !HostAzureFeatureSetService.IsEnabled())
-                {
-                    validationError = Properties.Resources.Error_AzureFeatureSetRequired;
-                    return null;
-                }
 
                 int requestedPerfmonDependents =
                     (newSettings.EnablePerfmonPebs == true ? 1 : 0)
@@ -101,6 +96,11 @@ public static class VmProcessorService
                 procData.TrySet("ExposeVirtualizationExtensions", newSettings.ExposeVirtualizationExtensions);
                 procData.TrySet("EnableHostResourceProtection", newSettings.EnableHostResourceProtection);
                 procData.TrySet("LimitProcessorFeatures", newSettings.CompatibilityForMigrationEnabled);
+                if (newSettings.CompatibilityForMigrationMode != current.CompatibilityForMigrationMode
+                    && newSettings.CompatibilityForMigrationMode is { } migrationMode)
+                {
+                    procData.TrySet<byte>("LimitProcessorFeaturesMode", (byte)migrationMode);
+                }
                 procData.TrySet("LimitCPUID", newSettings.CompatibilityForOlderOperatingSystemsEnabled);
 
                 if (newSettings.SmtMode.HasValue)
@@ -110,10 +110,8 @@ public static class VmProcessorService
                 // 门控字段只在"用户真改过"（提交值≠当前值）才写：整份提交时 provider 按"提交值≠存储值"判改动，
                 // 把读取时强转的默认值原样写回会造成假改动 → 触发版本校验拒整包（12.3 VM 遇仅28000才有的 PerfCpuIgnoreHostMaxFrequency 即此）。
                 SetIfChanged(procData, "DisableSpeculationControls", newSettings.DisableSpeculationControls, current.DisableSpeculationControls);
-                SetIfChanged(procData, "HideHypervisorPresent", newSettings.HideHypervisorPresent, current.HideHypervisorPresent);
                 SetIfChanged(procData, "EnablePerfmonArchPmu", newSettings.EnablePerfmonArchPmu, current.EnablePerfmonArchPmu);
                 SetIfChanged(procData, "AllowAcountMcount", newSettings.AllowAcountMcount, current.AllowAcountMcount);
-                SetIfChanged(procData, "EnableSocketTopology", newSettings.EnableSocketTopology, current.EnableSocketTopology);
 
                 // 清空要写空串：null 序列化不带 <VALUE>，provider 当"不改"清不掉
                 if (!Equals(newSettings.CpuBrandString ?? "", current.CpuBrandString ?? "") && procData.HasProperty("CpuBrandString"))
@@ -126,9 +124,9 @@ public static class VmProcessorService
 
                 SetIfChanged(procData, "PerfCpuFreqCapMhz", newSettings.PerfCpuFreqCapMhz, current.PerfCpuFreqCapMhz);
                 SetIfChanged(procData, "PerfCpuFreqMinMhz", newSettings.PerfCpuFreqMinMhz, current.PerfCpuFreqMinMhz);
-                SetIfChanged(procData, "PerfCpuFreqDesiredMhz", newSettings.PerfCpuFreqDesiredMhz, current.PerfCpuFreqDesiredMhz);
-                SetIfChanged(procData, "PerfCpuEnergyPerformancePreference", newSettings.PerfCpuEnergyPerformancePreference, current.PerfCpuEnergyPerformancePreference);
-                SetIfChanged(procData, "PerfCpuAutonomousActivityWindow", newSettings.PerfCpuAutonomousActivityWindow, current.PerfCpuAutonomousActivityWindow);
+                SetUnsettableUIntIfChanged(procData, "PerfCpuFreqDesiredMhz", newSettings.PerfCpuFreqDesiredMhz, current.PerfCpuFreqDesiredMhz);
+                SetUnsettableUIntIfChanged(procData, "PerfCpuEnergyPerformancePreference", newSettings.PerfCpuEnergyPerformancePreference, current.PerfCpuEnergyPerformancePreference);
+                SetUnsettableUIntIfChanged(procData, "PerfCpuAutonomousActivityWindow", newSettings.PerfCpuAutonomousActivityWindow, current.PerfCpuAutonomousActivityWindow);
                 SetIfChanged(procData, "PerfCpuIgnoreHostMaxFrequency", newSettings.PerfCpuIgnoreHostMaxFrequency, current.PerfCpuIgnoreHostMaxFrequency);
 
                 SetIfChanged(procData, "EnablePerfmonPmu", newSettings.EnablePerfmonPmu, current.EnablePerfmonPmu);
@@ -142,8 +140,8 @@ public static class VmProcessorService
                     procData.TrySet<uint>("ExtendedVirtualizationExtensions", hardwareIsolationEnabled ? 1u : 0u);
                 }
                 SetIfChanged(procData, "MaxHwIsolatedGuests", newSettings.MaxHwIsolatedGuests, current.MaxHwIsolatedGuests);
-                SetIfChanged(procData, "MaxClusterCountPerSocket", newSettings.MaxClusterCountPerSocket, current.MaxClusterCountPerSocket);
-                SetIfChanged(procData, "MaxProcessorCountPerL3", newSettings.MaxProcessorCountPerL3, current.MaxProcessorCountPerL3);
+                SetUnsettableUIntIfChanged(procData, "MaxClusterCountPerSocket", newSettings.MaxClusterCountPerSocket, current.MaxClusterCountPerSocket);
+                SetUnsettableUIntIfChanged(procData, "MaxProcessorCountPerL3", newSettings.MaxProcessorCountPerL3, current.MaxProcessorCountPerL3);
                 SetIfChanged(procData, "MaxProcessorsPerNumaNode", newSettings.MaxProcessorsPerNumaNode, current.MaxProcessorsPerNumaNode);
                 SetIfChanged(procData, "MaxNumaNodesPerSocket", newSettings.MaxNumaNodesPerSocket, current.MaxNumaNodesPerSocket);
                 SetIfChanged(procData, "PhysicalAddressWidth", newSettings.PhysicalAddressWidth, current.PhysicalAddressWidth);
@@ -160,10 +158,16 @@ public static class VmProcessorService
             if (string.IsNullOrEmpty(xml))
                 return (false, Properties.Resources.Error_Cpu_ConfigNotFound);
 
-            var result = await WmiApi.InvokeAsync(
+            Task<ApiResponse> ApplyAsync() => WmiApi.InvokeAsync(
                 "SELECT * FROM Msvm_VirtualSystemManagementService",
                 "ModifyResourceSettings",
                 p => p["ResourceSettings"] = new string[] { xml });
+
+            // AzureFeatureSet 是宿主机级暂存模式，并非持久化前置条件；
+            // 仅在提供程序提交受其门控的字段期间临时开启。
+            var result = requiresAzureFeatureSet
+                ? await HostAzureFeatureSetService.RunTemporarilyEnabledAsync(ApplyAsync)
+                : await ApplyAsync();
 
             return result.Success
                 ? (true, string.Empty)
@@ -184,6 +188,7 @@ public static class VmProcessorService
                 RelativeWeight = Convert.ToInt32(procData["Weight"]),
 
                 ExposeVirtualizationExtensions = PBool(procData, "ExposeVirtualizationExtensions"),
+                CompatibilityForMigrationMode = (VmMigrationCompatibilityMode?)PByte(procData, "LimitProcessorFeaturesMode"),
                 EnableHostResourceProtection = PBool(procData, "EnableHostResourceProtection"),
                 CompatibilityForMigrationEnabled = procData.TryGet<bool>("LimitProcessorFeatures") ?? false,
                 CompatibilityForOlderOperatingSystemsEnabled = procData.TryGet<bool>("LimitCPUID") ?? false,
@@ -194,10 +199,8 @@ public static class VmProcessorService
                 // 门控字段：用 P*(HasProperty ? 值 ?? 默认 : null) 读——令"值 null"仅代表"属性不在 schema(不支持)"，
                 // 避免高版本"属性存在但当前 VM 默认值 null"被 UI 的值-null 门控误灰（29617 上 Perfmon/调频项就是这样）。
                 DisableSpeculationControls = PBool(procData, "DisableSpeculationControls"),
-                HideHypervisorPresent = PBool(procData, "HideHypervisorPresent"),
                 EnablePerfmonArchPmu = PBool(procData, "EnablePerfmonArchPmu"),
                 AllowAcountMcount = PBool(procData, "AllowAcountMcount"),
-                EnableSocketTopology = PBool(procData, "EnableSocketTopology"),
                 CpuBrandString = PStr(procData, "CpuBrandString"),
 
                 ApicMode = (VmApicMode?)PByte(procData, "ApicMode"),
@@ -234,7 +237,7 @@ public static class VmProcessorService
                     procData.Properties.Cast<PropertyData>().Select(p => p.Name), StringComparer.OrdinalIgnoreCase),
             };
 
-    // uint 字段未设置时 WMI 返回 0xFFFFFFFF（如 AMD CCX 拓扑字段），归一为 null → UI 显示空白
+    // 可清空的 uint 字段未设置时 WMI 返回 0xFFFFFFFF，归一为 null → UI 显示空白
     private static uint? Nz(uint? v) => v == uint.MaxValue ? (uint?)null : v;
 
     // 门控读取：属性存在但值 null(高版本新属性、当前 VM 未设过) → 返回默认值(非 null)，令"值 null"仅代表"属性不在 schema(不支持)"。
@@ -243,6 +246,14 @@ public static class VmProcessorService
     private static void SetIfChanged<T>(ManagementObject o, string name, T? nv, T? cv) where T : struct
     {
         if (!EqualityComparer<T?>.Default.Equals(nv, cv)) o.TrySet(name, nv);
+    }
+
+    // 这些 UInt32 字段以 0xFFFFFFFF 表示“未设置”。UI 中的空白映射为 null，
+    // 因此清空已有值时必须显式写回哨兵，不能按普通 nullable 字段跳过写入。
+    private static void SetUnsettableUIntIfChanged(ManagementObject o, string name, uint? nv, uint? cv)
+    {
+        if (!EqualityComparer<uint?>.Default.Equals(nv, cv))
+            o.TrySetAlways(name, nv ?? uint.MaxValue);
     }
 
     private static bool? PBool(ManagementObject p, string n) => p.HasProperty(n) ? (p.TryGet<bool>(n) ?? false) : (bool?)null;

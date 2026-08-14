@@ -18,6 +18,7 @@ namespace ExHyperV.Tools
         private uint _zoomLevel;     // 当前 ZoomLevel% 缓存（SetZoomLevel 用，基本会话每次布局都会调，仅比例真变时才穿透 OCX）
 
         public event Action? Connected;
+        public event Action? LoginCompleted;
         public event Action<int>? Disconnected;
         public event Action<int, int>? RemoteDesktopSizeChanged;
         public event Action? EnteredFullScreen;
@@ -36,6 +37,7 @@ namespace ExHyperV.Tools
                 var evt = (IMsTscAxEvents_Event)GetOcx();
                 // 每个处理都过 Safe()——COM 事件 sink 绝不能让异常逃回 native，否则 0xC000041D 进程秒退。
                 evt.OnConnected += () => Safe(() => Connected?.Invoke());
+                evt.OnLoginComplete += () => Safe(() => LoginCompleted?.Invoke());
                 evt.OnDisconnected += reason => Safe(() => Disconnected?.Invoke(reason));
                 evt.OnRemoteDesktopSizeChange += (w, h) => Safe(() => RemoteDesktopSizeChanged?.Invoke(w, h));
                 // 容器处理全屏：热键/请求经 OnRequestGo/LeaveFullScreen（非 OnEnter/Leave，那是控件自身全屏才触发）
@@ -78,6 +80,8 @@ namespace ExHyperV.Tools
                 // CredSSP 与 NegotiateSecurityLayer 必须在同一个 NonScriptable3 上、先开 CredSSP 再关协商
                 // （官方 VMConnect 示例的顺序；分到不同接口设会让 NegotiateSecurityLayer 报 E_INVALIDARG）。
                 var ocx = (IMsRdpClientNonScriptable3)GetOcx();
+                if (!string.IsNullOrWhiteSpace(s.ConnectionBarText))
+                    TrySet("ConnectionBarText", () => ocx.ConnectionBarText = s.ConnectionBarText);
                 TrySet("EnableCredSspSupport", () => ocx.EnableCredSspSupport = s.NetworkLevelAuthentication);
                 TrySet("NegotiateSecurityLayer", () => ocx.NegotiateSecurityLayer = s.NegotiateSecurityLayer);
 

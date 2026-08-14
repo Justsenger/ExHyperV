@@ -19,6 +19,7 @@ namespace ExHyperV.Converters
             string prefix = value switch
             {
                 SmtMode => "Smt",
+                VmMigrationCompatibilityMode => "Migration",
                 VmApicMode => "Apic",
                 L3DistributionPolicy => "L3",
                 PageShatterMode => "Shatter",

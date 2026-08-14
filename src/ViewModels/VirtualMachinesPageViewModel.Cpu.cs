@@ -21,18 +21,16 @@ namespace ExHyperV.ViewModels
 
         // 新增 CPU 字段的枚举下拉源（绑 ComboBox.ItemsSource）
         public Array SmtModeValues { get; } = Enum.GetValues(typeof(SmtMode));
+        public Array MigrationCompatibilityModeValues { get; } = Enum.GetValues(typeof(VmMigrationCompatibilityMode));
         public Array ApicModeValues { get; } = Enum.GetValues(typeof(VmApicMode));
         public Array L3DistributionPolicyValues { get; } = Enum.GetValues(typeof(L3DistributionPolicy));
         public Array PageShatterModeValues { get; } = Enum.GetValues(typeof(PageShatterMode));
         public Array LpiModeValues { get; } = Enum.GetValues(typeof(LpiMode));
-        // 能力门控标志（按宿主硬件置灰：AMD-only / 硬件隔离）
-        public bool IsAmdHost => SettingsService.NativeHostPlatform == HostPlatform.Amd;
+        // 能力门控标志（按宿主硬件或 Hyper-V 属性支持情况置灰）
         public bool IsIntelHost => SettingsService.NativeHostPlatform == HostPlatform.Intel;
         [ObservableProperty] private bool _isHwIsolationSupported;
-        [ObservableProperty] private bool _isAzureFeatureSetEnabled;
         public bool IsArm64Host { get; } = RuntimeInformation.OSArchitecture == Architecture.Arm64;
         public bool IsX64Host => !IsArm64Host;
-        public bool ShowAmdPlatformFeatures => IsAmdHost;
         public bool ShowIntelPlatformFeatures => IsIntelHost;
         public bool ShowArm64PlatformFeatures => IsArm64Host;
         public bool ShowX64PlatformFeatures => IsX64Host;
@@ -61,7 +59,6 @@ namespace ExHyperV.ViewModels
             IsLoadingSettings = true;
             try
             {
-                IsAzureFeatureSetEnabled = await Task.Run(() => HostAzureFeatureSetService.IsEnabled());
                 if (!_cpuCapsInit)
                 {
                     _cpuCapsInit = true;
@@ -193,11 +190,17 @@ namespace ExHyperV.ViewModels
                 // 2. 调用服务应用设置 (内部会自动判断调度器类型)
                 bool success = await CpuAffinityService.SetCpuAffinityAsync(SelectedVm.Id, selectedIndices, SelectedVm.IsRunning);
 
-                // 3. 无论当前是否应用成功，我们将配置持久化到 Notes
-                string affinityStr = selectedIndices.Count > 0 ? string.Join(",", selectedIndices) : "";
-                SelectedVm.Notes = NotesTag.Update(SelectedVm.Notes, "Affinity", affinityStr);
-
-                await _queryService.SetVmNotesAsync(SelectedVm.Name, SelectedVm.Notes);
+                // Root 调度器在虚拟机未运行时无法立即设置 vmmem 进程亲和性，
+                // 此时将选择保存为待执行配置，供下次启动后自动应用。
+                // 其余失败不覆盖 Notes，避免界面显示一组实际未生效的绑定。
+                var scheduler = HyperVSchedulerService.GetSchedulerType();
+                bool queueForRootStartup = scheduler == HyperVSchedulerType.Root && !SelectedVm.IsRunning;
+                if (success || queueForRootStartup)
+                {
+                    string affinityStr = selectedIndices.Count > 0 ? string.Join(",", selectedIndices) : "";
+                    SelectedVm.Notes = NotesTag.Update(SelectedVm.Notes, "Affinity", affinityStr);
+                    await _queryService.SetVmNotesAsync(SelectedVm.Name, SelectedVm.Notes);
+                }
 
                 if (success)
                 {
@@ -207,8 +210,7 @@ namespace ExHyperV.ViewModels
                 else
                 {
                     // 如果是因为 Root 模式未开机导致无法实时应用
-                    var scheduler = HyperVSchedulerService.GetSchedulerType();
-                    if (scheduler == HyperVSchedulerType.Root && !SelectedVm.IsRunning)
+                    if (queueForRootStartup)
                     {
                         ShowTip($"{Properties.Resources.Msg_Cpu_AffinityQueued}：{Properties.Resources.Msg_Cpu_RootNotice}");
                         await GoToCpuSettingsAsync();

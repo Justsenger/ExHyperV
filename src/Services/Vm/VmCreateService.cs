@@ -8,6 +8,9 @@ namespace ExHyperV.Services
     public static class VmCreateService
     {
         private const string ServiceWql = "SELECT * FROM Msvm_VirtualSystemManagementService";
+        private const string DefaultSystemSettingsWql =
+            "SELECT * FROM Msvm_VirtualSystemSettingData " +
+            "WHERE InstanceID = 'Microsoft:Definition\\\\VirtualSystem\\\\Default'";
 
         // Msvm_VirtualSystemSettingData.GuestStateIsolationType.
         // Disabled is represented by GuestStateIsolationEnabled=false, not by a UInt16 value.
@@ -22,6 +25,10 @@ namespace ExHyperV.Services
             Reserved18 = 18,
             Reserved19 = 19
         }
+
+        private static bool IsStandardIsolatedVm(VmCreationParams p) =>
+            p.Generation == 2 && p.IsolationType != "Disabled" &&
+            p.IsolationType != "OpenHCL" && !string.IsNullOrEmpty(p.IsolationType);
 
         public static async Task<List<string>> GetSupportedVersionsAsync()
         {
@@ -140,12 +147,22 @@ namespace ExHyperV.Services
             // 避开 DefineSystem/建 VHD 的 ERROR_FILE_EXISTS(0x80070050)。用户预期：同名也应自动改名而非报错。
             string finalVmName = await GetUniqueVmNameAsync(p.Name, p.Path);
             bool vmCreated = false;   // DefineSystem 成功后置 true;失败回滚的依据
+            bool defineSystemInvoked = false;
+            string vmHomeFolder = Path.Combine(p.Path, finalVmName);
+            bool vmHomeFolderCreated = false;
+            string? ownedVhdPath = null;
+            bool isStandardIsolatedVm = IsStandardIsolatedVm(p);
+            bool effectiveSecureBoot = p.EnableSecureBoot ||
+                (p.Generation == 2 && p.IsolationType == "TrustedLaunch");
+            bool effectiveTpm = p.EnableTpm || isStandardIsolatedVm;
             try
             {
                 // ── Step 1: 创建目录 ──────────────────────────────
-                string vmHomeFolder = Path.Combine(p.Path, finalVmName);
                 if (!Directory.Exists(vmHomeFolder))
+                {
                     Directory.CreateDirectory(vmHomeFolder);
+                    vmHomeFolderCreated = true;
+                }
 
                 // 新建磁盘：VhdPath 存的是文件夹（手选目录，或默认的 VM 目录），vhdx 文件名恒取最终 VM 名。
                 // 批量创建时各台名字不同 → 盘文件各自唯一，无需另行区分。
@@ -160,47 +177,51 @@ namespace ExHyperV.Services
                 // ── Step 2: DefineSystem 创建 VM ──────────────────
                 using var svcForScope = WmiApi.GetVirtualSystemManagementService();
 
-                var vssdClass = new ManagementClass(
-                    svcForScope.Scope,
-                    new ManagementPath("Msvm_VirtualSystemSettingData"),
-                    null);
-                using var vssd = vssdClass.CreateInstance();
-
-                vssd["ElementName"] = finalVmName;
-                vssd["VirtualSystemSubType"] = p.Generation == 2
-                    ? "Microsoft:Hyper-V:SubType:2"
-                    : "Microsoft:Hyper-V:SubType:1";
-                vssd["Version"] = p.Version;
-                vssd["ConfigurationDataRoot"] = Path.Combine(p.Path, finalVmName);
-                vssd["SnapshotDataRoot"] = Path.Combine(p.Path, finalVmName);
-                vssd["SwapFileDataRoot"] = Path.Combine(p.Path, finalVmName);
-
-                // 新建即默认启动时 NumLock 开（Gen2 默认关，会致控制台连上把宿主 NumLock 带掉）；TrySetAlways 内置 HasProperty 守卫，防个别 build 无此属性
-                vssd.TrySetAlways("BIOSNumLock", true);
-
-                if (p.Generation == 2 && p.IsolationType != "Disabled" &&
-                    !string.IsNullOrEmpty(p.IsolationType))
-                {
-                    GuestStateIsolationTypeValue isolationType = p.IsolationType switch
+                var vssdResp = await WmiApi.WithFirstAsync(
+                    DefaultSystemSettingsWql,
+                    vssd =>
                     {
-                        "TrustedLaunch" => GuestStateIsolationTypeValue.TrustedLaunch,
-                        "VBS" => GuestStateIsolationTypeValue.Vbs,
-                        "SNP" => GuestStateIsolationTypeValue.SevSnp,
-                        "TDX" => GuestStateIsolationTypeValue.Tdx,
-                        "RME" => GuestStateIsolationTypeValue.Rme,
-                        "OpenHCL" => GuestStateIsolationTypeValue.OpenHcl,
-                        _ => throw new InvalidOperationException(
-                            $"Unsupported guest state isolation type: {p.IsolationType}")
-                    };
+                        vssd["ElementName"] = finalVmName;
+                        vssd["VirtualSystemSubType"] = p.Generation == 2
+                            ? "Microsoft:Hyper-V:SubType:2" : "Microsoft:Hyper-V:SubType:1";
+                        vssd["Version"] = p.Version;
+                        vssd["ConfigurationDataRoot"] = vmHomeFolder;
+                        vssd["SnapshotDataRoot"] = vmHomeFolder;
+                        vssd["SwapFileDataRoot"] = vmHomeFolder;
+                        vssd.TrySetAlways("BIOSNumLock", true);
 
-                    // WMI 属性是 Boolean + UInt16；显式写入底层数值，避免依赖字符串枚举转换。
-                    vssd.TrySet<bool>("GuestStateIsolationEnabled", true);
-                    vssd.TrySet<ushort>("GuestStateIsolationType", (ushort)isolationType);
-                }
+                        if (p.Generation == 2 && p.IsolationType != "Disabled" &&
+                            !string.IsNullOrEmpty(p.IsolationType))
+                        {
+                            GuestStateIsolationTypeValue isolationType = p.IsolationType switch
+                            {
+                                "TrustedLaunch" => GuestStateIsolationTypeValue.TrustedLaunch,
+                                "VBS" => GuestStateIsolationTypeValue.Vbs,
+                                "SNP" => GuestStateIsolationTypeValue.SevSnp,
+                                "TDX" => GuestStateIsolationTypeValue.Tdx,
+                                "RME" => GuestStateIsolationTypeValue.Rme,
+                                "OpenHCL" => GuestStateIsolationTypeValue.OpenHcl,
+                                _ => throw new InvalidOperationException(
+                                    $"Unsupported guest state isolation type: {p.IsolationType}")
+                            };
+                            vssd.TrySet<bool>("GuestStateIsolationEnabled", true);
+                            vssd.TrySet<ushort>("GuestStateIsolationType", (ushort)isolationType);
+                        }
+                        else vssd.TrySetAlways("GuestStateIsolationEnabled", false);
 
-                string vssdXml = vssd.GetText(TextFormat.CimDtd20);
+                        if (effectiveSecureBoot)
+                            vssd.TrySetAlways("SecureBootEnabled", true);
+                        return Task.FromResult(vssd.GetText(TextFormat.CimDtd20));
+                    });
 
-                var defineResp = await WmiApi.InvokeWithResultAsync(
+                if (!vssdResp.Success) throw new InvalidOperationException(vssdResp.Error);
+                if (!vssdResp.HasData)
+                    throw new InvalidOperationException(
+                        "Hyper-V did not provide the default virtual system settings template.");
+                string vssdXml = vssdResp.Data!;
+
+                defineSystemInvoked = true;
+                Task<ApiResponse<string[]>> DefineSystemAsync() => WmiApi.InvokeWithResultAsync(
                     ServiceWql,
                     "DefineSystem",
                     p2 =>
@@ -211,8 +232,13 @@ namespace ExHyperV.Services
                     },
                     resultField: "ResultingSystem");
 
+                // DefineSystem 不得观察到宿主机级 Azure 暂存模式。始终持有共享锁，
+                // 防止并发 CPU 或 PCIe 操作在状态检查与创建之间临时开启该模式。
+                var defineResp = await HostAzureFeatureSetService
+                    .RunTemporarilyDisabledAsync(DefineSystemAsync);
+
                 if (!defineResp.Success)
-                    return (false, defineResp.Error);
+                    throw new InvalidOperationException(defineResp.Error);
 
                 // DefineSystem 已成功，VM 此刻可能/已在 Hyper-V 中创建——此后任一步骤(含下面取路径/GUID)失败都
                 // 必须走 catch 回滚删除，避免留孤儿半成品。故标志位提前到这里、后续失败一律 throw 而非 return。
@@ -303,6 +329,10 @@ namespace ExHyperV.Services
                 // ── Step 7: 磁盘 ──────────────────────────────────
                 if (p.DiskMode == 0)
                 {
+                    // 只把“调用前不存在”的新建磁盘登记为本次所有；现有磁盘无论后续发生什么都不能删除。
+                    if (!File.Exists(p.VhdPath))
+                        ownedVhdPath = p.VhdPath;
+
                     var diskResult = await VmStorageService.AddDriveAsync(
                         finalVmName,
                         p.Generation == 2 ? "SCSI" : "IDE", 0, 0,
@@ -347,7 +377,7 @@ namespace ExHyperV.Services
                         modifier: obj =>
                         {
                             if (obj.HasProperty("SecureBootEnabled"))
-                                obj["SecureBootEnabled"] = p.EnableSecureBoot;
+                                obj["SecureBootEnabled"] = effectiveSecureBoot;
                         },
                         submitMethod: "ModifySystemSettings",
                         submitParamName: "SystemSettings",
@@ -355,7 +385,7 @@ namespace ExHyperV.Services
                 }
 
                 // ── Step 10: TPM ──────────────────────────────────
-                if (p.Generation == 2 && p.EnableTpm)
+                if (p.Generation == 2 && effectiveTpm)
                 {
                     await EnableTpmAsync(finalVmName, vmGuid, svcForScope.Scope);
                 }
@@ -376,8 +406,27 @@ namespace ExHyperV.Services
             }
             catch (Exception ex)
             {
-                // 回滚:DefineSystem 之后任一步骤失败会留下半成品 VM,删掉它再上报错误(回滚失败不掩盖原始错误)
-                if (vmCreated)
+                // 创建是一个事务：先注销可能已注册的半成品 VM，确认注销后再删除本次操作新建的
+                // VHD/专属目录。现有磁盘、ISO、原有目录从未登记为本次所有，不会被清理。
+                // DefineSystem 报错时也回查名称，覆盖“返回失败但实际留下半成品 VM”的边界情况。
+                bool registeredVmExists = vmCreated;
+                if (!registeredVmExists && defineSystemInvoked)
+                {
+                    // DefineSystem 返回失败时不能直接假定“什么都没创建”。若连回查也失败，
+                    // 保守地保留文件现场，避免误删一台可能仍在册的 VM 的配置。
+                    var registration = await WmiApi.QueryFirstAsync(
+                        $"SELECT Name FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(finalVmName)}'",
+                        obj => obj["Name"]?.ToString(),
+                        WmiScope.HyperV);
+                    if (!registration.Success)
+                    {
+                        return (false, ex.Message + Environment.NewLine +
+                            string.Format(Properties.Resources.Error_VmCreate_RollbackFailed,
+                                finalVmName, registration.Error));
+                    }
+                    registeredVmExists = registration.HasData;
+                }
+                if (registeredVmExists)
                 {
                     try
                     {
@@ -393,8 +442,92 @@ namespace ExHyperV.Services
                             string.Format(Properties.Resources.Error_VmCreate_RollbackFailed, finalVmName, rollbackEx.Message));
                     }
                 }
+
+                var cleanupErrors = await CleanupOwnedCreationArtifactsAsync(
+                    ownedVhdPath, vmHomeFolder, vmHomeFolderCreated);
+                if (cleanupErrors.Count > 0)
+                {
+                    return (false, ex.Message + Environment.NewLine +
+                        string.Format(Properties.Resources.Error_VmCreate_ArtifactCleanupFailed,
+                            string.Join("; ", cleanupErrors)));
+                }
+
                 return (false, ex.Message);
             }
+        }
+
+        /// <summary>
+        /// 删除且仅删除本次创建事务拥有的文件。调用方必须先确认半成品 VM 已成功注销，
+        /// 避免留下“VM 仍在册但配置文件已消失”的损坏状态。
+        /// </summary>
+        private static async Task<List<string>> CleanupOwnedCreationArtifactsAsync(
+            string? ownedVhdPath,
+            string vmHomeFolder,
+            bool vmHomeFolderCreated)
+        {
+            var errors = new List<string>();
+
+            if (!string.IsNullOrWhiteSpace(ownedVhdPath))
+            {
+                bool deleted = await TryDeleteOwnedFileAsync(ownedVhdPath);
+                if (!deleted)
+                    errors.Add(ownedVhdPath);
+            }
+
+            // 目录在创建前不存在，因此整个目录树都属于本次事务；Hyper-V 可能在其中生成
+            // vmcx/vmgs 等未知数量的过程文件，需要递归清理。原有目录永远不会进入此分支。
+            if (vmHomeFolderCreated)
+            {
+                bool deleted = await TryDeleteOwnedDirectoryAsync(vmHomeFolder);
+                if (!deleted)
+                    errors.Add(vmHomeFolder);
+            }
+
+            return errors;
+        }
+
+        private static async Task<bool> TryDeleteOwnedFileAsync(string path)
+        {
+            for (int i = 0; i < 6; i++)
+            {
+                try
+                {
+                    if (!File.Exists(path)) return true;
+                    File.Delete(path);
+                    return true;
+                }
+                catch when (i < 5)
+                {
+                    await Task.Delay(250);
+                }
+                catch
+                {
+                    return false;
+                }
+            }
+            return false;
+        }
+
+        private static async Task<bool> TryDeleteOwnedDirectoryAsync(string path)
+        {
+            for (int i = 0; i < 6; i++)
+            {
+                try
+                {
+                    if (!Directory.Exists(path)) return true;
+                    Directory.Delete(path, recursive: true);
+                    return true;
+                }
+                catch when (i < 5)
+                {
+                    await Task.Delay(250);
+                }
+                catch
+                {
+                    return false;
+                }
+            }
+            return false;
         }
 
         // ── TPM 启用（纯 WMI/CIM）────────────────────────────────────

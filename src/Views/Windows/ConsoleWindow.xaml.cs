@@ -40,6 +40,8 @@ namespace ExHyperV.Views
         private int _moveSizeStartWidth;           // 进入移动/缩放循环时的窗口物理宽度；退出时据此区分纯移动与真实改大小
         private int _moveSizeStartHeight;
         private bool _windowFollowsResolution;    // 下拉改分辨率后置位：待画面真的变到新分辨率(RemoteSizeChanged)再让窗口跟随确认值；拖动会清掉(窗口归用户掌控)
+        private int _postLoginWidth;               // 登录界面可能忽略动态分辨率；登录完成后重试此目标
+        private int _postLoginHeight;
         private WindowStyle _origWindowStyle;                     // 全屏前的 WindowStyle，退出恢复
         private WindowBackdropType _origBackdrop;                 // 全屏前的背景类型(Mica)，退出恢复
         private System.Windows.Media.Brush? _origBackground;      // 全屏前的窗口底色，退出恢复
@@ -68,6 +70,9 @@ namespace ExHyperV.Views
             _vm.ResolutionChangeRequested += (w, h) =>
             {
                 if (!_vm.IsEnhancedMode || w <= 0 || h <= 0) return;
+                _postLoginWidth = w;
+                _postLoginHeight = h;
+                SettingsService.SaveDefaultConsoleResolution(w, h); // 用户明确选择，立即保存；不等待来宾是否接受
                 _windowFollowsResolution = true;
                 RdpHost.Resize(w, h, GetDpiScale());
             };
@@ -89,6 +94,15 @@ namespace ExHyperV.Views
                         System.Windows.Threading.DispatcherPriority.Background);
                 }
                 else _pendingEnhancedInset = false;
+            }));
+            RdpHost.LoginCompleted += () => Dispatcher.BeginInvoke(new Action(() =>
+            {
+                if (!_vm.IsEnhancedMode) return;
+                int width = _postLoginWidth > 0 ? _postLoginWidth : _vm.InitialEnhancedWidth;
+                int height = _postLoginHeight > 0 ? _postLoginHeight : _vm.InitialEnhancedHeight;
+                if (width <= 0 || height <= 0) return;
+                _windowFollowsResolution = true;
+                RdpHost.Resize(width, height, GetDpiScale());
             }));
             RdpHost.Disconnected += reason => Dispatcher.BeginInvoke(new Action(() =>
             {
@@ -121,6 +135,8 @@ namespace ExHyperV.Views
             RdpHost.RemoteSizeChanged += (w, h) => Dispatcher.BeginInvoke(new Action(() =>
             {
                 _vm.CurrentWidth = w; _vm.CurrentHeight = h;
+                if (w == _postLoginWidth && h == _postLoginHeight)
+                    _postLoginWidth = _postLoginHeight = 0;
                 // 画面"真的"变到新分辨率了：若此前是下拉发起的协商，现在才让窗口跟随这个确认值(增强、窗口化)。
                 // 拖动发起的协商不在此跟随(标记已在 WM_ENTERSIZEMOVE 清掉)，窗口仍由用户掌控。
                 if (_windowFollowsResolution)
@@ -240,7 +256,14 @@ namespace ExHyperV.Views
                 {
                     _enhancedConnecting = _vm.IsEnhancedMode;   // 记下本次是否在尝试增强（失败则回退基本）
                     uint desktopScale = (uint)Math.Clamp(Math.Round(GetDpiScale() * 100.0), 100, 500);
-                    RdpHost.Connect(BuildHyperVSettings(_vm.VmId, _vm.IsEnhancedMode, _vm.CurrentWidth, _vm.CurrentHeight, desktopScale));
+                    int initialWidth = _vm.IsEnhancedMode ? _vm.InitialEnhancedWidth : _vm.CurrentWidth;
+                    int initialHeight = _vm.IsEnhancedMode ? _vm.InitialEnhancedHeight : _vm.CurrentHeight;
+                    if (_vm.IsEnhancedMode)
+                    {
+                        _postLoginWidth = initialWidth;
+                        _postLoginHeight = initialHeight;
+                    }
+                    RdpHost.Connect(BuildHyperVSettings(_vm.VmId, _vm.VmName, _vm.IsEnhancedMode, initialWidth, initialHeight, desktopScale));
                 }
             }
             else if (RdpHost.ConnectionState != 0)   // VM 停了但还连着 → 断（保持窗口，等轮询到 VM 重启再连）
@@ -251,12 +274,13 @@ namespace ExHyperV.Views
         }
 
         // Hyper-V 控制台连接配方（消费层组装；增强沿用当前分辨率作初始尺寸，避免切换跳变）。
-        private static RdpConnectionSettings BuildHyperVSettings(string vmId, bool enhanced, int reuseWidth, int reuseHeight, uint desktopScale)
+        private static RdpConnectionSettings BuildHyperVSettings(string vmId, string vmName, bool enhanced, int reuseWidth, int reuseHeight, uint desktopScale)
         {
             var id = (vmId ?? string.Empty).Trim().ToUpperInvariant();
             return new RdpConnectionSettings
             {
                 Server = "localhost",
+                ConnectionBarText = vmName,
                 Port = 2179,
                 AuthenticationLevel = 0,
                 AuthenticationServiceClass = "Microsoft Virtual Console Service",
@@ -563,9 +587,8 @@ namespace ExHyperV.Views
         {
             base.OnClosing(e);
             if (e.Cancel || _rdpTornDown) return;
-            // 保存增强会话最后使用的分辨率。
-            if (_vm.IsEnhancedMode && _vm.CurrentWidth > 0 && _vm.CurrentHeight > 0)
-                SettingsService.SaveDefaultConsoleResolution(_vm.CurrentWidth, _vm.CurrentHeight);
+            // 分辨率偏好已在用户从下拉框明确选择时保存；关闭时不采信来宾回报值，
+            // 避免登录界面的固定分辨率或来宾拒绝请求后再次污染偏好。
             _rdpTornDown = true;
             _closing = true;            // 抑制断开后的自动重连
             RdpHost.ShutdownAndDispose();

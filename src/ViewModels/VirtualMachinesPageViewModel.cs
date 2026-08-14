@@ -7,8 +7,6 @@ using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using CommunityToolkit.Mvvm.Messaging;
-using ExHyperV.Messages;
 using ExHyperV.Models;
 using ExHyperV.Services;
 using ExHyperV.Interaction;
@@ -82,23 +80,6 @@ namespace ExHyperV.ViewModels
             _queryService = queryService;
             _vmGpuService = new VmGpuService(_queryService);
 
-            WeakReferenceMessenger.Default.Register<AzureFeatureSetChangedMessage>(
-                this,
-                static (recipient, message) =>
-                {
-                    if (recipient is not VirtualMachinesPageViewModel viewModel)
-                        return;
-
-                    var dispatcher = Application.Current?.Dispatcher;
-                    if (dispatcher == null || dispatcher.CheckAccess())
-                    {
-                        viewModel.IsAzureFeatureSetEnabled = message.Value;
-                        return;
-                    }
-
-                    dispatcher.BeginInvoke(() => viewModel.IsAzureFeatureSetEnabled = message.Value);
-                });
-
             InitPossibleCpuCounts();
 
             for (int i = 0; i < 64; i++)
@@ -119,7 +100,6 @@ namespace ExHyperV.ViewModels
 
         public void Dispose()
         {
-            WeakReferenceMessenger.Default.UnregisterAll(this);
             _monitoringCts?.Cancel();
             _cpuService?.Dispose();
             _uiTimer?.Stop();
@@ -183,6 +163,14 @@ namespace ExHyperV.ViewModels
 
                 if (!string.IsNullOrEmpty(path) && Directory.Exists(path))
                 {
+                    // 资源管理器会复用普通权限的桌面进程，因此打开默认 Hyper-V 配置目录前需补充当前用户的只读权限。
+                    var access = VmFolderAccessService.EnsureExplorerCanRead(path);
+                    if (!access.Success)
+                    {
+                        ShowError($"{Properties.Resources.VmPage_OpenFail}：{access.Error}");
+                        return;
+                    }
+
                     Shell.Reveal(path);
                 }
                 else
@@ -322,20 +310,47 @@ namespace ExHyperV.ViewModels
 
             // 二次确认弹窗：预先算出"将删除的目录与文件"清单直接展示——替代口头提醒用户自己去查目录里有没有其他文件。
             var preview = await VmDeleteService.PreviewPurgeAsync(vm.Id);
-            var list = new System.Text.StringBuilder();
+            var listText = new System.Windows.Controls.TextBlock
+            {
+                FontFamily = new System.Windows.Media.FontFamily("Consolas"),
+                FontSize = 12,
+            };
+
+            static bool IsHighlightedImage(string path)
+            {
+                string extension = System.IO.Path.GetExtension(path);
+                return extension.Equals(".iso", StringComparison.OrdinalIgnoreCase)
+                    || extension.Equals(".vhd", StringComparison.OrdinalIgnoreCase)
+                    || extension.Equals(".vhdx", StringComparison.OrdinalIgnoreCase);
+            }
+
+            void AppendPreviewLine(string text, string? filePath = null)
+            {
+                var run = new System.Windows.Documents.Run(text);
+                if (!string.IsNullOrEmpty(filePath) && IsHighlightedImage(filePath))
+                    run.Foreground = new System.Windows.Media.SolidColorBrush(
+                        System.Windows.Media.Color.FromRgb(232, 71, 86));
+                listText.Inlines.Add(run);
+                listText.Inlines.Add(new System.Windows.Documents.LineBreak());
+            }
             if (!string.IsNullOrEmpty(preview.ConfigDir))
             {
-                list.AppendLine("· " + preview.ConfigDir);
+                AppendPreviewLine("· " + preview.ConfigDir);
                 int shown = 0;
                 foreach (var f in preview.ConfigDirFiles)
                 {
-                    if (shown++ >= 40) { list.AppendLine($"     · … (+{preview.ConfigDirFiles.Count - 40})"); break; }
-                    list.AppendLine("     · " + System.IO.Path.GetFileName(f));
+                    if (shown++ >= 40)
+                    {
+                        AppendPreviewLine($"     · … (+{preview.ConfigDirFiles.Count - 40})");
+                        break;
+                    }
+                    AppendPreviewLine("     · " + System.IO.Path.GetFileName(f), f);
                 }
             }
             foreach (var d in preview.ExternalDiskFiles)
-                list.AppendLine("· " + d);
-            if (list.Length == 0) list.Append(vm.Name);
+                AppendPreviewLine("· " + d, d);
+            if (listText.Inlines.Count == 0)
+                AppendPreviewLine(vm.Name);
 
             // 正文用原生控件：上方告警文字（自动换行）+ 下方等宽、可滚动的清单（路径长/文件多都不撑爆弹窗）。
             var body = new System.Windows.Controls.StackPanel();
@@ -350,12 +365,7 @@ namespace ExHyperV.ViewModels
                 MaxHeight = 220,
                 VerticalScrollBarVisibility = System.Windows.Controls.ScrollBarVisibility.Auto,
                 HorizontalScrollBarVisibility = System.Windows.Controls.ScrollBarVisibility.Auto,
-                Content = new System.Windows.Controls.TextBlock
-                {
-                    Text = list.ToString().TrimEnd(),
-                    FontFamily = new System.Windows.Media.FontFamily("Consolas"),
-                    FontSize = 12,
-                },
+                Content = listText,
             });
 
             var dialog = new Wpf.Ui.Controls.MessageBox

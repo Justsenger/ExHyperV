@@ -591,6 +591,18 @@ The existing NAT switch is: '{0}'</value>
   <data name="MigrationCompatibilityDescription" xml:space="preserve">
     <value>Allows migration across different CPUs.</value>
   </data>
+  <data name="Cpu_MigrationCompatibilityMode" xml:space="preserve">
+    <value>Migration Compatibility Mode</value>
+  </data>
+  <data name="Cpu_MigrationCompatibilityModeDesc" xml:space="preserve">
+    <value>Selects the fixed minimum feature set or the feature set shared by cluster nodes.</value>
+  </data>
+  <data name="CpuEnum_Migration_MinimumFeatureSet" xml:space="preserve">
+    <value>Minimum Feature Set</value>
+  </data>
+  <data name="CpuEnum_Migration_CommonClusterFeatureSet" xml:space="preserve">
+    <value>Common Cluster Feature Set</value>
+  </data>
   <data name="LegacySystemCompatibility" xml:space="preserve">
     <value>Limit CPU features for legacy OS compatibility</value>
   </data>
@@ -1491,20 +1503,8 @@ The existing NAT switch is: '{0}'</value>
   <data name="Desc_OpenHclFirmwareFile" xml:space="preserve">
     <value>Allow Hyper-V to load external IGVM development firmware files</value>
   </data>
-  <data name="Menu_AzureFeatureSet" xml:space="preserve">
-    <value>Azure Feature Set</value>
-  </data>
-  <data name="Desc_AzureFeatureSet" xml:space="preserve">
-    <value>Enable selected Hyper-V preview capabilities.</value>
-  </data>
   <data name="Error_Host_AzureFeatureSetRegistryUnavailable" xml:space="preserve">
     <value>The Hyper-V virtualization registry key could not be opened.</value>
-  </data>
-  <data name="Error_Host_AzureFeatureSetChangeFailed" xml:space="preserve">
-    <value>Failed to change Azure Feature Set: {0}</value>
-  </data>
-  <data name="Error_AzureFeatureSetRequired" xml:space="preserve">
-    <value>Enable Azure Feature Set on the Host page before changing this setting.</value>
   </data>
   <data name="Error_Host_OpenHclRegistryUnavailable" xml:space="preserve">
     <value>The Hyper-V virtualization registry key could not be opened.</value>
@@ -1650,12 +1650,6 @@ The existing NAT switch is: '{0}'</value>
   <data name="Label_ProcessorSettings" xml:space="preserve">
     <value>Processor Settings</value>
   </data>
-  <data name="Menu_HideHypervisor" xml:space="preserve">
-    <value>Hide Hypervisor ID</value>
-  </data>
-  <data name="Desc_HideHypervisor" xml:space="preserve">
-    <value>Hides virtualization flags, helps bypass detection.</value>
-  </data>
   <data name="Menu_ExposePmu" xml:space="preserve">
     <value>Expose Architectural Performance Monitoring Unit (Arch PMU)</value>
   </data>
@@ -1673,12 +1667,6 @@ The existing NAT switch is: '{0}'</value>
   </data>
   <data name="Desc_DisableSpectre" xml:space="preserve">
     <value>Improves performance but reduces security.</value>
-  </data>
-  <data name="Menu_SocketTopo" xml:space="preserve">
-    <value>Enable Socket Topology</value>
-  </data>
-  <data name="Desc_SocketTopo" xml:space="preserve">
-    <value>Maps physical socket topology to guest.</value>
   </data>
   <data name="Label_Experimental" xml:space="preserve">
     <value>Experimental</value>
@@ -2892,6 +2880,9 @@ The existing NAT switch is: '{0}'</value>
   <data name="Error_VmCreate_RollbackFailed" xml:space="preserve">
     <value>Creation failed and the half-created VM '{0}' could not be removed automatically — please delete it manually. (Rollback error: {1})</value>
   </data>
+  <data name="Error_VmCreate_ArtifactCleanupFailed" xml:space="preserve">
+    <value>Creation rollback could not remove these files or directories; please clean them up manually: {0}</value>
+  </data>
   <data name="VmAdvanced_Title" xml:space="preserve">
     <value>Advanced</value>
   </data>
@@ -3163,13 +3154,13 @@ The existing NAT switch is: '{0}'</value>
     <value>Sets the maximum number of nested hardware-isolated VMs that can be created</value>
   </data>
   <data name="Cpu_MaxClusterPerSocket" xml:space="preserve">
-    <value>Clusters (CCX) per Socket</value>
+    <value>Maximum Processor Clusters per Socket</value>
   </data>
   <data name="Cpu_MaxClusterPerSocketDesc" xml:space="preserve">
-    <value>Sets the maximum number of core complexes in each virtual socket</value>
+    <value>Sets the maximum number of processor clusters allowed in each virtual CPU socket</value>
   </data>
   <data name="Cpu_MaxProcPerL3" xml:space="preserve">
-    <value>Processors per L3 (CCX)</value>
+    <value>Processors per L3</value>
   </data>
   <data name="Cpu_MaxProcPerL3Desc" xml:space="preserve">
     <value>Sets the maximum number of virtual processors in each virtual L3 cache</value>
@@ -3202,10 +3193,10 @@ The existing NAT switch is: '{0}'</value>
     <value>Default</value>
   </data>
   <data name="CpuEnum_Shatter_AlwaysEnabled" xml:space="preserve">
-    <value>Always Shatter (4K)</value>
+    <value>Always Enabled</value>
   </data>
   <data name="CpuEnum_Shatter_AlwaysDisabled" xml:space="preserve">
-    <value>Never Shatter (large pages)</value>
+    <value>Always Disabled</value>
   </data>
   <data name="Gpu_StalePathTitle" xml:space="preserve">
     <value>GPU path changed</value>
