@@ -770,6 +770,10 @@ namespace ExHyperV.ViewModels
             // 6. 执行部署
             string result = await _vmGpuService.ProvisionLinuxGpuAsync(
                 SelectedVm.Name,
+                !string.IsNullOrEmpty(SelectedHostGpu.PartitionableGpuPath)
+                    ? SelectedHostGpu.PartitionableGpuPath
+                    : SelectedHostGpu.InstanceId,
+                SelectedHostGpu.Manu,
                 SelectedLinuxScript,
                 creds,
                 msg => {

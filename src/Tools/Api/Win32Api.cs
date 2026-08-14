@@ -9,6 +9,47 @@ namespace ExHyperV.Tools;
 
 public static class Win32Api
 {
+    /// <summary>
+    /// 将系统 INF 目录中的已发布名称（例如 oem35.inf）精确解析为 DriverStore 中的原始 INF 路径。
+    /// 该映射由 SetupAPI 维护，不能从目录名或驱动版本字符串推断。
+    /// </summary>
+    public static string GetInfDriverStoreLocation(string publishedInfName)
+    {
+        if (string.IsNullOrWhiteSpace(publishedInfName))
+            throw new ArgumentException("Published INF name is required.", nameof(publishedInfName));
+
+        uint requiredSize = 0;
+        bool firstCall = NativeMethods.SetupGetInfDriverStoreLocation(
+            publishedInfName,
+            nint.Zero,
+            nint.Zero,
+            null,
+            0,
+            out requiredSize);
+        int firstError = Marshal.GetLastWin32Error();
+        const int ErrorInsufficientBuffer = 122;
+        if (firstCall || firstError != ErrorInsufficientBuffer || requiredSize == 0)
+            throw new System.ComponentModel.Win32Exception(
+                firstError,
+                $"Unable to resolve the DriverStore location for {publishedInfName}.");
+
+        var buffer = new StringBuilder(checked((int)requiredSize));
+        if (!NativeMethods.SetupGetInfDriverStoreLocation(
+                publishedInfName,
+                nint.Zero,
+                nint.Zero,
+                buffer,
+                (uint)buffer.Capacity,
+                out requiredSize))
+        {
+            throw new System.ComponentModel.Win32Exception(
+                Marshal.GetLastWin32Error(),
+                $"Unable to resolve the DriverStore location for {publishedInfName}.");
+        }
+
+        return buffer.ToString();
+    }
+
     // ── PnP 设备控制 ──────────────────────────────────────────────
 
     public static ApiResponse EnablePnpDevice(string instanceId)
@@ -397,6 +438,16 @@ internal static class NativeMethods
     public static extern bool SetupDiCallClassInstaller(int installFunction, nint deviceInfoSet, ref SP_DEVINFO_DATA deviceInfoData);
     [DllImport("setupapi.dll", SetLastError = true)]
     public static extern bool SetupDiDestroyDeviceInfoList(nint deviceInfoSet);
+    [DllImport("setupapi.dll", EntryPoint = "SetupGetInfDriverStoreLocationW", CharSet = CharSet.Unicode,
+        SetLastError = true, ExactSpelling = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool SetupGetInfDriverStoreLocation(
+        [MarshalAs(UnmanagedType.LPWStr)] string fileName,
+        nint alternatePlatformInfo,
+        nint localeName,
+        StringBuilder? returnBuffer,
+        uint returnBufferSize,
+        out uint requiredSize);
 
     [StructLayout(LayoutKind.Sequential)]
     public struct SP_DEVINFO_DATA { public uint cbSize; public Guid ClassGuid; public uint DevInst; public nint Reserved; }
