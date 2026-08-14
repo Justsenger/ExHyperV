@@ -118,7 +118,7 @@
                                         <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding AdapterId}" FontSize="16" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
 
                                         <TextBlock Grid.Row="4" Grid.Column="0" Text="{x:Static properties:Resources.Label_GpuPartitionPath}" FontSize="16" VerticalAlignment="Center" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
-                                        <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding PName}" FontSize="16" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding PartitionableGpuPath}" FontSize="16" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
 
 
                                     </Grid>

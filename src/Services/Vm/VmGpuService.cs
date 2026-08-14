@@ -202,13 +202,13 @@ namespace ExHyperV.Services
 
             if (partResp.HasData)
             {
-                foreach (var pname in partResp.Data)
+                foreach (var partitionableGpuPath in partResp.Data)
                 {
-                    if (string.IsNullOrEmpty(pname)) continue;
-                    string normalizedPName = NormalizeDeviceId(pname);
+                    if (string.IsNullOrEmpty(partitionableGpuPath)) continue;
+                    string normalizedPartitionableGpuPath = NormalizeDeviceId(partitionableGpuPath);
                     var existingGpu = gpuList.FirstOrDefault(g =>
-                        NormalizeDeviceId(g.InstanceId) == normalizedPName);
-                    if (existingGpu != null) existingGpu.Pname = pname;
+                        NormalizeDeviceId(g.InstanceId) == normalizedPartitionableGpuPath);
+                    if (existingGpu != null) existingGpu.PartitionableGpuPath = partitionableGpuPath;
                 }
             }
 

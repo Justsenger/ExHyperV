@@ -93,7 +93,7 @@ namespace ExHyperV.ViewModels
                         assignment.Vendor = matchedHostGpu.Vendor;
                         assignment.DriverVersion = matchedHostGpu.DriverVersion;
                         assignment.Ram = matchedHostGpu.Ram;
-                        assignment.PName = matchedHostGpu.Pname;
+                        assignment.PartitionableGpuPath = matchedHostGpu.PartitionableGpuPath;
                     }
                     else
                     {
@@ -120,7 +120,7 @@ namespace ExHyperV.ViewModels
                             target.Vendor = source.Vendor;
                             target.DriverVersion = source.DriverVersion;
                             target.Ram = source.Ram;
-                            target.PName = source.PName;
+                            target.PartitionableGpuPath = source.PartitionableGpuPath;
                         }
                     }
                     else
@@ -183,7 +183,7 @@ namespace ExHyperV.ViewModels
         }
 
         private bool CanUpdateGpuDrivers(VmGpuAssignment assignment) =>
-            SelectedVm != null && assignment != null && !string.IsNullOrWhiteSpace(assignment.PName);
+            SelectedVm != null && assignment != null && !string.IsNullOrWhiteSpace(assignment.PartitionableGpuPath);
 
         [RelayCommand(CanExecute = nameof(CanUpdateGpuDrivers))]
         private async Task UpdateGpuDriversAsync(VmGpuAssignment assignment)
@@ -199,7 +199,7 @@ namespace ExHyperV.ViewModels
                     Manu = assignment.Manu,
                     Vendor = assignment.Vendor,
                     DriverVersion = assignment.DriverVersion,
-                    Pname = assignment.PName,
+                    PartitionableGpuPath = assignment.PartitionableGpuPath,
                     Ram = assignment.Ram
                 };
 
@@ -328,7 +328,7 @@ namespace ExHyperV.ViewModels
 
             AppendLog(string.Format(Properties.Resources.Msg_Gpu_WorkStart, SelectedVm.Name));
             AppendLog(string.Format(Properties.Resources.Msg_Gpu_Selected, SelectedHostGpu.Name));
-            AppendLog(string.Format(Properties.Resources.Msg_Gpu_Path, SelectedHostGpu.Pname));
+            AppendLog(string.Format(Properties.Resources.Msg_Gpu_Path, SelectedHostGpu.PartitionableGpuPath));
 
             GpuTasks.Clear();
 
@@ -454,8 +454,8 @@ namespace ExHyperV.ViewModels
                             break;
 
                         case GpuTaskType.Assign:
-                            string targetPath = !string.IsNullOrEmpty(SelectedHostGpu.Pname)
-                                                ? SelectedHostGpu.Pname
+                            string targetPath = !string.IsNullOrEmpty(SelectedHostGpu.PartitionableGpuPath)
+                                                ? SelectedHostGpu.PartitionableGpuPath
                                                 : SelectedHostGpu.InstanceId;
 
                             var adaptersBeforeAssignment =
@@ -510,7 +510,7 @@ namespace ExHyperV.ViewModels
                                         task.Description = Properties.Resources.Msg_Gpu_DetectWin;
                                         var syncRes = await _vmGpuService.SyncWindowsDriversAsync(
                                             SelectedVm.Name,
-                                            SelectedHostGpu.Pname,
+                                            SelectedHostGpu.PartitionableGpuPath,
                                             SelectedHostGpu.Manu,
                                             singlePart,
                                             msg => { task.Description = msg; AppendLog(msg); });
@@ -585,7 +585,7 @@ namespace ExHyperV.ViewModels
 
                 var result = await _vmGpuService.SyncWindowsDriversAsync(
                     SelectedVm.Name,
-                    SelectedHostGpu.Pname,
+                    SelectedHostGpu.PartitionableGpuPath,
                     SelectedHostGpu.Manu,
                     partition,
                     msg => {
