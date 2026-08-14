@@ -143,59 +143,12 @@ namespace ExHyperV.Services
                     Manu = string.IsNullOrEmpty(manu) ? vendor : manu,
                     InstanceId = instanceId,
                     DriverVersion = driverVersion,
-                    Vendor = vendor
+                    Vendor = vendor,
+                    MemoryBytes = GpuMemoryResolver.ReadBytes(instanceId, manu, vendor)
                 });
             }
 
-            // 2. GPU RAM 注册表
-            try
-            {
-                var gpuRamMap = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
-                using var baseKey = Microsoft.Win32.RegistryKey.OpenBaseKey(
-                    Microsoft.Win32.RegistryHive.LocalMachine, Microsoft.Win32.RegistryView.Registry64);
-                using var classKey = baseKey.OpenSubKey(
-                    @"SYSTEM\ControlSet001\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}");
-                if (classKey != null)
-                {
-                    foreach (var subKeyName in classKey.GetSubKeyNames())
-                    {
-                        try
-                        {
-                            using var subKey = classKey.OpenSubKey(subKeyName);
-                            if (subKey == null) continue;
-                            string matchingId = subKey.GetValue("MatchingDeviceId")?.ToString()?.ToUpper();
-                            if (string.IsNullOrEmpty(matchingId)) continue;
-                            long memSize = 0;
-                            var qwMem = subKey.GetValue("HardwareInformation.qwMemorySize");
-                            if (qwMem != null) try { memSize = Convert.ToInt64(qwMem); } catch { }
-                            if (memSize == 0)
-                            {
-                                var mem = subKey.GetValue("HardwareInformation.MemorySize");
-                                if (mem != null && mem is not byte[]) try { memSize = Convert.ToInt64(mem); } catch { }
-                            }
-                            if (memSize > 0) gpuRamMap[matchingId] = memSize;
-                        }
-                        catch { continue; }
-                    }
-                }
-
-                foreach (var existingGpu in gpuList)
-                {
-                    var matched = gpuRamMap.FirstOrDefault(kv =>
-                    {
-                        Debug.WriteLine($"MatchingId: '{kv.Key}', GpuInstanceId: '{existingGpu.InstanceId.ToUpper()}'");
-                        return existingGpu.InstanceId.ToUpper().Contains(kv.Key);
-                    });
-                    if (matched.Key != null)
-                        existingGpu.Ram = matched.Value.ToString();
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"GPU RAM registry error: {ex.Message}");
-            }
-
-            // 3. Msvm_PartitionableGpu
+            // 2. Msvm_PartitionableGpu
             var partResp = await WmiApi.QueryAsync(
                 "SELECT Name FROM Msvm_PartitionableGpu",
                 obj => obj["Name"]?.ToString() ?? "");

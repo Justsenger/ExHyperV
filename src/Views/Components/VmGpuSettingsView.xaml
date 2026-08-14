@@ -109,7 +109,7 @@
                                         <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding Vendor}" FontSize="16" VerticalAlignment="Center"/>
 
                                         <TextBlock Grid.Row="1" Grid.Column="0" Text="{x:Static properties:Resources.Label_Ram}" FontSize="16" VerticalAlignment="Center" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
-                                        <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding RamDisplay}" FontSize="16" VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding MemoryDisplay}" FontSize="16" VerticalAlignment="Center"/>
 
                                         <TextBlock Grid.Row="2" Grid.Column="0" Text="{x:Static properties:Resources.Label_DriverVer}" FontSize="16" VerticalAlignment="Center" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
                                         <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding DriverVersion}" FontSize="16" VerticalAlignment="Center"/>

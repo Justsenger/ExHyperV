@@ -10,7 +10,7 @@ namespace ExHyperV.Models
         public string Vendor { get; init; } = string.Empty;        // 板卡厂商（ASUS/MSI 等，文字显示用）
 
         public string PartitionableGpuPath { get; set; } = string.Empty; // Msvm_PartitionableGpu.Name（GetHostGpusAsync 二次填充）
-        public string Ram { get; set; } = string.Empty;     // 显存字节串，如 "4294967296"（二次填充）
+        public ulong MemoryBytes { get; set; }                         // 物理显存字节数（按当前设备实例精确读取）
 
         /// <summary>清洗后的设备路径（优先 PartitionableGpuPath，回退 InstanceId）：去 \\?\ 前缀、截断 #{guid}、# 还原为 \。</summary>
         public string PathDisplay

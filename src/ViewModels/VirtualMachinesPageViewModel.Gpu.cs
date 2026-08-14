@@ -92,7 +92,7 @@ namespace ExHyperV.ViewModels
                         assignment.Manu = matchedHostGpu.Manu;
                         assignment.Vendor = matchedHostGpu.Vendor;
                         assignment.DriverVersion = matchedHostGpu.DriverVersion;
-                        assignment.Ram = matchedHostGpu.Ram;
+                        assignment.MemoryBytes = matchedHostGpu.MemoryBytes;
                         assignment.PartitionableGpuPath = matchedHostGpu.PartitionableGpuPath;
                     }
                     else
@@ -119,7 +119,7 @@ namespace ExHyperV.ViewModels
                             target.Manu = source.Manu;
                             target.Vendor = source.Vendor;
                             target.DriverVersion = source.DriverVersion;
-                            target.Ram = source.Ram;
+                            target.MemoryBytes = source.MemoryBytes;
                             target.PartitionableGpuPath = source.PartitionableGpuPath;
                         }
                     }
@@ -200,7 +200,7 @@ namespace ExHyperV.ViewModels
                     Vendor = assignment.Vendor,
                     DriverVersion = assignment.DriverVersion,
                     PartitionableGpuPath = assignment.PartitionableGpuPath,
-                    Ram = assignment.Ram
+                    MemoryBytes = assignment.MemoryBytes
                 };
 
                 _currentProcessingGpuAdapterId = null;
@@ -417,7 +417,7 @@ namespace ExHyperV.ViewModels
                             break;
 
                         case GpuTaskType.PowerCheck:
-                            if (_needConfig || tasks.Any(t => t.TaskType == GpuTaskType.Driver))
+                            if (tasks.Any(t => t.TaskType == GpuTaskType.Driver))
                             {
                                 var (isOff, state) = await _queryService.IsVmPoweredOffAsync(SelectedVm.Name);
                                 if (!isOff)
@@ -444,8 +444,18 @@ namespace ExHyperV.ViewModels
                         case GpuTaskType.Optimization:
                             if (_needConfig)
                             {
-                                bool optOk = await _vmGpuService.OptimizeVmForGpuAsync(SelectedVm.Name);
-                                task.Description = optOk ? Properties.Resources.Msg_Gpu_MmioOk : Properties.Resources.Error_Gpu_OptFail;
+                                var (isOff, _) = await _queryService.IsVmPoweredOffAsync(SelectedVm.Name);
+                                if (!isOff && !tasks.Any(t => t.TaskType == GpuTaskType.Driver))
+                                {
+                                    // A no-driver deployment must not interrupt a running VM. MMIO tuning
+                                    // is best-effort and is deferred until a later powered-off deployment.
+                                    task.Description = Properties.Resources.Msg_Skip;
+                                }
+                                else
+                                {
+                                    bool optOk = await _vmGpuService.OptimizeVmForGpuAsync(SelectedVm.Name);
+                                    task.Description = optOk ? Properties.Resources.Msg_Gpu_MmioOk : Properties.Resources.Error_Gpu_OptFail;
+                                }
                             }
                             else
                             {
