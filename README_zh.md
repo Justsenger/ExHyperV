@@ -509,7 +509,7 @@ $n="CheckMMIO_$(Get-Random)";New-VM $n -Gen 2 -NoVHD|Out-Null;Set-VM $n -Automat
 
 这是一个可选项，需要添加多张显卡时，可以取消勾选以免每次都导入驱动。
 
-- 对于Windows虚拟机，将全量注入宿主驱动文件夹到虚拟机指定分区，如果是 Nvidia 显卡还会添加额外修复，例如注册表。同时，会为虚拟机的 System32 目录下创建某些驱动文件的链接文件，具体映射关系参考[drivermapping.md](https://github.com/Justsenger/ExHyperV/blob/main/doc/drivermapping.md).
+- 对于 Windows 虚拟机，将全量注入宿主驱动文件夹到虚拟机指定分区。对于 NVIDIA，ExHyperV 只会创建从 `HostDriverStore` 加载当前所选 `nvlddmkm.sys` 所需的最小 `nvlddmkm` 服务值，不会导入宿主完整的 NVIDIA 服务树。同时，会为虚拟机的 System32 目录创建部分驱动文件的链接，具体映射关系参考 [drivermapping.md](https://github.com/Justsenger/ExHyperV/blob/main/doc/drivermapping.md)。
 
 - 对于Linux虚拟机，会执行 SSH 自动化流程进行模块编译和驱动安装，兼容列表之外的系统或内核还需更多测试。
 

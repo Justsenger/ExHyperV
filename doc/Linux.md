@@ -69,7 +69,7 @@ chmod +x *.sh
 
 ### 5.2 准备驱动目录
 
-将宿主机 `DriverStore/FileRepository` 对应显卡目录复制到：
+Windows 与 Linux 部署共用同一个已通过所选 GPU 精确解析的宿主源根目录，并将完整的宿主机 `DriverStore/FileRepository` 上传到：
 
 ```bash
 ~/exhyperv_deploy/drivers/
