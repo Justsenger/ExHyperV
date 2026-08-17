@@ -71,4 +71,4 @@ Name: "{group}\ExHyperV"; Filename: "{app}\ExHyperV.exe"; WorkingDir: "{app}"
 Name: "{autodesktop}\ExHyperV"; Filename: "{app}\ExHyperV.exe"; WorkingDir: "{app}"; Tasks: desktopicon
 
 [Run]
-Filename: "{app}\ExHyperV.exe"; Description: "{cm:LaunchProgram,ExHyperV}"; WorkingDir: "{app}"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\ExHyperV.exe"; Description: "{cm:LaunchProgram,ExHyperV}"; WorkingDir: "{app}"; Verb: "runas"; Flags: nowait postinstall skipifsilent shellexec
