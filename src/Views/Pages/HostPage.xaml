@@ -42,7 +42,7 @@
                 </ui:Card>
 
                 <!-- Hyper-V 服务 -->
-                <ui:Card Padding="16" Margin="0,0,0,4">
+                <ui:Card Padding="16,10" Margin="0,0,0,4">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>
