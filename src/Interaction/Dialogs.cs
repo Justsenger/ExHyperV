@@ -82,15 +82,26 @@ namespace ExHyperV.Interaction
             return result == ContentDialogResult.Primary;
         }
 
-        // WPF-UI 的 Danger 外观按钮不设前景、继承 ButtonForeground(随主题)→ 亮色主题下红底黑字。
-        // 弹窗加载后把可视树里 Danger 外观按钮前景强制刷白(红底恒可读)，对齐 XAML 里 Danger 按钮手写 Foreground="White"。
+        // WPF-UI 的弹窗按钮前景会随交互状态切换；危险确认框中的主按钮和取消按钮都固定使用白字。
         public static void ForceDangerButtonWhiteForeground(FrameworkElement dialog)
         {
+            string closeButtonText = dialog switch
+            {
+                Wpf.Ui.Controls.MessageBox messageBox => messageBox.CloseButtonText,
+                ContentDialog contentDialog => contentDialog.CloseButtonText,
+                _ => string.Empty
+            };
+
             dialog.Loaded += (_, _) =>
             {
                 foreach (var btn in FindVisualChildren<Wpf.Ui.Controls.Button>(dialog))
-                    if (btn.Appearance == ControlAppearance.Danger)
+                {
+                    bool isCloseButton = !string.IsNullOrEmpty(closeButtonText)
+                        && string.Equals(btn.Content?.ToString(), closeButtonText, StringComparison.Ordinal);
+
+                    if (btn.Appearance == ControlAppearance.Danger || isCloseButton)
                         btn.Foreground = System.Windows.Media.Brushes.White;
+                }
             };
         }
 
