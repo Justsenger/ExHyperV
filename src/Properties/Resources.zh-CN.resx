@@ -1492,10 +1492,10 @@
     <value>修复因硬件安全检查导致的问题</value>
   </data>
   <data name="Menu_NativeNvme" xml:space="preserve">
-    <value>启用 NVMe 驱动</value>
+    <value>启用主机原生 NVMe</value>
   </data>
   <data name="Desc_NativeNvme" xml:space="preserve">
-    <value>使用 NVMe 原生多队列驱动，而不是 SCSI</value>
+    <value>让主机 NVMe 存储使用原生多队列 I/O，绕过 SCSI 转换层</value>
   </data>
   <data name="Menu_OpenHclFirmwareFile" xml:space="preserve">
     <value>从文件加载 OpenHCL 固件</value>

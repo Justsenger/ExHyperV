@@ -1492,10 +1492,10 @@ The existing NAT switch is: '{0}'</value>
     <value>Fix issues caused by hardware security checks</value>
   </data>
   <data name="Menu_NativeNvme" xml:space="preserve">
-    <value>Enable NVMe Driver</value>
+    <value>Enable Host Native NVMe</value>
   </data>
   <data name="Desc_NativeNvme" xml:space="preserve">
-    <value>Use the native multi-queue NVMe driver instead of SCSI</value>
+    <value>Use native multi-queue I/O for host NVMe storage without the SCSI translation layer</value>
   </data>
   <data name="Menu_OpenHclFirmwareFile" xml:space="preserve">
     <value>Load OpenHCL firmware from file</value>

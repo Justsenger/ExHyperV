@@ -4627,7 +4627,7 @@ namespace ExHyperV.Properties {
         }
 
         /// <summary>
-        ///   查找类似 Host Native NVMe 的本地化字符串。
+        ///   查找类似 Enable Host Native NVMe 的本地化字符串。
         /// </summary>
         public static string Menu_NativeNvme {
             get {
@@ -4636,7 +4636,7 @@ namespace ExHyperV.Properties {
         }
 
         /// <summary>
-        ///   查找类似 Enable the Windows Server 2025 native multi-queue NVMe driver... 的本地化字符串。
+        ///   查找类似 Use native multi-queue I/O for host NVMe storage without the SCSI translation layer 的本地化字符串。
         /// </summary>
         public static string Desc_NativeNvme {
             get {
