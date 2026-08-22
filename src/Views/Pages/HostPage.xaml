@@ -242,7 +242,7 @@
                 <!-- 主机原生 NVMe (Windows Server 2025 / Win11 24H2+)。不支持的系统上不隐藏，仅置灰开关。 -->
                 <ui:CardControl Margin="0,0,0,8" Padding="12">
                     <ui:CardControl.Icon>
-                        <ui:FontIcon FontSize="22" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xEEA1;"/>
+                        <ui:FontIcon FontSize="22" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xEDA2;"/>
                     </ui:CardControl.Icon>
                     <ui:CardControl.Header>
                         <StackPanel>
@@ -257,7 +257,7 @@
                 <!-- OpenHCL / IGVM 开发固件文件 -->
                 <ui:CardControl Margin="0,0,0,8" Padding="12">
                     <ui:CardControl.Icon>
-                        <ui:FontIcon FontSize="22" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xE950;"/>
+                        <ui:FontIcon FontSize="22" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xF196;"/>
                     </ui:CardControl.Icon>
                     <ui:CardControl.Header>
                         <StackPanel>
