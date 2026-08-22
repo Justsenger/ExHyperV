@@ -1,6 +1,6 @@
 namespace ExHyperV.Models
 {
-    /// <summary>宿主物理磁盘（用于"添加物理盘到 VM"的列表选择）。全部硬盘都列出，不可直通的带状态标签并在 UI 置灰。</summary>
+    /// <summary>主机物理磁盘（用于"添加物理盘到 VM"的列表选择）。全部硬盘都列出，不可直通的带状态标签并在 UI 置灰。</summary>
     public class HostDiskInfo
     {
         public int Number { get; init; }

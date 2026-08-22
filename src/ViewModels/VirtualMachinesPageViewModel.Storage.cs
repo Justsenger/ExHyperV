@@ -80,7 +80,7 @@ namespace ExHyperV.ViewModels
             finally { IsLoadingSettings = false; }
         }
 
-        // 加载宿主机物理磁盘列表
+        // 加载主机物理磁盘列表
         private async Task LoadHostDisksAsync()
         {
             try
@@ -321,7 +321,7 @@ namespace ExHyperV.ViewModels
             if (value && DeviceType == "DvdDrive") _ = LoadHostOpticalsAsync();
         }
 
-        // 加载宿主物理光驱列表(物理来源 + 光盘,仅第1代)
+        // 加载主机物理光驱列表(物理来源 + 光盘,仅第1代)
         private async Task LoadHostOpticalsAsync()
         {
             try
@@ -371,7 +371,7 @@ namespace ExHyperV.ViewModels
             try
             {
                 await VmStorageService.LoadVmStorageItemsAsync(SelectedVm.Model);
-                await LoadHostDisksAsync();   // 每次进添加界面都重拉宿主物理盘列表，否则刚加过(已脱机)的盘还留在列表里被重复添加
+                await LoadHostDisksAsync();   // 每次进添加界面都重拉主机物理盘列表，否则刚加过(已脱机)的盘还留在列表里被重复添加
 
                 RefreshControllerOptions();
 
@@ -414,7 +414,7 @@ namespace ExHyperV.ViewModels
                 return;
             }
 
-            // 落地标识：物理光驱=宿主光驱 PNPDeviceID、物理硬盘=磁盘号、虚拟=文件路径
+            // 落地标识：物理光驱=主机光驱 PNPDeviceID、物理硬盘=磁盘号、虚拟=文件路径
             bool isPhysicalOptical = IsPhysicalSource && DeviceType == "DvdDrive";
             string target = isPhysicalOptical
                 ? SelectedPhysicalOptical?.PnpDeviceId

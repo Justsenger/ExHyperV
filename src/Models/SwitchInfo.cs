@@ -8,7 +8,7 @@ namespace ExHyperV.Models
     {
         public string SwitchName { get; init; } = string.Empty;
         public SwitchMode SwitchType { get; init; }
-        public bool AllowManagementOS { get; init; }            // 是否允许宿主 OS 共享此交换机
+        public bool AllowManagementOS { get; init; }            // 是否允许主机 OS 共享此交换机
         public string Id { get; init; } = string.Empty;
         public string NetAdapterInterfaceDescription { get; init; } = string.Empty;
     }

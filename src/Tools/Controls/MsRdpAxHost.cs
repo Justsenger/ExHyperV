@@ -125,7 +125,7 @@ namespace ExHyperV.Tools
                     TrySet("overallConnectionTimeout", () => adv.overallConnectionTimeout = s.ConnectionTimeoutSeconds);
                 }
                 // 全屏与键鼠捕获（mstscax 原生）：容器处理全屏 → 热键时 fire OnRequestGo/LeaveFullScreen，由窗口全屏；
-                // HotKeyFullScreen=可配置 vkey → Ctrl+Alt+<key>；KeyboardHookMode=1 → Win/Alt+Tab 等组合键只要画面有焦点就送 VM（窗口化也送，不止全屏；要切回宿主先点一下别处）。
+                // HotKeyFullScreen=可配置 vkey → Ctrl+Alt+<key>；KeyboardHookMode=1 → Win/Alt+Tab 等组合键只要画面有焦点就送 VM（窗口化也送，不止全屏；要切回主机先点一下别处）。
                 TrySet("ContainerHandledFullScreen", () => adv.ContainerHandledFullScreen = 1);   // 容器(WPF 窗口)处理全屏；mstscax 自己全屏会开独立窗口、关掉后残留主窗口
                 TrySet("HotKeyFullScreen", () => adv.HotKeyFullScreen = s.FullScreenHotKeyVirtualKey);
                 TrySet("KeyboardHookMode", () => rdp.SecuredSettings.KeyboardHookMode = 1);
@@ -184,7 +184,7 @@ namespace ExHyperV.Tools
                 dynamic rdp = GetOcx();
                 // 参数复刻 VMConnect 的 RdpViewerControl：物理尺寸用毫米(非像素)、desktopScaleFactor=显示器 DPI%、
                 // deviceScaleFactor=100。末位传 1 是非法值(合法仅 100/140/180)，会让分辨率协商被拒 → 画面不随分辨率刷新+灰信箱。
-                // 使用宿主窗口提供的 DPI，避免 AxHost.DeviceDpi 在首次连接时仍为旧值。
+                // 使用承载窗口提供的 DPI，避免 AxHost.DeviceDpi 在首次连接时仍为旧值。
                 uint dpi = (uint)Math.Max(96, Math.Round(96.0 * dpiScale));
                 uint desktopScaleFactor = (uint)Math.Round(dpi / 96.0 * 100.0);
                 uint physW = (uint)Math.Round(width * 25.4 / dpi);

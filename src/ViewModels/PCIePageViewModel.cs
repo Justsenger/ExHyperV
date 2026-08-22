@@ -1,4 +1,4 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ExHyperV.Interaction;
@@ -114,7 +114,7 @@ namespace ExHyperV.ViewModels
                 {
                     var disks = await PCIeService.GetControllerDisksAsync(deviceViewModel.InstanceId);
 
-                    // 系统盘/启动盘 → 硬拒绝（直通会使宿主无法启动）
+                    // 系统盘/启动盘 → 硬拒绝（直通会使主机无法启动）
                     var critical = disks.Where(d => d.IsSystem || d.IsBoot).ToList();
                     if (critical.Count > 0)
                     {

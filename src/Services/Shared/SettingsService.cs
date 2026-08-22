@@ -380,8 +380,8 @@ namespace ExHyperV.Services
             catch { }
         }
 
-        // ===== 宿主 MMIO 上限缓存（MB） =====
-        // 首次 boot-probe 测得的宿主物理地址上限，持久化后不再重探（只认第一次测得的结果）。
+        // ===== 主机 MMIO 上限缓存（MB） =====
+        // 首次 boot-probe 测得的主机物理地址上限，持久化后不再重探（只认第一次测得的结果）。
 
         public static ulong? GetMmioCeilingMb()
         {

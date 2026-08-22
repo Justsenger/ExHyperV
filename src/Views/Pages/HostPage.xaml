@@ -145,7 +145,7 @@
                     </Grid>
                 </ui:Card>
 
-                <!-- USB 直通要求（仅检测宿主侧） -->
+                <!-- USB 直通要求（仅检测主机侧） -->
                 <ui:TextBlock Text="{x:Static properties:Resources.Label_ReqUsb}"
                               Margin="0,16,0,8"
                               Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
@@ -238,7 +238,7 @@
                                      IsEnabled="{Binding IsSystemSwitchEnabled}"/>
                 </ui:CardControl>
 
-                <!-- 宿主原生 NVMe (Windows Server 2025 / Win11 24H2+)。不支持的系统上不隐藏，仅置灰开关。 -->
+                <!-- 主机原生 NVMe (Windows Server 2025 / Win11 24H2+)。不支持的系统上不隐藏，仅置灰开关。 -->
                 <ui:CardControl Margin="0,0,0,8" Padding="12">
                     <ui:CardControl.Icon>
                         <ui:FontIcon FontSize="22" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xEEA1;"/>

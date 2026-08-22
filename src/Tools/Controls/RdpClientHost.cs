@@ -5,7 +5,7 @@ using System.Windows.Forms.Integration;
 namespace ExHyperV.Tools
 {
     /// <summary>
-    /// 通用 RDP 宿主控件：在 WPF 里直接托管系统 mstscax ActiveX，依赖原生事件而非轮询。
+    /// 通用 RDP 承载控件：在 WPF 里直接托管系统 mstscax ActiveX，依赖原生事件而非轮询。
     /// 不含 Hyper-V 专有逻辑——连接配方由调用方通过 <see cref="RdpConnectionSettings"/> 注入；
     /// 不反向依赖 ViewModel（全屏等状态以事件/方法暴露，由消费方桥接）。
     /// </summary>
@@ -63,7 +63,7 @@ namespace ExHyperV.Tools
             };
 
             // ActiveX 须经 ISupportInitialize 正确激活，否则 WPF 合成时崩 (UCEERR_RENDERTHREADFAILURE)。
-            // ActiveX 用 Dock.Fill 由框架按 DPI 正确铺满宿主（手动定位会因 DPI 坐标不一致导致纵横比错算 → 双重信箱）。
+            // ActiveX 用 Dock.Fill 由框架按 DPI 正确铺满承载控件（手动定位会因 DPI 坐标不一致导致纵横比错算 → 双重信箱）。
             // 黑底容器（对齐旧实现 _winFormsContainer.BackColor = Black）：SmartSizing 关闭后画面原生不缩放，
             // 周围空白显示黑色、窗口/全屏一致。
             var panel = new System.Windows.Forms.Panel

@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using ExHyperV.Tools;
 using ExHyperV.Models;
 
@@ -322,7 +322,7 @@ namespace ExHyperV.Services
             try
             {
                 ulong highMmioGapSizeMb = Convert.ToUInt64(resp.Data[0]);
-                // 阈值复用 GPU-PV 的 MMIO 计算（按宿主物理地址宽度）；读不到时回退默认 256G（同一常量）
+                // 阈值复用 GPU-PV 的 MMIO 计算（按主机物理地址宽度）；读不到时回退默认 256G（同一常量）
                 ulong requiredMb = VmMmioService.ComputeMmioPlan()?.HighSizeMb ?? VmMmioService.DefaultHighSizeMb;
                 return highMmioGapSizeMb < requiredMb ? MmioCheckResultType.NeedsExpansion : MmioCheckResultType.Ok;
             }

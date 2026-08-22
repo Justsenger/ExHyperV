@@ -77,7 +77,7 @@ namespace ExHyperV.Views
                 RdpHost.Resize(w, h, GetDpiScale());
             };
 
-            // RDP 宿主事件（原生事件，取代旧实现的 20ms 轮询）
+            // RDP 承载控件事件（原生事件，取代旧实现的 20ms 轮询）
             RdpHost.Connected += () => Dispatcher.BeginInvoke(new Action(() =>
             {
                 _enhancedConnecting = false;   // 已连上（增强成功，或本就是基本）
@@ -348,7 +348,7 @@ namespace ExHyperV.Views
             if (src?.CompositionTarget == null) return;
             double dpiX = GetDpiScale(), dpiY = dpiX;   // Win32 取真实 DPI，避开 TransformToDevice 首帧滞后成 100%
             double scrW = pixelWidth / dpiX, scrH = pixelHeight / dpiY;   // 画面 DIP 尺寸
-            if (!_vm.IsEnhancedMode)   // 基本会话：钳到工作区并保宽高比——任一边超出宿主就按比例缩小，画面由 SmartSizing 缩放铺满，不冲出壳子
+            if (!_vm.IsEnhancedMode)   // 基本会话：钳到工作区并保宽高比——任一边超出承载区域就按比例缩小，画面由 SmartSizing 缩放铺满，不冲出壳子
             {
                 var wa = SystemParameters.WorkArea;
                 var overhead = GetWindowOverhead();
@@ -374,13 +374,13 @@ namespace ExHyperV.Views
             if (this.Top < area.Top) this.Top = area.Top;
         }
 
-        /// <summary>摆放 RDP 宿主：全屏/增强铺满或贴合；基本会话按所选缩放档把画面缩放居中。
+        /// <summary>摆放 RDP 承载控件：全屏/增强铺满或贴合；基本会话按所选缩放档把画面缩放居中。
         /// 显式比例的"放大"由 ApplyBasicZoom 改窗口尺寸实现；此处只把画面缩到画面区内（mstscax 是 airspace、无法滚动，故不溢出）。</summary>
         private void LayoutRdpHost()
         {
             if (_vm.IsFullScreen && _vm.IsEnhancedMode)
             {
-                // 增强全屏：画面已协商到显示器分辨率，宿主铺满。SmartSizing 必须关——否则从"最大化被吸附"态
+                // 增强全屏：画面已协商到显示器分辨率，承载控件铺满。SmartSizing 必须关——否则从"最大化被吸附"态
                 // (SmartSizing 开)进全屏会残留缩放，把正好 1:1 的全屏画面也磨糊。
                 RdpHost.SetSmartSizing(false);
                 RdpHost.HorizontalAlignment = HorizontalAlignment.Stretch;
@@ -396,9 +396,9 @@ namespace ExHyperV.Views
             double dpiX = GetDpiScale(), dpiY = dpiX;   // Win32 取真实 DPI，避开 TransformToDevice 首帧滞后成 100%
             if (!_vm.IsEnhancedMode)
             {
-                // 基本会话：缩放走 mstscax 原生 ZoomLevel，此处按"实际能装下的有效比例"热设 + 把宿主控件摆成对应尺寸居中。
+                // 基本会话：缩放走 mstscax 原生 ZoomLevel，此处按"实际能装下的有效比例"热设 + 把承载控件摆成对应尺寸居中。
                 // 有效比例 = 缩放档≤100% 取 min(档, 画面区能装下的比例)、>100% 放大档取档本身：
-                //   · ≤100%(含自适应)：用户要看「整幅画面」，宿主工作区比画面小时收缩到刚好放下——不溢出、不出滚动条
+                //   · ≤100%(含自适应)：用户要看「整幅画面」，承载区域比画面小时收缩到刚好放下——不溢出、不出滚动条
                 //     （回归旧 SmartSizing 行为；此前固定 ZoomLevel=档 致大画面遇小窗口溢出+自带滚动条）；
                 //   · >100%：用户要「放大看局部」，画面本就该比窗口大，允许溢出+控件内滚动条（VMConnect 同款）。
                 // SmartSizing 必须关：缩放走 ZoomLevel，二者互斥（留着会打架、并在控件大于画面时糊上 mstscax 的 #CBCBCB 信箱）。
@@ -410,7 +410,7 @@ namespace ExHyperV.Views
                     areaH * 100.0 / vmH)));
                 int effectiveZoom = userZoom <= 100 ? Math.Min(userZoom, fitZoom) : userZoom;
                 double sc = effectiveZoom / 100.0;
-                // ZoomLevel 只能表达整数百分比。向下取可容纳比例，保证 OCX 的真实画面不会比宿主大 1~2px 而冒出滚动条。
+                // ZoomLevel 只能表达整数百分比。向下取可容纳比例，保证 OCX 的真实画面不会比承载区域大 1~2px 而冒出滚动条。
                 RdpHost.SetZoomLevel((uint)effectiveZoom);   // MsRdpAxHost 内缓存去重，仅真变时穿透 OCX
                 RdpHost.SetSmartSizing(false);
                 RdpHost.HorizontalAlignment = HorizontalAlignment.Center;

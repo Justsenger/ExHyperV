@@ -1,6 +1,6 @@
 namespace ExHyperV.Models
 {
-    /// <summary>宿主可分区显卡（GPU-PV 分配源），由 VmGpuService.GetHostGpusAsync 生产。</summary>
+    /// <summary>主机可分区显卡（GPU-PV 分配源），由 VmGpuService.GetHostGpusAsync 生产。</summary>
     public class GpuInfo
     {
         public string Name { get; init; } = string.Empty;          // 显卡名称

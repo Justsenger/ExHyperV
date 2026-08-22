@@ -274,7 +274,7 @@
     <value>上游网络</value>
   </data>
   <data name="Hostconnected" xml:space="preserve">
-    <value>宿主连接</value>
+    <value>主机连接</value>
   </data>
   <data name="NetDraw" xml:space="preserve">
     <value>网络拓扑</value>
@@ -387,7 +387,7 @@
 
 {0}
 
-无法直通（直通会使宿主无法启动）。</value>
+无法直通（直通会使主机无法启动）。</value>
   </data>
   <data name="PCIePage_Title_StorageOffline" xml:space="preserve">
     <value>脱机磁盘后直通</value>
@@ -397,7 +397,7 @@
 
 {0}
 
-直通前需先将它们脱机（脱机后宿主将无法访问这些盘）。是否继续？</value>
+直通前需先将它们脱机（脱机后主机将无法访问这些盘）。是否继续？</value>
   </data>
   <data name="PCIePage_Msg_LastGpuWarning" xml:space="preserve">
     <value>「{0}」是主机当前唯一的显卡。
@@ -589,7 +589,7 @@
     <value>迁移兼容性</value>
   </data>
   <data name="MigrationCompatibilityDescription" xml:space="preserve">
-    <value>屏蔽 CPU 指令集，以便在不同版本的宿主间迁移</value>
+    <value>屏蔽 CPU 指令集，以便在不同版本的主机间迁移</value>
   </data>
   <data name="Cpu_MigrationCompatibilityMode" xml:space="preserve">
     <value>迁移兼容模式</value>
@@ -1273,7 +1273,7 @@
     <value>环境准备</value>
   </data>
   <data name="Msg_Gpu_PreparingHost" xml:space="preserve">
-    <value>正在准备宿主机环境...</value>
+    <value>正在准备主机环境...</value>
   </data>
   <data name="Task_Gpu_Power" xml:space="preserve">
     <value>电源检查</value>
@@ -1636,7 +1636,7 @@
     <value>CPU 绑定</value>
   </data>
   <data name="Label_SelectCores" xml:space="preserve">
-    <value>选择要绑定的宿主核心 (按住左键拖动可多选)</value>
+    <value>选择要绑定的主机核心 (按住左键拖动可多选)</value>
   </data>
   <data name="Button_Apply" xml:space="preserve">
     <value>应用</value>
@@ -3076,10 +3076,10 @@
     <value>设置二级地址转换中大内存页的拆分方式</value>
   </data>
   <data name="Cpu_IgnoreHostMaxFreq" xml:space="preserve">
-    <value>忽略宿主频率上限</value>
+    <value>忽略主机频率上限</value>
   </data>
   <data name="Cpu_IgnoreHostMaxFreqDesc" xml:space="preserve">
-    <value>允许虚拟机 CPU 忽略宿主设置的最高频率</value>
+    <value>允许虚拟机 CPU 忽略主机设置的最高频率</value>
   </data>
   <data name="Cpu_PerfmonPmu" xml:space="preserve">
     <value>暴露性能监控单元（PMU）</value>
@@ -3427,7 +3427,7 @@
     <value>默认</value>
   </data>
   <data name="VmPcie_TopologyHost" xml:space="preserve">
-    <value>仿照宿主</value>
+    <value>仿照主机</value>
   </data>
   <data name="VmPcie_Apply" xml:space="preserve">
     <value>应用</value>
@@ -3508,7 +3508,7 @@
     <value>电池状态透传</value>
   </data>
   <data name="VmAdvanced_BatteryDesc" xml:space="preserve">
-    <value>允许虚拟机读取宿主的电池状态和剩余电量</value>
+    <value>允许虚拟机读取主机的电池状态和剩余电量</value>
   </data>
   <data name="VmAdvanced_LockOnDisconnectTitle" xml:space="preserve">
     <value>断开时锁定</value>

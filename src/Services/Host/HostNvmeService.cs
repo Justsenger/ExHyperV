@@ -4,9 +4,9 @@ using Microsoft.Win32;
 namespace ExHyperV.Services
 {
     /// <summary>
-    /// 启用/查询 Windows Server 2025（及 Win11 24H2+）宿主原生 NVMe 驱动。
+    /// 启用/查询 Windows Server 2025（及 Win11 24H2+）主机原生 NVMe 驱动。
     /// 机制：Feature Management 覆盖开关（HKLM 策略，需管理员 + 重启生效）。
-    /// 开启后宿主 NVMe 走原生多队列（替代旧的 NVMe→SCSI 翻译/单队列），
+    /// 开启后主机 NVMe 走原生多队列（替代旧的 NVMe→SCSI 翻译/单队列），
     /// VHDX 后端 I/O 更快 → VHDX 虚拟机间接受益（客户机仍为合成 SCSI）。
     /// 注：合成存储栈 storvsp/storvsc 始终是 SCSI，guest 拿不到 NVMe 接口（要真 NVMe 只能 DDA）。
     /// </summary>

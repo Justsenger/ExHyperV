@@ -34,7 +34,7 @@ Arch 滚动内核可能出现兼容性波动。建议优先使用 LTS66 方案�
 
 
 
-## 4. 宿主机（Windows）准备
+## 4. 主机（Windows）准备
 
 管理员 PowerShell：
 
@@ -69,7 +69,7 @@ chmod +x *.sh
 
 ### 5.2 准备驱动目录
 
-Windows 与 Linux 部署共用同一个已通过所选 GPU 精确解析的宿主源根目录，并将完整的宿主机 `DriverStore/FileRepository` 上传到：
+Windows 与 Linux 部署共用同一个已通过所选 GPU 精确解析的主机源根目录，并将完整的主机 `DriverStore/FileRepository` 上传到：
 
 ```bash
 ~/exhyperv_deploy/drivers/

@@ -1,6 +1,6 @@
 namespace ExHyperV.Models
 {
-    /// <summary>宿主物理光驱（用于"物理光驱直通到第 1 代 VM"的下拉选择）。
+    /// <summary>主机物理光驱（用于"物理光驱直通到第 1 代 VM"的下拉选择）。
     /// 仅第 1 代支持物理光驱直通——微软 by design，第 2 代只能挂 ISO。</summary>
     public class HostOpticalInfo
     {

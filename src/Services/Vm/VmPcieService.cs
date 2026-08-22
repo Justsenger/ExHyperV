@@ -7,7 +7,7 @@ namespace ExHyperV.Services;
 
 /// <summary>
 /// 单台虚拟机的 PCIe 设置。
-/// 所有可选属性均从实际 WMI 对象探测，旧版宿主缺少属性时将对应设置标记为不可用。
+/// 所有可选属性均从实际 WMI 对象探测，旧版主机缺少属性时将对应设置标记为不可用。
 /// </summary>
 public static class VmPcieService
 {
@@ -46,7 +46,7 @@ public static class VmPcieService
                 Topology = obj.TryGet<ushort>("Topology") ?? 0,
             });
 
-        // 旧版宿主缺少可选类属于正常情况；类存在但查询失败时才向上返回错误。
+        // 旧版主机缺少可选类属于正常情况；类存在但查询失败时才向上返回错误。
         if (!systemResponse.Success && systemResponse.Code != (int)ManagementStatus.InvalidClass)
             return ApiResponse<VmPcieSettings>.Fail(
                 systemResponse.Error, systemResponse.Code, systemResponse.ErrorSource);

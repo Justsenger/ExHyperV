@@ -224,7 +224,7 @@ namespace ExHyperV.Services
                                     }
 
                                     // 悬空且解析不出盘号(NODRIVE)时 dNum=-1，显式落到 DiskNumber：
-                                    // UI 走通用文案，移除时也不会把默认值 0 误当宿主磁盘 0 去联机。
+                                    // UI 走通用文案，移除时也不会把默认值 0 误当主机磁盘 0 去联机。
                                     driveItem.DiskNumber = dNum;
                                     if (dNum != -1)
                                     {
@@ -688,7 +688,7 @@ namespace ExHyperV.Services
 
                 slotCreated = true;
 
-                // 物理光驱直通也走 SASD(HostResource = 宿主光驱 PNPDeviceID)，与挂 ISO 同路径；物理硬盘的 HostResource 在 slot 上、不经此处。
+                // 物理光驱直通也走 SASD(HostResource = 主机光驱 PNPDeviceID)，与挂 ISO 同路径；物理硬盘的 HostResource 在 slot 上、不经此处。
                 bool isPhysicalOptical = isPhysical && driveType == "DvdDrive";
                 bool hasMedia = (!isPhysical || isPhysicalOptical) && !string.IsNullOrWhiteSpace(pathOrNumber);
                 if (hasMedia)
@@ -973,13 +973,13 @@ namespace ExHyperV.Services
             if (!removeResult.Success)
                 return (false, FriendlyError.LastSentence(removeResult.Error));
 
-            // 仅物理硬盘直通才需把宿主盘还原上线；物理光驱(DvdDrive)也是 DiskType=="Physical" 但无关联磁盘号(默认 0)，
-            // 不加 DriveType 限定会误把宿主磁盘 0 上线。
+            // 仅物理硬盘直通才需把主机盘还原上线；物理光驱(DvdDrive)也是 DiskType=="Physical" 但无关联磁盘号(默认 0)，
+            // 不加 DriveType 限定会误把主机磁盘 0 上线。
             if (drive.DiskType == "Physical" && drive.DriveType == "HardDisk" && drive.DiskNumber > -1)
             {
                 await Task.Delay(500);
-                // Hyper-V 挂 pass-through 物理盘会把宿主盘置为只读(独占保护)；拿回宿主后必须清掉，
-                // 否则宿主看到的是只读盘、无法写(对齐 GPU 直通拿回 VmGpuService 的处理)。
+                // Hyper-V 挂 pass-through 物理盘会把主机盘置为只读(独占保护)；拿回主机后必须清掉，
+                // 否则主机看到的是只读盘、无法写(对齐 GPU 直通拿回 VmGpuService 的处理)。
                 await HostDiskService.SetDiskReadOnlyAsync(drive.DiskNumber, false);
                 await HostDiskService.SetDiskOfflineStatusAsync(drive.DiskNumber, false);
             }

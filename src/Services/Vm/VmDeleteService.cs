@@ -174,7 +174,7 @@ public static class VmDeleteService
 
     // 删配置目录：零硬编码、可证明安全。
     // 规则：只删"递归下已无任何文件"的目录（有文件就保留，绝不误删别的 VM）；
-    //       并动态护住盘符根与宿主默认根目录（DefaultExternalDataRoot / DefaultVirtualHardDiskPath，连空也不删）。
+    //       并动态护住盘符根与主机默认根目录（DefaultExternalDataRoot / DefaultVirtualHardDiskPath，连空也不删）。
     private static async Task DeleteConfigDirAsync(string? rawConfigDir)
     {
         if (string.IsNullOrEmpty(rawConfigDir)) return;
@@ -186,7 +186,7 @@ public static class VmDeleteService
                 .Equals(configDir, StringComparison.OrdinalIgnoreCase) ?? false)
             return;
 
-        // 宿主默认根目录不删（动态查，无硬编码）
+        // 主机默认根目录不删（动态查，无硬编码）
         foreach (var root in await GetHostDefaultRootsAsync())
             if (string.Equals(root, configDir, StringComparison.OrdinalIgnoreCase))
                 return;
@@ -200,7 +200,7 @@ public static class VmDeleteService
         catch { }
     }
 
-    // 宿主默认 VM / VHD 根目录（动态，替代写死的 C:\... denylist）。
+    // 主机默认 VM / VHD 根目录（动态，替代写死的 C:\... denylist）。
     private static async Task<List<string>> GetHostDefaultRootsAsync()
     {
         try

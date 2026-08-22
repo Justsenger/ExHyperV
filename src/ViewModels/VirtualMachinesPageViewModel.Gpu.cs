@@ -637,7 +637,7 @@ namespace ExHyperV.ViewModels
                 AppendLog(string.Format(Properties.Resources.Msg_Gpu_LinuxRemoteInit, partition.DisplayName));
                 try
                 {
-                    // --- 自动探测宿主代理 (不修改全局变量) ---
+                    // --- 自动探测主机代理 (不修改全局变量) ---
                     UseSshProxy = false; // 默认关闭开关
                     try
                     {

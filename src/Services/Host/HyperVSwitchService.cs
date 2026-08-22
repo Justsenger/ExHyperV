@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Management;
 using ExHyperV.Models;
 using ExHyperV.Tools;
@@ -399,7 +399,7 @@ namespace ExHyperV.Services
                     case SwitchMode.Bridge:
                         if (string.IsNullOrEmpty(adapterDescription))
                             throw new ArgumentException(Properties.Resources.Error_ExternalSwitchRequiresPhysicalAdapter);
-                        // 桥接：外部端口 + 主机管理端口都加，宿主与虚拟机一同接入该外部交换机
+                        // 桥接：外部端口 + 主机管理端口都加，主机与虚拟机一同接入该外部交换机
                         // (会生成 vEthernet (交换机名) 主机网卡；桥接下主机连接固定开启，无单独开关)
                         await CreateSwitchWmiAsync(name, isExternal: true, adapterDescription, allowManagementOS: true);
                         break;
@@ -861,7 +861,7 @@ namespace ExHyperV.Services
 
         private static string GetHostComputerSystemPath(ManagementScope ms)
         {
-            // 宿主机的 Msvm_ComputerSystem 用 Name = 主机名 查询（非虚拟机）
+            // 主机的 Msvm_ComputerSystem 用 Name = 主机名 查询（非虚拟机）
             // Caption = "Hosting Computer System" 是另一个可靠的过滤条件
             string hostName = WmiApi.Escape(System.Environment.MachineName);
             using var searcher = new ManagementObjectSearcher(ms,

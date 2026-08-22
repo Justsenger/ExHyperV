@@ -1,4 +1,4 @@
-﻿using System.Management;
+using System.Management;
 using System.Runtime.InteropServices;
 using ExHyperV.Tools;
 using Microsoft.Win32;
@@ -20,7 +20,7 @@ namespace ExHyperV.Services
         {
             try
             {
-                // ARM 无 CPUID；该标志不被 hypervisor 掩盖，宿主 true / 来宾无嵌套 false。
+                // ARM 无 CPUID；该标志不被 hypervisor 掩盖，主机 true / 来宾无嵌套 false。
                 if (RuntimeInformation.OSArchitecture == Architecture.Arm64)
                     return VmMonitorModeExtensionsEnabled();
 
@@ -46,7 +46,7 @@ namespace ExHyperV.Services
             return response.Success && (response.Data?.Any(x => x) ?? false);
         }
 
-        // Win32_Processor.VMMonitorModeExtensions：ARM64 用。宿主 true / 来宾无嵌套 false，不被 hypervisor 掩盖。
+        // Win32_Processor.VMMonitorModeExtensions：ARM64 用。主机 true / 来宾无嵌套 false，不被 hypervisor 掩盖。
         private static bool VmMonitorModeExtensionsEnabled()
         {
             var response = WmiApi.QueryAsync(
@@ -189,7 +189,7 @@ namespace ExHyperV.Services
             return v == null || !v.Equals("off", StringComparison.OrdinalIgnoreCase);
         }
 
-        // Hyper-V 监控程序是否"真在本机运行"。VM 内 HypervisorPresent 被宿主污染恒 true 不能用。
+        // Hyper-V 监控程序是否"真在本机运行"。VM 内 HypervisorPresent 被主机污染恒 true 不能用。
         // x64：CPUID 根分区位（覆盖"装了却没跑"、不被污染）；ARM64/x86（无 CPUID）：退回 BCD launchtype。
         private static bool IsHypervisorActive()
         {

@@ -23,7 +23,7 @@ public static class VmcxSchema {
     public const string GpuPartitionType = "99dcd00c-fbd6-42d3-9dfd-1b5ad7058f61";
 
     /// <summary>一个 GPU-PV(GPU Partition)设备。HostResource="" 表示运行时从可分区 GPU 池自动匹配(未钉死具体物理卡);
-    /// 非空则钉死了某块物理 GPU 的路径(\\?\PCI#...\GPUPARAV),宿主换卡/重启后该路径可能失配致 VM 起不来。</summary>
+    /// 非空则钉死了某块物理 GPU 的路径(\\?\PCI#...\GPUPARAV),主机换卡/重启后该路径可能失配致 VM 起不来。</summary>
     public sealed class VmcxGpuPv {
         public int    VdevNumber;
         public string Instance;      // manifest 实例 GUID(= 数据节点 /_<instance>_)

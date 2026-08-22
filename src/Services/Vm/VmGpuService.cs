@@ -181,7 +181,7 @@ namespace ExHyperV.Services
             try
             {
                 // Win10 早期 Msvm_GpuPartitionSettingData.HostResource 读不回 → 无法按分区对应物理 GPU。
-                // 取宿主首张(通常也是唯一)可分区 GPU 的 Name 兜底显示参数：单卡准确；多卡是引擎启动时自选、
+                // 取主机首张(通常也是唯一)可分区 GPU 的 Name 兜底显示参数：单卡准确；多卡是引擎启动时自选、
                 // 本就无法精确对应的固有局限(禁用其他卡强选的老思路已不在)。Win11 走 HostResource 精确路径、到不了这兜底。
                 var partGpuResp = await WmiApi.QueryAsync(
                     "SELECT Name FROM Msvm_PartitionableGpu",

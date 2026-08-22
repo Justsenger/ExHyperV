@@ -1,4 +1,4 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
@@ -200,7 +200,7 @@ namespace ExHyperV.Services
         {
             try
             {
-                // 排除宿主机（Name = MachineName），获取所有 VM（包括关机状态）
+                // 排除主机（Name = MachineName），获取所有 VM（包括关机状态）
                 string hostName = WmiApi.Escape(Environment.MachineName);
                 var vmResp = await WmiApi.QueryAsync(
                     $"SELECT * FROM Msvm_ComputerSystem WHERE Name <> '{hostName}'",

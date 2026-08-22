@@ -2,7 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace ExHyperV.Models
 {
-    /// <summary>SMT（同时多线程）模式：继承宿主 / 单线程 / 多线程。</summary>
+    /// <summary>SMT（同时多线程）模式：继承主机 / 单线程 / 多线程。</summary>
     public enum SmtMode { Inherit, SingleThread, MultiThread }
 
     /// <summary>APIC 模式（Msvm_ProcessorSettingData.ApicMode，u8）：自动 / 强制 xAPIC / 强制 x2APIC / Apic。改 guest CPUID 0x01 ECX[21] x2APIC 位。</summary>
@@ -11,7 +11,7 @@ namespace ExHyperV.Models
     /// <summary>L3 处理器分布策略（L3ProcessorDistributionPolicy，u8）：VP 在各虚拟 L3 缓存域之间的分布次序。</summary>
     public enum L3DistributionPolicy : byte { SmallToLarge = 0, LargeToSmall = 1, EvenSmallToLarge = 2, EvenLargeToSmall = 3 }
 
-    /// <summary>大页拆分缓解策略（EnablePageShattering，u8）：Default 使用宿主策略，另外两个值明确请求启用或禁用缓解。</summary>
+    /// <summary>大页拆分缓解策略（EnablePageShattering，u8）：Default 使用主机策略，另外两个值明确请求启用或禁用缓解。</summary>
     public enum PageShatterMode : byte { Default = 0, AlwaysEnabled = 1, AlwaysDisabled = 2 }
 
     /// <summary>LPI (locality-specific peripheral interrupt) mode.</summary>
@@ -47,7 +47,7 @@ namespace ExHyperV.Models
         [ObservableProperty] private L3DistributionPolicy? _l3DistributionPolicy;  // L3ProcessorDistributionPolicy
         [ObservableProperty] private PageShatterMode? _pageShatterMode;            // EnablePageShattering（SLAT 内部）
 
-        // ── 新增：每-VM 调频/能效（需宿主 HWP；消费 Intel 多被拒，应做能力门控）──
+        // ── 新增：每-VM 调频/能效（需主机 HWP；消费 Intel 多被拒，应做能力门控）──
         [ObservableProperty] private uint? _perfCpuFreqCapMhz;
         [ObservableProperty] private uint? _perfCpuFreqMinMhz;
         [ObservableProperty] private uint? _perfCpuFreqDesiredMhz;
@@ -55,7 +55,7 @@ namespace ExHyperV.Models
         [ObservableProperty] private uint? _perfCpuAutonomousActivityWindow;
         [ObservableProperty] private bool? _perfCpuIgnoreHostMaxFrequency;
 
-        // ── 新增：性能监控透传（需宿主 vPMU；消费 Intel 开启会拒启 0xC0350005）──
+        // ── 新增：性能监控透传（需主机 vPMU；消费 Intel 开启会拒启 0xC0350005）──
         [ObservableProperty] private bool? _enablePerfmonPmu;
         [ObservableProperty] private bool? _enablePerfmonLbr;
         [ObservableProperty] private bool? _enablePerfmonPebs;
@@ -75,7 +75,7 @@ namespace ExHyperV.Models
         [ObservableProperty] private uint? _physicalAddressWidth;
         [ObservableProperty] private LpiMode? _lpiMode;
 
-        /// <summary>宿主 Msvm_ProcessorSettingData 实际存在的属性名集合(schema)。频率字段的 UI 门控据此判"支持"(HasProperty)，
+        /// <summary>主机 Msvm_ProcessorSettingData 实际存在的属性名集合(schema)。频率字段的 UI 门控据此判"支持"(HasProperty)，
         /// 不看值——因为高版本新属性可能"存在但默认值 null"，按值会把支持的字段误灰。</summary>
         public HashSet<string> SupportedProps { get; set; } = new(System.StringComparer.OrdinalIgnoreCase);
     }

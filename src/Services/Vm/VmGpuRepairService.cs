@@ -13,7 +13,7 @@ namespace ExHyperV.Services
     /// 单个 .vmcx 被 vmms 以 FILE_SHARE_READ|WRITE 协作共享打开:引擎可就地写,改完 Start-VM 即生效,无需停 vmms。
     ///
     /// 失配判定走【完整路径串精确比对】(不是只看"池里有没有这张卡"):GPU-PV 钉死的是某块卡的
-    /// 完整 GPUPARAV 路径(含 PCIe 位置段),宿主重启/重插后即使同一张卡仍在,位置段也可能变 → 路径失配 → 起不来。
+    /// 完整 GPUPARAV 路径(含 PCIe 位置段),主机重启/重插后即使同一张卡仍在,位置段也可能变 → 路径失配 → 起不来。
     /// 失配后再比对硬件标识(VEN/DEV/SUBSYS/REV)区分:
     ///   · 同标识的卡仍在池里(只是路径变了)→ 可【重指】到新路径,保住 GPU 加速;
     ///   · 池里无同标识的卡(卡真的不在了)→ 只能【清除】这条 GPU-PV(VM 可开机,无 GPU)。
@@ -98,7 +98,7 @@ namespace ExHyperV.Services
 
             // 合法的通用池 GPU-PV 没有 HostResource，但仍有 InstanceGuid
             // 和 VDEVVersion（PoolID 默认值在旧系统上可能不落盘）。仅剩 VDEVVersion 的 manifest 设备是
-            // WMI 不可见的残缺设备；即使宿主 GPU 池查询失败也必须能检出。
+            // WMI 不可见的残缺设备；即使主机 GPU 池查询失败也必须能检出。
             var result = pvs
                 .Where(p => !p.IsStructurallyComplete)
                 .Select(p => new StaleGpuPartition(

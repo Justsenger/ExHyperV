@@ -4,7 +4,7 @@ namespace ExHyperV.Services;
 
 /// <summary>
 /// 临时管理 Hyper-V 内部的 Azure 功能暂存开关。
-/// 该开关会改变整个宿主机上的 VMMS/VMWP 行为，因此不得作为应用设置长期启用。
+/// 该开关会改变整个主机上的 VMMS/VMWP 行为，因此不得作为应用设置长期启用。
 /// </summary>
 public static class HostAzureFeatureSetService
 {
@@ -12,7 +12,7 @@ public static class HostAzureFeatureSetService
         @"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Virtualization";
     private const string AzureFeatureSetValue = "AzureFeatureSet";
 
-    // 注册表状态作用于整个宿主机。串行执行本进程内的临时切换，
+    // 注册表状态作用于整个主机。串行执行本进程内的临时切换，
     // 避免一个操作在另一个操作尚未结束时提前恢复状态。
     private static readonly SemaphoreSlim TransientChangeLock = new(1, 1);
 

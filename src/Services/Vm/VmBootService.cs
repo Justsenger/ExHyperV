@@ -172,7 +172,7 @@ public static class VmBootService
     }
 
     // ── 启动时 NumLock（BIOSNumLock 固件设置）──────────────────────────
-    // 第 2 代虚拟机此项默认 false，开机即把 NumLock 置关，控制台（RDP）连上同步键盘 LED 时会把宿主 NumLock 一并带掉。
+    // 第 2 代虚拟机此项默认 false，开机即把 NumLock 置关，控制台（RDP）连上同步键盘 LED 时会把主机 NumLock 一并带掉。
     // 微软对 Gen2 不提供 Set-VMBios，但底层 Msvm_VirtualSystemSettingData.BIOSNumLock 不分代际、可直接经 WMI 设。
     // 实测：只能在关机态修改（运行态 ModifySystemSettings 返回 32768），改完下次开机生效。
     public static async Task<bool> GetBootNumLockAsync(string vmName)

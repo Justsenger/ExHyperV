@@ -76,12 +76,12 @@ namespace ExHyperV.Services
         private const ushort StateEnabled = 2;   // 开机
         private const ushort StateDisabled = 3;  // 关机（强制下电）
 
-        // 宿主 MMIO 上限（MB）缓存：只认第一次测得的结果，进程内复用，不再重探。
+        // 主机 MMIO 上限（MB）缓存：只认第一次测得的结果，进程内复用，不再重探。
         private static ulong? _cachedCeilingMb;
         private static readonly SemaphoreSlim CeilingProbeLock = new(1, 1);
 
         /// <summary>
-        /// 探测宿主 MMIO 上限并写入最优的 MMIO 间隙配置。
+        /// 探测主机 MMIO 上限并写入最优的 MMIO 间隙配置。
         /// </summary>
         /// <returns>最终设置写入成功返回 true。</returns>
         public static async Task<bool> ConfigureMmioAsync(string vmName)
@@ -121,7 +121,7 @@ namespace ExHyperV.Services
         public readonly record struct MmioPlan(ulong BaseMb, ulong HighSizeMb, ulong LowSizeMb);
 
         /// <summary>
-        /// 按已缓存的宿主 MMIO 上限计算最优间隙：base = 上限/2、
+        /// 按已缓存的主机 MMIO 上限计算最优间隙：base = 上限/2、
         /// highSize = min(上限 - base - 1GB, 256GB)、lowSize = 3584MB。
         /// 尚未探测（缓存为空）时返回 null——调用方（DDA/GPU-PV 的“间隙够不够大”预检）据此回退。
         /// </summary>
@@ -140,7 +140,7 @@ namespace ExHyperV.Services
         }
 
         /// <summary>
-        /// 取得本次配置操作使用的宿主 MMIO 上限。配置文件里有就直接使用；
+        /// 取得本次配置操作使用的主机 MMIO 上限。配置文件里有就直接使用；
         /// 没有才逐档启动探测，测得即写盘持久化。探测失败仅当前操作使用回退值，后续虚拟机继续探测。
         /// </summary>
         private static async Task<ulong> EnsureCeilingAsync(string vmName)
@@ -177,7 +177,7 @@ namespace ExHyperV.Services
         }
 
         /// <summary>
-        /// 逐档探测宿主支持的高位 MMIO 上限（MB）。
+        /// 逐档探测主机支持的高位 MMIO 上限（MB）。
         /// 每个候选值都临时写入当前虚拟机并尝试启动；第一个启动成功的值即为上限。
         /// 成功后立即强制关机。返回 0 表示所有候选值均无法启动。
         /// 注意：本方法会临时改写 VM 的 MMIO，调用方随后写入最终配置覆盖它。
@@ -203,7 +203,7 @@ namespace ExHyperV.Services
                     setParams: p => p["RequestedState"] = StateEnabled);
                 if (!startResp.Success) continue;
 
-                Debug.WriteLine($"[VmMmio] 探测成功，宿主 MMIO 上限: {ceilingMb} MB");
+                Debug.WriteLine($"[VmMmio] 探测成功，主机 MMIO 上限: {ceilingMb} MB");
                 if (!await StopVmAsync(vmName))
                     throw new InvalidOperationException("MMIO 探测启动成功，但无法关闭虚拟机。");
 

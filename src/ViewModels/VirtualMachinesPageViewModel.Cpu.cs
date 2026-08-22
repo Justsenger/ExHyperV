@@ -26,7 +26,7 @@ namespace ExHyperV.ViewModels
         public Array L3DistributionPolicyValues { get; } = Enum.GetValues(typeof(L3DistributionPolicy));
         public Array PageShatterModeValues { get; } = Enum.GetValues(typeof(PageShatterMode));
         public Array LpiModeValues { get; } = Enum.GetValues(typeof(LpiMode));
-        // 能力门控标志（按宿主硬件或 Hyper-V 属性支持情况置灰）
+        // 能力门控标志（按主机硬件或 Hyper-V 属性支持情况置灰）
         public bool IsIntelHost => SettingsService.NativeHostPlatform == HostPlatform.Intel;
         [ObservableProperty] private bool _isHwIsolationSupported;
         public bool IsArm64Host { get; } = RuntimeInformation.OSArchitecture == Architecture.Arm64;

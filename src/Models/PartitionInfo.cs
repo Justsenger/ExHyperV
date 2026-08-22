@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 
 namespace ExHyperV.Models 
 {
@@ -24,7 +24,7 @@ namespace ExHyperV.Models
 
         // BitLocker 加密分区(分区首扇区 OEM ID = "-FVE-FS-")。分区类型 GUID 层面加密卷与普通
         // 基本数据分区无差别、挂载后卷的文件系统字段表现也不一,只有首扇区签名可靠;
-        // 上层据此明确提示"分区已加密,请先在宿主解锁",替代误导性的"不是有效的系统分区"。
+        // 上层据此明确提示"分区已加密,请先在主机解锁",替代误导性的"不是有效的系统分区"。
         public bool IsBitLocker { get; set; }
 
 

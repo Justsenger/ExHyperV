@@ -203,7 +203,7 @@ namespace ExHyperV.ViewModels
 
             try
             {
-                // 3. 动态探测宿主机默认路径（不硬编码）
+                // 3. 动态探测主机默认路径（不硬编码）
                 // 调用 Service 通过 (Get-VMHost).VirtualMachinePath 获取真实路径
                 var hostPaths = await VmCreateService.GetHostDefaultPathsAsync();
 
@@ -270,7 +270,7 @@ namespace ExHyperV.ViewModels
             }
             catch (Exception ex)
             {
-                // 探测失败（如宿主没装 Hyper-V 网络组件）：保证至少有“未连接”可选，并提示用户部分选项可能不准确
+                // 探测失败（如主机没装 Hyper-V 网络组件）：保证至少有“未连接”可选，并提示用户部分选项可能不准确
                 AvailableSwitchNames = new ObservableCollection<string> { Properties.Resources.Common_None };
                 NewVmSelectedSwitch = AvailableSwitchNames[0];
                 ShowError($"{Properties.Resources.VmPage_CreateOptionsLoadFail}：{FriendlyError.CleanLines(ex.Message)}");

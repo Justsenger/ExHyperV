@@ -208,7 +208,7 @@ log "[STEP: Adjusting sources...]"
 sed -i 's/\$(CONFIG_DXGKRNL)/m/' "${DXGSRC}/Makefile"
 # 修正 eventfd include 路徑
 sed -i 's#uapi/linux/eventfd.h#linux/eventfd.h#g' "${DXGSRC}/include/linux/eventfd.h" || true
-# 避免與宿主系統 hyperv.h 名稱衝突，改引用重新命名後的標頭
+# 避免與主机系統 hyperv.h 名稱衝突，改引用重新命名後的標頭
 sed -i 's#linux/hyperv.h#linux/hyperv_dxgkrnl.h#' "${DXGSRC}/dxgmodule.c"
 # 修正部分核心版本 eventfd_signal 參數差異
 sed -i 's/eventfd_signal(event->cpu_event, 1)/eventfd_signal(event->cpu_event)/g' "${DXGSRC}/dxgmodule.c" || true

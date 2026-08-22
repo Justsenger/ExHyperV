@@ -5,7 +5,7 @@ namespace ExHyperV.Services;
 
 /// <summary>
 /// 读写虚拟机级的高级行为设置。
-/// 可用性只依据当前 WMI 对象是否实际包含属性，不按宿主版本号推断。
+/// 可用性只依据当前 WMI 对象是否实际包含属性，不按主机版本号推断。
 /// </summary>
 public static class VmAdvancedBehaviorService
 {

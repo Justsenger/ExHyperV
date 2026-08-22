@@ -9,7 +9,7 @@ namespace ExHyperV.Services
     /// VM IP 统一分层解析(所有取 IP 的路径——仪表盘 / 网络页——都走这里):
     /// ① PktMon 被动嗅探（<see cref="ArpSnoopService"/>，网线真实 ARP=地表真相，最优先、能压陈旧值）
     /// → ② 集成服务 WMI（Msvm_GuestNetworkAdapterConfiguration，需 guest 集成服务在线）
-    /// → ③ ARP 邻居缓存（StdCimV2 MSFT_NetNeighbor，只有宿主通信过的才有）。
+    /// → ③ ARP 邻居缓存（StdCimV2 MSFT_NetNeighbor，只有主机通信过的才有）。
     /// </summary>
     public static class VmIpService
     {

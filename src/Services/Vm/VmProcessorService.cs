@@ -163,7 +163,7 @@ public static class VmProcessorService
                 "ModifyResourceSettings",
                 p => p["ResourceSettings"] = new string[] { xml });
 
-            // AzureFeatureSet 是宿主机级暂存模式，并非持久化前置条件；
+            // AzureFeatureSet 是主机级暂存模式，并非持久化前置条件；
             // 仅在提供程序提交受其门控的字段期间临时开启。
             var result = requiresAzureFeatureSet
                 ? await HostAzureFeatureSetService.RunTemporarilyEnabledAsync(ApplyAsync)
@@ -232,7 +232,7 @@ public static class VmProcessorService
                 PhysicalAddressWidth = Nz(procData.TryGet<uint>("PhysicalAddressWidth")),
                 LpiMode = (LpiMode?)PByte(procData, "LpiMode"),
 
-                // 宿主实际存在的属性名集合(schema)，供频率字段 UI 门控判"支持"。
+                // 主机实际存在的属性名集合(schema)，供频率字段 UI 门控判"支持"。
                 SupportedProps = new HashSet<string>(
                     procData.Properties.Cast<PropertyData>().Select(p => p.Name), StringComparer.OrdinalIgnoreCase),
             };

@@ -31,7 +31,7 @@ namespace ExHyperV.Models
 
         public VmMemorySettings()
         {
-            // 尚未读取宿主能力时沿用新系统的三项列表；查询完成后服务层会按实际 WMI 属性收窄。
+            // 尚未读取主机能力时沿用新系统的三项列表；查询完成后服务层会按实际 WMI 属性收窄。
             ConfigurePageSizeSupport(true);
         }
 

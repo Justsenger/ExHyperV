@@ -6,7 +6,7 @@ using System.Security.Principal;
 namespace ExHyperV.Services
 {
     /// <summary>
-    /// 管理 Hyper-V 从文件加载 OpenHCL/IGVM 开发固件所需的宿主机全局策略。
+    /// 管理 Hyper-V 从文件加载 OpenHCL/IGVM 开发固件所需的主机全局策略。
     /// </summary>
     public static class HostOpenHclService
     {

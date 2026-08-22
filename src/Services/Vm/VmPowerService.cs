@@ -1,4 +1,4 @@
-﻿using ExHyperV.Tools;
+using ExHyperV.Tools;
 
 using System.Diagnostics;
 
@@ -32,7 +32,7 @@ namespace ExHyperV.Services
                     Task<ApiResponse> StartAsync() => WmiApi.InvokeAsync(
                         wql, "RequestStateChange", p => p["RequestedState"] = (ushort)2);
                     // 启动任何虚拟机时都不得与 AzureFeatureSet 临时租约并发；
-                    // 该开关会改变整个宿主机上的虚拟机工作进程启动行为。
+                    // 该开关会改变整个主机上的虚拟机工作进程启动行为。
                     return await HostAzureFeatureSetService.RunTemporarilyDisabledAsync(StartAsync);
 
                 case "TurnOff":
