@@ -8,7 +8,7 @@ public static class HyperVNumaService
     private const string SettingWql = "SELECT * FROM Msvm_VirtualSystemManagementServiceSettingData";
     private const string ServiceWql = "SELECT * FROM Msvm_VirtualSystemManagementService";
 
-    public static async Task<bool> GetNumaSpanningEnabledAsync()
+    public static async Task<bool?> GetNumaSpanningEnabledAsync()
     {
         try
         {
@@ -19,12 +19,12 @@ public static class HyperVNumaService
             if (response.Success && !response.IsEmpty)
                 return response.Data;
 
-            return true;
+            return null;
         }
         catch (Exception ex)
         {
             Debug.WriteLine($"[HyperVNumaService] GetNumaSpanningEnabled error: {ex.Message}");
-            return true;
+            return null;
         }
     }
 

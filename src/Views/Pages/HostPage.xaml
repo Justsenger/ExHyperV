@@ -205,7 +205,8 @@
                         </StackPanel>
                     </ui:CardControl.Header>
 
-                    <ui:ToggleSwitch IsChecked="{Binding IsNumaSpanningEnabled, Mode=TwoWay}"/>
+                    <ui:ToggleSwitch IsChecked="{Binding IsNumaSpanningEnabled, Mode=TwoWay}"
+                                     IsEnabled="{Binding IsNumaSpanningToggleEnabled}"/>
                 </ui:CardControl>
 
                 <!-- PCIe 策略 -->

@@ -43,6 +43,7 @@ namespace ExHyperV.ViewModels
         // 有挂起的版本切换任务（重启前不可再切，开关保持禁用）
         private bool _hasPendingSwitch = false;
         [ObservableProperty] private bool _isNumaSpanningEnabled;
+        [ObservableProperty] private bool _isNumaSpanningToggleEnabled;
         [ObservableProperty] private HyperVSchedulerType _currentSchedulerType;
 
         public ObservableCollection<SchedulerMode> SchedulerModes { get; } = new()
@@ -133,9 +134,10 @@ namespace ExHyperV.ViewModels
         {
             try
             {
-                bool numa = await HyperVNumaService.GetNumaSpanningEnabledAsync();
+                bool? numa = await HyperVNumaService.GetNumaSpanningEnabledAsync();
                 var sched = await Task.Run(() => HyperVSchedulerService.GetSchedulerType());
-                IsNumaSpanningEnabled = numa;
+                IsNumaSpanningEnabled = numa ?? false;
+                IsNumaSpanningToggleEnabled = HyperVStatus.IsSuccess == true && numa.HasValue;
                 CurrentSchedulerType = sched == HyperVSchedulerType.Unknown ? HyperVSchedulerType.Classic : sched;
             }
             catch { }
@@ -171,7 +173,7 @@ namespace ExHyperV.ViewModels
 
         partial void OnIsNumaSpanningEnabledChanged(bool value)
         {
-            if (!_isInitialized) return;
+            if (!_isInitialized || !IsNumaSpanningToggleEnabled) return;
             _ = Task.Run(async () =>
             {
                 var (ok, msg) = await HyperVNumaService.SetNumaSpanningEnabledAsync(value);
