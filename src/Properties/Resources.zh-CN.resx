@@ -1438,7 +1438,7 @@
     <value>运行环境</value>
   </data>
   <data name="Label_ReqGeneral" xml:space="preserve">
-    <value>通用要求</value>
+    <value>基本要求</value>
   </data>
   <data name="Label_ReqGpuPv" xml:space="preserve">
     <value>GPU-PV 要求</value>

@@ -3913,7 +3913,7 @@ namespace ExHyperV.Properties {
         }
 
         /// <summary>
-        ///   查找类似 通用要求 的本地化字符串。
+        ///   查找类似 基本要求 的本地化字符串。
         /// </summary>
         public static string Label_ReqGeneral {
             get {
