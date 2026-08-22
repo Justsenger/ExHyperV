@@ -1537,7 +1537,7 @@ The existing NAT switch is: '{0}'</value>
     <value>Create, config and run VMs</value>
   </data>
   <data name="Menu_HostConfig" xml:space="preserve">
-    <value>Host Configuration</value>
+    <value>Environment &amp; Settings</value>
   </data>
   <data name="Desc_HostConfig" xml:space="preserve">
     <value>Check environment &amp; advanced settings</value>

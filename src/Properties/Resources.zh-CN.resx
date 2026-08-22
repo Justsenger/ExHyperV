@@ -1537,7 +1537,7 @@
     <value>创建、配置并运行 Hyper-V 虚拟机</value>
   </data>
   <data name="Menu_HostConfig" xml:space="preserve">
-    <value>主机配置</value>
+    <value>环境与设定</value>
   </data>
   <data name="Desc_HostConfig" xml:space="preserve">
     <value>检查主机运行环境及高级设定</value>

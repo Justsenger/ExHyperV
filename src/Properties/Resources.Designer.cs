@@ -3841,7 +3841,7 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
-        ///   查找类似 Host Configuration 的本地化字符串。
+        ///   查找类似 Environment &amp; Settings 的本地化字符串。
         /// </summary>
         public static string Menu_HostConfig {
             get {
