@@ -27,10 +27,13 @@ namespace ExHyperV.ViewModels
             UpdateDiskPath();
         }
 
-        // 当基础路径变化时，自动更新磁盘路径
+        // 用户直接键入配置目录时，不允许稍后完成的主机探测覆盖它。
+        private bool _isUpdatingConfigPath;
+        private bool _isConfigPathManual;
         partial void OnNewVmStoragePathChanged(string value)
         {
-            UpdateDiskPath();
+            if (!_isUpdatingConfigPath)
+                _isConfigPathManual = true;
         }
 
 
@@ -157,7 +160,23 @@ namespace ExHyperV.ViewModels
         // 存储探测到的类型列表
         [ObservableProperty]
         private ObservableCollection<string> _supportedIsolationTypes = new() { "Disabled" };
-        private bool _isDiskPathManual = false; // 用户是否手动选过磁盘路径（手动后不再自动联动）；仅本模块使用（原误置于核心 .cs）
+        private bool _isDiskPathManual;
+        private bool _isUpdatingDiskPath;
+        private string _defaultVhdPath = @"C:\ProgramData\Microsoft\Windows\Virtual Hard Disks";
+
+        partial void OnNewVmNewDiskPathChanged(string value)
+        {
+            if (!_isUpdatingDiskPath)
+                _isDiskPathManual = true;
+        }
+
+        partial void OnNewVmGenerationChanged(int value)
+        {
+            if (value == 2) return;
+
+            NewVmIsolationType = "Disabled";
+            NewVmOpenHclIgvmPath = string.Empty;
+        }
 
 
 
@@ -168,12 +187,27 @@ namespace ExHyperV.ViewModels
         {
             if (string.IsNullOrWhiteSpace(NewVmName) || _isDiskPathManual) return; // 如果手动选过，就不再自动更新
 
-            string root = string.IsNullOrWhiteSpace(NewVmStoragePath) ? @"C:\ProgramData\Microsoft\Windows\Hyper-V" : NewVmStoragePath;
+            string root = string.IsNullOrWhiteSpace(_defaultVhdPath)
+                ? NewVmStoragePath
+                : _defaultVhdPath;
             try
             {
+                _isUpdatingDiskPath = true;
                 NewVmNewDiskPath = Path.Combine(root, NewVmName);   // 只存文件夹，vhdx 文件名由服务按最终 VM 名派生
             }
             catch { }
+            finally { _isUpdatingDiskPath = false; }
+        }
+
+        private void SetDetectedConfigPath(string path)
+        {
+            if (_isConfigPathManual) return;
+            try
+            {
+                _isUpdatingConfigPath = true;
+                NewVmStoragePath = path;
+            }
+            finally { _isUpdatingConfigPath = false; }
         }
 
         [RelayCommand]
@@ -183,7 +217,9 @@ namespace ExHyperV.ViewModels
             IsCreatingVm = true;
             IsLoadingCreateOptions = true;
             SelectedVm = null;
-            _isDiskPathManual = false;     // 重置用户手动选择磁盘路径的标记
+            _isDiskPathManual = false;
+            _isConfigPathManual = false;
+            _defaultVhdPath = @"C:\ProgramData\Microsoft\Windows\Virtual Hard Disks";
 
             // --- 2. 基础配置默认值初始化 ---
             NewVmGeneration = 2;
@@ -203,7 +239,7 @@ namespace ExHyperV.ViewModels
             NewVmExistingDiskPath = string.Empty;
 
             // 先用可靠的回退值立即呈现表单；主机真实值随后在后台刷新。
-            NewVmStoragePath = @"C:\ProgramData\Microsoft\Windows\Hyper-V";
+            SetDetectedConfigPath(@"C:\ProgramData\Microsoft\Windows\Hyper-V");
             NewVmName = GetNextAvailableName("NewVM");
             UpdateDiskPath();
 
@@ -222,8 +258,11 @@ namespace ExHyperV.ViewModels
                 var (supported, types) = await isolationTask;
                 var switches = await switchesTask;
 
-                // 设置 UI 显示的根路径 (例如 C:\ProgramData\Microsoft\Windows\Hyper-V)
-                NewVmStoragePath = hostPaths.DefaultVmPath;
+                // 配置文件与虚拟硬盘分别采用各自的主机默认位置。
+                SetDetectedConfigPath(hostPaths.DefaultVmPath);
+                _defaultVhdPath = string.IsNullOrWhiteSpace(hostPaths.DefaultVhdPath)
+                    ? hostPaths.DefaultVmPath
+                    : hostPaths.DefaultVhdPath;
 
                 // 使用主机真实默认路径刷新新磁盘位置。
                 UpdateDiskPath();
@@ -426,7 +465,7 @@ namespace ExHyperV.ViewModels
                 ShowTip(Properties.Resources.VmPage_InvalidQuantity);
                 return;
             }
-            if (quantity > 1 && NewVmDiskMode != 0)
+            if (quantity > 1 && NewVmDiskMode == 1)
             {
                 ShowTip(Properties.Resources.VmPage_BatchNewDiskOnly);
                 return;
@@ -449,7 +488,6 @@ namespace ExHyperV.ViewModels
                 DiskMode = NewVmDiskMode,
                 DiskSizeGb = long.TryParse(NewVmDiskSizeGb, out var ds) ? ds : 128,
                 VhdPath = NewVmDiskMode == 0 ? NewVmNewDiskPath : NewVmExistingDiskPath,
-                IsDiskPathManual = _isDiskPathManual,
                 IsoPath = NewVmIsoPath,
                 SwitchName = NewVmSelectedSwitch,
                 StartAfterCreation = StartVmAfterCreation

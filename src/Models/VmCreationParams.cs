@@ -24,7 +24,6 @@
         public int DiskMode { get; set; } = 0; // 0:新建, 1:现有, 2:稍后
         public long DiskSizeGb { get; set; } = 128;
         public string VhdPath { get; set; } = string.Empty; // 对应 NewVmNewDiskPath 或 NewVmExistingDiskPath
-        public bool IsDiskPathManual { get; set; } // 模式0用户是否手选过保存位置：true 则 Service 不覆盖 VhdPath
         public string IsoPath { get; set; } = string.Empty;
 
         // --- 网络 ---

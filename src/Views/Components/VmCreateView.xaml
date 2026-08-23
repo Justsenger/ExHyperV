@@ -8,6 +8,7 @@
     xmlns:sys="clr-namespace:System;assembly=mscorlib">
 
     <UserControl.Resources>
+        <converters:IsolationTypeDisplayConverter x:Key="IsolationTypeDisplayConverter"/>
     </UserControl.Resources>
 
     <Grid Background="{ui:ThemeResource ApplicationBackgroundBrush}">
@@ -66,7 +67,7 @@
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
-                        <ui:TextBox Text="{Binding NewVmStoragePath}" Width="450"/>
+                        <ui:TextBox Text="{Binding NewVmStoragePath, UpdateSourceTrigger=PropertyChanged}" Width="450"/>
                         <ui:Button Grid.Column="1" Content="{x:Static properties:Resources.Xaml_Browse}" Margin="8,0,0,0" Command="{Binding BrowseNewVmPathCommand}"/>
                     </Grid>
                 </ui:CardControl>
@@ -123,6 +124,8 @@
                             <sys:String>8192</sys:String>
                             <sys:String>16384</sys:String>
                             <sys:String>32768</sys:String>
+                            <sys:String>65536</sys:String>
+                            <sys:String>131072</sys:String>
                         </ComboBox>
                         <TextBlock Text="MB" VerticalAlignment="Center" Margin="12,0,0,0" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
                     </StackPanel>
@@ -152,7 +155,13 @@
                     <StackPanel Orientation="Horizontal">
                         <ComboBox ItemsSource="{Binding SupportedIsolationTypes}" 
                                   SelectedItem="{Binding NewVmIsolationType}" 
-                                  Width="200"/>
+                                  Width="200">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Converter={StaticResource IsolationTypeDisplayConverter}}"/>
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
                    </StackPanel>
                 </ui:CardControl>
 
@@ -225,7 +234,7 @@
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
-                                    <ui:TextBox Text="{Binding NewVmNewDiskPath}" PlaceholderText="{x:Static properties:Resources.Xaml_Placeholder_NewVhdxLoc}"/>
+                                    <ui:TextBox Text="{Binding NewVmNewDiskPath, UpdateSourceTrigger=PropertyChanged}" PlaceholderText="{x:Static properties:Resources.Xaml_Placeholder_NewVhdxLoc}"/>
                                     <ui:Button Grid.Column="1" Content="{x:Static properties:Resources.Xaml_Browse}" Margin="8,0,0,0" Width="80" Command="{Binding BrowseNewDiskLocationCommand}"/>
                                 </Grid>
                             </StackPanel>

@@ -7,6 +7,8 @@ namespace ExHyperV.Services
 {
     public static class VmCreateService
     {
+        private const long DefaultDynamicMemoryMaximumMb = 1_048_576;
+
         private const string ServiceWql = "SELECT * FROM Msvm_VirtualSystemManagementService";
         private const string DefaultSystemSettingsWql =
             "SELECT * FROM Msvm_VirtualSystemSettingData " +
@@ -168,7 +170,7 @@ namespace ExHyperV.Services
                 // 批量创建时各台名字不同 → 盘文件各自唯一，无需另行区分。
                 if (p.DiskMode == 0)
                 {
-                    string diskFolder = p.IsDiskPathManual && !string.IsNullOrWhiteSpace(p.VhdPath)
+                    string diskFolder = !string.IsNullOrWhiteSpace(p.VhdPath)
                         ? p.VhdPath
                         : vmHomeFolder;
                     p.VhdPath = Path.Combine(diskFolder, $"{finalVmName}.vhdx");
@@ -298,8 +300,8 @@ namespace ExHyperV.Services
                 {
                     Startup = p.MemoryMb,
                     DynamicMemoryEnabled = p.EnableDynamicMemory,
-                    Minimum = p.EnableDynamicMemory ? p.MemoryMb / 2 : p.MemoryMb,
-                    Maximum = p.EnableDynamicMemory ? p.MemoryMb * 4 : p.MemoryMb,
+                    Minimum = p.MemoryMb,
+                    Maximum = p.EnableDynamicMemory ? DefaultDynamicMemoryMaximumMb : p.MemoryMb,
                     Buffer = 20,
                     Priority = 50
                 };

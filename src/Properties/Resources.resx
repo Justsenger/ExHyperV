@@ -2074,7 +2074,7 @@ The existing NAT switch is: '{0}'</value>
     <value>Compute Resources</value>
   </data>
   <data name="Xaml_ProcessorCores" xml:space="preserve">
-    <value>Processor Cores</value>
+    <value>Virtual Processor Count</value>
   </data>
   <data name="Xaml_Core" xml:space="preserve">
     <value>Cores</value>

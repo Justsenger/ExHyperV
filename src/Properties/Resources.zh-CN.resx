@@ -2074,7 +2074,7 @@
     <value>计算资源</value>
   </data>
   <data name="Xaml_ProcessorCores" xml:space="preserve">
-    <value>处理器核心数</value>
+    <value>虚拟处理器数量</value>
   </data>
   <data name="Xaml_Core" xml:space="preserve">
     <value>核心</value>
