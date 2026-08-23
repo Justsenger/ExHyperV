@@ -1434,6 +1434,18 @@
   <data name="Menu_Env" xml:space="preserve">
     <value>环境与设定</value>
   </data>
+  <data name="HostPage_EnvironmentChecks" xml:space="preserve">
+    <value>环境检测</value>
+  </data>
+  <data name="HostPage_EnvironmentTab" xml:space="preserve">
+    <value>环境</value>
+  </data>
+  <data name="HostPage_GeneralTab" xml:space="preserve">
+    <value>常规</value>
+  </data>
+  <data name="HostPage_AdvancedTab" xml:space="preserve">
+    <value>高级</value>
+  </data>
   <data name="Menu_Runtime" xml:space="preserve">
     <value>运行环境</value>
   </data>
@@ -3605,5 +3617,38 @@
   </data>
   <data name="Error_VmPower_StillNotOff" xml:space="preserve">
     <value>已终止虚拟机“{0}”的工作进程，但虚拟机仍未进入关机状态。</value>
+  </data>
+  <data name="Menu_EnhancedSessionMode" xml:space="preserve">
+    <value>允许增强会话模式</value>
+  </data>
+  <data name="Menu_DefaultVirtualMachinePath" xml:space="preserve">
+    <value>默认虚拟机位置</value>
+  </data>
+  <data name="Menu_DefaultVirtualHardDiskPath" xml:space="preserve">
+    <value>默认虚拟硬盘位置</value>
+  </data>
+  <data name="HostPage_SelectDefaultVirtualMachinePath" xml:space="preserve">
+    <value>选择默认虚拟机位置</value>
+  </data>
+  <data name="HostPage_SelectDefaultVirtualHardDiskPath" xml:space="preserve">
+    <value>选择默认虚拟硬盘位置</value>
+  </data>
+  <data name="Menu_HostPowerPlan" xml:space="preserve">
+    <value>电源方案</value>
+  </data>
+  <data name="Error_Host_PowerPlanFail" xml:space="preserve">
+    <value>无法切换主机电源方案：{0}</value>
+  </data>
+  <data name="Menu_DynamicMacAddressRange" xml:space="preserve">
+    <value>动态 MAC 地址范围</value>
+  </data>
+  <data name="Error_Host_DynamicMacRangeInvalid" xml:space="preserve">
+    <value>请输入两个有效的 MAC 地址，每个地址须包含 12 位十六进制字符。</value>
+  </data>
+  <data name="Error_Host_DynamicMacRangeOrder" xml:space="preserve">
+    <value>起始地址不能大于结束地址。</value>
+  </data>
+  <data name="Msg_Host_DynamicMacRangeApplied" xml:space="preserve">
+    <value>动态 MAC 地址范围已应用</value>
   </data>
 </root>

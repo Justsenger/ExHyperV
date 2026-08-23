@@ -1434,6 +1434,18 @@ The existing NAT switch is: '{0}'</value>
   <data name="Menu_Env" xml:space="preserve">
     <value>Env &amp; Settings</value>
   </data>
+  <data name="HostPage_EnvironmentChecks" xml:space="preserve">
+    <value>Environment Checks</value>
+  </data>
+  <data name="HostPage_EnvironmentTab" xml:space="preserve">
+    <value>Environment</value>
+  </data>
+  <data name="HostPage_GeneralTab" xml:space="preserve">
+    <value>General</value>
+  </data>
+  <data name="HostPage_AdvancedTab" xml:space="preserve">
+    <value>Advanced</value>
+  </data>
   <data name="Menu_Runtime" xml:space="preserve">
     <value>Runtime Environment</value>
   </data>
@@ -3605,5 +3617,38 @@ Remove them from storage and retry? Cancel to re-plug the device and try again.<
   </data>
   <data name="Error_VmPower_StillNotOff" xml:space="preserve">
     <value>The worker process for '{0}' was terminated, but the virtual machine still did not reach the off state.</value>
+  </data>
+  <data name="Menu_EnhancedSessionMode" xml:space="preserve">
+    <value>Allow Enhanced Session Mode</value>
+  </data>
+  <data name="Menu_DefaultVirtualMachinePath" xml:space="preserve">
+    <value>Default Virtual Machine Location</value>
+  </data>
+  <data name="Menu_DefaultVirtualHardDiskPath" xml:space="preserve">
+    <value>Default Virtual Hard Disk Location</value>
+  </data>
+  <data name="HostPage_SelectDefaultVirtualMachinePath" xml:space="preserve">
+    <value>Select the default virtual machine location</value>
+  </data>
+  <data name="HostPage_SelectDefaultVirtualHardDiskPath" xml:space="preserve">
+    <value>Select the default virtual hard disk location</value>
+  </data>
+  <data name="Menu_HostPowerPlan" xml:space="preserve">
+    <value>Power Plan</value>
+  </data>
+  <data name="Error_Host_PowerPlanFail" xml:space="preserve">
+    <value>Failed to change the host power plan: {0}</value>
+  </data>
+  <data name="Menu_DynamicMacAddressRange" xml:space="preserve">
+    <value>Dynamic MAC Address Range</value>
+  </data>
+  <data name="Error_Host_DynamicMacRangeInvalid" xml:space="preserve">
+    <value>Enter two valid MAC addresses, each containing 12 hexadecimal digits.</value>
+  </data>
+  <data name="Error_Host_DynamicMacRangeOrder" xml:space="preserve">
+    <value>The start address cannot be greater than the end address.</value>
+  </data>
+  <data name="Msg_Host_DynamicMacRangeApplied" xml:space="preserve">
+    <value>Dynamic MAC address range applied</value>
   </data>
 </root>

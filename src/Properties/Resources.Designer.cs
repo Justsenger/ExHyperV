@@ -3821,6 +3821,42 @@ namespace ExHyperV.Properties {
                 return ResourceManager.GetString("Menu_Env", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   查找类似 Environment Checks 的本地化字符串。
+        /// </summary>
+        public static string HostPage_EnvironmentChecks {
+            get {
+                return ResourceManager.GetString("HostPage_EnvironmentChecks", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   查找类似 Environment 的本地化字符串。
+        /// </summary>
+        public static string HostPage_EnvironmentTab {
+            get {
+                return ResourceManager.GetString("HostPage_EnvironmentTab", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   查找类似 General 的本地化字符串。
+        /// </summary>
+        public static string HostPage_GeneralTab {
+            get {
+                return ResourceManager.GetString("HostPage_GeneralTab", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   查找类似 Advanced 的本地化字符串。
+        /// </summary>
+        public static string HostPage_AdvancedTab {
+            get {
+                return ResourceManager.GetString("HostPage_AdvancedTab", resourceCulture);
+            }
+        }
         
         /// <summary>
         ///   查找类似 Expose MSR 的本地化字符串。
@@ -9178,6 +9214,50 @@ namespace ExHyperV.Properties {
 
         public static string Error_VmPower_StillNotOff {
             get { return ResourceManager.GetString("Error_VmPower_StillNotOff", resourceCulture); }
+        }
+
+        public static string Menu_EnhancedSessionMode {
+            get { return ResourceManager.GetString("Menu_EnhancedSessionMode", resourceCulture); }
+        }
+
+        public static string Menu_DefaultVirtualMachinePath {
+            get { return ResourceManager.GetString("Menu_DefaultVirtualMachinePath", resourceCulture); }
+        }
+
+        public static string Menu_DefaultVirtualHardDiskPath {
+            get { return ResourceManager.GetString("Menu_DefaultVirtualHardDiskPath", resourceCulture); }
+        }
+
+        public static string HostPage_SelectDefaultVirtualMachinePath {
+            get { return ResourceManager.GetString("HostPage_SelectDefaultVirtualMachinePath", resourceCulture); }
+        }
+
+        public static string HostPage_SelectDefaultVirtualHardDiskPath {
+            get { return ResourceManager.GetString("HostPage_SelectDefaultVirtualHardDiskPath", resourceCulture); }
+        }
+
+        public static string Menu_HostPowerPlan {
+            get { return ResourceManager.GetString("Menu_HostPowerPlan", resourceCulture); }
+        }
+
+        public static string Error_Host_PowerPlanFail {
+            get { return ResourceManager.GetString("Error_Host_PowerPlanFail", resourceCulture); }
+        }
+
+        public static string Menu_DynamicMacAddressRange {
+            get { return ResourceManager.GetString("Menu_DynamicMacAddressRange", resourceCulture); }
+        }
+
+        public static string Error_Host_DynamicMacRangeInvalid {
+            get { return ResourceManager.GetString("Error_Host_DynamicMacRangeInvalid", resourceCulture); }
+        }
+
+        public static string Error_Host_DynamicMacRangeOrder {
+            get { return ResourceManager.GetString("Error_Host_DynamicMacRangeOrder", resourceCulture); }
+        }
+
+        public static string Msg_Host_DynamicMacRangeApplied {
+            get { return ResourceManager.GetString("Msg_Host_DynamicMacRangeApplied", resourceCulture); }
         }
 
     }

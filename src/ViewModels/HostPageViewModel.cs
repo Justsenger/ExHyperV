@@ -4,6 +4,7 @@ using ExHyperV.Services;
 using ExHyperV.Interaction;
 using ExHyperV.Tools;
 using System.Collections.ObjectModel;
+using System.Text.RegularExpressions;
 using Wpf.Ui.Controls;
 
 namespace ExHyperV.ViewModels
@@ -44,7 +45,25 @@ namespace ExHyperV.ViewModels
         private bool _hasPendingSwitch = false;
         [ObservableProperty] private bool _isNumaSpanningEnabled;
         [ObservableProperty] private bool _isNumaSpanningToggleEnabled;
+        [ObservableProperty] private bool _isEnhancedSessionModeEnabled;
+        [ObservableProperty] private bool _isEnhancedSessionModeToggleEnabled;
+        [ObservableProperty] private string _defaultVirtualMachinePath = string.Empty;
+        [ObservableProperty] private string _defaultVirtualHardDiskPath = string.Empty;
+        [ObservableProperty] private bool _areDefaultPathsEnabled;
+        [ObservableProperty]
+        [NotifyCanExecuteChangedFor(nameof(ApplyDynamicMacRangeCommand))]
+        private string _minimumDynamicMacAddress = string.Empty;
+        [ObservableProperty]
+        [NotifyCanExecuteChangedFor(nameof(ApplyDynamicMacRangeCommand))]
+        private string _maximumDynamicMacAddress = string.Empty;
+        [ObservableProperty]
+        [NotifyCanExecuteChangedFor(nameof(ApplyDynamicMacRangeCommand))]
+        private bool _isDynamicMacRangeEnabled;
+        [ObservableProperty]
+        [NotifyCanExecuteChangedFor(nameof(ApplyDynamicMacRangeCommand))]
+        private bool _isApplyingDynamicMacRange;
         [ObservableProperty] private HyperVSchedulerType _currentSchedulerType;
+        [ObservableProperty] private Guid? _currentPowerPlanId;
 
         public ObservableCollection<SchedulerMode> SchedulerModes { get; } = new()
         {
@@ -52,6 +71,8 @@ namespace ExHyperV.ViewModels
             new SchedulerMode(Properties.Resources.Scheduler_Core, HyperVSchedulerType.Core),
             new SchedulerMode(Properties.Resources.Scheduler_Root, HyperVSchedulerType.Root)
         };
+
+        public ObservableCollection<HostPowerPlan> PowerPlans { get; } = new();
 
         // ===== 构造与初始化检查 =====
 
@@ -134,11 +155,29 @@ namespace ExHyperV.ViewModels
         {
             try
             {
-                bool? numa = await HyperVNumaService.GetNumaSpanningEnabledAsync();
+                var numaTask = HyperVNumaService.GetNumaSpanningEnabledAsync();
+                var hostSettingsTask = HyperVHostSettingsService.GetAsync();
+                var powerPlansTask = Task.Run(() =>
+                    (Plans: HostPowerPlanService.GetPowerPlans(), ActiveId: HostPowerPlanService.GetActivePowerPlanId()));
                 var sched = await Task.Run(() => HyperVSchedulerService.GetSchedulerType());
+                bool? numa = await numaTask;
+                HyperVHostSettings? hostSettings = await hostSettingsTask;
+                var powerPlans = await powerPlansTask;
                 IsNumaSpanningEnabled = numa ?? false;
                 IsNumaSpanningToggleEnabled = HyperVStatus.IsSuccess == true && numa.HasValue;
+                IsEnhancedSessionModeEnabled = hostSettings?.EnhancedSessionModeEnabled ?? false;
+                IsEnhancedSessionModeToggleEnabled = HyperVStatus.IsSuccess == true && hostSettings != null;
+                DefaultVirtualMachinePath = hostSettings?.DefaultVirtualMachinePath ?? string.Empty;
+                DefaultVirtualHardDiskPath = hostSettings?.DefaultVirtualHardDiskPath ?? string.Empty;
+                AreDefaultPathsEnabled = HyperVStatus.IsSuccess == true && hostSettings != null;
+                MinimumDynamicMacAddress = FormatDynamicMacAddress(hostSettings?.MinimumMacAddress);
+                MaximumDynamicMacAddress = FormatDynamicMacAddress(hostSettings?.MaximumMacAddress);
+                IsDynamicMacRangeEnabled = HyperVStatus.IsSuccess == true && hostSettings != null;
                 CurrentSchedulerType = sched == HyperVSchedulerType.Unknown ? HyperVSchedulerType.Classic : sched;
+                PowerPlans.Clear();
+                foreach (HostPowerPlan plan in powerPlans.Plans)
+                    PowerPlans.Add(plan);
+                CurrentPowerPlanId = powerPlans.ActiveId;
             }
             catch { }
         }
@@ -190,6 +229,25 @@ namespace ExHyperV.ViewModels
             });
         }
 
+        partial void OnIsEnhancedSessionModeEnabledChanged(bool value)
+        {
+            if (!_isInitialized || !IsEnhancedSessionModeToggleEnabled) return;
+            _ = Task.Run(async () =>
+            {
+                var result = await HyperVHostSettingsService.SetEnhancedSessionModeEnabledAsync(value);
+                if (!result.Success)
+                {
+                    ShowError(result.Error);
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        _isInitialized = false;
+                        IsEnhancedSessionModeEnabled = !value;
+                        _isInitialized = true;
+                    });
+                }
+            });
+        }
+
         partial void OnCurrentSchedulerTypeChanged(HyperVSchedulerType value)
         {
             if (!_isInitialized) return;
@@ -211,10 +269,120 @@ namespace ExHyperV.ViewModels
             });
         }
 
+        partial void OnCurrentPowerPlanIdChanged(Guid? value)
+        {
+            if (!_isInitialized || !value.HasValue) return;
+            _ = Task.Run(() =>
+            {
+                try
+                {
+                    HostPowerPlanService.SetActivePowerPlan(value.Value);
+                }
+                catch (Exception ex)
+                {
+                    ShowError(string.Format(Properties.Resources.Error_Host_PowerPlanFail, ex.Message));
+                    Guid? actual = HostPowerPlanService.GetActivePowerPlanId();
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        _isInitialized = false;
+                        CurrentPowerPlanId = actual;
+                        _isInitialized = true;
+                    });
+                }
+            });
+        }
+
         partial void OnIsServerSystemChanged(bool value)
         {
             if (!_isInitialized) return;
             SwitchSystemVersion(value);
+        }
+
+        [RelayCommand]
+        private async Task BrowseDefaultVirtualMachinePathAsync()
+        {
+            string? picked = Dialogs.PickFolder(
+                Properties.Resources.HostPage_SelectDefaultVirtualMachinePath,
+                string.IsNullOrWhiteSpace(DefaultVirtualMachinePath) ? null : DefaultVirtualMachinePath);
+            if (picked == null || string.Equals(picked, DefaultVirtualMachinePath, StringComparison.OrdinalIgnoreCase)) return;
+
+            var result = await HyperVHostSettingsService.SetDefaultVirtualMachinePathAsync(picked);
+            if (result.Success)
+                DefaultVirtualMachinePath = picked;
+            else
+                ShowError(result.Error);
+        }
+
+        [RelayCommand]
+        private async Task BrowseDefaultVirtualHardDiskPathAsync()
+        {
+            string? picked = Dialogs.PickFolder(
+                Properties.Resources.HostPage_SelectDefaultVirtualHardDiskPath,
+                string.IsNullOrWhiteSpace(DefaultVirtualHardDiskPath) ? null : DefaultVirtualHardDiskPath);
+            if (picked == null || string.Equals(picked, DefaultVirtualHardDiskPath, StringComparison.OrdinalIgnoreCase)) return;
+
+            var result = await HyperVHostSettingsService.SetDefaultVirtualHardDiskPathAsync(picked);
+            if (result.Success)
+                DefaultVirtualHardDiskPath = picked;
+            else
+                ShowError(result.Error);
+        }
+
+        private bool CanApplyDynamicMacRange() => IsDynamicMacRangeEnabled && !IsApplyingDynamicMacRange;
+
+        [RelayCommand(CanExecute = nameof(CanApplyDynamicMacRange))]
+        private async Task ApplyDynamicMacRangeAsync()
+        {
+            string? minimum = NormalizeDynamicMacAddress(MinimumDynamicMacAddress);
+            string? maximum = NormalizeDynamicMacAddress(MaximumDynamicMacAddress);
+            if (minimum == null || maximum == null)
+            {
+                ShowError(Properties.Resources.Error_Host_DynamicMacRangeInvalid);
+                return;
+            }
+
+            if (string.CompareOrdinal(minimum, maximum) > 0)
+            {
+                ShowError(Properties.Resources.Error_Host_DynamicMacRangeOrder);
+                return;
+            }
+
+            IsApplyingDynamicMacRange = true;
+            try
+            {
+                var result = await HyperVHostSettingsService.SetDynamicMacAddressRangeAsync(minimum, maximum);
+                if (!result.Success)
+                {
+                    ShowError(result.Error);
+                    return;
+                }
+
+                MinimumDynamicMacAddress = FormatDynamicMacAddress(minimum);
+                MaximumDynamicMacAddress = FormatDynamicMacAddress(maximum);
+                ShowSuccess(Properties.Resources.Msg_Host_DynamicMacRangeApplied);
+            }
+            finally
+            {
+                IsApplyingDynamicMacRange = false;
+            }
+        }
+
+        private static string? NormalizeDynamicMacAddress(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return null;
+            string trimmed = value.Trim();
+            if (!Regex.IsMatch(trimmed, "^(?:[0-9A-Fa-f]{12}|(?:[0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2})$"))
+                return null;
+
+            return Regex.Replace(trimmed, "[:-]", string.Empty).ToUpperInvariant();
+        }
+
+        private static string FormatDynamicMacAddress(string? value)
+        {
+            string? normalized = NormalizeDynamicMacAddress(value);
+            return normalized == null
+                ? value ?? string.Empty
+                : string.Join("-", Enumerable.Range(0, 6).Select(i => normalized.Substring(i * 2, 2)));
         }
 
         // ===== 命令 =====

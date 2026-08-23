@@ -8,6 +8,81 @@
     Title="HostPage">
 
     <Page.Resources>
+        <Style x:Key="HostPageTabControlStyle" TargetType="{x:Type TabControl}">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type TabControl}">
+                        <Grid KeyboardNavigation.TabNavigation="Local">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <Grid Grid.Row="0">
+                                <Border Height="1"
+                                        VerticalAlignment="Bottom"
+                                        Background="{ui:ThemeResource CardStrokeColorDefaultBrush}"/>
+                                <TabPanel Margin="0"
+                                          Panel.ZIndex="1"
+                                          Background="Transparent"
+                                          IsItemsHost="True"
+                                          KeyboardNavigation.TabIndex="1"/>
+                            </Grid>
+                            <ContentPresenter Grid.Row="1"
+                                              Margin="0"
+                                              HorizontalAlignment="Stretch"
+                                              VerticalAlignment="Stretch"
+                                              ContentSource="SelectedContent"
+                                              TextElement.Foreground="{TemplateBinding Foreground}"/>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="HostPageTabItemStyle" TargetType="{x:Type TabItem}">
+            <Setter Property="Foreground" Value="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+            <Setter Property="FontSize" Value="16"/>
+            <Setter Property="FocusVisualStyle" Value="{DynamicResource DefaultControlFocusVisualStyle}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type TabItem}">
+                        <Grid>
+                            <Border x:Name="HeaderBackground"
+                                    Margin="0,0,4,0"
+                                    Padding="14,10"
+                                    Background="Transparent"
+                                    CornerRadius="6,6,0,0">
+                                <ContentPresenter HorizontalAlignment="Center"
+                                                  VerticalAlignment="Center"
+                                                  ContentSource="Header"
+                                                  RecognizesAccessKey="True"/>
+                            </Border>
+                            <Border x:Name="SelectionIndicator"
+                                    Height="3"
+                                    Margin="14,0,18,0"
+                                    VerticalAlignment="Bottom"
+                                    Background="{DynamicResource AccentFillColorDefaultBrush}"
+                                    CornerRadius="2"
+                                    Visibility="Collapsed"/>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="HeaderBackground" Property="Background" Value="{ui:ThemeResource SubtleFillColorSecondaryBrush}"/>
+                                <Setter Property="Foreground" Value="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="HeaderBackground" Property="Background" Value="{ui:ThemeResource SubtleFillColorSecondaryBrush}"/>
+                                <Setter TargetName="SelectionIndicator" Property="Visibility" Value="Visible"/>
+                                <Setter Property="Foreground" Value="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                                <Setter Property="Panel.ZIndex" Value="2"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Page.Resources>
 
     <Grid Margin="24">
@@ -16,8 +91,11 @@
                 <ui:TextBlock Text="{x:Static properties:Resources.Menu_Env}" FontSize="28" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" />
             </StackPanel>
 
-            <!-- 第一部分：环境检测 -->
-            <StackPanel Margin="0,0,0,16">
+            <TabControl Style="{StaticResource HostPageTabControlStyle}">
+                <TabItem Header="{x:Static properties:Resources.HostPage_EnvironmentTab}"
+                         Style="{StaticResource HostPageTabItemStyle}"
+                         IsSelected="True">
+                    <StackPanel Margin="0,16,0,16">
                 <ui:TextBlock Text="{x:Static properties:Resources.Label_ReqGeneral}"
                               Margin="0,0,0,8"
                               Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
@@ -168,13 +246,28 @@
                         <TextBlock Grid.Column="1" Text="{x:Static properties:Resources.Label_UsbipdInstalled}" VerticalAlignment="Center" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
                     </Grid>
                 </ui:Card>
-            </StackPanel>
+                    </StackPanel>
+                </TabItem>
 
-            <!-- 第二部分：高级设定 -->
-            <StackPanel>
-                <ui:TextBlock Text="{x:Static properties:Resources.Menu_Advanced}"
-                              Margin="0,0,0,8"
-                              Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                <TabItem Header="{x:Static properties:Resources.HostPage_GeneralTab}"
+                         Style="{StaticResource HostPageTabItemStyle}">
+                    <StackPanel Margin="0,16,0,16">
+
+                <!-- 主机当前使用的 Windows 电源方案。仅枚举现有方案，不创建或修改方案内容。 -->
+                <ui:CardControl Margin="0,0,0,8" Padding="12">
+                    <ui:CardControl.Icon>
+                        <ui:FontIcon FontSize="22" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xEC4A;"/>
+                    </ui:CardControl.Icon>
+                    <ui:CardControl.Header>
+                        <TextBlock Text="{x:Static properties:Resources.Menu_HostPowerPlan}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                    </ui:CardControl.Header>
+
+                    <ComboBox Width="140"
+                              ItemsSource="{Binding PowerPlans}"
+                              DisplayMemberPath="Name"
+                              SelectedValuePath="Id"
+                              SelectedValue="{Binding CurrentPowerPlanId, Mode=TwoWay}"/>
+                </ui:CardControl>
 
                 <!-- 核心调度器 -->
                 <ui:CardControl Margin="0,0,0,8" Padding="12">
@@ -208,6 +301,117 @@
                     <ui:ToggleSwitch IsChecked="{Binding IsNumaSpanningEnabled, Mode=TwoWay}"
                                      IsEnabled="{Binding IsNumaSpanningToggleEnabled}"/>
                 </ui:CardControl>
+
+                <!-- 增强会话模式（主机侧许可） -->
+                <ui:CardControl Margin="0,0,0,8" Padding="12">
+                    <ui:CardControl.Icon>
+                        <ui:SymbolIcon FontSize="22" Symbol="Remote20"/>
+                    </ui:CardControl.Icon>
+                    <ui:CardControl.Header>
+                        <TextBlock Text="{x:Static properties:Resources.Menu_EnhancedSessionMode}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                    </ui:CardControl.Header>
+                    <ui:ToggleSwitch IsChecked="{Binding IsEnhancedSessionModeEnabled, Mode=TwoWay}"
+                                     IsEnabled="{Binding IsEnhancedSessionModeToggleEnabled}"/>
+                </ui:CardControl>
+
+                <!-- 主机动态 MAC 地址池；上下限通过一次 WMI ModifyServiceSettings 原子提交。 -->
+                <ui:CardControl Margin="0,0,0,8" Padding="12">
+                    <ui:CardControl.Icon>
+                        <ui:SymbolIcon FontSize="22" Symbol="VirtualNetwork20"/>
+                    </ui:CardControl.Icon>
+                    <ui:CardControl.Header>
+                        <TextBlock Text="{x:Static properties:Resources.Menu_DynamicMacAddressRange}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                    </ui:CardControl.Header>
+                    <Grid Width="620">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <ui:TextBox Grid.Column="0"
+                                    MaxLength="17"
+                                    FontFamily="Consolas"
+                                    TextAlignment="Center"
+                                    Text="{Binding MinimumDynamicMacAddress, UpdateSourceTrigger=PropertyChanged}"
+                                    IsEnabled="{Binding IsDynamicMacRangeEnabled}"/>
+                        <TextBlock Grid.Column="1"
+                                   Margin="10,0"
+                                   VerticalAlignment="Center"
+                                   Text="→"
+                                   Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                        <ui:TextBox Grid.Column="2"
+                                    MaxLength="17"
+                                    FontFamily="Consolas"
+                                    TextAlignment="Center"
+                                    Text="{Binding MaximumDynamicMacAddress, UpdateSourceTrigger=PropertyChanged}"
+                                    IsEnabled="{Binding IsDynamicMacRangeEnabled}"/>
+                        <ui:Button Grid.Column="3"
+                                   Margin="8,0,0,0"
+                                   MinWidth="72"
+                                   Content="{x:Static properties:Resources.Apply}"
+                                   Command="{Binding ApplyDynamicMacRangeCommand}"/>
+                    </Grid>
+                </ui:CardControl>
+
+                <!-- 新建虚拟机的主机默认位置 -->
+                <ui:CardControl Margin="0,0,0,8" Padding="12">
+                    <ui:CardControl.Icon>
+                        <ui:FontIcon FontSize="22" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xE838;"/>
+                    </ui:CardControl.Icon>
+                    <ui:CardControl.Header>
+                        <TextBlock Text="{x:Static properties:Resources.Menu_DefaultVirtualMachinePath}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                    </ui:CardControl.Header>
+                    <Grid Width="620">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <ui:TextBox Text="{Binding DefaultVirtualMachinePath}"
+                                    IsReadOnly="True"
+                                    ToolTip="{Binding DefaultVirtualMachinePath}"
+                                    IsEnabled="{Binding AreDefaultPathsEnabled}"/>
+                        <ui:Button Grid.Column="1"
+                                   Margin="8,0,0,0"
+                                   MinWidth="72"
+                                   Content="{x:Static properties:Resources.Common_Select}"
+                                   Command="{Binding BrowseDefaultVirtualMachinePathCommand}"
+                                   IsEnabled="{Binding AreDefaultPathsEnabled}"/>
+                    </Grid>
+                </ui:CardControl>
+
+                <!-- 新建虚拟硬盘的主机默认位置 -->
+                <ui:CardControl Margin="0,0,0,8" Padding="12">
+                    <ui:CardControl.Icon>
+                        <ui:FontIcon FontSize="22" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xE838;"/>
+                    </ui:CardControl.Icon>
+                    <ui:CardControl.Header>
+                        <TextBlock Text="{x:Static properties:Resources.Menu_DefaultVirtualHardDiskPath}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                    </ui:CardControl.Header>
+                    <Grid Width="620">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <ui:TextBox Text="{Binding DefaultVirtualHardDiskPath}"
+                                    IsReadOnly="True"
+                                    ToolTip="{Binding DefaultVirtualHardDiskPath}"
+                                    IsEnabled="{Binding AreDefaultPathsEnabled}"/>
+                        <ui:Button Grid.Column="1"
+                                   Margin="8,0,0,0"
+                                   MinWidth="72"
+                                   Content="{x:Static properties:Resources.Common_Select}"
+                                   Command="{Binding BrowseDefaultVirtualHardDiskPathCommand}"
+                                   IsEnabled="{Binding AreDefaultPathsEnabled}"/>
+                    </Grid>
+                </ui:CardControl>
+
+                    </StackPanel>
+                </TabItem>
+
+                <TabItem Header="{x:Static properties:Resources.HostPage_AdvancedTab}"
+                         Style="{StaticResource HostPageTabItemStyle}">
+                    <StackPanel Margin="0,16,0,16">
 
                 <!-- PCIe 策略 -->
                 <ui:CardControl Margin="0,0,0,8" Padding="12">
@@ -268,7 +472,9 @@
                     <ui:ToggleSwitch IsChecked="{Binding IsOpenHclFirmwareFileEnabled, Mode=TwoWay}"/>
                 </ui:CardControl>
 
-            </StackPanel>
+                    </StackPanel>
+                </TabItem>
+            </TabControl>
         </StackPanel>
     </Grid>
 </Page>
