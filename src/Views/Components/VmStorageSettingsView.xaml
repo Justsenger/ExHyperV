@@ -118,12 +118,14 @@
                                         </StackPanel>
                                         <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="0,0,12,0">
                                             <!-- 打开文件夹按钮 -->
-                                            <ui:Button Icon="{ui:SymbolIcon Symbol=Share24, FontSize=18}" 
-               ToolTip="{x:Static properties:Resources.Button_OpenFolder}"
-               Appearance="Secondary" 
-               Margin="0,0,8,0"
-               Command="{Binding DataContext.OpenFolderCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-               CommandParameter="{Binding PathOrDiskNumber}">
+                                            <ui:Button Icon="{ui:SymbolIcon Symbol=Share24, FontSize=18}"
+                                                       ToolTip="{x:Static properties:Resources.Button_OpenFolder}"
+                                                       Appearance="Secondary"
+                                                       Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"
+                                                       PressedForeground="{ui:ThemeResource TextFillColorPrimaryBrush}"
+                                                       Margin="0,0,8,0"
+                                                       Command="{Binding DataContext.OpenFolderCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                       CommandParameter="{Binding PathOrDiskNumber}">
                                                 <ui:Button.Style>
                                                     <Style TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
                                                         <Setter Property="Visibility" Value="Visible"/>
@@ -144,12 +146,14 @@
                                                 </ui:Button.Style>
                                             </ui:Button>
 
-                                            <ui:Button Icon="{ui:SymbolIcon Symbol=Broom24, FontSize=18}" 
-           ToolTip="{x:Static properties:Resources.VmStorageSettings_BtnOptimizeDisk}"
-           Appearance="Secondary" 
-           Margin="0,0,8,0"
-           Command="{Binding DataContext.OptimizeStorageCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-           CommandParameter="{Binding}">
+                                            <ui:Button Icon="{ui:SymbolIcon Symbol=Broom24, FontSize=18}"
+                                                       ToolTip="{x:Static properties:Resources.VmStorageSettings_BtnOptimizeDisk}"
+                                                       Appearance="Secondary"
+                                                       Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"
+                                                       PressedForeground="{ui:ThemeResource TextFillColorPrimaryBrush}"
+                                                       Margin="0,0,8,0"
+                                                       Command="{Binding DataContext.OptimizeStorageCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                       CommandParameter="{Binding}">
                                                 <ui:Button.Style>
                                                     <Style TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
                                                         <Setter Property="Visibility" Value="Collapsed"/>
@@ -171,12 +175,14 @@
                                                 </ui:Button.Style>
                                             </ui:Button>
                                             
-                                            <ui:Button Icon="{ui:SymbolIcon Symbol=Edit24, FontSize=18}" 
-           ToolTip="{x:Static properties:Resources.Common_Modify}"
-           Appearance="Secondary" 
-           Margin="0,0,8,0"
-           Command="{Binding DataContext.EditStoragePathCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-           CommandParameter="{Binding}">
+                                            <ui:Button Icon="{ui:SymbolIcon Symbol=Edit24, FontSize=18}"
+                                                       ToolTip="{x:Static properties:Resources.Common_Modify}"
+                                                       Appearance="Secondary"
+                                                       Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"
+                                                       PressedForeground="{ui:ThemeResource TextFillColorPrimaryBrush}"
+                                                       Margin="0,0,8,0"
+                                                       Command="{Binding DataContext.EditStoragePathCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                       CommandParameter="{Binding}">
                                                 <ui:Button.Style>
                                                     <Style TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
                                                         <Setter Property="Visibility" Value="Collapsed"/>
