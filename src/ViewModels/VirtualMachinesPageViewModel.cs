@@ -363,6 +363,7 @@ namespace ExHyperV.ViewModels
             body.Children.Add(new System.Windows.Controls.ScrollViewer
             {
                 MaxHeight = 220,
+                Padding = new System.Windows.Thickness(0, 0, 0, 8),
                 VerticalScrollBarVisibility = System.Windows.Controls.ScrollBarVisibility.Auto,
                 HorizontalScrollBarVisibility = System.Windows.Controls.ScrollBarVisibility.Auto,
                 Content = listText,
