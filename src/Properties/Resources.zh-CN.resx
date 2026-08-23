@@ -3652,7 +3652,10 @@
     <value>动态 MAC 地址范围已应用</value>
   </data>
   <data name="Menu_VolumeAutoMount" xml:space="preserve">
-    <value>自动为磁盘分配盘符</value>
+    <value>自动为新卷分配盘符</value>
+  </data>
+  <data name="Desc_VolumeAutoMount" xml:space="preserve">
+    <value>启用 Windows 自动挂载，为新接入的基本卷分配盘符</value>
   </data>
   <data name="Error_Host_AutoMountChangeFailed" xml:space="preserve">
     <value>无法更改卷自动挂载状态：{0}</value>

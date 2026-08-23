@@ -478,7 +478,10 @@
                         <ui:FontIcon FontSize="22" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xE756;"/>
                     </ui:CardControl.Icon>
                     <ui:CardControl.Header>
-                        <TextBlock Text="{x:Static properties:Resources.Menu_VolumeAutoMount}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                        <StackPanel>
+                            <TextBlock Text="{x:Static properties:Resources.Menu_VolumeAutoMount}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                            <TextBlock Text="{x:Static properties:Resources.Desc_VolumeAutoMount}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                        </StackPanel>
                     </ui:CardControl.Header>
                     <ui:ToggleSwitch IsChecked="{Binding IsVolumeAutoMountEnabled, Mode=TwoWay}"
                                      IsEnabled="{Binding IsVolumeAutoMountToggleEnabled}"/>

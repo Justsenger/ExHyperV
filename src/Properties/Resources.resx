@@ -3652,7 +3652,10 @@ Remove them from storage and retry? Cancel to re-plug the device and try again.<
     <value>Dynamic MAC address range applied</value>
   </data>
   <data name="Menu_VolumeAutoMount" xml:space="preserve">
-    <value>Automatically Assign Drive Letters to Disks</value>
+    <value>Automatically Assign Drive Letters to New Volumes</value>
+  </data>
+  <data name="Desc_VolumeAutoMount" xml:space="preserve">
+    <value>Enable Windows automount to assign drive letters to newly added basic volumes</value>
   </data>
   <data name="Error_Host_AutoMountChangeFailed" xml:space="preserve">
     <value>Failed to change automatic volume mounting: {0}</value>

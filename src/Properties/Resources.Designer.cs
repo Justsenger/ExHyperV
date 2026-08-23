@@ -9264,6 +9264,10 @@ namespace ExHyperV.Properties {
             get { return ResourceManager.GetString("Menu_VolumeAutoMount", resourceCulture); }
         }
 
+        public static string Desc_VolumeAutoMount {
+            get { return ResourceManager.GetString("Desc_VolumeAutoMount", resourceCulture); }
+        }
+
         public static string Error_Host_AutoMountChangeFailed {
             get { return ResourceManager.GetString("Error_Host_AutoMountChangeFailed", resourceCulture); }
         }
