@@ -109,10 +109,6 @@ namespace ExHyperV.ViewModels
         // 单台创建（数量≤1）。绑定给"现有磁盘"选项的 IsEnabled：批量不支持现有磁盘（多台共用一块盘会互踩）。
         public bool IsSingleCreate => !(int.TryParse(NewVmQuantity, out var q) && q > 1);
 
-        partial void OnNewVmQuantityChanged(string value)
-        {
-            if (!IsSingleCreate && NewVmDiskMode == 1) NewVmDiskMode = 0;
-        }
         [ObservableProperty] private ObservableCollection<string> _supportedVersions = new() { "12.0", "11.0", "10.0", "9.0", "8.0" };
         [ObservableProperty] private string _selectedVersion = "8.0";
 
@@ -465,12 +461,6 @@ namespace ExHyperV.ViewModels
                 ShowTip(Properties.Resources.VmPage_InvalidQuantity);
                 return;
             }
-            if (quantity > 1 && NewVmDiskMode == 1)
-            {
-                ShowTip(Properties.Resources.VmPage_BatchNewDiskOnly);
-                return;
-            }
-
             // 组装参数（单台/批量共用；数值已校验，直接用解析结果）
             VmCreationParams Build(string name) => new VmCreationParams
             {
@@ -488,6 +478,8 @@ namespace ExHyperV.ViewModels
                 DiskMode = NewVmDiskMode,
                 DiskSizeGb = long.TryParse(NewVmDiskSizeGb, out var ds) ? ds : 128,
                 VhdPath = NewVmDiskMode == 0 ? NewVmNewDiskPath : NewVmExistingDiskPath,
+                CreateDifferencingDisk = quantity > 1 && NewVmDiskMode == 1,
+                DifferencingDiskRoot = _defaultVhdPath,
                 IsoPath = NewVmIsoPath,
                 SwitchName = NewVmSelectedSwitch,
                 StartAfterCreation = StartVmAfterCreation

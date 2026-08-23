@@ -202,7 +202,7 @@
                             </StackPanel>
                             <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
                                 <RadioButton Content="{x:Static properties:Resources.Xaml_NewDisk}" IsChecked="{Binding NewVmDiskMode, Converter={StaticResource EqualityConverter}, ConverterParameter=0}" Margin="0,0,16,0"/>
-                                <RadioButton Content="{x:Static properties:Resources.Xaml_ExistDisk}" IsChecked="{Binding NewVmDiskMode, Converter={StaticResource EqualityConverter}, ConverterParameter=1}" IsEnabled="{Binding IsSingleCreate}" Margin="0,0,16,0"/>
+                                <RadioButton Content="{x:Static properties:Resources.Xaml_ExistDisk}" IsChecked="{Binding NewVmDiskMode, Converter={StaticResource EqualityConverter}, ConverterParameter=1}" Margin="0,0,16,0"/>
                                 <RadioButton Content="{x:Static properties:Resources.Xaml_AttachLater}" IsChecked="{Binding NewVmDiskMode, Converter={StaticResource EqualityConverter}, ConverterParameter=2}"/>
                             </StackPanel>
                         </Grid>
@@ -251,6 +251,21 @@
                                 <ui:TextBox Text="{Binding NewVmExistingDiskPath}" PlaceholderText="{x:Static properties:Resources.Xaml_Placeholder_ExistVhd}"/>
                                 <ui:Button Grid.Column="1" Content="{x:Static properties:Resources.Xaml_Browse}" Margin="8,0,0,0" Width="80" Command="{Binding BrowseExistingDiskCommand}"/>
                             </Grid>
+                            <TextBlock Text="{x:Static properties:Resources.VmPage_BatchExistingDiskHint}"
+                                       FontSize="12"
+                                       Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"
+                                       Margin="0,8,0,0">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsSingleCreate}" Value="True">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
                         </StackPanel>
 
                         <!-- 模式2：稍后附加 -->

@@ -153,6 +153,8 @@ namespace ExHyperV.Services
             string vmHomeFolder = Path.Combine(p.Path, finalVmName);
             bool vmHomeFolderCreated = false;
             string? ownedVhdPath = null;
+            string? ownedVhdDirectoryPath = null;
+            string effectiveVhdPath = p.VhdPath;
             bool isStandardIsolatedVm = IsStandardIsolatedVm(p);
             bool effectiveSecureBoot = p.EnableSecureBoot ||
                 (p.Generation == 2 && p.IsolationType == "TrustedLaunch");
@@ -173,7 +175,20 @@ namespace ExHyperV.Services
                     string diskFolder = !string.IsNullOrWhiteSpace(p.VhdPath)
                         ? p.VhdPath
                         : vmHomeFolder;
-                    p.VhdPath = Path.Combine(diskFolder, $"{finalVmName}.vhdx");
+                    effectiveVhdPath = Path.Combine(diskFolder, $"{finalVmName}.vhdx");
+                }
+                else if (p.DiskMode == 1 && p.CreateDifferencingDisk)
+                {
+                    string diskRoot = string.IsNullOrWhiteSpace(p.DifferencingDiskRoot)
+                        ? vmHomeFolder
+                        : p.DifferencingDiskRoot;
+                    string diskFolder = Path.Combine(diskRoot, finalVmName);
+                    if (!Directory.Exists(diskFolder))
+                    {
+                        Directory.CreateDirectory(diskFolder);
+                        ownedVhdDirectoryPath = diskFolder;
+                    }
+                    effectiveVhdPath = Path.Combine(diskFolder, $"{finalVmName}.vhdx");
                 }
 
                 // ── Step 2: DefineSystem 创建 VM ──────────────────
@@ -332,23 +347,32 @@ namespace ExHyperV.Services
                 if (p.DiskMode == 0)
                 {
                     // 只把“调用前不存在”的新建磁盘登记为本次所有；现有磁盘无论后续发生什么都不能删除。
-                    if (!File.Exists(p.VhdPath))
-                        ownedVhdPath = p.VhdPath;
+                    if (!File.Exists(effectiveVhdPath))
+                        ownedVhdPath = effectiveVhdPath;
 
                     var diskResult = await VmStorageService.AddDriveAsync(
                         finalVmName,
                         p.Generation == 2 ? "SCSI" : "IDE", 0, 0,
-                        "HardDisk", p.VhdPath, false,
+                        "HardDisk", effectiveVhdPath, false,
                         isNew: true, sizeGb: (int)p.DiskSizeGb);
                     if (!diskResult.Success)
                         throw new InvalidOperationException(diskResult.Message);
                 }
                 else if (p.DiskMode == 1 && !string.IsNullOrEmpty(p.VhdPath))
                 {
-                    var diskResult = await VmStorageService.AddDriveAsync(
-                        finalVmName,
-                        p.Generation == 2 ? "SCSI" : "IDE", 0, 0,
-                        "HardDisk", p.VhdPath, false);
+                    if (p.CreateDifferencingDisk && !File.Exists(effectiveVhdPath))
+                        ownedVhdPath = effectiveVhdPath;
+
+                    var diskResult = p.CreateDifferencingDisk
+                        ? await VmStorageService.AddDriveAsync(
+                            finalVmName,
+                            p.Generation == 2 ? "SCSI" : "IDE", 0, 0,
+                            "HardDisk", effectiveVhdPath, false,
+                            isNew: true, vhdType: "Differencing", parentPath: p.VhdPath)
+                        : await VmStorageService.AddDriveAsync(
+                            finalVmName,
+                            p.Generation == 2 ? "SCSI" : "IDE", 0, 0,
+                            "HardDisk", p.VhdPath, false);
                     if (!diskResult.Success)
                         throw new InvalidOperationException(diskResult.Message);
                 }
@@ -446,7 +470,7 @@ namespace ExHyperV.Services
                 }
 
                 var cleanupErrors = await CleanupOwnedCreationArtifactsAsync(
-                    ownedVhdPath, vmHomeFolder, vmHomeFolderCreated);
+                    ownedVhdPath, ownedVhdDirectoryPath, vmHomeFolder, vmHomeFolderCreated);
                 if (cleanupErrors.Count > 0)
                 {
                     return (false, ex.Message + Environment.NewLine +
@@ -464,6 +488,7 @@ namespace ExHyperV.Services
         /// </summary>
         private static async Task<List<string>> CleanupOwnedCreationArtifactsAsync(
             string? ownedVhdPath,
+            string? ownedVhdDirectoryPath,
             string vmHomeFolder,
             bool vmHomeFolderCreated)
         {
@@ -474,6 +499,13 @@ namespace ExHyperV.Services
                 bool deleted = await TryDeleteOwnedFileAsync(ownedVhdPath);
                 if (!deleted)
                     errors.Add(ownedVhdPath);
+            }
+
+            if (!string.IsNullOrWhiteSpace(ownedVhdDirectoryPath))
+            {
+                bool deleted = await TryDeleteOwnedDirectoryAsync(ownedVhdDirectoryPath);
+                if (!deleted)
+                    errors.Add(ownedVhdDirectoryPath);
             }
 
             // 目录在创建前不存在，因此整个目录树都属于本次事务；Hyper-V 可能在其中生成

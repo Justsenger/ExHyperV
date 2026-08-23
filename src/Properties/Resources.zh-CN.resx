@@ -3339,6 +3339,9 @@
   <data name="VmPage_BatchNewDiskOnly" xml:space="preserve">
     <value>批量创建仅支持新建磁盘。</value>
   </data>
+  <data name="VmPage_BatchExistingDiskHint" xml:space="preserve">
+    <value>多个虚拟机将创建属于自己的磁盘，并共享所选的磁盘。</value>
+  </data>
   <data name="VmPage_CreatingBatch" xml:space="preserve">
     <value>正在批量创建 {0} 台虚拟机…</value>
   </data>

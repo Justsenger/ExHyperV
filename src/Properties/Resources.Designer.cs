@@ -8972,6 +8972,10 @@ namespace ExHyperV.Properties {
             get { return ResourceManager.GetString("VmPage_BatchNewDiskOnly", resourceCulture); }
         }
 
+        public static string VmPage_BatchExistingDiskHint {
+            get { return ResourceManager.GetString("VmPage_BatchExistingDiskHint", resourceCulture); }
+        }
+
         public static string VmPage_CreatingBatch {
             get { return ResourceManager.GetString("VmPage_CreatingBatch", resourceCulture); }
         }

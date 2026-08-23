@@ -24,6 +24,8 @@
         public int DiskMode { get; set; } = 0; // 0:新建, 1:现有, 2:稍后
         public long DiskSizeGb { get; set; } = 128;
         public string VhdPath { get; set; } = string.Empty; // 对应 NewVmNewDiskPath 或 NewVmExistingDiskPath
+        public bool CreateDifferencingDisk { get; set; }
+        public string DifferencingDiskRoot { get; set; } = string.Empty;
         public string IsoPath { get; set; } = string.Empty;
 
         // --- 网络 ---

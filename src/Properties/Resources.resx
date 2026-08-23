@@ -3339,6 +3339,9 @@ Remove them from storage and retry? Cancel to re-plug the device and try again.<
   <data name="VmPage_BatchNewDiskOnly" xml:space="preserve">
     <value>Batch creation supports new disks only.</value>
   </data>
+  <data name="VmPage_BatchExistingDiskHint" xml:space="preserve">
+    <value>Multiple virtual machines will create their own disks and share the selected disk.</value>
+  </data>
   <data name="VmPage_CreatingBatch" xml:space="preserve">
     <value>Creating {0} virtual machines…</value>
   </data>
