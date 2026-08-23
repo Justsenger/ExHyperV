@@ -295,7 +295,7 @@
             <Grid>
                 <CheckBox Content="{x:Static properties:Resources.Xaml_StartAfterCreate}" IsChecked="{Binding StartVmAfterCreation}" VerticalAlignment="Center"/>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                    <ui:Button Content="{x:Static properties:Resources.Xaml_CreateVm}" Appearance="Primary" Width="150" Icon="{ui:SymbolIcon Symbol=Add24}" Command="{Binding ConfirmCreateCommand}" IsDefault="True"/>
+                    <ui:Button Content="{x:Static properties:Resources.Xaml_CreateVm}" Appearance="Primary" Width="150" Icon="{ui:SymbolIcon Symbol=Add24}" Command="{Binding ConfirmCreateCommand}" IsDefault="True" IsEnabled="{Binding IsLoadingCreateOptions, Converter={StaticResource InverseBooleanConverter}}"/>
                 </StackPanel>
             </Grid>
         </Border>

@@ -19,6 +19,7 @@ namespace ExHyperV.ViewModels
         // 控制右侧界面切换
         [ObservableProperty] private bool _isCreatingVm = false;
         [ObservableProperty] private string _creatingStatusText = string.Empty;
+        [ObservableProperty] private bool _isLoadingCreateOptions = false;
 
         // 当名称变化时，自动更新磁盘路径
         partial void OnNewVmNameChanged(string value)
@@ -179,8 +180,8 @@ namespace ExHyperV.ViewModels
         private async Task CreateVmAsync()
         {
             // --- 1. UI 状态与标志位重置 ---
-            IsLoadingSettings = true;
             IsCreatingVm = true;
+            IsLoadingCreateOptions = true;
             SelectedVm = null;
             _isDiskPathManual = false;     // 重置用户手动选择磁盘路径的标记
 
@@ -201,25 +202,32 @@ namespace ExHyperV.ViewModels
             NewVmIsoPath = string.Empty;
             NewVmExistingDiskPath = string.Empty;
 
+            // 先用可靠的回退值立即呈现表单；主机真实值随后在后台刷新。
+            NewVmStoragePath = @"C:\ProgramData\Microsoft\Windows\Hyper-V";
+            NewVmName = GetNextAvailableName("NewVM");
+            UpdateDiskPath();
+
             try
             {
-                // 3. 动态探测主机默认路径（不硬编码）
-                // 调用 Service 通过 (Get-VMHost).VirtualMachinePath 获取真实路径
-                var hostPaths = await VmCreateService.GetHostDefaultPathsAsync();
+                // 四组主机信息彼此独立，并行探测，避免每次进入页面串行等待多轮 WMI。
+                var hostPathsTask = VmCreateService.GetHostDefaultPathsAsync();
+                var versionsTask = VmCreateService.GetSupportedVersionsAsync();
+                var isolationTask = VmCreateService.GetIsolationSupportAsync();
+                var switchesTask = VmNetworkService.GetAvailableSwitchesAsync();
+
+                await Task.WhenAll(hostPathsTask, versionsTask, isolationTask, switchesTask);
+
+                var hostPaths = await hostPathsTask;
+                var allVersions = await versionsTask;
+                var (supported, types) = await isolationTask;
+                var switches = await switchesTask;
 
                 // 设置 UI 显示的根路径 (例如 C:\ProgramData\Microsoft\Windows\Hyper-V)
                 NewVmStoragePath = hostPaths.DefaultVmPath;
 
-                // --- 4. 初始化名称并触发路径联动 ---
-                // 获取当前系统中不冲突的名称 (如 NewVM, NewVM (2))
-                NewVmName = GetNextAvailableName("NewVM");
-
-                // 执行路径联动逻辑，确保 NewVmNewDiskPath 此时已经指向：
-                // [默认路径]\[NewVM]\[NewVM].vhdx
+                // 使用主机真实默认路径刷新新磁盘位置。
                 UpdateDiskPath();
 
-                // --- 5. 探测系统支持的配置版本 ---
-                var allVersions = await VmCreateService.GetSupportedVersionsAsync();
                 SupportedVersions = new ObservableCollection<string>(allVersions);
 
                 // 在已降序的列表里取第一个小于 200 的稳定版本作默认值
@@ -229,16 +237,11 @@ namespace ExHyperV.ViewModels
                 // 如果找到稳定版则选中，否则选列表第一个
                 SelectedVersion = defaultStable ?? SupportedVersions.FirstOrDefault();
 
-                // --- 6. 探测机密计算 (Isolation) 支持情况 ---
-                var (supported, types) = await VmCreateService.GetIsolationSupportAsync();
                 IsIsolationSupported = supported;
                 SupportedIsolationTypes = new ObservableCollection<string>(types);
 
                 // 初始状态默认为 Disabled
                 NewVmIsolationType = "Disabled";
-
-                // --- 7. 加载虚拟交换机列表 ---
-                var switches = await VmNetworkService.GetAvailableSwitchesAsync();
 
                 // 创建一个临时的列表，第一项放“未连接”
                 string noneText = Properties.Resources.Common_None; // “未连接”的文本
@@ -279,9 +282,7 @@ namespace ExHyperV.ViewModels
 
             finally
             {
-                // 延迟一小会儿关闭加载状态，确保 UI 绑定完成
-                await Task.Delay(100);
-                IsLoadingSettings = false;
+                IsLoadingCreateOptions = false;
             }
         }
         // 2. 点击 Properties.Resources.Button_Cancel 按钮：退出创建模式
