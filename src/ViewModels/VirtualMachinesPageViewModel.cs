@@ -20,7 +20,8 @@ namespace ExHyperV.ViewModels
         Dashboard, CpuSettings, CpuAffinity, MemorySettings, StorageSettings, AddStorage,
         GpuSettings,
         AddGpuSelect,
-        AddGpuProgress, NetworkSettings, BootSettings, SpacetimeSettings, Advanced, Security, PcieSettings
+        AddGpuProgress, NetworkSettings, BootSettings, SpacetimeSettings, Advanced, Security, PcieSettings,
+        Export
     }
     public partial class VirtualMachinesPageViewModel : PageViewModelBase, IDisposable
     {
@@ -57,7 +58,7 @@ namespace ExHyperV.ViewModels
 
         // 进行中的向导/部署视图(选卡、GPU-PV 部署、加存储)绑死某台 VM，期间禁用左侧列表：
         // 防止切走后工作流后续步骤读到的 SelectedVm 变成别的 VM，把关机/挂卡等操作打到错的机器上。
-        public bool IsVmListEnabled => CurrentViewType is not
+        public bool IsVmListEnabled => !IsExporting && CurrentViewType is not
             (VmDetailViewType.AddGpuSelect or VmDetailViewType.AddGpuProgress or VmDetailViewType.AddStorage);
         [ObservableProperty] private string _searchText = string.Empty;
 
