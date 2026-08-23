@@ -3669,4 +3669,112 @@
   <data name="Error_Host_AutoMountStateMismatch" xml:space="preserve">
     <value>Windows 未应用请求的卷自动挂载状态。</value>
   </data>
+  <data name="VmExport_Menu" xml:space="preserve">
+    <value>导出</value>
+  </data>
+  <data name="VmExport_Title" xml:space="preserve">
+    <value>导出虚拟机</value>
+  </data>
+  <data name="VmExport_Destination" xml:space="preserve">
+    <value>导出位置</value>
+  </data>
+  <data name="VmExport_SelectDestination" xml:space="preserve">
+    <value>选择导出位置</value>
+  </data>
+  <data name="VmExport_Content" xml:space="preserve">
+    <value>导出内容</value>
+  </data>
+  <data name="VmExport_Configuration" xml:space="preserve">
+    <value>包括虚拟机配置</value>
+  </data>
+  <data name="VmExport_ConfigurationDescription" xml:space="preserve">
+    <value>导出虚拟机的配置文件</value>
+  </data>
+  <data name="VmExport_VirtualHardDisks" xml:space="preserve">
+    <value>包括虚拟硬盘</value>
+  </data>
+  <data name="VmExport_VirtualHardDisksDescription" xml:space="preserve">
+    <value>导出虚拟机连接的虚拟硬盘</value>
+  </data>
+  <data name="VmExport_Checkpoints" xml:space="preserve">
+    <value>包括检查点</value>
+  </data>
+  <data name="VmExport_CheckpointsDescription" xml:space="preserve">
+    <value>导出虚拟机的检查点</value>
+  </data>
+  <data name="VmExport_CheckpointModeAll" xml:space="preserve">
+    <value>全部</value>
+  </data>
+  <data name="VmExport_CheckpointModeSingle" xml:space="preserve">
+    <value>单个</value>
+  </data>
+  <data name="VmExport_CheckpointDateFormat" xml:space="preserve">
+    <value>yyyy年M月d日 HH:mm</value>
+  </data>
+  <data name="VmExport_RuntimeState" xml:space="preserve">
+    <value>包括运行状态</value>
+  </data>
+  <data name="VmExport_RuntimeStateDescription" xml:space="preserve">
+    <value>导出虚拟机的保存状态，导入后可继续运行</value>
+  </data>
+  <data name="VmExport_Start" xml:space="preserve">
+    <value>导出</value>
+  </data>
+  <data name="VmExport_Preparing" xml:space="preserve">
+    <value>正在准备导出……</value>
+  </data>
+  <data name="VmExport_Progress" xml:space="preserve">
+    <value>正在导出……{0}%</value>
+  </data>
+  <data name="VmExport_Completed" xml:space="preserve">
+    <value>导出完成</value>
+  </data>
+  <data name="VmExport_Failed" xml:space="preserve">
+    <value>导出失败：{0}</value>
+  </data>
+  <data name="VmExport_PathRequired" xml:space="preserve">
+    <value>请选择有效的导出位置。</value>
+  </data>
+  <data name="VmExport_TargetExists" xml:space="preserve">
+    <value>所选位置已经存在名为“{0}”的目录。</value>
+  </data>
+  <data name="VmExport_DiskSelectionCheckpointsConflict" xml:space="preserve">
+    <value>导出检查点时必须包括全部虚拟硬盘。</value>
+  </data>
+  <data name="VmExport_SelectDisksUnsupported" xml:space="preserve">
+    <value>当前系统不支持选择性导出虚拟硬盘。</value>
+  </data>
+  <data name="VmExport_CheckpointSelectionRequired" xml:space="preserve">
+    <value>请选择要导出的检查点。</value>
+  </data>
+  <data name="VmExport_CheckpointUnavailable" xml:space="preserve">
+    <value>所选检查点已不存在，或不属于这台虚拟机。</value>
+  </data>
+  <data name="VmExport_CheckpointSelectionUnsupported" xml:space="preserve">
+    <value>当前系统不支持导出指定的检查点。</value>
+  </data>
+  <data name="VmExport_PackageSection" xml:space="preserve">
+    <value>打包</value>
+  </data>
+  <data name="VmExport_CreatePackage" xml:space="preserve">
+    <value>打包导出</value>
+  </data>
+  <data name="VmExport_CreatePackageDescription" xml:space="preserve">
+    <value>将导出内容保存为单个 ZIP 文件</value>
+  </data>
+  <data name="VmExport_PackageStore" xml:space="preserve">
+    <value>仅存储</value>
+  </data>
+  <data name="VmExport_PackageCompress" xml:space="preserve">
+    <value>压缩</value>
+  </data>
+  <data name="VmExport_PackageSpaceWarning" xml:space="preserve">
+    <value>打包期间会同时保留导出文件与 ZIP 文件，请预留最多约两倍于导出内容的可用空间。</value>
+  </data>
+  <data name="VmExport_PackageProgress" xml:space="preserve">
+    <value>正在打包… {0}%</value>
+  </data>
+  <data name="VmExport_PackageFailed" xml:space="preserve">
+    <value>打包失败：{0}</value>
+  </data>
 </root>

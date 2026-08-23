@@ -349,7 +349,9 @@ public static class WmiApi
         Action<ManagementBaseObject>? setParams = null,
         string scope = WmiScope.HyperV,
         WmiContext? ctx = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        IProgress<int>? progress = null,
+        TimeSpan? timeout = null)
     {
         ctx ??= WmiContext.Local;
 
@@ -370,7 +372,8 @@ public static class WmiApi
                 {
                     0 => ApiResponse.Ok(),
                     4096 => await WaitForJobAsync(
-                                (string)outParams["Job"], scope, ctx, cancellationToken),
+                                (string)outParams["Job"], scope, ctx, cancellationToken,
+                                progress, timeout),
                     _ => ApiResponse.Fail(
                                 $"Method '{methodName}' returned code {returnValue}",
                                 returnValue, ApiErrorSource.Wmi)
@@ -762,6 +765,27 @@ public static class WmiApi
     }
 
     /// <summary>
+    /// 通过 Hyper-V 的稳定虚拟机标识（Msvm_ComputerSystem.Name）获取虚拟机。
+    /// 显示名称 ElementName 并不保证唯一，涉及具体虚拟机的操作应优先使用此重载。
+    /// </summary>
+    public static ManagementObject? GetVmComputerSystem(
+        Guid vmId,
+        string scope = WmiScope.HyperV,
+        WmiContext? ctx = null)
+    {
+        if (vmId == Guid.Empty) return null;
+
+        ctx ??= WmiContext.Local;
+        var ms = WmiConnectionCache.GetManagementScope(scope, ctx);
+        string safe = Escape(vmId.ToString("D"));
+        using var searcher = new ManagementObjectSearcher(
+            ms,
+            new ObjectQuery($"SELECT * FROM Msvm_ComputerSystem WHERE Name = '{safe}'"));
+        using var col = searcher.Get();
+        return col.Cast<ManagementObject>().FirstOrDefault();
+    }
+
+    /// <summary>
     /// 获取虚拟机当前激活的 VirtualSystemSettingData。
     /// 调用方负责 Dispose。
     /// </summary>
@@ -835,11 +859,13 @@ public static class WmiApi
         string jobPath,
         string scope,
         WmiContext ctx,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        IProgress<int>? progress = null,
+        TimeSpan? timeout = null)
     {
-        // 上限 30 分钟：大固定 VHD 创建/快照合并等长任务远超旧的 2 分钟，过早超时会误报失败
-        // 并诱发上层回滚，而引擎侧 Job 仍在继续。主动取消语义由 cancellationToken 承担。
-        using var timeoutCts = new CancellationTokenSource(TimeSpan.FromMinutes(30));
+        // 默认上限 30 分钟；导出等更长的任务可传入单独上限。过早超时会误报失败，
+        // 而引擎侧 Job 仍在继续。主动取消语义由 cancellationToken 承担。
+        using var timeoutCts = new CancellationTokenSource(timeout ?? TimeSpan.FromMinutes(30));
         using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(
             cancellationToken, timeoutCts.Token);
 
@@ -852,9 +878,15 @@ public static class WmiApi
             {
                 job.Get();
                 ushort jobState = (ushort)job["JobState"];
+                int percentComplete = Convert.ToInt32(job["PercentComplete"] ?? 0);
+                progress?.Report(Math.Clamp(percentComplete, 0, 100));
 
                 // 7=Completed、32768=CompletedWithWarnings：微软管理库两者同判成功(带警告的操作已完成)
-                if (jobState == 7 || jobState == 32768) return ApiResponse.Ok();
+                if (jobState == 7 || jobState == 32768)
+                {
+                    progress?.Report(100);
+                    return ApiResponse.Ok();
+                }
 
                 if (jobState > 7)
                 {

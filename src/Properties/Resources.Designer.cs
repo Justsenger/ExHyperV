@@ -9284,5 +9284,149 @@ namespace ExHyperV.Properties {
             get { return ResourceManager.GetString("Error_Host_AutoMountStateMismatch", resourceCulture); }
         }
 
+        public static string VmExport_Menu {
+            get { return ResourceManager.GetString("VmExport_Menu", resourceCulture); }
+        }
+
+        public static string VmExport_Title {
+            get { return ResourceManager.GetString("VmExport_Title", resourceCulture); }
+        }
+
+        public static string VmExport_Destination {
+            get { return ResourceManager.GetString("VmExport_Destination", resourceCulture); }
+        }
+
+        public static string VmExport_SelectDestination {
+            get { return ResourceManager.GetString("VmExport_SelectDestination", resourceCulture); }
+        }
+
+        public static string VmExport_Content {
+            get { return ResourceManager.GetString("VmExport_Content", resourceCulture); }
+        }
+
+        public static string VmExport_Configuration {
+            get { return ResourceManager.GetString("VmExport_Configuration", resourceCulture); }
+        }
+
+        public static string VmExport_ConfigurationDescription {
+            get { return ResourceManager.GetString("VmExport_ConfigurationDescription", resourceCulture); }
+        }
+
+        public static string VmExport_VirtualHardDisks {
+            get { return ResourceManager.GetString("VmExport_VirtualHardDisks", resourceCulture); }
+        }
+
+        public static string VmExport_VirtualHardDisksDescription {
+            get { return ResourceManager.GetString("VmExport_VirtualHardDisksDescription", resourceCulture); }
+        }
+
+        public static string VmExport_Checkpoints {
+            get { return ResourceManager.GetString("VmExport_Checkpoints", resourceCulture); }
+        }
+
+        public static string VmExport_CheckpointsDescription {
+            get { return ResourceManager.GetString("VmExport_CheckpointsDescription", resourceCulture); }
+        }
+
+        public static string VmExport_CheckpointModeAll {
+            get { return ResourceManager.GetString("VmExport_CheckpointModeAll", resourceCulture); }
+        }
+
+        public static string VmExport_CheckpointModeSingle {
+            get { return ResourceManager.GetString("VmExport_CheckpointModeSingle", resourceCulture); }
+        }
+
+        public static string VmExport_CheckpointDateFormat {
+            get { return ResourceManager.GetString("VmExport_CheckpointDateFormat", resourceCulture); }
+        }
+
+        public static string VmExport_RuntimeState {
+            get { return ResourceManager.GetString("VmExport_RuntimeState", resourceCulture); }
+        }
+
+        public static string VmExport_RuntimeStateDescription {
+            get { return ResourceManager.GetString("VmExport_RuntimeStateDescription", resourceCulture); }
+        }
+
+        public static string VmExport_Start {
+            get { return ResourceManager.GetString("VmExport_Start", resourceCulture); }
+        }
+
+        public static string VmExport_DiskSelectionCheckpointsConflict {
+            get { return ResourceManager.GetString("VmExport_DiskSelectionCheckpointsConflict", resourceCulture); }
+        }
+
+        public static string VmExport_SelectDisksUnsupported {
+            get { return ResourceManager.GetString("VmExport_SelectDisksUnsupported", resourceCulture); }
+        }
+
+        public static string VmExport_CheckpointSelectionRequired {
+            get { return ResourceManager.GetString("VmExport_CheckpointSelectionRequired", resourceCulture); }
+        }
+
+        public static string VmExport_CheckpointUnavailable {
+            get { return ResourceManager.GetString("VmExport_CheckpointUnavailable", resourceCulture); }
+        }
+
+        public static string VmExport_CheckpointSelectionUnsupported {
+            get { return ResourceManager.GetString("VmExport_CheckpointSelectionUnsupported", resourceCulture); }
+        }
+
+        public static string VmExport_Preparing {
+            get { return ResourceManager.GetString("VmExport_Preparing", resourceCulture); }
+        }
+
+        public static string VmExport_Progress {
+            get { return ResourceManager.GetString("VmExport_Progress", resourceCulture); }
+        }
+
+        public static string VmExport_Completed {
+            get { return ResourceManager.GetString("VmExport_Completed", resourceCulture); }
+        }
+
+        public static string VmExport_Failed {
+            get { return ResourceManager.GetString("VmExport_Failed", resourceCulture); }
+        }
+
+        public static string VmExport_PathRequired {
+            get { return ResourceManager.GetString("VmExport_PathRequired", resourceCulture); }
+        }
+
+        public static string VmExport_TargetExists {
+            get { return ResourceManager.GetString("VmExport_TargetExists", resourceCulture); }
+        }
+
+        public static string VmExport_PackageSection {
+            get { return ResourceManager.GetString("VmExport_PackageSection", resourceCulture); }
+        }
+
+        public static string VmExport_CreatePackage {
+            get { return ResourceManager.GetString("VmExport_CreatePackage", resourceCulture); }
+        }
+
+        public static string VmExport_CreatePackageDescription {
+            get { return ResourceManager.GetString("VmExport_CreatePackageDescription", resourceCulture); }
+        }
+
+        public static string VmExport_PackageStore {
+            get { return ResourceManager.GetString("VmExport_PackageStore", resourceCulture); }
+        }
+
+        public static string VmExport_PackageCompress {
+            get { return ResourceManager.GetString("VmExport_PackageCompress", resourceCulture); }
+        }
+
+        public static string VmExport_PackageSpaceWarning {
+            get { return ResourceManager.GetString("VmExport_PackageSpaceWarning", resourceCulture); }
+        }
+
+        public static string VmExport_PackageProgress {
+            get { return ResourceManager.GetString("VmExport_PackageProgress", resourceCulture); }
+        }
+
+        public static string VmExport_PackageFailed {
+            get { return ResourceManager.GetString("VmExport_PackageFailed", resourceCulture); }
+        }
+
     }
 }
