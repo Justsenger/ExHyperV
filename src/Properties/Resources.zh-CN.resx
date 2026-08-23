@@ -3651,4 +3651,16 @@
   <data name="Msg_Host_DynamicMacRangeApplied" xml:space="preserve">
     <value>动态 MAC 地址范围已应用</value>
   </data>
+  <data name="Menu_VolumeAutoMount" xml:space="preserve">
+    <value>自动为磁盘分配盘符</value>
+  </data>
+  <data name="Error_Host_AutoMountChangeFailed" xml:space="preserve">
+    <value>无法更改卷自动挂载状态：{0}</value>
+  </data>
+  <data name="Error_Host_AutoMountProcessStartFailed" xml:space="preserve">
+    <value>无法启动 Windows 卷挂载工具。</value>
+  </data>
+  <data name="Error_Host_AutoMountStateMismatch" xml:space="preserve">
+    <value>Windows 未应用请求的卷自动挂载状态。</value>
+  </data>
 </root>

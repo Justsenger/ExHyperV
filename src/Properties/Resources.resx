@@ -3651,4 +3651,16 @@ Remove them from storage and retry? Cancel to re-plug the device and try again.<
   <data name="Msg_Host_DynamicMacRangeApplied" xml:space="preserve">
     <value>Dynamic MAC address range applied</value>
   </data>
+  <data name="Menu_VolumeAutoMount" xml:space="preserve">
+    <value>Automatically Assign Drive Letters to Disks</value>
+  </data>
+  <data name="Error_Host_AutoMountChangeFailed" xml:space="preserve">
+    <value>Failed to change automatic volume mounting: {0}</value>
+  </data>
+  <data name="Error_Host_AutoMountProcessStartFailed" xml:space="preserve">
+    <value>Unable to start the Windows volume mounting tool.</value>
+  </data>
+  <data name="Error_Host_AutoMountStateMismatch" xml:space="preserve">
+    <value>Windows did not apply the requested automatic volume mounting state.</value>
+  </data>
 </root>

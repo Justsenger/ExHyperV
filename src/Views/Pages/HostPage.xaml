@@ -472,6 +472,18 @@
                     <ui:ToggleSwitch IsChecked="{Binding IsOpenHclFirmwareFileEnabled, Mode=TwoWay}"/>
                 </ui:CardControl>
 
+                <!-- Windows Mount Manager 主机全局设置；控制新挂载卷是否自动获得盘符。 -->
+                <ui:CardControl Margin="0,0,0,8" Padding="12">
+                    <ui:CardControl.Icon>
+                        <ui:FontIcon FontSize="22" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xE756;"/>
+                    </ui:CardControl.Icon>
+                    <ui:CardControl.Header>
+                        <TextBlock Text="{x:Static properties:Resources.Menu_VolumeAutoMount}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                    </ui:CardControl.Header>
+                    <ui:ToggleSwitch IsChecked="{Binding IsVolumeAutoMountEnabled, Mode=TwoWay}"
+                                     IsEnabled="{Binding IsVolumeAutoMountToggleEnabled}"/>
+                </ui:CardControl>
+
                     </StackPanel>
                 </TabItem>
             </TabControl>

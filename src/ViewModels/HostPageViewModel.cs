@@ -38,6 +38,8 @@ namespace ExHyperV.ViewModels
         [ObservableProperty] private bool _isNativeNvmeToggleEnabled = false;
         [ObservableProperty] private bool _isNativeNvmeSupported;
         [ObservableProperty] private bool _isOpenHclFirmwareFileEnabled;
+        [ObservableProperty] private bool _isVolumeAutoMountEnabled;
+        [ObservableProperty] private bool _isVolumeAutoMountToggleEnabled;
         [ObservableProperty] private bool _isServerSystem;
         [ObservableProperty] private bool _isSystemSwitchEnabled = false;
 
@@ -153,6 +155,10 @@ namespace ExHyperV.ViewModels
 
         private async Task LoadAdvancedConfigAsync()
         {
+            VolumeAutoMountState autoMount = await Task.Run(HostVolumeAutoMountService.GetState);
+            IsVolumeAutoMountEnabled = autoMount.Enabled;
+            IsVolumeAutoMountToggleEnabled = autoMount.Success;
+
             try
             {
                 var numaTask = HyperVNumaService.GetNumaSpanningEnabledAsync();
@@ -208,6 +214,27 @@ namespace ExHyperV.ViewModels
             _isInitialized = false;
             IsOpenHclFirmwareFileEnabled = !value;
             _isInitialized = true;
+        }
+
+        partial void OnIsVolumeAutoMountEnabledChanged(bool value)
+        {
+            if (!_isInitialized || !IsVolumeAutoMountToggleEnabled) return;
+            ApplyVolumeAutoMountStateAsync(value).SafeFireAndForget();
+        }
+
+        private async Task ApplyVolumeAutoMountStateAsync(bool enabled)
+        {
+            IsVolumeAutoMountToggleEnabled = false;
+            var result = await HostVolumeAutoMountService.SetEnabledAsync(enabled);
+            VolumeAutoMountState actual = HostVolumeAutoMountService.GetState();
+
+            _isInitialized = false;
+            IsVolumeAutoMountEnabled = actual.Success ? actual.Enabled : !enabled;
+            IsVolumeAutoMountToggleEnabled = actual.Success;
+            _isInitialized = true;
+
+            if (!result.Success)
+                ShowError(string.Format(Properties.Resources.Error_Host_AutoMountChangeFailed, result.Error));
         }
 
         partial void OnIsNumaSpanningEnabledChanged(bool value)

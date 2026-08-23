@@ -9260,5 +9260,21 @@ namespace ExHyperV.Properties {
             get { return ResourceManager.GetString("Msg_Host_DynamicMacRangeApplied", resourceCulture); }
         }
 
+        public static string Menu_VolumeAutoMount {
+            get { return ResourceManager.GetString("Menu_VolumeAutoMount", resourceCulture); }
+        }
+
+        public static string Error_Host_AutoMountChangeFailed {
+            get { return ResourceManager.GetString("Error_Host_AutoMountChangeFailed", resourceCulture); }
+        }
+
+        public static string Error_Host_AutoMountProcessStartFailed {
+            get { return ResourceManager.GetString("Error_Host_AutoMountProcessStartFailed", resourceCulture); }
+        }
+
+        public static string Error_Host_AutoMountStateMismatch {
+            get { return ResourceManager.GetString("Error_Host_AutoMountStateMismatch", resourceCulture); }
+        }
+
     }
 }
