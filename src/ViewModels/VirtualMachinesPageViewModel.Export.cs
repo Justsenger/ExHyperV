@@ -46,6 +46,8 @@ public partial class VirtualMachinesPageViewModel
         ExportIncludesVirtualHardDisks && !IsSingleCheckpointExport;
     public bool CanConfigureExportVirtualHardDisks =>
         CanConfigureExport && !IsSingleCheckpointExport;
+    public bool CanConfigureExportVirtualHardDiskSelection =>
+        CanConfigureExport && !ExportIncludesCheckpoints;
     public bool CanConfigureExportRuntimeState =>
         CanConfigureExport && !IsSingleCheckpointExport;
     public bool ShowExportPackageOptions => ExportCreatesPackage;
@@ -60,6 +62,7 @@ public partial class VirtualMachinesPageViewModel
     {
         OnPropertyChanged(nameof(CanConfigureExport));
         OnPropertyChanged(nameof(CanConfigureExportVirtualHardDisks));
+        OnPropertyChanged(nameof(CanConfigureExportVirtualHardDiskSelection));
         OnPropertyChanged(nameof(CanConfigureExportRuntimeState));
         OnPropertyChanged(nameof(CanStartExport));
     }
@@ -67,8 +70,11 @@ public partial class VirtualMachinesPageViewModel
     partial void OnExportDestinationPathChanged(string value) =>
         OnPropertyChanged(nameof(CanStartExport));
 
-    partial void OnExportIncludesVirtualHardDisksChanged(bool value) =>
+    partial void OnExportIncludesVirtualHardDisksChanged(bool value)
+    {
         OnPropertyChanged(nameof(ShowExportVirtualHardDiskSelection));
+        OnPropertyChanged(nameof(CanConfigureExportVirtualHardDiskSelection));
+    }
 
     partial void OnExportCreatesPackageChanged(bool value) =>
         OnPropertyChanged(nameof(ShowExportPackageOptions));
@@ -80,6 +86,7 @@ public partial class VirtualMachinesPageViewModel
     {
         OnPropertyChanged(nameof(CanConfigureExport));
         OnPropertyChanged(nameof(CanConfigureExportVirtualHardDisks));
+        OnPropertyChanged(nameof(CanConfigureExportVirtualHardDiskSelection));
         OnPropertyChanged(nameof(CanConfigureExportRuntimeState));
         OnPropertyChanged(nameof(CanLeaveExport));
         OnPropertyChanged(nameof(ShowExportProgress));
@@ -91,6 +98,7 @@ public partial class VirtualMachinesPageViewModel
     {
         OnPropertyChanged(nameof(CanConfigureExport));
         OnPropertyChanged(nameof(CanConfigureExportVirtualHardDisks));
+        OnPropertyChanged(nameof(CanConfigureExportVirtualHardDiskSelection));
         OnPropertyChanged(nameof(CanConfigureExportRuntimeState));
         OnPropertyChanged(nameof(ShowExportProgress));
         OnPropertyChanged(nameof(CanStartExport));
@@ -119,6 +127,7 @@ public partial class VirtualMachinesPageViewModel
             _virtualHardDiskSelectionsBeforeCheckpoints = null;
         }
 
+        OnPropertyChanged(nameof(CanConfigureExportVirtualHardDiskSelection));
         UpdateSingleCheckpointRequirements();
     }
 
@@ -355,6 +364,18 @@ public partial class VirtualMachinesPageViewModel
                     string error = FriendlyError.CleanLines(packageResult.Error);
                     ExportStatusText = string.Format(
                         Properties.Resources.VmExport_PackageFailed, error);
+                    ShowError(ExportStatusText);
+                    return;
+                }
+
+                VmExportPackageResult package = packageResult.Data!;
+                if (!package.SourceDirectoryRemoved)
+                {
+                    ExportProgress = 100;
+                    ExportStatusText = string.Format(
+                        Properties.Resources.VmExport_PackageCleanupWarning,
+                        FriendlyError.CleanLines(package.CleanupError ?? string.Empty));
+                    ExportCompleted = true;
                     ShowError(ExportStatusText);
                     return;
                 }

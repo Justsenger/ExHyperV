@@ -29,28 +29,28 @@ namespace ExHyperV.ViewModels
 
         public IReadOnlyList<VmPcieOption<ushort>> PcieTopologyOptions { get; } =
         [
-            new(0, PcieText("VmPcie_TopologyDefault")),
-            new(1, PcieText("VmPcie_TopologyHost")),
+            new(0, Properties.Resources.VmPcie_TopologyDefault),
+            new(1, Properties.Resources.VmPcie_TopologyHost),
         ];
 
         public IReadOnlyList<VmPcieOption<VmPcieGuestMode>> PcieGuestModes { get; } =
         [
-            new(VmPcieGuestMode.Paravirtualized, PcieText("VmPcie_Paravirtualized")),
-            new(VmPcieGuestMode.Emulated, PcieText("VmPcie_Emulated")),
+            new(VmPcieGuestMode.Paravirtualized, Properties.Resources.VmPcie_Paravirtualized),
+            new(VmPcieGuestMode.Emulated, Properties.Resources.VmPcie_Emulated),
         ];
 
-        public string VmPcieSystemSection => PcieText("VmPcie_SystemSection");
-        public string VmPcieEmulationTitle => PcieText("VmPcie_EmulationTitle");
-        public string VmPcieEmulationDesc => PcieText("VmPcie_EmulationDesc");
-        public string VmPcieTopologyTitle => PcieText("VmPcie_TopologyTitle");
-        public string VmPcieTopologyDesc => PcieText("VmPcie_TopologyDesc");
-        public string VmPcieBootSection => PcieText("VmPcie_BootSection");
-        public string VmPcieBootTitle => PcieText("VmPcie_BootTitle");
-        public string VmPcieBootDesc => PcieText("VmPcie_BootDesc");
-        public string VmPcieDevicesSection => PcieText("VmPcie_DevicesSection");
-        public string VmPcieDeviceModeTitle => PcieText("VmPcie_DeviceModeTitle");
-        public string VmPcieDeviceModeDesc => PcieText("VmPcie_DeviceModeDesc");
-        public string VmPcieNoDevices => PcieText("VmPcie_NoDevices");
+        public string VmPcieSystemSection => Properties.Resources.VmPcie_SystemSection;
+        public string VmPcieEmulationTitle => Properties.Resources.VmPcie_EmulationTitle;
+        public string VmPcieEmulationDesc => Properties.Resources.VmPcie_EmulationDesc;
+        public string VmPcieTopologyTitle => Properties.Resources.VmPcie_TopologyTitle;
+        public string VmPcieTopologyDesc => Properties.Resources.VmPcie_TopologyDesc;
+        public string VmPcieBootSection => Properties.Resources.VmPcie_BootSection;
+        public string VmPcieBootTitle => Properties.Resources.VmPcie_BootTitle;
+        public string VmPcieBootDesc => Properties.Resources.VmPcie_BootDesc;
+        public string VmPcieDevicesSection => Properties.Resources.VmPcie_DevicesSection;
+        public string VmPcieDeviceModeTitle => Properties.Resources.VmPcie_DeviceModeTitle;
+        public string VmPcieDeviceModeDesc => Properties.Resources.VmPcie_DeviceModeDesc;
+        public string VmPcieNoDevices => Properties.Resources.VmPcie_NoDevices;
         [RelayCommand]
         private async Task GoToPcieSettingsAsync()
         {
@@ -116,7 +116,7 @@ namespace ExHyperV.ViewModels
             }
 
             if (SelectedVm == vm) PcieEmulationEnabled = true;
-            ShowSuccess(PcieText("VmPcie_EmulationEnabledMessage"));
+            ShowSuccess(Properties.Resources.VmPcie_EmulationEnabledMessage);
         }
 
         partial void OnSelectedPcieTopologyChanged(ushort value)
@@ -186,7 +186,7 @@ namespace ExHyperV.ViewModels
             var result = await VmPcieService.SetBootPciExpressAsync(vm.Name, value);
             if (result.Success)
             {
-                ShowSuccess(PcieText("VmPcie_AppliedMessage"));
+                ShowSuccess(Properties.Resources.VmPcie_AppliedMessage);
                 return;
             }
 
@@ -258,16 +258,12 @@ namespace ExHyperV.ViewModels
 
         private static Task<bool> ConfirmPermanentEmulationAsync()
             => Interaction.Dialogs.ShowConfirmAsync(
-                PcieText("VmPcie_ConfirmTitle"),
-                PcieText("VmPcie_ConfirmMessage"),
-                PcieText("VmPcie_Enable"),
+                Properties.Resources.VmPcie_ConfirmTitle,
+                Properties.Resources.VmPcie_ConfirmMessage,
+                Properties.Resources.VmPcie_Enable,
                 Properties.Resources.Button_Cancel,
                 isDanger: true,
                 showIcon: false,
                 maxWidth: 340);
-
-        private static string PcieText(string key)
-            => Properties.Resources.ResourceManager.GetString(key)
-               ?? key;
     }
 }

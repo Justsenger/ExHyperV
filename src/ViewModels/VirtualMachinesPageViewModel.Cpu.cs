@@ -27,7 +27,9 @@ namespace ExHyperV.ViewModels
         public Array PageShatterModeValues { get; } = Enum.GetValues(typeof(PageShatterMode));
         public Array LpiModeValues { get; } = Enum.GetValues(typeof(LpiMode));
         // 能力门控标志（按主机硬件或 Hyper-V 属性支持情况置灰）
-        public bool IsIntelHost => SettingsService.NativeHostPlatform == HostPlatform.Intel;
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(ShowIntelPlatformFeatures))]
+        private bool _isIntelHost;
         [ObservableProperty] private bool _isHwIsolationSupported;
         public bool IsArm64Host { get; } = RuntimeInformation.OSArchitecture == Architecture.Arm64;
         public bool IsX64Host => !IsArm64Host;
@@ -48,6 +50,12 @@ namespace ExHyperV.ViewModels
             while (current <= maxCores) { options.Add(current); current *= 2; }
             options.Add(maxCores);
             PossibleVCpuCounts = new ObservableCollection<int>(options.OrderBy(x => x));
+            LoadHostPlatformAsync().SafeFireAndForget();
+        }
+
+        private async Task LoadHostPlatformAsync()
+        {
+            IsIntelHost = await HostPlatformService.GetNativeHostPlatformAsync() == HostPlatform.Intel;
         }
 
         // 导航至 CPU 设置页面
@@ -59,6 +67,7 @@ namespace ExHyperV.ViewModels
             IsLoadingSettings = true;
             try
             {
+                await LoadHostPlatformAsync();
                 if (!_cpuCapsInit)
                 {
                     _cpuCapsInit = true;

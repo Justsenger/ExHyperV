@@ -20,7 +20,7 @@
             </Grid.ColumnDefinitions>
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                 <ui:FontIcon Glyph="&#xE2B4;" FontSize="24" Margin="0,0,12,0"
-                             FontFamily="{DynamicResource FluentSystemIcons}"
+                             FontFamily="{DynamicResource SystemSegoeFluentIcons}"
                              Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
                 <TextBlock Text="{x:Static properties:Resources.VmExport_Title}" FontSize="20"
                            FontWeight="Regular" VerticalAlignment="Center"
@@ -91,6 +91,7 @@
                         </Grid>
                         <ui:ListView x:Name="ExportDisksList" Margin="16,0,0,10"
                                      ItemsSource="{Binding ExportVirtualHardDisks}"
+                                     IsEnabled="{Binding CanConfigureExportVirtualHardDiskSelection}"
                                      SelectionMode="Multiple"
                                      BorderThickness="0"
                                      Background="Transparent"
@@ -102,12 +103,6 @@
                                 <Style TargetType="{x:Type ui:ListViewItem}"
                                        BasedOn="{StaticResource {x:Type ui:ListViewItem}}">
                                     <Setter Property="IsSelected" Value="{Binding IsIncluded, Mode=TwoWay}"/>
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding DataContext.ExportIncludesCheckpoints, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True">
-                                            <Setter Property="IsEnabled" Value="False"/>
-                                            <Setter Property="ToolTip" Value="{x:Static properties:Resources.VmExport_DiskSelectionCheckpointsConflict}"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
                                 </Style>
                             </ui:ListView.ItemContainerStyle>
                             <ui:ListView.ItemTemplate>

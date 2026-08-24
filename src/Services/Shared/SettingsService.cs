@@ -5,19 +5,9 @@ using System.Xml.Linq;
 using Wpf.Ui.Appearance;
 using Wpf.Ui.Extensions;
 using System.Net.Http;
-using System.Management;
-using System.Runtime.InteropServices;
 
 namespace ExHyperV.Services
 {
-    public enum HostPlatform
-    {
-        Unknown,
-        Amd,
-        Intel,
-        Arm64
-    }
-
     internal class GitHubRelease
     {
         public string tag_name { get; set; } = string.Empty;
@@ -26,7 +16,6 @@ namespace ExHyperV.Services
     {
 
         private static readonly HttpClient _httpClient = new HttpClient();
-        public static HostPlatform NativeHostPlatform { get; } = DetectNativeHostPlatform();
         public record UpdateResult(bool IsUpdateAvailable, string LatestVersion, bool IsInnerTest = false);
         private const string GitHubApiUrl = "https://api.github.com/repos/Justsenger/ExHyperV/releases/latest";
         private const string FallbackUrl = "https://update.shalingye.workers.dev/";
@@ -106,27 +95,6 @@ namespace ExHyperV.Services
             {
                 return "en-US"; // 文件损坏则返回默认值
             }
-        }
-
-        private static HostPlatform DetectNativeHostPlatform()
-        {
-            if (RuntimeInformation.OSArchitecture == Architecture.Arm64)
-                return HostPlatform.Arm64;
-
-            try
-            {
-                using var searcher = new ManagementObjectSearcher("SELECT Manufacturer FROM Win32_Processor");
-                string? manufacturer = searcher.Get().Cast<ManagementBaseObject>()
-                    .FirstOrDefault()?["Manufacturer"]?.ToString();
-
-                if (string.Equals(manufacturer, "AuthenticAMD", StringComparison.OrdinalIgnoreCase))
-                    return HostPlatform.Amd;
-                if (string.Equals(manufacturer, "GenuineIntel", StringComparison.OrdinalIgnoreCase))
-                    return HostPlatform.Intel;
-            }
-            catch { }
-
-            return HostPlatform.Unknown;
         }
 
         // 保存语言设置并重启应用

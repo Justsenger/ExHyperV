@@ -45,23 +45,26 @@ internal static class GpuDriverPackageResolver
         using RegistryKey baseKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64);
         string classSubKeyName = GetSelectedDisplayClassSubKeyName(baseKey, gpuInstancePath);
         if (string.IsNullOrWhiteSpace(classSubKeyName))
-            throw new InvalidOperationException("Unable to map the selected GPU-PV instance to its display-class key.");
+            throw new InvalidOperationException(Properties.Resources.GpuDriverPackage_InstanceMapFailed);
 
         using RegistryKey adapterKey = baseKey.OpenSubKey(
             $@"SYSTEM\CurrentControlSet\Control\Class\{DisplayClassGuid}\{classSubKeyName}")
-            ?? throw new InvalidOperationException("The selected display-class registry key does not exist.");
+            ?? throw new InvalidOperationException(Properties.Resources.GpuDriverPackage_DisplayClassKeyMissing);
 
         string publishedInfName = adapterKey.GetValue("InfPath")?.ToString() ?? string.Empty;
         if (string.IsNullOrWhiteSpace(publishedInfName))
-            throw new InvalidOperationException("The selected display adapter does not expose its published INF name.");
+            throw new InvalidOperationException(Properties.Resources.GpuDriverPackage_PublishedInfMissing);
 
         string primaryInfPath = Win32Api.GetInfDriverStoreLocation(publishedInfName);
         DirectoryInfo primaryDirectory = GetPackageDirectory(primaryInfPath);
         DirectoryInfo fileRepository = primaryDirectory.Parent
-            ?? throw new InvalidOperationException($"Invalid DriverStore package path: {primaryDirectory.FullName}");
+            ?? throw new InvalidOperationException(string.Format(
+                Properties.Resources.GpuDriverPackage_InvalidPackagePath,
+                primaryDirectory.FullName));
         if (!fileRepository.Name.Equals("FileRepository", StringComparison.OrdinalIgnoreCase))
-            throw new InvalidOperationException(
-                $"SetupAPI returned a path outside DriverStore\\FileRepository: {primaryInfPath}");
+            throw new InvalidOperationException(string.Format(
+                Properties.Resources.GpuDriverPackage_OutsideFileRepository,
+                primaryInfPath));
 
         GpuDriverVendor vendor = ResolveVendor(
             gpuInstancePath,
@@ -102,7 +105,9 @@ internal static class GpuDriverPackageResolver
                 }
                 catch (InvalidOperationException ex)
                 {
-                    warnings.Add($"[GPU Package] Optional AMD OpenCL package was not selected: {ex.Message}");
+                    warnings.Add(string.Format(
+                        Properties.Resources.GpuDriverPackage_OptionalOpenClWarning,
+                        ex.Message));
                 }
             }
 
@@ -119,7 +124,9 @@ internal static class GpuDriverPackageResolver
                 }
                 catch (InvalidOperationException ex)
                 {
-                    warnings.Add($"[GPU Package] Optional AMD Windows-support package was not selected: {ex.Message}");
+                    warnings.Add(string.Format(
+                        Properties.Resources.GpuDriverPackage_OptionalWindowsSupportWarning,
+                        ex.Message));
                 }
             }
         }
@@ -143,8 +150,9 @@ internal static class GpuDriverPackageResolver
         string dependencyInfName)
     {
         string primaryDriverVersion = ReadInfDirective(primaryPackage.Inf, "DriverVer")
-            ?? throw new InvalidOperationException(
-                $"DriverVer is missing from the selected display INF: {primaryPackage.Inf.FullName}");
+            ?? throw new InvalidOperationException(string.Format(
+                Properties.Resources.GpuDriverPackage_DriverVersionMissing,
+                primaryPackage.Inf.FullName));
         var candidates = new List<DriverPackage>();
 
         foreach (DirectoryInfo directory in fileRepository.EnumerateDirectories())
@@ -171,10 +179,14 @@ internal static class GpuDriverPackageResolver
         return candidates.Count switch
         {
             1 => candidates[0],
-            0 => throw new InvalidOperationException(
-                $"The declared companion {dependencyInfName} with DriverVer {primaryDriverVersion} is not installed."),
-            _ => throw new InvalidOperationException(
-                $"The declared companion {dependencyInfName} with DriverVer {primaryDriverVersion} is ambiguous.")
+            0 => throw new InvalidOperationException(string.Format(
+                Properties.Resources.GpuDriverPackage_CompanionNotInstalled,
+                dependencyInfName,
+                primaryDriverVersion)),
+            _ => throw new InvalidOperationException(string.Format(
+                Properties.Resources.GpuDriverPackage_CompanionAmbiguous,
+                dependencyInfName,
+                primaryDriverVersion))
         };
     }
 
@@ -223,9 +235,13 @@ internal static class GpuDriverPackageResolver
     {
         var inf = new FileInfo(infPath);
         if (!inf.Exists)
-            throw new FileNotFoundException("SetupAPI returned an INF which does not exist.", infPath);
+            throw new FileNotFoundException(string.Format(
+                Properties.Resources.GpuDriverPackage_InfNotFound,
+                infPath), infPath);
         return inf.Directory
-            ?? throw new InvalidOperationException($"Invalid DriverStore INF path: {infPath}");
+            ?? throw new InvalidOperationException(string.Format(
+                Properties.Resources.GpuDriverPackage_InvalidInfPath,
+                infPath));
     }
 
     private static GpuDriverVendor ResolveVendor(

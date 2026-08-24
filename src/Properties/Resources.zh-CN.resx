@@ -858,6 +858,45 @@
   <data name="Error_Gpu_InjectFailed" xml:space="preserve">
     <value>注入失败: {0}</value>
   </data>
+  <data name="Error_Gpu_AssignDriveLetterFailed" xml:space="preserve">
+    <value>无法分配临时盘符。</value>
+  </data>
+  <data name="GpuDriverPackage_InstanceMapFailed" xml:space="preserve">
+    <value>无法将所选 GPU-PV 实例映射到显示适配器类注册表项。</value>
+  </data>
+  <data name="GpuDriverPackage_DisplayClassKeyMissing" xml:space="preserve">
+    <value>所选显示适配器类注册表项不存在。</value>
+  </data>
+  <data name="GpuDriverPackage_PublishedInfMissing" xml:space="preserve">
+    <value>所选显示适配器未提供已发布 INF 名称。</value>
+  </data>
+  <data name="GpuDriverPackage_InvalidPackagePath" xml:space="preserve">
+    <value>无效的 DriverStore 驱动包路径：{0}</value>
+  </data>
+  <data name="GpuDriverPackage_OutsideFileRepository" xml:space="preserve">
+    <value>SetupAPI 返回了 DriverStore\FileRepository 之外的路径：{0}</value>
+  </data>
+  <data name="GpuDriverPackage_DriverVersionMissing" xml:space="preserve">
+    <value>所选显示适配器 INF 缺少 DriverVer：{0}</value>
+  </data>
+  <data name="GpuDriverPackage_CompanionNotInstalled" xml:space="preserve">
+    <value>声明的配套驱动包 {0}（DriverVer {1}）未安装。</value>
+  </data>
+  <data name="GpuDriverPackage_CompanionAmbiguous" xml:space="preserve">
+    <value>找到多个名为 {0} 且 DriverVer 为 {1} 的配套驱动包。</value>
+  </data>
+  <data name="GpuDriverPackage_InfNotFound" xml:space="preserve">
+    <value>SetupAPI 返回的 INF 不存在：{0}</value>
+  </data>
+  <data name="GpuDriverPackage_InvalidInfPath" xml:space="preserve">
+    <value>无效的 DriverStore INF 路径：{0}</value>
+  </data>
+  <data name="GpuDriverPackage_OptionalOpenClWarning" xml:space="preserve">
+    <value>[GPU 驱动包] 未选择可选的 AMD OpenCL 驱动包：{0}</value>
+  </data>
+  <data name="GpuDriverPackage_OptionalWindowsSupportWarning" xml:space="preserve">
+    <value>[GPU 驱动包] 未选择可选的 AMD Windows 支持驱动包：{0}</value>
+  </data>
   <data name="Msg_Gpu_Remounting" xml:space="preserve">
     <value>正在执行物理磁盘安全回挂流程...</value>
   </data>
@@ -2544,6 +2583,12 @@
   <data name="VmPage_ConfigDirNotFound" xml:space="preserve">
     <value>找不到虚拟机配置目录</value>
   </data>
+  <data name="VmPage_CurrentUserUnavailable" xml:space="preserve">
+    <value>无法识别当前 Windows 用户。</value>
+  </data>
+  <data name="VmPage_FolderAccessFailed" xml:space="preserve">
+    <value>无法为当前用户授予虚拟机文件夹访问权限。</value>
+  </data>
   <data name="VmPage_PurgeTitle" xml:space="preserve">
     <value>彻底删除</value>
   </data>
@@ -3738,6 +3783,15 @@
   <data name="VmExport_TargetExists" xml:space="preserve">
     <value>所选位置已经存在名为“{0}”的目录。</value>
   </data>
+  <data name="VmExport_ConfigurationMissing" xml:space="preserve">
+    <value>Hyper-V 已完成导出，但未找到虚拟机配置文件。</value>
+  </data>
+  <data name="VmExport_ExportDirectoryMissing" xml:space="preserve">
+    <value>导出的虚拟机目录不存在。</value>
+  </data>
+  <data name="VmExport_PackageExists" xml:space="preserve">
+    <value>导出压缩包已存在。</value>
+  </data>
   <data name="VmExport_DiskSelectionCheckpointsConflict" xml:space="preserve">
     <value>导出检查点时必须包括全部虚拟硬盘。</value>
   </data>
@@ -3776,5 +3830,11 @@
   </data>
   <data name="VmExport_PackageFailed" xml:space="preserve">
     <value>打包失败：{0}</value>
+  </data>
+  <data name="VmExport_PackageCleanupWarning" xml:space="preserve">
+    <value>ZIP 文件已创建，但无法删除原导出文件夹：{0}</value>
+  </data>
+  <data name="Error_Wmi_CreateInstanceFailed" xml:space="preserve">
+    <value>WMI 类“{0}”无法创建实例。</value>
   </data>
 </root>

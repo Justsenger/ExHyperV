@@ -22,7 +22,7 @@ namespace ExHyperV.Services
                 using WindowsIdentity identity = WindowsIdentity.GetCurrent(TokenAccessLevels.Query);
                 SecurityIdentifier? currentUser = identity.User;
                 if (currentUser == null)
-                    return (false, "Unable to identify the current Windows user.");
+                    return (false, Properties.Resources.VmPage_CurrentUserUnavailable);
 
                 lock (AclLock)
                 {
@@ -57,7 +57,8 @@ namespace ExHyperV.Services
             }
             catch (Exception ex)
             {
-                return (false, ex.Message);
+                System.Diagnostics.Debug.WriteLine($"[VM Folder Access] {ex}");
+                return (false, Properties.Resources.VmPage_FolderAccessFailed);
             }
         }
 

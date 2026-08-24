@@ -142,7 +142,7 @@ public static class VmPcieService
                 return ApiResponse.Fail(
                     id.Error.Length > 0
                         ? id.Error
-                        : PcieResource("VmPcie_SettingsNotFound"));
+                        : Properties.Resources.VmPcie_SettingsNotFound);
 
             string escapedId = WmiApi.Escape(id.Data!);
             return await WmiApi.WithObjectAsync(
@@ -202,9 +202,6 @@ public static class VmPcieService
             $"WHERE ElementName = '{escapedVmName}' " +
             $"AND VirtualSystemType = 'Microsoft:Hyper-V:System:Realized'",
             obj => WmiApi.PropStr(obj, "InstanceID"));
-
-    private static string PcieResource(string name)
-        => Properties.Resources.ResourceManager.GetString(name) ?? name;
 
     private static string ExtractPhysicalDeviceId(string hostResource)
     {

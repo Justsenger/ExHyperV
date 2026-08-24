@@ -858,6 +858,45 @@ The existing NAT switch is: '{0}'</value>
   <data name="Error_Gpu_InjectFailed" xml:space="preserve">
     <value>Injection failed: {0}</value>
   </data>
+  <data name="Error_Gpu_AssignDriveLetterFailed" xml:space="preserve">
+    <value>Failed to assign a temporary drive letter.</value>
+  </data>
+  <data name="GpuDriverPackage_InstanceMapFailed" xml:space="preserve">
+    <value>Unable to map the selected GPU-PV instance to its display-class registry key.</value>
+  </data>
+  <data name="GpuDriverPackage_DisplayClassKeyMissing" xml:space="preserve">
+    <value>The selected display-class registry key does not exist.</value>
+  </data>
+  <data name="GpuDriverPackage_PublishedInfMissing" xml:space="preserve">
+    <value>The selected display adapter does not provide a published INF name.</value>
+  </data>
+  <data name="GpuDriverPackage_InvalidPackagePath" xml:space="preserve">
+    <value>Invalid DriverStore package path: {0}</value>
+  </data>
+  <data name="GpuDriverPackage_OutsideFileRepository" xml:space="preserve">
+    <value>SetupAPI returned a path outside DriverStore\FileRepository: {0}</value>
+  </data>
+  <data name="GpuDriverPackage_DriverVersionMissing" xml:space="preserve">
+    <value>DriverVer is missing from the selected display INF: {0}</value>
+  </data>
+  <data name="GpuDriverPackage_CompanionNotInstalled" xml:space="preserve">
+    <value>The declared companion package {0} with DriverVer {1} is not installed.</value>
+  </data>
+  <data name="GpuDriverPackage_CompanionAmbiguous" xml:space="preserve">
+    <value>Multiple companion packages named {0} with DriverVer {1} were found.</value>
+  </data>
+  <data name="GpuDriverPackage_InfNotFound" xml:space="preserve">
+    <value>The INF returned by SetupAPI does not exist: {0}</value>
+  </data>
+  <data name="GpuDriverPackage_InvalidInfPath" xml:space="preserve">
+    <value>Invalid DriverStore INF path: {0}</value>
+  </data>
+  <data name="GpuDriverPackage_OptionalOpenClWarning" xml:space="preserve">
+    <value>[GPU Package] Optional AMD OpenCL package was not selected: {0}</value>
+  </data>
+  <data name="GpuDriverPackage_OptionalWindowsSupportWarning" xml:space="preserve">
+    <value>[GPU Package] Optional AMD Windows-support package was not selected: {0}</value>
+  </data>
   <data name="Msg_Gpu_Remounting" xml:space="preserve">
     <value>Executing physical disk secure remount...</value>
   </data>
@@ -2544,6 +2583,12 @@ The existing NAT switch is: '{0}'</value>
   <data name="VmPage_ConfigDirNotFound" xml:space="preserve">
     <value>VM configuration directory not found</value>
   </data>
+  <data name="VmPage_CurrentUserUnavailable" xml:space="preserve">
+    <value>Unable to identify the current Windows user.</value>
+  </data>
+  <data name="VmPage_FolderAccessFailed" xml:space="preserve">
+    <value>Unable to grant the current user access to the virtual machine folder.</value>
+  </data>
   <data name="VmPage_PurgeTitle" xml:space="preserve">
     <value>Permanently Delete</value>
   </data>
@@ -3738,6 +3783,15 @@ Remove them from storage and retry? Cancel to re-plug the device and try again.<
   <data name="VmExport_TargetExists" xml:space="preserve">
     <value>A folder named “{0}” already exists in the selected location.</value>
   </data>
+  <data name="VmExport_ConfigurationMissing" xml:space="preserve">
+    <value>Hyper-V completed the export, but no virtual machine configuration file was found.</value>
+  </data>
+  <data name="VmExport_ExportDirectoryMissing" xml:space="preserve">
+    <value>The exported virtual machine directory does not exist.</value>
+  </data>
+  <data name="VmExport_PackageExists" xml:space="preserve">
+    <value>The export package already exists.</value>
+  </data>
   <data name="VmExport_DiskSelectionCheckpointsConflict" xml:space="preserve">
     <value>All virtual hard disks must be included when checkpoints are exported.</value>
   </data>
@@ -3776,5 +3830,11 @@ Remove them from storage and retry? Cancel to re-plug the device and try again.<
   </data>
   <data name="VmExport_PackageFailed" xml:space="preserve">
     <value>Packaging failed: {0}</value>
+  </data>
+  <data name="VmExport_PackageCleanupWarning" xml:space="preserve">
+    <value>The ZIP file was created, but the exported folder could not be removed: {0}</value>
+  </data>
+  <data name="Error_Wmi_CreateInstanceFailed" xml:space="preserve">
+    <value>WMI class “{0}” could not create an instance.</value>
   </data>
 </root>

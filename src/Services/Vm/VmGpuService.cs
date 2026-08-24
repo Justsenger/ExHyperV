@@ -556,7 +556,9 @@ namespace ExHyperV.Services
                 char suggestedLetter = GetFreeDriveLetter();
                 var assignResult = await VmStorageService.AssignPartitionDriveLetterAsync(hostDiskNumber, partition.PartitionNumber, suggestedLetter);
                 if (!assignResult.Success)
-                    return string.Format(Properties.Resources.Error_Gpu_InjectFailed, "Failed to assign drive letter");
+                    return string.Format(
+                        Properties.Resources.Error_Gpu_InjectFailed,
+                        Properties.Resources.Error_Gpu_AssignDriveLetterFailed);
                 assignedDriveLetter = $"{suggestedLetter}:\\";
 
                 var volResp = await WmiApi.QueryFirstCimAsync(

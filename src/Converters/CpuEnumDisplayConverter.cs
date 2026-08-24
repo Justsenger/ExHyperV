@@ -16,21 +16,29 @@ namespace ExHyperV.Converters
         {
             if (value == null) return string.Empty;
 
-            string prefix = value switch
+            return value switch
             {
-                SmtMode => "Smt",
-                VmMigrationCompatibilityMode => "Migration",
-                VmApicMode => "Apic",
-                L3DistributionPolicy => "L3",
-                PageShatterMode => "Shatter",
-                LpiMode => "Lpi",
-                _ => null
+                SmtMode.Inherit => Properties.Resources.CpuEnum_Smt_Inherit,
+                SmtMode.SingleThread => Properties.Resources.CpuEnum_Smt_SingleThread,
+                SmtMode.MultiThread => Properties.Resources.CpuEnum_Smt_MultiThread,
+                VmMigrationCompatibilityMode.MinimumFeatureSet => Properties.Resources.CpuEnum_Migration_MinimumFeatureSet,
+                VmMigrationCompatibilityMode.CommonClusterFeatureSet => Properties.Resources.CpuEnum_Migration_CommonClusterFeatureSet,
+                VmApicMode.Default => Properties.Resources.CpuEnum_Apic_Default,
+                VmApicMode.Legacy => Properties.Resources.CpuEnum_Apic_Legacy,
+                VmApicMode.Apic => Properties.Resources.CpuEnum_Apic_Apic,
+                VmApicMode.X2Apic => Properties.Resources.CpuEnum_Apic_X2Apic,
+                L3DistributionPolicy.SmallToLarge => Properties.Resources.CpuEnum_L3_SmallToLarge,
+                L3DistributionPolicy.LargeToSmall => Properties.Resources.CpuEnum_L3_LargeToSmall,
+                L3DistributionPolicy.EvenSmallToLarge => Properties.Resources.CpuEnum_L3_EvenSmallToLarge,
+                L3DistributionPolicy.EvenLargeToSmall => Properties.Resources.CpuEnum_L3_EvenLargeToSmall,
+                PageShatterMode.Default => Properties.Resources.CpuEnum_Shatter_Default,
+                PageShatterMode.AlwaysEnabled => Properties.Resources.CpuEnum_Shatter_AlwaysEnabled,
+                PageShatterMode.AlwaysDisabled => Properties.Resources.CpuEnum_Shatter_AlwaysDisabled,
+                LpiMode.Default => Properties.Resources.CpuEnum_Lpi_Default,
+                LpiMode.Disabled => Properties.Resources.CpuEnum_Lpi_Disabled,
+                LpiMode.Enabled => Properties.Resources.CpuEnum_Lpi_Enabled,
+                _ => value.ToString() ?? string.Empty
             };
-            if (prefix == null) return value.ToString();
-
-            string key = $"CpuEnum_{prefix}_{value}";
-            string text = Properties.Resources.ResourceManager.GetString(key, Properties.Resources.Culture);
-            return string.IsNullOrEmpty(text) ? value.ToString() : text;
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)

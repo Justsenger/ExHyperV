@@ -11,9 +11,14 @@ public enum VmExportPackageMode
     Compress
 }
 
+public sealed record VmExportPackageResult(
+    string ArchivePath,
+    bool SourceDirectoryRemoved,
+    string? CleanupError);
+
 public static class VmExportPackagingService
 {
-    public static Task<ApiResponse<string>> CreatePackageAsync(
+    public static Task<ApiResponse<VmExportPackageResult>> CreatePackageAsync(
         string sourceDirectory,
         string destinationArchivePath,
         VmExportPackageMode mode,
@@ -26,10 +31,12 @@ public static class VmExportPackagingService
             try
             {
                 if (!Directory.Exists(sourceDirectory))
-                    return ApiResponse<string>.Fail("The exported virtual machine directory does not exist.");
+                    return ApiResponse<VmExportPackageResult>.Fail(
+                        Properties.Resources.VmExport_ExportDirectoryMissing);
 
                 if (File.Exists(destinationArchivePath) || Directory.Exists(destinationArchivePath))
-                    return ApiResponse<string>.Fail("The export package already exists.");
+                    return ApiResponse<VmExportPackageResult>.Fail(
+                        Properties.Resources.VmExport_PackageExists);
 
                 if (File.Exists(temporaryArchivePath))
                     File.Delete(temporaryArchivePath);
@@ -99,24 +106,30 @@ public static class VmExportPackagingService
                 }
 
                 File.Move(temporaryArchivePath, destinationArchivePath);
-                TryDeleteDirectory(sourceDirectory);
+                var cleanup = TryDeleteDirectory(sourceDirectory);
                 progress?.Report(100);
-                return ApiResponse<string>.Ok(destinationArchivePath);
+                return ApiResponse<VmExportPackageResult>.Ok(new VmExportPackageResult(
+                    destinationArchivePath,
+                    cleanup.Removed,
+                    cleanup.Error));
             }
             catch (OperationCanceledException ex)
             {
                 TryDelete(temporaryArchivePath);
-                return ApiResponse<string>.Fail(ex.Message, -1, ApiErrorSource.None, ex);
+                return ApiResponse<VmExportPackageResult>.Fail(
+                    ex.Message, -1, ApiErrorSource.None, ex);
             }
             catch (UnauthorizedAccessException ex)
             {
                 TryDelete(temporaryArchivePath);
-                return ApiResponse<string>.Fail(ex.Message, 5, ApiErrorSource.Win32, ex);
+                return ApiResponse<VmExportPackageResult>.Fail(
+                    ex.Message, 5, ApiErrorSource.Win32, ex);
             }
             catch (Exception ex)
             {
                 TryDelete(temporaryArchivePath);
-                return ApiResponse<string>.Fail(ex.Message, -1, ApiErrorSource.None, ex);
+                return ApiResponse<VmExportPackageResult>.Fail(
+                    ex.Message, -1, ApiErrorSource.None, ex);
             }
         }, cancellationToken);
 
@@ -133,16 +146,18 @@ public static class VmExportPackagingService
         }
     }
 
-    private static void TryDeleteDirectory(string path)
+    private static (bool Removed, string? Error) TryDeleteDirectory(string path)
     {
         try
         {
             if (Directory.Exists(path))
                 Directory.Delete(path, recursive: true);
+
+            return (true, null);
         }
-        catch
+        catch (Exception ex)
         {
-            // The ZIP is already complete. Keep the exported folder if cleanup is blocked.
+            return (false, ex.Message);
         }
     }
 }

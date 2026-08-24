@@ -27,6 +27,11 @@ public static class VmExportService
         string ResourceSubType,
         string[] HostResources);
 
+    private sealed record CheckpointSelection(
+        string VirtualSystemType,
+        string VirtualSystemIdentifier,
+        string Path);
+
     public static async Task<ApiResponse<List<VirtualHardDiskInfo>>> GetVirtualHardDisksAsync(
         Guid vmId)
     {
@@ -132,11 +137,12 @@ public static class VmExportService
                     return ApiResponse<string>.Fail(Properties.Resources.Error_Net_VmNotFound);
 
                 if (!Directory.Exists(destinationRoot))
-                    return ApiResponse<string>.Fail("The export destination does not exist.");
+                    return ApiResponse<string>.Fail(Properties.Resources.VmExport_PathRequired);
 
                 string exportDirectory = Path.Combine(destinationRoot, vmName);
                 if (Directory.Exists(exportDirectory) || File.Exists(exportDirectory))
-                    return ApiResponse<string>.Fail("The export target already exists.");
+                    return ApiResponse<string>.Fail(
+                        string.Format(Properties.Resources.VmExport_TargetExists, vmName));
 
                 if (checkpointMode != VmExportCheckpointMode.None
                     && excludedVirtualHardDiskIds.Count > 0)
@@ -148,12 +154,6 @@ public static class VmExportService
                 if (vm == null)
                     return ApiResponse<string>.Fail(Properties.Resources.Error_Net_VmNotFound);
 
-                using var settingClass = new ManagementClass(
-                    service.Scope,
-                    new ManagementPath("Msvm_VirtualSystemExportSettingData"),
-                    null);
-                using var settings = settingClass.CreateInstance();
-
                 string? validatedCheckpointPath = null;
                 if (checkpointMode == VmExportCheckpointMode.Single)
                 {
@@ -161,72 +161,105 @@ public static class VmExportService
                         return ApiResponse<string>.Fail(
                             Properties.Resources.VmExport_CheckpointSelectionRequired);
 
-                    using var checkpoint = new ManagementObject(
-                        service.Scope,
-                        new ManagementPath(selectedCheckpointPath),
-                        null);
-                    checkpoint.Get();
+                    var checkpointResult = await WmiApi.GetByPathAsync(
+                        selectedCheckpointPath,
+                        checkpoint => new CheckpointSelection(
+                            checkpoint["VirtualSystemType"]?.ToString() ?? string.Empty,
+                            checkpoint["VirtualSystemIdentifier"]?.ToString() ?? string.Empty,
+                            checkpoint.Path.Path),
+                        WmiScope.HyperV);
 
-                    string checkpointType = checkpoint["VirtualSystemType"]?.ToString() ?? string.Empty;
-                    string checkpointVmId = checkpoint["VirtualSystemIdentifier"]?.ToString() ?? string.Empty;
-                    string vmId = vm["Name"]?.ToString() ?? string.Empty;
+                    if (!checkpointResult.Success)
+                        return ApiResponse<string>.Fail(
+                            checkpointResult.Error,
+                            checkpointResult.Code,
+                            checkpointResult.ErrorSource);
+
+                    if (!checkpointResult.HasData)
+                        return ApiResponse<string>.Fail(
+                            Properties.Resources.VmExport_CheckpointUnavailable);
+
+                    var checkpoint = checkpointResult.Data!;
+                    string realizedVmId = vm["Name"]?.ToString() ?? string.Empty;
                     if (!string.Equals(
-                            checkpointType,
+                            checkpoint.VirtualSystemType,
                             "Microsoft:Hyper-V:Snapshot:Realized",
                             StringComparison.OrdinalIgnoreCase)
-                        || !string.Equals(checkpointVmId, vmId, StringComparison.OrdinalIgnoreCase))
+                        || !string.Equals(
+                            checkpoint.VirtualSystemIdentifier,
+                            realizedVmId,
+                            StringComparison.OrdinalIgnoreCase))
                     {
                         return ApiResponse<string>.Fail(
                             Properties.Resources.VmExport_CheckpointUnavailable);
                     }
 
-                    if (!settings.HasProperty("SnapshotVirtualSystem"))
-                        return ApiResponse<string>.Fail(
-                            Properties.Resources.VmExport_CheckpointSelectionUnsupported);
-
-                    validatedCheckpointPath = checkpoint.Path.Path;
+                    validatedCheckpointPath = checkpoint.Path;
                 }
-
-                settings["CopySnapshotConfiguration"] = checkpointMode switch
-                {
-                    VmExportCheckpointMode.All => (byte)0,
-                    VmExportCheckpointMode.None => (byte)1,
-                    VmExportCheckpointMode.Single => (byte)2,
-                    _ => (byte)1
-                };
-
-                if (validatedCheckpointPath != null)
-                    settings["SnapshotVirtualSystem"] = validatedCheckpointPath;
 
                 bool effectiveIncludeStorage = checkpointMode == VmExportCheckpointMode.Single
                     || includeVirtualHardDisks;
                 bool effectiveIncludeRuntime = checkpointMode == VmExportCheckpointMode.Single
                     || includeRuntimeState;
 
-                settings["CopyVmStorage"] = effectiveIncludeStorage;
-                settings["CopyVmRuntimeInformation"] = effectiveIncludeRuntime;
-                settings["CreateVmExportSubdirectory"] = true;
+                var settingsResult = await WmiApi.CreateInstanceTextAsync(
+                    "Msvm_VirtualSystemExportSettingData",
+                    settings =>
+                    {
+                        if (validatedCheckpointPath != null
+                            && !settings.HasProperty("SnapshotVirtualSystem"))
+                        {
+                            return ApiResponse.Fail(
+                                Properties.Resources.VmExport_CheckpointSelectionUnsupported);
+                        }
 
-                if (checkpointMode == VmExportCheckpointMode.None
-                    && includeVirtualHardDisks
-                    && excludedVirtualHardDiskIds.Count > 0)
-                {
-                    if (!settings.HasProperty("ExcludedVirtualHardDisks"))
-                        return ApiResponse<string>.Fail(
-                            Properties.Resources.VmExport_SelectDisksUnsupported);
+                        settings["CopySnapshotConfiguration"] = checkpointMode switch
+                        {
+                            VmExportCheckpointMode.All => (byte)0,
+                            VmExportCheckpointMode.None => (byte)1,
+                            VmExportCheckpointMode.Single => (byte)2,
+                            _ => (byte)1
+                        };
 
-                    settings["ExcludedVirtualHardDisks"] =
-                        excludedVirtualHardDiskIds.ToArray();
+                        if (validatedCheckpointPath != null)
+                            settings["SnapshotVirtualSystem"] = validatedCheckpointPath;
 
-                    if (settings.HasProperty("DisableDifferentialOfIgnoredStorage"))
-                        settings["DisableDifferentialOfIgnoredStorage"] = true;
-                }
+                        settings["CopyVmStorage"] = effectiveIncludeStorage;
+                        settings["CopyVmRuntimeInformation"] = effectiveIncludeRuntime;
+                        settings["CreateVmExportSubdirectory"] = true;
 
-                // Running VMs can be exported either crash-consistently or with saved state.
-                if (settings.HasProperty("CaptureLiveState"))
-                    settings["CaptureLiveState"] = effectiveIncludeRuntime ? (byte)1 : (byte)0;
+                        if (checkpointMode == VmExportCheckpointMode.None
+                            && includeVirtualHardDisks
+                            && excludedVirtualHardDiskIds.Count > 0)
+                        {
+                            if (!settings.HasProperty("ExcludedVirtualHardDisks"))
+                            {
+                                return ApiResponse.Fail(
+                                    Properties.Resources.VmExport_SelectDisksUnsupported);
+                            }
 
-                string settingsXml = settings.GetText(TextFormat.CimDtd20);
+                            settings["ExcludedVirtualHardDisks"] =
+                                excludedVirtualHardDiskIds.ToArray();
+
+                            if (settings.HasProperty("DisableDifferentialOfIgnoredStorage"))
+                                settings["DisableDifferentialOfIgnoredStorage"] = true;
+                        }
+
+                        // Running VMs can be exported either crash-consistently or with saved state.
+                        if (settings.HasProperty("CaptureLiveState"))
+                            settings["CaptureLiveState"] = effectiveIncludeRuntime ? (byte)1 : (byte)0;
+
+                        return ApiResponse.Ok();
+                    },
+                    WmiScope.HyperV);
+
+                if (!settingsResult.Success)
+                    return ApiResponse<string>.Fail(
+                        settingsResult.Error,
+                        settingsResult.Code,
+                        settingsResult.ErrorSource);
+
+                string settingsXml = settingsResult.Data!;
                 var result = await WmiApi.InvokeOnObjectAsync(
                     service,
                     "ExportSystemDefinition",
@@ -250,7 +283,7 @@ public static class VmExportService
                         exportDirectory, "*.vmcx", SearchOption.AllDirectories).Any();
                 return hasConfiguration
                     ? ApiResponse<string>.Ok(exportDirectory)
-                    : ApiResponse<string>.Fail("Hyper-V completed the export but no virtual machine configuration was found.");
+                    : ApiResponse<string>.Fail(Properties.Resources.VmExport_ConfigurationMissing);
             }
             catch (ManagementException ex)
             {

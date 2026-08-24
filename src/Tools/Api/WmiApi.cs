@@ -459,6 +459,57 @@ public static class WmiApi
     }
 
     /// <summary>
+    /// 创建未提交的 WMI 类实例，在回调中配置属性，并序列化为可嵌入方法参数的 CIM DTD 文本。
+    /// 实例仅在回调期间有效，生命周期和异常归类均由 WmiApi 管理。
+    /// </summary>
+    public static Task<ApiResponse<string>> CreateInstanceTextAsync(
+        string className,
+        Func<ManagementObject, ApiResponse> configure,
+        string scope = WmiScope.HyperV,
+        WmiContext? ctx = null)
+    {
+        ctx ??= WmiContext.Local;
+
+        return Task.Run(() =>
+        {
+            try
+            {
+                var ms = WmiConnectionCache.GetManagementScope(scope, ctx);
+                using var cls = new ManagementClass(ms, new ManagementPath(className), null);
+                using var instance = cls.CreateInstance();
+                if (instance is null)
+                    return ApiResponse<string>.Fail(
+                        string.Format(
+                            Properties.Resources.Error_Wmi_CreateInstanceFailed,
+                            className));
+
+                var configureResult = configure(instance);
+                if (!configureResult.Success)
+                    return ApiResponse<string>.Fail(
+                        configureResult.Error,
+                        configureResult.Code,
+                        configureResult.ErrorSource);
+
+                return ApiResponse<string>.Ok(instance.GetText(TextFormat.CimDtd20));
+            }
+            catch (ManagementException ex)
+            {
+                return ApiResponse<string>.Fail(
+                    ex.Message, (int)ex.ErrorCode, ApiErrorSource.Wmi, ex);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return ApiResponse<string>.Fail(
+                    ex.Message, 5, ApiErrorSource.Win32, ex);
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<string>.Fail(ex.Message, -1, ApiErrorSource.None, ex);
+            }
+        });
+    }
+
+    /// <summary>
     /// 原 InvokeCimMethodAsync 的替代。
     /// 在已有 ManagementObject 上调用方法，直接委托 InvokeOnObjectAsync。
     /// </summary>
