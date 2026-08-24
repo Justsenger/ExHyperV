@@ -3790,7 +3790,7 @@ Remove them from storage and retry? Cancel to re-plug the device and try again.<
     <value>The exported virtual machine directory does not exist.</value>
   </data>
   <data name="VmExport_PackageExists" xml:space="preserve">
-    <value>The export package already exists.</value>
+    <value>A ZIP file named “{0}” already exists in the selected location.</value>
   </data>
   <data name="VmExport_DiskSelectionCheckpointsConflict" xml:space="preserve">
     <value>All virtual hard disks must be included when checkpoints are exported.</value>

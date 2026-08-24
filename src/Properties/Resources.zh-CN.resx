@@ -3790,7 +3790,7 @@
     <value>导出的虚拟机目录不存在。</value>
   </data>
   <data name="VmExport_PackageExists" xml:space="preserve">
-    <value>导出压缩包已存在。</value>
+    <value>所选位置已经存在名为“{0}”的 ZIP 文件。</value>
   </data>
   <data name="VmExport_DiskSelectionCheckpointsConflict" xml:space="preserve">
     <value>导出检查点时必须包括全部虚拟硬盘。</value>

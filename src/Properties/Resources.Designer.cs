@@ -9816,7 +9816,7 @@ namespace ExHyperV.Properties {
         }
 
         /// <summary>
-        ///   查找类似 The export package already exists. 的本地化字符串。
+        ///   查找类似 A ZIP file named “{0}” already exists in the selected location. 的本地化字符串。
         /// </summary>
         public static string VmExport_PackageExists {
             get {

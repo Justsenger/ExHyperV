@@ -36,7 +36,9 @@ public static class VmExportPackagingService
 
                 if (File.Exists(destinationArchivePath) || Directory.Exists(destinationArchivePath))
                     return ApiResponse<VmExportPackageResult>.Fail(
-                        Properties.Resources.VmExport_PackageExists);
+                        string.Format(
+                            Properties.Resources.VmExport_PackageExists,
+                            Path.GetFileName(destinationArchivePath)));
 
                 if (File.Exists(temporaryArchivePath))
                     File.Delete(temporaryArchivePath);

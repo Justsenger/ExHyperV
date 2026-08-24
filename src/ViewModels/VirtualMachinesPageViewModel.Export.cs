@@ -294,13 +294,19 @@ public partial class VirtualMachinesPageViewModel
 
         string targetDirectory = Path.Combine(ExportDestinationPath, ExportVmName);
         string targetArchive = Path.Combine(ExportDestinationPath, ExportVmName + ".zip");
-        if (Directory.Exists(targetDirectory)
-            || File.Exists(targetDirectory)
-            || (ExportCreatesPackage
-                && (Directory.Exists(targetArchive) || File.Exists(targetArchive))))
+        if (Directory.Exists(targetDirectory) || File.Exists(targetDirectory))
         {
             ShowError(string.Format(
                 Properties.Resources.VmExport_TargetExists, ExportVmName));
+            return;
+        }
+
+        if (ExportCreatesPackage
+            && (Directory.Exists(targetArchive) || File.Exists(targetArchive)))
+        {
+            ShowError(string.Format(
+                Properties.Resources.VmExport_PackageExists,
+                Path.GetFileName(targetArchive)));
             return;
         }
 
@@ -308,6 +314,7 @@ public partial class VirtualMachinesPageViewModel
         ExportProgress = 0;
         ExportStatusText = Properties.Resources.VmExport_Preparing;
 
+        string completedOutputPath = targetDirectory;
         try
         {
             var progress = new Progress<int>(value =>
@@ -369,6 +376,7 @@ public partial class VirtualMachinesPageViewModel
                 }
 
                 VmExportPackageResult package = packageResult.Data!;
+                completedOutputPath = package.ArchivePath;
                 if (!package.SourceDirectoryRemoved)
                 {
                     ExportProgress = 100;
@@ -377,6 +385,7 @@ public partial class VirtualMachinesPageViewModel
                         FriendlyError.CleanLines(package.CleanupError ?? string.Empty));
                     ExportCompleted = true;
                     ShowError(ExportStatusText);
+                    Shell.Reveal(completedOutputPath);
                     return;
                 }
             }
@@ -385,6 +394,7 @@ public partial class VirtualMachinesPageViewModel
             ExportStatusText = Properties.Resources.VmExport_Completed;
             ExportCompleted = true;
             ShowSuccess(Properties.Resources.VmExport_Completed);
+            Shell.Reveal(completedOutputPath);
         }
         catch (Exception ex)
         {
