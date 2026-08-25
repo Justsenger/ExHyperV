@@ -22,6 +22,12 @@ namespace ExHyperV.Services
             return idx >= 0 ? instanceId.Substring(idx) : instanceId;
         }
 
+        private readonly record struct PciListEntry(
+            PciDeviceInfo Metadata,
+            string InstanceId,
+            string Path,
+            string Status);
+
         /// <summary>
         /// 同卡键：把 LocationPath 末段 PCI(设备号+功能号) 的功能号清零，
         /// 使同一物理多功能设备的各功能（如显卡 fn0 与板载声卡 fn1）归并到同一键。
@@ -144,59 +150,30 @@ namespace ExHyperV.Services
                             g => g.ToList(),
                             StringComparer.OrdinalIgnoreCase);
 
-                    // PCIP（已卸除）且不在 vmDeviceAssignments → 标为 removed
-                    foreach (var d in allPciDevices.Where(d =>
-                        d.InstanceId.StartsWith("PCIP\\", StringComparison.OrdinalIgnoreCase)))
+                    // ── 3. 按设备身份合并 PCI/PCIP 节点并判定当前归属 ──
+                    // Service 是功能驱动名，不是设备存在性或 DDA 可用性的依据；未装驱动时合法为空。
+                    // PnP 在位状态判定宿主设备，WMI 判定 VM 归属，在位 PCIP 判定“已卸除”。
+                    foreach (var entry in ResolvePciListEntries(allPciDevices, vmDeviceAssignments))
                     {
-                        string pureId = GetPureId(d.InstanceId);
-                        if (!string.IsNullOrEmpty(pureId) && !vmDeviceAssignments.ContainsKey(pureId))
-                            vmDeviceAssignments[pureId] = Properties.Resources.Status_Dismounted;
-                    }
-
-                    // ── 3. 构建 DeviceInfo（只用 PCI\* 在线设备）────────
-                    var sortedDevices = allPciDevices
-                        .Where(d => !string.IsNullOrEmpty(d.Service)
-                            && d.InstanceId.StartsWith("PCI\\", StringComparison.OrdinalIgnoreCase)
-                            && !d.InstanceId.StartsWith("PCIP\\", StringComparison.OrdinalIgnoreCase))
-                        .OrderBy(d => d.Service![0])
-                        .ToList();
-
-                    foreach (var pciDev in sortedDevices)
-                    {
-                        if (string.Equals(pciDev.Service, "pci", StringComparison.OrdinalIgnoreCase)) continue;
-
-                        string pureId = GetPureId(pciDev.InstanceId);
-                        vmDeviceAssignments.TryGetValue(pureId ?? string.Empty, out string? assignedVal);
-                        bool inAssignments = !string.IsNullOrEmpty(pureId) && assignedVal != null;
-                        assignedVal ??= string.Empty;
-
-                        string status;
-                        if (pciDev.Status == "Unknown" && !string.IsNullOrEmpty(pureId))
-                        {
-                            if (!inAssignments) continue;
-                            status = assignedVal;
-                        }
-                        else
-                        {
-                            status = HostKey;
-                        }
-
-                        string path = pciDev.FirstLocationPath ?? "";
+                        PciDeviceInfo pciDev = entry.Metadata;
                         string vendor = pciInfoProvider.GetVendorFromInstanceId(
-                            pciDev.InstanceId,
+                            pciDev.InstanceId.StartsWith("PCI\\", StringComparison.OrdinalIgnoreCase)
+                                ? pciDev.InstanceId
+                                : entry.InstanceId,
                             pciDev.Manufacturer);
-                        string displayClassType = pciDev.Class;
+                        string classType = pciDev.Class;
+                        string displayClassType = classType;
 
                         // System 类常被总线/复合设备驱动用于 PCIe 父节点，无法体现下层功能。
                         // 只在界面中附加真实存在的非 PCI 后代类别；原始 ClassType、直通路径、
                         // 名称、图标和排序均保持父设备本身。遇到另一个 PCI 节点即停止，
                         // 避免把可独立分配的下游 PCIe 设备归入当前父设备。
-                        if (string.Equals(pciDev.Class, "System", StringComparison.OrdinalIgnoreCase))
+                        if (string.Equals(classType, "System", StringComparison.OrdinalIgnoreCase))
                         {
                             var childClasses = GetNonPciDescendants(pciDev.InstanceId, childrenByParent)
-                                .Where(d => string.Equals(d.Status, "OK", StringComparison.OrdinalIgnoreCase)
+                                .Where(d => d.IsPresent
                                     && !string.IsNullOrWhiteSpace(d.Class)
-                                    && !string.Equals(d.Class, pciDev.Class, StringComparison.OrdinalIgnoreCase))
+                                    && !string.Equals(d.Class, classType, StringComparison.OrdinalIgnoreCase))
                                 .Select(d => d.Class)
                                 .Distinct(StringComparer.OrdinalIgnoreCase)
                                 .OrderBy(c => c, StringComparer.OrdinalIgnoreCase)
@@ -209,19 +186,21 @@ namespace ExHyperV.Services
                                     childClasses);
                                 displayClassType = string.Format(
                                     Properties.Resources.PCIePage_ClassWithChildTypes,
-                                    pciDev.Class,
+                                    classType,
                                     childClassList);
                             }
                         }
 
                         deviceList.Add(new DeviceInfo
                         {
-                            FriendlyName = pciDev.FriendlyName,
-                            Status = status,
-                            ClassType = pciDev.Class,
+                            FriendlyName = string.IsNullOrWhiteSpace(pciDev.FriendlyName)
+                                ? entry.InstanceId
+                                : pciDev.FriendlyName,
+                            Status = entry.Status,
+                            ClassType = classType,
                             DisplayClassType = displayClassType,
-                            InstanceId = pciDev.InstanceId,
-                            Path = path,
+                            InstanceId = entry.InstanceId,
+                            Path = entry.Path,
                             Vendor = vendor
                         });
                     }
@@ -269,6 +248,126 @@ namespace ExHyperV.Services
             });
 
             return (deviceList, vmNameList);
+        }
+
+        /// <summary>
+        /// 按设备实例身份合并 PCI（宿主设备）与 PCIP（Hyper-V 可分配设备）。
+        /// PureId 是状态判断的身份；LocationPath 仅作为 DDA 操作参数，不能用于把换卡后的历史节点
+        /// 与当前设备合并。非在位且没有 VM 分配记录的节点只是 PnP 历史记录，不生成列表项。
+        /// </summary>
+        private static List<PciListEntry> ResolvePciListEntries(
+            IReadOnlyList<PciDeviceInfo> allDevices,
+            IReadOnlyDictionary<string, string> vmDeviceAssignments)
+        {
+            static bool IsPci(PciDeviceInfo d) =>
+                d.InstanceId.StartsWith("PCI\\", StringComparison.OrdinalIgnoreCase);
+
+            static bool IsPcip(PciDeviceInfo d) =>
+                d.InstanceId.StartsWith("PCIP\\", StringComparison.OrdinalIgnoreCase);
+
+            static int MetadataScore(PciDeviceInfo d)
+            {
+                int score = 0;
+                if (!string.IsNullOrWhiteSpace(d.FriendlyName)) score += 8;
+                if (!string.IsNullOrWhiteSpace(d.Class)) score += 4;
+                if (!string.IsNullOrWhiteSpace(d.Manufacturer)) score += 2;
+                if (!string.IsNullOrWhiteSpace(d.Service)
+                    && !string.Equals(d.Service, "pcip", StringComparison.OrdinalIgnoreCase)) score++;
+                return score;
+            }
+
+            static string? GetPciRootPath(PciDeviceInfo? d) =>
+                d?.LocationPaths.FirstOrDefault(p =>
+                    p.StartsWith("PCIROOT", StringComparison.OrdinalIgnoreCase));
+
+            static string GetPciOperationInstanceId(string pureId, IEnumerable<PciDeviceInfo> devices)
+            {
+                // 优先使用系统实际记录的 PCI InstanceId，避免从非标准 ID 猜测。
+                string? recordedPciId = devices
+                    .Where(IsPci)
+                    .OrderByDescending(d => d.IsPresent)
+                    .ThenByDescending(MetadataScore)
+                    .Select(d => d.InstanceId)
+                    .FirstOrDefault();
+                if (!string.IsNullOrWhiteSpace(recordedPciId)) return recordedPciId;
+
+                // 标准 PCI/PCIP ID 的 PureId 从“\VEN_”开始；PCIP 仅有当前节点时需要还原
+                // DismountSettingData/PNP Enable 使用的 PCI 前缀。
+                if (pureId.StartsWith("\\", StringComparison.Ordinal))
+                    return "PCI" + pureId;
+                if (pureId.StartsWith("PCIP\\", StringComparison.OrdinalIgnoreCase))
+                    return "PCI\\" + pureId[5..];
+                if (pureId.StartsWith("PCI\\", StringComparison.OrdinalIgnoreCase))
+                    return pureId;
+                return string.Empty;
+            }
+
+            var deviceGroups = allDevices
+                .Where(d => IsPcip(d)
+                    || (IsPci(d)
+                        && !string.Equals(d.Service, "pci", StringComparison.OrdinalIgnoreCase)))
+                .Select(d => (Device: d, PureId: GetPureId(d.InstanceId)))
+                .Where(x => !string.IsNullOrWhiteSpace(x.PureId))
+                .GroupBy(x => x.PureId, StringComparer.OrdinalIgnoreCase);
+
+            var entries = new List<PciListEntry>();
+            foreach (var deviceGroup in deviceGroups)
+            {
+                string pureId = deviceGroup.Key;
+                var devices = deviceGroup.Select(x => x.Device).ToList();
+
+                var presentPci = devices
+                    .Where(d => IsPci(d) && d.IsPresent)
+                    .OrderByDescending(MetadataScore)
+                    .FirstOrDefault();
+
+                var presentPcip = devices
+                    .Where(d => IsPcip(d) && d.IsPresent)
+                    .OrderByDescending(MetadataScore)
+                    .FirstOrDefault();
+
+                vmDeviceAssignments.TryGetValue(pureId, out string? assignedVm);
+
+                // 状态机只有三种可见状态；其余节点都是历史记录：
+                // 1. WMI 有精确身份的分配记录 → VM
+                // 2. 当前 PCI 在位                 → 主机
+                // 3. 当前 PCIP 在位                → 已卸除
+                // 4. 均不满足                      → 拔除/换卡后的历史节点，隐藏
+                string status;
+                if (!string.IsNullOrEmpty(assignedVm))
+                    status = assignedVm;
+                else if (presentPci != null)
+                    status = HostKey;
+                else if (presentPcip != null)
+                    status = Properties.Resources.Status_Dismounted;
+                else
+                    continue;
+
+                // 路径只取当前节点；VM 分配状态下当前节点可能已转为 phantom，才允许使用同身份的
+                // 历史 PCI/PCIP 路径。没有 PCIROOT 路径的设备不能执行 DDA，不展示不可操作的行。
+                string? path = GetPciRootPath(presentPci)
+                    ?? GetPciRootPath(presentPcip)
+                    ?? (!string.IsNullOrEmpty(assignedVm)
+                        ? devices.Select(GetPciRootPath).FirstOrDefault(p => !string.IsNullOrWhiteSpace(p))
+                        : null);
+                if (string.IsNullOrWhiteSpace(path)) continue;
+
+                PciDeviceInfo metadata = presentPci
+                    ?? devices.Where(IsPci).OrderByDescending(MetadataScore).FirstOrDefault()
+                    ?? presentPcip
+                    ?? devices.OrderByDescending(MetadataScore).First();
+
+                string operationInstanceId = GetPciOperationInstanceId(pureId, devices);
+                if (string.IsNullOrWhiteSpace(operationInstanceId)) continue;
+
+                entries.Add(new PciListEntry(
+                    metadata,
+                    operationInstanceId,
+                    path,
+                    status));
+            }
+
+            return entries;
         }
 
         private static IEnumerable<PciDeviceInfo> GetNonPciDescendants(

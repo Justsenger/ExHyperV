@@ -145,8 +145,21 @@ public static class Win32Api
         // 3. 并行查每个设备属性
         var results = allIds.AsParallel().Select(instanceId =>
         {
-            // PHANTOM flag 对在线和离线设备都有效
-            int lcr = NativeMethods.CM_Locate_DevNode(out uint devInst, instanceId, NativeMethods.CM_LOCATE_DEVNODE_PHANTOM);
+            // NORMAL 只定位当前在位节点；失败后再用 PHANTOM 读取离线节点的元数据。
+            // Status=Unknown 不能代替“是否在位”：驱动异常的在位设备会是 Error，部分 phantom
+            // 节点也可能仍能读取状态。DDA 枚举必须保留这两个维度。
+            int lcr = NativeMethods.CM_Locate_DevNode(
+                out uint devInst,
+                instanceId,
+                NativeMethods.CM_LOCATE_DEVNODE_NORMAL);
+            bool isPresent = lcr == NativeMethods.CR_SUCCESS;
+            if (!isPresent)
+            {
+                lcr = NativeMethods.CM_Locate_DevNode(
+                    out devInst,
+                    instanceId,
+                    NativeMethods.CM_LOCATE_DEVNODE_PHANTOM);
+            }
             if (lcr != NativeMethods.CR_SUCCESS)
             {
                 Debug.WriteLine($"[Win32Api.GetAllDevices] CM_Locate_DevNode failed '{instanceId}' cr={lcr}");
@@ -200,6 +213,7 @@ public static class Win32Api
                 Manufacturer = manufacturer,
                 ParentInstanceId = parentInstanceId,
                 Status = status,
+                IsPresent = isPresent,
                 LocationPaths = locationPaths
             };
         }).Where(x => x != null).Cast<PciDeviceInfo>().ToList();
@@ -407,6 +421,8 @@ public class PciDeviceInfo
     public string Manufacturer { get; set; } = "";
     public string ParentInstanceId { get; set; } = "";
     public string Status { get; set; } = "";
+    /// <summary>设备节点当前是否在 PnP 设备树中；与驱动状态（Status）相互独立。</summary>
+    public bool IsPresent { get; set; }
     public List<string> LocationPaths { get; set; } = new();
 
     public string? FirstLocationPath =>
