@@ -3846,4 +3846,58 @@
   <data name="Error_Wmi_CreateInstanceFailed" xml:space="preserve">
     <value>WMI 类“{0}”无法创建实例。</value>
   </data>
+  <data name="VmImport_Menu" xml:space="preserve"><value>导入虚拟机</value></data>
+  <data name="VmImport_Title" xml:space="preserve"><value>导入虚拟机</value></data>
+  <data name="VmImport_Source" xml:space="preserve"><value>来源</value></data>
+  <data name="VmImport_SourceFolder" xml:space="preserve"><value>文件夹</value></data>
+  <data name="VmImport_SourceArchive" xml:space="preserve"><value>ZIP</value></data>
+  <data name="VmImport_ZipHint" xml:space="preserve"><value>预览会直接读取 ZIP 中的配置与虚拟硬盘元数据；开始导入后才会完整解压。</value></data>
+  <data name="VmImport_Placement" xml:space="preserve"><value>导入方式</value></data>
+  <data name="VmImport_HostDirectories" xml:space="preserve"><value>导入主机目录</value></data>
+  <data name="VmImport_HostDirectoriesDescription" xml:space="preserve"><value>将配置文件和虚拟硬盘复制到主机目录，然后注册虚拟机。</value></data>
+  <data name="VmImport_ExistingDirectory" xml:space="preserve"><value>使用现有目录</value></data>
+  <data name="VmImport_ExistingDirectoryDescription" xml:space="preserve"><value>使用选择的目录注册虚拟机。</value></data>
+  <data name="VmImport_Preview" xml:space="preserve"><value>导入预览</value></data>
+  <data name="VmImport_Name" xml:space="preserve"><value>名称</value></data>
+  <data name="VmImport_Guid" xml:space="preserve"><value>虚拟机 GUID</value></data>
+  <data name="VmImport_GuidRegenerated" xml:space="preserve"><value>已生成新的 GUID</value></data>
+  <data name="VmImport_Generation" xml:space="preserve"><value>代数</value></data>
+  <data name="VmImport_GenerationFormat" xml:space="preserve"><value>第 {0} 代</value></data>
+  <data name="VmImport_ConfigurationVersion" xml:space="preserve"><value>配置版本</value></data>
+  <data name="VmImport_Processor" xml:space="preserve"><value>虚拟处理器</value></data>
+  <data name="VmImport_Memory" xml:space="preserve"><value>内存</value></data>
+  <data name="VmImport_Created" xml:space="preserve"><value>创建时间</value></data>
+  <data name="VmImport_SavedState" xml:space="preserve"><value>保存状态</value></data>
+  <data name="VmImport_Notes" xml:space="preserve"><value>备注</value></data>
+  <data name="VmImport_Yes" xml:space="preserve"><value>有</value></data>
+  <data name="VmImport_No" xml:space="preserve"><value>无</value></data>
+  <data name="VmImport_Disks" xml:space="preserve"><value>虚拟硬盘</value></data>
+  <data name="VmImport_Networks" xml:space="preserve"><value>网络适配器</value></data>
+  <data name="VmImport_Checkpoints" xml:space="preserve"><value>检查点</value></data>
+  <data name="VmImport_CountFormat" xml:space="preserve"><value> · {0}</value></data>
+  <data name="VmImport_Slot" xml:space="preserve"><value>控制器</value></data>
+  <data name="VmImport_Format" xml:space="preserve"><value>格式</value></data>
+  <data name="VmImport_CapacityUsage" xml:space="preserve"><value>容量 / 占用</value></data>
+  <data name="VmImport_OriginalSwitch" xml:space="preserve"><value>原交换机：{0}</value></data>
+  <data name="VmImport_Disconnected" xml:space="preserve"><value>未连接</value></data>
+  <data name="VmImport_Issues" xml:space="preserve"><value>兼容性问题</value></data>
+  <data name="VmImport_Start" xml:space="preserve"><value>导入</value></data>
+  <data name="VmImport_PreparingPreview" xml:space="preserve"><value>正在解析并校验虚拟机…</value></data>
+  <data name="VmImport_PreparingPreviewBatch" xml:space="preserve"><value>正在解析并校验虚拟机（{0}/{1}）…</value></data>
+  <data name="VmImport_PreparingFiles" xml:space="preserve"><value>正在准备虚拟机文件…</value></data>
+  <data name="VmImport_Validating" xml:space="preserve"><value>正在校验虚拟机…</value></data>
+  <data name="VmImport_Importing" xml:space="preserve"><value>正在导入虚拟机…</value></data>
+  <data name="VmImport_Failed" xml:space="preserve"><value>导入失败</value></data>
+  <data name="VmImport_Completed" xml:space="preserve"><value>导入完成</value></data>
+  <data name="VmImport_Success" xml:space="preserve"><value>已导入虚拟机“{0}”。</value></data>
+  <data name="VmImport_SelectFolder" xml:space="preserve"><value>选择虚拟机导出文件夹</value></data>
+  <data name="VmImport_SelectZip" xml:space="preserve"><value>选择虚拟机导出包</value></data>
+  <data name="VmImport_ZipFilter" xml:space="preserve"><value>ZIP 文件 (*.zip)|*.zip</value></data>
+  <data name="VmImport_DiskFixed" xml:space="preserve"><value>固定</value></data>
+  <data name="VmImport_DiskDynamic" xml:space="preserve"><value>动态</value></data>
+  <data name="VmImport_DiskDifferencing" xml:space="preserve"><value>差分</value></data>
+  <data name="VmImport_StaticMemoryFormat" xml:space="preserve"><value>{0:N0} MB</value></data>
+  <data name="VmImport_DynamicMemoryFormat" xml:space="preserve"><value>{0:N0} MB（{1:N0}–{2:N0} MB）</value></data>
+  <data name="VmImport_NetworkAdapter" xml:space="preserve"><value>网络适配器</value></data>
+  <data name="VmImport_ProcessorMemoryFormat" xml:space="preserve"><value>{0} 核 / {1:0.#} GB</value></data>
 </root>

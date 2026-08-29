@@ -644,6 +644,7 @@
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
 
                     <!-- 搜索框容器 -->
@@ -677,13 +678,26 @@
                         </ui:SymbolIcon>
                     </Grid>
                     <!-- 添加按钮 -->
-                    <ui:Button Grid.Column="1" 
+                    <ui:Button Grid.Column="1"
+                               Margin="8,0,0,0"
+                               Padding="0"
+                               Width="24"
+                               Height="24"
+                               Appearance="Secondary"
+                               ToolTip="{x:Static properties:Resources.VmImport_Menu}"
+                               IsEnabled="{Binding IsVmListEnabled}"
+                               Command="{Binding OpenVmImportCommand}">
+                        <ui:FontIcon Glyph="&#xE2B3;" FontSize="15"
+                                     FontFamily="{DynamicResource SystemSegoeFluentIcons}"/>
+                    </ui:Button>
+                    <ui:Button Grid.Column="2"
                Margin="8,0,0,0" 
                Padding="0" 
                Width="24" 
                Height="24"
                Icon="{ui:SymbolIcon Symbol=Add24}"
                Appearance="Secondary"
+               IsEnabled="{Binding IsVmListEnabled}"
                ToolTip="{x:Static properties:Resources.Xaml_CreateVm}"
                Command="{Binding CreateVmCommand}"/>
                     <!-- 请确保 ViewModel 中有对应的 Command -->
@@ -723,6 +737,11 @@
                                     <Setter Property="Visibility" Value="Collapsed"/>
                                 </DataTrigger>
 
+                                <DataTrigger Binding="{Binding DataContext.IsVmImportViewVisible, RelativeSource={RelativeSource AncestorType=Page}}" Value="True">
+                                    <Setter Property="ContentTemplate" Value="{StaticResource VmBlankTemplate}" />
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+
                                 <!-- 逻辑 3: 加载中隐藏 -->
                                 <DataTrigger Binding="{Binding IsLoading}" Value="True">
                                     <Setter Property="Visibility" Value="Hidden"/>
@@ -734,6 +753,7 @@
 
                 <!-- 创建界面-->
                 <components:VmCreateView Visibility="{Binding IsCreatingVm, Converter={StaticResource BoolToVis}}"/>
+                <components:VmImportView Visibility="{Binding IsVmImportViewVisible, Converter={StaticResource BoolToVis}}"/>
             </Grid>
         </Border>
         

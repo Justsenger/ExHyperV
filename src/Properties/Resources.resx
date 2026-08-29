@@ -3846,4 +3846,58 @@ Remove them from storage and retry? Cancel to re-plug the device and try again.<
   <data name="Error_Wmi_CreateInstanceFailed" xml:space="preserve">
     <value>WMI class “{0}” could not create an instance.</value>
   </data>
+  <data name="VmImport_Menu" xml:space="preserve"><value>Import virtual machine</value></data>
+  <data name="VmImport_Title" xml:space="preserve"><value>Import virtual machine</value></data>
+  <data name="VmImport_Source" xml:space="preserve"><value>Source</value></data>
+  <data name="VmImport_SourceFolder" xml:space="preserve"><value>Folder</value></data>
+  <data name="VmImport_SourceArchive" xml:space="preserve"><value>ZIP</value></data>
+  <data name="VmImport_ZipHint" xml:space="preserve"><value>The preview reads configuration and virtual disk metadata directly from ZIP. The archive is fully extracted only after import starts.</value></data>
+  <data name="VmImport_Placement" xml:space="preserve"><value>Import method</value></data>
+  <data name="VmImport_HostDirectories" xml:space="preserve"><value>Import to host directories</value></data>
+  <data name="VmImport_HostDirectoriesDescription" xml:space="preserve"><value>Copy the configuration file and virtual disks to the host directories, then register the virtual machine.</value></data>
+  <data name="VmImport_ExistingDirectory" xml:space="preserve"><value>Use the existing directory</value></data>
+  <data name="VmImport_ExistingDirectoryDescription" xml:space="preserve"><value>Register the virtual machine from the selected directory.</value></data>
+  <data name="VmImport_Preview" xml:space="preserve"><value>Import preview</value></data>
+  <data name="VmImport_Name" xml:space="preserve"><value>Name</value></data>
+  <data name="VmImport_Guid" xml:space="preserve"><value>Virtual machine GUID</value></data>
+  <data name="VmImport_GuidRegenerated" xml:space="preserve"><value>New GUID generated</value></data>
+  <data name="VmImport_Generation" xml:space="preserve"><value>Generation</value></data>
+  <data name="VmImport_GenerationFormat" xml:space="preserve"><value>Generation {0}</value></data>
+  <data name="VmImport_ConfigurationVersion" xml:space="preserve"><value>Configuration version</value></data>
+  <data name="VmImport_Processor" xml:space="preserve"><value>Virtual processors</value></data>
+  <data name="VmImport_Memory" xml:space="preserve"><value>Memory</value></data>
+  <data name="VmImport_Created" xml:space="preserve"><value>Created</value></data>
+  <data name="VmImport_SavedState" xml:space="preserve"><value>Saved state</value></data>
+  <data name="VmImport_Notes" xml:space="preserve"><value>Notes</value></data>
+  <data name="VmImport_Yes" xml:space="preserve"><value>Yes</value></data>
+  <data name="VmImport_No" xml:space="preserve"><value>No</value></data>
+  <data name="VmImport_Disks" xml:space="preserve"><value>Virtual disks</value></data>
+  <data name="VmImport_Networks" xml:space="preserve"><value>Network adapters</value></data>
+  <data name="VmImport_Checkpoints" xml:space="preserve"><value>Checkpoints</value></data>
+  <data name="VmImport_CountFormat" xml:space="preserve"><value> · {0}</value></data>
+  <data name="VmImport_Slot" xml:space="preserve"><value>Controller</value></data>
+  <data name="VmImport_Format" xml:space="preserve"><value>Format</value></data>
+  <data name="VmImport_CapacityUsage" xml:space="preserve"><value>Capacity / used</value></data>
+  <data name="VmImport_OriginalSwitch" xml:space="preserve"><value>Original switch: {0}</value></data>
+  <data name="VmImport_Disconnected" xml:space="preserve"><value>Disconnected</value></data>
+  <data name="VmImport_Issues" xml:space="preserve"><value>Compatibility issues</value></data>
+  <data name="VmImport_Start" xml:space="preserve"><value>Import</value></data>
+  <data name="VmImport_PreparingPreview" xml:space="preserve"><value>Parsing and checking the virtual machine…</value></data>
+  <data name="VmImport_PreparingPreviewBatch" xml:space="preserve"><value>Parsing and checking virtual machine {0} of {1}…</value></data>
+  <data name="VmImport_PreparingFiles" xml:space="preserve"><value>Preparing virtual machine files…</value></data>
+  <data name="VmImport_Validating" xml:space="preserve"><value>Validating the virtual machine…</value></data>
+  <data name="VmImport_Importing" xml:space="preserve"><value>Importing the virtual machine…</value></data>
+  <data name="VmImport_Failed" xml:space="preserve"><value>Import failed</value></data>
+  <data name="VmImport_Completed" xml:space="preserve"><value>Import complete</value></data>
+  <data name="VmImport_Success" xml:space="preserve"><value>Virtual machine “{0}” was imported.</value></data>
+  <data name="VmImport_SelectFolder" xml:space="preserve"><value>Select a virtual machine export folder</value></data>
+  <data name="VmImport_SelectZip" xml:space="preserve"><value>Select a virtual machine export package</value></data>
+  <data name="VmImport_ZipFilter" xml:space="preserve"><value>ZIP files (*.zip)|*.zip</value></data>
+  <data name="VmImport_DiskFixed" xml:space="preserve"><value>Fixed</value></data>
+  <data name="VmImport_DiskDynamic" xml:space="preserve"><value>Dynamic</value></data>
+  <data name="VmImport_DiskDifferencing" xml:space="preserve"><value>Differencing</value></data>
+  <data name="VmImport_StaticMemoryFormat" xml:space="preserve"><value>{0:N0} MB</value></data>
+  <data name="VmImport_DynamicMemoryFormat" xml:space="preserve"><value>{0:N0} MB ({1:N0}–{2:N0} MB)</value></data>
+  <data name="VmImport_NetworkAdapter" xml:space="preserve"><value>Network adapter</value></data>
+  <data name="VmImport_ProcessorMemoryFormat" xml:space="preserve"><value>{0} cores / {1:0.#} GB</value></data>
 </root>

@@ -124,8 +124,13 @@ public sealed class VmcxStore : IDisposable {
                     IntPtr hk = IntPtr.Zero, ht = IntPtr.Zero, hv = IntPtr.Zero;
                     try {
                         Hr(D<DOut>(Slot(node, 9))(node, out hk), "Key");
-                        Hr(D<DOut>(Slot(node, 11))(node, out ht), "TypeName");
-                        Hr(D<DOut>(Slot(node, 12))(node, out hv), "ValueText");
+                        // 容器节点只有 Key。对容器调用 TypeName/ValueText 会返回
+                        // ERROR_INVALID_DATA；编辑器旧实现忽略了该 HRESULT，因此看起来
+                        // 可以枚举，主程序的严格检查反而会中断。只在值节点读取它们。
+                        if (isv != 0) {
+                            Hr(D<DOut>(Slot(node, 11))(node, out ht), "TypeName");
+                            Hr(D<DOut>(Slot(node, 12))(node, out hv), "ValueText");
+                        }
                         result.Add(new VmcxNode { Path = FromHStr(hk), Type = FromHStr(ht), Value = FromHStr(hv), IsValue = isv != 0 });
                     } finally {
                         // 释放本轮拥有的资源(out HSTRING 与 Current 节点均归调用方所有),否则长生命周期(GUI)会累积泄漏。

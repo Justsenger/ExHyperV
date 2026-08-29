@@ -58,7 +58,7 @@ namespace ExHyperV.ViewModels
 
         // 进行中的向导/部署视图(选卡、GPU-PV 部署、加存储)绑死某台 VM，期间禁用左侧列表：
         // 防止切走后工作流后续步骤读到的 SelectedVm 变成别的 VM，把关机/挂卡等操作打到错的机器上。
-        public bool IsVmListEnabled => !IsExporting && CurrentViewType is not
+        public bool IsVmListEnabled => !IsExporting && !IsPreparingVmImport && !IsExecutingVmImport && CurrentViewType is not
             (VmDetailViewType.AddGpuSelect or VmDetailViewType.AddGpuProgress or VmDetailViewType.AddStorage);
         [ObservableProperty] private string _searchText = string.Empty;
 
@@ -104,6 +104,7 @@ namespace ExHyperV.ViewModels
             _monitoringCts?.Cancel();
             _cpuService?.Dispose();
             _uiTimer?.Stop();
+            _ = DisposeVmImportSessionAsync();
             // 不在此 Dispose 嗅探单例(全进程共用,退出时由其 ProcessExit 钩子清理)
         }
 
@@ -334,24 +335,44 @@ namespace ExHyperV.ViewModels
                 listText.Inlines.Add(run);
                 listText.Inlines.Add(new System.Windows.Documents.LineBreak());
             }
-            if (!string.IsNullOrEmpty(preview.ConfigDir))
+            var purgeFiles = preview.ConfigFiles
+                .Concat(preview.DiskFiles)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(path => path, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            if (preview.DeletesConfigDirectory && !string.IsNullOrEmpty(preview.ConfigDirectory))
             {
-                AppendPreviewLine("· " + preview.ConfigDir);
-                int shown = 0;
-                foreach (var f in preview.ConfigDirFiles)
-                {
-                    if (shown++ >= 40)
-                    {
-                        AppendPreviewLine($"     · … (+{preview.ConfigDirFiles.Count - 40})");
-                        break;
-                    }
-                    AppendPreviewLine("     · " + System.IO.Path.GetFileName(f), f);
-                }
+                AppendPreviewLine("· " + preview.ConfigDirectory);
             }
-            foreach (var d in preview.ExternalDiskFiles)
-                AppendPreviewLine("· " + d, d);
+            int shown = 0;
+            foreach (string file in purgeFiles)
+            {
+                if (shown++ >= 40)
+                {
+                    AppendPreviewLine($"· … (+{purgeFiles.Count - 40})");
+                    break;
+                }
+
+                bool nested = preview.DeletesConfigDirectory
+                              && !string.IsNullOrEmpty(preview.ConfigDirectory)
+                              && IsPathInside(file, preview.ConfigDirectory);
+                string displayPath = nested
+                    ? System.IO.Path.GetRelativePath(preview.ConfigDirectory!, file)
+                    : file;
+                AppendPreviewLine((nested ? "     · " : "· ") + displayPath, file);
+            }
             if (listText.Inlines.Count == 0)
                 AppendPreviewLine(vm.Name);
+
+            static bool IsPathInside(string path, string root)
+            {
+                string fullPath = System.IO.Path.GetFullPath(path);
+                string fullRoot = System.IO.Path.GetFullPath(root)
+                    .TrimEnd(System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar);
+                return fullPath.StartsWith(
+                    fullRoot + System.IO.Path.DirectorySeparatorChar,
+                    StringComparison.OrdinalIgnoreCase);
+            }
 
             // 正文用原生控件：上方告警文字（自动换行）+ 下方等宽、可滚动的清单（路径长/文件多都不撑爆弹窗）。
             var body = new System.Windows.Controls.StackPanel();
@@ -412,6 +433,7 @@ namespace ExHyperV.ViewModels
             HostDisks.Clear();
             if (value == null) { CurrentViewType = VmDetailViewType.Dashboard; return; }
             IsCreatingVm = false;
+            if (!IsExecutingVmImport) IsVmImportViewVisible = false;
 
             // 切 VM 时保留当前的无状态详情子页：重跑对应 GoTo 加载新 VM 的数据、停在同一子页(去 B 的对应详情页)；
             // 概览及其它一律回概览。进行中向导(AddGpu*/AddStorage)期间左侧列表已禁用，不会走到这里。

@@ -10058,5 +10058,59 @@ namespace ExHyperV.Properties {
             }
         }
 
+        public static string VmImport_Menu => ResourceManager.GetString("VmImport_Menu", resourceCulture);
+        public static string VmImport_Title => ResourceManager.GetString("VmImport_Title", resourceCulture);
+        public static string VmImport_Source => ResourceManager.GetString("VmImport_Source", resourceCulture);
+        public static string VmImport_SourceFolder => ResourceManager.GetString("VmImport_SourceFolder", resourceCulture);
+        public static string VmImport_SourceArchive => ResourceManager.GetString("VmImport_SourceArchive", resourceCulture);
+        public static string VmImport_ZipHint => ResourceManager.GetString("VmImport_ZipHint", resourceCulture);
+        public static string VmImport_Placement => ResourceManager.GetString("VmImport_Placement", resourceCulture);
+        public static string VmImport_HostDirectories => ResourceManager.GetString("VmImport_HostDirectories", resourceCulture);
+        public static string VmImport_HostDirectoriesDescription => ResourceManager.GetString("VmImport_HostDirectoriesDescription", resourceCulture);
+        public static string VmImport_ExistingDirectory => ResourceManager.GetString("VmImport_ExistingDirectory", resourceCulture);
+        public static string VmImport_ExistingDirectoryDescription => ResourceManager.GetString("VmImport_ExistingDirectoryDescription", resourceCulture);
+        public static string VmImport_Preview => ResourceManager.GetString("VmImport_Preview", resourceCulture);
+        public static string VmImport_Name => ResourceManager.GetString("VmImport_Name", resourceCulture);
+        public static string VmImport_Guid => ResourceManager.GetString("VmImport_Guid", resourceCulture);
+        public static string VmImport_GuidRegenerated => ResourceManager.GetString("VmImport_GuidRegenerated", resourceCulture);
+        public static string VmImport_Generation => ResourceManager.GetString("VmImport_Generation", resourceCulture);
+        public static string VmImport_GenerationFormat => ResourceManager.GetString("VmImport_GenerationFormat", resourceCulture);
+        public static string VmImport_ConfigurationVersion => ResourceManager.GetString("VmImport_ConfigurationVersion", resourceCulture);
+        public static string VmImport_Processor => ResourceManager.GetString("VmImport_Processor", resourceCulture);
+        public static string VmImport_Memory => ResourceManager.GetString("VmImport_Memory", resourceCulture);
+        public static string VmImport_Created => ResourceManager.GetString("VmImport_Created", resourceCulture);
+        public static string VmImport_SavedState => ResourceManager.GetString("VmImport_SavedState", resourceCulture);
+        public static string VmImport_Notes => ResourceManager.GetString("VmImport_Notes", resourceCulture);
+        public static string VmImport_Yes => ResourceManager.GetString("VmImport_Yes", resourceCulture);
+        public static string VmImport_No => ResourceManager.GetString("VmImport_No", resourceCulture);
+        public static string VmImport_Disks => ResourceManager.GetString("VmImport_Disks", resourceCulture);
+        public static string VmImport_Networks => ResourceManager.GetString("VmImport_Networks", resourceCulture);
+        public static string VmImport_Checkpoints => ResourceManager.GetString("VmImport_Checkpoints", resourceCulture);
+        public static string VmImport_CountFormat => ResourceManager.GetString("VmImport_CountFormat", resourceCulture);
+        public static string VmImport_Slot => ResourceManager.GetString("VmImport_Slot", resourceCulture);
+        public static string VmImport_Format => ResourceManager.GetString("VmImport_Format", resourceCulture);
+        public static string VmImport_CapacityUsage => ResourceManager.GetString("VmImport_CapacityUsage", resourceCulture);
+        public static string VmImport_OriginalSwitch => ResourceManager.GetString("VmImport_OriginalSwitch", resourceCulture);
+        public static string VmImport_Disconnected => ResourceManager.GetString("VmImport_Disconnected", resourceCulture);
+        public static string VmImport_Issues => ResourceManager.GetString("VmImport_Issues", resourceCulture);
+        public static string VmImport_Start => ResourceManager.GetString("VmImport_Start", resourceCulture);
+        public static string VmImport_PreparingPreview => ResourceManager.GetString("VmImport_PreparingPreview", resourceCulture);
+        public static string VmImport_PreparingPreviewBatch => ResourceManager.GetString("VmImport_PreparingPreviewBatch", resourceCulture);
+        public static string VmImport_PreparingFiles => ResourceManager.GetString("VmImport_PreparingFiles", resourceCulture);
+        public static string VmImport_Validating => ResourceManager.GetString("VmImport_Validating", resourceCulture);
+        public static string VmImport_Importing => ResourceManager.GetString("VmImport_Importing", resourceCulture);
+        public static string VmImport_Failed => ResourceManager.GetString("VmImport_Failed", resourceCulture);
+        public static string VmImport_Completed => ResourceManager.GetString("VmImport_Completed", resourceCulture);
+        public static string VmImport_Success => ResourceManager.GetString("VmImport_Success", resourceCulture);
+        public static string VmImport_SelectFolder => ResourceManager.GetString("VmImport_SelectFolder", resourceCulture);
+        public static string VmImport_SelectZip => ResourceManager.GetString("VmImport_SelectZip", resourceCulture);
+        public static string VmImport_ZipFilter => ResourceManager.GetString("VmImport_ZipFilter", resourceCulture);
+        public static string VmImport_DiskFixed => ResourceManager.GetString("VmImport_DiskFixed", resourceCulture);
+        public static string VmImport_DiskDynamic => ResourceManager.GetString("VmImport_DiskDynamic", resourceCulture);
+        public static string VmImport_DiskDifferencing => ResourceManager.GetString("VmImport_DiskDifferencing", resourceCulture);
+        public static string VmImport_StaticMemoryFormat => ResourceManager.GetString("VmImport_StaticMemoryFormat", resourceCulture);
+        public static string VmImport_DynamicMemoryFormat => ResourceManager.GetString("VmImport_DynamicMemoryFormat", resourceCulture);
+        public static string VmImport_NetworkAdapter => ResourceManager.GetString("VmImport_NetworkAdapter", resourceCulture);
+        public static string VmImport_ProcessorMemoryFormat => ResourceManager.GetString("VmImport_ProcessorMemoryFormat", resourceCulture);
     }
 }

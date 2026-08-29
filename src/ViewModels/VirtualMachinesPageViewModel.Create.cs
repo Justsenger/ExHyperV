@@ -210,6 +210,12 @@ namespace ExHyperV.ViewModels
         private async Task CreateVmAsync()
         {
             // --- 1. UI 状态与标志位重置 ---
+            if (IsExecutingVmImport || IsPreparingVmImport) return;
+            await DisposeVmImportSessionAsync();
+            VmImportPreview = null;
+            VmImportStep = 0;
+            IsVmImportCompleted = false;
+            IsVmImportViewVisible = false;
             IsCreatingVm = true;
             IsLoadingCreateOptions = true;
             SelectedVm = null;

@@ -9,30 +9,33 @@ namespace ExHyperV.Services;
 /// </summary>
 public static class VmDeleteService
 {
-    /// <summary>彻底删除预览：将删除的「配置目录 + 目录内现有文件 + 目录外的虚拟硬盘」。供确认弹窗展示，不删任何东西。</summary>
-    public sealed record PurgePreview(string? ConfigDir, List<string> ConfigDirFiles, List<string> ExternalDiskFiles);
+    /// <summary>彻底删除预览。这里只返回可证明属于该 VM 的文件；共享根目录永远不会被当成 VM 私有目录。</summary>
+    public sealed record PurgePreview(
+        string? ConfigDirectory,
+        bool DeletesConfigDirectory,
+        List<string> ConfigFiles,
+        List<string> DiskFiles);
+
+    private sealed record PurgeTargets(
+        string? ConfigDirectory,
+        bool DeletesConfigDirectory,
+        List<string> ConfigFiles,
+        List<string> ConfigDirectories,
+        List<string> DiskFiles);
 
     /// <summary>预先算出彻底删除会动到的目录与文件（只读，用于确认弹窗清单）。</summary>
     public static async Task<PurgePreview> PreviewPurgeAsync(Guid vmId)
     {
         try
         {
-            var (diskPaths, configDir) = await CollectPurgeTargetsAsync(vmId.ToString());
-
-            var dirFiles = new List<string>();
-            if (!string.IsNullOrEmpty(configDir) && Directory.Exists(configDir))
-            {
-                try { dirFiles = Directory.EnumerateFiles(configDir!, "*", SearchOption.AllDirectories).ToList(); }
-                catch { }
-            }
-            // 目录外的 VHD 单列（目录内的会随"删目录"一并清掉，已在 dirFiles 里体现）
-            string? norm = configDir?.TrimEnd('\\', '/').ToUpperInvariant();
-            var external = diskPaths
-                .Where(d => norm == null || !d.ToUpperInvariant().StartsWith(norm))
-                .ToList();
-            return new PurgePreview(configDir, dirFiles, external);
+            PurgeTargets targets = await CollectPurgeTargetsAsync(vmId.ToString());
+            return new PurgePreview(
+                targets.ConfigDirectory,
+                targets.DeletesConfigDirectory,
+                targets.ConfigFiles,
+                targets.DiskFiles);
         }
-        catch { return new PurgePreview(null, new List<string>(), new List<string>()); }
+        catch { return new PurgePreview(null, false, new List<string>(), new List<string>()); }
     }
 
     /// <summary>删除虚拟机（仅移除配置，保留磁盘文件）。等价 Remove-VM。</summary>
@@ -53,19 +56,24 @@ public static class VmDeleteService
         try
         {
             // 删除前先收集要清理的路径（删完就查不到了）——与 Preview 同一逻辑，保证"显示=实删"。
-            var (diskPaths, rawConfigDir) = await CollectPurgeTargetsAsync(vmId.ToString());
+            PurgeTargets targets = await CollectPurgeTargetsAsync(vmId.ToString());
 
             var off = await EnsureOffAsync(vmName);
             if (!off.Success) return off;
             var destroy = await DestroyAsync(vmName);
             if (!destroy.Success) return destroy;   // 删除失败就不动文件（VM 仍在用着盘）
 
-            foreach (var diskPath in diskPaths)
+            foreach (string diskPath in targets.DiskFiles)
                 await TryDeleteFileAsync(diskPath);
 
-            // DestroySystem 对保存态/TPM 机可能残留 Virtual Machines\<guid>.vmcx/.vmgs/.VMRS → 先按 GUID 删本机文件，再收空壳目录。
-            await CleanupOwnConfigFilesAsync(rawConfigDir, vmId.ToString());
-            await DeleteConfigDirAsync(rawConfigDir);
+            // DestroySystem 对保存态/TPM 机可能残留配置与状态文件。目标已在销毁前按
+            // VM/检查点 ConfigurationID 精确收集；执行与确认弹窗使用同一份清单。
+            foreach (string configFile in targets.ConfigFiles)
+                await TryDeleteFileAsync(configFile);
+            foreach (string configDirectory in targets.ConfigDirectories
+                         .OrderByDescending(path => path.Length))
+                await TryDeleteDirAsync(configDirectory);
+            await DeleteConfigDirAsync(targets.ConfigDirectory, targets.DeletesConfigDirectory);
 
             return (true, string.Empty);
         }
@@ -73,7 +81,7 @@ public static class VmDeleteService
     }
 
     // 收集"将清理的目标"：VHD 文件路径 + 配置目录。Preview 与 Purge 共用，保证显示与实删一致。
-    private static async Task<(List<string> DiskPaths, string? ConfigDir)> CollectPurgeTargetsAsync(string vmGuid)
+    private static async Task<PurgeTargets> CollectPurgeTargetsAsync(string vmGuid)
     {
         // 只收【虚拟硬盘】的文件来删,靠 ResourceSubType 精确区分。
         // 关键:ISO 与 VHD 在 Msvm_StorageAllocationSettingData 里 ResourceType 都是 31,只有 ResourceSubType 不同——
@@ -88,22 +96,88 @@ public static class VmDeleteService
                 Host: obj["HostResource"] as string[] ?? (obj["HostResource"] is string s ? new[] { s } : Array.Empty<string>())
             ),
             WmiScope.HyperV);
-        string guidKey = vmGuid.ToUpperInvariant();
-        var diskPaths = (diskResp.Data ?? new List<(string Id, string Parent, string[] Host)>())
-            .Where(d => d.Id.ToUpperInvariant().Contains(guidKey) || d.Parent.ToUpperInvariant().Contains(guidKey))
-            .SelectMany(d => d.Host)
-            // 排除物理盘直通(HostResource 是 Msvm_DiskDrive 引用、非文件),防御性。
-            .Where(p => !string.IsNullOrEmpty(p)
-                     && p.IndexOf("Msvm_DiskDrive", StringComparison.OrdinalIgnoreCase) < 0)
-            .Distinct()
+        if (!diskResp.Success)
+            throw new InvalidOperationException(diskResp.Error);
+
+        List<(string Id, string Parent, string[] Host)> diskAllocations = diskResp.Data ?? [];
+
+        var configResp = await WmiApi.QueryAsync(
+            $"SELECT VirtualSystemType, ConfigurationID, ConfigurationDataRoot, SnapshotDataRoot, SwapFileDataRoot " +
+            $"FROM Msvm_VirtualSystemSettingData WHERE VirtualSystemIdentifier = '{vmGuid}'",
+            obj => (
+                Type: obj["VirtualSystemType"]?.ToString() ?? string.Empty,
+                Id: obj["ConfigurationID"]?.ToString() ?? string.Empty,
+                ConfigRoot: obj["ConfigurationDataRoot"]?.ToString() ?? string.Empty,
+                SnapshotRoot: obj["SnapshotDataRoot"]?.ToString() ?? string.Empty,
+                SwapRoot: obj["SwapFileDataRoot"]?.ToString() ?? string.Empty),
+            WmiScope.HyperV);
+        if (!configResp.Success)
+            throw new InvalidOperationException(configResp.Error);
+
+        List<(string Type, string Id, string ConfigRoot, string SnapshotRoot, string SwapRoot)> settings =
+            configResp.Data ?? [];
+        var realized = settings.FirstOrDefault(item => string.Equals(
+            item.Type,
+            "Microsoft:Hyper-V:System:Realized",
+            StringComparison.OrdinalIgnoreCase));
+        string? configDirectory = string.IsNullOrWhiteSpace(realized.ConfigRoot)
+            ? null
+            : NormalizePath(realized.ConfigRoot);
+
+        HashSet<string> roots = settings
+            .SelectMany(item => new[] { item.ConfigRoot, item.SnapshotRoot, item.SwapRoot })
+            .Where(path => !string.IsNullOrWhiteSpace(path))
+            .Select(NormalizePath)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        if (configDirectory != null) roots.Add(configDirectory);
+
+        HashSet<string> configurationIds = settings
+            .Select(item => item.Id)
+            .Append(vmGuid)
+            .Where(value => Guid.TryParse(value, out _))
+            .Select(value => Guid.Parse(value).ToString("D"))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        // 检查点的磁盘分配以检查点 ConfigurationID 开头，而不是根 VM GUID。
+        // 用上面从 VSSD 得到的完整 ID 集合，才能同时覆盖当前链和所有检查点。
+        bool BelongsToVm((string Id, string Parent, string[] Host) allocation)
+            => configurationIds.Any(id =>
+                allocation.Id.Contains(id, StringComparison.OrdinalIgnoreCase)
+                || allocation.Parent.Contains(id, StringComparison.OrdinalIgnoreCase));
+
+        HashSet<string> foreignDiskPaths = diskAllocations
+            .Where(allocation => !BelongsToVm(allocation))
+            .SelectMany(allocation => allocation.Host)
+            .Where(IsFileBackedDiskPath)
+            .Select(NormalizePath)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var diskPaths = diskAllocations
+            .Where(BelongsToVm)
+            .SelectMany(allocation => allocation.Host)
+            .Where(IsFileBackedDiskPath)
+            .Select(NormalizePath)
+            // 同一个 VHD 被其他虚拟机引用时不归任何一台 VM 独占，彻底删除也必须保留。
+            .Where(path => !foreignDiskPaths.Contains(path))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(path => path, StringComparer.OrdinalIgnoreCase)
             .ToList();
 
-        var configResp = await WmiApi.QueryFirstAsync(
-            $"SELECT ConfigurationDataRoot FROM Msvm_VirtualSystemSettingData WHERE VirtualSystemIdentifier = '{vmGuid}' AND VirtualSystemType = 'Microsoft:Hyper-V:System:Realized'",
-            obj => obj["ConfigurationDataRoot"]?.ToString() ?? string.Empty,
-            WmiScope.HyperV);
-        string? configDir = configResp.HasData ? configResp.Data : null;
-        return (diskPaths, configDir);
+        var configFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var configDirectories = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        CollectOwnedConfigArtifacts(roots, configurationIds, configFiles, configDirectories);
+
+        bool deletesConfigDirectory = await CanDeleteConfigDirectoryAsync(
+            configDirectory,
+            vmGuid,
+            configFiles.Concat(diskPaths));
+
+        return new PurgeTargets(
+            configDirectory,
+            deletesConfigDirectory,
+            configFiles.OrderBy(path => path, StringComparer.OrdinalIgnoreCase).ToList(),
+            configDirectories.OrderBy(path => path, StringComparer.OrdinalIgnoreCase).ToList(),
+            diskPaths);
     }
 
     // 取 VM 路径并 DestroySystem（含回查确认真注销）。
@@ -154,30 +228,136 @@ public static class VmDeleteService
         return (true, string.Empty);
     }
 
-    // 删本 VM 自己残留的配置/状态文件（DestroySystem 对保存态/TPM 机可能不删 Virtual Machines\<guid>.*）。
-    // 严格按 GUID 匹配，只动这台 VM 的文件，绝不波及同目录的其它 VM（NTFS 大小写不敏感）。
-    private static async Task CleanupOwnConfigFilesAsync(string? rawConfigDir, string vmGuid)
+    private static bool IsFileBackedDiskPath(string? path)
+        => !string.IsNullOrWhiteSpace(path)
+           && path.IndexOf("Msvm_DiskDrive", StringComparison.OrdinalIgnoreCase) < 0
+           && Path.IsPathFullyQualified(path);
+
+    private static string NormalizePath(string path)
+        => Path.GetFullPath(path).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+
+    // 配置和状态文件没有一条可直接枚举“本 VM 所有文件”的 WMI 关系。
+    // 但当前 VM 与各检查点的 ConfigurationID 都是平台分配的 GUID；只在 WMI 返回的
+    // 数据根下匹配这些精确 ID，既能覆盖 vmcx/vmgs/vmrs，也不会认领共享根里的其它 VM。
+    private static void CollectOwnedConfigArtifacts(
+        IEnumerable<string> roots,
+        IEnumerable<string> configurationIds,
+        HashSet<string> files,
+        HashSet<string> directories)
     {
-        if (string.IsNullOrEmpty(rawConfigDir) || string.IsNullOrEmpty(vmGuid)) return;
+        string[] ids = configurationIds.Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+        foreach (string root in roots.Distinct(StringComparer.OrdinalIgnoreCase))
+        {
+            foreach (string containerName in new[] { "Virtual Machines", "Snapshots" })
+            {
+                string container = Path.Combine(root, containerName);
+                if (!Directory.Exists(container)) continue;
+                foreach (string id in ids)
+                {
+                    try
+                    {
+                        foreach (string file in Directory.EnumerateFiles(
+                                     container,
+                                     id + ".*",
+                                     SearchOption.TopDirectoryOnly))
+                            files.Add(NormalizePath(file));
+
+                        string idDirectory = Path.Combine(container, id);
+                        if (!Directory.Exists(idDirectory)) continue;
+                        directories.Add(NormalizePath(idDirectory));
+                        foreach (string file in Directory.EnumerateFiles(
+                                     idDirectory,
+                                     "*",
+                                     SearchOption.AllDirectories))
+                            files.Add(NormalizePath(file));
+                    }
+                    catch
+                    {
+                        // 单个根无法枚举时不扩大范围；目标计算保持 fail-closed。
+                    }
+                }
+            }
+        }
+    }
+
+    private static async Task<bool> CanDeleteConfigDirectoryAsync(
+        string? rawConfigDirectory,
+        string vmGuid,
+        IEnumerable<string> ownedFiles)
+    {
+        if (string.IsNullOrWhiteSpace(rawConfigDirectory)) return false;
+        string configDirectory;
+        try { configDirectory = NormalizePath(rawConfigDirectory); }
+        catch { return false; }
+        if (!Directory.Exists(configDirectory)) return false;
+
+        string? volumeRoot = Path.GetPathRoot(configDirectory)?.TrimEnd('\\', '/');
+        if (string.Equals(volumeRoot, configDirectory, StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        foreach (string hostRoot in await GetHostDefaultRootsAsync())
+            if (string.Equals(NormalizePath(hostRoot), configDirectory, StringComparison.OrdinalIgnoreCase))
+                return false;
+
+        // 其它 VM 的任一数据根等于或位于本目录内，说明本目录包含别的 VM，不能删除。
+        // 本目录位于另一个共享父根内并不构成冲突；后面的逐文件归属检查仍会兜底。
+        var otherRootsResponse = await WmiApi.QueryAsync(
+            "SELECT VirtualSystemIdentifier, ConfigurationDataRoot, SnapshotDataRoot, SwapFileDataRoot " +
+            "FROM Msvm_VirtualSystemSettingData WHERE VirtualSystemType = 'Microsoft:Hyper-V:System:Realized'",
+            obj => (
+                VmId: obj["VirtualSystemIdentifier"]?.ToString() ?? string.Empty,
+                Roots: new[]
+                {
+                    obj["ConfigurationDataRoot"]?.ToString() ?? string.Empty,
+                    obj["SnapshotDataRoot"]?.ToString() ?? string.Empty,
+                    obj["SwapFileDataRoot"]?.ToString() ?? string.Empty
+                }),
+            WmiScope.HyperV);
+        if (!otherRootsResponse.Success) return false;
+
+        foreach (var other in otherRootsResponse.Data ?? [])
+        {
+            if (string.Equals(other.VmId, vmGuid, StringComparison.OrdinalIgnoreCase)) continue;
+            foreach (string otherRootValue in other.Roots.Where(value => !string.IsNullOrWhiteSpace(value)))
+            {
+                string otherRoot;
+                try { otherRoot = NormalizePath(otherRootValue); }
+                catch { return false; }
+                if (IsPathWithinOrEqual(otherRoot, configDirectory)) return false;
+            }
+        }
+
+        var owned = ownedFiles
+            .Where(path => !string.IsNullOrWhiteSpace(path))
+            .Select(NormalizePath)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
         try
         {
-            string vmSub = Path.Combine(rawConfigDir, "Virtual Machines");
-            if (!Directory.Exists(vmSub)) return;
-            foreach (var f in Directory.EnumerateFiles(vmSub, vmGuid + "*").ToList())   // <guid>.vmcx / .vmgs / .VMRS
-                await TryDeleteFileAsync(f);
-            string guidDir = Path.Combine(vmSub, vmGuid);
-            if (Directory.Exists(guidDir))
-                await TryDeleteDirAsync(guidDir);
+            // 目录里只要出现一个无法归属到当前 VM 的文件，就只删精确文件，不删目录。
+            return Directory.EnumerateFiles(configDirectory, "*", SearchOption.AllDirectories)
+                .Select(NormalizePath)
+                .All(owned.Contains);
         }
-        catch { }
+        catch { return false; }
+    }
+
+    private static bool IsPathWithinOrEqual(string path, string root)
+    {
+        string normalizedPath = NormalizePath(path);
+        string normalizedRoot = NormalizePath(root);
+        if (string.Equals(normalizedPath, normalizedRoot, StringComparison.OrdinalIgnoreCase))
+            return true;
+        return normalizedPath.StartsWith(
+            normalizedRoot + Path.DirectorySeparatorChar,
+            StringComparison.OrdinalIgnoreCase);
     }
 
     // 删配置目录：零硬编码、可证明安全。
     // 规则：只删"递归下已无任何文件"的目录（有文件就保留，绝不误删别的 VM）；
     //       并动态护住盘符根与主机默认根目录（DefaultExternalDataRoot / DefaultVirtualHardDiskPath，连空也不删）。
-    private static async Task DeleteConfigDirAsync(string? rawConfigDir)
+    private static async Task DeleteConfigDirAsync(string? rawConfigDir, bool isProvenDedicated)
     {
-        if (string.IsNullOrEmpty(rawConfigDir)) return;
+        if (!isProvenDedicated || string.IsNullOrEmpty(rawConfigDir)) return;
         string configDir = rawConfigDir.TrimEnd('\\', '/');
         if (string.IsNullOrEmpty(configDir) || !Directory.Exists(configDir)) return;
 
