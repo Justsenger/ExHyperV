@@ -9296,10 +9296,6 @@ namespace ExHyperV.Properties {
             get { return ResourceManager.GetString("VmExport_TargetsSection", resourceCulture); }
         }
 
-        public static string VmExport_TargetCount {
-            get { return ResourceManager.GetString("VmExport_TargetCount", resourceCulture); }
-        }
-
         public static string VmExport_Destination {
             get { return ResourceManager.GetString("VmExport_Destination", resourceCulture); }
         }
@@ -9422,10 +9418,6 @@ namespace ExHyperV.Properties {
 
         public static string VmExport_PackageCompress {
             get { return ResourceManager.GetString("VmExport_PackageCompress", resourceCulture); }
-        }
-
-        public static string VmExport_PackageSpaceWarning {
-            get { return ResourceManager.GetString("VmExport_PackageSpaceWarning", resourceCulture); }
         }
 
         public static string VmExport_PackageProgress {

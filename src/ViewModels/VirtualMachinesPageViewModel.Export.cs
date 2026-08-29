@@ -41,9 +41,6 @@ public partial class VirtualMachinesPageViewModel
     public bool CanConfigureExport =>
         !IsLoadingExportOptions && !IsExporting && !ExportCompleted;
     public IReadOnlyList<VmInstanceViewModel> ExportTargets => _exportVms;
-    public string ExportTargetSummary => string.Format(
-        Properties.Resources.VmExport_TargetCount,
-        _exportVms.Count);
     public bool HasExportCheckpoints => _hasExportCheckpoints;
     public bool IsMultiVmExport => _exportVms.Count > 1;
     public bool IsSingleCheckpointMode =>
@@ -183,7 +180,6 @@ public partial class VirtualMachinesPageViewModel
             ExportVmId = targets[0].Id;
             ExportVmName = targets[0].Name;
             OnPropertyChanged(nameof(ExportTargets));
-            OnPropertyChanged(nameof(ExportTargetSummary));
             OnPropertyChanged(nameof(IsMultiVmExport));
             OnPropertyChanged(nameof(ShowExportCheckpointModeSelector));
             ExportDestinationPath = Environment.GetFolderPath(

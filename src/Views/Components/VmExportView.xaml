@@ -40,24 +40,37 @@
                 <Border Background="{ui:ThemeResource CardBackgroundFillColorDefaultBrush}"
                         BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}"
                         BorderThickness="1" CornerRadius="8" Margin="0,0,0,32">
-                    <StackPanel Margin="24,16">
-                        <TextBlock Text="{Binding ExportTargetSummary}" FontSize="14"
-                                   Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
-                        <ScrollViewer Margin="0,10,0,0" MaxHeight="128"
+                    <ScrollViewer Margin="24,12" MaxHeight="128"
                                       VerticalScrollBarVisibility="Auto"
                                       HorizontalScrollBarVisibility="Disabled">
-                            <ItemsControl ItemsSource="{Binding ExportTargets}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <TextBlock Text="{Binding Name}" Margin="0,3"
+                        <ItemsControl ItemsSource="{Binding ExportTargets}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <UniformGrid Columns="2"/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="0,4,24,4">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <ui:FontIcon Grid.Column="0"
+                                                     Glyph="{Binding Name, Converter={StaticResource VmNameToIconConverter}}"
+                                                     FontFamily="{DynamicResource SegoeFluentIcons}"
+                                                     FontSize="16" Margin="0,0,8,0"
+                                                     Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                                        <TextBlock Grid.Column="1" Text="{Binding Name}"
+                                                   VerticalAlignment="Center" FontSize="13"
                                                    TextTrimming="CharacterEllipsis"
                                                    ToolTip="{Binding Name}"
-                                                   Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </ScrollViewer>
-                    </StackPanel>
+                                                   Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
                 </Border>
 
                 <TextBlock Text="{x:Static properties:Resources.VmExport_Destination}" FontSize="14"
@@ -395,7 +408,6 @@
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
@@ -524,11 +536,6 @@
                                         Text="{Binding ExportPackageFileName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
                         </Grid>
 
-                        <TextBlock Grid.Row="2" Grid.ColumnSpan="3" Margin="0,14,0,0"
-                                   Text="{x:Static properties:Resources.VmExport_PackageSpaceWarning}"
-                                   FontSize="12" TextWrapping="Wrap"
-                                   Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"
-                                   Visibility="{Binding ShowExportPackageOptions, Converter={StaticResource BoolToVis}}"/>
                     </Grid>
                 </Border>
 

@@ -3721,10 +3721,7 @@
     <value>导出虚拟机</value>
   </data>
   <data name="VmExport_TargetsSection" xml:space="preserve">
-    <value>本次导出</value>
-  </data>
-  <data name="VmExport_TargetCount" xml:space="preserve">
-    <value>已选择 {0} 台虚拟机</value>
+    <value>导出列表</value>
   </data>
   <data name="VmExport_Destination" xml:space="preserve">
     <value>导出位置</value>
@@ -3827,9 +3824,6 @@
   </data>
   <data name="VmExport_PackageCompress" xml:space="preserve">
     <value>压缩</value>
-  </data>
-  <data name="VmExport_PackageSpaceWarning" xml:space="preserve">
-    <value>打包期间会同时保留导出文件与 ZIP 文件，请预留最多约两倍于导出内容的可用空间。</value>
   </data>
   <data name="VmExport_PackageProgress" xml:space="preserve">
     <value>正在打包… {0}%</value>

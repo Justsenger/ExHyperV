@@ -3721,10 +3721,7 @@ Remove them from storage and retry? Cancel to re-plug the device and try again.<
     <value>Export Virtual Machine</value>
   </data>
   <data name="VmExport_TargetsSection" xml:space="preserve">
-    <value>This Export</value>
-  </data>
-  <data name="VmExport_TargetCount" xml:space="preserve">
-    <value>Virtual machines selected: {0}</value>
+    <value>Export List</value>
   </data>
   <data name="VmExport_Destination" xml:space="preserve">
     <value>Export Location</value>
@@ -3827,9 +3824,6 @@ Remove them from storage and retry? Cancel to re-plug the device and try again.<
   </data>
   <data name="VmExport_PackageCompress" xml:space="preserve">
     <value>Compress</value>
-  </data>
-  <data name="VmExport_PackageSpaceWarning" xml:space="preserve">
-    <value>Packaging temporarily keeps both the exported files and the ZIP file. Reserve up to approximately twice the size of the exported contents.</value>
   </data>
   <data name="VmExport_PackageProgress" xml:space="preserve">
     <value>Packaging… {0}%</value>
