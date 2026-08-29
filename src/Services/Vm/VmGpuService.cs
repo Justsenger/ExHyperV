@@ -1246,14 +1246,16 @@ namespace ExHyperV.Services
             string s32 = "System32";
             string sw64 = "SysWOW64";
             string sc32 = "SyChpe32";
-            string catPath = @"System32\CatRoot\{F750E6C3-38EE-11D1-85E5-00C04FC295EE}";
 
             // --- 1. System32 (原生 ARM64 组件) ---
             LinkSingleFile(assignedDriveLetter, "OpenCL.dll", "OpenCL.dll", s32);
             LinkSingleFile(assignedDriveLetter, "qcdxkmsuc8380.mbn", "qcdxkmsuc8380.mbn", s32);
+            LinkSingleFile(assignedDriveLetter, "qcdxkmsucpurwa.mbn", "qcdxkmsucpurwa.mbn", s32);
             LinkSingleFile(assignedDriveLetter, "qchdcpumd8380.dll", "qchdcpumd8380.dll", s32);
-            // 映射证书
-            LinkSingleFile(assignedDriveLetter, "qcdx8380.cat", "oem7.cat", catPath);
+            LinkSingleFile(assignedDriveLetter, "vulkan-1.dll", "vulkan-1.dll", s32, FilePromotionMode.WhenNewer);
+            LinkSingleFile(assignedDriveLetter, "vulkan-1.dll", "vulkan-1-999-0-0-0.dll", s32, FilePromotionMode.WhenNewer);
+            LinkSingleFile(assignedDriveLetter, "vulkaninfo.exe", "vulkaninfo.exe", s32, FilePromotionMode.WhenNewer);
+            LinkSingleFile(assignedDriveLetter, "vulkaninfo.exe", "vulkaninfo-1-999-0-0-0.exe", s32, FilePromotionMode.WhenNewer);
 
             // --- 2. SysWOW64 (标准 x86 组件) ---
             LinkSingleFile(assignedDriveLetter, "qcdx11x86um.dll", "qcdx11x86um.dll", sw64);
@@ -1269,8 +1271,10 @@ namespace ExHyperV.Services
             LinkSingleFile(assignedDriveLetter, "qcdx12chpeum.dll", "qcdx12x86um.dll", sc32);
             LinkSingleFile(assignedDriveLetter, "qcdxdmlchpe.dll", "qcdxdmlx86.dll", sc32);
             LinkSingleFile(assignedDriveLetter, "qcdxsdchpe.dll", "qcdxsdx86.dll", sc32);
-            LinkSingleFile(assignedDriveLetter, "qcegpchpe.dll", "qcegpdx86.dll", sc32); // 注意：目标是 qcegpdx86.dll
+            LinkSingleFile(assignedDriveLetter, "qcegpchpe.dll", "qcegpx86.dll", sc32);
             LinkSingleFile(assignedDriveLetter, "qcgpuchpecompilercore.dll", "qcgpux86compilercore.DLL", sc32);
+
+            // MFT promotion remains gated on guest video-context support.
         }
         private void ProcessPromotionRegistryKey(
             Microsoft.Win32.RegistryKey adapterKey,

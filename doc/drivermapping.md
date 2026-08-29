@@ -21,7 +21,7 @@ After driver promotion, ExHyperV also copies the selected vendor's existing soft
 
 This document describes deployment mappings only. ExHyperV does not perform runtime API or feature validation after deployment.
 
-Driver catalog files remain inside the copied `HostDriverStore`. The audited NVIDIA, Intel, and AMD paths do not create links named `oemNN.cat`: that number belongs to a particular guest DriverStore database and cannot be inferred from a host GPU package or hard-coded across guests. The existing Qualcomm mapping is retained as legacy behavior until Qualcomm receives the same hardware-backed adaptation pass.
+Driver catalog files remain inside the copied `HostDriverStore`. No vendor path creates links named `oemNN.cat`: that number belongs to a particular guest DriverStore database and cannot be inferred from a host GPU package or hard-coded across guests.
 
 ## Registry-defined mappings
 
@@ -252,31 +252,46 @@ Validation showed the same 7 video encoders and 11 video decoders before and aft
 
 ## 4. Qualcomm (QCOM)
 
-### System32 (Native ARM64)
+Qualcomm follows the same deployment flow as NVIDIA, AMD, and Intel. ExHyperV first copies the host driver package into `HostDriverStore`, then applies the registry-defined mappings and the vendor mappings below as best-effort compatibility promotions. A missing or ambiguous promotion is reported as a warning and does not block the base GPU deployment.
+
+The tables below list the fixed compatibility promotions used with the hardware-validated `qcdx8380.inf` version 31.0.152.1. Existing regular guest files are preserved by default; the Vulkan loader and tools use the `WhenNewer` replacement rule.
+
+### System32 (native ARM64)
+
 | Host Source File | Guest Target Directory | Guest Target Filename |
 | :--- | :--- | :--- |
-| OpenCL.dll | System32 | OpenCL.dll |
-| qcdxkmsuc8380.mbn | System32 | qcdxkmsuc8380.mbn |
 | qchdcpumd8380.dll | System32 | qchdcpumd8380.dll |
-| qcdx8380.cat | System32\CatRoot\{F750E6C3-38EE-11D1-85E5-00C04FC295EE} | oem7.cat |
+| qcdxkmsuc8380.mbn | System32 | qcdxkmsuc8380.mbn |
+| qcdxkmsucpurwa.mbn | System32 | qcdxkmsucpurwa.mbn |
+| OpenCL.dll | System32 | OpenCL.dll |
+| vulkan-1.dll | System32 | vulkan-1.dll |
+| vulkan-1.dll | System32 | vulkan-1-999-0-0-0.dll |
+| vulkaninfo.exe | System32 | vulkaninfo.exe |
+| vulkaninfo.exe | System32 | vulkaninfo-1-999-0-0-0.exe |
 
-### SysWOW64 (x86 Compatibility)
+### SysWOW64 (x86 compatibility)
+
 | Host Source File | Guest Target Directory | Guest Target Filename |
 | :--- | :--- | :--- |
 | qcdx11x86um.dll | SysWOW64 | qcdx11x86um.dll |
-| qcdx12x86um.dll | SysWOW64 | qcdx12x86um.dll |
 | qcdxdmlx86.dll | SysWOW64 | qcdxdmlx86.dll |
-| qcdxsdx86.dll | SysWOW64 | qcdxsdx86.dll |
-| qcegpx86.dll | SysWOW64 | qcegpx86.dll |
+| qcdx12x86um.dll | SysWOW64 | qcdx12x86um.dll |
 | qcgpux86compilercore.DLL | SysWOW64 | qcgpux86compilercore.DLL |
 | qcvidencx86um.DLL | SysWOW64 | qcvidencum.DLL |
+| qcdxsdx86.dll | SysWOW64 | qcdxsdx86.dll |
+| qcegpx86.dll | SysWOW64 | qcegpx86.dll |
 
-### SyChpe32 (CHPE Emulation)
+### SyChpe32 (CHPE emulation)
+
 | Host Source File | Guest Target Directory | Guest Target Filename |
 | :--- | :--- | :--- |
 | qcdx11chpeum.dll | SyChpe32 | qcdx11x86um.dll |
-| qcdx12chpeum.dll | SyChpe32 | qcdx12x86um.dll |
 | qcdxdmlchpe.dll | SyChpe32 | qcdxdmlx86.dll |
-| qcdxsdchpe.dll | SyChpe32 | qcdxsdx86.dll |
-| qcegpchpe.dll | SyChpe32 | qcegpdx86.dll |
+| qcdx12chpeum.dll | SyChpe32 | qcdx12x86um.dll |
 | qcgpuchpecompilercore.dll | SyChpe32 | qcgpux86compilercore.DLL |
+| qcdxsdchpe.dll | SyChpe32 | qcdxsdx86.dll |
+| qcegpchpe.dll | SyChpe32 | qcegpx86.dll |
+
+The former hard-coded `qcdx8380.cat -> oem7.cat` promotion has been removed, and the CHPE mapping for `qcegpchpe.dll` now correctly targets `qcegpx86.dll`.
+
+Validation covered ARM64 Direct3D 11/12, Vulkan 1.3, OpenCL 3.0 and DirectML; x86/CHPE Direct3D 11/12 and DirectML; and GPU performance counters used by ExHyperV monitoring.
