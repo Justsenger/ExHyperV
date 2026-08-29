@@ -1,6 +1,7 @@
 using System.Buffers;
 using System.IO;
 using System.IO.Compression;
+using System.Security.Cryptography;
 using ExHyperV.Tools;
 
 namespace ExHyperV.Services;
@@ -18,6 +19,11 @@ public sealed record VmExportPackageResult(
 
 public static class VmExportPackagingService
 {
+    private sealed record PackagedFileInfo(
+        string EntryName,
+        long Length,
+        byte[] Sha256);
+
     public static Task<ApiResponse<VmExportPackageResult>> CreatePackageAsync(
         string sourceDirectory,
         string destinationArchivePath,
@@ -51,6 +57,7 @@ public static class VmExportPackagingService
                     .ToArray();
                 long totalBytes = files.Sum(path => new FileInfo(path).Length);
                 long completedBytes = 0;
+                var packagedFiles = new List<PackagedFileInfo>(files.Length);
                 CompressionLevel compressionLevel = mode == VmExportPackageMode.Store
                     ? CompressionLevel.NoCompression
                     : CompressionLevel.SmallestSize;
@@ -87,18 +94,28 @@ public static class VmExportPackagingService
                                 FileShare.Read,
                                 1024 * 1024,
                                 FileOptions.SequentialScan);
+                            using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
 
+                            long actualLength = 0;
                             int bytesRead;
                             while ((bytesRead = sourceStream.Read(buffer, 0, buffer.Length)) > 0)
                             {
                                 cancellationToken.ThrowIfCancellationRequested();
                                 entryStream.Write(buffer, 0, bytesRead);
+                                hash.AppendData(buffer, 0, bytesRead);
+                                actualLength += bytesRead;
                                 completedBytes += bytesRead;
-                                int percentage = totalBytes == 0
-                                    ? 100
-                                    : (int)Math.Min(100, completedBytes * 100L / totalBytes);
-                                progress?.Report(percentage);
+                                progress?.Report(CalculateProgress(
+                                    completedBytes,
+                                    totalBytes,
+                                    start: 0,
+                                    span: 50));
                             }
+
+                            packagedFiles.Add(new PackagedFileInfo(
+                                entryName,
+                                actualLength,
+                                hash.GetHashAndReset()));
                         }
                     }
                     finally
@@ -107,7 +124,12 @@ public static class VmExportPackagingService
                     }
                 }
 
-                ValidateArchive(temporaryArchivePath, files.Length, cancellationToken);
+                progress?.Report(50);
+                ValidateArchive(
+                    temporaryArchivePath,
+                    packagedFiles,
+                    progress,
+                    cancellationToken);
                 File.Move(temporaryArchivePath, destinationArchivePath);
                 var cleanup = TryDeleteDirectory(sourceDirectory);
                 progress?.Report(100);
@@ -138,20 +160,95 @@ public static class VmExportPackagingService
 
     private static void ValidateArchive(
         string archivePath,
-        int expectedEntryCount,
+        IReadOnlyCollection<PackagedFileInfo> expectedFiles,
+        IProgress<int>? progress,
         CancellationToken cancellationToken)
     {
-        using var archive = ZipFile.OpenRead(archivePath);
-        if (archive.Entries.Count != expectedEntryCount)
-            throw new InvalidDataException("The ZIP entry count does not match the export.");
-
-        foreach (ZipArchiveEntry entry in archive.Entries)
+        try
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            using Stream stream = entry.Open();
-            if (entry.Length > 0)
-                _ = stream.ReadByte();
+            var expectedByName = expectedFiles.ToDictionary(
+                file => file.EntryName,
+                StringComparer.Ordinal);
+            long totalBytes = expectedFiles.Sum(file => file.Length);
+            long validatedBytes = 0;
+
+            using var archive = ZipFile.OpenRead(archivePath);
+            if (archive.Entries.Count != expectedByName.Count)
+                throw new InvalidDataException();
+
+            var validatedNames = new HashSet<string>(StringComparer.Ordinal);
+            byte[] buffer = ArrayPool<byte>.Shared.Rent(1024 * 1024);
+            try
+            {
+                foreach (ZipArchiveEntry entry in archive.Entries)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (!expectedByName.TryGetValue(entry.FullName, out PackagedFileInfo? expected)
+                        || !validatedNames.Add(entry.FullName)
+                        || entry.Length != expected.Length)
+                    {
+                        throw new InvalidDataException();
+                    }
+
+                    using Stream stream = entry.Open();
+                    using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+                    long actualLength = 0;
+                    int bytesRead;
+                    while ((bytesRead = stream.Read(buffer, 0, buffer.Length)) > 0)
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        hash.AppendData(buffer, 0, bytesRead);
+                        actualLength += bytesRead;
+                        validatedBytes += bytesRead;
+                        progress?.Report(CalculateProgress(
+                            validatedBytes,
+                            totalBytes,
+                            start: 50,
+                            span: 50));
+                    }
+
+                    byte[] actualHash = hash.GetHashAndReset();
+                    if (actualLength != expected.Length
+                        || !CryptographicOperations.FixedTimeEquals(actualHash, expected.Sha256))
+                    {
+                        throw new InvalidDataException();
+                    }
+                }
+
+                if (validatedNames.Count != expectedByName.Count)
+                    throw new InvalidDataException();
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(buffer);
+            }
+
+            progress?.Report(100);
         }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidDataException(
+                Properties.Resources.VmExport_PackageValidationFailed,
+                ex);
+        }
+    }
+
+    private static int CalculateProgress(
+        long completedBytes,
+        long totalBytes,
+        int start,
+        int span)
+    {
+        if (totalBytes <= 0)
+            return start + span;
+
+        return start + (int)Math.Min(
+            span,
+            completedBytes * (double)span / totalBytes);
     }
 
     private static void TryDelete(string path)

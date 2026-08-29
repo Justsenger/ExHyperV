@@ -3720,6 +3720,12 @@ Remove them from storage and retry? Cancel to re-plug the device and try again.<
   <data name="VmExport_Title" xml:space="preserve">
     <value>Export Virtual Machine</value>
   </data>
+  <data name="VmExport_TargetsSection" xml:space="preserve">
+    <value>This Export</value>
+  </data>
+  <data name="VmExport_TargetCount" xml:space="preserve">
+    <value>Virtual machines selected: {0}</value>
+  </data>
   <data name="VmExport_Destination" xml:space="preserve">
     <value>Export Location</value>
   </data>
@@ -3784,7 +3790,7 @@ Remove them from storage and retry? Cancel to re-plug the device and try again.<
     <value>A folder named “{0}” already exists in the selected location.</value>
   </data>
   <data name="VmExport_ConfigurationMissing" xml:space="preserve">
-    <value>Hyper-V completed the export, but no virtual machine configuration file was found.</value>
+    <value>Hyper-V completed the export of “{0}” ({1}), but its matching current configuration file was not found. The export is incomplete.</value>
   </data>
   <data name="VmExport_ExportDirectoryMissing" xml:space="preserve">
     <value>The exported virtual machine directory does not exist.</value>
@@ -3839,6 +3845,9 @@ Remove them from storage and retry? Cancel to re-plug the device and try again.<
   </data>
   <data name="VmExport_PackageFileNameInvalid" xml:space="preserve">
     <value>Enter a valid ZIP file name.</value>
+  </data>
+  <data name="VmExport_PackageValidationFailed" xml:space="preserve">
+    <value>The ZIP package failed integrity validation. The original exported files have been preserved.</value>
   </data>
   <data name="Error_Wmi_CreateInstanceFailed" xml:space="preserve">
     <value>WMI class “{0}” could not create an instance.</value>

@@ -288,7 +288,10 @@ public static class VmExportService
                     stagingDirectory,
                     vmId);
                 if (stagedExportDirectory == null)
-                    return ApiResponse<string>.Fail(Properties.Resources.VmExport_ConfigurationMissing);
+                    return ApiResponse<string>.Fail(string.Format(
+                        Properties.Resources.VmExport_ConfigurationMissing,
+                        vmName,
+                        vmDirectoryName));
 
                 if (string.Equals(
                         stagedExportDirectory,
@@ -304,11 +307,15 @@ public static class VmExportService
                         Directory.Delete(stagingDirectory);
                 }
 
-                bool hasConfiguration = Directory.EnumerateFiles(
-                    exportDirectory, "*.vmcx", SearchOption.AllDirectories).Any();
+                bool hasConfiguration = FindCurrentConfigurationFile(
+                    exportDirectory,
+                    vmId) != null;
                 return hasConfiguration
                     ? ApiResponse<string>.Ok(exportDirectory)
-                    : ApiResponse<string>.Fail(Properties.Resources.VmExport_ConfigurationMissing);
+                    : ApiResponse<string>.Fail(string.Format(
+                        Properties.Resources.VmExport_ConfigurationMissing,
+                        vmName,
+                        vmDirectoryName));
             }
             catch (ManagementException ex)
             {
@@ -328,20 +335,9 @@ public static class VmExportService
 
     private static string? FindExportDirectory(string stagingDirectory, Guid vmId)
     {
-        string expectedConfigurationName = vmId.ToString("D") + ".vmcx";
-        string? configurationPath = Directory.EnumerateFiles(
-                stagingDirectory,
-                "*.vmcx",
-                SearchOption.AllDirectories)
-            .FirstOrDefault(path => string.Equals(
-                Path.GetFileName(path),
-                expectedConfigurationName,
-                StringComparison.OrdinalIgnoreCase))
-            ?? Directory.EnumerateFiles(
-                    stagingDirectory,
-                    "*.vmcx",
-                    SearchOption.AllDirectories)
-                .FirstOrDefault();
+        string? configurationPath = FindCurrentConfigurationFile(
+            stagingDirectory,
+            vmId);
 
         if (configurationPath == null)
             return null;
@@ -358,6 +354,19 @@ public static class VmExportService
             StringComparison.OrdinalIgnoreCase)
             ? stagingDirectory
             : Path.Combine(stagingDirectory, firstSegment);
+    }
+
+    private static string? FindCurrentConfigurationFile(string directory, Guid vmId)
+    {
+        string expectedConfigurationName = vmId.ToString("D") + ".vmcx";
+        return Directory.EnumerateFiles(
+                directory,
+                "*.vmcx",
+                SearchOption.AllDirectories)
+            .FirstOrDefault(path => string.Equals(
+                Path.GetFileName(path),
+                expectedConfigurationName,
+                StringComparison.OrdinalIgnoreCase));
     }
 
     private static string? ExtractInstanceId(string? path)

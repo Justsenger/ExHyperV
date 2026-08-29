@@ -3720,6 +3720,12 @@
   <data name="VmExport_Title" xml:space="preserve">
     <value>导出虚拟机</value>
   </data>
+  <data name="VmExport_TargetsSection" xml:space="preserve">
+    <value>本次导出</value>
+  </data>
+  <data name="VmExport_TargetCount" xml:space="preserve">
+    <value>已选择 {0} 台虚拟机</value>
+  </data>
   <data name="VmExport_Destination" xml:space="preserve">
     <value>导出位置</value>
   </data>
@@ -3784,7 +3790,7 @@
     <value>所选位置已经存在名为“{0}”的目录。</value>
   </data>
   <data name="VmExport_ConfigurationMissing" xml:space="preserve">
-    <value>Hyper-V 已完成导出，但未找到虚拟机配置文件。</value>
+    <value>Hyper-V 已完成虚拟机“{0}”（{1}）的导出，但未找到与其 ID 对应的当前配置文件，导出内容不完整。</value>
   </data>
   <data name="VmExport_ExportDirectoryMissing" xml:space="preserve">
     <value>导出的虚拟机目录不存在。</value>
@@ -3839,6 +3845,9 @@
   </data>
   <data name="VmExport_PackageFileNameInvalid" xml:space="preserve">
     <value>请输入有效的 ZIP 文件名。</value>
+  </data>
+  <data name="VmExport_PackageValidationFailed" xml:space="preserve">
+    <value>ZIP 完整性校验失败，原始导出文件已保留。</value>
   </data>
   <data name="Error_Wmi_CreateInstanceFailed" xml:space="preserve">
     <value>WMI 类“{0}”无法创建实例。</value>

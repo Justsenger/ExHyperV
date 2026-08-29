@@ -9292,6 +9292,14 @@ namespace ExHyperV.Properties {
             get { return ResourceManager.GetString("VmExport_Title", resourceCulture); }
         }
 
+        public static string VmExport_TargetsSection {
+            get { return ResourceManager.GetString("VmExport_TargetsSection", resourceCulture); }
+        }
+
+        public static string VmExport_TargetCount {
+            get { return ResourceManager.GetString("VmExport_TargetCount", resourceCulture); }
+        }
+
         public static string VmExport_Destination {
             get { return ResourceManager.GetString("VmExport_Destination", resourceCulture); }
         }
@@ -9789,7 +9797,7 @@ namespace ExHyperV.Properties {
         }
 
         /// <summary>
-        ///   查找类似 Hyper-V completed the export, but no virtual machine configuration file was found. 的本地化字符串。
+        ///   查找类似 Hyper-V completed the export of “{0}” ({1}), but its matching current configuration file was not found. The export is incomplete. 的本地化字符串。
         /// </summary>
         public static string VmExport_ConfigurationMissing {
             get {
@@ -9824,6 +9832,12 @@ namespace ExHyperV.Properties {
         public static string VmExport_PackageFileNameInvalid {
             get {
                 return ResourceManager.GetString("VmExport_PackageFileNameInvalid", resourceCulture);
+            }
+        }
+
+        public static string VmExport_PackageValidationFailed {
+            get {
+                return ResourceManager.GetString("VmExport_PackageValidationFailed", resourceCulture);
             }
         }
 
