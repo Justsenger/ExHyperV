@@ -188,7 +188,7 @@ public partial class VirtualMachinesPageViewModel
             ExportIncludesRuntimeState = false;
             ExportCreatesPackage = false;
             ExportPackageMode = VmExportPackageMode.Store;
-            ExportPackageFileName = $"VMExport_{DateTime.Now:yyyyMMdd_HHmmss}.zip";
+            ExportPackageFileName = $"VMExport_{DateTime.Now:yyMMdd_HHmm}.zip";
             ExportProgress = 0;
             ExportStatusText = string.Empty;
             ExportCompleted = false;
@@ -351,7 +351,7 @@ public partial class VirtualMachinesPageViewModel
 
         string batchName = ExportCreatesPackage
             ? Path.GetFileNameWithoutExtension(packageFileName!)
-            : $"VMExport_{DateTime.Now:yyyyMMdd_HHmmss}";
+            : $"VMExport_{DateTime.Now:yyMMdd_HHmm}";
         string targetArchive = Path.Combine(
             ExportDestinationPath,
             packageFileName ?? batchName + ".zip");
