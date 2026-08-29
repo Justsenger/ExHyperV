@@ -21,6 +21,7 @@ public partial class VirtualMachinesPageViewModel
     [ObservableProperty] private bool _exportIncludesRuntimeState;
     [ObservableProperty] private bool _exportCreatesPackage;
     [ObservableProperty] private VmExportPackageMode _exportPackageMode = VmExportPackageMode.Store;
+    [ObservableProperty] private string _exportPackageFileName = string.Empty;
     [ObservableProperty] private bool _isLoadingExportOptions;
     [ObservableProperty] private bool _isExporting;
     [ObservableProperty] private bool _exportCompleted;
@@ -30,6 +31,8 @@ public partial class VirtualMachinesPageViewModel
     public ObservableCollection<VmExportDiskItemViewModel> ExportVirtualHardDisks { get; } = new();
     public ObservableCollection<VmExportCheckpointItemViewModel> ExportCheckpoints { get; } = new();
 
+    private List<VmInstanceViewModel> _exportVms = new();
+    private bool _hasExportCheckpoints;
     private bool _singleCheckpointRequirementsApplied;
     private bool _virtualHardDisksBeforeSingleCheckpoint;
     private bool _runtimeStateBeforeSingleCheckpoint;
@@ -37,7 +40,8 @@ public partial class VirtualMachinesPageViewModel
 
     public bool CanConfigureExport =>
         !IsLoadingExportOptions && !IsExporting && !ExportCompleted;
-    public bool HasExportCheckpoints => ExportCheckpoints.Count > 0;
+    public bool HasExportCheckpoints => _hasExportCheckpoints;
+    public bool IsMultiVmExport => _exportVms.Count > 1;
     public bool IsSingleCheckpointMode =>
         ExportCheckpointMode == VmExportCheckpointMode.Single;
     public bool IsSingleCheckpointExport =>
@@ -51,11 +55,14 @@ public partial class VirtualMachinesPageViewModel
     public bool CanConfigureExportRuntimeState =>
         CanConfigureExport && !IsSingleCheckpointExport;
     public bool ShowExportPackageOptions => ExportCreatesPackage;
+    public bool ShowExportCheckpointModeSelector =>
+        ExportIncludesCheckpoints && !IsMultiVmExport;
     public bool IsCompressedExportPackage => ExportPackageMode == VmExportPackageMode.Compress;
     public bool CanLeaveExport => !IsExporting;
     public bool ShowExportProgress => IsExporting || ExportCompleted;
     public bool CanStartExport => CanConfigureExport
         && !string.IsNullOrWhiteSpace(ExportDestinationPath)
+        && (!ExportCreatesPackage || NormalizePackageFileName(ExportPackageFileName) != null)
         && (!IsSingleCheckpointExport || SelectedExportCheckpoint != null);
 
     partial void OnIsLoadingExportOptionsChanged(bool value)
@@ -76,8 +83,14 @@ public partial class VirtualMachinesPageViewModel
         OnPropertyChanged(nameof(CanConfigureExportVirtualHardDiskSelection));
     }
 
-    partial void OnExportCreatesPackageChanged(bool value) =>
+    partial void OnExportCreatesPackageChanged(bool value)
+    {
         OnPropertyChanged(nameof(ShowExportPackageOptions));
+        OnPropertyChanged(nameof(CanStartExport));
+    }
+
+    partial void OnExportPackageFileNameChanged(string value) =>
+        OnPropertyChanged(nameof(CanStartExport));
 
     partial void OnExportPackageModeChanged(VmExportPackageMode value) =>
         OnPropertyChanged(nameof(IsCompressedExportPackage));
@@ -112,7 +125,7 @@ public partial class VirtualMachinesPageViewModel
                 StringComparer.OrdinalIgnoreCase);
             foreach (VmExportDiskItemViewModel disk in ExportVirtualHardDisks)
             {
-                _virtualHardDiskSelectionsBeforeCheckpoints[disk.InstanceId] = disk.IsIncluded;
+                _virtualHardDiskSelectionsBeforeCheckpoints[disk.SelectionKey] = disk.IsIncluded;
                 disk.IsIncluded = true;
             }
         }
@@ -120,7 +133,7 @@ public partial class VirtualMachinesPageViewModel
         {
             foreach (VmExportDiskItemViewModel disk in ExportVirtualHardDisks)
             {
-                if (selections.TryGetValue(disk.InstanceId, out bool isIncluded))
+                if (selections.TryGetValue(disk.SelectionKey, out bool isIncluded))
                     disk.IsIncluded = isIncluded;
             }
 
@@ -128,6 +141,7 @@ public partial class VirtualMachinesPageViewModel
         }
 
         OnPropertyChanged(nameof(CanConfigureExportVirtualHardDiskSelection));
+        OnPropertyChanged(nameof(ShowExportCheckpointModeSelector));
         UpdateSingleCheckpointRequirements();
     }
 
@@ -146,17 +160,26 @@ public partial class VirtualMachinesPageViewModel
     {
         if (vm == null || IsExporting) return;
 
+        var targets = (IsMultiSelect ? _selectedVms : new List<VmInstanceViewModel> { vm })
+            .Where(item => item != null)
+            .DistinctBy(item => item.Id)
+            .ToList();
+        if (targets.Count == 0) return;
+
         IsLoadingExportOptions = true;
         try
         {
-            if (SelectedVm != vm)
+            if (targets.Count == 1 && SelectedVm != vm)
             {
                 CurrentViewType = VmDetailViewType.Dashboard;
                 SelectedVm = vm;
             }
 
-            ExportVmId = vm.Id;
-            ExportVmName = vm.Name;
+            _exportVms = targets;
+            ExportVmId = targets[0].Id;
+            ExportVmName = targets[0].Name;
+            OnPropertyChanged(nameof(IsMultiVmExport));
+            OnPropertyChanged(nameof(ShowExportCheckpointModeSelector));
             ExportDestinationPath = Environment.GetFolderPath(
                 Environment.SpecialFolder.DesktopDirectory);
             ExportIncludesCheckpoints = false;
@@ -165,6 +188,7 @@ public partial class VirtualMachinesPageViewModel
             ExportIncludesRuntimeState = false;
             ExportCreatesPackage = false;
             ExportPackageMode = VmExportPackageMode.Store;
+            ExportPackageFileName = $"VMExport_{DateTime.Now:yyyyMMdd_HHmmss}.zip";
             ExportProgress = 0;
             ExportStatusText = string.Empty;
             ExportCompleted = false;
@@ -172,75 +196,91 @@ public partial class VirtualMachinesPageViewModel
 
             ExportVirtualHardDisks.Clear();
             ExportCheckpoints.Clear();
+            _hasExportCheckpoints = false;
             SelectedExportCheckpoint = null;
             OnPropertyChanged(nameof(HasExportCheckpoints));
-            await VmStorageService.LoadVmStorageItemsAsync(vm.Model);
-            var disksResult = await VmExportService.GetVirtualHardDisksAsync(vm.Id);
-            if (!disksResult.Success)
-            {
-                ShowError(FriendlyError.CleanLines(disksResult.Error));
-                return;
-            }
-
             var exportDisks = new List<VmExportDiskItemViewModel>();
-            foreach (VmExportService.VirtualHardDiskInfo diskInfo in
-                     disksResult.Data ?? new List<VmExportService.VirtualHardDiskInfo>())
+            foreach (VmInstanceViewModel target in targets)
             {
-                string path = diskInfo.Path.Trim('"');
-                var disk = vm.Disks.FirstOrDefault(item =>
-                    string.Equals(
-                        item.Path.Trim('"'),
-                        path,
-                        StringComparison.OrdinalIgnoreCase));
-
-                if (disk == null)
+                await VmStorageService.LoadVmStorageItemsAsync(target.Model);
+                var disksResult = await VmExportService.GetVirtualHardDisksAsync(target.Id);
+                if (!disksResult.Success)
                 {
-                    long size = 0;
-                    try
-                    {
-                        if (File.Exists(path))
-                            size = new FileInfo(path).Length;
-                    }
-                    catch { }
-
-                    disk = new Models.VmDiskItem
-                    {
-                        Name = Path.GetFileName(path),
-                        Path = path,
-                        CurrentSize = size,
-                        MaxSize = size,
-                        DiskType = "Virtual"
-                    };
+                    ShowError(FriendlyError.CleanLines(disksResult.Error));
+                    return;
                 }
 
-                var storageItem = vm.StorageItems.FirstOrDefault(item =>
-                    item.DriveType == "HardDisk"
-                    && item.DiskType == "Virtual"
-                    && string.Equals(
-                        item.PathOrDiskNumber.Trim('"'),
-                        path,
-                        StringComparison.OrdinalIgnoreCase));
+                foreach (VmExportService.VirtualHardDiskInfo diskInfo in
+                         disksResult.Data ?? new List<VmExportService.VirtualHardDiskInfo>())
+                {
+                    string path = diskInfo.Path.Trim('"');
+                    var disk = target.Disks.FirstOrDefault(item =>
+                        string.Equals(
+                            item.Path.Trim('"'),
+                            path,
+                            StringComparison.OrdinalIgnoreCase));
 
-                exportDisks.Add(
-                    new VmExportDiskItemViewModel(diskInfo.InstanceId, disk, storageItem));
+                    if (disk == null)
+                    {
+                        long size = 0;
+                        try
+                        {
+                            if (File.Exists(path))
+                                size = new FileInfo(path).Length;
+                        }
+                        catch { }
+
+                        disk = new Models.VmDiskItem
+                        {
+                            Name = Path.GetFileName(path),
+                            Path = path,
+                            CurrentSize = size,
+                            MaxSize = size,
+                            DiskType = "Virtual"
+                        };
+                    }
+
+                    var storageItem = target.StorageItems.FirstOrDefault(item =>
+                        item.DriveType == "HardDisk"
+                        && item.DiskType == "Virtual"
+                        && string.Equals(
+                            item.PathOrDiskNumber.Trim('"'),
+                            path,
+                            StringComparison.OrdinalIgnoreCase));
+
+                    exportDisks.Add(new VmExportDiskItemViewModel(
+                        target.Id,
+                        target.Name,
+                        targets.Count > 1,
+                        diskInfo.InstanceId,
+                        disk,
+                        storageItem));
+                }
+
+                var checkpointsResult = await VmExportService.GetCheckpointsAsync(target.Id);
+                if (!checkpointsResult.Success)
+                {
+                    ShowError(FriendlyError.CleanLines(checkpointsResult.Error));
+                    return;
+                }
+
+                var checkpoints = checkpointsResult.Data
+                    ?? new List<VmExportService.CheckpointInfo>();
+                _hasExportCheckpoints |= checkpoints.Count > 0;
+                if (targets.Count == 1)
+                {
+                    foreach (VmExportCheckpointItemViewModel checkpoint in
+                             BuildExportCheckpointTree(checkpoints))
+                        ExportCheckpoints.Add(checkpoint);
+                }
             }
 
             foreach (VmExportDiskItemViewModel disk in exportDisks
-                         .OrderBy(item => item.ControllerType)
+                         .OrderBy(item => item.VmName)
+                         .ThenBy(item => item.ControllerType)
                          .ThenBy(item => item.ControllerNumber)
                          .ThenBy(item => item.ControllerLocation))
                 ExportVirtualHardDisks.Add(disk);
-
-            var checkpointsResult = await VmExportService.GetCheckpointsAsync(vm.Id);
-            if (!checkpointsResult.Success)
-            {
-                ShowError(FriendlyError.CleanLines(checkpointsResult.Error));
-                return;
-            }
-
-            foreach (VmExportCheckpointItemViewModel checkpoint in BuildExportCheckpointTree(
-                         checkpointsResult.Data ?? new List<VmExportService.CheckpointInfo>()))
-                ExportCheckpoints.Add(checkpoint);
 
             SelectedExportCheckpoint = ExportCheckpoints.FirstOrDefault();
             OnPropertyChanged(nameof(HasExportCheckpoints));
@@ -270,8 +310,11 @@ public partial class VirtualMachinesPageViewModel
         ExportCheckpointMode = VmExportCheckpointMode.All;
 
     [RelayCommand]
-    private void SelectSingleExportCheckpoint() =>
-        ExportCheckpointMode = VmExportCheckpointMode.Single;
+    private void SelectSingleExportCheckpoint()
+    {
+        if (!IsMultiVmExport)
+            ExportCheckpointMode = VmExportCheckpointMode.Single;
+    }
 
     [RelayCommand]
     private void SelectStoredExportPackage() =>
@@ -292,14 +335,38 @@ public partial class VirtualMachinesPageViewModel
             return;
         }
 
-        string targetDirectory = Path.Combine(ExportDestinationPath, ExportVmName);
-        string targetArchive = Path.Combine(ExportDestinationPath, ExportVmName + ".zip");
-        if (Directory.Exists(targetDirectory) || File.Exists(targetDirectory))
+        VmInstanceViewModel[] targets = _exportVms.ToArray();
+        if (targets.Length == 0)
+            return;
+
+        string? packageFileName = NormalizePackageFileName(ExportPackageFileName);
+        if (ExportCreatesPackage && packageFileName == null)
         {
-            ShowError(string.Format(
-                Properties.Resources.VmExport_TargetExists, ExportVmName));
+            ShowError(Properties.Resources.VmExport_PackageFileNameInvalid);
             return;
         }
+
+        if (packageFileName != null)
+            ExportPackageFileName = packageFileName;
+
+        string batchName = ExportCreatesPackage
+            ? Path.GetFileNameWithoutExtension(packageFileName!)
+            : $"VMExport_{DateTime.Now:yyyyMMdd_HHmmss}";
+        string targetArchive = Path.Combine(
+            ExportDestinationPath,
+            packageFileName ?? batchName + ".zip");
+        string outputRoot = ExportCreatesPackage
+            ? Path.Combine(ExportDestinationPath, batchName + ".partial")
+            : targets.Length > 1
+                ? Path.Combine(ExportDestinationPath, batchName)
+                : ExportDestinationPath;
+        string completedOutputPath = ExportCreatesPackage
+            ? targetArchive
+            : targets.Length > 1
+                ? outputRoot
+                : Path.Combine(
+                    ExportDestinationPath,
+                    targets[0].Id.ToString("D").ToUpperInvariant());
 
         if (ExportCreatesPackage
             && (Directory.Exists(targetArchive) || File.Exists(targetArchive)))
@@ -310,44 +377,67 @@ public partial class VirtualMachinesPageViewModel
             return;
         }
 
+        string conflictPath = targets.Length > 1 || ExportCreatesPackage
+            ? outputRoot
+            : completedOutputPath;
+        if (Directory.Exists(conflictPath) || File.Exists(conflictPath))
+        {
+            ShowError(string.Format(
+                Properties.Resources.VmExport_TargetExists,
+                Path.GetFileName(conflictPath)));
+            return;
+        }
+
         IsExporting = true;
         ExportProgress = 0;
         ExportStatusText = Properties.Resources.VmExport_Preparing;
 
-        string completedOutputPath = targetDirectory;
         try
         {
-            var progress = new Progress<int>(value =>
-            {
-                ExportProgress = value;
-                ExportStatusText = string.Format(
-                    Properties.Resources.VmExport_Progress, value);
-            });
+            if (targets.Length > 1 || ExportCreatesPackage)
+                Directory.CreateDirectory(outputRoot);
 
-            var result = await VmExportService.ExportAsync(
-                ExportVmId,
-                ExportVmName,
-                ExportDestinationPath,
-                ExportIncludesVirtualHardDisks,
-                ExportVirtualHardDisks
-                    .Where(disk => !disk.IsIncluded)
-                    .Select(disk => disk.InstanceId)
-                    .ToArray(),
-                ExportIncludesCheckpoints
-                    ? ExportCheckpointMode
-                    : VmExportCheckpointMode.None,
-                IsSingleCheckpointExport
-                    ? SelectedExportCheckpoint?.Path
-                    : null,
-                ExportIncludesRuntimeState,
-                progress);
-
-            if (!result.Success)
+            for (int index = 0; index < targets.Length; index++)
             {
-                string error = FriendlyError.CleanLines(result.Error);
-                ExportStatusText = string.Format(Properties.Resources.VmExport_Failed, error);
-                ShowError(ExportStatusText);
-                return;
+                VmInstanceViewModel target = targets[index];
+                int completedTargets = index;
+                var progress = new Progress<int>(value =>
+                {
+                    int overall = (completedTargets * 100 + value) / targets.Length;
+                    ExportProgress = overall;
+                    ExportStatusText = string.Format(
+                        Properties.Resources.VmExport_Progress,
+                        overall);
+                });
+
+                VmExportCheckpointMode checkpointMode = !ExportIncludesCheckpoints
+                    ? VmExportCheckpointMode.None
+                    : IsMultiVmExport
+                        ? VmExportCheckpointMode.All
+                        : ExportCheckpointMode;
+                var result = await VmExportService.ExportAsync(
+                    target.Id,
+                    target.Name,
+                    outputRoot,
+                    ExportIncludesVirtualHardDisks,
+                    ExportVirtualHardDisks
+                        .Where(disk => disk.VmId == target.Id && !disk.IsIncluded)
+                        .Select(disk => disk.InstanceId)
+                        .ToArray(),
+                    checkpointMode,
+                    !IsMultiVmExport && IsSingleCheckpointExport
+                        ? SelectedExportCheckpoint?.Path
+                        : null,
+                    ExportIncludesRuntimeState,
+                    progress);
+
+                if (!result.Success)
+                {
+                    string error = FriendlyError.CleanLines(result.Error);
+                    ExportStatusText = string.Format(Properties.Resources.VmExport_Failed, error);
+                    ShowError(ExportStatusText);
+                    return;
+                }
             }
 
             if (ExportCreatesPackage)
@@ -362,7 +452,7 @@ public partial class VirtualMachinesPageViewModel
                 });
 
                 var packageResult = await VmExportPackagingService.CreatePackageAsync(
-                    result.Data ?? targetDirectory,
+                    outputRoot,
                     targetArchive,
                     ExportPackageMode,
                     packageProgress);
@@ -413,6 +503,25 @@ public partial class VirtualMachinesPageViewModel
     {
         if (!CanLeaveExport) return;
         CurrentViewType = VmDetailViewType.Dashboard;
+    }
+
+    private static string? NormalizePackageFileName(string? value)
+    {
+        string fileName = value?.Trim() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(fileName)
+            || !string.Equals(fileName, Path.GetFileName(fileName), StringComparison.Ordinal)
+            || fileName.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
+        {
+            return null;
+        }
+
+        if (!fileName.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
+            fileName += ".zip";
+
+        return fileName.Length <= 255
+               && !string.IsNullOrWhiteSpace(Path.GetFileNameWithoutExtension(fileName))
+            ? fileName
+            : null;
     }
 
     private void UpdateSingleCheckpointRequirements()

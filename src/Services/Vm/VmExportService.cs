@@ -139,10 +139,15 @@ public static class VmExportService
                 if (!Directory.Exists(destinationRoot))
                     return ApiResponse<string>.Fail(Properties.Resources.VmExport_PathRequired);
 
-                string exportDirectory = Path.Combine(destinationRoot, vmName);
+                string vmDirectoryName = vmId.ToString("D").ToUpperInvariant();
+                string exportDirectory = Path.Combine(destinationRoot, vmDirectoryName);
+                string stagingDirectory = Path.Combine(destinationRoot, vmDirectoryName + ".partial");
                 if (Directory.Exists(exportDirectory) || File.Exists(exportDirectory))
                     return ApiResponse<string>.Fail(
-                        string.Format(Properties.Resources.VmExport_TargetExists, vmName));
+                        string.Format(Properties.Resources.VmExport_TargetExists, vmDirectoryName));
+                if (Directory.Exists(stagingDirectory) || File.Exists(stagingDirectory))
+                    return ApiResponse<string>.Fail(
+                        string.Format(Properties.Resources.VmExport_TargetExists, vmDirectoryName + ".partial"));
 
                 if (checkpointMode != VmExportCheckpointMode.None
                     && excludedVirtualHardDiskIds.Count > 0)
@@ -260,13 +265,14 @@ public static class VmExportService
                         settingsResult.ErrorSource);
 
                 string settingsXml = settingsResult.Data!;
+                Directory.CreateDirectory(stagingDirectory);
                 var result = await WmiApi.InvokeOnObjectAsync(
                     service,
                     "ExportSystemDefinition",
                     p =>
                     {
                         p["ComputerSystem"] = vm.Path.Path;
-                        p["ExportDirectory"] = destinationRoot;
+                        p["ExportDirectory"] = stagingDirectory;
                         p["ExportSettingData"] = settingsXml;
                     },
                     progress: progress,
@@ -278,9 +284,28 @@ public static class VmExportService
 
                 progress?.Report(100);
 
-                bool hasConfiguration = Directory.Exists(exportDirectory)
-                    && Directory.EnumerateFiles(
-                        exportDirectory, "*.vmcx", SearchOption.AllDirectories).Any();
+                string? stagedExportDirectory = FindExportDirectory(
+                    stagingDirectory,
+                    vmId);
+                if (stagedExportDirectory == null)
+                    return ApiResponse<string>.Fail(Properties.Resources.VmExport_ConfigurationMissing);
+
+                if (string.Equals(
+                        stagedExportDirectory,
+                        stagingDirectory,
+                        StringComparison.OrdinalIgnoreCase))
+                {
+                    Directory.Move(stagingDirectory, exportDirectory);
+                }
+                else
+                {
+                    Directory.Move(stagedExportDirectory, exportDirectory);
+                    if (!Directory.EnumerateFileSystemEntries(stagingDirectory).Any())
+                        Directory.Delete(stagingDirectory);
+                }
+
+                bool hasConfiguration = Directory.EnumerateFiles(
+                    exportDirectory, "*.vmcx", SearchOption.AllDirectories).Any();
                 return hasConfiguration
                     ? ApiResponse<string>.Ok(exportDirectory)
                     : ApiResponse<string>.Fail(Properties.Resources.VmExport_ConfigurationMissing);
@@ -300,6 +325,40 @@ public static class VmExportService
                 return ApiResponse<string>.Fail(ex.Message, -1, ApiErrorSource.None, ex);
             }
         });
+
+    private static string? FindExportDirectory(string stagingDirectory, Guid vmId)
+    {
+        string expectedConfigurationName = vmId.ToString("D") + ".vmcx";
+        string? configurationPath = Directory.EnumerateFiles(
+                stagingDirectory,
+                "*.vmcx",
+                SearchOption.AllDirectories)
+            .FirstOrDefault(path => string.Equals(
+                Path.GetFileName(path),
+                expectedConfigurationName,
+                StringComparison.OrdinalIgnoreCase))
+            ?? Directory.EnumerateFiles(
+                    stagingDirectory,
+                    "*.vmcx",
+                    SearchOption.AllDirectories)
+                .FirstOrDefault();
+
+        if (configurationPath == null)
+            return null;
+
+        string relativePath = Path.GetRelativePath(stagingDirectory, configurationPath);
+        int separatorIndex = relativePath.IndexOf(Path.DirectorySeparatorChar);
+        if (separatorIndex < 0)
+            return stagingDirectory;
+
+        string firstSegment = relativePath[..separatorIndex];
+        return string.Equals(
+            firstSegment,
+            "Virtual Machines",
+            StringComparison.OrdinalIgnoreCase)
+            ? stagingDirectory
+            : Path.Combine(stagingDirectory, firstSegment);
+    }
 
     private static string? ExtractInstanceId(string? path)
     {

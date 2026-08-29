@@ -83,14 +83,13 @@
                         </ui:MenuItem>
                         <ui:MenuItem Header="{x:Static properties:Resources.VmExport_Menu}"
              Command="{Binding PlacementTarget.Tag.GoToExportVmCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
-             CommandParameter="{Binding}"
-             Visibility="{Binding PlacementTarget.Tag.IsSingleOrNoneSelect, RelativeSource={RelativeSource AncestorType=ContextMenu}, Converter={StaticResource BoolToVis}}">
+             CommandParameter="{Binding}">
                             <ui:MenuItem.Icon>
                                 <ui:FontIcon Glyph="&#xE2B4;"
                                              FontFamily="{DynamicResource SystemSegoeFluentIcons}" />
                             </ui:MenuItem.Icon>
                         </ui:MenuItem>
-                        <Separator Visibility="{Binding PlacementTarget.Tag.IsSingleOrNoneSelect, RelativeSource={RelativeSource AncestorType=ContextMenu}, Converter={StaticResource BoolToVis}}"/>
+                        <Separator/>
 
                         <!-- 重命名选项 -->
                         <ui:MenuItem Header="{x:Static properties:Resources.Xaml_Rename}"

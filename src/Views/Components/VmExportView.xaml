@@ -120,7 +120,7 @@
                                                          Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
 
                                             <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="16,0,16,0">
-                                                <TextBlock Text="{Binding Name}" FontWeight="Medium"
+                                                <TextBlock Text="{Binding DisplayName}" FontWeight="Medium"
                                                            VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
                                                            ToolTip="{Binding Path}"
                                                            Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
@@ -180,7 +180,7 @@
                                     Margin="0,0,16,0" BorderThickness="1"
                                     Background="{ui:ThemeResource ControlFillColorDefaultBrush}"
                                     BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}"
-                                    Visibility="{Binding ExportIncludesCheckpoints, Converter={StaticResource BoolToVis}}">
+                                    Visibility="{Binding ShowExportCheckpointModeSelector, Converter={StaticResource BoolToVis}}">
                                 <Border.Resources>
                                     <Style x:Key="ExportCheckpointSegmentButton" TargetType="Button">
                                         <Setter Property="BorderThickness" Value="0"/>
@@ -370,6 +370,7 @@
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
@@ -485,7 +486,20 @@
                         <ui:ToggleSwitch Grid.Column="2" VerticalAlignment="Center"
                                          IsChecked="{Binding ExportCreatesPackage, Mode=TwoWay}"/>
 
-                        <TextBlock Grid.Row="1" Grid.ColumnSpan="3" Margin="0,14,0,0"
+                        <Grid Grid.Row="1" Grid.ColumnSpan="3" Margin="0,14,0,0"
+                              Visibility="{Binding ShowExportPackageOptions, Converter={StaticResource BoolToVis}}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="{x:Static properties:Resources.VmExport_PackageFileName}"
+                                       Margin="0,0,16,0" VerticalAlignment="Center"
+                                       Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                            <ui:TextBox Grid.Column="1" MinHeight="36"
+                                        Text="{Binding ExportPackageFileName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                        </Grid>
+
+                        <TextBlock Grid.Row="2" Grid.ColumnSpan="3" Margin="0,14,0,0"
                                    Text="{x:Static properties:Resources.VmExport_PackageSpaceWarning}"
                                    FontSize="12" TextWrapping="Wrap"
                                    Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"

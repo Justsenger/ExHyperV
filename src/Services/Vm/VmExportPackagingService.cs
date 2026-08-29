@@ -44,13 +44,13 @@ public static class VmExportPackagingService
                     File.Delete(temporaryArchivePath);
 
                 string[] files = Directory.GetFiles(
-                    sourceDirectory,
-                    "*",
-                    SearchOption.AllDirectories);
+                        sourceDirectory,
+                        "*",
+                        SearchOption.AllDirectories)
+                    .OrderBy(path => path, StringComparer.OrdinalIgnoreCase)
+                    .ToArray();
                 long totalBytes = files.Sum(path => new FileInfo(path).Length);
                 long completedBytes = 0;
-                string sourceParent = Directory.GetParent(sourceDirectory)?.FullName
-                    ?? sourceDirectory;
                 CompressionLevel compressionLevel = mode == VmExportPackageMode.Store
                     ? CompressionLevel.NoCompression
                     : CompressionLevel.SmallestSize;
@@ -74,7 +74,7 @@ public static class VmExportPackagingService
                         {
                             cancellationToken.ThrowIfCancellationRequested();
 
-                            string entryName = Path.GetRelativePath(sourceParent, filePath)
+                            string entryName = Path.GetRelativePath(sourceDirectory, filePath)
                                 .Replace(Path.DirectorySeparatorChar, '/');
                             ZipArchiveEntry entry = archive.CreateEntry(entryName, compressionLevel);
                             entry.LastWriteTime = File.GetLastWriteTime(filePath);
@@ -107,6 +107,7 @@ public static class VmExportPackagingService
                     }
                 }
 
+                ValidateArchive(temporaryArchivePath, files.Length, cancellationToken);
                 File.Move(temporaryArchivePath, destinationArchivePath);
                 var cleanup = TryDeleteDirectory(sourceDirectory);
                 progress?.Report(100);
@@ -134,6 +135,24 @@ public static class VmExportPackagingService
                     ex.Message, -1, ApiErrorSource.None, ex);
             }
         }, cancellationToken);
+
+    private static void ValidateArchive(
+        string archivePath,
+        int expectedEntryCount,
+        CancellationToken cancellationToken)
+    {
+        using var archive = ZipFile.OpenRead(archivePath);
+        if (archive.Entries.Count != expectedEntryCount)
+            throw new InvalidDataException("The ZIP entry count does not match the export.");
+
+        foreach (ZipArchiveEntry entry in archive.Entries)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            using Stream stream = entry.Open();
+            if (entry.Length > 0)
+                _ = stream.ReadByte();
+        }
+    }
 
     private static void TryDelete(string path)
     {

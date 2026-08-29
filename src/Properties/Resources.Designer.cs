@@ -9815,6 +9815,18 @@ namespace ExHyperV.Properties {
             }
         }
 
+        public static string VmExport_PackageFileName {
+            get {
+                return ResourceManager.GetString("VmExport_PackageFileName", resourceCulture);
+            }
+        }
+
+        public static string VmExport_PackageFileNameInvalid {
+            get {
+                return ResourceManager.GetString("VmExport_PackageFileNameInvalid", resourceCulture);
+            }
+        }
+
         /// <summary>
         ///   查找类似 A ZIP file named “{0}” already exists in the selected location. 的本地化字符串。
         /// </summary>

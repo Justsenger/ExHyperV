@@ -3834,6 +3834,12 @@
   <data name="VmExport_PackageCleanupWarning" xml:space="preserve">
     <value>ZIP 文件已创建，但无法删除原导出文件夹：{0}</value>
   </data>
+  <data name="VmExport_PackageFileName" xml:space="preserve">
+    <value>ZIP 文件名</value>
+  </data>
+  <data name="VmExport_PackageFileNameInvalid" xml:space="preserve">
+    <value>请输入有效的 ZIP 文件名。</value>
+  </data>
   <data name="Error_Wmi_CreateInstanceFailed" xml:space="preserve">
     <value>WMI 类“{0}”无法创建实例。</value>
   </data>
