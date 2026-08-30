@@ -38,12 +38,92 @@ public static class VmDeleteService
         catch { return new PurgePreview(null, false, new List<string>(), new List<string>()); }
     }
 
-    /// <summary>删除虚拟机（仅移除配置，保留磁盘文件）。等价 Remove-VM。</summary>
-    public static async Task<(bool Success, string Message)> DeleteVmAsync(string vmName)
+    /// <summary>
+    /// 可恢复删除：先导出一份不复制虚拟硬盘的完整配置定义，再从 VMMS 注销虚拟机，
+    /// 最后把可重新导入的配置放回原配置目录。虚拟硬盘和检查点磁盘始终留在原处。
+    /// </summary>
+    public static async Task<(bool Success, string Message)> DeleteVmAsync(string vmName, Guid vmId)
+    {
+        string recoveryRoot = Path.Combine(
+            Path.GetTempPath(),
+            "ExHyperV",
+            "DeleteRecovery",
+            Guid.NewGuid().ToString("N"));
+        string? recoveryPackage = null;
+        bool destroyed = false;
+        bool restored = false;
+        try
+        {
+            if (vmId == Guid.Empty)
+                return (false, string.Format(Properties.Resources.Error_Net_VmNotFound, vmName));
+
+            // DestroySystem 的文件保留行为不是可重新导入契约。必须在 VM 仍注册时让 VMMS
+            // 生成标准导出定义；CopyVmStorage=false 只保存配置、检查点和运行状态文件，
+            // 不复制 VHD。导出放在临时目录，避免与仍在使用的原配置文件发生冲突。
+            PurgeTargets targets = await CollectPurgeTargetsAsync(vmId.ToString("D"));
+            if (string.IsNullOrWhiteSpace(targets.ConfigDirectory))
+                return (false, string.Format(
+                    Properties.Resources.VmDelete_ConfigRootMissing,
+                    vmName));
+
+            Directory.CreateDirectory(recoveryRoot);
+            var export = await VmExportService.ExportAsync(
+                vmId,
+                vmName,
+                recoveryRoot,
+                includeVirtualHardDisks: false,
+                excludedVirtualHardDiskIds: Array.Empty<string>(),
+                checkpointMode: VmExportCheckpointMode.All,
+                selectedCheckpointPath: null,
+                includeRuntimeState: true);
+            if (!export.Success || string.IsNullOrWhiteSpace(export.Data))
+                return (false, export.Error);
+            recoveryPackage = export.Data;
+
+            // 导出完成后再关机。这样运行态/保存态也已进入恢复包，而 DestroySystem 仍在
+            // Hyper-V 要求的关机状态执行。
+            var off = await EnsureOffAsync(vmName);
+            if (!off.Success) return off;
+
+            var destroy = await DestroyAsync(vmName);
+            if (!destroy.Success) return destroy;
+            destroyed = true;
+
+            await RestoreConfigurationPackageAsync(
+                recoveryPackage,
+                targets.ConfigDirectory,
+                vmId,
+                targets.ConfigFiles,
+                targets.ConfigDirectories);
+            restored = true;
+            return (true, string.Empty);
+        }
+        catch (Exception ex)
+        {
+            if (destroyed && !string.IsNullOrWhiteSpace(recoveryPackage))
+            {
+                return (false, string.Format(
+                    Properties.Resources.VmDelete_RestoreFailed,
+                    recoveryPackage,
+                    ex.Message));
+            }
+            return (false, ex.Message);
+        }
+        finally
+        {
+            // 注销后的恢复失败是唯一需要保留临时包的情况，便于用户手动找回；
+            // 其它失败仍有在册 VM，临时导出可以安全清理。
+            if (!destroyed || restored)
+                await TryDeleteDirAsync(recoveryRoot);
+        }
+    }
+
+    /// <summary>仅执行 VMMS 销毁；供创建事务回滚使用，不生成用户恢复包。</summary>
+    internal static async Task<(bool Success, string Message)> DestroyVmAsync(string vmName)
     {
         try
         {
-            var off = await EnsureOffAsync(vmName);   // 保存态/运行态不先关，DestroySystem 可能只注销却残留文件
+            var off = await EnsureOffAsync(vmName);
             if (!off.Success) return off;
             return await DestroyAsync(vmName);
         }
@@ -204,6 +284,76 @@ public static class VmDeleteService
         return still.HasData
             ? (false, string.Format(Properties.Resources.VmDelete_DestroyVerifyFail, vmName))
             : (true, string.Empty);
+    }
+
+    private static async Task RestoreConfigurationPackageAsync(
+        string packageDirectory,
+        string configurationDirectory,
+        Guid vmId,
+        IEnumerable<string> previousConfigFiles,
+        IEnumerable<string> previousConfigDirectories)
+    {
+        string sourceRoot = NormalizePath(packageDirectory);
+        string targetRoot = NormalizePath(configurationDirectory);
+        if (!Directory.Exists(sourceRoot))
+            throw new DirectoryNotFoundException(sourceRoot);
+
+        // DestroySystem 可能删除、保留或改写旧状态文件。先只清理销毁前已证明属于该 VM
+        // 的精确文件/ID 目录，再复制标准导出包；绝不清理整个共享配置根。
+        foreach (string file in previousConfigFiles)
+        {
+            if (!await TryDeleteFileAsync(file))
+                throw new IOException($"Cannot replace configuration file: {file}");
+        }
+        foreach (string directory in previousConfigDirectories.OrderByDescending(path => path.Length))
+        {
+            if (!await TryDeleteDirAsync(directory))
+                throw new IOException($"Cannot replace configuration directory: {directory}");
+        }
+
+        Directory.CreateDirectory(targetRoot);
+        foreach (string sourceFile in Directory.EnumerateFiles(sourceRoot, "*", SearchOption.AllDirectories))
+        {
+            string relativePath = Path.GetRelativePath(sourceRoot, sourceFile);
+            string targetFile = Path.GetFullPath(Path.Combine(targetRoot, relativePath));
+            if (!IsPathWithinOrEqual(targetFile, targetRoot))
+                throw new InvalidDataException($"Configuration package path is outside the target directory: {relativePath}");
+
+            string? targetDirectory = Path.GetDirectoryName(targetFile);
+            if (!string.IsNullOrWhiteSpace(targetDirectory))
+                Directory.CreateDirectory(targetDirectory);
+            await CopyFileWithRetryAsync(sourceFile, targetFile);
+        }
+
+        string expectedName = vmId.ToString("D") + ".vmcx";
+        bool hasMainConfiguration = Directory
+            .EnumerateFiles(targetRoot, "*.vmcx", SearchOption.AllDirectories)
+            .Any(path => string.Equals(
+                Path.GetFileName(path),
+                expectedName,
+                StringComparison.OrdinalIgnoreCase));
+        if (!hasMainConfiguration)
+            throw new InvalidDataException($"The restored package does not contain {expectedName}.");
+    }
+
+    private static async Task CopyFileWithRetryAsync(string sourcePath, string targetPath)
+    {
+        Exception? lastError = null;
+        for (int attempt = 0; attempt < 6; attempt++)
+        {
+            try
+            {
+                File.Copy(sourcePath, targetPath, overwrite: true);
+                return;
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                lastError = ex;
+                await Task.Delay(250);
+            }
+        }
+
+        throw new IOException($"Cannot restore configuration file: {targetPath}", lastError);
     }
 
     // 销毁前确保 VM 已关机：保存态/运行态不先关，DestroySystem 可能残留配置/状态文件。

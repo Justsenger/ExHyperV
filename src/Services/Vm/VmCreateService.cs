@@ -456,7 +456,7 @@ namespace ExHyperV.Services
                 {
                     try
                     {
-                        var rollback = await VmDeleteService.DeleteVmAsync(finalVmName);
+                        var rollback = await VmDeleteService.DestroyVmAsync(finalVmName);
                         if (!rollback.Success)
                             return (false, ex.Message + Environment.NewLine +
                                 string.Format(Properties.Resources.Error_VmCreate_RollbackFailed, finalVmName, rollback.Message));

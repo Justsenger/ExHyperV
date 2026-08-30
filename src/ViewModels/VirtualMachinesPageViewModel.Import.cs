@@ -84,17 +84,20 @@ public partial class VirtualMachinesPageViewModel
     private void OpenVmImport()
     {
         IsCreatingVm = false;
-        IsVmImportViewVisible = true;
-        SelectedVm = null;
-        if (_vmImportBatchSession == null && !IsVmImportCompleted)
+        if (_vmImportBatchSession == null)
         {
+            VmImportPreviews.Clear();
+            VmImportPreview = null;
             VmImportStep = 0;
+            IsVmImportCompleted = false;
             VmImportSourceKind = VmImportSourceKind.Folder;
             VmImportUsesExistingDirectory = false;
             VmImportSourcePath = string.Empty;
             VmImportProgress = 0;
             VmImportStatusText = string.Empty;
         }
+        IsVmImportViewVisible = true;
+        SelectedVm = null;
     }
 
     [RelayCommand]
@@ -202,7 +205,6 @@ public partial class VirtualMachinesPageViewModel
             }
 
             VmImportSession[] sessions = _vmImportBatchSession.VirtualMachines.ToArray();
-            var imported = new List<Guid>(sessions.Length);
             int successfulCount = 0;
             for (int index = 0; index < sessions.Length; index++)
             {
@@ -236,9 +238,8 @@ public partial class VirtualMachinesPageViewModel
                             sessions.Length);
                         IsVmImportCompleted = true;
                         await LoadVmsCommand.ExecuteAsync(null);
-                        Guid partialSelectedId = imported.LastOrDefault();
-                        if (partialSelectedId != Guid.Empty)
-                            SelectedVm = VmList.FirstOrDefault(vm => vm.Id == partialSelectedId) ?? SelectedVm;
+                        // 完成页保持没有选中项，让用户点击任意虚拟机时都能触发详情页切换。
+                        SelectedVm = null;
                         IsVmImportViewVisible = true;
                         ShowError(string.Format(
                             Resources.VmImport_PartialFailure,
@@ -258,8 +259,6 @@ public partial class VirtualMachinesPageViewModel
                 }
 
                 successfulCount++;
-                if (result.Data != Guid.Empty)
-                    imported.Add(result.Data);
             }
 
             VmImportProgress = 100;
@@ -267,9 +266,8 @@ public partial class VirtualMachinesPageViewModel
             IsVmImportCompleted = true;
             await DisposeVmImportSessionAsync();
             await LoadVmsCommand.ExecuteAsync(null);
-            Guid selectedId = imported.LastOrDefault();
-            if (selectedId != Guid.Empty)
-                SelectedVm = VmList.FirstOrDefault(vm => vm.Id == selectedId) ?? SelectedVm;
+            // LoadVms 会默认选中列表第一项；清空后，完成页上的首次点击一定会触发导航。
+            SelectedVm = null;
             IsVmImportViewVisible = true;
             ShowSuccess(sessions.Length == 1
                 ? string.Format(Resources.VmImport_Success, sessions[0].Preview.Name)

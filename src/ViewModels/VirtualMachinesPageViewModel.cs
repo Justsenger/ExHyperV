@@ -231,7 +231,7 @@ namespace ExHyperV.ViewModels
 
             try
             {
-                var result = await VmDeleteService.DeleteVmAsync(vm.Name);
+                var result = await VmDeleteService.DeleteVmAsync(vm.Name, vm.Id);
                 if (result.Success)
                 {
                     VmList.Remove(vm);
@@ -249,7 +249,7 @@ namespace ExHyperV.ViewModels
             finally { IsLoading = false; }
         }
 
-        // 批量删除（保留磁盘）：确认 → 逐台删 → 聚合汇报 → 收拾选中项。
+        // 批量删除（保留完整配置与磁盘）：确认 → 逐台删 → 聚合汇报 → 收拾选中项。
         private async Task DeleteMultipleAsync(List<VmInstanceViewModel> targets)
         {
             if (targets.Count == 0) return;
@@ -265,7 +265,7 @@ namespace ExHyperV.ViewModels
                 int okCount = 0;
                 foreach (var t in targets)
                 {
-                    var r = await VmDeleteService.DeleteVmAsync(t.Name);
+                    var r = await VmDeleteService.DeleteVmAsync(t.Name, t.Id);
                     if (r.Success) { VmList.Remove(t); okCount++; }
                 }
                 if (SelectedVm != null && !VmList.Contains(SelectedVm)) SelectedVm = VmList.FirstOrDefault();

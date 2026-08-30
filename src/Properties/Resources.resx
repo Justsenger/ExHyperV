@@ -3318,6 +3318,13 @@ Remove them from storage and retry? Cancel to re-plug the device and try again.<
   <data name="VmDelete_TurnOffFail" xml:space="preserve">
     <value>VM '{0}' could not be turned off.</value>
   </data>
+  <data name="VmDelete_ConfigRootMissing" xml:space="preserve">
+    <value>The configuration directory for VM “{0}” could not be determined, so its reusable configuration cannot be preserved.</value>
+  </data>
+  <data name="VmDelete_RestoreFailed" xml:space="preserve">
+    <value>The VM was unregistered, but its reusable configuration could not be restored. Recovery copy: {0}
+{1}</value>
+  </data>
   <data name="GpuRepair_VmcxNotFound" xml:space="preserve">
     <value>The .vmcx configuration file for this VM was not found.</value>
   </data>
@@ -3403,7 +3410,7 @@ Remove them from storage and retry? Cancel to re-plug the device and try again.<
     <value>Delete Virtual Machines</value>
   </data>
   <data name="VmPage_MultiDeleteConfirm" xml:space="preserve">
-    <value>Delete the {0} selected virtual machines? Disk files will be kept.</value>
+    <value>Delete the {0} selected virtual machines? Their complete configuration and disk files will be kept for later import.</value>
   </data>
   <data name="VmPage_MultiDeleteDone" xml:space="preserve">
     <value>Deleted {0} virtual machines.</value>

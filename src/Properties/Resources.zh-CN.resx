@@ -3318,6 +3318,13 @@
   <data name="VmDelete_TurnOffFail" xml:space="preserve">
     <value>虚拟机 '{0}' 未能进入关机状态</value>
   </data>
+  <data name="VmDelete_ConfigRootMissing" xml:space="preserve">
+    <value>无法确定虚拟机“{0}”的配置目录，因此不能保留可重新导入的完整配置。</value>
+  </data>
+  <data name="VmDelete_RestoreFailed" xml:space="preserve">
+    <value>虚拟机已从引擎注销，但可重新导入的配置未能恢复。恢复副本：{0}
+{1}</value>
+  </data>
   <data name="GpuRepair_VmcxNotFound" xml:space="preserve">
     <value>找不到该虚拟机的 .vmcx 配置文件。</value>
   </data>
@@ -3403,7 +3410,7 @@
     <value>删除虚拟机</value>
   </data>
   <data name="VmPage_MultiDeleteConfirm" xml:space="preserve">
-    <value>确定删除选中的 {0} 台虚拟机吗？磁盘文件将保留。</value>
+    <value>确定删除选中的 {0} 台虚拟机吗？完整配置和磁盘文件都会保留，以便之后重新导入。</value>
   </data>
   <data name="VmPage_MultiDeleteDone" xml:space="preserve">
     <value>已删除 {0} 台虚拟机。</value>

@@ -8884,6 +8884,14 @@ namespace ExHyperV.Properties {
             get { return ResourceManager.GetString("VmDelete_TurnOffFail", resourceCulture); }
         }
 
+        public static string VmDelete_ConfigRootMissing {
+            get { return ResourceManager.GetString("VmDelete_ConfigRootMissing", resourceCulture); }
+        }
+
+        public static string VmDelete_RestoreFailed {
+            get { return ResourceManager.GetString("VmDelete_RestoreFailed", resourceCulture); }
+        }
+
         public static string GpuRepair_VmcxNotFound {
             get { return ResourceManager.GetString("GpuRepair_VmcxNotFound", resourceCulture); }
         }

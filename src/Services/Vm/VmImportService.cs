@@ -235,8 +235,8 @@ public static class VmImportService
                          session.TargetDiskRoot
                      }.Distinct(StringComparer.OrdinalIgnoreCase))
             {
-                if (File.Exists(target) || Directory.Exists(target))
-                    preview.CompatibilityIssues.Add($"目标已存在，未执行覆盖：{target}");
+                if (TargetHasConflict(target))
+                    preview.CompatibilityIssues.Add($"目标已存在：{target}");
             }
         }
 
@@ -294,6 +294,10 @@ public static class VmImportService
                     session.PlannedSystemPath,
                     session.SourceRoot,
                     cancellationToken);
+                // 导出配置会保留源主机上的绝对 VHD 路径。即使那个旧路径当前仍存在，
+                // “使用现有目录”也必须把计划虚拟机显式改指向用户选择目录内的磁盘，
+                // 否则注册成功后会悄悄继续使用源盘，目录本身并不自包含。
+                await RelinkPlannedDisksToSourceAsync(session, cancellationToken);
             }
 
             cancellationToken.ThrowIfCancellationRequested();
@@ -763,6 +767,39 @@ public static class VmImportService
         }
     }
 
+    private static async Task RelinkPlannedDisksToSourceAsync(
+        VmImportSession session,
+        CancellationToken cancellationToken)
+    {
+        List<DiskAllocation> allocations = ReadAllPlannedDiskAllocations(
+            session.PlannedSystemPath);
+        var sourceByAllocation = new Dictionary<string, string>(
+            StringComparer.OrdinalIgnoreCase);
+        foreach (DiskAllocation allocation in allocations)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            string source = ResolveSourceDiskPath(session, allocation.HostResource);
+            if (!File.Exists(source))
+                throw new FileNotFoundException("所选目录中找不到虚拟硬盘。", allocation.HostResource);
+            sourceByAllocation[allocation.Path] = source;
+        }
+
+        using var service = WmiApi.GetVirtualSystemManagementService();
+        foreach (DiskAllocation allocationInfo in allocations)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            using var allocation = new ManagementObject(allocationInfo.Path);
+            allocation.Get();
+            allocation["HostResource"] = new[] { sourceByAllocation[allocationInfo.Path] };
+            var modified = await WmiApi.InvokeOnObjectAsync(
+                service,
+                "ModifyResourceSettings",
+                p => p["ResourceSettings"] = new[] { allocation.GetText(TextFormat.CimDtd20) },
+                cancellationToken: cancellationToken);
+            if (!modified.Success) throw new InvalidOperationException(modified.Error);
+        }
+    }
+
     private static List<DiskAllocation> ReadAllPlannedDiskAllocations(string plannedSystemPath)
     {
         var result = new List<DiskAllocation>();
@@ -1202,10 +1239,21 @@ public static class VmImportService
                 if (File.Exists(extracted)) return extracted;
             }
         }
-        if (File.Exists(configuredPath)) return Path.GetFullPath(configuredPath);
+
+        // 来源目录优先于配置里记录的旧绝对路径。Hyper-V 导出会复制 VHD，但 VMCX
+        // 仍可能保留源路径；先接受旧路径会让导入后的 VM 继续使用源盘。
+        if (Path.IsPathRooted(configuredPath)
+            && IsWithin(configuredPath, session.SourceRoot)
+            && File.Exists(configuredPath))
+            return Path.GetFullPath(configuredPath);
+
         string candidate = Path.Combine(session.SourceRoot, "Virtual Hard Disks", Path.GetFileName(configuredPath));
         if (File.Exists(candidate)) return Path.GetFullPath(candidate);
-        return FindUniqueSourceFile(session.SourceRoot, Path.GetFileName(configuredPath)) ?? configuredPath;
+        string? imported = FindUniqueSourceFile(session.SourceRoot, Path.GetFileName(configuredPath));
+        if (imported != null) return imported;
+
+        // 非导出布局可以合法引用目录外的既有磁盘；仅当所选目录内确实没有同名盘时回退。
+        return File.Exists(configuredPath) ? Path.GetFullPath(configuredPath) : configuredPath;
     }
 
     private static string ResolveParentDiskPath(
@@ -1289,20 +1337,49 @@ public static class VmImportService
 
     private static void EnsureTargetAbsent(string path)
     {
-        if (File.Exists(path) || Directory.Exists(path))
-            throw new IOException($"目标已存在，未执行覆盖：{path}");
+        if (TargetHasConflict(path))
+            throw new IOException($"目标已存在：{path}");
     }
 
-    private static void CleanupCreatedPaths(IEnumerable<string> paths)
+    private static bool TargetHasConflict(string path)
+    {
+        if (File.Exists(path)) return true;
+        if (!Directory.Exists(path)) return false;
+        try
+        {
+            // 失败导入可能只留下一个空目录；它不包含可覆盖的数据，可以安全复用。
+            return Directory.EnumerateFileSystemEntries(path).Any();
+        }
+        catch
+        {
+            // 无法枚举就按有内容处理，保持不覆盖原则。
+            return true;
+        }
+    }
+
+    private static async Task CleanupCreatedPathsAsync(IEnumerable<string> paths)
     {
         foreach (string path in paths.OrderByDescending(x => x.Length))
         {
-            try
+            for (int attempt = 0; attempt < 6; attempt++)
             {
-                if (File.Exists(path)) File.Delete(path);
-                else if (Directory.Exists(path)) Directory.Delete(path, true);
+                try
+                {
+                    if (File.Exists(path)) File.Delete(path);
+                    else if (Directory.Exists(path)) Directory.Delete(path, true);
+                    break;
+                }
+                catch when (attempt < 5)
+                {
+                    // 销毁计划虚拟机后 VMMS 可能短暂占用配置/VHD；等待后重试，
+                    // 避免遗留空目录阻塞下一次导入。
+                    await Task.Delay(250);
+                }
+                catch
+                {
+                    // 清理失败不能覆盖原始导入错误；下次导入仍可复用真正的空目录。
+                }
             }
-            catch { }
         }
     }
 
@@ -1313,7 +1390,7 @@ public static class VmImportService
         if (!string.IsNullOrWhiteSpace(session.PlannedSystemPath))
             await DestroyPlannedSystemAsync(session.PlannedSystemPath);
         session.PlannedSystemPath = string.Empty;
-        CleanupCreatedPaths(createdPaths);
+        await CleanupCreatedPathsAsync(createdPaths);
         if (session.OwnsTemporaryRoot)
         {
             TryDeleteTemporaryRoot(session.TemporaryRoot);
