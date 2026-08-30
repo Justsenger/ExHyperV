@@ -266,6 +266,7 @@ public static class VmExportService
 
                 string settingsXml = settingsResult.Data!;
                 Directory.CreateDirectory(stagingDirectory);
+                VmExportAccessService.EnsureCurrentUserCanModifyTree(stagingDirectory);
                 var result = await WmiApi.InvokeOnObjectAsync(
                     service,
                     "ExportSystemDefinition",

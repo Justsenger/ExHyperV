@@ -3835,6 +3835,15 @@ Remove them from storage and retry? Cancel to re-plug the device and try again.<
   <data name="VmExport_PackageProgress" xml:space="preserve">
     <value>Packaging… {0}%</value>
   </data>
+  <data name="VmExport_PackageCompressing" xml:space="preserve">
+    <value>Compressing ZIP…</value>
+  </data>
+  <data name="VmExport_PackageStoring" xml:space="preserve">
+    <value>Writing ZIP…</value>
+  </data>
+  <data name="VmExport_PackageValidating" xml:space="preserve">
+    <value>Validating ZIP…</value>
+  </data>
   <data name="VmExport_PackageFailed" xml:space="preserve">
     <value>Packaging failed: {0}</value>
   </data>

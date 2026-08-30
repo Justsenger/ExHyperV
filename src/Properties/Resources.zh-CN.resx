@@ -3835,6 +3835,15 @@
   <data name="VmExport_PackageProgress" xml:space="preserve">
     <value>正在打包… {0}%</value>
   </data>
+  <data name="VmExport_PackageCompressing" xml:space="preserve">
+    <value>正在压缩 ZIP…</value>
+  </data>
+  <data name="VmExport_PackageStoring" xml:space="preserve">
+    <value>正在写入 ZIP…</value>
+  </data>
+  <data name="VmExport_PackageValidating" xml:space="preserve">
+    <value>正在校验 ZIP…</value>
+  </data>
   <data name="VmExport_PackageFailed" xml:space="preserve">
     <value>打包失败：{0}</value>
   </data>

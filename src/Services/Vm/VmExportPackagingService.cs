@@ -17,6 +17,16 @@ public sealed record VmExportPackageResult(
     bool SourceDirectoryRemoved,
     string? CleanupError);
 
+public enum VmExportPackageStage
+{
+    CreatingArchive,
+    ValidatingArchive
+}
+
+public readonly record struct VmExportPackageProgress(
+    VmExportPackageStage Stage,
+    int Percentage);
+
 public static class VmExportPackagingService
 {
     private sealed record PackagedFileInfo(
@@ -28,7 +38,7 @@ public static class VmExportPackagingService
         string sourceDirectory,
         string destinationArchivePath,
         VmExportPackageMode mode,
-        IProgress<int>? progress = null,
+        IProgress<VmExportPackageProgress>? progress = null,
         CancellationToken cancellationToken = default)
         => Task.Run(() =>
         {
@@ -49,6 +59,8 @@ public static class VmExportPackagingService
                 if (File.Exists(temporaryArchivePath))
                     File.Delete(temporaryArchivePath);
 
+                VmExportAccessService.EnsureCurrentUserCanModifyTree(sourceDirectory);
+
                 string[] files = Directory.GetFiles(
                         sourceDirectory,
                         "*",
@@ -57,10 +69,16 @@ public static class VmExportPackagingService
                     .ToArray();
                 long totalBytes = files.Sum(path => new FileInfo(path).Length);
                 long completedBytes = 0;
+                int lastArchiveProgress = -1;
                 var packagedFiles = new List<PackagedFileInfo>(files.Length);
                 CompressionLevel compressionLevel = mode == VmExportPackageMode.Store
                     ? CompressionLevel.NoCompression
                     : CompressionLevel.SmallestSize;
+                ReportStageProgress(
+                    progress,
+                    VmExportPackageStage.CreatingArchive,
+                    0,
+                    ref lastArchiveProgress);
 
                 using (var archiveStream = new FileStream(
                            temporaryArchivePath,
@@ -105,11 +123,11 @@ public static class VmExportPackagingService
                                 hash.AppendData(buffer, 0, bytesRead);
                                 actualLength += bytesRead;
                                 completedBytes += bytesRead;
-                                progress?.Report(CalculateProgress(
-                                    completedBytes,
-                                    totalBytes,
-                                    start: 0,
-                                    span: 50));
+                                ReportStageProgress(
+                                    progress,
+                                    VmExportPackageStage.CreatingArchive,
+                                    CalculatePercentage(completedBytes, totalBytes),
+                                    ref lastArchiveProgress);
                             }
 
                             packagedFiles.Add(new PackagedFileInfo(
@@ -124,7 +142,11 @@ public static class VmExportPackagingService
                     }
                 }
 
-                progress?.Report(50);
+                ReportStageProgress(
+                    progress,
+                    VmExportPackageStage.CreatingArchive,
+                    100,
+                    ref lastArchiveProgress);
                 ValidateArchive(
                     temporaryArchivePath,
                     packagedFiles,
@@ -132,7 +154,6 @@ public static class VmExportPackagingService
                     cancellationToken);
                 File.Move(temporaryArchivePath, destinationArchivePath);
                 var cleanup = TryDeleteDirectory(sourceDirectory);
-                progress?.Report(100);
                 return ApiResponse<VmExportPackageResult>.Ok(new VmExportPackageResult(
                     destinationArchivePath,
                     cleanup.Removed,
@@ -161,7 +182,7 @@ public static class VmExportPackagingService
     private static void ValidateArchive(
         string archivePath,
         IReadOnlyCollection<PackagedFileInfo> expectedFiles,
-        IProgress<int>? progress,
+        IProgress<VmExportPackageProgress>? progress,
         CancellationToken cancellationToken)
     {
         try
@@ -171,6 +192,12 @@ public static class VmExportPackagingService
                 StringComparer.Ordinal);
             long totalBytes = expectedFiles.Sum(file => file.Length);
             long validatedBytes = 0;
+            int lastValidationProgress = -1;
+            ReportStageProgress(
+                progress,
+                VmExportPackageStage.ValidatingArchive,
+                0,
+                ref lastValidationProgress);
 
             using var archive = ZipFile.OpenRead(archivePath);
             if (archive.Entries.Count != expectedByName.Count)
@@ -200,11 +227,11 @@ public static class VmExportPackagingService
                         hash.AppendData(buffer, 0, bytesRead);
                         actualLength += bytesRead;
                         validatedBytes += bytesRead;
-                        progress?.Report(CalculateProgress(
-                            validatedBytes,
-                            totalBytes,
-                            start: 50,
-                            span: 50));
+                        ReportStageProgress(
+                            progress,
+                            VmExportPackageStage.ValidatingArchive,
+                            CalculatePercentage(validatedBytes, totalBytes),
+                            ref lastValidationProgress);
                     }
 
                     byte[] actualHash = hash.GetHashAndReset();
@@ -223,7 +250,11 @@ public static class VmExportPackagingService
                 ArrayPool<byte>.Shared.Return(buffer);
             }
 
-            progress?.Report(100);
+            ReportStageProgress(
+                progress,
+                VmExportPackageStage.ValidatingArchive,
+                100,
+                ref lastValidationProgress);
         }
         catch (OperationCanceledException)
         {
@@ -237,18 +268,26 @@ public static class VmExportPackagingService
         }
     }
 
-    private static int CalculateProgress(
-        long completedBytes,
-        long totalBytes,
-        int start,
-        int span)
+    private static int CalculatePercentage(long completedBytes, long totalBytes)
     {
         if (totalBytes <= 0)
-            return start + span;
+            return 100;
 
-        return start + (int)Math.Min(
-            span,
-            completedBytes * (double)span / totalBytes);
+        return (int)Math.Min(100, completedBytes * 100d / totalBytes);
+    }
+
+    private static void ReportStageProgress(
+        IProgress<VmExportPackageProgress>? progress,
+        VmExportPackageStage stage,
+        int percentage,
+        ref int lastPercentage)
+    {
+        percentage = Math.Clamp(percentage, 0, 100);
+        if (percentage == lastPercentage)
+            return;
+
+        lastPercentage = percentage;
+        progress?.Report(new VmExportPackageProgress(stage, percentage));
     }
 
     private static void TryDelete(string path)

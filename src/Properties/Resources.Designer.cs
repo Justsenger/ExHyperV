@@ -9432,6 +9432,18 @@ namespace ExHyperV.Properties {
             get { return ResourceManager.GetString("VmExport_PackageProgress", resourceCulture); }
         }
 
+        public static string VmExport_PackageCompressing {
+            get { return ResourceManager.GetString("VmExport_PackageCompressing", resourceCulture); }
+        }
+
+        public static string VmExport_PackageStoring {
+            get { return ResourceManager.GetString("VmExport_PackageStoring", resourceCulture); }
+        }
+
+        public static string VmExport_PackageValidating {
+            get { return ResourceManager.GetString("VmExport_PackageValidating", resourceCulture); }
+        }
+
         public static string VmExport_PackageFailed {
             get { return ResourceManager.GetString("VmExport_PackageFailed", resourceCulture); }
         }

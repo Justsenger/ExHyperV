@@ -445,12 +445,12 @@ public partial class VirtualMachinesPageViewModel
             if (ExportCreatesPackage)
             {
                 ExportProgress = 0;
-                ExportStatusText = string.Format(Properties.Resources.VmExport_PackageProgress, 0);
-                var packageProgress = new Progress<int>(value =>
+                ExportStatusText = GetPackageStageStatus(
+                    VmExportPackageStage.CreatingArchive);
+                var packageProgress = new Progress<VmExportPackageProgress>(value =>
                 {
-                    ExportProgress = value;
-                    ExportStatusText = string.Format(
-                        Properties.Resources.VmExport_PackageProgress, value);
+                    ExportProgress = value.Percentage;
+                    ExportStatusText = GetPackageStageStatus(value.Stage);
                 });
 
                 var packageResult = await VmExportPackagingService.CreatePackageAsync(
@@ -525,6 +525,17 @@ public partial class VirtualMachinesPageViewModel
             ? fileName
             : null;
     }
+
+    private string GetPackageStageStatus(VmExportPackageStage stage) => stage switch
+    {
+        VmExportPackageStage.CreatingArchive =>
+            ExportPackageMode == VmExportPackageMode.Compress
+                ? Properties.Resources.VmExport_PackageCompressing
+                : Properties.Resources.VmExport_PackageStoring,
+        VmExportPackageStage.ValidatingArchive =>
+            Properties.Resources.VmExport_PackageValidating,
+        _ => string.Format(Properties.Resources.VmExport_PackageProgress, ExportProgress)
+    };
 
     private void UpdateSingleCheckpointRequirements()
     {
