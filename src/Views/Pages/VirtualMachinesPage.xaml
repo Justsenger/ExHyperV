@@ -706,7 +706,21 @@
                 <ui:ListView Grid.Row="1" ItemsSource="{Binding VmList}" SelectedItem="{Binding SelectedVm, Mode=TwoWay}"
                              SelectionChanged="VmList_SelectionChanged"
                              IsEnabled="{Binding IsVmListEnabled}"
-                             ItemTemplate="{StaticResource VmListItemTemplate}" Margin="4,0,4,4"/>
+                             HorizontalContentAlignment="Stretch"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                             ItemTemplate="{StaticResource VmListItemTemplate}" Margin="4,0,4,4">
+                    <ui:ListView.ItemContainerStyle>
+                        <Style TargetType="{x:Type ui:ListViewItem}"
+                               BasedOn="{StaticResource {x:Type ui:ListViewItem}}">
+                            <!-- 整行（包括文字右侧和相邻项边界）都参与命中测试。 -->
+                            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                            <Setter Property="VerticalContentAlignment" Value="Stretch"/>
+                            <Setter Property="Padding" Value="0"/>
+                            <Setter Property="Margin" Value="0"/>
+                            <Setter Property="MinHeight" Value="40"/>
+                        </Style>
+                    </ui:ListView.ItemContainerStyle>
+                </ui:ListView>
             </Grid>
         </Border>
 
