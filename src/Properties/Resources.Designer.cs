@@ -10119,6 +10119,7 @@ namespace ExHyperV.Properties {
         public static string VmImport_PreparingFiles => ResourceManager.GetString("VmImport_PreparingFiles", resourceCulture);
         public static string VmImport_Validating => ResourceManager.GetString("VmImport_Validating", resourceCulture);
         public static string VmImport_Importing => ResourceManager.GetString("VmImport_Importing", resourceCulture);
+        public static string VmImport_BatchStatusFormat => ResourceManager.GetString("VmImport_BatchStatusFormat", resourceCulture);
         public static string VmImport_Failed => ResourceManager.GetString("VmImport_Failed", resourceCulture);
         public static string VmImport_PartialCompleted => ResourceManager.GetString("VmImport_PartialCompleted", resourceCulture);
         public static string VmImport_PartialFailure => ResourceManager.GetString("VmImport_PartialFailure", resourceCulture);

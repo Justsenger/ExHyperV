@@ -3903,6 +3903,7 @@
   <data name="VmImport_PreparingFiles" xml:space="preserve"><value>正在导入虚拟机…</value></data>
   <data name="VmImport_Validating" xml:space="preserve"><value>正在校验虚拟机…</value></data>
   <data name="VmImport_Importing" xml:space="preserve"><value>正在注册虚拟机…</value></data>
+  <data name="VmImport_BatchStatusFormat" xml:space="preserve"><value>{0}（{1} {2}/{3}）</value></data>
   <data name="VmImport_Failed" xml:space="preserve"><value>导入失败</value></data>
   <data name="VmImport_PartialCompleted" xml:space="preserve"><value>已导入 {0}/{1} 台虚拟机，导入已停止。</value></data>
   <data name="VmImport_PartialFailure" xml:space="preserve"><value>已导入 {0}/{1} 台虚拟机；导入“{2}”时失败：{3}</value></data>

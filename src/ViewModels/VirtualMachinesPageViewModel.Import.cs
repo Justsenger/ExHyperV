@@ -225,7 +225,12 @@ public partial class VirtualMachinesPageViewModel
                         : value < 88 ? Resources.VmImport_Validating : Resources.VmImport_Importing;
                     VmImportStatusText = sessions.Length == 1
                         ? phase
-                        : $"{session.Preview.Name}  ({completed + 1}/{sessions.Length})  {phase}";
+                        : string.Format(
+                            Resources.VmImport_BatchStatusFormat,
+                            phase,
+                            session.Preview.Name,
+                            completed + 1,
+                            sessions.Length);
                 });
                 var result = await VmImportService.ImportAsync(
                     session,
