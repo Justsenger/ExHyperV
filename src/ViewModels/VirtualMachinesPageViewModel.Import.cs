@@ -78,6 +78,11 @@ public partial class VirtualMachinesPageViewModel
         OnPropertyChanged(nameof(CanStartVmImport));
         OnPropertyChanged(nameof(ShowVmImportProgress));
     }
+    partial void OnVmImportProgressChanged(int value)
+    {
+        if (IsExecutingVmImport)
+            TaskbarProgressService.Report(TaskbarProgressOperation.VmImport, value);
+    }
     partial void OnVmImportPreviewChanged(VmImportPreview? value) => OnPropertyChanged(nameof(CanStartVmImport));
 
     [RelayCommand]
@@ -188,10 +193,12 @@ public partial class VirtualMachinesPageViewModel
     {
         if (!CanStartVmImport || _vmImportBatchSession == null) return;
         IsExecutingVmImport = true;
+        TaskbarProgressService.Start(TaskbarProgressOperation.VmImport);
         IsVmImportCompleted = false;
         VmImportProgress = 0;
         VmImportStatusText = Resources.VmImport_PreparingFiles;
         _vmImportCancellation = new CancellationTokenSource();
+        bool taskbarCompleted = false;
         try
         {
             var prepareBatch = await VmImportService.PrepareBatchImportAsync(
@@ -264,6 +271,7 @@ public partial class VirtualMachinesPageViewModel
             VmImportProgress = 100;
             VmImportStatusText = Resources.VmImport_Completed;
             IsVmImportCompleted = true;
+            taskbarCompleted = true;
             await DisposeVmImportSessionAsync();
             await LoadVmsCommand.ExecuteAsync(null);
             // LoadVms 会默认选中列表第一项；清空后，完成页上的首次点击一定会触发导航。
@@ -276,6 +284,10 @@ public partial class VirtualMachinesPageViewModel
         finally
         {
             IsExecutingVmImport = false;
+            if (taskbarCompleted)
+                TaskbarProgressService.Complete(TaskbarProgressOperation.VmImport);
+            else
+                TaskbarProgressService.Fail(TaskbarProgressOperation.VmImport);
             _vmImportCancellation?.Dispose();
             _vmImportCancellation = null;
         }

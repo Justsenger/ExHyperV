@@ -96,6 +96,12 @@ public partial class VirtualMachinesPageViewModel
     partial void OnExportPackageModeChanged(VmExportPackageMode value) =>
         OnPropertyChanged(nameof(IsCompressedExportPackage));
 
+    partial void OnExportProgressChanged(int value)
+    {
+        if (IsExporting)
+            TaskbarProgressService.Report(TaskbarProgressOperation.VmExport, value);
+    }
+
     partial void OnIsExportingChanged(bool value)
     {
         OnPropertyChanged(nameof(CanConfigureExport));
@@ -391,8 +397,10 @@ public partial class VirtualMachinesPageViewModel
         }
 
         IsExporting = true;
+        TaskbarProgressService.Start(TaskbarProgressOperation.VmExport);
         ExportProgress = 0;
         ExportStatusText = Properties.Resources.VmExport_Preparing;
+        bool taskbarCompleted = false;
 
         try
         {
@@ -476,6 +484,7 @@ public partial class VirtualMachinesPageViewModel
                         Properties.Resources.VmExport_PackageCleanupWarning,
                         FriendlyError.CleanLines(package.CleanupError ?? string.Empty));
                     ExportCompleted = true;
+                    taskbarCompleted = true;
                     ShowError(ExportStatusText);
                     Shell.Reveal(completedOutputPath);
                     return;
@@ -485,6 +494,7 @@ public partial class VirtualMachinesPageViewModel
             ExportProgress = 100;
             ExportStatusText = Properties.Resources.VmExport_Completed;
             ExportCompleted = true;
+            taskbarCompleted = true;
             ShowSuccess(Properties.Resources.VmExport_Completed);
             Shell.Reveal(completedOutputPath);
         }
@@ -497,6 +507,10 @@ public partial class VirtualMachinesPageViewModel
         finally
         {
             IsExporting = false;
+            if (taskbarCompleted)
+                TaskbarProgressService.Complete(TaskbarProgressOperation.VmExport);
+            else
+                TaskbarProgressService.Fail(TaskbarProgressOperation.VmExport);
         }
     }
 

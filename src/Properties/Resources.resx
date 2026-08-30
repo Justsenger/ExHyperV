@@ -3900,9 +3900,9 @@ Remove them from storage and retry? Cancel to re-plug the device and try again.<
   <data name="VmImport_Start" xml:space="preserve"><value>Import</value></data>
   <data name="VmImport_PreparingPreview" xml:space="preserve"><value>Parsing and checking the virtual machine…</value></data>
   <data name="VmImport_PreparingPreviewBatch" xml:space="preserve"><value>Parsing and checking virtual machine {0} of {1}…</value></data>
-  <data name="VmImport_PreparingFiles" xml:space="preserve"><value>Preparing virtual machine files…</value></data>
+  <data name="VmImport_PreparingFiles" xml:space="preserve"><value>Importing the virtual machine…</value></data>
   <data name="VmImport_Validating" xml:space="preserve"><value>Validating the virtual machine…</value></data>
-  <data name="VmImport_Importing" xml:space="preserve"><value>Importing the virtual machine…</value></data>
+  <data name="VmImport_Importing" xml:space="preserve"><value>Registering the virtual machine…</value></data>
   <data name="VmImport_Failed" xml:space="preserve"><value>Import failed</value></data>
   <data name="VmImport_PartialCompleted" xml:space="preserve"><value>Imported {0} of {1} virtual machines; import stopped.</value></data>
   <data name="VmImport_PartialFailure" xml:space="preserve"><value>Imported {0} of {1} virtual machines. Import stopped at “{2}”: {3}</value></data>

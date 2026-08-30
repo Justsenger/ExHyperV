@@ -26,10 +26,14 @@ public sealed class VmImportSession : IAsyncDisposable
     public VmImportPreview Preview { get; internal set; } = new();
     public string? TemporaryRoot { get; internal set; }
     public string? ZipRootPrefix { get; internal set; }
+    internal string? MainConfigurationEntry { get; set; }
     internal IReadOnlyDictionary<string, long>? ArchiveEntries { get; set; }
+    internal IReadOnlyDictionary<string, string>? ExtractedArchivePaths { get; set; }
     internal IReadOnlySet<string> AvailableSwitchIds { get; set; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
     internal string TargetConfigurationRoot { get; set; } = string.Empty;
     internal string TargetDiskRoot { get; set; } = string.Empty;
+    internal string? ConfigurationStagingRoot { get; set; }
+    internal string? DiskStagingRoot { get; set; }
     public bool ArchiveFullyExtracted { get; internal set; }
     public bool IsRealized { get; internal set; }
     internal bool OwnsTemporaryRoot { get; set; }
@@ -42,6 +46,7 @@ public sealed class VmImportSession : IAsyncDisposable
 
         if (OwnsTemporaryRoot)
             VmImportService.TryDeleteTemporaryRoot(TemporaryRoot);
+        VmImportService.TryDeleteImportStaging(this);
         PlannedSystemPath = string.Empty;
     }
 }
@@ -70,6 +75,9 @@ public static class VmImportService
 {
     private const string ServiceWql = "SELECT * FROM Msvm_VirtualSystemManagementService";
     private static readonly string[] DiskExtensions = [".vhd", ".vhdx", ".avhd", ".avhdx", ".vhds"];
+    private static readonly Regex VmcxDiskPathRegex = new(
+        @"^/configuration/_[^/]+_/controller(?<controller>\d+)/drive(?<drive>\d+)/pathname$",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
     private sealed record SourceLayout(
         string SourceRoot,
@@ -77,10 +85,12 @@ public static class VmImportService
         string SnapshotFolder,
         string? TemporaryRoot,
         string? ZipRootPrefix,
+        string? MainConfigurationEntry,
         IReadOnlyDictionary<string, long>? ArchiveEntries);
 
     private sealed record DiskAllocation(string Path, string InstanceId, string HostResource, string Parent);
     private sealed record VhdMetadata(string Format, string Type, ulong VirtualSize, string? ParentPath);
+    private sealed record VmcxDiskReference(string ConfiguredPath, string Controller);
     private sealed record VmcxPreviewData(
         string Name,
         Guid Guid,
@@ -89,7 +99,39 @@ public static class VmImportService
         DateTime Created,
         string Notes,
         int ProcessorCount,
-        ulong StartupMemoryMb);
+        ulong StartupMemoryMb,
+        IReadOnlyList<VmcxDiskReference> Disks);
+
+    private sealed class ZipCrc32
+    {
+        private static readonly uint[] Table = CreateTable();
+        private uint _value = uint.MaxValue;
+
+        public uint Value => ~_value;
+
+        public void Append(ReadOnlySpan<byte> data)
+        {
+            uint value = _value;
+            foreach (byte item in data)
+                value = Table[(int)((value ^ item) & 0xff)] ^ (value >> 8);
+            _value = value;
+        }
+
+        private static uint[] CreateTable()
+        {
+            var table = new uint[256];
+            for (int i = 0; i < table.Length; i++)
+            {
+                uint value = (uint)i;
+                for (int bit = 0; bit < 8; bit++)
+                    value = (value & 1) != 0
+                        ? 0xedb88320u ^ (value >> 1)
+                        : value >> 1;
+                table[i] = value;
+            }
+            return table;
+        }
+    }
 
     public static async Task<ApiResponse<VmImportBatchSession>> PreparePreviewsAsync(
         string sourcePath,
@@ -213,6 +255,7 @@ public static class VmImportService
             TemporaryRoot = layout.TemporaryRoot,
             OwnsTemporaryRoot = false,
             ZipRootPrefix = layout.ZipRootPrefix,
+            MainConfigurationEntry = layout.MainConfigurationEntry,
             ArchiveEntries = layout.ArchiveEntries,
             GenerateNewGuid = generateNewGuid,
             Preview = preview
@@ -240,6 +283,8 @@ public static class VmImportService
             }
         }
 
+        await PopulateDiskPreviewsAsync(session, data.Disks, cancellationToken);
+
         return session;
     }
 
@@ -255,7 +300,8 @@ public static class VmImportService
             progress?.Report(2);
             if (session.SourceKind == VmImportSourceKind.Zip && !session.ArchiveFullyExtracted)
             {
-                await ExtractArchiveAsync(session, progress, cancellationToken);
+                await ExtractArchiveToTargetStagingAsync(session, progress, cancellationToken);
+                CommitZipStaging(session, createdPaths);
                 session.ArchiveFullyExtracted = true;
             }
 
@@ -271,15 +317,20 @@ public static class VmImportService
                 if (string.IsNullOrWhiteSpace(configRoot) || string.IsNullOrWhiteSpace(diskRoot))
                     throw new InvalidOperationException("虚拟机目标目录尚未准备完成。");
 
-                foreach (string root in new[] { configRoot, diskRoot }
-                             .Distinct(StringComparer.OrdinalIgnoreCase))
-                    EnsureTargetAbsent(root);
-                foreach (string root in new[] { configRoot, diskRoot }
-                             .Distinct(StringComparer.OrdinalIgnoreCase))
+                if (session.SourceKind != VmImportSourceKind.Zip)
                 {
-                    Directory.CreateDirectory(root);
-                    createdPaths.Add(root);
+                    foreach (string root in new[] { configRoot, diskRoot }
+                                 .Distinct(StringComparer.OrdinalIgnoreCase))
+                        EnsureTargetAbsent(root);
+                    foreach (string root in new[] { configRoot, diskRoot }
+                                 .Distinct(StringComparer.OrdinalIgnoreCase))
+                    {
+                        Directory.CreateDirectory(root);
+                        createdPaths.Add(root);
+                    }
                 }
+                else if (!Directory.Exists(configRoot) || !Directory.Exists(diskRoot))
+                    throw new DirectoryNotFoundException("ZIP 导入暂存目录未能提交到目标位置。");
 
                 await MovePlannedDataRootsAsync(session.PlannedSystemPath, configRoot, cancellationToken);
                 await CopyAndRelinkDisksAsync(session, diskRoot, createdPaths, progress, cancellationToken);
@@ -385,7 +436,7 @@ public static class VmImportService
             .Select(main =>
             {
                 string root = Directory.GetParent(Path.GetDirectoryName(main)!)?.FullName ?? fullRoot;
-                return new SourceLayout(root, main, root, null, null, null);
+                return new SourceLayout(root, main, root, null, null, null, null);
             })
             .ToArray();
     }
@@ -432,7 +483,14 @@ public static class VmImportService
                 string rootPrefix = markerIndex <= 0 ? string.Empty : mainEntry[..markerIndex];
                 string mainLocal = SafeDestination(temp, mainEntry);
                 string sourceRoot = string.IsNullOrEmpty(rootPrefix) ? temp : SafeDestination(temp, rootPrefix);
-                layouts.Add(new SourceLayout(sourceRoot, mainLocal, sourceRoot, temp, rootPrefix, entryIndex));
+                layouts.Add(new SourceLayout(
+                    sourceRoot,
+                    mainLocal,
+                    sourceRoot,
+                    temp,
+                    rootPrefix,
+                    mainEntry,
+                    entryIndex));
             }
 
             return (layouts, temp);
@@ -526,6 +584,20 @@ public static class VmImportService
                 catch (FormatException) { }
             }
 
+            VmcxDiskReference[] disks = values.Values
+                .Select(node => (Node: node, Match: VmcxDiskPathRegex.Match(node.Path)))
+                .Where(item => item.Match.Success
+                               && !string.IsNullOrWhiteSpace(item.Node.Value)
+                               && DiskExtensions.Contains(
+                                   Path.GetExtension(item.Node.Value),
+                                   StringComparer.OrdinalIgnoreCase))
+                .OrderBy(item => int.Parse(item.Match.Groups["controller"].Value))
+                .ThenBy(item => int.Parse(item.Match.Groups["drive"].Value))
+                .Select(item => new VmcxDiskReference(
+                    item.Node.Value,
+                    $"{item.Match.Groups["controller"].Value}:{item.Match.Groups["drive"].Value}"))
+                .ToArray();
+
             return new VmcxPreviewData(
                 name,
                 guid,
@@ -534,9 +606,133 @@ public static class VmImportService
                 created,
                 ReadString("/configuration/properties/notes"),
                 checked((int)Math.Max(0, ReadInteger("/configuration/settings/processors/count"))),
-                checked((ulong)Math.Max(0, ReadInteger("/configuration/settings/memory/bank/size"))));
+                checked((ulong)Math.Max(0, ReadInteger("/configuration/settings/memory/bank/size"))),
+                disks);
         }, cancellationToken);
     }
+
+    private static async Task PopulateDiskPreviewsAsync(
+        VmImportSession session,
+        IReadOnlyList<VmcxDiskReference> references,
+        CancellationToken cancellationToken)
+    {
+        if (references.Count == 0) return;
+
+        if (session.SourceKind == VmImportSourceKind.Zip)
+        {
+            using ZipArchive archive = ZipFile.OpenRead(session.SourcePath);
+            Dictionary<string, ZipArchiveEntry> entries = archive.Entries
+                .Where(entry => !string.IsNullOrEmpty(entry.Name))
+                .ToDictionary(
+                    entry => NormalizeEntryName(entry.FullName),
+                    entry => entry,
+                    StringComparer.OrdinalIgnoreCase);
+
+            foreach (VmcxDiskReference reference in references)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                ZipArchiveEntry? entry = null;
+                bool found = TryFindArchiveDiskEntry(
+                    session,
+                    reference.ConfiguredPath,
+                    null,
+                    out string? entryName)
+                    && entryName != null
+                    && entries.TryGetValue(entryName, out entry);
+
+                if (!found || entry == null)
+                {
+                    session.Preview.Disks.Add(CreateMissingDiskPreview(reference));
+                    session.Preview.CompatibilityIssues.Add(
+                        $"找不到虚拟硬盘：{Path.GetFileName(reference.ConfiguredPath)}");
+                    continue;
+                }
+
+                VhdMetadata metadata = await ReadArchiveDiskMetadataAsync(
+                    entry,
+                    cancellationToken);
+                session.Preview.Disks.Add(new VmImportDiskPreview
+                {
+                    Name = Path.GetFileName(entry.FullName),
+                    SourcePath = entry.FullName,
+                    Controller = reference.Controller,
+                    Format = metadata.Format,
+                    Type = metadata.Type,
+                    VirtualSize = metadata.VirtualSize == 0
+                        ? checked((ulong)entry.Length)
+                        : metadata.VirtualSize,
+                    ActualSize = entry.Length,
+                    ParentPath = metadata.ParentPath,
+                    Exists = true
+                });
+            }
+
+            return;
+        }
+
+        foreach (VmcxDiskReference reference in references)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            string sourcePath = ResolveSourceDiskPath(session, reference.ConfiguredPath);
+            if (!File.Exists(sourcePath))
+            {
+                session.Preview.Disks.Add(CreateMissingDiskPreview(reference));
+                session.Preview.CompatibilityIssues.Add(
+                    $"找不到虚拟硬盘：{Path.GetFileName(reference.ConfiguredPath)}");
+                continue;
+            }
+
+            VhdMetadata metadata = await ReadLocalVhdMetadataAsync(sourcePath, cancellationToken);
+            long actualSize = new FileInfo(sourcePath).Length;
+            session.Preview.Disks.Add(new VmImportDiskPreview
+            {
+                Name = Path.GetFileName(sourcePath),
+                SourcePath = sourcePath,
+                Controller = reference.Controller,
+                Format = metadata.Format,
+                Type = metadata.Type,
+                VirtualSize = metadata.VirtualSize == 0
+                    ? checked((ulong)actualSize)
+                    : metadata.VirtualSize,
+                ActualSize = actualSize,
+                ParentPath = metadata.ParentPath,
+                Exists = true
+            });
+        }
+    }
+
+    private static async Task<VhdMetadata> ReadArchiveDiskMetadataAsync(
+        ZipArchiveEntry entry,
+        CancellationToken cancellationToken)
+    {
+        string extension = Path.GetExtension(entry.FullName);
+        // VHD 的关键页脚位于文件末尾；压缩条目若不可寻址，为了预览它而顺序读取整块
+        // 大磁盘得不偿失。此时以条目大小兜底，VHDX/AVHDX 的元数据位于文件头部，可快速读取。
+        if (extension.Equals(".vhd", StringComparison.OrdinalIgnoreCase)
+            || extension.Equals(".avhd", StringComparison.OrdinalIgnoreCase))
+        {
+            return new VhdMetadata(
+                extension.TrimStart('.').ToUpperInvariant(),
+                string.Empty,
+                checked((ulong)entry.Length),
+                null);
+        }
+
+        return await ReadVhdMetadataFromFactoryAsync(
+            () => entry.Open(),
+            entry.Length,
+            extension,
+            cancellationToken);
+    }
+
+    private static VmImportDiskPreview CreateMissingDiskPreview(VmcxDiskReference reference) => new()
+    {
+        Name = Path.GetFileName(reference.ConfiguredPath),
+        SourcePath = reference.ConfiguredPath,
+        Controller = reference.Controller,
+        Format = Path.GetExtension(reference.ConfiguredPath).TrimStart('.').ToUpperInvariant(),
+        Exists = false
+    };
 
     private static async Task CreatePlannedSystemAsync(
         VmImportSession session,
@@ -705,26 +901,41 @@ public static class VmImportService
         var usedDestinations = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         foreach (string source in sourcePaths)
         {
-            string relative = IsWithin(source, session.SourceRoot)
-                ? Path.GetRelativePath(session.SourceRoot, source)
-                : Path.GetFileName(source);
-            relative = TrimVirtualHardDiskDirectory(relative);
-            string destination = Path.GetFullPath(Path.Combine(diskRoot, relative));
+            string destination;
+            if (session.SourceKind == VmImportSourceKind.Zip && IsWithin(source, diskRoot))
+            {
+                destination = Path.GetFullPath(source);
+            }
+            else
+            {
+                string relative = IsWithin(source, session.SourceRoot)
+                    ? Path.GetRelativePath(session.SourceRoot, source)
+                    : Path.GetFileName(source);
+                relative = TrimVirtualHardDiskDirectory(relative);
+                destination = Path.GetFullPath(Path.Combine(diskRoot, relative));
+            }
+
             if (!IsWithin(destination, diskRoot)) throw new InvalidDataException("虚拟硬盘目标路径越界。");
             if (usedDestinations.TryGetValue(destination, out string? other)
                 && !string.Equals(other, source, StringComparison.OrdinalIgnoreCase))
                 throw new IOException($"多个源磁盘会写入同一目标：{destination}");
-            EnsureTargetAbsent(destination);
+            if (!string.Equals(source, destination, StringComparison.OrdinalIgnoreCase))
+                EnsureTargetAbsent(destination);
             usedDestinations[destination] = source;
             destinationBySource[source] = destination;
         }
 
-        long total = sourcePaths.Sum(path => new FileInfo(path).Length);
+        long total = destinationBySource
+            .Where(pair => !string.Equals(pair.Key, pair.Value, StringComparison.OrdinalIgnoreCase))
+            .Sum(pair => new FileInfo(pair.Key).Length);
         long copied = 0;
         byte[] buffer = new byte[1024 * 1024];
         foreach (var pair in destinationBySource)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            if (string.Equals(pair.Key, pair.Value, StringComparison.OrdinalIgnoreCase))
+                continue;
+
             Directory.CreateDirectory(Path.GetDirectoryName(pair.Value)!);
             await using var input = new FileStream(pair.Key, FileMode.Open, FileAccess.Read, FileShare.Read,
                 buffer.Length, FileOptions.Asynchronous | FileOptions.SequentialScan);
@@ -741,6 +952,7 @@ public static class VmImportService
             }
             createdPaths.Add(pair.Value);
         }
+        progress?.Report(80);
 
         foreach (var pair in parentByChild)
         {
@@ -890,38 +1102,257 @@ public static class VmImportService
         catch { }
     }
 
-    private static async Task ExtractArchiveAsync(
+    private static async Task ExtractArchiveToTargetStagingAsync(
         VmImportSession session,
         IProgress<int>? progress,
         CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(session.TemporaryRoot))
-            throw new InvalidOperationException("ZIP 临时目录不存在。");
-        using var archive = ZipFile.OpenRead(session.SourcePath);
-        var entries = ValidateArchiveEntries(archive).Where(e => !string.IsNullOrEmpty(e.Name)).ToList();
-        long total = entries.Sum(e => e.Length);
-        long done = entries.Where(e => File.Exists(SafeDestination(session.TemporaryRoot!, NormalizeEntryName(e.FullName))))
-            .Sum(e => e.Length);
-        byte[] buffer = new byte[1024 * 1024];
-        foreach (var entry in entries)
+        if (string.IsNullOrWhiteSpace(session.TargetConfigurationRoot)
+            || string.IsNullOrWhiteSpace(session.TargetDiskRoot)
+            || string.IsNullOrWhiteSpace(session.MainConfigurationEntry))
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            string target = SafeDestination(session.TemporaryRoot!, NormalizeEntryName(entry.FullName));
-            if (File.Exists(target)) continue;
-            Directory.CreateDirectory(Path.GetDirectoryName(target)!);
-            await using Stream input = entry.Open();
-            await using var output = new FileStream(target, FileMode.CreateNew, FileAccess.Write, FileShare.None,
-                buffer.Length, FileOptions.Asynchronous | FileOptions.SequentialScan);
-            int read;
-            while ((read = await input.ReadAsync(buffer, cancellationToken)) > 0)
+            throw new InvalidOperationException("ZIP 导入目标目录尚未准备完成。");
+        }
+
+        string token = Guid.NewGuid().ToString("N");
+        string configStaging = session.TargetConfigurationRoot + ".importing-" + token;
+        string diskStaging = string.Equals(
+                session.TargetConfigurationRoot,
+                session.TargetDiskRoot,
+                StringComparison.OrdinalIgnoreCase)
+            ? configStaging
+            : session.TargetDiskRoot + ".importing-" + token;
+
+        foreach (string path in new[]
+                 {
+                     session.TargetConfigurationRoot,
+                     session.TargetDiskRoot,
+                     configStaging,
+                     diskStaging
+                 }.Distinct(StringComparer.OrdinalIgnoreCase))
+            EnsureTargetAbsent(path);
+
+        session.ConfigurationStagingRoot = configStaging;
+        session.DiskStagingRoot = diskStaging;
+        try
+        {
+            using var archive = ZipFile.OpenRead(session.SourcePath);
+            var entries = ValidateArchiveEntries(archive)
+                .Where(entry => !string.IsNullOrEmpty(entry.Name))
+                .Where(entry => IsArchiveEntryForSession(session, NormalizeEntryName(entry.FullName)))
+                .ToList();
+            if (!entries.Any(entry => string.Equals(
+                    NormalizeEntryName(entry.FullName),
+                    session.MainConfigurationEntry,
+                    StringComparison.OrdinalIgnoreCase)))
             {
-                await output.WriteAsync(buffer.AsMemory(0, read), cancellationToken);
-                done += read;
-                int end = session.PlacementMode == VmImportPlacementMode.HostDirectories ? 40 : 80;
-                int span = end - 2;
-                progress?.Report(2 + (int)Math.Min(span, total == 0 ? span : done * span / total));
+                throw new InvalidDataException("ZIP 中找不到当前虚拟机的主配置文件。");
+            }
+
+            EnsureZipTargetSpace(session, entries, configStaging, diskStaging);
+            Directory.CreateDirectory(configStaging);
+            if (!string.Equals(configStaging, diskStaging, StringComparison.OrdinalIgnoreCase))
+                Directory.CreateDirectory(diskStaging);
+
+            long total = entries.Sum(entry => entry.Length);
+            long done = 0;
+            int lastReportedProgress = -1;
+            byte[] buffer = new byte[1024 * 1024];
+            var extracted = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (ZipArchiveEntry entry in entries)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                string entryName = NormalizeEntryName(entry.FullName);
+                string relative = GetSessionArchiveRelativePath(session, entryName);
+                bool isDisk = IsVirtualDiskEntry(relative);
+                if (isDisk)
+                    relative = TrimVirtualHardDiskDirectory(relative);
+                string target = SafeDestination(isDisk ? diskStaging : configStaging, relative);
+                Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+                await using var output = new FileStream(
+                    target,
+                    FileMode.CreateNew,
+                    FileAccess.Write,
+                    FileShare.None,
+                    buffer.Length,
+                    FileOptions.Asynchronous | FileOptions.SequentialScan);
+                await CopyArchiveEntryWithValidationAsync(
+                    entry,
+                    output,
+                    buffer,
+                    bytesCopied =>
+                    {
+                        done += bytesCopied;
+                        int currentProgress = 2 + (int)Math.Min(
+                            78,
+                            total == 0 ? 78 : done * 78 / total);
+                        if (currentProgress != lastReportedProgress)
+                        {
+                            lastReportedProgress = currentProgress;
+                            progress?.Report(currentProgress);
+                        }
+                    },
+                    cancellationToken);
+
+                extracted[entryName] = target;
+            }
+
+            progress?.Report(80);
+            session.ExtractedArchivePaths = extracted;
+            session.SourceRoot = configStaging;
+            session.MainConfigurationPath = extracted[session.MainConfigurationEntry];
+            session.SnapshotFolder = configStaging;
+        }
+        catch
+        {
+            TryDeleteImportStaging(session);
+            throw;
+        }
+    }
+
+    private static void CommitZipStaging(
+        VmImportSession session,
+        ICollection<string> createdPaths)
+    {
+        string configStaging = session.ConfigurationStagingRoot
+            ?? throw new InvalidOperationException("ZIP 配置暂存目录不存在。");
+        string diskStaging = session.DiskStagingRoot
+            ?? throw new InvalidOperationException("ZIP 磁盘暂存目录不存在。");
+
+        foreach (string target in new[]
+                 {
+                     session.TargetConfigurationRoot,
+                     session.TargetDiskRoot
+                 }.Distinct(StringComparer.OrdinalIgnoreCase))
+            PrepareTargetForDirectoryMove(target);
+
+        var moves = new[]
+            {
+                (Staging: configStaging, Target: session.TargetConfigurationRoot),
+                (Staging: diskStaging, Target: session.TargetDiskRoot)
+            }
+            .DistinctBy(item => item.Staging, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        foreach (var move in moves)
+        {
+            Directory.Move(move.Staging, move.Target);
+            createdPaths.Add(move.Target);
+        }
+
+        var committed = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var pair in session.ExtractedArchivePaths
+                     ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase))
+        {
+            committed[pair.Key] = MovePathRoot(
+                pair.Value,
+                configStaging,
+                session.TargetConfigurationRoot,
+                diskStaging,
+                session.TargetDiskRoot);
+        }
+
+        session.ExtractedArchivePaths = committed;
+        session.SourceRoot = session.TargetConfigurationRoot;
+        session.MainConfigurationPath = committed[session.MainConfigurationEntry!];
+        session.SnapshotFolder = session.TargetConfigurationRoot;
+        session.ConfigurationStagingRoot = null;
+        session.DiskStagingRoot = null;
+    }
+
+    private static void PrepareTargetForDirectoryMove(string path)
+    {
+        EnsureTargetAbsent(path);
+        if (Directory.Exists(path))
+            Directory.Delete(path, recursive: false);
+    }
+
+    private static bool IsArchiveEntryForSession(VmImportSession session, string entryName)
+    {
+        string prefix = NormalizeEntryName(session.ZipRootPrefix ?? string.Empty).TrimEnd('/');
+        return prefix.Length == 0
+               || entryName.StartsWith(prefix + "/", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string GetSessionArchiveRelativePath(
+        VmImportSession session,
+        string entryName)
+    {
+        string normalized = NormalizeEntryName(entryName);
+        string prefix = NormalizeEntryName(session.ZipRootPrefix ?? string.Empty).TrimEnd('/');
+        if (prefix.Length == 0)
+            return normalized;
+
+        string expectedPrefix = prefix + "/";
+        if (!normalized.StartsWith(expectedPrefix, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidDataException($"ZIP 条目不属于当前虚拟机：{entryName}");
+        return normalized[expectedPrefix.Length..];
+    }
+
+    private static bool IsVirtualDiskEntry(string relativePath)
+        => DiskExtensions.Contains(
+            Path.GetExtension(relativePath),
+            StringComparer.OrdinalIgnoreCase);
+
+    private static void EnsureZipTargetSpace(
+        VmImportSession session,
+        IReadOnlyCollection<ZipArchiveEntry> entries,
+        string configStaging,
+        string diskStaging)
+    {
+        var requiredByStaging = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
+        foreach (ZipArchiveEntry entry in entries)
+        {
+            string relative = GetSessionArchiveRelativePath(
+                session,
+                NormalizeEntryName(entry.FullName));
+            string staging = IsVirtualDiskEntry(relative) ? diskStaging : configStaging;
+            requiredByStaging[staging] = requiredByStaging.GetValueOrDefault(staging) + entry.Length;
+        }
+
+        foreach (var group in requiredByStaging
+                     .GroupBy(
+                         pair => Path.GetPathRoot(Path.GetFullPath(pair.Key)) ?? string.Empty,
+                         StringComparer.OrdinalIgnoreCase))
+        {
+            if (string.IsNullOrWhiteSpace(group.Key))
+                continue;
+
+            long required = group.Sum(pair => pair.Value);
+            try
+            {
+                var drive = new DriveInfo(group.Key);
+                if (drive.IsReady && drive.AvailableFreeSpace < required)
+                {
+                    throw new IOException(
+                        $"目标驱动器 {drive.Name} 空间不足，需要至少 " +
+                        $"{required / 1024d / 1024d / 1024d:F2} GiB，当前可用 " +
+                        $"{drive.AvailableFreeSpace / 1024d / 1024d / 1024d:F2} GiB。");
+                }
+            }
+            catch (ArgumentException)
+            {
+                // UNC 和部分自定义文件系统不支持 DriveInfo；实际写入仍会返回准确错误。
+            }
+            catch (DriveNotFoundException)
+            {
+                // 同上，让后续目录创建提供具体错误。
             }
         }
+    }
+
+    private static string MovePathRoot(
+        string path,
+        string configStaging,
+        string configTarget,
+        string diskStaging,
+        string diskTarget)
+    {
+        if (IsWithin(path, diskStaging))
+            return Path.Combine(diskTarget, Path.GetRelativePath(diskStaging, path));
+        if (IsWithin(path, configStaging))
+            return Path.Combine(configTarget, Path.GetRelativePath(configStaging, path));
+        throw new InvalidDataException($"解压文件不在导入暂存目录中：{path}");
     }
 
     private static List<ZipArchiveEntry> ValidateArchiveEntries(ZipArchive archive)
@@ -943,11 +1374,45 @@ public static class VmImportService
     {
         string destination = SafeDestination(root, NormalizeEntryName(entry.FullName));
         Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
-        await using Stream source = entry.Open();
         await using var target = new FileStream(destination, FileMode.CreateNew, FileAccess.Write, FileShare.None,
             81920, FileOptions.Asynchronous | FileOptions.SequentialScan);
-        await source.CopyToAsync(target, cancellationToken);
+        byte[] buffer = new byte[81920];
+        await CopyArchiveEntryWithValidationAsync(
+            entry,
+            target,
+            buffer,
+            null,
+            cancellationToken);
     }
+
+    private static async Task CopyArchiveEntryWithValidationAsync(
+        ZipArchiveEntry entry,
+        Stream output,
+        byte[] buffer,
+        Action<int>? copied,
+        CancellationToken cancellationToken)
+    {
+        await using Stream input = entry.Open();
+        var crc32 = new ZipCrc32();
+        long actualLength = 0;
+        int read;
+        while ((read = await input.ReadAsync(buffer, cancellationToken)) > 0)
+        {
+            if (actualLength > entry.Length || read > entry.Length - actualLength)
+                throw CreateZipEntryValidationException(entry);
+
+            crc32.Append(buffer.AsSpan(0, read));
+            await output.WriteAsync(buffer.AsMemory(0, read), cancellationToken);
+            actualLength += read;
+            copied?.Invoke(read);
+        }
+
+        if (actualLength != entry.Length || crc32.Value != entry.Crc32)
+            throw CreateZipEntryValidationException(entry);
+    }
+
+    private static InvalidDataException CreateZipEntryValidationException(ZipArchiveEntry entry)
+        => new($"ZIP 条目校验失败，文件可能已损坏：{entry.FullName}");
 
     private static Task<VhdMetadata> ReadLocalVhdMetadataAsync(string path, CancellationToken cancellationToken)
         => ReadVhdMetadataFromFactoryAsync(
@@ -1233,9 +1698,9 @@ public static class VmImportService
         if (session.SourceKind == VmImportSourceKind.Zip && session.ArchiveFullyExtracted)
         {
             if (TryFindArchiveDiskEntry(session, configuredPath, null, out string? entryName)
-                && !string.IsNullOrWhiteSpace(session.TemporaryRoot))
+                && entryName != null
+                && session.ExtractedArchivePaths?.TryGetValue(entryName, out string? extracted) == true)
             {
-                string extracted = SafeDestination(session.TemporaryRoot, entryName!);
                 if (File.Exists(extracted)) return extracted;
             }
         }
@@ -1251,6 +1716,8 @@ public static class VmImportService
         if (File.Exists(candidate)) return Path.GetFullPath(candidate);
         string? imported = FindUniqueSourceFile(session.SourceRoot, Path.GetFileName(configuredPath));
         if (imported != null) return imported;
+        imported = FindUniqueSourceFile(session.TargetDiskRoot, Path.GetFileName(configuredPath));
+        if (imported != null) return imported;
 
         // 非导出布局可以合法引用目录外的既有磁盘；仅当所选目录内确实没有同名盘时回退。
         return File.Exists(configuredPath) ? Path.GetFullPath(configuredPath) : configuredPath;
@@ -1264,7 +1731,8 @@ public static class VmImportService
         string relative = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(childPath)!, parentLocator));
         if (!Path.IsPathRooted(parentLocator) && File.Exists(relative)) return relative;
 
-        string? imported = FindUniqueSourceFile(session.SourceRoot, Path.GetFileName(parentLocator));
+        string? imported = FindUniqueSourceFile(session.TargetDiskRoot, Path.GetFileName(parentLocator));
+        imported ??= FindUniqueSourceFile(session.SourceRoot, Path.GetFileName(parentLocator));
         if (imported != null) return imported;
         if (Path.IsPathRooted(parentLocator)) return Path.GetFullPath(parentLocator);
         return relative;
@@ -1391,11 +1859,38 @@ public static class VmImportService
             await DestroyPlannedSystemAsync(session.PlannedSystemPath);
         session.PlannedSystemPath = string.Empty;
         await CleanupCreatedPathsAsync(createdPaths);
+        TryDeleteImportStaging(session);
         if (session.OwnsTemporaryRoot)
         {
             TryDeleteTemporaryRoot(session.TemporaryRoot);
             session.TemporaryRoot = null;
         }
+    }
+
+    internal static void TryDeleteImportStaging(VmImportSession session)
+    {
+        foreach (string path in new[]
+                 {
+                     session.ConfigurationStagingRoot,
+                     session.DiskStagingRoot
+                 }
+                 .Where(path => !string.IsNullOrWhiteSpace(path))
+                 .Select(path => path!)
+                 .Distinct(StringComparer.OrdinalIgnoreCase))
+        {
+            try
+            {
+                if (Directory.Exists(path))
+                    Directory.Delete(path, true);
+            }
+            catch
+            {
+                // Preserve the original import error; .importing-* remains identifiable.
+            }
+        }
+
+        session.ConfigurationStagingRoot = null;
+        session.DiskStagingRoot = null;
     }
 
     internal static void TryDeleteTemporaryRoot(string? path)

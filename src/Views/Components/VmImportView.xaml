@@ -225,7 +225,7 @@
                                                                          FontFamily="{DynamicResource SegoeFluentIcons}"
                                                                          Margin="0,1,8,0"
                                                                          Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
-                                                            <TextBlock Text="{Binding ProcessorMemorySummary}" FontSize="13"
+                                                            <TextBlock Text="{Binding ConfigSummary}" FontSize="13"
                                                                        Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
                                                         </StackPanel>
                                                     </Border>
@@ -263,8 +263,7 @@
                                                     <Border Style="{StaticResource PreviewChip}" Margin="0,0,8,0">
                                                         <TextBlock FontSize="13"
                                                                    Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}">
-                                                            <Run Text="GUID"/>
-                                                            <Run Text=" "/>
+                                                            <Run Text="GUID:"/>
                                                             <Run Text="{Binding GuidText, Mode=OneWay}"/>
                                                         </TextBlock>
                                                     </Border>
