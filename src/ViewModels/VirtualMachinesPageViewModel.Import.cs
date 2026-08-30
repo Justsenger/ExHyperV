@@ -203,6 +203,7 @@ public partial class VirtualMachinesPageViewModel
 
             VmImportSession[] sessions = _vmImportBatchSession.VirtualMachines.ToArray();
             var imported = new List<Guid>(sessions.Length);
+            int successfulCount = 0;
             for (int index = 0; index < sessions.Length; index++)
             {
                 VmImportSession session = sessions[index];
@@ -223,15 +224,40 @@ public partial class VirtualMachinesPageViewModel
                     _vmImportCancellation.Token);
                 if (!result.Success)
                 {
-                    ShowError(FriendlyError.CleanLines(result.Error));
-                    VmImportStatusText = Resources.VmImport_Failed;
+                    string error = FriendlyError.CleanLines(result.Error);
                     await DisposeVmImportSessionAsync();
+
+                    if (successfulCount > 0)
+                    {
+                        VmImportProgress = successfulCount * 100 / sessions.Length;
+                        VmImportStatusText = string.Format(
+                            Resources.VmImport_PartialCompleted,
+                            successfulCount,
+                            sessions.Length);
+                        IsVmImportCompleted = true;
+                        await LoadVmsCommand.ExecuteAsync(null);
+                        Guid partialSelectedId = imported.LastOrDefault();
+                        if (partialSelectedId != Guid.Empty)
+                            SelectedVm = VmList.FirstOrDefault(vm => vm.Id == partialSelectedId) ?? SelectedVm;
+                        IsVmImportViewVisible = true;
+                        ShowError(string.Format(
+                            Resources.VmImport_PartialFailure,
+                            successfulCount,
+                            sessions.Length,
+                            session.Preview.Name,
+                            error));
+                        return;
+                    }
+
+                    ShowError(error);
+                    VmImportStatusText = Resources.VmImport_Failed;
                     VmImportPreviews.Clear();
                     VmImportPreview = null;
                     VmImportStep = 0;
                     return;
                 }
 
+                successfulCount++;
                 if (result.Data != Guid.Empty)
                     imported.Add(result.Data);
             }

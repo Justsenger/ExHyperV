@@ -224,8 +224,11 @@ public static class VmImportService
         if (hostPaths.HasValue)
         {
             string safeName = SanitizeFileName(preview.Name);
-            session.TargetConfigurationRoot = Path.Combine(hostPaths.Value.DefaultVmPath, safeName);
-            session.TargetDiskRoot = Path.Combine(hostPaths.Value.DefaultVhdPath, safeName);
+            session.TargetConfigurationRoot = Path.GetFullPath(
+                Path.Combine(hostPaths.Value.DefaultVmPath, safeName));
+            session.TargetDiskRoot = string.IsNullOrWhiteSpace(hostPaths.Value.DefaultVhdPath)
+                ? session.TargetConfigurationRoot
+                : Path.GetFullPath(Path.Combine(hostPaths.Value.DefaultVhdPath, safeName));
             foreach (string target in new[]
                      {
                          session.TargetConfigurationRoot,
