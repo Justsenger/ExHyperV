@@ -81,15 +81,9 @@
                                     <Border CornerRadius="4" BorderThickness="1" BorderBrush="#1A888888" Background="#08FFFFFF" ClipToBounds="True">
                                         <Grid>
                                             <Rectangle Fill="{StaticResource FineGridBrush}"/>
-                                            <!-- 按实际像素画(不走 Viewbox 非等比缩放)：描边恒定细、波峰细腻；竖向渐变填充(似任务管理器) -->
+                                            <!-- 按实际像素画(不走 Viewbox 非等比缩放)：描边恒定细、波峰细腻；曲线下方使用统一蓝色填充。 -->
                                             <Grid x:Name="WaveGraph" ClipToBounds="True">
-                                                <Polygon Stroke="{x:Null}">
-                                                    <Polygon.Fill>
-                                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                                                            <GradientStop Offset="0" Color="#8054C7FC"/>
-                                                            <GradientStop Offset="1" Color="#1054C7FC"/>
-                                                        </LinearGradientBrush>
-                                                    </Polygon.Fill>
+                                                <Polygon Stroke="{x:Null}" Fill="#4054C7FC">
                                                     <Polygon.Points>
                                                         <MultiBinding Converter="{StaticResource ScalePoints}">
                                                             <Binding Path="HistoryPoints"/>
@@ -112,7 +106,7 @@
                                                 <TextBlock Text="{Binding CoreId}" FontSize="10" Opacity="0.5" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
                                             </StackPanel>
                                             <TextBlock x:Name="UsageText" Text="{Binding Usage, StringFormat='{}{0:N1}%'}" FontSize="18"  HorizontalAlignment="Center" VerticalAlignment="Center"  Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
-                                            <TextBlock x:Name="OffText" Text="OFF" FontSize="24" FontWeight="Bold" Opacity="0.2" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Visibility="Collapsed"/>
+                                            <TextBlock x:Name="OffText" Text="OFF" FontSize="24" FontWeight="Normal" Opacity="0.2" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Visibility="Collapsed"/>
                                         </Grid>
                                     </Border>
                                 </Grid>
