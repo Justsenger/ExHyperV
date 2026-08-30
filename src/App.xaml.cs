@@ -33,6 +33,10 @@ public partial class App
 
     protected override void OnStartup(StartupEventArgs e)
     {
+        // 正常模式下为窗口内页面统一启用平滑滚轮；轻量模式仍遵循“关闭动画”的约定。
+        if (!PerformanceMode)
+            SmoothScroll.Initialize();
+
         // 旧版本曾把 AzureFeatureSet 暴露为持久化主机选项，临时操作异常中断时也可能留下该值。
         // 此暂存开关由 ExHyperV 管理，因此必须在任何 Hyper-V 操作开始前恢复为关闭状态。
         ExHyperV.Services.HostAzureFeatureSetService.EnsureDisabledAtRest();
