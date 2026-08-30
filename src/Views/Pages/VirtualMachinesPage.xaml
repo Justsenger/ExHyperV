@@ -596,15 +596,6 @@
                                         </Setter.Value>
                                     </Setter>
                                 </DataTrigger>
-                                <DataTrigger Binding="{Binding DataContext.CurrentViewType, RelativeSource={RelativeSource AncestorType=Page}}" Value="Export">
-                                    <Setter Property="ContentTemplate">
-                                        <Setter.Value>
-                                            <DataTemplate>
-                                                <components:VmExportView/>
-                                            </DataTemplate>
-                                        </Setter.Value>
-                                    </Setter>
-                                </DataTrigger>
                             </Style.Triggers>
                         </Style>
                     </ContentControl.Style>
@@ -756,6 +747,11 @@
                                     <Setter Property="Visibility" Value="Collapsed"/>
                                 </DataTrigger>
 
+                                <DataTrigger Binding="{Binding DataContext.CurrentViewType, RelativeSource={RelativeSource AncestorType=Page}}" Value="Export">
+                                    <Setter Property="ContentTemplate" Value="{StaticResource VmBlankTemplate}" />
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+
                                 <!-- 逻辑 3: 加载中隐藏 -->
                                 <DataTrigger Binding="{Binding IsLoading}" Value="True">
                                     <Setter Property="Visibility" Value="Hidden"/>
@@ -768,6 +764,18 @@
                 <!-- 创建界面-->
                 <components:VmCreateView Visibility="{Binding IsCreatingVm, Converter={StaticResource BoolToVis}}"/>
                 <components:VmImportView Visibility="{Binding IsVmImportViewVisible, Converter={StaticResource BoolToVis}}"/>
+                <components:VmExportView>
+                    <components:VmExportView.Style>
+                        <Style TargetType="{x:Type components:VmExportView}">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding CurrentViewType}" Value="Export">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </components:VmExportView.Style>
+                </components:VmExportView>
             </Grid>
         </Border>
         

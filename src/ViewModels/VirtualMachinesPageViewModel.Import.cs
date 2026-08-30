@@ -227,7 +227,7 @@ public partial class VirtualMachinesPageViewModel
                         ? phase
                         : string.Format(
                             Resources.VmImport_BatchStatusFormat,
-                            phase,
+                            phase.TrimEnd('…'),
                             session.Preview.Name,
                             completed + 1,
                             sessions.Length);
