@@ -19,11 +19,9 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- 内容区域 -->
         <ScrollViewer Grid.Row="0" Padding="24,24,24,0" VerticalScrollBarVisibility="Auto" PanningMode="VerticalOnly">
             <StackPanel>
 
-                <!-- 1. 标题栏 -->
                 <Grid Margin="0,0,0,24">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
@@ -40,7 +38,6 @@
                     </ui:Button>
                 </Grid>
 
-                <!-- === 常规 === -->
                 <TextBlock Text="{x:Static properties:Resources.Xaml_General}" FontSize="16" FontWeight="Medium" Margin="0,0,0,12"
                            Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
 
@@ -86,7 +83,6 @@
                     </StackPanel>
                 </ui:CardControl>
 
-                <!-- === 计算资源 === -->
                 <TextBlock Text="{x:Static properties:Resources.Xaml_ComputeRes}" FontSize="16" FontWeight="Medium" Margin="0,0,0,12" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
 
                 <ui:CardControl Header="{x:Static properties:Resources.Xaml_ProcessorCores}" Margin="0,0,0,8">
@@ -183,7 +179,6 @@
                     </StackPanel>
                 </ui:CardControl>
 
-                <!-- === 存储资源 === -->
                 <TextBlock Text="{x:Static properties:Resources.Xaml_StorageRes}" FontSize="16" FontWeight="Medium" Margin="0,12,0,12" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
 
                 <Border Background="{ui:ThemeResource CardBackgroundFillColorDefaultBrush}" 
@@ -275,7 +270,6 @@
                     </StackPanel>
                 </Border>
 
-                <!-- === 安装介质 === -->
                 <Border Background="{ui:ThemeResource CardBackgroundFillColorDefaultBrush}" 
                         BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" 
                         BorderThickness="1" CornerRadius="8" Padding="20" Margin="0,0,0,24">
@@ -301,7 +295,6 @@
                     </StackPanel>
                 </Border>
 
-                <!-- === 网络资源 === -->
                 <TextBlock Text="{x:Static properties:Resources.Xaml_NetworkRes}" FontSize="16" FontWeight="Medium" Margin="0,0,0,12" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
 
                 <ui:CardControl Header="{x:Static properties:Resources.Xaml_VirtualSwitch}" Margin="0,0,0,24" HorizontalContentAlignment="Stretch">
@@ -314,7 +307,6 @@
             </StackPanel>
         </ScrollViewer>
 
-        <!-- 3. 固定悬浮操作栏 (移出 ScrollViewer) -->
         <Border Grid.Row="1" Background="{ui:ThemeResource ApplicationBackgroundBrush}" BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="0,1,0,0" Padding="24,8">
             <Grid>
                 <CheckBox Content="{x:Static properties:Resources.Xaml_StartAfterCreate}" IsChecked="{Binding StartVmAfterCreation}" VerticalAlignment="Center"/>

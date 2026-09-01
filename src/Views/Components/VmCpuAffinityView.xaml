@@ -81,7 +81,6 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- 标题栏 -->
         <Grid Grid.Row="0" Margin="24,16,24,12">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
@@ -113,7 +112,6 @@
         <ProgressBar Grid.Row="1" IsIndeterminate="True" VerticalAlignment="Top" Height="2" Margin="0,-2,0,0"
                      Visibility="{Binding IsLoadingSettings, Converter={StaticResource BoolToVis}}"/>
 
-        <!-- 显示区域 -->
         <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" PanningMode="VerticalOnly">
             <Border Padding="24,0,24,0">
                 <ItemsControl x:Name="CoresItemsControl"

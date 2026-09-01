@@ -63,7 +63,6 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <!-- 页面标题栏 -->
         <Grid Grid.Row="0" Margin="24,16,24,12">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
@@ -119,7 +118,6 @@
                             </ui:CardExpander.Header>
 
                             <StackPanel>
-                                <!-- 1. 基础连接 -->
                                 <TextBlock Text="{x:Static properties:Resources.Label_BasicConnection}" Style="{StaticResource SectionHeaderTextStyle}"/>
                                 <Border Style="{StaticResource SectionBorderStyle}">
                                     <Grid>
@@ -179,8 +177,6 @@
                                     </Grid>
                                 </Border>
 
-                                <!-- 2. VLAN 与 隔离 -->
-                                <!-- 2. VLAN 与 隔离 -->
                                 <TextBlock Text="{x:Static properties:Resources.Label_VlanIsolate}" Style="{StaticResource SectionHeaderTextStyle}"/>
                                 <Border Style="{StaticResource SectionBorderStyle}">
                                     <Grid>
@@ -243,7 +239,6 @@
                                     </Grid>
                                 </Border>
                                 
-                                <!-- 3. 流量控制 (QoS) -->
                                 <TextBlock Text="{x:Static properties:Resources.Label_Qos}" Style="{StaticResource SectionHeaderTextStyle}"/>
                                 <Border Style="{StaticResource SectionBorderStyle}">
                                     <Grid>
@@ -264,7 +259,6 @@
                                     </Grid>
                                 </Border>
 
-                                <!-- 4. 硬件加速 (自动保存) -->
                                 <TextBlock Text="{x:Static properties:Resources.Label_Offload}" Style="{StaticResource SectionHeaderTextStyle}"/>
                                 <Border Style="{StaticResource SectionBorderStyle}" Padding="0">
                                     <StackPanel>
@@ -306,7 +300,6 @@
                                     </StackPanel>
                                 </Border>
 
-                                <!-- 5. 安全与监控 -->
                                 <TextBlock Text="{x:Static properties:Resources.Label_Security}" Style="{StaticResource SectionHeaderTextStyle}"/>
                                 <Border Style="{StaticResource SectionBorderStyle}" Padding="0">
                                     <StackPanel>

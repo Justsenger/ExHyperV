@@ -16,14 +16,11 @@
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
-            <!-- 标题栏 -->
             <RowDefinition Height="Auto"/>
             <!-- 进度条 -->
             <RowDefinition Height="*"/>
-            <!-- 列表内容 -->
         </Grid.RowDefinitions>
 
-        <!-- 1. 标题栏 -->
         <Grid Grid.Row="0" Margin="24,16,24,12">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
@@ -50,15 +47,12 @@
             </StackPanel>
         </Grid>
 
-        <!-- 2. 加载进度条 -->
         <ProgressBar Grid.Row="1" IsIndeterminate="True" VerticalAlignment="Top" Height="2" Margin="0,-2,0,0"
                          Visibility="{Binding IsLoadingSettings, Converter={StaticResource BoolToVis}}"/>
 
-        <!-- 3. 内容区域 -->
         <ScrollViewer Grid.Row="2" Padding="24,12,24,24" VerticalScrollBarVisibility="Auto" PanningMode="VerticalOnly">
             <Grid>
 
-                <!-- 存储项列表 -->
                 <ItemsControl ItemsSource="{Binding SelectedVm.StorageItems}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
@@ -72,7 +66,6 @@
                                         </Grid.ColumnDefinitions>
 
                                         <Grid Grid.Column="0" Width="22" Height="22" VerticalAlignment="Center">
-                                            <!-- 1. 正常状态：磁盘图标 -->
                                             <ui:FontIcon Glyph="{Binding Icon}" 
                  FontFamily="{StaticResource SegoeFluentIcons}" 
                  FontSize="20"
@@ -81,7 +74,6 @@
                                                     <Style TargetType="ui:FontIcon">
                                                         <Setter Property="Visibility" Value="Visible"/>
                                                         <Style.Triggers>
-                                                            <!-- 当正在优化时，直接塌陷隐藏 -->
                                                             <DataTrigger Binding="{Binding IsOptimizing}" Value="True">
                                                                 <Setter Property="Visibility" Value="Collapsed"/>
                                                             </DataTrigger>
@@ -90,7 +82,6 @@
                                                 </ui:FontIcon.Style>
                                             </ui:FontIcon>
 
-                                            <!-- 2. 优化状态：加载环 -->
                                             <!-- 直接利用你现有的 BooleanToVisibilityConverter -->
                                             <ui:ProgressRing Width="18" Height="18" 
                      IsIndeterminate="True"
@@ -181,12 +172,10 @@
                                                     <Style TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
                                                         <Setter Property="Visibility" Value="Collapsed"/>
                                                         <Style.Triggers>
-                                                            <!-- 1. 当类型为 DvdDrive (ISO) 时显示 -->
                                                             <DataTrigger Binding="{Binding DriveType}" Value="DvdDrive">
                                                                 <Setter Property="Visibility" Value="Visible"/>
                                                             </DataTrigger>
 
-                                                            <!-- 2. 当类型为 HardDisk (注意不是 HardDrive) 且不是物理磁盘时显示 -->
                                                             <MultiDataTrigger>
                                                                 <MultiDataTrigger.Conditions>
                                                                     <Condition Binding="{Binding DriveType}" Value="HardDisk"/>

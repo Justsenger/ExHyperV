@@ -10,8 +10,7 @@
 
     <UserControl.Resources>
         
-        <!-- 完美无缝、边共享正六边形矩阵 -->
-        <!-- 计算基准：六边形半径 R = 20 -->
+        <!-- 边共享正六边形矩阵，基准半径 R = 20。 -->
         <!-- 视口宽度 W = R * √3 ≈ 34.64 -->
         <!-- 视口高度 H = R * 3 = 60 -->
         <DrawingBrush x:Key="FineGridBrush" 
@@ -21,14 +20,12 @@
                 <GeometryDrawing>
                     <GeometryDrawing.Geometry>
                         <GeometryGroup>
-                            <!-- 所有数值均由原基础值乘以 2 -->
-                            <!-- 1. 上部边缘 -->
+                            <!-- 上部边缘 -->
                             <PathGeometry Figures="M 0,20 L 34.64,0 L 69.28,20" />
 
-                            <!-- 2. 中部边缘 -->
+                            <!-- 中部边缘 -->
                             <PathGeometry Figures="M 0,60 L 34.64,80 L 69.28,60" />
 
-                            <!-- 3. 三条垂直共享边 -->
                             <PathGeometry Figures="M 0,20 L 0,60" />
                             <!-- 左侧壁 -->
                             <PathGeometry Figures="M 69.28,20 L 69.28,60" />
@@ -50,7 +47,6 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <!-- 顶部标题栏 -->
         <Grid Grid.Row="0" Margin="0,0,0,8">
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
@@ -107,12 +103,10 @@
       PreviewMouseMove="CanvasContainer_MouseMove" 
       PreviewMouseUp="CanvasContainer_MouseUp" 
       MouseLeave="CanvasContainer_MouseLeave">
-                    <!-- 1. 绘图层 -->
                     <ScrollViewer x:Name="SpacetimeScrollViewer" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Hidden">
                         <Canvas x:Name="SpacetimeCanvas" Width="3000" Height="2000" Background="Transparent"/>
                     </ScrollViewer>
 
-                    <!-- 2. 时空重构遮罩层 -->
                     <!-- 当 IsLoadingSettings 为 True 时显示 -->
                     <Grid 
               Visibility="{Binding IsLoadingSettings, Converter={StaticResource BoolToVis}}"
@@ -127,7 +121,6 @@
                         </StackPanel>
                     </Grid>
 
-                    <!-- 3. 顶置进度条 (双重反馈) -->
                     <ProgressBar IsIndeterminate="True" Height="2" VerticalAlignment="Top" 
                         Visibility="{Binding IsLoadingSettings, Converter={StaticResource BoolToVis}}"
                         Panel.ZIndex="101"/>
@@ -141,13 +134,11 @@
                         <TextBlock Text="{x:Static properties:Resources.VmSpacetimeSettings_LabelDetails}" FontSize="14" FontWeight="Medium" Margin="0,0,0,12"/>
                         <Border Background="{ui:ThemeResource ControlFillColorTertiaryBrush}" CornerRadius="6" Padding="12">
                             <Grid>
-                                <!-- 1. 未选择提示：默认显示，只有当 SelectedSpacetimeNode 不为 null 时隐藏 -->
                                 <TextBlock Text="{x:Static properties:Resources.VmSpacetimeSettings_MsgNoAnchor}" FontSize="12" Opacity="0.4" HorizontalAlignment="Center">
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="Visibility" Value="Collapsed"/>
                                             <Style.Triggers>
-                                                <!-- 当选中的节点为空时，显示提示文本 -->
                                                 <DataTrigger Binding="{Binding SelectedSpacetimeNode}" Value="{x:Null}">
                                                     <Setter Property="Visibility" Value="Visible"/>
                                                 </DataTrigger>
@@ -156,7 +147,6 @@
                                     </TextBlock.Style>
                                 </TextBlock>
 
-                                <!-- 2. 详情内容：默认隐藏，只有当 SelectedSpacetimeNode 不为 null 时显示 -->
                                 <StackPanel>
                                     <StackPanel.Style>
                                         <Style TargetType="StackPanel">
@@ -224,7 +214,6 @@
                                             </ui:Button>
                                         </StackPanel>
 
-                                        <!-- 编辑态 TextBox 保持不变 -->
                                         <ui:TextBox Text="{Binding SelectedSpacetimeNode.EditedName, UpdateSourceTrigger=PropertyChanged}"
                 FontSize="12" MinHeight="26" Padding="5,2" Margin="-5,0,0,0"
                 VerticalContentAlignment="Center">
@@ -362,7 +351,6 @@
                                     </Style.Triggers>
                                 </Style>
                             </StackPanel.Style>
-                            <!-- 虫洞状态提示 -->
                             <Border Background="{ui:ThemeResource SystemFillColorCautionBackgroundBrush}"
             CornerRadius="6" Padding="10,8" Margin="0,0,0,10">
                                 <StackPanel Orientation="Horizontal">

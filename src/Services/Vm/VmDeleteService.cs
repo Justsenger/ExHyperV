@@ -163,7 +163,7 @@ public static class VmDeleteService
     // 收集"将清理的目标"：VHD 文件路径 + 配置目录。Preview 与 Purge 共用，保证显示与实删一致。
     private static async Task<PurgeTargets> CollectPurgeTargetsAsync(string vmGuid)
     {
-        // 只收【虚拟硬盘】的文件来删,靠 ResourceSubType 精确区分。
+        // 仅收集 ResourceSubType 标识为虚拟硬盘的文件。
         // 关键:ISO 与 VHD 在 Msvm_StorageAllocationSettingData 里 ResourceType 都是 31,只有 ResourceSubType 不同——
         //   硬盘 = "Microsoft:Hyper-V:Virtual Hard Disk"、ISO = "Microsoft:Hyper-V:Virtual CD/DVD Disk"。
         //   按 ResourceType 根本区分不了,彻底删除会连用户挂的 ISO 一起删。ResourceSubType 是固定英文标识、不本地化,可等值过滤。
@@ -299,7 +299,7 @@ public static class VmDeleteService
             throw new DirectoryNotFoundException(sourceRoot);
 
         // DestroySystem 可能删除、保留或改写旧状态文件。先只清理销毁前已证明属于该 VM
-        // 的精确文件/ID 目录，再复制标准导出包；绝不清理整个共享配置根。
+        // 的精确文件和 ID 目录，再复制标准导出包；不清理共享配置根。
         foreach (string file in previousConfigFiles)
         {
             if (!await TryDeleteFileAsync(file))
@@ -358,7 +358,7 @@ public static class VmDeleteService
 
     // 销毁前确保 VM 已关机：保存态/运行态不先关，DestroySystem 可能残留配置/状态文件。
     // 放行 EnabledState 3(已关) 和 6(Enabled but Offline，配置丢失的坏机)：6 的 TurnOff 关不掉但 DestroySystem 能直接注销，其余非关机态先 TurnOff 再回查。
-    // 绝不带 `Caption = 'Virtual Machine'` 过滤——中文系统上被翻译，等值匹配永远查不到。
+    // Caption 会被本地化，不能用于等值过滤虚拟机对象。
     private static bool IsOffOrOrphan(int enabledState) => enabledState == 3 || enabledState == 6;
 
     private static async Task<(bool Success, string Message)> EnsureOffAsync(string vmName)
@@ -503,7 +503,7 @@ public static class VmDeleteService
     }
 
     // 删配置目录：零硬编码、可证明安全。
-    // 规则：只删"递归下已无任何文件"的目录（有文件就保留，绝不误删别的 VM）；
+    // 仅删除递归检查后不含文件的目录。
     //       并动态护住盘符根与主机默认根目录（DefaultExternalDataRoot / DefaultVirtualHardDiskPath，连空也不删）。
     private static async Task DeleteConfigDirAsync(string? rawConfigDir, bool isProvenDedicated)
     {

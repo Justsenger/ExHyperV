@@ -8,10 +8,6 @@ namespace ExHyperV.Services
 {
     public static class VmStorageService
     {
-        // ============================================================
-        // 数据查询
-        // ============================================================
-
         public static async Task LoadVmStorageItemsAsync(VmInstance vm)
         {
             if (vm == null) return;
@@ -205,7 +201,7 @@ namespace ExHyperV.Services
                                     {
                                         string devId = devMatch.Groups[1].Value.Replace("\\\\", "\\");
                                         // hvDiskMap 来自 Msvm_DiskDrive(只含脱机盘)。查得到=盘仍脱机、直通有效;
-                                        // 查不到=盘已被手动联机、从可直通池消失 → 直通【悬空失效】(Hyper-V 显示"找不到"、VM 开机失败)。
+                                        // 已分配磁盘从直通池消失时，该直通配置已经失效。
                                         // 悬空时仍从 DeviceID 末尾(…\N)解析盘号(挂载时记录、不随联机变)，用于告诉用户是哪块盘失效——
                                         // 不能只靠 TryGetValue 的 out：查不到会把 dNum 置 0(默认值)，错映射到磁盘 0(常为系统盘)。
                                         if (!hvDiskMap.TryGetValue(devId, out dNum))
@@ -315,9 +311,7 @@ namespace ExHyperV.Services
             return (hvMap, osMap);
         }
 
-        // ============================================================
         // 压缩虚拟磁盘
-        // ============================================================
 
         public static async Task<ApiResponse> CompactDiskAsync(string vhdPath)
         {
@@ -332,13 +326,9 @@ namespace ExHyperV.Services
                 WmiScope.HyperV);
         }
 
-        // ============================================================
         // 主机物理磁盘列表
-        // ============================================================
 
-        // ============================================================
         // 刷新虚拟磁盘文件大小
-        // ============================================================
 
         public static async Task RefreshVirtualDiskSizesAsync(VmInstance vm)
         {
@@ -374,9 +364,7 @@ namespace ExHyperV.Services
             });
         }
 
-        // ============================================================
         // 设备增删改操作
-        // ============================================================
 
         public static async Task<(bool Success, string Message, string ActualType, int ActualNumber, int ActualLocation)>
             AddDriveAsync(
@@ -432,7 +420,7 @@ namespace ExHyperV.Services
                     return (false, msg, controllerType, controllerNumber, location);
                 }
 
-                // 运行中 IDE 不能加任何设备(含光驱,IDE 无热插拔);UI 已前置拦,这里作服务层兜底
+                // IDE 不支持热添加设备，服务层也需要校验运行状态。
                 if (controllerType == "IDE" && isRunning)
                     return (false, driveType == "DvdDrive" ? Properties.Resources.Error_Storage_Gen1Dvd : Properties.Resources.Error_Storage_IdeHotAdd, controllerType, controllerNumber, location);
 
@@ -1042,7 +1030,7 @@ namespace ExHyperV.Services
             if (target != null)
             {
                 // 弹出:运行中把 HostResource 改空会被 Hyper-V 拒(报"无法修改资源"/ErrorCode 32773,原生实测)。
-                // 正解=移除媒体那条 SASD → 媒体弹出、驱动器保留(原生实测 RemoveResourceSettings 成功)。
+                // 移除媒体对应的 SASD 可弹出媒体并保留驱动器。
                 if (string.IsNullOrWhiteSpace(newPath))
                 {
                     var mediaPathResp = await WmiApi.QueryFirstAsync(
@@ -1155,13 +1143,9 @@ namespace ExHyperV.Services
                 : (false, FriendlyError.LastSentence(addResult.Error));
         }
 
-        // ============================================================
         // 主机物理磁盘控制
-        // ============================================================
 
-        // ============================================================
         // ISO 镜像生成
-        // ============================================================
 
         private static async Task<(bool Success, string Message)> CreateIsoFromDirectoryAsync(
             string sourceDirectory, string targetIsoPath, string volumeLabel)
@@ -1432,9 +1416,7 @@ namespace ExHyperV.Services
             return (true, ctrlType, ctrlNum, ctrlLoc);
         }
 
-        // ============================================================
         // 内部辅助数据模型
-        // ============================================================
 
         private sealed record RasdInfo(string InstanceID, int ResourceType, string ObjPath);
 

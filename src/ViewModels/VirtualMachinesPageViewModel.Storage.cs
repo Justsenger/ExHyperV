@@ -13,7 +13,6 @@ namespace ExHyperV.ViewModels
 {
     public partial class VirtualMachinesPageViewModel
     {
-        // ===== 视图模型属性 - 存储管理 =====
         [ObservableProperty] private ObservableCollection<HostDiskInfo> _hostDisks = new();
 
         // 存储向导属性
@@ -60,9 +59,7 @@ namespace ExHyperV.ViewModels
         public List<int> NewDiskSizePresets { get; } = new() { 32, 64, 128, 256, 512, 1024 };
 
 
-        // ===== 存储管理模块 - 列表与基础操作 =====
 
-        // 导航至存储设置页面
         [RelayCommand]
         private async Task GoToStorageSettingsAsync()
         {
@@ -80,18 +77,14 @@ namespace ExHyperV.ViewModels
             finally { IsLoadingSettings = false; }
         }
 
-        // 加载主机物理磁盘列表
         private async Task LoadHostDisksAsync()
         {
             try
             {
-                // 1. 获取 ApiResponse<List<HostDiskInfo>>
                 var response = await HostDiskService.GetHostDisksAsync();
 
-                // 2. 判断是否成功且存在数据
                 if (response.HasData)
                 {
-                    // 3. 将 response.Data 传递给 ObservableCollection
                     Application.Current.Dispatcher.Invoke(() => HostDisks = new ObservableCollection<HostDiskInfo>(response.Data!));
                 }
             }
@@ -99,25 +92,20 @@ namespace ExHyperV.ViewModels
         }
 
 
-        // 优化磁盘
         [RelayCommand]
         private async Task OptimizeStorageAsync(VmStorageItem item)
         {
-            // 空值、正在运行、或已经在优化中的磁盘不处理
             if (item == null || SelectedVm == null || SelectedVm.IsRunning || item.IsOptimizing) return;
 
-            // 进入优化状态
             item.IsOptimizing = true;
 
             try
             {
-                // 1. 发起 WMI 压缩指令
                 // 虽然 await 会等待，但由于 vmms.exe 承载了 Job，即便 UI 崩溃，任务依然在后台跑
                 var result = await VmStorageService.CompactDiskAsync(item.PathOrDiskNumber);
 
                 if (result.Success)
                 {
-                    // 2. 刷新磁盘物理大小 (FileSize)
                     // 调用现有的存储服务，确保 UI 上的 GB 数值得到更新
                     await VmStorageService.RefreshVirtualDiskSizesAsync(SelectedVm.Model);
 
@@ -134,12 +122,10 @@ namespace ExHyperV.ViewModels
             }
             finally
             {
-                // 3. 释放优化状态
                 item.IsOptimizing = false;
             }
         }
 
-        // 移除存储设备
         [RelayCommand]
         private async Task RemoveStorageItemAsync(VmStorageItem item)
         {
@@ -249,7 +235,6 @@ namespace ExHyperV.ViewModels
         private void OpenFolder(string path) => Shell.Reveal(path);
 
 
-        // ===== 存储管理模块 - 添加设备向导 =====
 
         public int NewDiskSizeInt => int.TryParse(NewDiskSize, out int size) && size > 0 ? size : 128;
 
@@ -259,7 +244,6 @@ namespace ExHyperV.ViewModels
 
         public string BrowseButtonText => IsNewDisk ? Properties.Resources.Button_SaveTo : Properties.Resources.Button_Browse;
 
-        // 属性变更监听 - 自动分配插槽
         partial void OnAutoAssignChanged(bool value)
         {
             if (value)
@@ -268,7 +252,6 @@ namespace ExHyperV.ViewModels
             }
         }
 
-        // 属性变更监听 - 磁盘大小
         partial void OnNewDiskSizeChanged(string value)
         {
             if (int.TryParse(value, out int size) && size <= 0)
@@ -277,14 +260,12 @@ namespace ExHyperV.ViewModels
             }
         }
 
-        // 属性变更监听 - 是否新建磁盘
         partial void OnIsNewDiskChanged(bool value)
         {
             OnPropertyChanged(nameof(BrowseButtonText));
             FilePath = string.Empty;
         }
 
-        // 属性变更监听 - 设备类型
         partial void OnDeviceTypeChanged(string value)
         {
             FilePath = string.Empty;
@@ -303,7 +284,6 @@ namespace ExHyperV.ViewModels
             if (IsPhysicalSource && value == "DvdDrive") _ = LoadHostOpticalsAsync();
         }
 
-        // 属性变更监听 - 来源(虚拟文件/物理设备)
         partial void OnIsPhysicalSourceChanged(bool value)
         {
             if (value)
@@ -321,7 +301,6 @@ namespace ExHyperV.ViewModels
             if (value && DeviceType == "DvdDrive") _ = LoadHostOpticalsAsync();
         }
 
-        // 加载主机物理光驱列表(物理来源 + 光盘,仅第1代)
         private async Task LoadHostOpticalsAsync()
         {
             try
@@ -334,7 +313,6 @@ namespace ExHyperV.ViewModels
             catch { }
         }
 
-        // 属性变更监听 - 控制器类型
         partial void OnSelectedControllerTypeChanged(string value)
         {
             if (IsApplySuppressed || value == null) return;
@@ -352,16 +330,14 @@ namespace ExHyperV.ViewModels
             }), System.Windows.Threading.DispatcherPriority.Loaded);
         }
 
-        // 属性变更监听 - 控制器编号
         partial void OnSelectedControllerNumberChanged(int value)
         {
-            // 如果是内部设定的跳变值 -2，或者是锁定状态，绝对不要去刷新位置列表，否则会造成闪烁或死循环
+            // -2 是内部过渡值；锁定或过渡期间刷新位置列表会造成重复更新。
             if (value == -2 || IsApplySuppressed) return;
 
             UpdateAvailableLocations();
         }
 
-        // 导航至添加存储向导
         [RelayCommand]
         private async Task GoToAddStorageAsync()
         {
@@ -386,7 +362,6 @@ namespace ExHyperV.ViewModels
             }
         }
 
-        // 确认添加存储设备
         [RelayCommand]
         private async Task ConfirmAddStorageAsync()
         {
@@ -402,7 +377,6 @@ namespace ExHyperV.ViewModels
                 return;
             }
 
-            // 检查插槽冲突
             bool collision = SelectedVm.StorageItems.Any(i =>
                 i.ControllerType == SelectedControllerType &&
                 i.ControllerNumber == SelectedControllerNumber &&
@@ -503,7 +477,6 @@ namespace ExHyperV.ViewModels
             CurrentViewType = VmDetailViewType.StorageSettings;
         }
 
-        // 取消添加存储
         [RelayCommand]
         private void CancelAddStorage() => CurrentViewType = VmDetailViewType.StorageSettings;
 
@@ -550,7 +523,6 @@ namespace ExHyperV.ViewModels
             if (picked != null) ParentPath = picked;
         }
 
-        // 浏览保存ISO路径
         [RelayCommand]
         private void BrowseSaveIso()
         {
@@ -560,7 +532,6 @@ namespace ExHyperV.ViewModels
             if (picked != null) IsoOutputPath = picked;
         }
 
-        // 添加驱动器的包装函数
         public async Task AddDriveWrapperAsync(string driveType, bool isPhysical, string pathOrNumber, bool isNew, int sizeGb = 128, string vhdType = "Dynamic", string parentPath = "", string isoSourcePath = null, string isoVolumeLabel = null)
         {
             if (SelectedVm == null) return;
@@ -612,7 +583,6 @@ namespace ExHyperV.ViewModels
                 IsLoadingSettings = false;
             }
         }
-        // 计算最佳可用插槽
         private void CalculateBestSlot()
         {
             if (SelectedVm == null) return;
@@ -679,7 +649,6 @@ namespace ExHyperV.ViewModels
             IsSlotValid = false;
             SlotWarningMessage = Properties.Resources.Error_Storage_NoSlots;
         }
-        // 检查插槽是否被占用
         private bool IsSlotOccupied(string type, int ctrlNum, int loc)
         {
             return SelectedVm.StorageItems.Any(i =>
@@ -688,30 +657,25 @@ namespace ExHyperV.ViewModels
                 i.ControllerLocation == loc);
         }
 
-        // 设置当前选中的插槽
         private void SetSlot(string type, int ctrlNum, int loc)
         {
             // 抑制跨 Dispatcher 回调：手动持有抑制域，待 Loaded 回调全部刷完再 Dispose（异常路径也 Dispose）。
             var suppression = SuppressApply();
             try
             {
-                // 1. 设置接口类型并立即刷新列表数据源
                 SelectedControllerType = type;
                 RefreshAvailableNumbers(type);
                 RefreshAvailableLocations(type, ctrlNum);
 
-                // 2. 用 Dispatcher 等 UI 处理完 ItemsSource 变更通知再设值
                 // 使用 Loaded 优先级，这会等待 ComboBox 完成内部项的生成
                 Application.Current.Dispatcher.BeginInvoke(new Action(() => {
 
-                    // --- 强刷 [编号] ---
                     var targetNum = AvailableControllerNumbers.Contains(ctrlNum) ? ctrlNum : (AvailableControllerNumbers.Count > 0 ? AvailableControllerNumbers[0] : 0);
 
                     // 用 -2 强制触发 PropertyChanged，因为 -1 可能已经是当前 UI 的内部错误状态
                     SelectedControllerNumber = -2;
                     SelectedControllerNumber = targetNum;
 
-                    // --- 强刷 [位置] ---
                     SelectedLocation = -2;
                     if (AvailableLocations.Contains(loc))
                     {
@@ -760,7 +724,6 @@ namespace ExHyperV.ViewModels
                 if (!usedLocations.Contains(i)) AvailableLocations.Add(i);
             }
         }
-        // 更新可用的位置列表
         private void UpdateAvailableLocations()
         {
             if (IsApplySuppressed) return;
@@ -784,7 +747,6 @@ namespace ExHyperV.ViewModels
             SelectedLocation = -2;
             SelectedLocation = target;
         }
-        // 刷新控制器选项
         private void RefreshControllerOptions()
         {
             if (SelectedVm == null) return;
@@ -794,7 +756,6 @@ namespace ExHyperV.ViewModels
 
             AvailableControllerTypes.Clear();
 
-            // --- 物理约束逻辑 ---
             if (isGen1)
             {
                 if (isDvd)
@@ -831,7 +792,6 @@ namespace ExHyperV.ViewModels
             }
             else
             {
-                // 强制刷新一次编号列表
                 OnSelectedControllerTypeChanged(SelectedControllerType);
             }
         }

@@ -3,15 +3,10 @@ using System.Runtime.InteropServices;
 
 namespace ExHyperV.Tools;
 
-// ══════════════════════════════════════════════════════════════════
-//  VmbusApi — 公开封装层
-//  VMBus socket 的底层连接建立
-// ══════════════════════════════════════════════════════════════════
+// VMBus socket 的底层连接接口。
 public static class VmbusApi
 {
-    // 裸 P/Invoke socket() 不触发 .NET 的 Winsock 初始化(WSAStartup)：若它是进程首个网络动作，
-    // 必失败 WSANOTINITIALISED=10093（Framework 4.8 与 .NET 8 双实测）。此前能工作靠的是进程里
-    // 其它功能(检查更新/SSH 等)碰巧先用过托管网络。这里主动碰一次托管 Socket 完成初始化，不再赌时序。
+    // 裸 P/Invoke 在 Winsock 未初始化时返回 WSANOTINITIALISED，因此先初始化托管 Socket。
     static VmbusApi()
     {
         try

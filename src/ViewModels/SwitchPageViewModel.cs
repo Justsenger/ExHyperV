@@ -1,4 +1,4 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ExHyperV.Models;
@@ -10,7 +10,6 @@ namespace ExHyperV.ViewModels
 {
     public partial class SwitchPageViewModel : PageViewModelBase
     {
-        // ===== 属性 =====
 
         [ObservableProperty] private bool _isBusy = false;
         [ObservableProperty] private string? _errorMessage;
@@ -21,14 +20,12 @@ namespace ExHyperV.ViewModels
         private List<string> _bridgeableAdapters = new();
         private List<SwitchInfo> _rawSwitchInfos = new();
 
-        // ===== 构造 =====
 
         public SwitchPageViewModel()
         {
             LoadNetworkInfoCommand.Execute(null);
         }
 
-        // ===== 命令 =====
 
         [RelayCommand]
         private async Task AddNewSwitchAsync()
@@ -117,7 +114,6 @@ namespace ExHyperV.ViewModels
             }
         }
 
-        // ===== 内部刷新逻辑 =====
 
         private async Task CoreRefreshLogicAsync()
         {

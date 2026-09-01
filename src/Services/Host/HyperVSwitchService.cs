@@ -26,7 +26,6 @@ namespace ExHyperV.Services
             {
                 using (allocObj)
                 {
-                    // 检查 HostResource 是否指向目标 Switch
                     var hostResourceRaw = allocObj["HostResource"];
                     if (!(hostResourceRaw is string[] hostResource) || hostResource.Length == 0)
                         return (AdapterInfo?)null;
@@ -431,7 +430,6 @@ namespace ExHyperV.Services
         {
             var ms = WmiConnectionCache.GetManagementScope(WmiScope.HyperV, WmiContext.Local);
 
-            // 1. 构造 SettingData XML（只有名称，其余用默认值）
             string settingXml;
             using (var settingClass = new ManagementClass(ms, new ManagementPath("Msvm_VirtualEthernetSwitchSettingData"), null))
             using (var settingInstance = settingClass.CreateInstance())
@@ -440,7 +438,7 @@ namespace ExHyperV.Services
                 settingXml = settingInstance.GetText(TextFormat.CimDtd20);
             }
 
-            // 2. DefineSystem：ResourceSettings 传 null，与 PS 底层 BeginCreateVirtualSwitch 行为一致
+            // DefineSystem：ResourceSettings 传 null，与 PS 底层 BeginCreateVirtualSwitch 行为一致
             var defineResult = await WmiApi.InvokeAsync(
                 "SELECT * FROM Msvm_VirtualEthernetSwitchManagementService",
                 "DefineSystem",
@@ -455,7 +453,6 @@ namespace ExHyperV.Services
             if (!defineResult.Success)
                 throw new InvalidOperationException(defineResult.Error);
 
-            // 3. 创建后再绑端口（等价于 ConfigureConnections -> AddConnections）
             using var switchObj = await GetSwitchObjectAsync(name);
             string settingPath = await GetSwitchSettingPathAsync(switchObj);
 
@@ -593,7 +590,6 @@ namespace ExHyperV.Services
 
             string settingPath = await GetSwitchSettingPathAsync(switchObj);
 
-            // 构造端口列表：External 端口必加，Internal 端口按 allowManagementOS 决定
             var resourceXmls = new List<string>();
 
             using var extAllocClass = new ManagementClass(ms, new ManagementPath("Msvm_EthernetPortAllocationSettingData"), null);
@@ -634,7 +630,7 @@ namespace ExHyperV.Services
             await EnsureInternalModeAsync(switchObj, ms, switchName);
 
             // 不在此先全局清场：清除由 EnableIcsSharing 内部在两个目标确认存在后执行——
-            // 先清后验会在 vEthernet 未就绪等失败场景下白白关掉现有 NAT(可能属于别的交换机)且无法恢复。
+            // 新配置验证成功前保留现有 NAT，避免失败后无法恢复。
 
             string vEthernetName = $"vEthernet ({switchName})";
             string physicalAdapterName = await ResolveAdapterNameAsync(adapterDescription);
@@ -861,8 +857,6 @@ namespace ExHyperV.Services
 
         private static string GetHostComputerSystemPath(ManagementScope ms)
         {
-            // 主机的 Msvm_ComputerSystem 用 Name = 主机名 查询（非虚拟机）
-            // Caption = "Hosting Computer System" 是另一个可靠的过滤条件
             string hostName = WmiApi.Escape(System.Environment.MachineName);
             using var searcher = new ManagementObjectSearcher(ms,
                 new ObjectQuery($"SELECT * FROM Msvm_ComputerSystem WHERE Name = '{hostName}'"));
@@ -904,7 +898,7 @@ namespace ExHyperV.Services
             {
                 var allAdapters = new List<AdapterInfo>();
 
-                // 1. 找到 Switch 对象路径，用于过滤端口
+                // 找到 Switch 对象路径，用于过滤端口
                 string safe = WmiApi.Escape(switchName);
                 var switchResp = await WmiApi.QueryAsync(
                     $"SELECT * FROM Msvm_VirtualEthernetSwitch WHERE ElementName = '{safe}'",
@@ -921,11 +915,11 @@ namespace ExHyperV.Services
                     switchPath, @",Name=""([^""]+)""", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
                 string switchGuid = guidMatch.Success ? guidMatch.Groups[1].Value : string.Empty;
 
-                // 2. 查所有 VM 的 Msvm_SyntheticEthernetPort，过滤连接到此 Switch 的
+                // 查所有 VM 的 Msvm_SyntheticEthernetPort，过滤连接到此 Switch 的
                 var vmAdapters = await GetVmAdaptersOnSwitchAsync(switchGuid, switchName);
                 allAdapters.AddRange(vmAdapters);
 
-                // 3. 查 ManagementOS 的 Internal 端口
+                // 查 ManagementOS 的 Internal 端口
                 var hostAdapter = await GetHostAdapterOnSwitchAsync(switchName);
                 if (hostAdapter != null)
                     allAdapters.Add(hostAdapter);

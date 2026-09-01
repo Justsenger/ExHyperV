@@ -8,14 +8,13 @@ namespace ExHyperV.Services
     /// <summary>
     /// 被动嗅探 Hyper-V 虚拟交换机上的 ARP，学习无集成服务 VM（如国产 Linux）的 IPv4。
     ///
-    /// 纯原生、零三方依赖（逆向 PktMon 而来）:
+    /// 使用系统 PktMon 驱动和 ETW：
     ///   CreateFile(\\.\PktMonDev) → PktmonAddFilter(ARP) → DeviceIoControl(0x220404, capture_type=1) 抓全包
     ///   → 驱动把帧打到 ETW provider {4D4F80D9-…} → 自建原生 ETW 消费者(advapi32 StartTrace/OpenTrace/ProcessTrace)
     ///   → 解析 ARP → MAC→IP（带 TTL）。
     /// start buffer 的 capture_type 必须 =1(=0 只计数无帧)。
     ///
-    /// 依赖 PktMon 驱动(Win10 1809+/Server2019+)。驱动/DLL 不在(老系统/阉割版)→ <see cref="IsAvailable"/>=false，
-    /// 静默降级,由调用方回退到集成服务/邻居缓存。详见桌面 pktmon-reverse.md。
+    /// 缺少 PktMon 驱动或 DLL 时 <see cref="IsAvailable"/> 为 false，调用方回退到集成服务或邻居缓存。
     /// </summary>
     public sealed unsafe class ArpSnoopService : IDisposable
     {
@@ -83,12 +82,12 @@ namespace ExHyperV.Services
             if (Interlocked.Exchange(ref _started, 1) != 0) return;
             try
             {
-                // 1) 起 ETW 会话并启用 PktMon provider
+                // 先启用 ETW 会话，避免漏掉驱动启动后的早期事件。
                 ControlTraceW(0, SessionName, BuildProps(SessionName), 1); // 清残留(STOP)
                 if (StartTraceW(out _ctrlHandle, SessionName, BuildProps(SessionName)) != 0) { Cleanup(); return; }
                 EnableTraceEx2(_ctrlHandle, in PktMonProvider, 1 /*ENABLE*/, 0xFF, ulong.MaxValue, 0, 0, IntPtr.Zero);
 
-                // 2) 原生消费者(必须先于驱动 start)
+                // ETW 消费者必须先于驱动启动，否则会漏掉早期事件。
                 _cb = OnRecord;
                 var lf = new EVENT_TRACE_LOGFILEW
                 {
@@ -102,7 +101,6 @@ namespace ExHyperV.Services
                 _pump.Start();
                 Thread.Sleep(300);
 
-                // 3) 武装驱动:ARP 过滤器 + 全包捕获
                 PktmonRemoveAllFilters();
                 var filter = new byte[200];
                 BitConverter.GetBytes((ushort)200).CopyTo(filter, 0);
@@ -134,7 +132,7 @@ namespace ExHyperV.Services
             if (_map.TryGetValue(key, out var e))
             {
                 if (Environment.TickCount64 - e.Ticks <= TtlMs) { ip = e.Ip; return true; }
-                _map.TryRemove(key, out _); // 过期(VM 下线不再发 ARP)→ 失效，不再供死值
+                _map.TryRemove(key, out _); // VM 下线后不再使用过期地址。
             }
             return false;
         }
@@ -191,7 +189,7 @@ namespace ExHyperV.Services
         {
             if (Interlocked.Exchange(ref _cleaned, 1) != 0) return; // 多入口(App.OnExit / ProcessExit / Dispose)防重复清理
 
-            // 1) 先断驱动捕获，停止帧源
+            // 先停止驱动捕获，切断事件源。
             try
             {
                 if (_dev != null && !_dev.IsInvalid)
@@ -205,15 +203,15 @@ namespace ExHyperV.Services
             try { _dev?.Dispose(); } catch { }
             _dev = null;
 
-            // 2) 停 ETW 会话——唤醒卡在 ProcessTrace 的 pump 线程的主手段
+            // 停止 ETW 会话以唤醒 ProcessTrace 线程。
             try { if (_ctrlHandle != 0) ControlTraceW(_ctrlHandle, SessionName, BuildProps(SessionName), 1); } catch { }
             _ctrlHandle = 0;
 
-            // 3) 关消费者句柄——配合 FlushTimer，确保 ProcessTrace 能返回
+            // 最后关闭消费者句柄，使 ProcessTrace 返回。
             try { if (_consumerHandle != 0) CloseTrace(_consumerHandle); } catch { }
             _consumerHandle = 0;
 
-            // 4) 等 pump 线程真正退出，超时兜底——绝不无限等，即便 ETW 行为异常也不让清理本身卡死
+            // 限时等待，避免 ETW 异常阻塞进程退出。
             try { _pump?.Join(3000); } catch { }
             _pump = null;
 

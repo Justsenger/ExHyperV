@@ -73,7 +73,7 @@ namespace ExHyperV.Services
             }
             catch { }
 
-            // 兜底：备份文件被内核锁定=有挂起替换。试独占打开、无副作用——
+            // 备份文件被内核锁定表示存在挂起的替换操作。
             // 旧的"试删"探针会把上次重启后遗留的备份尸体真删掉。
             if (!File.Exists(BackupFile)) return null;
             try
@@ -91,7 +91,7 @@ namespace ExHyperV.Services
 
         // Shutdown Event Tracker（关机事件跟踪器）：ServerNT 默认开 → 切服务器后会冒出"开机问异常关机原因/关机必选原因"。
         // 切服务器写 ShutdownReasonOn=0 关掉它；切回客户端删除该值（客户端默认本就关，恢复未托管）。
-        // SOFTWARE\Policies 是活注册表，App 恒提权，在线写即可，与 ProductType 共用同一次重启生效。写失败不致命。
+        // SOFTWARE\Policies 可在线写入，并与 ProductType 在同一次重启后生效。
         private static void ApplyShutdownEventTracker(bool toServer)
         {
             const string path = @"SOFTWARE\Policies\Microsoft\Windows NT\Reliability";
@@ -111,7 +111,7 @@ namespace ExHyperV.Services
             catch { }
         }
 
-        // 替换成功后立刻打易失标记（REG_OPTION_VOLATILE，重启自动蒸发）；写失败不致命，兜底走文件锁探测
+        // 易失标记在重启后自动消失；读取时仍会通过文件锁确认挂起状态。
         private static void MarkPending(string targetType)
         {
             try
@@ -123,9 +123,7 @@ namespace ExHyperV.Services
             catch { }
         }
 
-        // ----------------------------------------------------------------------------------
         // 离线 Hive 编辑：把 hivePath 文件加载到 HKLM 临时键下，改 ProductType，再卸载
-        // ----------------------------------------------------------------------------------
 
         private static bool PatchHiveOffline(string hivePath, string targetType)
         {
@@ -133,12 +131,12 @@ namespace ExHyperV.Services
 
             try
             {
-                // 1. 读 Select\Current（指示当前 ControlSet 编号；读失败回退 1）
+                // 读 Select\Current（指示当前 ControlSet 编号；读失败回退 1）
                 int currentSet = 1;
                 var selectResp = Win32Api.GetHiveDwordValue($"{TempKeyName}\\Select", "Current");
                 if (selectResp.HasData) currentSet = selectResp.Data;
 
-                // 2. 优先写当前 ControlSet 下的 ProductType；不行则回退到 ControlSet001
+                // 优先写当前 ControlSet 下的 ProductType；不行则回退到 ControlSet001
                 string setPath = $"{TempKeyName}\\ControlSet{currentSet:D3}\\Control\\ProductOptions";
                 var setResp = Win32Api.SetHiveStringValue(setPath, "ProductType", targetType);
                 if (!setResp.Success)

@@ -566,10 +566,7 @@ namespace ExHyperV.Services
 
         // ── TPM 启用（纯 WMI/CIM）────────────────────────────────────
         // 流程：
-        //   1. 取或创建 UntrustedGuardian（root\microsoft\windows\hgs）
-        //   2. 生成本地 KeyProtector RawData（MSFT_HgsKeyProtector.NewByGuardians）
-        //   3. Msvm_SecurityService.SetKeyProtector（传入 SecuritySettingData XML + RawData）
-        //   4. Msvm_SecuritySettingData: TpmEnabled=true, EncryptStateAndVmMigrationTraffic=true
+        // 使用本地 UntrustedGuardian 生成 KeyProtector，再通过 Msvm_SecurityService 启用 TPM 和状态加密。
         //      → Msvm_SecurityService.ModifySecuritySettings
         private static async Task EnableTpmAsync(string vmName, string vmGuid, ManagementScope hyperVScope)
         {

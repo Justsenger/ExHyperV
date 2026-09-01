@@ -22,13 +22,11 @@ namespace ExHyperV.ViewModels
 
     public partial class VirtualMachinesPageViewModel
     {
-        // ===== 内存设置模块 =====
 
         // 进内存页时缓存的"原始设置"，失败时据此回弹；仅本模块使用（原误置于核心 .cs）。
         private VmMemorySettings _originalMemorySettingsCache = null!;
         private VmMmioSettings? _originalMmioSettingsCache;
 
-        // 导航至内存设置
         [RelayCommand]
         private async Task GoToMemorySettingsAsync()
         {
@@ -176,7 +174,6 @@ namespace ExHyperV.ViewModels
                 }
             }
         }
-        // 手动应用内存设置
         [RelayCommand]
         private async Task ApplyMemorySettingsAsync()
         {
@@ -214,7 +211,6 @@ namespace ExHyperV.ViewModels
             }
             finally { IsLoadingSettings = false; }
         }
-        // --- 实验性功能的纯中文数据源 (禁止任何英文) ---
 
         private static void NormalizeMemoryBackingSettings(VmMemorySettings settings, string? changedProperty)
         {

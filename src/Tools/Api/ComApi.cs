@@ -169,7 +169,7 @@ internal static class IcsCore
     /// <summary>
     /// 为指定的公共和私有适配器启用 ICS。
     /// 先验证两个目标都存在再清场启用：目标缺失时立即失败且不动系统里任何现有共享
-    /// (ICS 全局仅一份，先清后验会在失败时白白关掉别的交换机的 NAT 且无法恢复)。
+    /// ICS 全局仅一份，因此仅在新配置验证成功后清理旧共享。
     /// </summary>
     public static void Enable(string publicAdapterName, string privateAdapterName)
     {
@@ -180,7 +180,7 @@ internal static class IcsCore
             dynamic? privateConfig = null;
             var enabledOthers = new List<object>();
 
-            // 第一遍：只定位目标与已启用共享的连接，不做任何修改
+            // 先完成目标定位，再修改全局 ICS 配置。
             foreach (var conn in netShare.EnumEveryConnection)
             {
                 try
@@ -205,7 +205,6 @@ internal static class IcsCore
             if (privateConfig == null)
                 throw new IcsException($"Private adapter not found: '{privateAdapterName}'");
 
-            // 第二遍：目标齐了才清旧共享（含目标自身的旧配置）
             foreach (dynamic cfg in enabledOthers)
             {
                 try { if ((bool)cfg.SharingEnabled) cfg.DisableSharing(); }
@@ -221,7 +220,7 @@ internal static class IcsCore
             }
             catch
             {
-                // 私有侧失败回滚公共侧：只剩公共侧的半套配置会骗过 GetSourceAdapter 的检测、赖到下次 NAT 操作
+                // 私有侧配置失败时回滚公共侧，避免留下不完整的共享配置。
                 try { publicConfig.DisableSharing(); } catch { }
                 throw;
             }

@@ -651,7 +651,6 @@ public static class WmiApi
     /// <summary>
     /// 原 QueryRelatedCimAsync 的替代，带 sourceRole/resultRole 参数。
     /// 注意：GetRelated 第5个参数对应 resultRole，第6个对应 sourceRole（与 CIM 对调）。
-    /// 经过实测验证（test123 虚拟机，12条结果确认）。
     /// </summary>
     public static Task<ApiResponse<List<T>>> QueryRelatedCimAsync<T>(
         ManagementObject source,

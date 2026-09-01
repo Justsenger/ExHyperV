@@ -8,18 +8,15 @@ namespace ExHyperV.ViewModels
 {
     public partial class USBPageViewModel : PageViewModelBase
     {
-        // ===== 字段 =====
 
         private readonly CancellationTokenSource _viewCts = new();
 
-        // ===== 绑定属性与命令 =====
 
         [ObservableProperty] private bool _isLoading;
         [ObservableProperty] private bool _isUiEnabled = true;
 
         public ObservableCollection<UsbDeviceViewModel> Devices { get; } = new();
 
-        // ===== 构造 =====
 
         public USBPageViewModel()
         {
@@ -27,11 +24,9 @@ namespace ExHyperV.ViewModels
 
             // 启动后台监控循环 (维持手机连接)
             _ = Task.Run(() => UsbVmbusService.WatchdogLoopAsync(_viewCts.Token));
-            // 启动设备同步循环 (刷新手机变身后的 Description)
             _ = Task.Run(() => SyncDevicesLoopAsync(_viewCts.Token));
         }
 
-        // ===== 业务方法 =====
 
         [RelayCommand]
         private async Task LoadDataAsync()
@@ -60,7 +55,6 @@ namespace ExHyperV.ViewModels
             var usbDevices = await UsbVmbusService.GetUsbIpDevicesAsync();
             var vmNames = vms.Select(v => v.Name).ToList();
 
-            // 增量更新 UI 列表
             var newBusIds = usbDevices.Select(d => d.BusId).ToList();
 
             for (int i = Devices.Count - 1; i >= 0; i--)
@@ -112,11 +106,9 @@ namespace ExHyperV.ViewModels
                 }
                 else
                 {
-                    // 1. 先记录意图
                     UsbVmbusService.ActiveTunnels[deviceVM.BusId] = selectedTarget;
                     deviceVM.CurrentAssignment = Properties.Resources.USBPageViewModel_Connecting;
 
-                    // 2. 异步执行切换，内部会处理 Stop 旧隧道 -> Start 新隧道
                     _ = Task.Run(async () => {
                         await UsbVmbusService.AutoRecoverTunnel(deviceVM.BusId, selectedTarget);
                     });

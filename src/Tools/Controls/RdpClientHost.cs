@@ -12,7 +12,7 @@ namespace ExHyperV.Tools
     public class RdpClientHost : WindowsFormsHost
     {
         private readonly MsRdpAxHost _ax = new();
-        // 黑布：WinForms 层(HWND)，连接期间盖住 mstscax + 窗口刚弹出时的系统白底；连上(OnConnected)才掀开。
+        // WinForms 遮罩在连接完成前覆盖 mstscax，避免 ActiveX 初始化时闪出白底。
         // 必须盖在"包裹了 _ax 的容器(axWrapper)"上，而不是和裸 _ax 当兄弟——裸 ActiveX 会盖过兄弟控件。
         private readonly System.Windows.Forms.Panel _curtain = new()
         {
@@ -45,9 +45,9 @@ namespace ExHyperV.Tools
 
         public RdpClientHost()
         {
-            _ax.Connected += () => { _curtain.Visible = false; Connected?.Invoke(); };        // 连上 → 掀开黑布显示画面
+            _ax.Connected += () => { _curtain.Visible = false; Connected?.Invoke(); };        // 连接成功后隐藏遮罩
             _ax.LoginCompleted += () => LoginCompleted?.Invoke();
-            _ax.Disconnected += r => { _curtain.Visible = true; Disconnected?.Invoke(r); };   // 断开/重连 → 立即盖上黑布
+            _ax.Disconnected += r => { _curtain.Visible = true; Disconnected?.Invoke(r); };   // 断开或重连时显示遮罩
             _ax.RemoteDesktopSizeChanged += (w, h) => RemoteSizeChanged?.Invoke(w, h);
             _ax.EnteredFullScreen += () => FullScreenRequested?.Invoke(true);
             _ax.LeftFullScreen += () => FullScreenRequested?.Invoke(false);
@@ -71,7 +71,7 @@ namespace ExHyperV.Tools
                 Dock = System.Windows.Forms.DockStyle.Fill,
                 BackColor = System.Drawing.Color.Black,
             };
-            // mstscax 包一层容器（仿 1.4.3 的 RdpControl）：黑布盖这个容器即可连同里面的裸 ActiveX 一起盖住。
+            // mstscax 外层容器使遮罩能够覆盖原生 ActiveX 窗口。
             var axWrapper = new System.Windows.Forms.Panel
             {
                 Dock = System.Windows.Forms.DockStyle.Fill,
@@ -82,9 +82,9 @@ namespace ExHyperV.Tools
             ((ISupportInitialize)_ax).BeginInit();
             axWrapper.Controls.Add(_ax);
             ((ISupportInitialize)_ax).EndInit();
-            panel.Controls.Add(_curtain);    // 黑布先加
+            panel.Controls.Add(_curtain);
             panel.Controls.Add(axWrapper);   // 再加包了 mstscax 的容器
-            _curtain.BringToFront();          // 黑布置顶：盖住容器(及里面 ActiveX)和窗口弹出时的系统白底
+            _curtain.BringToFront();
             Child = panel;
 
             if (_ax.IsHandleCreated) _ready = true;
@@ -93,7 +93,7 @@ namespace ExHyperV.Tools
         /// <summary>用给定配方连接。OCX 未就绪时排队，句柄创建后自动补发。</summary>
         public void Connect(RdpConnectionSettings settings)
         {
-            _curtain.Visible = true;   // 连接前先盖上黑布，遮住 mstscax 初始化
+            _curtain.Visible = true;
             if (_ready || _ax.IsHandleCreated) _ax.ApplyAndConnect(settings);
             else _pending = settings;
         }

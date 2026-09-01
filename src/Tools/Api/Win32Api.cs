@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -109,7 +109,7 @@ public static class Win32Api
     {
         var sw = Stopwatch.StartNew();
 
-        // 1. Win32_PnPEntity：拿在线设备的 Name/PNPClass/Service/Manufacturer
+        // Win32_PnPEntity：拿在线设备的 Name/PNPClass/Service/Manufacturer
         var pnpEntityMap = new Dictionary<string, (string Name, string PnpClass, string Service, string Manufacturer)>(
             StringComparer.OrdinalIgnoreCase);
         try
@@ -138,11 +138,11 @@ public static class Win32Api
         }
         Debug.WriteLine($"[Win32Api.GetAllDevices] Win32_PnPEntity: {pnpEntityMap.Count} ({sw.ElapsedMilliseconds}ms)");
 
-        // 2. CM_Get_Device_ID_List：FILTER_NONE 枚举所有设备（含分配给VM的Unknown设备）
+        // CM_Get_Device_ID_List：FILTER_NONE 枚举所有设备（含分配给VM的Unknown设备）
         var allIds = GetDeviceIdList(NativeMethods.CM_GETIDLIST_FILTER_NONE);
         Debug.WriteLine($"[Win32Api.GetAllDevices] CM all devices: {allIds.Count} ({sw.ElapsedMilliseconds}ms)");
 
-        // 3. 并行查每个设备属性
+        // 并行查每个设备属性
         var results = allIds.AsParallel().Select(instanceId =>
         {
             // NORMAL 只定位当前在位节点；失败后再用 PHANTOM 读取离线节点的元数据。
@@ -374,7 +374,7 @@ public static class Win32Api
     }
 
     // ERROR_ACCESS_DENIED(5) = 同一键已有挂起的替换任务(重启前二次替换被内核拒绝)，
-    // 不再并入成功——由调用方按 code==5 翻译为"挂起"语义。
+    // code 5 由调用方解释为挂起状态。
     public static ApiResponse ReplaceHive(string subKeyName, string newHivePath, string backupPath)
     {
         int ret = NativeMethods.RegReplaceKey(NativeMethods.HKEY_LOCAL_MACHINE, subKeyName, newHivePath, backupPath);

@@ -8,7 +8,6 @@ namespace ExHyperV.ViewModels
 {
     public partial class VirtualMachinesPageViewModel
     {
-        // ===== 引导顺序模块 =====
         private async Task RefreshBootOrderForSelectedVmAsync(VmInstanceViewModel vm)
         {
             if (vm == null) return;
@@ -46,18 +45,15 @@ namespace ExHyperV.ViewModels
             {
                 var list = await VmBootService.GetBootOrderAsync(SelectedVm.Name);
 
-                // 更新 UI 集合
                 SelectedVm.BootOrderItems.Clear();
                 foreach (var item in list) SelectedVm.BootOrderItems.Add(item);
 
-                // 标记最后一个用于 UI 箭头显示
                 if (SelectedVm.BootOrderItems.Count > 0)
                     SelectedVm.BootOrderItems.Last().IsLast = true;
             }
             finally { IsLoadingSettings = false; }
         }
 
-        // 保存逻辑（拖放松手时由 ListBox 行为的 DropCompletedCommand 自动触发，无保存按钮）
         [RelayCommand]
         private async Task SaveBootOrderAsync()
         {
@@ -96,10 +92,8 @@ namespace ExHyperV.ViewModels
                 if (args.RelativeY > (args.Threshold * 2)) return; // 对应 targetItem.ActualHeight - threshold
             }
 
-            // 执行移动
             list.Move(oldIndex, newIndex);
 
-            // 更新 IsLast 标记以维护 UI 箭头显示（如果需要）
             foreach (var item in list) item.IsLast = false;
             list.Last().IsLast = true;
         }

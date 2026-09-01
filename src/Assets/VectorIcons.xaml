@@ -555,7 +555,6 @@
         </DrawingImage.Drawing>
     </DrawingImage>
 
-    <!-- ===== GPU 厂商 logo ===== -->
 
     <!-- NVIDIA：绿色眼睛标 -->
     <DrawingImage x:Key="Vector.Gpu.NVIDIA">

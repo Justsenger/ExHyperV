@@ -63,7 +63,7 @@
                         </ui:MenuItem>
                         <Separator Visibility="{Binding PlacementTarget.Tag.IsMultiSelect, RelativeSource={RelativeSource AncestorType=ContextMenu}, Converter={StaticResource BoolToVis}}"/>
 
-                        <!-- 启动/关机切换：运行中显示"关机"(Stop=优雅失败则硬关)，否则"启动"。多选时隐藏。 -->
+                        <!-- 运行中显示关机，其余状态显示启动；多选时隐藏。 -->
                         <ui:MenuItem Header="{Binding PowerToggleText}"
              Command="{Binding ControlCommand}" CommandParameter="{Binding PowerToggleAction}"
              Visibility="{Binding PlacementTarget.Tag.IsSingleOrNoneSelect, RelativeSource={RelativeSource AncestorType=ContextMenu}, Converter={StaticResource BoolToVis}}">
@@ -111,7 +111,6 @@
                             </ui:MenuItem.Icon>
                         </ui:MenuItem>
                         
-                        <!-- 删除选项 (重新添加) -->
                         <ui:MenuItem Header="{x:Static properties:Resources.Xaml_Delete}" 
                              Command="{Binding PlacementTarget.Tag.DeleteVmCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
                              CommandParameter="{Binding}"
@@ -124,7 +123,6 @@
                 </Border.ContextMenu>
 
                 <Grid>
-                    <!-- 此处保持你现在的 Grid 内容不变（状态点、图标、名字区域等） -->
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="Auto"/>
@@ -214,7 +212,6 @@
 
                         <!-- 监视器/图标容器 -->
                         <Grid Grid.Column="0" Width="120" Height="100" VerticalAlignment="Center">
-                            <!-- 1. 默认 OS 图标 (关机时显示)  -->
                             <Image RenderOptions.BitmapScalingMode="HighQuality"
                            Width="100" Height="100" HorizontalAlignment="Center" VerticalAlignment="Center"
                            Source="{Binding OsType, Converter={StaticResource OsTypeToImageConverter}}">
@@ -230,7 +227,6 @@
                                 </Image.Style>
                             </Image>
 
-                            <!-- 2. 实时监视器 (运行时显示) -->
                             <Border Background="#0B0B0B" CornerRadius="6" ClipToBounds="True"
                             ToolTip="{x:Static properties:Resources.Label_DoubleClickConnect}">
                                 <Border.Style>
@@ -254,7 +250,6 @@
                             </Border>
                         </Grid>
 
-                        <!-- 详情区域 -->
                         <Grid Grid.Column="2" VerticalAlignment="Center">
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
@@ -263,7 +258,6 @@
                                 <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
 
-                            <!-- 第一行：名称与按钮 -->
                             <Grid Grid.Row="0" Margin="0,0,0,4">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
@@ -343,7 +337,6 @@
                                 </StackPanel>
                             </Grid>
 
-                            <!-- 第二行：状态信息 -->
                             <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,12">
                                 <ui:SymbolIcon Symbol="Pulse24" FontSize="16" Margin="0,1,6,0" 
                                                Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
@@ -356,7 +349,6 @@
                                            Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
                             </StackPanel>
 
-                            <!-- 第三行：基本配置标签 -->
                             <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,0,0,8">
                                 <Border Background="{ui:ThemeResource ControlFillColorTertiaryBrush}" 
                                         BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
@@ -398,7 +390,6 @@
                                 </Border>
                             </StackPanel>
 
-                            <!-- 第四行：系统、GPU、IP 标签 -->
                             <StackPanel Grid.Row="3" Orientation="Horizontal">
                                 <ComboBox VerticalAlignment="Center"
           ItemsSource="{Binding DataContext.AvailableOsTypes, Source={x:Reference RootPage}}"
@@ -601,7 +592,6 @@
                     </ContentControl.Style>
                 </ContentControl>
 
-                <!-- 加载遮罩 -->
                 <Grid Grid.Row="0" Grid.RowSpan="3" Panel.ZIndex="100"
               Background="{ui:ThemeResource ApplicationBackgroundBrush}" 
               Visibility="{Binding DataContext.IsLoading, RelativeSource={RelativeSource AncestorType=Page}, Converter={StaticResource BoolToVis}}">
@@ -630,7 +620,6 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
-                <!-- 左侧搜索和添加区域 -->
                 <Grid Grid.Row="0" Margin="8">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
@@ -668,7 +657,6 @@
                             </ui:SymbolIcon.Style>
                         </ui:SymbolIcon>
                     </Grid>
-                    <!-- 添加按钮 -->
                     <ui:Button Grid.Column="1"
                                Margin="8,0,0,0"
                                Padding="0"
@@ -691,7 +679,6 @@
                IsEnabled="{Binding IsVmListEnabled}"
                ToolTip="{x:Static properties:Resources.Xaml_CreateVm}"
                Command="{Binding CreateVmCommand}"/>
-                    <!-- 请确保 ViewModel 中有对应的 Command -->
                 </Grid>
                 
                 <ui:ListView Grid.Row="1" ItemsSource="{Binding VmList}" SelectedItem="{Binding SelectedVm, Mode=TwoWay}"
@@ -720,25 +707,19 @@
         <Border Grid.Column="2" Background="{ui:ThemeResource LayerFillColorDefaultBrush}"
                 BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" ClipToBounds="True">
             <Grid>
-                <!-- 1. 底层视图 -->
-                <!-- 移除了原本直接在 ContentControl 上写的 Visibility，改为在 Style 里统一控制 -->
                 <ContentControl Content="{Binding SelectedVm}">
                     <ContentControl.Style>
                         <Style TargetType="ContentControl">
-                            <!-- 默认状态：显示详情 -->
                             <Setter Property="ContentTemplate" Value="{StaticResource VmDetailTemplate}" />
 
                             <Style.Triggers>
-                                <!-- 逻辑 1 (低优先级): 没有选 VM 时，显示“未选择”文字 -->
                                 <DataTrigger Binding="{Binding SelectedVm}" Value="{x:Null}">
                                     <Setter Property="ContentTemplate" Value="{StaticResource VmEmptyStateTemplate}" />
                                 </DataTrigger>
 
-                                <!-- 逻辑 2 (高优先级): 正在创建 VM 时，强制显示空白模板 -->
                                 <!-- 这样即使 SelectedVm 为空，也不会显示那行字 -->
                                 <DataTrigger Binding="{Binding DataContext.IsCreatingVm, RelativeSource={RelativeSource AncestorType=Page}}" Value="True">
                                     <Setter Property="ContentTemplate" Value="{StaticResource VmBlankTemplate}" />
-                                    <!--以此确保彻底隐藏，也可以加 Visibility Collapsed，双重保险 -->
                                     <Setter Property="Visibility" Value="Collapsed"/>
                                 </DataTrigger>
 
@@ -752,7 +733,6 @@
                                     <Setter Property="Visibility" Value="Collapsed"/>
                                 </DataTrigger>
 
-                                <!-- 逻辑 3: 加载中隐藏 -->
                                 <DataTrigger Binding="{Binding IsLoading}" Value="True">
                                     <Setter Property="Visibility" Value="Hidden"/>
                                 </DataTrigger>
@@ -761,7 +741,6 @@
                     </ContentControl.Style>
                 </ContentControl>
 
-                <!-- 创建界面-->
                 <components:VmCreateView Visibility="{Binding IsCreatingVm, Converter={StaticResource BoolToVis}}"/>
                 <components:VmImportView Visibility="{Binding IsVmImportViewVisible, Converter={StaticResource BoolToVis}}"/>
                 <components:VmExportView>

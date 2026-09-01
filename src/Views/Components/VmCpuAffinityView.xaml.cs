@@ -68,7 +68,6 @@ namespace ExHyperV.Views
 
             if (current is ContentPresenter contentPresenter)
             {
-                // 注意这里转成 VmCoreItem，而不是原来的 SelectableCoreViewModel
                 return contentPresenter.DataContext as VmCoreItem;
             }
             return null;

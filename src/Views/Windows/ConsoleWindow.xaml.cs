@@ -82,8 +82,7 @@ namespace ExHyperV.Views
             {
                 _enhancedConnecting = false;   // 已连上（增强成功，或本就是基本）
                 // 基本会话连上即应用当前缩放档（不能依赖 RemoteSizeChange——同分辨率重连时它不触发）。
-                // 增强会话连上后【绝不】碰 ZoomLevel：mid-session 设 ZoomLevel 会和动态分辨率(UpdateSessionDisplaySettings)
-                // 打架，致画面不随分辨率刷新、还被缩成灰信箱。进增强前的归零已在 IsEnhancedMode 分支(断开重连之前)做好。
+                // 增强会话连接后不得修改 ZoomLevel；它与动态分辨率同时启用会导致画面尺寸异常。
                 if (!_vm.IsEnhancedMode) ApplyBasicZoom();
                 if (_pendingEnhancedInset && _vm.IsEnhancedMode && !_vm.IsFullScreen)
                 {
@@ -125,19 +124,19 @@ namespace ExHyperV.Views
                     this.Close();
                     return;
                 }
-                // VM 停止 / 掉线：保持窗口、黑布盖住（RdpClientHost 在断开时自动盖布）；由状态轮询在 VM 运行时自动重连。
+                // VM 停止或掉线时保留窗口并显示连接遮罩，状态轮询在 VM 恢复后重连。
                 // 关闭控制台由用户点窗口关闭按钮完成（不从断开推断，避免 VM 停止误关）。
             }));
             RdpHost.FatalError += code => Dispatcher.BeginInvoke(new Action(() =>
             {
-                System.Diagnostics.Debug.WriteLine($"[Rdp] 致命错误 code={code}");   // 黑布由 RdpClientHost 在断开时自动盖住，等轮询重连
+                System.Diagnostics.Debug.WriteLine($"[Rdp] 致命错误 code={code}");
             }));
             RdpHost.RemoteSizeChanged += (w, h) => Dispatcher.BeginInvoke(new Action(() =>
             {
                 _vm.CurrentWidth = w; _vm.CurrentHeight = h;
                 if (w == _postLoginWidth && h == _postLoginHeight)
                     _postLoginWidth = _postLoginHeight = 0;
-                // 画面"真的"变到新分辨率了：若此前是下拉发起的协商，现在才让窗口跟随这个确认值(增强、窗口化)。
+                // 仅在远端确认分辨率后调整增强会话窗口尺寸。
                 // 拖动发起的协商不在此跟随(标记已在 WM_ENTERSIZEMOVE 清掉)，窗口仍由用户掌控。
                 if (_windowFollowsResolution)
                 {
@@ -198,7 +197,7 @@ namespace ExHyperV.Views
         }
 
         // 状态轮询回调：让连接跟随 VM 运行状态。VM 停止时保持窗口等待，VM 一恢复即重连——复用既有 2s 轮询，无需额外定时器。
-        // 经 Dispatcher 兜底确保在 UI 线程执行（SyncConnection 会碰 RdpHost）。
+        // SyncConnection 会访问 RdpHost，必须在 UI 线程执行。
         private void OnVmPolled() => Dispatcher.BeginInvoke(new Action(() => SyncConnection(forceReconnect: false)));
 
         private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -206,9 +205,9 @@ namespace ExHyperV.Views
             switch (e.PropertyName)
             {
                 case nameof(ConsoleViewModel.IsEnhancedMode):
-                    // 切到增强【前】把 OCX 的 ZoomLevel 归 100：此刻仍是已连的基本会话、马上要断开重连，在这里设安全。
+                    // 切换前仍处于基本会话，此时重置 ZoomLevel 不会影响增强会话连接。
                     // 必须早于进入增强——增强靠动态分辨率，不能带基本会话残留的缩放；且一旦进了增强再 mid-session 设
-                    // ZoomLevel 会和动态分辨率打架(画面不随分辨率刷新+灰信箱)，故归零只能在断开重连之前做、之后绝不碰。
+                    // ZoomLevel 与动态分辨率互斥，只能在断开重连前重置。
                     // 仅在已连接的基本会话切换到增强会话时重置缩放。
                     if (_vm.IsEnhancedMode && RdpHost.ConnectionState != 0) RdpHost.SetZoomLevel(100);
                     _pendingEnhancedInset = _vm.IsEnhancedMode;      // 进入增强：连上后放大窗口露出可抓取边
@@ -359,14 +358,14 @@ namespace ExHyperV.Views
             }
             if (_vm.IsEnhancedMode)
             {
-                // RdpArea 包含画面和可拖动边；窗口自身的 DWM/WPF 外壳按本机实测值补偿。
+                // RdpArea 包含画面和可拖动边；窗口尺寸还需补偿 DWM/WPF 外壳。
                 SetWindowForRdpArea(scrW + 2 * EnhancedResizeBorder, scrH + EnhancedResizeBorder);
             }
             else
             {
                 SetWindowForRdpArea(scrW, scrH);
             }
-            // 高缩放下窗口接近工作区大小，原位置不变会冲出屏幕(标题栏/边角够不到、即"冲烂") → 钳回工作区内保持完整可见
+            // 高缩放下将窗口位置限制在工作区内，确保标题栏和边角可见。
             var area = SystemParameters.WorkArea;
             if (this.Left + this.Width > area.Right) this.Left = Math.Max(area.Left, area.Right - this.Width);
             if (this.Top + this.Height > area.Bottom) this.Top = Math.Max(area.Top, area.Bottom - this.Height);
@@ -399,9 +398,8 @@ namespace ExHyperV.Views
                 // 基本会话：缩放走 mstscax 原生 ZoomLevel，此处按"实际能装下的有效比例"热设 + 把承载控件摆成对应尺寸居中。
                 // 有效比例 = 缩放档≤100% 取 min(档, 画面区能装下的比例)、>100% 放大档取档本身：
                 //   · ≤100%(含自适应)：用户要看「整幅画面」，承载区域比画面小时收缩到刚好放下——不溢出、不出滚动条
-                //     （回归旧 SmartSizing 行为；此前固定 ZoomLevel=档 致大画面遇小窗口溢出+自带滚动条）；
-                //   · >100%：用户要「放大看局部」，画面本就该比窗口大，允许溢出+控件内滚动条（VMConnect 同款）。
-                // SmartSizing 必须关：缩放走 ZoomLevel，二者互斥（留着会打架、并在控件大于画面时糊上 mstscax 的 #CBCBCB 信箱）。
+                //   · >100%：允许画面溢出并使用控件内滚动条。
+                // 基本会话使用 ZoomLevel 缩放，因此关闭与其互斥的 SmartSizing。
                 int areaW = (int)Math.Round(RdpArea.ActualWidth * dpiX);
                 int areaH = (int)Math.Round(RdpArea.ActualHeight * dpiY);
                 int userZoom = BasicZoomPercent();
@@ -454,15 +452,15 @@ namespace ExHyperV.Views
             if (!_vm.IsFullScreen && this.WindowState == WindowState.Normal
                 && _vm.CurrentWidth > 0 && _vm.CurrentHeight > 0)
             {
-                // 窗口随缩放（VMConnect 同款；MinWidth/MinHeight 兜底防过小；FitToResolution 内部再钳到工作区）→ SizeChanged → LayoutRdpHost 重排。
+                // 调整窗口后由 SizeChanged 触发 LayoutRdpHost 重排。
                 FitToResolution(_vm.CurrentWidth * pct / 100, _vm.CurrentHeight * pct / 100);
             }
             LayoutRdpHost();
         }
 
         /// <summary>当前基本会话缩放百分比(25–500)："自动"/空 → 后台算"不超屏的最大档"(见 AutoZoomPercent)；"N%" → N；兜底 100。
-        /// 全屏不再强制 100：进全屏瞬间先归 100 让 mstscax 把连接栏布局好(见 IsFullScreen 分支)、SetFullScreen 后再 bump 回此档，
-        /// 试验"全屏既缩放又留连接栏"。逃生键 Ctrl+Alt+Enter 始终可退、不怕困住。</summary>
+        /// 进入全屏前临时重置为 100，使 mstscax 正确布局连接栏，随后恢复所选档位。
+        /// Ctrl+Alt+Enter 可退出全屏。</summary>
         private int BasicZoomPercent()
         {
             string z = _vm.SelectedZoom;
@@ -471,9 +469,8 @@ namespace ExHyperV.Views
             return int.TryParse(z.TrimEnd('%', ' '), out int p) ? ClampZoom(p) : 100;
         }
 
-        // "自动"缩放：纯内存算术挑档——从大到小遍历缩放档，取第一个"画面×该档 + 标题栏"能完整放进工作区(不超屏)的。
-        // 只读 VM 分辨率/工作区/DPI 几个即时值在内存里比大小，绝不逐档应用到 UI（无闪烁、不撑窗口、不触发布局往返），微秒级返回。
-        // 结果恒落在 ZoomOptions 现有档位上(非连续魔法数)；VM 分辨率未知回落 100，连最小档都塞不下用 25。
+        // 自动缩放选择能完整放入工作区的最大档位，不逐档修改 UI。
+        // 结果取自 ZoomOptions；分辨率未知时使用 100，最小档仍超出时使用 25。
         private static readonly int[] AutoZoomCandidates = { 500, 400, 300, 200, 150, 125, 100, 75, 50, 25 };
         private int AutoZoomPercent()
         {
@@ -524,7 +521,7 @@ namespace ExHyperV.Views
                     Math.Max(0, this.ActualHeight - RdpArea.ActualHeight));
             }
 
-            // 首次布局尚未完成时保留原行为；连接完成后的下一次布局会使用实测值校正。
+            // 首次布局完成后再使用远端尺寸校正。
             return new Size(0, TitleBarHeight);
         }
 
@@ -579,7 +576,7 @@ namespace ExHyperV.Views
             }
         }
 
-        private bool _rdpTornDown;   // RdpHost 拆除只跑一次(OnClosing 正常 / OnClosed 兜底)
+        private bool _rdpTornDown;   // OnClosing 与 OnClosed 共用的幂等保护。
 
         // 在 OnClosing(窗口销毁前、UI 线程仍能泵消息)拆除 RdpHost；拖到 OnClosed(WmDestroy 期)再 Dispose mstscax
         // 会因 InPlaceDeactivate 泵不到消息而死锁。细节见 RdpClientHost.ShutdownAndDispose。
@@ -598,7 +595,7 @@ namespace ExHyperV.Views
         {
             base.OnClosed(e);
             _closing = true;
-            if (!_rdpTornDown) { _rdpTornDown = true; RdpHost.ShutdownAndDispose(); }  // 兜底：OnClosing 未跑到时
+            if (!_rdpTornDown) { _rdpTornDown = true; RdpHost.ShutdownAndDispose(); }
             _vm.SendCadRequested -= OnSendCadRequested;
             _vm.PropertyChanged -= OnViewModelPropertyChanged;
             _vm.Polled -= OnVmPolled;

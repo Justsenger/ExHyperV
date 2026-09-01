@@ -20,7 +20,7 @@ namespace ExHyperV.Services
 
         static UsbVmbusService()
         {
-            // High 足以保证 USB 转发低延迟；RealTime 会饿死系统输入/磁盘线程，有整机卡死风险，绝不用于用户态进程
+            // RealTime 可能阻塞系统输入和磁盘线程，因此用户态转发进程最高使用 High。
             try { Process.GetCurrentProcess().PriorityClass = ProcessPriorityClass.High; } catch { }
         }
 

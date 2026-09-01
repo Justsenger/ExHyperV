@@ -14,10 +14,6 @@ internal static class VmSpacetimeService
     private const string ManagementServiceWql = "SELECT * FROM Msvm_VirtualSystemManagementService";
     private static string GetSafeId(string id) => id.Replace(":", "_");
 
-    // ============================================================
-    // 时空节点查询
-    // ============================================================
-
     public static async Task<List<SpacetimeNode>> GetSpacetimeNodesAsync(string vmName)
     {
         try
@@ -161,9 +157,7 @@ internal static class VmSpacetimeService
         }
     }
 
-    // ============================================================
     // 虫洞检测
-    // ============================================================
 
     private static async Task DetectAndMarkWormholeAsync(string vmName, List<SpacetimeNode> nodes)
     {
@@ -211,9 +205,7 @@ internal static class VmSpacetimeService
         }
     }
 
-    // ============================================================
     // 虫洞开启
-    // ============================================================
 
     public static async Task<(bool Success, string Message)> OpenWormholeAsync(string vmName, SpacetimeNode targetNode)
     {
@@ -261,7 +253,6 @@ internal static class VmSpacetimeService
 
                 if (stale != null)
                 {
-                    // 找到对应槽位并移除
                     var staleSegs = stale.InstanceID.Split('\\');
                     if (staleSegs.Length >= 3 && int.TryParse(staleSegs[^3], out int wCtrlNum)
                         && int.TryParse(staleSegs[^2], out int wCtrlLoc))
@@ -330,9 +321,7 @@ internal static class VmSpacetimeService
         }
     }
 
-    // ============================================================
     // 虫洞关闭
-    // ============================================================
 
     public static async Task<(bool Success, string Message)> CloseWormholeAsync(string vmName, SpacetimeNode node)
     {
@@ -367,9 +356,7 @@ internal static class VmSpacetimeService
         }
     }
 
-    // ============================================================
     // 快照操作
-    // ============================================================
 
     public static async Task<(bool Success, string Message)> RenameSnapshotAsync(string snapshotPath, string newName)
     {
@@ -494,7 +481,6 @@ internal static class VmSpacetimeService
             string snapXml;
             if (snapType == 2)
             {
-                // Standard：只需要设置名称
                 using var snapClass = new ManagementClass(
                     svcForScope.Scope,
                     new ManagementPath("Msvm_VirtualSystemSettingData"),
@@ -641,9 +627,7 @@ internal static class VmSpacetimeService
         }
     }
 
-    // ============================================================
     // WMI 磁盘操作辅助方法
-    // ============================================================
 
     /// <summary>获取虚拟机所有 SCSI 磁盘的文件路径。</summary>
     private static async Task<List<string>> GetVmScsiDiskPathsAsync(string vmGuid)
@@ -724,7 +708,7 @@ internal static class VmSpacetimeService
     }
 
     /// <summary>
-    /// 从虚拟机移除虚拟磁盘。直接复用 VmStorageService.RemoveDriveAsync。
+    /// 从虚拟机移除虚拟磁盘。
     /// </summary>
     private static async Task<ApiResponse> RemoveVmHardDiskDriveAsync(
         string vmName, string ctrlType, int ctrlNum, int ctrlLoc)
@@ -745,9 +729,7 @@ internal static class VmSpacetimeService
             : ApiResponse.Fail(result.Message);
     }
 
-    // ============================================================
     // 空闲槽位查找
-    // ============================================================
 
     private static async Task<(string, int, int)> FindFreeScsiSlotAsync(string vmName)
     {
@@ -757,7 +739,7 @@ internal static class VmSpacetimeService
             if (vm == null) return ("SCSI", -1, -1);
             string vmGuid = vm["Name"]?.ToString() ?? "";
 
-            // 占槽的是【任何驱动器】：磁盘(17)和 DVD(16)都算——原实现只查 17、漏了 DVD，Gen2 的 SCSI 上挂着 DVD 时该槽被误判空。
+            // 磁盘和 DVD 都会占用控制器槽位。
             // 控制器匹配用 Parent 里的 InstanceID 精确比对(去 \\ 转义)——原实现 u.Contains(controllerId) 因 Parent 是双反斜杠、
             // 控制器 InstanceID 是单反斜杠，恒不匹配 → 永远 0 命中 → 永远返回 (0,0) 撞启动盘(实测命中=0、报"位置正在使用")。
             var driveResponse = await WmiApi.QueryAsync(
@@ -831,9 +813,7 @@ internal static class VmSpacetimeService
         catch { return false; }
     }
 
-    // ============================================================
     // 底层辅助
-    // ============================================================
 
     /// <summary>
     /// 创建差分磁盘。走 WmiApi.InvokeAsync，不再直接持有 ManagementScope。
@@ -947,9 +927,7 @@ internal static class VmSpacetimeService
         return currentPath;
     }
 
-    // ============================================================
     // 私有辅助（不改动）
-    // ============================================================
 
     private static async Task<string?> GetSnapshotDirectoryAsync(string vmName)
     {

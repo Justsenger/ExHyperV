@@ -1,4 +1,4 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ExHyperV.Models;
@@ -9,15 +9,13 @@ namespace ExHyperV.ViewModels
 {
     public partial class SwitchViewModel : ObservableObject
     {
-        // ===== 字段 =====
 
         private readonly List<string> _allPhysicalAdapters;
         private readonly List<string> _bridgeableAdapters;
 
-        // 默认交换机(HCN/ICS 创建、每台机器同一 GUID);按 Id 判、免本地化与用户同名交换机骗过;WMI 返回大写故忽略大小写
+        // 默认交换机按固定 ID 识别，避免受本地化名称或同名交换机影响。
         private const string DefaultSwitchId = "c08cb7b8-9b3c-408e-8e30-5e16a3aeb444";
 
-        // ===== 属性 =====
 
         [ObservableProperty] private bool _isLockedForInteraction = false;
 
@@ -40,7 +38,6 @@ namespace ExHyperV.ViewModels
         public string DropDownButtonContent => IsDefaultSwitch ? Properties.Resources.Auto : SelectedNetworkMode == SwitchMode.Isolated ? Properties.Resources.Status_Unavailable : string.IsNullOrEmpty(SelectedUpstreamAdapter) ? Properties.Resources.Placeholder_SelectNetworkAdapter : SelectedUpstreamAdapter;
         public string IconGlyph => DeviceIcons.GetGlyph("Switch", SwitchName);
 
-        // ===== 构造 =====
 
         public SwitchViewModel(SwitchInfo switchInfo, List<string> allPhysicalAdapters, List<string> bridgeableAdapters)
         {
@@ -64,7 +61,6 @@ namespace ExHyperV.ViewModels
             };
         }
 
-        // ===== 命令与逻辑 =====
 
         [RelayCommand]
         private void SetNetworkMode(string? mode)

@@ -9,7 +9,6 @@ namespace ExHyperV.ViewModels
     // 安全启动模板（显示名 + WMI 的 SecureBootTemplateId GUID）
     public record SecureBootTemplate(string Name, string Guid);
 
-    // ===== 安全子页面（镜像微软 Hyper-V 安全页：安全启动 + 加密支持 + 安全策略）=====
     // 仅第 2 代可用、改动需 VM 关机（可用性由 SelectedVm.CanEditSecurity 控制）。读写走 VmSecurityService。
     public partial class VirtualMachinesPageViewModel
     {

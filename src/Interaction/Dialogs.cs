@@ -207,9 +207,7 @@ namespace ExHyperV.Interaction
             return result == ContentDialogResult.Primary;
         }
 
-        // ===== 文件系统选择器 =====
-        // 封装 Microsoft.Win32 的打开/保存/选目录对话框，VM 不再各自 new 一遍样板。
-        // 统一约定：返回选中的路径；用户取消一律返回 null（调用方据此决定是否更新绑定）。
+        // 文件对话框在用户取消时返回 null。
 
         /// <summary>打开文件选择框。title 传 null 用系统默认标题。</summary>
         public static string? PickOpenFile(string? title, string filter, string? initialDir = null)

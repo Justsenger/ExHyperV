@@ -35,7 +35,7 @@ namespace ExHyperV.Tools
             try
             {
                 var evt = (IMsTscAxEvents_Event)GetOcx();
-                // 每个处理都过 Safe()——COM 事件 sink 绝不能让异常逃回 native，否则 0xC000041D 进程秒退。
+                // COM 事件通过 Safe() 隔离异常，避免异常返回 native 后触发 0xC000041D。
                 evt.OnConnected += () => Safe(() => Connected?.Invoke());
                 evt.OnLoginComplete += () => Safe(() => LoginCompleted?.Invoke());
                 evt.OnDisconnected += reason => Safe(() => Disconnected?.Invoke(reason));
@@ -218,7 +218,7 @@ namespace ExHyperV.Tools
             catch (Exception ex) { Debug.WriteLine($"[Rdp] 设 {what} 失败: {ex.GetType().Name} — {ex.Message}"); }
         }
 
-        // COM 事件处理的护栏：异常绝不能逃回 native 回调方（否则 0xC000041D 致命回调异常、进程秒退）。
+        // 隔离 COM 事件异常，避免异常返回 native 后触发 0xC000041D。
         private void Safe(Action handler)
         {
             try { handler(); }

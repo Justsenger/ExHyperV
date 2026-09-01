@@ -17,19 +17,14 @@
     <Grid Margin="15">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
-            <!-- 0: Banner -->
             <RowDefinition Height="Auto"/>
-            <!-- 1: 信息展示区 -->
             <RowDefinition Height="*"/>
-            <!-- 2: 引导按钮区 -->
         </Grid.RowDefinitions>
 
-        <!-- 1. Banner 区 (移除加粗，恢复圆角) -->
         <Grid Grid.Row="0" Margin="0,0,0,10">
             <!-- 背景图片（程序化矢量「数字山湖」横幅 Vector.Banner，无位图） -->
             <ui:Image CornerRadius="15" Stretch="Uniform" Source="{DynamicResource Vector.Banner}"/>
 
-            <!-- 左侧标题文字 -->
             <StackPanel VerticalAlignment="Center" Margin="30,5,0,2">
                 <TextBlock Text="ExHyperV" 
                    FontSize="42" 
@@ -54,7 +49,6 @@
                FontWeight="SemiBold"/>
         </Grid>
 
-        <!-- 2. 信息展示区 (改为 VerticalAlignment="Top" 解决居中问题，移除加粗) -->
         <Grid Grid.Row="1" Margin="0,5,0,10">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>

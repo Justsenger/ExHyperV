@@ -10,8 +10,6 @@ namespace ExHyperV.Services
 {
     public class VmQueryService
     {
-        // --- 数据结构定义 ---
-
         public struct VmDynamicMemoryData { public long AssignedMb; public int AvailablePercent; }
 
         public struct GpuUsageData
@@ -23,8 +21,6 @@ namespace ExHyperV.Services
             public bool IsDriverBound;
         }
 
-        // --- 静态变量与缓存 ---
-
         private static readonly ConcurrentDictionary<string, string> _switchNameCache = new(StringComparer.OrdinalIgnoreCase);
         private static readonly Dictionary<string, (long Current, long Max, string Type)> _diskSizeCache = new();
         // VM → 一组 PID：vmwp + 其子 vmmem。GPU-PV 的 GPU 占用 Win11 记在 vmwp、Win10 记在 vmmem
@@ -34,8 +30,6 @@ namespace ExHyperV.Services
         private List<PerformanceCounter> _gpuCounters = new();
         private static readonly Regex GpuInstanceRegex = new Regex(@"pid_(\d+).*engtype_([a-zA-Z0-9]+)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
-        // --- WMI 查询语句常量 ---
-
         private const string QuerySummary = "SELECT Name, ElementName, EnabledState, UpTime, NumberOfProcessors, MemoryUsage, Notes FROM Msvm_SummaryInformation";
         private const string QueryMemSettings = "SELECT InstanceID, VirtualQuantity FROM Msvm_MemorySettingData WHERE ResourceType = 4";
         private const string QuerySettings = "SELECT ConfigurationID, VirtualSystemSubType, Version FROM Msvm_VirtualSystemSettingData WHERE VirtualSystemType = 'Microsoft:Hyper-V:System:Realized'";
@@ -43,8 +37,6 @@ namespace ExHyperV.Services
         private const string QueryDiskPerf = "SELECT Name, ReadBytesPersec, WriteBytesPersec FROM Win32_PerfFormattedData_Counters_HyperVVirtualStorageDevice";
         private const string QuerySwitches = "SELECT Name, ElementName FROM Msvm_VirtualEthernetSwitch";
         private const string QueryGuestNetwork = "SELECT InstanceID, IPAddresses FROM Msvm_GuestNetworkAdapterConfiguration";
-
-        // --- 内部数据传输对象（替代匿名类型，避免 dynamic 强转）---
 
         private sealed record DiskAlloc(string InstanceID, string Parent, string[] Paths, int ResourceType);
         private sealed record HvDisk(string DeviceID, int DriveNumber);
@@ -60,14 +52,11 @@ namespace ExHyperV.Services
         private sealed record PerfItem(string WmiName, ulong Read, ulong Write);
         private sealed record MemRuntimeItem(string Id, VmDynamicMemoryData Data);
 
-        // --- 查询方法 ---
-
         public async Task<List<VmInstance>> GetVmListAsync()
         {
             const string QueryVirtualDiskAllocations = "SELECT InstanceID, Parent, HostResource, ResourceType FROM Msvm_StorageAllocationSettingData WHERE ResourceType = 31 OR ResourceType = 16";
             const string QueryPhysicalDiskAllocations = "SELECT InstanceID, Parent, HostResource, ResourceType FROM Msvm_ResourceAllocationSettingData WHERE ResourceType = 17";
 
-            // ── 并发发起所有查询 ──────────────────────────────────
             var vDiskTask = WmiApi.QueryAsync(QueryVirtualDiskAllocations, obj => new DiskAlloc(
                 obj["InstanceID"]?.ToString() ?? "",
                 obj["Parent"]?.ToString() ?? "",

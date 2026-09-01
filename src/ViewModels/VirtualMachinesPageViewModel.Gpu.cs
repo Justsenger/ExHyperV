@@ -12,7 +12,6 @@ namespace ExHyperV.ViewModels
 {
     public partial class VirtualMachinesPageViewModel
     {
-        // ===== 视图模型属性 - GPU 管理 =====
         [ObservableProperty] private ObservableCollection<GpuInfo> _hostGpus = new();
         [ObservableProperty][NotifyCanExecuteChangedFor(nameof(ConfirmAddGpuCommand))] private GpuInfo _selectedHostGpu;
         [ObservableProperty] private bool _autoInstallDrivers = true;
@@ -40,9 +39,7 @@ namespace ExHyperV.ViewModels
         [ObservableProperty] private bool _showLogConsole = false;
 
 
-        // ===== GPU 管理模块 - 列表与基础操作 =====
 
-        // 导航至 GPU 管理页面
         [RelayCommand]
         private async Task GoToGpuSettingsAsync()
         {
@@ -64,7 +61,6 @@ namespace ExHyperV.ViewModels
             }
         }
 
-        // 刷新当前虚拟机的显卡分配情况
         private async Task RefreshCurrentVmGpuAssignments()
         {
             if (SelectedVm == null) return;
@@ -138,7 +134,6 @@ namespace ExHyperV.ViewModels
             }
         }
 
-        // 移除 GPU 分区
         [RelayCommand]
         private async Task RemoveGpuAsync(string adapterId)
         {
@@ -248,9 +243,7 @@ namespace ExHyperV.ViewModels
         }
 
 
-        // ===== GPU 管理模块 - 部署向导与自动化 =====
 
-        // 导航至添加 GPU 向导
         [RelayCommand]
         private async Task GoToAddGpuAsync()
         {
@@ -259,12 +252,10 @@ namespace ExHyperV.ViewModels
             IsLoadingSettings = true;
             try
             {
-                // 1. 加载 GPU 列表
                 var gpus = await _vmGpuService.GetHostGpusAsync();
                 HostGpus = new ObservableCollection<GpuInfo>(gpus);
                 SelectedHostGpu = null;
 
-                // 2. 加载 Linux 脚本列表 (重写部分)
                 var scripts = await _vmGpuService.GetAvailableScriptsAsync();
                 AvailableLinuxScripts = new ObservableCollection<LinuxScriptItem>(scripts);
                 SelectedLinuxScript = AvailableLinuxScripts.FirstOrDefault();
@@ -281,11 +272,9 @@ namespace ExHyperV.ViewModels
             }
         }
 
-        // 取消添加 GPU
         [RelayCommand]
         private async Task CancelAddGpuAsync()
         {
-            // 处理中途取消的回滚
             if (!string.IsNullOrEmpty(_currentProcessingGpuAdapterId) && SelectedVm != null)
             {
                 try
@@ -311,10 +300,8 @@ namespace ExHyperV.ViewModels
             }), System.Windows.Threading.DispatcherPriority.Input);
         }
 
-        // 检查是否可以确认添加
         private bool CanConfirmAddGpu() => SelectedHostGpu != null;
 
-        // 确认添加 GPU 并开始流程
         [RelayCommand(CanExecute = nameof(CanConfirmAddGpu))]
         private async Task ConfirmAddGpu()
         {
@@ -385,7 +372,6 @@ namespace ExHyperV.ViewModels
             await RunRealGpuWorkflowAsync(0);
         }
 
-        // 执行 GPU 部署工作流
         private async Task RunRealGpuWorkflowAsync(int startIndex)
         {
             var tasks = GpuTasks;
@@ -500,7 +486,6 @@ namespace ExHyperV.ViewModels
                                 task.Description = Properties.Resources.Msg_Gpu_Scanning;
                                 AppendLog(task.Description);
 
-                                // 获取所有硬盘的所有分区
                                 var allPartitions = await _vmGpuService.GetPartitionsFromVmAsync(SelectedVm.Name);
 
                                 if (allPartitions == null || allPartitions.Count == 0)
@@ -508,7 +493,6 @@ namespace ExHyperV.ViewModels
                                     throw new Exception(Properties.Resources.Error_Gpu_NoPartFound);
                                 }
 
-                                // 计算涉及到的物理磁盘数量
                                 var distinctDisks = allPartitions.Select(p => p.DiskPath).Distinct().Count();
                                 if (distinctDisks == 1 && allPartitions.Count == 1)
                                 {
@@ -516,7 +500,6 @@ namespace ExHyperV.ViewModels
 
                                     if (singlePart.OsType == OperatingSystemType.Windows)
                                     {
-                                        // 1. 如果是 Windows 且单一，执行原有自动注入逻辑
                                         task.Description = Properties.Resources.Msg_Gpu_DetectWin;
                                         var syncRes = await _vmGpuService.SyncWindowsDriversAsync(
                                             SelectedVm.Name,
@@ -530,7 +513,6 @@ namespace ExHyperV.ViewModels
                                     }
                                     else if (singlePart.OsType == OperatingSystemType.Linux)
                                     {
-                                        // 2. Linux 且单一分区：直接触发 SelectPartition 流程（嗅探 IP 并显示 SSH 表单）
                                         task.Description = Properties.Resources.Msg_Gpu_LinuxDetected;
                                         AppendLog(Properties.Resources.Msg_Gpu_LinuxAutoPrep);
 
@@ -542,7 +524,6 @@ namespace ExHyperV.ViewModels
                                 }
                                 else
                                 {
-                                    // 3. 多分区情况，保持现状，显示列表让用户选择
                                     Application.Current.Dispatcher.Invoke(() =>
                                     {
                                         DetectedPartitions = new ObservableCollection<PartitionInfo>(allPartitions);
@@ -637,7 +618,6 @@ namespace ExHyperV.ViewModels
                 AppendLog(string.Format(Properties.Resources.Msg_Gpu_LinuxRemoteInit, partition.DisplayName));
                 try
                 {
-                    // --- 自动探测主机代理 (不修改全局变量) ---
                     UseSshProxy = false; // 默认关闭开关
                     try
                     {
@@ -659,10 +639,8 @@ namespace ExHyperV.ViewModels
                         driveTask.Description = Properties.Resources.Msg_Gpu_IpSniff;
                         AppendLog(driveTask.Description);
 
-                        // 1. 执行开机
                         await VmPowerService.ExecuteControlActionAsync(SelectedVm.Name, "Start");
 
-                        // 2. 立刻强制同步一次 UI 状态，不等后台循环
                         await SyncSingleVmStateAsync(SelectedVm);
 
                         await Task.Delay(3000); // 给系统一点反应时间
@@ -719,18 +697,15 @@ namespace ExHyperV.ViewModels
             _gpuDeploymentCts = new CancellationTokenSource();
             var token = _gpuDeploymentCts.Token;
 
-            // 1. 定位驱动安装任务项
             var driveTask = GpuTasks.FirstOrDefault(t => t.TaskType == GpuTaskType.Driver);
             if (driveTask == null) return;
 
-            // 2. 验证
             if (SelectedLinuxScript == null || string.IsNullOrWhiteSpace(SshHost))
             {
                 ShowTip(Properties.Resources.VmPage_GpuCheckDeploy);
                 return;
             }
 
-            // 3. 代理参数解析
             int? proxyPort = null;
             string proxyHost = string.Empty;
             if (UseSshProxy)
@@ -744,7 +719,6 @@ namespace ExHyperV.ViewModels
                 proxyPort = port;
             }
 
-            // 4. UI 切换：隐藏卡片，显示控制台
             ShowPartitionSelector = false;
             ShowSshForm = false;
             ShowLogConsole = true;
@@ -754,7 +728,6 @@ namespace ExHyperV.ViewModels
             AppendLog(string.Format(Properties.Resources.Log_Gpu_SelectedScript, SelectedLinuxScript.Name));
             if (UseSshProxy) AppendLog(string.Format(Properties.Resources.Msg_Gpu_UsingProxy, proxyHost, proxyPort));
 
-            // 5. 组装凭据 (强制 KeepGlobalProxySetting 为 false)
             var creds = new SshCredentials
             {
                 Host = SshHost,
@@ -767,7 +740,6 @@ namespace ExHyperV.ViewModels
                 InstallGraphics = InstallGraphics
             };
 
-            // 6. 执行部署
             string result = await _vmGpuService.ProvisionLinuxGpuAsync(
                 SelectedVm.Name,
                 !string.IsNullOrEmpty(SelectedHostGpu.PartitionableGpuPath)
@@ -792,7 +764,6 @@ namespace ExHyperV.ViewModels
                 token
             );
 
-            // 7. 流程结束判定
             if (result == "OK" || (result.Contains("successfully") && result.Contains("signing")))
             {
                 driveTask.Status = GpuTaskStatus.Success;
@@ -803,7 +774,6 @@ namespace ExHyperV.ViewModels
             }
             else
             {
-                // 失败回滚
                 if (!string.IsNullOrEmpty(_currentProcessingGpuAdapterId))
                 {
                     AppendLog(Properties.Resources.Error_Gpu_LinuxRollback);
@@ -816,7 +786,6 @@ namespace ExHyperV.ViewModels
                 AppendLog(string.Format(Properties.Resources.Error_Gpu_DeployFatal, result));
             }
         }
-        // 返回分区选择列表
         [RelayCommand]
         private void GoBackToPartitionList()
         {
@@ -828,14 +797,11 @@ namespace ExHyperV.ViewModels
             }
         }
 
-        // 完成 GPU 部署工作流
         private async Task FinishWorkflowAsync()
         {
             await Task.Delay(1000);
-            // 确保在 UI 线程刷新
             await RefreshCurrentVmGpuAssignments();
 
-            // 非空安全获取显卡名称
             string gpuName = "GPU";
             if (SelectedHostGpu != null)
             {
@@ -866,7 +832,6 @@ namespace ExHyperV.ViewModels
 
 
 
-        // ===== GPU 部署:日志 / 重置 helper（从 UI 辅助尾部归拢） =====
         // 追加日志到控制台
         private void AppendLog(string message)
         {
@@ -895,9 +860,8 @@ namespace ExHyperV.ViewModels
 
             // 始终硬重置——回到初始状态（与按钮 tooltip"回到初始状态"一致）。
             // 旧版按 SelectedPartition≠null 走"软重置"，但单 Linux 分区下 SelectedPartition 被直接赋值且从不清空，
-            // 软重置只是把已 Pending 的 Driver 再设 Pending + 保持已显示的表单 → 界面零变化、看着像按钮失灵（用户实测确认）。
+            // 此状态下软重置不会改变任务或表单状态，因此执行完整重置。
 
-            // 1. 若已分配但未完成，物理回滚 GPU 分区
             if (!string.IsNullOrEmpty(_currentProcessingGpuAdapterId) && SelectedVm != null)
             {
                 AppendLog(Properties.Resources.VmPage_GpuUserRollback);
@@ -913,7 +877,6 @@ namespace ExHyperV.ViewModels
                 }
             }
 
-            // 2. 清空所有 UI 状态（含直接赋值的 SelectedPartition）
             GpuTasks.Clear();
             GpuDeploymentLog = string.Empty;
             ShowPartitionSelector = false;
@@ -921,10 +884,8 @@ namespace ExHyperV.ViewModels
             ShowLogConsole = false;
             SelectedPartition = null;
 
-            // 3. 重新初始化并跳回选显卡第一步
             await GoToAddGpuAsync();
 
-            // 4. 全局重置提示
             ShowTip(Properties.Resources.VmPage_GpuResetDesc);
         }
     }
