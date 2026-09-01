@@ -1985,7 +1985,7 @@ namespace ExHyperV.Services
                     using (var client = new SshClient(credentials.Host, credentials.Port, credentials.Username, credentials.Password))
                     {
                         client.Connect();
-                        client.RunCommand($"mkdir -p {remoteTempDir}/drivers {remoteTempDir}/lib");
+                        using var command = client.RunCommand($"mkdir -p {remoteTempDir}/drivers {remoteTempDir}/lib");
                         client.Disconnect();
                     }
 
