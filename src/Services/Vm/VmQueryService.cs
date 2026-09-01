@@ -567,7 +567,7 @@ namespace ExHyperV.Services
         public async Task<string> GetVmStateAsync(string vmName)
         {
             var r = await WmiApi.QueryFirstAsync(
-                $"SELECT * FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(vmName)}'",
+                $"SELECT * FROM Msvm_ComputerSystem WHERE {WmiApi.VmComputerSystemNamePredicate(vmName)}",
                 obj => obj["EnabledState"]?.ToString() ?? "NotFound");
             return r.Data ?? "NotFound";
         }
@@ -575,7 +575,7 @@ namespace ExHyperV.Services
         public async Task<(bool IsOff, string CurrentState)> IsVmPoweredOffAsync(string vmName)
         {
             var r = await WmiApi.QueryFirstAsync(
-                $"SELECT * FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(vmName)}'",
+                $"SELECT * FROM Msvm_ComputerSystem WHERE {WmiApi.VmComputerSystemNamePredicate(vmName)}",
                 obj => obj["EnabledState"]?.ToString() ?? "Unknown");
             string state = r.Data ?? "Unknown";
             return (state == "3", state);

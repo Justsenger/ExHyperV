@@ -441,7 +441,7 @@ namespace ExHyperV.Services
                     // DefineSystem 返回失败时不能直接假定“什么都没创建”。若连回查也失败，
                     // 保守地保留文件现场，避免误删一台可能仍在册的 VM 的配置。
                     var registration = await WmiApi.QueryFirstAsync(
-                        $"SELECT Name FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(finalVmName)}'",
+                        $"SELECT Name FROM Msvm_ComputerSystem WHERE {WmiApi.VmComputerSystemNamePredicate(finalVmName)}",
                         obj => obj["Name"]?.ToString(),
                         WmiScope.HyperV);
                     if (!registration.Success)
@@ -686,11 +686,18 @@ namespace ExHyperV.Services
             int maxIdx = 0;
             // 在册 VM 名（不带 Caption 过滤——该属性在本地化系统上被翻译、等值匹配查不到）
             var resp = await WmiApi.QueryAsync(
-                "SELECT ElementName FROM Msvm_ComputerSystem",
-                obj => obj["ElementName"]?.ToString() ?? string.Empty,
+                "SELECT Name, ElementName FROM Msvm_ComputerSystem",
+                obj => (
+                    Id: obj["Name"]?.ToString() ?? string.Empty,
+                    DisplayName: obj["ElementName"]?.ToString() ?? string.Empty),
                 WmiScope.HyperV);
-            foreach (var n in resp.Data ?? new List<string>())
-                maxIdx = Math.Max(maxIdx, IndexOf(n));
+            foreach (var item in resp.Data ?? [])
+            {
+                // VM 的 Name 是 GUID；宿主机的 Name 是计算机名。避免宿主机名（如 VM-07）
+                // 被误当成已有 VM，导致空主机上的首批名称从 VM-08 开始。
+                if (Guid.TryParse(item.Id, out _))
+                    maxIdx = Math.Max(maxIdx, IndexOf(item.DisplayName));
+            }
 
             // 目录名（防注册已删但文件夹残留占名）
             try
@@ -719,7 +726,7 @@ namespace ExHyperV.Services
         private static async Task<bool> VmNameExistsAsync(string name)
         {
             var resp = await WmiApi.QueryFirstAsync(
-                $"SELECT Name FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(name)}'",
+                $"SELECT Name FROM Msvm_ComputerSystem WHERE {WmiApi.VmComputerSystemNamePredicate(name)}",
                 obj => obj["Name"]?.ToString(),
                 WmiScope.HyperV);
             return resp.HasData;

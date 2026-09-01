@@ -26,7 +26,7 @@ namespace ExHyperV.Services
                     if (!_vmSettingsPathCache.TryGetValue(vmName, out var targetPath))
                     {
                         var settingsResp = WmiApi.QueryFirstAsync(
-                            $"SELECT * FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(vmName)}'",
+                            $"SELECT * FROM Msvm_ComputerSystem WHERE {WmiApi.VmComputerSystemNamePredicate(vmName)}",
                             vm => {
                                 using var related = vm.GetRelated("Msvm_VirtualSystemSettingData");
                                 return related.Cast<ManagementObject>().FirstOrDefault()?.Path.Path ?? "";

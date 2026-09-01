@@ -23,7 +23,7 @@ internal static class VmSpacetimeService
         try
         {
             var vmResponse = await WmiApi.QueryFirstAsync(
-                $"SELECT * FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(vmName)}'",
+                $"SELECT * FROM Msvm_ComputerSystem WHERE {WmiApi.VmComputerSystemNamePredicate(vmName)}",
                 obj => new { Guid = obj["Name"]?.ToString(), Path = obj.Path.ToString() });
 
             if (!vmResponse.HasData || string.IsNullOrEmpty(vmResponse.Data!.Guid))
@@ -170,7 +170,7 @@ internal static class VmSpacetimeService
         try
         {
             var vmGuidResponse = await WmiApi.QueryFirstAsync(
-                $"SELECT Name FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(vmName)}'",
+                $"SELECT Name FROM Msvm_ComputerSystem WHERE {WmiApi.VmComputerSystemNamePredicate(vmName)}",
                 obj => obj["Name"]?.ToString());
             if (!vmGuidResponse.HasData) return;
 
@@ -248,7 +248,7 @@ internal static class VmSpacetimeService
 
             // 尝试找到并卸载残留的虫洞盘
             var vmGuidResp = await WmiApi.QueryFirstAsync(
-                $"SELECT Name FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(vmName)}'",
+                $"SELECT Name FROM Msvm_ComputerSystem WHERE {WmiApi.VmComputerSystemNamePredicate(vmName)}",
                 obj => obj["Name"]?.ToString() ?? "");
             if (vmGuidResp.HasData)
             {
@@ -406,7 +406,7 @@ internal static class VmSpacetimeService
 
         try
         {
-            string vmWql = $"SELECT EnabledState FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(vmName)}'";
+            string vmWql = $"SELECT EnabledState FROM Msvm_ComputerSystem WHERE {WmiApi.VmComputerSystemNamePredicate(vmName)}";
             var stateResponse = await WmiApi.QueryFirstAsync(vmWql, obj => (ushort)(obj["EnabledState"] ?? 0));
             ushort initialState = stateResponse.Data;
             bool shouldRestart = initialState == 2 || initialState == 32768;
@@ -460,7 +460,7 @@ internal static class VmSpacetimeService
         string vmName, SpacetimeMode mode, BitmapSource? externalThumb = null)
     {
         var vmResponse = await WmiApi.QueryFirstAsync(
-            $"SELECT * FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(vmName)}'",
+            $"SELECT * FROM Msvm_ComputerSystem WHERE {WmiApi.VmComputerSystemNamePredicate(vmName)}",
             obj => new { Path = obj.Path.ToString(), Guid = obj["Name"]?.ToString() ?? "" });
 
         if (!vmResponse.HasData)
@@ -477,7 +477,7 @@ internal static class VmSpacetimeService
 
         // Production 快照需要 VM 运行中（需要 guest VSS 配合），关机时自动降级为 Standard
         var stateResp = await WmiApi.QueryFirstAsync(
-            $"SELECT EnabledState FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(vmName)}'",
+            $"SELECT EnabledState FROM Msvm_ComputerSystem WHERE {WmiApi.VmComputerSystemNamePredicate(vmName)}",
             obj => Convert.ToInt32(obj["EnabledState"] ?? 0));
         bool isRunning = stateResp.Data == 2;
 
@@ -596,7 +596,7 @@ internal static class VmSpacetimeService
         try
         {
             var guidResponse = await WmiApi.QueryFirstAsync(
-                $"SELECT Name FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(vmName)}'",
+                $"SELECT Name FROM Msvm_ComputerSystem WHERE {WmiApi.VmComputerSystemNamePredicate(vmName)}",
                 obj => obj["Name"]?.ToString());
             if (!guidResponse.HasData) return true;
 
@@ -618,7 +618,7 @@ internal static class VmSpacetimeService
         try
         {
             var guidResponse = await WmiApi.QueryFirstAsync(
-                $"SELECT Name FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(vmName)}'",
+                $"SELECT Name FROM Msvm_ComputerSystem WHERE {WmiApi.VmComputerSystemNamePredicate(vmName)}",
                 obj => obj["Name"]?.ToString());
             if (!guidResponse.HasData)
                 return (false, Properties.Resources.VmSpacetimeService_ErrVmNotFound);
@@ -792,7 +792,7 @@ internal static class VmSpacetimeService
         try
         {
             var guidResponse = await WmiApi.QueryFirstAsync(
-                $"SELECT Name FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(vmName)}'",
+                $"SELECT Name FROM Msvm_ComputerSystem WHERE {WmiApi.VmComputerSystemNamePredicate(vmName)}",
                 obj => obj["Name"]?.ToString());
             if (!guidResponse.HasData) return false;
 
@@ -807,7 +807,7 @@ internal static class VmSpacetimeService
         try
         {
             var guidResponse = await WmiApi.QueryFirstAsync(
-                $"SELECT Name FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(vmName)}'",
+                $"SELECT Name FROM Msvm_ComputerSystem WHERE {WmiApi.VmComputerSystemNamePredicate(vmName)}",
                 obj => obj["Name"]?.ToString());
             if (!guidResponse.HasData) return false;
 
@@ -955,8 +955,16 @@ internal static class VmSpacetimeService
     {
         try
         {
+            var vmResponse = await WmiApi.QueryFirstAsync(
+                $"SELECT Name FROM Msvm_ComputerSystem WHERE {WmiApi.VmComputerSystemNamePredicate(vmName)}",
+                obj => obj["Name"]?.ToString());
+            if (!vmResponse.HasData || string.IsNullOrWhiteSpace(vmResponse.Data))
+                return null;
+
             var response = await WmiApi.QueryFirstAsync(
-                $"SELECT ConfigurationDataRoot FROM Msvm_VirtualSystemSettingData WHERE VirtualSystemIdentifier = (SELECT Name FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(vmName)}') AND VirtualSystemType = 'Microsoft:Hyper-V:System:Realized'",
+                $"SELECT ConfigurationDataRoot FROM Msvm_VirtualSystemSettingData " +
+                $"WHERE VirtualSystemIdentifier = '{WmiApi.Escape(vmResponse.Data)}' " +
+                "AND VirtualSystemType = 'Microsoft:Hyper-V:System:Realized'",
                 obj => obj["ConfigurationDataRoot"]?.ToString());
             string? root = response.Data;
             return string.IsNullOrEmpty(root) ? null : Path.Combine(root, "Snapshots");

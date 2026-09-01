@@ -781,6 +781,14 @@ public static class WmiApi
     // ── 辅助：Hyper-V 管理服务快捷获取 ───────────────────────────
 
     /// <summary>
+    /// 构造本机按显示名称定位虚拟机的 WQL 条件，并排除同名宿主机。
+    /// Msvm_ComputerSystem 同时包含宿主机和虚拟机：二者的 ElementName 可以相同，
+    /// 但宿主机 Name 是计算机名，而虚拟机 Name 是 GUID。
+    /// </summary>
+    internal static string VmComputerSystemNamePredicate(string vmName) =>
+        $"ElementName = '{Escape(vmName)}' AND Name <> '{Escape(Environment.MachineName)}'";
+
+    /// <summary>
     /// 获取 Msvm_VirtualSystemManagementService。
     /// 调用方负责 Dispose。
     /// </summary>
@@ -812,7 +820,9 @@ public static class WmiApi
             ms, new ObjectQuery(
                 $"SELECT * FROM Msvm_ComputerSystem WHERE ElementName = '{safe}'"));
         using var col = searcher.Get();
-        return col.Cast<ManagementObject>().FirstOrDefault();
+        // 不依赖本机名，远程 WMI 上下文也能正确排除同名宿主机。
+        return col.Cast<ManagementObject>().FirstOrDefault(obj =>
+            Guid.TryParse(obj["Name"]?.ToString(), out _));
     }
 
     /// <summary>

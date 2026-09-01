@@ -160,7 +160,7 @@ namespace ExHyperV.Services
         private static async Task<string?> GetVmGuidAsync(string vmName)
         {
             var resp = await WmiApi.QueryFirstAsync(
-                $"SELECT Name FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(vmName)}'",
+                $"SELECT Name FROM Msvm_ComputerSystem WHERE {WmiApi.VmComputerSystemNamePredicate(vmName)}",
                 obj => obj["Name"]?.ToString() ?? string.Empty,
                 WmiScope.HyperV);
             return resp.Success ? resp.Data : null;

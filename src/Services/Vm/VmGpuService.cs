@@ -188,7 +188,7 @@ namespace ExHyperV.Services
                     obj => obj["Name"]?.ToString() ?? "");
                 string firstPartitionableGpu = partGpuResp.Data?.FirstOrDefault(n => !string.IsNullOrEmpty(n)) ?? "";
 
-                string query = $"SELECT * FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(vmName)}'";
+                string query = $"SELECT * FROM Msvm_ComputerSystem WHERE {WmiApi.VmComputerSystemNamePredicate(vmName)}";
                 using var searcher = new ManagementObjectSearcher(scopePath, query);
                 using var vmCollection = searcher.Get();
                 var computerSystem = vmCollection.Cast<ManagementObject>().FirstOrDefault();
@@ -440,7 +440,7 @@ namespace ExHyperV.Services
 
                 // 6. 验证
                 var vmGuidResp = await WmiApi.QueryFirstAsync(
-                    $"SELECT * FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(vmName)}'",
+                    $"SELECT * FROM Msvm_ComputerSystem WHERE {WmiApi.VmComputerSystemNamePredicate(vmName)}",
                     obj => obj["Name"]?.ToString() ?? "");
                 string vmGuid = vmGuidResp.Data ?? "";
 

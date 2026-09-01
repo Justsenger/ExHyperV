@@ -867,7 +867,7 @@ namespace ExHyperV.Services
             string vmName, VmStorageItem drive)
         {
             var vmResp = await WmiApi.QueryFirstAsync(
-                $"SELECT * FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(vmName)}'",
+                $"SELECT * FROM Msvm_ComputerSystem WHERE {WmiApi.VmComputerSystemNamePredicate(vmName)}",
                 obj => Convert.ToInt32(obj["EnabledState"] ?? 0),
                 WmiScope.HyperV);
 

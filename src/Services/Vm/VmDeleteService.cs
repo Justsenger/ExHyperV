@@ -264,7 +264,7 @@ public static class VmDeleteService
     private static async Task<(bool Success, string Message)> DestroyAsync(string vmName)
     {
         var vmPath = (await WmiApi.QueryFirstAsync(
-            $"SELECT * FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(vmName)}'",
+            $"SELECT * FROM Msvm_ComputerSystem WHERE {WmiApi.VmComputerSystemNamePredicate(vmName)}",
             obj => obj.Path.Path, WmiScope.HyperV)).Data;
         if (string.IsNullOrEmpty(vmPath))
             return (false, $"VM '{vmName}' not found");
@@ -279,7 +279,7 @@ public static class VmDeleteService
         // 回查确认真的注销了——引擎对保存态/TPM 机可能报成功却没销毁干净。不回查就"假成功"：
         // 上层乐观地从列表移除，但 VM 还在册、文件还在 → 再建同名即撞 0x80070050。
         var still = await WmiApi.QueryFirstAsync(
-            $"SELECT Name FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(vmName)}'",
+            $"SELECT Name FROM Msvm_ComputerSystem WHERE {WmiApi.VmComputerSystemNamePredicate(vmName)}",
             obj => obj["Name"]?.ToString(), WmiScope.HyperV);
         return still.HasData
             ? (false, string.Format(Properties.Resources.VmDelete_DestroyVerifyFail, vmName))
@@ -364,14 +364,14 @@ public static class VmDeleteService
     private static async Task<(bool Success, string Message)> EnsureOffAsync(string vmName)
     {
         var state = await WmiApi.QueryFirstAsync(
-            $"SELECT EnabledState FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(vmName)}'",
+            $"SELECT EnabledState FROM Msvm_ComputerSystem WHERE {WmiApi.VmComputerSystemNamePredicate(vmName)}",
             obj => Convert.ToInt32(obj["EnabledState"] ?? (ushort)0), WmiScope.HyperV);
         if (!state.HasData) return (true, string.Empty);   // 查不到 = 已不存在
         if (IsOffOrOrphan(state.Data)) return (true, string.Empty);
 
         var off = await VmPowerService.ExecuteControlActionAsync(vmName, "TurnOff");   // RequestStateChange(3)：保存态会丢弃保存状态
         var after = await WmiApi.QueryFirstAsync(
-            $"SELECT EnabledState FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(vmName)}'",
+            $"SELECT EnabledState FROM Msvm_ComputerSystem WHERE {WmiApi.VmComputerSystemNamePredicate(vmName)}",
             obj => Convert.ToInt32(obj["EnabledState"] ?? (ushort)0), WmiScope.HyperV);
         if (after.HasData && !IsOffOrOrphan(after.Data))
             return (false, off.Success ? string.Format(Properties.Resources.VmDelete_TurnOffFail, vmName) : off.Error);

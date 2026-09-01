@@ -487,10 +487,8 @@ namespace ExHyperV.Services
 
         private static async Task<bool> EnsureVmStoppedAsync(string vmName)
         {
-            string escapedVmName = WmiApi.Escape(vmName);
-
             var stateResp = await WmiApi.QueryAsync(
-                $"SELECT EnabledState FROM Msvm_ComputerSystem WHERE ElementName = '{escapedVmName}'",
+                $"SELECT EnabledState FROM Msvm_ComputerSystem WHERE {WmiApi.VmComputerSystemNamePredicate(vmName)}",
                 obj => Convert.ToUInt16(obj["EnabledState"]),
                 WmiScope.HyperV);
 
@@ -506,7 +504,7 @@ namespace ExHyperV.Services
             {
                 await Task.Delay(1000);
                 var checkResp = await WmiApi.QueryAsync(
-                    $"SELECT EnabledState FROM Msvm_ComputerSystem WHERE ElementName = '{escapedVmName}'",
+                    $"SELECT EnabledState FROM Msvm_ComputerSystem WHERE {WmiApi.VmComputerSystemNamePredicate(vmName)}",
                     obj => Convert.ToUInt16(obj["EnabledState"]),
                     WmiScope.HyperV);
                 if (checkResp.Data?.Any(s => s == 3) == true) return true;

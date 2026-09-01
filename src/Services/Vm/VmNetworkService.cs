@@ -18,7 +18,7 @@ public static class VmNetworkService
         if (string.IsNullOrEmpty(vmName)) return resultList;
 
         var vmResponse = await WmiApi.QueryFirstAsync(
-            $"SELECT Name FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(vmName)}'",
+            $"SELECT Name FROM Msvm_ComputerSystem WHERE {WmiApi.VmComputerSystemNamePredicate(vmName)}",
             obj => obj["Name"]?.ToString());
 
         if (!vmResponse.HasData) return resultList;
