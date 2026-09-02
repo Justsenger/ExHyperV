@@ -128,7 +128,7 @@ public static class VmBootService
                             }
                         }
                     }
-                    // 用户项没匹配到的当前源(新出现的/键变了的)补到末尾，绝不漏写
+                    // 将未匹配的当前启动源追加到末尾。
                     for (int i = 0; i < currentPaths.Length; i++)
                         if (!used[i]) ordered.Add(currentPaths[i]);
 

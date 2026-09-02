@@ -22,7 +22,7 @@ public static class VmConsoleService
     {
         if (string.IsNullOrEmpty(vmName)) return false;
         var vmResp = await WmiApi.QueryFirstAsync(
-            $"SELECT Name FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(vmName)}'",
+            $"SELECT Name FROM Msvm_ComputerSystem WHERE {WmiApi.VmComputerSystemNamePredicate(vmName)}",
             obj => obj["Name"]?.ToString());
         if (!vmResp.HasData) return false;
         var resp = await WmiApi.QueryFirstAsync(
@@ -36,7 +36,7 @@ public static class VmConsoleService
     {
         if (string.IsNullOrEmpty(vmName)) return false;
         var resp = await WmiApi.QueryFirstAsync(
-            $"SELECT EnhancedSessionModeState FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(vmName)}'",
+            $"SELECT EnhancedSessionModeState FROM Msvm_ComputerSystem WHERE {WmiApi.VmComputerSystemNamePredicate(vmName)}",
             obj => obj["EnhancedSessionModeState"] is { } v ? Convert.ToUInt16(v) : (ushort)3);
         return resp.HasData && resp.Data == 2;   // 2 = Available
     }

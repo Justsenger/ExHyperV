@@ -16,7 +16,7 @@ public static class VmVideoService
         if (string.IsNullOrEmpty(vmName)) return (false, 0, 0, 0);
 
         var vmResp = await WmiApi.QueryFirstAsync(
-            $"SELECT Name FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(vmName)}'",
+            $"SELECT Name FROM Msvm_ComputerSystem WHERE {WmiApi.VmComputerSystemNamePredicate(vmName)}",
             obj => obj["Name"]?.ToString());
         if (!vmResp.HasData) return (false, 0, 0, 0);
 
@@ -35,7 +35,7 @@ public static class VmVideoService
         if (string.IsNullOrEmpty(vmName)) return (false, Properties.Resources.Error_Vm_NameEmpty);
 
         var vmResp = await WmiApi.QueryFirstAsync(
-            $"SELECT Name FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(vmName)}'",
+            $"SELECT Name FROM Msvm_ComputerSystem WHERE {WmiApi.VmComputerSystemNamePredicate(vmName)}",
             obj => obj["Name"]?.ToString());
         if (!vmResp.HasData) return (false, Properties.Resources.Error_Net_VmNotFound);
 

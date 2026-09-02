@@ -21,7 +21,6 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <!-- 1. 顶部标题栏：下边距从 24 减小到 8，使卡片上移 -->
         <Grid Grid.Row="0" Margin="24,16,24,12">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
@@ -47,7 +46,6 @@
             </Grid>
 
 
-        <!-- 2. 显卡列表区域 -->
         <Grid Grid.Row="1" Margin="24,0,24,24">
             <ScrollViewer VerticalScrollBarVisibility="Auto" PanningMode="VerticalOnly">
                 <StackPanel>

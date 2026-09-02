@@ -97,14 +97,11 @@ namespace ExHyperV.Services
             if (string.IsNullOrWhiteSpace(deviceId)) return string.Empty;
             var normalizedId = deviceId.ToUpper();
 
-            // 1. 只去除开头的设备路径前缀，不破坏中间的井号
             if (normalizedId.StartsWith(@"\\?\")) normalizedId = normalizedId.Substring(4);
 
-            // 2. 截掉 GUID 及其之后的内容
             int suffixIndex = normalizedId.IndexOf("{");
             if (suffixIndex != -1) normalizedId = normalizedId.Substring(0, suffixIndex);
 
-            // 3. 将所有反斜杠统一换成井号，并清理末尾
             return normalizedId.Replace('\\', '#').TrimEnd('#');
         }
 
@@ -130,7 +127,7 @@ namespace ExHyperV.Services
 
             var gpuList = new List<GpuInfo>();
 
-            // 1. 设备列表 + 完整 InstanceId + 厂商 + 驱动版本：走原生 CfgMgr 的"在位"枚举(Win32Api.GetPresentDisplayAdapters)。
+            // 设备列表 + 完整 InstanceId + 厂商 + 驱动版本：走原生 CfgMgr 的"在位"枚举(Win32Api.GetPresentDisplayAdapters)。
             //    替代偶发数秒慢的 Win32_VideoController(它实探显示驱动、GPU 空闲会被唤醒)；FILTER_PRESENT 天然排除幻影设备。
             //    已在系统上用原生 CM_* 实测核对：仅列在位 GPU、DriverVersion 取自正确 DEVPKEY，与 Win32_VideoController 数据一致。
             var displayAdapters = await Task.Run(() => Win32Api.GetPresentDisplayAdapters());
@@ -149,7 +146,7 @@ namespace ExHyperV.Services
                 });
             }
 
-            // 2. Msvm_PartitionableGpu
+            // Msvm_PartitionableGpu
             var partResp = await WmiApi.QueryAsync(
                 "SELECT Name FROM Msvm_PartitionableGpu",
                 obj => obj["Name"]?.ToString() ?? "");
@@ -188,7 +185,7 @@ namespace ExHyperV.Services
                     obj => obj["Name"]?.ToString() ?? "");
                 string firstPartitionableGpu = partGpuResp.Data?.FirstOrDefault(n => !string.IsNullOrEmpty(n)) ?? "";
 
-                string query = $"SELECT * FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(vmName)}'";
+                string query = $"SELECT * FROM Msvm_ComputerSystem WHERE {WmiApi.VmComputerSystemNamePredicate(vmName)}";
                 using var searcher = new ManagementObjectSearcher(scopePath, query);
                 using var vmCollection = searcher.Get();
                 var computerSystem = vmCollection.Cast<ManagementObject>().FirstOrDefault();
@@ -266,17 +263,14 @@ namespace ExHyperV.Services
             return false; // 超时
         }
 
-        /// <summary>检查VM配置，判断是否满足GPU-PV要求。</summary>
-        /// <param name="vmName">待检查的VM名称</param>
-        /// <returns>如果满足要求，返回true。否则返回false。</returns>
-
+        /// <summary>检查写合并缓存和高位 MMIO 是否满足当前 GPU-PV 配置。</summary>
         public async Task<bool> CheckVmForGpuAsync(string vmName)
         {
             try
             {
                 // 读裸 WMI 的真实属性：HighMmioGapSize(MB) + GuestControlledCacheTypes。
                 // 旧实现读 HighMemoryMappedIoSpace/HighMemoryMappedIoBaseAddress(字节)——那是 PowerShell Get-VM 对象的属性，
-                // Msvm_VirtualSystemSettingData 上【根本不存在】(实测 6 台 VM 全 <属性不存在>) → 恒判"未配置" → 每次添加都白白强制关机+重优化。
+                // PowerShell 的 HighMemoryMappedIoSpace 属性不属于该 WMI 类，不能用于此处检测。
                 var r = await WmiApi.QueryFirstAsync(
                     $"SELECT HighMmioGapSize, GuestControlledCacheTypes FROM Msvm_VirtualSystemSettingData WHERE ElementName = '{WmiApi.Escape(vmName)}' AND VirtualSystemType = 'Microsoft:Hyper-V:System:Realized'",
                     obj => (
@@ -388,7 +382,7 @@ namespace ExHyperV.Services
         {
             try
             {
-                // 1. 查 Msvm_PartitionableGpu 拿 WMI 对象路径
+                // 查 Msvm_PartitionableGpu 拿 WMI 对象路径
                 var gpuResp = await WmiApi.QueryAsync(
                     "SELECT * FROM Msvm_PartitionableGpu",
                     obj => new { WmiPath = obj.Path.Path, Name = obj["Name"]?.ToString() ?? "" });
@@ -398,7 +392,7 @@ namespace ExHyperV.Services
                 if (matched == null) return (false, Properties.Resources.Error_Gpu_NoPartition);
                 string gpuWmiPath = matched.WmiPath;
 
-                // 2. 查 ResourcePool → AllocationCapabilities → Default 模板
+                // 查 ResourcePool → AllocationCapabilities → Default 模板
                 var ms = WmiConnectionCache.GetManagementScope(WmiScope.HyperV, WmiContext.Local);
                 using var poolSearcher = new ManagementObjectSearcher(ms,
                     new ObjectQuery("SELECT * FROM Msvm_ResourcePool WHERE ResourceType = 32770 AND ResourceSubType = 'Microsoft:Hyper-V:GPU Partition' AND Primordial = TRUE"));
@@ -415,18 +409,18 @@ namespace ExHyperV.Services
                     .FirstOrDefault(t => t["InstanceID"]?.ToString()?.EndsWith("\\Default", StringComparison.OrdinalIgnoreCase) == true);
                 if (template == null) return (false, Properties.Resources.Error_Gpu_NoPartition);
 
-                // 3. 设置 HostResource 为 WMI 路径，清空 InstanceID
+                // 设置 HostResource 为 WMI 路径，清空 InstanceID
                 template["InstanceID"] = null;
                 template["HostResource"] = new string[] { gpuWmiPath };
                 string gpuXml = template.GetText(TextFormat.CimDtd20);
 
-                // 4. 查 VM SettingData 路径
+                // 查 VM SettingData 路径
                 var vmSettingResp = await WmiApi.QueryFirstAsync(
                     $"SELECT * FROM Msvm_VirtualSystemSettingData WHERE ElementName = '{WmiApi.Escape(vmName)}' AND VirtualSystemType = 'Microsoft:Hyper-V:System:Realized'",
                     obj => obj.Path.Path);
                 if (!vmSettingResp.HasData) return (false, Properties.Resources.Error_Vm_GetSettings);
 
-                // 5. AddResourceSettings
+                // AddResourceSettings
                 var result = await WmiApi.InvokeAsync(
                     "SELECT * FROM Msvm_VirtualSystemManagementService",
                     "AddResourceSettings",
@@ -438,9 +432,9 @@ namespace ExHyperV.Services
 
                 if (!result.Success) return (false, result.Error);
 
-                // 6. 验证
+                // 验证
                 var vmGuidResp = await WmiApi.QueryFirstAsync(
-                    $"SELECT * FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(vmName)}'",
+                    $"SELECT * FROM Msvm_ComputerSystem WHERE {WmiApi.VmComputerSystemNamePredicate(vmName)}",
                     obj => obj["Name"]?.ToString() ?? "");
                 string vmGuid = vmGuidResp.Data ?? "";
 
@@ -457,21 +451,21 @@ namespace ExHyperV.Services
         {
             try
             {
-                // 1. 查 GpuPartitionSettingData 拿对象路径
+                // 查 GpuPartitionSettingData 拿对象路径
                 string escapedId = adapterId.Replace("\\", "\\\\");
                 var adapterResp = await WmiApi.QueryFirstAsync(
                     $"SELECT * FROM Msvm_GpuPartitionSettingData WHERE InstanceID = '{escapedId}'",
                     obj => obj.Path.Path);
                 if (!adapterResp.HasData) return false;
 
-                // 2. RemoveResourceSettings
+                // RemoveResourceSettings
                 var result = await WmiApi.InvokeAsync(
                     "SELECT * FROM Msvm_VirtualSystemManagementService",
                     "RemoveResourceSettings",
                     p => p["ResourceSettings"] = new string[] { adapterResp.Data });
                 if (!result.Success) return false;
 
-                // 3. Notes 清理
+                // Notes 清理
                 await WmiApi.WithObjectAsync(
                     $"SELECT * FROM Msvm_VirtualSystemSettingData WHERE ElementName = '{WmiApi.Escape(vmName)}' AND VirtualSystemType = 'Microsoft:Hyper-V:System:Realized'",
                     obj =>
@@ -1966,7 +1960,6 @@ namespace ExHyperV.Services
 
                 try
                 {
-                    // --- 阶段 1: 准备工作 (IP 嗅探与连接) ---
                     var currentState = await _queryService.GetVmStateAsync(vmName);
                     if (currentState != "2")
                     {
@@ -1988,12 +1981,11 @@ namespace ExHyperV.Services
                     if (!await WaitForVmToBeResponsiveAsync(credentials.Host, credentials.Port, ct))
                         return Properties.Resources.Error_Gpu_SshTimeout;
 
-                    // --- 阶段 2: 文件上传 (驱动与 WSL 库) ---
                     string remoteTempDir = "/tmp/exhyperv_deploy";
                     using (var client = new SshClient(credentials.Host, credentials.Port, credentials.Username, credentials.Password))
                     {
                         client.Connect();
-                        client.RunCommand($"mkdir -p {remoteTempDir}/drivers {remoteTempDir}/lib");
+                        using var command = client.RunCommand($"mkdir -p {remoteTempDir}/drivers {remoteTempDir}/lib");
                         client.Disconnect();
                     }
 
@@ -2004,25 +1996,20 @@ namespace ExHyperV.Services
                     await SshService.UploadDirectoryAsync(credentials, sourceDriverPath, $"{remoteTempDir}/drivers");
                     await UploadLocalFilesAsync(credentials, $"{remoteTempDir}/lib");
 
-                    // --- 阶段 3: 处理自选脚本 ---
                     string remoteScriptPath = $"{remoteTempDir}/{script.FileName}";
 
-                    // 1. 重新计算代理前缀
                     string proxyEnv = string.Empty;
                     if (credentials.UseProxy && !string.IsNullOrEmpty(credentials.ProxyHost))
                     {
                         string proxyUrl = $"http://{credentials.ProxyHost}:{credentials.ProxyPort}";
-                        // 注入常用的环境变量，强制 wget/curl 走代理
                         proxyEnv = $"http_proxy='{proxyUrl}' https_proxy='{proxyUrl}' HTTP_PROXY='{proxyUrl}' HTTPS_PROXY='{proxyUrl}' ";
                     }
 
                     Log(string.Format(Properties.Resources.Log_Gpu_DownloadingScript, script.Name));
-                    // 使用 sh -c 包裹，确保环境变量对后面的命令生效
                     string downloadCmd = $"{proxyEnv}sh -c \"wget -q -O {remoteScriptPath} {script.SourceUrl} || curl -fL {script.SourceUrl} -o {remoteScriptPath}\"";
 
                     await SshService.ExecuteSingleCommandAsync(credentials, downloadCmd, Log);
                     await SshService.ExecuteSingleCommandAsync(credentials, $"chmod +x {remoteScriptPath}", Log);
-                    // --- 阶段 4: 状态机执行循环 ---
                     bool isSuccess = false;
                     int maxAttempts = 3;
 
@@ -2035,7 +2022,6 @@ namespace ExHyperV.Services
                         // 代理地址单引号包裹 + 转义,防 ProxyHost 含 $()/反引号注入(与上面密码同款转义);正常主机名行为等价
                         string proxyArg = credentials.UseProxy ? $"'http://{credentials.ProxyHost.Replace("'", "'\\''")}:{credentials.ProxyPort}'" : "\"\"";
 
-                        // 使用 sudo -E 保证代理变量能传递给 apt
                         string execCmd = $"echo '{credentials.Password.Replace("'", "'\\''")}' | sudo -S -E -p '' bash {remoteScriptPath} deploy {graphicsArg} {proxyArg}";
 
                         Log(string.Format(Properties.Resources.Log_Gpu_ExecutingAttempt, attempt));

@@ -9,7 +9,6 @@ namespace ExHyperV.ViewModels
 {
     public partial class VirtualMachinesPageViewModel
     {
-        // ===== 时空管理模块 =====
 
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(HasOpenWormhole))]
@@ -41,7 +40,6 @@ namespace ExHyperV.ViewModels
                 var result = await VmSpacetimeService.SetCheckpointsEnabledAsync(SelectedVm.Name, value);
                 if (!result.Success)
                 {
-                    // 失败时回滚 UI 状态
                     Application.Current.Dispatcher.Invoke(() =>
                     {
                         using (SuppressApply()) IsCheckpointsEnabled = !value;
@@ -62,7 +60,7 @@ namespace ExHyperV.ViewModels
         private bool CanOpenWormhole => CanOperateHistoricalNode && !SelectedSpacetimeNode!.IsWormhole;
         private bool CanCloseWormhole => CanOperateHistoricalNode && SelectedSpacetimeNode!.IsWormhole;
 
-        // 任一节点开着虫洞 → VM 磁盘配置临时偏离检查点树；改树操作必须先关虫洞，否则把含临时盘的脏配置卷进树→损坏。
+        // 虫洞开启时磁盘配置暂时偏离检查点树，因此禁止修改检查点树。
         public bool HasOpenWormhole => SpacetimeNodes?.Any(n => n.IsWormhole) == true;
         // 创建时空:需检查点开启 且 无虫洞。湮灭/收束:历史快照 且 无虫洞(穿梭例外——它会先自动关所有虫洞)。
         public bool CanCreateMoment => IsCheckpointsEnabled && !HasOpenWormhole;
@@ -116,7 +114,6 @@ namespace ExHyperV.ViewModels
 
                 var nodes = await VmSpacetimeService.GetSpacetimeNodesAsync(SelectedVm.Name);
 
-                // --- 逻辑优化：处理纯净态（仅有起源和当前时空） ---
                 var snapshots = nodes.Where(n => n.NodeType == SpacetimeNodeType.Snapshot).ToList();
                 if (!snapshots.Any())
                 {
@@ -124,16 +121,12 @@ namespace ExHyperV.ViewModels
                     var current = nodes.FirstOrDefault(n => n.NodeType == SpacetimeNodeType.Current);
                     if (genesis != null && current != null)
                     {
-                        // 1. 将起源的时间（原始 VHDX 时间）赋予当前
                         current.CreatedDate = genesis.CreatedDate;
-                        // 2. 将当前设为根节点（去掉父 ID）
                         current.ParentId = null;
-                        // 3. 移除起源节点
                         nodes.Remove(genesis);
                     }
                 }
 
-                // 更新集合
                 SpacetimeNodes = new ObservableCollection<SpacetimeNode>(nodes);
 
                 // 优先选中“当前”节点（现在它可能是唯一的根，也可能是快照链的末端）
@@ -152,12 +145,11 @@ namespace ExHyperV.ViewModels
                 IsLoadingSettings = false;
             }
         }
-        // 捕捉瞬间 (创建快照)
         [RelayCommand]
         private async Task CaptureMomentAsync()
         {
             if (SelectedVm == null) return;
-            if (HasOpenWormhole) return;   // 双保险:虫洞开着不许创建——按钮已置灰,避免把含临时盘的脏配置拍进检查点
+            if (HasOpenWormhole) return;
 
             var currentFrame = SelectedVm.Thumbnail;
 
@@ -175,7 +167,6 @@ namespace ExHyperV.ViewModels
                     // 给 WMI 一点沉降时间，防止立刻刷新读不到新快照
                     await Task.Delay(1000);
 
-                    // 重新获取节点，由于在 finally 之前调用，遮罩会一直持续到节点树重新画好
                     await GoToSpacetimeSettingsAsync();
 
                     ShowSuccess(Properties.Resources.VmPage_MsgSpacetimeCreated2);
@@ -305,7 +296,6 @@ namespace ExHyperV.ViewModels
         {
             if (SelectedSpacetimeNode == null || SelectedVm == null) return;
 
-            // 同样改为局部加载
             IsLoadingSettings = true;
             try
             {

@@ -24,7 +24,7 @@ namespace ExHyperV.Services
         // 返回 ApiResponse 而非 void：启动失败(配置错误/资源不足/GPU 分区不可用等)不再静默，调用方据此弹错。
         public static async Task<ApiResponse> ExecuteControlActionAsync(string vmName, string action)
         {
-            string wql = $"SELECT * FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(vmName)}'";
+            string wql = $"SELECT * FROM Msvm_ComputerSystem WHERE {WmiApi.VmComputerSystemNamePredicate(vmName)}";
 
             switch (action)
             {
@@ -143,9 +143,8 @@ namespace ExHyperV.Services
 
         private static async Task<VmRuntimeState?> GetRuntimeStateAsync(string vmName, TimeSpan timeout)
         {
-            string safeName = WmiApi.Escape(vmName);
             var queryTask = WmiApi.QueryFirstAsync(
-                $"SELECT EnabledState, ProcessID FROM Msvm_ComputerSystem WHERE ElementName = '{safeName}'",
+                $"SELECT EnabledState, ProcessID FROM Msvm_ComputerSystem WHERE {WmiApi.VmComputerSystemNamePredicate(vmName)}",
                 obj => new VmRuntimeState(
                     Convert.ToUInt16(obj["EnabledState"] ?? (ushort)0),
                     Convert.ToInt32(obj["ProcessID"] ?? 0)));

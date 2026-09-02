@@ -191,7 +191,6 @@ namespace ExHyperV.Services
             catch { }
         }
 
-        // ===== 性能模式 =====
         // 关闭动画、减少内存占用（行为接线见后续；此处仅持久化开关）。存 config.xml 的 <PerformanceMode>。
         public static bool GetPerformanceMode()
         {
@@ -226,7 +225,6 @@ namespace ExHyperV.Services
             catch { }
         }
 
-        // ===== 控制台默认缩放档 =====
         // 保存用户上次手动选择的缩放（如 "150%" 或本地化"适应窗口"）；下次打开控制台优先用它。
 
         public static string? GetDefaultZoom()
@@ -261,7 +259,6 @@ namespace ExHyperV.Services
             catch { }
         }
 
-        // ===== 控制台默认连接模式 =====
         // 保存用户选择的连接模式；增强会话是否可用仍以虚拟机状态为准。
 
         public static string? GetDefaultConnectionMode()
@@ -296,7 +293,6 @@ namespace ExHyperV.Services
             catch { }
         }
 
-        // ===== 控制台增强会话分辨率 =====
         // 保存增强会话最后使用的分辨率（"WxH"）。
 
         public static (int Width, int Height)? GetDefaultConsoleResolution()
@@ -348,7 +344,6 @@ namespace ExHyperV.Services
             catch { }
         }
 
-        // ===== 主机 MMIO 上限缓存（MB） =====
         // 首次 boot-probe 测得的主机物理地址上限，持久化后不再重探（只认第一次测得的结果）。
 
         public static ulong? GetMmioCeilingMb()

@@ -28,7 +28,7 @@ namespace ExHyperV.Services
 
             // 路径 1：WMI Msvm_GuestNetworkAdapterConfiguration（需 guest 内集成服务在线）
             var vmGuidResp = await WmiApi.QueryFirstAsync(
-                $"SELECT Name FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(vmName)}'",
+                $"SELECT Name FROM Msvm_ComputerSystem WHERE {WmiApi.VmComputerSystemNamePredicate(vmName)}",
                 obj => obj["Name"]?.ToString() ?? string.Empty,
                 WmiScope.HyperV);
 

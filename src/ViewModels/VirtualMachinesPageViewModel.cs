@@ -25,12 +25,10 @@ namespace ExHyperV.ViewModels
     }
     public partial class VirtualMachinesPageViewModel : PageViewModelBase, IDisposable
     {
-        // ===== 私有服务字段与依赖注入 =====
         private readonly VmQueryService _queryService;
         private readonly VmGpuService _vmGpuService;
 
 
-        // ===== 监控与后台任务字段 =====
         private CpuMonitorService _cpuService = null!;
         private CancellationTokenSource? _monitoringCts;
         private DispatcherTimer _uiTimer;
@@ -42,14 +40,12 @@ namespace ExHyperV.ViewModels
         private readonly Dictionary<Guid, (string NewName, DateTime Expiry)> _renameLockouts = new();
 
 
-        // ===== 缓存与状态字段 =====
         private const int MaxHistoryLength = 60;
         private readonly Dictionary<string, LinkedList<double>> _historyCache = new();
         // 程序性赋值抑制统一改用基类 SuppressApply()/IsApplySuppressed（原 _isInternalUpdating）。
         // _originalMemorySettingsCache 归 Memory.cs、_isDiskPathManual 归 Create.cs（功能私有，不再堆在核心）。
 
 
-        // ===== 视图模型属性 - 页面状态 =====
         [ObservableProperty] private bool _isLoading = true;
         [ObservableProperty] private bool _isLoadingSettings;
         [ObservableProperty]
@@ -63,13 +59,11 @@ namespace ExHyperV.ViewModels
         [ObservableProperty] private string _searchText = string.Empty;
 
 
-        // ===== 视图模型属性 - 虚拟机列表与选择 =====
         [ObservableProperty] private ObservableCollection<VmInstanceViewModel> _vmList = new();
         [ObservableProperty] private VmInstanceViewModel _selectedVm;
         [ObservableProperty] private BitmapSource? _thumbnail;
 
 
-        // ===== 构造函数与资源释放 =====
 
         // Linux 部署字段
 
@@ -109,9 +103,7 @@ namespace ExHyperV.ViewModels
         }
 
 
-        // ===== 导航与页面状态控制 =====
 
-        // 搜索框文本变化时的过滤逻辑
         partial void OnSearchTextChanged(string value)
         {
             var view = CollectionViewSource.GetDefaultView(VmList);
@@ -122,7 +114,6 @@ namespace ExHyperV.ViewModels
             }
         }
 
-        // 返回仪表盘
         [RelayCommand]
         private void GoBackToDashboard() => CurrentViewType = VmDetailViewType.Dashboard;
 
@@ -153,7 +144,6 @@ namespace ExHyperV.ViewModels
         }
 
 
-        // ===== 虚拟机列表与操作 =====
 
         [RelayCommand]
         private async Task OpenVmFolderAsync(VmInstanceViewModel vm)
@@ -215,9 +205,9 @@ namespace ExHyperV.ViewModels
             var targets = _selectedVms.ToList();
             if (targets.Count == 0) return;
             bool allRunning = targets.All(v => v.IsRunning);
-            string action = allRunning ? "Stop" : "Start";                    // 与单机右键/主按钮一致：Stop=优雅失败则硬关
+            string action = allRunning ? "Stop" : "Start";
             var toAct = (allRunning ? targets.Where(v => v.IsRunning) : targets.Where(v => !v.IsRunning)).ToList();
-            // 复用每台自己的 ControlCommand：连带 transient 态、状态回同步、开机失败的反应式修复都照走。
+            // 复用各虚拟机的 ControlCommand，保持状态同步和启动失败处理一致。
             await Task.WhenAll(toAct.Select(v => v.ControlCommand?.ExecuteAsync(action) ?? Task.CompletedTask));
             OnPropertyChanged(nameof(MultiPowerToggleText));
         }
@@ -276,7 +266,7 @@ namespace ExHyperV.ViewModels
             finally { IsLoading = false; }
         }
 
-        // 批量彻底删除：不逐台展开文件预览（台数多会撑爆），改用名称清单确认 → 逐台彻底删 → 聚合汇报。
+        // 批量彻底删除仅展示名称清单，避免文件预览过长。
         private async Task PurgeMultipleAsync(List<VmInstanceViewModel> targets)
         {
             if (targets.Count == 0) return;
@@ -374,7 +364,7 @@ namespace ExHyperV.ViewModels
                     StringComparison.OrdinalIgnoreCase);
             }
 
-            // 正文用原生控件：上方告警文字（自动换行）+ 下方等宽、可滚动的清单（路径长/文件多都不撑爆弹窗）。
+            // 文件清单使用可滚动区域，避免长路径或大量文件扩大对话框。
             var body = new System.Windows.Controls.StackPanel();
             body.Children.Add(new System.Windows.Controls.TextBlock
             {
@@ -638,7 +628,6 @@ namespace ExHyperV.ViewModels
 
         public List<string> AvailableOsTypes => OsImages.SupportedTypes;
 
-        // 加载虚拟机列表
         [RelayCommand]
         private async Task LoadVmsAsync()
         {
@@ -746,20 +735,17 @@ namespace ExHyperV.ViewModels
         }
 
 
-        // ===== 后台监控循环与状态更新 =====
 
-        // 启动后台监控线程
         private void StartMonitoring()
         {
             if (_monitoringCts != null) return;
             _monitoringCts = new CancellationTokenSource();
             _ = Task.Run(() => MonitorCpuLoop(_monitoringCts.Token));
             _ = Task.Run(() => MonitorStateLoop(_monitoringCts.Token));
-            // 独立的缩略图任务，避免阻塞状态同步
+            // 缩略图刷新独立运行，避免阻塞状态同步。
             _ = Task.Run(() => MonitorThumbnailLoop(_monitoringCts.Token));
         }
 
-        // CPU 使用率监控循环
         private async Task MonitorCpuLoop(CancellationToken token)
         {
             try { _cpuService = new CpuMonitorService(); } catch { return; }
@@ -779,7 +765,6 @@ namespace ExHyperV.ViewModels
             {
                 try
                 {
-                    // 1. 获取后端最新原始数据
                     var updates = await _queryService.GetVmListAsync();
                     var memoryMap = await _queryService.GetVmRuntimeMemoryDataAsync();
 
@@ -789,7 +774,6 @@ namespace ExHyperV.ViewModels
                     Application.Current.Dispatcher.Invoke(() => {
                         bool needsResort = false;
 
-                        // --- A. 监测删除：移除本地列表中 已经不存在于后端 的 VM ---
                         var updateIds = updates.Select(u => u.Id).ToHashSet();
                         for (int i = VmList.Count - 1; i >= 0; i--)
                         {
@@ -801,7 +785,6 @@ namespace ExHyperV.ViewModels
                             }
                         }
 
-                        // --- B. 监测新建：添加后端存在但 本地列表没有 的 VM ---
                         var currentIds = VmList.Select(v => v.Id).ToHashSet();
                         foreach (var update in updates)
                         {
@@ -813,7 +796,6 @@ namespace ExHyperV.ViewModels
                             }
                         }
 
-                        // --- C. 更新属性：原有逻辑 ---
                         foreach (var update in updates)
                         {
                             // 使用 Id 匹配比 Name 更可靠，因为 VM 可能会被改名
@@ -848,7 +830,7 @@ namespace ExHyperV.ViewModels
                                 if (wasRunning != vm.IsRunning) needsResort = true;
 
                                 // PageVM-only side effect 1：运行时收集 IP。
-                                // 集成服务报的列表(含 IPv4+IPv6/多地址)最权威，绝不覆盖；嗅探/查询只补"没 IP 的空网卡"(如国产环境)。
+                                // 集成服务返回的地址优先；嗅探和查询仅补充没有地址的网卡。
                                 if (vm.IsRunning)
                                 {
                                     foreach (var adapter in vm.NetworkAdapters)
@@ -941,14 +923,12 @@ namespace ExHyperV.ViewModels
             catch { }
         }
 
-        // 处理 CPU 更新数据
         private void ProcessAndApplyCpuUpdates(List<VmCoreMetric> rawData) { var grouped = rawData.GroupBy(x => x.VmName); foreach (var group in grouped) { var vm = VmList.FirstOrDefault(v => v.Name == group.Key); if (vm == null) continue; vm.AverageUsage = vm.IsRunning ? group.Average(x => x.Usage) : 0; UpdateVmCores(vm, group.ToList()); } }
         private void UpdateVmCores(VmInstanceViewModel vm, List<VmCoreMetric> metrics) { var metricIds = metrics.Select(m => m.CoreId).ToHashSet(); vm.Cores.Where(c => !metricIds.Contains(c.CoreId)).ToList().ForEach(r => vm.Cores.Remove(r)); foreach (var metric in metrics) { var core = vm.Cores.FirstOrDefault(c => c.CoreId == metric.CoreId); if (core == null) { core = new VmCoreItem { CoreId = metric.CoreId }; int idx = 0; while (idx < vm.Cores.Count && vm.Cores[idx].CoreId < metric.CoreId) idx++; vm.Cores.Insert(idx, core); } core.Usage = metric.Usage; UpdateHistory(vm.Name, core); } vm.Columns = GridLayoutMath.CalculateOptimalColumns(vm.Cores.Count); vm.Rows = (vm.Cores.Count > 0) ? (int)Math.Ceiling((double)vm.Cores.Count / vm.Columns) : 1; }
         private void UpdateHistory(string vmName, VmCoreItem core) { string key = $"{vmName}_{core.CoreId}"; if (!_historyCache.TryGetValue(key, out var history)) { history = new LinkedList<double>(); for (int k = 0; k < MaxHistoryLength; k++) history.AddLast(0); _historyCache[key] = history; } history.AddLast(core.Usage); if (history.Count > MaxHistoryLength) history.RemoveFirst(); core.HistoryPoints = CalculatePoints(history); }
         private PointCollection CalculatePoints(LinkedList<double> history) { double w = 100.0, h = 100.0, step = w / (MaxHistoryLength - 1); var points = new PointCollection(MaxHistoryLength + 2) { new Point(0, h) }; int i = 0; foreach (var val in history) points.Add(new Point(i++ * step, h - (val * h / 100.0))); points.Add(new Point(w, h)); points.Freeze(); return points; }
 
 
-        // ===== UI 辅助方法 =====
 
         private string GetOptimisticText(string action) => action switch { "Start" => Properties.Resources.Status_Starting, "Restart" => Properties.Resources.Status_Restarting, "Stop" => Properties.Resources.Status_StoppingPresent, "TurnOff" => Properties.Resources.Status_StoppingPresent, "Save" => Properties.Resources.Status_Saving, "Suspend" => Properties.Resources.Status_Suspending, _ => Properties.Resources.Status_Processing };
 
@@ -980,7 +960,7 @@ namespace ExHyperV.ViewModels
                     Application.Current.Dispatcher.Invoke(() => sel.Thumbnail = null);
                 }
 
-                // 缩略图不需要太高的刷新率，1.5秒或2秒一次即可，避免占用过多WMI资源
+                // 降低缩略图刷新频率以减少 WMI 开销。
                 await Task.Delay(1500, token);
             }
         }

@@ -48,7 +48,6 @@
                                ToolTip="{x:Static properties:Resources.ConsoleWindow_StartVm}"
                                Visibility="{Binding IsRunning, Converter={StaticResource BoolToVis}, ConverterParameter=Invert}"/>
 
-                            <!-- 运行状态按钮组 -->
                             <StackPanel Orientation="Horizontal"
                                 Visibility="{Binding IsRunning, Converter={StaticResource BoolToVis}}">
                                 <ui:Button Icon="{ui:SymbolIcon Symbol=Power24}"
@@ -182,7 +181,7 @@
             </ui:TitleBar.Header>
         </ui:TitleBar>
 
-        <!-- 虚拟机画面：通用 RDP 承载控件缩到 VM 尺寸居中，周围 RdpArea 黑底。连接期间的遮挡由 RdpClientHost 内部黑布(WinForms 层)负责。 -->
+        <!-- RDP 画面按虚拟机尺寸居中；连接遮罩由 RdpClientHost 的 WinForms 层提供。 -->
         <Grid x:Name="RdpArea" Background="#FF000000">
             <tools:RdpClientHost x:Name="RdpHost" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
         </Grid>

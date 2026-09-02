@@ -36,7 +36,6 @@
             </StackPanel>
         </Grid>
 
-        <!-- 2. 内容区域 -->
         <Grid Grid.Row="1" Margin="24,0,24,24">
             <Grid.RowDefinitions>
                 <RowDefinition Height="*"/>
@@ -57,7 +56,6 @@
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
 
-                            <!-- 2. 图标间距：增加到 24，解决过于紧凑的问题 -->
                             <Image Grid.Column="0" Height="64" Width="64" Margin="8,0,12,0" 
                                    VerticalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality">
                                 <Image.Source>
@@ -68,12 +66,10 @@
                                 </Image.Source>
                             </Image>
 
-                            <!-- 1 & 4. 文本区域：增加两行之间的间距 -->
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                 <TextBlock Text="{Binding Name}" FontSize="16" FontWeight="Normal"
                                            Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
 
-                                <!-- 3. TextWrapping="Wrap" 配合外层 Disabled 滚动条 -->
                                 <TextBlock Text="{Binding PathDisplay, Mode=OneWay}" 
                                            FontSize="13" 
                                            Margin="0,12,0,0" 

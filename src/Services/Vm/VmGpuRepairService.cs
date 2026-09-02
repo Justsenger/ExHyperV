@@ -7,16 +7,15 @@ namespace ExHyperV.Services
     /// <summary>
     /// 失效 GPU-PV(GPU Partition 钉死的物理 GPU 路径在当前主机失配)的检测与修复。
     ///
-    /// 关键事实(真机实测):此类记录在 WMI 层完全隐形 —— Get-VMGpuPartitionAdapter 与裸 WMI
-    /// Msvm_GpuPartitionSettingData 均返回 0,Remove-VMGpuPartitionAdapter 报"找不到适配器"。
-    /// 因此官方 cmdlet/WMI 删不掉它,必须走 .vmcx 引擎(ExHyperV.Vmcx.VmcxStore)直接编辑单个 .vmcx。
+    /// 此类记录不会出现在 Get-VMGpuPartitionAdapter 或 Msvm_GpuPartitionSettingData 中，
+    /// 因此需要通过 VmcxStore 编辑对应的 .vmcx 文件。
     /// 单个 .vmcx 被 vmms 以 FILE_SHARE_READ|WRITE 协作共享打开:引擎可就地写,改完 Start-VM 即生效,无需停 vmms。
     ///
-    /// 失配判定走【完整路径串精确比对】(不是只看"池里有没有这张卡"):GPU-PV 钉死的是某块卡的
+    /// 失配判定使用完整路径精确比对；GPU-PV 绑定的是某块卡的
     /// 完整 GPUPARAV 路径(含 PCIe 位置段),主机重启/重插后即使同一张卡仍在,位置段也可能变 → 路径失配 → 起不来。
     /// 失配后再比对硬件标识(VEN/DEV/SUBSYS/REV)区分:
-    ///   · 同标识的卡仍在池里(只是路径变了)→ 可【重指】到新路径,保住 GPU 加速;
-    ///   · 池里无同标识的卡(卡真的不在了)→ 只能【清除】这条 GPU-PV(VM 可开机,无 GPU)。
+    ///   · 同标识的卡仍在池里：更新为新路径；
+    ///   · 池里无同标识的卡：删除失效的 GPU-PV 设备。
     /// </summary>
     public static class VmGpuRepairService
     {
@@ -82,7 +81,7 @@ namespace ExHyperV.Services
         }
 
         /// <summary>检测某注册 VM 的失效 GPU-PV:用引擎读单个 .vmcx。先检测核心字段残缺的 WMI 隐形设备,
-        /// 再对每条钉死了物理路径的完整 GPU Partition 用【完整路径串】比对可分区 GPU 池;
+        /// 再将绑定物理路径的 GPU Partition 与可分区 GPU 池做完整路径比对；
         /// 不在池里即失配,再按硬件标识判断能否重指。合法通用池设备无 HostResource,但核心字段完整。
         /// 池查询失败时仍返回结构残缺项,钉死路径项则保守跳过。</summary>
         public static async Task<List<StaleGpuPartition>> FindStaleGpuPartitionsAsync(string vmName)

@@ -1,12 +1,5 @@
 #nullable disable
-// VmcxStore — .vmcx 读写引擎(基于官方 VmDataStore.dll / WinRT KeyValueStore)。
-// 一切编辑通过官方引擎,产物必然合法(B树/校验/replaylog 全自动)。
-//   using (var s = VmcxStore.Open(path)) {
-//       foreach (var n in s.Enumerate()) ...
-//       using (var w = s.BeginWrite()) { w.SetInteger(p, v); w.Commit(); }
-//   }
-// 本文件为 GPU-PV/DDA 类幽灵设备修复所需的最小集;编辑器全量能力(建设备/挂盘/任意类型读写)
-// 在独立项目 ExHyperV-Edit,扩展编辑功能时从那边整体引入。
+// 基于 VmDataStore.dll 的 .vmcx 读写接口，仅包含 GPU-PV 和 DDA 设备修复所需能力。
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
@@ -60,7 +53,7 @@ public sealed class VmcxStore : IDisposable {
     static void EnsureInit() {
         if (s_statics != IntPtr.Zero) return;
         lock (s_initLock) {
-            if (s_statics != IntPtr.Zero) return;   // 双重检查:并发首调下只初始化一次
+            if (s_statics != IntPtr.Zero) return;
             IntPtr dll = LoadLibrary(@"C:\Windows\System32\VmDataStore.dll");
             if (dll == IntPtr.Zero) throw new InvalidOperationException(Properties.Resources.Vmcx_DllLoadFail);
             IntPtr fac;
@@ -68,7 +61,7 @@ public sealed class VmcxStore : IDisposable {
             Guid s = IID_STATICS; IntPtr statics;
             Hr(D<DQI>(Slot(fac, 0))(fac, ref s, out statics), "QI IKeyValueStoreStatics");
             s_create = Slot(statics, 6);
-            s_statics = statics;                     // 最后再赋值,确保其它线程看到的是已完整初始化的状态
+            s_statics = statics;
         }
     }
 
@@ -89,7 +82,7 @@ public sealed class VmcxStore : IDisposable {
             st._hvs = Marshal.ReadIntPtr(st._ikv, 0x40);
             ok = true;
             return st;
-        } finally { if (!ok) st.Dispose(); }   // 失败时释放已创建的 _store,避免泄漏
+        } finally { if (!ok) st.Dispose(); }
     }
 
     public long   GetInteger(string keyPath){ long v=0; Hr(WithKey(keyPath, k=>D<DGetI>(Slot(_ikv,GET_INT))(_ikv,k, out v)), "GetInteger"); return v; }
@@ -105,8 +98,7 @@ public sealed class VmcxStore : IDisposable {
     int WithKey(string keyPath, Func<IntPtr,int> call){ IntPtr h=MakeHStr(keyPath); try { return call(h); } finally { WindowsDeleteString(h); } }
 
     /// <summary>枚举整棵树(值 + 容器节点),路径为全路径。
-    /// 每步 COM 调用都检查 HRESULT(失败抛 VmcxException 而非闷头读空指针崩进程——损坏文件正是修复场景的常态输入);
-    /// iter/i0 的释放放在 finally,异常路径不泄漏 COM 引用。</summary>
+    /// COM 调用失败时抛出 VmcxException，并在异常路径释放迭代器。</summary>
     public List<VmcxNode> Enumerate() {
         var result = new List<VmcxNode>();
         Guid it = IID_ITER; IntPtr i0 = IntPtr.Zero, iter = IntPtr.Zero;
@@ -133,7 +125,7 @@ public sealed class VmcxStore : IDisposable {
                         }
                         result.Add(new VmcxNode { Path = FromHStr(hk), Type = FromHStr(ht), Value = FromHStr(hv), IsValue = isv != 0 });
                     } finally {
-                        // 释放本轮拥有的资源(out HSTRING 与 Current 节点均归调用方所有),否则长生命周期(GUI)会累积泄漏。
+                        // out HSTRING 与 Current 节点的所有权归调用方。
                         if (hk != IntPtr.Zero) WindowsDeleteString(hk);
                         if (ht != IntPtr.Zero) WindowsDeleteString(ht);
                         if (hv != IntPtr.Zero) WindowsDeleteString(hv);
@@ -148,10 +140,8 @@ public sealed class VmcxStore : IDisposable {
         return result;
     }
 
-    /// <summary>不变量感知地删除一个设备:先原子维护 manifest(摘条目+压缩重排+size),后删数据节点。返回被删 vdev 编号。
-    /// 顺序刻意为"先清单后数据"——中途中断的残留是无 manifest 条目的孤儿数据(无害,VM 照常启动),
-    /// 而非"清单挂条目却无数据"的幽灵(致命,VM 起不来)。重排为压缩式全量重写:对编号空洞的
-    /// 坏输入(上次中断/外部工具产物)免疫,size 按实数写,任何输入都收敛为连续健康清单。</summary>
+    /// <summary>先压缩并重写 manifest，再删除设备数据节点；返回被删除的 vdev 编号。
+    /// 此顺序使中断只留下不影响启动的孤立数据，不会留下缺少数据的 manifest 条目。</summary>
     public int RemoveDevice(string instanceGuid) {
         string g = instanceGuid.Trim('{','}','_',' ').ToLowerInvariant();
         var nodes = Enumerate();
@@ -172,7 +162,6 @@ public sealed class VmcxStore : IDisposable {
         if (K < 0) throw new VmcxException(string.Format(Properties.Resources.Vmcx_ManifestEntryNotFound, instanceGuid), -1);
         int maxN = 0; foreach (var kv in entries) if (kv.Key > maxN) maxN = kv.Key;
 
-        // ① manifest 原子维护:剩余条目压缩重写为 1..N 连续,多余尾部删除,size=实际条目数。
         using (var w = BeginWrite()) {
             int dst = 0;
             foreach (var kv in entries) {
@@ -193,8 +182,7 @@ public sealed class VmcxStore : IDisposable {
             w.Commit();
         }
 
-        // ② 删设备数据子树。★VDEVVersion 是设备节点的粘键:它在"多删同一事务"或"它正好清空节点"的那一删里删不掉。
-        //   实测可靠做法:节点尚有别的子键时,把 VDEVVersion 单独一个事务先删;其余值再一并删(随最后一个删除而节点消失)。
+        // VDEVVersion 需要先在独立事务中删除，其余值才能随节点一起清除。
         string devNode = "/configuration/_"+g+"_";
         var leaves = new List<string>();
         foreach (var n in nodes) if (n.IsValue && n.Path.StartsWith(devNode+"/", StringComparison.OrdinalIgnoreCase)) leaves.Add(n.Path);
@@ -202,9 +190,9 @@ public sealed class VmcxStore : IDisposable {
             using (var w = BeginWrite()) { w.Remove(lf); w.Commit(); }
         var rest = new List<string>();
         foreach (var lf in leaves) if (!lf.EndsWith("/VDEVVersion", StringComparison.OrdinalIgnoreCase)) rest.Add(lf);
-        if (rest.Count > 0)   // ★幽灵设备(空数据节点)时 leaves 为空,别开空事务(空提交返回 hr=1)
+        if (rest.Count > 0)
             using (var w = BeginWrite()) { foreach (var lf in rest) w.Remove(lf); w.Commit(); }
-        // 兜底:若仍有残留(其它未知粘键),逐个单独事务删除。
+        // 未知残留键需要逐个事务删除。
         for (int pass = 0; pass < 5; pass++) {
             var rem = new List<string>();
             foreach (var n in Enumerate())
@@ -250,9 +238,7 @@ public sealed class VmcxStore : IDisposable {
             bool benign = kv.Value.Count == 0 || (kv.Value.Count == 1 && kv.Value[0].Equals("VDEVVersion", StringComparison.OrdinalIgnoreCase));
             if (!benign) issues.Add(string.Format(Properties.Resources.Vmcx_OrphanNode, kv.Key));
         }
-        // 反向检查:幽灵设备 = manifest 有条目但数据节点空/缺失,且同类型的其它设备有数据节点。
-        //   (致命:VM 报 0x80070002 起不来。)用"同类型兄弟有数据"作判据,避免误报本就无数据节点的平台设备
-        //   (如 BIOS/总线等;它们整族都无数据节点)。
+        // 同类设备存在数据时，缺少数据节点的 manifest 条目视为损坏；平台设备等整类无数据节点的条目除外。
         var typesWithData = new HashSet<string>();
         foreach (var kv in vdev) {
             int c = devVals.ContainsKey(kv.Value) ? devVals[kv.Value].Count : 0;
@@ -265,8 +251,7 @@ public sealed class VmcxStore : IDisposable {
                 issues.Add(string.Format(Properties.Resources.Vmcx_GhostDevice,
                     kv.Key, kv.Value, c < 0 ? Properties.Resources.Vmcx_GhostMissing : Properties.Resources.Vmcx_GhostEmpty));
         }
-        // DDA(Virtual Pci Express Port)完整性:必须有 HostResources/HostResource/Instance(物理设备路径);
-        //   只剩 VDEVVersion 的残缺 DDA 不会被上面的幽灵检测抓到(它有1个值),但同样起不来。这是用户的核心用例。
+        // DDA 设备必须包含 HostResources/HostResource/Instance。
         const string DDA_TYPE = "2fcc454e-a36a-4c77-bb5e-a2d75a51f02c";
         foreach (var kv in vdev) {
             string t2; if (!vdevType.TryGetValue(kv.Key, out t2) || t2 != DDA_TYPE) continue;

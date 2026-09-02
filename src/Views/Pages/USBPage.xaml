@@ -32,7 +32,6 @@
                     <!-- 左侧图标 -->
                     <ui:SymbolIcon Grid.Column="0" Symbol="Info24" FontSize="20" Margin="0,0,12,0" Foreground="{ui:ThemeResource SystemFillColorCautionBrush}"/>
 
-                    <!-- 中间文字内容：使用 Run 让标题和正文同排 -->
                     <TextBlock Grid.Column="1" VerticalAlignment="Center" TextWrapping="Wrap">
             <Run Text="{x:Static properties:Resources.USBPage_DriverNoticeDesc}" 
                  FontSize="16" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>

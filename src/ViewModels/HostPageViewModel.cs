@@ -13,11 +13,9 @@ namespace ExHyperV.ViewModels
 
     public partial class HostPageViewModel : PageViewModelBase
     {
-        // ===== 字段与状态 =====
 
         private bool _isInitialized = false;
 
-        // ===== 绑定属性 =====
 
         public CheckStatusViewModel SystemStatus { get; } = new("");
         public CheckStatusViewModel CpuStatus { get; } = new("");
@@ -76,7 +74,6 @@ namespace ExHyperV.ViewModels
 
         public ObservableCollection<HostPowerPlan> PowerPlans { get; } = new();
 
-        // ===== 构造与初始化检查 =====
 
         public HostPageViewModel() => LoadInitialStatusAsync().SafeFireAndForget();
 
@@ -188,7 +185,6 @@ namespace ExHyperV.ViewModels
             catch { }
         }
 
-        // ===== 属性变更处理 =====
 
         partial void OnIsGpuStrategyEnabledChanged(bool value)
         {
@@ -412,7 +408,6 @@ namespace ExHyperV.ViewModels
                 : string.Join("-", Enumerable.Range(0, 6).Select(i => normalized.Substring(i * 2, 2)));
         }
 
-        // ===== 命令 =====
 
         [RelayCommand]
         private async Task DisableHyperVAsync()
@@ -444,7 +439,6 @@ namespace ExHyperV.ViewModels
             ShowRestartPrompt(Properties.Resources.Msg_Host_EnableSuccess);
         }
 
-        // ===== 系统版本切换 =====
 
         private void InitializeProductType()
         {
@@ -543,7 +537,6 @@ namespace ExHyperV.ViewModels
 
     }
 
-    // ===== 检查项状态子 VM =====
 
     public partial class CheckStatusViewModel : ObservableObject
     {

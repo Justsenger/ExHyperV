@@ -9,7 +9,7 @@ namespace ExHyperV.Services
     ///   vTPM    = Msvm_SecuritySettingData.TpmEnabled → Msvm_SecurityService.ModifySecuritySettings
     ///   加密迁移 = Msvm_SecuritySettingData.EncryptStateAndVmMigrationTraffic → 同上
     /// 改动统一走 WmiApi.WithObjectAsync(与 VmBoot/VmMemory/VmEdit 等服务一致)；仅 TPM 启用的 HGS
-    /// guardian/keyprotector 因需跨 scope + ManagementClass 特例，忠实照抄 VmCreateService.EnableTpmAsync 的裸 WMI。
+    /// guardian/key protector 跨 WMI scope，使用与创建流程相同的原生 WMI 调用。
     /// </summary>
     public static class VmSecurityService
     {
@@ -52,7 +52,7 @@ namespace ExHyperV.Services
         /// (如"受防护的开源 VM"需装防护功能才在列；GUID 各主机一致但应以主机为准)。
         /// 路径与微软库 IVMService.GetSecureBootTemplates 一致：
         ///   Msvm_VirtualSystemManagementCapabilities --(SettingsDefineCapabilities)--> Msvm_VirtualSystemSettingData
-        /// 取其中带 SecureBootTemplateId 的项；Description 是主机本地化友好名。已在本机实测命中 3 个。
+        /// 取其中带 SecureBootTemplateId 的项；Description 是主机本地化友好名。
         /// </summary>
         public static async Task<List<(string Name, string Guid)>> GetSecureBootTemplatesAsync()
         {
@@ -116,7 +116,7 @@ namespace ExHyperV.Services
 
         /// <summary>启用/禁用 vTPM。需 VM 关机。
         /// 启用：已有真 KP 则复用、只翻 TpmEnabled；仅首次(无 KP)才铸钥。只设 TpmEnabled、不连带加密(加密是独立开关)。
-        /// 绝不在已有 KP 时重铸：NewByGuardians 每次生成全新数据加密密钥，重铸换钥会使已加密状态解不开 → 启动 0xC000A002。
+        /// 已有 KeyProtector 时不得重新生成；NewByGuardians 会更换数据加密密钥，导致已有加密状态无法解密。
         /// 微软 Enable-VMTPM 同理：只翻标志、从不铸 KP、也不碰加密。禁用：仅置 TpmEnabled=false。</summary>
         public static async Task<(bool Success, string Message)> SetTpmAsync(string vmName, bool enabled)
         {
@@ -160,7 +160,7 @@ namespace ExHyperV.Services
         private static async Task<string?> GetVmGuidAsync(string vmName)
         {
             var resp = await WmiApi.QueryFirstAsync(
-                $"SELECT Name FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(vmName)}'",
+                $"SELECT Name FROM Msvm_ComputerSystem WHERE {WmiApi.VmComputerSystemNamePredicate(vmName)}",
                 obj => obj["Name"]?.ToString() ?? string.Empty,
                 WmiScope.HyperV);
             return resp.Success ? resp.Data : null;
@@ -188,8 +188,7 @@ namespace ExHyperV.Services
         });
 
         // 启用 TPM：HGS guardian + 本地 KeyProtector + SetKeyProtector + TpmEnabled=true。
-        // 忠实照抄 VmCreateService.EnableTpmAsync —— 跨 scope(hgs) + ManagementClass.InvokeMethod 取 cmdletOutput +
-        // kpParams.Properties["Owner"].Value 这些特例 WmiApi 未抽象，必须裸 WMI。
+        // 与 VmCreateService.EnableTpmAsync 使用相同的跨 scope 调用；WmiApi 尚未抽象这些 HGS 参数。
         private static Task EnableTpmAsync(string vmGuid) => Task.Run(() =>
         {
             var hyperVScope = WmiConnectionCache.GetManagementScope(WmiScope.HyperV, WmiContext.Local);

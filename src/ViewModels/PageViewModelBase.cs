@@ -30,7 +30,6 @@ namespace ExHyperV.ViewModels
         protected void ShowRestartPrompt(string message)
             => Notifications.ShowRestartPrompt(message);
 
-        // ===== 程序性赋值抑制 =====
         // 加载/失败回弹时会以代码给绑定属性赋值，这会触发 OnXxxChanged / PropertyChanged 处理器；
         // 若不区分就会被当成"用户操作"再写回引擎，造成回环或误写。各页面 VM 过去各自发明了
         // _isInternalUpdating / _suppressXxxApply 一堆同义布尔——此处统一为一个按页计数的抑制域。

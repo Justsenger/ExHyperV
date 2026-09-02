@@ -68,7 +68,7 @@ public partial class App
     {
         ExHyperV.Services.HostAzureFeatureSetService.EnsureDisabledAtRest();
         // 主动停掉 ARP 嗅探的 ETW 会话：赶在 CLR 硬终止后台线程之前、在受控时机清理，
-        // 否则 pump 线程卡在 native ProcessTrace 会吊死整个进程退出。Service 内 ProcessExit 注册留作兜底。
+        // 否则 ProcessTrace 线程会阻止进程退出；服务层的 ProcessExit 处理仅作后备。
         ExHyperV.Services.ArpSnoopService.Instance.Dispose();
         base.OnExit(e);
     }
@@ -113,7 +113,7 @@ public partial class App
 
     private void WriteLanguageToConfig(string cultureCode)
     {
-        // 配置写不了(首次运行遇只读目录/权限不足/文件损坏)绝不能让启动崩溃——静默跳过持久化，语言已在内存生效。
+        // 配置不可写时跳过持久化，语言设置仍在当前进程内生效。
         try
         {
             var configDoc = File.Exists(ConfigFilePath)

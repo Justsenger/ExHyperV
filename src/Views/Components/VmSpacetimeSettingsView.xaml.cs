@@ -694,8 +694,7 @@ namespace ExHyperV.Views
             double frameDeltaX = _lastMousePos.X - currentPos.X;
             double frameDeltaY = _lastMousePos.Y - currentPos.Y;
 
-            // 单帧位移过大（超过 50 像素）= 异常，直接丢弃这一帧
-            // 正常人手单帧不可能移动这么多，这种数据一定是事件错乱导致
+            // 丢弃超过阈值的位移，避免事件基准错乱导致画布跳动。
             if (Math.Abs(frameDeltaX) > 50 || Math.Abs(frameDeltaY) > 50)
             {
                 Debug.WriteLine(string.Format(Properties.Resources.VmSpacetimeSettings_LogAbnormalDelta, frameDeltaX, frameDeltaY));

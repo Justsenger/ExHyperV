@@ -22,7 +22,6 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <!-- 1. 顶部标题栏 -->
         <Grid Grid.Row="0" Margin="0,0,0,12">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
@@ -45,7 +44,6 @@
             </StackPanel>
         </Grid>
 
-        <!-- 2. 主滚动区域 -->
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" PanningMode="VerticalOnly">
             <StackPanel Margin="0,0,12,0">
 
@@ -106,7 +104,6 @@
                 <ui:Card Margin="0,16,0,0" Padding="0" 
                          Visibility="{Binding ShowPartitionSelector, Converter={StaticResource BoolToVis}}">
                     <Grid>
-                        <!-- 1. 分区列表界面 -->
                         <Grid>
                             <Grid.Style>
                                 <Style TargetType="Grid">
@@ -150,7 +147,6 @@
                             </ui:ListView>
                         </Grid>
 
-                        <!-- 2. SSH 凭据表单界面 -->
                         <Border Padding="24">
                             <Border.Style>
                                 <Style TargetType="Border">
@@ -171,7 +167,6 @@
                                 <!-- 方案选择容器 -->
                                 <ui:Card Padding="16" Margin="0,0,0,20" Background="{ui:ThemeResource ControlFillColorDefaultBrush}">
                                     <StackPanel>
-                                        <!-- 1. 标题与下拉列表（移除图标） -->
                                         <Grid Margin="0,0,0,12">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="Auto"/>
@@ -198,7 +193,6 @@
                                             </ComboBox>
                                         </Grid>
 
-                                        <!-- 2. 描述区域：作者信息放在描述左边 -->
                                         <Border Padding="12,10" CornerRadius="4" Background="{ui:ThemeResource ControlFillColorSecondaryBrush}">
                                             <Grid>
                                                 <Grid.ColumnDefinitions>
@@ -206,7 +200,6 @@
                                                     <ColumnDefinition Width="*"/>
                                                 </Grid.ColumnDefinitions>
 
-                                                <!-- 左侧作者信息（移除图标） -->
                                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Top" Margin="0,0,12,0" Opacity="0.7">
                                                     <TextBlock Text="{Binding SelectedLinuxScript.Author}" FontSize="12" FontWeight="Medium" VerticalAlignment="Center"/>
                                                     <TextBlock Text=":" FontSize="12" VerticalAlignment="Center" Margin="2,0,0,0"/>
@@ -260,21 +253,15 @@
                                 <!-- 图形驱动选项 -->
                                 <CheckBox Content="{x:Static properties:Resources.CheckBox_InstallGraphicsDrivers}" IsChecked="{Binding InstallGraphics}" Margin="0,0,0,20"/>
 
-                                <!-- HTTP 代理 (可选) 区域 -->
                                 <Border Padding="16" Background="{ui:ThemeResource ControlFillColorTertiaryBrush}" CornerRadius="8" Margin="0,0,0,25">
                                     <Grid>
                                         <Grid.RowDefinitions>
                                             <RowDefinition Height="Auto"/>
-                                            <!-- 第一行：标题和开关 -->
                                             <RowDefinition Height="Auto"/>
-                                            <!-- 第二行：提示文字 -->
                                             <RowDefinition Height="Auto"/>
-                                            <!-- 第三行：输入框 -->
                                             <RowDefinition Height="Auto"/>
-                                            <!-- 第四行：持久化勾选 -->
                                         </Grid.RowDefinitions>
 
-                                        <!-- 1. 顶部行：标题在左，开关在右 -->
                                         <DockPanel Grid.Row="0" LastChildFill="False" Margin="0,0,0,8">
                                             <TextBlock Text="{x:Static properties:Resources.GroupBox_HttpProxyOptional}" 
                        FontWeight="Medium" VerticalAlignment="Center" DockPanel.Dock="Left"/>
@@ -285,12 +272,10 @@
                              VerticalAlignment="Center"/>
                                         </DockPanel>
 
-                                        <!-- 2. 提示文字 -->
                                         <TextBlock Grid.Row="1" Text="{x:Static properties:Resources.Info_UseProxyForGitHub}" 
                    FontSize="11" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" 
                    Margin="0,0,0,15" TextWrapping="Wrap"/>
 
-                                        <!-- 3. 输入框区域 (仅在开关开启时可用) -->
                                         <Grid Grid.Row="2" IsEnabled="{Binding UseSshProxy}">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="2*" />
@@ -329,7 +314,6 @@
 
 
                 
-                <!-- 3. 配置日志控制台 -->
                 <ui:Card Margin="0,16,0,0" Padding="0" VerticalAlignment="Stretch"
                          Visibility="{Binding ShowLogConsole, Converter={StaticResource BoolToVis}}">
                     <Grid>

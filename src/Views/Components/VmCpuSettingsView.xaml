@@ -13,7 +13,6 @@
              d:DesignHeight="3000" d:DesignWidth="1000">
     <UserControl.Resources>
 
-        <!-- 样式 1: 严格限制样式（仅虚拟机完全关机时可用） -->
         <!-- 用于绝大多数 CPU 高级设置 -->
         <Style x:Key="ShutdownRequiredToggleStyle" TargetType="ui:ToggleSwitch" BasedOn="{StaticResource {x:Type ui:ToggleSwitch}}">
             <Setter Property="VerticalAlignment" Value="Center"/>

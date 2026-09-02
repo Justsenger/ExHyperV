@@ -12,7 +12,6 @@ namespace ExHyperV.ViewModels
 {
     public partial class VirtualMachinesPageViewModel
     {
-        // ===== 视图模型属性 - CPU 设置 =====
         public ObservableCollection<int> PossibleVCpuCounts { get; private set; } = new();
         [ObservableProperty] private ObservableCollection<VmCoreItem> _affinityHostCores = new();
         [ObservableProperty] private int _affinityColumns = 8;
@@ -39,7 +38,6 @@ namespace ExHyperV.ViewModels
         private bool _cpuCapsInit;
 
 
-        // ===== CPU 设置与亲和性模块 =====
 
         // 初始化可能的 vCPU 数量选项
         private void InitPossibleCpuCounts()
@@ -58,7 +56,6 @@ namespace ExHyperV.ViewModels
             IsIntelHost = await HostPlatformService.GetNativeHostPlatformAsync() == HostPlatform.Intel;
         }
 
-        // 导航至 CPU 设置页面
         [RelayCommand]
         private async Task GoToCpuSettingsAsync()
         {
@@ -92,7 +89,6 @@ namespace ExHyperV.ViewModels
             }
         }
 
-        // 应用 CPU 设置更改
         [RelayCommand]
         private async Task ApplyChangesAsync()
         {
@@ -119,7 +115,6 @@ namespace ExHyperV.ViewModels
             finally { IsLoadingSettings = false; }
         }
 
-        // 导航至 CPU 亲和性页面
         [RelayCommand]
         private async Task GoToCpuAffinityAsync()
         {
@@ -185,7 +180,6 @@ namespace ExHyperV.ViewModels
             }
         }
 
-        // 保存亲和性设置
         [RelayCommand]
         private async Task SaveAffinityAsync()
         {
@@ -193,10 +187,8 @@ namespace ExHyperV.ViewModels
             IsLoadingSettings = true;
             try
             {
-                // 1. 获取用户选中的核心索引列表
                 var selectedIndices = AffinityHostCores.Where(c => c.IsSelected).Select(c => c.CoreId).ToList();
 
-                // 2. 调用服务应用设置 (内部会自动判断调度器类型)
                 bool success = await CpuAffinityService.SetCpuAffinityAsync(SelectedVm.Id, selectedIndices, SelectedVm.IsRunning);
 
                 // Root 调度器在虚拟机未运行时无法立即设置 vmmem 进程亲和性，
@@ -218,7 +210,6 @@ namespace ExHyperV.ViewModels
                 }
                 else
                 {
-                    // 如果是因为 Root 模式未开机导致无法实时应用
                     if (queueForRootStartup)
                     {
                         ShowTip($"{Properties.Resources.Msg_Cpu_AffinityQueued}：{Properties.Resources.Msg_Cpu_RootNotice}");
@@ -240,7 +231,6 @@ namespace ExHyperV.ViewModels
             }
         }
 
-        // 自动应用亲和性
 
         private void TryApplyAffinityForRootScheduler(VmInstanceViewModel vm)
         {
@@ -252,7 +242,6 @@ namespace ExHyperV.ViewModels
             if (string.IsNullOrEmpty(savedAffinity))
                 return;
 
-            // 异步执行，避免阻塞 UI
             _ = Task.Run(async () =>
             {
                 try
@@ -261,15 +250,11 @@ namespace ExHyperV.ViewModels
                                              .Select(s => int.Parse(s.Trim()))
                                              .ToList();
 
-                    // 尝试多次，因为 vmmem 进程可能启动较慢，或者为了确保应用成功
-                    // 如果是软件刚启动检测到虚拟机已运行，通常一次就能成功，但保留重试机制更稳健
                     for (int i = 0; i < 5; i++)
                     {
-                        // 如果是刚启动 VM，进程可能还没出来，等待一下；如果是已运行，这个等待不影响
                         if (i == 0) await Task.Delay(1000);
                         else await Task.Delay(2000);
 
-                        // 再次检查是否还在运行，防止中途关机
                         if (!vm.IsRunning) break;
 
                         // 应用亲和性到 vmmem 进程

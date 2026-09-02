@@ -24,7 +24,6 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <!-- 顶部标题栏 -->
         <Grid Grid.Row="0" Margin="24,16,24,12">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
@@ -56,10 +55,8 @@
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
 
-                        <!-- 左侧：标题 -->
 
 
-                        <!-- 中间：三个下拉列表及标签 -->
                         <Grid Grid.Column="0" Margin="8,0" IsEnabled="{Binding AutoAssign, Converter={StaticResource InverseBooleanConverter}}">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto" />
@@ -106,7 +103,6 @@
                         <ui:ToggleSwitch Grid.Column="2" IsChecked="{Binding AutoAssign}" Margin="4,0,0,0" VerticalAlignment="Center"/>
                     </Grid>
                 </Border>
-                <!-- 媒体设置 -->
                 <TextBlock Text="{x:Static properties:Resources.Label_MediaSettings}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,8"/>
 
                 <Border Background="{ui:ThemeResource CardBackgroundFillColorDefaultBrush}" 
@@ -114,7 +110,6 @@
                         BorderThickness="1" CornerRadius="8" Padding="16">
                     <StackPanel>
 
-                        <!-- 第一行：来源、类型、新建开关 -->
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto"/>
@@ -161,7 +156,7 @@
                                 <TextBlock Text="{x:Static properties:Resources.AddDisk_New}" 
                                            VerticalAlignment="Center" Margin="0,0,12,0"
                                            Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
-                                <!-- 重点：使用 TwoWay 绑定并立即更新，防止切换类型时状态丢失 -->
+                                <!-- 立即更新绑定，避免切换类型时丢失状态。 -->
                                 <ui:ToggleSwitch IsChecked="{Binding IsNewDisk, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
                             </StackPanel>
                         </Grid>
@@ -378,7 +373,6 @@
                             </Grid>
                         </StackPanel>
 
-                        <!-- 物理磁盘列表 (物理来源 + 硬盘) -->
                         <StackPanel Visibility="{Binding PhysicalDiskListVisibility}">
                             <TextBlock Text="{x:Static properties:Resources.AddDisk_NoAvailablePhysical}" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"
                                        HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,24"
@@ -409,7 +403,6 @@
                                             <StackPanel Grid.Column="1" Margin="16,0,0,0">
                                                 <StackPanel Orientation="Horizontal">
                                                     <TextBlock Text="{Binding FriendlyName}" FontWeight="Medium" VerticalAlignment="Center" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
-                                                    <!-- 状态标签 -->
                                                     <Border Margin="8,0,0,0" Padding="6,1" CornerRadius="3" VerticalAlignment="Center"
                                                             Background="{ui:ThemeResource ControlFillColorSecondaryBrush}"
                                                             BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
@@ -429,7 +422,6 @@
                             </ui:ListView>
                         </StackPanel>
 
-                        <!-- 物理光驱列表 (物理来源 + 光盘,仅第1代) -->
                         <StackPanel Visibility="{Binding PhysicalOpticalListVisibility}">
                             <TextBlock Text="{x:Static properties:Resources.AddDisk_NoAvailableOptical}" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"
                                        HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,24"

@@ -163,7 +163,7 @@ public static class VmDeleteService
     // 收集"将清理的目标"：VHD 文件路径 + 配置目录。Preview 与 Purge 共用，保证显示与实删一致。
     private static async Task<PurgeTargets> CollectPurgeTargetsAsync(string vmGuid)
     {
-        // 只收【虚拟硬盘】的文件来删,靠 ResourceSubType 精确区分。
+        // 仅收集 ResourceSubType 标识为虚拟硬盘的文件。
         // 关键:ISO 与 VHD 在 Msvm_StorageAllocationSettingData 里 ResourceType 都是 31,只有 ResourceSubType 不同——
         //   硬盘 = "Microsoft:Hyper-V:Virtual Hard Disk"、ISO = "Microsoft:Hyper-V:Virtual CD/DVD Disk"。
         //   按 ResourceType 根本区分不了,彻底删除会连用户挂的 ISO 一起删。ResourceSubType 是固定英文标识、不本地化,可等值过滤。
@@ -264,7 +264,7 @@ public static class VmDeleteService
     private static async Task<(bool Success, string Message)> DestroyAsync(string vmName)
     {
         var vmPath = (await WmiApi.QueryFirstAsync(
-            $"SELECT * FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(vmName)}'",
+            $"SELECT * FROM Msvm_ComputerSystem WHERE {WmiApi.VmComputerSystemNamePredicate(vmName)}",
             obj => obj.Path.Path, WmiScope.HyperV)).Data;
         if (string.IsNullOrEmpty(vmPath))
             return (false, $"VM '{vmName}' not found");
@@ -279,7 +279,7 @@ public static class VmDeleteService
         // 回查确认真的注销了——引擎对保存态/TPM 机可能报成功却没销毁干净。不回查就"假成功"：
         // 上层乐观地从列表移除，但 VM 还在册、文件还在 → 再建同名即撞 0x80070050。
         var still = await WmiApi.QueryFirstAsync(
-            $"SELECT Name FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(vmName)}'",
+            $"SELECT Name FROM Msvm_ComputerSystem WHERE {WmiApi.VmComputerSystemNamePredicate(vmName)}",
             obj => obj["Name"]?.ToString(), WmiScope.HyperV);
         return still.HasData
             ? (false, string.Format(Properties.Resources.VmDelete_DestroyVerifyFail, vmName))
@@ -299,7 +299,7 @@ public static class VmDeleteService
             throw new DirectoryNotFoundException(sourceRoot);
 
         // DestroySystem 可能删除、保留或改写旧状态文件。先只清理销毁前已证明属于该 VM
-        // 的精确文件/ID 目录，再复制标准导出包；绝不清理整个共享配置根。
+        // 的精确文件和 ID 目录，再复制标准导出包；不清理共享配置根。
         foreach (string file in previousConfigFiles)
         {
             if (!await TryDeleteFileAsync(file))
@@ -358,20 +358,20 @@ public static class VmDeleteService
 
     // 销毁前确保 VM 已关机：保存态/运行态不先关，DestroySystem 可能残留配置/状态文件。
     // 放行 EnabledState 3(已关) 和 6(Enabled but Offline，配置丢失的坏机)：6 的 TurnOff 关不掉但 DestroySystem 能直接注销，其余非关机态先 TurnOff 再回查。
-    // 绝不带 `Caption = 'Virtual Machine'` 过滤——中文系统上被翻译，等值匹配永远查不到。
+    // Caption 会被本地化，不能用于等值过滤虚拟机对象。
     private static bool IsOffOrOrphan(int enabledState) => enabledState == 3 || enabledState == 6;
 
     private static async Task<(bool Success, string Message)> EnsureOffAsync(string vmName)
     {
         var state = await WmiApi.QueryFirstAsync(
-            $"SELECT EnabledState FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(vmName)}'",
+            $"SELECT EnabledState FROM Msvm_ComputerSystem WHERE {WmiApi.VmComputerSystemNamePredicate(vmName)}",
             obj => Convert.ToInt32(obj["EnabledState"] ?? (ushort)0), WmiScope.HyperV);
         if (!state.HasData) return (true, string.Empty);   // 查不到 = 已不存在
         if (IsOffOrOrphan(state.Data)) return (true, string.Empty);
 
         var off = await VmPowerService.ExecuteControlActionAsync(vmName, "TurnOff");   // RequestStateChange(3)：保存态会丢弃保存状态
         var after = await WmiApi.QueryFirstAsync(
-            $"SELECT EnabledState FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(vmName)}'",
+            $"SELECT EnabledState FROM Msvm_ComputerSystem WHERE {WmiApi.VmComputerSystemNamePredicate(vmName)}",
             obj => Convert.ToInt32(obj["EnabledState"] ?? (ushort)0), WmiScope.HyperV);
         if (after.HasData && !IsOffOrOrphan(after.Data))
             return (false, off.Success ? string.Format(Properties.Resources.VmDelete_TurnOffFail, vmName) : off.Error);
@@ -503,7 +503,7 @@ public static class VmDeleteService
     }
 
     // 删配置目录：零硬编码、可证明安全。
-    // 规则：只删"递归下已无任何文件"的目录（有文件就保留，绝不误删别的 VM）；
+    // 仅删除递归检查后不含文件的目录。
     //       并动态护住盘符根与主机默认根目录（DefaultExternalDataRoot / DefaultVirtualHardDiskPath，连空也不删）。
     private static async Task DeleteConfigDirAsync(string? rawConfigDir, bool isProvenDedicated)
     {

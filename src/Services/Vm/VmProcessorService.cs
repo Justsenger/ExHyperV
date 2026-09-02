@@ -8,7 +8,7 @@ public static class VmProcessorService
 {
     public static async Task<VmProcessorSettings?> GetVmProcessorAsync(string vmName)
     {
-        string query = $"SELECT * FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(vmName)}'";
+        string query = $"SELECT * FROM Msvm_ComputerSystem WHERE {WmiApi.VmComputerSystemNamePredicate(vmName)}";
 
         var results = await WmiApi.QueryAsync(query, vmEntry =>
         {
@@ -36,7 +36,7 @@ public static class VmProcessorService
     {
         try
         {
-            string query = $"SELECT * FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(vmName)}'";
+            string query = $"SELECT * FROM Msvm_ComputerSystem WHERE {WmiApi.VmComputerSystemNamePredicate(vmName)}";
             string? validationError = null;
             bool requiresAzureFeatureSet = false;
 

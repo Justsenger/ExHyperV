@@ -9,7 +9,6 @@ using Wpf.Ui.Controls;
 
 namespace ExHyperV.ViewModels
 {
-    // ===== 高级模块 =====
     public partial class VirtualMachinesPageViewModel
     {
         // 基本会话默认分辨率：下拉为预设，可编辑框可手动输入自定义 "宽 x 高"

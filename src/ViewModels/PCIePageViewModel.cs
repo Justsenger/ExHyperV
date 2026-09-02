@@ -9,7 +9,6 @@ namespace ExHyperV.ViewModels
 {
     public partial class PCIePageViewModel : PageViewModelBase
     {
-        // ===== 绑定属性与命令 =====
 
         [ObservableProperty]
         private bool _isLoading;
@@ -22,7 +21,6 @@ namespace ExHyperV.ViewModels
 
         public ObservableCollection<DeviceViewModel> Devices { get; }
 
-        // ===== 构造 =====
 
         public PCIePageViewModel()
         {
@@ -30,7 +28,6 @@ namespace ExHyperV.ViewModels
             LoadDataCommand.Execute(null);
         }
 
-        // ===== 业务方法 =====
 
         [RelayCommand]
         private async Task LoadDataAsync()
@@ -234,7 +231,6 @@ namespace ExHyperV.ViewModels
                     await errorDialog.ShowDialogAsync();
                 }
 
-                // 操作完成后自动刷新
                 await LoadDataCommand.ExecuteAsync(null);
             }
             finally

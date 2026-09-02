@@ -49,7 +49,7 @@ namespace ExHyperV.Services
             var result = new List<ControllerDisk>();
             if (string.IsNullOrEmpty(controllerInstanceId)) return result;
 
-            // 1. 该控制器名下的磁盘号（磁盘 PnP 父级 == 控制器）
+            // 该控制器名下的磁盘号（磁盘 PnP 父级 == 控制器）
             var ddResp = await WmiApi.QueryAsync(
                 "SELECT Index, PNPDeviceID FROM Win32_DiskDrive",
                 obj => new { Number = Convert.ToInt32(obj["Index"] ?? -1), Pnp = obj["PNPDeviceID"]?.ToString() ?? "" },
@@ -65,7 +65,7 @@ namespace ExHyperV.Services
             }
             if (diskNumbers.Count == 0) return result;
 
-            // 2. 这些磁盘的系统/启动/在线状态
+            // 这些磁盘的系统/启动/在线状态
             var mdResp = await WmiApi.QueryCimAsync(
                 "SELECT Number, FriendlyName, IsSystem, IsBoot, IsOffline FROM MSFT_Disk",
                 obj => new ControllerDisk(
@@ -95,7 +95,6 @@ namespace ExHyperV.Services
                 {
                     var vmDeviceAssignments = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
-                    // ── 1. VM列表 + 已分配设备（Get-VMAssignableDevice，原始逻辑）──────
                     string hostName = WmiApi.Escape(Environment.MachineName);
                     var vmResp = await WmiApi.QueryAsync(
                         $"SELECT ElementName FROM Msvm_ComputerSystem WHERE Name <> '{hostName}'",
@@ -329,10 +328,10 @@ namespace ExHyperV.Services
                 vmDeviceAssignments.TryGetValue(pureId, out string? assignedVm);
 
                 // 状态机只有三种可见状态；其余节点都是历史记录：
-                // 1. WMI 有精确身份的分配记录 → VM
-                // 2. 当前 PCI 在位                 → 主机
-                // 3. 当前 PCIP 在位                → 已卸除
-                // 4. 均不满足                      → 拔除/换卡后的历史节点，隐藏
+                // WMI 有精确身份的分配记录 → VM
+                // 当前 PCI 在位                 → 主机
+                // 当前 PCIP 在位                → 已卸除
+                // 均不满足                      → 拔除/换卡后的历史节点，隐藏
                 string status;
                 if (!string.IsNullOrEmpty(assignedVm))
                     status = assignedVm;
@@ -487,10 +486,8 @@ namespace ExHyperV.Services
 
         private static async Task<bool> EnsureVmStoppedAsync(string vmName)
         {
-            string escapedVmName = WmiApi.Escape(vmName);
-
             var stateResp = await WmiApi.QueryAsync(
-                $"SELECT EnabledState FROM Msvm_ComputerSystem WHERE ElementName = '{escapedVmName}'",
+                $"SELECT EnabledState FROM Msvm_ComputerSystem WHERE {WmiApi.VmComputerSystemNamePredicate(vmName)}",
                 obj => Convert.ToUInt16(obj["EnabledState"]),
                 WmiScope.HyperV);
 
@@ -498,15 +495,14 @@ namespace ExHyperV.Services
             // 仅 EnabledState==3（已关机）才算已停；已保存/已暂停等也不是 Off，后续改 MMIO/缓存仍会失败，需强制关机
             if (stateResp.Data[0] == 3) return true;
 
-            // 直通重分配无需 guest 优雅关机，直接强制关机（对齐 GPU-PV 路径），避免软关机被接受却卡住直到超时
+            // 直通重分配使用强制关机，避免来宾接受关机请求后长期不退出。
             await VmPowerService.ExecuteControlActionAsync(vmName, "TurnOff");
 
-            // 等待关机完成（最多30秒）
             for (int i = 0; i < 30; i++)
             {
                 await Task.Delay(1000);
                 var checkResp = await WmiApi.QueryAsync(
-                    $"SELECT EnabledState FROM Msvm_ComputerSystem WHERE ElementName = '{escapedVmName}'",
+                    $"SELECT EnabledState FROM Msvm_ComputerSystem WHERE {WmiApi.VmComputerSystemNamePredicate(vmName)}",
                     obj => Convert.ToUInt16(obj["EnabledState"]),
                     WmiScope.HyperV);
                 if (checkResp.Data?.Any(s => s == 3) == true) return true;
@@ -557,7 +553,6 @@ namespace ExHyperV.Services
         {
             var ops = new List<PCIeOperation>();
 
-            // WMI：Mount-VMHostAssignableDevice
             // WmiSilent：某些设备（核显/NPU 等）不支持标准 Mount 流程，失败静默处理
             PCIeOperation MountDeviceSilent(string locationPath) => new(
                 Properties.Resources.Status_MountingDevice, PCIeOpType.WmiSilent,
@@ -567,15 +562,13 @@ namespace ExHyperV.Services
                     p => { p["DeviceLocationPath"] = locationPath; },
                     WmiScope.HyperV));
 
-            // WMI：Add-VMAssignableDevice
-            // 流程：拿 PciExpress Default 模板 → 设置 HostResource = PCIP 设备路径 → AddResourceSettings
             PCIeOperation AddDevice(string devInstanceId, string locationPath, string vmName) => new(
                 Properties.Resources.Status_MountingDevice, PCIeOpType.Wmi,
                 WmiAction: async () =>
                 {
                     var ms = WmiConnectionCache.GetManagementScope(WmiScope.HyperV, WmiContext.Local);
 
-                    // 1. 拿 PciExpress Default 模板
+                    // 拿 PciExpress Default 模板
                     using var templateSearcher = new System.Management.ManagementObjectSearcher(ms,
                         new System.Management.ObjectQuery(
                             "SELECT * FROM Msvm_PciExpressSettingData WHERE InstanceID LIKE '%Default%'"));
@@ -583,7 +576,6 @@ namespace ExHyperV.Services
                     using var template = templateCol.Cast<System.Management.ManagementObject>().FirstOrDefault();
                     if (template is null) return ApiResponse.Fail("Cannot find PciExpress Default template");
 
-                    // 2. 拿 PCIP 设备的 WMI 路径（用 LocationPath 查询）
                     // 刚 Dismount 完，可分配设备注册可能滞后，重试几次避免偶发查不到（取出 __PATH 字符串即可，不留 COM 对象）
                     string escapedLocationPath = WmiApi.Escape(locationPath);
                     string? pcipPath = null;
@@ -601,7 +593,7 @@ namespace ExHyperV.Services
 
                     template["HostResource"] = new string[] { pcipPath };
 
-                    // 3. 拿 VM VirtualSystemSettingData 路径
+                    // 拿 VM VirtualSystemSettingData 路径
                     string escapedVmName = WmiApi.Escape(vmName);
                     using var vmSettingSearcher = new System.Management.ManagementObjectSearcher(ms,
                         new System.Management.ObjectQuery(
@@ -610,7 +602,7 @@ namespace ExHyperV.Services
                     using var vmSetting = vmSettingCol.Cast<System.Management.ManagementObject>().FirstOrDefault();
                     if (vmSetting is null) return ApiResponse.Fail($"Cannot find VM setting: {vmName}");
 
-                    // 4. AddResourceSettings
+                    // AddResourceSettings
                     return await WmiApi.InvokeAsync(
                         "SELECT * FROM Msvm_VirtualSystemManagementService",
                         "AddResourceSettings",
@@ -621,7 +613,6 @@ namespace ExHyperV.Services
                         WmiScope.HyperV);
                 });
 
-            // WMI：Dismount-VMHostAssignableDevice
             PCIeOperation DismountDevice(string devInstanceId, string locationPath) => new(
                 Properties.Resources.Dismountdevice, PCIeOpType.Wmi,
                 WmiAction: () => WmiApi.InvokeAsync(
@@ -639,15 +630,13 @@ namespace ExHyperV.Services
                     },
                     WmiScope.HyperV));
 
-            // WMI：Remove-VMAssignableDevice
-            // 流程：从 VM 的 Msvm_PciExpressSettingData 找到对应 HostResource 的设备设置 → RemoveResourceSettings
             PCIeOperation RemoveDevice(string devInstanceId, string locationPath, string vmName) => new(
                 Properties.Resources.Dismountdevice, PCIeOpType.Wmi,
                 WmiAction: async () =>
                 {
                     var ms = WmiConnectionCache.GetManagementScope(WmiScope.HyperV, WmiContext.Local);
 
-                    // 1. 拿 VM 的 Realized VirtualSystemSettingData
+                    // 拿 VM 的 Realized VirtualSystemSettingData
                     string escapedVmName = WmiApi.Escape(vmName);
                     using var vmSettingSearcher = new System.Management.ManagementObjectSearcher(ms,
                         new System.Management.ObjectQuery(
@@ -659,7 +648,7 @@ namespace ExHyperV.Services
                     string settingId = vmSetting["InstanceID"]?.ToString() ?? "";
                     string escapedSettingId = WmiApi.Escape(settingId);
 
-                    // 2. 找到该 VM 下匹配 pureId 的 PciExpressSettingData
+                    // 找到该 VM 下匹配 pureId 的 PciExpressSettingData
                     using var pciSettingSearcher = new System.Management.ManagementObjectSearcher(ms,
                         new System.Management.ObjectQuery(
                             $"SELECT * FROM Msvm_PciExpressSettingData WHERE InstanceID LIKE '{escapedSettingId}\\\\%'"));
@@ -681,7 +670,7 @@ namespace ExHyperV.Services
 
                     using (targetSetting)
                     {
-                        // 3. RemoveResourceSettings
+                        // RemoveResourceSettings
                         return await WmiApi.InvokeAsync(
                             "SELECT * FROM Msvm_VirtualSystemManagementService",
                             "RemoveResourceSettings",
@@ -690,8 +679,7 @@ namespace ExHyperV.Services
                     }
                 });
 
-            // WMI：Set-VM -AutomaticStopAction TurnOff（AutomaticShutdownAction=2）
-            // 注意：AutomaticShutdownAction 可在 VM 运行时修改，无需关机
+            // AutomaticShutdownAction 可在虚拟机运行时修改。
             PCIeOperation SetAutoStop(string vmName) => new(
                 Properties.Resources.PCIeService_SetShutdownToTurnOff, PCIeOpType.Wmi,
                 WmiAction: () => WmiApi.WithObjectAsync(
@@ -703,8 +691,7 @@ namespace ExHyperV.Services
                     scope: WmiScope.HyperV,
                     serviceWql: "SELECT * FROM Msvm_VirtualSystemManagementService"));
 
-            // WMI：Set-VM -GuestControlledCacheTypes $true
-            // 注意：此字段修改需要 VM 处于 Off 状态
+            // 此字段仅能在虚拟机关闭时修改。
             PCIeOperation SetGuestCache(string vmName) => new(
                 Properties.Resources.Action_EnableCpuCacheControl, PCIeOpType.Wmi,
                 WmiAction: () => WmiApi.WithObjectAsync(
@@ -717,7 +704,7 @@ namespace ExHyperV.Services
                     serviceWql: "SELECT * FROM Msvm_VirtualSystemManagementService"),
                 RequiresVmOff: true);   // 写合并缓存是静态设置，必须 VM Off 才能改
 
-            // ── 检查 GuestControlledCacheTypes 是否已设置，已设置则跳过（同时避免关机）──
+            // 已启用 GuestControlledCacheTypes 时无需关机或重复设置。
             bool guestCacheAlreadySet = false;
             if (Vmname != HostKey)
             {

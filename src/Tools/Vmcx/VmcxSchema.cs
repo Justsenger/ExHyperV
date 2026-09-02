@@ -1,7 +1,5 @@
 #nullable disable
-// VmcxSchema — .vmcx 知识层的最小保留集:仅 GPU-PV/DDA 类幽灵设备修复(VmGpuRepairService)所需。
-// 编辑器全量知识层(设备类型字典/建设备模板/互斥规则/字段 schema)在独立项目 ExHyperV-Edit,
-// 将来扩展编辑能力时从那边整体引入,此处不做超出修复用途的扩展。
+// 仅保留 GPU-PV 和 DDA 设备修复所需的 .vmcx 类型定义。
 using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
@@ -10,8 +8,7 @@ namespace ExHyperV.Vmcx {
 
 public static class VmcxSchema {
 
-    /// <summary>功能设备类型:必须有非空数据节点。这些类型的 manifest 条目若数据节点为空=幽灵(致命,VM起不来)。
-    /// 补"同类型兄弟全坏时漏判"的缺口——不依赖兄弟有数据,只要属此集合且数据节点空即判幽灵。</summary>
+    /// <summary>数据节点不能为空的功能设备类型。</summary>
     public static readonly HashSet<string> FunctionalDeviceTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
         "2fc216b0-d2e2-4967-9b6d-b8a5c9ca2778", // Synthetic Ethernet Port (NIC)
         "d422512d-2bf2-4752-809d-7b82b5fcb1b4", // Synthetic SCSI Controller

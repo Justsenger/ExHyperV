@@ -10,26 +10,14 @@ using ExHyperV.Tools;
 namespace ExHyperV.ViewModels
 {
     /// <summary>
-    ///
-    /// 设计：
-    /// - 包装 <see cref="VmInstance"/> Model：构造时绑定，**生命期内 Model 引用不变**
-    /// - **集合 pass-through**：Disks/StorageItems/NetworkAdapters/BootOrderItems/AssignedGpus
-    ///   getter 直接返回 Model 的 ObservableCollection——Service mutate 后 UI 自动刷新（同一实例）
-    /// - **标量字段 [ObservableProperty] + OnXxxChanged 反写 Model**：保证 PageVM 改 vm.Name 时
-    ///   Model.Name 同步更新；Service 读 Model.Name 永远不 stale
-    /// - <see cref="Apply(VmInstance)"/>：把 fresh model 数据合入当前 Model（in-place 集合 reconcile）
-    /// - VM-only 状态（IsEditing、Thumbnail、PointCollection 历史、Cores、命令、transient 状态机）
-    ///   不与 Model 共享
-    /// - public surface 与旧 VmInstanceInfo 完全一致，保 XAML binding 零改动
+    /// 为 <see cref="VmInstance"/> 提供可观察属性；集合与模型共享，刷新时原位合并以保持现有绑定。
     /// </summary>
     public partial class VmInstanceViewModel : ObservableObject
     {
-        // ===== Model 引用（构造时绑定，永不替换；Service 通过它访问底层数据） =====
 
         public VmInstance Model { get; }
 
 
-        // ===== 编辑名称（view-only） =====
 
         [ObservableProperty] private bool _isEditing;
         [ObservableProperty] private string _editedName = string.Empty;
@@ -41,7 +29,6 @@ namespace ExHyperV.ViewModels
         }
 
 
-        // ===== 基础字段 — [ObservableProperty] + OnXxxChanged 反写 Model =====
 
         [ObservableProperty] private Guid _id;
         partial void OnIdChanged(Guid value) { if (Model != null) Model.Id = value; }
@@ -90,7 +77,6 @@ namespace ExHyperV.ViewModels
 
         [ObservableProperty] private BitmapSource? _thumbnail;
 
-        // ─── IP / MAC ─────────────────────────────────────────────
         [ObservableProperty] private string _ipAddress = "---";
         [ObservableProperty] private string _ipAddressDisplay = "---";
 
@@ -103,7 +89,6 @@ namespace ExHyperV.ViewModels
         [ObservableProperty] private string _macAddress = "00:00:00:00:00:00";
         partial void OnMacAddressChanged(string value) { if (Model != null) Model.MacAddress = value; }
 
-        // ─── transient 状态机的内部锚点 ───────────────────────────
         private TimeSpan _anchorUptime;
         private DateTime _anchorLocalTime;
         private string? _transientState;
@@ -111,7 +96,6 @@ namespace ExHyperV.ViewModels
         private ushort _backendCode;
 
 
-        // ===== CPU / 内存 =====
 
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(ConfigSummary))]
@@ -154,7 +138,6 @@ namespace ExHyperV.ViewModels
         private const int MaxHistoryLength = 60;
 
 
-        // ===== 存储 / 网络 / 启动顺序 / GPU 分配 — pass-through 到 Model 的 ObservableCollection =====
 
         public ObservableCollection<VmDiskItem> Disks => Model.Disks;
         public ObservableCollection<VmStorageItem> StorageItems => Model.StorageItems;
@@ -168,7 +151,6 @@ namespace ExHyperV.ViewModels
         partial void OnTotalDiskSizeGbChanged(double value) { if (Model != null) Model.TotalDiskSizeGb = value; }
 
 
-        // ===== GPU =====
 
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(HasGpu))]
@@ -232,7 +214,6 @@ namespace ExHyperV.ViewModels
         private readonly LinkedList<double> _gpuDecodeHistory = new();
 
 
-        // ===== 命令（由 PageVM 创建并赋值——需要 powerService 等依赖） =====
 
         public IAsyncRelayCommand<string>? ControlCommand { get; set; }
 
@@ -241,14 +222,12 @@ namespace ExHyperV.ViewModels
         public string PowerToggleAction => IsRunning ? "Stop" : "Start";
 
 
-        // ===== 构造：从 Model 初始化 VM（Model 引用保留，集合通过 pass-through 共享） =====
 
         public VmInstanceViewModel(VmInstance model)
         {
             Model = model ?? throw new ArgumentNullException(nameof(model));
 
-            // ── 标量字段：从 Model 拷入 VM 的 [ObservableProperty] backing field
-            //    （直接赋字段、不走 setter，避免构造期触发 OnXxxChanged 反写 Model 同一个值）
+            // 构造期直接写字段，避免 setter 将相同值反写模型。
             _id = model.Id;
             _name = model.Name;
             _notes = model.Notes;
@@ -268,14 +247,11 @@ namespace ExHyperV.ViewModels
             MemorySettings = model.MemorySettings;
             MmioSettings = model.MmioSettings;
 
-            // ── IpAddressDisplay 派生（构造时跳过了 setter 钩子的 display 计算）──
             RecomputeIpAddressDisplay(_ipAddress);
 
-            // ── GPU 历史队列初始化 + transient 状态推进 ──────────
             InitializeGpuHistory();
             SyncBackendData(model.StateText, model.StateCode, model.RawUptime);
 
-            // ── Disks 集合变化时刷新总磁盘大小与 ConfigSummary ──
             Disks.CollectionChanged += (s, e) =>
             {
                 TotalDiskSizeGb = Disks.Sum(d => d.MaxSize) / 1073741824.0;
@@ -318,8 +294,6 @@ namespace ExHyperV.ViewModels
         }
 
 
-        // ===== Apply：把 fresh Model 数据合入**当前 Model**（in-place） =====
-        //
         // 调用方：PageVM.MonitorStateLoop 周期刷新 / SyncSingleVmStateAsync 单 VM 刷新
         // skipNameUpdate=true：PageVM 的 rename lockout 期内跳过 Name 同步
         // skipNetworkAdapters=true：用户在 NetworkSettings 页或 IsLoadingSettings 时跳过适配器抖动
@@ -328,7 +302,6 @@ namespace ExHyperV.ViewModels
         {
             if (fresh == null) return;
 
-            // ── 1. 标量字段（按需更新避免冗余 PropertyChanged；setter 会反写 Model）
             if (!skipNameUpdate && Name != fresh.Name) Name = fresh.Name;
             if (CpuCount != fresh.CpuCount) CpuCount = fresh.CpuCount;
             if (MemoryGb != fresh.MemoryGb) MemoryGb = fresh.MemoryGb;
@@ -336,18 +309,14 @@ namespace ExHyperV.ViewModels
             if (Version != fresh.Version) Version = fresh.Version;
             Notes = fresh.Notes;
 
-            // ── 2. 推进 transient 状态机 ──────────────────────────
             SyncBackendData(fresh.StateText, fresh.StateCode, fresh.RawUptime);
 
-            // ── 3. IP：未运行清回 "---"（运行时的 ARP 发现侧路在 PageVM）──
             if (!IsRunning) IpAddress = "---";
 
-            // ── 4. 网络适配器 in-place 合并（按 Id 匹配；MAC/IP/VLAN/带宽全部刷新）──
-            //      当 UI 正在 NetworkSettings 页面绑定编辑时跳过，避免抖动
+            // 网络页编辑期间不合并适配器，避免刷新覆盖输入。
             if (!skipNetworkAdapters)
                 ReconcileNetworkAdapters(NetworkAdapters, fresh.NetworkAdapters);
 
-            // ── 5. 磁盘 in-place 合并（按 Path 匹配；运行中实时读真实文件大小）──
             ReconcileDisks(Disks, fresh.Disks, runningRefresh: IsRunning);
 
             // 磁盘容量(MaxSize)可能在合并中变化(扩容/换盘)，而元素属性变化不触发集合事件——
@@ -359,7 +328,6 @@ namespace ExHyperV.ViewModels
             GpuName = fresh.GpuName;
         }
 
-        // ─── 网络适配器合并（lifted from VirtualMachinesPageViewModel.SyncNetworkAdaptersInternal）──
         private static void ReconcileNetworkAdapters(
             ObservableCollection<VmNetworkAdapter> currentList,
             IEnumerable<VmNetworkAdapter> newList)
@@ -408,7 +376,6 @@ namespace ExHyperV.ViewModels
             }
         }
 
-        // ─── 磁盘合并（lifted from VirtualMachinesPageViewModel.MonitorStateLoop）──
         private static void ReconcileDisks(
             ObservableCollection<VmDiskItem> currentList,
             IEnumerable<VmDiskItem> newList,
@@ -457,7 +424,6 @@ namespace ExHyperV.ViewModels
         }
 
 
-        // ===== 业务逻辑方法（内存、GPU、状态推进、计时） =====
 
         public string MemoryUsageString => AssignedMemoryGb.ToString("N1");
         public string MemoryDemandString => DemandMemoryGb.ToString("N1");
@@ -589,7 +555,6 @@ namespace ExHyperV.ViewModels
         }
 
 
-        // ===== transient 状态机：将 backend raw state（StateText）和 view 端 transient state（如 "Starting"） =====
         // 合成最终显示的 State；并由此推导 IsRunning
 
         public void SyncBackendData(string realState, ushort realCode, TimeSpan realUptime)

@@ -4,12 +4,9 @@ namespace ExHyperV.Services
 {
     public static class CpuAffinityService
     {
-        /// <summary>
-        /// 获取虚拟机的 CPU 亲和性设置
-        /// </summary>
+        /// <summary>读取持久化的亲和性设置；没有记录时查询当前调度器状态。</summary>
         public static async Task<List<int>> GetCpuAffinityAsync(Guid vmId, string notes)
         {
-            // 1. 优先尝试从 Notes 中解析（持久化配置）
             string savedAffinity = NotesTag.Get(notes, "Affinity");
             if (!string.IsNullOrEmpty(savedAffinity))
             {
@@ -22,7 +19,6 @@ namespace ExHyperV.Services
                 catch { /* 解析失败则回退到探测逻辑 */ }
             }
 
-            // 2. 如果 Notes 没数据，再执行原有的实时探测逻辑
             if (vmId == Guid.Empty) return new List<int>();
             var scheduler = HyperVSchedulerService.GetSchedulerType();
 
@@ -43,9 +39,7 @@ namespace ExHyperV.Services
             return groupDetail.Affinity.LogicalProcessors.Select(u => (int)u).ToList();
         }
 
-        /// <summary>
-        /// 设置虚拟机的 CPU 亲和性
-        /// </summary>
+        /// <summary>按当前调度器设置虚拟机 CPU 亲和性。</summary>
         /// <param name="vmId">虚拟机 ID</param>
         /// <param name="coreIndices">选中的核心索引列表</param>
         /// <param name="isVmRunning">虚拟机当前是否正在运行（Root 模式必须开启）</param>
@@ -53,25 +47,18 @@ namespace ExHyperV.Services
         {
             if (vmId == Guid.Empty) return false;
 
-            // 1. 获取当前调度器类型
             var scheduler = HyperVSchedulerService.GetSchedulerType();
 
             if (scheduler == HyperVSchedulerType.Root)
             {
-                // --- Root 调度器路径 ---
-                // 根据经验，Root 模式只能在运行时控制 vmmem 进程
+                // Root 调度器通过运行中的 vmmem 进程应用亲和性。
                 if (!isVmRunning)
-                {
-                    // 这里我们返回 false，由 ViewModel 层决定是否提示用户“必须启动后设置”
                     return false;
-                }
 
                 return await Task.Run(() => ProcessAffinityService.SetVmProcessAffinity(vmId, coreIndices));
             }
             else
             {
-                // --- Classic / Core 调度器路径 ---
-                // 使用 CPU Group 方式，支持静态/动态设置
                 try
                 {
                     Guid targetGroupId = Guid.Empty;
@@ -107,9 +94,7 @@ namespace ExHyperV.Services
         public static bool TrySetVmmemAffinity(Guid vmId, List<int> coreIds)
             => ProcessAffinityService.SetVmProcessAffinity(vmId, coreIds);
 
-        // ----------------------------------------------------------------------------------
         // HCS CPU Group 辅助方法（仅供 Classic/Core 模式使用，外部无调用方 → private）
-        // ----------------------------------------------------------------------------------
 
         private static async Task<Guid> FindOrCreateCpuGroupAsync(List<int> selectedCores)
         {

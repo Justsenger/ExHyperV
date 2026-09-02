@@ -18,7 +18,7 @@ public static class VmNetworkService
         if (string.IsNullOrEmpty(vmName)) return resultList;
 
         var vmResponse = await WmiApi.QueryFirstAsync(
-            $"SELECT Name FROM Msvm_ComputerSystem WHERE ElementName = '{WmiApi.Escape(vmName)}'",
+            $"SELECT Name FROM Msvm_ComputerSystem WHERE {WmiApi.VmComputerSystemNamePredicate(vmName)}",
             obj => obj["Name"]?.ToString());
 
         if (!vmResponse.HasData) return resultList;
@@ -123,7 +123,7 @@ public static class VmNetworkService
 
     public static async Task FillDynamicIpsAsync(string vmName, IEnumerable<VmNetworkAdapter> adapters)
     {
-        // 只填"没 IP"的网卡:有 IP 的(集成服务报的,含 IPv6/多地址)是权威列表,绝不覆盖。
+        // 集成服务返回的地址优先，仅补充没有地址的网卡。
         // 空网卡(无集成服务的 VM,如国产环境)走 Lookup(内部 嗅探→集成→邻居)补 IPv4。
         foreach (var adapter in adapters)
         {
@@ -397,7 +397,7 @@ public static class VmNetworkService
     // ── 内部逻辑 ──────────────────────────────────────────────
 
     // 网卡 setting 所在的 WMI 类:旧版网卡 InstanceID 3 段(Microsoft:VMGUID\DEVICEGUID\0)属 Emulated 类，
-    // 合成网卡 2 段(Microsoft:VMGUID\DEVICEGUID)属 Synthetic 类。按段数派发(本机实测确认)。
+    // 两段式 Microsoft:VMGUID\DEVICEGUID 标识对应合成网卡。
     private static string PortSettingClass(string instanceId) =>
         (instanceId ?? "").Split('\\').Length >= 3
             ? "Msvm_EmulatedEthernetPortSettingData"
