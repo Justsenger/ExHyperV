@@ -7,6 +7,14 @@
              StartupUri="Views/Windows/MainWindow.xaml">
     <Application.Resources>
         <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ui:ThemesDictionary Theme="Light" />
+                <ui:ControlsDictionary />
+                <ResourceDictionary Source="pack://application:,,,/Assets/VectorIcons.xaml" />
+                <!-- 覆盖 wpf-ui 同名键，须放最后 -->
+                <ResourceDictionary Source="pack://application:,,,/Assets/AppPalette.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+
             <FontFamily x:Key="SegoeFluentIcons">pack://application:,,,/Assets/#Segoe Fluent Icons, Segoe MDL2 Assets</FontFamily>
 
             <!-- 全局转换器（从各页面收拢，统一声明一次、键名统一） -->
@@ -27,13 +35,66 @@
             <converters:GpuImagePathConverter x:Key="GpuImagePathConverter" />
             <converters:VmNameToIconConverter x:Key="VmNameToIconConverter" />
 
-            <ResourceDictionary.MergedDictionaries>
-                <ui:ThemesDictionary Theme="Light" />
-                <ui:ControlsDictionary />
-                <ResourceDictionary Source="pack://application:,,,/Assets/VectorIcons.xaml" />
-                <!-- 覆盖 wpf-ui 同名键，须放最后 -->
-                <ResourceDictionary Source="pack://application:,,,/Assets/AppPalette.xaml" />
-            </ResourceDictionary.MergedDictionaries>
+            <!--
+                WPF-UI 4.3.0 上游兼容层：UiContextMenu 覆盖 WPF 默认模板后只用裸 StackPanel
+                承载菜单项，缺少 ScrollViewer，长菜单会被屏幕工作区裁掉且无法滚动。
+                等 WPF-UI 自身的 UiContextMenu 模板包含 ScrollViewer 后，应删除此隐式样式，
+                避免继续维护一份冗余模板。
+            -->
+            <Style TargetType="{x:Type ContextMenu}" BasedOn="{StaticResource UiContextMenu}">
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="{x:Type ContextMenu}">
+                            <ui:EffectThicknessDecorator Thickness="30">
+                                <Border x:Name="Border"
+                                        Padding="0,3,0,3"
+                                        Background="{TemplateBinding Background}"
+                                        BorderBrush="{TemplateBinding BorderBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="8">
+                                    <Border.Effect>
+                                        <DropShadowEffect BlurRadius="20"
+                                                          Direction="270"
+                                                          Opacity="0.135"
+                                                          ShadowDepth="10"
+                                                          Color="#202020" />
+                                    </Border.Effect>
+                                    <Border.RenderTransform>
+                                        <TranslateTransform />
+                                    </Border.RenderTransform>
+                                    <ScrollViewer CanContentScroll="True"
+                                                  HorizontalScrollBarVisibility="Disabled"
+                                                  VerticalScrollBarVisibility="Auto">
+                                        <StackPanel ClipToBounds="True"
+                                                    IsItemsHost="True"
+                                                    KeyboardNavigation.DirectionalNavigation="Cycle"
+                                                    Orientation="Vertical" />
+                                    </ScrollViewer>
+                                </Border>
+                            </ui:EffectThicknessDecorator>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsOpen" Value="True">
+                                    <Trigger.EnterActions>
+                                        <BeginStoryboard>
+                                            <Storyboard>
+                                                <DoubleAnimation Storyboard.TargetName="Border"
+                                                                 Storyboard.TargetProperty="(Border.RenderTransform).(TranslateTransform.Y)"
+                                                                 From="-90"
+                                                                 To="0"
+                                                                 Duration="00:00:00.167">
+                                                    <DoubleAnimation.EasingFunction>
+                                                        <CircleEase EasingMode="EaseOut" />
+                                                    </DoubleAnimation.EasingFunction>
+                                                </DoubleAnimation>
+                                            </Storyboard>
+                                        </BeginStoryboard>
+                                    </Trigger.EnterActions>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
         </ResourceDictionary>
     </Application.Resources>
 
