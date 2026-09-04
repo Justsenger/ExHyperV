@@ -107,7 +107,8 @@
                                                 </TextBlock.Style>
                                             </TextBlock>
                                         </StackPanel>
-                                        <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="0,0,12,0">
+                                        <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="0,0,12,0"
+                                                    IsEnabled="{Binding DataContext.IsLoadingSettings, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource InverseBooleanConverter}}">
                                             <!-- 打开文件夹按钮 -->
                                             <ui:Button Icon="{ui:SymbolIcon Symbol=Share24, FontSize=18}"
                                                        ToolTip="{x:Static properties:Resources.Button_OpenFolder}"
@@ -163,7 +164,6 @@
                                             </ui:Button>
                                             
                                             <ui:Button Icon="{ui:SymbolIcon Symbol=Edit24, FontSize=18}"
-                                                       ToolTip="{x:Static properties:Resources.Common_Modify}"
                                                        Appearance="Secondary"
                                                        Margin="0,0,8,0"
                                                        Command="{Binding DataContext.EditStoragePathCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
@@ -171,9 +171,14 @@
                                                 <ui:Button.Style>
                                                     <Style TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
                                                         <Setter Property="Visibility" Value="Collapsed"/>
+                                                        <Setter Property="ToolTip" Value="{x:Static properties:Resources.Common_Modify}"/>
                                                         <Style.Triggers>
                                                             <DataTrigger Binding="{Binding DriveType}" Value="DvdDrive">
                                                                 <Setter Property="Visibility" Value="Visible"/>
+                                                                <Setter Property="ToolTip" Value="{x:Static properties:Resources.Button_InsertIso}"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding HasIsoMedia}" Value="True">
+                                                                <Setter Property="ToolTip" Value="{x:Static properties:Resources.Button_ReplaceIso}"/>
                                                             </DataTrigger>
 
                                                             <MultiDataTrigger>
@@ -187,11 +192,38 @@
                                                     </Style>
                                                 </ui:Button.Style>
                                             </ui:Button>
-                                            <ui:Button Icon="{ui:SymbolIcon Symbol=Delete24,FontSize=18}" 
-                           Appearance="Secondary"
-                           Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"
-                           Command="{Binding DataContext.RemoveStorageItemCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                           CommandParameter="{Binding}"/>
+                                            <ui:Button Icon="{ui:SymbolIcon Symbol=ArrowEject20, FontSize=18}"
+                                                       ToolTip="{x:Static properties:Resources.Button_EjectIso}"
+                                                       Appearance="Secondary"
+                                                       Margin="0,0,8,0"
+                                                       Visibility="{Binding HasIsoMedia, Converter={StaticResource BoolToVis}}"
+                                                       Command="{Binding DataContext.EjectIsoCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                       CommandParameter="{Binding}"/>
+                                            <ui:Button Icon="{ui:SymbolIcon Symbol=Delete24, FontSize=18}"
+                                                       Appearance="Secondary"
+                                                       Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"
+                                                       ToolTipService.ShowOnDisabled="True"
+                                                       Command="{Binding DataContext.RemoveStorageItemCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                       CommandParameter="{Binding}">
+                                                <ui:Button.Style>
+                                                    <Style TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding DriveType}" Value="DvdDrive">
+                                                                <Setter Property="ToolTip" Value="{x:Static properties:Resources.Button_RemoveDvdDrive}"/>
+                                                            </DataTrigger>
+                                                            <MultiDataTrigger>
+                                                                <MultiDataTrigger.Conditions>
+                                                                    <Condition Binding="{Binding DriveType}" Value="DvdDrive"/>
+                                                                    <Condition Binding="{Binding ControllerType}" Value="IDE"/>
+                                                                    <Condition Binding="{Binding DataContext.SelectedVm.IsRunning, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True"/>
+                                                                </MultiDataTrigger.Conditions>
+                                                                <Setter Property="IsEnabled" Value="False"/>
+                                                                <Setter Property="ToolTip" Value="{x:Static properties:Resources.Error_Storage_DvdHotRemove}"/>
+                                                            </MultiDataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </ui:Button.Style>
+                                            </ui:Button>
                                         </StackPanel>
                                     </Grid>
                                 </ui:CardExpander.Header>
@@ -222,11 +254,15 @@
                                         </StackPanel>
 
                                         <TextBlock Grid.Row="2" Grid.Column="0" Text="{x:Static properties:Resources.Common_Path}" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
-                                        <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding PathOrDiskNumber}" TextWrapping="Wrap" FontWeight="Medium">
+                                        <TextBlock Grid.Row="2" Grid.Column="1" TextWrapping="Wrap" FontWeight="Medium">
                                             <TextBlock.Style>
                                                 <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+                                                    <Setter Property="Text" Value="{Binding PathOrDiskNumber}"/>
                                                     <Style.Triggers>
                                                         <DataTrigger Binding="{Binding PathOrDiskNumber}" Value="">
+                                                            <Setter Property="Text" Value="{x:Static properties:Resources.Common_Empty}"/>
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding PathOrDiskNumber}" Value="{x:Null}">
                                                             <Setter Property="Text" Value="{x:Static properties:Resources.Common_Empty}"/>
                                                         </DataTrigger>
                                                     </Style.Triggers>

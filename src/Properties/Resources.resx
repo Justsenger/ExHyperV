@@ -1050,6 +1050,21 @@ The existing NAT switch is: '{0}'</value>
   <data name="Msg_Storage_Ejected" xml:space="preserve">
     <value>DVD ejected</value>
   </data>
+  <data name="Button_EjectIso" xml:space="preserve">
+    <value>Eject ISO</value>
+  </data>
+  <data name="Button_InsertIso" xml:space="preserve">
+    <value>Insert ISO</value>
+  </data>
+  <data name="Button_ReplaceIso" xml:space="preserve">
+    <value>Replace ISO</value>
+  </data>
+  <data name="Button_RemoveDvdDrive" xml:space="preserve">
+    <value>Remove DVD drive</value>
+  </data>
+  <data name="Error_Storage_EjectFail" xml:space="preserve">
+    <value>Failed to eject ISO</value>
+  </data>
   <data name="Msg_Storage_Removed" xml:space="preserve">
     <value>Device removed</value>
   </data>
@@ -1081,7 +1096,7 @@ The existing NAT switch is: '{0}'</value>
     <value>Select or enter .vhdx/.vhd path</value>
   </data>
   <data name="Placeholder_Iso" xml:space="preserve">
-    <value>Select or enter .iso path</value>
+    <value>Select or enter .iso path; leave blank for an empty DVD drive</value>
   </data>
   <data name="Button_SaveTo" xml:space="preserve">
     <value>Save to...</value>

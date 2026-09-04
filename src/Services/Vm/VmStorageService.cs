@@ -868,16 +868,6 @@ namespace ExHyperV.Services
                 isRunning &&
                 drive.ControllerType == "IDE")
             {
-                if (drive.DiskType != "Empty" && !string.IsNullOrEmpty(drive.PathOrDiskNumber))
-                {
-                    var ejectResult = await ModifyMediaPathAsync(
-                        vmName, drive.ControllerType, drive.ControllerNumber, drive.ControllerLocation,
-                        "Microsoft:Hyper-V:Virtual CD/DVD Disk", "");
-                    return ejectResult.Success
-                        ? (true, Properties.Resources.Msg_Storage_Ejected)
-                        : ejectResult;
-                }
-
                 return (false, Properties.Resources.Error_Storage_DvdHotRemove);
             }
 

@@ -1050,6 +1050,21 @@
   <data name="Msg_Storage_Ejected" xml:space="preserve">
     <value>光盘已弹出</value>
   </data>
+  <data name="Button_EjectIso" xml:space="preserve">
+    <value>弹出 ISO</value>
+  </data>
+  <data name="Button_InsertIso" xml:space="preserve">
+    <value>插入 ISO</value>
+  </data>
+  <data name="Button_ReplaceIso" xml:space="preserve">
+    <value>更换 ISO</value>
+  </data>
+  <data name="Button_RemoveDvdDrive" xml:space="preserve">
+    <value>删除光驱</value>
+  </data>
+  <data name="Error_Storage_EjectFail" xml:space="preserve">
+    <value>弹出 ISO 失败</value>
+  </data>
   <data name="Msg_Storage_Removed" xml:space="preserve">
     <value>设备已移除</value>
   </data>
@@ -1081,7 +1096,7 @@
     <value>选择或输入 .vhdx / .vhd 文件路径</value>
   </data>
   <data name="Placeholder_Iso" xml:space="preserve">
-    <value>选择或输入 .iso 镜像文件路径</value>
+    <value>选择或输入 .iso 镜像文件路径，留空添加空光驱</value>
   </data>
   <data name="Button_SaveTo" xml:space="preserve">
     <value>保存到...</value>

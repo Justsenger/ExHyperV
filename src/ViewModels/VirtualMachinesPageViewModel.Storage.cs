@@ -129,7 +129,7 @@ namespace ExHyperV.ViewModels
         [RelayCommand]
         private async Task RemoveStorageItemAsync(VmStorageItem item)
         {
-            if (SelectedVm == null || item == null) return;
+            if (SelectedVm == null || item == null || IsLoadingSettings) return;
             IsLoadingSettings = true;
             try
             {
@@ -145,6 +145,30 @@ namespace ExHyperV.ViewModels
             finally { IsLoadingSettings = false; }
         }
 
+        private bool CanEjectIso(VmStorageItem item) => item?.HasIsoMedia == true;
+
+        [RelayCommand(CanExecute = nameof(CanEjectIso))]
+        private async Task EjectIsoAsync(VmStorageItem item)
+        {
+            var vm = SelectedVm;
+            if (vm == null || !CanEjectIso(item) || IsLoadingSettings) return;
+
+            IsLoadingSettings = true;
+            try
+            {
+                var result = await VmStorageService.ModifyDvdDrivePathAsync(
+                    vm.Name, item.ControllerType, item.ControllerNumber, item.ControllerLocation, string.Empty);
+                if (result.Success)
+                {
+                    ShowSuccess(Properties.Resources.Msg_Storage_Ejected);
+                    await VmStorageService.LoadVmStorageItemsAsync(vm.Model);
+                }
+                else ShowError($"{Properties.Resources.Error_Storage_EjectFail}：{result.Message}");
+            }
+            catch (Exception ex) { ShowError(FriendlyError.CleanLines(ex.Message)); }
+            finally { IsLoadingSettings = false; }
+        }
+
         // 判断是否可以编辑存储路径
         private bool CanEditStorage(VmStorageItem item)
         {
@@ -155,7 +179,7 @@ namespace ExHyperV.ViewModels
         [RelayCommand(CanExecute = nameof(CanEditStorage))]
         private async Task EditStoragePath(VmStorageItem driveItem)
         {
-            if (SelectedVm == null || driveItem == null) return;
+            if (SelectedVm == null || driveItem == null || IsLoadingSettings) return;
 
             if (driveItem.DiskType == "Physical")
             {
@@ -394,9 +418,12 @@ namespace ExHyperV.ViewModels
                 ? SelectedPhysicalOptical?.PnpDeviceId
                 : (IsPhysicalSource ? SelectedPhysicalDisk?.Number.ToString() : FilePath);
 
-            // 只有"新建 ISO"用 IsoOutputPath 落地、FilePath 可空(下方单独校验)；其余(新建硬盘、挂载现有、物理盘)target 都是落地路径或盘号，必须非空。
+            // 空光驱只建设备；新建 ISO 使用下方单独校验的输出路径。
             bool isNewIso = DeviceType == "DvdDrive" && IsNewDisk;
-            if (string.IsNullOrEmpty(target) && !isNewIso)
+            bool isEmptyDvd = DeviceType == "DvdDrive" && !IsPhysicalSource && !IsNewDisk
+                && string.IsNullOrWhiteSpace(target);
+            if (isEmptyDvd) target = string.Empty;
+            if (string.IsNullOrWhiteSpace(target) && !isNewIso && !isEmptyDvd)
             {
                 ShowTip(Properties.Resources.Error_Storage_SelectTarget);
                 return;
@@ -405,7 +432,7 @@ namespace ExHyperV.ViewModels
             // 虚拟文件的路径预检查：挂载现有(.vhdx/.iso)文件须在、新建硬盘目标须不存在——否则底层只甩 0x80070002(找不到)/0x80070050(已存在) 原始码
             if (!IsPhysicalSource)
             {
-                if (!IsNewDisk && !File.Exists(FilePath))
+                if (!IsNewDisk && !isEmptyDvd && !File.Exists(FilePath))
                 {
                     ShowTip(Properties.Resources.Error_Storage_FileNotExist);
                     return;

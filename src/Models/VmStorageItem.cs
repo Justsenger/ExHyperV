@@ -9,9 +9,15 @@ namespace ExHyperV.Models
     /// </summary>
     public partial class VmStorageItem : ObservableObject
     {
-        [ObservableProperty] private string _driveType = string.Empty;
-        [ObservableProperty] private string _diskType = string.Empty;
-        [ObservableProperty] private string _pathOrDiskNumber = string.Empty;
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(HasIsoMedia))]
+        private string _driveType = string.Empty;
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(HasIsoMedia))]
+        private string _diskType = string.Empty;
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(HasIsoMedia))]
+        private string _pathOrDiskNumber = string.Empty;
         [ObservableProperty] private int _controllerLocation;
         [ObservableProperty] private string _controllerType = string.Empty;
         [ObservableProperty] private int _controllerNumber;
@@ -28,6 +34,9 @@ namespace ExHyperV.Models
         private double _diskSizeGB;
 
         [ObservableProperty] private string _serialNumber = string.Empty;
+
+        public bool HasIsoMedia => DriveType == "DvdDrive" && DiskType == "Virtual"
+            && !string.IsNullOrWhiteSpace(PathOrDiskNumber);
 
         public string DisplayName
         {

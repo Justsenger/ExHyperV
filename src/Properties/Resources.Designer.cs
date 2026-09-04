@@ -4816,6 +4816,51 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
+        ///   查找类似 Eject ISO 的本地化字符串。
+        /// </summary>
+        public static string Button_EjectIso {
+            get {
+                return ResourceManager.GetString("Button_EjectIso", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   查找类似 Insert ISO 的本地化字符串。
+        /// </summary>
+        public static string Button_InsertIso {
+            get {
+                return ResourceManager.GetString("Button_InsertIso", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   查找类似 Replace ISO 的本地化字符串。
+        /// </summary>
+        public static string Button_ReplaceIso {
+            get {
+                return ResourceManager.GetString("Button_ReplaceIso", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   查找类似 Remove DVD drive 的本地化字符串。
+        /// </summary>
+        public static string Button_RemoveDvdDrive {
+            get {
+                return ResourceManager.GetString("Button_RemoveDvdDrive", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   查找类似 Failed to eject ISO 的本地化字符串。
+        /// </summary>
+        public static string Error_Storage_EjectFail {
+            get {
+                return ResourceManager.GetString("Error_Storage_EjectFail", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   查找类似 DVD ejected 的本地化字符串。
         /// </summary>
         public static string Msg_Storage_Ejected {
@@ -5006,7 +5051,7 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
-        ///   查找类似 Select or enter .iso path 的本地化字符串。
+        ///   查找类似 Select or enter .iso path; leave blank for an empty DVD drive 的本地化字符串。
         /// </summary>
         public static string Placeholder_Iso {
             get {
