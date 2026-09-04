@@ -850,6 +850,7 @@ ARM 没有 Ring 环，用的是异常级别（Exception Levels）：
 
 ### 👑 神
 <a href="https://afdian.com/a/saniye"><img src="https://img.shields.io/badge/神-User--1A4FE-black?style=for-the-badge&logo=kingstontechnology&logoColor=FFD700&labelColor=black&color=FFD700" width="300px" /></a> <a href="https://afdian.com/a/saniye"><img src="https://img.shields.io/badge/神-ANONYMOUS-333333?style=for-the-badge&logo=cyberdefenders&logoColor=C0C0C0&labelColor=black&color=C0C0C0" width="300px" /></a>
+<a href="https://github.com/Soryux"><img src="https://img.shields.io/badge/神-Soryux-black?style=for-the-badge&logo=kingstontechnology&logoColor=FFD700&labelColor=black&color=FFD700" width="300px" /></a>
 
 ---
 
