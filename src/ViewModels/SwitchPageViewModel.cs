@@ -16,8 +16,8 @@ namespace ExHyperV.ViewModels
 
         public ObservableCollection<SwitchViewModel> Switches { get; } = new();
 
-        private List<string> _physicalAdapters = new();
-        private List<string> _bridgeableAdapters = new();
+        private List<SwitchUpstream> _physicalAdapters = new();
+        private List<SwitchUpstream> _bridgeableAdapters = new();
         private List<SwitchInfo> _rawSwitchInfos = new();
 
 
@@ -190,9 +190,9 @@ namespace ExHyperV.ViewModels
                 }
             }
 
-            if ((changedSwitch.SelectedNetworkMode == SwitchMode.Bridge || changedSwitch.SelectedNetworkMode == SwitchMode.NAT) && !string.IsNullOrEmpty(changedSwitch.SelectedUpstreamAdapter))
+            if ((changedSwitch.SelectedNetworkMode == SwitchMode.Bridge || changedSwitch.SelectedNetworkMode == SwitchMode.NAT) && changedSwitch.SelectedUpstreamAdapter != null)
             {
-                var conflictingSwitch = Switches.FirstOrDefault(s => s.SwitchId != changedSwitch.SwitchId && !string.IsNullOrEmpty(s.SelectedUpstreamAdapter) && s.SelectedUpstreamAdapter == changedSwitch.SelectedUpstreamAdapter);
+                var conflictingSwitch = Switches.FirstOrDefault(s => s.SwitchId != changedSwitch.SwitchId && s.SelectedUpstreamAdapter != null && s.SelectedUpstreamAdapter?.ConnectionId == changedSwitch.SelectedUpstreamAdapter?.ConnectionId);
                 if (conflictingSwitch != null)
                 {
                     await Dialogs.ShowAlertAsync(Properties.Resources.Error_ConfigurationConflict, string.Format(Properties.Resources.Error_PhysicalAdapterInUse, changedSwitch.SelectedUpstreamAdapter, conflictingSwitch.SwitchName));
@@ -201,7 +201,7 @@ namespace ExHyperV.ViewModels
                 }
             }
 
-            if ((changedSwitch.SelectedNetworkMode == SwitchMode.Bridge || changedSwitch.SelectedNetworkMode == SwitchMode.NAT) && string.IsNullOrEmpty(changedSwitch.SelectedUpstreamAdapter))
+            if ((changedSwitch.SelectedNetworkMode == SwitchMode.Bridge || changedSwitch.SelectedNetworkMode == SwitchMode.NAT) && changedSwitch.SelectedUpstreamAdapter == null)
             {
                 return;
             }
@@ -216,12 +216,14 @@ namespace ExHyperV.ViewModels
                     changedSwitch.IsHostConnectionAllowed
                 );
 
+                changedSwitch.ConfigurationError = null;
                 await RefreshDataModels();
                 UpdateAllSwitchMenus();
             }
             catch (Exception ex)
             {
-                await Dialogs.ShowAlertAsync(Properties.Resources.UpdateFailed, string.Format(Properties.Resources.Error_UpdateSwitchConfigFailed, changedSwitch.SwitchName, ex.InnerException?.Message ?? ex.Message));
+                changedSwitch.ConfigurationError = ex.Message;
+                await Dialogs.ShowAlertAsync(Properties.Resources.UpdateFailed, string.Format(Properties.Resources.Error_UpdateSwitchConfigFailed, changedSwitch.SwitchName, ex.Message));
                 await RefreshDataModels();
                 UpdateAllSwitchMenus();
             }
@@ -244,6 +246,7 @@ namespace ExHyperV.ViewModels
                 var latestInfo = _rawSwitchInfos.FirstOrDefault(s => s.Id == vm.SwitchId);
                 if (latestInfo != null)
                 {
+                    vm.SetAdapters(_physicalAdapters, _bridgeableAdapters);
                     updateTasks.Add(vm.RevertTo(latestInfo));
                 }
             }

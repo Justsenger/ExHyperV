@@ -906,7 +906,8 @@ public static class WmiApi
             if (baseObj is not ManagementObject obj) continue;
             using (obj)
             {
-                if (string.Equals(obj.ClassPath.ClassName, "Msvm_ComputerSystem", StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(obj.ClassPath.ClassName, "Msvm_ComputerSystem", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(obj.ClassPath.ClassName, "Msvm_VirtualEthernetSwitch", StringComparison.OrdinalIgnoreCase))
                     systems.Add(obj.Path.Path);
                 else
                     others.Add(obj.Path.Path);

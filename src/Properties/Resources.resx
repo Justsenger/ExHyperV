@@ -3934,4 +3934,12 @@ Remove them from storage and retry? Cancel to re-plug the device and try again.<
   <data name="VmImport_DynamicMemoryFormat" xml:space="preserve"><value>{0:N0} MB ({1:N0}–{2:N0} MB)</value></data>
   <data name="VmImport_NetworkAdapter" xml:space="preserve"><value>Network adapter</value></data>
   <data name="VmImport_ProcessorMemoryFormat" xml:space="preserve"><value>{0} cores / {1:0.#} GB</value></data>
+  <data name="Network_Applying" xml:space="preserve"><value>Applying network configuration…</value></data>
+  <data name="Network_StateUnknown" xml:space="preserve"><value>Unable to determine network state:</value></data>
+  <data name="Network_UplinkConfigured" xml:space="preserve"><value>Upstream configured: {0}</value></data>
+  <data name="Network_HotspotConflict" xml:space="preserve"><value>Mobile hotspot is enabled or changing state. Turn it off in Windows Settings, then retry NAT configuration.</value></data>
+  <data name="Network_HotspotUnknown" xml:space="preserve"><value>Unable to check mobile hotspot state. No switch changes were made: {0}</value></data>
+  <data name="Network_UpstreamMissing" xml:space="preserve"><value>The selected network adapter is no longer available. Refresh and select it again.</value></data>
+  <data name="Network_Restored" xml:space="preserve"><value>Configuration failed: {0}. The previous configuration was restored.</value></data>
+  <data name="Network_RestoreFailed" xml:space="preserve"><value>Configuration failed: {0}. Recovery also failed: {1}. The network may be partially configured; check its current state.</value></data>
 </root>

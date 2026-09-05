@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
 
@@ -9,82 +9,145 @@ namespace ExHyperV.Tools;
 // ══════════════════════════════════════════════════════════════════
 public static class ComApi
 {
-    // ── ICS 网络共享 ──────────────────────────────────────────────
-
     /// <summary>
-    /// 禁用所有网络适配器上的 ICS 共享。
+    /// 按连接 GUID 定位公共侧和私有侧，显示名称不参与匹配。
+    /// 桥接解绑后连接可能尚未出现；只在尚未修改共享的目标查找阶段短暂重试。
     /// </summary>
-    public static ApiResponse DisableAllIcsSharing()
+    public static Task<ApiResponse> EnableIcsSharingForConnectionsAsync(
+        Guid publicConnectionId, Guid privateConnectionId)
+        => Task.Run(() =>
+        {
+            if (publicConnectionId == Guid.Empty || privateConnectionId == Guid.Empty)
+                return ApiResponse.Fail("ICS target connection GUID is missing.");
+            try
+            {
+                RunOnSta(() =>
+                {
+                    var timer = Stopwatch.StartNew();
+                    while (true)
+                    {
+                        try
+                        {
+                            IcsCore.Enable(publicConnectionId.ToString(), privateConnectionId.ToString());
+                            return;
+                        }
+                        catch (IcsTargetNotFoundException) when (timer.ElapsedMilliseconds < 5000)
+                        {
+                            Thread.Sleep(250);
+                        }
+                    }
+                });
+                return ApiResponse.Ok();
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse.Fail(ex.Message, ex.HResult, ApiErrorSource.Com, ex);
+            }
+        });
+
+    public static Task<ApiResponse<List<IcsConnection>>> GetConnectionsAsync() => Task.Run(() =>
     {
+        try { return ApiResponse<List<IcsConnection>>.Ok(RunOnSta(IcsCore.GetConnections)); }
+        catch (Exception ex) { return ApiResponse<List<IcsConnection>>.Fail(ex.Message, ex.HResult, ApiErrorSource.Com, ex); }
+    });
+
+    public static Task RestoreConnectionsAsync(IReadOnlyList<IcsConnection> snapshot) => Task.Run(() => RunOnSta(() =>
+    {
+        dynamic manager = Activator.CreateInstance(Type.GetTypeFromProgID("HNetCfg.HNetShare")!)!;
         try
         {
-            RunOnSta(() => IcsCore.DisableAll());
-            return ApiResponse.Ok();
+            var configs = new Dictionary<Guid, object>();
+            foreach (var connection in manager.EnumEveryConnection)
+                configs[Guid.Parse((string)manager.NetConnectionProps[connection].Guid)] = manager.INetSharingConfigurationForINetConnection[connection];
+            foreach (var saved in snapshot.Where(c => c.Enabled))
+                if (!configs.ContainsKey(saved.Id)) throw new IcsException($"ICS recovery target is missing: {saved.Id}");
+            foreach (var current in configs)
+            {
+                dynamic config = current.Value;
+                var desired = snapshot.SingleOrDefault(c => c.Id == current.Key && c.Enabled);
+                if ((bool)config.SharingEnabled && (desired == null || (int)config.SharingConnectionType != desired.Type))
+                    config.DisableSharing();
+            }
+            foreach (var saved in snapshot.Where(c => c.Enabled).OrderBy(c => c.Type))
+            {
+                dynamic config = configs[saved.Id];
+                if (!(bool)config.SharingEnabled || (int)config.SharingConnectionType != saved.Type)
+                    config.EnableSharing(saved.Type);
+            }
         }
-        catch (Exception ex)
-        {
-            return ApiResponse.Fail(ex.Message, -1, ApiErrorSource.Com, ex);
-        }
-    }
+        finally { Marshal.FinalReleaseComObject(manager); }
+        var actual = IcsCore.GetConnections().Where(c => c.Enabled).Select(c => (c.Id, c.Type)).ToHashSet();
+        if (!actual.SetEquals(snapshot.Where(c => c.Enabled).Select(c => (c.Id, c.Type))))
+            throw new IcsException("ICS recovery readback mismatch.");
+    }));
 
-    public static Task<ApiResponse> DisableAllIcsSharingAsync()
-        => Task.Run(DisableAllIcsSharing);
-
-    /// <summary>
-    /// 为两个适配器启用 ICS（公共上游 + 私有下游）。
-    /// publicAdapterName：共享上游的适配器显示名称（如物理网卡名）
-    /// privateAdapterName：受保护网络一侧的适配器显示名称（如 vEthernet 名）
-    /// 旧配置的清除由内部在两个目标确认存在后执行，调用方无需(也不应)先全局清场。
-    /// </summary>
-    public static ApiResponse EnableIcsSharing(string publicAdapterName, string privateAdapterName)
+    /// <summary>通过 WinRT 读取移动热点占用；HNetCfg 的 SharingEnabled 不覆盖这一状态。</summary>
+    public static Task<ApiResponse<bool>> IsMobileHotspotActiveAsync() => Task.Run(() =>
     {
-        if (string.IsNullOrWhiteSpace(publicAdapterName))
-            return ApiResponse.Fail("publicAdapterName cannot be empty");
-        if (string.IsNullOrWhiteSpace(privateAdapterName))
-            return ApiResponse.Fail("privateAdapterName cannot be empty");
+        try { return ApiResponse<bool>.Ok(RunOnSta(MobileHotspotInterop.ReadActive)); }
+        catch (Exception ex) { return ApiResponse<bool>.Fail(ex.Message, ex.HResult, ApiErrorSource.Com, ex); }
+    });
 
-        try
-        {
-            RunOnSta(() => IcsCore.Enable(publicAdapterName, privateAdapterName));
-            return ApiResponse.Ok();
-        }
-        catch (IcsException ex)
-        {
-            return ApiResponse.Fail(ex.Message, -1, ApiErrorSource.Com, ex);
-        }
-        catch (Exception ex)
-        {
-            return ApiResponse.Fail(ex.Message, -1, ApiErrorSource.Com, ex);
-        }
-    }
-
-    public static Task<ApiResponse> EnableIcsSharingAsync(
-        string publicAdapterName, string privateAdapterName)
-        => Task.Run(() => EnableIcsSharing(publicAdapterName, privateAdapterName));
-
-    /// <summary>
-    /// 查询指定交换机是否配置了 ICS，并返回上游物理适配器的名称。
-    /// 返回 null 表示该交换机未配置 ICS。
-    /// </summary>
-    public static ApiResponse<string?> GetIcsSourceAdapter(string switchName)
+    private static class MobileHotspotInterop
     {
-        if (string.IsNullOrWhiteSpace(switchName))
-            return ApiResponse<string?>.Fail("switchName cannot be empty");
+        // Windows SDK ABI: INetworkInformationStatics / IVectorView<ConnectionProfile> /
+        // INetworkOperatorTetheringManagerStatics2 / INetworkOperatorTetheringManager.
+        // 使用原生 WinRT ABI，保持现有目标框架；本类不包含 Start/StopTethering 调用。
+        public static unsafe bool ReadActive()
+        {
+            Marshal.ThrowExceptionForHR(RoInitialize(0));
+            nint information = 0, factory = 0, profiles = 0;
+            try
+            {
+                information = Activate("Windows.Networking.Connectivity.NetworkInformation", new("5074f851-950d-4165-9c15-365619481eea"));
+                factory = Activate("Windows.Networking.NetworkOperators.NetworkOperatorTetheringManager", new("5b235412-35f0-49e7-9b08-16d278fbaa42"));
+                Marshal.ThrowExceptionForHR(((delegate* unmanaged[Stdcall]<nint, nint*, int>)Slot(information, 6))(information, &profiles));
+                uint count = 0;
+                Marshal.ThrowExceptionForHR(((delegate* unmanaged[Stdcall]<nint, uint*, int>)Slot(profiles, 7))(profiles, &count));
+                Exception? error = null;
+                for (uint i = 0; i < count; i++)
+                {
+                    nint profile = 0, manager = 0;
+                    try
+                    {
+                        Marshal.ThrowExceptionForHR(((delegate* unmanaged[Stdcall]<nint, uint, nint*, int>)Slot(profiles, 6))(profiles, i, &profile));
+                        Marshal.ThrowExceptionForHR(((delegate* unmanaged[Stdcall]<nint, nint, nint*, int>)Slot(factory, 7))(factory, profile, &manager));
+                        int state = 0;
+                        Marshal.ThrowExceptionForHR(((delegate* unmanaged[Stdcall]<nint, int*, int>)Slot(manager, 8))(manager, &state));
+                        // 热点是全机状态；任选一个可查询的 profile 即可读取。
+                        if (state == 2) return false; // Off
+                        if (state is 1 or 3) return true; // On / InTransition
+                        error = new InvalidOperationException("Mobile hotspot state is unknown.");
+                    }
+                    catch (Exception ex) { error = ex; }
+                    finally { Release(manager); Release(profile); }
+                }
+                // 读取失败不能等同于热点关闭。
+                throw error ?? new InvalidOperationException("No connection profile is available to check mobile hotspot state.");
+            }
+            finally { Release(profiles); Release(factory); Release(information); RoUninitialize(); }
+        }
 
-        try
+        private static unsafe nint Slot(nint instance, int index) => (*(nint**)instance)[index];
+        private static void Release(nint instance) { if (instance != 0) Marshal.Release(instance); }
+
+        private static nint Activate(string name, Guid iid)
         {
-            string? result = null;
-            RunOnSta(() => result = IcsCore.GetSourceAdapter(switchName));
-            return ApiResponse<string?>.Ok(result);
+            Marshal.ThrowExceptionForHR(WindowsCreateString(name, name.Length, out var text));
+            try
+            {
+                Marshal.ThrowExceptionForHR(RoGetActivationFactory(text, ref iid, out var factory));
+                return factory;
+            }
+            finally { WindowsDeleteString(text); }
         }
-        catch (Exception ex)
-        {
-            return ApiResponse<string?>.Fail(ex.Message, -1, ApiErrorSource.Com, ex);
-        }
+
+        [DllImport("combase.dll")] private static extern int RoInitialize(uint type);
+        [DllImport("combase.dll")] private static extern void RoUninitialize();
+        [DllImport("combase.dll", CharSet = CharSet.Unicode)] private static extern int WindowsCreateString(string source, int length, out nint value);
+        [DllImport("combase.dll")] private static extern int WindowsDeleteString(nint value);
+        [DllImport("combase.dll")] private static extern int RoGetActivationFactory(nint name, ref Guid iid, out nint factory);
     }
-
-    public static Task<ApiResponse<string?>> GetIcsSourceAdapterAsync(string switchName)
-        => Task.Run(() => GetIcsSourceAdapter(switchName));
 
     // ── STA 线程执行 ──────────────────────────────────────────────
     // COM 对象要求在 STA（单线程单元）线程中调用
@@ -140,32 +203,6 @@ internal static class IcsCore
     private const int Public = 0;
     private const int Private = 1;
 
-    /// <summary>禁用所有连接上的 ICS 共享。</summary>
-    public static void DisableAll()
-    {
-        dynamic netShare = CreateNetShare();
-        try
-        {
-            foreach (var conn in netShare.EnumEveryConnection)
-            {
-                try
-                {
-                    dynamic cfg = netShare.INetSharingConfigurationForINetConnection[conn];
-                    if ((bool)cfg.SharingEnabled)
-                        cfg.DisableSharing();
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine($"[IcsCore.DisableAll] connection error: {ex.Message}");
-                }
-            }
-        }
-        finally
-        {
-            Marshal.FinalReleaseComObject(netShare);
-        }
-    }
-
     /// <summary>
     /// 为指定的公共和私有适配器启用 ICS。
     /// 先验证两个目标都存在再清场启用：目标缺失时立即失败且不动系统里任何现有共享
@@ -176,54 +213,7 @@ internal static class IcsCore
         dynamic netShare = CreateNetShare();
         try
         {
-            dynamic? publicConfig = null;
-            dynamic? privateConfig = null;
-            var enabledOthers = new List<object>();
-
-            // 先完成目标定位，再修改全局 ICS 配置。
-            foreach (var conn in netShare.EnumEveryConnection)
-            {
-                try
-                {
-                    dynamic props = netShare.NetConnectionProps[conn];
-                    dynamic cfg = netShare.INetSharingConfigurationForINetConnection[conn];
-
-                    string name = (string)props.Name;
-                    bool isTarget = false;
-                    if (name == publicAdapterName) { publicConfig = cfg; isTarget = true; }
-                    if (name == privateAdapterName) { privateConfig = cfg; isTarget = true; }
-                    if (!isTarget && (bool)cfg.SharingEnabled) enabledOthers.Add(cfg);
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine($"[IcsCore.Enable] enum error: {ex.Message}");
-                }
-            }
-
-            if (publicConfig == null)
-                throw new IcsException($"Public adapter not found: '{publicAdapterName}'");
-            if (privateConfig == null)
-                throw new IcsException($"Private adapter not found: '{privateAdapterName}'");
-
-            foreach (dynamic cfg in enabledOthers)
-            {
-                try { if ((bool)cfg.SharingEnabled) cfg.DisableSharing(); }
-                catch (Exception ex) { Debug.WriteLine($"[IcsCore.Enable] disable error: {ex.Message}"); }
-            }
-            if ((bool)publicConfig.SharingEnabled) publicConfig.DisableSharing();
-            if ((bool)privateConfig.SharingEnabled) privateConfig.DisableSharing();
-
-            publicConfig.EnableSharing(Public);
-            try
-            {
-                privateConfig.EnableSharing(Private);
-            }
-            catch
-            {
-                // 私有侧配置失败时回滚公共侧，避免留下不完整的共享配置。
-                try { publicConfig.DisableSharing(); } catch { }
-                throw;
-            }
+            EnableOnManager(netShare, publicAdapterName, privateAdapterName);
         }
         finally
         {
@@ -231,57 +221,105 @@ internal static class IcsCore
         }
     }
 
-    /// <summary>
-    /// 查询指定交换机的 ICS 上游物理适配器名称。
-    /// 返回 null 表示未配置 ICS。
-    /// </summary>
-    public static string? GetSourceAdapter(string switchName)
+    // 使用同一次 ICS 枚举定位并操作连接，避免先在另一套接口列表猜名称，再查找失败。
+    internal static void EnableOnManager(
+        dynamic netShare, string publicAdapterName, string privateAdapterName)
     {
-        // vEthernet 适配器的显示名格式固定为 "vEthernet (交换机名)"
-        string vEthernetName = $"vEthernet ({switchName})";
+        dynamic? publicConfig = null;
+        dynamic? privateConfig = null;
+        var enabledOthers = new List<object>();
+        var previous = new List<(object Config, int Type)>();
+        int publicMatches = 0;
+        int privateMatches = 0;
+        bool sameConnection = false;
 
-        dynamic netShare = CreateNetShare();
-        try
+        // 先完成目标定位，再修改全局 ICS 配置。
+        foreach (var conn in netShare.EnumEveryConnection)
         {
-            string? sourceAdapterName = null;
-            bool gatewayIsCorrect = false;
-
-            foreach (var conn in netShare.EnumEveryConnection)
+            try
             {
-                try
+                dynamic props = netShare.NetConnectionProps[conn];
+                dynamic cfg = netShare.INetSharingConfigurationForINetConnection[conn];
+
+                string connectionId = Guid.Parse((string)props.Guid).ToString();
+                bool isPublic = string.Equals(connectionId, publicAdapterName, StringComparison.OrdinalIgnoreCase);
+                bool isPrivate = string.Equals(connectionId, privateAdapterName, StringComparison.OrdinalIgnoreCase);
+                if (isPublic) { publicConfig = cfg; publicMatches++; }
+                if (isPrivate) { privateConfig = cfg; privateMatches++; }
+                if (isPublic && isPrivate) sameConnection = true;
+                bool isTarget = isPublic || isPrivate;
+                if ((bool)cfg.SharingEnabled)
                 {
-                    dynamic props = netShare.NetConnectionProps[conn];
-                    dynamic cfg = netShare.INetSharingConfigurationForINetConnection[conn];
-
-                    if (!(bool)cfg.SharingEnabled) continue;
-
-                    string name = (string)props.Name;
-                    int sharingType = (int)cfg.SharingConnectionType;
-
-                    // SharingConnectionType 1 = PUBLIC（网关侧）
-                    if (sharingType == Public + 1 && name == vEthernetName)
-                        gatewayIsCorrect = true;
-
-                    // SharingConnectionType 0 = PRIVATE → 但这里用 ICS 的约定反过来
-                    // 实际上 EnableSharing(0)=PUBLIC，EnableSharing(1)=PRIVATE
-                    // NetConnectionProps 查到的是上游（物理网卡）的名字
-                    if (sharingType == Public && name != vEthernetName)
-                        sourceAdapterName = name;
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine($"[IcsCore.GetSourceAdapter] enum error: {ex.Message}");
+                    previous.Add((cfg, (int)cfg.SharingConnectionType));
+                    if (!isTarget) enabledOthers.Add(cfg);
                 }
             }
+            catch (Exception ex)
+            {
+                throw new IcsException("ICS enumeration failed before any configuration change.", ex);
+            }
+        }
 
-            return gatewayIsCorrect && sourceAdapterName != null
-                ? sourceAdapterName
-                : null;
-        }
-        finally
+        if (publicMatches > 1 || privateMatches > 1)
+            throw new IcsException("Multiple ICS connections match the selected adapter.");
+        if (sameConnection)
+            throw new IcsException("Public and private ICS adapters must be different connections.");
+        if (publicConfig == null)
+            throw new IcsTargetNotFoundException(
+                $"Public adapter not found: '{publicAdapterName}'");
+        if (privateConfig == null)
+            throw new IcsTargetNotFoundException($"Private adapter not found: '{privateAdapterName}'");
+
+        string stage = "Disable previous sharing";
+        try
         {
-            Marshal.FinalReleaseComObject(netShare);
+            foreach (dynamic cfg in enabledOthers) cfg.DisableSharing();
+            if ((bool)publicConfig.SharingEnabled) publicConfig.DisableSharing();
+            if ((bool)privateConfig.SharingEnabled) privateConfig.DisableSharing();
+            stage = $"Enable public ICS connection {publicAdapterName}";
+            publicConfig.EnableSharing(Public);
+            stage = $"Enable private ICS connection {privateAdapterName}";
+            privateConfig.EnableSharing(Private);
+            stage = "Verify ICS configuration";
+            if (!(bool)publicConfig.SharingEnabled || (int)publicConfig.SharingConnectionType != Public ||
+                !(bool)privateConfig.SharingEnabled || (int)privateConfig.SharingConnectionType != Private)
+                throw new IcsException("ICS readback did not match the requested connection pair.");
         }
+        catch (Exception ex)
+        {
+            var recoveryErrors = new List<string>();
+            foreach (dynamic cfg in new object[] { privateConfig, publicConfig })
+            {
+                try { cfg.DisableSharing(); } catch (Exception recovery) { recoveryErrors.Add(recovery.Message); }
+            }
+            foreach (var old in previous.OrderBy(p => p.Type))
+            {
+                try { ((dynamic)old.Config).EnableSharing(old.Type); }
+                catch (Exception recovery) { recoveryErrors.Add(recovery.Message); }
+            }
+            throw new IcsException($"{stage}: {ex.Message} (0x{ex.HResult:X8}). " +
+                (recoveryErrors.Count == 0 ? "Previous ICS configuration restored." :
+                    "ICS recovery failed: " + string.Join("; ", recoveryErrors)), ex);
+        }
+    }
+
+    public static List<IcsConnection> GetConnections()
+    {
+        dynamic manager = CreateNetShare();
+        try
+        {
+            var result = new List<IcsConnection>();
+            foreach (var connection in manager.EnumEveryConnection)
+            {
+                dynamic props = manager.NetConnectionProps[connection];
+                dynamic config = manager.INetSharingConfigurationForINetConnection[connection];
+                bool enabled = (bool)config.SharingEnabled;
+                result.Add(new IcsConnection(Guid.Parse((string)props.Guid), (string)props.Name,
+                    enabled, enabled ? (int)config.SharingConnectionType : -1));
+            }
+            return result;
+        }
+        finally { Marshal.FinalReleaseComObject(manager); }
     }
 
     private static dynamic CreateNetShare()
@@ -296,7 +334,15 @@ internal static class IcsCore
 // ══════════════════════════════════════════════════════════════════
 //  IcsException — ICS 专用异常
 // ══════════════════════════════════════════════════════════════════
-public sealed class IcsException : Exception
+public class IcsException : Exception
 {
-    public IcsException(string message) : base(message) { }
+    public IcsException(string message, Exception? inner = null) : base(message, inner) { if (inner != null) HResult = inner.HResult; }
 }
+
+// 仅表示目标连接尚未找到。共享修改阶段的异常不能进入重试，否则可能重复修改系统共享。
+internal sealed class IcsTargetNotFoundException : IcsException
+{
+    public IcsTargetNotFoundException(string message) : base(message) { }
+}
+
+public sealed record IcsConnection(Guid Id, string Name, bool Enabled, int Type);

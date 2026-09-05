@@ -10180,5 +10180,13 @@ namespace ExHyperV.Properties {
         public static string VmImport_DynamicMemoryFormat => ResourceManager.GetString("VmImport_DynamicMemoryFormat", resourceCulture);
         public static string VmImport_NetworkAdapter => ResourceManager.GetString("VmImport_NetworkAdapter", resourceCulture);
         public static string VmImport_ProcessorMemoryFormat => ResourceManager.GetString("VmImport_ProcessorMemoryFormat", resourceCulture);
+        public static string Network_Applying => ResourceManager.GetString("Network_Applying", resourceCulture);
+        public static string Network_HotspotConflict => ResourceManager.GetString("Network_HotspotConflict", resourceCulture);
+        public static string Network_HotspotUnknown => ResourceManager.GetString("Network_HotspotUnknown", resourceCulture);
+        public static string Network_RestoreFailed => ResourceManager.GetString("Network_RestoreFailed", resourceCulture);
+        public static string Network_Restored => ResourceManager.GetString("Network_Restored", resourceCulture);
+        public static string Network_StateUnknown => ResourceManager.GetString("Network_StateUnknown", resourceCulture);
+        public static string Network_UplinkConfigured => ResourceManager.GetString("Network_UplinkConfigured", resourceCulture);
+        public static string Network_UpstreamMissing => ResourceManager.GetString("Network_UpstreamMissing", resourceCulture);
     }
 }

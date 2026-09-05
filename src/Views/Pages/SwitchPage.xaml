@@ -98,7 +98,7 @@
                                 </Grid>
                             </ui:CardExpander.Header>
 
-                            <StackPanel Margin="50,0,0,0">
+                            <StackPanel Margin="50,0,0,0" IsEnabled="{Binding IsLockedForInteraction, Converter={StaticResource InverseBooleanConverter}}">
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="125" />
@@ -152,7 +152,7 @@
                                         ItemsSource="{Binding ConnectedClients}"
                                         SwitchName="{Binding SwitchName}"
                                         NetworkMode="{Binding SelectedNetworkMode}"
-                                        UpstreamAdapter="{Binding SelectedUpstreamAdapter}"
+                                        UpstreamAdapter="{Binding SelectedUpstreamAdapter.DisplayName}"
                                         IsDefaultSwitch="{Binding IsDefaultSwitch}" />
                                 </StackPanel>
                             </StackPanel>

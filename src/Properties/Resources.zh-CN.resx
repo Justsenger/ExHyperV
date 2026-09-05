@@ -3934,4 +3934,12 @@
   <data name="VmImport_DynamicMemoryFormat" xml:space="preserve"><value>{0:N0} MB（{1:N0}–{2:N0} MB）</value></data>
   <data name="VmImport_NetworkAdapter" xml:space="preserve"><value>网络适配器</value></data>
   <data name="VmImport_ProcessorMemoryFormat" xml:space="preserve"><value>{0} 核 / {1:0.#} GB</value></data>
+  <data name="Network_Applying" xml:space="preserve"><value>正在应用网络配置…</value></data>
+  <data name="Network_StateUnknown" xml:space="preserve"><value>无法确认网络状态：</value></data>
+  <data name="Network_UplinkConfigured" xml:space="preserve"><value>已配置上游：{0}</value></data>
+  <data name="Network_HotspotConflict" xml:space="preserve"><value>移动热点已开启或正在切换状态。请自行在 Windows 设置中关闭移动热点，再重试 NAT 配置。</value></data>
+  <data name="Network_HotspotUnknown" xml:space="preserve"><value>无法检查移动热点状态，尚未修改交换机：{0}</value></data>
+  <data name="Network_UpstreamMissing" xml:space="preserve"><value>所选网络适配器已不可用，请刷新后重新选择。</value></data>
+  <data name="Network_Restored" xml:space="preserve"><value>配置失败：{0}。已恢复原配置。</value></data>
+  <data name="Network_RestoreFailed" xml:space="preserve"><value>配置失败：{0}。恢复原配置也失败：{1}。网络可能处于部分配置状态，请检查当前状态。</value></data>
 </root>

@@ -7,8 +7,8 @@ namespace ExHyperV.ViewModels
     public partial class AddSwitchViewModel : ObservableObject
     {
         private readonly IEnumerable<SwitchViewModel> _existingSwitches;
-        private readonly IEnumerable<string> _allPhysicalAdapters;
-        private readonly IEnumerable<string> _bridgeableAdapters;
+        private readonly IEnumerable<SwitchUpstream> _allPhysicalAdapters;
+        private readonly IEnumerable<SwitchUpstream> _bridgeableAdapters;
 
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(IsNetworkAdapterSelectionEnabled))]
@@ -18,16 +18,16 @@ namespace ExHyperV.ViewModels
         private string _switchName = Properties.Resources.AddSwitch_DefaultName_External;
 
         [ObservableProperty]
-        private string? _selectedNetworkAdapter;
+        private SwitchUpstream? _selectedNetworkAdapter;
 
         [ObservableProperty]
         private string? _errorMessage;
 
-        public ObservableCollection<string> AvailableNetworkAdapters { get; } = new();
+        public ObservableCollection<SwitchUpstream> AvailableNetworkAdapters { get; } = new();
         public bool IsNetworkAdapterSelectionEnabled => SelectedSwitchType == SwitchMode.Bridge || SelectedSwitchType == SwitchMode.NAT;
 
 
-        public AddSwitchViewModel(IEnumerable<SwitchViewModel> existingSwitches, IEnumerable<string> allPhysicalAdapters, IEnumerable<string> bridgeableAdapters)
+        public AddSwitchViewModel(IEnumerable<SwitchViewModel> existingSwitches, IEnumerable<SwitchUpstream> allPhysicalAdapters, IEnumerable<SwitchUpstream> bridgeableAdapters)
         {
             _existingSwitches = existingSwitches;
             _allPhysicalAdapters = allPhysicalAdapters;
@@ -40,11 +40,11 @@ namespace ExHyperV.ViewModels
         private void RebuildAvailableAdapters()
         {
             var source = SelectedSwitchType == SwitchMode.Bridge ? _bridgeableAdapters : _allPhysicalAdapters;
-            string? keep = SelectedNetworkAdapter;
+            SwitchUpstream? keep = SelectedNetworkAdapter;
             AvailableNetworkAdapters.Clear();
             foreach (var adapter in source)
             {
-                if (!_existingSwitches.Any(s => s.SelectedUpstreamAdapter == adapter))
+                if (!_existingSwitches.Any(s => s.SelectedUpstreamAdapter?.ConnectionId == adapter.ConnectionId))
                     AvailableNetworkAdapters.Add(adapter);
             }
             // 类型切换后,原选中项若已不在新列表里则清空
@@ -81,7 +81,7 @@ namespace ExHyperV.ViewModels
                 ErrorMessage = Properties.Resources.AddSwitch_Validation_NoAdaptersForExternalOrNat;
                 return false;
             }
-            if (IsNetworkAdapterSelectionEnabled && string.IsNullOrEmpty(SelectedNetworkAdapter))
+            if (IsNetworkAdapterSelectionEnabled && SelectedNetworkAdapter == null)
             {
                 ErrorMessage = Properties.Resources.AddSwitch_Validation_AdapterRequiredForExternalOrNat;
                 return false;
