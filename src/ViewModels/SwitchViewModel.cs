@@ -111,8 +111,8 @@ namespace ExHyperV.ViewModels
         private void UpdateUiLogic()
         {
             IsUpstreamSelectionEnabled = (SelectedNetworkMode == SwitchMode.Bridge || SelectedNetworkMode == SwitchMode.NAT) && !IsDefaultSwitch;
-            IsHostConnectionToggleEnabled = SelectedNetworkMode == SwitchMode.Isolated && !IsDefaultSwitch;
-            if (!IsHostConnectionToggleEnabled && !IsDefaultSwitch)
+            IsHostConnectionToggleEnabled = (SelectedNetworkMode == SwitchMode.Bridge || SelectedNetworkMode == SwitchMode.Isolated) && !IsDefaultSwitch;
+            if (SelectedNetworkMode == SwitchMode.NAT && !IsDefaultSwitch)
             {
                 IsHostConnectionAllowed = true;
             }

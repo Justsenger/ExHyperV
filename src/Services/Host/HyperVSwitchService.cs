@@ -595,15 +595,34 @@ namespace ExHyperV.Services
                     if (!found) await Task.Delay(250);
                 }
                 if (!found) throw new InvalidOperationException($"Host IP adapter did not reappear: {id}");
-                if (Dhcp) await InvokeAsync(id, "EnableDHCP");
-                else
+                var current = (await CaptureAsync(id))!;
+                // DHCP 租约不属于需要还原的静态配置；配置已一致时避免重复启用未连接网卡的 IP。
+                if (!MatchesAddressConfiguration(current))
                 {
-                    if (Addresses.Length == 0) throw new InvalidOperationException("Original static IPv4 configuration had no address; automatic recovery is unavailable.");
-                    await InvokeAsync(id, "EnableStatic", ("IPAddress", Addresses), ("SubnetMask", Masks));
-                    await InvokeAsync(id, "SetGateways", ("DefaultIPGateway", Gateways), ("GatewayCostMetric", GatewayMetrics));
+                    if (Dhcp) await InvokeAsync(id, "EnableDHCP");
+                    else
+                    {
+                        if (Addresses.Length == 0) throw new InvalidOperationException("Original static IPv4 configuration had no address; automatic recovery is unavailable.");
+                        await InvokeAsync(id, "EnableStatic", ("IPAddress", Addresses), ("SubnetMask", Masks));
+                        await InvokeAsync(id, "SetGateways", ("DefaultIPGateway", Gateways), ("GatewayCostMetric", GatewayMetrics));
+                    }
+                    current = (await CaptureAsync(id))!;
                 }
-                await InvokeAsync(id, "SetDNSServerSearchOrder", ("DNSServerSearchOrder", Dns));
+                if (!MatchesDnsConfiguration(current))
+                    await InvokeAsync(id, "SetDNSServerSearchOrder", ("DNSServerSearchOrder", Dns));
+
+                var restored = (await CaptureAsync(id))!;
+                if (!MatchesAddressConfiguration(restored) || !MatchesDnsConfiguration(restored))
+                    throw new InvalidOperationException($"Host IP recovery readback mismatch: {id}");
             }
+
+            private bool MatchesAddressConfiguration(HostIpv4Settings actual)
+                => Dhcp == actual.Dhcp && (Dhcp ||
+                    (Addresses.SequenceEqual(actual.Addresses) && Masks.SequenceEqual(actual.Masks) &&
+                     Gateways.SequenceEqual(actual.Gateways) && GatewayMetrics.SequenceEqual(actual.GatewayMetrics)));
+
+            private bool MatchesDnsConfiguration(HostIpv4Settings actual)
+                => (Dns ?? []).SequenceEqual(actual.Dns ?? [], StringComparer.OrdinalIgnoreCase);
 
             private static async Task InvokeAsync(Guid id, string method, params (string Name, object? Value)[] values)
             {

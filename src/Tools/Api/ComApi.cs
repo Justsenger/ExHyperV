@@ -1,6 +1,6 @@
 using System.Diagnostics;
-using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
+using System.Windows.Threading;
 
 namespace ExHyperV.Tools;
 
@@ -149,42 +149,33 @@ public static class ComApi
         [DllImport("combase.dll")] private static extern int RoGetActivationFactory(nint name, ref Guid iid, out nint factory);
     }
 
-    // ── STA 线程执行 ──────────────────────────────────────────────
-    // COM 对象要求在 STA（单线程单元）线程中调用
-    // 所有 ICS 操作必须经由此方法执行
-
-    /// <summary>在 STA 线程中同步执行操作，等待完成后返回。</summary>
-    public static void RunOnSta(Action action)
+    // 所有 ICS 读写共用一条 STA，避免并行调用释放其他调用仍在使用的 RCW。
+    // Dispatcher 同时提供 STA 所需的消息循环；线程随进程退出。
+    private static readonly Lazy<Dispatcher> StaDispatcher = new(() =>
     {
-        Exception? exception = null;
+        var ready = new TaskCompletionSource<Dispatcher>(TaskCreationOptions.RunContinuationsAsynchronously);
         var thread = new Thread(() =>
         {
-            try { action(); }
-            catch (Exception ex) { exception = ex; }
-        });
+            Dispatcher dispatcher;
+            try { dispatcher = Dispatcher.CurrentDispatcher; }
+            catch (Exception ex) { ready.SetException(ex); return; }
+            ready.SetResult(dispatcher);
+            Dispatcher.Run();
+        }) { IsBackground = true, Name = "ExHyperV COM STA" };
         thread.SetApartmentState(ApartmentState.STA);
-        thread.IsBackground = true;
         thread.Start();
-        thread.Join();
-        if (exception != null) ExceptionDispatchInfo.Capture(exception).Throw();
-    }
+        return ready.Task.GetAwaiter().GetResult();
+    });
 
-    /// <summary>在 STA 线程中执行并返回结果。</summary>
+    /// <summary>在共用的 STA 线程中同步执行操作，等待完成后返回。</summary>
+    public static void RunOnSta(Action action)
+        => RunOnSta(() => { action(); return true; });
+
+    /// <summary>在共用的 STA 线程中执行并返回结果；嵌套调用直接执行，避免等待自身。</summary>
     public static T RunOnSta<T>(Func<T> func)
     {
-        T result = default!;
-        Exception? exception = null;
-        var thread = new Thread(() =>
-        {
-            try { result = func(); }
-            catch (Exception ex) { exception = ex; }
-        });
-        thread.SetApartmentState(ApartmentState.STA);
-        thread.IsBackground = true;
-        thread.Start();
-        thread.Join();
-        if (exception != null) ExceptionDispatchInfo.Capture(exception).Throw();
-        return result;
+        var dispatcher = StaDispatcher.Value;
+        return dispatcher.CheckAccess() ? func() : dispatcher.Invoke(func);
     }
 }
 
