@@ -30,7 +30,14 @@
 		<PackageReference Include="SSH.NET" Version="2026.0.0" />
 		<PackageReference Include="System.Management" Version="10.0.8" />
 		<PackageReference Include="WPF-UI" Version="4.3.0" />
+		<!-- 本地 fork 的配套托盘组件；图标转换依赖与该组件构建版本一致。 -->
+		<Reference Include="Wpf.Ui.Tray">
+			<HintPath>libs\Wpf.Ui.Tray.dll</HintPath>
+			<Private>true</Private>
+		</Reference>
+		<PackageReference Include="System.Drawing.Common" Version="10.0.7" />
 		<Resource Include="Assets\**\*.*" Exclude="Assets\**\*.xaml;Assets\Icon.ico" />
+		<Resource Include="Assets\Icon.ico" />
 		<COMReference Include="IMAPI2FS">
 			<WrapperTool>tlbimp</WrapperTool>
 			<VersionMinor>0</VersionMinor>
@@ -89,7 +96,7 @@
 		<!-- 非单文件发布仍用子集化的 Wpf.Ui 覆盖官方 DLL；单文件发布已在 bundler 输入中替换。 -->
 		<Copy SourceFiles="@(MagicDlls)" DestinationFolder="$(PublishDir)" OverwriteReadOnlyFiles="true" SkipUnchangedFiles="false" Condition="'$(PublishSingleFile)' != 'true'" />
 		<!-- 清掉旧发布遗留物，保证重复发布到同一目录后仍只有一个 EXE。 -->
-		<Delete Files="$(PublishDir)Wpf.Ui.dll;$(PublishDir)$(AssemblyName).pdb;$(PublishDir)Config.xml" Condition="'$(PublishSingleFile)' == 'true'" />
+		<Delete Files="$(PublishDir)Wpf.Ui.dll;$(PublishDir)Wpf.Ui.Tray.dll;$(PublishDir)$(AssemblyName).pdb;$(PublishDir)Config.xml" Condition="'$(PublishSingleFile)' == 'true'" />
 
 		<!-- System.Management：win 实现拷到根、改 deps.json 指向根，再端掉整个 runtimes -->
 		<Copy SourceFiles="$(PublishDir)runtimes\win\lib\net8.0\System.Management.dll" DestinationFolder="$(PublishDir)" OverwriteReadOnlyFiles="true" Condition="Exists('$(PublishDir)runtimes\win\lib\net8.0\System.Management.dll')" />

@@ -1,12 +1,14 @@
 ﻿using System.Windows;
 using ExHyperV.Services;
-using ExHyperV.Views;
+using ExHyperV.Tools.Controls;
 using Wpf.Ui.Controls;
 
 namespace ExHyperV.Views
 {
     public partial class MainWindow : FluentWindow
     {
+        private TrayIconController? _trayIcon;
+
         public MainWindow()
         {
             InitializeComponent();
@@ -22,10 +24,25 @@ namespace ExHyperV.Views
 
             //仅按保存偏好上色;系统主题监听延到 PagePreload 后挂,避开 #146 启动渲染竞争
             SettingsService.ApplySavedTheme();
+
+            try
+            {
+                // 从程序集资源读取，单文件发布也不依赖外部 ICO 文件。
+                var icon = System.Windows.Media.Imaging.BitmapFrame.Create(
+                    new Uri("pack://application:,,,/Assets/Icon.ico"));
+                _trayIcon = new TrayIconController(Application.Current, this, icon,
+                    Properties.Resources.Tray_Open, Properties.Resources.Tray_Exit);
+            }
+            catch (Exception ex)
+            {
+                // 托盘不可用时仍正常关闭，不能把唯一窗口隐藏后无从恢复。
+                System.Diagnostics.Debug.WriteLine($"[ExHyperV] Tray initialization failed: {ex.Message}");
+            }
         }
 
         private void PagePreload(object sender, RoutedEventArgs e)
         {
+            Loaded -= PagePreload;
             // 性能模式：不预加载其它页面（省启动内存），只落地首页；其余首次进入时才建
             if (!App.PerformanceMode)
             {

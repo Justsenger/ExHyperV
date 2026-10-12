@@ -10345,5 +10345,7 @@ namespace ExHyperV.Properties {
         public static string Network_StateUnknown => ResourceManager.GetString("Network_StateUnknown", resourceCulture);
         public static string Network_UplinkConfigured => ResourceManager.GetString("Network_UplinkConfigured", resourceCulture);
         public static string Network_UpstreamMissing => ResourceManager.GetString("Network_UpstreamMissing", resourceCulture);
+        public static string Tray_Open => ResourceManager.GetString("Tray_Open", resourceCulture);
+        public static string Tray_Exit => ResourceManager.GetString("Tray_Exit", resourceCulture);
     }
 }
