@@ -872,6 +872,7 @@ ARM 没有 Ring 环，用的是异常级别（Exception Levels）：
 ![](https://img.shields.io/badge/达人-User--05ddd-24292e?style=for-the-badge&logo=expertsexchange&logoColor=FFBF00&labelColor=24292e&color=FFBF00)
 ![](https://img.shields.io/badge/达人-User--呱叽呱叽-24292e?style=for-the-badge&logo=expertsexchange&logoColor=FFBF00&labelColor=24292e&color=FFBF00)
 ![](https://img.shields.io/badge/达人-User--.Hello-24292e?style=for-the-badge&logo=expertsexchange&logoColor=FFBF00&labelColor=24292e&color=FFBF00)
+![](https://img.shields.io/badge/达人-User--a7b11-24292e?style=for-the-badge&logo=expertsexchange&logoColor=FFBF00&labelColor=24292e&color=FFBF00)
 
 
 ---
@@ -889,3 +890,5 @@ ARM 没有 Ring 环，用的是异常级别（Exception Levels）：
 ![](https://img.shields.io/badge/初心-User--e9738-0078D4?style=flat-square&logo=hyperledger&logoColor=white)
 ![](https://img.shields.io/badge/初心-User--1ab90-0078D4?style=flat-square&logo=hyperledger&logoColor=white)
 ![](https://img.shields.io/badge/初心-EFP001-0078D4?style=flat-square&logo=hyperledger&logoColor=white)
+![](https://img.shields.io/badge/初心-侠魔-0078D4?style=flat-square&logo=hyperledger&logoColor=white)
+![](https://img.shields.io/badge/初心-User--8d19f-0078D4?style=flat-square&logo=hyperledger&logoColor=white)
