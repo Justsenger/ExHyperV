@@ -5,6 +5,19 @@
         public string Name { get; set; } = "NewVM";
 
         public string Path { get; set; } = string.Empty;
+        // 仅新增磁盘跟随配置目录；已有磁盘不移动。服务按最终 VM 名解析，兼容批量及重名避让。
+        public bool StoreNewDisksWithVm { get; set; }
+
+        internal string GetNewDiskDirectory(string finalVmName)
+        {
+            string vmFolder = System.IO.Path.Combine(Path, finalVmName);
+            if (StoreNewDisksWithVm)
+                return System.IO.Path.Combine(vmFolder, "Virtual Hard Disks");
+            if (DiskMode == 0)
+                return string.IsNullOrWhiteSpace(VhdPath) ? vmFolder : VhdPath;
+            string root = string.IsNullOrWhiteSpace(DifferencingDiskRoot) ? vmFolder : DifferencingDiskRoot;
+            return System.IO.Path.Combine(root, finalVmName);
+        }
         public string Version { get; set; } = "8.0";
         public int Generation { get; set; } = 2;
 

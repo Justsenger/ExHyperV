@@ -172,17 +172,12 @@ namespace ExHyperV.Services
                 // 批量创建时各台名字不同 → 盘文件各自唯一，无需另行区分。
                 if (p.DiskMode == 0)
                 {
-                    string diskFolder = !string.IsNullOrWhiteSpace(p.VhdPath)
-                        ? p.VhdPath
-                        : vmHomeFolder;
+                    string diskFolder = p.GetNewDiskDirectory(finalVmName);
                     effectiveVhdPath = Path.Combine(diskFolder, $"{finalVmName}.vhdx");
                 }
                 else if (p.DiskMode == 1 && p.CreateDifferencingDisk)
                 {
-                    string diskRoot = string.IsNullOrWhiteSpace(p.DifferencingDiskRoot)
-                        ? vmHomeFolder
-                        : p.DifferencingDiskRoot;
-                    string diskFolder = Path.Combine(diskRoot, finalVmName);
+                    string diskFolder = p.GetNewDiskDirectory(finalVmName);
                     if (!Directory.Exists(diskFolder))
                     {
                         Directory.CreateDirectory(diskFolder);

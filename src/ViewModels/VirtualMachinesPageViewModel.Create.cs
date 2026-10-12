@@ -31,7 +31,10 @@ namespace ExHyperV.ViewModels
         partial void OnNewVmStoragePathChanged(string value)
         {
             if (!_isUpdatingConfigPath)
+            {
                 _isConfigPathManual = true;
+                UpdateDiskPath();
+            }
         }
 
 
@@ -175,7 +178,9 @@ namespace ExHyperV.ViewModels
             try
             {
                 _isUpdatingDiskPath = true;
-                NewVmNewDiskPath = Path.Combine(root, NewVmName);   // 只存文件夹，vhdx 文件名由服务按最终 VM 名派生
+                NewVmNewDiskPath = _isConfigPathManual
+                    ? Path.Combine(NewVmStoragePath, NewVmName, "Virtual Hard Disks")
+                    : Path.Combine(root, NewVmName);   // 只存文件夹，vhdx 文件名由服务按最终 VM 名派生
             }
             catch { }
             finally { _isUpdatingDiskPath = false; }
@@ -453,6 +458,7 @@ namespace ExHyperV.ViewModels
                 DiskMode = NewVmDiskMode,
                 DiskSizeGb = long.TryParse(NewVmDiskSizeGb, out var ds) ? ds : 128,
                 VhdPath = NewVmDiskMode == 0 ? NewVmNewDiskPath : NewVmExistingDiskPath,
+                StoreNewDisksWithVm = _isConfigPathManual && (NewVmDiskMode != 0 || !_isDiskPathManual),
                 CreateDifferencingDisk = quantity > 1 && NewVmDiskMode == 1,
                 DifferencingDiskRoot = _defaultVhdPath,
                 IsoPath = NewVmIsoPath,
