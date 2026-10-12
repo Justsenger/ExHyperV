@@ -3,6 +3,7 @@ using System.IO;
 using System.Windows;
 using System.Xml.Linq;
 using Wpf.Ui.Appearance;
+using Wpf.Ui.Controls;
 using Wpf.Ui.Extensions;
 using System.Net.Http;
 
@@ -382,6 +383,11 @@ namespace ExHyperV.Services
         // 是否正在跟随系统主题
         private static bool _isFollowingSystem = true;
 
+        // 切换主题和系统监听必须沿用启动时的背景策略，不能在轻量化模式下重新启用 Mica。
+        private static WindowBackdropType ThemeBackdrop => App.PerformanceMode
+            ? WindowBackdropType.None
+            : WindowBackdropType.Mica;
+
         // 品牌强调色：取自系统强调色 #0078D4 并固定，不再随系统飘。主题变化时按新主题重算整套梯度。
         private static readonly System.Windows.Media.Color AppAccent =
             System.Windows.Media.Color.FromRgb(0x00, 0x78, 0xD4);
@@ -412,7 +418,7 @@ namespace ExHyperV.Services
         public static void EnableSystemThemeWatch(Window window)
         {
             if (_isFollowingSystem && window != null)
-                SystemThemeWatcher.Watch(window);
+                SystemThemeWatcher.Watch(window, ThemeBackdrop);
         }
 
         // 应用新主题
@@ -426,10 +432,10 @@ namespace ExHyperV.Services
                 var sysTheme = SystemThemeManager.GetCachedSystemTheme() == SystemTheme.Dark
                     ? ApplicationTheme.Dark
                     : ApplicationTheme.Light;
-                ApplicationThemeManager.Apply(sysTheme);
+                ApplicationThemeManager.Apply(sysTheme, ThemeBackdrop);
 
                 if (window != null)
-                    SystemThemeWatcher.Watch(window);
+                    SystemThemeWatcher.Watch(window, ThemeBackdrop);
 
                 if (saveTheme)
                     SaveThemeCode("system");
@@ -445,7 +451,7 @@ namespace ExHyperV.Services
                 var theme = themeName == Properties.Resources.Theme_Dark
                     ? ApplicationTheme.Dark
                     : ApplicationTheme.Light;
-                ApplicationThemeManager.Apply(theme);
+                ApplicationThemeManager.Apply(theme, ThemeBackdrop);
 
                 if (saveTheme)
                     SaveThemeCode(themeName == Properties.Resources.Theme_Dark ? "dark" : "light");
