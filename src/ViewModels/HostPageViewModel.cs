@@ -16,6 +16,8 @@ namespace ExHyperV.ViewModels
 
         private bool _isInitialized = false;
 
+        public ConsolePreferencesViewModel Preferences { get; } = new();
+
 
         public CheckStatusViewModel SystemStatus { get; } = new("");
         public CheckStatusViewModel CpuStatus { get; } = new("");

@@ -457,6 +457,8 @@ namespace ExHyperV.ViewModels
 
             // 绑定电源控制命令 (必须绑定，否则新发现的 VM 按钮无效)
             instance.ControlCommand = new AsyncRelayCommand<string>(async (action) => {
+                // Snapshot the explicit single-VM start intent; polling/external starts never open windows.
+                bool openConsoleOnStart = action == "Start" && !IsMultiSelect && SettingsService.GetOpenConsoleOnStart();
                 instance.SetTransientState(GetOptimisticText(action));
                 try
                 {
@@ -468,13 +470,13 @@ namespace ExHyperV.ViewModels
                         // 反应式修复:开机失败且该 VM 存在悬空 GPU-PV(钉死的物理 GPU 已不在主机)时,弹确认→清除→重试。
                         // 这类记录在 WMI 层完全隐形、官方 cmdlet 删不掉,只能走 .vmcx 引擎(见 VmGpuRepairService)。
                         if ((action == "Start" || action == "Restart")
-                            && await TryRepairStaleGpuPvAndRetryAsync(instance, action, result.Error))
+                            && await TryRepairStaleGpuPvAndRetryAsync(instance, action, result.Error, openConsoleOnStart))
                         {
                             return; // 已介入处理,不再弹通用报错
                         }
                         // 同款反应式修复:开机失败且挂着悬空直通物理盘 → 弹确认 → 移除 → 重试。
                         if ((action == "Start" || action == "Restart")
-                            && await TryRemoveStalePassthroughDiskAndRetryAsync(instance, action, result.Error))
+                            && await TryRemoveStalePassthroughDiskAndRetryAsync(instance, action, result.Error, openConsoleOnStart))
                         {
                             return;
                         }
@@ -482,10 +484,7 @@ namespace ExHyperV.ViewModels
                         return;
                     }
                     await SyncSingleVmStateAsync(instance);
-                    if (action == "Start" || action == "Restart")
-                    {
-                        TryApplyAffinityForRootScheduler(instance);
-                    }
+                    OnPowerActionSucceeded(instance, action, openConsoleOnStart);
                 }
                 catch (Exception ex)
                 {
@@ -501,7 +500,7 @@ namespace ExHyperV.ViewModels
 
         // 开机失败 → 若该 VM 存在悬空 GPU-PV(钉死的物理 GPU 已不在主机),弹确认 → 引擎清除 → 重试开机。
         // 返回 true = 已介入处理(调用方不再弹通用报错);false = 无悬空 GPU-PV / 检测失败,走通用报错。
-        private async Task<bool> TryRepairStaleGpuPvAndRetryAsync(VmInstanceViewModel instance, string action, string startError)
+        private async Task<bool> TryRepairStaleGpuPvAndRetryAsync(VmInstanceViewModel instance, string action, string startError, bool openConsoleOnStart)
         {
             List<VmGpuRepairService.StaleGpuPartition> stale;
             try { stale = await VmGpuRepairService.FindStaleGpuPartitionsAsync(instance.Name); }
@@ -566,14 +565,14 @@ namespace ExHyperV.ViewModels
             else
             {
                 await SyncSingleVmStateAsync(instance);
-                if (action == "Start" || action == "Restart") TryApplyAffinityForRootScheduler(instance);
+                OnPowerActionSucceeded(instance, action, openConsoleOnStart);
             }
             return true;
         }
 
         // 开机失败且挂着悬空直通物理盘(HostResource 钉的盘已从可直通池消失——被拔出/联机) → 弹确认移除该盘再重试。
         // 返回 true=已介入(不再弹通用报错);false=无悬空盘/失败另有其因,交回通用报错。与 GPU-PV 悬空处理同款。
-        private async Task<bool> TryRemoveStalePassthroughDiskAndRetryAsync(VmInstanceViewModel instance, string action, string startError)
+        private async Task<bool> TryRemoveStalePassthroughDiskAndRetryAsync(VmInstanceViewModel instance, string action, string startError, bool openConsoleOnStart)
         {
             List<VmStorageItem> stale;
             try { stale = await VmStorageService.FindStalePassthroughDisksAsync(instance.Name); }
@@ -617,7 +616,7 @@ namespace ExHyperV.ViewModels
             else
             {
                 await SyncSingleVmStateAsync(instance);
-                if (action == "Start" || action == "Restart") TryApplyAffinityForRootScheduler(instance);
+                OnPowerActionSucceeded(instance, action, openConsoleOnStart);
             }
             return true;
         }

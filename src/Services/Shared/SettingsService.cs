@@ -12,7 +12,7 @@ namespace ExHyperV.Services
     {
         public string tag_name { get; set; } = string.Empty;
     }
-    public static class SettingsService
+    public static partial class SettingsService
     {
 
         private static readonly HttpClient _httpClient = new HttpClient();

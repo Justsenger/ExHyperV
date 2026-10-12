@@ -3990,4 +3990,9 @@ Remove them from storage and retry? Cancel to re-plug the device and try again.<
   <data name="Network_UpstreamMissing" xml:space="preserve"><value>The selected network adapter is no longer available. Refresh and select it again.</value></data>
   <data name="Network_Restored" xml:space="preserve"><value>Configuration failed: {0}. The previous configuration was restored.</value></data>
   <data name="Network_RestoreFailed" xml:space="preserve"><value>Configuration failed: {0}. Recovery also failed: {1}. The network may be partially configured; check its current state.</value></data>
+  <data name="HostPage_PreferencesTab" xml:space="preserve"><value>Preferences</value></data>
+  <data name="Preferences_PowerAction" xml:space="preserve"><value>Default power button action</value></data>
+  <data name="Preferences_AutoOpenConsole" xml:space="preserve"><value>Open console after starting a virtual machine</value></data>
+  <data name="Preferences_Save" xml:space="preserve"><value>Save</value></data>
+  <data name="Preferences_SaveFailed" xml:space="preserve"><value>Could not save preferences. The saved values have been restored.</value></data>
 </root>

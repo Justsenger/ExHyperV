@@ -2398,7 +2398,7 @@
     <value>启动虚拟机</value>
   </data>
   <data name="ConsoleWindow_ShutDown" xml:space="preserve">
-    <value>正常关机</value>
+    <value>关机</value>
   </data>
   <data name="ConsoleWindow_Restart" xml:space="preserve">
     <value>重启</value>
@@ -3990,4 +3990,9 @@
   <data name="Network_UpstreamMissing" xml:space="preserve"><value>所选网络适配器已不可用，请刷新后重新选择。</value></data>
   <data name="Network_Restored" xml:space="preserve"><value>配置失败：{0}。已恢复原配置。</value></data>
   <data name="Network_RestoreFailed" xml:space="preserve"><value>配置失败：{0}。恢复原配置也失败：{1}。网络可能处于部分配置状态，请检查当前状态。</value></data>
+  <data name="HostPage_PreferencesTab" xml:space="preserve"><value>偏好</value></data>
+  <data name="Preferences_PowerAction" xml:space="preserve"><value>默认电源按钮动作</value></data>
+  <data name="Preferences_AutoOpenConsole" xml:space="preserve"><value>启动虚拟机后打开控制台</value></data>
+  <data name="Preferences_Save" xml:space="preserve"><value>保存</value></data>
+  <data name="Preferences_SaveFailed" xml:space="preserve"><value>无法保存偏好，已恢复为已保存的设置。</value></data>
 </root>

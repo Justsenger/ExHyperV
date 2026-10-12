@@ -31,9 +31,22 @@ namespace ExHyperV.ViewModels
         [NotifyCanExecuteChangedFor(nameof(PauseVmCommand))]
         [NotifyCanExecuteChangedFor(nameof(SaveVmCommand))]
         [NotifyCanExecuteChangedFor(nameof(TurnOffVmCommand))]
+        [NotifyCanExecuteChangedFor(nameof(PrimaryPowerCommand))]
         private bool _isBusy = false;
 
         public bool IsNotBusy => !IsBusy;
+
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(PrimaryPowerIcon))]
+        [NotifyPropertyChangedFor(nameof(PrimaryPowerText))]
+        private bool _isSavePowerAction;
+
+        public Wpf.Ui.Controls.SymbolRegular PrimaryPowerIcon => IsSavePowerAction
+            ? Wpf.Ui.Controls.SymbolRegular.Save24 : Wpf.Ui.Controls.SymbolRegular.Power24;
+        public string PrimaryPowerText => IsSavePowerAction
+            ? Properties.Resources.ConsoleWindow_SaveState : Properties.Resources.ConsoleWindow_ShutDown;
+
+        private void RefreshPowerPreference() => IsSavePowerAction = SettingsService.GetConsolePowerAction() == "Save";
 
         public event EventHandler? SendCadRequested;
         /// <summary>每次状态轮询完成后触发（供消费方按 VM 运行状态同步连接，无需额外定时器）。</summary>
@@ -44,6 +57,8 @@ namespace ExHyperV.ViewModels
         {
             VmId = vmId;
             VmName = vmName;
+            RefreshPowerPreference();
+            SettingsService.ConsolePowerActionChanged += RefreshPowerPreference;
             // 打开控制台时优先用配置里保存的缩放档（语言中立："auto"→当前语言的适应窗口，百分比直用）；无/无效则保持默认 100%。
             var savedZoom = SettingsService.GetDefaultZoom();
             if (savedZoom == ZoomAutoToken) SelectedZoom = Properties.Resources.ConsoleWindow_ZoomAuto;
@@ -114,6 +129,9 @@ namespace ExHyperV.ViewModels
         }
 
         private bool CanExecutePowerAction() => !IsBusy;
+
+        [RelayCommand(CanExecute = nameof(CanExecutePowerAction))]
+        private async Task PrimaryPowerAsync() => await ExecutePowerActionAsync(IsSavePowerAction ? "Save" : "Stop");
 
         [RelayCommand(CanExecute = nameof(CanExecutePowerAction))]
         private async Task StartVmAsync() => await ExecutePowerActionAsync("Start");
@@ -278,6 +296,10 @@ namespace ExHyperV.ViewModels
                 ResolutionChangeRequested?.Invoke(w, h);
         }
 
-        public void Dispose() => _statusTimer?.Stop();
+        public void Dispose()
+        {
+            _statusTimer?.Stop();
+            SettingsService.ConsolePowerActionChanged -= RefreshPowerPreference;
+        }
     }
 }

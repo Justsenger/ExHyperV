@@ -8,6 +8,10 @@
     Title="HostPage">
 
     <Page.Resources>
+        <Style TargetType="{x:Type ui:CardControl}" BasedOn="{StaticResource DefaultUiCardControlStyle}">
+            <Setter Property="MinHeight" Value="64"/>
+        </Style>
+
         <Style x:Key="HostPageTabControlStyle" TargetType="{x:Type TabControl}">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="Foreground" Value="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
@@ -487,6 +491,33 @@
                                      IsEnabled="{Binding IsVolumeAutoMountToggleEnabled}"/>
                 </ui:CardControl>
 
+                    </StackPanel>
+                </TabItem>
+                <TabItem Header="{x:Static properties:Resources.HostPage_PreferencesTab}"
+                         Style="{StaticResource HostPageTabItemStyle}">
+                    <StackPanel Margin="0,16,0,16" DataContext="{Binding Preferences}" Loaded="OnPreferencesLoaded">
+                        <ui:CardControl Margin="0,0,0,8" Padding="12">
+                            <ui:CardControl.Icon>
+                                <ui:SymbolIcon Symbol="Desktop24" FontSize="22"/>
+                            </ui:CardControl.Icon>
+                            <ui:CardControl.Header>
+                                <TextBlock Text="{x:Static properties:Resources.Preferences_AutoOpenConsole}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" TextWrapping="Wrap"/>
+                            </ui:CardControl.Header>
+                            <ui:ToggleSwitch IsChecked="{Binding OpenConsoleOnStart, Mode=TwoWay}"
+                                             AutomationProperties.Name="{x:Static properties:Resources.Preferences_AutoOpenConsole}"/>
+                        </ui:CardControl>
+                        <ui:CardControl Margin="0,0,0,8" Padding="12">
+                            <ui:CardControl.Icon>
+                                <ui:SymbolIcon Symbol="Power24" FontSize="22"/>
+                            </ui:CardControl.Icon>
+                            <ui:CardControl.Header>
+                                <TextBlock Text="{x:Static properties:Resources.Preferences_PowerAction}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" TextWrapping="Wrap"/>
+                            </ui:CardControl.Header>
+                            <ComboBox MinWidth="100" HorizontalAlignment="Right" ItemsSource="{Binding PowerActions}" DisplayMemberPath="Label" SelectedValuePath="Value"
+                                      SelectedValue="{Binding PowerAction, Mode=TwoWay}"
+                                      AutomationProperties.Name="{x:Static properties:Resources.Preferences_PowerAction}"/>
+                        </ui:CardControl>
+                        <TextBlock Text="{Binding SaveError}" TextWrapping="Wrap" Foreground="{ui:ThemeResource SystemFillColorCriticalBrush}"/>
                     </StackPanel>
                 </TabItem>
             </TabControl>

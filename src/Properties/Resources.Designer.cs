@@ -23,6 +23,11 @@ namespace ExHyperV.Properties {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     public class Resources {
+        public static string HostPage_PreferencesTab => ResourceManager.GetString("HostPage_PreferencesTab", resourceCulture);
+        public static string Preferences_PowerAction => ResourceManager.GetString("Preferences_PowerAction", resourceCulture);
+        public static string Preferences_AutoOpenConsole => ResourceManager.GetString("Preferences_AutoOpenConsole", resourceCulture);
+        public static string Preferences_Save => ResourceManager.GetString("Preferences_Save", resourceCulture);
+        public static string Preferences_SaveFailed => ResourceManager.GetString("Preferences_SaveFailed", resourceCulture);
         
         private static global::System.Resources.ResourceManager resourceMan;
         

@@ -10,5 +10,11 @@ namespace ExHyperV.Views
             InitializeComponent();
             this.DataContext = new HostPageViewModel();
         }
+
+        private void OnPreferencesLoaded(object sender, System.Windows.RoutedEventArgs e)
+        {
+            if (DataContext is HostPageViewModel viewModel)
+                viewModel.Preferences.Reload();
+        }
     }
 }

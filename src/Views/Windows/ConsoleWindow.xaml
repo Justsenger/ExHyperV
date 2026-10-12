@@ -50,14 +50,18 @@
 
                             <StackPanel Orientation="Horizontal"
                                 Visibility="{Binding IsRunning, Converter={StaticResource BoolToVis}}">
-                                <ui:Button Icon="{ui:SymbolIcon Symbol=Power24}"
+                                <ui:Button
                                    Appearance="Transparent" Background="Transparent"
                                    Width="36"
                                    Height="32"
                                    Padding="0"
                                    CornerRadius="4,0,0,4"
-                                   Command="{Binding ShutdownVmCommand}"
-                                   ToolTip="{x:Static properties:Resources.ConsoleWindow_ShutDown}" />
+                                   Command="{Binding PrimaryPowerCommand}"
+                                   ToolTip="{Binding PrimaryPowerText}">
+                                    <ui:Button.Icon>
+                                        <ui:SymbolIcon Symbol="{Binding PrimaryPowerIcon}"/>
+                                    </ui:Button.Icon>
+                                </ui:Button>
 
                                 <ui:DropDownButton Appearance="Transparent" Background="Transparent"
                                            Width="24"
@@ -69,6 +73,12 @@
                                            IsEnabled="{Binding IsNotBusy}">
                                     <ui:DropDownButton.Flyout>
                                         <ContextMenu>
+                                            <MenuItem Header="{x:Static properties:Resources.ConsoleWindow_ShutDown}" Command="{Binding ShutdownVmCommand}"
+                                                      Visibility="{Binding IsSavePowerAction, Converter={StaticResource BoolToVis}}">
+                                                <MenuItem.Icon>
+                                                    <ui:SymbolIcon Symbol="Power24"/>
+                                                </MenuItem.Icon>
+                                            </MenuItem>
                                             <MenuItem Header="{x:Static properties:Resources.ConsoleWindow_Restart}" Command="{Binding ResetVmCommand}">
                                                 <MenuItem.Icon>
                                                     <ui:SymbolIcon Symbol="ArrowSync24"/>
@@ -79,7 +89,8 @@
                                                     <ui:SymbolIcon Symbol="Pause24"/>
                                                 </MenuItem.Icon>
                                             </MenuItem>
-                                            <MenuItem Header="{x:Static properties:Resources.ConsoleWindow_SaveState}" Command="{Binding SaveVmCommand}">
+                                            <MenuItem Header="{x:Static properties:Resources.ConsoleWindow_SaveState}" Command="{Binding SaveVmCommand}"
+                                                      Visibility="{Binding IsSavePowerAction, Converter={StaticResource BoolToVis}, ConverterParameter=Invert}">
                                                 <MenuItem.Icon>
                                                     <ui:SymbolIcon Symbol="Save24"/>
                                                 </MenuItem.Icon>
