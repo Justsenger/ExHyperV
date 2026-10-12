@@ -285,6 +285,9 @@ public partial class VirtualMachinesPageViewModel
             ShowSuccess(sessions.Length == 1
                 ? string.Format(Resources.VmImport_Success, sessions[0].Preview.Name)
                 : $"已导入 {sessions.Length} 台虚拟机。");
+            int removedGroups = sessions.Sum(s => s.RemovedMissingGroupCount);
+            if (removedGroups > 0)
+                await Dialogs.ShowAlertAsync(Resources.VmImport_Menu, string.Format(Resources.VmGroup_ImportRemoved, removedGroups));
         }
         finally
         {

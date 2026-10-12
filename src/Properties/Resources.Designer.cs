@@ -28,6 +28,19 @@ namespace ExHyperV.Properties {
         public static string Preferences_AutoOpenConsole => ResourceManager.GetString("Preferences_AutoOpenConsole", resourceCulture);
         public static string Preferences_Save => ResourceManager.GetString("Preferences_Save", resourceCulture);
         public static string Preferences_SaveFailed => ResourceManager.GetString("Preferences_SaveFailed", resourceCulture);
+        public static string VmGroup_Create => ResourceManager.GetString("VmGroup_Create", resourceCulture);
+        public static string VmGroup_Name => ResourceManager.GetString("VmGroup_Name", resourceCulture);
+        public static string VmGroup_Delete => ResourceManager.GetString("VmGroup_Delete", resourceCulture);
+        public static string VmGroup_DeleteConfirm => ResourceManager.GetString("VmGroup_DeleteConfirm", resourceCulture);
+        public static string VmGroup_LoadFailed => ResourceManager.GetString("VmGroup_LoadFailed", resourceCulture);
+        public static string VmGroup_NoLongerExists => ResourceManager.GetString("VmGroup_NoLongerExists", resourceCulture);
+        public static string VmGroup_OnlyVms => ResourceManager.GetString("VmGroup_OnlyVms", resourceCulture);
+        public static string VmGroup_Cycle => ResourceManager.GetString("VmGroup_Cycle", resourceCulture);
+        public static string VmGroup_VerifyFailed => ResourceManager.GetString("VmGroup_VerifyFailed", resourceCulture);
+        public static string VmGroup_RecoveryFailed => ResourceManager.GetString("VmGroup_RecoveryFailed", resourceCulture);
+        public static string VmGroup_InvalidImportReference => ResourceManager.GetString("VmGroup_InvalidImportReference", resourceCulture);
+        public static string VmGroup_ImportRemoved => ResourceManager.GetString("VmGroup_ImportRemoved", resourceCulture);
+        public static string VmGroup_ImportCleanupDeferred => ResourceManager.GetString("VmGroup_ImportCleanupDeferred", resourceCulture);
         
         private static global::System.Resources.ResourceManager resourceMan;
         

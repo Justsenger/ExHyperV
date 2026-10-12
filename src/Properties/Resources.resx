@@ -3990,9 +3990,23 @@ Remove them from storage and retry? Cancel to re-plug the device and try again.<
   <data name="Network_UpstreamMissing" xml:space="preserve"><value>The selected network adapter is no longer available. Refresh and select it again.</value></data>
   <data name="Network_Restored" xml:space="preserve"><value>Configuration failed: {0}. The previous configuration was restored.</value></data>
   <data name="Network_RestoreFailed" xml:space="preserve"><value>Configuration failed: {0}. Recovery also failed: {1}. The network may be partially configured; check its current state.</value></data>
+  <data name="VmGroup_Create" xml:space="preserve"><value>New group</value></data>
+  <data name="VmGroup_Name" xml:space="preserve"><value>Group name</value></data>
+  <data name="VmGroup_Delete" xml:space="preserve"><value>Delete group</value></data>
+  <data name="VmGroup_DeleteConfirm" xml:space="preserve"><value>Delete “{0}” from all parent groups? Virtual machines and child groups will be kept. No files will be deleted.</value></data>
+  <data name="VmGroup_LoadFailed" xml:space="preserve"><value>Could not load native groups.</value></data>
+  <data name="VmGroup_NoLongerExists" xml:space="preserve"><value>The group no longer exists. Refresh and retry.</value></data>
+  <data name="VmGroup_OnlyVms" xml:space="preserve"><value>A VM group can contain virtual machines only.</value></data>
+  <data name="VmGroup_Cycle" xml:space="preserve"><value>This membership would create a cycle or is not supported by this group type.</value></data>
+  <data name="VmGroup_VerifyFailed" xml:space="preserve"><value>The group state could not be confirmed. Refresh and retry.</value></data>
+  <data name="VmGroup_InvalidImportReference" xml:space="preserve"><value>The missing group reference could not be verified. Import was stopped.</value></data>
+  <data name="VmGroup_ImportRemoved" xml:space="preserve"><value>Removed {0} missing group reference(s). Existing groups were preserved.</value></data>
+  <data name="VmGroup_ImportCleanupDeferred" xml:space="preserve"><value>The Hyper-V task could not be confirmed as finished, or removal of the pending import could not be confirmed. Automatic cleanup was stopped and related files were kept. Check these objects and paths before retrying:
+{0}</value></data>
   <data name="HostPage_PreferencesTab" xml:space="preserve"><value>Preferences</value></data>
   <data name="Preferences_PowerAction" xml:space="preserve"><value>Default power button action</value></data>
   <data name="Preferences_AutoOpenConsole" xml:space="preserve"><value>Open console after starting a virtual machine</value></data>
   <data name="Preferences_Save" xml:space="preserve"><value>Save</value></data>
   <data name="Preferences_SaveFailed" xml:space="preserve"><value>Could not save preferences. The saved values have been restored.</value></data>
+  <data name="VmGroup_RecoveryFailed" xml:space="preserve"><value>The operation failed, and the original group relationships could not be fully restored. Refresh and check the groups before retrying.</value></data>
 </root>

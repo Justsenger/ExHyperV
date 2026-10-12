@@ -3990,9 +3990,23 @@
   <data name="Network_UpstreamMissing" xml:space="preserve"><value>所选网络适配器已不可用，请刷新后重新选择。</value></data>
   <data name="Network_Restored" xml:space="preserve"><value>配置失败：{0}。已恢复原配置。</value></data>
   <data name="Network_RestoreFailed" xml:space="preserve"><value>配置失败：{0}。恢复原配置也失败：{1}。网络可能处于部分配置状态，请检查当前状态。</value></data>
+  <data name="VmGroup_Create" xml:space="preserve"><value>新建分组</value></data>
+  <data name="VmGroup_Name" xml:space="preserve"><value>分组名称</value></data>
+  <data name="VmGroup_Delete" xml:space="preserve"><value>删除分组</value></data>
+  <data name="VmGroup_DeleteConfirm" xml:space="preserve"><value>删除“{0}”？它会从所有父组中移除，虚拟机和子组会保留，不删除任何文件。</value></data>
+  <data name="VmGroup_LoadFailed" xml:space="preserve"><value>无法读取原生分组。</value></data>
+  <data name="VmGroup_NoLongerExists" xml:space="preserve"><value>分组已不存在，请刷新后重试。</value></data>
+  <data name="VmGroup_OnlyVms" xml:space="preserve"><value>虚拟机组只能包含虚拟机。</value></data>
+  <data name="VmGroup_Cycle" xml:space="preserve"><value>该关系会形成循环，或不符合分组类型。</value></data>
+  <data name="VmGroup_VerifyFailed" xml:space="preserve"><value>未能确认分组状态，请刷新后重试。</value></data>
+  <data name="VmGroup_InvalidImportReference" xml:space="preserve"><value>无法核实缺失的分组引用，已停止导入。</value></data>
+  <data name="VmGroup_ImportRemoved" xml:space="preserve"><value>已清除 {0} 条失效的分组关系，仍存在的分组关系已保留。</value></data>
+  <data name="VmGroup_ImportCleanupDeferred" xml:space="preserve"><value>无法确认 Hyper-V 任务已结束，或待导入对象是否已移除。已停止自动清理并保留相关文件，请检查以下对象和路径后再重试：
+{0}</value></data>
   <data name="HostPage_PreferencesTab" xml:space="preserve"><value>偏好</value></data>
   <data name="Preferences_PowerAction" xml:space="preserve"><value>默认电源按钮动作</value></data>
   <data name="Preferences_AutoOpenConsole" xml:space="preserve"><value>启动虚拟机后打开控制台</value></data>
   <data name="Preferences_Save" xml:space="preserve"><value>保存</value></data>
   <data name="Preferences_SaveFailed" xml:space="preserve"><value>无法保存偏好，已恢复为已保存的设置。</value></data>
+  <data name="VmGroup_RecoveryFailed" xml:space="preserve"><value>操作失败，原有分组关系未能完全恢复。请刷新并检查分组后再重试。</value></data>
 </root>

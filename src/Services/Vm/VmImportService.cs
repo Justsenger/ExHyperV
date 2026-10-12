@@ -36,13 +36,16 @@ public sealed class VmImportSession : IAsyncDisposable
     internal string? DiskStagingRoot { get; set; }
     public bool ArchiveFullyExtracted { get; internal set; }
     public bool IsRealized { get; internal set; }
+    public int RemovedMissingGroupCount { get; internal set; }
+    internal VmImportCleanupGuard CleanupGuard { get; } = new();
     internal bool OwnsTemporaryRoot { get; set; }
     internal bool GenerateNewGuid { get; set; }
 
     public async ValueTask DisposeAsync()
     {
+        if (CleanupGuard.IsBlocked) return;
         if (!IsRealized && !string.IsNullOrWhiteSpace(PlannedSystemPath))
-            await VmImportService.DestroyPlannedSystemAsync(PlannedSystemPath);
+            if (!await CleanupGuard.TryCleanupAsync(() => VmImportService.DestroyPlannedSystemAsync(PlannedSystemPath))) return;
 
         if (OwnsTemporaryRoot)
             VmImportService.TryDeleteTemporaryRoot(TemporaryRoot);
@@ -66,6 +69,8 @@ public sealed class VmImportBatchSession : IAsyncDisposable
         foreach (VmImportSession session in VirtualMachines)
             await session.DisposeAsync();
 
+        // ZIP batches share their extraction root. One unresolved native job protects that root for all sessions.
+        if (VirtualMachines.Any(s => s.CleanupGuard.IsBlocked)) return;
         VmImportService.TryDeleteTemporaryRoot(TemporaryRoot);
         TemporaryRoot = null;
     }
@@ -353,9 +358,9 @@ public static class VmImportService
 
             cancellationToken.ThrowIfCancellationRequested();
             progress?.Report(82);
-            var validate = await ValidateAsync(session.PlannedSystemPath, cancellationToken);
-            if (!validate.Success)
-                throw new InvalidOperationException(validate.Error);
+            session.RemovedMissingGroupCount += await VmGroupService.RemoveMissingImportGroupsAsync(
+                session.PlannedSystemPath, session.CleanupGuard, cancellationToken);
+            await ValidatePlannedSystemAsync(session.PlannedSystemPath, session.CleanupGuard, cancellationToken);
 
             progress?.Report(88);
             var realize = await WmiApi.InvokeWithResultAsync(
@@ -393,12 +398,12 @@ public static class VmImportService
         catch (OperationCanceledException ex)
         {
             if (!realized) await CleanupFailedImportAsync(session, createdPaths);
-            return ApiResponse<Guid>.Fail(ex.Message, -1, ApiErrorSource.None, ex);
+            return ApiResponse<Guid>.Fail(ImportFailureMessage(session, createdPaths, ex), -1, ApiErrorSource.None, ex);
         }
         catch (Exception ex)
         {
             if (!realized) await CleanupFailedImportAsync(session, createdPaths);
-            return ApiResponse<Guid>.Fail(ex.Message, -1, ApiErrorSource.None, ex);
+            return ApiResponse<Guid>.Fail(ImportFailureMessage(session, createdPaths, ex), -1, ApiErrorSource.None, ex);
         }
     }
 
@@ -1082,24 +1087,63 @@ public static class VmImportService
         if (!result.Success) throw new InvalidOperationException(result.Error);
     }
 
-    private static Task<ApiResponse> ValidateAsync(string plannedPath, CancellationToken cancellationToken)
-        => WmiApi.InvokeAsync(
-            ServiceWql,
-            "ValidatePlannedSystem",
-            p => p["PlannedSystem"] = plannedPath,
-            cancellationToken: cancellationToken);
+    internal static Task<string[]> ValidatePlannedSystemAsync(string plannedPath, VmImportCleanupGuard guard,
+        CancellationToken cancellationToken, bool allowValidationErrors = false, TimeSpan? timeout = null) => Task.Run(async () =>
+    {
+        if (new ManagementPath(plannedPath).ClassName != "Msvm_PlannedComputerSystem")
+            throw new ArgumentException(nameof(plannedPath));
+        using var service = WmiApi.GetVirtualSystemManagementService();
+        using var input = service.GetMethodParameters("ValidatePlannedSystem");
+        input["PlannedSystem"] = plannedPath;
+        ManagementObject? job = null;
+        uint result = 0;
+        try
+        {
+            await guard.ObserveAsync(() =>
+            {
+                using var output = service.InvokeMethod("ValidatePlannedSystem", input, null);
+                result = Convert.ToUInt32(output["ReturnValue"]);
+                if (result != 4096) return Task.FromResult<string?>(null);
+                string path = (string)output["Job"];
+                job = new ManagementObject(path);
+                return Task.FromResult<string?>(path);
+            }, () =>
+            {
+                job!.Get();
+                return Task.FromResult(Convert.ToUInt16(job["JobState"]) is 7 or 8 or 9 or 10 or 32768);
+            }, cancellationToken, timeout ?? TimeSpan.FromMinutes(30), TimeSpan.FromMilliseconds(150));
+            if (result == 0) return Array.Empty<string>();
+            if (result != 4096) throw new InvalidOperationException($"ValidatePlannedSystem: {result}");
+            if (Convert.ToUInt16(job!["JobState"]) == 7 && Convert.ToUInt16(job["ErrorCode"]) == 0)
+                return Array.Empty<string>();
+            if (!allowValidationErrors)
+                throw new InvalidOperationException(job["ErrorDescription"]?.ToString() ?? "ValidatePlannedSystem failed.");
+            using var errorInput = job!.GetMethodParameters("GetErrorEx");
+            using var errors = job.InvokeMethod("GetErrorEx", errorInput, null);
+            if (Convert.ToUInt32(errors["ReturnValue"]) != 0) throw new InvalidOperationException("GetErrorEx");
+            return errors["Errors"] as string[] ?? [];
+        }
+        finally { job?.Dispose(); }
+    }, cancellationToken);
 
-    internal static async Task DestroyPlannedSystemAsync(string plannedPath)
+    internal static async Task<bool> DestroyPlannedSystemAsync(string plannedPath)
     {
         try
         {
-            await WmiApi.InvokeAsync(
+            if (new ManagementPath(plannedPath).ClassName != "Msvm_PlannedComputerSystem") return false;
+            var result = await WmiApi.InvokeAsync(
                 ServiceWql,
                 "DestroySystem",
                 p => p["AffectedSystem"] = plannedPath,
                 cancellationToken: CancellationToken.None);
+            if (!result.Success) return false;
+            // Require both job completion and absence. An ambiguous/timeout response must preserve files.
+            using var planned = new ManagementObject(plannedPath);
+            try { planned.Get(); }
+            catch (ManagementException ex) when (ex.ErrorCode == ManagementStatus.NotFound) { return true; }
         }
         catch { }
+        return false;
     }
 
     private static async Task ExtractArchiveToTargetStagingAsync(
@@ -1855,8 +1899,9 @@ public static class VmImportService
         VmImportSession session,
         IEnumerable<string> createdPaths)
     {
+        if (session.CleanupGuard.IsBlocked) return;
         if (!string.IsNullOrWhiteSpace(session.PlannedSystemPath))
-            await DestroyPlannedSystemAsync(session.PlannedSystemPath);
+            if (!await session.CleanupGuard.TryCleanupAsync(() => DestroyPlannedSystemAsync(session.PlannedSystemPath))) return;
         session.PlannedSystemPath = string.Empty;
         await CleanupCreatedPathsAsync(createdPaths);
         TryDeleteImportStaging(session);
@@ -1865,6 +1910,16 @@ public static class VmImportService
             TryDeleteTemporaryRoot(session.TemporaryRoot);
             session.TemporaryRoot = null;
         }
+    }
+
+    private static string ImportFailureMessage(VmImportSession session, IEnumerable<string> createdPaths, Exception error)
+    {
+        if (!session.CleanupGuard.IsBlocked) return error.Message;
+        var retained = new[] { session.PlannedSystemPath, session.CleanupGuard.JobPath, session.TemporaryRoot,
+            session.ConfigurationStagingRoot, session.DiskStagingRoot }.Concat(createdPaths)
+            .Where(p => !string.IsNullOrWhiteSpace(p)).Distinct(StringComparer.OrdinalIgnoreCase);
+        return error.Message + Environment.NewLine + Environment.NewLine +
+            string.Format(Properties.Resources.VmGroup_ImportCleanupDeferred, string.Join(Environment.NewLine, retained));
     }
 
     internal static void TryDeleteImportStaging(VmImportSession session)

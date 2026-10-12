@@ -14,9 +14,6 @@
     x:Name="RootPage">
 
     <Page.Resources>
-
-
-
         
         
         <!-- 保底界面模板：未选择虚拟机时显示 -->
@@ -43,7 +40,7 @@
         </DataTemplate>
 
         <DataTemplate x:Key="VmListItemTemplate">
-            <Border Background="Transparent" Padding="2,6" 
+            <Border Background="Transparent" Padding="2,6" ToolTip="{Binding Name}"
             Tag="{Binding DataContext, RelativeSource={RelativeSource AncestorType=Page}}">
                 <Border.InputBindings>
                     <MouseBinding MouseAction="LeftDoubleClick" 
@@ -52,7 +49,7 @@
                 </Border.InputBindings>
                 
                 <Border.ContextMenu>
-                    <ContextMenu>
+                    <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
                         <!-- 多选电源：全部运行→关机，否则→启动。仅多选时显示。 -->
                         <ui:MenuItem Header="{Binding PlacementTarget.Tag.MultiPowerToggleText, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
              Command="{Binding PlacementTarget.Tag.MultiPowerCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
@@ -190,6 +187,122 @@
                     </Grid>
                 </Grid>
             </Border>
+        </DataTemplate>
+        <DataTemplate x:Key="VmGroupItemTemplate">
+            <Button Padding="10,8" Background="Transparent" BorderThickness="0" HorizontalAlignment="Stretch"
+                    HorizontalContentAlignment="Stretch"
+                    AutomationProperties.Name="{Binding Name}"
+                    Tag="{Binding DataContext, RelativeSource={RelativeSource AncestorType=Page}}"
+                    Command="{Binding DataContext.ToggleGroupCommand, RelativeSource={RelativeSource AncestorType=Page}}"
+                    CommandParameter="{Binding}">
+                <Button.Template>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"/>
+                        </Border>
+                    </ControlTemplate>
+                </Button.Template>
+                <Button.ContextMenu>
+                    <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
+                        <ui:MenuItem Header="{x:Static properties:Resources.Xaml_Rename}" CommandParameter="{Binding}"
+                                  Command="{Binding PlacementTarget.Tag.RenameGroupCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                  IsEnabled="{Binding PlacementTarget.Tag.CanEditGroups, RelativeSource={RelativeSource AncestorType=ContextMenu}}">
+                            <ui:MenuItem.Icon><ui:SymbolIcon Symbol="Rename24"/></ui:MenuItem.Icon>
+                        </ui:MenuItem>
+                        <ui:MenuItem Header="{x:Static properties:Resources.VmGroup_Create}" CommandParameter="{Binding}"
+                                  Command="{Binding PlacementTarget.Tag.CreateGroupCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                  Visibility="{Binding CanContainGroups, Converter={StaticResource BoolToVis}}"
+                                  IsEnabled="{Binding PlacementTarget.Tag.CanEditGroups, RelativeSource={RelativeSource AncestorType=ContextMenu}}">
+                            <ui:MenuItem.Icon><ui:SymbolIcon Symbol="Add24"/></ui:MenuItem.Icon>
+                        </ui:MenuItem>
+                        <Separator/>
+                        <ui:MenuItem Header="{x:Static properties:Resources.Xaml_Delete}" CommandParameter="{Binding}"
+                                  Command="{Binding PlacementTarget.Tag.DeleteGroupCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                  IsEnabled="{Binding PlacementTarget.Tag.CanEditGroups, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                  Foreground="{ui:ThemeResource SystemFillColorCriticalBrush}">
+                            <ui:MenuItem.Icon>
+                                <ui:SymbolIcon Symbol="Delete24" Foreground="{ui:ThemeResource SystemFillColorCriticalBrush}"/>
+                            </ui:MenuItem.Icon>
+                        </ui:MenuItem>
+                    </ContextMenu>
+                </Button.ContextMenu>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <ui:SymbolIcon Symbol="LayerDiagonal24" FontSize="18" Margin="0,0,8,0"
+                                   Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                    <Grid Grid.Column="1">
+                        <TextBlock x:Name="GroupNameText" Text="{Binding Name}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"
+                                   Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding NameEdit.IsEditing}" Value="True">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                        <ui:TextBox Text="{Binding NameEdit.EditedName, UpdateSourceTrigger=PropertyChanged}"
+                                    tools:AutoFocus.IsFocused="{Binding NameEdit.IsEditing}"
+                                    FontSize="12" MinHeight="24" MaxLength="100" Padding="4,2" Margin="-4,0,0,0">
+                            <ui:TextBox.Style>
+                                <Style TargetType="ui:TextBox" BasedOn="{StaticResource {x:Type ui:TextBox}}">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding NameEdit.IsEditing}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </ui:TextBox.Style>
+                            <ui:TextBox.InputBindings>
+                                <KeyBinding Key="Enter" Command="{Binding DataContext.CommitGroupRenameCommand, ElementName=RootPage}" CommandParameter="{Binding}"/>
+                                <KeyBinding Key="Esc" Command="{Binding DataContext.CancelGroupRenameCommand, ElementName=RootPage}" CommandParameter="{Binding}"/>
+                            </ui:TextBox.InputBindings>
+                            <tools:EventToCommand.EventName>LostFocus</tools:EventToCommand.EventName>
+                            <tools:EventToCommand.Command>
+                                <Binding Path="DataContext.CommitGroupRenameCommand" ElementName="RootPage"/>
+                            </tools:EventToCommand.Command>
+                            <tools:EventToCommand.CommandParameter><Binding/></tools:EventToCommand.CommandParameter>
+                        </ui:TextBox>
+                    </Grid>
+                    <ui:SymbolIcon Grid.Column="2" FontSize="12" Margin="8,0,0,0"
+                                   Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"
+                                   Visibility="{Binding HasChildren, Converter={StaticResource BoolToVis}}">
+                        <ui:SymbolIcon.Style>
+                            <Style TargetType="ui:SymbolIcon">
+                                <Setter Property="Symbol" Value="ChevronRight24"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsExpanded}" Value="True">
+                                        <Setter Property="Symbol" Value="ChevronDown24"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </ui:SymbolIcon.Style>
+                    </ui:SymbolIcon>
+                </Grid>
+            </Button>
+        </DataTemplate>
+        <DataTemplate x:Key="VmNavigationItemTemplate">
+            <ContentControl Margin="{Binding Indent}" HorizontalContentAlignment="Stretch">
+                <ContentControl.Style>
+                    <Style TargetType="ContentControl">
+                        <Setter Property="Content" Value="{Binding Vm}"/>
+                        <Setter Property="ContentTemplate" Value="{StaticResource VmListItemTemplate}"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsGroup}" Value="True">
+                                <Setter Property="Content" Value="{Binding}"/>
+                                <Setter Property="ContentTemplate" Value="{StaticResource VmGroupItemTemplate}"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </ContentControl.Style>
+            </ContentControl>
         </DataTemplate>
         <DataTemplate x:Key="VmDetailTemplate">
             <Grid>
@@ -618,9 +731,10 @@
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
-                <Grid Grid.Row="0" Margin="8">
+                <Grid Grid.Row="0" Margin="8" IsEnabled="{Binding IsVmListEnabled}">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
@@ -669,7 +783,7 @@
                         <ui:FontIcon Glyph="&#xE2B3;" FontSize="15"
                                      FontFamily="{DynamicResource SystemSegoeFluentIcons}"/>
                     </ui:Button>
-                    <ui:Button Grid.Column="2"
+                    <ui:DropDownButton Grid.Column="2" Style="{StaticResource DefaultUiButtonStyle}"
                Margin="8,0,0,0" 
                Padding="0" 
                Width="24" 
@@ -677,16 +791,49 @@
                Icon="{ui:SymbolIcon Symbol=Add24}"
                Appearance="Secondary"
                IsEnabled="{Binding IsVmListEnabled}"
-               ToolTip="{x:Static properties:Resources.Xaml_CreateVm}"
-               Command="{Binding CreateVmCommand}"/>
+               ToolTip="{x:Static properties:Resources.Xaml_NewVm}" Tag="{Binding}">
+                        <ui:DropDownButton.Flyout>
+                            <ContextMenu>
+                                <MenuItem Header="{x:Static properties:Resources.Xaml_NewVm}"
+                                          Command="{Binding PlacementTarget.Tag.CreateVmCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                                <MenuItem Header="{x:Static properties:Resources.VmGroup_Create}"
+                                          Command="{Binding PlacementTarget.Tag.CreateGroupCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                          IsEnabled="{Binding PlacementTarget.Tag.CanEditGroups, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                            </ContextMenu>
+                        </ui:DropDownButton.Flyout>
+                    </ui:DropDownButton>
                 </Grid>
                 
-                <ui:ListView Grid.Row="1" ItemsSource="{Binding VmList}" SelectedItem="{Binding SelectedVm, Mode=TwoWay}"
+                <TextBlock Grid.Row="1" Text="{Binding GroupLoadError}" TextWrapping="Wrap" Margin="8,0"
+                           Foreground="{ui:ThemeResource SystemFillColorCriticalBrush}" FontSize="12">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding GroupLoadError}" Value="">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+                <ui:ListView Grid.Row="2" ItemsSource="{Binding NavigationItems}" SelectedItem="{Binding SelectedNavigationItem, Mode=TwoWay}"
+                             x:Name="NavigationList" AllowDrop="True"
+                             PreviewMouseMove="NavigationList_PreviewMouseMove" PreviewMouseLeftButtonUp="NavigationList_PreviewMouseLeftButtonUp"
+                             PreviewDragOver="NavigationList_DragOver" PreviewDrop="NavigationList_Drop" DragLeave="NavigationList_DragLeave"
                              SelectionChanged="VmList_SelectionChanged"
                              IsEnabled="{Binding IsVmListEnabled}"
                              HorizontalContentAlignment="Stretch"
                              ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                             ItemTemplate="{StaticResource VmListItemTemplate}" Margin="4,0,4,4">
+                             Tag="{Binding}" ItemTemplate="{StaticResource VmNavigationItemTemplate}" Margin="4,0,4,4">
+                    <ui:ListView.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem Header="{x:Static properties:Resources.VmGroup_Create}"
+                                      Command="{Binding PlacementTarget.Tag.CreateGroupCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                      IsEnabled="{Binding PlacementTarget.Tag.CanEditGroups, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                            <MenuItem Header="{x:Static properties:Resources.Btn_Refresh}"
+                                      Command="{Binding PlacementTarget.Tag.RefreshGroupsCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                        </ContextMenu>
+                    </ui:ListView.ContextMenu>
                     <ui:ListView.ItemContainerStyle>
                         <Style TargetType="{x:Type ui:ListViewItem}"
                                BasedOn="{StaticResource {x:Type ui:ListViewItem}}">
@@ -696,6 +843,13 @@
                             <Setter Property="Padding" Value="0"/>
                             <Setter Property="Margin" Value="0"/>
                             <Setter Property="MinHeight" Value="40"/>
+                            <EventSetter Event="PreviewMouseLeftButtonDown" Handler="NavigationItem_PreviewMouseLeftButtonDown"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsGroup}" Value="True">
+                                    <Setter Property="Focusable" Value="False"/>
+                                    <Setter Property="IsTabStop" Value="False"/>
+                                </DataTrigger>
+                            </Style.Triggers>
                         </Style>
                     </ui:ListView.ItemContainerStyle>
                 </ui:ListView>

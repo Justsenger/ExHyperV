@@ -54,7 +54,7 @@ namespace ExHyperV.ViewModels
 
         // 进行中的向导/部署视图(选卡、GPU-PV 部署、加存储)绑死某台 VM，期间禁用左侧列表：
         // 防止切走后工作流后续步骤读到的 SelectedVm 变成别的 VM，把关机/挂卡等操作打到错的机器上。
-        public bool IsVmListEnabled => !IsExporting && !IsPreparingVmImport && !IsExecutingVmImport && CurrentViewType is not
+        public bool IsVmListEnabled => !IsChangingGroups && !IsExporting && !IsPreparingVmImport && !IsExecutingVmImport && CurrentViewType is not
             (VmDetailViewType.AddGpuSelect or VmDetailViewType.AddGpuProgress or VmDetailViewType.AddStorage);
         [ObservableProperty] private string _searchText = string.Empty;
 
@@ -83,7 +83,11 @@ namespace ExHyperV.ViewModels
             }
 
             _uiTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
-            _uiTimer.Tick += (s, e) => { foreach (var vm in VmList) vm.TickUptime(); };
+            _uiTimer.Tick += (s, e) => {
+                foreach (var vm in VmList) vm.TickUptime();
+                if (!IsLoading && IsVmListEnabled) RefreshNavigation();
+                if (!IsLoading && IsVmListEnabled && DateTime.UtcNow >= _nextGroupRefresh) _ = RefreshGroupsAsync();
+            };
             _uiTimer.Start();
 
             Task.Run(async () => {
@@ -95,6 +99,7 @@ namespace ExHyperV.ViewModels
 
         public void Dispose()
         {
+            _disposed = true;
             _monitoringCts?.Cancel();
             _cpuService?.Dispose();
             _queryService.Dispose();
@@ -107,12 +112,7 @@ namespace ExHyperV.ViewModels
 
         partial void OnSearchTextChanged(string value)
         {
-            var view = CollectionViewSource.GetDefaultView(VmList);
-            if (view != null)
-            {
-                view.Filter = item => (item is VmInstanceViewModel vm) && (string.IsNullOrEmpty(value) || vm.Name.Contains(value, StringComparison.OrdinalIgnoreCase));
-                view.Refresh();
-            }
+            RefreshNavigation();
         }
 
         [RelayCommand]
@@ -419,6 +419,7 @@ namespace ExHyperV.ViewModels
         // 当选中的虚拟机发生变化时重置视图
         partial void OnSelectedVmChanged(VmInstanceViewModel value)
         {
+            SyncNavigationSelection();
             _originalMemorySettingsCache = null;
             _originalMmioSettingsCache = null;
             HostDisks.Clear();
@@ -671,6 +672,7 @@ namespace ExHyperV.ViewModels
                     SelectedVm = VmList.FirstOrDefault();
                 }
 
+                await RefreshGroupsAsync();
                 StartMonitoring();
             }
             catch (Exception ex)
