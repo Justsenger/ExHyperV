@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Windows;
+using System.Windows.Interop;
 using System.Windows.Media;
 using Wpf.Ui.Tray;
 using WpfControls = System.Windows.Controls;
@@ -11,6 +12,7 @@ internal sealed class TrayIconController : NotifyIconService, IDisposable
 {
     private readonly Application _application;
     private readonly Window _window;
+    private readonly TrayWindowResources _windowResources;
     private readonly WpfControls.ContextMenu _menu = new();
     private WindowState _restoreState;
     private bool _exitRequested;
@@ -21,6 +23,7 @@ internal sealed class TrayIconController : NotifyIconService, IDisposable
     {
         _application = application;
         _window = window;
+        _windowResources = new TrayWindowResources(window);
         _restoreState = window.WindowState == WindowState.Minimized
             ? WindowState.Normal : window.WindowState;
 
@@ -36,12 +39,14 @@ internal sealed class TrayIconController : NotifyIconService, IDisposable
             TooltipText = "ExHyperV";
             Icon = icon;
             ContextMenu = _menu;
+            _menu.Opened += OnMenuOpened;
 
             // 不调用 SetParentWindow：它会在 Closing 时无条件销毁托盘，
             // 即使关闭已被取消。这里由 ExHyperV 管理隐藏和真正退出。
             _window.Loaded += OnWindowLoaded;
             _window.Closing += OnWindowClosing;
             _window.StateChanged += OnWindowStateChanged;
+            _window.IsVisibleChanged += OnWindowIsVisibleChanged;
             _window.Closed += OnWindowClosed;
             _application.SessionEnding += OnSessionEnding;
             _application.Exit += OnApplicationExit;
@@ -77,6 +82,13 @@ internal sealed class TrayIconController : NotifyIconService, IDisposable
         e.Cancel = true;
         // 只隐藏主窗口，不关闭控制台，也不停止 USB 通道和后台任务。
         _window.Hide();
+        _windowResources.Suspend();
+    }
+
+    private void OnWindowIsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
+    {
+        // 也覆盖其他入口直接 Show 主窗口的情况，不能留下空白窗口。
+        if (_window.IsVisible) _windowResources.Resume();
     }
 
     private void OnWindowStateChanged(object? sender, EventArgs e)
@@ -87,9 +99,17 @@ internal sealed class TrayIconController : NotifyIconService, IDisposable
 
     protected override void OnLeftClick() => RestoreWindow();
 
+    private void OnMenuOpened(object sender, RoutedEventArgs e)
+    {
+        // 仅托盘菜单使用软件渲染，避免右键弹出一次菜单又占住 GPU 设备和缓存。
+        if (PresentationSource.FromVisual(_menu) is HwndSource { CompositionTarget: { } target })
+            target.RenderMode = RenderMode.SoftwareOnly;
+    }
+
     private void RestoreWindow()
     {
         if (_exitRequested || _disposed) return;
+        _windowResources.Resume();
         _window.Show();
         if (_window.WindowState == WindowState.Minimized)
             _window.WindowState = _restoreState;
@@ -121,10 +141,13 @@ internal sealed class TrayIconController : NotifyIconService, IDisposable
         _window.Loaded -= OnWindowLoaded;
         _window.Closing -= OnWindowClosing;
         _window.StateChanged -= OnWindowStateChanged;
+        _window.IsVisibleChanged -= OnWindowIsVisibleChanged;
         _window.Closed -= OnWindowClosed;
         _application.SessionEnding -= OnSessionEnding;
         _application.Exit -= OnApplicationExit;
+        _menu.Opened -= OnMenuOpened;
         _menu.IsOpen = false;
+        _windowResources.Dispose();
         Unregister();
         ContextMenu = null;
     }
