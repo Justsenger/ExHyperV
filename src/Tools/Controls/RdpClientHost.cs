@@ -12,6 +12,8 @@ namespace ExHyperV.Tools
     public class RdpClientHost : WindowsFormsHost
     {
         private readonly MsRdpAxHost _ax = new();
+        private readonly BlackSurfacePanel _surface = new();
+        private readonly BlackSurfacePanel _axWrapper = new();
         // WinForms 遮罩在连接完成前覆盖 mstscax，避免 ActiveX 初始化时闪出白底。
         // 必须盖在"包裹了 _ax 的容器(axWrapper)"上，而不是和裸 _ax 当兄弟——裸 ActiveX 会盖过兄弟控件。
         private readonly System.Windows.Forms.Panel _curtain = new()
@@ -22,6 +24,12 @@ namespace ExHyperV.Tools
         };
         private RdpConnectionSettings? _pending;
         private bool _ready;
+        private bool _manageDesktopPresentation;
+        private bool _preferNativePixels;
+        private int _desktopPixelWidth;
+        private int _desktopPixelHeight;
+        private bool _presentationQueued;
+        private bool _topAlignedWhenFits;
 
         /// <summary>已连接（OnConnected）。</summary>
         public event Action? Connected;
@@ -45,6 +53,9 @@ namespace ExHyperV.Tools
 
         public RdpClientHost()
         {
+            // 同时设置 WindowsFormsHost 的适配层背景，避免布局时露出默认背景。
+            Background = System.Windows.Media.Brushes.Black;
+            _surface.SizeChanged += (_, _) => UpdateDesktopBounds();
             _ax.Connected += () => { _curtain.Visible = false; Connected?.Invoke(); };        // 连接成功后隐藏遮罩
             _ax.LoginCompleted += () => LoginCompleted?.Invoke();
             _ax.Disconnected += r => { _curtain.Visible = true; Disconnected?.Invoke(r); };   // 断开或重连时显示遮罩
@@ -53,6 +64,7 @@ namespace ExHyperV.Tools
             _ax.LeftFullScreen += () => FullScreenRequested?.Invoke(false);
             _ax.MinimizeRequested += () => MinimizeRequested?.Invoke();
             _ax.CloseRequested += () => CloseRequested?.Invoke();
+            _ax.SizeChanged += (_, _) => QueueDesktopPresentation();
             _ax.FatalError += code => FatalError?.Invoke(code);
 
             // 必须在 BeginInit/EndInit 之前订阅——EndInit 可能同步创建句柄，晚订阅会错过事件。
@@ -66,26 +78,17 @@ namespace ExHyperV.Tools
             // ActiveX 用 Dock.Fill 由框架按 DPI 正确铺满承载控件（手动定位会因 DPI 坐标不一致导致纵横比错算 → 双重信箱）。
             // 黑底容器（对齐旧实现 _winFormsContainer.BackColor = Black）：SmartSizing 关闭后画面原生不缩放，
             // 周围空白显示黑色、窗口/全屏一致。
-            var panel = new System.Windows.Forms.Panel
-            {
-                Dock = System.Windows.Forms.DockStyle.Fill,
-                BackColor = System.Drawing.Color.Black,
-            };
-            // mstscax 外层容器使遮罩能够覆盖原生 ActiveX 窗口。
-            var axWrapper = new System.Windows.Forms.Panel
-            {
-                Dock = System.Windows.Forms.DockStyle.Fill,
-                BackColor = System.Drawing.Color.Black,
-            };
+            _surface.Dock = System.Windows.Forms.DockStyle.Fill;
+            _axWrapper.Dock = System.Windows.Forms.DockStyle.Fill;
             _ax.Dock = System.Windows.Forms.DockStyle.Fill;
             _ax.BackColor = System.Drawing.Color.Black;
             ((ISupportInitialize)_ax).BeginInit();
-            axWrapper.Controls.Add(_ax);
+            _axWrapper.Controls.Add(_ax);
             ((ISupportInitialize)_ax).EndInit();
-            panel.Controls.Add(_curtain);
-            panel.Controls.Add(axWrapper);   // 再加包了 mstscax 的容器
+            _surface.Controls.Add(_curtain);
+            _surface.Controls.Add(_axWrapper);   // 同一原生黑底容器负责画面外留黑区域
             _curtain.BringToFront();
-            Child = panel;
+            Child = _surface;
 
             if (_ax.IsHandleCreated) _ready = true;
         }
@@ -93,6 +96,8 @@ namespace ExHyperV.Tools
         /// <summary>用给定配方连接。OCX 未就绪时排队，句柄创建后自动补发。</summary>
         public void Connect(RdpConnectionSettings settings)
         {
+            _manageDesktopPresentation = false;
+            _axWrapper.Dock = System.Windows.Forms.DockStyle.Fill;
             _curtain.Visible = true;
             if (_ready || _ax.IsHandleCreated) _ax.ApplyAndConnect(settings);
             else _pending = settings;
@@ -123,10 +128,90 @@ namespace ExHyperV.Tools
         }
 
         /// <summary>增强会话改分辨率（不重连）。</summary>
-        public void Resize(int width, int height, double dpiScale) => _ax.SetResolution(width, height, dpiScale);
+        public bool Resize(int width, int height, double dpiScale) => _ax.SetResolution(width, height, dpiScale);
+
+        public bool TryGetRemoteDesktopSize(out int width, out int height) => _ax.TryGetRemoteDesktopSize(out width, out height);
 
         /// <summary>动态开关 SmartSizing（基本会话：VM 分辨率超出画面区时开=缩放铺满，否则关=原生清晰）。</summary>
-        public void SetSmartSizing(bool on) => _ax.SetSmartSizing(on);
+        public void SetSmartSizing(bool on)
+        {
+            _manageDesktopPresentation = false;
+            _axWrapper.Dock = System.Windows.Forms.DockStyle.Fill;
+            _ax.SetSmartSizing(on);
+        }
+
+        /// <summary>已确认远端尺寸且原生承载区恰好等大时使用 1:1；其余情况保留防裁切适配。</summary>
+        public void ConfigureDesktopPresentation(bool preferNativePixels, int desktopWidth, int desktopHeight, bool topAlignedWhenFits = false)
+        {
+            _manageDesktopPresentation = true;
+            _preferNativePixels = preferNativePixels;
+            _desktopPixelWidth = desktopWidth;
+            _desktopPixelHeight = desktopHeight;
+            _topAlignedWhenFits = topAlignedWhenFits;
+            QueueDesktopPresentation();
+        }
+
+        private void QueueDesktopPresentation()
+        {
+            if (!_manageDesktopPresentation || _presentationQueued) return;
+            _presentationQueued = true;
+            // 合并同一轮布局的中间尺寸，只按最终原生像素决定是否缩放。
+            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, new Action(() =>
+            {
+                _presentationQueued = false;
+                if (!_ax.IsDisposed) ApplyDesktopPresentation();
+            }));
+        }
+
+        private void ApplyDesktopPresentation()
+        {
+            if (!_manageDesktopPresentation) return;
+            UpdateDesktopBounds();
+            // 使用 WinForms 原生客户区像素，而非 WPF DIP 或请求值。
+            // SizeChanged 再核对一次，避免尚未完成布局时误判为 1:1。
+            bool native = _preferNativePixels && _desktopPixelWidth > 0 && _desktopPixelHeight > 0
+                && _ax.ClientSize.Width == _desktopPixelWidth
+                && _ax.ClientSize.Height == _desktopPixelHeight;
+            _ax.SetSmartSizing(!native);
+        }
+
+        private void UpdateDesktopBounds()
+        {
+            if (!_manageDesktopPresentation || _axWrapper.IsDisposed) return;
+            // 全部采用同一个原生容器的物理像素，避免 WPF/DPI 两次换算。
+            var bounds = GetDesktopBounds(_surface.ClientSize.Width, _surface.ClientSize.Height,
+                _desktopPixelWidth, _desktopPixelHeight, _topAlignedWhenFits);
+            _axWrapper.Dock = System.Windows.Forms.DockStyle.None;
+            if (_axWrapper.Bounds != bounds) _axWrapper.Bounds = bounds;
+        }
+
+        private static System.Drawing.Rectangle GetDesktopBounds(int width, int height, int desktopWidth, int desktopHeight, bool topAlignedWhenFits)
+        {
+            if (width <= 0 || height <= 0) return System.Drawing.Rectangle.Empty;
+            if (desktopWidth <= 0 || desktopHeight <= 0) return new(0, 0, width, height);
+            double scale = Math.Min(1.0, Math.Min(width / (double)desktopWidth, height / (double)desktopHeight));
+            int w = Math.Min(width, Math.Max(1, (int)Math.Floor(desktopWidth * scale)));
+            int h = Math.Min(height, Math.Max(1, (int)Math.Floor(desktopHeight * scale)));
+            bool fits = desktopWidth <= width && desktopHeight <= height;
+            return new((width - w) / 2, topAlignedWhenFits && fits ? 0 : (height - h) / 2, w, h);
+        }
+
+        private sealed class BlackSurfacePanel : System.Windows.Forms.Panel
+        {
+            public BlackSurfacePanel()
+            {
+                BackColor = System.Drawing.Color.Black;
+                SetStyle(System.Windows.Forms.ControlStyles.UserPaint
+                    | System.Windows.Forms.ControlStyles.AllPaintingInWmPaint
+                    | System.Windows.Forms.ControlStyles.OptimizedDoubleBuffer
+                    | System.Windows.Forms.ControlStyles.ResizeRedraw, true);
+            }
+
+            protected override void OnPaintBackground(System.Windows.Forms.PaintEventArgs e)
+            {
+                e.Graphics.FillRectangle(System.Drawing.Brushes.Black, e.ClipRectangle);
+            }
+        }
 
         /// <summary>基本会话缩放：设 mstscax 原生 ZoomLevel(百分比)。复刻 VMConnect 的 IMsRdpExtendedSettings("ZoomLevel")。</summary>
         public void SetZoomLevel(uint percent) => _ax.SetZoomLevel(percent);

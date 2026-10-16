@@ -27,6 +27,9 @@ namespace ExHyperV.Tools
         public int DesktopWidth { get; set; }
         public int DesktopHeight { get; set; }
 
+        /// <summary>从连接第一帧起完整显示远端桌面，避免初始尺寸尚未同步时裁切。</summary>
+        public bool FitRemoteDesktop { get; set; }
+
         /// <summary>增强会话的初始桌面缩放百分比（100-500）；必须在 Connect 前设置。</summary>
         public uint DesktopScaleFactor { get; set; } = 100;
 

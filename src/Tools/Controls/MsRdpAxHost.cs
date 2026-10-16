@@ -14,7 +14,7 @@ namespace ExHyperV.Tools
     internal sealed class MsRdpAxHost : AxHost
     {
         private const string MsRdpClient9Clsid = "8b918b82-7985-4c24-89df-c33ad2bbfbcd";
-        private bool _smartSizing;   // 当前 SmartSizing 状态缓存（SetSmartSizing 用，避免重复设值闪烁）
+        private bool? _smartSizing;  // 仅缓存已成功设置的状态；null 表示未知/需要重试
         private uint _zoomLevel;     // 当前 ZoomLevel% 缓存（SetZoomLevel 用，基本会话每次布局都会调，仅比例真变时才穿透 OCX）
 
         public event Action? Connected;
@@ -72,6 +72,7 @@ namespace ExHyperV.Tools
                 });
 
                 dynamic adv = rdp.AdvancedSettings9;
+                ConfigureVisualQuality();
                 adv.RDPPort = s.Port;
                 adv.AuthenticationLevel = s.AuthenticationLevel;
                 if (!string.IsNullOrEmpty(s.AuthenticationServiceClass))
@@ -111,10 +112,11 @@ namespace ExHyperV.Tools
                         ext.set_Property("DeviceScaleFactor", ref value);
                     });
 
-                // 初值原生不缩放：连上即清晰；之后由 SetSmartSizing 按"画面是否超出画面区"动态开关
-                // （装得下原生清晰、超出才缩放铺满）。控件宽高比始终=画面宽高比，故缩放无 #CBCBCB 信箱、鼠标映射准。
-                TrySet("SmartSizing", () => adv.SmartSizing = false);
-                _smartSizing = false;
+                // 增强会话从第一帧就完整容纳登录画面，不等远端尺寸事件再开启。
+                // 每次连接使缓存失效，避免沿用上一条连接的缩放状态。
+                _smartSizing = null;
+                _zoomLevel = 0;
+                SetSmartSizing(s.FitRemoteDesktop);
                 TrySet("EnableAutoReconnect", () => adv.EnableAutoReconnect = true);
                 // VMBus 无真实网络：关掉带宽/网络探测，避免连接栏"网络信息"弹窗取退化数据而原生崩溃。
                 TrySet("BandwidthDetection", () => adv.BandwidthDetection = false);
@@ -141,6 +143,16 @@ namespace ExHyperV.Tools
             {
                 Debug.WriteLine("[Rdp] ApplyAndConnect 异常: " + ex);
             }
+        }
+
+        private void ConfigureVisualQuality()
+        {
+            // 必须在 Connect 前设置；不能沿用 ActiveX 默认的 16 位色。
+            dynamic rdp = GetOcx();
+            rdp.ColorDepth = 32;
+            const int EnableFontSmoothing = 0x80;
+            dynamic adv = rdp.AdvancedSettings9;
+            adv.PerformanceFlags = (int)adv.PerformanceFlags | EnableFontSmoothing;
         }
 
         public void DisconnectSafe()
@@ -170,15 +182,23 @@ namespace ExHyperV.Tools
         public void SetSmartSizing(bool on)
         {
             if (_smartSizing == on) return;
-            _smartSizing = on;
-            try { dynamic rdp = GetOcx(); rdp.AdvancedSettings9.SmartSizing = on; }
-            catch (Exception ex) { Debug.WriteLine("[Rdp] SetSmartSizing 失败: " + ex.Message); }
+            try
+            {
+                dynamic rdp = GetOcx();
+                rdp.AdvancedSettings9.SmartSizing = on;
+                _smartSizing = on;
+            }
+            catch (Exception ex)
+            {
+                _smartSizing = null;
+                Debug.WriteLine("[Rdp] SetSmartSizing 失败: " + ex.Message);
+            }
         }
 
         /// <summary>增强会话改分辨率（不重连）。命名避开 Control.Resize 事件（否则 CS0108 隐藏告警）。</summary>
-        public void SetResolution(int width, int height, double dpiScale)
+        public bool SetResolution(int width, int height, double dpiScale)
         {
-            if (width <= 0 || height <= 0) return;
+            if (width <= 0 || height <= 0 || ConnectionState != 1) return false;
             try
             {
                 dynamic rdp = GetOcx();
@@ -190,8 +210,39 @@ namespace ExHyperV.Tools
                 uint physW = (uint)Math.Round(width * 25.4 / dpi);
                 uint physH = (uint)Math.Round(height * 25.4 / dpi);
                 rdp.UpdateSessionDisplaySettings((uint)width, (uint)height, physW, physH, 0u, desktopScaleFactor, 100u);
+                return true; // 调用被接受，不等于远端尺寸已改变。
             }
             catch (Exception ex) { Debug.WriteLine("[Rdp] SetResolution 失败: " + ex.Message); }
+            return false;
+        }
+
+        /// <summary>读取已连接的单显示器会话实际边界，不使用连接前填写的 DesktopWidth/Height。</summary>
+        public bool TryGetRemoteDesktopSize(out int width, out int height)
+        {
+            width = height = 0;
+            if (ConnectionState != 1) return false;
+            try
+            {
+                var remote = (IMsRdpClientNonScriptable5)GetOcx();
+                if (remote.RemoteMonitorCount != 1) return false;
+                remote.GetRemoteMonitorsBoundingBox(out int left, out int top, out int right, out int bottom);
+                return TryConvertRemoteMonitorBounds(left, top, right, bottom, out width, out height);
+            }
+            catch (Exception ex) { Debug.WriteLine("[Rdp] 读取远端桌面尺寸失败: " + ex.Message); }
+            return false;
+        }
+
+        private static bool TryConvertRemoteMonitorBounds(int left, int top, int right, int bottom,
+            out int width, out int height)
+        {
+            width = height = 0;
+            // RDP 显示器右/下边界包含末端像素，不是 Win32 RECT 的排他边界。
+            // 例如 (0, 0)-(2559, 1439) 表示 2560x1440。
+            long w = (long)right - left + 1, h = (long)bottom - top + 1;
+            if (w <= 0 || h <= 0 || w > int.MaxValue || h > int.MaxValue) return false;
+            width = (int)w;
+            height = (int)h;
+            return true;
         }
 
         /// <summary>基本会话缩放：设 mstscax 原生 ZoomLevel(百分比，如 100/150/200)。经 IMsRdpExtendedSettings 字符串属性包热设，
@@ -202,12 +253,12 @@ namespace ExHyperV.Tools
             if (_zoomLevel == percent) return;   // 去重：LayoutRdpHost 每次布局都调，仅比例真变时穿透 OCX，避免拖动时每帧热设卡顿
             // 未连接时设置 ZoomLevel 可能触发不可恢复的 COM 异常。
             if (ConnectionState != 1) return;
-            _zoomLevel = percent;
             try
             {
                 var ext = (IMsRdpExtendedSettings)GetOcx();
                 object v = percent;
                 ext.set_Property("ZoomLevel", ref v);
+                _zoomLevel = percent;
             }
             catch (Exception ex) { Debug.WriteLine("[Rdp] SetZoomLevel 失败: " + ex.Message); }
         }

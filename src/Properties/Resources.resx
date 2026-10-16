@@ -4009,6 +4009,7 @@ Remove them from storage and retry? Cancel to re-plug the device and try again.<
   <data name="Preferences_Save" xml:space="preserve"><value>Save</value></data>
   <data name="Preferences_SaveFailed" xml:space="preserve"><value>Could not save preferences. The saved values have been restored.</value></data>
   <data name="VmGroup_RecoveryFailed" xml:space="preserve"><value>The operation failed, and the original group relationships could not be fully restored. Refresh and check the groups before retrying.</value></data>
+  <data name="ConsoleWindow_MoreActions" xml:space="preserve"><value>More actions</value></data>
   <data name="Tray_Open" xml:space="preserve"><value>Open ExHyperV</value></data>
   <data name="Tray_Exit" xml:space="preserve"><value>Exit</value></data>
 </root>

@@ -4009,6 +4009,7 @@
   <data name="Preferences_Save" xml:space="preserve"><value>保存</value></data>
   <data name="Preferences_SaveFailed" xml:space="preserve"><value>无法保存偏好，已恢复为已保存的设置。</value></data>
   <data name="VmGroup_RecoveryFailed" xml:space="preserve"><value>操作失败，原有分组关系未能完全恢复。请刷新并检查分组后再重试。</value></data>
+  <data name="ConsoleWindow_MoreActions" xml:space="preserve"><value>更多操作</value></data>
   <data name="Tray_Open" xml:space="preserve"><value>打开 ExHyperV</value></data>
   <data name="Tray_Exit" xml:space="preserve"><value>退出</value></data>
 </root>

@@ -4,6 +4,7 @@ using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Interop;
+using System.Windows.Shell;
 using Wpf.Ui.Controls;
 using ExHyperV.Services;
 using ExHyperV.Tools;
@@ -25,9 +26,11 @@ namespace ExHyperV.Views
         private const int FullScreenHotKeyVk = 0x0D;
         // 连接超时：localhost VMBus 正常连接 <1s，2s 余量足够；连不上(如不支持增强)即在此时限内放弃 → 快速回退基本会话。
         private const int ConnectTimeoutSeconds = 2;
-        // 增强会话：画面四周留出的可抓取缩放边（DIP）。mstscax 画面是 airspace、会盖住窗口边缘的缩放热区，
-        // 留这点边让边缘是 WPF(RdpArea)、能抓住拖动缩放。值越小越窄，但太小会抓不到缩放热区。
-        private const double EnhancedResizeBorder = 3;
+        // 统一控制窗口缩放热区和增强会话画面左/右/底留边（DIP），不再叠加独立热区。
+        // 当前以 2 DIP 验证边缘拖拽；画面留边和缩放热区使用同一宽度。
+        private const double ConsoleResizeBorder = 2;
+        private const double ConsoleResizeCornerLength = 12; // 沿现有边缘延长角落热区，不增加边宽或画面留白
+        private bool _windowFrameHookAdded;
 
         private readonly ConsoleViewModel _vm;
         private bool _isFullScreen;               // 供 WM_GETMINMAXINFO 判断最大化铺满显示器还是工作区
@@ -40,13 +43,10 @@ namespace ExHyperV.Views
         private int _moveSizeStartWidth;           // 进入移动/缩放循环时的窗口物理宽度；退出时据此区分纯移动与真实改大小
         private int _moveSizeStartHeight;
         private bool _windowFollowsResolution;    // 下拉改分辨率后置位：待画面真的变到新分辨率(RemoteSizeChanged)再让窗口跟随确认值；拖动会清掉(窗口归用户掌控)
-        private int _postLoginWidth;               // 登录界面可能忽略动态分辨率；登录完成后重试此目标
-        private int _postLoginHeight;
         private WindowStyle _origWindowStyle;                     // 全屏前的 WindowStyle，退出恢复
         private WindowBackdropType _origBackdrop;                 // 全屏前的背景类型(Mica)，退出恢复
         private System.Windows.Media.Brush? _origBackground;      // 全屏前的窗口底色，退出恢复
         private bool _closing;                                    // 用户经连接栏关闭：抑制断开后的自动重连（避免"复活"）
-        private bool _topHookAdded;                                // 顶边缩放钩子是否已在 ContentRendered 注册（只挂一次）
 
         public ConsoleWindow(string vmId, string vmName)
         {
@@ -70,11 +70,8 @@ namespace ExHyperV.Views
             _vm.ResolutionChangeRequested += (w, h) =>
             {
                 if (!_vm.IsEnhancedMode || w <= 0 || h <= 0) return;
-                _postLoginWidth = w;
-                _postLoginHeight = h;
                 SettingsService.SaveDefaultConsoleResolution(w, h); // 用户明确选择，立即保存；不等待来宾是否接受
-                _windowFollowsResolution = true;
-                RdpHost.Resize(w, h, GetDpiScale());
+                RequestEnhancedResolution(w, h, followWindow: true);
             };
 
             // RDP 承载控件事件（原生事件，取代旧实现的 20ms 轮询）
@@ -84,6 +81,7 @@ namespace ExHyperV.Views
                 // 基本会话连上即应用当前缩放档（不能依赖 RemoteSizeChange——同分辨率重连时它不触发）。
                 // 增强会话连接后不得修改 ZoomLevel；它与动态分辨率同时启用会导致画面尺寸异常。
                 if (!_vm.IsEnhancedMode) ApplyBasicZoom();
+                else LayoutRdpHost();
                 if (_pendingEnhancedInset && _vm.IsEnhancedMode && !_vm.IsFullScreen)
                 {
                     LayoutRdpHost();              // 增强复用基本分辨率时不触发 RemoteSizeChange，这里主动按当前分辨率把画面居中
@@ -96,15 +94,11 @@ namespace ExHyperV.Views
             }));
             RdpHost.LoginCompleted += () => Dispatcher.BeginInvoke(new Action(() =>
             {
-                if (!_vm.IsEnhancedMode) return;
-                int width = _postLoginWidth > 0 ? _postLoginWidth : _vm.InitialEnhancedWidth;
-                int height = _postLoginHeight > 0 ? _postLoginHeight : _vm.InitialEnhancedHeight;
-                if (width <= 0 || height <= 0) return;
-                _windowFollowsResolution = true;
-                RdpHost.Resize(width, height, GetDpiScale());
+                OnEnhancedLoginCompleted();
             }));
             RdpHost.Disconnected += reason => Dispatcher.BeginInvoke(new Action(() =>
             {
+                ResetEnhancedResolution();
                 if (_weInitiatedDisconnect)
                 {
                     _weInitiatedDisconnect = false;
@@ -133,20 +127,7 @@ namespace ExHyperV.Views
             }));
             RdpHost.RemoteSizeChanged += (w, h) => Dispatcher.BeginInvoke(new Action(() =>
             {
-                _vm.CurrentWidth = w; _vm.CurrentHeight = h;
-                if (w == _postLoginWidth && h == _postLoginHeight)
-                    _postLoginWidth = _postLoginHeight = 0;
-                // 仅在远端确认分辨率后调整增强会话窗口尺寸。
-                // 拖动发起的协商不在此跟随(标记已在 WM_ENTERSIZEMOVE 清掉)，窗口仍由用户掌控。
-                if (_windowFollowsResolution)
-                {
-                    if (_vm.IsEnhancedMode && !_vm.IsFullScreen && this.WindowState == WindowState.Normal)
-                        FitToResolution(w, h);
-                    // 窗口跟随目标分辨率完成布局后再恢复尺寸协商。
-                    Dispatcher.BeginInvoke(new Action(() => _windowFollowsResolution = false),
-                        System.Windows.Threading.DispatcherPriority.Background);
-                }
-                LayoutRdpHost();
+                ApplyRemoteDesktopSize(w, h);
             }));
             RdpHost.FullScreenRequested += fs => Dispatcher.BeginInvoke(new Action(() =>
             {
@@ -160,7 +141,9 @@ namespace ExHyperV.Views
             RdpArea.SizeChanged += (s, e) =>
             {
                 LayoutRdpHost();
-                if (_vm.IsEnhancedMode && !_userResizing && !_windowFollowsResolution && !_pendingEnhancedInset && _vm.CurrentWidth > 0) NegotiateResolution();
+                if (_vm.IsEnhancedMode && !_userResizing
+                    && (!_windowFollowsResolution || _vm.IsFullScreen || WindowState == WindowState.Maximized)
+                    && !_pendingEnhancedInset && _vm.CurrentWidth > 0) NegotiateResolution();
             };
         }
 
@@ -168,32 +151,90 @@ namespace ExHyperV.Views
         protected override void OnSourceInitialized(EventArgs e)
         {
             base.OnSourceInitialized(e);
+            SetOpaqueCompositionBackground();
             HwndSource.FromHwnd(new WindowInteropHelper(this).Handle)?.AddHook(WndProc);
         }
 
-        // 顶边缩放钩子在 ContentRendered（晚于 TitleBar 的 Loaded）注册 → 处于 FIFO 末位、末位 handled 取胜，
-        // 才能用 HTTOP 压过 TitleBar 对顶部空白区返回的 HTCAPTION（日志证实早注册会被 TitleBar 覆盖）。
+        // 晚于 TitleBar.Loaded 注册，避免其普通边缘判定覆盖四角的斜向判定。
         protected override void OnContentRendered(EventArgs e)
         {
             base.OnContentRendered(e);
-            if (_topHookAdded) return;
-            _topHookAdded = true;
-            HwndSource.FromHwnd(new WindowInteropHelper(this).Handle)?.AddHook(TopResizeHook);
+            SetOpaqueCompositionBackground();
+            if (_windowFrameHookAdded) return;
+            var source = HwndSource.FromHwnd(new WindowInteropHelper(this).Handle);
+            if (source == null) return;
+            source.AddHook(WindowFrameHook);
+            _windowFrameHookAdded = true;
         }
 
-        // 增强 + 窗口化时，窗口顶部 TopResizeGrip 像素内 → HTTOP，使顶边可上下拉动改分辨率（底边被任务栏盖住时的退路）。
-        private IntPtr TopResizeHook(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+        private IntPtr WindowFrameHook(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
         {
-            if (msg == WM_NCHITTEST && _vm.IsEnhancedMode && !_vm.IsFullScreen)
+            // None 表示整个窗口都是自绘客户区，WindowChrome 在这里也不修改矩形，
+            // 但默认返回 WVR_REDRAW，导致缩放时整块 WPF 外壳失效，而 RDP 子窗口仍在。
+            // 返回 0 保留旧客户区像素；WM_SIZE/WPF 布局及正常绘制继续处理。
+            // 最大化/全屏/销毁及保留系统边框的情况仍完全交给 WindowChrome。
+            if (msg == WM_NCCALCSIZE && wParam != IntPtr.Zero && !_closing
+                && !_vm.IsFullScreen && WindowState == WindowState.Normal
+                && WindowChrome.GetWindowChrome(this)?.NonClientFrameEdges == NonClientFrameEdges.None)
             {
-                int y = (short)((lParam.ToInt64() >> 16) & 0xFFFF);
-                if (GetWindowRect(hwnd, out RECT r) && y >= r.Top && y < r.Top + TopResizeGrip)
-                {
-                    handled = true;
-                    return (IntPtr)HTTOP;
-                }
+                handled = true;
+                return IntPtr.Zero;
             }
-            return IntPtr.Zero;
+
+            if (msg != WM_NCHITTEST || _closing || _vm.IsFullScreen
+                || WindowState != WindowState.Normal
+                || (ResizeMode != ResizeMode.CanResize && ResizeMode != ResizeMode.CanResizeWithGrip))
+                return IntPtr.Zero;
+            if (!GetWindowRect(hwnd, out RECT rect)) return IntPtr.Zero;
+
+            long position = lParam.ToInt64();
+            int x = (short)(position & 0xFFFF) - rect.Left;
+            int y = (short)((position >> 16) & 0xFFFF) - rect.Top;
+            int hit = GetResizeCornerHit(x, y, rect.Right - rect.Left, rect.Bottom - rect.Top, GetDpiScale());
+            if (hit == 0) return IntPtr.Zero; // 普通边缘、标题栏和客户区继续走原来的判定。
+            handled = true;
+            return (IntPtr)hit;
+        }
+
+        private static int GetResizeCornerHit(int x, int y, int width, int height, double dpiScale)
+        {
+            if (width <= 0 || height <= 0 || x < 0 || y < 0 || x >= width || y >= height
+                || !double.IsFinite(dpiScale) || dpiScale <= 0) return 0;
+            double border = Math.Ceiling(ConsoleResizeBorder * dpiScale);
+            double cornerX = Math.Min(width / 2.0, Math.Ceiling(ConsoleResizeCornerLength * dpiScale));
+            double cornerY = Math.Min(height / 2.0, Math.Ceiling(ConsoleResizeCornerLength * dpiScale));
+            bool left = x < border, right = x >= width - border;
+            bool top = y < border, bottom = y >= height - border;
+            // L 形：只在 2 DIP 边缘内改为斜向拖拽，不把角落内部的 RDP 画面变成拖拽区。
+            if ((left && y < cornerY) || (top && x < cornerX)) return HTTOPLEFT;
+            if ((right && y < cornerY) || (top && x >= width - cornerX)) return HTTOPRIGHT;
+            if ((left && y >= height - cornerY) || (bottom && x < cornerX)) return HTBOTTOMLEFT;
+            if ((right && y >= height - cornerY) || (bottom && x >= width - cornerX)) return HTBOTTOMRIGHT;
+            return 0;
+        }
+
+        // FluentWindow 会在背景类型变化时重建 WindowChrome；每次都应用同一个边宽，
+        // 避免进入/退出全屏后又恢复库默认的 4 DIP。其余标题栏配置保持不变。
+        protected override void SetWindowChrome()
+        {
+            base.SetWindowChrome();
+            var chrome = WindowChrome.GetWindowChrome(this);
+            if (chrome != null)
+            {
+                if (chrome.IsFrozen) chrome = (WindowChrome)chrome.Clone();
+                chrome.ResizeBorderThickness = new Thickness(ConsoleResizeBorder);
+                // FluentWindow 的 None 仍使用非零玻璃边距，会令 WPF 合成底色透明。
+                // 原生 RDP 子窗口需要真正不透明的宿主，不让拖动时露出玻璃背景。
+                chrome.GlassFrameThickness = new Thickness(0);
+                WindowChrome.SetWindowChrome(this, chrome);
+            }
+            SetOpaqueCompositionBackground();
+        }
+
+        private void SetOpaqueCompositionBackground()
+        {
+            if (PresentationSource.FromVisual(this) is HwndSource source && source.CompositionTarget != null)
+                source.CompositionTarget.BackgroundColor = System.Windows.Media.Colors.Black;
         }
 
         // 状态轮询回调：让连接跟随 VM 运行状态。VM 停止时保持窗口等待，VM 一恢复即重连——复用既有 2s 轮询，无需额外定时器。
@@ -240,6 +281,7 @@ namespace ExHyperV.Views
         private void SyncConnection(bool forceReconnect)
         {
             if (_closing) return;   // 正在关闭：不再重连（避免连接栏关闭后被轮询重连"复活"）
+            if (forceReconnect) ResetEnhancedResolution();
             if (forceReconnect && RdpHost.ConnectionState != 0)
             {
                 // 已连接要换 PCB（模式切换）：先断，等 OnDisconnected 断完再连——立即连会被 mstscax 拒、拖到轮询。
@@ -253,6 +295,7 @@ namespace ExHyperV.Views
             {
                 if (RdpHost.ConnectionState == 0)   // 该连而未连（force+已连的已在上面断开并挂起重连）
                 {
+                    ResetEnhancedResolution();
                     _enhancedConnecting = _vm.IsEnhancedMode;   // 记下本次是否在尝试增强（失败则回退基本）
                     uint desktopScale = (uint)Math.Clamp(Math.Round(GetDpiScale() * 100.0), 100, 500);
                     int initialWidth = _vm.IsEnhancedMode ? _vm.InitialEnhancedWidth : _vm.CurrentWidth;
@@ -267,6 +310,7 @@ namespace ExHyperV.Views
             }
             else if (RdpHost.ConnectionState != 0)   // VM 停了但还连着 → 断（保持窗口，等轮询到 VM 重启再连）
             {
+                ResetEnhancedResolution();
                 _weInitiatedDisconnect = true;
                 RdpHost.Disconnect();
             }
@@ -279,6 +323,7 @@ namespace ExHyperV.Views
             return new RdpConnectionSettings
             {
                 Server = "localhost",
+                FitRemoteDesktop = enhanced,
                 ConnectionBarText = vmName,
                 Port = 2179,
                 AuthenticationLevel = 0,
@@ -301,7 +346,7 @@ namespace ExHyperV.Views
         {
             _isFullScreen = true;
             // WPF 原生全屏：WindowStyle=None + 最大化（WM_GETMINMAXINFO 把尺寸顶到整个显示器 rcMonitor、隐藏任务栏）。
-            // 全程不碰 WindowChrome → 退出后标题栏拖动不丢；全屏四周可拖的缩放边由 WndProc 的 WM_NCHITTEST 统一返回 HTCLIENT 屏蔽。
+            // 保留 WindowChrome 的标题栏配置；全屏四周缩放边由 WndProc 的 WM_NCHITTEST 统一返回 HTCLIENT 屏蔽。
             // 关 Mica + 底色置黑 + 去 DWM 边框色 → 消除边缘白/灰。
             _origWindowStyle = this.WindowStyle;
             _origBackdrop = this.WindowBackdropType;
@@ -359,7 +404,7 @@ namespace ExHyperV.Views
             if (_vm.IsEnhancedMode)
             {
                 // RdpArea 包含画面和可拖动边；窗口尺寸还需补偿 DWM/WPF 外壳。
-                SetWindowForRdpArea(scrW + 2 * EnhancedResizeBorder, scrH + EnhancedResizeBorder);
+                SetWindowForRdpArea(scrW + 2 * ConsoleResizeBorder, scrH + ConsoleResizeBorder);
             }
             else
             {
@@ -377,11 +422,19 @@ namespace ExHyperV.Views
         /// 显式比例的"放大"由 ApplyBasicZoom 改窗口尺寸实现；此处只把画面缩到画面区内（mstscax 是 airspace、无法滚动，故不溢出）。</summary>
         private void LayoutRdpHost()
         {
-            if (_vm.IsFullScreen && _vm.IsEnhancedMode)
+            bool filled = _vm.IsFullScreen || WindowState == WindowState.Maximized;
+            var content = GetRdpContentBounds(RdpArea.ActualWidth, RdpArea.ActualHeight, _vm.IsEnhancedMode, filled);
+            // 用实际布局约束守住边缘，不能只在请求分辨率时扣除。
+            // 先于尺寸有效性检查设置，连接前、拖动中以及远端拒绝改分辨率时同样有效。
+            RdpHost.Margin = new Thickness(content.X, 0, content.X, content.X);
+            RdpHost.MaxWidth = _vm.IsEnhancedMode ? content.Width : double.PositiveInfinity;
+            RdpHost.MaxHeight = _vm.IsEnhancedMode ? content.Height : double.PositiveInfinity;
+            if (_vm.IsEnhancedMode)
             {
-                // 增强全屏：画面已协商到显示器分辨率，承载控件铺满。SmartSizing 必须关——否则从"最大化被吸附"态
-                // (SmartSizing 开)进全屏会残留缩放，把正好 1:1 的全屏画面也磨糊。
-                RdpHost.SetSmartSizing(false);
+                // 原生承载区固定铺满内框；画面比例和黑边在同一原生黑底容器内处理。
+                // 拖动时不再将整块 HWND 在 WPF 黑底上反复居中移动。
+                RdpHost.ConfigureDesktopPresentation(_enhancedDesktopConfirmed, _vm.CurrentWidth, _vm.CurrentHeight,
+                    topAlignedWhenFits: !filled);
                 RdpHost.HorizontalAlignment = HorizontalAlignment.Stretch;
                 RdpHost.VerticalAlignment = VerticalAlignment.Stretch;
                 RdpHost.Width = double.NaN;
@@ -416,29 +469,6 @@ namespace ExHyperV.Views
                 RdpHost.Width = Math.Min(areaW, vmW * sc) / dpiX;
                 RdpHost.Height = Math.Min(areaH, vmH * sc) / dpiY;
                 return;
-            }
-            // 增强 + 窗口化/最大化：画面原生。但若来宾把分辨率吸附到比画面区大的标准值
-            // （如最大化要 1920×990、来宾回 1920×1080），居中摆放会向上溢出盖住标题栏 →
-            // 此时开 SmartSizing 把画面缩进画面区、保宽高比、居中（标题栏安全、整体可见、鼠标映射准）。
-            int eAreaW = (int)Math.Round(RdpArea.ActualWidth * dpiX);
-            int eAreaH = (int)Math.Round(RdpArea.ActualHeight * dpiY);
-            bool eFits = vmW <= eAreaW + 2 && vmH <= eAreaH + 2;
-            RdpHost.SetSmartSizing(!eFits);
-            RdpHost.HorizontalAlignment = HorizontalAlignment.Center;
-            if (!eFits)
-            {
-                double scale = Math.Min(eAreaW / (double)vmW, eAreaH / (double)vmH);
-                RdpHost.VerticalAlignment = VerticalAlignment.Center;
-                RdpHost.Width = vmW * scale / dpiX;
-                RdpHost.Height = vmH * scale / dpiY;
-            }
-            else
-            {
-                // 画面 ≤ 画面区，原生。普通窗口化：顶贴标题栏（无上间隙，可抓取边在左/右/底）；最大化：居中。
-                bool topFlush = this.WindowState == WindowState.Normal;
-                RdpHost.VerticalAlignment = topFlush ? VerticalAlignment.Top : VerticalAlignment.Center;
-                RdpHost.Width = vmW / dpiX;
-                RdpHost.Height = vmH / dpiY;
             }
         }
 
@@ -494,7 +524,7 @@ namespace ExHyperV.Views
 
         private static int ClampZoom(int pct) => Math.Max(25, Math.Min(500, pct));   // 实测 mstscax 支持 >200，上限放到 500
 
-        /// <summary>增强会话进入时：若画面四周余量不足 EnhancedResizeBorder，放大窗口补足——
+        /// <summary>增强会话进入时：按照 ConsoleResizeBorder 统一设置画面边宽——
         /// 画面分辨率保持不变（避免来宾端把非标准分辨率吸附回标准值），靠窗口比画面大一圈来露出可抓取的缩放边。</summary>
         private void EnsureEnhancedResizeBorder()
         {
@@ -506,8 +536,8 @@ namespace ExHyperV.Views
             // RdpArea 目标：画面 + 左右各一条边；高度为画面 + 底边（顶部贴标题栏、无上边）。
             // Window 到 RdpArea 之间的标题栏/DWM/WPF 外壳使用当前平台的实际测量值，不假定固定为 42px/0px。
             SetWindowForRdpArea(
-                _vm.CurrentWidth / dpiX + 2 * EnhancedResizeBorder,
-                _vm.CurrentHeight / dpiY + EnhancedResizeBorder);
+                _vm.CurrentWidth / dpiX + 2 * ConsoleResizeBorder,
+                _vm.CurrentHeight / dpiY + ConsoleResizeBorder);
         }
 
         /// <summary>当前窗口尺寸中不属于 RdpArea 的部分（标题栏、DWM/WPF 边框等，单位 DIP）。</summary>
@@ -536,17 +566,29 @@ namespace ExHyperV.Views
         /// <summary>增强会话：用户结束拖动窗口（WM_EXITSIZEMOVE）后，把当前画面区像素协商给 VM（桌面跟随窗口尺寸）。</summary>
         private void NegotiateResolution()
         {
+            if (TryGetEnhancedViewport(out int px, out int py))
+                RequestEnhancedResolution(px, py, followWindow: false);
+        }
+
+        private static Rect GetRdpContentBounds(double areaWidth, double areaHeight, bool enhanced, bool filled)
+        {
+            double border = enhanced && !filled ? ConsoleResizeBorder : 0;
+            return new Rect(border, 0, Math.Max(0, areaWidth - 2 * border), Math.Max(0, areaHeight - border));
+        }
+
+        private bool TryGetEnhancedViewport(out int px, out int py)
+        {
+            px = py = 0;
+            if (WindowState == WindowState.Minimized) return false;
             var src = PresentationSource.FromVisual(this);
-            if (src?.CompositionTarget == null) return;
+            if (src?.CompositionTarget == null) return false;
             double dpiX = GetDpiScale(), dpiY = dpiX;   // Win32 取真实 DPI，避开 TransformToDevice 首帧滞后成 100%
             // 全屏/最大化：画面占满 RdpArea、无可抓取边；普通窗口化：左右各留一条、底部留一条（顶部贴标题栏、无上边）。
             bool filled = _vm.IsFullScreen || this.WindowState == WindowState.Maximized;
-            double bw = filled ? 0 : EnhancedResizeBorder;
-            int px = (int)Math.Round((RdpArea.ActualWidth - 2 * bw) * dpiX);
-            int py = (int)Math.Round((RdpArea.ActualHeight - bw) * dpiY);
-            bool willResize = px >= 200 && py >= 200 && (px != _vm.CurrentWidth || py != _vm.CurrentHeight);
-            if (willResize)
-                RdpHost.Resize(px, py, GetDpiScale());
+            var content = GetRdpContentBounds(RdpArea.ActualWidth, RdpArea.ActualHeight, true, filled);
+            px = (int)Math.Floor(content.Width * dpiX);
+            py = (int)Math.Floor(content.Height * dpiY);
+            return px >= 200 && py >= 200;
         }
 
         // ── CAD / 关闭 ──────────────────────────────────────────────────────
@@ -554,6 +596,20 @@ namespace ExHyperV.Views
         {
             // CAD 按钮仅基本会话显示（增强会话 RDP 无法程序化发 SAS、按钮已隐藏）→ 这里只走基本会话的 WMI 硬件键盘。
             _ = VmInputService.SendCtrlAltDelAsync(_vm.VmId);
+        }
+
+        private void OnConsolePickerClick(object sender, RoutedEventArgs e)
+        {
+            // Keyboard/UIA activation also raises Click. Keep the overflow host alive
+            // while DropDownButton opens its nested menu; leaf actions still close it.
+            e.Handled = true;
+        }
+
+        private void OnConsoleToolbarIsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
+        {
+            // Popups have their own HWND; explicitly close overflow when entering fullscreen.
+            if (sender is System.Windows.Controls.ToolBar toolbar && !toolbar.IsVisible)
+                toolbar.IsOverflowOpen = false;
         }
 
         // 标题栏虚拟机名称：文字会接住鼠标，需显式 DragMove 才能拖窗口（穿透在 ui:TitleBar 里拖不动，对齐 1.4.3）。
@@ -588,6 +644,7 @@ namespace ExHyperV.Views
             // 避免登录界面的固定分辨率或来宾拒绝请求后再次污染偏好。
             _rdpTornDown = true;
             _closing = true;            // 抑制断开后的自动重连
+            ResetEnhancedResolution();
             RdpHost.ShutdownAndDispose();
         }
 
@@ -595,6 +652,7 @@ namespace ExHyperV.Views
         {
             base.OnClosed(e);
             _closing = true;
+            ResetEnhancedResolution();
             if (!_rdpTornDown) { _rdpTornDown = true; RdpHost.ShutdownAndDispose(); }
             _vm.SendCadRequested -= OnSendCadRequested;
             _vm.PropertyChanged -= OnViewModelPropertyChanged;
@@ -608,10 +666,13 @@ namespace ExHyperV.Views
 
         // ── WndProc：WM_GETMINMAXINFO（全屏铺满整个显示器）+ WM_EXITSIZEMOVE（拖动结束 → 增强会话协商分辨率）──
         private const int WM_GETMINMAXINFO = 0x0024;
+        private const int WM_NCCALCSIZE = 0x0083;
         private const int WM_NCHITTEST = 0x0084;
         private const int HTCLIENT = 1;
-        private const int HTTOP = 12;
-        private const int TopResizeGrip = 10;   // 顶边缩放热区高度（物理像素）
+        private const int HTTOPLEFT = 13;
+        private const int HTTOPRIGHT = 14;
+        private const int HTBOTTOMLEFT = 16;
+        private const int HTBOTTOMRIGHT = 17;
         private const int WM_ENTERSIZEMOVE = 0x0231;
         private const int WM_EXITSIZEMOVE = 0x0232;
         private const int MONITOR_DEFAULTTONEAREST = 0x00000002;

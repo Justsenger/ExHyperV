@@ -14,9 +14,43 @@
     Height="820"
     WindowStartupLocation="CenterScreen"
     ExtendsContentIntoTitleBar="True"
-    WindowBackdropType="Mica">
+    WindowBackdropType="None"
+    Background="{DynamicResource ApplicationBackgroundBrush}">
 
     <ui:FluentWindow.Resources>
+        <!-- Reserve caption-button space through TitleBar.CenterContent. The toolbar
+             owns overflow; never clip away actions or enlarge the RDP viewport. -->
+        <Style x:Key="ConsoleToolbarStyle" TargetType="ToolBar">
+            <Setter Property="ToolBarTray.IsLocked" Value="True"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToolBar">
+                        <DockPanel>
+                            <ToggleButton x:Name="OverflowButton" DockPanel.Dock="Right"
+                                          Width="32" Height="32" Padding="0"
+                                          Visibility="{Binding HasOverflowItems, RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource BoolToVis}}"
+                                          IsChecked="{Binding IsOverflowOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                                          ToolTip="{x:Static properties:Resources.ConsoleWindow_MoreActions}"
+                                          AutomationProperties.Name="{x:Static properties:Resources.ConsoleWindow_MoreActions}">
+                                <TextBlock Text="⋯" FontSize="20" VerticalAlignment="Center"/>
+                            </ToggleButton>
+                            <Popup IsOpen="{Binding IsOverflowOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                                   Placement="Bottom" PlacementTarget="{Binding ElementName=OverflowButton}"
+                                   AllowsTransparency="True" StaysOpen="False" Focusable="False">
+                                <Border Background="{DynamicResource ContextMenuBackground}"
+                                        BorderBrush="{DynamicResource MenuBorderColorDefaultBrush}"
+                                        BorderThickness="1" CornerRadius="6" Padding="4">
+                                    <ToolBarOverflowPanel x:Name="PART_ToolBarOverflowPanel" WrapWidth="240"
+                                                          KeyboardNavigation.TabNavigation="Cycle"
+                                                          KeyboardNavigation.DirectionalNavigation="Cycle"/>
+                                </Border>
+                            </Popup>
+                            <ToolBarPanel x:Name="PART_ToolBarPanel" IsItemsHost="True"/>
+                        </DockPanel>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </ui:FluentWindow.Resources>
 
     <DockPanel LastChildFill="True" Background="Transparent">
@@ -25,11 +59,16 @@
             DockPanel.Dock="Top" 
             Height="42" 
             Padding="0"
+            HorizontalContentAlignment="Stretch"
             Visibility="{Binding IsFullScreen, Converter={StaticResource BoolToVis}, ConverterParameter=Invert}">
-            <ui:TitleBar.Header>
+            <ui:TitleBar.CenterContent>
                 <Grid Margin="12,0,0,0" HorizontalAlignment="Stretch"><!-- 不设 Background：空白区落到原生标题栏(NC)，由系统处理拖动/双击最大化 -->
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
                         <TextBlock Text="{Binding VmName}"
+           MaxWidth="140" TextTrimming="CharacterEllipsis" ToolTip="{Binding VmName}"
            VerticalAlignment="Center"
            Margin="0,0,16,0"
            FontSize="12"
@@ -37,7 +76,9 @@
            MouseLeftButtonDown="OnHeaderMouseLeftButtonDown"
            Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/><!-- 文字会接住鼠标 → 显式 DragMove 才能拖窗口（穿透在 ui:TitleBar 里拖不动，对齐 1.4.3） -->
 
-                        <Grid VerticalAlignment="Center">
+                    <ToolBar x:Name="ConsoleToolbar" Grid.Column="1" Height="32" VerticalAlignment="Center" HorizontalAlignment="Left"
+                             Style="{StaticResource ConsoleToolbarStyle}" IsVisibleChanged="OnConsoleToolbarIsVisibleChanged">
+                        <Grid VerticalAlignment="Center" ToolBar.OverflowMode="Never">
                             <!-- 启动按钮 -->
                             <ui:Button Icon="{ui:SymbolIcon Symbol=Play24}"
                                Appearance="Transparent" Background="Transparent"
@@ -72,7 +113,7 @@
                                            HorizontalContentAlignment="Center"
                                            IsEnabled="{Binding IsNotBusy}">
                                     <ui:DropDownButton.Flyout>
-                                        <ContextMenu>
+                                        <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
                                             <MenuItem Header="{x:Static properties:Resources.ConsoleWindow_ShutDown}" Command="{Binding ShutdownVmCommand}"
                                                       Visibility="{Binding IsSavePowerAction, Converter={StaticResource BoolToVis}}">
                                                 <MenuItem.Icon>
@@ -109,6 +150,8 @@
                         </Grid>
 
                         <ui:DropDownButton Content="{Binding SelectedResolution}" 
+                                   Click="OnConsolePickerClick"
+                                   Style="{StaticResource {x:Type ui:DropDownButton}}"
                                    Icon="{ui:SymbolIcon Symbol=Desktop24}" 
                                    Appearance="Transparent" Background="Transparent" 
                                    FontSize="16" 
@@ -117,11 +160,11 @@
                                    Margin="8,0,0,0"
                                    IsEnabled="{Binding CanChangeResolution}">
                             <ui:DropDownButton.Flyout>
-                                <ContextMenu ItemsSource="{Binding Resolutions}">
+                                <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}" ItemsSource="{Binding Resolutions}">
                                     <ContextMenu.ItemContainerStyle>
                                         <Style TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
                                             <Setter Property="Header" Value="{Binding}" />
-                                            <Setter Property="Command" Value="{Binding DataContext.ChangeResolutionCommand, RelativeSource={RelativeSource AncestorType=ui:FluentWindow}}" />
+                                            <Setter Property="Command" Value="{Binding DataContext.ChangeResolutionCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
                                             <Setter Property="CommandParameter" Value="{Binding}" />
                                         </Style>
                                     </ContextMenu.ItemContainerStyle>
@@ -131,6 +174,8 @@
 
                         <!-- 缩放下拉：仅基本会话显示（增强会话画面原生跟随窗口、缩放无意义）。放大是拉伸、会糊。 -->
                         <ui:DropDownButton Content="{Binding SelectedZoom}"
+                                   Click="OnConsolePickerClick"
+                                   Style="{StaticResource {x:Type ui:DropDownButton}}"
                                    Icon="{ui:SymbolIcon Symbol=ZoomIn24}"
                                    Appearance="Transparent" Background="Transparent"
                                    FontSize="16"
@@ -140,11 +185,11 @@
                                    ToolTip="{x:Static properties:Resources.ConsoleWindow_ZoomHint}"
                                    Visibility="{Binding IsEnhancedMode, Converter={StaticResource BoolToVis}, ConverterParameter=Invert}">
                             <ui:DropDownButton.Flyout>
-                                <ContextMenu ItemsSource="{Binding ZoomOptions}">
+                                <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}" ItemsSource="{Binding ZoomOptions}">
                                     <ContextMenu.ItemContainerStyle>
                                         <Style TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
                                             <Setter Property="Header" Value="{Binding}" />
-                                            <Setter Property="Command" Value="{Binding DataContext.ChangeZoomCommand, RelativeSource={RelativeSource AncestorType=ui:FluentWindow}}" />
+                                            <Setter Property="Command" Value="{Binding DataContext.ChangeZoomCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
                                             <Setter Property="CommandParameter" Value="{Binding}" />
                                         </Style>
                                     </ContextMenu.ItemContainerStyle>
@@ -153,13 +198,15 @@
                         </ui:DropDownButton>
 
                         <ui:DropDownButton Content="{Binding SelectedSessionMode}"
+                           Click="OnConsolePickerClick"
+                           Style="{StaticResource {x:Type ui:DropDownButton}}"
                            Appearance="Transparent" Background="Transparent" 
                            FontSize="16"
                            Height="32"
                            Padding="8,0"
                            Margin="8,0,0,0">
                             <ui:DropDownButton.Flyout>
-                                <ContextMenu>
+                                <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
                                     <MenuItem Header="{x:Static properties:Resources.ConsoleViewModel_BasicSession}" Command="{Binding SwitchSessionModeCommand}" CommandParameter="{x:Static properties:Resources.ConsoleViewModel_BasicSession}" />
                                     <MenuItem Header="{x:Static properties:Resources.ConsoleViewModel_EnhancedSession}" Command="{Binding SwitchSessionModeCommand}" CommandParameter="{x:Static properties:Resources.ConsoleViewModel_EnhancedSession}" IsEnabled="{Binding IsEnhancedAvailable}" />
                                 </ContextMenu>
@@ -168,6 +215,7 @@
 
                         <!-- CAD 按钮仅基本会话显示：增强会话是 RDP，SAS 无法程序化发送(系统 mstscax 拒绝)，与微软 VMConnect 一致 → 隐藏 -->
                         <ui:Button Appearance="Transparent" Background="Transparent"
+                                   Style="{StaticResource {x:Type ui:Button}}"
                                    Width="38"
                                    Height="32"
                                    Padding="0"
@@ -181,15 +229,16 @@
                         
                         <!-- 全屏切换按钮 -->
                         <ui:Button Icon="{ui:SymbolIcon Symbol=FullScreenMaximize24}"
+                                   Style="{StaticResource {x:Type ui:Button}}"
                                    Appearance="Transparent" Background="Transparent"
                                    Height="32"
                                    Padding="8,0"
                                    Margin="8,0,0,0"
                                    Command="{Binding ToggleFullScreenCommand}"
                                    ToolTip="{x:Static properties:Resources.ConsoleWindow_FullScreen}" />
-                    </StackPanel>
+                    </ToolBar>
                 </Grid>
-            </ui:TitleBar.Header>
+            </ui:TitleBar.CenterContent>
         </ui:TitleBar>
 
         <!-- RDP 画面按虚拟机尺寸居中；连接遮罩由 RdpClientHost 的 WinForms 层提供。 -->
