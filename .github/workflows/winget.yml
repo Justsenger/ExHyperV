@@ -1,0 +1,39 @@
+name: 补交 WinGet
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: '已发布的正式版 Tag，例如 V1.5.2'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  winget:
+    runs-on: windows-latest
+    steps:
+      - name: Validate release tag
+        id: config
+        shell: pwsh
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          $tag = $env:RELEASE_TAG.Trim()
+          if ($tag -notmatch '^[vV](\d+\.\d+\.\d+)$') {
+            throw '请输入正式版 Tag，例如 V1.5.2。'
+          }
+          "VERSION=$($Matches[1])" >> $env:GITHUB_OUTPUT
+          "TAG=$tag" >> $env:GITHUB_OUTPUT
+
+      # WINGET_TOKEN 使用 classic PAT；同步上游工作流需要 public_repo 和 workflow scopes。
+      - name: Submit existing release to WinGet
+        uses: vedantmgoyal2009/winget-releaser@v2
+        with:
+          identifier: Justsenger.ExHyperV
+          installers-regex: '^ExHyperV_V.+_(x64|arm64)\.exe$'
+          token: ${{ secrets.WINGET_TOKEN }}
+          version: ${{ steps.config.outputs.VERSION }}
+          release-tag: ${{ steps.config.outputs.TAG }}
