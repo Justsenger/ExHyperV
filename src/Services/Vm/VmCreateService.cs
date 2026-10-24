@@ -149,6 +149,7 @@ namespace ExHyperV.Services
             // 避开 DefineSystem/建 VHD 的 ERROR_FILE_EXISTS(0x80070050)。用户预期：同名也应自动改名而非报错。
             string finalVmName = await GetUniqueVmNameAsync(p.Name, p.Path);
             bool vmCreated = false;   // DefineSystem 成功后置 true;失败回滚的依据
+            Guid createdVmId = Guid.Empty;
             bool defineSystemInvoked = false;
             string vmHomeFolder = Path.Combine(p.Path, finalVmName);
             bool vmHomeFolderCreated = false;
@@ -268,7 +269,7 @@ namespace ExHyperV.Services
                     vmGuid = vmObj["Name"]?.ToString() ?? "";
                 }
 
-                if (string.IsNullOrEmpty(vmGuid))
+                if (!Guid.TryParse(vmGuid, out createdVmId) || createdVmId == Guid.Empty)
                     throw new InvalidOperationException(Properties.Resources.Error_VmCreate_NoGuid);
 
                 // New-VM 的 OpenHCL 枚举只写入隔离类型。微软 openvmm 的
@@ -451,7 +452,8 @@ namespace ExHyperV.Services
                 {
                     try
                     {
-                        var rollback = await VmDeleteService.DestroyVmAsync(finalVmName);
+                        // 未拿到本次创建的稳定身份时只保留现场，不能按名称猜测并删除另一台 VM。
+                        var rollback = await VmDeleteService.DestroyVmAsync(finalVmName, createdVmId);
                         if (!rollback.Success)
                             return (false, ex.Message + Environment.NewLine +
                                 string.Format(Properties.Resources.Error_VmCreate_RollbackFailed, finalVmName, rollback.Message));

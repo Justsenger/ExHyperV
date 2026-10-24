@@ -282,15 +282,19 @@ namespace ExHyperV.ViewModels
             try
             {
                 int okCount = 0;
+                var errors = new List<string>();
                 foreach (var t in targets)
                 {
                     var r = await VmDeleteService.PurgeVmAsync(t.Name, t.Id);
-                    if (r.Success) { VmList.Remove(t); okCount++; }
+                    if (r.Unregistered) VmList.Remove(t);
+                    if (r.Success) okCount++;
+                    else errors.Add($"{t.Name} ({t.Id:D}): {r.Message}");
                 }
                 if (SelectedVm != null && !VmList.Contains(SelectedVm)) SelectedVm = VmList.FirstOrDefault();
                 int fail = targets.Count - okCount;
                 if (fail == 0) ShowSuccess(string.Format(Properties.Resources.VmPage_MultiPurgeDone, okCount));
-                else ShowError(string.Format(Properties.Resources.VmPage_MultiPurgeFail, okCount, fail));
+                else ShowError(string.Format(Properties.Resources.VmPage_MultiPurgeFail, okCount, fail)
+                    + Environment.NewLine + Environment.NewLine + string.Join(Environment.NewLine, errors));
             }
             finally { IsLoading = false; }
         }
@@ -399,10 +403,13 @@ namespace ExHyperV.ViewModels
             try
             {
                 var purge = await VmDeleteService.PurgeVmAsync(vm.Name, vm.Id);
-                if (purge.Success)
+                if (purge.Unregistered)
                 {
                     VmList.Remove(vm);
                     if (SelectedVm == vm) SelectedVm = VmList.FirstOrDefault();
+                }
+                if (purge.Success)
+                {
                     ShowSuccess(string.Format(Properties.Resources.VmPage_PurgeDoneDesc, vm.Name));
                 }
                 else

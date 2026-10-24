@@ -3381,6 +3381,14 @@
   <data name="VmDelete_TurnOffFail" xml:space="preserve">
     <value>虚拟机 '{0}' 未能进入关机状态</value>
   </data>
+  <data name="VmDelete_CleanupFailed" xml:space="preserve">
+    <value>虚拟机已注销，但部分文件或目录未能删除。请检查权限或占用情况，再手动清理以下残留项：
+{0}</value>
+  </data>
+  <data name="VmDelete_UnregisterUnconfirmed" xml:space="preserve">
+    <value>无法确认虚拟机是否已注销，已保留可重新导入的恢复副本：{0}
+{1}</value>
+  </data>
   <data name="VmDelete_ConfigRootMissing" xml:space="preserve">
     <value>无法确定虚拟机“{0}”的配置目录，因此不能保留可重新导入的完整配置。</value>
   </data>

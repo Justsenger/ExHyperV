@@ -9087,6 +9087,14 @@ namespace ExHyperV.Properties {
             get { return ResourceManager.GetString("VmDelete_TurnOffFail", resourceCulture); }
         }
 
+        public static string VmDelete_CleanupFailed {
+            get { return ResourceManager.GetString("VmDelete_CleanupFailed", resourceCulture); }
+        }
+
+        public static string VmDelete_UnregisterUnconfirmed {
+            get { return ResourceManager.GetString("VmDelete_UnregisterUnconfirmed", resourceCulture); }
+        }
+
         public static string VmDelete_ConfigRootMissing {
             get { return ResourceManager.GetString("VmDelete_ConfigRootMissing", resourceCulture); }
         }

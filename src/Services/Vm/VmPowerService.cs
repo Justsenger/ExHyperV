@@ -22,9 +22,17 @@ namespace ExHyperV.Services
 
         // 回传引擎真实成败：RequestStateChange 经 WmiApi.InvokeAsync 会等异步 Job 完成并带回其 ErrorDescription。
         // 返回 ApiResponse 而非 void：启动失败(配置错误/资源不足/GPU 分区不可用等)不再静默，调用方据此弹错。
-        public static async Task<ApiResponse> ExecuteControlActionAsync(string vmName, string action)
+        public static Task<ApiResponse> ExecuteControlActionAsync(string vmName, string action)
+            => ExecuteControlActionAsync(vmName, action, WmiApi.VmComputerSystemNamePredicate(vmName));
+
+        public static Task<ApiResponse> ExecuteControlActionAsync(Guid vmId, string action)
+            => vmId == Guid.Empty
+                ? Task.FromResult(ApiResponse.Fail(Properties.Resources.Error_Net_VmNotFound))
+                : ExecuteControlActionAsync(vmId.ToString("D"), action, $"Name = '{vmId:D}'");
+
+        private static async Task<ApiResponse> ExecuteControlActionAsync(string vmName, string action, string predicate)
         {
-            string wql = $"SELECT * FROM Msvm_ComputerSystem WHERE {WmiApi.VmComputerSystemNamePredicate(vmName)}";
+            string wql = $"SELECT * FROM Msvm_ComputerSystem WHERE {predicate}";
 
             switch (action)
             {
@@ -36,14 +44,14 @@ namespace ExHyperV.Services
                     return await HostAzureFeatureSetService.RunTemporarilyDisabledAsync(StartAsync);
 
                 case "TurnOff":
-                    return await ForceTurnOffAsync(vmName, wql);
+                    return await ForceTurnOffAsync(vmName, wql, predicate);
 
                 case "Stop":
                     // 先尝试软关机（4），失败再强制关机（3）
                     var stopResult = await WmiApi.InvokeAsync(wql, "RequestStateChange",
                         p => p["RequestedState"] = (ushort)4);
                     return stopResult.Success ? stopResult
-                        : await ForceTurnOffAsync(vmName, wql);
+                        : await ForceTurnOffAsync(vmName, wql, predicate);
 
                 case "Restart":
                     // 先尝试软重启（10），失败再硬重置（11）
@@ -65,7 +73,7 @@ namespace ExHyperV.Services
             }
         }
 
-        private static async Task<ApiResponse> ForceTurnOffAsync(string vmName, string wql)
+        private static async Task<ApiResponse> ForceTurnOffAsync(string vmName, string wql, string predicate)
         {
             var requestTask = WmiApi.InvokeAsync(wql, "RequestStateChange",
                 p => p["RequestedState"] = (ushort)3);
@@ -77,10 +85,10 @@ namespace ExHyperV.Services
                 ObserveFault(requestTask);
 
             if (requestResult?.Success == true &&
-                await WaitForPoweredOffAsync(vmName, PowerOffWaitTimeout))
+                await WaitForPoweredOffAsync(predicate, PowerOffWaitTimeout))
                 return ApiResponse.Ok();
 
-            var state = await GetRuntimeStateAsync(vmName, TimeSpan.FromSeconds(3));
+            var state = await GetRuntimeStateAsync(predicate, TimeSpan.FromSeconds(3));
             if (state is null)
             {
                 return requestResult is { Success: false }
@@ -121,17 +129,17 @@ namespace ExHyperV.Services
                     exception: ex);
             }
 
-            return await WaitForPoweredOffAsync(vmName, PowerOffWaitTimeout)
+            return await WaitForPoweredOffAsync(predicate, PowerOffWaitTimeout)
                 ? ApiResponse.Ok()
                 : ApiResponse.Fail(string.Format(Properties.Resources.Error_VmPower_StillNotOff, vmName));
         }
 
-        private static async Task<bool> WaitForPoweredOffAsync(string vmName, TimeSpan timeout)
+        private static async Task<bool> WaitForPoweredOffAsync(string predicate, TimeSpan timeout)
         {
             var deadline = DateTime.UtcNow + timeout;
             while (DateTime.UtcNow < deadline)
             {
-                var state = await GetRuntimeStateAsync(vmName, TimeSpan.FromSeconds(2));
+                var state = await GetRuntimeStateAsync(predicate, TimeSpan.FromSeconds(2));
                 if (state?.EnabledState == 3)
                     return true;
 
@@ -141,10 +149,10 @@ namespace ExHyperV.Services
             return false;
         }
 
-        private static async Task<VmRuntimeState?> GetRuntimeStateAsync(string vmName, TimeSpan timeout)
+        private static async Task<VmRuntimeState?> GetRuntimeStateAsync(string predicate, TimeSpan timeout)
         {
             var queryTask = WmiApi.QueryFirstAsync(
-                $"SELECT EnabledState, ProcessID FROM Msvm_ComputerSystem WHERE {WmiApi.VmComputerSystemNamePredicate(vmName)}",
+                $"SELECT EnabledState, ProcessID FROM Msvm_ComputerSystem WHERE {predicate}",
                 obj => new VmRuntimeState(
                     Convert.ToUInt16(obj["EnabledState"] ?? (ushort)0),
                     Convert.ToInt32(obj["ProcessID"] ?? 0)));

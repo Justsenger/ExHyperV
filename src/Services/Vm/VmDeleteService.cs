@@ -50,6 +50,7 @@ public static class VmDeleteService
             "DeleteRecovery",
             Guid.NewGuid().ToString("N"));
         string? recoveryPackage = null;
+        bool destroyAttempted = false;
         bool destroyed = false;
         bool restored = false;
         try
@@ -82,11 +83,14 @@ public static class VmDeleteService
 
             // 导出完成后再关机。这样运行态/保存态也已进入恢复包，而 DestroySystem 仍在
             // Hyper-V 要求的关机状态执行。
-            var off = await EnsureOffAsync(vmName);
+            var off = await EnsureOffAsync(vmName, vmId);
             if (!off.Success) return off;
 
-            var destroy = await DestroyAsync(vmName);
-            if (!destroy.Success) return destroy;
+            destroyAttempted = true;
+            var destroy = await DestroyAsync(vmName, vmId);
+            if (!destroy.Success)
+                return (false, string.Format(Properties.Resources.VmDelete_UnregisterUnconfirmed,
+                    recoveryPackage, destroy.Message));
             destroyed = true;
 
             await RestoreConfigurationPackageAsync(
@@ -100,10 +104,10 @@ public static class VmDeleteService
         }
         catch (Exception ex)
         {
-            if (destroyed && !string.IsNullOrWhiteSpace(recoveryPackage))
+            if (destroyAttempted && !string.IsNullOrWhiteSpace(recoveryPackage))
             {
                 return (false, string.Format(
-                    Properties.Resources.VmDelete_RestoreFailed,
+                    destroyed ? Properties.Resources.VmDelete_RestoreFailed : Properties.Resources.VmDelete_UnregisterUnconfirmed,
                     recoveryPackage,
                     ex.Message));
             }
@@ -111,53 +115,65 @@ public static class VmDeleteService
         }
         finally
         {
-            // 注销后的恢复失败是唯一需要保留临时包的情况，便于用户手动找回；
-            // 其它失败仍有在册 VM，临时导出可以安全清理。
-            if (!destroyed || restored)
+            // 注销提交后，即使响应或回查失败，原 VM 也可能已被删除，必须保留恢复包。
+            if (!destroyAttempted || restored)
                 await TryDeleteDirAsync(recoveryRoot);
         }
     }
 
     /// <summary>仅执行 VMMS 销毁；供创建事务回滚使用，不生成用户恢复包。</summary>
-    internal static async Task<(bool Success, string Message)> DestroyVmAsync(string vmName)
+    internal static async Task<(bool Success, string Message)> DestroyVmAsync(string vmName, Guid vmId)
     {
         try
         {
-            var off = await EnsureOffAsync(vmName);
+            var off = await EnsureOffAsync(vmName, vmId);
             if (!off.Success) return off;
-            return await DestroyAsync(vmName);
+            return await DestroyAsync(vmName, vmId);
         }
         catch (Exception ex) { return (false, ex.Message); }
     }
 
     /// <summary>彻底删除：移除配置 + 删磁盘文件 + 删配置目录（带受保护路径防误删）。仅在 DestroySystem 成功后才动文件。</summary>
-    public static async Task<(bool Success, string Message)> PurgeVmAsync(string vmName, Guid vmId)
+    public static async Task<(bool Success, string Message, bool Unregistered)> PurgeVmAsync(string vmName, Guid vmId)
     {
+        bool unregistered = false;
         try
         {
+            if (vmId == Guid.Empty)
+                return (false, string.Format(Properties.Resources.Error_Net_VmNotFound, vmName), false);
+
             // 删除前先收集要清理的路径（删完就查不到了）——与 Preview 同一逻辑，保证"显示=实删"。
             PurgeTargets targets = await CollectPurgeTargetsAsync(vmId.ToString());
 
-            var off = await EnsureOffAsync(vmName);
-            if (!off.Success) return off;
-            var destroy = await DestroyAsync(vmName);
-            if (!destroy.Success) return destroy;   // 删除失败就不动文件（VM 仍在用着盘）
+            var off = await EnsureOffAsync(vmName, vmId);
+            if (!off.Success) return (false, off.Message, false);
+            var destroy = await DestroyAsync(vmName, vmId);
+            if (!destroy.Success) return (false, destroy.Message, false); // 注销失败就不动文件。
+            unregistered = true;
 
+            var cleanupFailures = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (string diskPath in targets.DiskFiles)
-                await TryDeleteFileAsync(diskPath);
+                if (!await TryDeleteFileAsync(diskPath)) cleanupFailures.Add(diskPath);
 
             // DestroySystem 对保存态/TPM 机可能残留配置与状态文件。目标已在销毁前按
             // VM/检查点 ConfigurationID 精确收集；执行与确认弹窗使用同一份清单。
             foreach (string configFile in targets.ConfigFiles)
-                await TryDeleteFileAsync(configFile);
+                if (!await TryDeleteFileAsync(configFile)) cleanupFailures.Add(configFile);
             foreach (string configDirectory in targets.ConfigDirectories
                          .OrderByDescending(path => path.Length))
-                await TryDeleteDirAsync(configDirectory);
-            await DeleteConfigDirAsync(targets.ConfigDirectory, targets.DeletesConfigDirectory);
+                if (!await TryDeleteDirAsync(configDirectory)) cleanupFailures.Add(configDirectory);
+            if (!await DeleteConfigDirAsync(targets.ConfigDirectory, targets.DeletesConfigDirectory)
+                && targets.ConfigDirectory != null)
+                cleanupFailures.Add(targets.ConfigDirectory);
 
-            return (true, string.Empty);
+            // 父目录的重试可能已清掉先前失败的子文件，只报告最终仍未确认消失的路径。
+            cleanupFailures.RemoveWhere(IsPathMissing);
+            return cleanupFailures.Count == 0
+                ? (true, string.Empty, true)
+                : (false, string.Format(Properties.Resources.VmDelete_CleanupFailed,
+                    string.Join(Environment.NewLine, cleanupFailures.OrderBy(path => path, StringComparer.OrdinalIgnoreCase))), true);
         }
-        catch (Exception ex) { return (false, ex.Message); }
+        catch (Exception ex) { return (false, ex.Message, unregistered); }
     }
 
     // 收集"将清理的目标"：VHD 文件路径 + 配置目录。Preview 与 Purge 共用，保证显示与实删一致。
@@ -261,11 +277,13 @@ public static class VmDeleteService
     }
 
     // 取 VM 路径并 DestroySystem（含回查确认真注销）。
-    private static async Task<(bool Success, string Message)> DestroyAsync(string vmName)
+    private static async Task<(bool Success, string Message)> DestroyAsync(string vmName, Guid vmId)
     {
-        var vmPath = (await WmiApi.QueryFirstAsync(
-            $"SELECT * FROM Msvm_ComputerSystem WHERE {WmiApi.VmComputerSystemNamePredicate(vmName)}",
-            obj => obj.Path.Path, WmiScope.HyperV)).Data;
+        var vm = await WmiApi.QueryFirstAsync(
+            $"SELECT * FROM Msvm_ComputerSystem WHERE Name = '{vmId:D}'",
+            obj => obj.Path.Path, WmiScope.HyperV);
+        if (!vm.Success) return (false, vm.Error);
+        var vmPath = vm.Data;
         if (string.IsNullOrEmpty(vmPath))
             return (false, $"VM '{vmName}' not found");
 
@@ -279,8 +297,9 @@ public static class VmDeleteService
         // 回查确认真的注销了——引擎对保存态/TPM 机可能报成功却没销毁干净。不回查就"假成功"：
         // 上层乐观地从列表移除，但 VM 还在册、文件还在 → 再建同名即撞 0x80070050。
         var still = await WmiApi.QueryFirstAsync(
-            $"SELECT Name FROM Msvm_ComputerSystem WHERE {WmiApi.VmComputerSystemNamePredicate(vmName)}",
+            $"SELECT Name FROM Msvm_ComputerSystem WHERE Name = '{vmId:D}'",
             obj => obj["Name"]?.ToString(), WmiScope.HyperV);
+        if (!still.Success) return (false, still.Error);
         return still.HasData
             ? (false, string.Format(Properties.Resources.VmDelete_DestroyVerifyFail, vmName))
             : (true, string.Empty);
@@ -361,18 +380,23 @@ public static class VmDeleteService
     // Caption 会被本地化，不能用于等值过滤虚拟机对象。
     private static bool IsOffOrOrphan(int enabledState) => enabledState == 3 || enabledState == 6;
 
-    private static async Task<(bool Success, string Message)> EnsureOffAsync(string vmName)
+    private static async Task<(bool Success, string Message)> EnsureOffAsync(string vmName, Guid vmId)
     {
+        if (vmId == Guid.Empty)
+            return (false, string.Format(Properties.Resources.Error_Net_VmNotFound, vmName));
+
         var state = await WmiApi.QueryFirstAsync(
-            $"SELECT EnabledState FROM Msvm_ComputerSystem WHERE {WmiApi.VmComputerSystemNamePredicate(vmName)}",
+            $"SELECT EnabledState FROM Msvm_ComputerSystem WHERE Name = '{vmId:D}'",
             obj => Convert.ToInt32(obj["EnabledState"] ?? (ushort)0), WmiScope.HyperV);
+        if (!state.Success) return (false, state.Error);
         if (!state.HasData) return (true, string.Empty);   // 查不到 = 已不存在
         if (IsOffOrOrphan(state.Data)) return (true, string.Empty);
 
-        var off = await VmPowerService.ExecuteControlActionAsync(vmName, "TurnOff");   // RequestStateChange(3)：保存态会丢弃保存状态
+        var off = await VmPowerService.ExecuteControlActionAsync(vmId, "TurnOff");   // RequestStateChange(3)：保存态会丢弃保存状态
         var after = await WmiApi.QueryFirstAsync(
-            $"SELECT EnabledState FROM Msvm_ComputerSystem WHERE {WmiApi.VmComputerSystemNamePredicate(vmName)}",
+            $"SELECT EnabledState FROM Msvm_ComputerSystem WHERE Name = '{vmId:D}'",
             obj => Convert.ToInt32(obj["EnabledState"] ?? (ushort)0), WmiScope.HyperV);
+        if (!after.Success) return (false, after.Error);
         if (after.HasData && !IsOffOrOrphan(after.Data))
             return (false, off.Success ? string.Format(Properties.Resources.VmDelete_TurnOffFail, vmName) : off.Error);
         return (true, string.Empty);
@@ -505,29 +529,31 @@ public static class VmDeleteService
     // 删配置目录：零硬编码、可证明安全。
     // 仅删除递归检查后不含文件的目录。
     //       并动态护住盘符根与主机默认根目录（DefaultExternalDataRoot / DefaultVirtualHardDiskPath，连空也不删）。
-    private static async Task DeleteConfigDirAsync(string? rawConfigDir, bool isProvenDedicated)
+    private static async Task<bool> DeleteConfigDirAsync(string? rawConfigDir, bool isProvenDedicated)
     {
-        if (!isProvenDedicated || string.IsNullOrEmpty(rawConfigDir)) return;
+        if (!isProvenDedicated || string.IsNullOrEmpty(rawConfigDir)) return true;
         string configDir = rawConfigDir.TrimEnd('\\', '/');
-        if (string.IsNullOrEmpty(configDir) || !Directory.Exists(configDir)) return;
+        if (string.IsNullOrEmpty(configDir)) return true;
 
         // 盘符根（如 "C:"）不删
         if (Path.GetPathRoot(configDir)?.TrimEnd('\\', '/')
                 .Equals(configDir, StringComparison.OrdinalIgnoreCase) ?? false)
-            return;
+            return true;
 
         // 主机默认根目录不删（动态查，无硬编码）
         foreach (var root in await GetHostDefaultRootsAsync())
             if (string.Equals(root, configDir, StringComparison.OrdinalIgnoreCase))
-                return;
+                return true;
 
         // 仅当目录下递归无任何文件时才删（共享目录还装着别的 VM → 非空 → 保留）
         try
         {
             if (!Directory.EnumerateFiles(configDir, "*", SearchOption.AllDirectories).Any())
-                await TryDeleteDirAsync(configDir);
+                return await TryDeleteDirAsync(configDir);
+            return true; // 新出现的未知文件必须保留；已知文件清理失败由调用方单独报告。
         }
-        catch { }
+        catch (DirectoryNotFoundException) { return true; }
+        catch { return false; }
     }
 
     // 主机默认 VM / VHD 根目录（动态，替代写死的 C:\... denylist）。
@@ -556,7 +582,8 @@ public static class VmDeleteService
     {
         for (int i = 0; i < 6; i++)
         {
-            try { if (!File.Exists(path)) return true; File.Delete(path); return true; }
+            try { File.Delete(path); return true; }
+            catch (DirectoryNotFoundException) { return true; }
             catch { await Task.Delay(250); }
         }
         return false;
@@ -566,9 +593,18 @@ public static class VmDeleteService
     {
         for (int i = 0; i < 6; i++)
         {
-            try { if (!Directory.Exists(path)) return true; Directory.Delete(path, recursive: true); return true; }
+            try { Directory.Delete(path, recursive: true); return true; }
+            catch (DirectoryNotFoundException) { return true; }
             catch { await Task.Delay(250); }
         }
         return false;
+    }
+
+    private static bool IsPathMissing(string path)
+    {
+        try { File.GetAttributes(path); return false; }
+        catch (FileNotFoundException) { return true; }
+        catch (DirectoryNotFoundException) { return true; }
+        catch { return false; } // 无法访问不能视为已经删除。
     }
 }

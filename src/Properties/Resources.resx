@@ -3381,6 +3381,14 @@ Remove them from storage and retry? Cancel to re-plug the device and try again.<
   <data name="VmDelete_TurnOffFail" xml:space="preserve">
     <value>VM '{0}' could not be turned off.</value>
   </data>
+  <data name="VmDelete_CleanupFailed" xml:space="preserve">
+    <value>The VM was unregistered, but some files or directories could not be removed. Check permissions or whether they are in use, then remove the remaining items manually:
+{0}</value>
+  </data>
+  <data name="VmDelete_UnregisterUnconfirmed" xml:space="preserve">
+    <value>Could not confirm whether the VM was unregistered. Its recovery copy has been kept: {0}
+{1}</value>
+  </data>
   <data name="VmDelete_ConfigRootMissing" xml:space="preserve">
     <value>The configuration directory for VM “{0}” could not be determined, so its reusable configuration cannot be preserved.</value>
   </data>
